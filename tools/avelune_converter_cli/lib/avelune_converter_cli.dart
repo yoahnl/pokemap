@@ -28,6 +28,9 @@ Future<int> runConverterCli(List<String> arguments,
     ..addOption('destination',
         help: 'Nouveau dossier natif absolu ; son parent doit exister.')
     ..addOption('maps', help: 'IDs de cartes source séparés par des virgules.')
+    ..addMultiOption('atlas-binding',
+        splitCommas: false,
+        help: 'Association explicite Référence=PNG source du même dossier.')
     ..addOption('name', help: 'Nom du projet natif.')
     ..addOption('mode', defaultsTo: 'study', allowed: ['study'])
     ..addOption('plan',
@@ -84,8 +87,8 @@ Future<int> runConverterCli(List<String> arguments,
       parsed.rest.isNotEmpty ||
       command.rest.isNotEmpty ||
       command['offline'] != true) {
-        return invalid();
-      }
+    return invalid();
+  }
   bool absolute(String? value) =>
       value != null &&
       value.startsWith('/') &&
@@ -129,6 +132,19 @@ Future<int> runConverterCli(List<String> arguments,
           selectedMaps.toSet().length != selectedMaps.length) {
         return invalid();
       }
+      final bindings = command['atlas-binding'] as List<String>;
+      if (bindings.length > 256 ||
+          bindings.any((value) => value.length > 8193)) {
+        return invalid();
+      }
+      SourceImageBinding.canonicalize([
+        for (final binding in bindings.map(_atlasImagePaths))
+          SourceImageBinding(
+            expectedReferencePath: binding.expected,
+            sourceRelativePath: binding.selected,
+            sourceSha256: Sha256Hash('0' * 64),
+          ),
+      ]);
     } else if (command.name == 'convert') {
       if (!absolute(command['plan'] as String?) ||
           command['approve-plan'] == null) {
@@ -193,6 +209,10 @@ Future<int> runConverterCli(List<String> arguments,
         return 0;
       }
       workflow.updateSettings(ConverterStudySettings(
+          imageBindings: [
+            for (final raw in command['atlas-binding'] as List<String>)
+              _sourceImageBinding(raw, snapshot),
+          ],
           projectName: command['name'] as String,
           parentPath: parentPath!,
           folderName: folderName!,
@@ -310,6 +330,44 @@ Future<int> runConverterCli(List<String> arguments,
     await progressSubscription?.cancel();
     await workflow.dispose();
   }
+}
+
+({String expected, String selected}) _atlasImagePaths(String raw) {
+  final separator = RegExp(r'=(?=Graphics/(?:Tilesets|Autotiles)/)',
+          caseSensitive: false)
+          .firstMatch(raw)
+          ?.start ??
+      -1;
+  if (separator <= 0 || separator == raw.length - 1) {
+    throw const ConverterWorkflowFailure('workflow.selection.invalid',
+        'Une association d’atlas doit utiliser Référence=Graphics/Tilesets/Image.png ou Référence=Graphics/Autotiles/Image.png.');
+  }
+  return (
+    expected: raw.substring(0, separator),
+    selected: raw.substring(separator + 1)
+  );
+}
+
+SourceImageBinding _sourceImageBinding(String raw, SourceSnapshot snapshot) {
+  final paths = _atlasImagePaths(raw);
+  final expected = paths.expected;
+  final selected = paths.selected;
+  final matches = snapshot.entries
+      .where((entry) =>
+          entry.relativePath == selected &&
+          entry.kind == SourceNodeKind.file &&
+          entry.sha256 != null &&
+          entry.format == 'raster' &&
+          entry.relativePath.toLowerCase().endsWith('.png'))
+      .toList();
+  if (matches.length != 1) {
+    throw const ConverterWorkflowFailure('workflow.selection.invalid',
+        'L’image choisie doit être un PNG régulier du projet source.');
+  }
+  return SourceImageBinding(
+      expectedReferencePath: expected,
+      sourceRelativePath: selected,
+      sourceSha256: matches.single.sha256!);
 }
 
 int converterCliExitCode(String code) {

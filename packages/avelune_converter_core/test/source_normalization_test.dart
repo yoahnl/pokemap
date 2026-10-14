@@ -329,7 +329,7 @@ _Files _source(Map<String, List<int>> bytes,
         format: entry.key.endsWith('.rxdata')
             ? 'ruby-marshal'
             : entry.key.endsWith('.png')
-                ? 'png'
+                ? 'raster'
                 : 'text',
         family: entry.key.endsWith('.rxdata')
             ? 'rmxp'
@@ -474,6 +474,184 @@ List<Object?> _routeConnections() => [
     ];
 
 void main() {
+  test(
+      'explicit atlas image binding resolves a missing reference with provenance',
+      () async {
+    final bytes = _project(image: false)
+      ..['Graphics/Tilesets/Terrain_backup.png'] = _png();
+    final files = _source(bytes);
+    final binding = SourceImageBinding(
+      expectedReferencePath: 'Graphics/Tilesets/Terrain',
+      sourceRelativePath: 'Graphics/Tilesets/Terrain_backup.png',
+      sourceSha256: _hash(_png()),
+    );
+    final missing = await _normalize(files);
+    _blocked(missing);
+    final resolved = await const RmxpSourceNormalizer().normalize(
+      snapshot: files.snapshot,
+      files: files,
+      imageBindings: [binding],
+    );
+    expect(resolved.canPlan, isTrue);
+    final image = resolved.tilesets.single.images
+        .singleWhere((image) => image.sourceName == 'Terrain');
+    expect(image.state, 'resolved');
+    expect(image.sourceName, 'Terrain');
+    expect(image.locator.file, 'Data/Tilesets.rxdata');
+    expect(image.sourceFile!.relativePath, binding.sourceRelativePath);
+    expect(image.sourceFile!.sha256, binding.sourceSha256);
+    expect(image.appliedImageBinding!.toJson(), binding.toJson());
+    expect(resolved.snapshot.canonicalHash, files.snapshot.canonicalHash);
+    expect(resolved.canonicalHash, isNot(missing.canonicalHash));
+    expect(resolved.diagnostics.map((d) => d.code),
+        contains('normalization.image_binding_applied'));
+    expect(bytes.containsKey('Graphics/Tilesets/Terrain.png'), isFalse);
+    expect(SourceImageBinding.fromJson(binding.toJson()).toJson(),
+        binding.toJson());
+  });
+
+  test('atlas image bindings reject unattested files and duplicate decisions',
+      () async {
+    final bytes = _project(image: false)
+      ..['Graphics/Tilesets/Terrain_backup.png'] = _png();
+    final files = _source(bytes);
+    SourceImageBinding binding(String path, Sha256Hash hash) =>
+        SourceImageBinding(
+          expectedReferencePath: 'Graphics/Tilesets/Terrain',
+          sourceRelativePath: path,
+          sourceSha256: hash,
+        );
+    for (final bindings in [
+      [binding('Graphics/Tilesets/absent.png', _hash(_png()))],
+      [
+        binding('Graphics/Tilesets/Terrain_backup.png', _hash([1]))
+      ],
+      [
+        binding('Graphics/Tilesets/Terrain_backup.png', _hash(_png())),
+        binding('Graphics/Tilesets/Terrain_backup.png', _hash(_png())),
+      ],
+    ]) {
+      final resolved = await const RmxpSourceNormalizer().normalize(
+        snapshot: files.snapshot,
+        files: files,
+        imageBindings: bindings,
+      );
+      _blocked(resolved);
+      expect(resolved.diagnostics.map((d) => d.code),
+          contains('normalization.image_binding.invalid'));
+    }
+    for (final reference in ['../Terrain', 'Graphics/Characters/Trainer']) {
+      expect(
+        () => SourceImageBinding(
+          expectedReferencePath: reference,
+          sourceRelativePath: 'Graphics/Tilesets/Terrain_backup.png',
+          sourceSha256: _hash(_png()),
+        ),
+        throwsA(isA<ContractError>()),
+      );
+    }
+  });
+
+  test('atlas image bindings never replace resolved images or disappear unused',
+      () async {
+    final files =
+        _source(_project()..['Graphics/Tilesets/Terrain_backup.png'] = _png());
+    for (final reference in [
+      'Graphics/Tilesets/Terrain',
+      'Graphics/Tilesets/Unused',
+    ]) {
+      final resolved = await const RmxpSourceNormalizer().normalize(
+        snapshot: files.snapshot,
+        files: files,
+        imageBindings: [
+          SourceImageBinding(
+            expectedReferencePath: reference,
+            sourceRelativePath: 'Graphics/Tilesets/Terrain_backup.png',
+            sourceSha256: _hash(_png()),
+          ),
+        ],
+      );
+      _blocked(resolved);
+      expect(
+          resolved.diagnostics.map((d) => d.code),
+          contains(anyOf('normalization.image_binding.unneeded',
+              'normalization.image_binding.unused')));
+      expect(
+          resolved.tilesets.single.images
+              .singleWhere((image) => image.sourceName == 'Terrain')
+              .sourceFile!
+              .relativePath,
+          'Graphics/Tilesets/Terrain.png');
+    }
+  });
+
+  test(
+      'atlas image bindings freeze choices and select an ambiguous source explicitly',
+      () async {
+    final files =
+        _source(_project()..['Graphics/Tilesets/Terrain.bmp'] = [1, 2, 3]);
+    final binding = SourceImageBinding(
+      expectedReferencePath: 'Graphics/Tilesets/Terrain',
+      sourceRelativePath: 'Graphics/Tilesets/Terrain.png',
+      sourceSha256: _hash(_png()),
+    );
+    final choices = [binding];
+    files.onRead = (_) => choices.clear();
+    final resolved = await const RmxpSourceNormalizer().normalize(
+      snapshot: files.snapshot,
+      files: files,
+      imageBindings: choices,
+    );
+    expect(choices, isEmpty);
+    expect(resolved.canPlan, isTrue);
+    final image = resolved.tilesets.single.images
+        .singleWhere((image) => image.sourceName == 'Terrain');
+    expect(image.appliedImageBinding, binding);
+    expect(image.sourceFile!.relativePath, binding.sourceRelativePath);
+  });
+
+  test('atlas image bindings reject malformed transports and preserve quotas',
+      () async {
+    final hash = _hash(_png());
+    for (final source in [
+      'Terrain.png',
+      '/tmp/Terrain.png',
+      'Graphics/Autotiles/Terrain.png',
+      'Graphics/Tilesets/Terrain.txt'
+    ]) {
+      expect(
+          () => SourceImageBinding(
+                expectedReferencePath: 'Graphics/Tilesets/Terrain',
+                sourceRelativePath: source,
+                sourceSha256: hash,
+              ),
+          throwsA(isA<ContractError>()));
+    }
+    final binding = SourceImageBinding(
+      expectedReferencePath: 'Graphics/Tilesets/Terrain',
+      sourceRelativePath: 'Graphics/Tilesets/Terrain_backup.png',
+      sourceSha256: hash,
+    );
+    for (final json in [
+      {...binding.toJson(), 'unexpected': true},
+      {...binding.toJson(), 'version': 0},
+      {...binding.toJson(), 'sourceSha256': 'wrong'},
+    ]) {
+      expect(() => SourceImageBinding.fromJson(json),
+          throwsA(isA<ContractError>()));
+    }
+    final files = _source(_project(image: false)
+      ..['Graphics/Tilesets/Terrain_backup.png'] = _png());
+    await expectLater(
+        const RmxpSourceNormalizer().normalize(
+          snapshot: files.snapshot,
+          files: files,
+          imageBindings: List.filled(257, binding),
+        ),
+        throwsA(isA<ContractError>()));
+    expect(files.reads, isEmpty);
+  });
+
   test('map hierarchy inspection reads names without decoding map content',
       () async {
     final bytes = _project(maps: {1: _map(), 8: _map()})
@@ -588,7 +766,7 @@ void main() {
     expect(row.rawDataRef.binaryLocation.graphPath, contains('[2]'));
     expect(row.toJson()['nativeOffset'], 0);
     expect(row.toJson()['sourceDirection'], 'E');
-    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v2');
+    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v3');
   });
 
   test(

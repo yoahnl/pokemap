@@ -115,6 +115,82 @@ final class NormalizedMapInfo {
       };
 }
 
+final class SourceImageBinding {
+  SourceImageBinding({
+    required this.expectedReferencePath,
+    required this.sourceRelativePath,
+    required this.sourceSha256,
+  }) {
+    validateSourceRelativePath(expectedReferencePath);
+    validateSourceRelativePath(sourceRelativePath);
+    final expected = sourcePathCollisionKey(expectedReferencePath);
+    final source = sourcePathCollisionKey(sourceRelativePath);
+    _require(
+        expectedReferencePath.length <= 4096 &&
+            sourceRelativePath.length <= 4096 &&
+            RegExp(r'^graphics/(tilesets|autotiles)/[^/]+$')
+                .hasMatch(expected) &&
+            RegExp(r'^graphics/(tilesets|autotiles)/[^/]+\.(png|bmp|jpe?g)$')
+                .hasMatch(source) &&
+            expected.substring(0, expected.lastIndexOf('/')) ==
+                source.substring(0, source.lastIndexOf('/')) &&
+            RegExp(r'\.(png|bmp|jpe?g)$').hasMatch(source),
+        'normalization.image_binding.invalid',
+        expectedReferencePath,
+        'An atlas image binding requires a source image in the same folder');
+  }
+
+  factory SourceImageBinding.fromJson(Object? input) {
+    _require(
+        input is Map<String, Object?> &&
+            input.length == 5 &&
+            input['kind'] == 'sourceImageBinding' &&
+            input['version'] == 1 &&
+            input['expectedReferencePath'] is String &&
+            input['sourceRelativePath'] is String &&
+            input['sourceSha256'] is String,
+        'normalization.image_binding.invalid',
+        r'$',
+        'Invalid closed atlas image binding');
+    final json = input as Map<String, Object?>;
+    return SourceImageBinding(
+        expectedReferencePath: json['expectedReferencePath'] as String,
+        sourceRelativePath: json['sourceRelativePath'] as String,
+        sourceSha256: Sha256Hash(json['sourceSha256'] as String));
+  }
+
+  static List<SourceImageBinding> canonicalize(
+      Iterable<SourceImageBinding> bindings) {
+    final result = <SourceImageBinding>[];
+    final references = <String>{};
+    for (final binding in bindings) {
+      _require(
+          result.length < 256 &&
+              references
+                  .add(sourcePathCollisionKey(binding.expectedReferencePath)),
+          'normalization.image_binding.invalid',
+          binding.expectedReferencePath,
+          'Atlas image bindings must be unique and bounded');
+      result.add(binding);
+    }
+    result.sort((a, b) => sourcePathCollisionKey(a.expectedReferencePath)
+        .compareTo(sourcePathCollisionKey(b.expectedReferencePath)));
+    return List.unmodifiable(result);
+  }
+
+  final String expectedReferencePath;
+  final String sourceRelativePath;
+  final Sha256Hash sourceSha256;
+
+  Map<String, Object?> toJson() => Map.unmodifiable({
+        'kind': 'sourceImageBinding',
+        'version': 1,
+        'expectedReferencePath': expectedReferencePath,
+        'sourceRelativePath': sourceRelativePath,
+        'sourceSha256': sourceSha256.value,
+      });
+}
+
 final class NormalizedMediaReference {
   const NormalizedMediaReference({
     required this.ownerId,
@@ -125,6 +201,7 @@ final class NormalizedMediaReference {
     this.sourceFile,
     this.slot,
     this.sourceTileId,
+    this.appliedImageBinding,
   });
 
   final ConverterId ownerId;
@@ -135,6 +212,7 @@ final class NormalizedMediaReference {
   final SourceLocator locator;
   final String state;
   final SourceFileEntry? sourceFile;
+  final SourceImageBinding? appliedImageBinding;
 
   Map<String, Object?> toJson() => {
         'ownerId': ownerId.value,
@@ -145,6 +223,8 @@ final class NormalizedMediaReference {
         'locator': locator.toJson(),
         'state': state,
         'sourceFile': sourceFile?.toJson(),
+        if (appliedImageBinding != null)
+          'appliedImageBinding': appliedImageBinding!.toJson(),
       };
 }
 
@@ -346,7 +426,7 @@ final class NormalizedSourceProject {
   Map<String, Object?> _normalizedJson() => {
         'schemaVersion': '1.0',
         'kind': 'normalizedSourceProject',
-        'extractorVersion': 'rmxp-normalization-v2',
+        'extractorVersion': 'rmxp-normalization-v3',
         'connections':
             connections.map((connection) => connection.toJson()).toList(),
         'connectionsState': connectionsState.name,
@@ -396,7 +476,7 @@ final class RmxpSourceNormalizer {
     final token = cancellation ?? ScanCancellation();
     token.check();
     return _SourceNormalizationRun(
-            snapshot, files, limits, token, null, false, false)
+            snapshot, files, limits, token, null, false, false, const [])
         .run(hierarchyOnly: true);
   }
 
@@ -408,10 +488,13 @@ final class RmxpSourceNormalizer {
     Set<int>? selectedMapIds,
     bool includeEventSystem = false,
     bool includeConnections = false,
+    List<SourceImageBinding> imageBindings = const [],
   }) async {
     limits._validate();
     final token = cancellation ?? ScanCancellation();
     token.check();
+    _require(imageBindings.length <= 256, 'normalization.image_binding.invalid',
+        r'$', 'Too many atlas image bindings');
     return _SourceNormalizationRun(
             snapshot,
             files,
@@ -419,7 +502,8 @@ final class RmxpSourceNormalizer {
             token,
             selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds),
             includeEventSystem,
-            includeConnections)
+            includeConnections,
+            List.unmodifiable(imageBindings))
         .run();
   }
 }
@@ -432,7 +516,8 @@ final class _SourceNormalizationRun {
       this.cancellation,
       this.selectedMapIds,
       this.includeEventSystem,
-      this.includeConnections)
+      this.includeConnections,
+      this.requestedImageBindings)
       : archive = SourceArchive(
           limits: SourceArchiveLimits(maxTotalBytes: limits.maxTotalBytes),
         ),
@@ -457,6 +542,10 @@ final class _SourceNormalizationRun {
   final Set<int>? selectedMapIds;
   final bool includeEventSystem;
   final bool includeConnections;
+  final List<SourceImageBinding> requestedImageBindings;
+  final imageBindings = <String, SourceImageBinding>{};
+  final boundImages = <String, SourceFileEntry>{};
+  final usedImageBindings = <String>{};
   final SourceArchive archive;
   final ConverterId sourceProfileId;
   final byPath = <String, SourceFileEntry>{};
@@ -684,10 +773,37 @@ final class _SourceNormalizationRun {
           'Invalid source map selection');
     }
     try {
+      for (final binding
+          in SourceImageBinding.canonicalize(requestedImageBindings)) {
+        final key = sourcePathCollisionKey(binding.expectedReferencePath);
+        final entry =
+            byPath[sourcePathCollisionKey(binding.sourceRelativePath)];
+        _require(
+            entry != null &&
+                entry.kind == SourceNodeKind.file &&
+                entry.relativePath == binding.sourceRelativePath &&
+                entry.sha256 == binding.sourceSha256 &&
+                const {'raster', 'png', 'bmp', 'jpeg', 'jpg'}
+                    .contains(entry.format),
+            'normalization.image_binding.invalid',
+            binding.sourceRelativePath,
+            'The chosen atlas image must match an admitted regular file');
+        imageBindings[key] = binding;
+        boundImages[key] = entry!;
+      }
       if (hierarchyOnly) {
         await extractHierarchy();
       } else {
         await extract();
+      }
+      for (final entry in imageBindings.entries) {
+        if (!usedImageBindings.contains(entry.key)) {
+          diagnostic(
+              'normalization.image_binding.unused',
+              locator(entry.value.expectedReferencePath),
+              'The chosen atlas image is not used by the selected maps',
+              paths: [entry.value.sourceRelativePath]);
+        }
       }
     } on Object catch (error) {
       if (error is ContractError && error.code == 'source.cancelled') rethrow;
@@ -1398,6 +1514,29 @@ final class _SourceNormalizationRun {
         : candidates.isEmpty
             ? 'missing'
             : 'ambiguous';
+    final bindingKey = sourcePathCollisionKey(path);
+    final binding = imageBindings[bindingKey];
+    if (binding != null) {
+      usedImageBindings.add(bindingKey);
+      if (state == 'resolved') {
+        diagnostic('normalization.image_binding.unneeded', loc,
+            'The original atlas reference already resolves without a binding',
+            paths: [path, binding.sourceRelativePath]);
+      } else {
+        diagnostic('normalization.image_binding_applied', loc,
+            'An explicitly chosen source image supplies the $state atlas reference',
+            blocks: false, paths: [path, binding.sourceRelativePath]);
+        return NormalizedMediaReference(
+            ownerId: ownerId,
+            role: role,
+            sourceName: name,
+            locator: loc,
+            state: 'resolved',
+            slot: slot,
+            sourceFile: boundImages[bindingKey],
+            appliedImageBinding: binding);
+      }
+    }
     if (state != 'resolved') {
       diagnostic('normalization.${state}_image', loc,
           'Source image $role "$name" is $state',
@@ -1531,6 +1670,7 @@ final class _SourceNormalizationRun {
         locator: tile.$4,
         state: image.state == 'none' ? 'missing' : image.state,
         sourceFile: image.sourceFile,
+        appliedImageBinding: image.appliedImageBinding,
         slot: slot,
         sourceTileId: tile.$2,
       ));

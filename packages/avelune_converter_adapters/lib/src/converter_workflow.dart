@@ -109,6 +109,7 @@ final class ConverterStudySettings {
     required List<int> selectedSourceMapIds,
     required SourceStudyAcknowledgement profileAcknowledgement,
     List<LiteralDependencyDecision> dependencyDecisions = const [],
+    List<SourceImageBinding> imageBindings = const [],
     bool allowFirstFrameAutotiles = false,
     AssetOutputMode assetOutputMode = AssetOutputMode.sharedAtlas,
     ConverterAssetReviewSet? reviewSet,
@@ -171,6 +172,7 @@ final class ConverterStudySettings {
     }
     final decisions = dependencyDecisions.toList()
       ..sort((a, b) => a.canonicalHash.value.compareTo(b.canonicalHash.value));
+    final bindings = SourceImageBinding.canonicalize(imageBindings);
     return ConverterStudySettings._(
         projectName.trim(),
         path.normalize(parentPath),
@@ -178,6 +180,7 @@ final class ConverterStudySettings {
         List.unmodifiable(ids),
         profileAcknowledgement,
         List.unmodifiable(decisions),
+        bindings,
         allowFirstFrameAutotiles,
         assetOutputMode,
         reviewSet,
@@ -192,6 +195,7 @@ final class ConverterStudySettings {
       this.selectedSourceMapIds,
       this.profileAcknowledgement,
       this.dependencyDecisions,
+      this.imageBindings,
       this.allowFirstFrameAutotiles,
       this.assetOutputMode,
       this.reviewSet,
@@ -204,6 +208,7 @@ final class ConverterStudySettings {
   final List<int> selectedSourceMapIds;
   final SourceStudyAcknowledgement profileAcknowledgement;
   final List<LiteralDependencyDecision> dependencyDecisions;
+  final List<SourceImageBinding> imageBindings;
   final bool allowFirstFrameAutotiles;
   final AssetOutputMode assetOutputMode;
   final ConverterAssetReviewSet? reviewSet;
@@ -214,7 +219,7 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 2,
+        'version': 3,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
@@ -222,6 +227,7 @@ final class ConverterStudySettings {
         'profileAcknowledgement': profileAcknowledgement.toJson(),
         'dependencyDecisions':
             dependencyDecisions.map((value) => value.toJson()).toList(),
+        'imageBindings': imageBindings.map((value) => value.toJson()).toList(),
         'allowFirstFrameAutotiles': allowFirstFrameAutotiles,
         'assetOutputMode': assetOutputMode.name,
         if (includeReviewSet) 'reviewSet': reviewSet?.toJson(),
@@ -1027,7 +1033,7 @@ final class ConverterWorkflow {
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac16-study-v1';
+const _converterVersion = 'avelune-converter-ac16-study-v2';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -1362,6 +1368,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             limits: settings.normalizationLimits,
             cancellation: relay.cancellation,
             selectedMapIds: wanted,
+            imageBindings: settings.imageBindings,
             includeEventSystem: true,
             includeConnections: snapshot.entries.any((entry) =>
                 entry.kind == SourceNodeKind.file &&
@@ -1965,7 +1972,8 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 3,
+      'version': 4,
+      'atlasImageBindings': 'explicit-snapshot-file-sha256-v1',
       'converterVersion': _converterVersion,
       'sourceFormat': 'rmxp-marshal-4.8',
       'tilePolicy': 'literal-32px-stored-autotile-variant',

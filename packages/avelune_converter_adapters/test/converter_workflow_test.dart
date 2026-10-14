@@ -15,6 +15,100 @@ import 'support/original_autotile_fixture.dart';
 import 'support/source_map_music_fixture.dart';
 
 void main() {
+  test('workflow consumes and persists explicit missing atlas image decisions',
+      () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      const originalPath = 'Graphics/Tilesets/OriginalAtlas1.png';
+      const backupPath = 'Graphics/Tilesets/OriginalAtlas1_backup.png';
+      await File('${harness.sourceRoot}/$originalPath')
+          .rename('${harness.sourceRoot}/$backupPath');
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot));
+      final blocked = await harness.workflow.prepareStudy();
+      expect(blocked.canApprove, isFalse);
+      final entry = snapshot.entries
+          .singleWhere((entry) => entry.relativePath == backupPath);
+      final binding = SourceImageBinding(
+        expectedReferencePath: 'Graphics/Tilesets/OriginalAtlas1',
+        sourceRelativePath: backupPath,
+        sourceSha256: entry.sha256!,
+      );
+      harness.workflow
+          .updateSettings(harness.settings(snapshot, imageBindings: [binding]));
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue,
+          reason: jsonEncode({
+            'normalization': prepared.normalizedSource.diagnostics
+                .map((d) => d.toJson())
+                .toList(),
+            'composition': prepared.composition.diagnostics
+                .map((d) => d.toJson())
+                .toList(),
+            'preview': prepared.previewPlan?.toJson(),
+          }));
+      expect(
+          prepared.normalizedSource.tilesets.single.images
+              .singleWhere((image) => image.role == 'tileset')
+              .appliedImageBinding!
+              .toJson(),
+          binding.toJson());
+      expect(prepared.composition.crops, isNotEmpty);
+      expect(prepared.assetCandidates, isNotEmpty);
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      final restoredRecipe = ConverterStudyPlanRecipe.fromJson(recipe.toJson());
+      expect(restoredRecipe.settings.imageBindings.single.toJson(),
+          binding.toJson());
+      final storePath = '${harness.root.path}/atlas-review-sessions';
+      final stored = await LocalReviewSessionStore(rootPath: storePath).create(
+        reviewSet: prepared.reviewSet!,
+        resumeSettings: LocalReviewResumeSettings(
+          sourceRootPath: harness.sourceRoot,
+          destinationParentPath: harness.output.path,
+          projectName: prepared.settings.projectName,
+          folderName: prepared.settings.folderName,
+          imageBindings: prepared.settings.imageBindings,
+          profileAcknowledgement: LocalReviewProfileAcknowledgement(
+            sourceSnapshotHash: prepared.sourceSnapshotHash,
+            profileEvidenceHash: prepared.profileEvidenceHash,
+            humanConfirmed: true,
+            reason: prepared.settings.profileAcknowledgement.reason,
+          ),
+          normalizationLimits: prepared.settings.normalizationLimits,
+          writeLimits: prepared.settings.writeLimits,
+        ),
+      );
+      final reopened = await LocalReviewSessionStore(rootPath: storePath)
+          .load(stored.reviewSet.sessionId);
+      final fresh = ConverterWorkflow();
+      try {
+        final resumed = await ConverterReviewSessionResumer.resume(
+            stored: reopened!, workflow: fresh);
+        expect(resumed.settings.imageBindings.single.toJson(), binding.toJson());
+        expect(resumed.reviewSet!.canonicalHash, stored.reviewSet.canonicalHash);
+        expect(resumed.canApprove, isTrue);
+        expect(fresh.state.approval, isNull);
+        expect(fresh.state.result, isNull);
+        expect((await LocalReviewSessionStore(rootPath: storePath)
+                .load(stored.reviewSet.sessionId))!
+            .canonicalHash, stored.canonicalHash);
+      } finally {
+        await fresh.dispose();
+      }
+      final approval = harness.approve(prepared);
+      final result = await harness.workflow.writeApproved(approval);
+      expect(result.published, isTrue);
+      expect(result.receipt.verified, isTrue);
+      expect(result.sourceUnchanged, isTrue);
+      expect(await _diskHashes(harness.sourceRoot), before);
+      expect(
+          await File('${harness.sourceRoot}/$originalPath').exists(), isFalse);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
   test('multi-map defaults retain proposals beyond the one-map budget',
       () async {
     final raster = image.Image(width: 256, height: 576, numChannels: 4);
@@ -1930,6 +2024,7 @@ final class _WorkflowHarness {
   ConverterStudySettings settings(SourceSnapshot snapshot,
           {List<int> selected = const [1, 8],
           List<LiteralDependencyDecision> decisions = const [],
+          List<SourceImageBinding> imageBindings = const [],
           bool humanConfirmed = true,
           bool allowFirstFrameAutotiles = false,
           String? reason,
@@ -1960,6 +2055,7 @@ final class _WorkflowHarness {
                   : ''),
         ),
         dependencyDecisions: decisions,
+        imageBindings: imageBindings,
         allowFirstFrameAutotiles: allowFirstFrameAutotiles,
         normalizationLimits: normalizationLimits,
         writeLimits: writeLimits,

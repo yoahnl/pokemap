@@ -152,6 +152,7 @@ final class LocalReviewResumeSettings {
     bool allowFirstFrameAutotiles = false,
     LocalReviewProfileAcknowledgement? profileAcknowledgement,
     List<LocalReviewDependencyDecision> dependencyDecisions = const [],
+    List<SourceImageBinding> imageBindings = const [],
     SourceScanPolicy? sourceScanPolicy,
     SourceNormalizationLimits normalizationLimits =
         const SourceNormalizationLimits(),
@@ -187,6 +188,7 @@ final class LocalReviewResumeSettings {
             'session.store.document',
             'Dependency receipts must be unique and bounded.');
         writeLimits.validate();
+        final bindings = SourceImageBinding.canonicalize(imageBindings);
         _boundedNumbers(
             _normalizationJson(normalizationLimits), _normalizationCeilings);
         return LocalReviewResumeSettings._(
@@ -197,6 +199,7 @@ final class LocalReviewResumeSettings {
             allowFirstFrameAutotiles,
             profileAcknowledgement,
             List.unmodifiable(dependencyDecisions),
+            bindings,
             sourceScanPolicy ?? SourceScanPolicy(),
             normalizationLimits,
             writeLimits);
@@ -210,6 +213,7 @@ final class LocalReviewResumeSettings {
       this.allowFirstFrameAutotiles,
       this.profileAcknowledgement,
       this.dependencyDecisions,
+      this.imageBindings,
       this.sourceScanPolicy,
       this.normalizationLimits,
       this.writeLimits);
@@ -225,6 +229,7 @@ final class LocalReviewResumeSettings {
           'allowFirstFrameAutotiles',
           'profileAcknowledgement',
           'dependencyDecisions',
+          'imageBindings',
           'sourceScanPolicy',
           'normalizationLimits',
           'writeLimits'
@@ -244,6 +249,9 @@ final class LocalReviewResumeSettings {
                   json['profileAcknowledgement']),
           dependencyDecisions:
               dependencies.map(LocalReviewDependencyDecision.fromJson).toList(),
+          imageBindings: _list(json['imageBindings'])
+              .map(SourceImageBinding.fromJson)
+              .toList(),
           sourceScanPolicy: _readScanPolicy(json['sourceScanPolicy']),
           normalizationLimits:
               _readNormalizationLimits(json['normalizationLimits']),
@@ -258,6 +266,7 @@ final class LocalReviewResumeSettings {
   final bool allowFirstFrameAutotiles;
   final LocalReviewProfileAcknowledgement? profileAcknowledgement;
   final List<LocalReviewDependencyDecision> dependencyDecisions;
+  final List<SourceImageBinding> imageBindings;
   final SourceScanPolicy sourceScanPolicy;
   final SourceNormalizationLimits normalizationLimits;
   final NativeWriteLimits writeLimits;
@@ -271,6 +280,7 @@ final class LocalReviewResumeSettings {
         'profileAcknowledgement': profileAcknowledgement?.toJson(),
         'dependencyDecisions':
             dependencyDecisions.map((item) => item.toJson()).toList(),
+        'imageBindings': imageBindings.map((item) => item.toJson()).toList(),
         'sourceScanPolicy': {
           'limits': sourceScanPolicy.limits.toJson(),
           'excludedSegments': sourceScanPolicy.excludedSegments
@@ -327,7 +337,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 2,
+            json['kind'] == 'localReviewSession' && json['version'] == 3,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -349,7 +359,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 2,
+        'version': 3,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),

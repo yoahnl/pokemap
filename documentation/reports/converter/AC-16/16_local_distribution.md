@@ -541,3 +541,104 @@ Parité MCP : aucune sémantique native nouvelle ; le writer map_authoring, les 
 Auto-critique : des totaux de tests et une conversion accompagnée ont été trop faciles à confondre avec un convertisseur autonome. Cette actualisation conserve explicitement le verdict incomplet. Le défaut de scan est corrigé ; la ressource manquante, le choix entre trois variantes, la publication depuis une fenêtre normale et KAN-03 restent à traiter. Aucune promesse de conversion universelle ou d’estimation horaire sans preuve.
 
 État Git avant commit ciblé : neuf fichiers possédés et ce rapport ;64 chemins étrangers inchangés depuis start.json, index vide. Le contrôle final et le SHA du commit seront consignés dans le reçu de clôture et Notion. Pas de nouveau Markdown. Prochaine action autorisée : résolution explicite/traçable des ressources manquantes puis qualification de source → sélection → revue → publication → Studio, sans réduire le goal aux fixtures.
+
+
+## Association explicite des atlas et parcours Kanto — 14 octobre 2026
+
+**Verdict : correction implémentée/vérifiée ; AC-16 PARTIAL / DOING et goal AC-00 à AC-16 actif.** Le dossier Kanto original publie maintenant deux cartes depuis l’interface normale avec décisions d’étude explicites. Leur ouverture, le renommage natif, la sauvegarde et la réouverture à froid dans Studio sont observés. Aucune certification nouvelle d’édition des cellules/décors, des collisions ni du parcours Player KAN-03 ; aucune conversion universelle annoncée.
+
+### Audit initial, décision et contrats
+
+Base fc03653a6b26996ef3a47ef568f43a01909325a9, branche main, index vide. Treize fichiers de code/tests possédés et64 chemins étrangers inchangés, SHA/modes revérifiés dans image-binding-pins-04.json. Le writer concurrent reste exclu du snapshot. Le tour de statut précédent était sans progrès de code : la continuation a revalidé le runner GUI réellement vivant avant de poursuivre le même job. Aucun redémarrage pour un simple timeout d’observation.
+
+Cause source : FRLG_Outside manque dans Kanto, mais FRLG_Outside_backup.png existe. Le choix entre variantes ne peut pas être silencieux. Le contrat SourceImageBinding conserve référence déclarée, chemin relatif exact et SHA du fichier admis. Il n’altère aucune source. Liste figée/canonique, maximum256, chemins4096, dossiers Tilesets/Autotiles seulement, un nom de fichier sans sous-dossier ; refus des traversées, doublons de casse, SHA erroné, choix inutilisé et association non nécessaire. La GUI/CLI proposent seulement les PNG réguliers raster admis du même dossier ; aucun alias externe ni reconnaissance IA. Les charsets ne sont pas couverts par ce nouveau contrat.
+
+Extracteur rmxp-normalization-v3 ; Settings3, Recipe4, Store3 ; converter ac16-study-v2/rulesHash4. La preuve de liaison entre dans les hashes de normalisation/paramètres/plan/reprise. Les anciennes recettes/sessions sont rejetées et doivent être rescannées ; aucune migration pré1.0. Le modèle natif et le moteur de combat Avelune restent inchangés.
+
+### Inventaire complet et zones exactes du diff contre fc03653a6
+
+| Fichier | Hunks -avant +après | Motif / impact |
+|---|---|---|
+| apps/avelune_converter/lib/converter_app.dart | -121,0 +122 ; -267,0 +269 ; -517,0 +520,3 ; -624,0 +630 ; -650,0 +657 ; -777,0 +785,3 ; -861,0 +872,43 ; -1406,0 +1460,2 ; -1411,0 +1467,60 | _settings/_resumeSettings, import/reprise, _changeImageBinding, panneau Analyse : choix PNG source et invalidation de l’approbation. |
+| apps/avelune_converter/test/converter_app_test.dart | -20,0 +21,89 ; -526 +615 | Parcours sélecteur, source manquante, nouvelle préparation et recette avec liaison non vide. |
+| packages/avelune_converter_adapters/lib/src/converter_study_plan_recipe.dart | -83 +83 ; -94 +94 ; -130,0 +131,3 ; -234 +237 | Recette4, lecture Settings3 et décodage fermé de imageBindings. |
+| packages/avelune_converter_adapters/lib/src/converter_workflow.dart | -111,0 +112 ; -173,0 +175 ; -180,0 +183 ; -194,0 +198 ; -206,0 +211 ; -217 +222 ; -224,0 +230 ; -1030 +1036 ; -1364,0 +1371 ; -1968 +1975,2 | Settings3 immuables/hashées, passage au normalizer, converter ac16-study-v2 et rulesHash4. |
+| packages/avelune_converter_adapters/lib/src/local_review_session_store.dart | -154,0 +155 ; -189,0 +191 ; -199,0 +202 ; -212,0 +216 ; -227,0 +232 ; -246,0 +252,3 ; -260,0 +269 ; -273,0 +283 ; -330 +340 ; -352 +362 | ResumeSettings et Store3 : liste canonique persistée, contrôles et hashes. |
+| packages/avelune_converter_adapters/lib/src/review_session_resumer.dart | -121,0 +122 | _settings réinjecte les associations dans la découverte puis la reprise exacte. |
+| packages/avelune_converter_adapters/test/converter_study_plan_recipe_test.dart | -177 +177 ; -321,2 +321,2 | Version courante et refus des recettes/settings obsolètes. |
+| packages/avelune_converter_adapters/test/converter_workflow_test.dart | -17,0 +18,94 ; -1932,0 +2027 ; -1962,0 +2058 | Source manquante → liaison → recette/publication ; Store3 → disque → workflow neuf → reprise non vide. |
+| packages/avelune_converter_adapters/test/local_review_session_store_test.dart | -196 +196 ; -201 +201 | Contrat Store3 et liste requise dans la projection de reprise. |
+| packages/avelune_converter_core/lib/src/source_normalization.dart | -117,0 +118,76 ; -127,0 +204 ; -137,0 +215 ; -147,0 +226,2 ; -349 +429 ; -399 +479 ; -410,0 +491 ; -414,0 +496,2 ; -422 +505,2 ; -435 +519,2 ; -459,0 +545,4 ; -686,0 +776,18 ; -691,0 +799,9 ; -1400,0 +1517,23 ; -1533,0 +1673 | SourceImageBinding, canonicalize/quotas, SourceImageReference.appliedImageBinding, admission du fichier régulier exact et normalizer-v3. |
+| packages/avelune_converter_core/test/source_normalization_test.dart | -332 +332 ; -476,0 +477,178 ; -591 +769 | Association explicite, SHA/chemins/quotas/doublons, mutation du caller et choix inutilisé/non nécessaire refusés ; versionv3. |
+| tools/avelune_converter_cli/lib/avelune_converter_cli.dart | -30,0 +31,3 ; -87,2 +90,2 ; -131,0 +135,13 ; -195,0 +212,4 ; -314,0 +335,38 | --atlas-binding, _atlasImagePaths commun insensible à la casse, _sourceImageBinding : SHA du snapshot, mêmes Settings3. |
+| tools/avelune_converter_cli/test/study_cli_test.dart | -52,0 +53,81 | Plan→convert avec liaison ; refus sans sortie ; caractères = dans les deux noms et casse des dossiers préservés. |
+| documentation/reports/converter/AC-16/16_local_distribution.md | Append de cette section | Preuves/limites consolidées ; aucun nouveau Markdown. |
+
+Treize fichiers code/tests :801 insertions/22 suppressions au gel04. Le diff intégral est conservé dans atlas-final-source-diff.json et dans Git. Aucun commentaire de code ajouté : l’instruction directe utilisateur prime la demande de commentaires de codex_rule.md.
+
+### Commandes, tests et builds terminés
+
+Racine QA : /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej. Les chemins/argv complets et pins sont dans chaque reçu. Les commandes abrégées ci-dessous restent package-scoped ; seul le snapshot possède les pub/locks/builds temporaires. Les suites core/app et le build app demeurent celles du gel stable de leurs fichiers, inchangés par les dernières corrections CLI et l’assertion Store. Les analyses adapters/CLI, leur suite et la compilation CLI sont rejouées après ces corrections. Tous les reçus listés sont terminaux exit0, sans timeout ni survivant, logs SHA contrôlés et pins stables.
+
+| Reçu | Commande / parcours | Résultat exact | Durée |
+|---|---|---|---|
+| image-binding-core-full-02.json | dart test --reporter expanded --concurrency=2 | 825 PASS / 1 SKIP / 0 FAIL, exit0 | 57.787s |
+| image-binding-adapters-full-02.json | dart test --reporter expanded --concurrency=2 | 764 PASS / 90 SKIP / 0 FAIL, exit0 | 169.419s |
+| image-binding-app-full-01.json | flutter test --no-pub --reporter expanded --concurrency=2 | 92 PASS / 4 SKIP / 0 FAIL, exit0 | 60.924s |
+| image-binding-cli-full-04.json | dart test --reporter expanded --concurrency=2 | 32 PASS / 3 SKIP / 0 FAIL, exit0 | 17.578s |
+| image-binding-core-analyze-final-01.json | dart analyze | No issues found, exit0 | 2.841s |
+| image-binding-adapters-analyze-final-02.json | dart analyze | No issues found, exit0 | 4.475s |
+| image-binding-app-analyze-final-01.json | flutter analyze --no-pub | No issues found, exit0 | 11.614s |
+| image-binding-cli-analyze-final-03.json | dart analyze | No issues found, exit0 | 3.252s |
+| image-binding-release-build-01.json | flutter build macos --release --no-pub | App release universelle71.1MB ; App.framework SHA bda9184965aa0121c9a727ee07d01a48b53c770ab45217b56b47b40a6b9503fd, exit0 | 70.704s |
+| image-binding-cli-compile-03.json | dart compile exe bin/avelune_converter.dart -o QA/bin/avelune-converter-bindings-final-case | CLI finale AOT arm64, exit0 | 26.261s |
+| image-binding-package-final-01.json | python3 tool/package_distribution.py --app release --cli final-case --fixture originale --output atlas-bindings-final | ZIP/inventaire final scellés, exit0 | 4.470s |
+| install-bindings-final-run-01.json | python3 qualify_extracted_bindings_final.py | Extraction exacte ; --help→plan→convert→verify,2cartes/1atlas, exit0 | 1.360s |
+| install-bindings-final-case-run-01.json | python3 qualify_installed_case_binding.py | CLI extraite : liaison non vide, = et dossier en minuscules ; plan→convert→verify, exit0 | 5.661s |
+| image-binding-store-resume-01.json | dart test test/converter_workflow_test.dart --plain-name 'workflow consumes and persists explicit missing atlas image decisions' --reporter expanded --concurrency=1 | 1 PASS ; Store3 non vide relu/repris, exit0 | 11.497s |
+| normal-interface-bindings-run-01.json | flutter run --debug --no-pub -t QA/normal_interface_bindings_main.dart -d macos | Source originale → sélection → choix → approbation → publication depuis UI normale, exit0 | 1693.960s |
+| studio-kanto-interface-run-01.json | flutter run --debug --no-pub -t QA/studio_kanto_interface_main.dart -d macos | Projet exporté ouvert ; renommage et sauvegarde via UI normale, exit0 | 293.729s |
+| studio-kanto-interface-reopen-01.json | Même commande dans un nouveau processus après fermeture | Réouverture à froid ; nom/rendu sauvegardés présents, exit0 | 82.302s |
+| original-kanto-source-after-run-01.json | python3 verify_original_kanto_after.py | 23 707 fichiers originaux et copie inchangés, exit0 | 8.752s |
+
+Les SKIP restent des absences de preuve, notamment corpus externes optionnels et cas de plateforme non applicable. Les RED initiaux de contrat/normalisation, workflow, sélecteur GUI et CLI sont conservés. La revue indépendante a trouvé deux P2 dans le parser CLI : premier = puis casse du dossier. RED effectifs image-binding-cli-equals-red-01 et image-binding-cli-case-red-01 : expected0/actual2. Parser commun _atlasImagePaths, séparateur suivi d’un dossier atlas admis, insensible à la casse et substrings exacts. GREEN suite CLI04 :32PASS/3SKIP. Aucun garde-fou réduit pour les faire passer.
+
+Reprise exécutée : liaison non vide → Store3 créé → nouvelle instance du store → chargement disque → workflow neuf → resumer ; même binding/hash de revue, canApprove=true, aucune approbation/résultat réutilisé, hash du store inchangé. Le test termine ensuite la publication normale et vérifie la source inchangée.
+
+### Kanto original : publication réelle puis Studio
+
+Source : /Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto. Copie QA originale23707 fichiers, source/copie revérifiés intégralement après le parcours, reçus original-kanto-source-copy-01 et original-kanto-source-unchanged-after-interface-01. Aucun des11 compléments de l’ancienne démo r9 injecté.
+
+UI debug réelle démarrée vide, aucun plan/bootstrap source/picker substitué : champs source/destination → scan383 noms → sélection98/100 → acceptation du profil d’étude et première frame d’eau → préparation bloquée → choix FRLG_Outside_backup.png dans Analyse → préparation → quatre sorties hors sélection explicitement exclues → préparation → plan visible2cartes/1atlas → approbation → publication. SHA backup f147d2ff225eb152c8130b4f984b8a0b89b96d9bcb498a117aaed5dae9faab3a ; aucune équivalence avec les variantes Johto/Hoenn certifiée.
+
+Résultat GUI : /Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16-refresh-20261014-ftgqyeej/output/Kanto-interface-atlas-r1,2cartes/2ressources, published=true, sourceUnchanged=true, playableCertified=false, révision sha256:3d0c261f4554e43a630eeedf27942744b16725b424525d744283cc6ebc400acd. Trace normal-interface-bindings-trace-02.json et capture normal-bindings-kanto-published.png. Les33 événements extraits restent différés dans cette sortie littérale ; quatre sorties de Route10Nord vers205/166/102/205 inactives. Toutes les frames d’eau sont conservées, seule la première active ; horloge source non vérifiée. Ce résultat ne remplace pas une tranche source/Player qualifiée.
+
+Incidents de conduite conservés : premier tap100 avant la mise à jour de la recherche, puis trois scroll_to après44 tentatives. Relecture effective de l’état corrige la sélection ; swipe dans la marge du viewport principal atteint le panneau atlas. Aucune correction produit de worker/défilement inférée de ces erreurs. Aucun hot reload dans ce run ; sources produit gelées. L’ouverture par launcher signale foreground unavailable ; les contrôles/captures Marionette portent sur la vraie fenêtre debug, pas sur la fenêtre release ni son picker natif.
+
+Studio : copie byte-identical29 fichiers dans /Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/AC16-Kanto-interface-20261014-ftgqyeej/Projet converti. Bootstrap debug exige chemin canonique et ouvre réellement le projet avant runApp. UI Carte → actions Route9 → Renommer → Route9 — modifiée dans Studio → Enregistrer. Nouveau processus après fermeture affiche nom et rendu persistés, Enregistré et aucun incident sur les ressources. La différence de la map est uniquement name ; project.json et journaux/blobs authoring sont les seules autres mutations enregistrées. Les29 fichiers publiés d’origine demeurent inchangés. Reçu studio-kanto-interface-edit-persistence-01, traces/captures studio-kanto-interface-*. Ce contrôle ne prouve pas encore la peinture/édition de cellules ou de décors.
+
+Fermeture réelle : Converter71191, Studio89738 puis94256 fermés par leurs actions QA, connexions Marionette déconnectées et runners terminaux. Reopen réape uniquement2ibtoold possédés avec SIGTERM et identité UID/date/commande revérifiée ; zéro survivant. Studio utilisateur1307 et runner310/superviseur308 conservés ; aucun signal sur eux et aucun blanket kill.
+
+### Archive finale extraite et CLI réellement exécutée
+
+Distribution : apps/avelune_converter/build/distribution/AC16-local-20261014-atlas-bindings-final/AveluneConverter-local-validation.zip, 37771299 octets, SHA 4d454414dac6b59dce77aee16c1426164e59ea584244d0a9bfc5492d2f2a20eb. Inventaire SHA 0064cc40805384823c9dffe3a49f2bb85768b99ce6ba2c113553df25c642e991,38 fichiers/35répertoires/9liens internes relatifs,1NOTICE Flutter réel,0sidecar Pods. App universelle, CLI arm64 ; exécution qualifiée arm64. Archive privée/non notarized/non publiée, aucune licence globale inventée, aucun média Pokémon ni source de jeu intégré.
+
+Extraction install-bindings-final-01, inventaire/modes/liens égaux ; PATH=/usr/bin:/bin:/usr/sbin:/sbin ; --help→plan→convert→verify avec les vrais binaires extraits et fixture originale distribuée :2cartes/1atlas, source inchangée, verify read-only, révision d825cb78780d29bbf096fee34eac4c8391459412a891ab7b111a60237b84aa48. Le scénario supplémentaire install-bindings-final-case-01 utilise une fixture originale générée avant exécution, puis la CLI extraite avec Référence=Graphics/Tilesets/Terrain=Night et PNG source exact graphics/tilesets/Terrain=Night_backup.png. Plan4 à liaison non vide → convert → verify :1carte/1atlas, source inchangée, révision e15e47e21a73471832de31d2933f6fd7f64f7cb8259d4f9319dd4e6ef36cdf7e. Aucun SDK requis pour exécuter le binaire ; génération de fixture de test distincte de ce runtime.
+
+L’ancienne archive d89b1af… et ses reçus restent distincts ; ils ne qualifient pas rétroactivement le parser final. La parité CLI/GUI historique REL03 n’est pas annoncée comme rejouée sur ce nouveau plan Kanto : le contrat commun est exercé dans chaque transport, mais la comparaison du même nouveau plan dans les deux sorties reste à compléter.
+
+### Parité, passes et critique finale
+
+MCP : ce choix appartient aux contrats source Converter et ne crée aucune sémantique de modèle/authoring Avelune. API core/workflow, recipe/session, GUI et CLI sont exercés. Aucune nouvelle action cible à enregistrer ; catalogue live/MCP non rejoué ici et anciennes preuves distinctes. Le renommage Studio utilise l’action canonique existante map.update_metadata ; aucun fichier projet modifié à la main.
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture | Source manquante prouvée ; association explicite/hashée, frontières/quotas conservés, modèle natif inchangé. |
+| Implémentation |13fichiers ciblés, paramètres et reprises raccordés, aucun source/writer/combats modifié. |
+| Tests |Quatre suites finales/analyses et Store3 non vide passent ; SKIP/RED et portée exacte conservés. |
+| Build / Validation |Release et CLI finales, archive extraite réelle, GUI originale publiée et renommage Studio à froid observés ; Player/édition de décors encore absents. |
+| Critique indépendante |ac15_connection_review_fresh : deux P2 CLI reproduits/corrigés ; gel04 exact, aucun P1/P2 restant dans13fichiers ; différences de preuves/versions relues. |
+
+Auto-critique : le choix explicite de backup et l’étude à deux cartes ne suffisent pas à rendre automatique la conversion complète de Kanto. La publication/renommage sauvegardé sont maintenant des preuves réelles ; la fidélité complète du backup, l’édition des cellules/décors, KAN03 et le contrôle de la fenêtre release finale ne sont pas acquis. Les règles native/runtime ne sont pas affaiblies pour présenter un faux vert. Goal complet ouvert, aucune estimation horaire inventée.
+
+Git avant commit :13fichiers possédés et ce rapport,64 chemins étrangers inchangés, index vide. Aucun nouveau Markdown ni pub/lock de dépendances du host modifié ; les distributions locales déclarées sont générées sous build/distribution. Aucun push/rebase/amend/branche/worktree. Le reçu commit-atlas-after-01.json et Notion portent le SHA et l’état final vérifiés après le commit local ciblé. Prochaine action : édition de décors réellement sauvegardée/reouverte puis parcours Player contrôlé, sans réduire les lots restants à ce test de métadonnées.

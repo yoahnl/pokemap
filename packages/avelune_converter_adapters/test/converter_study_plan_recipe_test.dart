@@ -174,7 +174,7 @@ void main() {
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 2);
+    expect((recipe.toJson()['settings'] as Map)['version'], 3);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -318,8 +318,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('review set recipe emits breaking version 3', () {
-    expect(connectionRecipe(2).toJson()['version'], 3);
+  test('image binding recipe emits breaking version 4', () {
+    expect(connectionRecipe(2).toJson()['version'], 4);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

@@ -119,6 +119,7 @@ final class ConverterReviewSessionResumer {
         selectedSourceMapIds: session.selectedSourceMapIds,
         profileAcknowledgement: acknowledgement,
         dependencyDecisions: decisions,
+        imageBindings: saved.imageBindings,
         allowFirstFrameAutotiles: saved.allowFirstFrameAutotiles,
         assetOutputMode:
             restoreReview ? session.outputMode : session.seedOutputMode,

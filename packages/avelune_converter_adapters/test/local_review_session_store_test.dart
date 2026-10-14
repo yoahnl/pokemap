@@ -193,12 +193,12 @@ void main() {
     expect(await file.readAsString(), old);
   });
 
-  test('review set store emits breaking version 2', () {
+  test('image binding store emits breaking version 3', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 2);
+    expect(stored.toJson()['version'], 3);
   });
 
   test('draft JSON budget resume survives exact disk reopen', () async {

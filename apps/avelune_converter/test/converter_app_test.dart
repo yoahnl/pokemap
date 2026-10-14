@@ -18,6 +18,95 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('missing atlas images can be bound and prepared explicitly', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    const expected = 'Graphics/Tilesets/OriginalAtlas1';
+    const backup = 'Graphics/Tilesets/OriginalAtlas1_backup.png';
+    await tester.runAsync(
+      () =>
+          File('${source.sourcePath}/$expected.png')
+              .rename('${source.sourcePath}/$backup'),
+    );
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await tester.pumpWidget(
+        ConverterApp(
+          workflow: source.workflow,
+          initialSourcePath: source.sourcePath,
+          initialParentPath: source.output.path,
+          sessionStore: LocalReviewSessionStore(
+            rootPath: '${source.root.path}/sessions',
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.snapshot != null &&
+            !source.workflow.state.isBusy,
+      );
+      await tester.ensureVisible(find.text('Tout sélectionner'));
+      await tester.tap(find.text('Tout sélectionner'));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('acknowledge-study')),
+      );
+      await tester.tap(find.byKey(const ValueKey('acknowledge-study')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared != null &&
+            !source.workflow.state.isBusy,
+      );
+      expect(source.workflow.state.prepared!.canApprove, isFalse);
+      final picker = find.byKey(
+        const ValueKey('atlas-image-binding-$expected'),
+      );
+      expect(picker, findsOneWidget);
+      final select = tester.widget<StudioSelect>(picker);
+      expect(select.options.keys, contains(backup));
+      select.onChanged!(backup);
+      await tester.pump();
+      expect(source.workflow.state.prepared, isNull);
+      expect(source.workflow.state.approval, isNull);
+      expect(tester.widget<StudioSelect>(picker).value, backup);
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared?.canApprove == true &&
+            !source.workflow.state.isBusy,
+      );
+      final prepared = source.workflow.state.prepared!;
+      expect(prepared.settings.imageBindings.single.sourceRelativePath, backup);
+      expect(
+        prepared.normalizedSource.tilesets.single.images
+            .singleWhere((image) => image.role == 'tileset')
+            .appliedImageBinding!
+            .sourceRelativePath,
+        backup,
+      );
+      final recipe = source.workflow.exportStudyPlanRecipe();
+      expect(
+        ConverterStudyPlanRecipe.fromJson(recipe.toJson())
+            .settings
+            .imageBindings
+            .single
+            .sourceRelativePath,
+        backup,
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
   testWidgets('dependency choices remain visible until explicit preparation', (
     tester,
   ) async {
@@ -523,7 +612,7 @@ void main() {
         expect(find.text('Session enregistrée'), findsOneWidget);
         final stored = (await tester.runAsync(store.list))!.single;
         final document = stored.toJson();
-        expect(document['version'], 2);
+        expect(document['version'], 3);
         final reviewSet = document['reviewSet']! as Map;
         expect((reviewSet['segments']! as List), hasLength(2));
         await tester.pumpWidget(const SizedBox());

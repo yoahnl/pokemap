@@ -119,6 +119,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   final _search = TextEditingController();
   final _selectedMaps = <int>{};
   final _decisions = <LiteralDependencyDecision>[];
+  final _imageBindings = <SourceImageBinding>[];
   ConverterAssetReviewSet? _reviewSet;
   int? _reviewMapId;
   StoredReviewSession? _storedReview;
@@ -265,6 +266,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       dependencyDecisions: !_reviewSourceVerified && previous != null
           ? previous.dependencyDecisions
           : _decisions.map(LocalReviewDependencyDecision.fromDecision).toList(),
+      imageBindings: _imageBindings,
     );
   }
 
@@ -515,6 +517,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ..clear()
         ..addAll(stored.reviewSet.selectedSourceMapIds);
       _decisions.clear();
+      _imageBindings
+        ..clear()
+        ..addAll(settings.imageBindings);
       _studyAcknowledged =
           settings.profileAcknowledgement?.humanConfirmed ?? false;
       _allowFirstFrameAutotiles = settings.allowFirstFrameAutotiles;
@@ -622,6 +627,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _step = 1;
       _selectedMaps.clear();
       _importedSettings = null;
+      _imageBindings.clear();
       _dirty = false;
       _studyAcknowledged = false;
       _allowFirstFrameAutotiles = false;
@@ -648,6 +654,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     final snapshot = _state.snapshot!;
     final ids = _selectedMaps.toList()..sort();
     return ConverterStudySettings(
+      imageBindings: _imageBindings,
       projectName: _name.text.trim(),
       parentPath: _parent.text.trim(),
       folderName: _folder.text.trim(),
@@ -775,6 +782,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
       setState(() {
         _sessionGeneration++;
         _importedSettings = recipe.settings;
+        _imageBindings
+          ..clear()
+          ..addAll(recipe.settings.imageBindings);
         _storedReview = null;
         _reviewSet = null;
         _reviewMapId = null;
@@ -858,6 +868,49 @@ class _ConverterWindowState extends State<ConverterWindow> {
     });
     _workflow.invalidatePrepared();
   }
+
+  void _changeImageBinding(String expected, String selected) => unawaited(
+    _run(() async {
+      final previous = _prepared;
+      final snapshot = _state.snapshot;
+      if (snapshot == null || !await _prepareForSessionChange() || !mounted) {
+        return;
+      }
+      final entry = selected.isEmpty
+          ? null
+          : snapshot.entries.singleWhere(
+              (entry) =>
+                  entry.relativePath == selected &&
+                  entry.kind == SourceNodeKind.file &&
+                  entry.sha256 != null,
+            );
+      final binding = entry == null
+          ? null
+          : SourceImageBinding(
+              expectedReferencePath: expected,
+              sourceRelativePath: entry.relativePath,
+              sourceSha256: entry.sha256!,
+            );
+      setState(() {
+        _imageBindings.removeWhere(
+          (value) =>
+              sourcePathCollisionKey(value.expectedReferencePath) ==
+              sourcePathCollisionKey(expected),
+        );
+        if (binding != null) _imageBindings.add(binding);
+        _reviewPreview = previous;
+        _reviewSet = null;
+        _reviewMapId = null;
+        _storedReview = null;
+        _reviewSourceVerified = false;
+        _unappliedDrafts = false;
+        _decisions.clear();
+        _sessionGeneration++;
+        _dirty = true;
+      });
+      _workflow.invalidatePrepared();
+    }),
+  );
 
   void _changeDependency(
     LiteralMapDependency dependency,
@@ -1404,7 +1457,69 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ],
         ),
         const SizedBox(height: 24),
+        _imageBindingsPanel(),
+        const SizedBox(height: 24),
         _issuesPanel(),
+      ],
+    );
+  }
+
+  Widget _imageBindingsPanel() {
+    final references = <String>{
+      for (final binding in _imageBindings) binding.expectedReferencePath,
+      for (final tileset
+          in _prepared?.normalizedSource.tilesets ?? <NormalizedTileset>[])
+        for (final reference in tileset.images)
+          if ((reference.state == 'missing' ||
+                  reference.state == 'ambiguous' ||
+                  reference.appliedImageBinding != null) &&
+              (reference.role == 'tileset' || reference.role == 'autotile'))
+            '${reference.role == 'tileset' ? 'Graphics/Tilesets' : 'Graphics/Autotiles'}/${reference.sourceName}',
+    }.toList()..sort();
+    if (references.isEmpty) return const SizedBox.shrink();
+    return StudioPanel(
+      title: 'Associer les images d’atlas',
+      radius: 16,
+      children: [
+        const Text(
+          'Une image référencée manque ou reste ambiguë. Choisissez un PNG déjà présent dans le projet source, puis préparez à nouveau les cartes pour vérifier leur affichage.',
+        ),
+        const SizedBox(height: 16),
+        for (final expected in references) ...[
+          StudioSelect(
+            key: ValueKey('atlas-image-binding-$expected'),
+            label: 'Image pour $expected',
+            value:
+                _imageBindings
+                    .where(
+                      (binding) => binding.expectedReferencePath == expected,
+                    )
+                    .firstOrNull
+                    ?.sourceRelativePath ??
+                '',
+            options: {
+              '': 'Aucune association',
+              for (final entry
+                  in _state.snapshot?.entries ?? <SourceFileEntry>[])
+                if (entry.kind == SourceNodeKind.file &&
+                    entry.sha256 != null &&
+                    entry.format == 'raster' &&
+                    entry.relativePath.toLowerCase().endsWith('.png') &&
+                    sourcePathCollisionKey(
+                          path.posix.dirname(entry.relativePath),
+                        ) ==
+                        sourcePathCollisionKey(path.posix.dirname(expected)))
+                  entry.relativePath: path.posix.basename(entry.relativePath),
+            },
+            onChanged: _busy
+                ? null
+                : (selected) => _changeImageBinding(expected, selected),
+          ),
+          const SizedBox(height: 12),
+        ],
+        const Text(
+          'Ce choix sera conservé dans le plan. Les fichiers source restent intacts ; l’association ne garantit pas que les deux images soient identiques.',
+        ),
       ],
     );
   }

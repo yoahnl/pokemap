@@ -50,6 +50,87 @@ void main() {
         '--json'
       ];
 
+  test('CLI plans and publishes an explicit missing atlas image binding',
+      () async {
+    const original = 'Graphics/Tilesets/OriginalAtlas1.png';
+    const backup = 'Graphics/Tilesets/OriginalAtlas1_backup.png';
+    await File('${fixture.sourceRootPath}/$original')
+        .rename('${fixture.sourceRootPath}/$backup');
+    final planned = await invoke([
+      ...planArgs(),
+      '--atlas-binding',
+      'Graphics/Tilesets/OriginalAtlas1=$backup',
+    ]);
+    expect(planned.code, 0, reason: planned.err);
+    final recipe = await const LocalStudyPlanStore().read(planPath);
+    expect(recipe.settings.imageBindings.single.sourceRelativePath, backup);
+    final converted = await invoke([
+      'convert',
+      '--plan',
+      planPath,
+      '--approve-plan',
+      recipe.approvedPlanHash.value,
+      '--offline',
+      '--json',
+    ]);
+    expect(converted.code, 0, reason: converted.err);
+    expect(jsonDecode(converted.out)['published'], isTrue);
+    expect(jsonDecode(converted.out)['sourceUnchanged'], isTrue);
+    expect(await File('${fixture.sourceRootPath}/$original').exists(), isFalse);
+  }, skip: !Platform.isMacOS);
+
+  for (final directory in ['Graphics/Tilesets', 'graphics/tilesets']) {
+    test('CLI preserves equals signs in atlas names under $directory',
+        () async {
+      const expected = 'Graphics/Tilesets/Terrain=Night';
+      final backup = '$directory/Terrain=Night_backup.png';
+      fixture = await LiteralTileFixture.create(
+        sourceRootPath: '${root.path}/equals-source',
+        tilesets: [
+          LiteralFixtureTileset(
+            id: 1,
+            imageName: 'Terrain=Night',
+            imagePresent: false,
+          ),
+        ],
+        extraFiles: {backup: literalFixtureAtlas()},
+      );
+      final planned = await invoke([
+        ...planArgs(),
+        '--atlas-binding',
+        '$expected=$backup',
+      ]);
+      expect(planned.code, 0, reason: planned.err);
+      final recipe = await const LocalStudyPlanStore().read(planPath);
+      expect(recipe.settings.imageBindings.single.expectedReferencePath, expected);
+      expect(recipe.settings.imageBindings.single.sourceRelativePath, backup);
+    }, skip: !Platform.isMacOS);
+  }
+
+  test('CLI refuses invalid atlas bindings without creating a plan or project',
+      () async {
+    for (final value in [
+      'no separator',
+      '../Terrain=Graphics/Tilesets/OriginalAtlas1.png',
+      'Graphics/Tilesets/OriginalAtlas1=/tmp/image.png',
+      'Graphics/Tilesets/OriginalAtlas1=Graphics/Tilesets/absent.png',
+    ]) {
+      final result = await invoke([...planArgs(), '--atlas-binding', value]);
+      expect(result.code, 2, reason: result.err);
+      expect(await File(planPath).exists(), isFalse);
+      expect(await output.list().toList(), isEmpty);
+    }
+    final duplicate = await invoke([
+      ...planArgs(),
+      for (var i = 0; i < 2; i++) ...[
+        '--atlas-binding',
+        'Graphics/Tilesets/OriginalAtlas1=Graphics/Tilesets/OriginalAtlas1.png',
+      ],
+    ]);
+    expect(duplicate.code, 2);
+    expect(await File(planPath).exists(), isFalse);
+  }, skip: !Platform.isMacOS);
+
   test('plan convert verify use a saved exact offline workflow plan', () async {
     final planned = await invoke(planArgs());
     expect(planned.code, 0, reason: planned.err);
