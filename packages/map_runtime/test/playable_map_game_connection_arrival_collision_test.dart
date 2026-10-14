@@ -152,6 +152,179 @@ void main() {
     },
   );
 
+  test(
+    'actor route advances under its input lock and awaits the complete step',
+    () async {
+      final fixture = await _fixture();
+      final game = fixture.game;
+      var completed = false;
+      final execution = game
+          .debugExecuteSceneInteractiveCommand(
+            _actorRoute([
+              {'kind': 'wait', 'durationMs': 100},
+              {'kind': 'move', 'direction': 'west', 'durationMs': 250},
+            ]),
+          )
+          .then((result) {
+            completed = true;
+            return result;
+          });
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      expect(await game.saveGame(), isFalse);
+      expect(await game.loadGame(), isFalse);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.up),
+      );
+      game.update(.05);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      game.update(.05);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugIsPlayerStepping, isTrue);
+      game.update(.125);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(await _finishActorRoute(game, execution), 'completed');
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.west);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    },
+  );
+
+  test(
+    'actor route through is local and never permits leaving map bounds',
+    () async {
+      final fixture = await _fixture();
+      final game = fixture.game;
+      final execution = game.debugExecuteSceneInteractiveCommand(
+        _actorRoute([
+          {'kind': 'through', 'enabled': true},
+          {'kind': 'move', 'direction': 'east', 'durationMs': 250},
+        ]),
+      );
+      expect(await _finishActorRoute(game, execution), 'blocked');
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      expect(game.debugHasPendingMapTransition, isFalse);
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.east);
+    },
+  );
+
+  test(
+    'actor route closure interrupts a pending wait instead of succeeding',
+    () async {
+      final fixture = await _fixture();
+      final game = fixture.game;
+      final execution = game.debugExecuteSceneInteractiveCommand(
+        _actorRoute([
+          {'kind': 'wait', 'durationMs': 1000},
+          {'kind': 'move', 'direction': 'west', 'durationMs': 250},
+        ]),
+      );
+      final expectation = expectLater(execution, throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      game.onRemove();
+      await expectation;
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    },
+  );
+
+  test(
+    'actor visibility changes render state without removing a blocker',
+    () async {
+      final fixture = await _fixture(
+        sourceEntities: [_routeDoor],
+        characters: [_routeDoorCharacter],
+      );
+      final game = fixture.game;
+      final hide = SceneInteractiveCommand.fromJson({
+        'kind': 'actorVisibility',
+        'target': {
+          'kind': 'entity',
+          'mapId': 'source',
+          'entityId': 'route-door',
+        },
+        'visible': false,
+      });
+      expect(await game.debugExecuteSceneInteractiveCommand(hide), 'completed');
+      expect(game.debugIsNpcActorVisible('route-door'), isFalse);
+      expect(
+        game.debugMapEntityPosition('route-door'),
+        const GridPos(x: 1, y: 0),
+      );
+      final blocked = game.debugExecuteSceneInteractiveCommand(
+        _actorRoute([
+          {'kind': 'move', 'direction': 'north', 'durationMs': 250},
+        ]),
+      );
+      expect(await _finishActorRoute(game, blocked), 'blocked');
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    },
+  );
+
+  test(
+    'actor route can cross the door locally and restores normal collision',
+    () async {
+      final fixture = await _fixture(
+        sourceEntities: [_routeDoor],
+        characters: [_routeDoorCharacter],
+      );
+      final game = fixture.game;
+      for (final direction in ['north', 'south']) {
+        final execution = game.debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'through', 'enabled': true},
+            {'kind': 'move', 'direction': direction, 'durationMs': 250},
+            {'kind': 'through', 'enabled': false},
+          ]),
+        );
+        expect(await _finishActorRoute(game, execution), 'completed');
+      }
+      final blocked = game.debugExecuteSceneInteractiveCommand(
+        _actorRoute([
+          {'kind': 'move', 'direction': 'north', 'durationMs': 250},
+        ]),
+      );
+      expect(await _finishActorRoute(game, blocked), 'blocked');
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    },
+  );
+
+  test(
+    'actor route changes only the targeted entity pose and holds it',
+    () async {
+      final fixture = await _fixture(
+        sourceEntities: [_routeDoor],
+        characters: [_routeDoorCharacter],
+      );
+      final game = fixture.game;
+      var completed = false;
+      final execution = game
+          .debugExecuteSceneInteractiveCommand(
+            _actorRoute([
+              {'kind': 'face', 'direction': 'west', 'durationMs': 100},
+              {'kind': 'face', 'direction': 'north', 'durationMs': 100},
+            ], entityId: 'route-door'),
+          )
+          .then((result) {
+            completed = true;
+            return result;
+          });
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugNpcActorFacing('route-door'), EntityFacing.west);
+    expect(game.debugNpcVisualFacing('route-door'), EntityFacing.west);
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.east);
+      game.update(.05);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(game.debugNpcActorFacing('route-door'), EntityFacing.west);
+      expect(await _finishActorRoute(game, execution), 'completed');
+      expect(game.debugNpcActorFacing('route-door'), EntityFacing.north);
+    },
+  );
+
   test('native world Tone starts immediately without changing gameplay state', () async {
     final fixture = await _fixture();
     final game = fixture.game;
@@ -167,6 +340,185 @@ void main() {
     expect(game.gameStateSnapshot.toJson(), before);
     game.update(.5);
     expect(game.debugWorldToneValue.red, -255);
+  });
+
+  test('actor route refuses invalid references before its first pose change', () async {
+    final fixture = await _fixture();
+    final game = fixture.game;
+    final before = game.gameStateSnapshot.toJson();
+    for (final command in [
+      _actorRoute([{'kind': 'face', 'direction': 'north'}], mapId: 'target'),
+      _actorRoute([{'kind': 'face', 'direction': 'north'}], entityId: 'missing'),
+      _actorRoute([
+        {'kind': 'face', 'direction': 'north'},
+        {'kind': 'sound', 'mediaAssetId': 'missing', 'gain': 1},
+      ]),
+    ]) {
+      expect(await game.debugExecuteSceneInteractiveCommand(command), 'blocked');
+      expect(game.gameStateSnapshot.toJson(), before);
+    }
+  });
+
+  test('actor commands refuse an NPC excluded by physical World Rules', () async {
+    final fixture = await _fixture(sourceEntities: [_routeDoor], characters: [_routeDoorCharacter],
+      facts: [NarrativeFactDefinition(id: 'hide-door', label: 'Hide door', defaultValue: true)],
+      worldRules: [WorldRuleDefinition(id: 'hide-rule', label: 'Hide actor',
+        source: const WorldRuleSource(kind: WorldRuleSourceKind.fact, sourceId: 'hide-door', predicate: WorldRuleSourcePredicate.isTrue),
+        target: const WorldRuleTarget(kind: WorldRuleTargetKind.mapEntity, mapId: 'source', entityId: 'route-door'),
+        effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden),
+      )],
+      gameState: const GameState(saveId: 'actor-presence', currentMapId: 'source', playerPosition: GridPos(x: 1, y: 1), playerFacing: EntityFacing.east,
+        metadata: {'pokemap.npcPresence.source.route-door': 'present'}),
+    );
+    final game = fixture.game;
+    expect(game.debugNpcVisualFacing('route-door'), EntityFacing.south);
+    expect(await game.debugExecuteSceneInteractiveCommand(_actorRoute([{'kind': 'face', 'direction': 'north'}], entityId: 'route-door')), 'blocked');
+    expect(await game.debugExecuteSceneInteractiveCommand(SceneInteractiveCommand.fromJson({
+      'kind': 'actorVisibility', 'target': {'kind': 'entity', 'mapId': 'source', 'entityId': 'route-door'}, 'visible': false,
+    })), 'blocked');
+    expect(game.debugNpcActorFacing('route-door'), EntityFacing.south);
+    expect(game.debugIsNpcActorVisible('route-door'), isTrue);
+  });
+
+  test('actor route waits for sound startup with its exact gain before moving', () async {
+    final audio = _SceneSoundPort()..gate = Completer<void>();
+    final fixture = await _fixture(sceneSoundEffectPlaybackPort: audio, cinematicMediaAssets: [_doorSound()]);
+    final game = fixture.game;
+    final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'sound', 'mediaAssetId': 'door', 'gain': .8},
+      {'kind': 'move', 'direction': 'west', 'durationMs': 250},
+    ]));
+    await audio.entered.future;
+    game.update(.5);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(game.debugIsPlayerStepping, isFalse);
+    expect(audio.calls.single.volume, .8);
+    audio.gate!.complete();
+    expect(await _finishActorRoute(game, execution), 'completed');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+  });
+
+  test('actor route commits player movement through the real Scene executor', () async {
+    final fixture = await _fixture(scenes: [_actorRewardScene()], narrativeV2: true);
+    final game = fixture.game;
+    final moneyBefore = game.gameStateSnapshot.trainerProfile.money;
+    final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+      eventId: 'actor-event', sceneId: 'actor-scene', executionId: 'actor-success', gameState: game.gameStateSnapshot,
+    ));
+    final result = await _finishActorScene(game, execution);
+    expect(result, isA<NarrativeSceneExecutionCompleted>(), reason: result is NarrativeSceneExecutionFailed ? result.failure.toString() : null);
+    final state = (result as NarrativeSceneExecutionCompleted).updatedGameState;
+    expect(state.playerPosition, const GridPos(x: 0, y: 1));
+    expect(state.playerFacing, EntityFacing.west);
+    expect(state.trainerProfile.money, moneyBefore + 100);
+    expect(game.debugIsPlayerVisible, isTrue);
+  });
+
+  test('actor route failure rolls back movement and visibility without a reward', () async {
+    PlayableMapGame? activeGame;
+    var sawCompletedRoute = false;
+    final fixture = await _fixture(scenes: [_actorRewardScene(failingDialogue: true)], dialogues: [_actorDialogueEntry], narrativeV2: true,
+      dialogueSessionLoader: (_) async {
+        sawCompletedRoute = activeGame!.debugPlayerGridPosition == const GridPos(x: 0, y: 1);
+        throw StateError('Dialogue failed after route');
+      },
+    );
+    final game = fixture.game;
+    activeGame = game;
+    final before = game.gameStateSnapshot.toJson();
+    final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+      eventId: 'actor-event', sceneId: 'actor-scene', executionId: 'actor-rollback', gameState: game.gameStateSnapshot,
+    ));
+    expect(await _finishActorScene(game, execution), isA<NarrativeSceneExecutionFailed>());
+    expect(sawCompletedRoute, isTrue);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(game.debugIsPlayerVisible, isTrue);
+    expect(game.gameStateSnapshot.toJson(), before);
+  });
+
+  for (final entityId in <String?>[null, 'route-door']) {
+    test('map event actor route restores ${entityId ?? 'player'} after a later failure', () async {
+      final activity = NarrativeRuntimeActivityGate();
+      PlayableMapGame? activeGame;
+      var sawCompletedRoute = false;
+      final fixture = await _fixture(
+        sourceFacing: EntityFacing.west,
+        sourceEntities: [_routeDoor],
+        characters: [_routeDoorCharacter],
+        scenes: [_actorRewardScene(failingDialogue: true, entityId: entityId)],
+        dialogues: [_actorDialogueEntry],
+        narrativeRuntimeActivityGate: activity,
+        events: [_actorMapEvent],
+        dialogueSessionLoader: (_) async {
+          final game = activeGame!;
+          sawCompletedRoute = entityId == null
+              ? game.debugPlayerGridPosition == const GridPos(x: 0, y: 1)
+              : game.debugNpcGridPosition(entityId) == const GridPos(x: 0, y: 0) &&
+                  game.debugNpcActorFacing(entityId) == EntityFacing.west;
+          throw StateError('Dialogue failed after the map event route.');
+        },
+      );
+      final game = fixture.game;
+      activeGame = game;
+      final before = game.gameStateSnapshot.toJson();
+      expect(game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ), isTrue);
+      await _finishMapEventScene(game, activity, () => sawCompletedRoute);
+      expect(sawCompletedRoute, isTrue);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      expect(game.debugNpcGridPosition('route-door'), const GridPos(x: 1, y: 0));
+      expect(game.debugNpcActorFacing('route-door'), EntityFacing.south);
+      expect(game.debugNpcVisualFacing('route-door'), EntityFacing.south);
+      expect(game.debugIsPlayerVisible, isTrue);
+      expect(game.gameStateSnapshot.toJson(), before);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+  }
+
+  test('map event actor route face hold owns a patrolling NPC until completion', () async {
+    final activity = NarrativeRuntimeActivityGate();
+    final fixture = await _fixture(
+      sourceFacing: EntityFacing.west,
+      sourceEntities: [_routeDoor.copyWith(npc: const MapEntityNpcData(
+        characterId: 'route-door-character',
+        movement: MapEntityNpcMovementConfig(
+          mode: MapEntityNpcMovementMode.patrol,
+          waypoints: [GridPos(x: 1, y: 0), GridPos(x: 0, y: 0)],
+          stepDurationMs: 100,
+          pauseDurationMs: 0,
+        ),
+      ))],
+      characters: [_routeDoorCharacter],
+      scenes: [_actorHoldScene()],
+      narrativeRuntimeActivityGate: activity,
+      events: [_actorMapEvent],
+    );
+    final game = fixture.game;
+    expect(game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.primary),
+    ), isTrue);
+    for (var tick = 0; tick < 3000; tick++) {
+      if (game.debugNpcActorFacing('route-door') == EntityFacing.north) break;
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    expect(activity.activity, NarrativeRuntimeActivity.sceneActive);
+    expect(game.debugNpcActorFacing('route-door'), EntityFacing.north);
+    for (var tick = 0; tick < 3; tick++) {
+      game.update(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(activity.activity, NarrativeRuntimeActivity.sceneActive);
+    expect(game.debugNpcGridPosition('route-door'), const GridPos(x: 1, y: 0));
+    expect(game.debugNpcVisualFacing('route-door'), EntityFacing.north);
+    await _finishMapEventScene(game, activity, () => true);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+    for (var tick = 0; tick < 30; tick++) {
+      game.update(.025);
+      await Future<void>.delayed(Duration.zero);
+      if (game.debugNpcGridPosition('route-door') == const GridPos(x: 0, y: 0)) break;
+    }
+    expect(game.debugNpcGridPosition('route-door'), const GridPos(x: 0, y: 0));
   });
 
   test('native world Tone advances through a no-fade map transfer', () async {
@@ -851,6 +1203,12 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   List<ProjectDialogueEntry> dialogues = const [],
   List<CinematicMediaAsset> cinematicMediaAssets = const [],
   List<MapEventDefinition> events = const [],
+  List<MapEntity> sourceEntities = const [],
+  List<ProjectCharacterEntry> characters = const [],
+  bool narrativeV2 = false,
+  List<NarrativeFactDefinition> facts = const [],
+  List<WorldRuleDefinition> worldRules = const [],
+  GameState? gameState,
 }) async {
   final root = await Directory.systemTemp.createTemp(
     'runtime_connection_canonical_arrival_',
@@ -862,6 +1220,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     size: const GridSize(width: 2, height: 3),
     layers: const [MapLayer.object(id: 'objects', name: 'Objects')],
     entities: [
+      ...sourceEntities,
       MapEntity(
         id: 'start',
         name: 'Start',
@@ -971,6 +1330,10 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     scenes: scenes,
     dialogues: dialogues,
     cinematicMediaAssets: cinematicMediaAssets,
+    characters: characters,
+    facts: facts,
+    worldRules: worldRules,
+    eventRegistry: narrativeV2 ? NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: const [], legacyClaims: const []) : null,
     maps: [
       for (final map in [source, target])
         ProjectMapEntry(
@@ -1054,6 +1417,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     bundle: bundle,
     projectFilePath: projectPath,
     saveRepository: saveRepository,
+    saveData: gameState == null ? null : saveDataFromGameState(gameState),
     sceneSoundEffectPlaybackPort: sceneSoundEffectPlaybackPort,
     narrativeRuntimeActivityGate: narrativeRuntimeActivityGate,
     dialogueSessionLoader: dialogueSessionLoader,
@@ -1062,11 +1426,16 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   addTearDown(game.onRemove);
   game.onGameResize(Vector2(320, 240));
   await game.onLoad();
-  for (var tick = 0; tick < 240; tick++) {
+  for (var tick = 0; tick < 3000; tick++) {
     if (!game.debugIsMapActivationDispatchInFlight) break;
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
   }
   expect(game.debugIsMapActivationDispatchInFlight, isFalse);
+  await game.debugLoadRuntimeMapBundleCachedForTest('target');
+  for (var tick = 0; tick < 240 && !game.debugIsMapLoaded('target'); tick++) {
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  expect(game.debugIsMapLoaded('target'), isTrue);
   expect(game.gameStateSnapshot.currentMapId, 'source');
   expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
   return (
@@ -1081,11 +1450,146 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   );
 }
 
+const _routeDoor = MapEntity(
+  id: 'route-door',
+  name: 'Route door',
+  kind: MapEntityKind.npc,
+  pos: GridPos(x: 1, y: 0),
+  npc: MapEntityNpcData(characterId: 'route-door-character'),
+  properties: {
+    mapEntityCollisionWidthProperty: '1',
+    mapEntityCollisionHeightProperty: '1',
+  },
+);
+const _routeDoorCharacter = ProjectCharacterEntry(
+  id: 'route-door-character',
+  name: 'Route door',
+  tilesetId: 'original',
+);
+
+SceneInteractiveCommand _actorRoute(
+  List<Map<String, dynamic>> steps, {
+  String? entityId,
+  bool skippable = false,
+  String mapId = 'source',
+}) => SceneInteractiveCommand.fromJson({
+  'kind': 'actorRoute',
+  'target': {
+    'kind': entityId == null ? 'player' : 'entity',
+    'mapId': mapId,
+    'entityId': ?entityId,
+  },
+  'steps': steps,
+  'skippable': skippable,
+});
+
+Future<String> _finishActorRoute(
+  PlayableMapGame game,
+  Future<String> execution,
+) async {
+  String? result;
+  Object? failure;
+  var done = false;
+  execution.then(
+    (value) {
+      result = value;
+      done = true;
+    },
+    onError: (Object error) {
+      failure = error;
+      done = true;
+    },
+  );
+  for (var tick = 0; tick < 120 && !done; tick++) {
+    await Future<void>.delayed(Duration.zero);
+    if (!done) game.update(.025);
+  }
+  if (failure != null) throw failure!;
+  expect(
+    done,
+    isTrue,
+    reason: 'Actor route did not settle under the runtime clock.',
+  );
+  return result!;
+}
+
+Future<NarrativeSceneExecutionResult> _finishActorScene(PlayableMapGame game, Future<NarrativeSceneExecutionResult> execution) async {
+  NarrativeSceneExecutionResult? result;
+  execution.then((value) => result = value);
+  for (var tick = 0; tick < 120 && result == null; tick++) {
+    await Future<void>.delayed(Duration.zero);
+    if (result == null) game.update(.025);
+  }
+  expect(result, isNotNull, reason: 'Actor Scene did not settle.');
+  return result!;
+}
+
+SceneAsset _actorRewardScene({bool failingDialogue = false, String? entityId}) => SceneAsset(
+  id: 'actor-scene', name: 'Actor scene', graph: SceneGraph(startNodeId: 'start', nodes: [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    SceneNode(id: 'hide', kind: SceneNodeKind.action, payload: SceneActionPayload(interactiveCommand: SceneInteractiveCommand.fromJson({'kind': 'actorVisibility', 'target': {'kind': 'player', 'mapId': 'source'}, 'visible': false}))),
+    SceneNode(id: 'route', kind: SceneNodeKind.action, payload: SceneActionPayload(interactiveCommand: _actorRoute([{'kind': 'move', 'direction': 'west', 'durationMs': 250}], entityId: entityId))),
+    SceneNode(id: 'show', kind: SceneNodeKind.action, payload: SceneActionPayload(interactiveCommand: SceneInteractiveCommand.fromJson({'kind': 'actorVisibility', 'target': {'kind': 'player', 'mapId': 'source'}, 'visible': true}))),
+    if (failingDialogue) SceneNode(id: 'dialogue', kind: SceneNodeKind.yarnDialogue, payload: SceneYarnDialoguePayload(dialogueId: _actorDialogueEntry.id, yarnNodeName: 'Start', expectedOutcomes: ['done'])),
+    SceneNode(id: 'reward', kind: SceneNodeKind.action, payload: SceneActionPayload(consequence: SceneConsequence.giveMoney(amount: 100))),
+    SceneNode(id: 'end', kind: SceneNodeKind.end, payload: SceneEndPayload()),
+  ], edges: [
+    SceneEdge(id: 'begin', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'hide', kind: SceneEdgeKind.defaultFlow),
+    for (final port in ['completed', 'blocked']) ...[
+      SceneEdge(id: 'hide-$port', fromNodeId: 'hide', fromPortId: port, toNodeId: 'route', kind: SceneEdgeKind.actionCompleted),
+      SceneEdge(id: 'route-$port', fromNodeId: 'route', fromPortId: port, toNodeId: 'show', kind: SceneEdgeKind.actionCompleted),
+      SceneEdge(id: 'show-$port', fromNodeId: 'show', fromPortId: port, toNodeId: failingDialogue ? 'dialogue' : 'reward', kind: SceneEdgeKind.actionCompleted),
+    ],
+    if (failingDialogue) SceneEdge(id: 'dialogue-done', fromNodeId: 'dialogue', fromPortId: 'completed', toNodeId: 'reward', kind: SceneEdgeKind.defaultFlow),
+    if (failingDialogue) SceneEdge(id: 'dialogue-outcome', fromNodeId: 'dialogue', fromPortId: 'done', toNodeId: 'reward', kind: SceneEdgeKind.dialogueOutcome),
+    SceneEdge(id: 'rewarded', fromNodeId: 'reward', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+  ]),
+);
+
+final _actorMapEvent = MapEventDefinition(
+  id: 'actor-map-event',
+  title: 'Actor map event',
+  position: const EventPosition(layerId: 'objects', x: 0, y: 1),
+  pages: [MapEventPage(pageNumber: 0,
+    sceneTarget: const MapEventSceneTarget(sceneId: 'actor-scene'))],
+);
+
+SceneAsset _actorHoldScene() => SceneAsset(
+  id: 'actor-scene',
+  name: 'Actor hold scene',
+  graph: SceneGraph(startNodeId: 'start', nodes: [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    SceneNode(id: 'hold', kind: SceneNodeKind.action, payload: SceneActionPayload(
+      interactiveCommand: _actorRoute([
+        {'kind': 'face', 'direction': 'north', 'durationMs': 400},
+      ], entityId: 'route-door'),
+    )),
+    SceneNode(id: 'end', kind: SceneNodeKind.end, payload: SceneEndPayload()),
+  ], edges: [
+    SceneEdge(id: 'start-hold', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'hold', kind: SceneEdgeKind.defaultFlow),
+    for (final port in ['completed', 'blocked'])
+      SceneEdge(id: 'hold-$port', fromNodeId: 'hold', fromPortId: port, toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+  ]),
+);
+
+Future<void> _finishMapEventScene(PlayableMapGame game, NarrativeRuntimeActivityGate activity, bool Function() observed) async {
+  for (var tick = 0; tick < 3000; tick++) {
+    if (observed() && activity.activity == NarrativeRuntimeActivity.idle) break;
+    game.update(.025);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  expect(observed(), isTrue, reason: 'The route must run before the Scene failure.');
+  expect(activity.activity, NarrativeRuntimeActivity.idle);
+}
+
+const _actorDialogueEntry = ProjectDialogueEntry(id: 'actor-dialogue', name: 'Actor dialogue', relativePath: 'dialogues/actor.yarn', declaredOutcomes: [DialogueDeclaredOutcome(id: 'done', label: 'Done')]);
+
 final class _ConnectionGame extends PlayableMapGame {
   _ConnectionGame({
     required super.bundle,
     required super.projectFilePath,
     super.saveRepository,
+    super.saveData,
     super.sceneSoundEffectPlaybackPort,
     super.narrativeRuntimeActivityGate,
     super.dialogueSessionLoader,

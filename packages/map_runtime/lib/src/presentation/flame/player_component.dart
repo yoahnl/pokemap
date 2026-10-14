@@ -16,7 +16,7 @@ import 'overworld_actor_component.dart';
 /// Important : le gameplay avance par pas **pixels** ; si ce composant ne fait
 /// qu’aligner sur `pos` grille, l’interpolation et les frames de marche se
 /// désynchronisent (effet saccadé / 3 frames visibles).
-class PlayerComponent extends PositionComponent {
+class PlayerComponent extends PositionComponent with HasVisibility {
   static const double kDefaultStepSeconds = 0.25;
   static const double kRunStepSeconds = 0.125;
 

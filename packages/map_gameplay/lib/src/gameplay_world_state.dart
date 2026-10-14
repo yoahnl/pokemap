@@ -697,6 +697,26 @@ class GameplayWorldState {
     );
   }
 
+  GameplayWorldState withEntityFacing(String entityId, EntityFacing facing) {
+    final matching = <int>[
+      for (var index = 0; index < map.entities.length; index++)
+        if (map.entities[index].id == entityId) index,
+    ];
+    if (matching.length != 1) {
+      throw StateError('Actor facing requires one unambiguous NPC.');
+    }
+    final index = matching.single;
+    final entity = map.entities[index];
+    final npc = entity.npc;
+    if (entity.kind != MapEntityKind.npc || npc == null) {
+      throw StateError('Actor facing requires NPC data.');
+    }
+    if (npc.facing == facing) {
+      return this;
+    }
+    return _withUpdatedEntity(index, entity.copyWith(npc: npc.copyWith(facing: facing)));
+  }
+
   /// Retourne un nouvel état monde où la position d'une entité est mise à jour.
   ///
   /// Cette méthode est la brique clé pour les déplacements PNJ scriptés:
@@ -728,8 +748,12 @@ class GameplayWorldState {
       return this;
     }
 
+    return _withUpdatedEntity(index, entity.copyWith(pos: newPos));
+  }
+
+  GameplayWorldState _withUpdatedEntity(int index, MapEntity entity) {
     final updatedEntities = List<MapEntity>.from(map.entities);
-    updatedEntities[index] = entity.copyWith(pos: newPos);
+    updatedEntities[index] = entity;
     final updatedMap = map.copyWith(entities: updatedEntities);
 
     final newBlocking = _buildBlockingEntityByPos(

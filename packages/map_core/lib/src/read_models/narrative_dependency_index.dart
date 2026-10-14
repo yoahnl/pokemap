@@ -16,11 +16,13 @@ import '../models/rail_journey.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/scene_actor_route.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/script_conditions.dart';
 import '../models/script_asset.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
+import '../operations/scene_actor_reference.dart';
 import 'linked_asset_public_contracts.dart';
 
 /// Canonical namespaces used by Narrative Studio dependency consumers.
@@ -2265,31 +2267,92 @@ final class _NarrativeDependencyIndexBuilder {
     }
   }
 
+  void _collectActorTarget(
+    NarrativeDependencyKey owner,
+    SceneActorTarget target,
+    String path,
+  ) {
+    final targetMaps = maps.where((map) => map.id == target.mapId);
+    final map = targetMaps.length == 1 ? targetMaps.single : null;
+    final unavailableMap = map?.spatialScene != null;
+    _usage(
+      target: _mapKey(target.mapId),
+      owner: owner,
+      path: '$path.mapId',
+      criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      resolution: unavailableMap
+          ? NarrativeDependencyResolution.unavailable
+          : null,
+    );
+    if (target.kind == SceneActorTargetKind.entity) {
+      final entities =
+          map?.entities
+              .where((entity) => entity.id == target.entityId)
+              .toList(growable: false) ??
+          const <MapEntity>[];
+      final incompatible =
+          unavailableMap ||
+          (entities.length == 1 &&
+              !isSceneActorEntityReferenceAvailable(project, entities.single));
+      _usage(
+        target: _mapSourceChildKey(target.mapId, 'entity', target.entityId!),
+        owner: owner,
+        path: '$path.entityId',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        resolution: incompatible
+            ? NarrativeDependencyResolution.unavailable
+            : null,
+      );
+    }
+  }
+
+  void _collectSceneSoundReference(
+    NarrativeDependencyKey owner,
+    String mediaAssetId,
+    String path,
+  ) {
+    final candidates =
+        _soundMediaById[mediaAssetId] ?? const <CinematicMediaAsset>[];
+    final incompatible =
+        candidates.length == 1 &&
+        (candidates.single.kind != CinematicMediaAssetKind.sound ||
+            candidates.single.loopByDefault);
+    _usage(
+      target: NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.media,
+        mediaAssetId,
+      ),
+      owner: owner,
+      path: path,
+      criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      resolution: incompatible
+          ? NarrativeDependencyResolution.unavailable
+          : null,
+    );
+  }
+
   void _collectSceneInteractiveCommand(
     NarrativeDependencyKey owner,
     SceneInteractiveCommand command,
     String path,
   ) {
     switch (command) {
+      case SceneActorRouteInteractiveCommand(:final target, :final steps):
+        _collectActorTarget(owner, target, '$path.target');
+        for (var index = 0; index < steps.length; index++) {
+          final step = steps[index];
+          if (step is SceneActorSoundStep) {
+            _collectSceneSoundReference(
+              owner,
+              step.mediaAssetId,
+              '$path.steps[$index].mediaAssetId',
+            );
+          }
+        }
+      case SceneActorVisibilityInteractiveCommand(:final target):
+        _collectActorTarget(owner, target, '$path.target');
       case ScenePlaySoundEffectInteractiveCommand(:final mediaAssetId):
-        final candidates =
-            _soundMediaById[mediaAssetId] ?? const <CinematicMediaAsset>[];
-        final incompatible =
-            candidates.length == 1 &&
-            (candidates.single.kind != CinematicMediaAssetKind.sound ||
-                candidates.single.loopByDefault);
-        _usage(
-          target: NarrativeDependencyKey(
-            NarrativeDependencyTargetKind.media,
-            mediaAssetId,
-          ),
-          owner: owner,
-          path: '$path.mediaAssetId',
-          criticality: NarrativeDependencyCriticality.runtimeBlocking,
-          resolution: incompatible
-              ? NarrativeDependencyResolution.unavailable
-              : null,
-        );
+        _collectSceneSoundReference(owner, mediaAssetId, '$path.mediaAssetId');
       case ScenePlayModelAnimationInteractiveCommand(
         :final mapId,
         :final instanceId,
@@ -2609,9 +2672,7 @@ final class _NarrativeDependencyIndexBuilder {
     for (final usage in _usages) {
       NarrativeDependencyResolution resolution;
       if (usage.resolution == NarrativeDependencyResolution.legacyExternal ||
-          usage.resolution == NarrativeDependencyResolution.ambiguous ||
-          (usage.resolution == NarrativeDependencyResolution.unavailable &&
-              usage.target.kind == NarrativeDependencyTargetKind.media)) {
+          usage.resolution == NarrativeDependencyResolution.ambiguous) {
         resolution = usage.resolution;
       } else {
         final definitionCount = definitionsByKey[usage.target]?.length ?? 0;
@@ -2622,6 +2683,9 @@ final class _NarrativeDependencyIndexBuilder {
             usage.target.sourceKind == 'legacyMapEvent';
         if (definitionCount > 1) {
           resolution = NarrativeDependencyResolution.ambiguous;
+        } else if (usage.resolution ==
+            NarrativeDependencyResolution.unavailable) {
+          resolution = NarrativeDependencyResolution.unavailable;
         } else if (isGlobalLegacyMapEvent &&
             definitionCount == 0 &&
             hasUnavailableDeclaredMaps) {
@@ -2665,6 +2729,9 @@ final class _NarrativeDependencyIndexBuilder {
               NarrativeDependencyResolution.unavailable =>
                 usage.target.kind == NarrativeDependencyTargetKind.media
                     ? '${usage.target} is not a non-looping sound effect.'
+                    : usage.resolution ==
+                          NarrativeDependencyResolution.unavailable
+                    ? '${usage.target} cannot provide a native 2D actor; entity targets require a unique NPC with a known unique character.'
                     : '${usage.target} is declared but its map data is unavailable.',
               _ => throw StateError('Unsupported dependency issue resolution'),
             },

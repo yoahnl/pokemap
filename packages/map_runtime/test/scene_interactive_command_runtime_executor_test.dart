@@ -24,6 +24,8 @@ void main() {
       railJourney: handler,
       worldTone: handler,
       playSoundEffect: handler,
+      actorRoute: handler,
+      actorVisibility: handler,
     );
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.giveItem(itemId: 'tm23', quantity: 1),
@@ -33,6 +35,8 @@ void main() {
       ),
       SceneInteractiveCommand.worldTone(red: -255, green: -255, blue: -255, gray: 0, durationMs: 300),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+      SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map.port'), steps: [SceneActorRouteStep.wait(durationMs: 0)]),
+      SceneInteractiveCommand.actorVisibility(target: SceneActorTarget.player(mapId: 'map.port'), visible: false),
       SceneInteractiveCommand.moveNpc(
         mapId: 'map.port',
         entityId: 'npc.guard',
@@ -80,6 +84,8 @@ void main() {
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.worldTone(red: 0, green: 0, blue: 0, gray: 0, durationMs: 300),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+      SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map.port'), steps: [SceneActorRouteStep.wait(durationMs: 0)]),
+      SceneInteractiveCommand.actorVisibility(target: SceneActorTarget.player(mapId: 'map.port'), visible: false),
     ]) {
       await expectLater(executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command: command)), throwsStateError);
     }

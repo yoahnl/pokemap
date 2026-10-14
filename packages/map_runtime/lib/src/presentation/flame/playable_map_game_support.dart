@@ -671,6 +671,68 @@ final class _PendingNarrativeTriggerEntry {
   final String triggerId;
 }
 
+final class _PendingSceneActorRouteWait {
+  _PendingSceneActorRouteWait({
+    required this.deadlineMs,
+    required this.isCurrent,
+    required this.isReady,
+  });
+
+  final double deadlineMs;
+  final bool Function() isCurrent;
+  final bool Function() isReady;
+  final Completer<void> completer = Completer<void>();
+}
+
+final class _FlameSceneActorRouteExecutionPort
+    implements ActorRouteExecutionPort {
+  _FlameSceneActorRouteExecutionPort({
+    required this.current,
+    required this.faceAction,
+    required this.moveAction,
+    required this.waitAction,
+    required this.soundAction,
+    required this.visibilityAction,
+  });
+
+  final bool Function() current;
+  final Future<void> Function(SceneActorTarget, EntityFacing) faceAction;
+  final Future<ActorRouteMoveOutcome> Function(
+    SceneActorTarget,
+    EntityFacing, {
+    required int durationMs,
+    required bool through,
+  })
+  moveAction;
+  final Future<void> Function(int) waitAction;
+  final Future<void> Function(String, {required double gain}) soundAction;
+  final Future<void> Function(SceneActorTarget, {required bool visible})
+  visibilityAction;
+
+  @override
+  bool get isCurrent => current();
+  @override
+  Future<void> face(SceneActorTarget target, EntityFacing direction) =>
+      faceAction(target, direction);
+  @override
+  Future<ActorRouteMoveOutcome> move(
+    SceneActorTarget target,
+    EntityFacing direction, {
+    required int durationMs,
+    required bool through,
+  }) => moveAction(target, direction, durationMs: durationMs, through: through);
+  @override
+  Future<void> wait(int durationMs) => waitAction(durationMs);
+  @override
+  Future<void> sound(String mediaAssetId, {required double gain}) =>
+      soundAction(mediaAssetId, gain: gain);
+  @override
+  Future<void> setVisibility(
+    SceneActorTarget target, {
+    required bool visible,
+  }) => visibilityAction(target, visible: visible);
+}
+
 final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 

@@ -1,6 +1,7 @@
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/scene_actor_route.dart';
 import '../models/scene_finish_game_contract.dart';
 import '../models/rail_journey.dart';
 import '../models/moving_platform.dart';
@@ -138,6 +139,12 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     ),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
     NarrativeCommandIds.playSoundEffect => _buildSoundEffectPayload(parameters),
+    NarrativeCommandIds.actorVisibility => _buildActorVisibilityPayload(
+      parameters,
+    ),
+    NarrativeCommandIds.actorRoute => throw const FormatException(
+      'Actor routes require the typed target and steps builder.',
+    ),
     NarrativeCommandIds.openShop => SceneActionPayload.interactive(
       SceneInteractiveCommand.openShop(shopId: parameters['shopId']!),
     ),
@@ -242,6 +249,50 @@ SceneActionPayload _buildSoundEffectPayload(Map<String, String> parameters) {
       mediaAssetId: parameters['mediaAssetId']!,
       volume: double.parse(parameters['volume']!),
     ),
+  );
+}
+
+SceneActionPayload buildSceneActorRoutePayload({
+  required SceneActorTarget target,
+  required List<SceneActorRouteStep> steps,
+  bool skippable = false,
+  String? actionKind,
+  Map<String, String> parameters = const {},
+}) => SceneActionPayload.interactive(
+  SceneInteractiveCommand.actorRoute(
+    target: target,
+    steps: steps,
+    skippable: skippable,
+  ),
+  actionKind: actionKind,
+  parameters: parameters,
+);
+
+SceneActionPayload _buildActorVisibilityPayload(
+  Map<String, String> parameters,
+) {
+  final entity = parameters['targetKind'] == 'entity';
+  _requirePresentationParameters(parameters, {
+    'mapId',
+    'targetKind',
+    'visible',
+    if (entity) 'entityId',
+  });
+  final target = switch (parameters['targetKind']) {
+    'player' => SceneActorTarget.player(mapId: parameters['mapId']!),
+    'entity' => SceneActorTarget.entity(
+      mapId: parameters['mapId']!,
+      entityId: parameters['entityId']!,
+    ),
+    _ => throw const FormatException('Unknown actor target kind.'),
+  };
+  final visible = switch (parameters['visible']) {
+    'true' => true,
+    'false' => false,
+    _ => throw const FormatException('visible must be true or false.'),
+  };
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.actorVisibility(target: target, visible: visible),
   );
 }
 

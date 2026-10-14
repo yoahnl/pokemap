@@ -16,6 +16,8 @@ abstract final class NarrativeCommandIds {
   static const warp = 'warp';
   static const worldTone = 'worldTone';
   static const playSoundEffect = 'playSoundEffect';
+  static const actorRoute = 'actorRoute';
+  static const actorVisibility = 'actorVisibility';
   static const openShop = 'openShop';
   static const openHeal = 'openHeal';
   static const openPc = 'openPc';
@@ -457,6 +459,73 @@ final class NarrativeCommandCatalog {
             NarrativeCommandParameterKind.soundMediaReference,
           ),
           _parameter('volume', 'Volume', NarrativeCommandParameterKind.number),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.actorRoute,
+        label: 'Déplacer un acteur',
+        description: 'Exécute une route finie et termine après ses étapes.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D ; formulaire guidé non qualifié ; aucun support 3D.',
+        ),
+        fgLotId: 'FG-092',
+        wireId: 'SceneInteractiveCommand.actorRoute',
+        parameters: [
+          _parameter(
+            'target',
+            'Acteur',
+            NarrativeCommandParameterKind.actorTarget,
+          ),
+          _parameter(
+            'steps',
+            'Étapes',
+            NarrativeCommandParameterKind.actorRouteSteps,
+          ),
+          _parameter(
+            'skippable',
+            'Ignorer les déplacements bloqués',
+            NarrativeCommandParameterKind.boolean,
+            required: false,
+          ),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.actorVisibility,
+        label: 'Afficher ou masquer un acteur',
+        description: 'Change la visibilité sans modifier les collisions.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D ; formulaire guidé non qualifié ; aucun support 3D.',
+        ),
+        fgLotId: 'FG-092',
+        wireId: 'SceneInteractiveCommand.actorVisibility',
+        parameters: [
+          _parameter('mapId', 'Carte', NarrativeCommandParameterKind.map),
+          _parameter(
+            'targetKind',
+            'Acteur',
+            NarrativeCommandParameterKind.actorTargetKind,
+          ),
+          _parameter(
+            'entityId',
+            'Acteur de la carte',
+            NarrativeCommandParameterKind.actorEntityReference,
+            required: false,
+          ),
+          _parameter(
+            'visible',
+            'Visible',
+            NarrativeCommandParameterKind.boolean,
+          ),
         ],
         isAwaitable: true,
       ),

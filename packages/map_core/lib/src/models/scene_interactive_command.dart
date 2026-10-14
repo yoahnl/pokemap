@@ -4,12 +4,15 @@ import '../runtime/character_custom_animation_runtime_contract.dart';
 import 'rail_journey.dart';
 import 'moving_platform.dart';
 import 'enums.dart';
+import 'scene_actor_route.dart';
 
 enum SceneInteractiveCommandKind {
   giveItem,
   warp,
   worldTone,
   playSoundEffect,
+  actorRoute,
+  actorVisibility,
   moveNpc,
   movePlatform,
   openShop,
@@ -58,6 +61,17 @@ abstract base class SceneInteractiveCommand {
     required String mediaAssetId,
     required double volume,
   }) = ScenePlaySoundEffectInteractiveCommand;
+
+  factory SceneInteractiveCommand.actorRoute({
+    required SceneActorTarget target,
+    required List<SceneActorRouteStep> steps,
+    bool skippable,
+  }) = SceneActorRouteInteractiveCommand;
+
+  factory SceneInteractiveCommand.actorVisibility({
+    required SceneActorTarget target,
+    required bool visible,
+  }) = SceneActorVisibilityInteractiveCommand;
 
   factory SceneInteractiveCommand.moveNpc({
     required String mapId,
@@ -132,6 +146,10 @@ abstract base class SceneInteractiveCommand {
         SceneWorldToneInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playSoundEffect =>
         ScenePlaySoundEffectInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.actorRoute =>
+        SceneActorRouteInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.actorVisibility =>
+        SceneActorVisibilityInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.moveNpc => SceneMoveNpcInteractiveCommand(
         mapId: _required(json, 'mapId'),
         entityId: _required(json, 'entityId'),
@@ -196,6 +214,119 @@ abstract base class SceneInteractiveCommand {
   SceneInteractiveCommandKind get kind;
   List<String> get outputPortIds;
   Map<String, dynamic> toJson();
+}
+
+@immutable
+final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
+  SceneActorRouteInteractiveCommand({
+    required this.target,
+    required List<SceneActorRouteStep> steps,
+    this.skippable = false,
+  }) : steps = List.unmodifiable(steps);
+
+  factory SceneActorRouteInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    if (json.keys.any(
+          (key) =>
+              !const {'kind', 'target', 'steps', 'skippable'}.contains(key),
+        ) ||
+        json['kind'] != 'actorRoute' ||
+        json['steps'] is! List ||
+        (json.containsKey('skippable') && json['skippable'] is! bool)) {
+      throw const FormatException('Invalid actor route command.');
+    }
+    return SceneActorRouteInteractiveCommand(
+      target: SceneActorTarget.fromJson(
+        _actorCommandObject(json['target'], 'target'),
+      ),
+      steps: [
+        for (final step in json['steps'] as List)
+          SceneActorRouteStep.fromJson(_actorCommandObject(step, 'step')),
+      ],
+      skippable: json['skippable'] as bool? ?? false,
+    );
+  }
+
+  final SceneActorTarget target;
+  final List<SceneActorRouteStep> steps;
+  final bool skippable;
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.actorRoute;
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'target': target.toJson(),
+    'steps': steps.map((step) => step.toJson()).toList(),
+    'skippable': skippable,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SceneActorRouteInteractiveCommand &&
+      target == other.target &&
+      skippable == other.skippable &&
+      steps.length == other.steps.length &&
+      Iterable<int>.generate(
+        steps.length,
+      ).every((index) => steps[index] == other.steps[index]);
+  @override
+  int get hashCode =>
+      Object.hash(kind, target, skippable, Object.hashAll(steps));
+}
+
+@immutable
+final class SceneActorVisibilityInteractiveCommand
+    extends SceneInteractiveCommand {
+  const SceneActorVisibilityInteractiveCommand({
+    required this.target,
+    required this.visible,
+  });
+
+  factory SceneActorVisibilityInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    _presentationCommandFields(json, const {'kind', 'target', 'visible'});
+    if (json['kind'] != 'actorVisibility' || json['visible'] is! bool) {
+      throw const FormatException('Invalid actor visibility command.');
+    }
+    return SceneActorVisibilityInteractiveCommand(
+      target: SceneActorTarget.fromJson(
+        _actorCommandObject(json['target'], 'target'),
+      ),
+      visible: json['visible'] as bool,
+    );
+  }
+
+  final SceneActorTarget target;
+  final bool visible;
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.actorVisibility;
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'target': target.toJson(),
+    'visible': visible,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SceneActorVisibilityInteractiveCommand &&
+      target == other.target &&
+      visible == other.visible;
+  @override
+  int get hashCode => Object.hash(kind, target, visible);
+}
+
+Map<String, dynamic> _actorCommandObject(Object? value, String field) {
+  if (value is! Map || value.keys.any((key) => key is! String)) {
+    throw FormatException('$field must be an object with string fields.');
+  }
+  return Map<String, dynamic>.from(value);
 }
 
 @immutable

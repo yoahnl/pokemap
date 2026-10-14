@@ -1,0 +1,233 @@
+import 'package:map_core/map_core.dart';
+
+import 'collision/pixel_movement_resolver.dart';
+import 'direction.dart';
+import 'gameplay_player_state.dart';
+import 'gameplay_world_state.dart';
+
+final class ActorRouteMotionPlan {
+  const ActorRouteMotionPlan._({
+    required this.target,
+    required this.direction,
+    required this.from,
+    required this.to,
+    required this.fromPositionPx,
+    required this.toPositionPx,
+    this.playerState,
+  });
+
+  final SceneActorTarget target;
+  final EntityFacing direction;
+  final GridPos from;
+  final GridPos to;
+  final PixelPosition fromPositionPx;
+  final PixelPosition toPositionPx;
+  final GameplayPlayerState? playerState;
+}
+
+ActorRouteMotionPlan? planActorRouteMove({
+  required GameplayWorldState world,
+  required SceneActorTarget target,
+  required EntityFacing direction,
+  required bool through,
+  Iterable<GridPos> dynamicBlockedCells = const [],
+  Iterable<PixelRect> characterReservations = const [],
+}) {
+  if (target.mapId != world.map.id || world.map.spatialScene != null) {
+    throw StateError('Actor route requires its active 2D map.');
+  }
+  final delta = direction.asDirection;
+  final dx = delta.dx * world.tileWidthPx;
+  final dy = delta.dy * world.tileHeightPx;
+  late final GridPos from;
+  late final PixelPosition fromPosition;
+  late final int spriteWidth;
+  late final int spriteHeight;
+  late final PixelRect sourceFootprint;
+  var collisionWorld = world;
+  final isPlayer = target.kind == SceneActorTargetKind.player;
+  if (isPlayer) {
+    from = world.player.pos;
+    fromPosition = world.player.playerPositionPx;
+    spriteWidth = world.player.playerSpriteWidthPx;
+    spriteHeight = world.player.playerSpriteHeightPx;
+    sourceFootprint = world.player.playerCollisionRectPx;
+    if (spriteWidth <= 0 ||
+        spriteHeight <= 0 ||
+        _project(world, sourceFootprint) != from) {
+      throw StateError('Player actor route has an incoherent physical pose.');
+    }
+  } else {
+    final candidates = world.map.entities
+        .where((entity) => entity.id == target.entityId)
+        .toList(growable: false);
+    if (candidates.length != 1 || candidates.single.kind != MapEntityKind.npc) {
+      throw StateError('Actor route target must identify one NPC.');
+    }
+    final actor = candidates.single;
+    if (!(world.npcMapPresencePredicate?.call(world.map.id, actor) ?? true) ||
+        !(world.mapEntityPresencePredicate?.call(world.map.id, actor) ??
+            true)) {
+      throw StateError('Actor route target is not present.');
+    }
+    from = actor.pos;
+    fromPosition = PixelPosition(
+      leftPx: from.x * world.tileWidthPx,
+      topPx: from.y * world.tileHeightPx,
+    );
+    spriteWidth = actor.size.width * world.tileWidthPx;
+    spriteHeight = actor.size.height * world.tileHeightPx;
+    sourceFootprint = resolveEntityCollisionRectPx(actor,
+        tileWidthPx: world.tileWidthPx, tileHeightPx: world.tileHeightPx);
+    final previousPresence = world.npcMapPresencePredicate;
+    collisionWorld = world.withNpcMapPresencePredicate((mapId, entity) =>
+        entity.id != actor.id &&
+        (previousPresence?.call(mapId, entity) ?? true));
+  }
+  final sourceMovementRect =
+      PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+    spriteTopLeftPx: fromPosition,
+    spriteWidthPx: spriteWidth,
+    spriteHeightPx: spriteHeight,
+  );
+  PixelRect footprintAt(PixelRect movementRect) => isPlayer
+      ? movementRect
+      : PixelRect(
+          leftPx: sourceFootprint.leftPx +
+              movementRect.leftPx -
+              sourceMovementRect.leftPx,
+          topPx: sourceFootprint.topPx +
+              movementRect.topPx -
+              sourceMovementRect.topPx,
+          widthPx: sourceFootprint.widthPx,
+          heightPx: sourceFootprint.heightPx,
+        );
+  List<PixelRect> areasAt(PixelRect movementRect) {
+    final footprint = footprintAt(movementRect);
+    return [
+      footprint,
+      if (isPlayer) world.playerCharacterContactRect(footprint)
+    ];
+  }
+
+  bool inBounds(PixelRect movementRect) =>
+      areasAt(movementRect).every((rect) => _inBounds(world, rect));
+  if (from.x < 0 ||
+      from.y < 0 ||
+      from.x >= world.map.size.width ||
+      from.y >= world.map.size.height ||
+      spriteWidth <= 0 ||
+      spriteHeight <= 0 ||
+      !inBounds(sourceMovementRect)) {
+    throw StateError('Actor route initial footprint is outside the map.');
+  }
+  final toPosition = PixelPosition(
+      leftPx: fromPosition.leftPx + dx, topPx: fromPosition.topPx + dy);
+  final toMovementRect =
+      PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+    spriteTopLeftPx: toPosition,
+    spriteWidthPx: spriteWidth,
+    spriteHeightPx: spriteHeight,
+  );
+  final to = isPlayer
+      ? _project(world, toMovementRect)
+      : GridPos(x: from.x + delta.dx, y: from.y + delta.dy);
+  if (to.x < 0 ||
+      to.y < 0 ||
+      to.x >= world.map.size.width ||
+      to.y >= world.map.size.height ||
+      !inBounds(toMovementRect)) {
+    return null;
+  }
+  if (!through) {
+    final reservations = characterReservations.toList(growable: false);
+    final blockedCells = dynamicBlockedCells.toList(growable: false);
+    final playerContact =
+        world.playerCharacterContactRect(world.player.playerCollisionRectPx);
+    bool blocked(PixelRect movementRect) {
+      if (!inBounds(movementRect)) return true;
+      final footprint = footprintAt(movementRect);
+      final areas = areasAt(movementRect);
+      if (collisionWorld.worldStaticObstaclesCollidePixelRect(footprint,
+          playerContact: isPlayer)) {
+        return true;
+      }
+      if (!isPlayer && _intersects(footprint, playerContact)) return true;
+      if (areas
+          .any((area) => reservations.any((rect) => _intersects(area, rect)))) {
+        return true;
+      }
+      for (final cell in blockedCells) {
+        final rect = PixelRect(
+          leftPx: cell.x * world.tileWidthPx,
+          topPx: cell.y * world.tileHeightPx,
+          widthPx: world.tileWidthPx,
+          heightPx: world.tileHeightPx,
+        );
+        if (areas.any((area) => _intersects(area, rect))) return true;
+      }
+      if (!isPlayer || world.player.movementMode != MovementMode.surf) {
+        for (final area in areas) {
+          for (var y = area.topPx ~/ world.tileHeightPx;
+              y <= (area.topPx + area.heightPx - 1) ~/ world.tileHeightPx;
+              y++) {
+            for (var x = area.leftPx ~/ world.tileWidthPx;
+                x <= (area.leftPx + area.widthPx - 1) ~/ world.tileWidthPx;
+                x++) {
+              if (world.isWaterCell(x, y)) return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    final resolved = PixelMovementResolverV1.resolveSeparateAxis(
+      spriteTopLeftPx: fromPosition,
+      deltaXPx: dx,
+      deltaYPx: dy,
+      spriteWidthPx: spriteWidth,
+      spriteHeightPx: spriteHeight,
+      worldStaticObstaclesCollidePixelRect: blocked,
+    );
+    if (resolved.leftPx != toPosition.leftPx ||
+        resolved.topPx != toPosition.topPx) {
+      return null;
+    }
+  }
+  return ActorRouteMotionPlan._(
+    target: target,
+    direction: direction,
+    from: from,
+    to: to,
+    fromPositionPx: fromPosition,
+    toPositionPx: toPosition,
+    playerState: isPlayer
+        ? world.player
+            .copyWith(pos: to, playerPositionPx: toPosition, facing: delta)
+        : null,
+  );
+}
+
+GridPos _project(GameplayWorldState world, PixelRect rect) =>
+    PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+      playerCollisionRectPx: rect,
+      tileWidthPx: world.tileWidthPx,
+      tileHeightPx: world.tileHeightPx,
+      mapWidthCells: world.map.size.width,
+      mapHeightCells: world.map.size.height,
+    );
+
+bool _inBounds(GameplayWorldState world, PixelRect rect) =>
+    rect.widthPx > 0 &&
+    rect.heightPx > 0 &&
+    rect.leftPx >= 0 &&
+    rect.topPx >= 0 &&
+    rect.leftPx + rect.widthPx <= world.map.size.width * world.tileWidthPx &&
+    rect.topPx + rect.heightPx <= world.map.size.height * world.tileHeightPx;
+
+bool _intersects(PixelRect a, PixelRect b) =>
+    a.leftPx < b.leftPx + b.widthPx &&
+    a.leftPx + a.widthPx > b.leftPx &&
+    a.topPx < b.topPx + b.heightPx &&
+    a.topPx + a.heightPx > b.topPx;

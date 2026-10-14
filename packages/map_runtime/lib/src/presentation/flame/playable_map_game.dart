@@ -94,7 +94,6 @@ import '../../application/scene_runtime/scene_world_tone_controller.dart';
 import '../../application/scene_runtime/scene_npc_state_metadata.dart';
 import '../../application/scene_runtime/narrative_game_completion_runtime_coordinator.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
-import '../../application/scene_runtime/scene_runtime_hook_result.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/scenario_runtime/scenario_battle_outcome_flags.dart';
@@ -709,6 +708,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
   final SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort;
   final SceneWorldToneController _worldTone = SceneWorldToneController();
+  final Set<SceneActorTarget> _sceneActorRouteTargets = {};
+  final List<_PendingSceneActorRouteWait> _sceneActorRouteWaits = [];
   PostProcessComponent? _worldTonePostProcessComponent;
   final DialogueIconBytesLoader? dialogueIconBytesLoader;
   FlameNarrativeSoundPlaybackAdapter? _dialogueFeedbackPlayer;
@@ -874,6 +875,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _sceneActorRouteTargets.isNotEmpty ||
       _pendingDirectedJump != null ||
       _flowPhase == _RuntimeFlowPhase.mapTransition ||
       _flowPhase == _RuntimeFlowPhase.battleTransition ||
@@ -2897,6 +2899,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool get debugIsPlayerStepping => _player.isStepping;
 
   @visibleForTesting
+  bool get debugIsPlayerVisible => _player.isVisible;
+
+  @visibleForTesting
+  bool? debugIsNpcActorVisible(String entityId) =>
+      _loadedMapsById[_activeMapId]?.npcActorByEntityId[entityId]?.isVisible;
+
+  @visibleForTesting
+  EntityFacing? debugNpcActorFacing(String entityId) =>
+      _world.map.entities.where((entity) => entity.id == entityId).firstOrNull?.npc?.facing;
+
+  @visibleForTesting
+  EntityFacing? debugNpcVisualFacing(String entityId) =>
+      _loadedMapsById[_activeMapId]?.npcActorByEntityId[entityId]?.facing;
+
+  @visibleForTesting
   bool get debugHasPendingMapTransition =>
       _pendingWarp != null || _pendingConnection != null;
 
@@ -3935,6 +3952,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    for (final pending in _sceneActorRouteWaits) {
+      pending.completer.completeError(
+        StateError('Actor route interrupted when the runtime closed.'),
+      );
+    }
+    _sceneActorRouteWaits.clear();
     _worldTonePostProcessComponent?.removeFromParent();
     _worldTonePostProcessComponent = null;
     _worldTone.dispose();
@@ -4439,6 +4462,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pixelCamera.refreshDevicePixelRatio();
     _updateFps(dt);
     _runtimeClockMs += dt * 1000;
+    _processSceneActorRouteWaits();
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
     final pendingConnectionEntryAnimation = _pendingConnectionEntryAnimation;
@@ -4515,7 +4539,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final narrativeDispatchLocked = _blocksOverworldForNarrativeDispatch;
     final checkpointLocked = _narrativeActivityGate.checkpointInProgress;
     final blocksNewOverworldLaunch =
-        mapActivationWorkLocked || narrativeDispatchLocked || checkpointLocked;
+        mapActivationWorkLocked ||
+        narrativeDispatchLocked ||
+        checkpointLocked ||
+        _sceneActorRouteTargets.isNotEmpty;
     if (!blocksNewOverworldLaunch && _startNarrativeTriggerQueueDrain()) {
       _clearPressedMovementControls();
       return;
@@ -10345,30 +10372,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _activeNarrativeSceneWorkingSession = session;
       final executionId = _nextNarrativeRuntimeId('scene');
-      late final SceneEventRuntimeHookResult result;
-      try {
-        result = await SceneEventRuntimeHook(
-          consequenceWriter: consequenceWriter,
-          callbacks: _buildSceneRuntimeHostCallbacks(
-            runtimeSourceId:
-                'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}',
-            executionId: executionId,
-            defaultNpcEntityId: event.id,
-            currentGameState: () => session.gameState,
-            onQualifiedBattleOutcome: hostedBattleOutcomes.add,
-          ),
-        ).runForEventPage(
-          project: _bundle.manifest,
-          map: _bundle.map,
-          event: event,
-          page: page.page,
-          gameState: session.gameState,
-          currentGameState: () => session.gameState,
+      final result = await SceneEventRuntimeHook(
+        consequenceWriter: consequenceWriter,
+        callbacks: _buildSceneRuntimeHostCallbacks(
+          runtimeSourceId:
+              'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}',
           executionId: executionId,
-        );
-      } finally {
-        _activeNarrativeSceneWorkingSession = null;
-      }
+          defaultNpcEntityId: event.id,
+          currentGameState: () => session.gameState,
+          onQualifiedBattleOutcome: hostedBattleOutcomes.add,
+        ),
+      ).runForEventPage(
+        project: _bundle.manifest,
+        map: _bundle.map,
+        event: event,
+        page: page.page,
+        gameState: session.gameState,
+        currentGameState: () => session.gameState,
+        executionId: executionId,
+      );
       if (_isRemoved) {
         throw StateError('The runtime was removed during the map event Scene.');
       }
@@ -10431,6 +10453,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'page=${page.pageIndex} error=$error\n$stackTrace',
       );
       _showNotification('Scene V1 impossible.');
+    } finally {
+      if (identical(_activeNarrativeSceneWorkingSession, workingSession)) {
+        _activeNarrativeSceneWorkingSession = null;
+      }
     }
   }
 
@@ -10566,6 +10592,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           command,
           session: presentationSession,
           playbackId: '$runtimeExecutionSourceId:se:${soundIndex++}',
+        ),
+        actorRoute: (command) => _executeSceneActorRouteCommand(
+          command,
+          session: presentationSession,
+          playbackId: '$runtimeExecutionSourceId:route:${soundIndex++}',
+        ),
+        actorVisibility: (command) => _executeSceneActorVisibilityCommand(
+          command,
+          session: presentationSession,
         ),
         warp: (command) => _executeSceneWarpCommand(
           command,
@@ -11162,6 +11197,366 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool _scenePresentationScopeIsCurrent(_NarrativeSceneWorkingSession? session) =>
       !_isRemoved && identical(_activeNarrativeSceneWorkingSession, session);
+
+  PositionComponent? _resolveSceneActor(
+    SceneActorTarget target,
+    _NarrativeSceneWorkingSession? session,
+  ) {
+    if (!isLoaded ||
+        !_scenePresentationScopeIsCurrent(session) ||
+        target.mapId != _activeMapId || _world.map.spatialScene != null ||
+        _bundle.manifest.maps.where((map) => map.id == target.mapId).length !=
+            1) {
+      return null;
+    }
+    if (target.kind == SceneActorTargetKind.player) return _player;
+    final entities = _world.map.entities.where(
+      (entity) => entity.id == target.entityId,
+    );
+    if (entities.length != 1 ||
+        entities.single.kind != MapEntityKind.npc ||
+        !_npcPresencePredicateFor(
+          _bundle.manifest,
+          gameStateOverride: session?.gameState ?? _gameState,
+        )(_activeMapId, entities.single) ||
+        !_mapEntityPresencePredicateFor(
+          _bundle.manifest,
+          gameStateOverride: session?.gameState ?? _gameState,
+          mapOverride: _world.map,
+        )(_activeMapId, entities.single) ||
+        !(_world.npcMapPresencePredicate?.call(_activeMapId, entities.single) ?? true) ||
+        !(_world.mapEntityPresencePredicate?.call(_activeMapId, entities.single) ?? true)) {
+      return null;
+    }
+    final actor =
+        _loadedMapsById[_activeMapId]?.npcActorByEntityId[target.entityId];
+    return actor?.isGameplayPresent == true ? actor : null;
+  }
+
+  Future<void> _waitForSceneActorRoute({
+    required bool Function() isCurrent,
+    int durationMs = 0,
+    bool Function()? isReady,
+  }) {
+    if (!isCurrent()) {
+      return Future<void>.error(
+        StateError('The actor route is no longer current.'),
+      );
+    }
+    final ready = isReady ?? () => true;
+    if (durationMs == 0 && ready()) return Future<void>.value();
+    final pending = _PendingSceneActorRouteWait(
+      deadlineMs: _runtimeClockMs + durationMs,
+      isCurrent: isCurrent,
+      isReady: ready,
+    );
+    _sceneActorRouteWaits.add(pending);
+    return pending.completer.future;
+  }
+
+  void _processSceneActorRouteWaits() {
+    for (final pending in _sceneActorRouteWaits.toList(growable: false)) {
+      if (!pending.isCurrent()) {
+        _sceneActorRouteWaits.remove(pending);
+        pending.completer.completeError(
+          StateError('The actor route was interrupted.'),
+        );
+      } else if (_runtimeClockMs >= pending.deadlineMs && pending.isReady()) {
+        _sceneActorRouteWaits.remove(pending);
+        pending.completer.complete();
+      }
+    }
+  }
+
+  void _syncSceneActorPlayerState(_NarrativeSceneWorkingSession? session) {
+    if (session == null) {
+      _syncGameStateFromWorld();
+      return;
+    }
+    session.gameState = session.gameState.copyWith(
+      currentMapId: _activeMapId,
+      playerPosition: _world.player.pos,
+      playerPixelPosition: PixelOffset(
+        x: _world.player.playerPositionPx.leftPx,
+        y: _world.player.playerPositionPx.topPx,
+      ),
+      playerFacing: _world.player.facing.asFacing,
+      playerMovementMode: _world.player.movementMode,
+    );
+  }
+
+  void _faceSceneActor(
+    SceneActorTarget target,
+    EntityFacing facing,
+    _NarrativeSceneWorkingSession? session,
+  ) {
+    final actor = _resolveSceneActor(target, session);
+    if (actor is PlayerComponent) {
+      _world = _world.withPlayer(
+        _world.player.copyWith(facing: _directionFromEntityFacing(facing)),
+      );
+      actor.setCinematicFacing(facing);
+      _syncSceneActorPlayerState(session);
+    } else if (actor is OverworldActorComponent) {
+      _world = _world.withEntityFacing(target.entityId!, facing);
+      actor.setMotion(facing, CharacterAnimationState.idle);
+    } else {
+      throw StateError('The actor route target is unavailable.');
+    }
+  }
+
+  Future<String> _executeSceneActorVisibilityCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+  }) async {
+    if (command is! SceneActorVisibilityInteractiveCommand) return 'blocked';
+    final actor = _resolveSceneActor(command.target, session);
+    if (actor == null) return 'blocked';
+    final visible = switch (actor) {
+      PlayerComponent() => actor.isVisible,
+      OverworldActorComponent() => actor.isVisible,
+      _ => throw StateError('The actor has no visual visibility contract.'),
+    };
+    void setVisible(bool value) {
+      if (actor is PlayerComponent) {
+        actor.isVisible = value;
+      }
+      if (actor is OverworldActorComponent) {
+        actor.isVisible = value;
+      }
+    }
+
+    session?.registerCompensation(() async {
+      if (!_isRemoved) {
+        setVisible(visible);
+      }
+    });
+    setVisible(command.visible);
+    return 'completed';
+  }
+
+  Future<String> _executeSceneActorRouteCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+    required String playbackId,
+  }) async {
+    if (command is! SceneActorRouteInteractiveCommand ||
+        _sceneActorRouteTargets.isNotEmpty) {
+      return 'blocked';
+    }
+    final target = command.target;
+    final actor = _resolveSceneActor(target, session);
+    if (actor == null ||
+        _cinematicRuntimeController.isPlaying ||
+        (actor is PlayerComponent && (actor.isStepping || actor.isJumping)) ||
+        (actor is OverworldActorComponent && actor.isStepping)) {
+      return 'blocked';
+    }
+    for (final step in command.steps.whereType<SceneActorSoundStep>()) {
+      final media = _bundle.manifest.cinematicMediaAssets.where(
+        (asset) => asset.id == step.mediaAssetId,
+      );
+      if (media.length != 1 ||
+          media.single.kind != CinematicMediaAssetKind.sound ||
+          media.single.loopByDefault) {
+        return 'blocked';
+      }
+    }
+    final activationId = _currentMapActivationId;
+    bool current() =>
+        _currentMapActivationId == activationId &&
+        identical(_resolveSceneActor(target, session), actor);
+    final originalPlayer = _world.player;
+    final originalPosition = actor is OverworldActorComponent
+        ? actor.gridPos
+        : null;
+    final originalFacing = actor is OverworldActorComponent
+        ? actor.facing
+        : null;
+    final originalWorldFacing = actor is OverworldActorComponent
+        ? _world.map.entities.singleWhere((entity) => entity.id == target.entityId).npc!.facing
+        : null;
+    final originalSessionState = session?.gameState;
+    session?.registerCompensation(() async {
+      if (_isRemoved || !identical(_resolveSceneActor(target, session), actor)) {
+        return;
+      }
+      if (actor is PlayerComponent) {
+        _world = _world.withPlayer(originalPlayer);
+        actor.syncState(originalPlayer, snapToGrid: true);
+        _runtimeNpcPositions['player'] = originalPlayer.pos;
+        _scriptedEntityMovementController?.syncTrackedEntityPosition(
+          'player',
+          originalPlayer.pos,
+        );
+      } else if (actor is OverworldActorComponent &&
+          originalPosition != null &&
+          originalFacing != null) {
+        _world = _world.withEntityPosition(target.entityId!, originalPosition)
+            .withEntityFacing(target.entityId!, originalWorldFacing!);
+        if (target.entityId != 'player') {
+          _runtimeNpcPositions[target.entityId!] = originalPosition;
+          _scriptedEntityMovementController?.syncTrackedEntityPosition(
+            target.entityId!,
+            originalPosition,
+          );
+        }
+        actor.configureGridPlacement(
+          pos: originalPosition,
+          footprint: _world.map.entities
+              .singleWhere((entity) => entity.id == target.entityId)
+              .size,
+          mapOrigin: _player.mapOrigin,
+        );
+        actor.setMotion(originalFacing, CharacterAnimationState.idle);
+      }
+      if (originalSessionState != null) {
+        session.gameState = originalSessionState;
+      }
+    });
+    final token = _inputLocks.acquire(
+      owner: RuntimeInputLockOwner.scriptedMovement,
+      surface: RuntimeInputSurface.cinematic,
+    );
+    _sceneActorRouteTargets.add(target);
+    _clearPressedMovementControls();
+    _publishInputAuthoritySnapshot();
+    var soundIndex = 0;
+    final port = _FlameSceneActorRouteExecutionPort(
+      current: current,
+      faceAction: (target, facing) async =>
+          _faceSceneActor(target, facing, session),
+      moveAction:
+          (target, facing, {required durationMs, required through}) async {
+            if (!current()) {
+              throw StateError('The actor route target is no longer current.');
+            }
+            _faceSceneActor(target, facing, session);
+            final plan = planActorRouteMove(
+              world: _world,
+              target: target,
+              direction: facing,
+              through: through,
+              dynamicBlockedCells: target.kind == SceneActorTargetKind.player
+                  ? _scriptedNpcReservedOccupiedCellsByEntity.entries
+                        .where((entry) => entry.key != 'player')
+                        .expand((entry) => entry.value.cells)
+                  : _scriptedNpcDynamicBlockedCells(
+                      ignoreEntityId: target.entityId,
+                    ),
+              characterReservations: _scriptedNpcReservedOccupiedCellsByEntity
+                  .entries
+                  .where(
+                    (entry) =>
+                        entry.key !=
+                        (target.kind == SceneActorTargetKind.player
+                            ? 'player'
+                            : target.entityId),
+                  )
+                  .map((entry) => entry.value.contactRect)
+                  .whereType<PixelRect>(),
+            );
+            if (plan == null) return ActorRouteMoveOutcome.obstructed;
+            if (actor is PlayerComponent) {
+              actor.startStep(
+                plan.playerState!,
+                durationSeconds: durationMs / 1000,
+              );
+              await _waitForSceneActorRoute(
+                isCurrent: current,
+                isReady: () => !actor.isStepping,
+              );
+              if (!current()) {
+                throw StateError('Player movement was interrupted.');
+              }
+              _world = _world.withPlayer(plan.playerState!);
+              _runtimeNpcPositions['player'] = plan.to;
+              _scriptedEntityMovementController?.syncTrackedEntityPosition(
+                'player',
+                plan.to,
+              );
+              _syncSceneActorPlayerState(session);
+            } else if (actor is OverworldActorComponent) {
+              if (!actor.startGridStep(
+                to: plan.to,
+                facing: facing,
+                durationSeconds: durationMs / 1000,
+              )) {
+                throw StateError('The actor cannot start its route step.');
+              }
+              await _waitForSceneActorRoute(
+                isCurrent: current,
+                isReady: () => !actor.isStepping,
+              );
+              if (!current()) {
+                throw StateError('Entity movement was interrupted.');
+              }
+              _world = _world.withEntityPosition(target.entityId!, plan.to);
+              if (target.entityId != 'player') {
+                _runtimeNpcPositions[target.entityId!] = plan.to;
+                _scriptedEntityMovementController?.syncTrackedEntityPosition(
+                  target.entityId!,
+                  plan.to,
+                );
+              }
+            }
+            return ActorRouteMoveOutcome.moved;
+          },
+      waitAction: (durationMs) =>
+          _waitForSceneActorRoute(isCurrent: current, durationMs: durationMs),
+      soundAction: (mediaAssetId, {required gain}) async {
+        if (!current()) {
+          throw StateError('The actor route sound is no longer current.');
+        }
+        final output = await _executeSceneSoundEffectCommand(
+          SceneInteractiveCommand.playSoundEffect(
+            mediaAssetId: mediaAssetId,
+            volume: gain,
+          ),
+          session: session,
+          playbackId: '$playbackId:${soundIndex++}',
+        );
+        if (output != 'completed' || !current()) {
+          throw StateError('The actor route sound could not start.');
+        }
+      },
+      visibilityAction: (target, {required visible}) async {
+        if (!current()) {
+          throw StateError('The actor route visibility is no longer current.');
+        }
+        final output = await _executeSceneActorVisibilityCommand(
+          SceneInteractiveCommand.actorVisibility(
+            target: target,
+            visible: visible,
+          ),
+          session: session,
+        );
+        if (output != 'completed') {
+          throw StateError('The actor route visibility could not change.');
+        }
+      },
+    );
+    try {
+      final outcome = await const ActorRouteExecutor().execute(
+        command,
+        port: port,
+      );
+      return switch (outcome) {
+        ActorRouteExecutionOutcome.completed => 'completed',
+        ActorRouteExecutionOutcome.blocked => 'blocked',
+        ActorRouteExecutionOutcome.interrupted => throw StateError(
+          'The actor route was interrupted.',
+        ),
+      };
+    } finally {
+      _sceneActorRouteTargets.remove(target);
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.scriptedMovement,
+        token: token,
+      );
+      _publishInputAuthoritySnapshot();
+    }
+  }
 
   Future<String> _executeSceneWorldToneCommand(
     SceneInteractiveCommand command, {

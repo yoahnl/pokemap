@@ -3,10 +3,12 @@ import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/scene_actor_route.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/map_data.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
+import '../operations/scene_actor_reference.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
 enum SceneDiagnosticSeverity { error, warning, info }
@@ -52,6 +54,7 @@ enum SceneDiagnosticCode {
   commandUnknownModelAnimation,
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
+  commandInvalidActorTarget,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -466,6 +469,10 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   final factIds = project.facts.map((fact) => fact.id).toSet();
   final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
   final projectMapIds = project.maps.map((map) => map.id).toSet();
+  final projectMapCounts = <String, int>{};
+  for (final map in project.maps) {
+    projectMapCounts[map.id] = (projectMapCounts[map.id] ?? 0) + 1;
+  }
   final starterOptionIds = project.newGame.starterOptions
       .map((option) => option.id)
       .toSet();
@@ -671,9 +678,11 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           scene,
           node,
           payload,
+          project: project,
           soundMediaById: soundMediaById,
           factIds: factIds,
           projectMapIds: projectMapIds,
+          projectMapCounts: projectMapCounts,
           storyStepCounts: storyStepCounts,
           starterOptionIds: starterOptionIds,
           badgeIds: badgeIds,
@@ -1071,9 +1080,11 @@ void _diagnoseActionConsequenceAgainstProject(
   SceneAsset scene,
   SceneNode node,
   SceneActionPayload payload, {
+  required ProjectManifest project,
   required Map<String, List<CinematicMediaAsset>> soundMediaById,
   required Set<String> factIds,
   required Set<String> projectMapIds,
+  required Map<String, int> projectMapCounts,
   required Map<String, int> storyStepCounts,
   required Set<String> starterOptionIds,
   required Set<String> badgeIds,
@@ -1083,10 +1094,53 @@ void _diagnoseActionConsequenceAgainstProject(
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
-  if (interactiveCommand is ScenePlaySoundEffectInteractiveCommand) {
+  final actorTarget = switch (interactiveCommand) {
+    SceneActorRouteInteractiveCommand(:final target) => target,
+    SceneActorVisibilityInteractiveCommand(:final target) => target,
+    _ => null,
+  };
+  if (actorTarget != null) {
+    final map = mapsById[actorTarget.mapId];
+    final entities =
+        map?.entities
+            .where((entity) => entity.id == actorTarget.entityId)
+            .toList(growable: false) ??
+        const <MapEntity>[];
+    final valid =
+        projectMapCounts[actorTarget.mapId] == 1 &&
+        map != null &&
+        map.id == actorTarget.mapId &&
+        map.spatialScene == null &&
+        (actorTarget.kind == SceneActorTargetKind.player ||
+            (entities.length == 1 &&
+                isSceneActorEntityReferenceAvailable(
+                  project,
+                  entities.single,
+                )));
+    if (!valid) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.commandInvalidActorTarget,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'L’acteur doit appartenir à une carte 2D connue unique et chargée ; la cible entité doit être un PNJ unique avec un personnage connu unique, directement ou via son dresseur.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un acteur disponible sur sa carte.',
+        ),
+      );
+    }
+  }
+  final soundMediaIds = [
+    if (interactiveCommand is ScenePlaySoundEffectInteractiveCommand)
+      interactiveCommand.mediaAssetId,
+    if (interactiveCommand is SceneActorRouteInteractiveCommand)
+      for (final step in interactiveCommand.steps)
+        if (step is SceneActorSoundStep) step.mediaAssetId,
+  ];
+  for (final mediaAssetId in soundMediaIds) {
     final candidates =
-        soundMediaById[interactiveCommand.mediaAssetId] ??
-        const <CinematicMediaAsset>[];
+        soundMediaById[mediaAssetId] ?? const <CinematicMediaAsset>[];
     if (candidates.length != 1 ||
         candidates.single.kind != CinematicMediaAssetKind.sound ||
         candidates.single.loopByDefault) {
@@ -1097,7 +1151,7 @@ void _diagnoseActionConsequenceAgainstProject(
               : SceneDiagnosticCode.commandInvalidSoundMedia,
           severity: SceneDiagnosticSeverity.error,
           message:
-              'L’effet sonore ${interactiveCommand.mediaAssetId} doit référencer un son connu unique sans boucle.',
+              'L’effet sonore $mediaAssetId doit référencer un son connu unique sans boucle.',
           sceneId: scene.id,
           nodeId: node.id,
           target: SceneDiagnosticTarget.node,

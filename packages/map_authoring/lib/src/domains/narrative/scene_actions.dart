@@ -61,6 +61,57 @@ final class SceneActions {
     'outputPorts': ['completed', 'blocked'],
   };
 
+  static const _actorRouteContract = {
+    'parameters': ['target', 'steps', 'skippable'],
+    'targetKinds': ['player', 'entity'],
+    'targetReference': 'uniqueActorOnExactMap',
+    'targetMapMode': '2D',
+    'entityKind': 'npc',
+    'entityCharacterReference': 'knownUniqueDirectOrTrainerCharacter',
+    'targetFields': {
+      'player': ['kind', 'mapId'],
+      'entity': ['kind', 'mapId', 'entityId'],
+    },
+    'stepKinds': ['face', 'move', 'wait', 'through', 'sound'],
+    'stepFields': {
+      'face': ['kind', 'direction', 'durationMs'],
+      'move': ['kind', 'direction', 'durationMs'],
+      'wait': ['kind', 'durationMs'],
+      'through': ['kind', 'enabled'],
+      'sound': ['kind', 'mediaAssetId', 'gain'],
+    },
+    'directions': ['north', 'south', 'east', 'west'],
+    'durationMsRange': [0, 2147483647],
+    'minimumMoveDurationMs': 1,
+    'defaultFaceDurationMs': 0,
+    'defaultSkippable': false,
+    'finiteNumbers': true,
+    'gainRange': [0, 1],
+    'mediaReference': 'knownUniqueNonLoopingSound',
+    'unsupportedParameters': ['pitch', 'repeat'],
+    'dynamicCollisionValidation': 'runtime',
+    'completion': 'routeFinished',
+    'persistent': false,
+    'outputPorts': ['completed', 'blocked'],
+  };
+
+  static const _actorVisibilityContract = {
+    'parameters': ['target', 'visible'],
+    'targetKinds': ['player', 'entity'],
+    'targetReference': 'uniqueActorOnExactMap',
+    'targetMapMode': '2D',
+    'entityKind': 'npc',
+    'entityCharacterReference': 'knownUniqueDirectOrTrainerCharacter',
+    'targetFields': {
+      'player': ['kind', 'mapId'],
+      'entity': ['kind', 'mapId', 'entityId'],
+    },
+    'collisionEffect': 'none',
+    'completion': 'applied',
+    'persistent': false,
+    'outputPorts': ['completed', 'blocked'],
+  };
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'scene.graph.patch',
@@ -83,6 +134,8 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'actorRoute': _actorRouteContract,
+        'actorVisibility': _actorVisibilityContract,
       },
     ),
     narrativeActionDescriptor(
@@ -123,6 +176,8 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'actorRoute': _actorRouteContract,
+        'actorVisibility': _actorVisibilityContract,
         'badgeCondition': {
           'sourceKind': 'badge',
           'sourceId': 'projectBadgeId',
@@ -875,19 +930,30 @@ final class SceneActions {
           ? node.payload as SceneActionPayload
           : null;
       try {
-        payload = condition
-            ? SceneConditionPayload(
-                conditionSource: SceneConditionSource.fromJson(
-                  narrativeObjectParameter(parameters, 'conditionSource'),
-                ),
-              )
-            : SceneActionPayload.interactive(
-                SceneInteractiveCommand.fromJson(
-                  narrativeObjectParameter(parameters, 'command'),
-                ),
-                actionKind: existingAction?.actionKind,
-                parameters: existingAction?.parameters ?? const {},
-              );
+        if (condition) {
+          payload = SceneConditionPayload(
+            conditionSource: SceneConditionSource.fromJson(
+              narrativeObjectParameter(parameters, 'conditionSource'),
+            ),
+          );
+        } else {
+          final command = SceneInteractiveCommand.fromJson(
+            narrativeObjectParameter(parameters, 'command'),
+          );
+          payload = command is SceneActorRouteInteractiveCommand
+              ? buildSceneActorRoutePayload(
+                  target: command.target,
+                  steps: command.steps,
+                  skippable: command.skippable,
+                  actionKind: existingAction?.actionKind,
+                  parameters: existingAction?.parameters ?? const {},
+                )
+              : SceneActionPayload.interactive(
+                  command,
+                  actionKind: existingAction?.actionKind,
+                  parameters: existingAction?.parameters ?? const {},
+                );
+        }
       } on FormatException {
         throw NarrativeAuthoringException(
           'scene.graph.payload_invalid',

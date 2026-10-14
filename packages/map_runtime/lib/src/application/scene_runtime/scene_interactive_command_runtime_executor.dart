@@ -27,6 +27,8 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.railJourney,
     this.worldTone,
     this.playSoundEffect,
+    this.actorRoute,
+    this.actorVisibility,
     this.openWorldService,
   });
 
@@ -42,6 +44,8 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? railJourney;
   final SceneInteractiveCommandHandler? worldTone;
   final SceneInteractiveCommandHandler? playSoundEffect;
+  final SceneInteractiveCommandHandler? actorRoute;
+  final SceneInteractiveCommandHandler? actorVisibility;
   final SceneWorldServiceRequestHandler? openWorldService;
 
   Future<String> execute(SceneRuntimePlanIntent intent) async {
@@ -99,6 +103,14 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneInteractiveCommandKind.playSoundEffect => await _executeRequired(
           command,
           handler: playSoundEffect,
+        ),
+      SceneInteractiveCommandKind.actorRoute => await _executeRequired(
+          command,
+          handler: actorRoute,
+        ),
+      SceneInteractiveCommandKind.actorVisibility => await _executeRequired(
+          command,
+          handler: actorVisibility,
         ),
     };
     if (!command.outputPortIds.contains(output)) {

@@ -25,6 +25,8 @@ void main() {
       NarrativeCommandIds.warp,
       NarrativeCommandIds.worldTone,
       NarrativeCommandIds.playSoundEffect,
+      NarrativeCommandIds.actorRoute,
+      NarrativeCommandIds.actorVisibility,
       NarrativeCommandIds.openShop,
       NarrativeCommandIds.openHeal,
       NarrativeCommandIds.openPc,
@@ -92,6 +94,9 @@ void main() {
       NarrativeCommandIds.worldTone: 'SceneInteractiveCommand.worldTone',
       NarrativeCommandIds.playSoundEffect:
           'SceneInteractiveCommand.playSoundEffect',
+      NarrativeCommandIds.actorRoute: 'SceneInteractiveCommand.actorRoute',
+      NarrativeCommandIds.actorVisibility:
+          'SceneInteractiveCommand.actorVisibility',
       NarrativeCommandIds.moveNpc: 'SceneInteractiveCommand.moveNpc',
       NarrativeCommandIds.movePlatform: 'SceneInteractiveCommand.movePlatform',
       NarrativeCommandIds.openShop: 'SceneInteractiveCommand.openShop',

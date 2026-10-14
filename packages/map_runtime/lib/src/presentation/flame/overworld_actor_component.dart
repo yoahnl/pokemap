@@ -6,7 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/character_animation_source_resolver.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 
-class OverworldActorComponent extends PositionComponent {
+class OverworldActorComponent extends PositionComponent with HasVisibility {
   OverworldActorComponent({
     required this.character,
     required this.tileImages,
