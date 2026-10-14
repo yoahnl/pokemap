@@ -3023,7 +3023,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       SceneConditionSourceKind.dialogueOutcome ||
       SceneConditionSourceKind.battleOutcome ||
       SceneConditionSourceKind.scriptVariable ||
-      SceneConditionSourceKind.worldState =>
+      SceneConditionSourceKind.worldState ||
+      SceneConditionSourceKind.playerAtEntityAnchor ||
+      SceneConditionSourceKind.mapEventInstanceBoolean =>
         false,
     };
   }
@@ -3403,7 +3405,9 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
-    SceneConditionSourceKind.worldState =>
+    SceneConditionSourceKind.worldState ||
+    SceneConditionSourceKind.playerAtEntityAnchor ||
+    SceneConditionSourceKind.mapEventInstanceBoolean =>
       SceneConditionOperator.isTrue,
   };
 }
@@ -3424,7 +3428,9 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
-    SceneConditionSourceKind.worldState =>
+    SceneConditionSourceKind.worldState ||
+    SceneConditionSourceKind.playerAtEntityAnchor ||
+    SceneConditionSourceKind.mapEventInstanceBoolean =>
       null,
   };
 }
