@@ -10,6 +10,7 @@ enum SceneInteractiveCommandKind {
   giveItem,
   warp,
   wait,
+  waitForActorRoutes,
   worldTone,
   playSoundEffect,
   actorRoute,
@@ -53,6 +54,9 @@ abstract base class SceneInteractiveCommand {
 
   factory SceneInteractiveCommand.wait({required int durationMs}) =
       SceneWaitInteractiveCommand;
+
+  factory SceneInteractiveCommand.waitForActorRoutes({required String mapId}) =
+      SceneWaitForActorRoutesInteractiveCommand;
 
   factory SceneInteractiveCommand.worldTone({
     required double red,
@@ -153,6 +157,8 @@ abstract base class SceneInteractiveCommand {
       ),
       SceneInteractiveCommandKind.wait =>
         SceneWaitInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.waitForActorRoutes =>
+        SceneWaitForActorRoutesInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.worldTone =>
         SceneWorldToneInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playSoundEffect =>
@@ -355,6 +361,38 @@ Map<String, dynamic> _actorCommandObject(Object? value, String field) {
     throw FormatException('$field must be an object with string fields.');
   }
   return Map<String, dynamic>.from(value);
+}
+
+@immutable
+final class SceneWaitForActorRoutesInteractiveCommand
+    extends SceneInteractiveCommand {
+  SceneWaitForActorRoutesInteractiveCommand({required this.mapId}) {
+    if (mapId.isEmpty || mapId.trim() != mapId) {
+      throw ArgumentError.value(mapId, 'mapId', 'Must be nonempty and already trimmed.');
+    }
+  }
+
+  factory SceneWaitForActorRoutesInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json.length != 2 || json['kind'] != 'waitForActorRoutes' || json['mapId'] is! String) {
+      throw const FormatException('Invalid global actor route wait command.');
+    }
+    return SceneWaitForActorRoutesInteractiveCommand(mapId: json['mapId'] as String);
+  }
+
+  final String mapId;
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.waitForActorRoutes;
+  @override
+  List<String> get outputPortIds => const ['completed'];
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'mapId': mapId};
+  @override
+  bool operator ==(Object other) =>
+      other is SceneWaitForActorRoutesInteractiveCommand &&
+      other.mapId == mapId;
+  @override
+  int get hashCode => Object.hash(kind, mapId);
 }
 
 @immutable

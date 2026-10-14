@@ -154,6 +154,27 @@ class ScriptedEntityMovementController {
     required String entityId,
     required GridPos destination,
     double? stepDurationSeconds,
+  }) => _moveEntityTo(
+    entityId: entityId,
+    destination: destination,
+    stepDurationSeconds: stepDurationSeconds,
+    origin: _MoveTaskOrigin.forced,
+  );
+
+  Set<String> get activeForcedMoveEntityIds => Set<String>.unmodifiable(
+    _activeTasks.entries
+        .where((entry) => entry.value.origin == _MoveTaskOrigin.forced)
+        .map((entry) => entry.key),
+  );
+
+  bool get hasActiveForcedMoves =>
+      _activeTasks.values.any((task) => task.origin == _MoveTaskOrigin.forced);
+
+  ScriptedEntityMovementStatus _moveEntityTo({
+    required String entityId,
+    required GridPos destination,
+    required _MoveTaskOrigin origin,
+    double? stepDurationSeconds,
   }) {
     final current = _trackedPositions[entityId];
     if (kDebugMode) {
@@ -207,6 +228,7 @@ class ScriptedEntityMovementController {
       final pendingRuntimeCommit = replacedTask?.pendingRuntimeCommit;
       if (pendingRuntimeCommit != null || _isEntityStepping(entityId)) {
         _activeTasks[entityId] = _MoveTask(
+          origin: origin,
           destination: destination,
           steps: steps,
           nextStepIndex: 0,
@@ -230,6 +252,7 @@ class ScriptedEntityMovementController {
     }
 
     _activeTasks[entityId] = _MoveTask(
+      origin: origin,
       destination: destination,
       steps: steps,
       nextStepIndex: 0,
@@ -341,6 +364,11 @@ class ScriptedEntityMovementController {
     _tickPatrols(dt);
   }
 
+  void updateForcedMoves(double dt) {
+    assert(dt >= 0);
+    _tickActiveMoves(forcedOnly: true);
+  }
+
   /// Advances only one explicitly owned scripted move.
   ///
   /// This is used while a save-restore activation fence is holding all new
@@ -355,7 +383,7 @@ class ScriptedEntityMovementController {
     _tickActiveMoves(onlyEntityId: normalized);
   }
 
-  void _tickActiveMoves({String? onlyEntityId}) {
+  void _tickActiveMoves({String? onlyEntityId, bool forcedOnly = false}) {
     if (onlyEntityId == null && _activeTasks.isEmpty) {
       return;
     }
@@ -364,7 +392,8 @@ class ScriptedEntityMovementController {
         : <String>[onlyEntityId];
     for (final entityId in entityIds) {
       final task = _activeTasks[entityId];
-      if (task == null) {
+      if (task == null ||
+          (forcedOnly && task.origin != _MoveTaskOrigin.forced)) {
         continue;
       }
 
@@ -573,10 +602,11 @@ class ScriptedEntityMovementController {
       patrol.nextWaypointIndex = nextIndex;
 
       final target = waypoints[nextIndex];
-      final status = moveEntityTo(
+      final status = _moveEntityTo(
         entityId: entityId,
         destination: target,
         stepDurationSeconds: patrol.route.stepDurationMs / 1000.0,
+        origin: _MoveTaskOrigin.patrol,
       );
       if (status.state == ScriptedEntityMovementState.failed) {
         // Contrat strict demandé:
@@ -638,14 +668,18 @@ class ScriptedEntityMovementController {
   }
 }
 
+enum _MoveTaskOrigin { forced, patrol }
+
 class _MoveTask {
   _MoveTask({
+    required this.origin,
     required this.destination,
     required this.steps,
     required this.nextStepIndex,
     required this.stepDurationSeconds,
   });
 
+  final _MoveTaskOrigin origin;
   final GridPos destination;
   List<GridPos> steps;
   int nextStepIndex;

@@ -107,6 +107,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
       id == NarrativeCommandIds.playSoundEffect;
@@ -658,6 +659,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.map &&
+        _command.id == NarrativeCommandIds.waitForActorRoutes) {
+      final entries = widget.project?.maps ?? const <ProjectMapEntry>[];
+      return [for (final entry in entries)
+        if (entry.id.isNotEmpty && entry.id.trim() == entry.id &&
+            entries.where((candidate) => candidate.id == entry.id).length == 1)
+          SceneActionPickerOption(id: entry.id, label: entry.name)];
+    }
     if (kind == NarrativeCommandParameterKind.warp &&
         _command.id == NarrativeCommandIds.warp) {
       if (widget.loadWarpMap != null) return _loadedWarpOptions ?? const [];

@@ -25,6 +25,7 @@ void main() {
       NarrativeCommandIds.giveConfiguredStarter,
       NarrativeCommandIds.warp,
       NarrativeCommandIds.wait,
+      NarrativeCommandIds.waitForActorRoutes,
       NarrativeCommandIds.worldTone,
       NarrativeCommandIds.playSoundEffect,
       NarrativeCommandIds.actorRoute,
@@ -94,6 +95,8 @@ void main() {
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
       NarrativeCommandIds.warp: 'SceneInteractiveCommand.warp',
       NarrativeCommandIds.wait: 'SceneInteractiveCommand.wait',
+      NarrativeCommandIds.waitForActorRoutes:
+          'SceneInteractiveCommand.waitForActorRoutes',
       NarrativeCommandIds.worldTone: 'SceneInteractiveCommand.worldTone',
       NarrativeCommandIds.playSoundEffect:
           'SceneInteractiveCommand.playSoundEffect',

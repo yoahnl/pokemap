@@ -1129,6 +1129,28 @@ void _diagnoseActionConsequenceAgainstProject(
       ),
     );
   }
+  if (interactiveCommand is SceneWaitForActorRoutesInteractiveCommand) {
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      diagnostics.add(SceneDiagnostic(
+        code: SceneDiagnosticCode.commandUnsupportedDimension,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'L’attente des déplacements nécessite un projet 2D.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir une commande disponible dans ce projet.',
+      ));
+    }
+    final map = mapsById[interactiveCommand.mapId];
+    if (projectMapCounts[interactiveCommand.mapId] != 1 || map == null ||
+        map.id != interactiveCommand.mapId || map.spatialScene != null || map.version == ProjectVersion.v9) {
+      diagnostics.add(SceneDiagnostic(
+        code: SceneDiagnosticCode.commandUnknownMap,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'L’attente des déplacements exige une carte 2D connue, unique et chargée.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir une carte 2D disponible.',
+      ));
+    }
+  }
   final actorTarget = switch (interactiveCommand) {
     SceneActorRouteInteractiveCommand(:final target) => target,
     SceneActorVisibilityInteractiveCommand(:final target) => target,

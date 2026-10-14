@@ -38,6 +38,17 @@ final class SceneActions {
     'arrivalReference': 'warpOwnedByDestinationMap',
   };
 
+  static const _waitForActorRoutesContract = {
+    'parameters': ['mapId'],
+    'projectDimension': 'twoD',
+    'mapReference': 'knownUniqueLoaded2DMap',
+    'routeSet': 'live',
+    'completion': 'allForcedRoutesFinished',
+    'timeout': 'none',
+    'persistent': false,
+    'outputPorts': ['completed'],
+  };
+
   static const _waitContract = {
     'projectDimension': 'twoD',
     'parameters': ['durationMs'],
@@ -153,6 +164,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
@@ -174,6 +186,7 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
@@ -217,6 +230,7 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,

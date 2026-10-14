@@ -51,6 +51,20 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
   required ProjectManifest project,
   NarrativeCommandCatalog? catalog,
 }) {
+  if (command is SceneWaitForActorRoutesInteractiveCommand) {
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      return const [NarrativeCommandDiagnostic(
+        code: NarrativeCommandDiagnosticCode.unsupportedCommand,
+        message: 'L’attente des déplacements nécessite un projet 2D.',
+      )];
+    }
+    if (project.maps.where((map) => map.id == command.mapId).length != 1) {
+      return [NarrativeCommandDiagnostic(
+        code: NarrativeCommandDiagnosticCode.unknownDestinationMap,
+        message: 'La carte ${command.mapId} doit être connue et unique.',
+      )];
+    }
+  }
   final canonical = catalog ?? NarrativeCommandCatalog.canonical();
   final descriptor = canonical.byId(
     NarrativeCommandIds.forInteractiveCommand(command),

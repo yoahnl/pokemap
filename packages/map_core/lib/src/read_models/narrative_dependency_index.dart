@@ -2419,6 +2419,20 @@ final class _NarrativeDependencyIndexBuilder {
     String path,
   ) {
     switch (command) {
+      case SceneWaitForActorRoutesInteractiveCommand(:final mapId):
+        final candidates = maps.where((map) => map.id == mapId).toList();
+        final incompatible =
+            project.settings.dimension != ProjectDimension.twoD ||
+            project.maps.where((entry) => entry.id == mapId).length != 1 ||
+            candidates.length != 1 ||
+            candidates.single.spatialScene != null ||
+            candidates.single.version == ProjectVersion.v9;
+        _usage(
+          target: _mapKey(mapId),
+          owner: owner,
+          path: '$path.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          resolution: incompatible ? NarrativeDependencyResolution.unavailable : null);
       case SceneActorRouteInteractiveCommand(:final target, :final steps):
         _collectActorTarget(owner, target, '$path.target');
         for (var index = 0; index < steps.length; index++) {

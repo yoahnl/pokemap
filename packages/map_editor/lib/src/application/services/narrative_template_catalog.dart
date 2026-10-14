@@ -418,6 +418,18 @@ NarrativeTemplatePreview previewNarrativeTemplate({
       project.settings.dimension != ProjectDimension.twoD) {
     diagnostics.add('Les commandes de présentation du monde sont disponibles uniquement dans un projet 2D.');
   }
+  if (template.command.id == NarrativeCommandIds.waitForActorRoutes) {
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      diagnostics.add('L’attente des déplacements nécessite un projet 2D.');
+    }
+    final mapId = request.parameters['mapId'];
+    if (mapId == null ||
+        mapId.isEmpty ||
+        mapId.trim() != mapId ||
+        project.maps.where((entry) => entry.id == mapId).length != 1) {
+      diagnostics.add('Choisir une carte 2D connue et unique pour attendre ses déplacements.');
+    }
+  }
   final physicalDiagnostic = _diagnosePhysicalSource(template, request);
   if (physicalDiagnostic != null) {
     diagnostics.add(physicalDiagnostic);

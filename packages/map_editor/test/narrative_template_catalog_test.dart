@@ -3,6 +3,17 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_template_catalog.dart';
 
 void main() {
+  test('global route wait template keeps an exact native 2D map and rejects missing or ambiguous maps', () {
+    final preview = _presentationPreview('waitForActorRoutes', const {'mapId': 'map_port'});
+    expect(preview.canApply, isTrue, reason: preview.diagnostics.join(' '));
+    expect(preview.scene!.graph.nodes.map((n) => n.payload).whereType<SceneActionPayload>().single.interactiveCommand!.toJson(),
+      {'kind': 'waitForActorRoutes', 'mapId': 'map_port'});
+    for (final project in [_emptyProject().copyWith(maps: []), _emptyProject().copyWith(maps: [..._emptyProject().maps, ..._emptyProject().maps]),
+      _emptyProject().copyWith(settings: const ProjectSettings(dimension: ProjectDimension.threeD))]) {
+      final invalid = _presentationPreview('waitForActorRoutes', const {'mapId': 'map_port'}, manifest: project);
+      expect(invalid.canApply, isFalse);
+    }
+  });
   for (final entry in <String, Map<String, String>>{
     'wait': {'durationMs': '400'},
     'worldTone': _toneParameters,

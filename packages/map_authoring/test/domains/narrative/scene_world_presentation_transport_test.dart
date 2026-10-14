@@ -38,6 +38,80 @@ SceneAsset _scene(String id, SceneInteractiveCommand command) => SceneAsset(
     ]));
 
 void main() {
+  test('canonical global route wait metadata exposes typed map scope without timeout', () {
+    for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      final descriptor = SceneActions.descriptors.singleWhere((d) => d.id == id);
+      expect(descriptor.extensions['waitForActorRoutes'], isA<Map>());
+      final contract = descriptor.extensions['waitForActorRoutes'] as Map;
+      expect(contract['parameters'], ['mapId']);
+      expect(contract['projectDimension'], 'twoD');
+      expect(contract['mapReference'], 'knownUniqueLoaded2DMap');
+      expect(contract['completion'], 'allForcedRoutesFinished');
+      expect(contract['outputPorts'], ['completed']);
+      expect(contract['routeSet'], 'live');
+      expect(contract['timeout'], 'none');
+    }
+  });
+  for (final jsonl in [false, true]) {
+    test('${jsonl ? 'JSONL' : 'direct API'} global route wait saves and cold reopens through canonical command set', () async {
+      final f = await _Fixture.create(initialCommand: SceneInteractiveCommand.wait(durationMs: 1));
+      addTearDown(f.dispose);
+      final mapBefore = await f.mapFile.readAsBytes();
+      final before = await f.snapshot();
+      final command = SceneInteractiveCommand.fromJson({'kind': 'waitForActorRoutes', 'mapId': 'map'});
+      final request = await f.request(command.toJson());
+      final bytes = await f.projectFile.readAsBytes();
+      final planned = jsonl ? await f.success('plan', {'projectHandle': f.project.value, 'request': request.toJson()})
+        : await f.mutations.plan(f.project, request);
+      expect(await f.projectFile.readAsBytes(), bytes);
+      if (jsonl) {
+        await f.success('apply', {'projectHandle': f.project.value, 'planId': planned['planId'], 'operationId': 'route-wait-apply'});
+      } else {
+        await f.mutations.apply(f.project, planId: planned['planId']! as String, operationId: 'route-wait-apply');
+      }
+      await f.success('close', {'workspaceHandle': f.workspace.value});
+      await f.open();
+      final after = await f.snapshot();
+      final scene = after.manifest.scenes.singleWhere((s) => s.id == 'edit');
+      final node = scene.graph.nodes.singleWhere((n) => n.id == 'action');
+      final payload = node.payload as SceneActionPayload;
+      expect(payload.interactiveCommand, command);
+      expect(payload.actionKind, 'keep-action');
+      expect(payload.parameters, {'keep': 'parameter'});
+      expect(scene.graph.edges.where((e) => e.fromNodeId == 'action').map((e) => e.fromPortId), ['completed']);
+      expect(after.manifest.scenes.singleWhere((s) => s.id == 'unrelated-draft'), before.manifest.scenes.singleWhere((s) => s.id == 'unrelated-draft'));
+      expect(await f.mapFile.readAsBytes(), mapBefore);
+    });
+    test('${jsonl ? 'JSONL' : 'direct API'} global route wait refuses unknown maps and 3D on every semantic entry before writes', () async {
+      for (final spatial in [false, true]) {
+        final f = await _Fixture.create(spatial: spatial, initialCommand: SceneInteractiveCommand.wait(durationMs: 1));
+        addTearDown(f.dispose);
+        final command = SceneInteractiveCommand.fromJson({'kind': 'waitForActorRoutes', 'mapId': spatial ? 'map' : 'missing'});
+        final before = await f.projectFile.readAsBytes();
+        final mapBefore = await f.mapFile.readAsBytes();
+        final scene = _scene('edit', command);
+        for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+          final id = 'barrier-negative-${++f.sequence}';
+          final request = AuthoringRequest(requestId: id, actionId: action, actionVersion: 1,
+            workspaceHandle: f.workspace.value, expectedRevision: (await f.snapshot()).revision, idempotencyKey: id,
+            parameters: switch (action) {
+              'scene.upsert' => {'scene': scene.toJson()},
+              'scene.graph.patch' => {'sceneId': 'edit', 'upsertNodes': [scene.graph.nodes[1].toJson()]},
+              _ => {'sceneId': 'edit', 'nodeId': 'action', 'command': command.toJson()},
+            });
+          if (jsonl) {
+            final result = await f.command('plan', {'projectHandle': f.project.value, 'request': request.toJson()});
+            expect(result.status, AuthoringResultStatus.failure, reason: action);
+            expect(jsonEncode(result.error!.details), contains(spatial ? 'commandUnsupportedDimension' : 'commandUnknownMap'));
+          } else {
+            await expectLater(f.mutations.plan(f.project, request), throwsA(isA<NarrativeAuthoringException>().having((e) => e.code, 'code', 'scene.publication_blocked')), reason: action);
+          }
+          expect(await f.projectFile.readAsBytes(), before);
+          expect(await f.mapFile.readAsBytes(), mapBefore);
+        }
+      }
+    });
+  }
   test('canonical actions describe independent bounded world waits', () {
     for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
       final descriptor = SceneActions.descriptors.singleWhere((d) => d.id == id);

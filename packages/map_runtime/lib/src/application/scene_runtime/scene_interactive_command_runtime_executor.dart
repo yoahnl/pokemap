@@ -27,6 +27,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.railJourney,
     this.worldTone,
     this.wait,
+    this.waitForActorRoutes,
     this.playSoundEffect,
     this.actorRoute,
     this.actorVisibility,
@@ -45,6 +46,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? railJourney;
   final SceneInteractiveCommandHandler? worldTone;
   final SceneInteractiveCommandHandler? wait;
+  final SceneInteractiveCommandHandler? waitForActorRoutes;
   final SceneInteractiveCommandHandler? playSoundEffect;
   final SceneInteractiveCommandHandler? actorRoute;
   final SceneInteractiveCommandHandler? actorVisibility;
@@ -101,6 +103,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneInteractiveCommandKind.wait => await _executeRequired(
           command,
           handler: wait,
+        ),
+      SceneInteractiveCommandKind.waitForActorRoutes => await _executeRequired(
+          command,
+          handler: waitForActorRoutes,
         ),
       SceneInteractiveCommandKind.worldTone => await _executeRequired(
           command,

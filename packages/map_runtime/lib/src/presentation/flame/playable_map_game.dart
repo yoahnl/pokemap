@@ -708,6 +708,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final SceneWorldToneController _worldTone = SceneWorldToneController();
   final Set<SceneActorTarget> _sceneActorRouteTargets = {};
   int _sceneWorldWaitCount = 0;
+  int _sceneForcedRouteBarrierCount = 0;
+  int _sceneActorRouteFailureSerial = 0;
   final List<_PendingSceneActorRouteWait> _sceneActorRouteWaits = [];
   PostProcessComponent? _worldTonePostProcessComponent;
   final DialogueIconBytesLoader? dialogueIconBytesLoader;
@@ -4059,6 +4061,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         failureReason: 'Scripted movement controller is not initialized.',
       );
     }
+    if (_sceneActorRouteTargets.any(
+      (target) =>
+          target.mapId == _activeMapId &&
+          (target.kind == SceneActorTargetKind.player
+              ? entityId == 'player'
+              : target.entityId == entityId),
+    )) {
+      return ScriptedEntityMovementStatus(
+        entityId: entityId,
+        state: ScriptedEntityMovementState.failed,
+        currentPos:
+            controller.trackedPositionOf(entityId) ?? const GridPos(x: 0, y: 0),
+        targetPos: destination,
+        failureReason: 'A scene actor route already owns this actor.',
+      );
+    }
     final result = controller.moveEntityTo(
       entityId: entityId,
       destination: destination,
@@ -4768,6 +4786,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapActivationWorkLocked ||
         narrativeDispatchLocked ||
         checkpointLocked ||
+        _sceneForcedRouteBarrierCount > 0 ||
         _sceneActorRouteTargets.isNotEmpty;
     if (!blocksNewOverworldLaunch && _startNarrativeTriggerQueueDrain()) {
       _clearPressedMovementControls();
@@ -4895,6 +4914,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _processPendingScenarioTransitionMapRequest();
       _processPendingScenarioReachedEndCompletions();
     } else {
+      final forcedMoveIds = _sceneForcedRouteBarrierCount > 0
+          ? _scriptedEntityMovementController?.activeForcedMoveEntityIds ??
+                const <String>{}
+          : const <String>{};
+      if (_sceneForcedRouteBarrierCount > 0) {
+        _scriptedEntityMovementController?.updateForcedMoves(dt);
+        _processPendingSceneNpcMoves();
+      }
       _PendingScenarioMoveContinuation? restoreOwnedMove;
       for (final pending in _pendingScenarioMoveContinuationsByEntity.values) {
         if (_restoreFenceOwnsSource(pending.runtimeSourceId)) {
@@ -4903,10 +4930,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       }
       if (restoreOwnedMove != null) {
-        _scriptedEntityMovementController?.updateOwnedMove(
-          dt,
-          restoreOwnedMove.entityId,
-        );
+        if (!forcedMoveIds.contains(restoreOwnedMove.entityId)) {
+          _scriptedEntityMovementController?.updateOwnedMove(
+            dt,
+            restoreOwnedMove.entityId,
+          );
+        }
         _processPendingScenarioNpcWarpEntries(
           onlyEntityId: restoreOwnedMove.entityId,
         );
@@ -11032,6 +11061,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
         wait: (command) =>
             _executeSceneWaitCommand(command, session: presentationSession),
+        waitForActorRoutes: (command) => _executeSceneWaitForActorRoutesCommand(
+          command,
+          session: presentationSession,
+        ),
         worldTone: (command) => _executeSceneWorldToneCommand(
           command,
           session: presentationSession,
@@ -11843,7 +11876,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final target = command.target;
     final actor = _resolveSceneActor(target, session);
+    final forcedEntityId = target.kind == SceneActorTargetKind.player
+        ? 'player'
+        : target.entityId;
     if (actor == null ||
+        (_scriptedEntityMovementController?.activeForcedMoveEntityIds.contains(
+              forcedEntityId,
+            ) ??
+            false) ||
         _cinematicRuntimeController.isPlaying ||
         (actor is PlayerComponent && (actor.isStepping || actor.isJumping)) ||
         (actor is OverworldActorComponent && actor.isStepping)) {
@@ -12092,11 +12132,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       },
     );
+    var completed = false;
     try {
       final outcome = await const ActorRouteExecutor().execute(
         command,
         port: port,
       );
+      completed = outcome == ActorRouteExecutionOutcome.completed;
       return switch (outcome) {
         ActorRouteExecutionOutcome.completed => 'completed',
         ActorRouteExecutionOutcome.blocked => 'blocked',
@@ -12105,9 +12147,109 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       };
     } finally {
+      if (!completed) _sceneActorRouteFailureSerial++;
       _sceneActorRouteTargets.remove(target);
       _inputLocks.release(
         owner: RuntimeInputLockOwner.scriptedMovement,
+        token: token,
+      );
+      _publishInputAuthoritySnapshot();
+    }
+  }
+
+  Future<String> _executeSceneWaitForActorRoutesCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+  }) async {
+    if (command is! SceneWaitForActorRoutesInteractiveCommand ||
+        !isLoaded ||
+        !_scenePresentationScopeIsCurrent(session) ||
+        command.mapId != _activeMapId ||
+        _world.map.id != command.mapId ||
+        _world.map.spatialScene != null ||
+        _world.map.version == ProjectVersion.v9 ||
+        _bundle.manifest.maps
+                .where((entry) => entry.id == command.mapId)
+                .length !=
+            1) {
+      throw StateError('The forced actor routes barrier is unavailable.');
+    }
+    final activationId = _currentMapActivationId;
+    if (activationId == null) {
+      throw StateError(
+        'The forced actor routes barrier has no map activation.',
+      );
+    }
+    final instance = _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+      command.mapId,
+    );
+    final failureSerial = _sceneActorRouteFailureSerial;
+    final controller = _scriptedEntityMovementController;
+    final pendingForcedEntities = <String>{};
+    bool current() {
+      if (!_scenePresentationScopeIsCurrent(session) ||
+          _flowPhase != _RuntimeFlowPhase.overworld ||
+          _activeMapId != command.mapId ||
+          _currentMapActivationId != activationId ||
+          _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+                command.mapId,
+              ) !=
+              instance ||
+          !identical(_scriptedEntityMovementController, controller) ||
+          _sceneActorRouteFailureSerial != failureSerial) {
+        return false;
+      }
+      final active = controller?.activeForcedMoveEntityIds ?? const <String>{};
+      pendingForcedEntities.addAll(active);
+      for (final id in pendingForcedEntities.toList(growable: false)) {
+        final status = controller!.statusOf(id);
+        if (active.contains(id)) {
+          final target = id == 'player'
+              ? SceneActorTarget.player(mapId: command.mapId)
+              : SceneActorTarget.entity(mapId: command.mapId, entityId: id);
+          if (status.state != ScriptedEntityMovementState.moving ||
+              _resolveSceneActor(target, session) == null) {
+            return false;
+          }
+        } else if (status.state == ScriptedEntityMovementState.completed) {
+          pendingForcedEntities.remove(id);
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    bool ready() =>
+        _sceneActorRouteTargets.isEmpty &&
+        !(controller?.hasActiveForcedMoves ?? false);
+    if (!current()) {
+      throw StateError('The forced actor routes barrier was interrupted.');
+    }
+    if (ready()) {
+      _syncSceneActorPlayerState(session);
+      return 'completed';
+    }
+    final token = _inputLocks.acquire(
+      owner: RuntimeInputLockOwner.blockingInteraction,
+      surface: RuntimeInputSurface.blocked,
+    );
+    _sceneForcedRouteBarrierCount++;
+    _sceneWorldWaitCount++;
+    _clearPressedMovementControls();
+    _publishInputAuthoritySnapshot();
+    try {
+      await _waitForSceneActorRoute(isCurrent: current, isReady: ready);
+      if (!current()) {
+        throw StateError('The forced actor routes barrier was interrupted.');
+      }
+      _syncSceneActorPlayerState(session);
+      return 'completed';
+    } finally {
+      _sceneForcedRouteBarrierCount--;
+      _sceneWorldWaitCount--;
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.blockingInteraction,
         token: token,
       );
       _publishInputAuthoritySnapshot();

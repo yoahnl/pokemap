@@ -231,6 +231,9 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
   NarrativeCommandIds.openShop: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.openShop(shopId: 'shop_port'),
   ),
+  NarrativeCommandIds.waitForActorRoutes: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.waitForActorRoutes(mapId: 'map_port'),
+  ),
   NarrativeCommandIds.wait: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.wait(durationMs: 400),
   ),

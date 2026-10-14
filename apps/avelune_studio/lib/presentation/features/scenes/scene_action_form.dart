@@ -64,6 +64,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _commands.where((command) => command.id == _commandId).firstOrNull;
 
   bool _is2DPresentationCommand(String? id) =>
+      id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
       id == NarrativeCommandIds.playSoundEffect;
@@ -253,7 +254,15 @@ class _SceneActionFormState extends State<SceneActionForm> {
             step.id: '${story.title} · ${step.title}',
     },
     NarrativeCommandParameterKind.map => {
-      for (final map in widget.project.maps) map.id: map.name,
+      for (final map in widget.project.maps)
+        if (_commandId != NarrativeCommandIds.waitForActorRoutes ||
+            (map.id.isNotEmpty &&
+                map.id.trim() == map.id &&
+                widget.project.maps
+                        .where((entry) => entry.id == map.id)
+                        .length ==
+                    1))
+          map.id: map.name,
     },
     NarrativeCommandParameterKind.warp => _warpPoints,
     NarrativeCommandParameterKind.characterDirection =>

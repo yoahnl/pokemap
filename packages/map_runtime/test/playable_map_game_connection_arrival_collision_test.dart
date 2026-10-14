@@ -104,6 +104,452 @@ void main() {
   }
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('global forced actor routes barrier', () {
+    test('completes immediately when no forced route exists', () async {
+      final game = (await _fixture()).game;
+      expect(
+        await game.debugExecuteSceneInteractiveCommand(_allActorRoutes()),
+        'completed',
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(game.debugPendingSceneWaitCount, 0);
+    });
+
+    test('refuses a different map even when it has no routes', () async {
+      final game = (await _fixture()).game;
+      await expectLater(
+        game.debugExecuteSceneInteractiveCommand(
+          _allActorRoutes(mapId: 'target'),
+        ),
+        throwsStateError,
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test('waits through the entire forced player route', () async {
+      final game = (await _fixture()).game;
+      final route = game.debugExecuteSceneInteractiveCommand(
+        _actorRoute([
+          {'kind': 'wait', 'durationMs': 150},
+          {'kind': 'face', 'direction': 'south', 'durationMs': 100},
+        ]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      var done = false;
+      final waiting = game
+          .debugExecuteSceneInteractiveCommand(_allActorRoutes())
+          .then((port) {
+            done = true;
+            return port;
+          });
+      await Future<void>.delayed(Duration.zero);
+      expect(done, isFalse);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      game.update(.15);
+      await Future<void>.delayed(Duration.zero);
+      expect(done, isFalse);
+      expect(await _finishActorRoute(game, route), 'completed');
+      expect(await _finishActorRoute(game, waiting), 'completed');
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.south);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test(
+      'advances all finite NPC moves under its save and input lock',
+      () async {
+        final game = (await _fixture(
+          sourceSize: const GridSize(width: 4, height: 4),
+          sourceEntities: [_routeDoor, _barrierNpc],
+          characters: const [_routeDoorCharacter],
+          saveRepository: _MemorySaveRepository(),
+        )).game;
+        expect(
+          game
+              .startScriptedNpcMove(
+                entityId: 'route-door',
+                destination: const GridPos(x: 0, y: 0),
+              )
+              .state,
+          ScriptedEntityMovementState.moving,
+        );
+        expect(
+          game
+              .startScriptedNpcMove(
+                entityId: 'barrier-npc',
+                destination: const GridPos(x: 3, y: 0),
+              )
+              .state,
+          ScriptedEntityMovementState.moving,
+        );
+        final waiting = game.debugExecuteSceneInteractiveCommand(
+          _allActorRoutes(),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(game.debugIsGameplayInputLocked, isTrue);
+        expect(await game.saveGame(), isFalse);
+        expect(await game.loadGame(), isFalse);
+        expect(await _finishActorRoute(game, waiting), 'completed');
+        expect(
+          game.debugNpcGridPosition('route-door'),
+          const GridPos(x: 0, y: 0),
+        );
+        expect(
+          game.debugNpcGridPosition('barrier-npc'),
+          const GridPos(x: 3, y: 0),
+        );
+        expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+        expect(game.debugIsGameplayInputLocked, isFalse);
+        expect(await game.saveGame(), isTrue);
+      },
+    );
+
+    test('does not wait for an ordinary looping patrol', () async {
+      final game = (await _fixture(
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+      )).game;
+      game.startScriptedNpcPatrol(
+        entityId: 'route-door',
+        waypoints: const [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+      );
+      game.update(0);
+      expect(
+        await game.debugExecuteSceneInteractiveCommand(_allActorRoutes()),
+        'completed',
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test(
+      'also waits for forced work started while the barrier is active',
+      () async {
+        final game = (await _fixture(
+          sourceSize: const GridSize(width: 4, height: 4),
+          sourceEntities: [_barrierNpc],
+          characters: const [_routeDoorCharacter],
+        )).game;
+        final route = game.debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'wait', 'durationMs': 150},
+          ]),
+        );
+        await Future<void>.delayed(Duration.zero);
+        var done = false;
+        final waiting = game
+            .debugExecuteSceneInteractiveCommand(_allActorRoutes())
+            .then((port) {
+              done = true;
+              return port;
+            });
+        await Future<void>.delayed(Duration.zero);
+        game.startScriptedNpcMove(
+          entityId: 'barrier-npc',
+          destination: const GridPos(x: 3, y: 0),
+        );
+        game.update(.15);
+        await Future<void>.delayed(Duration.zero);
+        expect(done, isFalse);
+        expect(await _finishActorRoute(game, route), 'completed');
+        expect(await _finishActorRoute(game, waiting), 'completed');
+        expect(
+          game.debugNpcGridPosition('barrier-npc'),
+          const GridPos(x: 3, y: 0),
+        );
+      },
+    );
+
+    test(
+      'a contact Scene commits only after the other forced actor finishes',
+      () async {
+        final game = (await _fixture(
+          sourceSize: const GridSize(width: 4, height: 4),
+          sourceEntities: [_routeDoor, _barrierNpc],
+          characters: const [_routeDoorCharacter],
+          saveRepository: _MemorySaveRepository(),
+          eventRegistry: _entityBumpRegistry(),
+          scenes: [_entityBumpScene(beforeReward: _allActorRoutes())],
+        )).game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        game.startScriptedNpcMove(
+          entityId: 'barrier-npc',
+          destination: const GridPos(x: 3, y: 0),
+        );
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.up),
+        );
+        game.update(0);
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.up),
+        );
+        for (
+          var turn = 0;
+          turn < 200 && game.debugPendingSceneWaitCount == 0;
+          turn++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(game.debugPendingSceneWaitCount, 1);
+        expect(game.gameStateSnapshot.trainerProfile.money, before);
+        expect(await game.saveGame(), isFalse);
+        await _settleEntityBump(game);
+        expect(
+          game.debugNpcGridPosition('barrier-npc'),
+          const GridPos(x: 3, y: 0),
+        );
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        expect(await game.saveGame(), isTrue);
+      },
+    );
+
+    test(
+      'interrupts when an accepted forced actor route becomes blocked',
+      () async {
+        final game = (await _fixture(
+          sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+        )).game;
+        final route = game.debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'wait', 'durationMs': 100},
+            {'kind': 'move', 'direction': 'north', 'durationMs': 100},
+          ]),
+        );
+        await Future<void>.delayed(Duration.zero);
+        final waiting = game.debugExecuteSceneInteractiveCommand(
+          _allActorRoutes(),
+        );
+        final failure = expectLater(waiting, throwsStateError);
+        expect(await _finishActorRoute(game, route), 'blocked');
+        for (var turn = 0; turn < 3; turn++) {
+          game.update(.025);
+          await Future<void>.delayed(Duration.zero);
+        }
+        await failure;
+        expect(game.debugIsGameplayInputLocked, isFalse);
+      },
+    );
+
+    test('interrupts on a same-map same-position activation change', () async {
+      final game = (await _fixture(
+        sameMapArrival: true,
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+      )).game;
+      game.startScriptedNpcMove(
+        entityId: 'route-door',
+        destination: const GridPos(x: 0, y: 0),
+      );
+      final waiting = game.debugExecuteSceneInteractiveCommand(
+        _allActorRoutes(),
+      );
+      final failure = expectLater(waiting, throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugPendingSceneWaitCount, 1);
+      final result = await _warp(
+        game,
+        SceneInteractiveCommand.warp(
+          destinationMapId: 'source',
+          warpId: 'same',
+          transition: SceneWarpTransition.none,
+        ),
+      );
+      expect(result.port, 'completed');
+      for (var turn = 0; turn < 3; turn++) {
+        game.update(.025);
+        await Future<void>.delayed(Duration.zero);
+      }
+      await failure;
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test('interrupts and releases its lock when the runtime closes', () async {
+      final game = (await _fixture(
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+      )).game;
+      game.startScriptedNpcMove(
+        entityId: 'route-door',
+        destination: const GridPos(x: 0, y: 0),
+      );
+      final waiting = game.debugExecuteSceneInteractiveCommand(
+        _allActorRoutes(),
+      );
+      final failure = expectLater(waiting, throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      game.onRemove();
+      await failure;
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+    test('an accepted finite NPC move keeps its owner when an actor route is refused', () async {
+      final game = (await _fixture(
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+      )).game;
+      final facing = game.debugNpcActorFacing('route-door');
+      game.startScriptedNpcMove(
+        entityId: 'route-door',
+        destination: const GridPos(x: 0, y: 0),
+      );
+      expect(
+        await game.debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'face', 'direction': 'north'},
+          ], entityId: 'route-door'),
+        ),
+        'blocked',
+      );
+      expect(game.debugNpcActorFacing('route-door'), facing);
+      expect(
+        game.scriptedNpcMovementStatus('route-door').state,
+        ScriptedEntityMovementState.moving,
+      );
+      expect(
+        await _finishActorRoute(
+          game,
+          game.debugExecuteSceneInteractiveCommand(_allActorRoutes()),
+        ),
+        'completed',
+      );
+      expect(
+        game.debugNpcGridPosition('route-door'),
+        const GridPos(x: 0, y: 0),
+      );
+    });
+
+    test('a finite movement failure interrupts the barrier instead of completing it', () async {
+      final game = (await _fixture(
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+      )).game;
+      game.startScriptedNpcMove(
+        entityId: 'route-door',
+        destination: const GridPos(x: 0, y: 0),
+      );
+      final waiting = game.debugExecuteSceneInteractiveCommand(
+        _allActorRoutes(),
+      );
+      final failure = expectLater(waiting, throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugPendingSceneWaitCount, 1);
+      game.debugSetPlayerStateForTest(
+        position: const GridPos(x: 0, y: 0),
+        facing: Direction.east,
+      );
+      for (var tick = 0; tick < 4; tick++) {
+        game.update(.025);
+        await Future<void>.delayed(Duration.zero);
+      }
+      await failure;
+      expect(
+        game.scriptedNpcMovementStatus('route-door').state,
+        ScriptedEntityMovementState.failed,
+      );
+      expect(
+        game.debugNpcGridPosition('route-door'),
+        const GridPos(x: 1, y: 0),
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test(
+      'a real Scene retains the joined player route pose and its reward',
+      () async {
+        final game = (await _fixture(
+          narrativeV2: true,
+          scenes: [_entityBumpScene(beforeReward: _allActorRoutes())],
+        )).game;
+        final before = game.gameStateSnapshot;
+        expect(
+          game
+              .startScriptedNpcMove(
+                entityId: 'player',
+                destination: const GridPos(x: 0, y: 1),
+              )
+              .state,
+          ScriptedEntityMovementState.moving,
+        );
+        NarrativeSceneExecutionResult? outcome;
+        final execution = game
+            .debugExecuteNarrativeSceneForTest(
+              NarrativeSceneExecutionRequest(
+                eventId: _entityBumpEventId,
+                sceneId: 'entity-bump-scene',
+                executionId: 'join-forced-player',
+                gameState: before,
+              ),
+            )
+            .then((result) => outcome = result);
+        for (
+          var turn = 0;
+          turn < 200 && game.debugPendingSceneWaitCount == 0;
+          turn++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(
+          game.debugPendingSceneWaitCount,
+          1,
+          reason: outcome is NarrativeSceneExecutionFailed
+              ? '${(outcome as NarrativeSceneExecutionFailed).failure}'
+              : '$outcome',
+        );
+        for (var tick = 0; tick < 150 && outcome == null; tick++) {
+          game.update(.025);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(outcome, isA<NarrativeSceneExecutionCompleted>());
+        await execution;
+        final committed =
+            (outcome as NarrativeSceneExecutionCompleted).updatedGameState;
+        expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+        expect(committed.playerPosition, game.debugPlayerGridPosition);
+        expect(
+          committed.playerPixelPosition,
+          game.gameStateSnapshot.playerPixelPosition,
+        );
+        expect(committed.playerFacing, EntityFacing.west);
+        expect(
+          committed.trainerProfile.money,
+          before.trainerProfile.money + 100,
+        );
+      },
+    );
+
+    test(
+      'an active actor route refuses a new finite move for the same NPC',
+      () async {
+        final game = (await _fixture(
+          sourceEntities: const [_routeDoor],
+          characters: const [_routeDoorCharacter],
+        )).game;
+        final route = game.debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'wait', 'durationMs': 100},
+            {'kind': 'face', 'direction': 'north'},
+          ], entityId: 'route-door'),
+        );
+        route.ignore();
+        await Future<void>.delayed(Duration.zero);
+        final before = game.scriptedNpcMovementStatus('route-door');
+        final refused = game.startScriptedNpcMove(
+          entityId: 'route-door',
+          destination: const GridPos(x: 0, y: 0),
+        );
+        expect(refused.state, ScriptedEntityMovementState.failed);
+        expect(game.scriptedNpcMovementStatus('route-door'), same(before));
+        final waiting = game.debugExecuteSceneInteractiveCommand(
+          _allActorRoutes(),
+        );
+        expect(await _finishActorRoute(game, route), 'completed');
+        expect(await _finishActorRoute(game, waiting), 'completed');
+        expect(
+          game.debugNpcGridPosition('route-door'),
+          const GridPos(x: 1, y: 0),
+        );
+        expect(game.debugNpcActorFacing('route-door'), EntityFacing.north);
+      },
+    );
+  });
   group('native trigger bump against blocked terrain', () {
     test(
       'runs once without entering the solid trigger cell or requiring a NPC',
@@ -4225,6 +4671,18 @@ SceneInteractiveCommand _actorRoute(
   'steps': steps,
   'skippable': skippable,
 });
+
+final _barrierNpc = _routeDoor.copyWith(
+  id: 'barrier-npc',
+  name: 'Barrier NPC',
+  pos: const GridPos(x: 3, y: 2),
+);
+
+SceneInteractiveCommand _allActorRoutes({String mapId = 'source'}) =>
+    SceneInteractiveCommand.fromJson({
+      'kind': 'waitForActorRoutes',
+      'mapId': mapId,
+    });
 
 Future<String> _finishActorRoute(
   PlayableMapGame game,

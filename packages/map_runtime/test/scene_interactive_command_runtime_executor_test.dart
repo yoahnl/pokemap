@@ -17,6 +17,7 @@ void main() {
       giveItem: handler,
       warp: handler,
       wait: handler,
+      waitForActorRoutes: handler,
       moveNpc: handler,
       movePlatform: handler,
       openShop: handler,
@@ -37,6 +38,7 @@ void main() {
         warpId: 'warp.arrival',
       ),
       SceneInteractiveCommand.wait(durationMs: 400),
+      SceneInteractiveCommand.waitForActorRoutes(mapId: 'map.port'),
       SceneInteractiveCommand.worldTone(red: -255, green: -255, blue: -255, gray: 0, durationMs: 300),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
       SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map.port'), steps: [SceneActorRouteStep.wait(durationMs: 0)]),
@@ -87,6 +89,7 @@ void main() {
     final executor = SceneInteractiveCommandRuntimeExecutor(warp: (_) async => 'completed');
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.wait(durationMs: 0),
+      SceneInteractiveCommand.waitForActorRoutes(mapId: 'map.port'),
       SceneInteractiveCommand.worldTone(red: 0, green: 0, blue: 0, gray: 0, durationMs: 300),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
       SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map.port'), steps: [SceneActorRouteStep.wait(durationMs: 0)]),
@@ -94,6 +97,94 @@ void main() {
     ]) {
       await expectLater(executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command: command)), throwsStateError);
     }
+  });
+
+  test(
+    'forced actor route barrier is awaited before a following warp',
+    () async {
+      final calls = <String>[];
+      final entered = Completer<void>();
+      final release = Completer<String>();
+      final commandExecutor = SceneInteractiveCommandRuntimeExecutor(
+        waitForActorRoutes: (command) async {
+          expect(
+            (command as SceneWaitForActorRoutesInteractiveCommand).mapId,
+            'map.port',
+          );
+          calls.add('routes:start');
+          entered.complete();
+          final port = await release.future;
+          calls.add('routes:end');
+          return port;
+        },
+        warp: (_) async {
+          calls.add('warp');
+          return 'completed';
+        },
+      );
+      final running =
+          SceneRuntimeExecutor(
+            callbacks: SceneRuntimeExecutionCallbacks(
+              evaluateCondition: (_) => 'false',
+              showDialogue: (_) => 'completed',
+              startBattle: (_) => 'victory',
+              playCinematic: (_) => 'completed',
+              applyConsequence: (_) => 'completed',
+              executeInteractiveCommand: commandExecutor.execute,
+            ),
+          ).execute(
+            buildSceneRuntimePlan(
+              _scene(
+                beforeWarp: SceneInteractiveCommand.waitForActorRoutes(
+                  mapId: 'map.port',
+                ),
+              ),
+            ).plan!,
+          );
+      await entered.future.timeout(const Duration(seconds: 1));
+      expect(calls, ['routes:start']);
+      release.complete('completed');
+      expect((await running).status, SceneRuntimeExecutionStatus.completed);
+      expect(calls, ['routes:start', 'routes:end', 'warp']);
+    },
+  );
+
+  test(
+    'forced actor route barrier refuses an undeclared blocked result',
+    () async {
+      final executor = SceneInteractiveCommandRuntimeExecutor(
+        warp: (_) async => 'completed',
+        waitForActorRoutes: (_) async => 'blocked',
+      );
+      await expectLater(
+        executor.execute(
+          SceneRuntimePlanIntent.executeInteractiveCommand(
+            command: SceneInteractiveCommand.waitForActorRoutes(
+              mapId: 'map.port',
+            ),
+          ),
+        ),
+        throwsStateError,
+      );
+    },
+  );
+
+  test('forced actor route barrier preserves consumer failure', () async {
+    final failure = StateError('Interrupted forced routes.');
+    final executor = SceneInteractiveCommandRuntimeExecutor(
+      warp: (_) async => 'completed',
+      waitForActorRoutes: (_) async => throw failure,
+    );
+    await expectLater(
+      executor.execute(
+        SceneRuntimePlanIntent.executeInteractiveCommand(
+          command: SceneInteractiveCommand.waitForActorRoutes(
+            mapId: 'map.port',
+          ),
+        ),
+      ),
+      throwsA(same(failure)),
+    );
   });
 
   test('Scene wait is awaited before the following command', () async {

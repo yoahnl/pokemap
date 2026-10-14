@@ -8,6 +8,29 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('route wait uses a native map picker and submits only its exact reference', (tester) async {
+    SceneNodePayload? submitted;
+    const project = ProjectManifest(name: 'Barrier', maps: [ProjectMapEntry(id: 'port', name: 'Port', relativePath: 'maps/port.json')], tilesets: []);
+    await _pumpBuilder(tester, initialCommandId: 'waitForActorRoutes', project: project,
+      initialParameters: const {'mapId': 'port'}, onSubmit: (p) => submitted = p);
+    expect(find.text('Attendre les déplacements'), findsOneWidget);
+    expect(_submitButton(tester).onPressed, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    expect((submitted as SceneActionPayload).interactiveCommand!.toJson(), {'kind': 'waitForActorRoutes', 'mapId': 'port'});
+  });
+  testWidgets('route wait guide refuses 3D and forged or ambiguous map options', (tester) async {
+    const entry = ProjectMapEntry(id: 'port', name: 'Port', relativePath: 'maps/port.json');
+    for (final project in [
+      const ProjectManifest(name: 'Absent', maps: [], tilesets: []),
+      const ProjectManifest(name: 'Ambiguous', maps: [entry, entry], tilesets: []),
+      const ProjectManifest(name: '3D', settings: ProjectSettings(dimension: ProjectDimension.threeD), maps: [entry], tilesets: []),
+    ]) {
+      await _pumpBuilder(tester, initialCommandId: 'waitForActorRoutes', project: project,
+        initialParameters: const {'mapId': 'port'}, options: const {NarrativeCommandParameterKind.map: [SceneActionPickerOption(id: 'port', label: 'Forged')]},
+        onSubmit: (_) => fail('Invalid barrier must not submit'));
+      expect(_submitButton(tester).onPressed, isNull);
+    }
+  });
   testWidgets('3D and missing contexts preserve but cannot apply 2D presentation drafts', (tester) async {
     for (final project in <ProjectManifest?>[null,
       const ProjectManifest(name: '3D', maps: [], tilesets: [],

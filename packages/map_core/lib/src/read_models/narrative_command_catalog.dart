@@ -17,6 +17,7 @@ abstract final class NarrativeCommandIds {
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
   static const wait = 'wait';
+  static const waitForActorRoutes = 'waitForActorRoutes';
   static const worldTone = 'worldTone';
   static const playSoundEffect = 'playSoundEffect';
   static const actorRoute = 'actorRoute';
@@ -436,6 +437,22 @@ final class NarrativeCommandCatalog {
           required: false,
         ),
       ]),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.waitForActorRoutes,
+        label: 'Attendre les déplacements',
+        description: 'Attend la fin des routes forcées actives sur la carte 2D choisie, sans durée arbitraire.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D ; aucun support 3D.',
+        ),
+        fgLotId: 'FG-092',
+        wireId: 'SceneInteractiveCommand.waitForActorRoutes',
+        parameters: [_parameter('mapId', 'Carte', NarrativeCommandParameterKind.map)],
+        isAwaitable: true,
+      ),
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.wait,
         label: 'Attendre',
