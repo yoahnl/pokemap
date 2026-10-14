@@ -193,6 +193,20 @@ class _SceneActionFormState extends State<SceneActionForm> {
     NarrativeCommandParameterKind.map => {
       for (final map in widget.project.maps) map.id: map.name,
     },
+    NarrativeCommandParameterKind.warp => _warpPoints,
+    NarrativeCommandParameterKind.characterDirection =>
+      _commandId == NarrativeCommandIds.warp
+          ? const {
+              'north': 'Nord',
+              'south': 'Sud',
+              'east': 'Est',
+              'west': 'Ouest',
+            }
+          : const {},
+    NarrativeCommandParameterKind.warpTransition => const {
+      'mapDefault': 'Transition de la carte',
+      'none': 'Sans transition',
+    },
     NarrativeCommandParameterKind.modelInstance => _modelInstances,
     NarrativeCommandParameterKind.modelAnimation => _modelAnimations,
     NarrativeCommandParameterKind.shop => {
@@ -245,7 +259,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
       ),
       if (_commands.isEmpty) const StudioNotice('Aucune commande disponible.'),
       if (_referenceLoading)
-        const StudioNotice('Chargement des décors de la carte…'),
+        StudioNotice(
+          _commandId == NarrativeCommandIds.warp
+              ? 'Chargement des points d’arrivée…'
+              : 'Chargement des décors de la carte…',
+        ),
       if (_referenceError != null) ...[
         StudioNotice(_referenceError!, isError: true),
         StudioButton(
@@ -283,7 +301,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
     void changed(String value) => setState(() {
       _values[parameter.id] = value;
       _error = null;
-      if (parameter.id == 'mapId') {
+      if (parameter.id == 'destinationMapId' &&
+          _commandId == NarrativeCommandIds.warp) {
+        _values.remove('warpId');
+        _loadReferenceMap();
+      } else if (parameter.id == 'mapId') {
         _values.remove('instanceId');
         _values.remove('animationIndex');
         _loadReferenceMap();
@@ -291,6 +313,24 @@ class _SceneActionFormState extends State<SceneActionForm> {
         _values.remove('animationIndex');
       }
     });
+    if (_commandId == NarrativeCommandIds.warp &&
+        parameter.id == 'arrivalFacing') {
+      return StudioSelect(
+        label: parameter.label,
+        value: _values[parameter.id] ?? '',
+        options: {'': 'Conserver la direction', ..._options(parameter.kind)},
+        onChanged: changed,
+      );
+    }
+    if (_commandId == NarrativeCommandIds.warp &&
+        parameter.id == 'transition') {
+      return StudioSelect(
+        label: parameter.label,
+        value: _values[parameter.id] ?? 'mapDefault',
+        options: _options(parameter.kind),
+        onChanged: changed,
+      );
+    }
     if (parameter.id == 'blocksMovementAfter' &&
         _commandId == NarrativeCommandIds.playModelAnimation) {
       return StudioSelect(

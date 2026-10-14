@@ -684,14 +684,17 @@ final class SpatialExplorationSession {
     await _transfer(warp.targetMapId, (_) => warp.targetPos);
   }
 
-  Future<void> restoreGameState(GameState state) async {
+  Future<void> restoreGameState(GameState state,
+      {bool compensatePendingScene = false}) async {
     if (_disposed) throw StateError('The spatial session is closed.');
     final position = state.playerSpatialPosition ??
         PlayerSpatialPosition(
             x: state.playerPosition.x + .5, z: state.playerPosition.y + .5);
     if (state.currentMapId != bundle.map.id) {
       await _transfer(state.currentMapId, (_) => state.playerPosition,
-          spatialArrival: position, arrivalFacing: state.playerFacing);
+          spatialArrival: position,
+          arrivalFacing: state.playerFacing,
+          compensatePendingScene: compensatePendingScene);
       if (_disposed || bundle.map.id != state.currentMapId) {
         throw StateError('The authored spatial relocation could not complete.');
       }
@@ -949,11 +952,12 @@ final class SpatialExplorationSession {
         double sourceZ
       })? connectionEntry,
       PlayerSpatialPosition? spatialArrival,
-      EntityFacing? arrivalFacing}) async {
+      EntityFacing? arrivalFacing,
+      bool compensatePendingScene = false}) async {
     if (_disposed ||
         transitioning.value ||
-        presentationPaused ||
-        interactionActive.value) {
+        (!compensatePendingScene &&
+            (presentationPaused || interactionActive.value))) {
       return;
     }
     final generation = ++_transferGeneration;

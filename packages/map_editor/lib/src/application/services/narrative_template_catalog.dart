@@ -535,7 +535,14 @@ List<String> _diagnoseParameterValues(
 ) {
   final diagnostics = <String>[];
   for (final parameter in command.parameters) {
-    final value = parameters[parameter.id]?.trim();
+    final rawValue = parameters[parameter.id];
+    final value = rawValue?.trim();
+    if (command.id == NarrativeCommandIds.warp &&
+        (parameter.id == 'arrivalFacing' || parameter.id == 'transition') &&
+        rawValue != value) {
+      diagnostics.add('${parameter.label} est inconnue.');
+      continue;
+    }
     if (value == null || value.isEmpty) continue;
     switch (parameter.kind) {
       case NarrativeCommandParameterKind.integer:
@@ -546,6 +553,15 @@ List<String> _diagnoseParameterValues(
       case NarrativeCommandParameterKind.boolean:
         if (value != 'true' && value != 'false') {
           diagnostics.add('${parameter.label} doit valoir vrai ou faux.');
+        }
+      case NarrativeCommandParameterKind.characterDirection:
+        if (command.id == NarrativeCommandIds.warp &&
+            !EntityFacing.values.any((facing) => facing.name == value)) {
+          diagnostics.add('${parameter.label} est inconnue.');
+        }
+      case NarrativeCommandParameterKind.warpTransition:
+        if (!SceneWarpTransition.values.any((transition) => transition.name == value)) {
+          diagnostics.add('${parameter.label} est inconnue.');
         }
       case NarrativeCommandParameterKind.completionOutcome:
         if (!SceneGameCompletionOutcome.values.any(

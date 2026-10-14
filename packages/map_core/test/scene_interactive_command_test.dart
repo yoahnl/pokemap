@@ -2,6 +2,90 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  Map<String, dynamic> warpWire({String? facing, String transition = 'none'}) =>
+      {
+        'kind': 'warp',
+        'destinationMapId': 'centre',
+        'warpId': 'arrival',
+        if (facing != null) 'arrivalFacing': facing,
+        'transition': transition,
+      };
+
+  test('warp preserves its arrival direction and transition on round-trip', () {
+    for (final facing in EntityFacing.values) {
+      final wire = warpWire(facing: facing.name);
+      expect(SceneInteractiveCommand.fromJson(wire).toJson(), wire);
+    }
+  });
+
+  test('warp defaults to the map transition and preserves the direction', () {
+    final command = SceneInteractiveCommand.warp(
+      destinationMapId: 'centre',
+      warpId: 'arrival',
+    );
+    expect(command.toJson(), warpWire(transition: 'mapDefault'));
+  });
+
+  test('warp options participate in command identity', () {
+    final commands = {
+      SceneInteractiveCommand.fromJson(warpWire()),
+      SceneInteractiveCommand.fromJson(warpWire(transition: 'mapDefault')),
+      for (final facing in EntityFacing.values)
+        SceneInteractiveCommand.fromJson(warpWire(facing: facing.name)),
+    };
+    expect(commands, hasLength(6));
+  });
+
+  test('warp refuses unknown or malformed options', () {
+    for (final field in ['arrivalFacing', 'transition']) {
+      for (final value in <Object>['invalid', '', 1, true, <String>[]]) {
+        expect(
+          () => SceneInteractiveCommand.fromJson({...warpWire(), field: value}),
+          throwsFormatException,
+          reason: '$field=$value',
+        );
+      }
+    }
+    expect(
+      () =>
+          SceneInteractiveCommand.fromJson({...warpWire(), 'transition': null}),
+      throwsFormatException,
+    );
+  });
+
+  test('no-code warp builder retains the typed options', () {
+    final payload =
+        buildScenePayloadForNarrativeCommand(
+              commandId: NarrativeCommandIds.warp,
+              parameters: const {
+                'destinationMapId': 'centre',
+                'warpId': 'arrival',
+                'arrivalFacing': 'north',
+                'transition': 'none',
+              },
+            )
+            as SceneActionPayload;
+    expect(payload.interactiveCommand!.toJson(), warpWire(facing: 'north'));
+  });
+
+  test('warp catalog exposes guided optional direction and transition', () {
+    final parameters = NarrativeCommandCatalog.canonical()
+        .byId(NarrativeCommandIds.warp)!
+        .parameters;
+    expect(parameters.map((parameter) => parameter.id), [
+      'destinationMapId',
+      'warpId',
+      'arrivalFacing',
+      'transition',
+    ]);
+    final facing = parameters.singleWhere((p) => p.id == 'arrivalFacing');
+    final transition = parameters.singleWhere((p) => p.id == 'transition');
+    expect(facing.kind, NarrativeCommandParameterKind.characterDirection);
+    expect(facing.required, isFalse);
+    expect(transition.kind.name, 'warpTransition');
+    expect(transition.required, isFalse);
+  });
+
   test('item gift declares separate received and bagFull routes', () {
     final command = SceneInteractiveCommand.fromJson({
       'kind': 'giveItem',
@@ -38,18 +122,47 @@ void main() {
     );
   });
 
-  test('gift item reference is indexed once with its editable command path', () {
-    final project = ProjectManifest(name: 'Gift', maps: const [], tilesets: const [], scenes: [
-      SceneAsset(id: 'gift', name: 'Gift', graph: SceneGraph(startNodeId: 'start', nodes: [
-        SceneNode(id: 'start', kind: SceneNodeKind.start),
-        SceneNode(id: 'gift', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(SceneInteractiveCommand.giveItem(itemId: 'tm23', quantity: 1))),
-      ])),
-    ]);
-    final references = buildProjectItemReferenceIndex(project: project).referencesFor('tm23');
-    expect(references, hasLength(1));
-    expect(references.single.kind, ProjectItemReferenceKind.sceneGive);
-    expect(references.single.editablePath, 'scenes[gift].graph.nodes[1].payload.interactiveCommand.itemId');
-  });
+  test(
+    'gift item reference is indexed once with its editable command path',
+    () {
+      final project = ProjectManifest(
+        name: 'Gift',
+        maps: const [],
+        tilesets: const [],
+        scenes: [
+          SceneAsset(
+            id: 'gift',
+            name: 'Gift',
+            graph: SceneGraph(
+              startNodeId: 'start',
+              nodes: [
+                SceneNode(id: 'start', kind: SceneNodeKind.start),
+                SceneNode(
+                  id: 'gift',
+                  kind: SceneNodeKind.action,
+                  payload: SceneActionPayload.interactive(
+                    SceneInteractiveCommand.giveItem(
+                      itemId: 'tm23',
+                      quantity: 1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final references = buildProjectItemReferenceIndex(
+        project: project,
+      ).referencesFor('tm23');
+      expect(references, hasLength(1));
+      expect(references.single.kind, ProjectItemReferenceKind.sceneGive);
+      expect(
+        references.single.editablePath,
+        'scenes[gift].graph.nodes[1].payload.interactiveCommand.itemId',
+      );
+    },
+  );
   test('interactive commands round-trip with explicit output ports', () {
     final commands = <SceneInteractiveCommand>[
       SceneInteractiveCommand.warp(

@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/player_component.dart';
+import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_component.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -145,6 +147,285 @@ void main() {
       expect(fixture.game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
     },
   );
+
+  for (final facing in EntityFacing.values) {
+    test(
+      'scene warp applies the authored ${facing.name} arrival facing',
+      () async {
+        final fixture = await _fixture(
+          warpArrival: true,
+          sourceFacing: facing == EntityFacing.east
+              ? EntityFacing.west
+              : EntityFacing.east,
+        );
+
+        final result = await _warp(
+          fixture.game,
+          SceneInteractiveCommand.warp(
+            destinationMapId: 'target',
+            warpId: 'arrival',
+            arrivalFacing: facing,
+            transition: SceneWarpTransition.none,
+          ),
+        );
+
+        expect(result.port, 'completed');
+        _expectArrived(
+          fixture.game,
+          const GridPos(x: 0, y: 1),
+          facing: facing,
+          reason: MapActivationReason.warp,
+        );
+      },
+    );
+  }
+
+  test('scene warp preserves facing when arrival facing is omitted', () async {
+    final fixture = await _fixture(
+      warpArrival: true,
+      sourceFacing: EntityFacing.west,
+    );
+
+    final result = await _warp(fixture.game, _arrivalCommand());
+
+    expect(result.port, 'completed');
+    _expectArrived(
+      fixture.game,
+      const GridPos(x: 0, y: 1),
+      facing: EntityFacing.west,
+      reason: MapActivationReason.warp,
+    );
+  });
+
+  test('scene warp none never mounts a visual transition overlay', () async {
+    final fixture = await _fixture(warpArrival: true);
+
+    final result = await _warp(
+      fixture.game,
+      _arrivalCommand(transition: SceneWarpTransition.none),
+    );
+
+    expect(result.port, 'completed');
+    expect(result.sawTransitionOverlay, isFalse);
+    _expectArrived(
+      fixture.game,
+      const GridPos(x: 0, y: 1),
+      reason: MapActivationReason.warp,
+    );
+  });
+
+  test('a rejected same-map warp cannot report completed from unchanged state', () async {
+    final fixture = await _fixture(warpArrival: true, sameMapArrival: true);
+    final game = fixture.game;
+    var finished = false;
+    final active = game.debugExecuteSceneInteractiveCommand(_arrivalCommand())
+        .whenComplete(() => finished = true);
+    for (var tick = 0; tick < 40 && game.debugFlowPhaseName != 'mapTransition'; tick++) {
+      game.update(0);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(game.debugFlowPhaseName, 'mapTransition');
+    expect(game.gameStateSnapshot.currentMapId, 'source');
+    final rejected = await game.debugExecuteSceneInteractiveCommand(
+      SceneInteractiveCommand.warp(destinationMapId: 'source', warpId: 'same',
+        transition: SceneWarpTransition.none),
+    );
+    for (var tick = 0; tick < 300 && !finished; tick++) {
+      game.update(.016);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(await active, 'completed');
+    expect(rejected, 'blocked');
+  });
+
+  test('scene warp map default mounts its indoor fade overlay', () async {
+    final fixture = await _fixture(warpArrival: true);
+
+    final result = await _warp(fixture.game, _arrivalCommand());
+
+    expect(result.port, 'completed');
+    expect(result.sawTransitionOverlay, isTrue);
+    expect(
+      fixture.game.camera.viewport.children
+          .whereType<WarpTransitionOverlayComponent>(),
+      isEmpty,
+    );
+    _expectArrived(
+      fixture.game,
+      const GridPos(x: 0, y: 1),
+      reason: MapActivationReason.warp,
+    );
+  });
+
+  test(
+    'scene warp rejects feet collision when the cell centre is free',
+    () async {
+      final fixture = await _fixture(warpArrival: true, maskPixel: (16, 24));
+      expect(
+        fixture.targetWorld.isCellCenterBlockedLegacyForGridIndexedSystems(
+          0,
+          1,
+        ),
+        isFalse,
+      );
+      expect(
+        fixture.targetWorld.worldStaticObstaclesCollidePlayerCollisionRect(),
+        isTrue,
+      );
+      final before = fixture.game.gameStateSnapshot;
+
+      final result = await _warp(
+        fixture.game,
+        _arrivalCommand(arrivalFacing: EntityFacing.north),
+      );
+
+      expect(result.port, 'blocked');
+      _expectRejected(fixture.game, 'La téléportation a échoué.');
+      expect(fixture.game.gameStateSnapshot, before);
+    },
+  );
+
+  test(
+    'scene warp accepts free feet when the cell centre touches a mask',
+    () async {
+      final fixture = await _fixture(warpArrival: true, maskPixel: (16, 16));
+      expect(
+        fixture.targetWorld.isCellCenterBlockedLegacyForGridIndexedSystems(
+          0,
+          1,
+        ),
+        isTrue,
+      );
+      expect(
+        fixture.targetWorld.worldStaticObstaclesCollidePlayerCollisionRect(),
+        isFalse,
+      );
+
+      final result = await _warp(fixture.game, _arrivalCommand());
+
+      expect(result.port, 'completed');
+      _expectArrived(
+        fixture.game,
+        const GridPos(x: 0, y: 1),
+        reason: MapActivationReason.warp,
+      );
+    },
+  );
+
+  test(
+    'scene warp rolls back an active blocking entity without changing facing',
+    () async {
+      final fixture = await _fixture(warpArrival: true, blockingEntity: true);
+      expect(
+        fixture.targetWorld.worldStaticObstaclesCollidePlayerCollisionRect(),
+        isTrue,
+      );
+      final before = fixture.game.gameStateSnapshot;
+
+      final result = await _warp(
+        fixture.game,
+        _arrivalCommand(arrivalFacing: EntityFacing.west),
+      );
+
+      expect(result.port, 'blocked');
+      _expectRejected(fixture.game, 'La téléportation a échoué.');
+      expect(fixture.game.gameStateSnapshot, before);
+    },
+  );
+
+  test('scene warp accepts a through entity at the arrival', () async {
+    final fixture = await _fixture(warpArrival: true, blockingEntity: false);
+    expect(
+      fixture.targetWorld.worldStaticObstaclesCollidePlayerCollisionRect(),
+      isFalse,
+    );
+
+    final result = await _warp(fixture.game, _arrivalCommand());
+
+    expect(result.port, 'completed');
+    _expectArrived(
+      fixture.game,
+      const GridPos(x: 0, y: 1),
+      reason: MapActivationReason.warp,
+    );
+  });
+
+  test(
+    'scene warp preserves the walking restriction on an authored water cell',
+    () async {
+      final fixture = await _fixture(warpArrival: true, water: true);
+      final before = fixture.game.gameStateSnapshot;
+
+      final result = await _warp(
+        fixture.game,
+        _arrivalCommand(arrivalFacing: EntityFacing.south),
+      );
+
+      expect(result.port, 'blocked');
+      _expectRejected(fixture.game, 'La téléportation a échoué.');
+      expect(fixture.game.gameStateSnapshot, before);
+    },
+  );
+
+  test('scene warp accepts an authored water cell while surfing', () async {
+    final fixture = await _fixture(warpArrival: true, water: true);
+    fixture.game.setPlayerMovementMode(MovementMode.surf);
+
+    final result = await _warp(fixture.game, _arrivalCommand());
+
+    expect(result.port, 'completed');
+    _expectArrived(
+      fixture.game,
+      const GridPos(x: 0, y: 1),
+      reason: MapActivationReason.warp,
+    );
+    expect(
+      fixture.game.gameStateSnapshot.playerMovementMode,
+      MovementMode.surf,
+    );
+  });
+
+  test(
+    'scene warp arrival and facing survive a serialized save and reload',
+    () async {
+      final repository = _MemorySaveRepository();
+      final fixture = await _fixture(
+        warpArrival: true,
+        saveRepository: repository,
+      );
+      final game = fixture.game;
+      game.setPlayerMovementMode(MovementMode.surf);
+
+      final result = await _warp(
+        game,
+        _arrivalCommand(
+          arrivalFacing: EntityFacing.north,
+          transition: SceneWarpTransition.none,
+        ),
+      );
+      expect(result.port, 'completed');
+      expect(await game.saveGame(), isTrue);
+      await _move(game, RuntimeInputControl.right);
+      game.setPlayerMovementMode(MovementMode.walk);
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.east);
+
+      expect(await game.loadGame(), isTrue);
+
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 0, y: 1));
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.north);
+      expect(game.gameStateSnapshot.playerMovementMode, MovementMode.surf);
+      expect(game.debugRenderedPlayerFootCell, const GridPos(x: 0, y: 1));
+      expect(
+        game.debugPlayerWorldTopLeft,
+        game.debugExpectedPlayerWorldTopLeft,
+      );
+      expect(game.debugFlowPhaseName, 'overworld');
+      expect(game.debugHasPendingMapTransition, isFalse);
+      expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+    },
+  );
 }
 
 void _expectRejected(PlayableMapGame game, String notification) {
@@ -163,21 +444,70 @@ void _expectRejected(PlayableMapGame game, String notification) {
   expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
 }
 
-void _expectArrived(PlayableMapGame game, GridPos arrival) {
+void _expectArrived(
+  PlayableMapGame game,
+  GridPos arrival, {
+  EntityFacing facing = EntityFacing.east,
+  MapActivationReason reason = MapActivationReason.connection,
+}) {
   expect(game.gameStateSnapshot.currentMapId, 'target');
   expect(game.gameStateSnapshot.playerPosition, arrival);
-  expect(game.gameStateSnapshot.playerFacing, EntityFacing.east);
+  expect(game.gameStateSnapshot.playerFacing, facing);
+  expect(_components(game).whereType<PlayerComponent>().single.cinematicFacing, facing);
   expect(game.debugRenderedPlayerFootCell, arrival);
   expect(game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
   expect(game.debugCompletedMapActivationDispatchCount, 2);
-  expect(
-    game.debugLastCompletedMapActivation?.reason,
-    MapActivationReason.connection,
-  );
+  expect(game.debugLastCompletedMapActivation?.reason, reason);
   expect(game.debugLastCompletedMapActivation?.mapId, 'target');
   expect(game.debugFlowPhaseName, 'overworld');
   expect(game.debugHasPendingMapTransition, isFalse);
   expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+}
+
+SceneInteractiveCommand _arrivalCommand({
+  EntityFacing? arrivalFacing,
+  SceneWarpTransition transition = SceneWarpTransition.mapDefault,
+}) => SceneInteractiveCommand.warp(
+  destinationMapId: 'target',
+  warpId: 'arrival',
+  arrivalFacing: arrivalFacing,
+  transition: transition,
+);
+
+Iterable<Component> _components(Component parent) sync* {
+  yield parent;
+  for (final child in parent.children) {
+    yield* _components(child);
+  }
+}
+
+Future<({String port, bool sawTransitionOverlay})> _warp(
+  PlayableMapGame game,
+  SceneInteractiveCommand command,
+) async {
+  var completed = false;
+  var sawTransitionOverlay = false;
+  final execution = game
+      .debugExecuteSceneInteractiveCommand(command)
+      .whenComplete(() => completed = true);
+  for (var tick = 0; tick < 240; tick++) {
+    game.update(.016);
+    sawTransitionOverlay |= game.camera.viewport.children
+        .whereType<WarpTransitionOverlayComponent>()
+        .isNotEmpty;
+    await Future<void>.delayed(Duration.zero);
+    if (completed &&
+        !game.debugHasPendingMapTransition &&
+        !game.debugIsMapActivationDispatchInFlight &&
+        game.debugFlowPhaseName == 'overworld') {
+      game.update(0);
+      return (
+        port: await execution,
+        sawTransitionOverlay: sawTransitionOverlay,
+      );
+    }
+  }
+  fail('Scene warp command did not settle.');
 }
 
 Future<void> _move(PlayableMapGame game, RuntimeInputControl control) async {
@@ -208,6 +538,10 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   bool? blockingEntity,
   int offset = 0,
   bool water = false,
+  bool warpArrival = false,
+  bool sameMapArrival = false,
+  EntityFacing sourceFacing = EntityFacing.east,
+  GameSaveRepository? saveRepository,
 }) async {
   final root = await Directory.systemTemp.createTemp(
     'runtime_connection_canonical_arrival_',
@@ -218,7 +552,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     name: 'Source',
     size: const GridSize(width: 2, height: 3),
     layers: const [MapLayer.object(id: 'objects', name: 'Objects')],
-    entities: const [
+    entities: [
       MapEntity(
         id: 'start',
         name: 'Start',
@@ -227,7 +561,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
         blocksMovement: false,
         spawn: MapEntitySpawnData(
           role: EntitySpawnRole.playerStart,
-          facing: EntityFacing.east,
+          facing: sourceFacing,
         ),
       ),
     ],
@@ -239,6 +573,12 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       ),
     ],
     mapMetadata: const MapMetadata(defaultSpawnId: 'start'),
+    warps: [
+      if (sameMapArrival)
+        const MapWarp(id: 'same', pos: GridPos(x: 1, y: 1),
+          targetMapId: 'source', targetPos: GridPos(x: 1, y: 1),
+          triggerMode: MapWarpTriggerMode.onBump),
+    ],
   );
   final target = MapData(
     id: 'target',
@@ -299,7 +639,20 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
           movement: MovementZonePayload(requiredMode: MovementMode.surf),
         ),
     ],
-    mapMetadata: const MapMetadata(defaultSpawnId: 'target_start'),
+    warps: [
+      if (warpArrival)
+        const MapWarp(
+          id: 'arrival',
+          pos: GridPos(x: 0, y: 1),
+          targetMapId: 'source',
+          targetPos: GridPos(x: 1, y: 1),
+          triggerMode: MapWarpTriggerMode.onBump,
+        ),
+    ],
+    mapMetadata: MapMetadata(
+      defaultSpawnId: 'target_start',
+      isIndoor: warpArrival,
+    ),
   );
   final pixels = List<bool>.filled(32 * 32, false);
   if (maskPixel != null) pixels[maskPixel.$2 * 32 + maskPixel.$1] = true;
@@ -374,7 +727,11 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     projectFilePath: projectPath,
     mapId: 'source',
   );
-  final game = _ConnectionGame(bundle: bundle, projectFilePath: projectPath);
+  final game = _ConnectionGame(
+    bundle: bundle,
+    projectFilePath: projectPath,
+    saveRepository: saveRepository,
+  );
   addTearDown(game.onRemove);
   game.onGameResize(Vector2(320, 240));
   await game.onLoad();
@@ -398,8 +755,29 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
 }
 
 final class _ConnectionGame extends PlayableMapGame {
-  _ConnectionGame({required super.bundle, required super.projectFilePath});
+  _ConnectionGame({
+    required super.bundle,
+    required super.projectFilePath,
+    super.saveRepository,
+  });
 
   @override
   bool get isLoaded => true;
+}
+
+final class _MemorySaveRepository implements GameSaveRepository {
+  Map<String, dynamic>? _savedJson;
+
+  @override
+  Future<void> save(GameState state) async => _savedJson = state.toJson();
+
+  @override
+  Future<GameState?> load() async =>
+      _savedJson == null ? null : GameState.fromJson(_savedJson!);
+
+  @override
+  Future<bool> exists() async => _savedJson != null;
+
+  @override
+  Future<void> delete() async => _savedJson = null;
 }

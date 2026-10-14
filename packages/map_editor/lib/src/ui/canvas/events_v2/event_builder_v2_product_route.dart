@@ -2145,6 +2145,7 @@ buildEventBuilderV2TemplateActionPickerOptions({
           SceneActionPickerOption(
             id: warp.id,
             label: '${map.name} → ${warp.targetMapId}',
+            parentId: map.id,
           ),
     ],
     NarrativeCommandParameterKind.shop: [

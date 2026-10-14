@@ -209,11 +209,13 @@ final class SpatialGameplayEvents {
   int _pendingOperations = 0;
   bool _disposed = false;
   bool _hostEffectsPending = false;
+  GameState Function()? _sceneStateProjection;
   final Set<String> _publishedBattleAttemptIds = {};
   Map<String, NarrativeOutcomeRef>? _sceneBattleAttempts;
   List<NarrativeOutcomeRef>? _sceneBattleOutcomes;
 
   bool get isBusy => _pendingOperations > 0;
+  GameState? get projectedSceneGameState => _sceneStateProjection?.call();
   bool get _available => !_disposed && _isActive();
   bool get _currentOperation =>
       _available && _operationGeneration == _generation;
@@ -317,10 +319,11 @@ final class SpatialGameplayEvents {
     );
   }
 
-  bool entityIsPresent(String mapId, MapEntity entity) {
+  bool entityIsPresent(String mapId, MapEntity entity,
+      {GameState? gameStateOverride}) {
     final map = mapsById[mapId];
     if (map == null) return false;
-    final state = _readGameState();
+    final state = gameStateOverride ?? _readGameState();
     final present = isNpcRuntimePresentOnMap(
       gameState: state,
       manifest: project,
@@ -678,6 +681,7 @@ final class SpatialGameplayEvents {
     }
     final attempts = _sceneBattleAttempts = <String, NarrativeOutcomeRef>{};
     final outcomes = _sceneBattleOutcomes = <NarrativeOutcomeRef>[];
+    final previousProjection = _sceneStateProjection;
     try {
       final callbacks = _createSceneCallbacks(
         () => workingState,
@@ -698,6 +702,7 @@ final class SpatialGameplayEvents {
         mapsById: mapsById,
         currentGameState: () => workingState,
         consequenceWriter: writer,
+        onSceneStateProjection: (projector) => _sceneStateProjection = projector,
         hostedBattleOutcomes: outcomes,
         callbacks: SceneRuntimeHostCallbacks(
           evaluateCondition: guard(callbacks.evaluateCondition),
@@ -731,6 +736,7 @@ final class SpatialGameplayEvents {
       }
       return result;
     } finally {
+      _sceneStateProjection = previousProjection;
       if (identical(_sceneBattleAttempts, attempts)) {
         _sceneBattleAttempts = null;
         _sceneBattleOutcomes = null;

@@ -1211,6 +1211,22 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 sceneConsequenceCatalogs,
                 activeMap: editor.activeMap,
               ),
+        loadWarpMap: (mapId) async {
+          final project = editor.project;
+          final root = editor.projectRootPath;
+          if (project == null || root == null || !context.mounted) return null;
+          final before = ref.read(editorNotifierProvider);
+          if (before.project != project || before.projectRootPath != root) {
+            return null;
+          }
+          final map = await editorNotifier.loadMapSnapshotById(mapId);
+          if (!context.mounted) return null;
+          final after = ref.read(editorNotifierProvider);
+          if (after.project != project || after.projectRootPath != root) {
+            return null;
+          }
+          return map;
+        },
         sceneConsumerPaths: editor.project == null
             ? const <String, List<String>>{}
             : _buildSceneConsumerPaths(
@@ -5011,6 +5027,7 @@ _buildSceneActionPickerOptions(
         SceneActionPickerOption(
           id: warp.id,
           label: '${activeMap!.name} → ${warp.targetMapId}',
+          parentId: activeMap.id,
         ),
     ],
     NarrativeCommandParameterKind.shop: [

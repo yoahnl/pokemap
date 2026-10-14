@@ -138,7 +138,11 @@ final class NarrativeCommandCatalog {
         'FG-083',
         [
           _parameter('itemId', 'Objet', NarrativeCommandParameterKind.item),
-          _parameter('quantity', 'Quantité', NarrativeCommandParameterKind.integer),
+          _parameter(
+            'quantity',
+            'Quantité',
+            NarrativeCommandParameterKind.integer,
+          ),
         ],
         wireId: 'SceneInteractiveCommand.giveItem',
       ),
@@ -386,10 +390,22 @@ final class NarrativeCommandCatalog {
       interactive(NarrativeCommandIds.warp, 'Téléporter', 'FG-090', [
         _parameter(
           'destinationMapId',
-          'Map',
+          'Carte de destination',
           NarrativeCommandParameterKind.map,
         ),
-        _parameter('warpId', 'Warp', NarrativeCommandParameterKind.warp),
+        _parameter('warpId', 'Point d’arrivée', NarrativeCommandParameterKind.warp),
+        _parameter(
+          'arrivalFacing',
+          'Direction à l’arrivée',
+          NarrativeCommandParameterKind.characterDirection,
+          required: false,
+        ),
+        _parameter(
+          'transition',
+          'Transition',
+          NarrativeCommandParameterKind.warpTransition,
+          required: false,
+        ),
       ]),
       interactive(
         NarrativeCommandIds.openShop,
@@ -415,10 +431,23 @@ final class NarrativeCommandCatalog {
         'FG-091',
         const [],
       ),
-      interactive(NarrativeCommandIds.movePlatform, 'Déplacer une plateforme', 'FG-120', [
-        _parameter('platformRef', 'Plateforme', NarrativeCommandParameterKind.movingPlatform),
-        _parameter('motion', 'Mouvement', NarrativeCommandParameterKind.movingPlatformMotion),
-      ]),
+      interactive(
+        NarrativeCommandIds.movePlatform,
+        'Déplacer une plateforme',
+        'FG-120',
+        [
+          _parameter(
+            'platformRef',
+            'Plateforme',
+            NarrativeCommandParameterKind.movingPlatform,
+          ),
+          _parameter(
+            'motion',
+            'Mouvement',
+            NarrativeCommandParameterKind.movingPlatformMotion,
+          ),
+        ],
+      ),
       interactive(NarrativeCommandIds.moveNpc, 'Déplacer un PNJ', 'FG-092', [
         _parameter('npcRef', 'PNJ', NarrativeCommandParameterKind.npc),
         _parameter('warpId', 'Destination', NarrativeCommandParameterKind.warp),

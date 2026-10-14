@@ -5,7 +5,7 @@
 Implémentation livrée pour revue, avec trois traces EV-A/B/C converties depuis des fichiers RMXP originaux synthétiques, relues strictement au format natif, exécutées par le vrai runtime puis sauvegardées et chargées par une nouvelle instance de `FileGameSaveRepository`. Le domaine reste PARTIAL : la conversion de jeu entier, les événements Kanto et la parité de toute instruction Essentials ne sont pas certifiés.
 
 
-État actuel au 13 octobre : voir le complément « BGM attesté et pickup ETHER réel » en fin de rapport. Il ajoute la publication r4, le vrai parcours Studio et une sauvegarde/reprise disque ETHER ; les paragraphes de livraison initiale ci-dessous restent historiques. Domaine PARTIAL.
+État actuel au 14 octobre : voir les derniers compléments « Dialogue du Centre et orientation bornée » et « Passages natifs et qualification du Centre ». Le Centre est publié et son PNJ a été joué ; les portes source restent inactives. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
 La grammaire porte textes, choix et annulation typée, pages conditionnelles, switches booléens, self-switches et transferts constants vers des cartes sélectionnées. Un bloc inconnu désactive l’événement entier. Les données sources restent conservées sous forme inerte, avec références et SHA, même pour une quarantaine intégrale. Ruby exécuté : 0 ; appels IA dans la conversion : 0. Les fixtures distribuées sont originales ; aucun asset Pokémon du corpus privé n’entre dans Git.
 
 La politique native de choix/cancel et les capacités nécessaires pour avancer ont été approuvées explicitement par Yoahn dans le fil, avant extension du modèle cible. La commande secondaire rejoint une issue déclarée ou reste désactivée selon la source. L’autorisation de faire tous les lots et de commiter entre lots permet d’enchaîner AC-14 ; la restriction du kit sur une suite implicite ne remplace pas cette instruction directe. La règle directe sans commentaires prévaut sur le §3 de `codex_rule.md` ; aucun commentaire de code ajouté.
@@ -862,3 +862,120 @@ API source/workflow/CLI et projection canonique sont testés ; writer existant n
 Auto-critique : c'est une adaptation utile du vrai dialogue, pas une certification globale de l'Essentials. Cadre/police/préférences source, timing complet du scheduler et facing sauvegardé restent non qualifiés. La source demeure une restauration historique partielle, distincte de l'original incomplet.35événements restent inactifs, dont porte/soinsCentre ; pas d'arrivée directionnelle ni de garde de réentrée inventés. La suite conserve KAN03 départ/dialogue/warp/état/save et tous les lots restants.
 
 Git avant commit :6chemins ci-dessus, index vide et64étrangers à revalider en bytes/modes avant staging. Le contrôle après commit produira static-dialogue-commit-after-01.json avec SHA/parent/blobs/index/étrangers. Aucun push/rebase/amend/branche/worktree. AC13 existant dans Monde & narration PostBêta, actuellementDOING/PARTIAL ; après commit, TO REVIEW pour le code, sans DONE ni réduction des critères KAN03. AC16 garde DOING/PARTIAL.
+
+## Complément du 14 octobre 2026 — Passages natifs et qualification du Centre
+
+**AC-13 / KAN-03 / FG-090 et FG-093 : extension native livrée pour revue, domaine PARTIAL.** Le goal AC-00–AC-16 reste actif. Cette tranche donne aux passages une direction d'arrivée explicite et une transition sans fondu. Elle ne convertit pas encore les portes source du Centre : leurs programmes exigent également ton du monde, sons, attente, routes, visibilité et garde temporaire de réentrée. Les refus `warpFacingUnsupported` et `warpFadeUnsupported` restent présents dans le convertisseur.
+
+### Audit initial et frontières
+
+Base `main`, HEAD `354e7dfb156f39586d0330986d496b1d1d5486c0`, index vide. `Q/warp-native-initial-01.json` conserve les SHA et modes des 64 chemins étrangers. Q désigne `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej`. La copie privée `Q/repository` reprend HEAD et seulement les modifications de cette tranche ; writer, bordures, rendu spatial et plateformes étrangers sont exclus. Les 64 empreintes étrangères sont encore identiques lors de la vérification précédant la revue finale.
+
+L'oracle source est l'archive Scripts SHA `3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d`, décodée comme données inertes. `034 Interpreter_Commands` distingue direction 0 et absence de fondu ; la sortie Map102/event1 transfère vers Map100 (13,25), conserve la direction et interdit le fondu interne. L'entrée Map100/event8 impose direction nord et aucun fondu, mais dépend aussi de mouvements et de `TempSwitch` locaux à l'instance. `034.rb:383–386/899–901/1051–1053`, `039.rb:38–46/75–81` et `065.rb:42/126` établissent attente, Tone/SE non bloquants, durée/20, interpolation et viewport du monde. Tone est additif et ne filtre pas le dialogue ; la section126, `GameData::Move`, n'est pas un oracle de viewport. Les effets manquants ne sont pas ignorés pour activer la porte.
+
+L'extension du modèle cible est autorisée par la réponse explicite de Yoahn autorisant les modifications nécessaires à l'avancement. Les contrats restent dans `map_core`, l'auteur canonique dans `map_authoring`, les consumers dans `map_runtime` et les pickers dans les deux interfaces. Aucun moteur de combat, script Ruby exécuté, appel IA obligatoire, migration pré-1.0 ou roadmap modifiée.
+
+### Publication et Player du vrai PNJ du Centre
+
+La publication précédemment en cours est maintenant terminée : `centre-dialogue-native-convert-01`, exit0 / 1013.012s, `published/verified/sourceUnchanged=true`, `playableCertified=false`. Révision `sha256:8b9505a3b78c98b0364207c55180df6ec08496b8b527312dcb5d303b1891ea5a`, snapshot source `fd1e6e73879d90d3dbedffcd703e5bac5b3b58c9fc8a9186ce1e5d98233dbe4e`. Les trois cartes 98/100/102 comportent 9 événements adaptés sur 44, 35 inactifs. La source restaurée de 23720 fichiers reste une restauration partielle, distincte du dossier original incomplet.
+
+La copie Studio de 1349 fichiers se trouve sous `/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/AC13-Centre-dialogue-20261014-ftgqyeej/Projet converti`. Le vrai `StudioBootstrap` puis « Enregistrer et tester » a ouvert le Player. Des touches `HardwareKeyboard` ont fait marcher le joueur de (9,9) à (16,7), devant le PNJ bloquant (16,8), sans téléportation de test. Interaction réelle : texte « I heard that ghosts haunt / Lavender Town. », bleu et retour de ligne source ; PNJ ouest→nord face au joueur ; déplacement ouest refusé pendant le dialogue ; fermeture puis seconde interaction réussies.
+
+Preuves : `Q/centre-dialogue-player-trace-01.json`, `centre-dialogue-published-npc-01.json`, `centre-dialogue-after-player-inventory-01.json` et capture `captures/centre-real-npc-dialogue-01.png` à côté de la copie Studio. Export et copie inchangés après Player, aucun fichier manquant ou supplémentaire. La fenêtre QA PID48925 est fermée normalement : `centre-dialogue-studio-run-02`, exit0 / 852.666s, zéro survivant ou signal, protégés inchangés. Le save/reload de cette interaction, les soins, les portes et la disposition originale de la fenêtre ne sont pas qualifiés par cette trace.
+
+### Inventaire complet du code de passage
+
+Les diffs Git et fichiers source sont canoniques. Zones fonctionnelles de chacun des 25 fichiers source/tests, auxquelles s'ajoute le présent rapport :
+
+| Fichier | Zone modifiée et raison |
+|---|---|
+| `packages/map_core/lib/src/models/scene_interactive_command.dart` | `SceneWarpTransition`, factory Warp, JSON, equality/hash : direction optionnelle et politique `mapDefault/none`, valeurs présentes strictement validées. |
+| `packages/map_core/lib/src/models/narrative_command_descriptor.dart` | Type de paramètre Warp transition pour les formulaires guidés. |
+| `packages/map_core/lib/src/read_models/narrative_command_catalog.dart` | Les quatre paramètres Warp, labels carte/point/direction/transition et valeurs neutres. |
+| `packages/map_core/lib/src/authoring/scene_command_payload_builder.dart` | Construction typée des options et refus des valeurs malformées. |
+| `packages/map_core/test/scene_interactive_command_test.dart` | Round-trip des quatre directions, défauts, identité et JSON invalide ; construction no-code. |
+| `packages/map_authoring/lib/src/domains/narrative/scene_actions.dart` | Extensions découvrables du contrat ; set sémantique conserve metadata et valide le point réel de la carte cible. |
+| `packages/map_authoring/test/domains/narrative/scene_warp_transport_test.dart` | API directe et JSONL plan/apply/query/reopen, absence d'écriture au plan et refus d'options/références invalides. |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_action_form.dart` | Pickers direction/transition, neutralité et remise à zéro d'une arrivée lorsque la carte change. |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_action_references.dart` | Lecture canonique de la destination et de ses vrais points ; erreurs et résultats tardifs gardés. |
+| `apps/avelune_studio/test/presentation/scene_warp_form_test.dart` | Formulaire réel, options, références absentes, chargement tardif, erreur/retry et disposal. |
+| `packages/map_editor/lib/src/application/services/narrative_template_catalog.dart` | Templates legacy alignés sur les valeurs neutres du contrat. |
+| `packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_product_route.dart` | Les points Warp portent leur carte propriétaire. |
+| `packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart` | Callback `EditorNotifier.loadMapSnapshotById`, racine et projet revérifiés avant/après lecture. |
+| `packages/map_editor/lib/src/ui/canvas/scenes_workspace.dart` | Transmission du callback jusqu'au véritable builder à travers ses quatre niveaux. |
+| `packages/map_editor/lib/src/ui/canvas/scenes/scene_action_builder.dart` | Carte inactive chargée sans activation, pickers filtrés, loading/error bloquants, contrôle d'identité et disposal. |
+| `packages/map_editor/test/narrative_template_catalog_test.dart` | Régressions des templates neutres. |
+| `packages/map_editor/test/scene_action_builder_test.dart` | Options explicites/strictes et loader destination ; non-régression du catalogue moveNpc. |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Consumer 2D : direction rendue, overlay absent pour `none`, collision du rectangle des pieds après revalidation et booléen de transfert effectif. |
+| `packages/map_runtime/test/playable_map_game_connection_arrival_collision_test.dart` | 24 cas Warp/connexion, masques hors centre, PNJ, eau/surf, pose rendue et sauvegarde, refus d'un no-op concurrent. |
+| `packages/map_runtime/lib/src/session/spatial_exploration_game_session_runtime.dart` | Consumer 3D physique avant dialogue, activation après commit parent, rollback, checkpoint et démontage garantis. |
+| `packages/map_runtime/lib/src/spatial/spatial_exploration_session.dart` | Compensation dédiée sous pause, défaut strict pour les transferts ordinaires, validations physiques conservées. |
+| `packages/map_runtime/lib/src/spatial/spatial_gameplay_events.dart` | Projection read-only de Scene et override de présence pour le host ; lecteur transactionnel global inchangé. |
+| `packages/map_runtime/lib/src/application/narrative_scene_runtime_execution.dart` | Projection des conséquences bufferisées installée pour la Scene entière, libérée en finally. |
+| `packages/map_runtime/test/session/spatial_exploration_game_session_runtime_test.dart` | Directions, transitions, pose physique, commit/annulation, présence conditionnelle, récompense unique, stop/dispose. |
+| `tools/pokemap_mcp/test/scene_warp_options_stdio.test.ts` | Vrai client MCP stdio : describe, plan read-only, mutation, refus, query et close/reopen sous racine étroite. |
+
+Absence de direction signifie conserver la direction courante ; `mapDefault` conserve la transition de la carte. `none` supprime le fondu visuel, sans supprimer le verrou, chargement ou contrôle de collision. En 3D, les deux valeurs utilisent explicitement le transfert instantané natif actuel. La pose physique doit être vérifiée avant de retourner `completed` ; un transfert ignoré pendant une autre transition retourne `blocked`, même si la pose initiale coïncide déjà avec l'arrivée.
+
+Les conséquences restent privées jusqu'au commit de la scène. Une projection read-only des facts peut faire apparaître ou disparaître un PNJ bloquant avant Warp sans les publier dans l'état global. La récompense de 25 avant Warp reste à zéro pendant le dialogue, puis vaut exactement 25 au commit. Stop/dispose compensent avec l'état committé et conservent Story jusqu'au démontage ; un échec de compensation ne saute pas l'unmount.
+
+### Tests, analyse et build
+
+Les commandes exactes, cwd, SHA des logs, pins de sources et UID/start/command des descendants sont conservés dans les reçus Q. Les runs indépendants ne sont pas additionnés en un faux nombre de tests uniques.
+
+| Reçu | Commande dans son package | Résultat terminal |
+|---|---|---|
+| `warp-core-green-02` | `dart test test/scene_interactive_command_test.dart test/narrative_command_catalog_test.dart test/narrative_command_contract_parity_test.dart test/narrative_command_catalog_closure_test.dart --reporter expanded --concurrency=2` |34 PASS, exit0,2.726s|
+| `warp-core-analyze-01` | `dart analyze lib/src/models/scene_interactive_command.dart lib/src/models/narrative_command_descriptor.dart lib/src/read_models/narrative_command_catalog.dart lib/src/authoring/scene_command_payload_builder.dart test/scene_interactive_command_test.dart` |No issues, exit0,3.025s|
+| `warp-authoring-green-03` | `dart test test/domains/narrative/scene_warp_transport_test.dart test/domains/narrative/scene_graph_patch_transport_test.dart test/domains/narrative/scene_graph_patch_test.dart --reporter expanded --concurrency=2` |9 PASS, exit0,2.587s|
+| `warp-authoring-analyze-01` | `dart analyze lib/src/domains/narrative/scene_actions.dart test/domains/narrative/scene_warp_transport_test.dart` |No issues, exit0,3.269s|
+| `warp-studio-green02` | `flutter test test/presentation/scene_warp_form_test.dart test/presentation/ui06_scene_action_form_test.dart --reporter expanded` |14 PASS, exit0,5.577s|
+| `warp-studio-analyze01` | `flutter analyze --no-pub lib/presentation/features/scenes/scene_action_form.dart lib/presentation/features/scenes/scene_action_references.dart test/presentation/scene_warp_form_test.dart` |No issues, exit0,5.086s|
+| `warp-legacy-loader-final-tests-01` | `flutter test --no-pub test/scene_action_builder_test.dart test/narrative_template_catalog_test.dart --reporter expanded` |55 PASS, exit0,5.230s|
+| `warp-legacy-loader-final-analyze-01` | `flutter analyze --no-pub` sur les sept fichiers |No issues, exit0,11.169s|
+| `warp-runtime-final-03` | `flutter test --no-pub test/playable_map_game_connection_arrival_collision_test.dart test/scene_interactive_command_runtime_executor_test.dart test/narrative_command_save_load_integration_test.dart test/phase_a_golden_battle_slice_smoke_test.dart test/session/spatial_exploration_game_session_runtime_test.dart test/narrative_scene_runtime_execution_test.dart test/spatial_gameplay_events_test.dart --reporter expanded --concurrency=2` |142 PASS, exit0,10.310s|
+| `warp-runtime-analyze-final-04` | `flutter analyze --no-pub --no-fatal-infos` sur les cinq sources runtime et deux tests |exit0,9.676s ; zéro error/warning,24 infos dont toutes les lignes existent dans HEAD ; pas « No issues ».|
+| `warp-adapters-targeted-final-01` | `dart test test/source_event_projection_test.dart test/native_project_writer_test.dart --reporter expanded --concurrency=2` |105 PASS, exit0,21.897s|
+| `warp-mcp-build-01` / `warp-mcp-check-01` | `npm run build` / `npm run check` |exit0/0,1.888s/1.396s|
+| `warp-mcp-live-02` | `node --import tsx --test --test-concurrency=1 test/scene_warp_options_stdio.test.ts` |1 PASS /0 SKIP, exit0,8.447s|
+| `warp-studio-debug-build-01` | `flutter build macos --debug --no-pub -t Q/warp_player_main.dart` avec les deux defines de copie QA/captures enregistrés dans le reçu |exit0,39.368s ; app réelle construite ; deux ibtoold descendants recontrôlés puis terminés normalement.|
+
+Les RED fonctionnels sont distincts des erreurs de fixture/compilation : core 9PASS/6FAIL ; 2D 15PASS/8FAIL puis contre-exemple same-map `completed` attendu `blocked` ; legacy loader 1PASS/6FAIL ; 3D 6PASS/11FAIL puis cinq FAIL de présence/checkpoint/dispose. La critique a demandé le loader de carte inactive, la projection provisoire et l'ordre de disposal ; ces cas ont leurs GREEN spécifiques avant le run root final142.
+
+Deux tests voisins échouent aussi avec le fichier Flame exact de HEAD : `Scene warp commits its parent before dispatching destination mapEnter` (timeout) et `connection mapEnter dispatch interlocks movement, transitions and checkpoints` (attendu0,0, réel2,0). Runs `warp-interlock-isolated-02` et `warp-interlock-baseline-01` :8PASS/2FAIL, exit1,18.039s/5.617s. Seul le fichier Flame privé a été remplacé temporairement ; restauration exacte SHA `6f2d7a680bcf64f1abf0a4a07392db0e942f2b51d305afefc571135d87ad4828` attestée par `warp-interlock-baseline-restoration-01`. Le checkout utilisateur n'a pas été restauré.
+
+La suite native core complète `warp-native-core-full-01` n'est pas verte :3395PASS/1SKIP/9FAIL avant sortie255/201.079s. Les benchmarks CLI de la copie sans Git refusent leur précondition (exit64), deux attentes de dry-run/cataloque bêta restent rouges sans modification de leurs sources, puis deux compilations échouent faute d'espace. Aucun critère bêta n'a été élargi. L'unique kernel temporaire de ce run terminal,8759056291B, a été supprimé après contrôle UID, lsof vide, absence de référence de processus et SHA de log ; reçu `warp-native-core-owned-kernel-cleanup-01`. Aucune purge générale. RED spatial05 interrompu pour cette cause reste NON PASS malgré exit0 après SIGINT autorisé.
+
+Les package_config privés ont ensuite disparu sans mutation des pubspec/locks ; analyze spatial03 produisant1477 imports inconnus et isolated01 sans flutter_test sont des vérifications invalides, non des preuves de code rouge ou vert. Récupérations offline runtime/Studio/adapters : exit0, pins pubspec/lock identiques, aucune résolution du host modifiée. L'analyse finale04 remplace ce diagnostic ; ses24 infos sont reliées à des lignes HEAD par `warp-runtime-analysis-info-provenance-01.json`.
+
+### Parcours réel du passage natif dans Studio et Player
+
+Copie distincte `/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/AC13-Warp-native-20261014-ftgqyeej/Projet QA`. L'initialisation est une copie exacte1349fichiers,163764809B de la publication précédente. Le helper JSONL interroge le catalogue courant406actions, puis ajoute huit mutations par `warp.create`, `entity.create`, `scene.upsert` et `event_v2.record_upsert`, avec révision fraîche, plan sans écriture native et apply. Réouverture dans une nouvelle session stricte, validation valide,99warnings Pokémon conservés. Révision `sha256:27580ba160afd8e0dcd67adc5f6154cfaa8534a80c5abb1facd19f50f4c4abf1`. `warp-native-authoring-run-01` : exit0,59.711s, huit pins stables, zéro signal/survivant, protégés inchangés. Ce helper qualifie API/JSONL ; le test MCP stdio séparé porte la preuve MCP.
+
+Deux scènes et PNJ temporaires QA sont ajoutés sans réactiver un événement source : « QA native — Centre → extérieur », arrivée extérieur14,34 nord/none ; « QA native — extérieur → Centre », arrivéeCentre9,9 sud/mapDefault. Les deux points sont libres avec la hitbox pure12×8, sans eau. Ces personnages de test ne sont pas les portes Essentials.
+
+Vraie fenêtre Studio PID91653, `StudioBootstrap` depuis le snapshot qualifié. Histoire → Voir toutes les scènes → recherche « QA native » → scène Centre → bloc Warp. Le formulaire charge la carte Route10-N et son point réel14,34 ; options Nord et Sans transition visibles. Changement Ouest → Appliquer l'action → Enregistrer : interface Enregistrée et lecture du payload sur disque confirmant west/none. Retour Nord avec les mêmes contrôles, enregistré puis relu sur disque. Capture `captures/warp-form-direction-transition-01.png`. Le tap initial par label de champ de recherche est refusé par Marionette ; le champ est ensuite ciblé par ses bounds réellement observées, aucun tap aveugle ni changement d'application.
+
+Carte → Centre → Enregistrer et tester ouvre le vrai Player à9,9/sud. Touche E réelle : arrivée extérieur14,34/nord. E de nouveau : retourCentre9,9/sud. Troisième E : deuxième arrivée extérieur14,34/nord. Les trois transitions terminent ; les deux sorties `none` n'ont aucun fade dans le log, le retour mapDefault fait170ms out puis170ms in. Captures `captures/warp-player-exterior-north-01.png` et `warp-player-centre-south-01.png`, vues par le root ; direction et carte vérifiées par observations runtime, non par un faux GameState.
+
+Preuves `warp-studio-player-trace-01.json` et `warp-studio-player-transition-log-01.json`. Le titre du playtest conserve le nom de la carte de lancement ; la carte réellement active est celle de l'observation runtime et de la capture. Aucun save/reload cross-process de cette QA n'est revendiqué. La fenêtre est fermée normalement via son extension de fermeture, puis Marionette déconnecté : `warp-studio-player-run-01`, exit0,508.716s, zéro survivant/signal, protégés inchangés. Le message « Failed to foreground app » est conservé ; la fenêtre, son arbre et le Player ont ensuite été effectivement observés et pilotés dans ce processus précis.
+
+Inventaire final `warp-native-after-player-inventory-01.json` : publication1349fichiers inchangée, aucun manquant/extra. Les quatre payloads natifs de la QA restent byte-exacts après restitution Nord ; seuls les trois journaux d'authoring et un blob d'historique enregistrent les éditions UI voulues. Aucune mutation de Route9, médias, anciens événements ou scènes source. Ce résultat qualifie un aller-retour natif contrôlé ; sourceDoorCertified demeure false.
+
+### Parité, critique et limites de livraison
+
+API directe, JSONL, pickers et MCP disposent des mêmes options typées. Le catalog live expose `arrivalFacingValues`, `transitionValues` et leur valeur neutre. Le set sémantique refuse un warp absent de la destination ; les opérations génériques de brouillon `scene.upsert`/`scene.graph.patch` conservent leurs diagnostics de dépendance et ne promettent pas le même refus strict. PMCP-085 et la conformance globale restent PARTIAL, la compilation complète du parcours legacy n'est pas certifiée : son smoke historique rencontre des types/switches hors tranche et n'est pas utilisé comme preuve du gel final à sept fichiers.
+
+| Passe | Verdict borné |
+|---|---|
+| Audit / Architecture — root + ac15_connection_review_fresh | Contrats source/cible et chaîne loader réels identifiés ; porte inconnue toujours entièrement inactive. |
+| Implémentation — root + ac15_connection_review_fresh + ac13_warp_runtime_tests | Contrat, 2D/3D et les deux interfaces raccordés ; aucune conséquence double ni lecteur global provisoire. |
+| Tests — agents + root | RED fonctionnels puis GREEN ciblés ;142 runtime et105 converter finals, incidents et suites voisines rouges séparés. |
+| Build / Validation — root + ac15_connection_review_fresh | Studio debug compilé, QA authorée par API/JSONL et rouverte strictement ; formulaire sauvegardé et trois passages réels Player prouvés ; fenêtres propres fermées. |
+| Critique finale — ac13_warp_final_review |14 fichiers gelés relus, SHA identiques avant/après ; trois P2 fermés et faux completed2D corrigé ; aucun nouveau P1/P2 démontré. |
+
+Gel legacy : `warp-legacy-final-pins-02.json`, patch SHA `9dc8f5bbd8926387f18d5f9dbcaa8ee2a9e8b70e252c4b3ce9b999ecfcb0ab6a`. Gel spatial : `warp-spatial-freeze-04.json`, patch SHA `bfcb918626ee4cbc1f469c6b6db140ff8d0cc0194a582feae61cb7ddc3149159`. La critique est read-only ; ses résultats de tests sont ceux des reçus, pas de nouveaux runs inventés.
+
+Auto-critique : le contrat de passage est utile mais ne suffit pas au programme des portes Essentials. Tone non bloquant, SE naturel, attentes/routes/visibilité et TempSwitch sont encore nécessaires. Aucun soin ni combat source n'est activé. Les tests/runtime, le build debug, le Player visible et une release installée restent des preuves distinctes. Les interfaces legacy complètes, parité globale et jeu complet restent PARTIAL. La suite conserve tous les lots du goal et KAN-03 ; FG-090/093 ne sont pas proposés DONE, FG-092 reste TODO dans la roadmap inchangée.
+
+Commit local ciblé autorisé, aucun push/rebase/amend/branche/worktree. Avant staging : hygiène Markdown, diffcheck, index et26 chemins de tranche à contrôler,64 étrangers en SHA/mode. Le reçu privé après commit indiquera SHA/parent/blobs/index et conservation des étrangers. Notion existant AC-13, unique domaine Post Bêta Monde & narration, TO REVIEW pour l'implémentation et PARTIAL pour le résultat global ; DONE réservé à Yoahn. Aucun nouveau ticket de carte ou bug, aucune gate bêta modifiée.

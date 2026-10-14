@@ -10607,7 +10607,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // Preserve all consequences already accumulated by the Scene before the
       // existing transition pipeline synchronizes the map and player position.
       _applyNarrativeGameState(currentGameState());
-      await _handleWarp(
+      final expectedFacing = command.arrivalFacing?.asDirection ?? _world.player.facing;
+      final transitioned = await _handleWarp(
         TriggeredWarp(
           warpId: command.warpId,
           targetMapId: command.destinationMapId,
@@ -10615,9 +10616,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           triggerMode: arrival.triggerMode,
         ),
         allowMapActivationWork: true,
+        arrivalFacing: command.arrivalFacing,
+        skipVisualTransition: command.transition == SceneWarpTransition.none,
       );
-      final completed = _activeMapId == command.destinationMapId &&
-          _world.player.pos == arrival.pos;
+      final completed = transitioned &&
+          _activeMapId == command.destinationMapId &&
+          _world.player.pos == arrival.pos &&
+          _world.player.facing == expectedFacing;
       if (!completed) return 'blocked';
       final session = _activeNarrativeSceneWorkingSession;
       if (session != null) session.gameState = _gameState;
@@ -13230,10 +13235,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     overlay.text = line;
   }
 
-  Future<void> _handleWarp(
+  Future<bool> _handleWarp(
     TriggeredWarp warp, {
     bool allowMapActivationWork = false,
     bool skipVisualTransition = false,
+    EntityFacing? arrivalFacing,
   }) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld ||
         (!allowMapActivationWork && _blocksOverworldForMapActivationWork)) {
@@ -13242,7 +13248,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'loadActivationWork=$_isLoadActivationWorkInFlight '
         'activationDispatches=${_inFlightMapActivationDispatchIds.join(',')}',
       );
-      return;
+      return false;
     }
     _setFlowPhase(_RuntimeFlowPhase.mapTransition);
     final activation = _createMapActivation(
@@ -13256,6 +13262,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final sourceFacing = _world.player.facing;
     WarpTransitionOverlayComponent? overlay;
     var swapCompleted = false;
+    var transitionCompleted = false;
     try {
       _clearTransientUiState();
       if (!skipVisualTransition) {
@@ -13286,35 +13293,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         await overlay!.fadeOut(duration: transitionSpec.fadeOut);
       }
-      if (!_isWithinMapBounds(newBundle.map, warp.targetPos)) {
-        throw StateError(
-          'warp target out of bounds map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y}) size=${newBundle.map.size.width}x${newBundle.map.size.height}',
-        );
-      }
-      final newWorld = _traceSync(
-        'warp',
-        'worldInitial',
-        () => GameplayWorldState.initial(
-          movingPlatformWorldState: _activeNarrativeSceneWorkingSession
-                  ?.gameState.movingPlatformWorldState ??
-              _gameState.movingPlatformWorldState,
-          map: newBundle.map,
-          playerPos: warp.targetPos,
-          playerFacing: sourceFacing,
-          playerMovementMode: sourceWorld.player.movementMode,
-          project: newBundle.manifest,
-          tileWidth: newBundle.manifest.settings.tileWidth,
-          tileHeight: newBundle.manifest.settings.tileHeight,
-          npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
-          mapEntityPresencePredicate:
-              _mapEntityPresencePredicateFor(newBundle.manifest),
-        ),
-      );
-      if (newWorld.isBlocked(warp.targetPos.x, warp.targetPos.y)) {
-        throw StateError(
-          'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
-        );
-      }
       debugPrint('[warp] loading target map visuals id=${newBundle.map.id}');
       final newImages = await _traceAsync(
         'warp',
@@ -13334,6 +13312,37 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'revalidateBorderBeforeSwap',
         () => prepareBorderRuntimeBundle(newBundle),
       );
+      if (!_isWithinMapBounds(newBundle.map, warp.targetPos)) {
+        throw StateError(
+          'warp target out of bounds map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y}) size=${newBundle.map.size.width}x${newBundle.map.size.height}',
+        );
+      }
+      final newWorld = _traceSync(
+        'warp',
+        'worldInitial',
+        () => GameplayWorldState.initial(
+          movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                  ?.gameState.movingPlatformWorldState ??
+              _gameState.movingPlatformWorldState,
+          map: newBundle.map,
+          playerPos: warp.targetPos,
+          playerFacing: arrivalFacing?.asDirection ?? sourceFacing,
+          playerMovementMode: sourceWorld.player.movementMode,
+          project: newBundle.manifest,
+          tileWidth: newBundle.manifest.settings.tileWidth,
+          tileHeight: newBundle.manifest.settings.tileHeight,
+          npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
+          mapEntityPresencePredicate:
+              _mapEntityPresencePredicateFor(newBundle.manifest),
+        ),
+      );
+      if (newWorld.worldStaticObstaclesCollidePlayerCollisionRect() ||
+          (newWorld.isWaterCell(warp.targetPos.x, warp.targetPos.y) &&
+              newWorld.player.movementMode != MovementMode.surf)) {
+        throw StateError(
+          'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
+        );
+      }
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
         'warp',
@@ -13389,6 +13398,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       warpStopwatch.stop();
       debugPrint('[perf][warp] total=${warpStopwatch.elapsedMilliseconds}ms');
       debugPrint('[warp] transition completed');
+      transitionCompleted = true;
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
       _showNotification('La téléportation a échoué.');
@@ -13464,6 +13474,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _player.syncState(_world.player, snapToGrid: true);
       }
     }
+    return transitionCompleted;
   }
 
   _WarpTransitionSpec _resolveWarpTransitionSpec({

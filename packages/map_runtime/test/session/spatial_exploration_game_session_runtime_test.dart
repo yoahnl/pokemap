@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:image/image.dart' as img;
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -619,6 +620,588 @@ void main() {
     expect(session.movement.x, 2.5);
     expect(loads, 1);
     expect(session.frames(0).keys, ['hero']);
+  });
+
+  for (final facing in EntityFacing.values) {
+    test(
+      'native spatial scene warp materializes ${facing.name} facing',
+      () async {
+        bundle = await spatialWarpBundle(
+          root,
+          bundle,
+          arrivalFacing: facing,
+          transition: SceneWarpTransition.none,
+        );
+        await runtime.dispose();
+        runtime = newSpatialWarpRuntime(
+          bundle,
+          root,
+          facing: facing == EntityFacing.east
+              ? EntityFacing.west
+              : EntityFacing.east,
+        );
+
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+
+        expectSpatialWarpArrival(runtime, facing);
+        expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+        expect(
+          runtime
+              .gameStateSnapshot
+              .narrativeEventProgress
+              .consumedNarrativeEventIds,
+          {'evt_019abcde-0000-7000-8000-000000000001'},
+        );
+      },
+    );
+  }
+
+  test('native spatial scene warp preserves omitted arrival facing', () async {
+    bundle = await spatialWarpBundle(root, bundle);
+    await runtime.dispose();
+    runtime = newSpatialWarpRuntime(bundle, root, facing: EntityFacing.west);
+
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+
+    expectSpatialWarpArrival(runtime, EntityFacing.west);
+  });
+
+  for (final transition in SceneWarpTransition.values) {
+    test(
+      'native spatial ${transition.name} warp uses its instant transfer',
+      () async {
+        bundle = await spatialWarpBundle(
+          root,
+          bundle,
+          transition: transition,
+          arrivalFacing: EntityFacing.north,
+        );
+        final phases = <bool>[];
+        await runtime.load((_) {});
+        final session = runtime.session!;
+        session.transitioning.addListener(
+          () => phases.add(session.transitioning.value),
+        );
+
+        await runtime.gameplayReady;
+
+        expectSpatialWarpArrival(runtime, EntityFacing.north);
+        expect(phases, [true, false]);
+        expect(session.storyActive.value, isFalse);
+      },
+    );
+  }
+
+  test(
+    'native spatial warp is physical before its completed dialogue begins',
+    () async {
+      bundle = await spatialWarpBundle(
+        root,
+        bundle,
+        arrivalFacing: EntityFacing.west,
+        dialogue: true,
+      );
+      await runtime.load((_) {});
+      final session = runtime.session!;
+      await waitForValue(
+        runtime.dialoguePresentationListenable,
+        (value) => value != null,
+      );
+
+      expect(session.bundle.map.id, 'other');
+      expect(session.movement.x, 2.5);
+      expect(session.movement.z, 3.5);
+      expect(session.movement.facing, EntityFacing.west);
+      expect(runtime.gameStateSnapshot.currentMapId, 'field');
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+      expect(
+        runtime
+            .gameStateSnapshot
+            .narrativeEventProgress
+            .consumedNarrativeEventIds,
+        isEmpty,
+      );
+      await expectLater(runtime.captureCheckpoint(), throwsStateError);
+      session.confirmDialogue();
+      session.confirmDialogue();
+      await runtime.gameplayReady;
+
+      expectSpatialWarpArrival(runtime, EntityFacing.west);
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    },
+  );
+
+  test(
+    'native spatial target activation follows the parent commit once',
+    () async {
+      bundle = await spatialWarpBundle(
+        root,
+        bundle,
+        arrivalFacing: EntityFacing.north,
+        dialogue: true,
+        arrivalEvent: true,
+      );
+      await runtime.load((_) {});
+      final session = runtime.session!;
+      await waitForValue(
+        runtime.dialoguePresentationListenable,
+        (value) => value != null,
+      );
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+      expect(
+        runtime
+            .gameStateSnapshot
+            .narrativeEventProgress
+            .consumedNarrativeEventIds,
+        isEmpty,
+      );
+      session.confirmDialogue();
+      session.confirmDialogue();
+
+      await runtime.gameplayReady;
+
+      expectSpatialWarpArrival(runtime, EntityFacing.north);
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 30);
+      expect(
+        runtime
+            .gameStateSnapshot
+            .narrativeEventProgress
+            .consumedNarrativeEventIds,
+        {
+          'evt_019abcde-0000-7000-8000-000000000001',
+          'evt_019abcde-0000-7000-8000-000000000002',
+        },
+      );
+      expect(session.mapRevision.value, 1);
+      for (var i = 0; i < 5; i++) {
+        session.frame(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 30);
+    },
+  );
+
+  test(
+    'native spatial blocked warp rolls back rewards and event consumption',
+    () async {
+      bundle = await spatialWarpBundle(
+        root,
+        bundle,
+        arrivalFacing: EntityFacing.north,
+        blocked: true,
+        rewardBefore: true,
+        arrivalEvent: true,
+      );
+      await runtime.load((_) {});
+      final session = runtime.session!;
+      final before = runtime.gameStateSnapshot;
+      final movement = session.movement;
+
+      await runtime.gameplayReady;
+
+      expect(session.bundle.map.id, 'field');
+      expect(session.movement, same(movement));
+      expect(session.movement.x, 4);
+      expect(session.movement.z, 4);
+      expect(session.mapRevision.value, 0);
+      expect(session.transitioning.value, isFalse);
+      expect(session.interactionError.value, isNotNull);
+      expect(runtime.gameStateSnapshot, before);
+      final checkpoint = (await runtime.captureCheckpoint())!;
+      expect(
+        gameStateFromStrictSaveJson(
+          Map<String, dynamic>.from(checkpoint.state),
+        ),
+        before,
+      );
+    },
+  );
+
+  test(
+    'cancelled spatial scene restores a materialized warp without activation',
+    () async {
+      bundle = await spatialWarpBundle(
+        root,
+        bundle,
+        arrivalFacing: EntityFacing.west,
+        dialogue: true,
+        rewardBefore: true,
+        arrivalEvent: true,
+      );
+      await runtime.load((_) {});
+      final session = runtime.session!;
+      final before = runtime.gameStateSnapshot;
+      await waitForValue(
+        runtime.dialoguePresentationListenable,
+        (value) => value != null,
+      );
+
+      session.closeDialogue();
+      await runtime.gameplayReady;
+
+      expect(session.bundle.map.id, 'field');
+      expect(session.movement.x, 4);
+      expect(session.movement.z, 4);
+      expect(session.movement.facing, before.playerFacing);
+      expect(runtime.gameStateSnapshot, before);
+      expect(
+        runtime
+            .gameStateSnapshot
+            .narrativeEventProgress
+            .consumedNarrativeEventIds,
+        isEmpty,
+      );
+      expect(session.transitioning.value, isFalse);
+      expect(
+        runtime.inputAuthority.value.context,
+        RuntimeInputContext.overworld,
+      );
+    },
+  );
+
+  test(
+    'stop during spatial warp dialogue retains the committed source state',
+    () async {
+      bundle = await spatialWarpBundle(
+        root,
+        bundle,
+        arrivalFacing: EntityFacing.west,
+        dialogue: true,
+        rewardBefore: true,
+        arrivalEvent: true,
+      );
+      await runtime.load((_) {});
+      final before = runtime.gameStateSnapshot;
+      await waitForValue(
+        runtime.dialoguePresentationListenable,
+        (value) => value != null,
+      );
+
+      await runtime.stop(GameSessionExitReason.hub);
+      await runtime.gameplayReady;
+
+      expect(runtime.session!.bundle.map.id, 'field');
+      expect(runtime.session!.movement.x, 4);
+      expect(runtime.session!.movement.z, 4);
+      expect(runtime.gameStateSnapshot, before);
+      expect(runtime.inputAuthority.value.context, RuntimeInputContext.blocked);
+    },
+  );
+
+  for (final interruption in ['pause', 'external lock']) {
+    test('cancelled spatial warp compensates under $interruption', () async {
+      bundle = await spatialWarpBundle(root, bundle,
+          arrivalFacing: EntityFacing.west,
+          dialogue: true,
+          rewardBefore: true,
+          arrivalEvent: true);
+      await runtime.load((_) {});
+      final session = runtime.session!;
+      final before = runtime.gameStateSnapshot;
+      await waitForValue(
+          runtime.dialoguePresentationListenable, (value) => value != null);
+      if (interruption == 'pause') {
+        await runtime.pause();
+      } else {
+        await runtime.setInputLock(
+            RuntimeExternalInputLock.lifecycle, locked: true);
+      }
+
+      session.closeDialogue();
+      await runtime.gameplayReady;
+
+      expect(session.bundle.map.id, 'field');
+      expect(session.movement.x, 4);
+      expect(session.movement.z, 4);
+      expect(runtime.gameStateSnapshot, before);
+      expect(runtime.inputAuthority.value.context, RuntimeInputContext.blocked);
+      await expectLater(
+          session.restoreGameState(before.copyWith(
+              currentMapId: 'other',
+              playerPosition: const GridPos(x: 2, y: 3),
+              playerSpatialPosition: PlayerSpatialPosition(x: 2.5, z: 3.5))),
+          throwsStateError);
+      expect(session.bundle.map.id, 'field');
+      if (interruption == 'pause') {
+        await runtime.resume();
+      } else {
+        await runtime.setInputLock(
+            RuntimeExternalInputLock.lifecycle, locked: false);
+      }
+      expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+    });
+  }
+
+  test('cancelled spatial warp within one map restores its committed pose',
+      () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        arrivalMapId: 'field',
+        arrivalFacing: EntityFacing.west,
+        dialogue: true,
+        rewardBefore: true);
+    await runtime.load((_) {});
+    final session = runtime.session!;
+    final before = runtime.gameStateSnapshot;
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    expect(session.movement.x, 2.5);
+    expect(session.movement.z, 3.5);
+
+    session.closeDialogue();
+    await runtime.gameplayReady;
+
+    expect(session.bundle.map.id, 'field');
+    expect(session.movement.x, 4);
+    expect(session.movement.z, 4);
+    expect(session.movement.facing, before.playerFacing);
+    expect(runtime.gameStateSnapshot, before);
+    expect(runtime.gameStateSnapshot.narrativeEventProgress
+        .consumedNarrativeEventIds, isEmpty);
+  });
+
+  test('dispose compensates the spatial scene warp before unmounting', () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        arrivalFacing: EntityFacing.west,
+        dialogue: true,
+        rewardBefore: true,
+        arrivalEvent: true);
+    await runtime.dispose();
+    String? mapAtUnmount;
+    PlayerSpatialPosition? positionAtUnmount;
+    runtime = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async {},
+        unmountSession: (value) async {
+          mapAtUnmount = value.session!.bundle.map.id;
+          positionAtUnmount = value.session!.movement.spatialPosition;
+        });
+    await runtime.load((_) {});
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+
+    await runtime.dispose();
+    await runtime.gameplayReady;
+
+    expect(mapAtUnmount, 'field');
+    expect(positionAtUnmount, PlayerSpatialPosition(x: 4, z: 4));
+    expect(runtime.session, isNull);
+  });
+
+  test(
+    'fresh spatial warp checkpoint restores pose and consumed events',
+    () async {
+      bundle = await spatialWarpBundle(
+        root,
+        bundle,
+        arrivalFacing: EntityFacing.north,
+        transition: SceneWarpTransition.none,
+        arrivalEvent: true,
+      );
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final checkpoint = (await runtime.captureCheckpoint())!;
+      final saved = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state),
+      );
+      expect(saved.currentMapId, 'other');
+      expect(saved.playerFacing, EntityFacing.north);
+      expect(
+        saved.playerSpatialPosition,
+        PlayerSpatialPosition(x: 2.5, z: 3.5),
+      );
+      expect(saved.trainerProfile.money, 30);
+      final target = await loadRuntimeMapBundle(
+        projectFilePath: '${root.path}/project.json',
+        mapId: 'other',
+        preloadedManifest: bundle.manifest,
+      );
+      final continued = restoredRuntime(target, root, saved);
+      addTearDown(continued.dispose);
+
+      await continued.load((_) {});
+      await continued.gameplayReady;
+
+      expectSpatialWarpArrival(continued, EntityFacing.north);
+      expect(continued.gameStateSnapshot.trainerProfile.money, 30);
+      expect(
+        continued
+            .gameStateSnapshot
+            .narrativeEventProgress
+            .consumedNarrativeEventIds,
+        saved.narrativeEventProgress.consumedNarrativeEventIds,
+      );
+    },
+  );
+
+  test('spatial pre-warp fact makes an arrival NPC block before commit',
+      () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        hiddenWhenFactSet: false, rewardBefore: true);
+    await runtime.load((_) {});
+    final before = runtime.gameStateSnapshot;
+
+    await runtime.gameplayReady;
+
+    expect(runtime.session!.bundle.map.id, 'field');
+    expect(runtime.session!.movement.x, 4);
+    expect(runtime.session!.movement.z, 4);
+    expect(runtime.gameStateSnapshot, before);
+    expect(runtime.gameStateSnapshot.narrativeFactRuntimeState.overridesByFactId,
+        isEmpty);
+    expect(runtime.gameStateSnapshot.narrativeEventProgress
+        .consumedNarrativeEventIds, isEmpty);
+    final checkpoint = (await runtime.captureCheckpoint())!;
+    expect(
+        gameStateFromStrictSaveJson(Map<String, dynamic>.from(checkpoint.state)),
+        before);
+  });
+
+  test('spatial pre-warp fact hides an arrival NPC for physical validation',
+      () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        hiddenWhenFactSet: true,
+        rewardBefore: true,
+        arrivalFacing: EntityFacing.west);
+    await runtime.load((_) {});
+
+    await runtime.gameplayReady;
+
+    expectSpatialWarpArrival(runtime, EntityFacing.west);
+    expect(runtime.gameStateSnapshot.narrativeFactRuntimeState
+        .overridesByFactId['arrival-presence'], isTrue);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    final checkpoint = (await runtime.captureCheckpoint())!;
+    final saved = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state));
+    expect(saved.playerSpatialPosition, PlayerSpatialPosition(x: 2.5, z: 3.5));
+    expect(saved.narrativeFactRuntimeState
+        .overridesByFactId['arrival-presence'], isTrue);
+  });
+
+  test('spatial readonly projection remains physical through pending dialogue',
+      () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        hiddenWhenFactSet: true,
+        rewardBefore: true,
+        dialogue: true,
+        arrivalFacing: EntityFacing.west);
+    await runtime.load((_) {});
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    final session = runtime.session!;
+    expect(session.bundle.map.id, 'other');
+    expect(session.movement.isPositionTraversable, isTrue);
+    expect(runtime.gameStateSnapshot.currentMapId, 'field');
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    expect(runtime.gameStateSnapshot.narrativeFactRuntimeState.overridesByFactId,
+        isEmpty);
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+
+    session.confirmDialogue();
+    session.confirmDialogue();
+    await runtime.gameplayReady;
+
+    expectSpatialWarpArrival(runtime, EntityFacing.west);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+  });
+
+  test('spatial checkpoint rejects a pose blocked by a post-warp world rule',
+      () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        hiddenWhenFactSet: false, factAfterWarp: true);
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(runtime.session!.bundle.map.id, 'other');
+    expect(runtime.session!.movement.isPositionTraversable, isFalse);
+
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+  });
+
+  test('dispose restores the committed spatial open door before clearing story',
+      () async {
+    bundle = await spatialWarpBundle(root, animatedDoorBundle(bundle),
+        dialogue: true);
+    final open = descriptor().initialGameState!.copyWith(
+        playerPosition: const GridPos(x: 4, y: 5),
+        playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 5),
+        spatialWorldState: const SpatialWorldState.empty().setModelState(
+            'field', 'door', SpatialModelRuntimeState(
+                modelId: 'door-model',
+                animationIndex: 0,
+                normalizedTime: 1,
+                blocksMovement: false)));
+    await runtime.dispose();
+    var unmounted = 0;
+    String? mapAtUnmount;
+    bool? traversableAtUnmount;
+    runtime = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(initialState: open),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async {},
+        unmountSession: (value) async {
+          unmounted++;
+          mapAtUnmount = value.session!.bundle.map.id;
+          traversableAtUnmount = value.session!.movement.isPositionTraversable;
+        });
+    await runtime.load((_) {});
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    expect(runtime.session!.bundle.map.id, 'other');
+
+    await runtime.dispose();
+    await runtime.gameplayReady;
+
+    expect(unmounted, 1);
+    expect(mapAtUnmount, 'field');
+    expect(traversableAtUnmount, isTrue);
+    expect(runtime.session, isNull);
+  });
+
+  test('dispose unmounts the spatial host even when compensation fails',
+      () async {
+    bundle = await spatialWarpBundle(root, bundle,
+        arrivalMapId: 'field', dialogue: true);
+    await runtime.dispose();
+    var unmounted = 0;
+    runtime = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async {},
+        unmountSession: (_) async => unmounted++);
+    await runtime.load((_) {});
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    final session = runtime.session!;
+    expect(session.movement.spatialPosition, PlayerSpatialPosition(x: 2.5, z: 3.5));
+    session.bundle = session.bundle.copyWith(
+        map: session.bundle.map.copyWith(layers: [
+      CollisionLayer(id: 'rollback-wall', name: 'Rollback wall',
+          collisions: List<bool>.filled(64, false)..[36] = true)
+    ]));
+
+    await expectLater(runtime.dispose(), throwsStateError);
+    await runtime.gameplayReady;
+
+    expect(unmounted, 1);
+    expect(runtime.session, isNull);
   });
 
   test('blocked arrival preserves the source map and restores controls',
@@ -1510,10 +2093,11 @@ SaveEnvelope spatialSave(GameState state, {String profileId = 'profile'}) =>
         gameState: state);
 
 NarrativeEventRecord spatialEvent(
-        NarrativeEventSourceRef source, String sceneId) =>
+        NarrativeEventSourceRef source, String sceneId,
+        {String id = 'evt_019abcde-0000-7000-8000-000000000001'}) =>
     NarrativeEventRecord.configuredStructurallyUnchecked(
         NarrativeEventDefinition(
-            id: 'evt_019abcde-0000-7000-8000-000000000001',
+            id: id,
             name: sceneId,
             source: source,
             conditions: const [],
@@ -1523,6 +2107,239 @@ NarrativeEventRecord spatialEvent(
             order: 0,
             resetPolicy: const NarrativeEventResetPolicy.never()),
         enabled: true);
+
+SpatialExplorationGameSessionRuntime newSpatialWarpRuntime(
+  RuntimeMapBundle bundle,
+  Directory root, {
+  required EntityFacing facing,
+}) => SpatialExplorationGameSessionRuntime(
+  descriptor: descriptor(
+    initialState: descriptor().initialGameState!.copyWith(playerFacing: facing),
+  ),
+  projectFilePath: () async => '${root.path}/project.json',
+  preloadedInitialMap: ({
+    required projectFilePath,
+    required descriptor,
+    required initialSave,
+  }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+  mountSession: (_) async {},
+  unmountSession: (_) async {},
+);
+
+void expectSpatialWarpArrival(
+  SpatialExplorationGameSessionRuntime runtime,
+  EntityFacing facing,
+) {
+  final session = runtime.session!;
+  expect(session.bundle.map.id, 'other');
+  expect(session.movement.x, 2.5);
+  expect(session.movement.z, 3.5);
+  expect(session.movement.facing, facing);
+  expect(session.movement.isPositionTraversable, isTrue);
+  expect(session.transitioning.value, isFalse);
+  expect(session.interactionError.value, isNull);
+  expect(runtime.gameStateSnapshot.currentMapId, 'other');
+  expect(runtime.gameStateSnapshot.playerPosition, const GridPos(x: 2, y: 3));
+  expect(runtime.gameStateSnapshot.playerFacing, facing);
+  expect(
+    runtime.gameStateSnapshot.playerSpatialPosition,
+    PlayerSpatialPosition(x: 2.5, z: 3.5),
+  );
+  expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+}
+
+Future<RuntimeMapBundle> spatialWarpBundle(
+  Directory root,
+  RuntimeMapBundle bundle, {
+  EntityFacing? arrivalFacing,
+  String arrivalMapId = 'other',
+  SceneWarpTransition transition = SceneWarpTransition.mapDefault,
+  bool blocked = false,
+  bool dialogue = false,
+  bool rewardBefore = false,
+  bool arrivalEvent = false,
+  bool? hiddenWhenFactSet,
+  bool factAfterWarp = false,
+}) async {
+  final reward = spatialScene('warp-parent', [
+    SceneConsequence.giveMoney(amount: 25),
+  ], dialogue: dialogue);
+  final nodes = [
+    reward.graph.nodes.first,
+    if (rewardBefore) reward.graph.nodes[1],
+    if (hiddenWhenFactSet != null && !factAfterWarp)
+      SceneNode(
+          id: 'presence',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(SceneConsequence.setFact(
+              factId: 'arrival-presence', value: true))),
+    SceneNode(
+      id: 'warp',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload.interactive(
+        SceneInteractiveCommand.warp(
+          destinationMapId: arrivalMapId,
+          warpId: 'arrival',
+          arrivalFacing: arrivalFacing,
+          transition: transition,
+        ),
+      ),
+    ),
+    if (hiddenWhenFactSet != null && factAfterWarp)
+      SceneNode(
+          id: 'presence',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(SceneConsequence.setFact(
+              factId: 'arrival-presence', value: true))),
+    if (dialogue) reward.graph.nodes[2],
+    if (!rewardBefore) reward.graph.nodes[1],
+    reward.graph.nodes.last,
+  ];
+  final parent = SceneAsset(
+    id: reward.id,
+    name: reward.name,
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: nodes,
+      edges: [
+        for (var index = 0; index < nodes.length - 1; index++)
+          SceneEdge(
+            id: 'edge_$index',
+            fromNodeId: nodes[index].id,
+            fromPortId: 'completed',
+            toNodeId: nodes[index + 1].id,
+            kind: nodes[index].kind == SceneNodeKind.action
+                ? SceneEdgeKind.actionCompleted
+                : SceneEdgeKind.defaultFlow,
+          ),
+      ],
+    ),
+  );
+  const arrival = MapWarp(
+      id: 'arrival',
+      pos: GridPos(x: 2, y: 3),
+      targetMapId: 'field',
+      targetPos: GridPos(x: 4, y: 4),
+      triggerMode: MapWarpTriggerMode.onBump);
+  final source = bundle.map.copyWith(
+      entities: [],
+      warps: arrivalMapId == 'field' ? [arrival] : bundle.map.warps);
+  final target = source.copyWith(
+    id: 'other',
+    name: 'Other',
+    entities: [
+      if (hiddenWhenFactSet != null)
+        const MapEntity(
+            id: 'arrival-npc',
+            kind: MapEntityKind.npc,
+            pos: GridPos(x: 2, y: 3),
+            blocksMovement: true,
+            npc: MapEntityNpcData(displayName: 'Arrival', characterId: 'hero'))
+    ],
+    layers: [
+      if (blocked)
+        CollisionLayer(
+          id: 'solid',
+          name: 'Solid',
+          collisions: List<bool>.filled(64, false)..[26] = true,
+        ),
+    ],
+    warps: const [
+      MapWarp(
+        id: 'arrival',
+        pos: GridPos(x: 2, y: 3),
+        targetMapId: 'field',
+        targetPos: GridPos(x: 4, y: 4),
+        triggerMode: MapWarpTriggerMode.onBump,
+      ),
+    ],
+  );
+  final manifest = bundle.manifest.copyWith(
+    facts: [
+      ...bundle.manifest.facts,
+      if (hiddenWhenFactSet != null)
+        NarrativeFactDefinition(id: 'arrival-presence', label: 'Arrival presence')
+    ],
+    worldRules: [
+      ...bundle.manifest.worldRules,
+      if (hiddenWhenFactSet != null)
+        WorldRuleDefinition(
+            id: 'arrival-npc-presence',
+            label: 'Arrival NPC presence',
+            source: WorldRuleSource(
+                kind: WorldRuleSourceKind.fact,
+                sourceId: 'arrival-presence',
+                predicate: hiddenWhenFactSet
+                    ? WorldRuleSourcePredicate.isTrue
+                    : WorldRuleSourcePredicate.isFalse),
+            target: const WorldRuleTarget(
+                kind: WorldRuleTargetKind.mapEntity,
+                mapId: 'other',
+                entityId: 'arrival-npc'),
+            effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden))
+    ],
+      tilesets: const [ProjectTilesetEntry(id: 'unused', name: 'Unused', relativePath: 'hero.png')],
+    maps: const [
+      ProjectMapEntry(
+        id: 'field',
+        name: 'Field',
+        relativePath: 'maps/field.json',
+      ),
+      ProjectMapEntry(
+        id: 'other',
+        name: 'Other',
+        relativePath: 'maps/other.json',
+      ),
+    ],
+    scenes: [
+      parent,
+      if (arrivalEvent)
+        spatialScene('warp-arrival', [SceneConsequence.giveMoney(amount: 5)]),
+    ],
+    eventRegistry: NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.v2Only,
+      records: [
+        spatialEvent(NarrativeEventSourceRef.mapEnter('field'), parent.id),
+        if (arrivalEvent)
+          spatialEvent(
+            NarrativeEventSourceRef.mapEnter('other'),
+            'warp-arrival',
+            id: 'evt_019abcde-0000-7000-8000-000000000002',
+          ),
+      ],
+      legacyClaims: const [],
+    ),
+  );
+  await Directory('${root.path}/maps').create();
+  for (final map in [source, target]) {
+    await File('${root.path}/maps/${map.id}.json')
+        .writeAsString(jsonEncode(map.toJson()));
+  }
+  await File('${root.path}/project.json')
+      .writeAsString(jsonEncode(manifest.toJson()));
+  final png = await File('${root.path}/hero.png').readAsBytes();
+  final artifact = ContentArtifactRef.fromBytes(png, mediaType: 'image/png');
+  final blob = File('${root.path}/${assetBlobStorageKey(artifact)}');
+  await blob.parent.create(recursive: true);
+  await blob.writeAsBytes(png);
+  final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+  await catalogFile.parent.create(recursive: true);
+  await catalogFile.writeAsString(
+    jsonEncode(
+      AssetCatalog(
+        records: [
+          AssetRecord(
+            id: 'hero-sheet',
+            logicalPath: 'hero.png',
+            artifact: artifact,
+          ),
+        ],
+      ).toJson(),
+    ),
+  );
+  return bundle.copyWith(map: source, manifest: manifest);
+}
 
 RuntimeMapBundle npcCinematicBundle(RuntimeMapBundle bundle) {
   final asset = CinematicAsset(

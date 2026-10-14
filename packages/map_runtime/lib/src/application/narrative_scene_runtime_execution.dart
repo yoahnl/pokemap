@@ -16,6 +16,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   required GameState Function() currentGameState,
   required SceneRuntimeHostCallbacks callbacks,
   SceneConsequenceRuntimeWriter? consequenceWriter,
+  void Function(GameState Function()? projector)? onSceneStateProjection,
   List<NarrativeOutcomeRef> hostedBattleOutcomes = const [],
   int maxSteps = 100,
 }) async {
@@ -78,210 +79,226 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   bool? uniqueBattleConsumed;
   var blockedUniqueBattle = false;
   final consumedUniqueTableIds = <String>{};
-  final execution = await SceneRuntimeExecutor(
-    callbacks: SceneRuntimeHostCallbacks(
-      evaluateCondition: (intent) {
-        final source = intent.conditionSource;
-        if (pendingConsequences.isEmpty ||
-            source == null ||
-            !const {
-              SceneConditionSourceKind.inventoryItem,
-              SceneConditionSourceKind.badge,
-              SceneConditionSourceKind.fact,
-            }.contains(source.sourceKind)) {
-          return callbacks.evaluateCondition(intent);
-        }
-        final projected = writer.applyAll(
-          currentGameState(),
-          pendingConsequences,
-          pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-          railProgressionOperationIds: pendingRailProgressionOperationIds,
-        );
-        if (!projected.success) {
-          throw StateError(
-            projected.message ?? 'Scene condition projection failed.',
+  try {
+    onSceneStateProjection?.call(() {
+      final projected = writer.applyAll(
+        currentGameState(),
+        pendingConsequences,
+        pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+        railProgressionOperationIds: pendingRailProgressionOperationIds,
+      );
+      if (!projected.success) {
+        throw StateError(projected.message ?? 'Scene state projection failed.');
+      }
+      return projected.gameState;
+    });
+    final execution = await SceneRuntimeExecutor(
+      callbacks: SceneRuntimeHostCallbacks(
+        evaluateCondition: (intent) {
+          final source = intent.conditionSource;
+          if (pendingConsequences.isEmpty ||
+              source == null ||
+              !const {
+                SceneConditionSourceKind.inventoryItem,
+                SceneConditionSourceKind.badge,
+                SceneConditionSourceKind.fact,
+              }.contains(source.sourceKind)) {
+            return callbacks.evaluateCondition(intent);
+          }
+          final projected = writer.applyAll(
+            currentGameState(),
+            pendingConsequences,
+            pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+            railProgressionOperationIds: pendingRailProgressionOperationIds,
           );
-        }
-        final matched = switch (source.sourceKind) {
-          SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
-              source: source,
-              gameState: projected.gameState,
-            ),
-          SceneConditionSourceKind.fact => evaluateCanonicalNarrativeFactSceneCondition(
-              source: source,
-              gameState: projected.gameState,
-              resolver: factResolver,
-            ),
-          _ => evaluateSceneInventoryCondition(
-              source: source,
-              gameState: projected.gameState,
-            ),
-        };
-        return matched ? 'true' : 'false';
-      },
-      showDialogue: callbacks.showDialogue,
-      startBattle: (intent) async {
-        final uniqueTable = project.encounterTables.any(
-          (table) =>
-              table.id == intent.battleTemplateId &&
-              table.tags.contains('studio:unique'),
-        );
-        if (intent.battleKind == 'wild' &&
-            uniqueTable &&
-            (consumedUniqueTableIds.contains(intent.battleTemplateId) ||
-                currentGameState().storyFlags.activeFlags.contains(
-                      uniqueEncounterConsumedFlag(intent.battleTemplateId!),
-                    ))) {
-          blockedUniqueBattle = true;
-          throw StateError('Cette rencontre unique a déjà eu lieu.');
-        }
-        final outcome = await callbacks.startBattle(intent);
-        if (intent.battleKind == 'wild' && uniqueTable) {
-          final consumed = outcome == 'victory' || outcome == 'captured';
-          uniqueBattleConsumed = (uniqueBattleConsumed ?? false) || consumed;
-          if (consumed) consumedUniqueTableIds.add(intent.battleTemplateId!);
-        }
-        return outcome;
-      },
-      playCinematic: callbacks.playCinematic,
-      playPresentationCinematic: callbacks.playPresentationCinematic,
-      executeInteractiveCommand: (intent) async {
-            final command = intent.interactiveCommand;
-            if (command is! SceneGiveItemInteractiveCommand) {
-              final callback = callbacks.executeInteractiveCommand;
-              if (callback == null) {
+          if (!projected.success) {
+            throw StateError(
+              projected.message ?? 'Scene condition projection failed.',
+            );
+          }
+          final matched = switch (source.sourceKind) {
+            SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
+                source: source,
+                gameState: projected.gameState,
+              ),
+            SceneConditionSourceKind.fact => evaluateCanonicalNarrativeFactSceneCondition(
+                source: source,
+                gameState: projected.gameState,
+                resolver: factResolver,
+              ),
+            _ => evaluateSceneInventoryCondition(
+                source: source,
+                gameState: projected.gameState,
+              ),
+          };
+          return matched ? 'true' : 'false';
+        },
+        showDialogue: callbacks.showDialogue,
+        startBattle: (intent) async {
+          final uniqueTable = project.encounterTables.any(
+            (table) =>
+                table.id == intent.battleTemplateId &&
+                table.tags.contains('studio:unique'),
+          );
+          if (intent.battleKind == 'wild' &&
+              uniqueTable &&
+              (consumedUniqueTableIds.contains(intent.battleTemplateId) ||
+                  currentGameState().storyFlags.activeFlags.contains(
+                        uniqueEncounterConsumedFlag(intent.battleTemplateId!),
+                      ))) {
+            blockedUniqueBattle = true;
+            throw StateError('Cette rencontre unique a déjà eu lieu.');
+          }
+          final outcome = await callbacks.startBattle(intent);
+          if (intent.battleKind == 'wild' && uniqueTable) {
+            final consumed = outcome == 'victory' || outcome == 'captured';
+            uniqueBattleConsumed = (uniqueBattleConsumed ?? false) || consumed;
+            if (consumed) consumedUniqueTableIds.add(intent.battleTemplateId!);
+          }
+          return outcome;
+        },
+        playCinematic: callbacks.playCinematic,
+        playPresentationCinematic: callbacks.playPresentationCinematic,
+        executeInteractiveCommand: (intent) async {
+              final command = intent.interactiveCommand;
+              if (command is! SceneGiveItemInteractiveCommand) {
+                final callback = callbacks.executeInteractiveCommand;
+                if (callback == null) {
+                  throw StateError(
+                    'No interactive Scene command executor is installed.',
+                  );
+                }
+                return callback(intent);
+              }
+              final projected = writer.applyAll(
+                currentGameState(),
+                pendingConsequences,
+                pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+                railProgressionOperationIds: pendingRailProgressionOperationIds,
+              );
+              if (!projected.success) {
                 throw StateError(
-                  'No interactive Scene command executor is installed.',
+                  projected.message ?? 'Item gift projection failed.',
                 );
               }
-              return callback(intent);
-            }
-            final projected = writer.applyAll(
-              currentGameState(),
-              pendingConsequences,
-              pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-              railProgressionOperationIds: pendingRailProgressionOperationIds,
-            );
-            if (!projected.success) {
-              throw StateError(
-                projected.message ?? 'Item gift projection failed.',
+              final result = executeSceneItemGift(
+                command: command,
+                gameState: projected.gameState,
               );
-            }
-            final result = executeSceneItemGift(
-              command: command,
-              gameState: projected.gameState,
-            );
-            if (result.outcome == SceneItemGiftOutcome.received) {
-              pendingConsequences.add(
-                SceneConsequence.giveItem(
-                  itemId: command.itemId,
-                  quantity: command.quantity,
-                ),
-              );
-              pendingPokemonGrantOperationIds.add(null);
-              pendingRailProgressionOperationIds.add(null);
-            }
-            return result.outcome.name;
-          },
-      requestStructuredInteraction: callbacks.requestStructuredInteraction,
-    ).toExecutionCallbacks(
-      applyConsequence: (consequence) {
-        throw UnsupportedError('Scene node id is required for consequences.');
-      },
-      applyConsequenceWithNodeId: (nodeId, consequence) {
-        final grantOperationId = scenePokemonGrantOperationId(
-          sceneId: request.sceneId,
-          executionId: request.executionId,
-          nodeId: nodeId,
-          consequence: consequence,
-        );
-        final railProgressionOperationId = sceneRailProgressionOperationId(
-          sceneId: request.sceneId,
-          executionId: request.executionId,
-          nodeId: nodeId,
-          consequence: consequence,
-        );
-        final validation = writer.applyAll(
-          currentGameState(),
-          [...pendingConsequences, consequence],
-          pokemonGrantOperationIds: [
-            ...pendingPokemonGrantOperationIds,
-            grantOperationId,
-          ],
-          railProgressionOperationIds: [
-            ...pendingRailProgressionOperationIds,
-            railProgressionOperationId,
-          ],
-        );
-        if (!validation.success) {
-          throw StateError(
-            validation.message ??
-                'Scene consequence ${consequence.kind.name} was rejected.',
+              if (result.outcome == SceneItemGiftOutcome.received) {
+                pendingConsequences.add(
+                  SceneConsequence.giveItem(
+                    itemId: command.itemId,
+                    quantity: command.quantity,
+                  ),
+                );
+                pendingPokemonGrantOperationIds.add(null);
+                pendingRailProgressionOperationIds.add(null);
+              }
+              return result.outcome.name;
+            },
+        requestStructuredInteraction: callbacks.requestStructuredInteraction,
+      ).toExecutionCallbacks(
+        applyConsequence: (consequence) {
+          throw UnsupportedError('Scene node id is required for consequences.');
+        },
+        applyConsequenceWithNodeId: (nodeId, consequence) {
+          final grantOperationId = scenePokemonGrantOperationId(
+            sceneId: request.sceneId,
+            executionId: request.executionId,
+            nodeId: nodeId,
+            consequence: consequence,
           );
-        }
-        pendingConsequences.add(consequence);
-        pendingPokemonGrantOperationIds.add(grantOperationId);
-        pendingRailProgressionOperationIds.add(railProgressionOperationId);
-        return 'completed';
-      },
-    ),
-    maxSteps: maxSteps,
-  ).execute(planResult.plan!);
-  if (execution.status != SceneRuntimeExecutionStatus.completed) {
-    if (blockedUniqueBattle) {
-      return NarrativeSceneExecutionResult.cancelled(
-        StateError('Cette rencontre unique a déjà eu lieu.'),
+          final railProgressionOperationId = sceneRailProgressionOperationId(
+            sceneId: request.sceneId,
+            executionId: request.executionId,
+            nodeId: nodeId,
+            consequence: consequence,
+          );
+          final validation = writer.applyAll(
+            currentGameState(),
+            [...pendingConsequences, consequence],
+            pokemonGrantOperationIds: [
+              ...pendingPokemonGrantOperationIds,
+              grantOperationId,
+            ],
+            railProgressionOperationIds: [
+              ...pendingRailProgressionOperationIds,
+              railProgressionOperationId,
+            ],
+          );
+          if (!validation.success) {
+            throw StateError(
+              validation.message ??
+                  'Scene consequence ${consequence.kind.name} was rejected.',
+            );
+          }
+          pendingConsequences.add(consequence);
+          pendingPokemonGrantOperationIds.add(grantOperationId);
+          pendingRailProgressionOperationIds.add(railProgressionOperationId);
+          return 'completed';
+        },
+      ),
+      maxSteps: maxSteps,
+    ).execute(planResult.plan!);
+    if (execution.status != SceneRuntimeExecutionStatus.completed) {
+      if (blockedUniqueBattle) {
+        return NarrativeSceneExecutionResult.cancelled(
+          StateError('Cette rencontre unique a déjà eu lieu.'),
+        );
+      }
+      return NarrativeSceneExecutionResult.failed(
+        StateError(
+          execution.message ??
+              'Event V2 Scene "${request.sceneId}" failed during execution.',
+        ),
       );
     }
-    return NarrativeSceneExecutionResult.failed(
-      StateError(
-        execution.message ??
-            'Event V2 Scene "${request.sceneId}" failed during execution.',
-      ),
-    );
-  }
 
-  final writeResult = writer.applyAll(
-    currentGameState(),
-    pendingConsequences,
-    pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-    railProgressionOperationIds: pendingRailProgressionOperationIds,
-  );
-  if (!writeResult.success) {
-    return NarrativeSceneExecutionResult.failed(
-      StateError(
-        writeResult.message ??
-            'Event V2 Scene "${request.sceneId}" consequence commit failed.',
-      ),
+    final writeResult = writer.applyAll(
+      currentGameState(),
+      pendingConsequences,
+      pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+      railProgressionOperationIds: pendingRailProgressionOperationIds,
     );
-  }
-
-  final sceneOutcomeId = execution.sceneOutcomeId;
-  final retryableEnd = planResult.plan!.nodes.any(
-    (node) => node.id == execution.finalNodeId &&
-        node.intent.outcomePolicy == SceneOutcomePolicy.retryable,
-  );
-  var completedState = writeResult.gameState;
-  for (final tableId in consumedUniqueTableIds) {
-    completedState = const GameStateMutations().setFlag(
-      completedState,
-      uniqueEncounterConsumedFlag(tableId),
-    );
-  }
-  return NarrativeSceneExecutionResult.completed(
-    updatedGameState: completedState,
-    gameCompletion: writeResult.gameCompletion,
-    consumeOneShot: !retryableEnd && (uniqueBattleConsumed ?? true),
-    qualifiedOutcomes: <NarrativeOutcomeRef>[
-      ...hostedBattleOutcomes,
-      if (sceneOutcomeId != null)
-        NarrativeOutcomeRef(
-          producerKind: NarrativeOutcomeProducerKind.scene,
-          producerId: scene.id,
-          outcomeId: sceneOutcomeId,
+    if (!writeResult.success) {
+      return NarrativeSceneExecutionResult.failed(
+        StateError(
+          writeResult.message ??
+              'Event V2 Scene "${request.sceneId}" consequence commit failed.',
         ),
-    ],
-  );
+      );
+    }
+
+    final sceneOutcomeId = execution.sceneOutcomeId;
+    final retryableEnd = planResult.plan!.nodes.any(
+      (node) => node.id == execution.finalNodeId &&
+          node.intent.outcomePolicy == SceneOutcomePolicy.retryable,
+    );
+    var completedState = writeResult.gameState;
+    for (final tableId in consumedUniqueTableIds) {
+      completedState = const GameStateMutations().setFlag(
+        completedState,
+        uniqueEncounterConsumedFlag(tableId),
+      );
+    }
+    return NarrativeSceneExecutionResult.completed(
+      updatedGameState: completedState,
+      gameCompletion: writeResult.gameCompletion,
+      consumeOneShot: !retryableEnd && (uniqueBattleConsumed ?? true),
+      qualifiedOutcomes: <NarrativeOutcomeRef>[
+        ...hostedBattleOutcomes,
+        if (sceneOutcomeId != null)
+          NarrativeOutcomeRef(
+            producerKind: NarrativeOutcomeProducerKind.scene,
+            producerId: scene.id,
+            outcomeId: sceneOutcomeId,
+          ),
+      ],
+    );
+  } finally {
+    onSceneStateProjection?.call(null);
+  }
 }
 
 String uniqueEncounterConsumedFlag(String tableId) =>

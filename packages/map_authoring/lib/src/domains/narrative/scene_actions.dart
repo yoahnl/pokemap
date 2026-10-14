@@ -29,6 +29,15 @@ final class ScenePreSessionInteractionCueBindingDraft {
 final class SceneActions {
   const SceneActions();
 
+  static const _warpContract = {
+    'parameters': ['destinationMapId', 'warpId', 'arrivalFacing', 'transition'],
+    'arrivalFacingValues': ['north', 'south', 'east', 'west'],
+    'absentArrivalFacing': 'preserveCurrentDirection',
+    'transitionValues': ['mapDefault', 'none'],
+    'defaultTransition': 'mapDefault',
+    'arrivalReference': 'warpOwnedByDestinationMap',
+  };
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'scene.graph.patch',
@@ -46,7 +55,10 @@ final class SceneActions {
       'scene.interactive_command.set',
       'Configure one typed interactive Scene command and validate its routes',
       resourceKinds: const ['project', 'scene'],
-      extensions: const {'parameters': ['sceneId', 'nodeId', 'command']},
+      extensions: const {
+        'parameters': ['sceneId', 'nodeId', 'command'],
+        'warp': _warpContract,
+      },
     ),
     narrativeActionDescriptor(
       'scene.dialogue.lineFeedback.update',
@@ -83,6 +95,7 @@ final class SceneActions {
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
+        'warp': _warpContract,
         'badgeCondition': {
           'sourceKind': 'badge',
           'sourceId': 'projectBadgeId',
@@ -831,6 +844,9 @@ final class SceneActions {
         );
       }
       late SceneNodePayload payload;
+      final existingAction = node.payload is SceneActionPayload
+          ? node.payload as SceneActionPayload
+          : null;
       try {
         payload = condition
             ? SceneConditionPayload(
@@ -842,6 +858,8 @@ final class SceneActions {
                 SceneInteractiveCommand.fromJson(
                   narrativeObjectParameter(parameters, 'command'),
                 ),
+                actionKind: existingAction?.actionKind,
+                parameters: existingAction?.parameters ?? const {},
               );
       } on FormatException {
         throw NarrativeAuthoringException(
@@ -861,6 +879,24 @@ final class SceneActions {
           'The typed node payload is invalid.',
           details: {'sceneId': sceneId, 'nodeId': nodeId},
         );
+      }
+      if (payload case SceneActionPayload(
+        interactiveCommand: SceneWarpInteractiveCommand(
+          :final destinationMapId,
+          :final warpId,
+        ),
+      )) {
+        final destination = context.snapshot.maps
+            .where((map) => map.id == destinationMapId)
+            .firstOrNull;
+        if (destination == null ||
+            !destination.warps.any((warp) => warp.id == warpId)) {
+          throw NarrativeAuthoringException(
+            'scene.warp.arrival_missing',
+            'The arrival point must belong to the destination map.',
+            details: {'destinationMapId': destinationMapId, 'warpId': warpId},
+          );
+        }
       }
       projected = patchGraph(
         context.snapshot.manifest,

@@ -3,6 +3,60 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_template_catalog.dart';
 
 void main() {
+  for (final invalid in const [
+    {'arrivalFacing': 'diagonal'},
+    {'transition': 'fade'},
+    {'arrivalFacing': ' north '},
+    {'transition': ' none '},
+    {'arrivalFacing': ' '},
+    {'transition': ' '},
+  ]) {
+    test(
+      'door warp preview refuses unknown option $invalid without throwing',
+      () {
+        NarrativeTemplatePreview? preview;
+        expect(
+          () => preview = previewNarrativeTemplate(
+            project: _emptyProject(),
+            request: _doorWarpRequest(invalid),
+          ),
+          returnsNormally,
+        );
+        expect(preview!.canApply, isFalse);
+        expect(preview!.scene, isNull);
+        expect(preview!.diagnostics, isNotEmpty);
+      },
+    );
+  }
+
+  test('door warp preview preserves explicit options and neutral defaults', () {
+    for (final parameters in const <Map<String, String>>[
+      {},
+      {'arrivalFacing': 'north', 'transition': 'none'},
+    ]) {
+      final preview = previewNarrativeTemplate(
+        project: _emptyProject(),
+        request: _doorWarpRequest(parameters),
+      );
+      expect(preview.canApply, isTrue);
+      final action = preview.scene!.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .single;
+      expect(
+        action.interactiveCommand,
+        SceneInteractiveCommand.warp(
+          destinationMapId: 'map_port',
+          warpId: 'arrival',
+          arrivalFacing: parameters.isEmpty ? null : EntityFacing.north,
+          transition: parameters.isEmpty
+              ? SceneWarpTransition.mapDefault
+              : SceneWarpTransition.none,
+        ),
+      );
+    }
+  });
+
   group('NarrativeTemplateCatalog', () {
     test('exposes every MVP pattern with executable gameplay templates', () {
       final catalog = NarrativeTemplateCatalog.canonical();
@@ -594,6 +648,26 @@ ProjectManifest _emptyProject() => const ProjectManifest(
   ],
   tilesets: [],
 );
+
+NarrativeTemplateRequest _doorWarpRequest(Map<String, String> options) =>
+    NarrativeTemplateRequest(
+      kind: NarrativeTemplateKind.doorWarp,
+      eventId: _eventId,
+      sceneId: _sceneId,
+      name: 'Porte',
+      source: NarrativeEventSourceRef.triggerEnter('map_port', 'door'),
+      physicalSource: const NarrativeTemplatePhysicalSource(
+        kind: NarrativeTemplatePhysicalSourceKind.warp,
+        mapId: 'map_port',
+        sourceId: 'door',
+        exists: true,
+      ),
+      parameters: {
+        'destinationMapId': 'map_port',
+        'warpId': 'arrival',
+        ...options,
+      },
+    );
 
 NarrativeTemplateRequest _itemBallRequest({
   bool sourceExists = true,

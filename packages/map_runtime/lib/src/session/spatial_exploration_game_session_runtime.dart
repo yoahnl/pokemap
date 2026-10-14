@@ -93,6 +93,8 @@ final class SpatialExplorationGameSessionRuntime
   Map<String, MapData> _mapsById = const {};
   int _gameplayOperations = 0;
   bool _materializingState = false;
+  MapActivation? _pendingSceneMapActivation;
+  bool _hasUncommittedSceneWarp = false;
   int _transferPauseEpoch = 0;
   Completer<void>? _materializationResumed;
   GridPos? _lastCell;
@@ -261,7 +263,9 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   void _syncGameState() {
-    if (_sceneStateReader != null ||
+    if (_stopped ||
+        _disposed ||
+        _sceneStateReader != null ||
         _materializingState ||
         _gameplayOperations > 0) {
       return;
@@ -477,17 +481,8 @@ final class SpatialExplorationGameSessionRuntime
             commit,
             () => SceneInteractiveCommandRuntimeExecutor(
                 playModelAnimation: (command) => _story!.playModel(command),
-                warp: (command) async {
-                  if (command is! SceneWarpInteractiveCommand) return 'blocked';
-                  final destination = _mapsById[command.destinationMapId];
-                  final warp = destination?.warps
-                      .where((warp) => warp.id == command.warpId)
-                      .firstOrNull;
-                  if (warp == null) return 'blocked';
-                  commit(const GameStateMutations().warpPlayer(
-                      read(), destination!.id, warp.pos.x, warp.pos.y));
-                  return 'completed';
-                },
+                warp: (command) =>
+                    _executeSceneWarp(command, read: read, commit: commit),
                 openWorldService: (request) async {
                   final result = await switch (request) {
                     OpenTextInputService() =>
@@ -512,6 +507,48 @@ final class SpatialExplorationGameSessionRuntime
                       : 'cancelled';
                 }).execute(intent)),
       ).build();
+
+  Future<String> _executeSceneWarp(SceneInteractiveCommand command,
+      {required GameState Function() read,
+      required void Function(GameState) commit}) async {
+    if (command is! SceneWarpInteractiveCommand) return 'blocked';
+    final destination = _mapsById[command.destinationMapId];
+    final warp = destination?.warps
+        .where((warp) => warp.id == command.warpId)
+        .firstOrNull;
+    if (warp == null) return 'blocked';
+    final source = read();
+    final pendingActivation = _pendingSceneMapActivation;
+    final pendingWarp = _hasUncommittedSceneWarp;
+    final next = const GameStateMutations().warpPlayer(
+        source, destination!.id, warp.pos.x, warp.pos.y,
+        facing: command.arrivalFacing);
+    try {
+      _hasUncommittedSceneWarp = true;
+      final restored = await switch (command.transition) {
+        SceneWarpTransition.mapDefault || SceneWarpTransition.none =>
+          _restoreSpatialState(next),
+      };
+      if (!_session!.movement.isPositionTraversable) {
+        throw StateError('The spatial warp arrival is blocked.');
+      }
+      if (source.currentMapId != restored.currentMapId) {
+        _pendingSceneMapActivation = MapActivation(
+            activationId: _mapActivationId,
+            mapId: restored.currentMapId,
+            reason: MapActivationReason.warp);
+      }
+      commit(restored);
+      return 'completed';
+    } on Object {
+      _pendingSceneMapActivation = pendingActivation;
+      _hasUncommittedSceneWarp = pendingWarp;
+      if (!_disposed && !_stopped) {
+        await _restoreSpatialState(source);
+      }
+      return 'blocked';
+    }
+  }
 
   Future<String> _startBattle(BattleStartRequest request) async {
     _ensureGameplayActive();
@@ -541,6 +578,7 @@ final class SpatialExplorationGameSessionRuntime
       if (!_disposed && !_stopped) await _materializeState(_gameState!);
     } catch (error) {
       if (!_disposed && !_stopped) {
+        await _rollbackPendingSceneWarp();
         final cancelled = _story?.wasCancelled == true;
         _story?.synchronize(_gameState!.spatialWorldState);
         _session?.interactionError.value = cancelled ? null : error;
@@ -552,6 +590,27 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   Future<void> _materializeState(GameState state) async {
+    final changedMap = _session!.bundle.map.id != state.currentMapId;
+    _gameState = await _restoreSpatialState(state);
+    _hasUncommittedSceneWarp = false;
+    _lastCell = _gameState!.playerPosition;
+    if (changedMap) {
+      _pendingSceneMapActivation = MapActivation(
+          activationId: _mapActivationId,
+          mapId: state.currentMapId,
+          reason: MapActivationReason.warp);
+    }
+    if (_gameplay?.isBusy ?? false) return;
+    while (_pendingSceneMapActivation != null) {
+      final activation = _pendingSceneMapActivation!;
+      _pendingSceneMapActivation = null;
+      if (activation.mapId == _gameState!.currentMapId) {
+        await _gameplay?.activateMap(activation);
+      }
+    }
+  }
+
+  Future<GameState> _restoreSpatialState(GameState state) async {
     _ensureGameplayActive();
     final session = _session!;
     _story?.synchronize(state.spatialWorldState);
@@ -562,9 +621,7 @@ final class SpatialExplorationGameSessionRuntime
     if (!changedMap &&
         session.movement.spatialPosition == position &&
         session.movement.facing == state.playerFacing) {
-      _gameState = state;
-      _lastCell = state.playerPosition;
-      return;
+      return state.copyWith(playerSpatialPosition: position);
     }
     _materializingState = true;
     try {
@@ -582,20 +639,32 @@ final class SpatialExplorationGameSessionRuntime
         }
       }
       _ensureGameplayActive();
-      _gameState = state.copyWith(
+      if (session.bundle.map.id != state.currentMapId ||
+          session.movement.spatialPosition != position ||
+          session.movement.facing != state.playerFacing) {
+        throw StateError('The spatial relocation did not reach its arrival.');
+      }
+      return state.copyWith(
           playerPosition: GridPos(
               x: session.movement.x.floor(), y: session.movement.z.floor()),
           playerSpatialPosition: session.movement.spatialPosition,
           playerFacing: session.movement.facing);
-      _lastCell = _gameState!.playerPosition;
     } finally {
       _materializingState = false;
     }
-    if (changedMap) {
-      await _gameplay?.activateMap(MapActivation(
-          activationId: _mapActivationId,
-          mapId: state.currentMapId,
-          reason: MapActivationReason.warp));
+  }
+
+  Future<void> _rollbackPendingSceneWarp() async {
+    if (!_hasUncommittedSceneWarp || _session == null) return;
+    _hasUncommittedSceneWarp = false;
+    _pendingSceneMapActivation = null;
+    _materializingState = true;
+    try {
+      _story?.synchronize(_gameState!.spatialWorldState);
+      await _session!.restoreGameState(_gameState!, compensatePendingScene: true);
+      _lastCell = _gameState!.playerPosition;
+    } finally {
+      _materializingState = false;
     }
   }
 
@@ -705,11 +774,17 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       final loaded = await SpatialExplorationSession.load(bundle,
           knownMaps: _mapsById.values,
-          worldStateProvider: () => _gameState!.spatialWorldState,
+          worldStateProvider: () =>
+              _sceneStateReader?.call().spatialWorldState ??
+              _gameState!.spatialWorldState,
           spatialArrival: position,
           facing: state.playerFacing,
           entityIsPresent: (mapId, entity) =>
-              _gameplay?.entityIsPresent(mapId, entity) ?? true,
+              _gameplay?.entityIsPresent(mapId, entity,
+                  gameStateOverride: _stopped || _disposed
+                      ? _gameState
+                      : _gameplay?.projectedSceneGameState ??
+                          _sceneStateReader?.call()) ?? true,
           characterId: state.trainerProfile.avatarCharacterId);
       if (_disposed || _stopped || generation != _loadGeneration) {
         loaded.dispose();
@@ -922,6 +997,9 @@ final class SpatialExplorationGameSessionRuntime
     if ((_battle?.isActive ?? false) || _gameplayOperations > 0) {
       throw StateError('A spatial gameplay action is still in progress.');
     }
+    if (_session != null && !_session!.movement.isPositionTraversable) {
+      throw StateError('The spatial checkpoint position is blocked.');
+    }
     return _activityGate.runCheckpoint(NarrativeRuntimeCheckpointOperation.save,
         () async => _checkpointFromState(gameStateSnapshot));
   }
@@ -1098,6 +1176,7 @@ final class SpatialExplorationGameSessionRuntime
     _session?.cancelPendingTransition();
     _session?.closeDialogue();
     _syncMovement();
+    await _rollbackPendingSceneWarp();
   }
 
   @override
@@ -1137,9 +1216,8 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<void> dispose() async {
-    _story?.dispose();
-    _story = null;
     if (_disposed) return;
+    _story?.cancel();
     _disposed = true;
     _stopped = true;
     _loadGeneration++;
@@ -1152,26 +1230,35 @@ final class SpatialExplorationGameSessionRuntime
     _session?.closeDialogue();
     _syncMovement();
     try {
-      await _playerServiceSnapshots?.cancel();
-      _playerServiceSnapshots = null;
-      final services = _playerServices;
-      _playerServices = null;
-      await services?.dispose();
-      _publishWorldService(null);
-      await _mountFuture?.catchError((Object _) {});
-      if (_mounted) await _unmountSession(this);
+      await _rollbackPendingSceneWarp();
     } finally {
-      _mounted = false;
-      _session?.interactionActive.removeListener(_syncMovement);
-      _session?.transitioning.removeListener(_syncMovement);
-      _session?.mapRevision.removeListener(_onMapActivated);
-      _session?.dispose();
-      _session = null;
-      overworldInteractions.dispose();
-      await _interactionEvents.close();
-      await _worldServiceSnapshots.close();
-      inputAuthority.dispose();
-      await _events.close();
+      try {
+        await _playerServiceSnapshots?.cancel();
+        _playerServiceSnapshots = null;
+        final services = _playerServices;
+        _playerServices = null;
+        await services?.dispose();
+        _publishWorldService(null);
+        await _mountFuture?.catchError((Object _) {});
+      } finally {
+        try {
+          if (_mounted) await _unmountSession(this);
+        } finally {
+          _mounted = false;
+          _story?.dispose();
+          _story = null;
+          _session?.interactionActive.removeListener(_syncMovement);
+          _session?.transitioning.removeListener(_syncMovement);
+          _session?.mapRevision.removeListener(_onMapActivated);
+          _session?.dispose();
+          _session = null;
+          overworldInteractions.dispose();
+          await _interactionEvents.close();
+          await _worldServiceSnapshots.close();
+          inputAuthority.dispose();
+          await _events.close();
+        }
+      }
     }
   }
 

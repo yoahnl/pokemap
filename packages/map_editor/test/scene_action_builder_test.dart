@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -6,6 +8,326 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets(
+    'warp loads an inactive destination through the supplied map loader',
+    (tester) async {
+      final requested = <String>[];
+      SceneNodePayload? submitted;
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.warp,
+        initialParameters: const {'destinationMapId': 'forest'},
+        options: {
+          ..._warpOptions,
+          NarrativeCommandParameterKind.warp: const [
+            SceneActionPickerOption(
+              id: 'port_arrival',
+              label: 'Port · Arrivée',
+              parentId: 'port',
+            ),
+          ],
+        },
+        loadWarpMap: (id) async {
+          requested.add(id);
+          return _warpMap(id);
+        },
+        onSubmit: (payload) => submitted = payload,
+      );
+      expect(requested, ['forest']);
+      final arrival = _picker(tester, 'Point d’arrivée');
+      expect(arrival.items.map((item) => item.value), ['forest_arrival']);
+      final submit = find.byKey(const ValueKey('scene-action-submit'));
+      await tester.ensureVisible(submit);
+      await tester.tap(submit);
+      expect(
+        (submitted! as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.warp(
+          destinationMapId: 'forest',
+          warpId: 'forest_arrival',
+        ),
+      );
+    },
+  );
+
+  testWidgets('warp ignores a late response from the previous destination', (
+    tester,
+  ) async {
+    final port = Completer<MapData?>(), forest = Completer<MapData?>();
+    final requested = <String>[];
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.warp,
+      options: _warpOptions,
+      loadWarpMap: (id) {
+        requested.add(id);
+        return id == 'port' ? port.future : forest.future;
+      },
+      onSubmit: (payload) => submitted = payload,
+    );
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const ValueKey('scene-action-submit')),
+          )
+          .onPressed,
+      isNull,
+    );
+    _picker(tester, 'Carte de destination').onChanged('forest');
+    await tester.pump();
+    forest.complete(_warpMap('forest'));
+    await tester.pump();
+    port.complete(_warpMap('port'));
+    await tester.pump();
+    expect(requested, ['port', 'forest']);
+    final arrival = _picker(tester, 'Point d’arrivée');
+    expect(arrival.items.map((item) => item.value), ['', 'forest_arrival']);
+    expect(arrival.value, isEmpty);
+    arrival.onChanged('forest_arrival');
+    await tester.pump();
+    final submit = find.byKey(const ValueKey('scene-action-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    expect(
+      (submitted! as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.warp(
+        destinationMapId: 'forest',
+        warpId: 'forest_arrival',
+      ),
+    );
+  });
+
+  for (final failure in ['missing', 'wrongIdentity', 'throws']) {
+    testWidgets(
+      'warp map loader refuses $failure without using stale options',
+      (tester) async {
+        await _pumpBuilder(
+          tester,
+          initialCommandId: NarrativeCommandIds.warp,
+          options: _warpOptions,
+          loadWarpMap: (id) async => switch (failure) {
+            'missing' => null,
+            'wrongIdentity' => _warpMap('other'),
+            _ => throw StateError('Unavailable destination'),
+          },
+        );
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(const ValueKey('scene-action-submit')),
+              )
+              .onPressed,
+          isNull,
+        );
+        expect(find.text('Points d’arrivée indisponibles'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('warp map response after disposal has no effect', (tester) async {
+    final pending = Completer<MapData?>();
+    final requested = <String>[];
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.warp,
+      options: _warpOptions,
+      loadWarpMap: (id) {
+        requested.add(id);
+        return pending.future;
+      },
+    );
+    expect(requested, ['port']);
+    await tester.pumpWidget(const SizedBox());
+    pending.complete(_warpMap('port'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('warp defaults preserve facing and use the map transition', (
+    tester,
+  ) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.warp,
+      options: _warpOptions,
+      onSubmit: (payload) => submitted = payload,
+    );
+    expect(find.text('Conserver la direction'), findsOneWidget);
+    expect(find.text('Transition de la carte'), findsOneWidget);
+    expect(_picker(tester, 'Point d’arrivée').items.map((item) => item.label), [
+      'Port · Arrivée',
+    ]);
+    final submit = find.byKey(const ValueKey('scene-action-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    expect(
+      (submitted! as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.warp(
+        destinationMapId: 'port',
+        warpId: 'port_arrival',
+      ),
+    );
+  });
+
+  testWidgets('warp map change clears the arrival and filters its owner', (
+    tester,
+  ) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.warp,
+      options: _warpOptions,
+      onSubmit: (payload) => submitted = payload,
+    );
+    _picker(tester, 'Carte de destination').onChanged('forest');
+    await tester.pump();
+    final arrival = _picker(tester, 'Point d’arrivée');
+    expect(arrival.items.map((item) => item.label), [
+      'Choisir un point d’arrivée',
+      'Forêt · Arrivée',
+    ]);
+    expect(arrival.value, isEmpty);
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const ValueKey('scene-action-submit')),
+          )
+          .onPressed,
+      isNull,
+    );
+    arrival.onChanged('forest_arrival');
+    await tester.pump();
+    final submit = find.byKey(const ValueKey('scene-action-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    expect(
+      (submitted! as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.warp(
+        destinationMapId: 'forest',
+        warpId: 'forest_arrival',
+      ),
+    );
+  });
+
+  testWidgets('warp editing preserves explicit facing and no transition', (
+    tester,
+  ) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.warp,
+      options: _warpOptions,
+      initialParameters: const {
+        'destinationMapId': 'forest',
+        'warpId': 'forest_arrival',
+        'arrivalFacing': 'north',
+        'transition': 'none',
+      },
+      onSubmit: (payload) => submitted = payload,
+    );
+    final submit = find.byKey(const ValueKey('scene-action-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    expect(
+      (submitted! as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.warp(
+        destinationMapId: 'forest',
+        warpId: 'forest_arrival',
+        arrivalFacing: EntityFacing.north,
+        transition: SceneWarpTransition.none,
+      ),
+    );
+  });
+
+  for (final invalid in const [
+    {'arrivalFacing': 'diagonal'},
+    {'transition': 'fade'},
+    {'arrivalFacing': ' north '},
+    {'transition': ' none '},
+    {'arrivalFacing': ' '},
+    {'transition': ' '},
+  ]) {
+    testWidgets('warp refuses unknown option $invalid before submit', (
+      tester,
+    ) async {
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.warp,
+        options: _warpOptions,
+        initialParameters: invalid,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('scene-action-submit')),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+  }
+
+  testWidgets('warp scopes identical arrival IDs to one destination map', (
+    tester,
+  ) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.warp,
+      options: {
+        ..._warpOptions,
+        NarrativeCommandParameterKind.warp: const [
+          SceneActionPickerOption(
+            id: 'arrival',
+            label: 'Forêt · Arrivée',
+            parentId: 'forest',
+          ),
+          SceneActionPickerOption(
+            id: 'arrival',
+            label: 'Port · Arrivée',
+            parentId: 'port',
+          ),
+        ],
+      },
+    );
+    expect(_picker(tester, 'Point d’arrivée').items.map((item) => item.label), [
+      'Port · Arrivée',
+    ]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('moveNpc retains its independent arrival picker', (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.moveNpc,
+      options: {
+        ..._warpOptions,
+        NarrativeCommandParameterKind.npc: const [
+          SceneActionPickerOption(id: 'port::sailor', label: 'Marin'),
+        ],
+      },
+      onSubmit: (payload) => submitted = payload,
+      loadWarpMap: (_) async => fail('moveNpc must not load a Warp destination'),
+    );
+    expect(_picker(tester, 'Destination').items.map((item) => item.label), [
+      'Forêt · Arrivée',
+      'Port · Arrivée',
+    ]);
+    final submit = find.byKey(const ValueKey('scene-action-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    expect(
+      (submitted! as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.moveNpc(
+        mapId: 'port',
+        entityId: 'sailor',
+        warpId: 'forest_arrival',
+      ),
+    );
+  });
+
   testWidgets('platform action uses guided platform and motion pickers', (tester) async {
     SceneNodePayload? submitted;
     await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.movePlatform,
@@ -536,6 +858,46 @@ void main() {
   });
 }
 
+const _warpOptions = {
+  NarrativeCommandParameterKind.map: [
+    SceneActionPickerOption(id: 'port', label: 'Port'),
+    SceneActionPickerOption(id: 'forest', label: 'Forêt'),
+  ],
+  NarrativeCommandParameterKind.warp: [
+    SceneActionPickerOption(
+      id: 'forest_arrival',
+      label: 'Forêt · Arrivée',
+      parentId: 'forest',
+    ),
+    SceneActionPickerOption(
+      id: 'port_arrival',
+      label: 'Port · Arrivée',
+      parentId: 'port',
+    ),
+  ],
+};
+
+MapData _warpMap(String id) => MapData(
+  id: id,
+  name: id,
+  size: const GridSize(width: 4, height: 4),
+  warps: [
+    MapWarp(
+      id: '${id}_arrival',
+      pos: const GridPos(x: 1, y: 1),
+      targetMapId: id,
+      targetPos: const GridPos(x: 1, y: 1),
+    ),
+  ],
+);
+
+PokeMapDropdownField<String> _picker(WidgetTester tester, String label) =>
+    tester
+        .widgetList<PokeMapDropdownField<String>>(
+          find.byType(PokeMapDropdownField<String>),
+        )
+        .singleWhere((field) => field.label == label);
+
 Future<void> _pumpBuilder(
   WidgetTester tester, {
   required String initialCommandId,
@@ -545,6 +907,7 @@ Future<void> _pumpBuilder(
   ValueChanged<SceneActionBuildResult>? onSubmitResult,
   Map<String, String> initialParameters = const {},
   Set<String>? runtimeCommandIds,
+  Future<MapData?> Function(String)? loadWarpMap,
 }) async {
   tester.view.physicalSize = const Size(900, 760);
   tester.view.devicePixelRatio = 1;
@@ -563,6 +926,7 @@ Future<void> _pumpBuilder(
             pickerOptions: options,
             initialParameters: initialParameters,
             runtimeCommandIds: runtimeCommandIds,
+            loadWarpMap: loadWarpMap,
             onSubmit: onSubmit ?? (_) {},
             onSubmitResult: onSubmitResult,
           ),

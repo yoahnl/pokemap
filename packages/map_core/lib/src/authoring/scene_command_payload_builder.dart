@@ -126,6 +126,14 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       SceneInteractiveCommand.warp(
         destinationMapId: parameters['destinationMapId']!,
         warpId: parameters['warpId']!,
+        arrivalFacing: switch (parameters['arrivalFacing']) {
+          null || '' => null,
+          final direction => EntityFacing.values.byName(direction),
+        },
+        transition: switch (parameters['transition']) {
+          null || '' => SceneWarpTransition.mapDefault,
+          final transition => SceneWarpTransition.values.byName(transition),
+        },
       ),
     ),
     NarrativeCommandIds.openShop => SceneActionPayload.interactive(

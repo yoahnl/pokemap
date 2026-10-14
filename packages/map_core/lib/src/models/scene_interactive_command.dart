@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../runtime/character_custom_animation_runtime_contract.dart';
 import 'rail_journey.dart';
 import 'moving_platform.dart';
+import 'enums.dart';
 
 enum SceneInteractiveCommandKind {
   giveItem,
@@ -18,6 +19,8 @@ enum SceneInteractiveCommandKind {
 }
 
 enum SceneRailJourneyOperation { begin, advance, acknowledge }
+
+enum SceneWarpTransition { mapDefault, none }
 
 enum SceneRailJourneyAdvanceEvent {
   doorsClosed,
@@ -37,6 +40,8 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.warp({
     required String destinationMapId,
     required String warpId,
+    EntityFacing? arrivalFacing,
+    SceneWarpTransition transition,
   }) = SceneWarpInteractiveCommand;
 
   factory SceneInteractiveCommand.moveNpc({
@@ -98,6 +103,15 @@ abstract base class SceneInteractiveCommand {
       SceneInteractiveCommandKind.warp => SceneWarpInteractiveCommand(
         destinationMapId: _required(json, 'destinationMapId'),
         warpId: _required(json, 'warpId'),
+        arrivalFacing: _optionalEnum(
+          json,
+          'arrivalFacing',
+          EntityFacing.values,
+        ),
+        transition: json.containsKey('transition')
+            ? _optionalEnum(json, 'transition', SceneWarpTransition.values) ??
+                (throw const FormatException('transition must be a string.'))
+            : SceneWarpTransition.mapDefault,
       ),
       SceneInteractiveCommandKind.moveNpc => SceneMoveNpcInteractiveCommand(
         mapId: _required(json, 'mapId'),
@@ -166,10 +180,14 @@ abstract base class SceneInteractiveCommand {
 }
 
 @immutable
-final class SceneMovePlatformInteractiveCommand extends SceneInteractiveCommand {
-  SceneMovePlatformInteractiveCommand({required String mapId,
-      required String platformId, required this.motion})
-      : mapId = _normalize(mapId, 'mapId'), platformId = _normalize(platformId, 'platformId');
+final class SceneMovePlatformInteractiveCommand
+    extends SceneInteractiveCommand {
+  SceneMovePlatformInteractiveCommand({
+    required String mapId,
+    required String platformId,
+    required this.motion,
+  }) : mapId = _normalize(mapId, 'mapId'),
+       platformId = _normalize(platformId, 'platformId');
 
   final String mapId, platformId;
   final MovingPlatformMotion motion;
@@ -177,10 +195,19 @@ final class SceneMovePlatformInteractiveCommand extends SceneInteractiveCommand 
   @override
   SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.movePlatform;
   @override
-  List<String> get outputPortIds => const ['moved', 'blocked', 'notRiding', 'rotationRequiresPivot'];
+  List<String> get outputPortIds => const [
+    'moved',
+    'blocked',
+    'notRiding',
+    'rotationRequiresPivot',
+  ];
   @override
-  Map<String, dynamic> toJson() => {'kind': kind.name, 'mapId': mapId,
-    'platformId': platformId, 'motion': motion.name};
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'mapId': mapId,
+    'platformId': platformId,
+    'motion': motion.name,
+  };
   @override
   bool operator ==(Object other) => other is SceneMovePlatformInteractiveCommand &&
       other.mapId == mapId && other.platformId == platformId && other.motion == motion;
@@ -190,8 +217,10 @@ final class SceneMovePlatformInteractiveCommand extends SceneInteractiveCommand 
 
 @immutable
 final class SceneGiveItemInteractiveCommand extends SceneInteractiveCommand {
-  SceneGiveItemInteractiveCommand({required String itemId, required this.quantity})
-      : itemId = _normalize(itemId, 'itemId') {
+  SceneGiveItemInteractiveCommand({
+    required String itemId,
+    required this.quantity,
+  }) : itemId = _normalize(itemId, 'itemId') {
     if (quantity <= 0) {
       throw ArgumentError.value(quantity, 'quantity', 'Must be positive.');
     }
@@ -323,11 +352,15 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
   SceneWarpInteractiveCommand({
     required String destinationMapId,
     required String warpId,
+    this.arrivalFacing,
+    this.transition = SceneWarpTransition.mapDefault,
   }) : destinationMapId = _normalize(destinationMapId, 'destinationMapId'),
        warpId = _normalize(warpId, 'warpId');
 
   final String destinationMapId;
   final String warpId;
+  final EntityFacing? arrivalFacing;
+  final SceneWarpTransition transition;
 
   @override
   SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.warp;
@@ -340,16 +373,21 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
     'kind': kind.name,
     'destinationMapId': destinationMapId,
     'warpId': warpId,
+    if (arrivalFacing != null) 'arrivalFacing': arrivalFacing!.name,
+    'transition': transition.name,
   };
 
   @override
   bool operator ==(Object other) =>
       other is SceneWarpInteractiveCommand &&
       other.destinationMapId == destinationMapId &&
-      other.warpId == warpId;
+      other.warpId == warpId &&
+      other.arrivalFacing == arrivalFacing &&
+      other.transition == transition;
 
   @override
-  int get hashCode => Object.hash(destinationMapId, warpId);
+  int get hashCode =>
+      Object.hash(destinationMapId, warpId, arrivalFacing, transition);
 }
 
 @immutable

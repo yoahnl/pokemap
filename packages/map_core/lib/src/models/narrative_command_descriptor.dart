@@ -26,6 +26,7 @@ enum NarrativeCommandParameterKind {
   modelAnimation,
   npc,
   warp,
+  warpTransition,
   shop,
   badge,
   fieldAbility,

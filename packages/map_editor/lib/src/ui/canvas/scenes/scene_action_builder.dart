@@ -46,6 +46,7 @@ class SceneActionBuilder extends StatefulWidget {
     this.runtimeCommandIds,
     this.allowCommandSelection = true,
     this.initialParameters = const {},
+    this.loadWarpMap,
   });
 
   final ValueChanged<SceneNodePayload> onSubmit;
@@ -57,6 +58,7 @@ class SceneActionBuilder extends StatefulWidget {
   final Set<String>? runtimeCommandIds;
   final bool allowCommandSelection;
   final Map<String, String> initialParameters;
+  final Future<MapData?> Function(String)? loadWarpMap;
 
   @override
   State<SceneActionBuilder> createState() => _SceneActionBuilderState();
@@ -68,6 +70,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   final Map<String, String> _values = <String, String>{};
   final Map<String, TextEditingController> _textControllers = {};
   String? _submissionError;
+  List<SceneActionPickerOption>? _loadedWarpOptions;
+  String? _warpReferenceError;
+  bool _warpReferenceLoading = false;
+  int _warpReferenceRequest = 0;
 
   @override
   void initState() {
@@ -106,6 +112,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   void _seedParameterValues(NarrativeCommandDescriptor command) {
+    _warpReferenceRequest++;
+    _loadedWarpOptions = null;
+    _warpReferenceError = null;
+    _warpReferenceLoading = false;
     for (final controller in _textControllers.values) {
       controller.dispose();
     }
@@ -126,8 +136,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           _textControllers[parameter.id] = TextEditingController(text: value);
         default:
           final options = _optionsFor(parameter.kind);
-          if (initial?.trim().isNotEmpty == true) {
-            _values[parameter.id] = initial!.trim();
+          final strictWarpOption = command.id == NarrativeCommandIds.warp &&
+              (parameter.id == 'arrivalFacing' || parameter.id == 'transition');
+          if (initial != null &&
+              (initial.trim().isNotEmpty || strictWarpOption && initial.isNotEmpty)) {
+            _values[parameter.id] = strictWarpOption ? initial : initial.trim();
           } else if (options.isNotEmpty) {
             _values[parameter.id] = options.first.id;
           }
@@ -139,10 +152,76 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         _applyOptionParameters(parameter.kind, value);
       }
     }
+    _loadWarpReferences(selectFirst: true);
+  }
+
+  @override
+  void didUpdateWidget(SceneActionBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.loadWarpMap != widget.loadWarpMap ||
+        oldWidget.pickerOptions != widget.pickerOptions) {
+      _loadWarpReferences();
+    }
+  }
+
+  void _loadWarpReferences({bool selectFirst = false}) {
+    final request = ++_warpReferenceRequest;
+    _loadedWarpOptions = null;
+    _warpReferenceError = null;
+    _warpReferenceLoading = false;
+    final load = widget.loadWarpMap;
+    final mapId = _values['destinationMapId'];
+    if (_command.id != NarrativeCommandIds.warp ||
+        load == null ||
+        mapId == null ||
+        !_optionsFor(
+          NarrativeCommandParameterKind.map,
+        ).any((option) => option.id == mapId)) {
+      return;
+    }
+    _warpReferenceLoading = true;
+    Future<MapData?>.sync(() => load(mapId)).then(
+      (map) {
+        if (!mounted || request != _warpReferenceRequest) return;
+        setState(() {
+          _warpReferenceLoading = false;
+          if (map == null ||
+              map.id != mapId ||
+              map.warps.map((warp) => warp.id).toSet().length !=
+                  map.warps.length) {
+            _warpReferenceError =
+                'La carte d’arrivée est absente ou incohérente.';
+            return;
+          }
+          _loadedWarpOptions = List<SceneActionPickerOption>.unmodifiable([
+            for (final warp in map.warps)
+              SceneActionPickerOption(
+                id: warp.id,
+                label: '${map.name} → ${warp.targetMapId}',
+                parentId: map.id,
+              ),
+          ]);
+          if (selectFirst &&
+              (_values['warpId']?.isEmpty ?? true) &&
+              _loadedWarpOptions!.isNotEmpty) {
+            _values['warpId'] = _loadedWarpOptions!.first.id;
+          }
+        });
+      },
+      onError: (Object error) {
+        if (!mounted || request != _warpReferenceRequest) return;
+        setState(() {
+          _warpReferenceLoading = false;
+          _warpReferenceError =
+              'Impossible de lire les points d’arrivée de cette carte.';
+        });
+      },
+    );
   }
 
   @override
   void dispose() {
+    _warpReferenceRequest++;
     for (final controller in _textControllers.values) {
       controller.dispose();
     }
@@ -152,7 +231,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<NarrativeCommandParameterDescriptor> get _missingParameters => [
     for (final parameter in _command.parameters)
       if (_isParameterVisible(parameter) &&
-          _isParameterRequired(parameter) &&
+          (_isParameterRequired(parameter) ||
+              _command.id == NarrativeCommandIds.warp &&
+                  (parameter.id == 'arrivalFacing' ||
+                      parameter.id == 'transition') &&
+                  (_values[parameter.id]?.isNotEmpty ?? false)) &&
           !_hasValidValue(parameter))
         parameter,
   ];
@@ -223,7 +306,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _hasValidValue(NarrativeCommandParameterDescriptor parameter) {
-    final value = _values[parameter.id]?.trim();
+    final rawValue = _values[parameter.id];
+    final value = rawValue?.trim();
+    if (_command.id == NarrativeCommandIds.warp &&
+        (parameter.id == 'arrivalFacing' || parameter.id == 'transition') &&
+        rawValue != value) {
+      return false;
+    }
     if (value == null || value.isEmpty) return false;
     if (parameter.kind == NarrativeCommandParameterKind.integer) {
       final parsed = int.tryParse(value);
@@ -245,6 +334,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _command.capabilities.editor ==
           NarrativeCommandCapabilityStatus.supported &&
       _runtimeAllows(_command) &&
+      (_command.id != NarrativeCommandIds.warp ||
+          !_warpReferenceLoading && _warpReferenceError == null) &&
       _missingParameters.isEmpty;
 
   @override
@@ -355,8 +446,30 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           onChanged: (value) => _setValue(parameter.id, value),
         );
       default:
+        if (_command.id == NarrativeCommandIds.warp &&
+            parameter.kind == NarrativeCommandParameterKind.warp) {
+          if (_warpReferenceLoading) {
+            return const PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.info,
+              title: 'Chargement des points d’arrivée',
+              message: 'Lecture de la carte de destination…',
+            );
+          }
+          if (_warpReferenceError != null) {
+            return PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.error,
+              title: 'Points d’arrivée indisponibles',
+              message: _warpReferenceError!,
+              actionLabel: 'Recharger',
+              onAction: () => setState(() => _loadWarpReferences()),
+            );
+          }
+        }
         final options = _optionsFor(parameter.kind);
         final currentValue = _values[parameter.id];
+        final arrivalNeedsSelection = _command.id == NarrativeCommandIds.warp &&
+            parameter.kind == NarrativeCommandParameterKind.warp &&
+            (currentValue == null || currentValue.isEmpty);
         if (currentValue != null &&
             currentValue.isNotEmpty &&
             !options.any((option) => option.id == currentValue)) {
@@ -379,8 +492,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         }
         return PokeMapDropdownField<String>(
           label: parameter.label,
-          value: currentValue ?? options.first.id,
+          value: arrivalNeedsSelection ? '' : currentValue ?? options.first.id,
           items: [
+            if (arrivalNeedsSelection)
+              const PokeMapDropdownItem(value: '', label: 'Choisir un point d’arrivée'),
             for (final option in options)
               PokeMapDropdownItem(value: option.id, label: option.label),
           ],
@@ -392,6 +507,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.warp &&
+        _command.id == NarrativeCommandIds.warp) {
+      if (widget.loadWarpMap != null) return _loadedWarpOptions ?? const [];
+      return [
+        for (final option in widget.pickerOptions[kind] ?? const [])
+          if (option.parentId == _values['destinationMapId']) option,
+      ];
+    }
     if (kind == NarrativeCommandParameterKind.speciesForm) {
       final speciesId = _values['speciesId'];
       return [
@@ -424,11 +547,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         SceneActionPickerOption(id: 'backward', label: 'Reculer'),
         SceneActionPickerOption(id: 'rotateClockwise', label: 'Tourner vers la droite'),
       ],
-      NarrativeCommandParameterKind.characterDirection => const [
-        SceneActionPickerOption(id: 'south', label: 'Sud'),
-        SceneActionPickerOption(id: 'north', label: 'Nord'),
-        SceneActionPickerOption(id: 'east', label: 'Est'),
-        SceneActionPickerOption(id: 'west', label: 'Ouest'),
+      NarrativeCommandParameterKind.characterDirection => [
+        if (_command.id == NarrativeCommandIds.warp)
+          const SceneActionPickerOption(id: '', label: 'Conserver la direction'),
+        const SceneActionPickerOption(id: 'south', label: 'Sud'),
+        const SceneActionPickerOption(id: 'north', label: 'Nord'),
+        const SceneActionPickerOption(id: 'east', label: 'Est'),
+        const SceneActionPickerOption(id: 'west', label: 'Ouest'),
+      ],
+      NarrativeCommandParameterKind.warpTransition => const [
+        SceneActionPickerOption(id: 'mapDefault', label: 'Transition de la carte'),
+        SceneActionPickerOption(id: 'none', label: 'Sans transition'),
       ],
       NarrativeCommandParameterKind.customAnimationPlayback => const [
         SceneActionPickerOption(id: 'once', label: 'Une fois'),
@@ -486,6 +615,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     setState(() {
       _values[parameter.id] = value;
       _applyOptionParameters(parameter.kind, value);
+      if (_command.id == NarrativeCommandIds.warp &&
+          parameter.id == 'destinationMapId') {
+        _values.remove('warpId');
+        _loadWarpReferences();
+      }
       if (parameter.kind == NarrativeCommandParameterKind.species) {
         final options = _optionsFor(NarrativeCommandParameterKind.speciesForm);
         final selectedFormId = _values['formId'];

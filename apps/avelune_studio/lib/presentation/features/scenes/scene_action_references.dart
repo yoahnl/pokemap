@@ -6,9 +6,11 @@ extension _SceneActionReferences on _SceneActionFormState {
     _referenceMap = null;
     _referenceError = null;
     _referenceLoading = false;
-    _referenceMapId = _commandId == NarrativeCommandIds.playModelAnimation
-        ? _values['mapId']
-        : null;
+    _referenceMapId = switch (_commandId) {
+      NarrativeCommandIds.playModelAnimation => _values['mapId'],
+      NarrativeCommandIds.warp => _values['destinationMapId'],
+      _ => null,
+    };
     final id = _referenceMapId;
     if (id == null ||
         !_options(NarrativeCommandParameterKind.map).containsKey(id)) {
@@ -20,12 +22,16 @@ extension _SceneActionReferences on _SceneActionFormState {
       return;
     }
     _referenceLoading = true;
+    final isWarp = _commandId == NarrativeCommandIds.warp;
     Future<MapData>.sync(() => load(id)).then(
       (map) {
         if (!mounted || request != _referenceRequest) return;
         _refreshReferences(() {
           _referenceLoading = false;
-          if (map.id != id || map.spatialScene == null) {
+          if (map.id != id && isWarp) {
+            _referenceError =
+                'La carte chargée ne correspond pas à la destination.';
+          } else if (!isWarp && (map.id != id || map.spatialScene == null)) {
             _referenceError = 'La carte choisie ne contient pas de scène 3D.';
           } else {
             _referenceMap = map;
@@ -36,11 +42,18 @@ extension _SceneActionReferences on _SceneActionFormState {
         if (!mounted || request != _referenceRequest) return;
         _refreshReferences(() {
           _referenceLoading = false;
-          _referenceError = 'Impossible de charger les décors : $error';
+          _referenceError = isWarp
+              ? 'Impossible de charger les points d’arrivée : $error'
+              : 'Impossible de charger les décors : $error';
         });
       },
     );
   }
+
+  Map<String, String> get _warpPoints => {
+    for (final (index, warp) in (_referenceMap?.warps ?? <MapWarp>[]).indexed)
+      warp.id: 'Point d’arrivée ${index + 1} · (${warp.pos.x}, ${warp.pos.y})',
+  };
 
   ProjectModel3dEntry? _instanceModel(SpatialModelInstance instance) => widget
       .project
