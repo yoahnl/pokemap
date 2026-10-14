@@ -5,7 +5,7 @@
 Implémentation livrée pour revue, avec trois traces EV-A/B/C converties depuis des fichiers RMXP originaux synthétiques, relues strictement au format natif, exécutées par le vrai runtime puis sauvegardées et chargées par une nouvelle instance de `FileGameSaveRepository`. Le domaine reste PARTIAL : la conversion de jeu entier, les événements Kanto et la parité de toute instruction Essentials ne sont pas certifiés.
 
 
-État actuel au 14 octobre : voir les derniers compléments « Dialogue du Centre et orientation bornée » et « Passages natifs et qualification du Centre ». Le Centre est publié et son PNJ a été joué ; les portes source restent inactives. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
+État actuel au 14 octobre : voir les derniers compléments « Dialogue du Centre et orientation bornée », « Passages natifs et qualification du Centre » et « Reconnaissance des commandes de présentation source ». Le Centre est publié et son PNJ a été joué ; les portes source restent inactives. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
 La grammaire porte textes, choix et annulation typée, pages conditionnelles, switches booléens, self-switches et transferts constants vers des cartes sélectionnées. Un bloc inconnu désactive l’événement entier. Les données sources restent conservées sous forme inerte, avec références et SHA, même pour une quarantaine intégrale. Ruby exécuté : 0 ; appels IA dans la conversion : 0. Les fixtures distribuées sont originales ; aucun asset Pokémon du corpus privé n’entre dans Git.
 
 La politique native de choix/cancel et les capacités nécessaires pour avancer ont été approuvées explicitement par Yoahn dans le fil, avant extension du modèle cible. La commande secondaire rejoint une issue déclarée ou reste désactivée selon la source. L’autorisation de faire tous les lots et de commiter entre lots permet d’enchaîner AC-14 ; la restriction du kit sur une suite implicite ne remplace pas cette instruction directe. La règle directe sans commentaires prévaut sur le §3 de `codex_rule.md` ; aucun commentaire de code ajouté.
@@ -979,3 +979,58 @@ Gel legacy : `warp-legacy-final-pins-02.json`, patch SHA `9dc8f5bbd8926387f18d5f
 Auto-critique : le contrat de passage est utile mais ne suffit pas au programme des portes Essentials. Tone non bloquant, SE naturel, attentes/routes/visibilité et TempSwitch sont encore nécessaires. Aucun soin ni combat source n'est activé. Les tests/runtime, le build debug, le Player visible et une release installée restent des preuves distinctes. Les interfaces legacy complètes, parité globale et jeu complet restent PARTIAL. La suite conserve tous les lots du goal et KAN-03 ; FG-090/093 ne sont pas proposés DONE, FG-092 reste TODO dans la roadmap inchangée.
 
 Commit local ciblé autorisé, aucun push/rebase/amend/branche/worktree. Avant staging : hygiène Markdown, diffcheck, index et26 chemins de tranche à contrôler,64 étrangers en SHA/mode. Le reçu privé après commit indiquera SHA/parent/blobs/index et conservation des étrangers. Notion existant AC-13, unique domaine Post Bêta Monde & narration, TO REVIEW pour l'implémentation et PARTIAL pour le résultat global ; DONE réservé à Yoahn. Aucun nouveau ticket de carte ou bug, aucune gate bêta modifiée.
+
+
+## Complément du 14 octobre 2026 — Reconnaissance des commandes de présentation source
+
+**AC-13 / KAN-03 : IR source livré pour revue, parcours complet toujours PARTIAL.** Le convertisseur reconnaît maintenant les commandes RMXP 106 (attente), 223 (Tone) et 250 (SE) du profil exact Kanto. Leur reconnaissance ne les active pas dans un projet Avelune. Les handlers, formulaires et transports natifs de présentation font l'objet de la tranche suivante ; aucun soin, combat ou porte source n'est annoncé fonctionnel.
+
+### Audit et périmètre
+
+HEAD initial `34012aede41c65c95850a68fac85e303a43d454d`, branche main, index vide. Le reçu `Q/presentation-root-initial-01.json` retrouve les 64 empreintes étrangères identiques au contrôle initial Warp. Les modifications Runtime de présentation en préparation sont exclues de ce commit. Q conserve le sens donné dans le complément précédent ; R est sa copie privée sans Git. Le writer étranger reste hors périmètre. L'autorisation de commits locaux entre lots vient du goal explicite de Yoahn ; aucune publication ou autre opération Git n'est ajoutée.
+
+L'oracle demeure l'archive Scripts `3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d`, lue comme données. `034.rb:383–386/899–901/1051–1053` et `039.rb:38–46/75–81` établissent les attentes à 20 ticks/s et les effets non bloquants. Le SHA recalculé de 039 est `30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d`. Aucun Ruby n'est exécuté. Les besoins sont la conservation des valeurs littérales, durées, références brutes et locators, ainsi que le refus de toute activation partielle.
+
+| Fichier | Zones modifiées et résultat |
+|---|---|
+| `packages/avelune_converter_core/lib/src/source_events.dart` | Profil `kanto-events-static-v3` et attestation 039 ; nouveaux `SourceToneNode`, `SourceWaitNode`, `SourceSoundEffectNode` ; dispatch 106/223/250 et helpers stricts de durée, Tone32B/f64 et AudioFile. |
+| `packages/avelune_converter_core/test/source_events_test.dart` | 132 cas finaux incluant valeurs/durées, SE, Tone non fini ou invalide, arité/opcode/indent/locator/ref erronés, métadonnées d'encodage étendues, profil/hash, et non-régressions pages/dialogues/choix. |
+| `packages/avelune_converter_adapters/lib/src/source_event_projection.dart` | `_blockGaps` conserve `sourcePresentationUnsupported` pour les trois nouveaux nœuds avant toute projection d'événement. |
+| `packages/avelune_converter_adapters/test/source_event_projection_test.dart` | 35 cas finaux ; chacune des nouvelles commandes et leur séquence entière restent inactives, sans effet natif partiel ; evidence/hash du nouveau profil vérifiés. |
+| `documentation/reports/converter/AC-13/13_native_events.md` | Note d'état actualisée et ce complément consolidé, sans nouveau Markdown. |
+
+Tone exige exactement 32 octets, quatre doubles little-endian finis, RGB dans [-255,255] et gris dans [0,255]. Les ticks sont des entiers source non négatifs à 20 Hz, conservés avec leur conversion en ms. SE conserve le nom littéral, le volume entier [0,100] et le pitch [50,150] sans prétendre que le moteur cible consomme tout pitch. Les annotations d'encodage standard restent admissibles ; clés et valeurs passent par les gardes de nœud brut. Les autres extensions/classes/champs/references malformés sont refusés. Le profil v3 est le seul profil courant de cette archive ; aucun alias ou fallback v2 n'est ajouté. Le hash de profil et l'evidence de projection changent, même quand les octets normalisés source restent identiques.
+
+### Preuve sur la sortie originale du Centre
+
+`Q/presentation-ir-center-exit-run-01.json` : exit0,14.935s, pins stables, zéro signal/survivant, protégés inchangés. Le helper relit uniquement sept fichiers bruts archivés ; aucune lecture de la source vivante, publication ou script exécuté. Le snapshot `fd1e6e73879d90d3dbedffcd703e5bac5b3b58c9fc8a9186ce1e5d98233dbe4e`, normalization `e152056177a5d5cb0ca8c902a62748c88b27f9da00504e85404e7ad06f23d17f` et archive `8f7ea614cdd7b36bce09df3c62f014305aa7df2857275df8560c3345a945c734` sont inchangés. Profil v3 `284a13b6bb0b24b790bdec8c4bfd6cf2c1c76a193805f07ee28fd0470beea5ef`.
+
+Map102/event1/page0 conserve exactement cinq nœuds : SE « Exit Door »,80/100 ; Tone[-255,-255,-255,0],6ticks→300ms ; Wait8ticks→400ms ; Warp100,(13,25),direction0,sansfade ; Tone[0,0,0,0],6ticks→300ms. Les spans et locators command0..4 sont exacts. La projection reste `quarantinedWholeEvent`, avec `sourcePresentationUnsupported`, `triggerContractUnsupported` et `warpFadeUnsupported`, `nativeEventId=null` et aucune commande adaptée. Résultat détaillé `Q/presentation-ir-center-exit-result-01.json`, SHA `b64988adf53e64a16d5fc6d88e3d9e4729ed16bca0b9f8eea68061748727cd6e`.
+
+### Vérification et limites des preuves
+
+Tous les runs utilisent `Q/run_owned.py` et consignent cwd, commandes exactes, PID/descendants, identités, hashes avant/après, logSHA et nettoyage. Les quatre fichiers host/R sont égaux au gel `Q/presentation-ir-freeze-01.json`.
+
+| Reçu | Commande depuis le package R indiqué | Résultat exact |
+|---|---|---|
+| `presentation-ir-core-green-03` | core : `dart test test/source_events_test.dart --reporter expanded --concurrency=1` |132 PASS, exit0,4.695s|
+| `presentation-ir-projection-green-02` | adapters : `dart test test/source_event_projection_test.dart --reporter expanded --concurrency=1` |35 PASS, exit0,6.815s|
+| `presentation-ir-core-analyze-02` | core : `dart analyze lib/src/source_events.dart test/source_events_test.dart` |No issues found, exit0,1.371s|
+| `presentation-ir-projection-analyze-02` | adapters : `dart analyze lib/src/source_event_projection.dart test/source_event_projection_test.dart` |No issues found, exit0,2.297s|
+| `presentation-ir-core-full-green-01` | core : `dart test --reporter expanded --concurrency=1` |926 PASS/1 SKIP, exit0,76.709s ; checkpoint avant les deux dernières gardes d'encodage, pas suite complète des blobs finaux|
+| `presentation-ir-cli-resolution-01` | CLI : `dart pub get --offline --enforce-lockfile` |exit0,1.035s ; manifeste/lock inchangés, résolution privée seulement|
+| `presentation-ir-cli-build-01` | CLI : `dart compile exe bin/avelune_converter.dart -o Q/presentation-ir-converter-cli-01` |exit0,25.491s ; compilation AOT de la CLI privée, aucune release GUI installée ou publiée|
+
+Le RED initial core117PASS/13FAIL comprend 12 contrepreuves fonctionnelles et une fixture Wait malformée, refusée plus tôt par le normalizer. La première GREEN intermédiaire129PASS/1FAIL conserve cet échec de fixture ; le test final vérifie maintenant `canPlan=false` et l'absence d'événement, sans relâcher la production. Les deux RED d'encodage ultérieurs sont fonctionnels. Le RED projection31PASS/4FAIL prouve la garde manquante. Le SKIP complet concerne le témoin réel Kanto CONN15. Aucune addition des totaux de runs ni certification globale n'est annoncée.
+
+Aucun nouveau contrat authoring natif ou action MCP n'est introduit par cette seule IR. Le convertisseur continue de produire des événements entièrement en quarantaine ; les séquences source ne sont pas écrites par une sauvegarde générique de carte. API/UI/MCP de Tone/SE et leurs dépendances restent à qualifier dans la tranche native. Les fixtures n'ajoutent aucun asset Pokémon privé au dépôt.
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture — root + sourceagent | Timing du projet exact et références brutes établis ; pas de fallback depuis un autre moteur. |
+| Implémentation — ac13_warp_runtime_tests | Trois IR strictes, nouveau profil et gardes entières ; quatre fichiers de code/tests. |
+| Tests — agent source + root | RED distincts de la fixture malformée, 132+35 ciblés finaux, analyses sans issues, vraie sortie Centre relue. |
+| Build / Validation — root | AOT CLI privée PASS ; résolutions privées à locks stables ; aucun nouveau Player lancé. |
+| Critique finale — ac15_connection_review_fresh | Quatre fichiers relus en readonly, pins et oracle recalculés ; aucun nouveau P1/P2 dans le scope. |
+
+Auto-critique : reconnaître le programme de la porte ne le rend pas jouable. Le renderer, le son naturel, la durée de vie après endScene, les routes/visibilité/TempSwitch d'entrée et le save/reload ne sont pas prouvés par ce commit. L'IR accepte une plage de pitch plus large que l'audio natif actuellement raccordé ; l'admission cible doit donc rester bornée et refuser les valeurs non prises en charge. La suite complète core finale n'est pas relancée après deux gardes locales déjà ciblées ; la distinction est explicite. Le goal AC00–16 reste actif, AC13/FG082/090/093 PARTIAL et FG092 TODO, roadmap inchangée. Notion AC13 existant sera actualisé avec ce commit, TO REVIEW pour le code et PARTIAL pour le résultat global ; aucune nouvelle famille ou gate bêta.

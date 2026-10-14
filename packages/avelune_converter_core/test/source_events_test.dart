@@ -19,12 +19,33 @@ final class _RubyBytes {
   final List<int> bytes;
 }
 
+final class _RubyUserDefined {
+  const _RubyUserDefined(this.className, this.bytes);
+  final String className;
+  final List<int> bytes;
+}
+
+_RubyUserDefined _tone(List<double> channels) {
+  final bytes = ByteData(channels.length * 8);
+  for (var i = 0; i < channels.length; i++) {
+    bytes.setFloat64(i * 8, channels[i], Endian.little);
+  }
+  return _RubyUserDefined('Tone', bytes.buffer.asUint8List());
+}
+
+_RubyObject _se({Object? name = 'Exit Door', Object? volume = 80,
+        Object? pitch = 100}) =>
+    _RubyObject('RPG::AudioFile',
+        {'@name': name, '@volume': volume, '@pitch': pitch});
+
 final class _RubyAnnotation {
   const _RubyAnnotation(this.value,
-      {this.extension, this.userClass, this.fields = const {}});
+      {this.extension, this.userClass, this.fields = const {},
+      this.fieldExtensions = const {}});
   final Object? value;
   final String? extension, userClass;
   final Map<String, Object?> fields;
+  final Map<String, String> fieldExtensions;
 }
 
 final class _RubyTable {
@@ -73,6 +94,9 @@ final class _MarshalFixture {
         ..._value(value.value),
         ..._packed(value.fields.length),
         for (final entry in value.fields.entries) ...[
+          if (value.fieldExtensions[entry.key] case final extension?) ...[
+            0x65, ..._symbol(extension),
+          ],
           ..._symbol(entry.key),
           ..._value(entry.value)
         ],
@@ -119,6 +143,14 @@ final class _MarshalFixture {
           ..._symbol(entry.key),
           ..._value(entry.value)
         ],
+      ];
+    }
+    if (value is _RubyUserDefined) {
+      return [
+        0x75,
+        ..._symbol(value.className),
+        ..._packed(value.bytes.length),
+        ...value.bytes
       ];
     }
     if (value is _RubyTable) {
@@ -448,6 +480,212 @@ extension on SourceEventAnalysis {
 }
 
 void main() {
+  test('Center 102 exit recognizes presentation IR without source mutation',
+      () async {
+    final commands = [
+      _command(250, [_se()]),
+      _command(223, [_tone([-255, -255, -255, 0]), 6]),
+      _command(106, [8]),
+      _command(201, [0, 100, 13, 25, 0, 1]),
+      _command(223, [_tone([0, 0, 0, 0]), 6]),
+      _command(0, []),
+    ];
+    final project = await _normalize(_source(_project(maps: {
+      102: _map(width: 20, height: 14,
+          events: {1: _event(1, [_page(commands, trigger: 1)], x: 9, y: 11)}),
+      100: _map(width: 20, height: 30),
+    })));
+    final before = project.canonicalHash;
+    final archiveBefore = project.archive.canonicalHash;
+    final analysis = _analyzer(project).analyze();
+    final page = analysis.requireEvent(102, 1).pages.single;
+    expect(page.body.nodes.map((node) => node.runtimeType.toString()), [
+      'SourceSoundEffectNode', 'SourceToneNode', 'SourceWaitNode',
+      'SourceWarpNode', 'SourceToneNode',
+    ]);
+    expect(page.isQuarantined, isFalse);
+    expect(page.sourcePage.commands.map((command) => command.code),
+        [250, 223, 106, 201, 223, 0]);
+    final dynamic sound = page.body.nodes[0];
+    final dynamic dark = page.body.nodes[1];
+    final dynamic wait = page.body.nodes[2];
+    final dynamic neutral = page.body.nodes[4];
+    expect([sound.name, sound.volume, sound.pitch], ['Exit Door', 80, 100]);
+    expect([dark.red, dark.green, dark.blue, dark.gray], [-255, -255, -255, 0]);
+    expect([dark.durationTicks, dark.durationMs], [6, 300]);
+    expect([wait.durationTicks, wait.durationMs], [8, 400]);
+    expect([neutral.red, neutral.green, neutral.blue, neutral.gray], [0, 0, 0, 0]);
+    for (final index in [0, 1, 2, 4]) {
+      final dynamic node = page.body.nodes[index];
+      expect([node.span.firstCommandIndex, node.span.lastCommandIndex], [index, index]);
+      expect(node.span.locator.toJson(),
+          page.sourcePage.commands[index].sourceLocator.toJson());
+      final json = node.toJson() as Map<String, Object?>;
+      expect(json['profileHash'], analysis.profile.canonicalHash.value);
+      expect(jsonDecode(jsonEncode(json)), json);
+      if (index != 2) {
+        final reference = node.rawDataRef as SourcePreservedData;
+        expect(reference.locator!.toJson(), node.span.locator.toJson());
+        expect(reference.fileId, page.rawDataRef!.fileId);
+        expect(reference.id.value,
+            (page.sourcePage.commands[index].parameters.first as Map)['preservedDataRef']);
+      }
+    }
+    final darkJson = dark.toJson() as Map<String, Object?>;
+    darkJson['red'] = 99;
+    expect(dark.red, -255);
+    expect(dark.toJson()['red'], -255);
+    expect(project.canonicalHash, before);
+    expect(project.archive.canonicalHash, archiveBefore);
+    expect(() => page.body.nodes.clear(), throwsUnsupportedError);
+  });
+
+  for (final channels in <List<double>>[
+    [1.5, -2.25, 3.125, 128.75],
+    [-255, 255, 0, 255],
+  ]) {
+    test('Tone preserves finite RGSS channels $channels and zero duration', () async {
+      final page = _analyzer(await _events([_page([
+        _command(223, [_tone(channels), 0]), _command(0, []),
+      ])])).analyze().requireEvent(1, 1).pages.single;
+      expect(page.body.nodes.single.runtimeType.toString(), 'SourceToneNode');
+      final dynamic node = page.body.nodes.single;
+      expect([node.red, node.green, node.blue, node.gray], channels);
+      expect([node.durationTicks, node.durationMs], [0, 0]);
+    });
+  }
+
+  for (final ticks in [0, 1, 8, 2147483647]) {
+    test('Wait recognizes integer $ticks at the attested 20 Hz', () async {
+      final page = _analyzer(await _events([_page([
+        _command(106, [ticks]), _command(0, []),
+      ])])).analyze().requireEvent(1, 1).pages.single;
+      expect(page.body.nodes.single.runtimeType.toString(), 'SourceWaitNode');
+      final dynamic node = page.body.nodes.single;
+      expect([node.durationTicks, node.durationMs], [ticks, ticks * 50]);
+      expect(node.toJson()['ticksPerSecond'], 20);
+    });
+  }
+
+  for (final values in [(0, 50), (100, 150)]) {
+    test('SE retains literal RGSS volume and pitch $values', () async {
+      final page = _analyzer(await _events([_page([
+        _command(250, [_se(volume: values.$1, pitch: values.$2)]),
+        _command(0, []),
+      ])])).analyze().requireEvent(1, 1).pages.single;
+      expect(page.body.nodes.single.runtimeType.toString(), 'SourceSoundEffectNode');
+      final dynamic node = page.body.nodes.single;
+      expect([node.name, node.volume, node.pitch], ['Exit Door', values.$1, values.$2]);
+      expect(node.toJson()['waitForCompletion'], isFalse);
+    });
+  }
+
+  test('SE preserves standard Marshal string encoding metadata', () async {
+    final page = _analyzer(await _events([_page([
+      _command(250, [_se(name: const _RubyAnnotation('Exit Door', fields: {'E': true}))]),
+      _command(0, []),
+    ])])).analyze().requireEvent(1, 1).pages.single;
+    expect(page.body.nodes.single.runtimeType.toString(), 'SourceSoundEffectNode');
+    final dynamic node = page.body.nodes.single;
+    expect(node.name, 'Exit Door');
+  });
+
+  final rejectedPresentation = <String, _RubyObject>{
+    'short Tone': _command(223, [const _RubyUserDefined('Tone', [0]), 6]),
+    'long Tone': _command(223, [_RubyUserDefined('Tone', List.filled(33, 0)), 6]),
+    'wrong Tone class': _command(223, [const _RubyUserDefined('Color', []), 6]),
+    'Tone object instead of bytes': _command(223, [_RubyObject('Tone', {}), 6]),
+    'nonfinite Tone': _command(223, [_tone([double.nan, 0, 0, 0]), 6]),
+    'infinite Tone': _command(223, [_tone([0, double.infinity, 0, 0]), 6]),
+    'RGB below bound': _command(223, [_tone([-255.001, 0, 0, 0]), 6]),
+    'RGB above bound': _command(223, [_tone([0, 0, 255.001, 0]), 6]),
+    'gray below bound': _command(223, [_tone([0, 0, 0, -0.001]), 6]),
+    'gray above bound': _command(223, [_tone([0, 0, 0, 255.001]), 6]),
+    'extended Tone': _command(223, [_RubyAnnotation(_tone([0, 0, 0, 0]), extension: 'Extra'), 6]),
+    'annotated Tone': _command(223, [_RubyAnnotation(_tone([0, 0, 0, 0]), fields: {'@extra': 1}), 6]),
+    'extra Tone parameter': _command(223, [_tone([0, 0, 0, 0]), 6, false]),
+    'negative Tone duration': _command(223, [_tone([0, 0, 0, 0]), -1]),
+    'string Tone duration': _command(223, [_tone([0, 0, 0, 0]), '6']),
+    'missing Wait': _command(106, []),
+    'extra Wait': _command(106, [8, false]),
+    'negative Wait': _command(106, [-1]),
+    'string Wait': _command(106, ['8']),
+    'boolean Wait': _command(106, [true]),
+    'oversized Wait': _command(106, [2147483648]),
+    'dynamic SE': _command(250, ['Exit Door']),
+    'wrong SE class': _command(250, [_RubyObject('AudioFile', _se().fields)]),
+    'extra SE field': _command(250, [_se()..fields['@extra'] = false]),
+    'missing SE pitch': _command(250, [_se()..fields.remove('@pitch')]),
+    'extended SE': _command(250, [_RubyAnnotation(_se(), extension: 'Extra')]),
+    'annotated SE name': _command(250, [_se(name: const _RubyAnnotation('Exit Door', fields: {'@extra': 1}))]),
+    'extended SE encoding key': _command(250, [_se(name: const _RubyAnnotation('Exit Door',
+        fields: {'E': true}, fieldExtensions: {'E': 'Extra'}))]),
+    'extended SE encoding value': _command(250, [_se(name: const _RubyAnnotation('Exit Door',
+        fields: {'encoding': _RubyAnnotation('UTF-8', extension: 'Extra')}))]),
+    'nonliteral SE name': _command(250, [_se(name: _RubyObject('Unknown', {}))]),
+    'SE volume below bound': _command(250, [_se(volume: -1)]),
+    'SE volume above bound': _command(250, [_se(volume: 101)]),
+    'SE pitch below bound': _command(250, [_se(pitch: 49)]),
+    'SE pitch above bound': _command(250, [_se(pitch: 151)]),
+    'extra SE parameter': _command(250, [_se(), false]),
+  };
+  for (final entry in rejectedPresentation.entries) {
+    test('${entry.key} closes the complete presentation unit', () async {
+      final project = await _events([_page([
+        entry.value, _command(123, ['A', 0]), _command(0, []),
+      ])]);
+      final before = project.archive.canonicalHash;
+      final page = _analyzer(project).analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.isQuarantined, isTrue);
+      expect(page.body.nodes.first, isA<SourceUnknownNode>());
+      expect(page.sourcePage.commands.map((command) => command.code),
+          [entry.value.fields['@code'], 123, 0]);
+      expect(project.archive.canonicalHash, before);
+    });
+  }
+
+  test('invalid Marshal annotation on Wait cannot admit a source event', () async {
+    final project = await _events([_page([
+      _command(106, [const _RubyAnnotation(8, fields: {'@extra': 1})]),
+      _command(123, ['A', 0]), _command(0, []),
+    ])]);
+    expect(project.canPlan, isFalse);
+    expect(project.diagnostics.any((diagnostic) => diagnostic.blocksPlanning), isTrue);
+    expect(_analyzer(project).analyze().events, isEmpty);
+  });
+
+  test('presentation recognition does not admit an unknown suffix', () async {
+    final page = _analyzer(await _events([_page([
+      _command(106, [8]), _command(999, []),
+      _command(123, ['A', 0]), _command(0, []),
+    ])])).analyze().requireEvent(1, 1).pages.single;
+    expect(page.body.nodes.first.runtimeType.toString(), 'SourceWaitNode');
+    expect(page.isQuarantined, isTrue);
+    expect(page.body.nodes[1], isA<SourceUnknownNode>());
+  });
+
+  test('presentation requires matching attested profile and source bindings', () async {
+    final project = await _events([_page([
+      _command(250, [_se()]),
+      _command(223, [_tone([0, 0, 0, 0]), 6]),
+      _command(106, [8]), _command(0, []),
+    ])]);
+    for (final profile in [
+      SourceEventProfile.kantoForProject(project, scriptsArchiveHash: _hash([9])),
+      SourceEventProfile.kanto(scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+          sourceSnapshotHash: _hash([9]), normalizationHash: project.canonicalHash),
+      SourceEventProfile.kanto(scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+          sourceSnapshotHash: project.snapshot.canonicalHash, normalizationHash: _hash([9])),
+    ]) {
+      final page = SourceEventAnalyzer.forProject(project, profile: profile)
+          .analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.isQuarantined, isTrue);
+      expect(page.body.nodes, everyElement(isA<SourceUnknownNode>()));
+    }
+  });
+
   test('exact current-event facing route preserves its two-command source span',
       () async {
     final commands = [
@@ -488,7 +726,9 @@ void main() {
     final profile =
         SourceEventProfile.kantoForProject(await _events([_page([])]));
     final json = profile.toJson();
-    expect(json['profile'], 'kanto-events-static-v2');
+    expect(json['profile'], 'kanto-events-static-v3');
+    expect(json['oracleSections'], containsPair('039',
+        '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d'));
     expect(
         json['oracleSections'],
         containsPair('044',

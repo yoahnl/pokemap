@@ -23,6 +23,20 @@ final class _RubyBytes {
   final List<int> bytes;
 }
 
+final class _RubyUserDefined {
+  const _RubyUserDefined(this.className, this.bytes);
+  final String className;
+  final List<int> bytes;
+}
+
+_RubyUserDefined _tone(List<double> channels) {
+  final bytes = ByteData(channels.length * 8);
+  for (var i = 0; i < channels.length; i++) {
+    bytes.setFloat64(i * 8, channels[i], Endian.little);
+  }
+  return _RubyUserDefined('Tone', bytes.buffer.asUint8List());
+}
+
 final class _RubyTable {
   _RubyTable(this.x, this.y, this.z, this.cells, {this.dimensions = 3});
   final int dimensions;
@@ -95,6 +109,10 @@ final class _MarshalFixture {
           ..._value(entry.value)
         ],
       ];
+    }
+    if (value is _RubyUserDefined) {
+      return [0x75, ..._symbol(value.className),
+        ..._packed(value.bytes.length), ...value.bytes];
     }
     if (value is _RubyTable) {
       final data = ByteData(20 + value.cells.length * 2)
@@ -480,6 +498,68 @@ List<_RubyObject> _interactionFacingCommands() {
 }
 
 void main() {
+  final presentationCommands = [
+    _command(223, [_tone([-255, -255, -255, 0]), 6]),
+    _command(106, [8]),
+    _command(250, [_RubyObject('RPG::AudioFile', {
+      '@name': 'Exit Door', '@volume': 80, '@pitch': 100,
+    })]),
+  ];
+  for (final command in presentationCommands) {
+    test('recognized presentation ${command.fields['@code']} keeps every page quarantined', () async {
+      final source = await _events([
+        _page([_command(101, ['A lower page must remain inactive'])]),
+        _page([
+          _command(123, ['A', 0]), command,
+          _command(123, ['B', 0]), _command(0, []),
+        ]),
+      ]);
+      final before = source.canonicalHash;
+      final result = _projectEvents(source);
+      expect(jsonEncode(result.semanticEvidence), contains('sourcePresentationUnsupported'));
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.registry.records.where((record) => record.enabledOrNull == true), isEmpty);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.staticSemanticsQualified, isFalse);
+      expect(source.canonicalHash, before);
+      final profile = result.semanticEvidence['sourceProfile'] as Map;
+      expect(profile['profile'], 'kanto-events-static-v3');
+      expect(result.semanticEvidence['sourceProfileHash'], canonicalHashOf(profile).value);
+      final historical = jsonDecode(jsonEncode(profile)) as Map<String, dynamic>;
+      historical['profile'] = 'kanto-events-static-v2';
+      (historical['oracleSections'] as Map).remove('039');
+      expect(canonicalHashOf(historical).value,
+          isNot(result.semanticEvidence['sourceProfileHash']));
+      expect(result.artifacts.single.rawSha256,
+          _hash(utf8.encode(canonicalJsonOf(result.semanticEvidence))));
+      final historicalEvidence = jsonDecode(jsonEncode(result.semanticEvidence)) as Map<String, dynamic>;
+      historicalEvidence['sourceProfile'] = historical;
+      historicalEvidence['sourceProfileHash'] = canonicalHashOf(historical).value;
+      expect(_hash(utf8.encode(canonicalJsonOf(historicalEvidence))),
+          isNot(result.artifacts.single.rawSha256));
+    });
+  }
+
+  test('presentation exit program cannot publish its warp or pending facts', () async {
+    final source = await _events([_page([
+      presentationCommands[2], presentationCommands[0], presentationCommands[1],
+      _command(201, [0, 8, 2, 1, 0, 1]),
+      _command(223, [_tone([0, 0, 0, 0]), 6]),
+      _command(123, ['A', 0]), _command(0, []),
+    ], trigger: 1)]);
+    final result = _projectEvents(source);
+    expect(jsonEncode(result.semanticEvidence), contains('sourcePresentationUnsupported'));
+    expect(result.registry.records.single.definitionOrNull, isNull);
+    expect(result.scenes, isEmpty);
+    expect(result.facts, isEmpty);
+    expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
+    expect(result.nativeMaps.values.expand((map) => map.entities), isEmpty);
+    expect(result.staticSemanticsQualified, isFalse);
+  });
+
   test('unported source formatting quarantines the whole colored event',
       () async {
     for (final text in [

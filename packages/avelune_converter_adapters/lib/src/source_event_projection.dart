@@ -842,6 +842,10 @@ final class _ProjectionBuilder {
         case SourceUnknownNode():
         case SourcePickupNode():
           gaps.add('sourceCommandUnqualified');
+        case SourceToneNode():
+        case SourceWaitNode():
+        case SourceSoundEffectNode():
+          gaps.add('sourcePresentationUnsupported');
       }
     }
   }

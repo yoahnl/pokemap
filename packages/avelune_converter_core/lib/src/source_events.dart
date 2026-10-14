@@ -34,7 +34,7 @@ final class SourceEventProfile {
       scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-events-static-v2',
+        'profile': 'kanto-events-static-v3',
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
@@ -44,6 +44,8 @@ final class SourceEventProfile {
               'b2f4c542a1542a5908d1208b87eae05d8b6f6ec0d26df1835871595842ed0355',
           '034':
               'ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561',
+          '039':
+              '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d',
           '044':
               '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9',
           '045':
@@ -242,6 +244,78 @@ final class SourceWarpNode extends SourceEventNode {
   final int y;
   final int direction;
   final bool fade;
+}
+
+final class SourceToneNode extends SourceEventNode {
+  const SourceToneNode(super.span,
+      {required this.red,
+      required this.green,
+      required this.blue,
+      required this.gray,
+      required this.durationTicks,
+      required this.rawDataRef,
+      required this.profileHash});
+  final double red, green, blue, gray;
+  final int durationTicks;
+  final SourcePreservedData rawDataRef;
+  final Sha256Hash profileHash;
+  int get durationMs => durationTicks * 50;
+  Map<String, Object?> toJson() => {
+        'kind': 'tone',
+        'red': red,
+        'green': green,
+        'blue': blue,
+        'gray': gray,
+        'durationTicks': durationTicks,
+        'ticksPerSecond': 20,
+        'durationMs': durationMs,
+        'waitForCompletion': false,
+        'span': span.toJson(),
+        'rawDataRef': rawDataRef.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
+final class SourceWaitNode extends SourceEventNode {
+  const SourceWaitNode(super.span,
+      {required this.durationTicks, required this.profileHash});
+  final int durationTicks;
+  final Sha256Hash profileHash;
+  int get durationMs => durationTicks * 50;
+  Map<String, Object?> toJson() => {
+        'kind': 'wait',
+        'durationTicks': durationTicks,
+        'ticksPerSecond': 20,
+        'durationMs': durationMs,
+        'span': span.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
+final class SourceSoundEffectNode extends SourceEventNode {
+  const SourceSoundEffectNode(super.span,
+      {required this.name,
+      required this.volume,
+      required this.pitch,
+      required this.rawDataRef,
+      required this.profileHash});
+  final String name;
+  final int volume, pitch;
+  final SourcePreservedData rawDataRef;
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {
+        'kind': 'soundEffect',
+        'name': name,
+        'volume': volume,
+        'pitch': pitch,
+        'waitForCompletion': false,
+        'span': span.toJson(),
+        'rawDataRef': rawDataRef.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
 }
 
 final class SourceScriptNode extends SourceEventNode {
@@ -843,6 +917,8 @@ final class _SourceEventParser {
             followingChoice: choice);
       case 102:
         return _choice(indent);
+      case 106:
+        return _wait();
       case 111:
         return _conditional(indent);
       case 121:
@@ -913,6 +989,10 @@ final class _SourceEventParser {
             fade: fade == 0);
       case 209:
         return _interactionFacing(indent);
+      case 223:
+        return _tone();
+      case 250:
+        return _soundEffect();
       case 355:
         final first = index;
         var script = '';
@@ -927,6 +1007,99 @@ final class _SourceEventParser {
       default:
         return _unknown('events.unknown_command');
     }
+  }
+
+  SourceEventNode _wait() {
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final command = commands[index];
+    _arity(command.parameters, 1);
+    final raw = _rawFacingParameters(command, 1);
+    final ticks = _presentationDuration(command, raw, 0);
+    final current = index++;
+    return SourceWaitNode(_span(current, current),
+        durationTicks: ticks, profileHash: analyzer.profile.canonicalHash);
+  }
+
+  SourceEventNode _tone() {
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final command = commands[index];
+    _arity(command.parameters, 2);
+    final raw = _rawFacingParameters(command, 2);
+    final reference = _facingReference(command, 0, raw[0]);
+    final doc = analyzer.project.archive.files[reference.fileId]!.document;
+    final tone = doc.node(_facingPlain(doc, raw[0], MarshalKind.userDefined));
+    if (tone.className != 'Tone' || tone.bytes?.length != 32) {
+      throw const FormatException();
+    }
+    final bytes = ByteData.sublistView(Uint8List.fromList(tone.bytes!));
+    final channels = [
+      for (var i = 0; i < 4; i++) bytes.getFloat64(i * 8, Endian.little)
+    ];
+    for (var i = 0; i < channels.length; i++) {
+      final value = channels[i];
+      if (!value.isFinite || value < (i == 3 ? 0 : -255) || value > 255) {
+        throw const FormatException();
+      }
+    }
+    final ticks = _presentationDuration(command, raw, 1);
+    final current = index++;
+    return SourceToneNode(_span(current, current),
+        red: channels[0],
+        green: channels[1],
+        blue: channels[2],
+        gray: channels[3],
+        durationTicks: ticks,
+        rawDataRef: reference,
+        profileHash: analyzer.profile.canonicalHash);
+  }
+
+  SourceEventNode _soundEffect() {
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final command = commands[index];
+    _arity(command.parameters, 1);
+    final raw = _rawFacingParameters(command, 1);
+    final reference = _facingReference(command, 0, raw[0]);
+    final doc = analyzer.project.archive.files[reference.fileId]!.document;
+    final fields = _facingFields(doc, raw[0], 'RPG::AudioFile',
+        const {'@name', '@volume', '@pitch'});
+    final nameId = _eventField(fields, '@name');
+    final text = doc.node(nameId);
+    if (text.kind != MarshalKind.string ||
+        text.extensions.isNotEmpty ||
+        text.userClass != null ||
+        text.instanceVariables.any((pair) =>
+            !const {'E', 'encoding'}.contains(doc.node(pair.key).name))) {
+      throw const FormatException();
+    }
+    for (final pair in text.instanceVariables) {
+      _facingPlain(doc, pair.key, MarshalKind.symbol);
+      _facingPlain(doc, pair.value,
+          doc.node(pair.key).name == 'E' ? MarshalKind.boolean : MarshalKind.string);
+    }
+    final name = _eventText(doc, nameId);
+    final volume = _eventInt(doc,
+        _facingPlain(doc, _eventField(fields, '@volume'), MarshalKind.integer));
+    final pitch = _eventInt(doc,
+        _facingPlain(doc, _eventField(fields, '@pitch'), MarshalKind.integer));
+    if (volume < 0 || volume > 100 || pitch < 50 || pitch > 150) {
+      throw const FormatException();
+    }
+    final current = index++;
+    return SourceSoundEffectNode(_span(current, current),
+        name: name,
+        volume: volume,
+        pitch: pitch,
+        rawDataRef: reference,
+        profileHash: analyzer.profile.canonicalHash);
+  }
+
+  int _presentationDuration(SourceCommand command, List<int> raw, int slot) {
+    final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+    final ticks = _eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer));
+    if (ticks < 0 || ticks != _integer(command.parameters[slot])) {
+      throw const FormatException();
+    }
+    return ticks;
   }
 
   SourceEventNode _interactionFacing(int indent) {
