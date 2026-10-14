@@ -85,6 +85,9 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
   }
 
   void _accept(NarrativeEventSourceRef source) {
+    if (_choosing != source.kind || _mapId != eventMapId(source)) {
+      return;
+    }
     if (widget.controller.setSource(widget.record.id, source)) {
       setState(() {
         _choosing = null;
@@ -109,6 +112,8 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
               for (final type in eventSourceKinds)
                 if (type != NarrativeEventSourceKind.modelInteract ||
                     widget.controller.project.settings.dimension == ProjectDimension.threeD)
+                if (type != NarrativeEventSourceKind.entityBump ||
+                    widget.controller.project.settings.dimension == ProjectDimension.twoD)
                 StudioChoice(
                   label: eventKindLabel(type),
                   selected: kind == type,
@@ -120,6 +125,12 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                   ),
                   onTap: () => _choose(type),
                 ),
+              if (kind == NarrativeEventSourceKind.entityBump) ...[
+                const SizedBox(height: 8),
+                const StudioNotice(
+                  'L’événement se déclenche quand le joueur marche contre un personnage bloquant.',
+                ),
+              ],
               const SizedBox(height: 14),
               if (kind != NarrativeEventSourceKind.outcomeReceived) ...[
                 StudioSelect(

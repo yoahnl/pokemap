@@ -244,6 +244,7 @@ void main() {
           proposal.source.when(
             modelInteract: (_, _) =>
                 fail('This source creation flow cannot create a 3D model.'),
+            entityBump: (_, _) => throw StateError('No contact source is physically created.'),
             entityInteract: (_, entityId) => entityId,
             triggerEnter: (_, triggerId) => triggerId,
             mapEnter: (_) => fail('A created source cannot be mapEnter.'),

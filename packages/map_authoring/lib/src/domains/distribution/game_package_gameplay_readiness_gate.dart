@@ -466,6 +466,7 @@ Set<String> _runtimeStartEventIds(ProjectManifest project) {
     final startsOnInitialMap = definition.source.when(
       modelInteract: (mapId, instanceId) => mapId == startMapId,
       entityInteract: (mapId, _) => mapId == startMapId,
+      entityBump: (mapId, _) => mapId == startMapId,
       triggerEnter: (mapId, _) => mapId == startMapId,
       mapEnter: (mapId) => mapId == startMapId,
       outcomeReceived: (_) => false,

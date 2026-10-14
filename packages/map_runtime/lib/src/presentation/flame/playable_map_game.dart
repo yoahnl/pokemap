@@ -1026,6 +1026,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required NarrativeEventOccurrence occurrence,
     required Future<void> Function(GameState gameState) legacyFallback,
     NarrativeSpatialInteractionGuard? interactionGuard,
+    bool Function()? contactIsApplicable,
   }) async {
     final occurrenceId = _nextNarrativeRuntimeId('spocc');
     _currentSpatialOccurrenceIds.add(occurrenceId);
@@ -1051,6 +1052,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         occurrenceId: occurrenceId,
         occurrence: occurrence,
         interactionGuard: interactionGuard,
+        contactIsApplicable: contactIsApplicable,
       );
       final transientCheckpointBlock =
           result is NarrativeSpatialProductionDispatchFailed &&
@@ -1258,6 +1260,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return source.when(
           modelInteract: (mapId, instanceId) => instanceId,
           entityInteract: (_, entityId) => entityId,
+          entityBump: (_, entityId) => entityId,
           triggerEnter: (_, triggerId) => triggerId,
           mapEnter: (mapId) => mapId,
           outcomeReceived: (_) => eventId,
@@ -4987,6 +4990,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       }
       _player.syncState(_world.player);
+      final contact = result.entityBumpContact;
+      if (contact != null && _canResolveOverworldInteraction()) {
+        final source = NarrativeEventSourceRef.entityBump(contact.mapId, contact.entityId);
+        final registry = _bundle.manifest.eventRegistry;
+        final owned = registry != null && registry.records.any((record) =>
+            record.enabledOrNull == true && record.definitionOrNull?.source == source) &&
+            (registry.mode != EventSystemMode.legacyOnly ||
+                registry.ownsSourceInLegacyMode(source));
+        if (owned) {
+          _runDetachedNarrativeTask(
+            operation: 'entityBump',
+            task: () => _dispatchNarrativeEntityBump(contact),
+          );
+        }
+      }
       return;
     }
 
@@ -10187,6 +10205,91 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     _runLegacyInteractionFallback(result);
+  }
+
+  Future<void> _dispatchNarrativeEntityBump(
+    GameplayEntityBumpContact contact,
+  ) async {
+    final activationId = _currentMapActivationId;
+    final instance = _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+      contact.mapId,
+    );
+    final actor =
+        _loadedMapsById[contact.mapId]?.npcActorByEntityId[contact.entityId];
+    if (actor == null || actor.isRemoved || actor.isStepping) {
+      return;
+    }
+    final actorPosition = actor.position.clone();
+    final actorAnchor = actor.gridPos;
+    bool applicable() {
+      if (_isRemoved ||
+          _activeMapId != contact.mapId ||
+          activationId != _currentMapActivationId ||
+          _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+                contact.mapId,
+              ) !=
+              instance ||
+          !identical(
+            _loadedMapsById[contact.mapId]?.npcActorByEntityId[contact
+                .entityId],
+            actor,
+          ) ||
+          actor.isRemoved ||
+          actor.isStepping ||
+          actor.position != actorPosition ||
+          actor.gridPos != actorAnchor ||
+          actor.gridPos != contact.entityPos ||
+          _player.isStepping ||
+          _world.player.facing != contact.direction ||
+          !isNarrativeEntityBumpSourceAvailable(
+            project: _bundle.manifest,
+            map: _world.map,
+            entityId: contact.entityId,
+          )) {
+        return false;
+      }
+      final fresh = resolvePlayerEntityBumpContact(
+        _world,
+        contact.direction,
+        attemptedPixelsPerStep: contact.attemptedPixelsPerStep,
+        characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
+            .map((reservation) => reservation.contactRect)
+            .whereType<PixelRect>(),
+      );
+      if (fresh == null) {
+        return false;
+      }
+      return fresh.mapId == contact.mapId &&
+          fresh.entityId == contact.entityId &&
+          fresh.attemptedPixelsPerStep == contact.attemptedPixelsPerStep &&
+          fresh.direction == contact.direction &&
+          fresh.playerPos == contact.playerPos &&
+          fresh.playerPositionPx.leftPx == contact.playerPositionPx.leftPx &&
+          fresh.playerPositionPx.topPx == contact.playerPositionPx.topPx &&
+          fresh.playerSpriteWidthPx == contact.playerSpriteWidthPx &&
+          fresh.playerSpriteHeightPx == contact.playerSpriteHeightPx &&
+          fresh.entityPos == contact.entityPos &&
+          fresh.entityCollisionRectPx.leftPx ==
+              contact.entityCollisionRectPx.leftPx &&
+          fresh.entityCollisionRectPx.topPx ==
+              contact.entityCollisionRectPx.topPx &&
+          fresh.entityCollisionRectPx.widthPx ==
+              contact.entityCollisionRectPx.widthPx &&
+          fresh.entityCollisionRectPx.heightPx ==
+              contact.entityCollisionRectPx.heightPx;
+    }
+
+    if (!applicable()) return;
+    await _dispatchSpatialOccurrence(
+      occurrence: NarrativeEventOccurrence(
+        source: NarrativeEventSourceRef.entityBump(
+          contact.mapId,
+          contact.entityId,
+        ),
+      ),
+      legacyFallback: (_) async {},
+      contactIsApplicable: applicable,
+    );
   }
 
   Future<void> _dispatchNarrativeEntityInteraction(

@@ -233,6 +233,7 @@ class NarrativeInteractionOpener {
           (fields?['entityId'] == null && fields?['triggerId'] == null && fields?['instanceId'] == null)) {
         controller.error =
             source?.when(
+              entityBump: (_, _) => null,
               entityInteract: (_, _) => null,
               modelInteract: (_, _) => null,
               triggerEnter: (_, _) => null,

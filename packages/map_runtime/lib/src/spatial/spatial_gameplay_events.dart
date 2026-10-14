@@ -355,6 +355,7 @@ final class SpatialGameplayEvents {
         modelInteract: (mapId, instanceId) =>
             mapId == map.id ? instanceId : null,
         entityInteract: (mapId, entityId) => null,
+        entityBump: (mapId, entityId) => null,
         triggerEnter: (mapId, triggerId) => null,
         mapEnter: (mapId) => null,
         outcomeReceived: (outcome) => null,
@@ -762,6 +763,7 @@ final class SpatialGameplayEvents {
     final source = occurrence.source.when(
       modelInteract: (mapId, instanceId) => null,
       entityInteract: (mapId, entityId) => (mapId: mapId, entityId: entityId),
+      entityBump: (_, _) => null,
       triggerEnter: (_, __) => null,
       mapEnter: (_) => null,
       outcomeReceived: (_) => null,

@@ -633,6 +633,7 @@ void _appendMissingReferences({
       if (source == null) continue;
       source.when<void>(
         entityInteract: (_, __) {},
+        entityBump: (_, _) {},
         modelInteract: (_, _) {},
         triggerEnter: (_, __) {},
         mapEnter: (_) {},

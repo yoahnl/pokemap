@@ -176,9 +176,17 @@ final class NarrativeSpatialProductionDispatchBridge {
     required String occurrenceId,
     required NarrativeEventOccurrence occurrence,
     NarrativeSpatialInteractionGuard? interactionGuard,
+    bool Function()? contactIsApplicable,
   }) async {
     try {
       _validateOccurrence(occurrenceId, occurrence);
+      if (occurrence.source.kind == NarrativeEventSourceKind.entityBump &&
+          contactIsApplicable == null) {
+        throw ArgumentError('Entity bump requires a physical contact guard.');
+      }
+      if (contactIsApplicable != null && !contactIsApplicable()) {
+        return _stale(occurrenceId, occurrence);
+      }
 
       // Claiming happens before the first await, so concurrent callers cannot
       // execute or fall back twice for the same production occurrence.
@@ -217,6 +225,9 @@ final class NarrativeSpatialProductionDispatchBridge {
         );
       }
       final authority = preparation as NarrativeEventDispatchAuthorityReady;
+      if (contactIsApplicable != null && !contactIsApplicable()) {
+        return _stale(occurrenceId, occurrence);
+      }
       if (interactionGuard != null) {
         if (!interactionGuard.isApplicable()) {
           return _stale(occurrenceId, occurrence);
@@ -233,6 +244,11 @@ final class NarrativeSpatialProductionDispatchBridge {
           if (!_isCurrentOccurrence(occurrenceId)) {
             return NarrativeSceneExecutionResult.cancelled(
               'Spatial occurrence became stale before Scene execution.',
+            );
+          }
+          if (contactIsApplicable != null && !contactIsApplicable()) {
+            return NarrativeSceneExecutionResult.cancelled(
+              'Entity contact changed before Scene execution.',
             );
           }
           if (interactionGuard != null &&
@@ -296,7 +312,8 @@ final class NarrativeSpatialProductionDispatchBridge {
       }
 
       final noMatch = execution as NarrativeEventExecutionNoMatch;
-      if (!noMatch.legacyFallbackAllowed) {
+      if (!noMatch.legacyFallbackAllowed ||
+          occurrence.source.kind == NarrativeEventSourceKind.entityBump) {
         return NarrativeSpatialProductionDispatchNoFallback(
           occurrenceId,
           occurrence,
@@ -345,12 +362,13 @@ final class NarrativeSpatialProductionDispatchBridge {
       );
     }
     if (occurrence.source.kind != NarrativeEventSourceKind.entityInteract &&
+        occurrence.source.kind != NarrativeEventSourceKind.entityBump &&
         occurrence.source.kind != NarrativeEventSourceKind.triggerEnter &&
         occurrence.source.kind != NarrativeEventSourceKind.modelInteract) {
       throw ArgumentError.value(
         occurrence.source.kind,
         'occurrence.source.kind',
-        'must be entityInteract, modelInteract or triggerEnter',
+        'must be entityInteract, entityBump, modelInteract or triggerEnter',
       );
     }
   }

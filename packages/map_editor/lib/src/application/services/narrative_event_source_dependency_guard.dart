@@ -123,14 +123,16 @@ final class NarrativeEventSourceDependencyGuard {
       return _revalidationDecision(
         registry: registry,
         matches: (source) =>
-            source == NarrativeEventSourceRef.entityInteract(mapId, current.id),
+            source == NarrativeEventSourceRef.entityInteract(mapId, current.id) ||
+          source == NarrativeEventSourceRef.entityBump(mapId, current.id),
         operation: 'modification physique de l’entité ${current.id}',
       );
     }
     return _decision(
       registry: registry,
       matches: (source) =>
-          source == NarrativeEventSourceRef.entityInteract(mapId, current.id),
+          source == NarrativeEventSourceRef.entityInteract(mapId, current.id) ||
+          source == NarrativeEventSourceRef.entityBump(mapId, current.id),
       operation: breaksIdentity
           ? 'renommage de l’entité ${current.id}'
           : 'conversion de l’entité ${current.id} en spawn',
@@ -145,7 +147,8 @@ final class NarrativeEventSourceDependencyGuard {
     return _decision(
       registry: registry,
       matches: (source) =>
-          source == NarrativeEventSourceRef.entityInteract(mapId, entityId),
+          source == NarrativeEventSourceRef.entityInteract(mapId, entityId) ||
+          source == NarrativeEventSourceRef.entityBump(mapId, entityId),
       operation: 'suppression de l’entité $entityId',
     );
   }
@@ -241,6 +244,7 @@ List<String> _linkedEventIds({
 
 String? _mapId(NarrativeEventSourceRef source) {
   return source.when(
+    entityBump: (mapId, _) => mapId,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
@@ -261,6 +265,10 @@ bool _isResolvedByMap(NarrativeEventSourceRef source, MapData map) {
                 .where((instance) => instance.id == instanceId)
                 .length ==
             1,
+    entityBump: (mapId, entityId) =>
+        mapId == map.id &&
+        map.spatialScene == null &&
+        map.entities.where((entity) => entity.id == entityId).length == 1,
     entityInteract: (mapId, entityId) =>
         mapId == map.id &&
         map.entities.any(

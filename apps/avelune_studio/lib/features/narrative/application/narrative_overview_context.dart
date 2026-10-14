@@ -147,6 +147,15 @@ class NarrativeOverviewContext {
     }
 
     return ref.when(
+      entityBump: (map, id) {
+        final value = located(map, id, true);
+        return (
+          mapId: value.mapId,
+          label: value.label,
+          when: 'Quand le joueur marche contre le personnage',
+          missing: value.missing,
+        );
+      },
       entityInteract: (map, id) => located(map, id, true),
       modelInteract: (map, id) {
         final instances = openMaps[map]?.spatialScene?.instances.where((instance) => instance.id == id).toList();

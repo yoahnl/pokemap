@@ -15,6 +15,7 @@ import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import 'narrative_entity_bump_source_reference.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -1292,6 +1293,7 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
         if (definition == null ||
             !_eventSourceStaticallyReachable(
               definition.source,
+              project: project,
               mapsById: mapsById,
               reachableSceneOutcomeKeys: reachableSceneOutcomeKeys,
             ) ||
@@ -1391,21 +1393,26 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
 
 bool _eventSourceStaticallyReachable(
   NarrativeEventSourceRef source, {
+  required ProjectManifest project,
   required Map<String, MapData> mapsById,
   required Set<String> reachableSceneOutcomeKeys,
 }) {
   return source.when(
     entityInteract: (mapId, entityId) => _sourceConnected(
       NarrativeEventSourceRef.entityInteract(mapId, entityId),
-      mapsById,
+      mapsById, project,
+    ),
+    entityBump: (mapId, entityId) => _sourceConnected(
+      NarrativeEventSourceRef.entityBump(mapId, entityId),
+      mapsById, project,
     ),
     modelInteract: (mapId, instanceId) => _sourceConnected(
       NarrativeEventSourceRef.entityInteract(mapId, instanceId),
-      mapsById,
+      mapsById, project,
     ),
     triggerEnter: (mapId, triggerId) => _sourceConnected(
       NarrativeEventSourceRef.triggerEnter(mapId, triggerId),
-      mapsById,
+      mapsById, project,
     ),
     mapEnter: (mapId) => mapsById.containsKey(mapId),
     outcomeReceived: (outcome) =>
@@ -1732,7 +1739,7 @@ List<NarrativeMapEventsView> _buildMapEventViews(
               sourceOwnerId: identity.ownerId,
               sourceOwnerLabel: presentation.label,
               sourceEntityKind: presentation.entityKind,
-              sourceConnected: _sourceConnected(source, mapsById),
+              sourceConnected: _sourceConnected(source, mapsById, project),
               sceneId: sceneId,
               sceneLabel: _sceneLabel(project, sceneId),
               sceneConnected:
@@ -2139,6 +2146,7 @@ List<NarrativeEventCondition> _recordConditions(NarrativeEventRecord record) =>
 ) =>
     source?.when(
       entityInteract: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
+      entityBump: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
       modelInteract: (mapId, instanceId) => (mapId: mapId, ownerId: instanceId),
       triggerEnter: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
       mapEnter: (mapId) => (mapId: mapId, ownerId: null),
@@ -2149,12 +2157,18 @@ List<NarrativeEventCondition> _recordConditions(NarrativeEventRecord record) =>
 bool _sourceConnected(
   NarrativeEventSourceRef? source,
   Map<String, MapData> mapsById,
+  ProjectManifest project,
 ) {
   if (source == null) return false;
   return source.when(
     entityInteract: (mapId, entityId) =>
         mapsById[mapId]?.entities.any((entity) => entity.id == entityId) ??
         false,
+    entityBump: (mapId, entityId) {
+      final map = mapsById[mapId];
+      return map != null && isNarrativeEntityBumpSourceAvailable(
+        project: project, map: map, entityId: entityId);
+    },
     modelInteract: (mapId, instanceId) =>
         mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ??
         false,
@@ -2173,6 +2187,17 @@ bool _sourceConnected(
   if (source == null) return (label: null, entityKind: null);
   return source.when(
     entityInteract: (mapId, entityId) {
+      MapEntity? entity;
+      for (final candidate
+          in mapsById[mapId]?.entities ?? const <MapEntity>[]) {
+        if (candidate.id == entityId) {
+          entity = candidate;
+          break;
+        }
+      }
+      return (label: entity?.inspectorHeadline, entityKind: entity?.kind);
+    },
+    entityBump: (mapId, entityId) {
       MapEntity? entity;
       for (final candidate
           in mapsById[mapId]?.entities ?? const <MapEntity>[]) {

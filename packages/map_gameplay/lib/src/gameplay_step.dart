@@ -19,6 +19,118 @@ GameplayStepResult stepGameplayWorld(
   };
 }
 
+GameplayEntityBumpContact? resolvePlayerEntityBumpContact(
+  GameplayWorldState world,
+  Direction direction, {
+  int attemptedPixelsPerStep = 1,
+  Iterable<PixelRect> characterReservations = const [],
+}) {
+  final player = world.player;
+  final maxStep = direction.dx == 0 ? world.tileHeightPx : world.tileWidthPx;
+  final next = GridPos(
+    x: player.pos.x + direction.dx,
+    y: player.pos.y + direction.dy,
+  );
+  if (attemptedPixelsPerStep < 1 || attemptedPixelsPerStep > maxStep ||
+      world.map.spatialScene != null || world.map.version == ProjectVersion.v9 ||
+      player.playerSpriteWidthPx <= 0 || player.playerSpriteHeightPx <= 0 ||
+      world.map.id.isEmpty || world.map.id.trim() != world.map.id ||
+      next.x < 0 || next.y < 0 ||
+      next.x >= world.map.size.width || next.y >= world.map.size.height ||
+      (world.isWaterCell(next.x, next.y) &&
+          player.movementMode != MovementMode.surf)) {
+    return null;
+  }
+  bool inside(PixelRect rect) => rect.widthPx > 0 && rect.heightPx > 0 &&
+      rect.leftPx >= 0 && rect.topPx >= 0 &&
+      rect.leftPx + rect.widthPx <= world.map.size.width * world.tileWidthPx &&
+      rect.topPx + rect.heightPx <= world.map.size.height * world.tileHeightPx;
+  final currentRect = player.playerCollisionRectPx;
+  if (!inside(currentRect) ||
+      !inside(world.playerCharacterContactRect(currentRect)) ||
+      PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+        playerCollisionRectPx: currentRect,
+        tileWidthPx: world.tileWidthPx,
+        tileHeightPx: world.tileHeightPx,
+        mapWidthCells: world.map.size.width,
+        mapHeightCells: world.map.size.height,
+      ) != player.pos ||
+      world.worldStaticObstaclesCollidePixelRect(currentRect,
+          playerContact: true)) {
+    return null;
+  }
+  final counts = <String, int>{};
+  for (final entity in world.map.entities) {
+    counts[entity.id] = (counts[entity.id] ?? 0) + 1;
+  }
+  final reservations = characterReservations.toList(growable: false);
+  for (var pixel = 1; pixel <= attemptedPixelsPerStep; pixel++) {
+    final attemptedRect = PlayerCollisionConventionsV1
+        .playerCollisionRectFromSpriteTopLeft(
+      spriteTopLeftPx: PixelPosition(
+        leftPx: player.playerPositionPx.leftPx + direction.dx * pixel,
+        topPx: player.playerPositionPx.topPx + direction.dy * pixel,
+      ),
+      spriteWidthPx: player.playerSpriteWidthPx,
+      spriteHeightPx: player.playerSpriteHeightPx,
+    );
+    final contact = world.playerCharacterContactRect(attemptedRect);
+    if (!inside(attemptedRect) || !inside(contact) ||
+        reservations.any((rect) => _bumpRectsOverlap(contact, rect))) {
+      return null;
+    }
+    if (!world.worldStaticObstaclesCollidePixelRect(attemptedRect,
+        playerContact: true)) {
+      continue;
+    }
+    MapEntity? owner;
+    PixelRect? ownerRect;
+    for (final entity in world.map.entities) {
+      if (entity.kind != MapEntityKind.npc || entity.npc == null ||
+          !entity.blocksMovement ||
+          !(world.npcMapPresencePredicate?.call(world.map.id, entity) ?? true) ||
+          !(world.mapEntityPresencePredicate?.call(world.map.id, entity) ?? true)) {
+        continue;
+      }
+      final rect = resolveEntityCollisionRectPx(entity,
+        tileWidthPx: world.tileWidthPx, tileHeightPx: world.tileHeightPx);
+      if (!_bumpRectsOverlap(contact, rect)) {
+        continue;
+      }
+      if (owner != null || counts[entity.id] != 1 ||
+          entity.id.isEmpty || entity.id.trim() != entity.id || !inside(rect)) {
+        return null;
+      }
+      owner = entity;
+      ownerRect = rect;
+    }
+    if (owner == null ||
+        world.worldStaticObstaclesCollidePixelRect(attemptedRect,
+          playerContact: true, ignoredEntityId: owner.id)) {
+      return null;
+    }
+    return GameplayEntityBumpContact(
+      mapId: world.map.id,
+      entityId: owner.id,
+      direction: direction,
+      attemptedPixelsPerStep: attemptedPixelsPerStep,
+      playerPos: player.pos,
+      playerPositionPx: player.playerPositionPx,
+      playerSpriteWidthPx: player.playerSpriteWidthPx,
+      playerSpriteHeightPx: player.playerSpriteHeightPx,
+      entityPos: owner.pos,
+      entityCollisionRectPx: ownerRect!,
+    );
+  }
+  return null;
+}
+
+bool _bumpRectsOverlap(PixelRect a, PixelRect b) =>
+    a.leftPx < b.leftPx + b.widthPx &&
+    a.leftPx + a.widthPx > b.leftPx &&
+    a.topPx < b.topPx + b.heightPx &&
+    a.topPx + a.heightPx > b.topPx;
+
 /// Déplacement **réellement pixel-level** : [playerPositionPx] + résolveur séparé H/V.
 GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
     Iterable<PixelRect> characterReservations) {
@@ -122,6 +234,10 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
     return Blocked(
       facingWorld,
       reason: GameplayMovementBlockReason.solid,
+      entityBumpContact: step > 0
+          ? resolvePlayerEntityBumpContact(facingWorld, direction,
+              attemptedPixelsPerStep: step, characterReservations: characterReservations)
+          : null,
     );
   }
 

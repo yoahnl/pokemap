@@ -490,6 +490,7 @@ void _expectPlayerServicesContract(
       .map(
         (event) => event.source.when<String?>(
           modelInteract: (_, _) => null,
+          entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
           entityInteract: (mapId, entityId) =>
               mapId == 'map_port_brisants' ? entityId : null,
           triggerEnter: (_, _) => null,
@@ -1000,6 +1001,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
   expect(mistDispersal.sceneId, 'scene_mist_disperses');
   mistDispersal.source.when(
     modelInteract: (_, _) => fail('La dissipation vient du boss.'),
+    entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
     entityInteract: (_, _) => fail('La dissipation vient du boss.'),
     triggerEnter: (_, _) => fail('La dissipation vient du boss.'),
     mapEnter: (_) => fail('La dissipation vient du boss.'),
@@ -1031,6 +1033,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
   final cabinKey = definitions['evt_019abcde-5000-7000-8000-000000000029']!;
   cabinKey.source.when(
     modelInteract: (_, _) => fail('La clé doit être trouvée dans une zone.'),
+    entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
     entityInteract: (_, _) => fail('La clé doit être trouvée dans une zone.'),
     triggerEnter: (mapId, triggerId) {
       expect(mapId, 'map_phare_exterieur');
@@ -1437,6 +1440,7 @@ void _expectEventSourcesClose(
             .map((entry) => entry['id']);
         expect(ids, contains(instanceId), reason: definition.id);
       },
+      entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
       entityInteract: (mapId, entityId) {
         final map = _mapJson(fixture, manifest, mapCache, mapId);
         final ids = (map['entities'] as List<dynamic>)

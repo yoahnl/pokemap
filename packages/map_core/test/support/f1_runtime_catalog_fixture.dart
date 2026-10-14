@@ -71,6 +71,7 @@ NarrativeEventProjectCatalog f1ProjectCatalogForRegistry(
 NarrativeOutcomeRef? _outcomeOrNull(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (_, __) => null,
+    entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
     modelInteract: (_, _) => null,
     triggerEnter: (_, __) => null,
     mapEnter: (_) => null,
@@ -115,6 +116,7 @@ NarrativeSpatialEventSourceOption _spatialOption(
       NarrativeSpatialEventSourceOwnerKind.entity,
       entityId,
     ),
+    entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
     triggerEnter: (mapId, triggerId) => (
       mapId,
       NarrativeSpatialEventSourceOwnerKind.trigger,

@@ -111,6 +111,41 @@ void main() {
       );
     });
 
+    for (final mode in ['contact', 'terrain', 'nonblocking', 'duplicate']) {
+      test('entityBump requires its own physical contact proof $mode', () {
+        final owner = MapEntity(
+          id: 'door', kind: MapEntityKind.npc,
+          pos: const GridPos(x: 3, y: 1),
+          npc: const MapEntityNpcData(characterId: 'character'),
+          blocksMovement: mode != 'nonblocking',
+        );
+        final collisions = List<bool>.filled(15, false);
+        if (mode == 'terrain') collisions[1 * 5 + 3] = true;
+        final map = _map(id: 'start', width: 5, height: 3,
+          collisions: collisions, entities: [_spawn(), owner,
+            if (mode == 'duplicate') owner]);
+        final report = validateNarrativePhysicalReachability(
+          project: _project([
+            _event(_eventA, NarrativeEventSourceRef.entityBump('start', 'door')),
+          ]).copyWith(maps: const [ProjectMapEntry(id: 'start', name: 'Start',
+              relativePath: 'maps/start.json')],
+            characters: const [ProjectCharacterEntry(id: 'character',
+              name: 'Character', tilesetId: 'tiles', frameHeight: 1)]),
+          maps: [map], narrativeReport: _symbolicReport());
+        final result = report.resultForEvent(_eventA)!;
+        if (mode == 'contact') {
+          expect(result.status, NarrativePhysicalSourceStatus.reachable);
+          expect(result.path, isNotEmpty);
+        } else {
+          expect(result.status, isNot(NarrativePhysicalSourceStatus.reachable));
+          if (mode == 'terrain') {
+            expect(result.status, NarrativePhysicalSourceStatus.indeterminate);
+          }
+          expect(result.path, isEmpty);
+        }
+      });
+    }
+
     test('interacts with a blocking entity from a cardinal adjacent cell', () {
       final map = _map(
         id: 'start',

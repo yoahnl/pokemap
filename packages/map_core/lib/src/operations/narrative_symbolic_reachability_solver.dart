@@ -7,6 +7,7 @@ import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_command_descriptor.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import 'narrative_entity_bump_source_reference.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/storyline_asset.dart';
@@ -496,6 +497,10 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   final initial = NarrativeSymbolicState(factValues: initialFacts);
   final scenesById = {for (final scene in project.scenes) scene.id: scene};
   final mapsById = {for (final map in maps) map.id: map};
+  final mapCounts = <String, int>{};
+  for (final map in maps) {
+    mapCounts.update(map.id, (count) => count + 1, ifAbsent: () => 1);
+  }
   final catalog = commandCatalog ?? NarrativeCommandCatalog.canonical();
   final issues = <NarrativeSymbolicIssue>[];
   final explored = <NarrativeSymbolicState>[];
@@ -593,7 +598,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           final source = _sourceEligibility(
             definition.source,
             state,
-            mapsById,
+            mapsById, project, mapCounts,
           );
           final conditions = _eventExpressionValue(
             definition.conditionExpression,
@@ -637,7 +642,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         final source = _sourceEligibility(
           definition.source,
           state,
-          mapsById,
+          mapsById, project, mapCounts,
         );
         final conditions = _eventExpressionValue(
           definition.conditionExpression,
@@ -942,6 +947,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
     );
     definition.source.when(
       entityInteract: (_, __) {},
+      entityBump: (_, _) {},
       modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
@@ -1143,6 +1149,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
     reads.addAll(consumedEventIds.map((id) => 'consumed:$id'));
     definition.source.when(
       entityInteract: (_, __) {},
+      entityBump: (_, _) {},
       modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
@@ -1663,11 +1670,21 @@ bool? _sourceEligibility(
   NarrativeEventSourceRef source,
   NarrativeSymbolicState state,
   Map<String, MapData> mapsById,
+  ProjectManifest project,
+  Map<String, int> mapCounts,
 ) =>
     source.when(
       entityInteract: (mapId, entityId) =>
           mapsById[mapId]?.entities.any((entity) => entity.id == entityId) ==
           true,
+      entityBump: (mapId, entityId) {
+        final map = mapsById[mapId];
+        if (map == null || mapCounts[mapId] != 1 ||
+            !isNarrativeEntityBumpSourceAvailable(project: project, map: map, entityId: entityId)) {
+          return false;
+        }
+        return null;
+      },
       modelInteract: (mapId, instanceId) =>
           mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ==
           true,

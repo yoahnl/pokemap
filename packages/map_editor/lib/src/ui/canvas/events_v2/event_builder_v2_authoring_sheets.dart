@@ -54,7 +54,9 @@ List<EventBuilderV2SourceChoice> eventBuilderV2SourceChoices(
       EventBuilderV2SourceChoice(
         id: 'spatial_${index++}',
         label: option.humanLabel,
-        description: option.humanDescription,
+        description: option.source?.kind == NarrativeEventSourceKind.entityBump
+            ? 'L’événement se déclenche quand le joueur marche contre ce personnage bloquant.'
+            : option.humanDescription,
         source: option.source,
         selectable: option.selectable,
         groupLabel: option.mapLabel,

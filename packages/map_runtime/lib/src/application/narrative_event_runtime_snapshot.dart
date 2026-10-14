@@ -170,6 +170,7 @@ final class NarrativeEventRuntimeSnapshot {
         ...projection.source!.when(
           modelInteract: (mapId, instanceId) => const <NarrativeOutcomeRef>[],
           entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
+          entityBump: (_, _) => const <NarrativeOutcomeRef>[],
           triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
           mapEnter: (_) => const <NarrativeOutcomeRef>[],
           outcomeReceived: (outcome) => <NarrativeOutcomeRef>[outcome],

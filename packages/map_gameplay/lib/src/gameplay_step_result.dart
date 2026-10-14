@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'gameplay_hazard.dart';
 import 'directed_jump_plan.dart';
+import 'direction.dart';
 import 'gameplay_movement_effect.dart';
 import 'movement_block_reason.dart';
 import 'gameplay_world_state.dart';
@@ -50,13 +51,41 @@ final class Moved extends GameplayStepResult {
   final GameplayMovementEffect? movementEffect;
 }
 
+final class GameplayEntityBumpContact {
+  const GameplayEntityBumpContact({
+    required this.mapId,
+    required this.entityId,
+    required this.direction,
+    required this.attemptedPixelsPerStep,
+    required this.playerPos,
+    required this.playerPositionPx,
+    required this.playerSpriteWidthPx,
+    required this.playerSpriteHeightPx,
+    required this.entityPos,
+    required this.entityCollisionRectPx,
+  });
+
+  final String mapId;
+  final String entityId;
+  final Direction direction;
+  final int attemptedPixelsPerStep;
+  final GridPos playerPos;
+  final PixelPosition playerPositionPx;
+  final int playerSpriteWidthPx;
+  final int playerSpriteHeightPx;
+  final GridPos entityPos;
+  final PixelRect entityCollisionRectPx;
+}
+
 final class Blocked extends GameplayStepResult {
   const Blocked(
     super.world, {
     this.reason = GameplayMovementBlockReason.solid,
+    this.entityBumpContact,
   });
 
   final GameplayMovementBlockReason reason;
+  final GameplayEntityBumpContact? entityBumpContact;
 }
 
 final class Jumped extends GameplayStepResult {

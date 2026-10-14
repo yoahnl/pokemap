@@ -14,6 +14,172 @@ const _legacyFingerprint =
     'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 void main() {
+  group('native entityBump contact guard', () {
+    test(
+      'requires physical contact evidence before authority preparation',
+      () async {
+        var state = const GameState(saveId: 'save');
+        var preparations = 0;
+        var sceneCalls = 0;
+        var legacyCalls = 0;
+        final source = NarrativeEventSourceRef.entityBump('map', 'npc');
+        final bridge = _bridge(
+          stateTransactions: NarrativeEventStateTransactions(state),
+          currentGameState: () => state,
+          onGameStateCommitted: (value) => state = value,
+          prepareAuthority: (_, occurrence) async {
+            preparations++;
+            return _prepareAuthority(
+              registry: _registry(
+                EventSystemMode.v2Only,
+                records: [_record(source)],
+              ),
+              occurrence: occurrence,
+            );
+          },
+          executeScene: (request) async {
+            sceneCalls++;
+            return NarrativeSceneExecutionResult.completed(
+              updatedGameState: request.gameState,
+              qualifiedOutcomes: const [],
+            );
+          },
+          legacyFallback: (_, _, _) async => legacyCalls++,
+        );
+        final result = await bridge.dispatch(
+          occurrenceId: 'bump-no-evidence',
+          occurrence: NarrativeEventOccurrence(source: source),
+        );
+        expect(result, isA<NarrativeSpatialProductionDispatchFailed>());
+        expect(preparations, 0);
+        expect(sceneCalls, 0);
+        expect(legacyCalls, 0);
+      },
+    );
+
+    for (final loseAfterAuthority in [false, true]) {
+      test(
+        'rejects stale contact afterAuthority=$loseAfterAuthority',
+        () async {
+          var state = const GameState(saveId: 'save');
+          var applicable = loseAfterAuthority;
+          var sceneCalls = 0;
+          var legacyCalls = 0;
+          final source = NarrativeEventSourceRef.entityBump('map', 'npc');
+          final bridge = _bridge(
+            stateTransactions: NarrativeEventStateTransactions(state),
+            currentGameState: () => state,
+            onGameStateCommitted: (value) => state = value,
+            prepareAuthority: (_, occurrence) async {
+              applicable = false;
+              return _prepareAuthority(
+                registry: _registry(
+                  EventSystemMode.v2Only,
+                  records: [_record(source)],
+                ),
+                occurrence: occurrence,
+              );
+            },
+            executeScene: (request) async {
+              sceneCalls++;
+              return NarrativeSceneExecutionResult.completed(
+                updatedGameState: request.gameState,
+                qualifiedOutcomes: const [],
+              );
+            },
+            legacyFallback: (_, _, _) async => legacyCalls++,
+          );
+          final result = await bridge.dispatch(
+            occurrenceId: 'bump-stale',
+            occurrence: NarrativeEventOccurrence(source: source),
+            contactIsApplicable: () => applicable,
+          );
+          expect(result, isA<NarrativeSpatialProductionDispatchStale>());
+          expect(sceneCalls, 0);
+          expect(legacyCalls, 0);
+        },
+      );
+    }
+
+    test('Scene can intentionally change the captured contact', () async {
+      var state = const GameState(saveId: 'save');
+      var applicable = true;
+      var sceneCalls = 0;
+      var legacyCalls = 0;
+      final source = NarrativeEventSourceRef.entityBump('map', 'npc');
+      final bridge = _bridge(
+        stateTransactions: NarrativeEventStateTransactions(state),
+        currentGameState: () => state,
+        onGameStateCommitted: (value) => state = value,
+        prepareAuthority: (_, occurrence) async => _prepareAuthority(
+          registry: _registry(
+            EventSystemMode.v2Only,
+            records: [
+              _record(source, reusePolicy: NarrativeEventReusePolicy.oneShot),
+            ],
+          ),
+          occurrence: occurrence,
+        ),
+        executeScene: (request) async {
+          sceneCalls++;
+          applicable = false;
+          return NarrativeSceneExecutionResult.completed(
+            updatedGameState: request.gameState.copyWith(
+              metadata: const {'sceneMovedPlayer': 'true'},
+            ),
+            qualifiedOutcomes: const [],
+          );
+        },
+        legacyFallback: (_, _, _) async => legacyCalls++,
+      );
+      final result = await bridge.dispatch(
+        occurrenceId: 'bump-intentional-move',
+        occurrence: NarrativeEventOccurrence(source: source),
+        contactIsApplicable: () => applicable,
+      );
+      expect(result, isA<NarrativeSpatialProductionDispatchV2Handled>());
+      expect(sceneCalls, 1);
+      expect(legacyCalls, 0);
+      expect(state.metadata, {'sceneMovedPlayer': 'true'});
+      expect(
+        state.narrativeEventProgress.consumedNarrativeEventIds,
+        contains(_eventId),
+      );
+    });
+
+    test('unmatched contact never falls back to legacy interaction', () async {
+      var state = const GameState(saveId: 'save');
+      var sceneCalls = 0;
+      var legacyCalls = 0;
+      final source = NarrativeEventSourceRef.entityBump('map', 'npc');
+      final bridge = _bridge(
+        stateTransactions: NarrativeEventStateTransactions(state),
+        currentGameState: () => state,
+        onGameStateCommitted: (value) => state = value,
+        prepareAuthority: (_, occurrence) async => _prepareAuthority(
+          registry: _registry(EventSystemMode.legacyOnly),
+          occurrence: occurrence,
+        ),
+        executeScene: (request) async {
+          sceneCalls++;
+          return NarrativeSceneExecutionResult.completed(
+            updatedGameState: request.gameState,
+            qualifiedOutcomes: const [],
+          );
+        },
+        legacyFallback: (_, _, _) async => legacyCalls++,
+      );
+      final result = await bridge.dispatch(
+        occurrenceId: 'bump-no-match',
+        occurrence: NarrativeEventOccurrence(source: source),
+        contactIsApplicable: () => true,
+      );
+      expect(result, isA<NarrativeSpatialProductionDispatchNoFallback>());
+      expect(sceneCalls, 0);
+      expect(legacyCalls, 0);
+    });
+  });
+
   group('NS-EVENT-V2-20/21 spatial production dispatch bridge', () {
     test('executes one entityInteract occurrence through Event V2', () async {
       const runtimeState = GameState(
@@ -803,6 +969,15 @@ NarrativeEventProjectCatalog _catalog(
         MapTrigger? trigger,
       })>(
     modelInteract: (mapId, _) => (mapId: mapId, entity: null, trigger: null),
+    entityBump: (mapId, entityId) => (
+      mapId: mapId,
+      entity: MapEntity(id: entityId, name: entityId, kind: MapEntityKind.npc,
+        pos: const GridPos(x: 0, y: 0),
+        blocksMovement: true,
+        npc: const MapEntityNpcData(characterId: "bump-character"),
+      ),
+      trigger: null,
+    ),
     entityInteract: (mapId, entityId) => (
       mapId: mapId,
       entity: MapEntity(
@@ -843,6 +1018,9 @@ NarrativeEventProjectCatalog _catalog(
       ),
     ],
     tilesets: const [],
+    characters: const [ProjectCharacterEntry(
+      id: 'bump-character', name: 'Contact character', tilesetId: 'fixture',
+    )],
     eventRegistry: registry,
     scenes: [for (final sceneId in sceneIds) _scene(sceneId)],
   );

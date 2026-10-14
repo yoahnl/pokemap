@@ -5,6 +5,10 @@ import 'package:map_core/map_core.dart';
 import '../direction.dart';
 import '../field_action.dart';
 import '../gameplay_connection.dart';
+import '../gameplay_intent.dart';
+import '../gameplay_player_state.dart';
+import '../gameplay_step.dart';
+import '../gameplay_step_result.dart';
 import '../gameplay_world_state.dart';
 import '../player_spawn_resolver.dart';
 
@@ -134,7 +138,7 @@ NarrativePhysicalReachabilityReport validateNarrativePhysicalReachability({
   final referenceIssueByEventId =
       <String, NarrativePhysicalReachabilityIssue>{};
   for (final event in spatial) {
-    final issue = _validateSourceReference(event, mapsById);
+    final issue = _validateSourceReference(event, mapsById, project);
     if (issue != null) {
       referenceIssueByEventId[event.id] = issue;
       issues.add(issue);
@@ -292,6 +296,7 @@ NarrativePhysicalReachabilityReport validateNarrativePhysicalReachability({
       continue;
     }
     final isIndeterminate = budgetExceeded ||
+        event.source.kind == NarrativeEventSourceKind.entityBump ||
         narrativeReport.verdict == NarrativeSymbolicVerdict.indeterminate ||
         evidence?.indeterminateProgression == true;
     final status = isIndeterminate
@@ -331,6 +336,7 @@ NarrativePhysicalReachabilityReport validateNarrativePhysicalReachability({
 NarrativePhysicalReachabilityIssue? _validateSourceReference(
   NarrativeEventDefinition event,
   Map<String, MapData> mapsById,
+  ProjectManifest project,
 ) {
   return event.source.when(
     modelInteract: (mapId, instanceId) => mapsById[mapId]
@@ -369,6 +375,27 @@ NarrativePhysicalReachabilityIssue? _validateSourceReference(
         eventId: event.id,
         mapId: mapId,
         message: 'La zone source "$triggerId" est absente de "$mapId".',
+      );
+    },
+    entityBump: (mapId, entityId) {
+      final map = mapsById[mapId];
+      if (map == null) {
+        return NarrativePhysicalReachabilityIssue(
+          code: NarrativePhysicalIssueCode.missingSourceMap,
+          eventId: event.id,
+          mapId: mapId,
+          message: 'La map source "$mapId" est absente.',
+        );
+      }
+      if (isNarrativeEntityBumpSourceAvailable(
+          project: project, map: map, entityId: entityId)) {
+        return null;
+      }
+      return NarrativePhysicalReachabilityIssue(
+        code: NarrativePhysicalIssueCode.missingSourceTarget,
+        eventId: event.id,
+        mapId: mapId,
+        message: 'Le PNJ bloquant source "$entityId" est indisponible dans "$mapId".',
       );
     },
     entityInteract: (mapId, entityId) {
@@ -516,6 +543,20 @@ _StateExploration _exploreSymbolicState({
                   path: search.path!,
                 );
         },
+        entityBump: (_, entityId) {
+          final entities = map.entities.where((entity) => entity.id == entityId);
+          if (entities.length != 1) {
+            return null;
+          }
+          final search = _findPathToEntityBump(
+            world: world, start: entry.pos, entity: entities.single,
+            budget: budget,
+          );
+          budgetExceeded = budgetExceeded || search.budgetExceeded;
+          return search.path == null ? null : _ReachabilityEvidence(
+            mapId: map.id, reachedCell: search.path!.last, path: search.path!,
+          );
+        },
         entityInteract: (_, entityId) {
           if (visibilityByEntity['${map.id}/$entityId'] == false) return null;
           final entity =
@@ -608,6 +649,68 @@ _StateExploration _exploreSymbolicState({
     exploredMapEntries: visited.length,
     budgetExceeded: budgetExceeded,
   );
+}
+
+_PathSearch _findPathToEntityBump({
+  required GameplayWorldState world,
+  required GridPos start,
+  required MapEntity entity,
+  required _ExplorationBudget budget,
+}) {
+  final footprint = resolveEntityCollisionFootprint(entity);
+  final search = _findPathsToAll(
+    world: world, start: start, budget: budget,
+    goals: {..._rectCells(footprint, world.map.size),
+      ..._adjacentCells(entity.copyWith(pos: footprint.pos,
+        size: footprint.size), world.map.size)},
+  );
+  if (search.budgetExceeded) {
+    return const _PathSearch.budgetExceeded();
+  }
+  for (final path in search.paths) {
+    var trial = world.withPlayer(GameplayPlayerState.fromGridSpawn(
+      cell: path.first, facing: world.player.facing,
+      movementMode: world.player.movementMode,
+      tileWidthPx: world.tileWidthPx, tileHeightPx: world.tileHeightPx,
+      mapWidthCells: world.map.size.width,
+      mapHeightCells: world.map.size.height,
+      spriteWidthPx: world.player.playerSpriteWidthPx,
+      spriteHeightPx: world.player.playerSpriteHeightPx,
+    ));
+    var reachable = true;
+    for (var index = 1; index < path.length; index++) {
+      if (!budget.consume()) {
+        return const _PathSearch.budgetExceeded();
+      }
+      final target = path[index];
+      final dx = target.x - path[index - 1].x;
+      final dy = target.y - path[index - 1].y;
+      final direction = Direction.values.singleWhere(
+        (direction) => direction.dx == dx && direction.dy == dy);
+      final moved = stepGameplayWorld(trial, MoveIntent(direction,
+        pixelsPerStep: dx == 0 ? world.tileHeightPx : world.tileWidthPx));
+      if (moved is! Moved || moved.world.player.pos != target) {
+        reachable = false;
+        break;
+      }
+      trial = moved.world;
+    }
+    if (!reachable) {
+      continue;
+    }
+    for (final direction in Direction.values) {
+      if (!budget.consume()) {
+        return const _PathSearch.budgetExceeded();
+      }
+      final distance = direction.dx == 0 ? world.tileHeightPx : world.tileWidthPx;
+      final result = stepGameplayWorld(trial,
+        MoveIntent(direction, pixelsPerStep: distance));
+      if (result is Blocked && result.entityBumpContact?.entityId == entity.id) {
+        return _PathSearch.path(path);
+      }
+    }
+  }
+  return const _PathSearch.notFound();
 }
 
 _PathSearch _findPathToAny({
@@ -916,6 +1019,7 @@ String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
       modelInteract: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       triggerEnter: (mapId, _) => mapId,
+      entityBump: (mapId, _) => mapId,
       entityInteract: (mapId, _) => mapId,
       outcomeReceived: (_) => null,
     );

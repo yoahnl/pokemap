@@ -385,6 +385,7 @@ final class NarrativeEventSpatialLinkOperationResult {
 
 String? narrativeEventSpatialSourceMapId(NarrativeEventSourceRef source) {
   return source.when(
+    entityBump: (_, _) => null,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
@@ -403,6 +404,7 @@ String narrativeEventRecordCanonicalFingerprint(NarrativeEventRecord record) {
 
 String narrativeEventSpatialSourceOwnerId(NarrativeEventSourceRef source) {
   return source.when(
+    entityBump: (_, _) => throw ArgumentError.value(source, 'source'),
     entityInteract: (_, entityId) => entityId,
     modelInteract: (_, instanceId) => instanceId,
     triggerEnter: (_, triggerId) => triggerId,

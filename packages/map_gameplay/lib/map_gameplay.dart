@@ -137,13 +137,15 @@ export 'src/gameplay_movement_effect.dart'
     show GameplayMovementEffect, GameplayMovementEffectKind;
 export 'src/grid_pathfinder.dart'
     show GridCellPassability, GridPathfindingResult, GridPathfinder;
-export 'src/gameplay_step.dart' show stepGameplayWorld, resolveGameplayArrival;
+export 'src/gameplay_step.dart'
+    show stepGameplayWorld, resolveGameplayArrival, resolvePlayerEntityBumpContact;
 export 'src/gameplay_step_result.dart'
     show
         GameplayStepResult,
         Moved,
         Jumped,
         Blocked,
+        GameplayEntityBumpContact,
         WarpTriggered,
         ConnectionTriggered,
         TriggeredWarp,

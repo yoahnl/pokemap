@@ -2202,6 +2202,7 @@ NarrativeEventRecord? _uniqueEventRecord(
 
 String _spatialMapId(NarrativeEventSourceRef source) {
   return source.when(
+    entityBump: (mapId, _) => mapId,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
@@ -2231,6 +2232,7 @@ bool _mapOwnsSource(MapData map, NarrativeEventSourceRef source) {
                 .where((instance) => instance.id == instanceId)
                 .length ==
             1,
+    entityBump: (_, _) => false,
     entityInteract: (mapId, entityId) =>
         mapId == map.id &&
         map.entities.where((entity) => entity.id == entityId).length == 1,

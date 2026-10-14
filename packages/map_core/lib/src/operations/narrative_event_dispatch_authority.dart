@@ -186,7 +186,7 @@ final class NarrativeEventDispatchAuthorityReady
       return NarrativeEventDispatchNoMatch(
         source: source,
         mode: mode,
-        legacyFallbackAllowed: true,
+        legacyFallbackAllowed: source.kind != NarrativeEventSourceKind.entityBump,
         reasons: const [NarrativeEventDispatchReason.noEligibleCandidate],
       );
     }
@@ -240,7 +240,8 @@ final class NarrativeEventDispatchAuthorityReady
     return NarrativeEventDispatchNoMatch(
       source: source,
       mode: mode,
-      legacyFallbackAllowed: mode == EventSystemMode.dualRead &&
+      legacyFallbackAllowed: source.kind != NarrativeEventSourceKind.entityBump &&
+          mode == EventSystemMode.dualRead &&
           !_registry.ownsSourceInLegacyMode(source),
       reasons: _sortedReasons(reasons),
     );
@@ -1030,6 +1031,7 @@ List<NarrativeEventDispatchReason> _sortedReasons(
 String? _sourceMapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    entityBump: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,

@@ -117,17 +117,24 @@ class _EventContextMapState extends State<EventContextMap> {
             });
           }
         }
+        final entityKind = widget.chooseKind ??
+            (eventMapId(widget.source) == map.id ? widget.source?.kind : null);
+        NarrativeEventSourceRef entitySource(MapEntity entity) => switch (entityKind) {
+          NarrativeEventSourceKind.entityBump =>
+            NarrativeEventSourceRef.entityBump(map.id, entity.id),
+          NarrativeEventSourceKind.entityInteract =>
+            NarrativeEventSourceRef.entityInteract(map.id, entity.id),
+          _ => throw StateError('The current source is not an entity source.'),
+        };
         final targets = <(String, Rect, NarrativeEventSourceRef)>[
-          if (widget.chooseKind == NarrativeEventSourceKind.entityInteract ||
-              (widget.chooseKind == null &&
-                  eventMapId(widget.source) == map.id &&
-                  widget.source?.kind ==
-                      NarrativeEventSourceKind.entityInteract))
+          if (entityKind == NarrativeEventSourceKind.entityInteract ||
+              entityKind == NarrativeEventSourceKind.entityBump)
             for (final entity in map.entities)
-              if (widget.chooseKind == NarrativeEventSourceKind.entityInteract
-                  ? _selectable(
-                      NarrativeEventSourceRef.entityInteract(map.id, entity.id),
-                    )
+              if (widget.chooseKind != null
+                  ? _selectable(entitySource(entity)) &&
+                      (entityKind != NarrativeEventSourceKind.entityBump ||
+                        isNarrativeEntityBumpSourceAvailable(
+                          project: widget.project, map: map, entityId: entity.id))
                   : entity.id == eventTargetId(widget.source))
                 (
                   entity.name,
@@ -137,7 +144,7 @@ class _EventContextMapState extends State<EventContextMap> {
                     cellWidth,
                     cellHeight,
                   ),
-                  NarrativeEventSourceRef.entityInteract(map.id, entity.id),
+                  entitySource(entity),
                 ),
           if (widget.chooseKind == NarrativeEventSourceKind.triggerEnter ||
               (widget.chooseKind == null &&

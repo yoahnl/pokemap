@@ -70,6 +70,7 @@ NarrativeEventProjectCatalog f1ProjectCatalogForRegistry(
 
 NarrativeOutcomeRef? _outcomeOrNull(NarrativeEventSourceRef source) {
   return source.when(
+    entityBump: (_, __) => null,
     entityInteract: (_, __) => null,
     modelInteract: (_, __) => null,
     triggerEnter: (_, __) => null,
@@ -109,6 +110,11 @@ NarrativeSpatialEventSourceOption _spatialOption(
       mapId,
       NarrativeSpatialEventSourceOwnerKind.modelInstance,
       instanceId,
+    ),
+    entityBump: (mapId, entityId) => (
+      mapId,
+      NarrativeSpatialEventSourceOwnerKind.entity,
+      entityId,
     ),
     entityInteract: (mapId, entityId) => (
       mapId,

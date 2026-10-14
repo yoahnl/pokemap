@@ -16,6 +16,7 @@ void main() {
         NarrativeEventSourceKind.entityInteract,
         NarrativeEventSourceKind.modelInteract,
         NarrativeEventSourceKind.outcomeReceived,
+        NarrativeEventSourceKind.entityBump,
       ]);
       expect(NarrativeOutcomeProducerKind.values, [
         NarrativeOutcomeProducerKind.scene,
@@ -372,6 +373,7 @@ NarrativeOutcomeRef _sceneOutcome() => NarrativeOutcomeRef(
 
 String _describeSource(NarrativeEventSourceRef source) => source.when(
       entityInteract: (mapId, entityId) => 'entityInteract:$mapId:$entityId',
+      entityBump: (mapId, entityId) => 'entityBump:$mapId:$entityId',
       modelInteract: (mapId, instanceId) => 'modelInteract:$mapId:$instanceId',
       triggerEnter: (mapId, triggerId) => 'triggerEnter:$mapId:$triggerId',
       mapEnter: (mapId) => 'mapEnter:$mapId',

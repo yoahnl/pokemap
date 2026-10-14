@@ -354,7 +354,9 @@ class GameplayWorldState {
 
   /// Test pixel-level contre l’union des obstacles statiques (bitmap monde).
   bool worldStaticObstaclesCollidePixelRect(PixelRect rect,
-      {bool playerContact = false, BorderCollisionExclusion? borderExclusion}) {
+      {bool playerContact = false,
+      BorderCollisionExclusion? borderExclusion,
+      String? ignoredEntityId}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
     if (_staticCollisionStorage.collidesPixelRect(
       rect,
@@ -377,6 +379,9 @@ class GameplayWorldState {
         final entities = _blockingEntityByPos[y * map.size.width + x];
         if (entities == null) continue;
         for (final entity in entities) {
+          if (entity.kind == MapEntityKind.npc && entity.id == ignoredEntityId) {
+            continue;
+          }
           final obstacle = resolveEntityCollisionRectPx(
             entity,
             tileWidthPx: _tileWidth,

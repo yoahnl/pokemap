@@ -2937,6 +2937,7 @@ List<MapEntity> _entitiesForSources(
             () => GridPos(x: event.position.x, y: event.position.y),
           );
         },
+        entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
         triggerEnter: (_, __) {},
         mapEnter: (_) {},
         outcomeReceived: (_) {},
@@ -2953,6 +2954,7 @@ List<MapEntity> _entitiesForSources(
       entityInteract: (sourceMapId, entityId) {
         if (sourceMapId == mapId) ids.add(entityId);
       },
+      entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (_) {},
@@ -2984,6 +2986,7 @@ List<MapTrigger> _triggersForSources(
       candidate.source.when<void>(
         modelInteract: (_, _) {},
         entityInteract: (_, __) {},
+        entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
         triggerEnter: (sourceMapId, triggerId) {
           if (sourceMapId != mapId) return;
           ids.add(triggerId);
@@ -3005,6 +3008,7 @@ List<MapTrigger> _triggersForSources(
     source.when<void>(
       modelInteract: (_, _) {},
       entityInteract: (_, __) {},
+      entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
       triggerEnter: (sourceMapId, triggerId) {
         if (sourceMapId == mapId) ids.add(triggerId);
       },
@@ -3062,6 +3066,7 @@ List<NarrativeOutcomeRef> _referencedOutcomes(
     source.when<void>(
       modelInteract: (_, _) {},
       entityInteract: (_, __) {},
+      entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {
@@ -3188,6 +3193,7 @@ ScenarioNode _scenarioNodeForSource(
 }) {
   final actionKind = source?.when(
         entityInteract: (_, __) => 'sourceEntityInteract',
+        entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
         modelInteract: (_, _) => throw UnsupportedError(
           '3D model sources cannot be represented by legacy scenario nodes.',
         ),
@@ -3204,6 +3210,7 @@ ScenarioNode _scenarioNodeForSource(
           mapId: mapId,
           entityId: entityId,
         ),
+        entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
         triggerEnter: (mapId, triggerId) => ScenarioNodeBinding(
           mapId: mapId,
           triggerId: triggerId,
@@ -3253,6 +3260,7 @@ Set<String> _concernedMapIds(
 void _addSourceMap(Set<String> result, NarrativeEventSourceRef? source) {
   source?.when(
     entityInteract: (mapId, _) => result.add(mapId),
+    entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
     modelInteract: (mapId, _) => result.add(mapId),
     triggerEnter: (mapId, _) => result.add(mapId),
     mapEnter: result.add,
@@ -3295,6 +3303,7 @@ LegacyMapEventProjection _projection({
     entityInteract: (_, entityId) => confirmed
         ? {LegacyMapEventCompatibilityMetadataKeys.entityId: entityId}
         : const <String, String>{},
+    entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
     triggerEnter: (_, triggerId) => confirmed
         ? {LegacyMapEventCompatibilityMetadataKeys.triggerId: triggerId}
         : const <String, String>{},
@@ -3330,6 +3339,7 @@ LegacyMapEventProjection _projection({
         '3D model sources cannot be represented by legacy map events.',
       ),
       entityInteract: (_, __) => MapEventType.object,
+      entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
       triggerEnter: (_, __) => MapEventType.triggerZone,
       mapEnter: (_) => MapEventType.object,
       outcomeReceived: (_) => MapEventType.object,
@@ -3355,6 +3365,7 @@ LegacyMapEventProjection _projection({
         );
       }
     },
+    entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
     triggerEnter: (sourceMapId, triggerId) {
       if (sourceMapId == mapId) {
         fixtureTriggers.add(
@@ -3414,6 +3425,7 @@ GridPos _sourceFixturePosition(NarrativeEventSourceRef source) {
   final token = source.when(
     modelInteract: (_, instanceId) => instanceId,
     entityInteract: (_, entityId) => entityId,
+    entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
     triggerEnter: (_, triggerId) => triggerId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (outcome) =>

@@ -9,6 +9,8 @@ import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
 import 'narrative_event_canonical_json.dart';
+import 'map_entity_collision_footprint.dart';
+import 'narrative_entity_bump_source_reference.dart';
 
 /// Builds the read-only spatial source catalog used by Event V2 authoring.
 ///
@@ -173,6 +175,7 @@ void _appendMapOptions({
   }
 
   _appendEntityOptions(
+    project: project,
     entry: entry,
     map: map,
     mapUsable: mapSizeValid,
@@ -267,6 +270,7 @@ NarrativeSpatialEventSourceOption _mapOption({
 }
 
 void _appendEntityOptions({
+  required ProjectManifest project,
   required ProjectMapEntry entry,
   required MapData map,
   required bool mapUsable,
@@ -303,8 +307,53 @@ void _appendEntityOptions({
           duplicate: duplicate,
         ),
       );
+      if (entity.kind == MapEntityKind.npc) {
+        options.add(_entityBumpOption(project: project, entry: entry, map: map,
+          entity: entity, mapUsable: mapUsable, mapIdentityUnique: mapIdentityUnique,
+          duplicate: duplicate));
+      }
     }
   }
+}
+
+NarrativeSpatialEventSourceOption _entityBumpOption({
+  required ProjectManifest project,
+  required ProjectMapEntry entry,
+  required MapData map,
+  required MapEntity entity,
+  required bool mapUsable,
+  required bool mapIdentityUnique,
+  required bool duplicate,
+}) {
+  final mapLabel = _display(entry.name, entry.id);
+  final label = _display(entity.inspectorHeadline, entity.id);
+  final source = _validIdentity(entry.id) && _validIdentity(entity.id)
+      ? NarrativeEventSourceRef.entityBump(entry.id, entity.id) : null;
+  final bounds = resolveEntityCollisionFootprint(entity);
+  final geometryValid = mapUsable && _rectWithinMap(bounds, map);
+  final available = source != null && !duplicate && mapIdentityUnique && geometryValid &&
+      isNarrativeEntityBumpSourceAvailable(project: project, map: map, entityId: entity.id);
+  final reason = available ? null : duplicate
+      ? 'Cet identifiant est utilisé plusieurs fois sur la map.'
+      : !mapIdentityUnique ? 'L’identifiant de la map est dupliqué dans le projet.'
+      : source == null ? 'L’identifiant de cet élément est invalide.'
+       : !geometryValid ? 'La position de cet élément est invalide.'
+       : 'Le contact du joueur nécessite une carte 2D et un PNJ bloquant avec un Character connu et unique.';
+  return NarrativeSpatialEventSourceOption(source: source,
+    humanLabel: '$label — Contact du joueur',
+    humanDescription: 'Contact du joueur avec $label, sur $mapLabel.',
+    mapId: entry.id, mapLabel: mapLabel, sourceTypeLabel: 'Contact du joueur',
+    availability: available ? NarrativeSpatialEventSourceAvailability.selectable
+      : geometryValid && source != null
+        ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
+        : NarrativeSpatialEventSourceAvailability.incompatible,
+    unavailableReason: reason, origin: NarrativeSpatialEventSourceOrigin.canonical,
+    debugTechnicalLabel: 'entityBump:${entry.id}:${entity.id}',
+    geometry: geometryValid ? NarrativeSpatialSourceGeometrySummary.bounds(bounds)
+      : const NarrativeSpatialSourceGeometrySummary.unavailable(),
+    ownerKind: NarrativeSpatialEventSourceOwnerKind.entity,
+    presentationKind: NarrativeSpatialEventSourcePresentationKind.npc,
+    ownerId: entity.id);
 }
 
 NarrativeSpatialEventSourceOption _entityOption({
@@ -692,6 +741,7 @@ String _display(String preferred, String fallback) {
 String? _spatialSourceMapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    entityBump: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,

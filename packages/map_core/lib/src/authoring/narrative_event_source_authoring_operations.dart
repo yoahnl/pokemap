@@ -36,6 +36,9 @@ NarrativeScenarioAuthoringSourceDraft
   NarrativeEventSourcePickerOption option,
 ) {
   return switch (option.sourceKind) {
+    NarrativeEventSourceKind.entityBump => throw UnsupportedError(
+      'Entity bump requires the canonical Event V2 source builder.',
+    ),
     NarrativeEventSourceKind.modelInteract => throw UnsupportedError(
       'Model interactions require the canonical Event V2 source builder.',
     ),

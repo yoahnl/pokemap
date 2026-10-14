@@ -68,7 +68,8 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
       final triggers = map.triggers.where((t) => t.id == id).toList();
       if (id == null) return const Text('Toute la carte · à son entrée');
       final matches =
-          widget.source.kind == NarrativeEventSourceKind.entityInteract
+          (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
+           widget.source.kind == NarrativeEventSourceKind.entityBump)
           ? entities.length
           : triggers.length;
       if (matches != 1) {
@@ -76,8 +77,15 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
           '${matches == 0 ? 'Source absente' : 'Source ambiguë'} · $id',
         );
       }
+      if (widget.source.kind == NarrativeEventSourceKind.entityBump &&
+          (widget.loader.workspace.project == null ||
+            !isNarrativeEntityBumpSourceAvailable(
+              project: widget.loader.workspace.project!, map: map, entityId: id))) {
+        return const Text('Source indisponible · personnage à réparer');
+      }
       final entitySource =
-          widget.source.kind == NarrativeEventSourceKind.entityInteract;
+          (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
+           widget.source.kind == NarrativeEventSourceKind.entityBump);
       final position = entitySource
           ? entities.single.pos
           : triggers.single.area.pos;

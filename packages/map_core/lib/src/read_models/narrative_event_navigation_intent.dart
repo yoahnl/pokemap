@@ -408,6 +408,7 @@ final class NarrativeEventNavigationIndex {
   ) {
     return source.when(
       entityInteract: (_, __) => _spatialNavigation(source),
+      entityBump: (_, _) => _spatialNavigation(source),
       modelInteract: (_, _) => _spatialNavigation(source),
       triggerEnter: (_, __) => _spatialNavigation(source),
       mapEnter: (_) => _spatialNavigation(source),
@@ -420,6 +421,7 @@ final class NarrativeEventNavigationIndex {
   ) {
     return source.when(
       entityInteract: (_, __) => _spatialNavigation(source),
+      entityBump: (_, _) => _spatialNavigation(source),
       modelInteract: (_, _) => _spatialNavigation(source),
       triggerEnter: (_, __) => _spatialNavigation(source),
       mapEnter: (_) => _spatialNavigation(source),
@@ -539,6 +541,7 @@ final class NarrativeEventNavigationIndex {
 
     return source.when(
       entityInteract: (_, __) => _spatialDiagnostic(source, navigation),
+      entityBump: (_, _) => _spatialDiagnostic(source, navigation),
       modelInteract: (_, _) => _spatialDiagnostic(source, navigation),
       triggerEnter: (_, __) => _spatialDiagnostic(source, navigation),
       mapEnter: (_) => _spatialDiagnostic(source, navigation),
@@ -694,6 +697,19 @@ final class NarrativeEventNavigationIndex {
     }
     return source.when(
       entityInteract: (mapId, entityId) {
+        final bounds = option.geometry.bounds;
+        if (bounds == null) {
+          return NarrativeEventNavigationIntent.noDestination(
+            'La position de l’entité référencée est indisponible.',
+          );
+        }
+        return NarrativeEventNavigationIntent.navigate(
+          NarrativeEditorDestination.focusEntity(mapId, entityId),
+          focusTarget:
+              NarrativeEditorFocusTarget.entity(mapId, entityId, bounds),
+        );
+      },
+      entityBump: (mapId, entityId) {
         final bounds = option.geometry.bounds;
         if (bounds == null) {
           return NarrativeEventNavigationIntent.noDestination(
@@ -911,6 +927,7 @@ MapRect _validBounds(MapRect bounds) {
 String _missingSpatialReason(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (_, __) => 'L’entité référencée n’existe plus.',
+    entityBump: (_, _) => 'L’entité référencée n’existe plus.',
     modelInteract: (_, _) => 'Le décor 3D référencé n’existe plus.',
     triggerEnter: (_, __) => 'La zone référencée n’existe plus.',
     mapEnter: (_) => 'La map référencée n’existe plus.',
@@ -922,6 +939,11 @@ String _missingSpatialReason(NarrativeEventSourceRef source) {
 Map<String, String> _sourceDebugReferences(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, entityId) => {
+      'sourceKind': source.kind.name,
+      'mapId': mapId,
+      'entityId': entityId,
+    },
+    entityBump: (mapId, entityId) => {
       'sourceKind': source.kind.name,
       'mapId': mapId,
       'entityId': entityId,

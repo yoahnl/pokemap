@@ -146,6 +146,11 @@ final class NarrativeSpatialEventSourceOption {
         presentationKind =
             presentationKind ?? _defaultPresentationKindForOwner(ownerKind),
         legacyProvenances = _sortedProvenances(legacyProvenances) {
+    if (source?.kind == NarrativeEventSourceKind.entityBump &&
+        (origin != NarrativeSpatialEventSourceOrigin.canonical ||
+          this.legacyProvenances.isNotEmpty)) {
+      throw ArgumentError('Entity bump cannot inherit legacy provenance.');
+    }
     if (availability == NarrativeSpatialEventSourceAvailability.selectable) {
       if (source == null || this.unavailableReason != null) {
         throw ArgumentError(
@@ -282,6 +287,10 @@ final class NarrativeSpatialEventSourceOption {
           ownerKind == NarrativeSpatialEventSourceOwnerKind.entity &&
           mapId == sourceMapId &&
           ownerId == entityId,
+      entityBump: (sourceMapId, entityId) =>
+          ownerKind == NarrativeSpatialEventSourceOwnerKind.entity &&
+          mapId == sourceMapId &&
+          ownerId == entityId,
       modelInteract: (sourceMapId, instanceId) =>
           ownerKind == NarrativeSpatialEventSourceOwnerKind.modelInstance &&
           mapId == sourceMapId &&
@@ -304,6 +313,7 @@ final class NarrativeSpatialEventSourceOption {
     }
     return value.when(
       entityInteract: (sourceMapId, _) => mapId == sourceMapId,
+      entityBump: (_, _) => false,
       modelInteract: (sourceMapId, _) => mapId == sourceMapId,
       triggerEnter: (sourceMapId, _) => mapId == sourceMapId,
       mapEnter: (sourceMapId) => mapId == sourceMapId,

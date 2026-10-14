@@ -371,6 +371,8 @@ NarrativeEventProjectResolutionStatus _resolveSource(
   return source.when(
     entityInteract: (_, __) =>
         _spatialStatus(spatialSources.resolve(source).status),
+    entityBump: (_, _) =>
+        _spatialStatus(spatialSources.resolve(source).status),
     modelInteract: (_, _) =>
         _spatialStatus(spatialSources.resolve(source).status),
     triggerEnter: (_, __) =>

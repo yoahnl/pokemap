@@ -222,18 +222,29 @@ void main() {
       );
       expect(port.mapEntrySources, hasLength(1));
       expect(port.zoneSources, hasLength(1));
-      expect(port.npcSources.map((option) => option.ownerId), ['npc_lysa']);
+      expect(port.npcSources.map((option) => option.ownerId),
+          ['npc_lysa', 'npc_lysa']);
+      expect(port.npcSources.map((option) => option.source!.kind),
+          containsAll([NarrativeEventSourceKind.entityInteract,
+            NarrativeEventSourceKind.entityBump]));
       expect(
         port.objectSources.map((option) => option.ownerId),
         ['item_key', 'sign_quay'],
       );
-      expect(port.unavailableSources, hasLength(1));
+      expect(port.unavailableSources, hasLength(2));
+      final unavailablePlacedElement = port.unavailableSources.singleWhere(
+        (option) => option.presentationKind ==
+          NarrativeSpatialEventSourcePresentationKind.placedElement,
+      );
+      expect(port.unavailableSources.singleWhere(
+        (option) => option.source?.kind == NarrativeEventSourceKind.entityBump,
+      ).selectable, isFalse);
       expect(
-        port.unavailableSources.single.presentationKind,
+        unavailablePlacedElement.presentationKind,
         NarrativeSpatialEventSourcePresentationKind.placedElement,
       );
       expect(
-        port.unavailableSources.single.referenceState,
+        unavailablePlacedElement.referenceState,
         NarrativeSpatialEventSourceReferenceState.notAttachable,
       );
       expect(
@@ -732,7 +743,8 @@ void main() {
       );
 
       final option = catalog.options.singleWhere(
-        (candidate) => candidate.ownerId == opaqueId,
+        (candidate) => candidate.ownerId == opaqueId &&
+          candidate.source?.kind == NarrativeEventSourceKind.entityInteract,
       );
       expect(option.selectable, isTrue);
       expect(option.source, isNotNull);

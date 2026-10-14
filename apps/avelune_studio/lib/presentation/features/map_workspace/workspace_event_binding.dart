@@ -119,7 +119,8 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
     }
     final map = document.current;
     final id = eventTargetId(source);
-    final entity = source.kind == NarrativeEventSourceKind.entityInteract
+    final entity = (source.kind == NarrativeEventSourceKind.entityInteract ||
+        source.kind == NarrativeEventSourceKind.entityBump)
         ? map.entities.where((e) => e.id == id).firstOrNull
         : null;
     final trigger = source.kind == NarrativeEventSourceKind.triggerEnter

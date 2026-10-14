@@ -4,6 +4,7 @@ import '../../shared/widgets/feedback/studio_badge.dart';
 
 const eventSourceKinds = [
   NarrativeEventSourceKind.entityInteract,
+  NarrativeEventSourceKind.entityBump,
   NarrativeEventSourceKind.modelInteract,
   NarrativeEventSourceKind.triggerEnter,
   NarrativeEventSourceKind.mapEnter,
@@ -11,6 +12,7 @@ const eventSourceKinds = [
 ];
 
 StudioTone eventKindTone(NarrativeEventSourceKind? kind) => switch (kind) {
+  NarrativeEventSourceKind.entityBump => StudioTone.info,
   NarrativeEventSourceKind.entityInteract => StudioTone.info,
   NarrativeEventSourceKind.modelInteract => StudioTone.info,
   NarrativeEventSourceKind.triggerEnter => StudioTone.success,
@@ -42,6 +44,7 @@ NarrativeEventConditionExpression eventExpression(
     record.draftOrNull!.conditionExpression;
 
 String? eventMapId(NarrativeEventSourceRef? source) => source?.when(
+  entityBump: (map, _) => map,
   entityInteract: (map, _) => map,
   modelInteract: (map, _) => map,
   triggerEnter: (map, _) => map,
@@ -50,6 +53,7 @@ String? eventMapId(NarrativeEventSourceRef? source) => source?.when(
 );
 
 String? eventTargetId(NarrativeEventSourceRef? source) => source?.when(
+  entityBump: (_, id) => id,
   entityInteract: (_, id) => id,
   modelInteract: (_, id) => id,
   triggerEnter: (_, id) => id,
@@ -58,6 +62,7 @@ String? eventTargetId(NarrativeEventSourceRef? source) => source?.when(
 );
 
 String eventKindLabel(NarrativeEventSourceKind? kind) => switch (kind) {
+  NarrativeEventSourceKind.entityBump => 'Contact du joueur',
   NarrativeEventSourceKind.entityInteract => 'Interaction du joueur',
   NarrativeEventSourceKind.modelInteract => 'Interaction avec un décor 3D',
   NarrativeEventSourceKind.triggerEnter => 'Entrée de zone',
@@ -67,6 +72,7 @@ String eventKindLabel(NarrativeEventSourceKind? kind) => switch (kind) {
 };
 
 IconData eventKindIcon(NarrativeEventSourceKind? kind) => switch (kind) {
+  NarrativeEventSourceKind.entityBump => Icons.touch_app_outlined,
   NarrativeEventSourceKind.entityInteract => Icons.forum_outlined,
   NarrativeEventSourceKind.modelInteract => Icons.view_in_ar_outlined,
   NarrativeEventSourceKind.triggerEnter => Icons.crop_free,

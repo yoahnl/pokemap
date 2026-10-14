@@ -23,6 +23,7 @@ NarrativeInteractionDraft? readStudioInteraction(
       .firstOrNull;
   if (scene == null || scene.id != 'scene_${definition.id}') return null;
   final mapId = definition.source.when(
+    entityBump: (map, _) => map,
     entityInteract: (map, _) => map,
     modelInteract: (map, _) => map,
     triggerEnter: (map, _) => map,

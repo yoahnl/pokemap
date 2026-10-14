@@ -86,6 +86,7 @@ final class NarrativeEventMigrationPreviewUseCase {
       for (final projection in scenarioProjections)
         if (projection.source != null)
           ...projection.source!.when(
+            entityBump: (_, _) => const <NarrativeOutcomeRef>[],
             entityInteract: (_, _) => const <NarrativeOutcomeRef>[],
             modelInteract: (_, _) => const <NarrativeOutcomeRef>[],
             triggerEnter: (_, _) => const <NarrativeOutcomeRef>[],
