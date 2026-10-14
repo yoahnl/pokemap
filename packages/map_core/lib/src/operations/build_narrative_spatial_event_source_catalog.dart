@@ -11,6 +11,7 @@ import '../models/project_manifest.dart';
 import 'narrative_event_canonical_json.dart';
 import 'map_entity_collision_footprint.dart';
 import 'narrative_entity_bump_source_reference.dart';
+import 'narrative_entity_autorun_source_reference.dart';
 
 /// Builds the read-only spatial source catalog used by Event V2 authoring.
 ///
@@ -297,6 +298,11 @@ void _appendEntityOptions({
       );
     }
     for (final entity in entities) {
+      options.add(_entityAutorunOption(
+        project: project, entry: entry, map: map, entity: entity,
+        mapUsable: mapUsable, mapIdentityUnique: mapIdentityUnique,
+        duplicate: duplicate,
+      ));
       options.add(
         _entityOption(
           entry: entry,
@@ -314,6 +320,49 @@ void _appendEntityOptions({
       }
     }
   }
+}
+
+NarrativeSpatialEventSourceOption _entityAutorunOption({
+  required ProjectManifest project,
+  required ProjectMapEntry entry,
+  required MapData map,
+  required MapEntity entity,
+  required bool mapUsable,
+  required bool mapIdentityUnique,
+  required bool duplicate,
+}) {
+  final source = _validIdentity(entry.id) && _validIdentity(entity.id)
+      ? NarrativeEventSourceRef.entityAutorun(entry.id, entity.id) : null;
+  final available = source != null && mapUsable && mapIdentityUnique &&
+      !duplicate && isNarrativeEntityAutorunSourceAvailable(
+        project: project, map: map, entityId: entity.id);
+  final label = _display(entity.inspectorHeadline, entity.id);
+  final mapLabel = _display(entry.name, entry.id);
+  final bounds = MapRect(pos: entity.pos, size: const GridSize(width: 1, height: 1));
+  final reason = available ? null : duplicate
+      ? 'Cet identifiant est utilisé plusieurs fois sur la map.'
+      : !mapIdentityUnique ? 'L’identifiant de la map est dupliqué dans le projet.'
+      : source == null ? 'L’identifiant du propriétaire logique est invalide.'
+      : 'Le démarrage automatique nécessite une carte 2D et un propriétaire logique natif unique.';
+  return NarrativeSpatialEventSourceOption(
+    source: source, humanLabel: '$label — Automatique',
+    humanDescription: 'Exécution automatique de $label, sur $mapLabel.',
+    mapId: entry.id, mapLabel: mapLabel, sourceTypeLabel: 'Automatique',
+    availability: available ? NarrativeSpatialEventSourceAvailability.selectable
+      : source == null || !mapUsable
+        ? NarrativeSpatialEventSourceAvailability.incompatible
+        : NarrativeSpatialEventSourceAvailability.visibleButUnavailable,
+    unavailableReason: reason, origin: NarrativeSpatialEventSourceOrigin.canonical,
+    debugTechnicalLabel: 'entityAutorun:${entry.id}:${entity.id}',
+    geometry: _rectWithinMap(bounds, map)
+      ? NarrativeSpatialSourceGeometrySummary.bounds(bounds)
+      : const NarrativeSpatialSourceGeometrySummary.unavailable(),
+    ownerKind: NarrativeSpatialEventSourceOwnerKind.entity,
+    presentationKind: entity.kind == MapEntityKind.npc
+      ? NarrativeSpatialEventSourcePresentationKind.npc
+      : NarrativeSpatialEventSourcePresentationKind.object,
+    ownerId: entity.id,
+  );
 }
 
 NarrativeSpatialEventSourceOption _entityBumpOption({
@@ -742,6 +791,7 @@ String? _spatialSourceMapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
     entityBump: (mapId, _) => mapId,
+    entityAutorun: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,

@@ -875,6 +875,7 @@ String? _proposalIssue(NarrativeEventCreatedSourceProposal proposal) {
   return proposal.source.when(
     modelInteract: (_, _) =>
         'Ce flux crée des entités et des zones, pas des décors 3D.',
+    entityAutorun: (_, _) => 'Choisissez un élément existant pour sa source automatique.',
     entityBump: (_, _) => 'Choisissez un personnage bloquant existant depuis les sources de contact.',
     entityInteract: (_, entityId) {
       if (proposal.physicalKind == NarrativeEventPhysicalSourceKind.zone1x1) {

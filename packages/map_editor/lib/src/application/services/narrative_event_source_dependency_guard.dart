@@ -116,26 +116,30 @@ final class NarrativeEventSourceDependencyGuard {
     final breaksIdentity = current.id != next.id;
     final becomesSpawn =
         current.kind != MapEntityKind.spawn && next.kind == MapEntityKind.spawn;
-    if (!breaksIdentity && !becomesSpawn) {
-      if (current == next) {
-        return NarrativeEventSourceDependencyDecision.allowed();
-      }
-      return _revalidationDecision(
+    if (current == next) {
+      return NarrativeEventSourceDependencyDecision.allowed();
+    }
+    if (breaksIdentity || becomesSpawn) {
+      final blocked = _decision(
         registry: registry,
         matches: (source) =>
             source == NarrativeEventSourceRef.entityInteract(mapId, current.id) ||
-          source == NarrativeEventSourceRef.entityBump(mapId, current.id),
-        operation: 'modification physique de l’entité ${current.id}',
+            source == NarrativeEventSourceRef.entityBump(mapId, current.id) ||
+            breaksIdentity &&
+                source == NarrativeEventSourceRef.entityAutorun(mapId, current.id),
+        operation: breaksIdentity
+            ? 'renommage de l’entité ${current.id}'
+            : 'conversion de l’entité ${current.id} en spawn',
       );
+      if (!blocked.isAllowed) return blocked;
     }
-    return _decision(
+    return _revalidationDecision(
       registry: registry,
       matches: (source) =>
           source == NarrativeEventSourceRef.entityInteract(mapId, current.id) ||
-          source == NarrativeEventSourceRef.entityBump(mapId, current.id),
-      operation: breaksIdentity
-          ? 'renommage de l’entité ${current.id}'
-          : 'conversion de l’entité ${current.id} en spawn',
+          source == NarrativeEventSourceRef.entityBump(mapId, current.id) ||
+          source == NarrativeEventSourceRef.entityAutorun(mapId, current.id),
+      operation: 'modification de l’entité ${current.id}',
     );
   }
 
@@ -148,7 +152,8 @@ final class NarrativeEventSourceDependencyGuard {
       registry: registry,
       matches: (source) =>
           source == NarrativeEventSourceRef.entityInteract(mapId, entityId) ||
-          source == NarrativeEventSourceRef.entityBump(mapId, entityId),
+          source == NarrativeEventSourceRef.entityBump(mapId, entityId) ||
+          source == NarrativeEventSourceRef.entityAutorun(mapId, entityId),
       operation: 'suppression de l’entité $entityId',
     );
   }
@@ -244,6 +249,7 @@ List<String> _linkedEventIds({
 
 String? _mapId(NarrativeEventSourceRef source) {
   return source.when(
+    entityAutorun: (mapId, _) => mapId,
     entityBump: (mapId, _) => mapId,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
@@ -265,6 +271,11 @@ bool _isResolvedByMap(NarrativeEventSourceRef source, MapData map) {
                 .where((instance) => instance.id == instanceId)
                 .length ==
             1,
+    entityAutorun: (mapId, entityId) =>
+        mapId == map.id &&
+        map.spatialScene == null &&
+        map.version != ProjectVersion.v9 &&
+        map.entities.where((entity) => entity.id == entityId).length == 1,
     entityBump: (mapId, entityId) =>
         mapId == map.id &&
         map.spatialScene == null &&

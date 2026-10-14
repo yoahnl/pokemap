@@ -1104,6 +1104,7 @@ final class NarrativeEventSpatialLinkJournalRepository
           'owner': owners.single.toJson(),
         };
       },
+      entityAutorun: (_, _) => null,
       entityBump: (_, _) => null,
       entityInteract: (mapId, entityId) {
         if (map.id != mapId) return null;
@@ -1152,6 +1153,7 @@ final class NarrativeEventSpatialLinkJournalRepository
           ),
         );
       },
+      entityAutorun: (_, _) => throw ArgumentError.value(source, 'source'),
       entityBump: (_, _) => throw ArgumentError.value(source, 'source'),
       entityInteract: (_, entityId) => map.copyWith(
         entities: [

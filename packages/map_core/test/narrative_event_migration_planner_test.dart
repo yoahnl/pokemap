@@ -2938,6 +2938,7 @@ List<MapEntity> _entitiesForSources(
           );
         },
         entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+        entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
         triggerEnter: (_, __) {},
         mapEnter: (_) {},
         outcomeReceived: (_) {},
@@ -2955,6 +2956,7 @@ List<MapEntity> _entitiesForSources(
         if (sourceMapId == mapId) ids.add(entityId);
       },
       entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+      entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (_) {},
@@ -2987,6 +2989,7 @@ List<MapTrigger> _triggersForSources(
         modelInteract: (_, _) {},
         entityInteract: (_, __) {},
         entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+        entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
         triggerEnter: (sourceMapId, triggerId) {
           if (sourceMapId != mapId) return;
           ids.add(triggerId);
@@ -3009,6 +3012,7 @@ List<MapTrigger> _triggersForSources(
       modelInteract: (_, _) {},
       entityInteract: (_, __) {},
       entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+      entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
       triggerEnter: (sourceMapId, triggerId) {
         if (sourceMapId == mapId) ids.add(triggerId);
       },
@@ -3067,6 +3071,7 @@ List<NarrativeOutcomeRef> _referencedOutcomes(
       modelInteract: (_, _) {},
       entityInteract: (_, __) {},
       entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+      entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {
@@ -3194,6 +3199,7 @@ ScenarioNode _scenarioNodeForSource(
   final actionKind = source?.when(
         entityInteract: (_, __) => 'sourceEntityInteract',
         entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+        entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
         modelInteract: (_, _) => throw UnsupportedError(
           '3D model sources cannot be represented by legacy scenario nodes.',
         ),
@@ -3211,6 +3217,7 @@ ScenarioNode _scenarioNodeForSource(
           entityId: entityId,
         ),
         entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+        entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
         triggerEnter: (mapId, triggerId) => ScenarioNodeBinding(
           mapId: mapId,
           triggerId: triggerId,
@@ -3261,6 +3268,7 @@ void _addSourceMap(Set<String> result, NarrativeEventSourceRef? source) {
   source?.when(
     entityInteract: (mapId, _) => result.add(mapId),
     entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+    entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
     modelInteract: (mapId, _) => result.add(mapId),
     triggerEnter: (mapId, _) => result.add(mapId),
     mapEnter: result.add,
@@ -3304,6 +3312,7 @@ LegacyMapEventProjection _projection({
         ? {LegacyMapEventCompatibilityMetadataKeys.entityId: entityId}
         : const <String, String>{},
     entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+    entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
     triggerEnter: (_, triggerId) => confirmed
         ? {LegacyMapEventCompatibilityMetadataKeys.triggerId: triggerId}
         : const <String, String>{},
@@ -3340,6 +3349,7 @@ LegacyMapEventProjection _projection({
       ),
       entityInteract: (_, __) => MapEventType.object,
       entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+      entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
       triggerEnter: (_, __) => MapEventType.triggerZone,
       mapEnter: (_) => MapEventType.object,
       outcomeReceived: (_) => MapEventType.object,
@@ -3366,6 +3376,7 @@ LegacyMapEventProjection _projection({
       }
     },
     entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+    entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
     triggerEnter: (sourceMapId, triggerId) {
       if (sourceMapId == mapId) {
         fixtureTriggers.add(
@@ -3426,6 +3437,7 @@ GridPos _sourceFixturePosition(NarrativeEventSourceRef source) {
     modelInteract: (_, instanceId) => instanceId,
     entityInteract: (_, entityId) => entityId,
     entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+    entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
     triggerEnter: (_, triggerId) => triggerId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (outcome) =>

@@ -515,6 +515,7 @@ bool _matchesSpatialDestination(
   return source.when(
     modelInteract: (mapId, instanceId) =>
         destination.mapId == mapId && destination.sourceOwnerId == instanceId,
+    entityAutorun: (mapId, entityId) => destination.mapId == mapId && destination.sourceOwnerId == entityId,
     entityBump: (mapId, entityId) => destination.mapId == mapId && destination.sourceOwnerId == entityId,
     entityInteract: (mapId, entityId) =>
         destination.mapId == mapId && destination.sourceOwnerId == entityId,

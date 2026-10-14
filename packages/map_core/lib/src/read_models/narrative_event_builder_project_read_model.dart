@@ -557,6 +557,7 @@ NarrativeEventBuilderProjectReadModel
         ...projection.source!.when(
           entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
           entityBump: (_, _) => const <NarrativeOutcomeRef>[],
+          entityAutorun: (_, _) => const <NarrativeOutcomeRef>[],
           modelInteract: (_, _) => const <NarrativeOutcomeRef>[],
           triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
           mapEnter: (_) => const <NarrativeOutcomeRef>[],
@@ -1918,6 +1919,16 @@ NarrativeEventSourceSummary _missingSourceSummary(
       humanSentence: reason ??
           'Source introuvable — l’entité « $entityId » n’existe plus.',
       sourceTypeLabel: 'Contact du joueur',
+      mapId: mapId,
+      mapLabel: mapLabelsById[mapId] ?? 'Map introuvable',
+      available: false,
+      debugTechnicalLabel: _canonicalKey(source.toJson()),
+    ),
+    entityAutorun: (mapId, entityId) => NarrativeEventSourceSummary(
+      source: source,
+      humanSentence: reason ??
+          'Source introuvable — l’entité « $entityId » n’existe plus.',
+      sourceTypeLabel: 'Automatique',
       mapId: mapId,
       mapLabel: mapLabelsById[mapId] ?? 'Map introuvable',
       available: false,

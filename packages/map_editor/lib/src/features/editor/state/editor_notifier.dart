@@ -3556,6 +3556,7 @@ class EditorNotifier extends _$EditorNotifier
                   .where((candidate) => candidate.id == instanceId)
                   .length ==
               1,
+      entityAutorun: (_, _) => false,
       entityBump: (_, _) => false,
       entityInteract: (mapId, entityId) {
         if (mapId != proposal.afterMap.id) return false;
@@ -3922,6 +3923,7 @@ class EditorNotifier extends _$EditorNotifier
     String? removedEntityId;
     String? removedTriggerId;
     journal.source.when(
+      entityAutorun: (_, _) {},
       entityBump: (_, _) {},
       entityInteract: (_, entityId) => removedEntityId = entityId,
       modelInteract: (_, _) {},
@@ -3980,6 +3982,7 @@ class EditorNotifier extends _$EditorNotifier
           ),
         );
       },
+      entityAutorun: (_, _) => null,
       entityBump: (_, _) => null,
       entityInteract: (mapId, entityId) {
         if (mapId != map.id) return null;
@@ -4138,6 +4141,7 @@ class EditorNotifier extends _$EditorNotifier
                   .where((candidate) => candidate.id == instanceId)
                   .length ==
               1,
+      entityAutorun: (_, _) => false,
       entityBump: (_, _) => false,
       entityInteract: (mapId, entityId) =>
           map.id == mapId &&
@@ -4172,6 +4176,7 @@ class EditorNotifier extends _$EditorNotifier
             ) ==
             interlock.sourceOwnerFingerprint;
       },
+      entityAutorun: (_, _) => false,
       entityBump: (_, _) => false,
       entityInteract: (mapId, entityId) {
         if (map.id != mapId) return false;

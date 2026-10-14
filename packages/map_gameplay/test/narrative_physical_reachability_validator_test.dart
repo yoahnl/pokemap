@@ -146,6 +146,113 @@ void main() {
       });
     }
 
+    for (final mode in ['logical', 'nonblocking', 'absent', 'duplicate']) {
+      test('autorun reachability needs a logical owner rather than contact $mode',
+          () {
+        final owner = MapEntity(
+          id: 'automatic-owner',
+          kind: MapEntityKind.custom,
+          pos: const GridPos(x: 4, y: 1),
+          blocksMovement: mode != 'nonblocking',
+        );
+        final collisions = List<bool>.filled(15, false);
+        for (final y in [0, 1, 2]) {
+          collisions[y * 5 + 2] = true;
+        }
+        final map = _map(
+          id: 'start',
+          width: 5,
+          height: 3,
+          collisions: collisions,
+          entities: [
+            _spawn(),
+            if (mode != 'absent') owner,
+            if (mode == 'duplicate') owner,
+          ],
+        );
+        final source = NarrativeEventSourceRef.fromJson({
+          'kind': 'entityAutorun',
+          'mapId': 'start',
+          'entityId': owner.id,
+        });
+        final project = _project([_event(_eventA, source)]).copyWith(
+          maps: const [
+            ProjectMapEntry(
+              id: 'start',
+              name: 'Start',
+              relativePath: 'maps/start.json',
+            ),
+          ],
+        );
+        final report = validateNarrativePhysicalReachability(
+          project: project,
+          maps: [map],
+          narrativeReport: _symbolicReport(),
+        );
+        final result = report.resultForEvent(_eventA)!;
+        if (mode == 'logical' || mode == 'nonblocking') {
+          expect(result.status, NarrativePhysicalSourceStatus.reachable);
+          expect(result.reachedCell, const GridPos(x: 0, y: 1));
+          expect(result.path, [const GridPos(x: 0, y: 1)]);
+        } else {
+          expect(result.status, NarrativePhysicalSourceStatus.indeterminate);
+          expect(result.path, isEmpty);
+          expect(
+            report.issues,
+            contains(isA<NarrativePhysicalReachabilityIssue>()
+                .having((issue) => issue.code, 'code',
+                    NarrativePhysicalIssueCode.missingSourceTarget)
+                .having((issue) => issue.eventId, 'eventId', _eventA)),
+          );
+        }
+      });
+    }
+
+    test('autorun on an unreachable map is not aliased to active map entry', () {
+      final start = _map(id: 'start', width: 3, height: 3);
+      final remote = _map(
+        id: 'remote',
+        width: 3,
+        height: 3,
+        withSpawn: false,
+        entities: const [
+          MapEntity(
+            id: 'automatic-owner',
+            kind: MapEntityKind.custom,
+            pos: GridPos(x: 1, y: 1),
+            blocksMovement: false,
+          ),
+        ],
+      );
+      final source = NarrativeEventSourceRef.fromJson({
+        'kind': 'entityAutorun',
+        'mapId': 'remote',
+        'entityId': 'automatic-owner',
+      });
+      final project = _project([_event(_eventA, source)]).copyWith(
+        maps: const [
+          ProjectMapEntry(
+            id: 'start',
+            name: 'Start',
+            relativePath: 'maps/start.json',
+          ),
+          ProjectMapEntry(
+            id: 'remote',
+            name: 'Remote',
+            relativePath: 'maps/remote.json',
+          ),
+        ],
+      );
+      final report = validateNarrativePhysicalReachability(
+        project: project,
+        maps: [start, remote],
+        narrativeReport: _symbolicReport(),
+      );
+      expect(report.resultForEvent(_eventA)!.status,
+          NarrativePhysicalSourceStatus.permanentlyBlocked);
+      expect(report.reachableMapIds, {'start'});
+    });
+
     test('interacts with a blocking entity from a cardinal adjacent cell', () {
       final map = _map(
         id: 'start',

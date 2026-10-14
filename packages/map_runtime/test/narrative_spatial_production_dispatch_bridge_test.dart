@@ -969,6 +969,17 @@ NarrativeEventProjectCatalog _catalog(
         MapTrigger? trigger,
       })>(
     modelInteract: (mapId, _) => (mapId: mapId, entity: null, trigger: null),
+    entityAutorun: (mapId, entityId) => (
+      mapId: mapId,
+      entity: MapEntity(
+        id: entityId,
+        name: entityId,
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 0, y: 0),
+        blocksMovement: false,
+      ),
+      trigger: null,
+    ),
     entityBump: (mapId, entityId) => (
       mapId: mapId,
       entity: MapEntity(id: entityId, name: entityId, kind: MapEntityKind.npc,

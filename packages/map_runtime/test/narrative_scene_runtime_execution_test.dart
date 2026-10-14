@@ -6,6 +6,128 @@ import 'package:map_runtime/src/application/narrative_scene_runtime_execution.da
 
 void main() {
   group('executeNarrativeEventScene', () {
+    for (final mode in [
+      'same',
+      'retired',
+      'recreated',
+      'external',
+      'blocked',
+      'new-write',
+      'roundtrip',
+    ]) {
+      test('local instance writes across a Scene Warp mode=$mode', () async {
+        final source = _instanceWarpMap('source');
+        final target = _instanceWarpMap('target');
+        final scene = _instanceWarpScene(mode);
+        final project = ProjectManifest(
+          name: 'Scoped Warp',
+          maps: [
+            ProjectMapEntry(
+              id: 'source',
+              name: 'Source',
+              relativePath: 'maps/source.json',
+            ),
+            ProjectMapEntry(
+              id: 'target',
+              name: 'Target',
+              relativePath: 'maps/target.json',
+            ),
+          ],
+          tilesets: const [],
+          scenes: [scene],
+        );
+        final initial = GameState(
+          saveId: 'instance-warp',
+          currentMapId: 'source',
+          mapInstanceWorldState: MapInstanceWorldState(
+            instancesByMapId: {
+              'source': MapInstanceRuntimeState(instanceId: 'old-source'),
+            },
+          ),
+        );
+        var host = initial;
+        var warps = 0;
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+            eventId: 'instance-event',
+            sceneId: scene.id,
+            executionId: 'instance-execution-$mode',
+            gameState: initial,
+          ),
+          project: project,
+          mapsById: {'source': source, 'target': target},
+          currentGameState: () => host,
+          consequenceWriter: SceneConsequenceRuntimeWriter(
+            project: project,
+            mapsById: {'source': source, 'target': target},
+            mapInstanceScopes: {
+              'source': initial.mapInstanceWorldState.instanceRef('source')!,
+            },
+          ),
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => throw StateError('Unexpected condition'),
+            showDialogue: (_) => throw StateError('Unexpected dialogue'),
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+            executeInteractiveCommand: (intent) {
+              warps++;
+              if (mode != 'same') {
+                final command = intent.interactiveCommand;
+                host = host.copyWith(
+                  currentMapId: command is SceneWarpInteractiveCommand
+                      ? command.destinationMapId
+                      : 'source',
+                  mapInstanceWorldState: MapInstanceWorldState(
+                    instancesByMapId: {
+                      if (mode == 'recreated' ||
+                          mode == 'external' ||
+                          (mode == 'roundtrip' && warps == 2))
+                        'source': MapInstanceRuntimeState(
+                          instanceId: 'new-source',
+                        ),
+                      'target': MapInstanceRuntimeState(
+                        instanceId: 'target-instance',
+                      ),
+                    },
+                  ),
+                );
+              }
+              return mode == 'blocked' ? 'blocked' : 'completed';
+            },
+          ),
+        );
+        final success = !['external', 'blocked', 'new-write'].contains(mode);
+        expect(
+          result,
+          success
+              ? isA<NarrativeSceneExecutionCompleted>()
+              : isA<NarrativeSceneExecutionFailed>(),
+        );
+        expect(warps, mode == 'roundtrip' ? 2 : 1);
+        expect(
+          initial.mapInstanceWorldState.eventBoolean(
+            initial.mapInstanceWorldState.instanceRef('source')!,
+            'owner',
+            'A',
+          ),
+          isFalse,
+        );
+        if (result is NarrativeSceneExecutionCompleted) {
+          final store = result.updatedGameState.mapInstanceWorldState;
+          expect(
+            result.updatedGameState.trainerProfile.money,
+            initial.trainerProfile.money + 100,
+          );
+          if (store.instanceRef('source') != null) {
+            expect(
+              store.eventBoolean(store.instanceRef('source')!, 'owner', 'A'),
+              mode == 'same',
+            );
+          }
+        }
+      });
+    }
+
     for (final value in [
       const NarrativeValue.boolean(true),
       NarrativeValue.integer(2),
@@ -948,6 +1070,126 @@ void main() {
       expect(replay.updatedGameState, first.updatedGameState);
     });
   });
+}
+
+MapData _instanceWarpMap(String id) => MapData(
+  id: id,
+  name: id,
+  size: const GridSize(width: 3, height: 3),
+  layers: const [MapLayer.object(id: 'objects', name: 'Objects')],
+  entities: const [
+    MapEntity(
+      id: 'owner',
+      name: 'Owner',
+      kind: MapEntityKind.custom,
+      pos: GridPos(x: 1, y: 1),
+      blocksMovement: false,
+    ),
+  ],
+  warps: [
+    MapWarp(
+      id: 'arrival',
+      pos: const GridPos(x: 0, y: 0),
+      targetMapId: id,
+      targetPos: const GridPos(x: 0, y: 0),
+      triggerMode: MapWarpTriggerMode.sceneOnly,
+    ),
+  ],
+);
+
+SceneAsset _instanceWarpScene(String mode) {
+  final setter = SceneNode(
+    id: 'set',
+    kind: SceneNodeKind.action,
+    payload: SceneActionPayload(
+      consequence: SceneConsequence.setMapEventInstanceBoolean(
+        mapId: 'source',
+        eventId: 'owner',
+        key: 'A',
+        value: true,
+      ),
+    ),
+  );
+  final nodes = [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    if (mode != 'new-write') setter,
+    SceneNode(
+      id: 'warp',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload(
+        interactiveCommand: mode == 'external'
+            ? SceneInteractiveCommand.fromJson({
+                'kind': 'actorRoute',
+                'target': {'kind': 'player', 'mapId': 'source'},
+                'steps': [
+                  {'kind': 'wait', 'durationMs': 1},
+                ],
+                'skippable': false,
+              })
+            : SceneInteractiveCommand.warp(
+                destinationMapId: mode == 'same' ? 'source' : 'target',
+                warpId: 'arrival',
+                transition: SceneWarpTransition.none,
+              ),
+      ),
+    ),
+    if (mode == 'roundtrip')
+      SceneNode(
+        id: 'return',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload(
+          interactiveCommand: SceneInteractiveCommand.warp(
+            destinationMapId: 'source',
+            warpId: 'arrival',
+            transition: SceneWarpTransition.none,
+          ),
+        ),
+      ),
+    if (mode == 'new-write') setter,
+    SceneNode(
+      id: 'reward',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload(
+        consequence: SceneConsequence.giveMoney(amount: 100),
+      ),
+    ),
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ];
+  return SceneAsset(
+    id: 'scoped-warp',
+    name: 'Scoped Warp',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: nodes,
+      edges: [
+        for (var i = 0; i < nodes.length - 1; i++)
+          SceneEdge(
+            id: 'edge-$i',
+            fromNodeId: nodes[i].id,
+            fromPortId: 'completed',
+            toNodeId: nodes[i + 1].id,
+            kind: i == 0
+                ? SceneEdgeKind.defaultFlow
+                : SceneEdgeKind.actionCompleted,
+          ),
+        SceneEdge(
+          id: 'warp-blocked',
+          fromNodeId: 'warp',
+          fromPortId: 'blocked',
+          toNodeId: 'reward',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        if (mode == 'roundtrip')
+          SceneEdge(
+            id: 'return-blocked',
+            fromNodeId: 'return',
+            fromPortId: 'blocked',
+            toNodeId: 'reward',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+      ],
+    ),
+  );
 }
 
 SceneAsset _hostPickupScene() {

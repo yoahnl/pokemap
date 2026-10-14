@@ -112,7 +112,8 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
               for (final type in eventSourceKinds)
                 if (type != NarrativeEventSourceKind.modelInteract ||
                     widget.controller.project.settings.dimension == ProjectDimension.threeD)
-                if (type != NarrativeEventSourceKind.entityBump ||
+                if ((type != NarrativeEventSourceKind.entityBump &&
+                    type != NarrativeEventSourceKind.entityAutorun) ||
                     widget.controller.project.settings.dimension == ProjectDimension.twoD)
                 StudioChoice(
                   label: eventKindLabel(type),
@@ -129,6 +130,12 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                 const SizedBox(height: 8),
                 const StudioNotice(
                   'L’événement se déclenche quand le joueur marche contre un personnage bloquant.',
+                ),
+              ],
+              if (kind == NarrativeEventSourceKind.entityAutorun) ...[
+                const SizedBox(height: 8),
+                const StudioNotice(
+                  'L’événement démarre automatiquement pour cet élément lorsque ses conditions sont réunies, sans action du joueur.',
                 ),
               ],
               const SizedBox(height: 14),

@@ -46,6 +46,9 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
       }
       final map = snapshot.data;
       if (map == null) return const Text('Source à charger…');
+      if (map.id != eventMapId(widget.source)) {
+        return const Text('Source indisponible · carte à réparer');
+      }
       final id = eventTargetId(widget.source);
       if (widget.source.kind == NarrativeEventSourceKind.modelInteract) {
         final instances = map.spatialScene?.instances
@@ -69,13 +72,23 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
       if (id == null) return const Text('Toute la carte · à son entrée');
       final matches =
           (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
-           widget.source.kind == NarrativeEventSourceKind.entityBump)
+              widget.source.kind == NarrativeEventSourceKind.entityBump ||
+              widget.source.kind == NarrativeEventSourceKind.entityAutorun)
           ? entities.length
           : triggers.length;
       if (matches != 1) {
         return Text(
           '${matches == 0 ? 'Source absente' : 'Source ambiguë'} · $id',
         );
+      }
+      if (widget.source.kind == NarrativeEventSourceKind.entityAutorun &&
+          (widget.loader.workspace.project == null ||
+              !isNarrativeEntityAutorunSourceAvailable(
+                project: widget.loader.workspace.project!,
+                map: map,
+                entityId: id,
+              ))) {
+        return const Text('Source indisponible · élément source à réparer');
       }
       if (widget.source.kind == NarrativeEventSourceKind.entityBump &&
           (widget.loader.workspace.project == null ||
@@ -85,7 +98,8 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
       }
       final entitySource =
           (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
-           widget.source.kind == NarrativeEventSourceKind.entityBump);
+          widget.source.kind == NarrativeEventSourceKind.entityBump ||
+          widget.source.kind == NarrativeEventSourceKind.entityAutorun);
       final position = entitySource
           ? entities.single.pos
           : triggers.single.area.pos;

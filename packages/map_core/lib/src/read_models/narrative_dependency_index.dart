@@ -25,6 +25,7 @@ import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import '../operations/scene_actor_reference.dart';
 import '../operations/narrative_entity_bump_source_reference.dart';
+import '../operations/narrative_entity_autorun_source_reference.dart';
 import 'linked_asset_public_contracts.dart';
 
 /// Canonical namespaces used by Narrative Studio dependency consumers.
@@ -1332,6 +1333,20 @@ final class _NarrativeDependencyIndexBuilder {
             map?.spatialScene != null || map?.version == ProjectVersion.v9 ||
             (map != null && entities.length == 1 &&
               !isNarrativeEntityBumpSourceAvailable(project: project, map: map, entityId: entityId));
+        _usage(target: _mapSourceChildKey(mapId, 'entity', entityId), owner: owner,
+          path: '$prefix.entityId', criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          resolution: incompatible ? NarrativeDependencyResolution.unavailable : null);
+      },
+      entityAutorun: (mapId, entityId) {
+        _usage(target: _mapKey(mapId), owner: owner, path: '$prefix.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        final targetMaps = maps.where((map) => map.id == mapId).toList();
+        final map = targetMaps.length == 1 ? targetMaps.single : null;
+        final entities = map?.entities.where((entity) => entity.id == entityId).toList() ?? const <MapEntity>[];
+        final incompatible = project.settings.dimension != ProjectDimension.twoD ||
+            map?.spatialScene != null || map?.version == ProjectVersion.v9 ||
+            (map != null && entities.length == 1 &&
+              !isNarrativeEntityAutorunSourceAvailable(project: project, map: map, entityId: entityId));
         _usage(target: _mapSourceChildKey(mapId, 'entity', entityId), owner: owner,
           path: '$prefix.entityId', criticality: NarrativeDependencyCriticality.runtimeBlocking,
           resolution: incompatible ? NarrativeDependencyResolution.unavailable : null);

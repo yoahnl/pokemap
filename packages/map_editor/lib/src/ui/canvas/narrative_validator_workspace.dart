@@ -1337,6 +1337,7 @@ PokeMapDiagnosticSeverity _calloutSeverity(
 
 String _sourceLabel(NarrativeMapEventEntry event) {
   final category = switch (event.sourceKind) {
+    NarrativeEventSourceKind.entityAutorun => 'Automatique',
     NarrativeEventSourceKind.entityBump => 'Contact du joueur',
     NarrativeEventSourceKind.entityInteract => switch (event.sourceEntityKind) {
         MapEntityKind.npc => 'PNJ',

@@ -868,7 +868,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool get _blocksOverworldForNarrativeDispatch =>
       _flowPhase == _RuntimeFlowPhase.overworld &&
-      (_inFlightSpatialDispatchCount > 0 ||
+      (_entityAutorunInFlight ||
+          _inFlightSpatialDispatchCount > 0 ||
           _narrativeOutcomeDrainFuture != null ||
           _inFlightRootOutcomePublicationCount > 0);
 
@@ -881,6 +882,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingBattleRequest != null ||
       _isLoadActivationWorkInFlight ||
       _inFlightMapActivationDispatchIds.isNotEmpty ||
+      _entityAutorunInFlight ||
       _inFlightSpatialDispatchCount > 0 ||
       _narrativeOutcomeDrainFuture != null ||
       _inFlightRootOutcomePublicationCount > 0 ||
@@ -1076,6 +1078,188 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  Map<String, List<NarrativeEventSourceRef>> _entityAutorunSourcesFor(
+    ProjectManifest project,
+  ) {
+    if (identical(project, _cachedEntityAutorunProject)) {
+      return _cachedEntityAutorunSources;
+    }
+    final snapshot = _cachedNarrativeRuntimeSnapshot;
+    if (snapshot == null || !snapshot.matchesProject(project)) {
+      return const {};
+    }
+    final sources = <String, Set<NarrativeEventSourceRef>>{};
+    for (final record
+        in project.eventRegistry?.records ?? const <NarrativeEventRecord>[]) {
+      final source = record.definitionOrNull?.source;
+      if (source?.kind != NarrativeEventSourceKind.entityAutorun) continue;
+      final owner = source!.when<(String, String)?>(
+        entityAutorun: (mapId, entityId) => (mapId, entityId),
+        entityInteract: (mapId, entityId) => null,
+        entityBump: (mapId, entityId) => null,
+        modelInteract: (mapId, instanceId) => null,
+        triggerEnter: (mapId, triggerId) => null,
+        mapEnter: (_) => null,
+        outcomeReceived: (_) => null,
+      );
+      final map = owner == null ? null : snapshot.mapsById[owner.$1];
+      if (map == null ||
+          !isNarrativeEntityAutorunSourceAvailable(
+            project: project,
+            map: map,
+            entityId: owner!.$2,
+          )) {
+        continue;
+      }
+      sources.putIfAbsent(map.id, () => {}).add(source);
+    }
+    _cachedEntityAutorunProject = project;
+    _cachedEntityAutorunSources = Map.unmodifiable({
+      for (final entry in sources.entries)
+        entry.key: List<NarrativeEventSourceRef>.unmodifiable(entry.value),
+    });
+    return _cachedEntityAutorunSources;
+  }
+
+  bool _usesLogicalMapInstances(RuntimeMapBundle bundle) =>
+      bundle.manifest.settings.mapInstanceRetentionPolicy != null ||
+      _entityAutorunSourcesFor(bundle.manifest).isNotEmpty;
+
+  NarrativeEventDispatchHandled? _selectEntityAutorun() {
+    NarrativeEventDispatchHandled? selected;
+    for (final source
+        in _entityAutorunSourcesFor(_bundle.manifest)[_activeMapId] ??
+            const <NarrativeEventSourceRef>[]) {
+      final preparation = _readInteractionAuthority(
+        NarrativeEventOccurrence(source: source),
+      );
+      if (preparation is! NarrativeEventDispatchAuthorityReady) continue;
+      final decision = preparation.plan(gameState: gameStateSnapshot);
+      if (decision is! NarrativeEventDispatchHandled) continue;
+      if (selected == null ||
+          decision.priority > selected.priority ||
+          (decision.priority == selected.priority &&
+              (decision.order < selected.order ||
+                  (decision.order == selected.order &&
+                      compareNarrativeEventUtf16(
+                            decision.eventId,
+                            selected.eventId,
+                          ) <
+                          0)))) {
+        selected = decision;
+      }
+    }
+    return selected;
+  }
+
+  bool _isCurrentEntityAutorun({
+    required NarrativeEventSourceRef source,
+    required MapInstanceRef scope,
+    required String activationId,
+  }) {
+    if (_isRemoved ||
+        _activeMapId != scope.mapId ||
+        _currentMapActivationId != activationId ||
+        _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+              scope.mapId,
+            ) !=
+            scope) {
+      return false;
+    }
+    return source.when(
+      entityAutorun: (mapId, entityId) =>
+          mapId == _activeMapId &&
+          isNarrativeEntityAutorunSourceAvailable(
+            project: _bundle.manifest,
+            map: _world.map,
+            entityId: entityId,
+          ),
+      entityInteract: (mapId, entityId) => false,
+      entityBump: (mapId, entityId) => false,
+      modelInteract: (mapId, instanceId) => false,
+      triggerEnter: (mapId, triggerId) => false,
+      mapEnter: (_) => false,
+      outcomeReceived: (_) => false,
+    );
+  }
+
+  bool _startEntityAutorun() {
+    if (_entityAutorunInFlight ||
+        !isLoaded ||
+        !_canResolveOverworldInteraction() ||
+        _hasCheckpointUnsafeRuntimeWorkForSave ||
+        _player.isStepping) {
+      return false;
+    }
+    final scope = _gameState.mapInstanceWorldState.instanceRef(_activeMapId);
+    final activationId = _currentMapActivationId;
+    if (scope == null || activationId == null) return false;
+    final selected = _selectEntityAutorun();
+    if (selected == null) return false;
+    _entityAutorunInFlight = true;
+    _clearPressedMovementControls();
+    _runDetachedNarrativeTask(
+      operation: 'entityAutorun',
+      task: () async {
+        try {
+          final preparation = await _prepareNarrativeDispatchAuthority(
+            NarrativeEventOccurrence(source: selected.source),
+          );
+          if (preparation is! NarrativeEventDispatchAuthorityReady ||
+              !_isCurrentEntityAutorun(
+                source: selected.source,
+                scope: scope,
+                activationId: activationId,
+              ) ||
+              _narrativeActivityGate.activity !=
+                  NarrativeRuntimeActivity.idle ||
+              _narrativeActivityGate.checkpointInProgress ||
+              _selectEntityAutorun()?.eventId != selected.eventId) {
+            return;
+          }
+          _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+          await _narrativeStateTransactions.transact<void>((_) {
+            return NarrativeEventStateTransaction.commit(_gameState, null);
+          });
+          final coordinator = NarrativeEventExecutionCoordinator(
+            stateTransactions: _narrativeStateTransactions,
+            planner: NarrativeEventDispatchPlanner(),
+            executeScene: (request) {
+              if (request.eventId != selected.eventId ||
+                  !_isCurrentEntityAutorun(
+                    source: selected.source,
+                    scope: scope,
+                    activationId: activationId,
+                  )) {
+                return Future.value(NarrativeSceneExecutionResult.cancelled());
+              }
+              return _executeNarrativeScene(request);
+            },
+            activityPort: NarrativeRuntimeActivityPort(_narrativeActivityGate),
+            executionIdFactory: () => _nextNarrativeRuntimeId('evx'),
+            correlationIdFactory: () => _nextNarrativeRuntimeId('corr'),
+            deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
+          );
+          final result = await coordinator.execute(authority: preparation);
+          if (result is NarrativeEventExecutionSucceeded) {
+            _applyNarrativeGameState(result.updatedGameState);
+            await _drainLiveNarrativeOutcomeOutbox();
+          } else if (result is NarrativeEventExecutionFailed) {
+            debugPrint(
+              '[event_v2] entityAutorun failed event=${selected.eventId} '
+              'kind=${result.failure.kind.name} cause=${result.failure.cause}',
+            );
+          }
+        } finally {
+          _entityAutorunInFlight = false;
+          _publishOverworldInteractions();
+          _publishInputAuthoritySnapshot();
+        }
+      },
+    );
+    return true;
+  }
+
   Future<NarrativeEventRuntimeSnapshot> _narrativeRuntimeSnapshotFor(
     ProjectManifest project,
   ) async {
@@ -1260,6 +1444,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return source.when(
           modelInteract: (mapId, instanceId) => instanceId,
           entityInteract: (_, entityId) => entityId,
+          entityAutorun: (_, entityId) => entityId,
           entityBump: (_, entityId) => entityId,
           triggerEnter: (_, triggerId) => triggerId,
           mapEnter: (mapId) => mapId,
@@ -1899,6 +2084,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Set<String> _deferredNarrativeContinuationCancelSourceIds = <String>{};
   String? _restoredOutcomeContinuationActivationId;
   NarrativeEventRuntimeSnapshot? _cachedNarrativeRuntimeSnapshot;
+  ProjectManifest? _cachedEntityAutorunProject;
+  Map<String, List<NarrativeEventSourceRef>> _cachedEntityAutorunSources =
+      const {};
+  bool _entityAutorunInFlight = false;
   int _nextMapActivationSerial = 0;
   int _nextNarrativeRuntimeIdSerial = 0;
   String? _currentMapActivationId;
@@ -2755,6 +2944,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   bool get debugIsNarrativeSpatialDispatchInFlight =>
       _inFlightSpatialDispatchCount > 0;
+
+  @visibleForTesting
+  bool get debugIsEntityAutorunInFlight => _entityAutorunInFlight;
 
   @visibleForTesting
   int get debugPendingNarrativeTriggerEntryCount =>
@@ -4042,6 +4234,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ],
         eagerError: false);
       _gameState = bootResources[0]! as GameState;
+      if (_bundle.manifest.eventRegistry?.records.any(
+            (record) =>
+                record.definitionOrNull?.source.kind ==
+                NarrativeEventSourceKind.entityAutorun,
+          ) ==
+          true) {
+        await _narrativeRuntimeSnapshotFor(_bundle.manifest);
+      }
       _initializeLogicalMapInstance();
       final loadedRootBorderAssets =
           bootResources[1]! as BorderRuntimeAssetBundle;
@@ -4549,6 +4749,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
     }
+
+    if (_startEntityAutorun()) return;
 
     final mapActivationWorkLocked = _blocksOverworldForMapActivationWork;
     final narrativeDispatchLocked = _blocksOverworldForNarrativeDispatch;
@@ -14138,7 +14340,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
         );
       }
-      if (newBundle.manifest.settings.mapInstanceRetentionPolicy != null) {
+      if (_usesLogicalMapInstances(newBundle)) {
         final nextInstances = sourceMapId == warp.targetMapId
             ? preserveSameMapInstance(
                 state: sourceInstances,
@@ -14541,13 +14743,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('Connection blocked');
         return;
       }
-      if (target.bundle.manifest.settings.mapInstanceRetentionPolicy != null) {
+      if (_usesLogicalMapInstances(target.bundle)) {
         _replaceLogicalMapInstances(
-          retainMapInstance(
-            state: _battleRuntimeGameState.mapInstanceWorldState,
-            mapId: target.bundle.map.id,
-            allocateId: _allocateMapInstanceId,
-          ),
+          target.bundle.manifest.settings.mapInstanceRetentionPolicy == null
+              ? setupDifferentMapInstance(
+                  state: _battleRuntimeGameState.mapInstanceWorldState,
+                  targetMapId: target.bundle.map.id,
+                  allocateId: _allocateMapInstanceId,
+                )
+              : retainMapInstance(
+                  state: _battleRuntimeGameState.mapInstanceWorldState,
+                  mapId: target.bundle.map.id,
+                  allocateId: _allocateMapInstanceId,
+                ),
         );
       }
       _bundle = target.bundle;
@@ -15586,8 +15794,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _initializeLogicalMapInstance() {
-    final policy = _bundle.manifest.settings.mapInstanceRetentionPolicy;
-    if (policy == null) return;
+    if (!_usesLogicalMapInstances(_bundle)) return;
     final state = _gameState.mapInstanceWorldState;
     _validateLogicalMapInstanceContext(
       _bundle,
@@ -15612,13 +15819,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required bool requireActive,
   }) {
     final policy = bundle.manifest.settings.mapInstanceRetentionPolicy;
-    if (policy == null) return;
-    for (final mapId in policy.clampViewportToMapIds) {
+    if (!_usesLogicalMapInstances(bundle)) return;
+    for (final mapId in policy?.clampViewportToMapIds ?? const <String>{}) {
       if (bundle.manifest.maps.where((map) => map.id == mapId).length != 1) {
         throw StateError('Logical map viewport references unknown map $mapId.');
       }
     }
     final state = gameState.mapInstanceWorldState;
+    if (policy == null &&
+        state.instancesByMapId.keys.any((mapId) => mapId != bundle.map.id)) {
+      throw StateError(
+        'An active-only world contains an inactive map instance.',
+      );
+    }
     for (final mapId in state.instancesByMapId.keys) {
       if (bundle.manifest.maps.where((map) => map.id == mapId).length != 1) {
         throw StateError(

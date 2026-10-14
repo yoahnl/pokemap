@@ -147,6 +147,24 @@ class NarrativeOverviewContext {
     }
 
     return ref.when(
+      entityAutorun: (map, id) {
+        final owners = openMaps[map]?.entities
+            .where((owner) => owner.id == id)
+            .toList();
+        final owner = owners?.length == 1 ? owners!.single : null;
+        return (
+          mapId: map,
+          label: owner != null && owner.name.isNotEmpty
+              ? 'Automatique · ${owner.name}'
+              : 'Automatique · $id',
+          when: 'S’exécute automatiquement quand ses conditions sont réunies',
+          missing: !mapNames.containsKey(map)
+              ? 'Carte source absente : $map'
+              : owners != null && owner == null
+              ? 'Élément source absent ou ambigu : $id'
+              : null,
+        );
+      },
       entityBump: (map, id) {
         final value = located(map, id, true);
         return (

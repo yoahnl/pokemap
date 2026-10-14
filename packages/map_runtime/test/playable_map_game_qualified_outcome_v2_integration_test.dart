@@ -1602,6 +1602,7 @@ void main() {
                 NarrativeEventSourceKind.outcomeReceived) {
               occurrence.source.when<void>(
                 entityInteract: (_, __) {},
+                entityAutorun: (_, _) {},
                 entityBump: (_, _) {},
                 modelInteract: (_, __) {},
                 triggerEnter: (_, __) {},

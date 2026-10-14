@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
@@ -17,7 +18,848 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 import 'package:path/path.dart' as p;
 
 void main() {
+  for (final withPolicy in [false, true]) {
+    for (final checkpointBusy in [false, true]) {
+      for (final logicalOnly in [false, true]) {
+        test(
+          'entity autorun resumes and stops on its local condition '
+          'checkpointBusy=$checkpointBusy logicalOnly=$logicalOnly policy=$withPolicy',
+          () async {
+            final activity = NarrativeRuntimeActivityGate();
+            final release = Completer<void>();
+            final checkpoint = checkpointBusy
+                ? activity.runCheckpoint<void>(
+                    NarrativeRuntimeCheckpointOperation.load,
+                    () => release.future,
+                  )
+                : Future<void>.value();
+            addTearDown(() {
+              if (!release.isCompleted) release.complete();
+            });
+            final fixture = await _fixture(
+              narrativeRuntimeActivityGate: activity,
+              mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+              sourceEntities: [
+                logicalOnly
+                    ? _routeDoor.copyWith(
+                        kind: MapEntityKind.custom,
+                        npc: null,
+                        blocksMovement: false,
+                      )
+                    : _routeDoor,
+              ],
+              characters: logicalOnly ? const [] : const [_routeDoorCharacter],
+              scenes: [
+                _instanceConditionScene(
+                  SceneConditionSource.mapEventInstanceBoolean(
+                    mapId: 'source',
+                    eventId: 'route-door',
+                    key: 'A',
+                  ),
+                  setBefore: true,
+                ),
+              ],
+              eventRegistry: _autorunRegistryForTest(),
+            );
+            final game = fixture.game;
+            final activations = game.debugCompletedMapActivationDispatchCount;
+            if (checkpointBusy) {
+              expect(
+                game
+                        .gameStateSnapshot
+                        .mapInstanceWorldState
+                        .instancesByMapId['source']
+                        ?.eventBooleans['route-door']?['A'] ??
+                    false,
+                isFalse,
+              );
+            }
+            release.complete();
+            await checkpoint;
+            for (var tick = 0; tick < 80; tick++) {
+              game.update(.025);
+              await Future<void>.delayed(const Duration(milliseconds: 1));
+            }
+            expect(
+              game
+                      .gameStateSnapshot
+                      .mapInstanceWorldState
+                      .instancesByMapId['source']
+                      ?.eventBooleans['route-door']?['A'] ??
+                  false,
+              isTrue,
+            );
+            expect(game.debugCompletedMapActivationDispatchCount, activations);
+            final committedMoney = game.gameStateSnapshot.trainerProfile.money;
+            for (var tick = 0; tick < 20; tick++) {
+              game.update(.025);
+              await Future<void>.delayed(const Duration(milliseconds: 1));
+            }
+            expect(game.gameStateSnapshot.trainerProfile.money, committedMoney);
+            expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+          },
+        );
+      }
+    }
+  }
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'entity autorun waits for an active Scene and resumes after release',
+    () async {
+      final activity = NarrativeRuntimeActivityGate();
+      final lease = activity.enter(NarrativeRuntimeActivity.sceneActive);
+      addTearDown(lease.close);
+      final fixture = await _fixture(
+        narrativeRuntimeActivityGate: activity,
+        sourceEntities: const [_logicalAutorunOwner],
+        scenes: [
+          _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+        ],
+        eventRegistry: _autorunRegistryForTest(),
+      );
+      final game = fixture.game;
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      await _pumpAutorun(game, 10);
+      expect(game.gameStateSnapshot.trainerProfile.money, before);
+      expect(game.debugIsEntityAutorunInFlight, isFalse);
+      lease.close();
+      await _pumpAutorun(game, 20);
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      expect(_autorunBoolean(game), isTrue);
+    },
+  );
+
+  for (final oneShot in [false, true]) {
+    test(
+      'entity autorun schedules only on a new update oneShot=$oneShot',
+      () async {
+        final fixture = await _fixture(
+          sourceEntities: const [_logicalAutorunOwner],
+          scenes: [_entityBumpScene()],
+          eventRegistry: _autorunRegistryForTest(
+            sceneId: 'entity-bump-scene',
+            conditions: const [],
+            reusePolicy: oneShot
+                ? NarrativeEventReusePolicy.oneShot
+                : NarrativeEventReusePolicy.reusable,
+          ),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        game.update(.025);
+        await _waitForAutorunIdle(game);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        await Future<void>.delayed(const Duration(milliseconds: 15));
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        game.update(.025);
+        await _waitForAutorunIdle(game);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          before + (oneShot ? 100 : 200),
+        );
+      },
+    );
+  }
+
+  test(
+    'entity autorun retries authority preparation after a checkpoint starts',
+    () async {
+      final activity = NarrativeRuntimeActivityGate();
+      final releaseAuthority = Completer<void>();
+      final authorityEntered = Completer<void>();
+      final releaseCheckpoint = Completer<void>();
+      var preparations = 0;
+      final fixture = await _fixture(
+        sourceEntities: const [_logicalAutorunOwner],
+        scenes: [
+          _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+        ],
+        eventRegistry: _autorunRegistryForTest(),
+        narrativeRuntimeActivityGate: activity,
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind != NarrativeEventSourceKind.entityAutorun) {
+            return;
+          }
+          preparations++;
+          if (preparations == 1) {
+            authorityEntered.complete();
+            await releaseAuthority.future;
+          }
+        },
+      );
+      addTearDown(() {
+        if (!releaseAuthority.isCompleted) releaseAuthority.complete();
+        if (!releaseCheckpoint.isCompleted) releaseCheckpoint.complete();
+      });
+      final game = fixture.game;
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      game.update(.025);
+      await authorityEntered.future;
+      for (var tick = 0; tick < 12; tick++) {
+        game.update(.025);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(preparations, 1);
+      expect(await game.saveGame(), isFalse);
+      expect(await game.loadGame(), isFalse);
+      final checkpoint = activity.runCheckpoint<void>(
+        NarrativeRuntimeCheckpointOperation.load,
+        () => releaseCheckpoint.future,
+      );
+      releaseAuthority.complete();
+      await _waitForAutorunIdle(game);
+      expect(_autorunBoolean(game), isFalse);
+      expect(game.gameStateSnapshot.trainerProfile.money, before);
+      releaseCheckpoint.complete();
+      await checkpoint;
+      game.update(.025);
+      await _waitForAutorunIdle(game);
+      expect(preparations, 2);
+      expect(_autorunBoolean(game), isTrue);
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+    },
+  );
+
+  test(
+    'entity autorun cancels a pending preparation after runtime removal',
+    () async {
+      final release = Completer<void>();
+      final entered = Completer<void>();
+      final fixture = await _fixture(
+        sourceEntities: const [_logicalAutorunOwner],
+        scenes: [
+          _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+        ],
+        eventRegistry: _autorunRegistryForTest(),
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind ==
+              NarrativeEventSourceKind.entityAutorun) {
+            entered.complete();
+            await release.future;
+          }
+        },
+      );
+      addTearDown(() {
+        if (!release.isCompleted) release.complete();
+      });
+      final game = fixture.game;
+      final before = game.gameStateSnapshot;
+      game.update(.025);
+      await entered.future;
+      game.onRemove();
+      release.complete();
+      await _waitForAutorunIdle(game);
+      expect(
+        game.gameStateSnapshot.trainerProfile.money,
+        before.trainerProfile.money,
+      );
+      expect(
+        game.gameStateSnapshot.mapInstanceWorldState,
+        before.mapInstanceWorldState,
+      );
+    },
+  );
+
+  test(
+    'entity autorun rechecks its local condition after authority awaits',
+    () async {
+      final release = Completer<void>();
+      final entered = Completer<void>();
+      final fixture = await _fixture(
+        sourceEntities: const [_logicalAutorunOwner],
+        scenes: [
+          _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+        ],
+        eventRegistry: _autorunRegistryForTest(),
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind ==
+              NarrativeEventSourceKind.entityAutorun) {
+            entered.complete();
+            await release.future;
+          }
+        },
+      );
+      addTearDown(() {
+        if (!release.isCompleted) release.complete();
+      });
+      final game = fixture.game;
+      game.update(.025);
+      await entered.future;
+      final result = await game.debugExecuteNarrativeSceneForTest(
+        NarrativeSceneExecutionRequest(
+          eventId: _entityBumpEventId,
+          sceneId: 'instance-scene',
+          executionId: 'intervening-authority-condition',
+          gameState: game.gameStateSnapshot,
+        ),
+      );
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final committed =
+          (result as NarrativeSceneExecutionCompleted).updatedGameState;
+      expect(
+        committed.mapInstanceWorldState.eventBoolean(
+          committed.mapInstanceWorldState.instanceRef('source')!,
+          'route-door',
+          'A',
+        ),
+        isTrue,
+      );
+      release.complete();
+      await _waitForAutorunIdle(game);
+      expect(
+        game.gameStateSnapshot.trainerProfile.money,
+        committed.trainerProfile.money,
+      );
+      expect(_autorunBoolean(game), isTrue);
+    },
+  );
+
+  test(
+    'entity autorun discards an occurrence after its active map is replaced',
+    () async {
+      final release = Completer<void>();
+      final entered = Completer<void>();
+      final fixture = await _fixture(
+        sourceEntities: const [_logicalAutorunOwner],
+        warpArrival: true,
+        arrivalTriggerMode: MapWarpTriggerMode.sceneOnly,
+        scenes: [
+          _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+        ],
+        eventRegistry: _autorunRegistryForTest(),
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind ==
+              NarrativeEventSourceKind.entityAutorun) {
+            entered.complete();
+            await release.future;
+          }
+        },
+      );
+      addTearDown(() {
+        if (!release.isCompleted) release.complete();
+      });
+      final game = fixture.game;
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      game.update(.025);
+      await entered.future;
+      expect(
+        (await _warp(
+          game,
+          _arrivalCommand(transition: SceneWarpTransition.none),
+        )).port,
+        'completed',
+      );
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      release.complete();
+      await _waitForAutorunIdle(game);
+      expect(game.gameStateSnapshot.trainerProfile.money, before);
+      expect(
+        game.gameStateSnapshot.mapInstanceWorldState.instanceRef('source'),
+        isNull,
+      );
+      expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+    },
+  );
+
+  for (final onAnchor in [false, true]) {
+    test(
+      'entity autorun sets the local flag outside its anchor branch onAnchor=$onAnchor',
+      () async {
+        final fixture = await _fixture(
+          sourceEntities: const [_logicalAutorunOwner],
+          scenes: [_autorunAnchorScene()],
+          eventRegistry: _autorunRegistryForTest(sceneId: 'autorun-anchor'),
+        );
+        final game = fixture.game;
+        if (onAnchor) {
+          game.debugSetPlayerStateForTest(
+            position: const GridPos(x: 1, y: 0),
+            facing: Direction.south,
+          );
+        }
+        await _pumpAutorunUntil(game, () => _autorunBoolean(game));
+        expect(_autorunBoolean(game), isTrue);
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 1, y: 1),
+        );
+        expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+      },
+    );
+  }
+
+  for (final sortBy in ['priority', 'order', 'eventId']) {
+    test(
+      'entity autorun selects across owners by $sortBy before another update',
+      () async {
+        const secondId = 'evt_019abcde-1400-7000-8000-000000000002';
+        final seen = <String>[];
+        final first = _autorunRegistryForTest(
+          sceneId: 'entity-bump-scene',
+          conditions: const [],
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          priority: sortBy == 'priority' ? 2 : 0,
+          order: sortBy == 'order' ? 0 : 1,
+        ).records.single;
+        final second = _autorunRegistryForTest(
+          sceneId: 'entity-bump-scene',
+          conditions: const [],
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          eventId: secondId,
+          entityId: 'other-owner',
+          priority: 0,
+          order: 1,
+        ).records.single;
+        final fixture = await _fixture(
+          sourceEntities: [
+            _logicalAutorunOwner,
+            _logicalAutorunOwner.copyWith(id: 'other-owner'),
+          ],
+          scenes: [_entityBumpScene()],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [second, first],
+            legacyClaims: const [],
+          ),
+          beforeNarrativeAuthorityPreparation: (occurrence) async {
+            if (occurrence.source.kind ==
+                NarrativeEventSourceKind.entityAutorun) {
+              seen.add(occurrence.source.toJson()['entityId']! as String);
+            }
+          },
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        game.update(.025);
+        await _waitForAutorunIdle(game);
+        expect(seen, ['route-door']);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        game.update(.025);
+        await _waitForAutorunIdle(game);
+        expect(seen, ['route-door', 'other-owner']);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 200);
+      },
+    );
+  }
+
+  for (final withPolicy in [false, true]) {
+    test(
+      'entity autorun keeps an ineligible owner quiet through movement and same-map warp policy=$withPolicy',
+      () async {
+        final fixture = await _fixture(
+          mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+          gameState: _autorunInitialState(true),
+          sourceEntities: const [_logicalAutorunOwner],
+          sourceWarps: const [_autorunSourceArrival],
+          scenes: [
+            _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+          ],
+          eventRegistry: _autorunRegistryForTest(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot;
+        await _move(game, RuntimeInputControl.left);
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 0, y: 1),
+        );
+        final result = await _warp(
+          game,
+          SceneInteractiveCommand.warp(
+            destinationMapId: 'source',
+            warpId: 'autorun-source-arrival',
+            transition: SceneWarpTransition.none,
+          ),
+        );
+        expect(result.port, 'completed');
+        await _pumpAutorun(game, 10);
+        expect(
+          game.gameStateSnapshot.mapInstanceWorldState.instanceRef('source'),
+          before.mapInstanceWorldState.instanceRef('source'),
+        );
+        expect(_autorunBoolean(game), isTrue);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          before.trainerProfile.money,
+        );
+        expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+      },
+    );
+
+    test(
+      'entity autorun recreates its local state after a different-map warp policy=$withPolicy',
+      () async {
+        final fixture = await _fixture(
+          mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+          warpArrival: true,
+          arrivalTriggerMode: MapWarpTriggerMode.sceneOnly,
+          sourceWarps: const [_autorunSourceArrival],
+          sourceEntities: const [_logicalAutorunOwner],
+          scenes: [
+            _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+          ],
+          eventRegistry: _autorunRegistryForTest(),
+        );
+        final game = fixture.game;
+        final initial = game.gameStateSnapshot;
+        await _pumpAutorun(game, 15);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          initial.trainerProfile.money + 100,
+        );
+        expect(
+          (await _warp(
+            game,
+            _arrivalCommand(transition: SceneWarpTransition.none),
+          )).port,
+          'completed',
+        );
+        expect(
+          game.gameStateSnapshot.mapInstanceWorldState.instanceRef('source'),
+          isNot(initial.mapInstanceWorldState.instanceRef('source')),
+        );
+        if (withPolicy) expect(_autorunBoolean(game), isFalse);
+        expect(
+          (await _warp(
+            game,
+            SceneInteractiveCommand.warp(
+              destinationMapId: 'source',
+              warpId: 'autorun-source-arrival',
+              transition: SceneWarpTransition.none,
+            ),
+          )).port,
+          'completed',
+        );
+        await _pumpAutorun(game, 15);
+        expect(
+          game.gameStateSnapshot.mapInstanceWorldState.instanceRef('source'),
+          isNot(initial.mapInstanceWorldState.instanceRef('source')),
+        );
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          initial.trainerProfile.money + 200,
+        );
+        expect(_autorunBoolean(game), isTrue);
+      },
+    );
+
+    test(
+      'entity autorun runs only on its active map and respects connection lifetime policy=$withPolicy',
+      () async {
+        final fixture = await _fixture(
+          mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+          targetEntities: const [_logicalAutorunOwner],
+          scenes: [
+            _instanceConditionScene(
+              _autorunBooleanSource('target'),
+              setBefore: true,
+            ),
+          ],
+          eventRegistry: _autorunRegistryForTest(mapId: 'target'),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        await _pumpAutorun(game, 15);
+        expect(game.gameStateSnapshot.trainerProfile.money, before);
+        await _move(game, RuntimeInputControl.right);
+        await _pumpAutorun(game, 15);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        final firstRef = game.gameStateSnapshot.mapInstanceWorldState
+            .instanceRef('target');
+        await _move(game, RuntimeInputControl.left);
+        await _pumpAutorun(game, 10);
+        expect(game.gameStateSnapshot.currentMapId, 'source');
+        expect(
+          game.gameStateSnapshot.mapInstanceWorldState.instanceRef('target'),
+          withPolicy ? firstRef : null,
+        );
+        await _move(game, RuntimeInputControl.right);
+        await _pumpAutorun(game, 15);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          before + (withPolicy ? 100 : 200),
+        );
+        expect(
+          game.gameStateSnapshot.mapInstanceWorldState.instanceRef('target'),
+          withPolicy ? firstRef : isNot(firstRef),
+        );
+      },
+    );
+  }
+
+  test('entity autorun does not run in a retained neighbor and resets after eviction', () async {
+    final fixture = await _fixture(
+      mapInstanceRetentionPolicy: _instancePolicy(),
+      targetSize: const GridSize(width: 40, height: 3),
+      sourceEntities: const [_logicalAutorunOwner],
+      scenes: [
+        _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+      ],
+      eventRegistry: _autorunRegistryForTest(),
+    );
+    final game = fixture.game;
+    final before = game.gameStateSnapshot.trainerProfile.money;
+    await _pumpAutorun(game, 15);
+    final originalRef = game.gameStateSnapshot.mapInstanceWorldState
+        .instanceRef('source');
+    expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+    await _move(game, RuntimeInputControl.right);
+    game.debugSetPlayerStateForTest(
+      position: const GridPos(x: 25, y: 1),
+      facing: Direction.east,
+    );
+    await _pumpAutorun(game, 10);
+    expect(
+      game.gameStateSnapshot.mapInstanceWorldState.instanceRef('source'),
+      isNull,
+    );
+    game.debugSetPlayerStateForTest(
+      position: const GridPos(x: 0, y: 1),
+      facing: Direction.west,
+    );
+    await _pumpAutorun(game, 10);
+    final recreatedRef = game.gameStateSnapshot.mapInstanceWorldState
+        .instanceRef('source');
+    expect(recreatedRef, isNotNull);
+    expect(recreatedRef, isNot(originalRef));
+    expect(_autorunBoolean(game), isFalse);
+    expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+    await _move(game, RuntimeInputControl.left);
+    await _pumpAutorun(game, 15);
+    expect(
+      game.gameStateSnapshot.mapInstanceWorldState.instanceRef('source'),
+      recreatedRef,
+    );
+    expect(game.gameStateSnapshot.trainerProfile.money, before + 200);
+    expect(_autorunBoolean(game), isTrue);
+  });
+
+  for (final command in [
+    _actorRoute([
+      {'kind': 'move', 'direction': 'west', 'durationMs': 100},
+    ]),
+    _arrivalCommand(transition: SceneWarpTransition.none),
+  ]) {
+    test(
+      'entity autorun completes its own ${command.kind.name} without stale rejection',
+      () async {
+        final fixture = await _fixture(
+          sourceEntities: const [_logicalAutorunOwner],
+          warpArrival: true,
+          arrivalTriggerMode: MapWarpTriggerMode.sceneOnly,
+          scenes: [_entityBumpScene(beforeReward: command)],
+          eventRegistry: _autorunRegistryForTest(
+            sceneId: 'entity-bump-scene',
+            conditions: const [],
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+          ),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        await _pumpAutorunUntil(
+          game,
+          () => game.gameStateSnapshot.trainerProfile.money == before + 100,
+        );
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        expect(
+          game.gameStateSnapshot.currentMapId,
+          command.kind == SceneInteractiveCommandKind.warp
+              ? 'target'
+              : 'source',
+        );
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 0, y: 1),
+        );
+        expect(
+          game
+              .gameStateSnapshot
+              .narrativeEventProgress
+              .consumedNarrativeEventIds,
+          contains(_entityBumpEventId),
+        );
+        expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+      },
+    );
+  }
+
+  test('entity autorun rolls back local state and a Warp before retrying a failed Scene', () async {
+    var dialogueAttempts = 0;
+    final fixture = await _fixture(
+      sourceEntities: const [_logicalAutorunOwner],
+      warpArrival: true,
+      arrivalTriggerMode: MapWarpTriggerMode.sceneOnly,
+      scenes: [_autorunRollbackScene()],
+      dialogues: const [_actorDialogueEntry],
+      eventRegistry: _autorunRegistryForTest(sceneId: 'warp-rollback-scene'),
+      dialogueSessionLoader: (_) async {
+        dialogueAttempts++;
+        if (dialogueAttempts == 1) {
+          throw StateError('First automatic Scene fails');
+        }
+        return DialogueSession.start([
+          YarnNode(title: 'Start', steps: [YarnStepLine('Continue')]),
+        ], 'Start');
+      },
+    );
+    final game = fixture.game;
+    final before = game.gameStateSnapshot;
+    game.update(.025);
+    for (
+      var tick = 0;
+      tick < 500 && game.debugIsEntityAutorunInFlight;
+      tick++
+    ) {
+      game.update(.025);
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    expect(game.debugIsEntityAutorunInFlight, isFalse);
+    expect(dialogueAttempts, 1);
+    expect(game.gameStateSnapshot.currentMapId, 'source');
+    expect(
+      game.gameStateSnapshot.mapInstanceWorldState,
+      before.mapInstanceWorldState,
+    );
+    expect(_autorunBoolean(game), isFalse);
+    expect(
+      game.gameStateSnapshot.trainerProfile.money,
+      before.trainerProfile.money,
+    );
+    expect(
+      game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+      isEmpty,
+    );
+    game.update(.025);
+    for (
+      var tick = 0;
+      tick < 500 && game.debugIsEntityAutorunInFlight;
+      tick++
+    ) {
+      game.update(.025);
+      if (game.debugFlowPhaseName == 'dialogue') {
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        );
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.primary),
+        );
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    expect(game.debugIsEntityAutorunInFlight, isFalse);
+    expect(dialogueAttempts, 2);
+    expect(game.gameStateSnapshot.currentMapId, 'target');
+    expect(
+      game.gameStateSnapshot.trainerProfile.money,
+      before.trainerProfile.money + 100,
+    );
+    expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+  });
+
+  for (final withPolicy in [false, true]) {
+    for (final savedValue in [false, true]) {
+      test(
+        'entity autorun restores pending state from a cold disk save value=$savedValue policy=$withPolicy',
+        () async {
+          final directory = await Directory.systemTemp.createTemp(
+            'native_autorun_save_',
+          );
+          addTearDown(() => directory.delete(recursive: true));
+          final fixture = await _fixture(
+            sourceEntities: const [_logicalAutorunOwner],
+            mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+            gameState: _autorunInitialState(savedValue),
+            saveRepository: _AutorunFileSaveRepository(directory),
+            scenes: [
+              _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+            ],
+            eventRegistry: _autorunRegistryForTest(),
+          );
+          final before = fixture.game.gameStateSnapshot;
+          expect(await fixture.game.saveGame(), isTrue);
+          fixture.game.onRemove();
+          final freshRepository = _AutorunFileSaveRepository(directory);
+          final disk = await freshRepository.load();
+          expect(disk, isNotNull);
+          expect(disk!.mapInstanceWorldState, before.mapInstanceWorldState);
+          final reopened = await _fixture(
+            sourceEntities: const [_logicalAutorunOwner],
+            mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+            gameState: disk,
+            initialMapActivationReason: MapActivationReason.saveRestore,
+            saveRepository: freshRepository,
+            scenes: [
+              _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+            ],
+            eventRegistry: _autorunRegistryForTest(),
+          );
+          expect(
+            reopened.game.gameStateSnapshot.mapInstanceWorldState,
+            before.mapInstanceWorldState,
+          );
+          await _pumpAutorun(reopened.game, 20);
+          expect(
+            reopened.game.gameStateSnapshot.trainerProfile.money,
+            before.trainerProfile.money + (savedValue ? 0 : 100),
+          );
+          expect(_autorunBoolean(reopened.game), isTrue);
+          expect(
+            reopened.game.gameStateSnapshot.mapInstanceWorldState.instanceRef(
+              'source',
+            ),
+            before.mapInstanceWorldState.instanceRef('source'),
+          );
+          expect(await reopened.game.saveGame(), isTrue);
+          final persisted = await _AutorunFileSaveRepository(directory).load();
+          expect(
+            persisted!.mapInstanceWorldState,
+            reopened.game.gameStateSnapshot.mapInstanceWorldState,
+          );
+        },
+      );
+    }
+
+    test(
+      'entity autorun resumes a pending local condition after in-session load policy=$withPolicy',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'native_autorun_reload_',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final fixture = await _fixture(
+          sourceEntities: const [_logicalAutorunOwner],
+          mapInstanceRetentionPolicy: withPolicy ? _instancePolicy() : null,
+          saveRepository: _AutorunFileSaveRepository(directory),
+          scenes: [
+            _instanceConditionScene(_autorunBooleanSource(), setBefore: true),
+          ],
+          eventRegistry: _autorunRegistryForTest(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot;
+        expect(await game.saveGame(), isTrue);
+        await _pumpAutorun(game, 20);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          before.trainerProfile.money + 100,
+        );
+        expect(await game.loadGame(), isTrue);
+        expect(_autorunBoolean(game), isFalse);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          before.trainerProfile.money,
+        );
+        await _pumpAutorun(game, 20);
+        expect(
+          game.gameStateSnapshot.trainerProfile.money,
+          before.trainerProfile.money + 100,
+        );
+        expect(_autorunBoolean(game), isTrue);
+      },
+    );
+  }
 
   for (final entry in <(RuntimeInputControl, GridPos)>[
     (RuntimeInputControl.up, const GridPos(x: 1, y: 0)),
@@ -2190,6 +3032,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   List<SceneAsset> scenes = const [],
   NarrativeEventRegistry? eventRegistry,
   GridSize sourceSize = const GridSize(width: 2, height: 3),
+  GridSize targetSize = const GridSize(width: 3, height: 3),
   Future<void> Function(NarrativeEventOccurrence)? beforeNarrativeAuthorityPreparation,
   List<ProjectDialogueEntry> dialogues = const [],
   List<CinematicMediaAsset> cinematicMediaAssets = const [],
@@ -2202,6 +3045,8 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   List<NarrativeFactDefinition> facts = const [],
   List<WorldRuleDefinition> worldRules = const [],
   GameState? gameState,
+  MapActivationReason initialMapActivationReason =
+      MapActivationReason.initialBoot,
 }) async {
   final root = await Directory.systemTemp.createTemp(
     'runtime_connection_canonical_arrival_',
@@ -2247,9 +3092,13 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   final target = MapData(
     id: 'target',
     name: 'Target',
-    size: const GridSize(width: 3, height: 3),
+    size: targetSize,
     layers: [
-      TileLayer(id: 'objects', name: 'Objects', cells: List<int>.filled(9, 0)),
+      TileLayer(
+        id: 'objects',
+        name: 'Objects',
+        cells: List<int>.filled(targetSize.width * targetSize.height, 0),
+      ),
     ],
     entities: [
       ...targetEntities,
@@ -2387,7 +3236,8 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       project: manifest, maps: [source, target]);
     for (final record in eventRegistry.records) {
       final eventSource = record.definitionOrNull?.source;
-      if (eventSource?.kind == NarrativeEventSourceKind.entityBump) {
+      if (eventSource?.kind == NarrativeEventSourceKind.entityBump ||
+          eventSource?.kind == NarrativeEventSourceKind.entityAutorun) {
         expect(catalog.options.any((option) =>
             option.selectable && option.source == eventSource), isTrue,
           reason: 'The input test requires a genuinely available contact source.');
@@ -2440,6 +3290,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     dialogueSessionLoader: dialogueSessionLoader,
     beforeLoadCommitCompletion: beforeLoadCommitCompletion,
     beforeNarrativeAuthorityPreparation: beforeNarrativeAuthorityPreparation,
+    initialMapActivationReason: initialMapActivationReason,
   );
   addTearDown(game.onRemove);
   game.onGameResize(Vector2(320, 240));
@@ -2875,6 +3726,7 @@ final class _ConnectionGame extends PlayableMapGame {
     super.dialogueSessionLoader,
     super.beforeLoadCommitCompletion,
     super.beforeNarrativeAuthorityPreparation,
+    super.initialMapActivationReason,
   });
 
   @override
@@ -3137,4 +3989,250 @@ Future<void> _bumpUp(PlayableMapGame game) async {
     const RuntimeInputEvent.release(RuntimeInputControl.up),
   );
   await _settleEntityBump(game);
+}
+
+NarrativeEventRegistry _autorunRegistryForTest({
+  String mapId = 'source',
+  String entityId = 'route-door',
+  String eventId = _entityBumpEventId,
+  String sceneId = 'instance-scene',
+  List<NarrativeEventCondition>? conditions,
+  NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.reusable,
+  int priority = 0,
+  int order = 0,
+}) => NarrativeEventRegistry(
+  schemaVersion: 1,
+  mode: EventSystemMode.v2Only,
+  records: [
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: eventId,
+        name: 'Automatic event',
+        source: NarrativeEventSourceRef.entityAutorun(mapId, entityId),
+        sceneId: sceneId,
+        conditions:
+            conditions ??
+            [
+              NarrativeEventCondition.mapEventInstanceBoolean(
+                mapId: mapId,
+                eventId: entityId,
+                key: 'A',
+                expectedValue: false,
+              ),
+            ],
+        reusePolicy: reusePolicy,
+        priority: priority,
+        order: order,
+      ),
+      enabled: true,
+    ),
+  ],
+  legacyClaims: const [],
+);
+
+const _logicalAutorunOwner = MapEntity(
+  id: 'route-door',
+  name: 'Logical automatic event',
+  kind: MapEntityKind.custom,
+  pos: GridPos(x: 1, y: 0),
+  blocksMovement: false,
+);
+
+const _autorunSourceArrival = MapWarp(
+  id: 'autorun-source-arrival',
+  pos: GridPos(x: 1, y: 1),
+  targetMapId: 'source',
+  targetPos: GridPos(x: 1, y: 1),
+  triggerMode: MapWarpTriggerMode.sceneOnly,
+);
+
+SceneConditionSource _autorunBooleanSource([String mapId = 'source']) =>
+    SceneConditionSource.mapEventInstanceBoolean(
+      mapId: mapId,
+      eventId: 'route-door',
+      key: 'A',
+    );
+
+bool _autorunBoolean(PlayableMapGame game, [String mapId = 'source']) {
+  final state = game.gameStateSnapshot.mapInstanceWorldState;
+  return state.eventBoolean(state.instanceRef(mapId)!, 'route-door', 'A');
+}
+
+GameState _autorunInitialState(bool value) => GameState(
+  saveId: 'autorun-save',
+  currentMapId: 'source',
+  playerPosition: const GridPos(x: 1, y: 1),
+  playerFacing: EntityFacing.east,
+  mapInstanceWorldState: MapInstanceWorldState(
+    instancesByMapId: {
+      'source': MapInstanceRuntimeState(
+        instanceId: 'autorun-initial-instance',
+        eventBooleans: {
+          'route-door': {'A': value},
+        },
+      ),
+    },
+  ),
+);
+
+Future<void> _pumpAutorun(PlayableMapGame game, int ticks) async {
+  for (var tick = 0; tick < ticks; tick++) {
+    game.update(.025);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  await _waitForAutorunIdle(game);
+}
+
+Future<void> _waitForAutorunIdle(PlayableMapGame game) async {
+  for (var tick = 0; tick < 1000 && game.debugIsEntityAutorunInFlight; tick++) {
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  expect(game.debugIsEntityAutorunInFlight, isFalse);
+}
+
+Future<void> _pumpAutorunUntil(
+  PlayableMapGame game,
+  bool Function() completed,
+) async {
+  for (var tick = 0; tick < 500; tick++) {
+    if (completed() &&
+        !game.debugIsEntityAutorunInFlight &&
+        !game.debugIsMapActivationDispatchInFlight) {
+      break;
+    }
+    game.update(.025);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  expect(completed(), isTrue);
+  expect(game.debugIsEntityAutorunInFlight, isFalse);
+}
+
+SceneAsset _autorunRollbackScene() {
+  final scene = _warpRollbackScene(moveNpc: false);
+  return SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [
+        ...scene.graph.nodes,
+        SceneNode(
+          id: 'set-local',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload(
+            consequence: SceneConsequence.setMapEventInstanceBoolean(
+              mapId: 'source',
+              eventId: 'route-door',
+              key: 'A',
+              value: true,
+            ),
+          ),
+        ),
+      ],
+      edges: [
+        for (final edge in scene.graph.edges)
+          edge.fromNodeId == 'start'
+              ? SceneEdge.fromJson({...edge.toJson(), 'toNodeId': 'set-local'})
+              : edge,
+        SceneEdge(
+          id: 'set-local-completed',
+          fromNodeId: 'set-local',
+          fromPortId: 'completed',
+          toNodeId: 'warp',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _autorunAnchorScene() => SceneAsset(
+  id: 'autorun-anchor',
+  name: 'Automatic arrival',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'anchor',
+        kind: SceneNodeKind.condition,
+        payload: SceneConditionPayload(
+          conditionSource: SceneConditionSource.playerAtEntityAnchor(
+            mapId: 'source',
+            entityId: 'route-door',
+          ),
+        ),
+      ),
+      SceneNode(
+        id: 'route',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload(
+          interactiveCommand: _actorRoute([
+            {'kind': 'move', 'direction': 'south', 'durationMs': 100},
+          ]),
+        ),
+      ),
+      SceneNode(
+        id: 'set',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload(
+          consequence: SceneConsequence.setMapEventInstanceBoolean(
+            mapId: 'source',
+            eventId: 'route-door',
+            key: 'A',
+            value: true,
+          ),
+        ),
+      ),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ],
+    edges: [
+      SceneEdge(
+        id: 'start',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'anchor',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'on-anchor',
+        fromNodeId: 'anchor',
+        fromPortId: 'true',
+        toNodeId: 'route',
+        kind: SceneEdgeKind.conditionTrue,
+      ),
+      SceneEdge(
+        id: 'away-anchor',
+        fromNodeId: 'anchor',
+        fromPortId: 'false',
+        toNodeId: 'set',
+        kind: SceneEdgeKind.conditionFalse,
+      ),
+      for (final port in ['completed', 'blocked'])
+        SceneEdge(
+          id: 'route-$port',
+          fromNodeId: 'route',
+          fromPortId: port,
+          toNodeId: 'set',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      SceneEdge(
+        id: 'set',
+        fromNodeId: 'set',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+    ],
+  ),
+);
+
+final class _AutorunFileSaveRepository extends FileGameSaveRepository {
+  _AutorunFileSaveRepository(this.directory);
+
+  final Directory directory;
+
+  @override
+  Future<String> getSaveFilePath() async =>
+      p.join(directory.path, 'game_save.json');
 }

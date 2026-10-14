@@ -250,6 +250,7 @@ NarrativeEventRecord? _recordById(
 
 String _mapId(NarrativeEventSourceRef source) {
   return source.when(
+    entityAutorun: (mapId, _) => mapId,
     entityBump: (mapId, _) => mapId,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
@@ -266,6 +267,7 @@ String _spatialSourceLabel(
   final mapId = _mapId(source);
   final mapName = _mapName(project, mapId);
   return source.when(
+    entityAutorun: (_, _) => 'Automatique · $mapName',
     entityBump: (_, _) => 'Contact du joueur · $mapName',
     entityInteract: (_, _) => 'Interaction avec une entité · $mapName',
     modelInteract: (_, _) => 'Interaction avec un décor 3D · $mapName',

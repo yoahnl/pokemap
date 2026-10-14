@@ -198,6 +198,7 @@ NarrativeSpatialEventSourceOption spatialOption(
       'Interaction avec $entityId',
     ),
     entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+    entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
     triggerEnter: (mapId, triggerId) => (
       mapId,
       NarrativeSpatialEventSourceOwnerKind.trigger,

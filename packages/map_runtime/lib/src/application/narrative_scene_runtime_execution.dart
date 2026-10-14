@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_runtime/scene_consequence_runtime_writer.dart';
+import 'scene_runtime/scene_consequence_runtime_write_result.dart';
 import 'scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import 'scene_runtime/scene_runtime_host_callbacks.dart';
 
@@ -74,18 +75,48 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       SceneConsequenceRuntimeWriter(
         project: project,
         mapsById: mapsById);
+  final retiredInstanceScopes = <MapInstanceRef>{};
+  SceneConsequenceRuntimeWriteResult projectPending(
+    GameState state, {
+    SceneConsequence? additional,
+    String? grantOperationId,
+    String? railOperationId,
+  }) {
+    final indices = <int>[
+      for (var index = 0; index < pendingConsequences.length; index++)
+        if (pendingConsequences[index]
+                is! SceneSetMapEventInstanceBooleanConsequence ||
+            !retiredInstanceScopes.contains(
+              writer.mapInstanceScopes[(pendingConsequences[index]
+                      as SceneSetMapEventInstanceBooleanConsequence)
+                  .mapId],
+            ))
+          index,
+    ];
+    return writer.applyAll(
+      state,
+      [
+        for (final index in indices) pendingConsequences[index],
+        ?additional,
+      ],
+      pokemonGrantOperationIds: [
+        for (final index in indices) pendingPokemonGrantOperationIds[index],
+        if (additional != null) grantOperationId,
+      ],
+      railProgressionOperationIds: [
+        for (final index in indices) pendingRailProgressionOperationIds[index],
+        if (additional != null) railOperationId,
+      ],
+    );
+  }
+
   final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   bool? uniqueBattleConsumed;
   var blockedUniqueBattle = false;
   final consumedUniqueTableIds = <String>{};
   try {
     onSceneStateProjection?.call(() {
-      final projected = writer.applyAll(
-        currentGameState(),
-        pendingConsequences,
-        pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-        railProgressionOperationIds: pendingRailProgressionOperationIds,
-      );
+      final projected = projectPending(currentGameState());
       if (!projected.success) {
         throw StateError(projected.message ?? 'Scene state projection failed.');
       }
@@ -105,12 +136,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                   }.contains(source.sourceKind)) {
             return callbacks.evaluateCondition(intent);
           }
-          final projected = writer.applyAll(
-            currentGameState(),
-            pendingConsequences,
-            pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-            railProgressionOperationIds: pendingRailProgressionOperationIds,
-          );
+          final projected = projectPending(currentGameState());
           if (!projected.success) {
             throw StateError(
               projected.message ?? 'Scene condition projection failed.',
@@ -183,14 +209,23 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                     'No interactive Scene command executor is installed.',
                   );
                 }
-                return callback(intent);
+                final before = currentGameState().mapInstanceWorldState;
+                final port = await callback(intent);
+                if (command is SceneWarpInteractiveCommand &&
+                    port == 'completed' &&
+                    currentGameState().currentMapId ==
+                        command.destinationMapId) {
+                  final after = currentGameState().mapInstanceWorldState;
+                  for (final scope in writer.mapInstanceScopes.values) {
+                    if (before.instanceRef(scope.mapId) == scope &&
+                        after.instanceRef(scope.mapId) != scope) {
+                      retiredInstanceScopes.add(scope);
+                    }
+                  }
+                }
+                return port;
               }
-              final projected = writer.applyAll(
-                currentGameState(),
-                pendingConsequences,
-                pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-                railProgressionOperationIds: pendingRailProgressionOperationIds,
-              );
+              final projected = projectPending(currentGameState());
               if (!projected.success) {
                 throw StateError(
                   projected.message ?? 'Item gift projection failed.',
@@ -231,17 +266,11 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
             nodeId: nodeId,
             consequence: consequence,
           );
-          final validation = writer.applyAll(
+          final validation = projectPending(
             currentGameState(),
-            [...pendingConsequences, consequence],
-            pokemonGrantOperationIds: [
-              ...pendingPokemonGrantOperationIds,
-              grantOperationId,
-            ],
-            railProgressionOperationIds: [
-              ...pendingRailProgressionOperationIds,
-              railProgressionOperationId,
-            ],
+            additional: consequence,
+            grantOperationId: grantOperationId,
+            railOperationId: railProgressionOperationId,
           );
           if (!validation.success) {
             throw StateError(
@@ -272,12 +301,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       );
     }
 
-    final writeResult = writer.applyAll(
-      currentGameState(),
-      pendingConsequences,
-      pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-      railProgressionOperationIds: pendingRailProgressionOperationIds,
-    );
+    final writeResult = projectPending(currentGameState());
     if (!writeResult.success) {
       return NarrativeSceneExecutionResult.failed(
         StateError(

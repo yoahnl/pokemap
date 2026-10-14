@@ -377,6 +377,28 @@ NarrativePhysicalReachabilityIssue? _validateSourceReference(
         message: 'La zone source "$triggerId" est absente de "$mapId".',
       );
     },
+    entityAutorun: (mapId, entityId) {
+      final map = mapsById[mapId];
+      if (map == null) {
+        return NarrativePhysicalReachabilityIssue(
+          code: NarrativePhysicalIssueCode.missingSourceMap,
+          eventId: event.id,
+          mapId: mapId,
+          message: 'La map source "$mapId" est absente.',
+        );
+      }
+      if (isNarrativeEntityAutorunSourceAvailable(
+          project: project, map: map, entityId: entityId)) {
+        return null;
+      }
+      return NarrativePhysicalReachabilityIssue(
+        code: NarrativePhysicalIssueCode.missingSourceTarget,
+        eventId: event.id,
+        mapId: mapId,
+        message:
+            'Le propriétaire logique "$entityId" est indisponible dans "$mapId".',
+      );
+    },
     entityBump: (mapId, entityId) {
       final map = mapsById[mapId];
       if (map == null) {
@@ -518,6 +540,11 @@ _StateExploration _exploreSymbolicState({
     )) {
       if (evidenceByEventId.containsKey(event.id)) continue;
       final evidence = event.source.when<_ReachabilityEvidence?>(
+        entityAutorun: (_, __) => _ReachabilityEvidence(
+          mapId: map.id,
+          reachedCell: entry.pos,
+          path: [entry.pos],
+        ),
         modelInteract: (mapId, instanceId) => null,
         mapEnter: (_) => _ReachabilityEvidence(
           mapId: map.id,
@@ -1021,6 +1048,7 @@ List<NarrativeSymbolicState> _canonicalStates(
 }
 
 String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
+      entityAutorun: (mapId, _) => mapId,
       modelInteract: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       triggerEnter: (mapId, _) => mapId,

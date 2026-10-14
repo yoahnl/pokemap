@@ -59,8 +59,9 @@ final class LegacyMapEventSourceCandidate {
     required this.confirmed,
     required String reason,
   }) : reason = _requireText(reason, 'reason') {
-    if (source.kind == NarrativeEventSourceKind.entityBump) {
-      throw ArgumentError('Entity bump has no legacy map event correspondence.');
+    if (source.kind == NarrativeEventSourceKind.entityBump ||
+        source.kind == NarrativeEventSourceKind.entityAutorun) {
+      throw ArgumentError('This native entity source has no legacy map event correspondence.');
     }
   }
 

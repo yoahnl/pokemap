@@ -462,6 +462,7 @@ List<String> _factIds(NarrativeEventRecord? record) {
 String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
       entityInteract: (mapId, _) => mapId,
       entityBump: (mapId, _) => mapId,
+      entityAutorun: (mapId, _) => mapId,
       modelInteract: (mapId, _) => mapId,
       triggerEnter: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,

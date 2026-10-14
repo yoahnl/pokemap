@@ -42,7 +42,7 @@ void main() {
       );
 
       final row = model.maps.single.sources.singleWhere(
-        (item) => item.option.ownerId == 'npc_lysa',
+        (item) => item.option.source == source,
       );
       expect(row.linkState, NarrativeMapSourceLinkState.multiple);
       expect(row.eventIds, [_eventA, _eventB]);

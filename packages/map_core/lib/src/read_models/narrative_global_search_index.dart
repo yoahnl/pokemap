@@ -450,6 +450,7 @@ String _eventSourceKindKeyword(NarrativeEventSourceKind kind) => switch (kind) {
       NarrativeEventSourceKind.triggerEnter => 'triggerEnter',
       NarrativeEventSourceKind.entityInteract => 'entityInteract',
       NarrativeEventSourceKind.entityBump => 'entityBump',
+      NarrativeEventSourceKind.entityAutorun => 'entityAutorun',
       NarrativeEventSourceKind.modelInteract => 'modelInteract',
       NarrativeEventSourceKind.outcomeReceived => 'outcomeReceived',
     };
@@ -517,6 +518,7 @@ NarrativeDependencyNavigationIntent? _diagnosticTarget(
 String? _eventSourceMapId(NarrativeEventSourceRef? source) => source?.when(
       entityInteract: (mapId, entityId) => mapId,
       entityBump: (mapId, entityId) => mapId,
+      entityAutorun: (mapId, entityId) => mapId,
       modelInteract: (mapId, instanceId) => mapId,
       triggerEnter: (mapId, triggerId) => mapId,
       mapEnter: (mapId) => mapId,

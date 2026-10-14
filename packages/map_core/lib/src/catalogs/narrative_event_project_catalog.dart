@@ -195,6 +195,7 @@ final class NarrativeEventProjectCatalog {
     return source.when(
       entityInteract: (_, __) => _spatialResolution(source),
       entityBump: (_, _) => _spatialResolution(source),
+      entityAutorun: (_, _) => _spatialResolution(source),
       modelInteract: (_, _) => _spatialResolution(source),
       triggerEnter: (_, __) => _spatialResolution(source),
       mapEnter: (_) => _spatialResolution(source),

@@ -460,6 +460,7 @@ bool _claimMatchesUnqualifiedOutcome(
   return claim.source.when(
     entityInteract: (_, __) => false,
     entityBump: (_, _) => false,
+    entityAutorun: (_, _) => false,
     modelInteract: (_, _) => false,
     triggerEnter: (_, __) => false,
     mapEnter: (_) => false,
@@ -573,6 +574,7 @@ bool _legacyScenarioNodeMayMatchSource(
         (bindingMapId.isEmpty || bindingMapId == mapId) &&
         node.binding.entityId?.trim() == entityId,
     entityBump: (_, _) => false,
+    entityAutorun: (_, _) => false,
     modelInteract: (_, _) => false,
     triggerEnter: (mapId, triggerId) =>
         actionKind == 'sourceTriggerEnter' &&
@@ -770,6 +772,7 @@ bool isCompatibleLegacyScenarioSourceChoice({
   return selectedSource.when(
     entityInteract: (_, __) => false,
     entityBump: (_, _) => false,
+    entityAutorun: (_, _) => false,
     modelInteract: (_, _) => false,
     triggerEnter: (_, __) => false,
     mapEnter: (_) => false,

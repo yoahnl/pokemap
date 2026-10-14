@@ -1022,6 +1022,7 @@ LegacyMapEventProjection _projection({
   final entityId = candidate.when(
     entityInteract: (_, entityId) => entityId,
     entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+    entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
     modelInteract: (_, _) => throw StateError('Expected an entity source.'),
     triggerEnter: (_, __) => throw StateError('Expected an entity source.'),
     mapEnter: (_) => throw StateError('Expected an entity source.'),
@@ -1243,6 +1244,7 @@ List<NarrativeOutcomeRef> _outcomesFrom(
     source.when<void>(
       entityInteract: (_, __) {},
       entityBump: (_, _) => throw UnsupportedError('Entity bump requires a native fixture.'),
+      entityAutorun: (_, _) => throw UnsupportedError('Entity autorun requires a native fixture.'),
       modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},

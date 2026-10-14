@@ -604,6 +604,7 @@ bool _isSpatialAndAvailable(NarrativeEventProjectSummary event) {
   final source = event.source.source;
   if (source == null || !event.source.available) return false;
   return source.when(
+    entityAutorun: (_, _) => true,
     entityBump: (_, _) => true,
     entityInteract: (_, _) => true,
     modelInteract: (_, _) => true,

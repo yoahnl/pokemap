@@ -16,6 +16,7 @@ import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import 'narrative_entity_bump_source_reference.dart';
+import 'narrative_entity_autorun_source_reference.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -1406,6 +1407,10 @@ bool _eventSourceStaticallyReachable(
       NarrativeEventSourceRef.entityBump(mapId, entityId),
       mapsById, project,
     ),
+    entityAutorun: (mapId, entityId) => _sourceConnected(
+      NarrativeEventSourceRef.entityAutorun(mapId, entityId),
+      mapsById, project,
+    ),
     modelInteract: (mapId, instanceId) => _sourceConnected(
       NarrativeEventSourceRef.entityInteract(mapId, instanceId),
       mapsById, project,
@@ -2147,6 +2152,7 @@ List<NarrativeEventCondition> _recordConditions(NarrativeEventRecord record) =>
     source?.when(
       entityInteract: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
       entityBump: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
+      entityAutorun: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
       modelInteract: (mapId, instanceId) => (mapId: mapId, ownerId: instanceId),
       triggerEnter: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
       mapEnter: (mapId) => (mapId: mapId, ownerId: null),
@@ -2167,6 +2173,11 @@ bool _sourceConnected(
     entityBump: (mapId, entityId) {
       final map = mapsById[mapId];
       return map != null && isNarrativeEntityBumpSourceAvailable(
+        project: project, map: map, entityId: entityId);
+    },
+    entityAutorun: (mapId, entityId) {
+      final map = mapsById[mapId];
+      return map != null && isNarrativeEntityAutorunSourceAvailable(
         project: project, map: map, entityId: entityId);
     },
     modelInteract: (mapId, instanceId) =>
@@ -2198,6 +2209,17 @@ bool _sourceConnected(
       return (label: entity?.inspectorHeadline, entityKind: entity?.kind);
     },
     entityBump: (mapId, entityId) {
+      MapEntity? entity;
+      for (final candidate
+          in mapsById[mapId]?.entities ?? const <MapEntity>[]) {
+        if (candidate.id == entityId) {
+          entity = candidate;
+          break;
+        }
+      }
+      return (label: entity?.inspectorHeadline, entityKind: entity?.kind);
+    },
+    entityAutorun: (mapId, entityId) {
       MapEntity? entity;
       for (final candidate
           in mapsById[mapId]?.entities ?? const <MapEntity>[]) {

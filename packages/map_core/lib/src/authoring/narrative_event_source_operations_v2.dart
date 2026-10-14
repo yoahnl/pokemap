@@ -487,6 +487,18 @@ NarrativeEventSourceImpactPreview _sourceImpact({
             : null,
       );
     },
+    entityAutorun: (mapId, entityId) {
+      final option = _spatialOption(catalog, source);
+      return (
+        sentence: option?.humanDescription ??
+            'Exécution automatique de l’entité $entityId sur $mapId',
+        mapId: mapId,
+        origin: _spatialOrigin(option),
+        navigation: option?.selectable == true
+            ? NarrativeEditorDestination.focusEntity(mapId, entityId)
+            : null,
+      );
+    },
     modelInteract: (mapId, instanceId) {
       final option = _spatialOption(catalog, source);
       return (

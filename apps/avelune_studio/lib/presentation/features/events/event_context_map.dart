@@ -120,6 +120,8 @@ class _EventContextMapState extends State<EventContextMap> {
         final entityKind = widget.chooseKind ??
             (eventMapId(widget.source) == map.id ? widget.source?.kind : null);
         NarrativeEventSourceRef entitySource(MapEntity entity) => switch (entityKind) {
+          NarrativeEventSourceKind.entityAutorun =>
+            NarrativeEventSourceRef.entityAutorun(map.id, entity.id),
           NarrativeEventSourceKind.entityBump =>
             NarrativeEventSourceRef.entityBump(map.id, entity.id),
           NarrativeEventSourceKind.entityInteract =>
@@ -128,14 +130,21 @@ class _EventContextMapState extends State<EventContextMap> {
         };
         final targets = <(String, Rect, NarrativeEventSourceRef)>[
           if (entityKind == NarrativeEventSourceKind.entityInteract ||
-              entityKind == NarrativeEventSourceKind.entityBump)
+              entityKind == NarrativeEventSourceKind.entityBump ||
+              entityKind == NarrativeEventSourceKind.entityAutorun)
             for (final entity in map.entities)
-              if (widget.chooseKind != null
+              if ((entityKind != NarrativeEventSourceKind.entityAutorun ||
+                      isNarrativeEntityAutorunSourceAvailable(
+                        project: widget.project,
+                        map: map,
+                        entityId: entity.id,
+                      )) &&
+                  (widget.chooseKind != null
                   ? _selectable(entitySource(entity)) &&
                       (entityKind != NarrativeEventSourceKind.entityBump ||
                         isNarrativeEntityBumpSourceAvailable(
                           project: widget.project, map: map, entityId: entity.id))
-                  : entity.id == eventTargetId(widget.source))
+                  : entity.id == eventTargetId(widget.source)))
                 (
                   entity.name,
                   Rect.fromLTWH(

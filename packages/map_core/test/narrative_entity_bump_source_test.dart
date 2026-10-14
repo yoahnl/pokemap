@@ -9,6 +9,7 @@ void main() {
       final source = NarrativeEventSourceRef.entityBump('map', 'door');
       final result = source.when<String>(
         entityBump: (mapId, entityId) => 'bump:$mapId:$entityId',
+        entityAutorun: (mapId, entityId) => 'bump:$mapId:$entityId',
         entityInteract: (_, _) =>
             fail('entityInteract must never consume a bump'),
         modelInteract: (_, _) => fail('modelInteract'),
@@ -20,6 +21,7 @@ void main() {
       expect(
         () => Function.apply(source.when<String>, [], {
           #entityInteract: (String _, String _) => 'interact',
+          #entityAutorun: (String _, String _) => 'autorun',
           #modelInteract: (String _, String _) => 'model',
           #triggerEnter: (String _, String _) => 'trigger',
           #mapEnter: (String _) => 'map',

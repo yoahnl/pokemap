@@ -126,7 +126,8 @@ void main() {
       expect(
         catalog.options
             .firstWhere(
-              (option) => option.ownerId == 'spawn_player',
+              (option) => option.ownerId == 'spawn_player' &&
+                  option.source?.kind != NarrativeEventSourceKind.entityAutorun,
             )
             .availability,
         NarrativeSpatialEventSourceAvailability.visibleButUnavailable,
@@ -134,7 +135,8 @@ void main() {
       expect(
         catalog.options
             .firstWhere(
-              (option) => option.ownerId == 'system_warp',
+              (option) => option.ownerId == 'system_warp' &&
+                  option.source?.kind != NarrativeEventSourceKind.entityAutorun,
             )
             .unavailableReason,
         contains('système'),
@@ -142,7 +144,8 @@ void main() {
       expect(
         catalog.options
             .firstWhere(
-              (option) => option.ownerId == 'invalid_area',
+              (option) => option.ownerId == 'invalid_area' &&
+                  option.source?.kind != NarrativeEventSourceKind.entityAutorun,
             )
             .availability,
         NarrativeSpatialEventSourceAvailability.incompatible,
@@ -223,13 +226,13 @@ void main() {
       expect(port.mapEntrySources, hasLength(1));
       expect(port.zoneSources, hasLength(1));
       expect(port.npcSources.map((option) => option.ownerId),
-          ['npc_lysa', 'npc_lysa']);
+          ['npc_lysa', 'npc_lysa', 'npc_lysa']);
       expect(port.npcSources.map((option) => option.source!.kind),
           containsAll([NarrativeEventSourceKind.entityInteract,
-            NarrativeEventSourceKind.entityBump]));
+            NarrativeEventSourceKind.entityBump, NarrativeEventSourceKind.entityAutorun]));
       expect(
         port.objectSources.map((option) => option.ownerId),
-        ['item_key', 'sign_quay'],
+        ['item_key', 'item_key', 'sign_quay', 'sign_quay'],
       );
       expect(port.unavailableSources, hasLength(2));
       final unavailablePlacedElement = port.unavailableSources.singleWhere(
@@ -661,7 +664,8 @@ void main() {
       );
       expect(
         catalog.options
-            .firstWhere((option) => option.ownerId == 'npc_lysa')
+            .firstWhere((option) => option.ownerId == 'npc_lysa' &&
+                  option.source?.kind == NarrativeEventSourceKind.entityInteract)
             .humanLabel,
         'Capitaine Lysa — PNJ',
       );
