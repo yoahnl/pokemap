@@ -106,6 +106,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
+  bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.wait ||
+      id == NarrativeCommandIds.worldTone ||
+      id == NarrativeCommandIds.playSoundEffect;
+
   bool _isActorCommand(String id) =>
       id == NarrativeCommandIds.actorRoute ||
       id == NarrativeCommandIds.actorVisibility;
@@ -114,7 +119,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     for (final command in _catalog.commands)
       if (command.capabilities.editor ==
               NarrativeCommandCapabilityStatus.supported &&
-          _runtimeAllows(command))
+          _runtimeAllows(command) &&
+          (!_is2DPresentationCommand(command.id) ||
+              widget.project?.settings.dimension == ProjectDimension.twoD))
         if (!_isActorCommand(command.id) ||
             widget.project?.settings.dimension == ProjectDimension.twoD)
           command,
@@ -133,6 +140,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     final requested =
         widget.initialCommandId ??
         widget.initialPayload?.interactiveCommand?.kind.name;
+    if (requested != null && _is2DPresentationCommand(requested) &&
+        _catalog.byId(requested) != null) {
+      return requested;
+    }
     if (requested != null &&
         _availableCommands.any((command) => command.id == requested)) {
       return requested;
@@ -151,14 +162,21 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     _textControllers.clear();
     _values.clear();
     for (final parameter in command.parameters) {
-      final initial = widget.initialParameters[parameter.id];
+      final existing = widget.initialPayload?.interactiveCommand;
+      final storedValue = _is2DPresentationCommand(command.id) &&
+              existing?.kind.name == command.id
+          ? existing!.toJson()[parameter.id]
+          : null;
+      final initial = widget.initialParameters[parameter.id] ??
+          (storedValue is String || storedValue is num ? '$storedValue' : null);
       switch (parameter.kind) {
         case NarrativeCommandParameterKind.boolean:
           _values[parameter.id] = initial == 'false' ? 'false' : 'true';
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
-              (command.id == NarrativeCommandIds.worldTone &&
+              ((command.id == NarrativeCommandIds.worldTone ||
+                       command.id == NarrativeCommandIds.wait) &&
                       parameter.id == 'durationMs'
                   ? '0'
                   : '1');
@@ -358,7 +376,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     if (value == null || value.isEmpty) return false;
     if (parameter.kind == NarrativeCommandParameterKind.integer) {
-      if (_command.id == NarrativeCommandIds.worldTone &&
+      if ((_command.id == NarrativeCommandIds.worldTone ||
+           _command.id == NarrativeCommandIds.wait) &&
           parameter.id == 'durationMs') {
         return _hasValidPresentationParameter(parameter.id, value);
       }
@@ -386,6 +405,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   bool _hasValidPresentationParameter(String parameterId, String value) {
     final defaults = switch (_command.id) {
+      NarrativeCommandIds.wait => const {'durationMs': '0'},
       NarrativeCommandIds.worldTone => const {
         'red': '0',
         'green': '0',
@@ -417,6 +437,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _command.capabilities.editor ==
           NarrativeCommandCapabilityStatus.supported &&
       _runtimeAllows(_command) &&
+      (!_is2DPresentationCommand(_command.id) ||
+          widget.project?.settings.dimension == ProjectDimension.twoD) &&
       (_command.id != NarrativeCommandIds.warp ||
           !_warpReferenceLoading && _warpReferenceError == null) &&
       _missingParameters.isEmpty;
@@ -471,6 +493,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             ),
             const SizedBox(height: 12),
           ],
+          if (_is2DPresentationCommand(_command.id) &&
+              widget.project?.settings.dimension != ProjectDimension.twoD)
+            const PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.error,
+              title: 'Commande 2D indisponible',
+              message: 'Cette commande exige un projet 2D. Le brouillon reste conservé.',
+            ),
           SceneActionInspector(
             command: _command,
             missingParameterLabels: _missingParameters

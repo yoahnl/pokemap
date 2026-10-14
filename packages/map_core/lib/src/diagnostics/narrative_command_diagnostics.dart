@@ -1,4 +1,5 @@
 import '../models/project_manifest.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/rail_journey.dart';
 import '../models/scene_interactive_command.dart';
 import '../read_models/narrative_command_catalog.dart';
@@ -59,6 +60,17 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
       NarrativeCommandDiagnostic(
         code: NarrativeCommandDiagnosticCode.unsupportedCommand,
         message: 'La commande ${command.kind.name} n’est pas publiable.',
+      ),
+    ];
+  }
+  if ((command is SceneWaitInteractiveCommand ||
+          command is SceneWorldToneInteractiveCommand ||
+          command is ScenePlaySoundEffectInteractiveCommand) &&
+      project.settings.dimension != ProjectDimension.twoD) {
+    return const [
+      NarrativeCommandDiagnostic(
+        code: NarrativeCommandDiagnosticCode.unsupportedCommand,
+        message: 'Les commandes de présentation du monde sont disponibles uniquement dans un projet 2D.',
       ),
     ];
   }

@@ -16,6 +16,7 @@ abstract final class NarrativeCommandIds {
   static const givePokemon = 'givePokemon';
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
+  static const wait = 'wait';
   static const worldTone = 'worldTone';
   static const playSoundEffect = 'playSoundEffect';
   static const actorRoute = 'actorRoute';
@@ -436,6 +437,24 @@ final class NarrativeCommandCatalog {
         ),
       ]),
       NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.wait,
+        label: 'Attendre',
+        description: 'Attend une durée dans un monde 2D sans déplacer ni désigner un acteur.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D ; aucun support 3D.',
+        ),
+        fgLotId: 'FG-092',
+        wireId: 'SceneInteractiveCommand.wait',
+        parameters: [
+          _parameter('durationMs', 'Durée (ms)', NarrativeCommandParameterKind.integer),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
         id: NarrativeCommandIds.worldTone,
         label: 'Changer le ton du monde',
         description:
@@ -445,7 +464,7 @@ final class NarrativeCommandCatalog {
           model: NarrativeCommandCapabilityStatus.supported,
           editor: NarrativeCommandCapabilityStatus.supported,
           runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: 'Disponible dans le Player 2D.',
+          reason: 'Disponible dans le Player 2D ; aucun support 3D.',
         ),
         fgLotId: 'FG-093',
         wireId: 'SceneInteractiveCommand.worldTone',
@@ -472,7 +491,7 @@ final class NarrativeCommandCatalog {
           model: NarrativeCommandCapabilityStatus.supported,
           editor: NarrativeCommandCapabilityStatus.supported,
           runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: 'Disponible dans le Player 2D.',
+          reason: 'Disponible dans le Player 2D ; aucun support 3D.',
         ),
         fgLotId: 'FG-093',
         wireId: 'SceneInteractiveCommand.playSoundEffect',

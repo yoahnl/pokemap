@@ -62,7 +62,7 @@ Map<String, dynamic> _route({
       'kind': 'actorRoute',
       'target': target ?? _target(entityId: 'actor'),
       'steps': [
-        {'kind': 'face', 'direction': 'south', 'durationMs': 50},
+        {'kind': 'face', 'direction': 'south', 'durationMs': 50, 'yieldAfter': true},
         {
           'kind': 'move',
           'direction': 'south',
@@ -110,6 +110,18 @@ const _trainer = ProjectTrainerEntry(
     characterId: 'actor-character');
 
 void main() {
+  test('canonical actions describe optional face update yield', () {
+    for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      final route = SceneActions.descriptors.singleWhere((d) => d.id == id)
+          .extensions['actorRoute'] as Map;
+      expect((route['stepFields'] as Map)['face'],
+          ['kind', 'direction', 'durationMs', 'yieldAfter']);
+      expect((route['stepOptionalFields'] as Map)['face'], ['durationMs', 'yieldAfter']);
+      expect(route['defaultFaceYieldAfter'], isFalse);
+      expect(route['faceYieldCompletion'], 'nextUpdateBeforeHold');
+    }
+  });
+
   test('sparse Scene upsert input matches the real MCP request with an initial owner', () async {
     final f = await _Fixture.create(entities: const [
       MapEntity(id: 'trainer-actor', kind: MapEntityKind.npc, pos: GridPos(x: 0, y: 0),

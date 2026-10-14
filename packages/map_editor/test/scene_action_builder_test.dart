@@ -8,6 +8,55 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('3D and missing contexts preserve but cannot apply 2D presentation drafts', (tester) async {
+    for (final project in <ProjectManifest?>[null,
+      const ProjectManifest(name: '3D', maps: [], tilesets: [],
+        settings: ProjectSettings(dimension: ProjectDimension.threeD))]) {
+      for (final command in [
+        SceneInteractiveCommand.wait(durationMs: 400),
+        SceneInteractiveCommand.worldTone(red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
+        SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+      ]) {
+        await _pumpBuilder(tester, initialCommandId: command.kind.name,
+          project: project, options: _soundOptions,
+          initialPayload: SceneActionPayload.interactive(command),
+          onSubmit: (_) => fail('Presentation requires a known 2D project'));
+        final picker = tester.widget<PokeMapDropdownField<String>>(
+          find.byWidgetPredicate((w) => w is PokeMapDropdownField<String> && w.label == 'Type de commande'));
+        for (final id in ['wait', 'worldTone', 'playSoundEffect']) {
+          expect(picker.items.any((item) => item.value == id), isFalse, reason: id);
+        }
+        expect(_submitButton(tester).onPressed, isNull);
+        final parameter = command is ScenePlaySoundEffectInteractiveCommand ? 'volume' : 'durationMs';
+        final expected = command.toJson()[parameter].toString();
+        final input = find.byKey(ValueKey('scene-action-parameter-$parameter'));
+        expect(tester.widget<EditableText>(find.descendant(of: input,
+            matching: find.byType(EditableText))).controller.text, expected);
+      }
+    }
+  });
+
+  testWidgets('world wait accepts zero and refuses malformed durations', (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.wait,
+        project: const ProjectManifest(name: '2D', maps: [], tilesets: []),
+        onSubmitResult: (v) => result = v);
+    final input = find.byKey(const ValueKey('scene-action-parameter-durationMs'));
+    expect(tester.widget<EditableText>(find.descendant(of: input, matching: find.byType(EditableText))).controller.text, '0');
+    expect(_submitButton(tester).onPressed, isNotNull);
+    for (final invalid in ['', '-1', '0.5', '2147483648', 'NaN']) {
+      await tester.enterText(input, invalid);
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNull, reason: invalid);
+    }
+    await tester.enterText(input, '0');
+    await tester.pump();
+    _submitButton(tester).onPressed!();
+    await tester.pump();
+    expect((result!.payload as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.wait(durationMs: 0));
+  });
+
   test('sound picker helper filters the real project media inventory', () {
     final options = buildSceneSoundMediaPickerOptions(_mediaProject());
     expect(options.map((option) => option.id), ['door', 'bell']);
@@ -1213,6 +1262,8 @@ Future<void> _pumpBuilder(
   Set<String>? runtimeCommandIds,
   Future<MapData?> Function(String)? loadWarpMap,
   NarrativeCommandCatalog? commandCatalog,
+  ProjectManifest? project = const ProjectManifest(name: '2D UI fixture', maps: [], tilesets: []),
+  SceneActionPayload? initialPayload,
 }) async {
   tester.view.physicalSize = const Size(900, 760);
   tester.view.devicePixelRatio = 1;
@@ -1228,6 +1279,8 @@ Future<void> _pumpBuilder(
           child: SceneActionBuilder(
             key: ValueKey('builder-$initialCommandId'),
             initialCommandId: initialCommandId,
+            project: project,
+            initialPayload: initialPayload,
             commandCatalog: commandCatalog,
             pickerOptions: options,
             initialParameters: initialParameters,
@@ -1258,7 +1311,8 @@ NarrativeCommandCatalog _presentationCommandCatalog() {
   for (var index = 0; index < catalog.commands.length; index++) {
     final command = catalog.commands[index];
     if (command.id != NarrativeCommandIds.worldTone &&
-        command.id != NarrativeCommandIds.playSoundEffect) {
+        command.id != NarrativeCommandIds.playSoundEffect &&
+        command.id != NarrativeCommandIds.wait) {
       continue;
     }
     catalog.commands[index] = NarrativeCommandDescriptor(

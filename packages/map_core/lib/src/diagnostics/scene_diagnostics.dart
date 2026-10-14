@@ -58,6 +58,7 @@ enum SceneDiagnosticCode {
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
   commandInvalidActorTarget,
+  commandUnsupportedDimension,
   commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
   consequenceMissingTarget,
@@ -1112,6 +1113,22 @@ void _diagnoseActionConsequenceAgainstProject(
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
+  if ((interactiveCommand is SceneWaitInteractiveCommand ||
+          interactiveCommand is SceneWorldToneInteractiveCommand ||
+          interactiveCommand is ScenePlaySoundEffectInteractiveCommand) &&
+      project.settings.dimension != ProjectDimension.twoD) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.commandUnsupportedDimension,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Les commandes de présentation du monde sont disponibles uniquement dans un projet 2D.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Utiliser cette commande dans un projet 2D.',
+      ),
+    );
+  }
   final actorTarget = switch (interactiveCommand) {
     SceneActorRouteInteractiveCommand(:final target) => target,
     SceneActorVisibilityInteractiveCommand(:final target) => target,

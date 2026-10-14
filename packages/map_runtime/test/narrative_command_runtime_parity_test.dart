@@ -154,6 +154,7 @@ void main() {
 
     final executor = SceneInteractiveCommandRuntimeExecutor(
       warp: handler,
+      wait: handler,
       worldTone: handler,
       playSoundEffect: handler,
       actorRoute: handler,
@@ -398,6 +399,7 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
             destinationMapId: 'map_test',
             warpId: 'warp_arrival',
           ),
+      NarrativeCommandIds.wait: () => SceneInteractiveCommand.wait(durationMs: 400),
       NarrativeCommandIds.worldTone: () => SceneInteractiveCommand.worldTone(
             red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
           ),

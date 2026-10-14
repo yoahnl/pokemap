@@ -212,6 +212,29 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  testWidgets('face update yield hydrates and can be disabled without losing hold', (tester) async {
+    final original = _route(steps: [
+      SceneActorRouteStep.face(direction: EntityFacing.east, durationMs: 50, yieldAfter: true),
+    ]);
+    final applied = <SceneNodePayload>[];
+    await _pump(tester, current: original, injected: false, onApply: applied.add);
+    await tester.pumpAndSettle();
+    final toggle = find.byKey(const ValueKey('actor-step-0-yield'));
+    expect(toggle, findsOneWidget);
+    await _submit(tester);
+    expect(applied.single, original);
+    applied.clear();
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pump();
+    await _submit(tester);
+    final command = (applied.single as SceneActionPayload).interactiveCommand
+        as SceneActorRouteInteractiveCommand;
+    expect(command.steps.single, SceneActorRouteStep.face(
+        direction: EntityFacing.east, durationMs: 50));
+  });
+
+
   testWidgets(
     'egress stays unavailable in a 3D project even when its map is flat',
     (tester) async {

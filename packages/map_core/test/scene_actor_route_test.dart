@@ -20,6 +20,36 @@ Map<String, dynamic> _routeWire({bool entity = false}) => {
 };
 
 void main() {
+  test('face can yield one update without changing its default hold', () {
+    final plain = SceneActorRouteStep.fromJson({
+      'kind': 'face', 'direction': 'north', 'durationMs': 0,
+    });
+    for (final yieldAfter in [false, true]) {
+      final step = SceneActorRouteStep.fromJson({
+        'kind': 'face', 'direction': 'north', 'durationMs': 0,
+        'yieldAfter': yieldAfter,
+      });
+      expect(step.toJson(), {
+        'kind': 'face', 'direction': 'north', 'durationMs': 0,
+        if (yieldAfter) 'yieldAfter': true,
+      });
+      expect(step == plain, !yieldAfter);
+      expect(SceneActorRouteStep.fromJson(step.toJson()), step);
+      if (yieldAfter) expect(step.hashCode, isNot(plain.hashCode));
+    }
+  });
+
+  test('face yield flag is strict and cannot change another step grammar', () {
+    for (final value in <Object?>[null, 0, 1, 'true', <String, Object?>{}]) {
+      expect(() => SceneActorRouteStep.fromJson({
+        'kind': 'face', 'direction': 'south', 'yieldAfter': value,
+      }), throwsFormatException);
+    }
+    expect(() => SceneActorRouteStep.fromJson({
+      'kind': 'wait', 'durationMs': 100, 'yieldAfter': true,
+    }), throwsFormatException);
+  });
+
   test('actor move initial collision owner is canonical optional JSON', () {
     for (final direction in EntityFacing.values) {
       final wire = <String, dynamic>{

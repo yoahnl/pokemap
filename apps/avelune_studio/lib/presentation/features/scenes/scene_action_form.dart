@@ -40,6 +40,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
         in widget.commandCatalog ??
             NarrativeCommandCatalog.canonical().commands)
       if (command.isPublishable &&
+          (!_is2DPresentationCommand(command.id) ||
+              widget.project.settings.dimension == ProjectDimension.twoD) &&
           (!_isActorCommand(command.id) ||
               widget.project.settings.dimension == ProjectDimension.twoD) &&
           (command.id != NarrativeCommandIds.playModelAnimation ||
@@ -60,6 +62,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
 
   NarrativeCommandDescriptor? get _command =>
       _commands.where((command) => command.id == _commandId).firstOrNull;
+
+  bool _is2DPresentationCommand(String? id) =>
+      id == NarrativeCommandIds.wait ||
+      id == NarrativeCommandIds.worldTone ||
+      id == NarrativeCommandIds.playSoundEffect;
 
   bool _isActorCommand(String? id) =>
       id == NarrativeCommandIds.actorRoute ||
@@ -160,6 +167,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
     }
     if (commandId == NarrativeCommandIds.playModelAnimation) {
       _values['speed'] = '1';
+    } else if (commandId == NarrativeCommandIds.wait) {
+      _values['durationMs'] = '0';
     } else if (commandId == NarrativeCommandIds.worldTone) {
       for (final id in ['red', 'green', 'blue', 'gray', 'durationMs']) {
         _values[id] = '0';
@@ -199,7 +208,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
         return false;
       }
     }
-    if (command.id == NarrativeCommandIds.worldTone ||
+    if (command.id == NarrativeCommandIds.wait ||
+        command.id == NarrativeCommandIds.worldTone ||
         command.id == NarrativeCommandIds.playSoundEffect) {
       try {
         _buildPayload();
@@ -423,6 +433,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         parameter.kind == NarrativeCommandParameterKind.number ||
         parameter.kind == NarrativeCommandParameterKind.text) {
       final presentation =
+          _commandId == NarrativeCommandIds.wait ||
           _commandId == NarrativeCommandIds.worldTone ||
           _commandId == NarrativeCommandIds.playSoundEffect;
       return StudioDraftField(

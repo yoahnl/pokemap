@@ -4,6 +4,89 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final command in [
+    SceneInteractiveCommand.wait(durationMs: 400),
+    SceneInteractiveCommand.worldTone(red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
+    SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+  ]) {
+  test('${command.kind.name} refuses 3D canonical publication and command availability', () {
+    final scene = SceneAsset(id: 'wait', name: 'Wait', graph: SceneGraph(
+      startNodeId: 'start', nodes: [SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'action', kind: SceneNodeKind.action,
+          payload: SceneActionPayload.interactive(command)),
+        SceneNode(id: 'end', kind: SceneNodeKind.end)], edges: [
+        SceneEdge(id: 'start-action', fromNodeId: 'start', fromPortId: 'completed',
+          toNodeId: 'action', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'action-end', fromNodeId: 'action', fromPortId: 'completed',
+          toNodeId: 'end', kind: SceneEdgeKind.actionCompleted)]));
+    for (final dimension in ProjectDimension.values) {
+      final project = ProjectManifest(name: 'Wait', maps: const [], tilesets: const [],
+        settings: ProjectSettings(dimension: dimension),
+        cinematicMediaAssets: [CinematicMediaAsset(id: 'door', label: 'Door',
+          kind: CinematicMediaAssetKind.sound, relativePath: 'audio/door.wav')]);
+      final report = diagnoseSceneAgainstProject(scene, project);
+      expect(report.hasErrors, dimension == ProjectDimension.threeD);
+      expect(report.diagnostics.any((d) => d.code.name == 'commandUnsupportedDimension'),
+          dimension == ProjectDimension.threeD);
+      expect(diagnoseInteractiveCommand(command: command, project: project)
+          .any((d) => d.code == NarrativeCommandDiagnosticCode.unsupportedCommand),
+          dimension == ProjectDimension.threeD);
+    }
+  });
+  }
+
+  test('independent wait belongs to the world execution profile only', () {
+    final node = SceneNode(id: 'wait', kind: SceneNodeKind.action,
+        payload: SceneActionPayload.interactive(SceneInteractiveCommand.wait(durationMs: 400)));
+    for (final profile in SceneExecutionProfile.values) {
+      final capability = sceneExecutionCapabilityForNode(profile, node);
+      expect(capability, SceneExecutionCapabilityIds.worldAction);
+      expect(sceneExecutionCapabilityMatrix.evaluate(profile: profile,
+          capabilityId: capability).isAllowed, profile == SceneExecutionProfile.world);
+    }
+  });
+
+  test('world wait is a bounded actor-independent command with one output', () {
+    for (final duration in [0, 400, 2147483647]) {
+      final wire = <String, dynamic>{'kind': 'wait', 'durationMs': duration};
+      expect(() => SceneInteractiveCommand.fromJson(wire), returnsNormally);
+      final command = SceneInteractiveCommand.fromJson(wire);
+      expect(command.runtimeType.toString(), 'SceneWaitInteractiveCommand');
+      expect(command.toJson(), wire);
+      expect(command.outputPortIds, ['completed']);
+      expect(SceneInteractiveCommand.fromJson(
+        jsonDecode(jsonEncode(command.toJson())) as Map<String, dynamic>), command);
+    }
+  });
+
+  test('world wait rejects missing, unknown and non integer duration data', () {
+    for (final value in <Object?>[null, -1, 2147483648, 0.5, '400', true,
+      double.nan, double.infinity]) {
+      expect(() => SceneInteractiveCommand.fromJson({
+        'kind': 'wait', 'durationMs': value,
+      }), throwsA(anyOf(isA<FormatException>(), isA<ArgumentError>())));
+    }
+    for (final wire in <Map<String, dynamic>>[
+      {'kind': 'wait'},
+      {'kind': 'wait', 'durationMs': 400, 'target': 'player'},
+      {'kind': 'wait', 'durationMs': 400, 'volume': 1},
+    ]) {
+      expect(() => SceneInteractiveCommand.fromJson(wire), throwsFormatException);
+    }
+  });
+
+  test('canonical world wait payload preserves zero and refuses malformed duration', () {
+    final command = (buildScenePayloadForNarrativeCommand(
+      commandId: 'wait', parameters: const {'durationMs': '0'}) as SceneActionPayload)
+        .interactiveCommand!;
+    expect(command.toJson(), {'kind': 'wait', 'durationMs': 0});
+    for (final value in ['', '-1', '400.5', '2147483648', 'true']) {
+      expect(() => buildScenePayloadForNarrativeCommand(
+        commandId: 'wait', parameters: {'durationMs': value}),
+        throwsA(anyOf(isA<FormatException>(), isA<ArgumentError>())));
+    }
+  });
+
   Map<String, dynamic> tone({
     double red = -255,
     double green = -255,

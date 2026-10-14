@@ -231,6 +231,9 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
   NarrativeCommandIds.openShop: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.openShop(shopId: 'shop_port'),
   ),
+  NarrativeCommandIds.wait: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.wait(durationMs: 400),
+  ),
   NarrativeCommandIds.worldTone: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.worldTone(
       red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
@@ -238,6 +241,14 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
   ),
   NarrativeCommandIds.playSoundEffect: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door-sound', volume: .8),
+  ),
+  NarrativeCommandIds.actorRoute: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map_port'),
+      steps: [SceneActorRouteStep.face(direction: EntityFacing.north, yieldAfter: true)]),
+  ),
+  NarrativeCommandIds.actorVisibility: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.actorVisibility(target: SceneActorTarget.player(mapId: 'map_port'),
+      visible: false),
   ),
   NarrativeCommandIds.openHeal: () =>
       SceneActionPayload.interactive(SceneInteractiveCommand.openHeal()),

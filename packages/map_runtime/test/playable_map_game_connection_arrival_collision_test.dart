@@ -105,6 +105,353 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
+    'world Scene wait preserves an independently running world tone',
+    () async {
+      final fixture = await _fixture();
+      final game = fixture.game;
+      expect(
+        await game.debugExecuteSceneInteractiveCommand(_tone(-255, 300)),
+        'completed',
+      );
+      var completed = false;
+      final waiting = game
+          .debugExecuteSceneInteractiveCommand(
+            SceneInteractiveCommand.wait(durationMs: 400),
+          )
+          .then((port) {
+            completed = true;
+            return port;
+          });
+      game.update(.15);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(game.debugWorldToneValue.red, closeTo(-127.5, .0001));
+      game.update(.15);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(game.debugWorldToneValue.red, -255);
+      game.update(.09);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      game.update(.011);
+      expect(await waiting, 'completed');
+      expect(game.debugWorldToneValue.red, -255);
+    },
+  );
+
+  test(
+    'contact Scene awaits a world wait before committing and saving',
+    () async {
+      final repository = _MemorySaveRepository();
+      final fixture = await _fixture(
+        saveRepository: repository,
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+        eventRegistry: _entityBumpRegistry(),
+        scenes: [
+          _entityBumpScene(
+            beforeReward: SceneInteractiveCommand.wait(durationMs: 300),
+          ),
+        ],
+      );
+      final game = fixture.game;
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.up),
+      );
+      game.update(.016);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.release(RuntimeInputControl.up),
+      );
+      for (
+        var turn = 0;
+        turn < 200 && game.debugPendingSceneWaitCount == 0;
+        turn++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      expect(game.debugPendingSceneWaitCount, 1);
+      expect(game.debugIsNarrativeSpatialDispatchInFlight, isTrue);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(game.gameStateSnapshot.trainerProfile.money, before);
+      expect(await game.saveGame(), isFalse);
+      expect(await game.loadGame(), isFalse);
+      game.update(.15);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugPendingSceneWaitCount, 1);
+      expect(game.gameStateSnapshot.trainerProfile.money, before);
+      game.update(.151);
+      await _settleEntityBump(game);
+      expect(game.debugPendingSceneWaitCount, 0);
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      expect(
+        game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        contains(_entityBumpEventId),
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(await game.saveGame(), isTrue);
+      await _bumpUp(game);
+      expect(game.debugPendingSceneWaitCount, 0);
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+    },
+  );
+
+  test(
+    'world Scene wait uses the runtime clock without actor ownership',
+    () async {
+      final fixture = await _fixture(
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+      );
+      final game = fixture.game;
+      final initialPosition = game.debugPlayerGridPosition;
+      final initialTone = game.debugWorldToneValue;
+      var completed = false;
+      final waiting = game
+          .debugExecuteSceneInteractiveCommand(
+            SceneInteractiveCommand.fromJson({
+              'kind': 'wait',
+              'durationMs': 300,
+            }),
+          )
+          .then((port) {
+            completed = true;
+            return port;
+          });
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(completed, isFalse);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(await game.saveGame(), isFalse);
+      expect(await game.loadGame(), isFalse);
+      final route = game.debugExecuteSceneInteractiveCommand(
+        _actorRoute([
+          {'kind': 'move', 'direction': 'west', 'durationMs': 100},
+        ], entityId: 'route-door'),
+      );
+      expect(await _finishActorRoute(game, route), 'completed');
+      expect(completed, isFalse);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(game.debugPlayerGridPosition, initialPosition);
+      expect(game.debugWorldToneValue, initialTone);
+      game.update(.1);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      game.update(.2);
+      expect(await waiting, 'completed');
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(game.debugPlayerGridPosition, initialPosition);
+      expect(game.debugWorldToneValue, initialTone);
+    },
+  );
+
+  test(
+    'world Scene wait of zero completes without a fabricated frame',
+    () async {
+      final fixture = await _fixture();
+      expect(
+        await fixture.game.debugExecuteSceneInteractiveCommand(
+          SceneInteractiveCommand.fromJson({'kind': 'wait', 'durationMs': 0}),
+        ),
+        'completed',
+      );
+      expect(fixture.game.debugIsGameplayInputLocked, isFalse);
+    },
+  );
+
+  test('world Scene wait is interrupted when the runtime is removed', () async {
+    final fixture = await _fixture();
+    final game = fixture.game;
+    final waiting = game.debugExecuteSceneInteractiveCommand(
+      SceneInteractiveCommand.fromJson({'kind': 'wait', 'durationMs': 300}),
+    );
+    final failure = expectLater(waiting, throwsStateError);
+    await Future<void>.delayed(Duration.zero);
+    expect(game.debugIsGameplayInputLocked, isTrue);
+    game.onRemove();
+    await failure;
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
+
+  test('actor face yield keeps its pose until a new runtime update', () async {
+    final fixture = await _fixture();
+    final game = fixture.game;
+    var completed = false;
+    final execution = game
+        .debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'face', 'direction': 'north', 'yieldAfter': true},
+            {'kind': 'face', 'direction': 'south'},
+          ]),
+        )
+        .then((port) {
+          completed = true;
+          return port;
+        });
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, isFalse);
+    expect(game.gameStateSnapshot.playerFacing, EntityFacing.north);
+    game.update(0);
+    expect(await execution, 'completed');
+    expect(game.gameStateSnapshot.playerFacing, EntityFacing.south);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
+
+  test(
+    'actor face hold duration starts after its explicit update yield',
+    () async {
+      final fixture = await _fixture();
+      final game = fixture.game;
+      var completed = false;
+      final execution = game
+          .debugExecuteSceneInteractiveCommand(
+            _actorRoute([
+              {
+                'kind': 'face',
+                'direction': 'north',
+                'yieldAfter': true,
+                'durationMs': 100,
+              },
+              {'kind': 'face', 'direction': 'south'},
+            ]),
+          )
+          .then((port) {
+            completed = true;
+            return port;
+          });
+      await Future<void>.delayed(Duration.zero);
+      game.update(.09);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.north);
+      game.update(.09);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.north);
+      game.update(.011);
+      expect(await execution, 'completed');
+      expect(game.gameStateSnapshot.playerFacing, EntityFacing.south);
+    },
+  );
+
+  for (final running in [false, true]) {
+    test(
+      'trigger-enter Scene waits for the physical step running=$running',
+      () async {
+        late PlayableMapGame game;
+        final steppingAtPreparation = <bool>[];
+        final fixture = await _fixture(
+          warpArrival: true,
+          playerCharacter: _timingPlayerCharacter(),
+          arrivalTriggerMode: MapWarpTriggerMode.sceneOnly,
+          sourceTriggers: const [
+            MapTrigger(
+              id: 'exit',
+              type: TriggerType.event,
+              area: MapRect(
+                pos: GridPos(x: 0, y: 1),
+                size: GridSize(width: 1, height: 1),
+              ),
+            ),
+          ],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [
+              NarrativeEventRecord.configuredStructurallyUnchecked(
+                NarrativeEventDefinition(
+                  id: _entityBumpEventId,
+                  name: 'Exit',
+                  source: NarrativeEventSourceRef.triggerEnter(
+                    'source',
+                    'exit',
+                  ),
+                  sceneId: 'entity-bump-scene',
+                  conditions: const [],
+                  reusePolicy: NarrativeEventReusePolicy.reusable,
+                  priority: 0,
+                  order: 0,
+                ),
+                enabled: true,
+              ),
+            ],
+            legacyClaims: const [],
+          ),
+          scenes: [
+            _entityBumpScene(
+              beforeReward: _arrivalCommand(
+                transition: SceneWarpTransition.none,
+              ),
+            ),
+          ],
+          beforeNarrativeAuthorityPreparation: (occurrence) async {
+            if (occurrence.source ==
+                NarrativeEventSourceRef.triggerEnter('source', 'exit')) {
+              steppingAtPreparation.add(game.debugIsPlayerStepping);
+            }
+          },
+        );
+        game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        if (running) {
+          game.handleRuntimeInputEvent(
+            const RuntimeInputEvent.press(RuntimeInputControl.sprint),
+          );
+        }
+        expect(game.inputAuthoritySnapshot.sprintAccepted, running);
+        expect(
+          game.handleRuntimeInputEvent(
+            const RuntimeInputEvent.press(RuntimeInputControl.left),
+          ),
+          isTrue,
+        );
+        game.update(.001);
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.left),
+        );
+        expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+        expect(game.debugIsPlayerStepping, isTrue);
+        expect(
+          _components(game)
+              .whereType<PlayerComponent>()
+              .single
+              .debugStepAnimationState,
+          running ? CharacterAnimationState.run : CharacterAnimationState.walk,
+        );
+        expect(game.debugPendingNarrativeTriggerEntryCount, 1);
+        game.update(running ? .06 : .12);
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+        expect(game.debugIsPlayerStepping, isTrue);
+        expect(steppingAtPreparation, isEmpty);
+        expect(game.debugPendingNarrativeTriggerEntryCount, 1);
+        expect(game.gameStateSnapshot.currentMapId, 'source');
+        expect(game.gameStateSnapshot.trainerProfile.money, before);
+        for (var tick = 0; tick < 120; tick++) {
+          game.update(.025);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+          if (game.gameStateSnapshot.currentMapId == 'target' &&
+              game.gameStateSnapshot.trainerProfile.money == before + 100) {
+            break;
+          }
+        }
+        expect(steppingAtPreparation, [false]);
+        expect(game.gameStateSnapshot.currentMapId, 'target');
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 0, y: 1),
+        );
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        expect(game.debugPendingNarrativeTriggerEntryCount, 0);
+        for (var tick = 0; tick < 8; tick++) {
+          game.update(.025);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(steppingAtPreparation, [false]);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      },
+    );
+  }
+
+  test(
     'entity autorun waits for an active Scene and resumes after release',
     () async {
       final activity = NarrativeRuntimeActivityGate();
@@ -3023,6 +3370,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   bool sameMapArrival = false,
   MapWarpTriggerMode arrivalTriggerMode = MapWarpTriggerMode.onBump,
   List<MapWarp> sourceWarps = const [],
+  List<MapTrigger> sourceTriggers = const [],
   EntityFacing sourceFacing = EntityFacing.east,
   GameSaveRepository? saveRepository,
   SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort,
@@ -3040,6 +3388,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   List<MapEntity> sourceEntities = const [],
   List<MapEntity> targetEntities = const [],
   List<ProjectCharacterEntry> characters = const [],
+  ProjectCharacterEntry? playerCharacter,
   bool narrativeV2 = false,
   MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,
   List<NarrativeFactDefinition> facts = const [],
@@ -3080,6 +3429,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     ],
     mapMetadata: const MapMetadata(defaultSpawnId: 'start'),
     events: events,
+    triggers: sourceTriggers,
     warps: [
       ...sourceWarps,
       if (sameMapArrival)
@@ -3179,7 +3529,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     scenes: scenes,
     dialogues: dialogues,
     cinematicMediaAssets: cinematicMediaAssets,
-    characters: characters,
+    characters: [...characters, ?playerCharacter],
     facts: facts,
     worldRules: worldRules,
     eventRegistry: eventRegistry ?? (narrativeV2 ? NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: const [], legacyClaims: const [],
@@ -3193,6 +3543,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
         ),
     ],
     settings: ProjectSettings(tileWidth: 32, tileHeight: 32,
+      defaultPlayerCharacterId: playerCharacter?.id,
       mapInstanceRetentionPolicy: mapInstanceRetentionPolicy,
     ),
     tilesets: const [
@@ -3263,7 +3614,8 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   final recorder = ui.PictureRecorder();
   ui.Canvas(recorder);
   final picture = recorder.endRecording();
-  final image = await picture.toImage(32, 32);
+  final imageSize = playerCharacter == null ? 32 : 64;
+  final image = await picture.toImage(imageSize, imageSize);
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   await File(p.join(root.path, 'assets', 'original.png'))
       .writeAsBytes(bytes!.buffer.asUint8List());
@@ -3318,6 +3670,31 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     ),
   );
 }
+
+ProjectCharacterEntry _timingPlayerCharacter() => ProjectCharacterEntry(
+  id: 'timing-player',
+  name: 'Timing player',
+  tilesetId: 'original',
+  frameWidth: 1,
+  frameHeight: 1,
+  animations: [
+    for (final state in [
+      CharacterAnimationState.idle,
+      CharacterAnimationState.walk,
+      CharacterAnimationState.run,
+    ])
+      for (final direction in EntityFacing.values)
+        CharacterAnimation(
+          state: state,
+          direction: direction,
+          frames: const [
+            CharacterAnimationFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+            ),
+          ],
+        ),
+  ],
+);
 
 const _routeDoor = MapEntity(
   id: 'route-door',
@@ -3945,7 +4322,8 @@ SceneAsset _entityBumpScene({SceneInteractiveCommand? beforeReward}) =>
               toNodeId: 'reward',
               kind: SceneEdgeKind.actionCompleted,
             ),
-            SceneEdge(
+            if (beforeReward.outputPortIds.contains('blocked'))
+              SceneEdge(
               id: 'before-blocked',
               fromNodeId: 'before',
               fromPortId: 'blocked',

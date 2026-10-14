@@ -2027,3 +2027,103 @@ Publication explicitement demandée par Yoahn : commit ciblé des77chemins puis 
 Auto-critique : la quantité de tests ne modifie pas la couverture source9/44. Le nouveau déclencheur natif ferme une dépendance concrète de la porte originale, mais son binding source, cadence capturée avant verrou, yields/attentes106/209/210 et sortie après fin du pas restent à qualifier. Puis viennent le profil/projectionv5 et le vrai parcours original entrée→sortie→réentrée/save disque/reload/Studio open-edit-save-reopen. SourceAdmission=false jusqu’à cette preuve. Ni 3D, ni parité temporelle/acoustique globale, ni import arbitraire Essentials100% annoncés.
 
 Notion : ticket AC-13 existant3f7197a7-bfa5-81da-b5b9-c551c806e2ce, domaine Post Bêta Monde & narration, Gate bêtafalse ; composant natif proposé à revue, ticket global DOING/PARTIAL. FG082/090/093 restentPARTIAL,FG092TODO, roadmap inchangée. Le goal AC00–16 reste actif.
+
+## Complément AC-13 — Attentes et cadence des scènes 2D, 14 octobre 2026
+
+### Résultat, audit et frontière de livraison
+
+La tranche native ajoute Scene.wait et le yield explicite des directions, puis retarde triggerEnter jusqu’à la fin physique du pas ou du saut. Le joueur ne peut pas sauvegarder au milieu de l’attente ; les routes NPC et le Tone indépendants continuent. Wait, Tone et SE sont réservés explicitement aux projets 2D dans les guides, diagnostics et transports. Cette livraison est proposée à revue ; AC-13 et le goal AC-00–16 restent DOING/PARTIAL. Elle n’admet pas les portes source originales et ne modifie pas le dernier échantillon publié de 9/44 événements adaptés, 35 inactifs. SourceAdmission=false. Combat Avelune, zéro Ruby exécuté et zéro IA requise.
+
+Audit initial : main e7f89f8769111b9fbcd45c597bb1d4c8b8214b46, index vide ; 70 chemins étrangers au contrôle avant préparation du rapport. Les owners travaillent dans R privé, sans Git. Le report précédent et les modèles/handlers existants sont relus ; Core, Pure, Runtime, guides et API/MCP restent séparés. La consigne humaine sans commentaires prime sur la règle Codex contradictoire ; aucun commentaire de code ni nouveau Markdown ajouté.
+
+Oracle source corrigé : pour les deux portes originales à pied, les pas forcés héritent 250 ms après arrêt/annulation des véhicules, y compris après course ; aucune API dynamique 125 ms n’est requise pour ce template. Sources inertes 044.rb:110–123,046.rb:94–98,500–510,032.rb:72–81,165–170 ; archive Scripts SHA3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d. Wait106 et attente de route utilisent /20.0 (034.rb:383–386,044.rb:475–477) : huit unités donnent400ms. Une direction source rend la main à une invocation de route ; elle ne prouve pas nécessairement une frame Graphics entière. Le nouveau yield natif signifie exactement prochain update, sans inventer50ms. L’équivalence de lecture originale, la barrière globale210 et le pas bloqué/skippable restent des qualifications distinctes.
+
+### Contrats, consommateurs et cas couverts
+
+- SceneWaitInteractiveCommand : entier0…2147483647, grammaire fermée, un port completed, Scene world2D. Attente nulle immédiate ; attente positive sur horloge Runtime, verrou distinct, interlock save/load et interruption propre à la fermeture.
+- SceneActorFaceStep.yieldAfter : bool strict, false par défaut et omis du wire lorsqu’il est faux ; direction → prochain update → maintien → étape suivante. La fermeture pendant le yield empêche les effets suivants ; les erreurs ne sont pas avalées par skippable.
+- Le drain des triggerEnter attend la fin de stepping/jumping, conserve la file et ses gardes d’activation. Les tests utilisent marche et course réelles, y compris un atlas64px avec clips de course.
+- Guides Studio et legacy, catalogue et métadonnées API : durée, yield et borne2D découvrables. Une commande existante incompatible reste conservée comme brouillon sans Apply. Refus3D canonique de Wait/Tone/SE prouvé avant écriture via set/upsert/graph.patch ; aucune suppression implicite d’arête.
+- Direct API, JSONL et MCP stdio réels : mutation, refus et réouverture froide. Les tests widgets ne sont pas une fenêtre GUI ni un parcours original Source.
+
+### Inventaire et zones exactes
+
+33 fichiers code/tests existants ; +1364/-43 selon le diff consolidé. Ce rapport existant est le34e chemin. Le manifest externe conserve tous les hunks complets, baselines, SHA et blobs. Les chemins ci-dessous et le diff Git sont les sources canoniques.
+
+| Chemin | Zones du diff | Ajout/retrait |
+|---|---|---|
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_action_form.dart` | @@ -40,6 +40,8 @@ ; @@ -61,6 +63,11 @@ ; @@ -160,6 +167,8 @@ ; @@ -199,7 +208,8 @@ ; @@ -423,6 +433,7 @@ | +12/-1 |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_actor_action_form.dart` | @@ -301,6 +301,7 @@ ; @@ -549,6 +550,14 @@ ; @@ -600,7 +609,7 @@ ; @@ -610,6 +619,7 @@ ; @@ -654,5 +664,6 @@ | +12/-1 |
+| `apps/avelune_studio/test/presentation/scene_actor_action_form_test.dart` | @@ -212,6 +212,29 @@ | +23/-0 |
+| `apps/avelune_studio/test/presentation/scene_world_presentation_form_test.dart` | @@ -129,6 +129,40 @@ ; @@ -465,7 +499,8 @@ | +36/-1 |
+| `packages/map_authoring/lib/src/domains/narrative/scene_actions.dart` | @@ -38,7 +38,19 @@ ; @@ -51,6 +63,7 @@ ; @@ -74,13 +87,14 @@ ; @@ -102,6 +116,8 @@ ; @@ -137,6 +153,9 @@ ; @@ -155,6 +174,7 @@ ; @@ -197,6 +217,7 @@ | +22/-1 |
+| `packages/map_authoring/test/domains/narrative/scene_actor_route_transport_test.dart` | @@ -62,7 +62,7 @@ ; @@ -110,6 +110,18 @@ | +13/-1 |
+| `packages/map_authoring/test/domains/narrative/scene_world_presentation_transport_test.dart` | @@ -28,7 +28,7 @@ ; @@ -38,6 +38,20 @@ ; @@ -50,6 +64,8 @@ ; @@ -94,6 +110,101 @@ ; @@ -275,11 +386,12 @@ ; @@ -293,12 +405,14 @@ | +119/-5 |
+| `packages/map_core/lib/src/authoring/scene_command_payload_builder.dart` | @@ -139,6 +139,7 @@ ; @@ -225,6 +226,13 @@ | +8/-0 |
+| `packages/map_core/lib/src/diagnostics/narrative_command_diagnostics.dart` | @@ -1,4 +1,5 @@ ; @@ -62,6 +63,17 @@ | +12/-0 |
+| `packages/map_core/lib/src/diagnostics/scene_diagnostics.dart` | @@ -58,6 +58,7 @@ ; @@ -1112,6 +1113,22 @@ | +17/-0 |
+| `packages/map_core/lib/src/models/scene_actor_route.dart` | @@ -61,6 +61,7 @@ ; @@ -83,13 +84,17 @@ ; @@ -134,10 +139,15 @@ ; @@ -145,14 +155,16 @@ | +18/-6 |
+| `packages/map_core/lib/src/models/scene_interactive_command.dart` | @@ -9,6 +9,7 @@ ; @@ -49,6 +50,9 @@ ; @@ -147,6 +151,8 @@ ; @@ -352,6 +358,41 @@ | +41/-0 |
+| `packages/map_core/lib/src/read_models/narrative_command_catalog.dart` | @@ -16,6 +16,7 @@ ; @@ -436,6 +437,24 @@ ; @@ -445,7 +464,7 @@ ; @@ -472,7 +491,7 @@ | +21/-2 |
+| `packages/map_core/test/narrative_command_catalog_closure_test.dart` | @@ -24,6 +24,7 @@ ; @@ -92,6 +93,7 @@ | +2/-0 |
+| `packages/map_core/test/narrative_command_contract_parity_test.dart` | @@ -231,6 +231,9 @@ ; @@ -238,6 +241,14 @@ | +11/-0 |
+| `packages/map_core/test/scene_actor_route_test.dart` | @@ -20,6 +20,36 @@ | +30/-0 |
+| `packages/map_core/test/scene_world_presentation_command_test.dart` | @@ -4,6 +4,89 @@ | +83/-0 |
+| `packages/map_editor/lib/src/application/services/narrative_template_catalog.dart` | @@ -413,6 +413,11 @@ ; @@ -579,7 +584,8 @@ | +7/-1 |
+| `packages/map_editor/lib/src/ui/canvas/scenes/scene_action_builder.dart` | @@ -106,6 +106,11 @@ ; @@ -114,7 +119,9 @@ ; @@ -133,6 +140,10 @@ ; @@ -151,14 +162,21 @@ ; @@ -358,7 +376,8 @@ ; @@ -386,6 +405,7 @@ ; @@ -417,6 +437,8 @@ ; @@ -471,6 +493,13 @@ | +33/-4 |
+| `packages/map_editor/lib/src/ui/canvas/scenes/scene_actor_action_builder.dart` | @@ -297,6 +297,7 @@ ; @@ -597,6 +598,14 @@ ; @@ -651,7 +660,7 @@ ; @@ -661,6 +670,7 @@ ; @@ -705,6 +715,7 @@ | +12/-1 |
+| `packages/map_editor/test/narrative_template_catalog_test.dart` | @@ -3,6 +3,36 @@ | +30/-0 |
+| `packages/map_editor/test/scene_action_builder_test.dart` | @@ -8,6 +8,55 @@ ; @@ -1213,6 +1262,8 @@ ; @@ -1228,6 +1279,8 @@ ; @@ -1258,7 +1311,8 @@ | +55/-1 |
+| `packages/map_editor/test/scene_actor_action_builder_test.dart` | @@ -213,6 +213,29 @@ | +23/-0 |
+| `packages/map_gameplay/lib/src/actor_route_executor.dart` | @@ -7,6 +7,7 @@ ; @@ -34,6 +35,12 @@ | +7/-0 |
+| `packages/map_gameplay/test/actor_route_executor_test.dart` | @@ -49,6 +49,9 @@ ; @@ -179,6 +182,92 @@ ; @@ -336,3 +425,11 @@ | +97/-0 |
+| `packages/map_runtime/lib/src/application/scene_runtime/scene_interactive_command_runtime_executor.dart` | @@ -26,6 +26,7 @@ ; @@ -43,6 +44,7 @@ ; @@ -95,6 +97,10 @@ | +6/-0 |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | @@ -707,6 +707,7 @@ ; @@ -874,6 +875,7 @@ ; @@ -918,6 +920,7 @@ ; @@ -2949,6 +2952,9 @@ ; @@ -4152,7 +4158,7 @@ ; @@ -5437,7 +5443,9 @@ ; @@ -10897,6 +10905,8 @@ ; @@ -11580,15 +11590,18 @@ ; @@ -11603,7 +11616,7 @@ ; @@ -11918,6 +11931,8 @@ ; @@ -11968,6 +11983,42 @@ | +56/-5 |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game_support.dart` | @@ -690,6 +690,7 @@ ; @@ -705,6 +706,7 @@ ; @@ -725,6 +727,8 @@ | +4/-0 |
+| `packages/map_runtime/test/narrative_command_runtime_parity_test.dart` | @@ -154,6 +154,7 @@ ; @@ -398,6 +399,7 @@ | +2/-0 |
+| `packages/map_runtime/test/playable_map_game_connection_arrival_collision_test.dart` | @@ -105,6 +105,353 @@ ; @@ -3023,6 +3370,7 @@ ; @@ -3040,6 +3388,7 @@ ; @@ -3080,6 +3429,7 @@ ; @@ -3179,7 +3529,7 @@ ; @@ -3193,6 +3543,7 @@ ; @@ -3263,7 +3614,8 @@ ; @@ -3318,6 +3670,31 @@ ; @@ -3945,7 +4322,8 @@ | +381/-3 |
+| `packages/map_runtime/test/scene_interactive_command_runtime_executor_test.dart` | @@ -1,3 +1,5 @@ ; @@ -14,6 +16,7 @@ ; @@ -33,6 +36,7 @@ ; @@ -82,6 +86,7 @@ ; @@ -89,6 +94,80 @@ ; @@ -231,13 +310,19 @@ ; @@ -255,9 +340,17 @@ | +95/-2 |
+| `tools/pokemap_mcp/test/scene_actor_route_stdio.test.ts` | @@ -45,7 +45,7 @@ ; @@ -143,6 +143,9 @@ ; @@ -216,6 +219,9 @@ | +7/-1 |
+| `tools/pokemap_mcp/test/scene_world_presentation_stdio.test.ts` | @@ -35,7 +35,7 @@ ; @@ -84,17 +84,27 @@ ; @@ -103,9 +113,10 @@ ; @@ -123,13 +134,64 @@ | +69/-7 |
+
+### Vérifications terminales
+
+R=/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej/repository ; Q=/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac13-source-door-timing-20261014-83ui2yih. Les19reçus retenus ont leurs logs rehashés et pins avant/après/courants exacts, aucun timeout ni survivant, PID protégés inchangés. Le build Studio de production utilise lib/main.dart. Le harness Marionette privé et le futur test du programme original sont exclus de ce commit. Les sources bootstrap/Source privées présentes dans R restent également hors scope et non revendiquées comme livrées.
+
+| Reçu ; cwd relatif à R | Commande exacte | Résultat |
+|---|---|---|
+| `native-timing-2d-presentation-core-green-02.json` ; `packages/map_core` | `dart test test/scene_world_presentation_command_test.dart test/scene_actor_route_test.dart test/narrative_command_catalog_closure_test.dart test/narrative_command_contract_parity_test.dart` | exit0, 1.646s ; 51PASS |
+| `native-timing-2d-presentation-core-analyze-01.json` ; `packages/map_core` | `dart analyze lib/src/models/scene_interactive_command.dart lib/src/models/scene_actor_route.dart lib/src/read_models/narrative_command_catalog.dart lib/src/authoring/scene_command_payload_builder.dart lib/src/diagnostics/scene_diagnostics.dart lib/src/diagnostics/narrative_command_diagnostics.dart test/scene_world_presentation_command_test.dart test/scene_actor_route_test.dart test/narrative_command_catalog_closure_test.dart test/narrative_command_contract_parity_test.dart` | exit0, 1.385s ; No issues found |
+| `native-timing-2d-presentation-api-green-01.json` ; `packages/map_authoring` | `dart test test/domains/narrative/scene_world_presentation_transport_test.dart test/domains/narrative/scene_actor_route_transport_test.dart` | exit0, 6.328s ; 42PASS |
+| `native-timing-2d-presentation-api-analyze-01.json` ; `packages/map_authoring` | `dart analyze lib/src/domains/narrative/scene_actions.dart test/domains/narrative/scene_world_presentation_transport_test.dart test/domains/narrative/scene_actor_route_transport_test.dart` | exit0, 1.693s ; No issues found |
+| `native-timing-2d-presentation-studio-green-01.json` ; `apps/avelune_studio` | `flutter test --no-pub test/presentation/scene_world_presentation_form_test.dart test/presentation/scene_actor_action_form_test.dart` | exit0, 13.911s ; 50PASS |
+| `native-timing-2d-presentation-studio-analyze-01.json` ; `apps/avelune_studio` | `flutter analyze --no-pub lib/presentation/features/scenes/scene_action_form.dart lib/presentation/features/scenes/scene_actor_action_form.dart test/presentation/scene_world_presentation_form_test.dart test/presentation/scene_actor_action_form_test.dart` | exit0, 4.864s ; No issues found |
+| `native-timing-2d-presentation-legacy-green-01.json` ; `packages/map_editor` | `flutter test --no-pub test/scene_action_builder_test.dart test/scene_actor_action_builder_test.dart test/narrative_template_catalog_test.dart` | exit0, 11.263s ; 111PASS |
+| `native-timing-2d-presentation-legacy-analyze-01.json` ; `packages/map_editor` | `flutter analyze --no-pub lib/src/ui/canvas/scenes/scene_action_builder.dart lib/src/ui/canvas/scenes/scene_actor_action_builder.dart lib/src/application/services/narrative_template_catalog.dart test/scene_action_builder_test.dart test/scene_actor_action_builder_test.dart test/narrative_template_catalog_test.dart` | exit0, 4.845s ; No issues found |
+| `native-timing-2d-presentation-mcp-check-01.json` ; `tools/pokemap_mcp` | `npm run check` | exit0, 1.462s |
+| `native-timing-2d-presentation-mcp-build-01.json` ; `tools/pokemap_mcp` | `npm run build` | exit0, 1.438s |
+| `native-timing-2d-presentation-mcp-stdio-green-01.json` ; `tools/pokemap_mcp` | `node --import tsx --test --test-concurrency=1 test/scene_world_presentation_stdio.test.ts test/scene_actor_route_stdio.test.ts` | exit0, 20.299s |
+| `root-runtime-union-final-04.json` ; `packages/map_runtime` | `flutter test --no-pub --concurrency=1 test/scene_map_instance_consequence_writer_test.dart test/playable_map_game_connection_arrival_collision_test.dart test/scene_interactive_command_runtime_executor_test.dart test/scene_actor_visibility_render_test.dart test/narrative_command_runtime_parity_test.dart test/phase_a_golden_battle_slice_smoke_test.dart test/narrative_spatial_production_dispatch_bridge_test.dart test/narrative_map_enter_production_dispatch_bridge_test.dart test/playable_map_game_qualified_outcome_v2_integration_test.dart test/narrative_scene_runtime_execution_test.dart test/player_component_test.dart --reporter expanded` | exit0, 22.772s ; 280PASS |
+| `root-analyze-final-03.json` ; `packages/map_runtime` | `dart analyze lib/src/presentation/flame/playable_map_game.dart lib/src/presentation/flame/playable_map_game_support.dart lib/src/application/scene_runtime/scene_interactive_command_runtime_executor.dart test/playable_map_game_connection_arrival_collision_test.dart test/narrative_command_runtime_parity_test.dart test/scene_interactive_command_runtime_executor_test.dart` | exit0, 6.425s ; 6INFO sur lignes baseline,0error/warning |
+| `root-host-timing-final-01.json` ; `examples/playable_runtime_host` | `flutter test --no-pub --concurrency=1 test/phase_a_golden_slice_launch_test.dart test/p3_narrative_smoke_slice_test.dart --reporter expanded` | exit0, 9.728s ; 15PASS |
+| `root-pure-timing-final-01.json` ; `packages/map_gameplay` | `dart test test/actor_route_executor_test.dart --reporter expanded` | exit0, 2.049s ; 24PASS |
+| `root-pure-timing-analyze-final-01.json` ; `packages/map_gameplay` | `dart analyze lib/src/actor_route_executor.dart test/actor_route_executor_test.dart` | exit0, 1.209s ; No issues found |
+| `root-full-authoring-parity-final-01.json` ; `packages/map_authoring` | `dart test test/parity/full_authoring_parity_test.dart --reporter expanded` | exit0, 18.54s ; 20PASS |
+| `root-pmcp085-final-01.json` ; `packages/map_authoring` | `dart run tool/pmcp085_conformance.dart` | exit1, 8.29s ; catalogue88/410/0manquant, transports138/104, certificationfalse |
+| `root-studio-production-build-final-01.json` ; `apps/avelune_studio` | `flutter build macos --debug --no-pub --target lib/main.dart` | exit0, 29.702s ; build Studio macOS debug PASS |
+
+### Contrepreuves, revues et limites
+
+RED fonctionnels : Warp triggerEnter avant fin du pas ; Wait sans consommateur ; face sans yield ; durée de maintien démarrant trop tôt. P2 trouvé par revue indépendante : Wait proposé en3D sans handler spatial ; la même cause existait pour Tone/SE introduits auparavant. RED Core/API/Studio/legacy/MCP puis gardes2D et brouillons conservés. Les compilations de fixture incorrecte, finder --plain-name avec pipe littéral, atlas32px ne permettant pas la vraie course, camera3D manquante et fenêtre de compilation du bootstrap privé restent des incidents distincts, pas des RED fonctionnels.
+
+Une régression de timing de test a été observée sans changement de code : union03=279PASS/1timeout dans qualified outcome (activation encore en vol, helper360tours Duration.zero). Isolé=1PASS6.351s puis union04complet=280PASS22.772s sur les mêmes blobs. La cause de ce timeout intermittent n’est pas établie ; aucun ajustement du produit ou du délai de test n’a été ajouté pour le masquer. Les reruns ne sont pas additionnés.
+
+Audit/Architecture : Root et peer distinguent attente monde, route acteur et fin de déplacement. Implémentation : Core/Authoring/UI/MCP25 par ac15_connection_review_fresh, Pure2+RuntimeTest1 par ac13_warp_runtime_tests, Runtime5 par Root. Tests : RED/GREEN owners puis requalification Root280/Pure24/Host15/parité20. Build/Validation : production Studio debug29.702s ; harness privé debug40.047s hors livrable, deux ibtoold descendants possédés terminés proprement, zéro survivant. Critique : Root5 et Pure3 relus indépendamment favorablement ; Core25 final02 relu indépendamment par ac13_warp_runtime_tests : favorable borné, aucun P1/P2 restant ; P2 Wait/Tone/SE3D fermé. Reçu independent-review-final-01.json SHA21c82b93d5a6c4316e8c3ce5b6faed8500c78cf766148c4205cf4fe9beec3713.
+
+PMCPglobal reste NONPASS pour certification transports incomplète, malgré catalogue complet. La dernière conformance globale MCP documentée reste5PASS/1FAIL sur12outils attendus contre14réels ; elle n’est pas relancée dans cette tranche et n’est pas annoncée verte. Legacy ciblé111PASS et analyse6 fichiers sans issue ne certifient pas les anciens monolithes legacy globalement rouges. Le serveur Flame docs ne renvoie aucun résultat pour la recherche de cycle de vie ; version installée2.0.0-dev.1 et usages existants consultés. Aucune suite complète monorepo ni nouvelle CI coûteuse revendiquée.
+
+### Publication et auto-critique
+
+Publication directe sur main explicitement autorisée : seuls les33blobs qualifiés et ce rapport doivent être copiés/stagés puis committés et poussés normalement. native-timing-publication-01 conserve l’inventaire exact, les SHA étrangers juste avant/après, l’index et les contrôles précommit/commit/push ; aucun force, rebase, amend, stash, branche ou nettoyage étranger. La racine de travail reste sale pour les travaux d’autres sessions. Les reçus de publication contiennent le SHA réellement créé, sans hash autoréférentiel dans ce document.
+
+Auto-critique : ce sont des prérequis natifs utiles, pas encore le résultat final du convertisseur. Le nouveau writer/profil Source v5 et le raccord typé de rétention sont encore privés. La matérialisation contrôlée Literal→Semantic→Events→NativeWriter des trois cartes originales vient de passer en674.139s, verified=true/sourceAdmission=false ; elle est privée et exclue de ce commit. Le workflow complet reste séparément bloqué par json.textQuota dans la tranche Catalogue/agrégation. Il reste à vérifier le programme original entrée→sortie→réentrée, sauver sur disque, reprendre dans un nouveau processus et ouvrir/modifier/sauver/rouvrir dans Studio. L’admission générale d’une barrière210 ou d’un déplacement skippable bloqué n’est pas prouvée par les tests natifs. AC-13 DOING/PARTIAL, ticket existant3f7197a7-bfa5-81da-b5b9-c551c806e2ce dans Post Bêta Monde & narration, Gate bêtafalse. FG082/090/093 PARTIAL, FG092 TODO dans la roadmap inchangée ; le goal AC00–16 reste actif.

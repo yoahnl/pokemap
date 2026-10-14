@@ -51,6 +51,9 @@ final class _Port implements ActorRouteExecutionPort {
   }
 
   @override
+  Future<void> nextUpdate() => _call('nextUpdate', 'nextUpdate');
+
+  @override
   Future<void> wait(int durationMs) => _call('wait', 'wait:$durationMs');
 
   @override
@@ -177,6 +180,92 @@ void main() {
             port: port),
         ActorRouteExecutionOutcome.completed);
     expect(port.calls, ['face:east']);
+  });
+
+  test('actor route explicit yield runs before face hold and next step',
+      () async {
+    final port = _Port();
+    final result = await executor.execute(
+        _route([
+          _yieldingFace(durationMs: 25),
+          SceneActorSoundStep(mediaAssetId: 'after-yield', gain: .8),
+        ]),
+        port: port);
+    expect(result, ActorRouteExecutionOutcome.completed);
+    expect(port.calls,
+        ['face:north', 'nextUpdate', 'wait:25', 'sound:after-yield:0.8']);
+  });
+
+  test('actor route explicit zero-duration yield adds no invented hold',
+      () async {
+    final port = _Port();
+    expect(
+        await executor.execute(
+            _route([
+              _yieldingFace(),
+              SceneActorSoundStep(mediaAssetId: 'after-yield', gain: .8),
+            ]),
+            port: port),
+        ActorRouteExecutionOutcome.completed);
+    expect(port.calls, ['face:north', 'nextUpdate', 'sound:after-yield:0.8']);
+  });
+
+  test('actor route starts face duration only after its explicit yield',
+      () async {
+    final port = _Port()
+      ..gates['nextUpdate'] = Completer<void>()
+      ..gates['wait'] = Completer<void>();
+    var completed = false;
+    final running = executor.execute(
+        _route([
+          _yieldingFace(durationMs: 25),
+          SceneActorSoundStep(mediaAssetId: 'after-yield', gain: .8),
+        ]),
+        port: port).then((result) {
+      completed = true;
+      return result;
+    });
+    await port.waitUntilEntered('nextUpdate')
+        .timeout(const Duration(seconds: 1));
+    expect(port.calls, ['face:north', 'nextUpdate']);
+    expect(completed, isFalse);
+    port.gates['nextUpdate']!.complete();
+    await port.waitUntilEntered('wait').timeout(const Duration(seconds: 1));
+    expect(port.calls, ['face:north', 'nextUpdate', 'wait:25']);
+    expect(completed, isFalse);
+    port.gates['wait']!.complete();
+    expect(await running, ActorRouteExecutionOutcome.completed);
+    expect(port.calls.last, 'sound:after-yield:0.8');
+  });
+
+  test('actor route closure during explicit yield prevents duration and sound',
+      () async {
+    final port = _Port()..gates['nextUpdate'] = Completer<void>();
+    final running = executor.execute(
+        _route([
+          _yieldingFace(durationMs: 25),
+          SceneActorSoundStep(mediaAssetId: 'must-not-start', gain: .8),
+        ], skippable: true),
+        port: port);
+    await port.waitUntilEntered('nextUpdate')
+        .timeout(const Duration(seconds: 1));
+    port.current = false;
+    port.gates['nextUpdate']!.complete();
+    expect(await running, ActorRouteExecutionOutcome.interrupted);
+    expect(port.calls, ['face:north', 'nextUpdate']);
+  });
+
+  test('actor route explicit yield failure is not skipped', () async {
+    final port = _Port()..failingOperation = 'nextUpdate';
+    await expectLater(
+        executor.execute(
+            _route([
+              _yieldingFace(),
+              SceneActorSoundStep(mediaAssetId: 'must-not-start', gain: .8),
+            ], skippable: true),
+            port: port),
+        throwsStateError);
+    expect(port.calls, ['face:north', 'nextUpdate']);
   });
 
   for (final skippable in [false, true]) {
@@ -336,3 +425,11 @@ void main() {
         throwsStateError);
   });
 }
+
+SceneActorFaceStep _yieldingFace({int durationMs = 0}) =>
+    SceneActorRouteStep.fromJson({
+      'kind': 'face',
+      'direction': 'north',
+      'durationMs': durationMs,
+      'yieldAfter': true,
+    }) as SceneActorFaceStep;

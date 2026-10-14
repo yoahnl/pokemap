@@ -35,7 +35,7 @@ function scene(id: string, command: JsonRecord): JsonRecord {
       { id: "end", kind: "end" },
     ], edges: [
       { id: "start", fromNodeId: "start", fromPortId: "completed", toNodeId: "action", kind: "default" },
-      ...["completed", "blocked"].map((port) => ({ id: port, fromNodeId: "action", fromPortId: port, toNodeId: "end", kind: "actionCompleted" })),
+      ...(command.kind === "wait" ? ["completed"] : ["completed", "blocked"]).map((port) => ({ id: port, fromNodeId: "action", fromPortId: port, toNodeId: "end", kind: "actionCompleted" })),
     ],
   } };
 }
@@ -84,17 +84,27 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     assert.deepEqual(record(extension.playSoundEffect).volumeRange, [0, 1]);
     assert.deepEqual(record(extension.playSoundEffect).unsupportedParameters, ["pitch"]);
     assert.deepEqual(record(extension.worldTone).durationMsRange, [0, 2147483647]);
+    assert.deepEqual(record(extension.wait).parameters, ["durationMs"]);
+    assert.deepEqual(record(extension.wait).durationMsRange, [0, 2147483647]);
+    assert.deepEqual(record(extension.wait).outputPorts, ["completed"]);
+    assert.equal(record(extension.wait).completion, "elapsed");
+    for (const id of ["wait", "worldTone", "playSoundEffect"]) {
+      assert.equal(record(extension[id]).projectDimension, "twoD");
+    }
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
-    async function plan(command: JsonRecord, failure = false): Promise<JsonRecord> {
+    async function plan(command: JsonRecord, failure = false, replacePorts = false): Promise<JsonRecord> {
       assert.ok(workspace);
       const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
       const before = await readFile(file);
       const id = `presentation-${++sequence}`;
       const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
-        requestId: id, actionId: "scene.interactive_command.set", actionVersion: 1,
+        requestId: id, actionId: replacePorts ? "scene.graph.patch" : "scene.interactive_command.set", actionVersion: 1,
         workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
-        idempotencyKey: id, parameters: { sceneId: "edit", nodeId: "action", command },
+        idempotencyKey: id, parameters: replacePorts ? { sceneId: "edit", removeEdgeIds: ["blocked"],
+          upsertNodes: [{ id: "action", kind: "action", title: "Keep title", payload: {
+            actionKind: "keep-action", parameters: { keep: "parameter" }, interactiveCommand: command } }] }
+          : { sceneId: "edit", nodeId: "action", command },
       } }, failure);
       assert.deepEqual(await readFile(file), before);
       assert.deepEqual(await readFile(mapFile), mapBefore);
@@ -103,9 +113,10 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     const commands = [
       { kind: "worldTone", red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300 },
       { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8 },
+      { kind: "wait", durationMs: 400 },
     ];
     for (const command of commands) {
-      const planned = await plan(command);
+      const planned = await plan(command, false, command.kind === "wait");
       await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: planned.planId, operationId: `apply-${sequence}` });
       const saved = record(JSON.parse((await readFile(file)).toString("utf8")));
       const scenes = saved.scenes as JsonRecord[];
@@ -123,13 +134,64 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     await plan({ kind: "playSoundEffect", mediaAssetId: "door", volume: 1.01 }, true);
     await plan({ kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8, pitch: 100 }, true);
     await plan({ kind: "worldTone", red: "NaN", green: 0, blue: 0, gray: 0, durationMs: 300 }, true);
+    for (const durationMs of [null, -1, 0.5, 2147483648, "400"]) {
+      await plan({ kind: "wait", durationMs }, true);
+    }
+    await plan({ kind: "wait", durationMs: 400, target: "player" }, true);
     const stable = await readFile(file);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const result = await call("pokemap_query", { projectHandle: workspace.projectHandle, resourceKind: "scene", operation: "get", ids: ["edit"], view: "detail" });
-    assert.ok(JSON.stringify(result).includes('"playSoundEffect"'));
-    assert.ok(JSON.stringify(result).includes('"door"'));
+    assert.ok(JSON.stringify(result).includes('"wait"'));
+    assert.ok(JSON.stringify(result).includes('"durationMs":400'));
     assert.deepEqual(await readFile(file), stable);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+    workspace = undefined;
+    const spatialRoot = join(root, "spatial");
+    await mkdir(join(spatialRoot, "maps"), { recursive: true });
+    const spatialFile = join(spatialRoot, "project.json");
+    const spatialMapFile = join(spatialRoot, "maps/map.json");
+    const presentationCommands = [
+      { kind: "wait", durationMs: 400 },
+      { kind: "worldTone", red: -255, green: 0, blue: 0, gray: 0, durationMs: 300 },
+      { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8 },
+    ];
+    const initialCommands = [
+      { kind: "wait", durationMs: 1 },
+      { kind: "worldTone", red: 0, green: 0, blue: 0, gray: 0, durationMs: 1 },
+      { kind: "playSoundEffect", mediaAssetId: "door", volume: 1 },
+    ];
+    await mkdir(join(spatialRoot, "audio"));
+    await writeFile(join(spatialRoot, "audio/door.wav"), wav);
+    await writeFile(spatialFile, JSON.stringify({ name: "3D presentation refusal", version: "v9",
+      pokemon: canonicalPokemonConfig(), settings: { dimension: "threeD" },
+      maps: [{ id: "map", name: "Map", relativePath: "maps/map.json" }], tilesets: [],
+      cinematicMediaAssets: [{ id: "door", label: "Door", kind: "sound", relativePath: "audio/door.wav" }],
+      scenes: initialCommands.map((command) => scene(`edit-${command.kind}`, command)) }));
+    await writeFile(spatialMapFile, JSON.stringify({ version: "v9", id: "map", name: "Map",
+      size: { width: 4, height: 4 }, layers: [], spatialScene: { schemaVersion: 1, width: 4, depth: 4, heightLevels: Array(16).fill(0), levelHeight: 1, instances: [],
+        camera: { mode: "fixed", pitchDegrees: 48.7, yawDegrees: 0, fieldOfViewDegrees: 16.2, distance: 42 } } }));
+    workspace = await call("pokemap_workspace", { operation: "open", projectRoot: spatialRoot });
+    const spatialBefore = await readFile(spatialFile);
+    const spatialMapBefore = await readFile(spatialMapFile);
+    for (const command of presentationCommands) {
+      const sceneId = `edit-${command.kind}`;
+      const invalidScene = scene(sceneId, command);
+      for (const actionId of ["scene.interactive_command.set", "scene.upsert", "scene.graph.patch"]) {
+        const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+        const parameters = actionId === "scene.upsert" ? { scene: invalidScene }
+          : actionId === "scene.graph.patch" ? { sceneId, upsertNodes: [
+            (record(invalidScene.graph).nodes as JsonRecord[])[1]] }
+            : { sceneId, nodeId: "action", command };
+        const id = `spatial-${++sequence}`;
+        const error = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+          requestId: id, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle,
+          expectedRevision: validation.snapshotRevision, idempotencyKey: id, parameters } }, true);
+        assert.ok(JSON.stringify(error).includes("commandUnsupportedDimension"));
+        assert.deepEqual(await readFile(spatialFile), spatialBefore);
+        assert.deepEqual(await readFile(spatialMapFile), spatialMapBefore);
+      }
+    }
   } finally {
     if (workspace) await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     await client.close();

@@ -24,6 +24,7 @@ void main() {
       NarrativeCommandIds.givePokemon,
       NarrativeCommandIds.giveConfiguredStarter,
       NarrativeCommandIds.warp,
+      NarrativeCommandIds.wait,
       NarrativeCommandIds.worldTone,
       NarrativeCommandIds.playSoundEffect,
       NarrativeCommandIds.actorRoute,
@@ -92,6 +93,7 @@ void main() {
     expect(published, {
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
       NarrativeCommandIds.warp: 'SceneInteractiveCommand.warp',
+      NarrativeCommandIds.wait: 'SceneInteractiveCommand.wait',
       NarrativeCommandIds.worldTone: 'SceneInteractiveCommand.worldTone',
       NarrativeCommandIds.playSoundEffect:
           'SceneInteractiveCommand.playSoundEffect',

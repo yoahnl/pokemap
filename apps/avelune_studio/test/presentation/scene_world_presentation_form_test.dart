@@ -129,6 +129,40 @@ void main() {
     }
   });
 
+  testWidgets('3D projects cannot choose or apply 2D presentation drafts', (tester) async {
+    final project = _project().copyWith(settings: const ProjectSettings(dimension: ProjectDimension.threeD));
+    for (final command in [
+      SceneInteractiveCommand.wait(durationMs: 400),
+      SceneInteractiveCommand.worldTone(red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
+      SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+    ]) {
+      await pump(tester, project: project, useTestCatalog: false,
+        current: SceneActionPayload.interactive(command),
+        onApply: (_) => fail('3D presentation command must not apply'));
+      final options = tester.widget<StudioSelect>(select('Commande')).options;
+      for (final id in ['wait', 'worldTone', 'playSoundEffect']) {
+        expect(options.containsKey(id), isFalse, reason: id);
+      }
+      expect(apply(tester).onPressed, isNull);
+    }
+  });
+
+  testWidgets('world wait uses zero defaults and rejects invalid durations', (tester) async {
+    final applied = <SceneNodePayload>[];
+    await pump(tester, useTestCatalog: false, onApply: applied.add);
+    await pick(tester, 'Commande', 'Attendre');
+    expect(tester.widget<TextField>(field('wait', 'durationMs')).controller!.text, '0');
+    expect(apply(tester).onPressed, isNotNull);
+    for (final invalid in ['', '-1', '0.5', '2147483648', 'NaN']) {
+      await enter(tester, 'wait', 'durationMs', invalid);
+      expect(apply(tester).onPressed, isNull, reason: invalid);
+    }
+    await enter(tester, 'wait', 'durationMs', '0');
+    await tester.tap(find.text('Ajouter l’action'));
+    expect((applied.single as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.wait(durationMs: 0));
+  });
+
   testWidgets('tone has guided numeric fields and valid neutral defaults', (
     tester,
   ) async {
@@ -465,7 +499,8 @@ void main() {
 List<NarrativeCommandDescriptor> _supportedCommands() => [
   for (final command in NarrativeCommandCatalog.canonical().commands)
     if (command.id == NarrativeCommandIds.worldTone ||
-        command.id == NarrativeCommandIds.playSoundEffect)
+        command.id == NarrativeCommandIds.playSoundEffect ||
+        command.id == NarrativeCommandIds.wait)
       NarrativeCommandDescriptor(
         id: command.id,
         label: command.label,

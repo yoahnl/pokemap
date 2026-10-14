@@ -7,6 +7,7 @@ enum ActorRouteExecutionOutcome { completed, blocked, interrupted }
 abstract interface class ActorRouteExecutionPort {
   bool get isCurrent;
   Future<void> face(SceneActorTarget target, EntityFacing direction);
+  Future<void> nextUpdate();
   Future<ActorRouteMoveOutcome> move(
       SceneActorTarget target, EntityFacing direction,
       {required int durationMs,
@@ -34,6 +35,12 @@ final class ActorRouteExecutor {
           await port.face(command.target, step.direction);
           if (!port.isCurrent) {
             return ActorRouteExecutionOutcome.interrupted;
+          }
+          if (step.yieldAfter) {
+            await port.nextUpdate();
+            if (!port.isCurrent) {
+              return ActorRouteExecutionOutcome.interrupted;
+            }
           }
           if (step.durationMs > 0) {
             await port.wait(step.durationMs);

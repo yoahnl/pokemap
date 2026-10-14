@@ -61,6 +61,7 @@ sealed class SceneActorRouteStep {
   factory SceneActorRouteStep.face({
     required EntityFacing direction,
     int durationMs,
+    bool yieldAfter,
   }) = SceneActorFaceStep;
   factory SceneActorRouteStep.move({
     required EntityFacing direction,
@@ -83,13 +84,17 @@ sealed class SceneActorRouteStep {
         _actorFields(
           json,
           const {'kind', 'direction'},
-          optional: const {'durationMs'},
+          optional: const {'durationMs', 'yieldAfter'},
         );
+        if (json.containsKey('yieldAfter') && json['yieldAfter'] is! bool) {
+          throw const FormatException('yieldAfter must be a boolean.');
+        }
         return SceneActorFaceStep(
           direction: _actorEnum(json, 'direction', EntityFacing.values),
           durationMs: json.containsKey('durationMs')
               ? _actorJsonDuration(json, minimum: 0)
               : 0,
+          yieldAfter: json['yieldAfter'] as bool? ?? false,
         );
       case SceneActorRouteStepKind.move:
         _actorFields(
@@ -134,10 +139,15 @@ sealed class SceneActorRouteStep {
 }
 
 final class SceneActorFaceStep extends SceneActorRouteStep {
-  SceneActorFaceStep({required this.direction, int durationMs = 0})
+  SceneActorFaceStep({
+    required this.direction,
+    int durationMs = 0,
+    this.yieldAfter = false,
+  })
     : durationMs = _actorDuration(durationMs, minimum: 0);
   final EntityFacing direction;
   final int durationMs;
+  final bool yieldAfter;
   @override
   SceneActorRouteStepKind get kind => SceneActorRouteStepKind.face;
   @override
@@ -145,14 +155,16 @@ final class SceneActorFaceStep extends SceneActorRouteStep {
     'kind': kind.name,
     'direction': direction.name,
     'durationMs': durationMs,
+    if (yieldAfter) 'yieldAfter': true,
   };
   @override
   bool operator ==(Object other) =>
       other is SceneActorFaceStep &&
       direction == other.direction &&
-      durationMs == other.durationMs;
+      durationMs == other.durationMs &&
+      yieldAfter == other.yieldAfter;
   @override
-  int get hashCode => Object.hash(kind, direction, durationMs);
+  int get hashCode => Object.hash(kind, direction, durationMs, yieldAfter);
 }
 
 final class SceneActorMoveStep extends SceneActorRouteStep {

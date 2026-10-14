@@ -28,7 +28,7 @@ SceneAsset _scene(String id, SceneInteractiveCommand command) => SceneAsset(
           fromPortId: 'completed',
           toNodeId: 'action',
           kind: SceneEdgeKind.defaultFlow),
-      for (final port in ['completed', 'blocked'])
+      for (final port in command.outputPortIds)
         SceneEdge(
             id: port,
             fromNodeId: 'action',
@@ -38,6 +38,20 @@ SceneAsset _scene(String id, SceneInteractiveCommand command) => SceneAsset(
     ]));
 
 void main() {
+  test('canonical actions describe independent bounded world waits', () {
+    for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      final descriptor = SceneActions.descriptors.singleWhere((d) => d.id == id);
+      final wait = descriptor.extensions['wait'] as Map;
+      expect(wait['parameters'], ['durationMs']);
+      expect(wait['durationMsRange'], [0, 2147483647]);
+      expect(wait['durationUnit'], 'milliseconds');
+      expect(wait['completion'], 'elapsed');
+      expect(wait['outputPorts'], ['completed']);
+      expect(wait['actorReference'], 'none');
+      expect(wait['projectDimension'], 'twoD');
+    }
+  });
+
   test('canonical action describes bounded presentation data', () {
     for (final id in ['scene.interactive_command.set', 'scene.upsert']) {
       final descriptor =
@@ -50,6 +64,8 @@ void main() {
           tone['parameters'], ['red', 'green', 'blue', 'gray', 'durationMs']);
       expect(tone['rgbRange'], [-255, 255]);
       expect(tone['grayRange'], [0, 255]);
+      expect(tone['projectDimension'], 'twoD');
+      expect(sound['projectDimension'], 'twoD');
       expect(tone['durationMsRange'], [0, 2147483647]);
       expect(tone['completion'], 'scheduled');
       expect(sound['mediaReference'], 'knownNonLoopingSound');
@@ -94,6 +110,101 @@ void main() {
   });
 
   for (final jsonl in [false, true]) {
+    test('${jsonl ? 'JSONL' : 'direct API'} rejects 3D presentation on every semantic entrypoint before writes', () async {
+      for (final command in [
+        SceneInteractiveCommand.wait(durationMs: 400),
+        SceneInteractiveCommand.worldTone(red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
+        SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+      ]) {
+      final initial = switch (command) {
+        SceneWaitInteractiveCommand() => SceneInteractiveCommand.wait(durationMs: 1),
+        SceneWorldToneInteractiveCommand() => SceneInteractiveCommand.worldTone(
+          red: 0, green: 0, blue: 0, gray: 0, durationMs: 1),
+        _ => SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: 1),
+      };
+      final f = await _Fixture.create(spatial: true, initialCommand: initial);
+      addTearDown(f.dispose);
+      final before = await f.projectFile.readAsBytes();
+      final mapBefore = await f.mapFile.readAsBytes();
+      final scene = _scene('edit', command);
+      for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+        final id = '3d-${++f.sequence}';
+        final request = AuthoringRequest(requestId: id, actionId: action, actionVersion: 1,
+          workspaceHandle: f.workspace.value, expectedRevision: (await f.snapshot()).revision,
+          idempotencyKey: id, parameters: switch (action) {
+            'scene.upsert' => {'scene': scene.toJson()},
+            'scene.graph.patch' => {'sceneId': 'edit', 'upsertNodes': [scene.graph.nodes[1].toJson()]},
+            _ => {'sceneId': 'edit', 'nodeId': 'action', 'command': command.toJson()},
+          });
+        if (jsonl) {
+          final result = await f.command('plan', {'projectHandle': f.project.value,
+            'request': request.toJson()});
+          expect(result.status, AuthoringResultStatus.failure, reason: action);
+          expect(jsonEncode(result.error!.details), contains('commandUnsupportedDimension'));
+        } else {
+          await expectLater(f.mutations.plan(f.project, request),
+            throwsA(isA<NarrativeAuthoringException>().having((e) => e.code,
+              'code', 'scene.publication_blocked')), reason: action);
+        }
+        expect(await f.projectFile.readAsBytes(), before);
+        expect(await f.mapFile.readAsBytes(), mapBefore);
+      }
+      }
+    });
+
+    test('${jsonl ? 'JSONL' : 'direct API'} world wait persists without an actor and reopens', () async {
+      final fixture = await _Fixture.create(initialCommand: SceneInteractiveCommand.wait(durationMs: 1));
+      addTearDown(fixture.dispose);
+      final mapBefore = await fixture.mapFile.readAsBytes();
+      final draft = (await fixture.snapshot()).manifest.scenes
+          .singleWhere((s) => s.id == 'unrelated-draft');
+      for (final duration in [0, 400, 2147483647]) {
+        final command = SceneInteractiveCommand.wait(durationMs: duration);
+        final request = await fixture.request(command.toJson());
+        final before = await fixture.projectFile.readAsBytes();
+        final planned = jsonl
+            ? await fixture.success('plan', {'projectHandle': fixture.project.value,
+                'request': request.toJson()})
+            : await fixture.mutations.plan(fixture.project, request);
+        expect(await fixture.projectFile.readAsBytes(), before);
+        if (jsonl) {
+          await fixture.success('apply', {'projectHandle': fixture.project.value,
+              'planId': planned['planId'], 'operationId': '${request.requestId}-apply'});
+        } else {
+          await fixture.mutations.apply(fixture.project, planId: planned['planId']! as String,
+              operationId: '${request.requestId}-apply');
+        }
+        final scene = (await fixture.snapshot()).manifest.scenes.singleWhere((s) => s.id == 'edit');
+        final node = scene.graph.nodes.singleWhere((n) => n.id == 'action');
+        final payload = node.payload as SceneActionPayload;
+        expect(payload.interactiveCommand, command);
+        expect(payload.parameters, {'keep': 'parameter'});
+        expect(payload.actionKind, 'keep-action');
+        expect(node.title, 'Keep title');
+        expect(scene.graph.edges.where((e) => e.fromNodeId == 'action')
+            .map((e) => e.fromPortId), ['completed']);
+        expect(await fixture.mapFile.readAsBytes(), mapBefore);
+      }
+      for (final duration in <Object?>[null, -1, 0.5, 2147483648, '400']) {
+        final before = await fixture.projectFile.readAsBytes();
+        final request = await fixture.request({'kind': 'wait', 'durationMs': duration});
+        final result = await fixture.command('plan', {'projectHandle': fixture.project.value,
+            'request': request.toJson()});
+        expect(result.status, AuthoringResultStatus.failure);
+        expect(await fixture.projectFile.readAsBytes(), before);
+      }
+      final stable = await fixture.projectFile.readAsBytes();
+      await fixture.success('close', {'workspaceHandle': fixture.workspace.value});
+      await fixture.open();
+      expect(await fixture.projectFile.readAsBytes(), stable);
+      final snapshot = await fixture.snapshot();
+      expect(snapshot.manifest.scenes.singleWhere((s) => s.id == 'unrelated-draft'), draft);
+      final command = (snapshot.manifest.scenes.singleWhere((s) => s.id == 'edit')
+          .graph.nodes.singleWhere((n) => n.id == 'action').payload as SceneActionPayload)
+          .interactiveCommand;
+      expect(command, SceneInteractiveCommand.wait(durationMs: 2147483647));
+    });
+
     final transport = jsonl ? 'JSONL' : 'direct API';
     test('$transport retains world tone and sound, scope, refs and cold reopen',
         () async {
@@ -275,11 +386,12 @@ final class _Fixture {
   File get projectFile => File('${directory.path}/project.json');
   File get mapFile => File('${directory.path}/maps/map.json');
 
-  static Future<_Fixture> create() async {
+  static Future<_Fixture> create({SceneInteractiveCommand? initialCommand, bool spatial = false}) async {
     final directory =
         await Directory.systemTemp.createTemp('world-presentation-transport-');
     final map = MapData(
-        version: ProjectVersion.v8,
+        version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+        spatialScene: spatial ? MapSpatialScene(width: 4, depth: 4) : null,
         id: 'map',
         name: 'Map',
         size: const GridSize(width: 4, height: 4),
@@ -293,12 +405,14 @@ final class _Fixture {
               triggerMode: MapWarpTriggerMode.onBump)
         ]);
     final manifest =
-        ProjectManifest(version: ProjectVersion.v8, name: 'QA', maps: const [
+        ProjectManifest(version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+        settings: ProjectSettings(dimension: spatial ? ProjectDimension.threeD : ProjectDimension.twoD),
+        name: 'QA', maps: const [
       ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json')
     ], tilesets: const [], scenes: [
       _scene(
           'edit',
-          SceneInteractiveCommand.warp(
+          initialCommand ?? SceneInteractiveCommand.warp(
               destinationMapId: 'map', warpId: 'arrival')),
       _scene(
           'unrelated-draft',

@@ -413,6 +413,11 @@ NarrativeTemplatePreview previewNarrativeTemplate({
     diagnostics.add('Un Event utilise déjà l’ID ${request.eventId}.');
   }
 
+  if (const {NarrativeCommandIds.wait, NarrativeCommandIds.worldTone,
+        NarrativeCommandIds.playSoundEffect}.contains(template.command.id) &&
+      project.settings.dimension != ProjectDimension.twoD) {
+    diagnostics.add('Les commandes de présentation du monde sont disponibles uniquement dans un projet 2D.');
+  }
   final physicalDiagnostic = _diagnosePhysicalSource(template, request);
   if (physicalDiagnostic != null) {
     diagnostics.add(physicalDiagnostic);
@@ -579,7 +584,8 @@ List<String> _diagnoseParameterValues(
     switch (parameter.kind) {
       case NarrativeCommandParameterKind.integer:
         final parsed = int.tryParse(value);
-        if (command.id == NarrativeCommandIds.worldTone &&
+        if ((command.id == NarrativeCommandIds.worldTone ||
+             command.id == NarrativeCommandIds.wait) &&
             parameter.id == 'durationMs') {
           if (parsed == null || parsed < 0) {
             diagnostics.add(

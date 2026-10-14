@@ -690,6 +690,7 @@ final class _FlameSceneActorRouteExecutionPort
     required this.faceAction,
     required this.moveAction,
     required this.waitAction,
+    required this.nextUpdateAction,
     required this.soundAction,
     required this.visibilityAction,
   });
@@ -705,6 +706,7 @@ final class _FlameSceneActorRouteExecutionPort
   })
   moveAction;
   final Future<void> Function(int) waitAction;
+  final Future<void> Function() nextUpdateAction;
   final Future<void> Function(String, {required double gain}) soundAction;
   final Future<void> Function(SceneActorTarget, {required bool visible})
   visibilityAction;
@@ -725,6 +727,8 @@ final class _FlameSceneActorRouteExecutionPort
       initialCollisionOwnerEntityId: initialCollisionOwnerEntityId);
   @override
   Future<void> wait(int durationMs) => waitAction(durationMs);
+  @override
+  Future<void> nextUpdate() => nextUpdateAction();
   @override
   Future<void> sound(String mediaAssetId, {required double gain}) =>
       soundAction(mediaAssetId, gain: gain);

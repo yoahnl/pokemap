@@ -9,6 +9,7 @@ import 'scene_actor_route.dart';
 enum SceneInteractiveCommandKind {
   giveItem,
   warp,
+  wait,
   worldTone,
   playSoundEffect,
   actorRoute,
@@ -49,6 +50,9 @@ abstract base class SceneInteractiveCommand {
     SceneWarpTransition transition,
     String? arrivalCollisionOwnerEntityId,
   }) = SceneWarpInteractiveCommand;
+
+  factory SceneInteractiveCommand.wait({required int durationMs}) =
+      SceneWaitInteractiveCommand;
 
   factory SceneInteractiveCommand.worldTone({
     required double red,
@@ -147,6 +151,8 @@ abstract base class SceneInteractiveCommand {
             ? _arrivalCollisionOwner(json['arrivalCollisionOwnerEntityId'])
             : null,
       ),
+      SceneInteractiveCommandKind.wait =>
+        SceneWaitInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.worldTone =>
         SceneWorldToneInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playSoundEffect =>
@@ -349,6 +355,41 @@ Map<String, dynamic> _actorCommandObject(Object? value, String field) {
     throw FormatException('$field must be an object with string fields.');
   }
   return Map<String, dynamic>.from(value);
+}
+
+@immutable
+final class SceneWaitInteractiveCommand extends SceneInteractiveCommand {
+  SceneWaitInteractiveCommand({required this.durationMs}) {
+    if (durationMs < 0 || durationMs > 0x7fffffff) {
+      throw ArgumentError.value(
+        durationMs,
+        'durationMs',
+        'Must be a nonnegative int32.',
+      );
+    }
+  }
+
+  factory SceneWaitInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    _presentationCommandFields(json, const {'kind', 'durationMs'});
+    if (json['kind'] != 'wait' || json['durationMs'] is! int) {
+      throw const FormatException('Invalid world wait command.');
+    }
+    return SceneWaitInteractiveCommand(durationMs: json['durationMs'] as int);
+  }
+
+  final int durationMs;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.wait;
+  @override
+  List<String> get outputPortIds => const ['completed'];
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'durationMs': durationMs};
+  @override
+  bool operator ==(Object other) =>
+      other is SceneWaitInteractiveCommand && other.durationMs == durationMs;
+  @override
+  int get hashCode => Object.hash(kind, durationMs);
 }
 
 @immutable

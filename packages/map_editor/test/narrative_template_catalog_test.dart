@@ -3,6 +3,36 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_template_catalog.dart';
 
 void main() {
+  for (final entry in <String, Map<String, String>>{
+    'wait': {'durationMs': '400'},
+    'worldTone': _toneParameters,
+    'playSoundEffect': {'mediaAssetId': 'door', 'volume': '0.8'},
+  }.entries) {
+    test('${entry.key} template refuses a 3D project', () {
+      final preview = _presentationPreview(entry.key, entry.value,
+        manifest: _emptyProject().copyWith(
+          settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+          cinematicMediaAssets: [CinematicMediaAsset(id: 'door', label: 'Door',
+            kind: CinematicMediaAssetKind.sound, relativePath: 'audio/door.wav')]));
+      expect(preview.canApply, isFalse);
+      expect(preview.diagnostics.join(' '), contains('2D'));
+    });
+  }
+
+  test('world wait template preserves zero and enforces native duration limits', () {
+    for (final duration in ['0', '400', '2147483647']) {
+      final preview = _presentationPreview(NarrativeCommandIds.wait, {'durationMs': duration});
+      expect(preview.canApply, isTrue, reason: preview.diagnostics.join(' '));
+      final payload = preview.scene!.graph.nodes.map((n) => n.payload)
+          .whereType<SceneActionPayload>().single;
+      expect(payload.interactiveCommand, SceneInteractiveCommand.wait(durationMs: int.parse(duration)));
+    }
+    for (final duration in ['', '-1', '0.5', '2147483648']) {
+      expect(_presentationPreview(NarrativeCommandIds.wait, {'durationMs': duration}).canApply,
+          isFalse, reason: duration);
+    }
+  });
+
   test('tone preview accepts zero duration and finite fractional values', () {
     for (final duration in ['0', '300', '2147483647']) {
       final preview = _presentationPreview(NarrativeCommandIds.worldTone, {

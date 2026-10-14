@@ -297,6 +297,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
     SceneActorRouteStepKind.face => SceneActorRouteStep.face(
       direction: step.direction,
       durationMs: step.duration!,
+      yieldAfter: step.yieldAfter,
     ),
     SceneActorRouteStepKind.move => SceneActorRouteStep.move(
       direction: step.direction,
@@ -597,6 +598,14 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
               onChanged: (value) => setState(() => step.durationText = value),
             ),
           ],
+          if (step.kind == SceneActorRouteStepKind.face)
+            PokeMapToggleTile(
+              key: ValueKey('actor-step-${step.id}-yield'),
+              label: 'Afficher la direction avant le maintien',
+              description: 'Laisser un rafraîchissement du jeu avant de commencer la durée de maintien.',
+              value: step.yieldAfter,
+              onChanged: (value) => setState(() => step.yieldAfter = value),
+            ),
           if (_canSelectInitialOwner(step, index) ||
               step.initialCollisionOwnerEntityId != null) ...[
             const SizedBox(height: 8),
@@ -651,7 +660,7 @@ class _ActorStepDraft {
   String durationText = '0', gainText = '1';
   String? soundId;
   String? initialCollisionOwnerEntityId, initialCollisionOwnerMapId;
-  bool enabled = false;
+  bool enabled = false, yieldAfter = false;
 
   factory _ActorStepDraft.fromStep(
     int id,
@@ -661,6 +670,7 @@ class _ActorStepDraft {
     final draft = _ActorStepDraft(id)..kind = step.kind;
     switch (step) {
       case SceneActorFaceStep():
+        draft.yieldAfter = step.yieldAfter;
         draft.direction = step.direction;
         draft.durationText = '${step.durationMs}';
       case SceneActorMoveStep():
@@ -705,6 +715,7 @@ class _ActorStepDraft {
     gainText = '1';
     soundId = null;
     enabled = false;
+    yieldAfter = false;
   }
 }
 

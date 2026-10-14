@@ -707,6 +707,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort;
   final SceneWorldToneController _worldTone = SceneWorldToneController();
   final Set<SceneActorTarget> _sceneActorRouteTargets = {};
+  int _sceneWorldWaitCount = 0;
   final List<_PendingSceneActorRouteWait> _sceneActorRouteWaits = [];
   PostProcessComponent? _worldTonePostProcessComponent;
   final DialogueIconBytesLoader? dialogueIconBytesLoader;
@@ -874,6 +875,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _sceneWorldWaitCount > 0 ||
       _sceneActorRouteTargets.isNotEmpty ||
       _pendingDirectedJump != null ||
       _flowPhase == _RuntimeFlowPhase.mapTransition ||
@@ -918,6 +920,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       'pendingBattle=${_pendingBattleRequest != null} '
       'pendingPlacedBehavior=${_pendingPlacedElementBehavior != null} '
       'pendingPlacedWarpTraversal=${_placedElementWarpTraversalController.isActive} '
+      'sceneWaits=$_sceneWorldWaitCount '
       'pendingTriggerEntries=${_pendingNarrativeTriggerEntries.length} '
       'triggerQueueDraining=$_isNarrativeTriggerQueueDraining',
     );
@@ -2949,6 +2952,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool get debugIsEntityAutorunInFlight => _entityAutorunInFlight;
 
   @visibleForTesting
+  int get debugPendingSceneWaitCount => _sceneWorldWaitCount;
+
+  @visibleForTesting
   int get debugPendingNarrativeTriggerEntryCount =>
       _pendingNarrativeTriggerEntries.length;
 
@@ -4152,7 +4158,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isRemoved = true;
     for (final pending in _sceneActorRouteWaits) {
       pending.completer.completeError(
-        StateError('Actor route interrupted when the runtime closed.'),
+        StateError('Scene presentation interrupted when the runtime closed.'),
       );
     }
     _sceneActorRouteWaits.clear();
@@ -5437,7 +5443,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _startNarrativeTriggerQueueDrain() {
-    if (_isNarrativeTriggerQueueDraining ||
+    if (_player.isStepping ||
+        _player.isJumping ||
+        _isNarrativeTriggerQueueDraining ||
         _inFlightSpatialDispatchCount > 0 ||
         _narrativeActivityGate.checkpointInProgress ||
         _pendingNarrativeTriggerEntries.isEmpty) {
@@ -10897,6 +10905,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       },
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
+        wait: (command) =>
+            _executeSceneWaitCommand(command, session: presentationSession),
         worldTone: (command) => _executeSceneWorldToneCommand(
           command,
           session: presentationSession,
@@ -11580,15 +11590,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<void> _waitForSceneActorRoute({
     required bool Function() isCurrent,
     int durationMs = 0,
+    bool nextUpdate = false,
     bool Function()? isReady,
   }) {
     if (!isCurrent()) {
       return Future<void>.error(
-        StateError('The actor route is no longer current.'),
+        StateError('The Scene presentation wait is no longer current.'),
       );
     }
     final ready = isReady ?? () => true;
-    if (durationMs == 0 && ready()) return Future<void>.value();
+    if (durationMs == 0 && !nextUpdate && ready()) {
+      return Future<void>.value();
+    }
     final pending = _PendingSceneActorRouteWait(
       deadlineMs: _runtimeClockMs + durationMs,
       isCurrent: isCurrent,
@@ -11603,7 +11616,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (!pending.isCurrent()) {
         _sceneActorRouteWaits.remove(pending);
         pending.completer.completeError(
-          StateError('The actor route was interrupted.'),
+          StateError('The Scene presentation wait was interrupted.'),
         );
       } else if (_runtimeClockMs >= pending.deadlineMs && pending.isReady()) {
         _sceneActorRouteWaits.remove(pending);
@@ -11918,6 +11931,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               rethrow;
             }
           },
+      nextUpdateAction: () =>
+          _waitForSceneActorRoute(isCurrent: current, nextUpdate: true),
       waitAction: (durationMs) =>
           _waitForSceneActorRoute(isCurrent: current, durationMs: durationMs),
       soundAction: (mediaAssetId, {required gain}) async {
@@ -11968,6 +11983,42 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _sceneActorRouteTargets.remove(target);
       _inputLocks.release(
         owner: RuntimeInputLockOwner.scriptedMovement,
+        token: token,
+      );
+      _publishInputAuthoritySnapshot();
+    }
+  }
+
+  Future<String> _executeSceneWaitCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+  }) async {
+    if (command is! SceneWaitInteractiveCommand ||
+        !isLoaded ||
+        !_scenePresentationScopeIsCurrent(session)) {
+      throw StateError('The Scene wait execution is no longer current.');
+    }
+    if (command.durationMs == 0) return 'completed';
+    final token = _inputLocks.acquire(
+      owner: RuntimeInputLockOwner.blockingInteraction,
+      surface: RuntimeInputSurface.blocked,
+    );
+    _sceneWorldWaitCount++;
+    _clearPressedMovementControls();
+    _publishInputAuthoritySnapshot();
+    try {
+      await _waitForSceneActorRoute(
+        isCurrent: () => _scenePresentationScopeIsCurrent(session),
+        durationMs: command.durationMs,
+      );
+      if (!_scenePresentationScopeIsCurrent(session)) {
+        throw StateError('The Scene wait was interrupted.');
+      }
+      return 'completed';
+    } finally {
+      _sceneWorldWaitCount--;
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.blockingInteraction,
         token: token,
       );
       _publishInputAuthoritySnapshot();

@@ -38,7 +38,19 @@ final class SceneActions {
     'arrivalReference': 'warpOwnedByDestinationMap',
   };
 
+  static const _waitContract = {
+    'projectDimension': 'twoD',
+    'parameters': ['durationMs'],
+    'durationMsRange': [0, 2147483647],
+    'durationUnit': 'milliseconds',
+    'completion': 'elapsed',
+    'actorReference': 'none',
+    'persistent': false,
+    'outputPorts': ['completed'],
+  };
+
   static const _worldToneContract = {
+    'projectDimension': 'twoD',
     'parameters': ['red', 'green', 'blue', 'gray', 'durationMs'],
     'finiteNumbers': true,
     'rgbRange': [-255, 255],
@@ -51,6 +63,7 @@ final class SceneActions {
   };
 
   static const _soundEffectContract = {
+    'projectDimension': 'twoD',
     'parameters': ['mediaAssetId', 'volume'],
     'mediaReference': 'knownNonLoopingSound',
     'finiteNumbers': true,
@@ -74,13 +87,14 @@ final class SceneActions {
     },
     'stepKinds': ['face', 'move', 'wait', 'through', 'sound'],
     'stepFields': {
-      'face': ['kind', 'direction', 'durationMs'],
+      'face': ['kind', 'direction', 'durationMs', 'yieldAfter'],
       'move': ['kind', 'direction', 'durationMs', 'initialCollisionOwnerEntityId'],
       'wait': ['kind', 'durationMs'],
       'through': ['kind', 'enabled'],
       'sound': ['kind', 'mediaAssetId', 'gain'],
     },
     'stepOptionalFields': {
+      'face': ['durationMs', 'yieldAfter'],
       'move': ['initialCollisionOwnerEntityId'],
     },
     'initialCollisionOwner': {
@@ -102,6 +116,8 @@ final class SceneActions {
     'durationMsRange': [0, 2147483647],
     'minimumMoveDurationMs': 1,
     'defaultFaceDurationMs': 0,
+    'defaultFaceYieldAfter': false,
+    'faceYieldCompletion': 'nextUpdateBeforeHold',
     'defaultSkippable': false,
     'finiteNumbers': true,
     'gainRange': [0, 1],
@@ -137,6 +153,9 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'wait': _waitContract,
+        'worldTone': _worldToneContract,
+        'playSoundEffect': _soundEffectContract,
         'actorRoute': _actorRouteContract,
       },
     ),
@@ -155,6 +174,7 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'wait': _waitContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
       },
@@ -197,6 +217,7 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'wait': _waitContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
         'badgeCondition': {

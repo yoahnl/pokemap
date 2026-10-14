@@ -45,7 +45,7 @@ function target(mapId = "map", entityId?: string): JsonRecord {
 }
 function route(actor = target("map", "actor"), mediaAssetId = "door", initialCollisionOwnerEntityId?: string): JsonRecord {
   return { kind: "actorRoute", target: actor, steps: [
-    { kind: "face", direction: "south", durationMs: 50 },
+    { kind: "face", direction: "south", durationMs: 50, yieldAfter: true },
     { kind: "move", direction: "south", durationMs: 200, ...(initialCollisionOwnerEntityId === undefined ? {} : { initialCollisionOwnerEntityId }) },
     { kind: "wait", durationMs: 50 },
     { kind: "through", enabled: true },
@@ -143,6 +143,9 @@ test("live MCP authors typed actor routes and visibility with strict references 
       const contract = record(record(descriptor.extensions).actorRoute);
       assert.deepEqual(record(contract.stepFields).move, ["kind", "direction", "durationMs", "initialCollisionOwnerEntityId"]);
       assert.deepEqual(record(contract.stepOptionalFields).move, ["initialCollisionOwnerEntityId"]);
+      assert.deepEqual(record(contract.stepFields).face, ["kind", "direction", "durationMs", "yieldAfter"]);
+      assert.deepEqual(record(contract.stepOptionalFields).face, ["durationMs", "yieldAfter"]);
+      assert.equal(contract.defaultFaceYieldAfter, false);
       const owner = record(contract.initialCollisionOwner);
       assert.equal(owner.status, "partial");
       assert.equal(owner.targetKind, "player");
@@ -216,6 +219,9 @@ test("live MCP authors typed actor routes and visibility with strict references 
       { kind: "move", direction: "south", durationMs: 200, initialCollisionOwnerEntityId: "actor" }] }, true);
     await plan({ ...route(target()), steps: [{ kind: "face", direction: "south", durationMs: 50, initialCollisionOwnerEntityId: "actor" }] }, true);
     await plan({ ...route(target()), steps: [{ kind: "move", direction: "south", durationMs: 200, initialCollisionOwnerEntityId: "actor", unknown: true }] }, true);
+    for (const yieldAfter of [null, 0, "true"]) {
+      await plan({ ...route(), steps: [{ kind: "face", direction: "south", yieldAfter }] }, true);
+    }
     await plan({ ...route(), steps: [{ kind: "sound", mediaAssetId: "door", gain: 0.8, pitch: 100 }] }, true);
     await plan({ ...route(), steps: [{ kind: "move", direction: "south", durationMs: 0 }] }, true);
     await plan({ ...route(), steps: [{ kind: "jump", x: 1, y: 1 }] }, true);

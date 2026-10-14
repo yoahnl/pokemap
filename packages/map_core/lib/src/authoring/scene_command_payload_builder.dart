@@ -139,6 +139,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         },
       ),
     ),
+    NarrativeCommandIds.wait => _buildWaitPayload(parameters),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
     NarrativeCommandIds.playSoundEffect => _buildSoundEffectPayload(parameters),
     NarrativeCommandIds.actorVisibility => _buildActorVisibilityPayload(
@@ -223,6 +224,13 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       'An unsupported Narrative command cannot produce a Scene payload.',
     ),
   };
+}
+
+SceneActionPayload _buildWaitPayload(Map<String, String> parameters) {
+  _requirePresentationParameters(parameters, const {'durationMs'});
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.wait(durationMs: int.parse(parameters['durationMs']!)),
+  );
 }
 
 SceneActionPayload _buildWorldTonePayload(Map<String, String> parameters) {
