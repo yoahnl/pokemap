@@ -27,6 +27,10 @@ const Set<String> _definitionOptionalKeys = <String>{
   'ground',
   'categoryId',
   'straightOnly',
+  'followContourDirection',
+  'replacesGround',
+  'masksGroundCells',
+  'groundBaseOffset',
 };
 const Set<String> _draftPrimitiveKeys = <String>{
   'id',
@@ -446,6 +450,10 @@ Map<String, Object?> _encodeDraftDefinition(
     ),
     'template': template,
     if (value.straightOnly) 'straightOnly': true,
+    if (value.followContourDirection) 'followContourDirection': true,
+    if (value.replacesGround) 'replacesGround': true,
+    if (value.masksGroundCells) 'masksGroundCells': true,
+    if (value.groundBaseOffset != 0) 'groundBaseOffset': value.groundBaseOffset,
     'primitives': primitives,
     'defaults': encodeBorderGenerationParamsJson(
       value.defaults,
@@ -495,6 +503,10 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
       previewSeed: previewSeed,
       template: template,
       straightOnly: _decodeStraightOnly(value, path),
+      followContourDirection: _decodeFollowContourDirection(value, path),
+      replacesGround: _decodeReplacesGround(value, path),
+      masksGroundCells: _decodeMasksGroundCells(value, path),
+      groundBaseOffset: _decodeGroundBaseOffset(value, path),
       primitives: primitives,
       defaults: decodeBorderGenerationParamsJson(
         borderJsonRequireField(value, 'defaults', path),
@@ -541,6 +553,10 @@ Map<String, Object?> _encodePublishedDefinition(
     ),
     'template': template,
     if (value.straightOnly) 'straightOnly': true,
+    if (value.followContourDirection) 'followContourDirection': true,
+    if (value.replacesGround) 'replacesGround': true,
+    if (value.masksGroundCells) 'masksGroundCells': true,
+    if (value.groundBaseOffset != 0) 'groundBaseOffset': value.groundBaseOffset,
     'primitives': primitives,
     'defaults': encodeBorderGenerationParamsJson(
       value.defaults,
@@ -590,6 +606,10 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       previewSeed: previewSeed,
       template: template,
       straightOnly: _decodeStraightOnly(value, path),
+      followContourDirection: _decodeFollowContourDirection(value, path),
+      replacesGround: _decodeReplacesGround(value, path),
+      masksGroundCells: _decodeMasksGroundCells(value, path),
+      groundBaseOffset: _decodeGroundBaseOffset(value, path),
       primitives: primitives,
       defaults: decodeBorderGenerationParamsJson(
         borderJsonRequireField(value, 'defaults', path),
@@ -622,6 +642,33 @@ bool _decodeStraightOnly(BorderJsonObject value, String path) =>
         borderJsonPropertyPath(path, 'straightOnly'),
       )
     : false;
+
+bool _decodeFollowContourDirection(BorderJsonObject value, String path) =>
+    value.containsKey('followContourDirection')
+    ? borderJsonRequireBool(
+        value['followContourDirection'],
+        '$path.followContourDirection',
+      )
+    : false;
+
+bool _decodeReplacesGround(BorderJsonObject value, String path) =>
+    value.containsKey('replacesGround')
+    ? borderJsonRequireBool(value['replacesGround'], '$path.replacesGround')
+    : false;
+
+bool _decodeMasksGroundCells(BorderJsonObject value, String path) =>
+    value.containsKey('masksGroundCells')
+    ? borderJsonRequireBool(value['masksGroundCells'], '$path.masksGroundCells')
+    : false;
+
+double _decodeGroundBaseOffset(BorderJsonObject value, String path) {
+  if (!value.containsKey('groundBaseOffset')) return 0;
+  final offset = value['groundBaseOffset'];
+  if (offset is! num) {
+    throw FormatException('$path.groundBaseOffset: expected a number');
+  }
+  return offset.toDouble();
+}
 
 String _decodeDefinitionName(BorderJsonObject value, String path) {
   final namePath = borderJsonPropertyPath(path, 'name');
@@ -712,6 +759,7 @@ Map<String, Object?> _encodeDraftPrimitive(
       sourceModelId: value.sourceModelId!,
       role: value.role,
       authoredOrientation: value.authoredOrientation,
+      cornerTurn: value.cornerTurn,
       weight: value.weight,
       transforms: value.transforms,
       anchorWorld: value.anchorWorld,
@@ -773,6 +821,7 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
         ),
         role: _decodePrimitiveRoleField(value, path, formatVersion),
         authoredOrientation: _decodeAuthoredOrientationField(value, path),
+        cornerTurn: _decodeCornerTurn(value, path),
         weight: borderJsonRequireInt(value['weight'], '$path.weight'),
         animationIndex: value['animationIndex'] == null
             ? null
@@ -860,6 +909,7 @@ Map<String, Object?> _encodePublishedPrimitive(
       sourceModelId: value.sourceModelId!,
       role: value.role,
       authoredOrientation: value.authoredOrientation,
+      cornerTurn: value.cornerTurn,
       weight: value.weight,
       transforms: value.transforms,
       anchorWorld: value.anchorWorld,
@@ -926,6 +976,7 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
         ),
         role: _decodePrimitiveRoleField(value, path, formatVersion),
         authoredOrientation: _decodeAuthoredOrientationField(value, path),
+        cornerTurn: _decodeCornerTurn(value, path),
         weight: borderJsonRequireInt(value['weight'], '$path.weight'),
         animationIndex: value['animationIndex'] == null
             ? null
@@ -1014,6 +1065,7 @@ Map<String, Object?> _encodeSpatialPrimitive({
   required String sourceModelId,
   required BorderPrimitiveRole role,
   required BorderPrimitiveOrientation authoredOrientation,
+  required BorderCornerTurn? cornerTurn,
   required int weight,
   required BorderTransformPolicy transforms,
   Model3dVector3? anchorWorld,
@@ -1032,6 +1084,7 @@ Map<String, Object?> _encodeSpatialPrimitive({
     'sourceModelId': sourceModelId,
     'role': _encodePrimitiveRole(role, formatVersion, '$path.role'),
     'authoredOrientation': authoredOrientation.name,
+    if (cornerTurn != null) 'cornerTurn': cornerTurn.name,
     'weight': weight,
     'transforms': _encodeTransformPolicy(transforms, '$path.transforms'),
     if (anchorWorld != null) 'anchorWorld': anchorWorld.toJson(),
@@ -1058,6 +1111,7 @@ void _validateSpatialPrimitiveJson(
     requiredKeys: const {'id', 'sourceModelId', 'role', 'weight', 'transforms'},
     optionalKeys: const {
       'authoredOrientation',
+      'cornerTurn',
       'anchorWorld',
       'animationIndex',
       'animationLoop',
@@ -1065,6 +1119,15 @@ void _validateSpatialPrimitiveJson(
       'blocksMovement',
     },
   );
+}
+
+BorderCornerTurn? _decodeCornerTurn(BorderJsonObject value, String path) {
+  if (!value.containsKey('cornerTurn')) return null;
+  final name = borderJsonRequireString(value['cornerTurn'], '$path.cornerTurn');
+  return BorderCornerTurn.values
+          .where((turn) => turn.name == name)
+          .firstOrNull ??
+      (throw FormatException('$path.cornerTurn: unsupported corner turn'));
 }
 
 double _decodeSpatialAnimationSpeed(BorderJsonObject value, String path) {

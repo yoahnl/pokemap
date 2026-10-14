@@ -74,6 +74,7 @@ final class BorderPrimitiveDraft {
     this.sourceModelId,
     required this.role,
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
+    this.cornerTurn,
     required this.weight,
     BorderPixelPos? anchorPx,
     this.anchorWorld,
@@ -86,6 +87,10 @@ final class BorderPrimitiveDraft {
   }) : _anchorPx = anchorPx,
        _currentMetrics = currentMetrics {
     _requireNonEmpty(id, 'BorderPrimitiveDraft.id');
+    if (cornerTurn != null &&
+        (sourceModelId == null || role != BorderPrimitiveRole.lineCorner)) {
+      throw const ValidationException('Corner turn requires a spatial corner');
+    }
     _validateSpatialBehavior(
       modelId: sourceModelId,
       animationIndex: animationIndex,
@@ -114,6 +119,7 @@ final class BorderPrimitiveDraft {
   final String? sourceModelId;
   final BorderPrimitiveRole role;
   final BorderPrimitiveOrientation authoredOrientation;
+  final BorderCornerTurn? cornerTurn;
   final int weight;
   final BorderPixelPos? _anchorPx;
   final Model3dVector3? anchorWorld;
@@ -146,6 +152,7 @@ final class BorderPrimitiveDraft {
           sourceModelId == other.sourceModelId &&
           role == other.role &&
           authoredOrientation == other.authoredOrientation &&
+          cornerTurn == other.cornerTurn &&
           weight == other.weight &&
           _anchorPx == other._anchorPx &&
           anchorWorld == other.anchorWorld &&
@@ -163,6 +170,7 @@ final class BorderPrimitiveDraft {
     sourceModelId,
     role,
     authoredOrientation,
+    cornerTurn,
     weight,
     _anchorPx,
     anchorWorld,
@@ -185,6 +193,7 @@ final class BorderPublishedPrimitive {
     String? visualSnapshotId,
     required this.role,
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
+    this.cornerTurn,
     required this.weight,
     BorderPixelPos? anchorPx,
     this.anchorWorld,
@@ -198,6 +207,10 @@ final class BorderPublishedPrimitive {
        _publishedMetrics = publishedMetrics,
        _visualSnapshotId = visualSnapshotId {
     _requireNonEmpty(id, 'BorderPublishedPrimitive.id');
+    if (cornerTurn != null &&
+        (sourceModelId == null || role != BorderPrimitiveRole.lineCorner)) {
+      throw const ValidationException('Corner turn requires a spatial corner');
+    }
     _validateSpatialBehavior(
       modelId: sourceModelId,
       animationIndex: animationIndex,
@@ -227,6 +240,7 @@ final class BorderPublishedPrimitive {
   final String? _visualSnapshotId;
   final BorderPrimitiveRole role;
   final BorderPrimitiveOrientation authoredOrientation;
+  final BorderCornerTurn? cornerTurn;
   final int weight;
   final BorderPixelPos? _anchorPx;
   final Model3dVector3? anchorWorld;
@@ -265,6 +279,7 @@ final class BorderPublishedPrimitive {
           _visualSnapshotId == other._visualSnapshotId &&
           role == other.role &&
           authoredOrientation == other.authoredOrientation &&
+          cornerTurn == other.cornerTurn &&
           weight == other.weight &&
           _anchorPx == other._anchorPx &&
           anchorWorld == other.anchorWorld &&
@@ -283,6 +298,7 @@ final class BorderPublishedPrimitive {
     _visualSnapshotId,
     role,
     authoredOrientation,
+    cornerTurn,
     weight,
     _anchorPx,
     anchorWorld,
@@ -371,6 +387,10 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     required this.previewSeed,
     required this.template,
     this.straightOnly = false,
+    this.followContourDirection = false,
+    this.replacesGround = false,
+    this.masksGroundCells = false,
+    this.groundBaseOffset = 0,
     required List<TPrimitive> primitives,
     required this.defaults,
     this.ground,
@@ -407,12 +427,45 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
         'Straight-only Borders require a spatial connectedLine blueprint',
       );
     }
+    if (followContourDirection &&
+        (template != BorderBlueprintTemplate.connectedLine ||
+            !kinds.contains(BorderVisualKind.model3d))) {
+      throw const ValidationException(
+        'Directed contours require a spatial connectedLine blueprint',
+      );
+    }
+    if (replacesGround &&
+        (template != BorderBlueprintTemplate.connectedLine ||
+            !kinds.contains(BorderVisualKind.model3d))) {
+      throw const ValidationException(
+        'Ground replacement requires a spatial connectedLine blueprint',
+      );
+    }
+    if (!groundBaseOffset.isFinite ||
+        groundBaseOffset > 0 ||
+        (groundBaseOffset != 0 && !replacesGround)) {
+      throw const ValidationException(
+        'Ground base offset must be finite, non-positive and require ground replacement',
+      );
+    }
+    if (masksGroundCells &&
+        (replacesGround ||
+            template != BorderBlueprintTemplate.connectedLine ||
+            !kinds.contains(BorderVisualKind.model3d))) {
+      throw const ValidationException(
+        'Cell ground masking requires a spatial connectedLine blueprint without ground lowering',
+      );
+    }
   }
 
   final String name;
   final BorderSignedInt64 previewSeed;
   final BorderBlueprintTemplate template;
   final bool straightOnly;
+  final bool followContourDirection;
+  final bool replacesGround;
+  final bool masksGroundCells;
+  final double groundBaseOffset;
   final List<TPrimitive> _primitives;
   final BorderGenerationParams defaults;
   final TGround? ground;
@@ -438,6 +491,10 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
           previewSeed == other.previewSeed &&
           template == other.template &&
           straightOnly == other.straightOnly &&
+          followContourDirection == other.followContourDirection &&
+          replacesGround == other.replacesGround &&
+          masksGroundCells == other.masksGroundCells &&
+          groundBaseOffset == other.groundBaseOffset &&
           _listsEqual(_primitives, other._primitives) &&
           defaults == other.defaults &&
           ground == other.ground &&
@@ -452,6 +509,10 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     previewSeed,
     template,
     straightOnly,
+    followContourDirection,
+    replacesGround,
+    masksGroundCells,
+    groundBaseOffset,
     Object.hashAll(_primitives),
     defaults,
     ground,

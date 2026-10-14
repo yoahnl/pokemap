@@ -8,24 +8,28 @@ import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 
 Future<Directory> requireStudioCaptureRoot(String configuredPath) async {
-  const expected =
-      '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Valbois-studio-capture-20261008';
-  if (configuredPath != expected ||
+  const ownedRoots = {
+    '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Valbois-studio-capture-20261008':
+        'avelune-studio-valbois2-capture@1',
+    '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/nb2-modular-qa-20261011/captures':
+        'avelune-studio-modular-nb2-capture@1',
+  };
+  final expectedMarker = ownedRoots[configuredPath];
+  if (expectedMarker == null ||
       await FileSystemEntity.type(configuredPath, followLinks: false) !=
           FileSystemEntityType.directory ||
-      await Directory(configuredPath).resolveSymbolicLinks() != expected) {
+      await Directory(configuredPath).resolveSymbolicLinks() != configuredPath) {
     throw StateError(
       'MARIONETTE_CAPTURE_ROOT must be the owned Studio capture directory.',
     );
   }
-  final marker = File(p.join(expected, '.avelune-studio-capture-owner'));
+  final marker = File(p.join(configuredPath, '.avelune-studio-capture-owner'));
   if (await FileSystemEntity.type(marker.path, followLinks: false) !=
           FileSystemEntityType.file ||
-      (await marker.readAsString()).trim() !=
-          'avelune-studio-valbois2-capture@1') {
+      (await marker.readAsString()).trim() != expectedMarker) {
     throw StateError('The Studio capture ownership marker is missing.');
   }
-  return Directory(expected);
+  return Directory(configuredPath);
 }
 
 final class StudioFrameRecorder {

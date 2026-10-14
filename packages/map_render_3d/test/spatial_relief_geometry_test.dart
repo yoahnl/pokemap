@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:typed_data';
+
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_terrain_geometry.dart';
 
@@ -32,6 +33,77 @@ MapSpatialScene rampScene() => MapSpatialScene(
 );
 
 void main() {
+  test('source cliff crowns replace fractional top ground without hiding lower land or ramps', () {
+    final scene = MapSpatialScene(
+      width: 3,
+      depth: 3,
+      heightLevels: [1, 1, 1, 1, 6, 1, 1, 1, 1],
+      generateCliffs: false,
+    );
+    final replacement = (
+      left: .5,
+      top: 1.0,
+      right: 1.5,
+      bottom: 2.0,
+      lowerHeight: 1.0,
+      upperHeight: 6.0,
+    );
+    final index = indexSpatialBorderGroundReplacements(
+      scene: scene,
+      replacements: [replacement],
+    );
+    expect(index.keys.toSet(), {(0, 1), (1, 1)});
+    final patches = spatialSurfacePatches(
+      scene,
+      groundReplacements: index,
+    ).toList();
+    final area = patches.fold(
+      0.0,
+      (sum, patch) =>
+          sum + (patch.right - patch.left) * (patch.bottom - patch.top),
+    );
+    expect(area, closeTo(9, .000001));
+    expect(
+      patches
+          .where((p) => p.cell == (0, 1))
+          .fold(0.0, (sum, p) => sum + (p.right - p.left) * (p.bottom - p.top)),
+      closeTo(1, .000001),
+    );
+    final crown = patches.where((p) => p.cell == (1, 1)).toList();
+    expect(crown, hasLength(2));
+    expect(crown.first.corners.map((point) => point.y), everyElement(1));
+    expect(crown.last.corners.map((point) => point.y), everyElement(6));
+    final faces = spatialTerrainFaces(
+      scene,
+      groundReplacements: index,
+    ).toList();
+    expect(faces.every((face) => face.isTop), isTrue);
+    final ramp = scene.copyWith(
+      heightLevels: [1, 6, 1, 1, 6, 1, 1, 1, 1],
+      navigation: SpatialNavigationProfile(
+        ramps: [
+          SpatialRamp(
+            id: 'ramp',
+            x: 1,
+            z: 1,
+            width: 1,
+            depth: 1,
+            lowLevel: 1,
+            highLevel: 6,
+            direction: SpatialRampDirection.north,
+          ),
+        ],
+      ),
+    );
+    expect(
+      spatialSurfacePatches(
+        ramp,
+        groundReplacements: index,
+      ).fold(0.0, (sum, p) => sum + (p.right - p.left) * (p.bottom - p.top)),
+      closeTo(9, .000001),
+    );
+  });
+
   test('modelled cliff visibility only removes generated walls', () {
     final before = rampScene();
     final after = before.copyWith(generateCliffs: false);
@@ -197,19 +269,17 @@ void main() {
             for (var x = 0; x < 256; x++) (x + z).isEven ? 32 : 0,
         ],
       );
-      final faces =
-          Function.apply(
-                spatialTerrainFaces,
-                [scene],
-                {
-                  #left: 127.0,
-                  #top: 127.0,
-                  #right: 128.0,
-                  #bottom: 128.0,
-                  #repeatWalls: false,
-                },
-              )
-              as Iterable<SpatialTerrainFace>;
+      final faces = Function.apply(
+        spatialTerrainFaces,
+        [scene],
+        {
+          #left: 127.0,
+          #top: 127.0,
+          #right: 128.0,
+          #bottom: 128.0,
+          #repeatWalls: false,
+        },
+      ) as Iterable<SpatialTerrainFace>;
       expect(faces.toList(), hasLength(5));
       expect(
         pickSpatialCell(scene, Vector3(127.5, 100, 127.5), Vector3(0, -1, 0)),
@@ -221,23 +291,21 @@ void main() {
   test('exposed cliffs repeat the texture once per terrain level', () {
     final scene = MapSpatialScene(width: 1, depth: 1, heightLevels: [3]);
     final texture = Texture(ByteData(32 * 32 * 4), width: 32, height: 32);
-    final meshes =
-        Function.apply(
-              terrainMeshes,
-              [scene, const Color(0xffeeeeee), const Color(0xffaaaaaa)],
-              {
-                #cliffTexture: (
-                  texture: texture,
-                  sourceRect: const SmartTileSourceRect(
-                    x: 0,
-                    y: 0,
-                    width: 32,
-                    height: 32,
-                  ),
-                ),
-              },
-            )
-            as Iterable<Mesh>;
+    final meshes = Function.apply(
+      terrainMeshes,
+      [scene, const Color(0xffeeeeee), const Color(0xffaaaaaa)],
+      {
+        #cliffTexture: (
+          texture: texture,
+          sourceRect: const SmartTileSourceRect(
+            x: 0,
+            y: 0,
+            width: 32,
+            height: 32,
+          ),
+        ),
+      },
+    ) as Iterable<Mesh>;
     final walls = meshes
         .expand((mesh) => mesh.surfaces)
         .where((surface) => surface.material is SpatialPixelMaterial)
@@ -345,13 +413,11 @@ void main() {
           anchorY: 0,
           transform: transform,
         );
-        final vertices =
-            Function.apply(
-                  spatialGroundVertices,
-                  [geometry],
-                  {#scene: scene, #height: .003},
-                )
-                as List<Vertex>;
+        final vertices = Function.apply(
+          spatialGroundVertices,
+          [geometry],
+          {#scene: scene, #height: .003},
+        ) as List<Vertex>;
         expect(vertices.length, greaterThan(4));
         for (final corner in spatialGroundVertices(geometry)) {
           final clipped = vertices

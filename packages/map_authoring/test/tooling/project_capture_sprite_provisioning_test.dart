@@ -129,6 +129,50 @@ void main() {
         isFalse);
   });
 
+  test('preserves assigned sprites without reading unrelated asset blobs',
+      () async {
+    final project = await _project(root, 'complete-unrelated',
+        [_ball('poke_ball', path: 'assets/art/custom.png')]);
+    final assets = await _unavailableUnrelatedAsset(project, sprite);
+    final before = await assets.readAsBytes();
+    final items = await File(
+            p.join(project.path, 'data/pokemon/catalogs/items.json'))
+        .readAsBytes();
+
+    final result = await provisionProjectCaptureSprites(
+        projectPath: project.path,
+        loadPack: () async => throw StateError('The pack must not load.'));
+
+    expect(result['preservedItems'], ['poke_ball']);
+    expect(result['receipts'], isEmpty);
+    expect(await assets.readAsBytes(), before);
+    expect(
+        await File(p.join(project.path, 'data/pokemon/catalogs/items.json'))
+            .readAsBytes(),
+        items);
+  });
+
+  test('requires full asset validation before importing missing sprites',
+      () async {
+    final project =
+        await _project(root, 'missing-unrelated', [_ball('poke_ball')]);
+    final assets = await _unavailableUnrelatedAsset(project, sprite);
+    final before = await assets.readAsBytes();
+
+    await expectLater(
+        provisionProjectCaptureSprites(
+            projectPath: project.path, loadPack: () async => pack),
+        throwsA(isA<ProjectSnapshotException>()
+            .having((error) => error.code, 'code', 'project.asset_blob_missing')));
+
+    expect(await assets.readAsBytes(), before);
+    expect(
+        await File(p.join(project.path,
+                'data/pokemon/assets/items/poke_ball/animation.png'))
+            .exists(),
+        isFalse);
+  });
+
   test('skips an absent catalog and rejects a malformed existing catalog',
       () async {
     final project = await _project(root, 'missing', [_ball('poke_ball')]);
@@ -318,6 +362,19 @@ Future<ProjectItemCatalog> _catalog(Directory project) async =>
     decodeProjectItemCatalog(jsonDecode(
         await File(p.join(project.path, 'data/pokemon/catalogs/items.json'))
             .readAsString()));
+
+Future<File> _unavailableUnrelatedAsset(
+    Directory project, List<int> bytes) async {
+  final catalog = File(p.join(project.path, assetCatalogStorageKey));
+  await catalog.parent.create(recursive: true);
+  await catalog.writeAsString(jsonEncode(AssetCatalog(records: [
+    AssetRecord(
+        id: 'unrelated-texture',
+        logicalPath: 'assets/unrelated.png',
+        artifact: ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png')),
+  ]).toJson()));
+  return catalog;
+}
 
 ProjectCaptureSpritePack _pack(List<int> sprite,
     {String sheet = 'ball_1',

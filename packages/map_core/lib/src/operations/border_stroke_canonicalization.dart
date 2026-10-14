@@ -42,6 +42,7 @@ BorderStroke canonicalizeBorderStrokeV1({
   required String id,
   required Iterable<GridPos> sampledPoints,
   required bool closed,
+  bool preserveTraversal = false,
 }) {
   final samples = List<GridPos>.unmodifiable(
     sampledPoints.map((point) => GridPos(x: point.x, y: point.y)),
@@ -74,7 +75,9 @@ BorderStroke canonicalizeBorderStrokeV1({
   }
 
   _validateCanonicalizableChain(rasterized, closed: closed);
-  final canonicalPoints = closed
+  final canonicalPoints = preserveTraversal
+      ? rasterized
+      : closed
       ? _minimumClosedRotation(rasterized)
       : _minimumOpenDirection(rasterized);
 

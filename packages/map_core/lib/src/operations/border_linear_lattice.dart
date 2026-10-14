@@ -373,6 +373,7 @@ final class BorderLinearStrokeLattice {
 BorderLinearStrokeLattice buildBorderLinearLatticeV1({
   required BorderStroke stroke,
   required GridSize tileSizePx,
+  bool preserveTraversal = false,
 }) {
   if (tileSizePx.width <= 0 || tileSizePx.height <= 0) {
     throw const ValidationException(
@@ -383,15 +384,16 @@ BorderLinearStrokeLattice buildBorderLinearLatticeV1({
   _requirePortableInt(tileSizePx.height, 'tileSizePx.height');
 
   final lineage = resolveBorderStrokeLineageIdentityV1(stroke);
+  final preservesTraversal = preserveTraversal || lineage.preserveTraversal;
   final validatedCanonical = canonicalizeBorderStrokeV1(
     id: stroke.id,
     sampledPoints: stroke.points,
     closed: stroke.closed,
   );
   final points =
-      lineage.preserveTraversal ? stroke.points : validatedCanonical.points;
+      preservesTraversal ? stroke.points : validatedCanonical.points;
   final closed =
-      lineage.preserveTraversal ? stroke.closed : validatedCanonical.closed;
+      preservesTraversal ? stroke.closed : validatedCanonical.closed;
   final edgeCount = closed ? points.length : points.length - 1;
   var abscissa = BigInt.zero;
   final edges = <BorderLinearEdge>[];
@@ -480,7 +482,7 @@ BorderLinearStrokeLattice buildBorderLinearLatticeV1({
     lineageNamespace: lineage.lineageNamespace,
     sourceEdgeOffset: lineage.sourceEdgeOffset,
     wrapLength: lineage.wrapLength,
-    preservesTraversal: lineage.preserveTraversal,
+    preservesTraversal: preservesTraversal,
     closed: closed,
     nodes: nodes,
     edges: edges,

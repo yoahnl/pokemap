@@ -179,6 +179,43 @@ void main() {
     expect(await catalogFile.readAsBytes(), before);
   });
 
+  test('preserves complete icons without reading unrelated asset blobs',
+      () async {
+    final project = await _project(root, 'complete-unrelated', ['potion']);
+    final icon =
+        File(p.join(project.path, 'data/pokemon/assets/items/potion.png'));
+    await icon.parent.create(recursive: true);
+    await icon.writeAsBytes(potion);
+    final catalog = await _unavailableUnrelatedAsset(project, potion);
+    final before = await catalog.readAsBytes();
+
+    final result = await _run(project, Directory(p.join(root.path, 'absent')));
+
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    final receipt = jsonDecode(result.stdout as String) as Map;
+    expect(receipt['preservedItems'], ['potion']);
+    expect(receipt['receipts'], isEmpty);
+    expect(await catalog.readAsBytes(), before);
+    expect(await icon.readAsBytes(), potion);
+  });
+
+  test('requires full asset validation before importing missing icons',
+      () async {
+    final project = await _project(root, 'missing-unrelated', ['potion']);
+    final catalog = await _unavailableUnrelatedAsset(project, potion);
+    final before = await catalog.readAsBytes();
+
+    final result = await _run(project, source);
+
+    expect(result.exitCode, 1);
+    expect(result.stderr, contains('project.asset_blob_missing'));
+    expect(await catalog.readAsBytes(), before);
+    expect(
+        await File(p.join(project.path, 'data/pokemon/assets/items/potion.png'))
+            .exists(),
+        isFalse);
+  });
+
   test('materializes source aliases under the selected project item ID',
       () async {
     await _writePack(source, {'kings-rock': potion, 'potion': potion},
@@ -537,6 +574,19 @@ Future<AssetCatalog> _assets(Directory project) async => AssetCatalog.fromJson(
       jsonDecode(await File(p.join(project.path, assetCatalogStorageKey))
           .readAsString()) as Map<String, dynamic>,
     );
+
+Future<File> _unavailableUnrelatedAsset(
+    Directory project, List<int> bytes) async {
+  final catalog = File(p.join(project.path, assetCatalogStorageKey));
+  await catalog.parent.create(recursive: true);
+  await catalog.writeAsString(jsonEncode(AssetCatalog(records: [
+    AssetRecord(
+        id: 'unrelated-texture',
+        logicalPath: 'assets/unrelated.png',
+        artifact: ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png')),
+  ]).toJson()));
+  return catalog;
+}
 
 Future<void> _writePack(Directory source, Map<String, List<int>> icons,
     {Map<String, String> aliases = const {}}) async {

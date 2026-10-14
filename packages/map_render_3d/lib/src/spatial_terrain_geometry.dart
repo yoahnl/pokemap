@@ -12,15 +12,17 @@ final class SpatialSurfacePatch {
     required this.right,
     required this.bottom,
     required this.ramp,
+    this.groundHeight,
   });
 
   final MapSpatialScene scene;
   final (int, int) cell;
   final double left, top, right, bottom;
   final SpatialRamp? ramp;
+  final double? groundHeight;
 
   double heightAt(double x, double z) => ramp == null
-      ? scene.heightAt(cell.$1, cell.$2)
+      ? groundHeight ?? scene.heightAt(cell.$1, cell.$2)
       : ramp!.levelAt(x, z) * scene.levelHeight;
 
   List<Vector3> get corners => [
@@ -37,6 +39,7 @@ Iterable<SpatialSurfacePatch> spatialSurfacePatches(
   double top = 0,
   double? right,
   double? bottom,
+  SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
   final a = math.max(0.0, left), b = math.max(0.0, top);
   final c = math.min(scene.width.toDouble(), right ?? scene.width.toDouble());
@@ -59,6 +62,15 @@ Iterable<SpatialSurfacePatch> spatialSurfacePatches(
           .toList();
       final xs = <double>{cellLeft, cellRight};
       final zs = <double>{cellTop, cellBottom};
+      final replacements = groundReplacements[(cellX, cellZ)] ?? const [];
+      for (final replacement in replacements) {
+        for (final x in [replacement.left, replacement.right]) {
+          if (x > cellLeft && x < cellRight) xs.add(x);
+        }
+        for (final z in [replacement.top, replacement.bottom]) {
+          if (z > cellTop && z < cellBottom) zs.add(z);
+        }
+      }
       for (final ramp in ramps) {
         for (final x in [ramp.x, ramp.x + ramp.width]) {
           if (x > cellLeft && x < cellRight) xs.add(x);
@@ -72,19 +84,53 @@ Iterable<SpatialSurfacePatch> spatialSurfacePatches(
         for (var x = 0; x < columns.length - 1; x++) {
           final px = (columns[x] + columns[x + 1]) / 2;
           final pz = (rows[z] + rows[z + 1]) / 2;
-          yield SpatialSurfacePatch(
+          final ramp = ramps.where((r) => r.contains(px, pz)).firstOrNull;
+          final patch = SpatialSurfacePatch(
             scene: scene,
             cell: (cellX, cellZ),
             left: columns[x],
             top: rows[z],
             right: columns[x + 1],
             bottom: rows[z + 1],
-            ramp: ramps.where((r) => r.contains(px, pz)).firstOrNull,
+            ramp: ramp,
+            groundHeight: ramp == null
+                ? _borderGroundHeight(
+                    scene.heightAt(cellX, cellZ),
+                    px,
+                    pz,
+                    replacements,
+                  )
+                : null,
           );
+          yield patch;
         }
       }
     }
   }
+}
+
+double _borderGroundHeight(
+  double height,
+  double x,
+  double z,
+  List<SpatialBorderGroundReplacement> replacements,
+) {
+  for (var pass = 0; pass < replacements.length; pass++) {
+    var lowered = height;
+    for (final replacement in replacements) {
+      if (x > replacement.left &&
+          x < replacement.right &&
+          z > replacement.top &&
+          z < replacement.bottom &&
+          height > replacement.lowerHeight + .000001 &&
+          height <= replacement.upperHeight + .000001) {
+        lowered = math.min(lowered, replacement.lowerHeight);
+      }
+    }
+    if (lowered == height) break;
+    height = lowered;
+  }
+  return height;
 }
 
 typedef SpatialTerrainFace = ({
@@ -101,6 +147,7 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
   double? right,
   double? bottom,
   bool repeatWalls = true,
+  SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
   for (final patch in spatialSurfacePatches(
     scene,
@@ -108,6 +155,7 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
     top: top,
     right: right,
     bottom: bottom,
+    groundReplacements: groundReplacements,
   )) {
     yield (
       cell: patch.cell,
@@ -139,7 +187,13 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
       double neighborHeight((double, double) point) => outside
           ? -.15
           : neighbor == null
-          ? scene.heightAt(midpointX.floor(), midpointZ.floor())
+          ? _borderGroundHeight(
+              scene.heightAt(midpointX.floor(), midpointZ.floor()),
+              midpointX,
+              midpointZ,
+              groundReplacements[(midpointX.floor(), midpointZ.floor())] ??
+                  const [],
+            )
           : neighbor.levelAt(point.$1, point.$2) * scene.levelHeight;
       final highA = patch.heightAt(start.$1, start.$2);
       final highB = patch.heightAt(end.$1, end.$2);

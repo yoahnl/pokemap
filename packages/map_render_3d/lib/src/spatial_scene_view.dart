@@ -167,6 +167,20 @@ class SpatialSceneView extends StatefulWidget {
       loadModel == other.loadModel &&
       listEquals(models, other.models);
 
+  bool surfaceGeometryMatches(SpatialSceneView other) =>
+      groundProject != null &&
+      identical(groundProject, other.groundProject) &&
+      groundMap != null &&
+      groundMap!.id == other.groundMap?.id &&
+      identical(controller, other.controller) &&
+      sceneOffset == other.sceneOffset &&
+      scene.width == other.scene.width &&
+      scene.depth == other.scene.depth &&
+      scene.levelHeight == other.scene.levelHeight &&
+      scene.navigation == other.scene.navigation &&
+      scene.camera == other.scene.camera &&
+      listEquals(scene.heightLevels, other.scene.heightLevels);
+
   @override
   State<SpatialSceneView> createState() => _SpatialSceneViewState();
 }
@@ -224,6 +238,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   void refreshHover() {
     final position = hoverPosition;
     if (position == null || widget.onHover == null) return;
+    final game = this.game;
+    if (game?.refreshing == true) return;
     game?.syncCamera();
     widget.onHover!(game?.pickSurface(position));
   }
@@ -233,6 +249,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     hoverPosition = position;
     enterHover();
     final game = this.game;
+    if (game?.refreshing == true) return;
     widget.onHover!(game?.pickSurface(position));
   }
 
@@ -312,9 +329,15 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       SpatialEditorView.orbit => widget.controller.yaw,
     };
     final x =
-        -delta.dx / viewport.width * widget.scene.width * widget.controller.zoom;
+        -delta.dx /
+        viewport.width *
+        widget.scene.width *
+        widget.controller.zoom;
     final z =
-        -delta.dy / viewport.height * widget.scene.depth * widget.controller.zoom;
+        -delta.dy /
+        viewport.height *
+        widget.scene.depth *
+        widget.controller.zoom;
     widget.controller.panBy(
       x * math.cos(yaw) + z * math.sin(yaw),
       -x * math.sin(yaw) + z * math.cos(yaw),
@@ -804,6 +827,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           selectedCell: placement.active ? snapshot.selectedCell : null,
           paintedCells: groundPlan?.paintedCells,
           replacedGroundCells: groundPlan?.groundReplacementCells ?? const {},
+          borderGroundReplacements:
+              groundPlan?.borderGroundReplacements ?? const {},
           bridgeCells: groundPlan?.bridgeCells ?? const {},
           cliffTexture: groundPlan?.cliff == null
               ? null
@@ -1418,14 +1443,22 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   (int, int)? pickCell(Offset offset) => pickSurface(offset)?.cell;
 
   SpatialSurfaceHit? pickSurface(Offset offset) {
-    final ray = pointerRay(offset);
+    final ray = pointerRay(offset, allowStableSurface: true);
     return ray == null
         ? null
         : pickSpatialSurface(visibleConfiguration.scene, ray.$1, ray.$2);
   }
 
-  (Vector3, Vector3)? pointerRay(Offset offset) {
-    if (!sceneReady || refreshing || size.x <= 0 || size.y <= 0) return null;
+  (Vector3, Vector3)? pointerRay(
+    Offset offset, {
+    bool allowStableSurface = false,
+  }) {
+    if (!sceneReady || size.x <= 0 || size.y <= 0) return null;
+    if (refreshing &&
+        (!allowStableSurface ||
+            !configuration.surfaceGeometryMatches(visibleConfiguration))) {
+      return null;
+    }
     final inverse = Matrix4.copy(camera.viewProjectionMatrix);
     if (inverse.invert() == 0) return null;
     final x = offset.dx / size.x * 2 - 1;
@@ -1536,6 +1569,7 @@ final class _SceneGround {
         textures,
         scene: plan.scene,
         excludedCellsFor: plan.excludedCellsFor,
+        groundReplacements: plan.borderGroundReplacements,
       ))
         MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
     ];
@@ -1564,6 +1598,7 @@ Iterable<Mesh> terrainMeshes(
   (int, int)? selectedCell,
   Set<(int, int)>? paintedCells,
   Set<(int, int)> replacedGroundCells = const {},
+  SpatialBorderGroundReplacementIndex borderGroundReplacements = const {},
   Set<(int, int)> bridgeCells = const {},
   ({Texture texture, SmartTileSourceRect sourceRect})? cliffTexture,
 }) sync* {
@@ -1607,7 +1642,10 @@ Iterable<Mesh> terrainMeshes(
     return mesh;
   }
 
-  for (final face in spatialTerrainFaces(scene)) {
+  for (final face in spatialTerrainFaces(
+    scene,
+    groundReplacements: borderGroundReplacements,
+  )) {
     if (face.isTop && replacedGroundCells.contains(face.cell)) continue;
     if (!face.isTop && bridgeCells.contains(face.cell)) continue;
     if (face.isTop &&

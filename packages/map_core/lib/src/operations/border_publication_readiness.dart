@@ -2106,6 +2106,11 @@ Object _publicationCandidateProjection(
     if (definition.jumpBehavior != null)
       'jumpBehavior': definition.jumpBehavior!.toJson(),
     if (definition.straightOnly) 'straightOnly': 'true',
+    if (definition.followContourDirection) 'followContourDirection': 'true',
+    if (definition.replacesGround) 'replacesGround': 'true',
+    if (definition.masksGroundCells) 'masksGroundCells': 'true',
+    if (definition.groundBaseOffset != 0)
+      'groundBaseOffset': definition.groundBaseOffset.toString(),
     'defaults': <String, Object?>{
       'irregularityPermille':
           definition.defaults.irregularityPermille.toString(),
@@ -2141,6 +2146,7 @@ Map<String, Object?> _publishedPrimitiveProjection(
       'sourceModelId': primitive.sourceModelId,
       'anchorWorld': primitive.anchorWorld?.toJson(),
       'role': borderPrimitiveRoleV1WireName(primitive.role),
+      if (primitive.cornerTurn != null) 'cornerTurn': primitive.cornerTurn!.name,
       'authoredOrientation': primitive.authoredOrientation.name,
       'weight': primitive.weight.toString(),
       'transforms': <String, Object?>{

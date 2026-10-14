@@ -16,6 +16,187 @@ import '../application/spatial_border_commands_test.dart' show borderDraft;
 import 'resource_fixture.dart';
 
 void main() {
+  test('Studio creates publishes and reopens a directed cliff with distinct corners', () async {
+    final fixture = await ResourceFixture.create();
+    addTearDown(fixture.dispose);
+    final project = ProjectManifest(
+      name: 'Falaises',
+      version: ProjectVersion.v9,
+      settings: ProjectSettings(
+        dimension: ProjectDimension.threeD,
+        spatialCamera: SpatialCameraProfile(),
+      ),
+      maps: [ResourceFixture.entry],
+      tilesets: [],
+    );
+    ProjectValidator.validate(project);
+    await fixture.manifestFile.writeAsString(jsonEncode(project.toJson()));
+    await fixture.mapFile.writeAsBytes(
+      encodeMapDocumentBytes(spatialBorderMap().copyWith(id: 'garden')),
+    );
+    await fixture.maps.loadProject(fixture.session);
+    final input = File('${fixture.root.path}/piece.glb');
+    await input.writeAsBytes(triangleGlb());
+    final imported = await fixture.resources.importModel(
+      sourcePath: input.path,
+      name: 'Profil de falaise',
+    );
+    final id = imported.manifest.models3d.single.id;
+    final mapBefore = await fixture.mapFile.readAsBytes();
+    final receipt = await fixture.resources.createBorder(
+      BorderCreationRequest(
+        blueprintId: 'native-cliff',
+        name: 'Falaise',
+        followContourDirection: true,
+        replacesGround: true,
+        groundBaseOffset: -.0625,
+        capModelId: id,
+        straightModelId: id,
+        cornerModelId: id,
+        innerCornerModelId: id,
+      ),
+    );
+    final record = receipt.manifest.borderCatalog.records.single;
+    final definition = record.latestPublished!.definition;
+    expect(definition.followContourDirection, isTrue);
+    expect(definition.replacesGround, isTrue);
+    expect(definition.groundBaseOffset, -.0625);
+    expect(definition.defaults.allowAutoRotation, isTrue);
+    expect(
+      definition.primitives
+          .where((p) => p.role == BorderPrimitiveRole.lineCorner)
+          .map((p) => p.cornerTurn)
+          .toSet(),
+      BorderCornerTurn.values.toSet(),
+    );
+    expect(await fixture.mapFile.readAsBytes(), mapBefore);
+    expect(receipt.manifest.borderCatalog.visualSnapshots, isEmpty);
+    final reopened = await LocalMapWorkspaceAdapter().loadProject(
+      fixture.session,
+    );
+    expect(reopened.borderCatalog.records.single, record);
+    final updated = await fixture.resources.createBorder(
+      const BorderCreationRequest(
+        blueprintId: 'native-cliff',
+        name: 'Falaise modifiée',
+        primitiveModelSettings: {
+          'lineCornerLeft': BorderModelSettings(blocksMovement: false),
+        },
+      ),
+    );
+    final updatedDefinition = updated
+        .manifest
+        .borderCatalog
+        .records
+        .single
+        .latestPublished!
+        .definition;
+    expect(updatedDefinition.followContourDirection, isTrue);
+    expect(updatedDefinition.replacesGround, isTrue);
+    expect(updatedDefinition.groundBaseOffset, -.0625);
+    expect(
+      updatedDefinition.primitives
+          .singleWhere((p) => p.cornerTurn == BorderCornerTurn.left)
+          .blocksMovement,
+      isFalse,
+    );
+    expect(
+      updatedDefinition.primitives
+          .singleWhere((p) => p.cornerTurn == BorderCornerTurn.right)
+          .blocksMovement,
+      isTrue,
+    );
+    final masked = await fixture.resources.createBorder(
+      const BorderCreationRequest(
+        blueprintId: 'native-cliff',
+        name: 'Muret au-dessus du sol',
+        replacesGround: false,
+        groundBaseOffset: 0,
+        masksGroundCells: true,
+      ),
+    );
+    expect(masked.manifest.borderCatalog.records.single.latestPublished!.definition.masksGroundCells, isTrue);
+    final maskedReopened = await LocalMapWorkspaceAdapter().loadProject(fixture.session);
+    expect(maskedReopened.borderCatalog.records.single, masked.manifest.borderCatalog.records.single);
+    final editedMasked = await fixture.resources.createBorder(
+      const BorderCreationRequest(blueprintId: 'native-cliff', name: 'Muret renommé'),
+    );
+    expect(editedMasked.manifest.borderCatalog.records.single.latestPublished!.definition.masksGroundCells, isTrue);
+    expect(await fixture.mapFile.readAsBytes(), mapBefore);
+  });
+
+  test(
+    'changing a cliff model or playback keeps its directed corner shape',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'border_cliff_edit_',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final base = spatialBorderProject();
+      final raw = encodeBorderBlueprintRecordJson(
+        base.borderCatalog.records.single,
+        formatVersion: 5,
+      );
+      final definition = (raw['draft'] as Map)['definition'] as Map;
+      definition['followContourDirection'] = true;
+      final primitives = definition['primitives'] as List;
+      final corner = primitives.cast<Map>().singleWhere(
+        (p) => p['role'] == 'lineCorner',
+      );
+      corner['cornerTurn'] = 'right';
+      primitives.add({...corner, 'id': 'lineCornerLeft', 'cornerTurn': 'left'});
+      final project = base.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+          formatVersion: 5,
+          records: [decodeBorderBlueprintRecordJson(raw, formatVersion: 5)],
+        ),
+        models3d: [
+          ...base.models3d,
+          ProjectModel3dEntry(
+            id: 'replacement',
+            name: 'Nouvel angle',
+            sourceAssetId: 'replacement-source',
+            relativePath: 'assets/models3d/replacement.glb',
+            inspection: base.models3d.single.inspection,
+          ),
+        ],
+      );
+      final prepared = await prepareBorderResources(
+        manifest: project,
+        projectRoot: directory.path,
+        request: const BorderCreationRequest(
+          name: 'Falaise',
+          blueprintId: 'fence',
+          primitiveModelIds: {'lineCorner': 'replacement'},
+          primitiveModelSettings: {
+            'lineCornerLeft': BorderModelSettings(blocksMovement: false),
+          },
+        ),
+      );
+      final corners = prepared.where(
+        (p) => p.draft.role == BorderPrimitiveRole.lineCorner,
+      );
+      expect(
+        corners.map((p) => p.draft.cornerTurn).toSet(),
+        BorderCornerTurn.values.toSet(),
+      );
+      expect(
+        corners
+            .singleWhere((p) => p.draft.cornerTurn == BorderCornerTurn.right)
+            .draft
+            .sourceModelId,
+        'replacement',
+      );
+      expect(
+        corners
+            .singleWhere((p) => p.draft.cornerTurn == BorderCornerTurn.left)
+            .draft
+            .blocksMovement,
+        isFalse,
+      );
+    },
+  );
+
   test('model replacement preserves existing playback or refuses an incompatible animation', () async {
     final directory = await Directory.systemTemp.createTemp(
       'border_existing_playback_',

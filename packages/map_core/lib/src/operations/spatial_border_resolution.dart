@@ -42,7 +42,171 @@ typedef _SpatialBorderNode = ({
   BorderLinearNodeKind kind,
   BorderCardinalDirection? incomingDirection,
   BorderCardinalDirection? outgoingDirection,
+  GridPos? terrainCell,
 });
+
+typedef SpatialBorderGroundReplacement = ({
+  double left,
+  double top,
+  double right,
+  double bottom,
+  double lowerHeight,
+  double upperHeight,
+});
+
+typedef SpatialBorderGroundReplacementIndex =
+    Map<(int, int), List<SpatialBorderGroundReplacement>>;
+
+Set<(int, int)> resolveSpatialBorderGroundMaskCells({
+  required ProjectManifest manifest,
+  required MapData map,
+}) {
+  final scene = map.spatialScene;
+  if (scene == null) return const {};
+  final instances = {
+    for (final instance in scene.instances) instance.id: instance,
+  };
+  final models = {for (final model in manifest.models3d) model.id: model};
+  final result = <(int, int)>{};
+  for (final layer in map.layers.whereType<BorderLayer>()) {
+    if (!layer.isVisible || layer.opacity <= 0) continue;
+    for (final feature in layer.content.features) {
+      final publication = manifest.borderCatalog
+          .recordById(feature.blueprintId)
+          ?.latestPublished;
+      final applied = feature.materialization;
+      final geometry = feature.geometry;
+      if (publication?.definition.masksGroundCells != true ||
+          applied == null ||
+          !applied.targetsSpatialScene ||
+          applied.receipt.blueprintRevision != publication!.revision ||
+          geometry is! BorderStrokeGeometry ||
+          geometry.alignment != BorderStrokeAlignment.cellCenters) {
+        continue;
+      }
+      final primitives = {
+        for (final primitive in publication.definition.primitives)
+          primitive.id: primitive,
+      };
+      if (applied.spatialPlacements.any((placement) {
+        final instance = instances[placement.instanceId];
+        return instance == null ||
+            !models.containsKey(instance.modelId) ||
+            primitives[placement.primitiveId]?.sourceModelId != instance.modelId;
+      })) {
+        continue;
+      }
+      for (final placement in applied.spatialPlacements) {
+        final instance = instances[placement.instanceId]!;
+        final model = models[instance.modelId]!;
+        final anchor = primitives[placement.primitiveId]!.anchorWorld ?? model.pivot;
+        final scale = model.scale * instance.scale;
+        final angle = instance.rotationDegrees * math.pi / 180;
+        final dx = (anchor.x - model.pivot.x) * scale;
+        final dz = (anchor.z - model.pivot.z) * scale;
+        final x = (instance.position.x + math.cos(angle) * dx + math.sin(angle) * dz).floor();
+        final z = (instance.position.z - math.sin(angle) * dx + math.cos(angle) * dz).floor();
+        if (x >= 0 && z >= 0 && x < scene.width && z < scene.depth) {
+          result.add((x, z));
+        }
+      }
+    }
+  }
+  return Set.unmodifiable(result);
+}
+
+SpatialBorderGroundReplacementIndex indexSpatialBorderGroundReplacements({
+  required MapSpatialScene scene,
+  required List<SpatialBorderGroundReplacement> replacements,
+}) {
+  final result = <(int, int), List<SpatialBorderGroundReplacement>>{};
+  for (final replacement in replacements) {
+    final left = math.max(0, replacement.left.floor());
+    final top = math.max(0, replacement.top.floor());
+    final right = math.min(scene.width, replacement.right.ceil());
+    final bottom = math.min(scene.depth, replacement.bottom.ceil());
+    for (var z = top; z < bottom; z++) {
+      for (var x = left; x < right; x++) {
+        result.putIfAbsent((x, z), () => []).add(replacement);
+      }
+    }
+  }
+  return Map.unmodifiable({
+    for (final entry in result.entries)
+      entry.key: List<SpatialBorderGroundReplacement>.unmodifiable(entry.value),
+  });
+}
+
+List<SpatialBorderGroundReplacement> resolveSpatialBorderGroundReplacements({
+  required ProjectManifest manifest,
+  required MapData map,
+}) {
+  final scene = map.spatialScene;
+  if (scene == null) return const [];
+  final instances = {
+    for (final instance in scene.instances) instance.id: instance,
+  };
+  final models = {for (final model in manifest.models3d) model.id: model};
+  final result = <SpatialBorderGroundReplacement>[];
+  for (final layer in map.layers.whereType<BorderLayer>()) {
+    if (!layer.isVisible || layer.opacity <= 0) continue;
+    for (final feature in layer.content.features) {
+      final publication = manifest.borderCatalog
+          .recordById(feature.blueprintId)
+          ?.latestPublished;
+      final applied = feature.materialization;
+      if (publication?.definition.replacesGround != true ||
+          applied == null ||
+          !applied.targetsSpatialScene ||
+          applied.receipt.blueprintRevision != publication!.revision ||
+          applied.spatialPlacements.any(
+            (placement) =>
+                !instances.containsKey(placement.instanceId) ||
+                !models.containsKey(instances[placement.instanceId]!.modelId),
+          )) {
+        continue;
+      }
+      for (final placement in applied.spatialPlacements) {
+        final instance = instances[placement.instanceId]!;
+        final model = models[instance.modelId]!;
+        final bounds = model.inspection.bounds;
+        final scale = model.scale * instance.scale;
+        final angle = instance.rotationDegrees * math.pi / 180;
+        final xs = <double>[], zs = <double>[];
+        for (final x in [bounds.min.x, bounds.max.x]) {
+          for (final z in [bounds.min.z, bounds.max.z]) {
+            final dx = (x - model.pivot.x) * scale;
+            final dz = (z - model.pivot.z) * scale;
+            xs.add(
+              instance.position.x + math.cos(angle) * dx + math.sin(angle) * dz,
+            );
+            zs.add(
+              instance.position.z - math.sin(angle) * dx + math.cos(angle) * dz,
+            );
+          }
+        }
+        final left = xs.reduce(math.min), right = xs.reduce(math.max);
+        final top = zs.reduce(math.min), bottom = zs.reduce(math.max);
+        if (right - left <= .000001 || bottom - top <= .000001) continue;
+        result.add((
+          left: left,
+          top: top,
+          right: right,
+          bottom: bottom,
+          lowerHeight:
+              instance.position.y +
+              (bounds.min.y +
+                      publication.definition.groundBaseOffset -
+                      model.pivot.y) *
+                  scale,
+          upperHeight:
+              instance.position.y + (bounds.max.y - model.pivot.y) * scale,
+        ));
+      }
+    }
+  }
+  return List.unmodifiable(result);
+}
 
 BorderDiagnosticsReport diagnoseSpatialBorderFeature({
   required ProjectManifest manifest,
@@ -165,6 +329,15 @@ BorderDiagnosticsReport validateSpatialBorderBlueprint({
           !roles.contains(BorderPrimitiveRole.lineCorner))) {
     error('border.spatial.required_roles_missing');
   }
+  if (definition.followContourDirection && !definition.straightOnly) {
+    final turns = definition.primitives
+        .where((primitive) => primitive.role == BorderPrimitiveRole.lineCorner)
+        .map((primitive) => primitive.cornerTurn)
+        .toSet();
+    if (turns.contains(null) || !turns.containsAll(BorderCornerTurn.values)) {
+      error('border.spatial.corner_turn_missing');
+    }
+  }
   return BorderDiagnosticsReport(diagnostics: diagnostics);
 }
 
@@ -185,6 +358,18 @@ BorderDiagnosticsReport validateSpatialBorderFeatureGeometry({
   };
   return BorderDiagnosticsReport(
     diagnostics: [
+      if (definition.masksGroundCells &&
+          (geometry is! BorderStrokeGeometry ||
+              geometry.alignment != BorderStrokeAlignment.cellCenters))
+        BorderDiagnostic(
+          code: 'border.spatial.ground_mask_cell_centers_required',
+          severity: BorderDiagnosticSeverity.error,
+          phase: BorderDiagnosticPhase.resolution,
+          scope: BorderDiagnosticScope.feature,
+          blueprintId: blueprintId,
+          featureId: featureId,
+          suggestedAction: 'border.action.draw_cell_centered_strokes',
+        ),
       if (definition.straightOnly && !isStraight)
         BorderDiagnostic(
           code: 'border.spatial.straight_only_geometry_required',
@@ -303,6 +488,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       final lattice = buildBorderLinearLatticeV1(
         stroke: stroke,
         tileSizePx: const GridSize(width: 1, height: 1),
+        preserveTraversal: definition.followContourDirection,
       );
       chains.add((
         lineageNamespace: lattice.lineageNamespace,
@@ -313,6 +499,9 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
               kind: node.kind,
               incomingDirection: node.incomingDirection,
               outgoingDirection: node.outgoingDirection,
+              terrainCell: definition.followContourDirection
+                  ? _strokeLandCell(node, alignment: alignment)
+                  : null,
             ),
         ],
       ));
@@ -345,6 +534,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
                       contour.edges.length]
                   .direction,
               outgoingDirection: contour.edges[index].direction,
+              terrainCell: contour.edges[index].interiorCell,
             ),
         ],
       ));
@@ -406,12 +596,27 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
         continue;
       }
       final targetTurns =
-          (_nodeTurns(node, role) +
+          (_nodeTurns(node, role, directed: definition.followContourDirection) +
               (feature.lineSide == BorderLineSide.inverted ? 2 : 0)) %
           4;
       final candidates = <({BorderPublishedPrimitive primitive, int turns})>[];
+      final cornerTurn = role == BorderPrimitiveRole.lineCorner
+          ? (borderCardinalDirectionV1Rank(node.outgoingDirection!) -
+                            borderCardinalDirectionV1Rank(
+                              node.incomingDirection!,
+                            ) +
+                            4) %
+                        4 ==
+                    1
+                ? BorderCornerTurn.right
+                : BorderCornerTurn.left
+          : null;
       for (final primitive in definition.primitives.where(
-        (primitive) => primitive.role == role,
+        (primitive) =>
+            primitive.role == role &&
+            (!definition.followContourDirection ||
+                role != BorderPrimitiveRole.lineCorner ||
+                primitive.cornerTurn == cornerTurn),
       )) {
         if (override?.replacementPrimitiveId != null &&
             primitive.id != override!.replacementPrimitiveId) {
@@ -498,6 +703,9 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       final dz = (anchor.z - model.pivot.z) * model.scale;
       final offset = alignment == BorderStrokeAlignment.cellCenters ? .5 : 0.0;
       final spatialOffset = feature.spatialOffsetWorld ?? Model3dVector3.zero;
+      final terrainCell = definition.followContourDirection
+          ? node.terrainCell
+          : null;
       final x =
           node.cell.x +
           offset -
@@ -516,7 +724,10 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
         position: Model3dVector3(
           x: x,
           y:
-              scene.worldHeightAt(node.cell.x + offset, node.cell.y + offset) -
+              scene.worldHeightAt(
+                terrainCell == null ? node.cell.x + offset : terrainCell.x + .5,
+                terrainCell == null ? node.cell.y + offset : terrainCell.y + .5,
+              ) -
               (anchor.y - model.pivot.y) * model.scale +
               spatialOffset.y,
           z: z,
@@ -675,6 +886,40 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   );
 }
 
+GridPos _strokeLandCell(
+  BorderLinearNodeNeed node, {
+  required BorderStrokeAlignment alignment,
+}) {
+  if (alignment == BorderStrokeAlignment.cellCenters) {
+    (int, int) rightSide(BorderCardinalDirection direction) =>
+        switch (direction) {
+          BorderCardinalDirection.east => (0, 1),
+          BorderCardinalDirection.south => (-1, 0),
+          BorderCardinalDirection.west => (0, -1),
+          BorderCardinalDirection.north => (1, 0),
+        };
+    final (dx, dz) = rightSide(
+      node.outgoingDirection ?? node.incomingDirection!,
+    );
+    final (incomingX, incomingZ) = node.kind == BorderLinearNodeKind.corner
+        ? rightSide(node.incomingDirection!)
+        : (0, 0);
+    return GridPos(
+      x: node.cell.x + dx + incomingX,
+      y: node.cell.y + dz + incomingZ,
+    );
+  }
+  final direction = node.outgoingDirection ?? node.incomingDirection!;
+  final isEnd = node.outgoingDirection == null;
+  final (dx, dz) = switch (direction) {
+    BorderCardinalDirection.east => (isEnd ? -1 : 0, 0),
+    BorderCardinalDirection.south => (-1, isEnd ? -1 : 0),
+    BorderCardinalDirection.west => (isEnd ? 0 : -1, -1),
+    BorderCardinalDirection.north => (0, isEnd ? 0 : -1),
+  };
+  return GridPos(x: node.cell.x + dx, y: node.cell.y + dz);
+}
+
 MapData applySpatialBorderFeaturePreview(
   MapData map, {
   required ProjectManifest manifest,
@@ -804,7 +1049,18 @@ bool _supportsRepeatedUnitInversion(
       2;
 }
 
-int _nodeTurns(_SpatialBorderNode node, BorderPrimitiveRole role) {
+int _nodeTurns(
+  _SpatialBorderNode node,
+  BorderPrimitiveRole role, {
+  bool directed = false,
+}) {
+  if (directed) {
+    return borderCardinalDirectionV1Rank(
+      role == BorderPrimitiveRole.lineCorner
+          ? node.incomingDirection!
+          : node.outgoingDirection ?? node.incomingDirection!,
+    );
+  }
   BorderCardinalDirection opposite(BorderCardinalDirection direction) =>
       switch (direction) {
         BorderCardinalDirection.east => BorderCardinalDirection.west,

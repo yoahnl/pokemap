@@ -18,6 +18,7 @@ class BorderPatternPanel extends StatelessWidget {
     required this.project,
     required this.onAssign,
     this.straightOnly = false,
+    this.followContourDirection = false,
     this.variantSelector,
     this.modelSettings,
     this.settingsForRole,
@@ -29,6 +30,7 @@ class BorderPatternPanel extends StatelessWidget {
   final ProjectManifest project;
   final void Function(String role, ResourceItem element) onAssign;
   final bool straightOnly;
+  final bool followContourDirection;
   final Widget Function(String role)? variantSelector;
   final Widget? modelSettings;
   final BorderModelSettings Function(String role)? settingsForRole;
@@ -55,6 +57,13 @@ class BorderPatternPanel extends StatelessWidget {
     'Extrémité droite',
     'Extrémité basse',
     'Extrémité gauche',
+  ];
+
+  List<String> get _roles => [
+    'lineStraight',
+    'lineCap',
+    if (!straightOnly) 'lineCorner',
+    if (!straightOnly && followContourDirection) 'lineCornerLeft',
   ];
 
   Widget _slot(
@@ -174,6 +183,7 @@ class BorderPatternPanel extends StatelessWidget {
 
   IconData _icon(String role) => switch (role) {
     'lineCorner' => Icons.turn_right,
+    'lineCornerLeft' => Icons.turn_left,
     'lineCap' => Icons.horizontal_rule,
     _ => Icons.segment,
   };
@@ -183,7 +193,9 @@ class BorderPatternPanel extends StatelessWidget {
     'Angle haut droit' || 'Extérieur haut droit' => 0,
     'Angle bas gauche' || 'Extérieur bas gauche' => 2,
     'Angle bas droit' || 'Extérieur bas droit' => 1,
-    'Bord gauche' || 'Bord droit' => 1,
+    'Bord gauche' => followContourDirection ? 3 : 1,
+    'Bord droit' => 1,
+    'Bord bas' => followContourDirection ? 2 : 0,
     'Extrémité haute' => 1,
     'Extrémité droite' => 2,
     'Extrémité basse' => 3,
@@ -222,20 +234,19 @@ class BorderPatternPanel extends StatelessWidget {
     title: 'Patron de la bordure',
     compact: true,
     children: [
-      const Text('Déposez vos décors sur la forme. Le centre reste libre.'),
+      Text(
+        followContourDirection
+            ? 'La face regarde vers l’extérieur. Associez les deux formes d’angle.'
+            : 'Déposez vos décors sur la forme. Le centre reste libre.',
+      ),
       const SizedBox(height: 5),
       Text(
-        '${chosen.keys.where((role) => !straightOnly || role != 'lineCorner').length} / ${straightOnly ? 2 : 3} familles de pièces associées',
+        '${_roles.where(chosen.containsKey).length} / ${_roles.length} familles de pièces associées',
         style: Theme.of(context).textTheme.labelMedium,
       ),
       const SizedBox(height: 10),
       if (variantSelector != null)
-        for (final role in [
-          'lineStraight',
-          'lineCap',
-          if (!straightOnly) 'lineCorner',
-        ])
-          variantSelector!(role),
+        for (final role in _roles) variantSelector!(role),
       if (straightOnly) ...[
         const Text(
           'Tracés droits uniquement. Le corps et une extrémité sont nécessaires.',
@@ -244,6 +255,16 @@ class BorderPatternPanel extends StatelessWidget {
         _row(context, const [
           ('Corps', 'lineStraight'),
           ('Extrémité', 'lineCap'),
+        ]),
+      ] else if (followContourDirection) ...[
+        _row(context, const [
+          ('Corps', 'lineStraight'),
+          ('Extrémité', 'lineCap'),
+        ]),
+        const SizedBox(height: 8),
+        _row(context, const [
+          ('Angle sortant', 'lineCorner'),
+          ('Angle rentrant', 'lineCornerLeft'),
         ]),
       ] else ...[
         for (var row = 0; row < 3; row++) ...[
@@ -322,7 +343,10 @@ class BorderPatternPanel extends StatelessWidget {
       Text(
         chosen.containsKey('lineCap') &&
                 chosen.containsKey('lineStraight') &&
-                (straightOnly || chosen.containsKey('lineCorner'))
+                (straightOnly ||
+                    (chosen.containsKey('lineCorner') &&
+                        (!followContourDirection ||
+                            chosen.containsKey('lineCornerLeft'))))
             ? 'Associations complètes. Les raccords restent à valider avant publication.'
             : 'Les pièces manquantes restent visibles avant publication.',
         style: Theme.of(context).textTheme.bodySmall,

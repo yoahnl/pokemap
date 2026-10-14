@@ -63,6 +63,9 @@ class SpatialPixelMaterial extends UnlitMaterial {
   @override
   void apply(covariant RenderContext3D context) {
     super.apply(context);
+    if (context.jointsInfo.jointTransforms.isEmpty) {
+      vertexShader.setMatrix4('JointMatrices.joints[0]', _identityJoint);
+    }
     fragmentShader.setVector4('Material.uvRect', uvRect);
     fragmentShader.setVector4('Material.uvTransformU', uvTransformU);
     fragmentShader.setVector4('Material.uvTransformV', uvTransformV);
@@ -82,4 +85,6 @@ class SpatialPixelMaterial extends UnlitMaterial {
     });
     fragmentShader.setFloat('Material.alphaCutoff', alphaCutoff);
   }
+
+  static final _identityJoint = Matrix4.identity();
 }

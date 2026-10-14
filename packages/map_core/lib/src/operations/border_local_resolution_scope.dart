@@ -65,6 +65,14 @@ final class BorderLocalResolutionCapture {
     _basePlacements = placements.toList(growable: false);
   }
 
+  Set<String> get baseSlotKeys {
+    final placements = _basePlacements;
+    if (placements == null) {
+      throw const ValidationException('Border slot generation did not produce base evidence');
+    }
+    return Set<String>.unmodifiable(placements.map((placement) => placement.slotKey));
+  }
+
   BorderLocalResolutionState finish({
     required BorderResolutionRequest request,
     required BorderResolutionResult result,

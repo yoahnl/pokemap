@@ -64,6 +64,7 @@ BorderPrimitiveDraft _withModelSettings(
     id: primitive.id,
     sourceModelId: primitive.sourceModelId,
     role: primitive.role,
+    cornerTurn: primitive.cornerTurn,
     authoredOrientation: primitive.authoredOrientation,
     weight: primitive.weight,
     anchorWorld: primitive.anchorWorld,
@@ -100,18 +101,57 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
     }
     return _prepareNativeLedgeSources(manifest, root, record!.draft.definition);
   }
-  final chosen = <(BorderPrimitiveRole, String?, String?)>[
-    (BorderPrimitiveRole.lineCap, request.capElementId, request.capModelId),
+  final existing = manifest.borderCatalog
+      .recordById(request.blueprintId ?? '')
+      ?.draft
+      .definition;
+  final directed =
+      request.followContourDirection ??
+      existing?.followContourDirection ??
+      false;
+  if (directed && manifest.settings.dimension != ProjectDimension.threeD ||
+      !directed && request.innerCornerModelId != null) {
+    throw const ResourceFailure(
+      'Les angles rentrants nécessitent une bordure 3D orientée.',
+    );
+  }
+  String primitiveId(BorderPrimitiveRole role, BorderCornerTurn? turn) =>
+      turn == BorderCornerTurn.left ? 'lineCornerLeft' : role.name;
+  bool matches(
+    BorderPrimitiveDraft primitive,
+    BorderPrimitiveRole role,
+    BorderCornerTurn? turn,
+  ) =>
+      primitive.role == role &&
+      (!directed ||
+          role != BorderPrimitiveRole.lineCorner ||
+          (primitive.cornerTurn ?? BorderCornerTurn.right) == turn);
+  final chosen = <(BorderPrimitiveRole, BorderCornerTurn?, String?, String?)>[
+    (
+      BorderPrimitiveRole.lineCap,
+      null,
+      request.capElementId,
+      request.capModelId,
+    ),
     (
       BorderPrimitiveRole.lineStraight,
+      null,
       request.straightElementId,
       request.straightModelId,
     ),
     (
       BorderPrimitiveRole.lineCorner,
+      directed ? BorderCornerTurn.right : null,
       request.cornerElementId,
       request.cornerModelId,
     ),
+    if (directed)
+      (
+        BorderPrimitiveRole.lineCorner,
+        BorderCornerTurn.left,
+        null,
+        request.innerCornerModelId,
+      ),
   ];
   final result = <BorderResourcePrimitive>[];
   final mapId = request.blueprintId == null
@@ -119,20 +159,16 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
       : manifest.resourceLibraryCatalog
             .entryFor('borderBlueprint', request.blueprintId!)
             ?.mapId;
-  final existing = manifest.borderCatalog
-      .recordById(request.blueprintId ?? '')
-      ?.draft
-      .definition;
   final settingsIds = {
     if (existing?.isSpatial == true)
       ...existing!.primitives.map((primitive) => primitive.id),
     for (final source in chosen)
-      if (source.$3 != null &&
+      if (source.$4 != null &&
           existing?.primitives.any(
-                (primitive) => primitive.role == source.$1,
+                (primitive) => matches(primitive, source.$1, source.$2),
               ) !=
               true)
-        source.$1.name,
+        primitiveId(source.$1, source.$2),
   };
   if (request.primitiveModelSettings.isNotEmpty &&
       (manifest.settings.dimension != ProjectDimension.threeD ||
@@ -154,7 +190,7 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
     );
   }
   if (existing?.isSpatial == true) {
-    if (chosen.any((source) => source.$2 != null)) {
+    if (chosen.any((source) => source.$3 != null)) {
       throw const ResourceFailure(
         'Cette bordure 3D doit utiliser uniquement des modèles.',
       );
@@ -163,7 +199,10 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
       final roleModelId = switch (primitive.role) {
         BorderPrimitiveRole.lineCap => request.capModelId,
         BorderPrimitiveRole.lineStraight => request.straightModelId,
-        BorderPrimitiveRole.lineCorner => request.cornerModelId,
+        BorderPrimitiveRole.lineCorner =>
+          primitive.cornerTurn == BorderCornerTurn.left
+              ? request.innerCornerModelId
+              : request.cornerModelId,
         _ => null,
       };
       final modelId =
@@ -186,12 +225,21 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
           draft: _withModelSettings(
             manifest,
             request,
-            modelId == primitive.sourceModelId
+            modelId == primitive.sourceModelId &&
+                    (!directed ||
+                        primitive.role != BorderPrimitiveRole.lineCorner ||
+                        primitive.cornerTurn != null)
                 ? primitive
                 : BorderPrimitiveDraft(
                     id: primitive.id,
                     sourceModelId: modelId,
                     role: primitive.role,
+                    cornerTurn:
+                        primitive.cornerTurn ??
+                        (directed &&
+                                primitive.role == BorderPrimitiveRole.lineCorner
+                            ? BorderCornerTurn.right
+                            : null),
                     authoredOrientation: primitive.authoredOrientation,
                     weight: primitive.weight,
                     anchorWorld: primitive.anchorWorld,
@@ -206,9 +254,11 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
         ),
       );
     }
-    for (final (role, _, modelId) in chosen) {
+    for (final (role, turn, _, modelId) in chosen) {
       if (modelId == null ||
-          existing.primitives.any((primitive) => primitive.role == role)) {
+          existing.primitives.any(
+            (primitive) => matches(primitive, role, turn),
+          )) {
         continue;
       }
       if (!manifest.models3d.any((model) => model.id == modelId) ||
@@ -227,9 +277,10 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
             manifest,
             request,
             BorderPrimitiveDraft(
-              id: role.name,
+              id: primitiveId(role, turn),
               sourceModelId: modelId,
               role: role,
+              cornerTurn: turn,
               authoredOrientation: BorderPrimitiveOrientation.east,
               weight: 1000,
               transforms: BorderTransformPolicy(
@@ -244,7 +295,7 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
     }
     return result;
   }
-  for (final (role, elementId, modelId) in chosen) {
+  for (final (role, turn, elementId, modelId) in chosen) {
     if (modelId != null) {
       if (elementId != null ||
           manifest.settings.dimension != ProjectDimension.threeD ||
@@ -265,7 +316,8 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
           .primitives
           .where(
             (primitive) =>
-                primitive.role == role && primitive.sourceModelId == modelId,
+                matches(primitive, role, turn) &&
+                primitive.sourceModelId == modelId,
           )
           .firstOrNull;
       result.add(
@@ -275,9 +327,10 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
             request,
             original ??
                 BorderPrimitiveDraft(
-                  id: role.name,
+                  id: primitiveId(role, turn),
                   sourceModelId: modelId,
                   role: role,
+                  cornerTurn: turn,
                   authoredOrientation: BorderPrimitiveOrientation.east,
                   weight: 1000,
                   transforms: BorderTransformPolicy(

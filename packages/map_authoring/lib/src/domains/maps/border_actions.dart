@@ -99,7 +99,11 @@ final class BorderActions {
       'border_layer.feature_set_variation',
       'Set a deterministic Border slot variation',
     ),
-    _descriptor('border_layer.feature_set_replacement', 'Replace one resolved 2D Border slot with an explicit primitive'),
+    _descriptor('border_layer.feature_set_replacement', 'Replace a generated Border slot primitive'),
+    _descriptor('border_layer.feature_set_offset', 'Set a generated Border slot pixel offset'),
+    _descriptor('border_layer.feature_set_transform', 'Set a generated Border slot transform'),
+    _descriptor('border_layer.feature_set_suppressed', 'Set generated Border slot suppression'),
+    _descriptor('border_layer.feature_clear_slot_override', 'Restore a generated Border slot'),
     _descriptor('border_layer.feature_lock', 'Lock a resolved Border slot'),
     _descriptor('border_layer.feature_unlock', 'Unlock a Border slot'),
     _descriptor(
@@ -496,9 +500,11 @@ final class BorderActions {
           'slotKey',
           'variationSalt',
         },
-      'border_layer.feature_set_replacement' => const {
-          'layerId', 'featureId', 'slotKey', 'primitiveId',
-        },
+      'border_layer.feature_set_replacement' => const {'layerId', 'featureId', 'slotKey', 'primitiveId'},
+      'border_layer.feature_set_offset' => const {'layerId', 'featureId', 'slotKey', 'offsetDeltaPx'},
+      'border_layer.feature_set_transform' => const {'layerId', 'featureId', 'slotKey', 'transformOverride'},
+      'border_layer.feature_set_suppressed' => const {'layerId', 'featureId', 'slotKey', 'suppressed'},
+      'border_layer.feature_clear_slot_override' => const {'layerId', 'featureId', 'slotKey'},
       'border_layer.feature_lock' || 'border_layer.feature_unlock' => const {
           'layerId',
           'featureId',
@@ -839,62 +845,14 @@ final class BorderActions {
           overrides: overrides,
         );
       case 'border_layer.feature_set_replacement':
-        final featureId = parameters.string('featureId');
-        final feature = _feature(_borderLayer(context.map, layerId), featureId);
-        final revision = requirePublishedBlueprint(context.manifest, feature.blueprintId);
-        if (context.map.spatialScene != null || revision.definition.isSpatial) {
-          throw semanticFailure('border.replacement_dimension_unsupported',
-              'Explicit primitive replacement currently requires a 2D Border.');
-        }
-        final slotKey = parameters.string('slotKey');
-        final primitiveId = parameters.string('primitiveId');
-        if (!revision.definition.primitives.any((value) => value.id == primitiveId)) {
-          throw semanticFailure('border.primitive_missing',
-              'The replacement primitive is not in the published blueprint.',
-              details: {'primitiveId': primitiveId});
-        }
-        BorderResolutionResult resolve(MapData map) => preview(
-          manifest: context.manifest, map: map, layerId: layerId,
-          featureId: featureId, projectRevision: planning.snapshot.revision,
-          tileSizePx: GridSize(width: context.manifest.settings.tileWidth,
-              height: context.manifest.settings.tileHeight),
-          resolverVersion: borderResolverVersion,
-        ).result;
-        final resolved = resolve(context.map);
-        if (!resolved.canApply || resolved.materialization!.placements
-            .where((value) => value.slotKey == slotKey).length != 1) {
-          throw semanticFailure('border.slot_not_resolved',
-              'The replacement requires one current canonical Border slot.',
-              details: {'slotKey': slotKey});
-        }
-        final overrides = List<BorderSlotOverride>.from(feature.overrides);
-        final index = overrides.indexWhere((value) => value.slotKey == slotKey);
-        final current = index < 0 ? null : overrides[index];
-        final replacement = BorderSlotOverride(
-          slotKey: slotKey,
-          variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
-          suppressed: current?.suppressed ?? false,
-          locked: current?.locked ?? false,
-          lockedPlacement: current?.lockedPlacement,
-          lockedInstanceId: current?.lockedInstanceId,
-          replacementPrimitiveId: primitiveId,
-          offsetDeltaPx: current?.offsetDeltaPx,
-          transformOverride: current?.transformOverride,
-        );
-        if (index < 0) { overrides.add(replacement); }
-        else { overrides[index] = replacement; }
-        updated = updateBorderFeatureOverrides(context.map, layerId: layerId,
-            featureId: featureId, overrides: overrides);
-        final proposed = resolve(updated);
-        final placements = proposed.materialization?.placements
-            .where((value) => value.slotKey == slotKey).toList() ?? const <BorderResolvedPlacement>[];
-        if (!proposed.canApply || placements.length != 1 ||
-            placements.single.primitiveId != primitiveId) {
-          throw semanticFailure('border.replacement_invalid',
-              'The explicit primitive must produce the selected canonical Border slot.',
-              details: {'slotKey': slotKey, 'primitiveId': primitiveId,
-                'diagnostics': proposed.diagnostics.map((value) => value.code).toList()});
-        }
+      case 'border_layer.feature_set_offset':
+      case 'border_layer.feature_set_transform':
+      case 'border_layer.feature_set_suppressed':
+      case 'border_layer.feature_clear_slot_override':
+        updated = _setSlotOverride(context.manifest, context.map,
+            layerId: layerId, featureId: parameters.string('featureId'),
+            slotKey: parameters.string('slotKey'), actionId: actionId,
+            parameters: parameters);
       case 'border_layer.feature_lock':
         updated = _setSlotLock(
           context.map,
@@ -1035,8 +993,12 @@ final class BorderActions {
             blueprintId: feature.blueprintId, featureId: feature.id,
             definition: revision.definition, geometry: feature.geometry);
         if (geometryDiagnostics.hasErrors) {
-          throw semanticFailure('border.spatial.straight_only_geometry_required',
-              'This Border profile accepts straight strokes only.',
+          final diagnostic = geometryDiagnostics.diagnostics.firstWhere(
+              (value) => value.severity == BorderDiagnosticSeverity.error);
+          throw semanticFailure(diagnostic.code,
+              diagnostic.code == 'border.spatial.ground_mask_cell_centers_required'
+                  ? 'Ground masking requires a cell-centered Border stroke.'
+                  : 'This Border profile accepts straight strokes only.',
               details: {'blueprintId': feature.blueprintId, 'featureId': feature.id});
         }
         if (feature.spatialOffsetWorld != null) {
@@ -1084,16 +1046,12 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           AuthoringGuarantee.undoable
         ],
         extensions: {
+          if (_slotOverrideField(id) != null || id == 'border_layer.feature_clear_slot_override')
+            'inputSchema': _slotOverrideInputSchema(id),
           'semanticIds': true,
           'rawTilesetRequired': false,
-          'visualKinds': id == 'border_layer.feature_set_replacement'
+          'visualKinds': id == 'border_layer.feature_set_offset'
               ? const ['element'] : const ['element', 'model3d'],
-          if (id == 'border_layer.feature_set_replacement') 'inputSchema': {
-            'type': 'object', 'additionalProperties': false,
-            'required': ['mapId', 'layerId', 'featureId', 'slotKey', 'primitiveId'],
-            'properties': {for (final key in ['mapId', 'layerId', 'featureId', 'slotKey', 'primitiveId'])
-              key: const {'type': 'string', 'minLength': 1}},
-          },
           if (id == 'border_layer.stroke_erase') 'inputSchema': {
             'type': 'object', 'additionalProperties': false,
             'required': ['mapId', 'layerId', 'featureId', 'points'],
@@ -1110,6 +1068,39 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           if (id == 'border_layer.feature_create' || id == 'border_layer.feature_update')
             'inputSchema': _featureInputSchema(id == 'border_layer.feature_create'),
         });
+
+String? _slotOverrideField(String id) => switch (id) {
+  'border_layer.feature_set_replacement' => 'primitiveId',
+  'border_layer.feature_set_offset' => 'offsetDeltaPx',
+  'border_layer.feature_set_transform' => 'transformOverride',
+  'border_layer.feature_set_suppressed' => 'suppressed',
+  _ => null,
+};
+
+Map<String, Object?> _slotOverrideInputSchema(String id) {
+  final field = _slotOverrideField(id);
+  return {
+    'type': 'object', 'additionalProperties': false,
+    'required': ['mapId', 'layerId', 'featureId', 'slotKey', if (field != null) field],
+    'properties': {
+      for (final key in ['mapId', 'layerId', 'featureId', 'slotKey'])
+        key: const {'type': 'string', 'minLength': 1},
+      if (field == 'primitiveId') field!: const {'type': ['string', 'null'], 'minLength': 1},
+      if (field == 'suppressed') field!: const {'type': 'boolean'},
+      if (field == 'offsetDeltaPx') field!: const {'anyOf': [
+        {'type': 'null'},
+        {'type': 'object', 'additionalProperties': false, 'required': ['x', 'y'],
+          'properties': {'x': {'type': 'integer'}, 'y': {'type': 'integer'}}},
+      ]},
+      if (field == 'transformOverride') field!: const {'anyOf': [
+        {'type': 'null'},
+        {'type': 'object', 'additionalProperties': false, 'required': ['quarterTurns', 'flipX'],
+          'properties': {'quarterTurns': {'type': 'integer', 'minimum': 0, 'maximum': 3},
+            'flipX': {'type': 'boolean'}}},
+      ]},
+    },
+  };
+}
 
 Map<String, Object?> _featureInputSchema(bool create) => {
   'type': 'object',
@@ -1495,6 +1486,111 @@ BorderKeepOutRegion _keepOutRegion(Object? raw, int index) {
     id: id,
     region: geometry as BorderRegionGeometry,
   );
+}
+
+MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
+  required String layerId, required String featureId, required String slotKey,
+  required String actionId, required SemanticParameters parameters,
+}) {
+  final feature = _feature(_borderLayer(map, layerId), featureId);
+  final revision = const BorderActions().requirePublishedBlueprint(manifest, feature.blueprintId);
+  final spatial = revision.definition.isSpatial && map.spatialScene != null;
+  if (revision.definition.isSpatial != (map.spatialScene != null) ||
+      spatial && actionId == 'border_layer.feature_set_offset') {
+    throw semanticFailure('border.spatial.sprite_override_unsupported',
+        'Pixel slot corrections require a planar Border feature.');
+  }
+  final tileSize = GridSize(width: manifest.settings.tileWidth, height: manifest.settings.tileHeight);
+  BorderResolutionRequest requestFor(BorderFeature value) => BorderResolutionRequest(
+      mapSize: map.size, tileSizePx: tileSize, blueprintId: feature.blueprintId,
+      blueprintRevision: revision, feature: value,
+      visualSnapshots: manifest.borderCatalog.visualSnapshots,
+      resolverVersion: borderResolverVersion);
+  final baseFeature = _copyFeature(feature, overrides: const [], keepOutRegions: const []);
+  Set<String> slots;
+  try {
+    if (spatial) {
+      final baseMap = upsertBorderFeature(map, layerId: layerId, feature: baseFeature);
+      final base = resolveSpatialBorderFeature(manifest: manifest, map: baseMap,
+          layerId: layerId, featureId: featureId);
+      if (!base.result.canApply) {
+        throw semanticFailure('border.slot_generation_failed',
+            'The spatial Border base slots cannot be resolved.',
+            details: {'diagnostics': base.result.diagnostics.map((issue) => issue.code).toList()});
+      }
+      slots = base.result.materialization!.spatialPlacements.map((placement) => placement.slotKey).toSet();
+    } else {
+      slots = resolveBorderFeatureBaseSlotKeys(requestFor(baseFeature));
+    }
+  } on ValidationException catch (error) {
+    throw semanticFailure('border.slot_generation_failed', error.toString());
+  }
+  if (!slots.contains(slotKey)) {
+    throw semanticFailure('border.slot_missing', 'The requested generated Border slot does not exist.',
+        details: {'slotKey': slotKey});
+  }
+  final overrides = List<BorderSlotOverride>.from(feature.overrides);
+  final index = overrides.indexWhere((value) => value.slotKey == slotKey);
+  final current = index < 0 ? null : overrides[index];
+  if (current?.locked == true) {
+    throw semanticFailure('border.slot_locked', 'Unlock the Border slot before changing its corrections.',
+        details: {'slotKey': slotKey});
+  }
+  final clear = actionId == 'border_layer.feature_clear_slot_override';
+  final field = _slotOverrideField(actionId);
+  if (field != null && !parameters.contains(field)) {
+    throw invalidSemanticField(field, 'an explicitly provided value or null');
+  }
+  final suppression = field == 'suppressed' ? parameters.boolean('suppressed') : current?.suppressed ?? false;
+  if (!clear && suppression && field != 'suppressed') {
+    throw semanticFailure('border.slot_suppressed', 'Restore the Border slot before changing its corrections.',
+        details: {'slotKey': slotKey});
+  }
+  final offset = field == 'offsetDeltaPx' && parameters.value(field!) != null
+      ? SemanticParameters(parameters.object(field), allowed: const {'x', 'y'}) : null;
+  final transform = field == 'transformOverride' && parameters.value(field!) != null
+      ? SemanticParameters(parameters.object(field), allowed: const {'quarterTurns', 'flipX'}) : null;
+  final turns = transform?.integer('quarterTurns');
+  if (turns != null && (turns < 0 || turns > 3)) {
+    throw invalidSemanticField('quarterTurns', 'an integer between zero and three');
+  }
+  if (spatial && transform?.boolean('flipX') == true) {
+    throw semanticFailure('border.spatial.sprite_override_unsupported',
+        'Spatial Border corrections do not support sprite mirroring.');
+  }
+  final replacement = BorderSlotOverride(
+      slotKey: slotKey, variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
+      suppressed: suppression, locked: false,
+      replacementPrimitiveId: suppression ? null : field == 'primitiveId'
+          ? parameters.optionalString('primitiveId') : current?.replacementPrimitiveId,
+      offsetDeltaPx: suppression ? null : field == 'offsetDeltaPx'
+          ? offset == null ? null : BorderPixelOffset(x: offset.integer('x'), y: offset.integer('y'))
+          : current?.offsetDeltaPx,
+      transformOverride: suppression ? null : field == 'transformOverride'
+          ? transform == null ? null : BorderSpriteTransform(quarterTurns: turns!, flipX: transform.boolean('flipX'))
+          : current?.transformOverride);
+  if (!clear) {
+    final corrected = _copyFeature(baseFeature, overrides: [replacement]);
+    final diagnostics = spatial
+        ? resolveSpatialBorderFeature(manifest: manifest,
+            map: upsertBorderFeature(map, layerId: layerId, feature: corrected),
+            layerId: layerId, featureId: featureId).result.diagnostics
+        : resolveBorderFeature(requestFor(corrected)).diagnostics;
+    final errors = diagnostics.where((issue) => issue.severity == BorderDiagnosticSeverity.error &&
+        (spatial ? issue.slotKey == slotKey : issue.code.startsWith('border.resolution.override_'))).toList();
+    if (errors.isNotEmpty) {
+      throw semanticFailure(errors.first.code, 'The requested Border slot correction is invalid.',
+          details: {'slotKey': slotKey, 'diagnostics': errors.map((issue) => issue.code).toList()});
+    }
+  }
+  if (clear) {
+    if (index >= 0) overrides.removeAt(index);
+  } else if (index < 0) {
+    overrides.add(replacement);
+  } else {
+    overrides[index] = replacement;
+  }
+  return updateBorderFeatureOverrides(map, layerId: layerId, featureId: featureId, overrides: overrides);
 }
 
 MapData _setSlotLock(

@@ -49,6 +49,22 @@ Future<ResourceMutationReceipt> _createBorder(
             request.straightOnly ??
             existing?.draft.definition.straightOnly ??
             false,
+        followContourDirection:
+            request.followContourDirection ??
+            existing?.draft.definition.followContourDirection ??
+            false,
+        replacesGround:
+            request.replacesGround ??
+            existing?.draft.definition.replacesGround ??
+            false,
+        groundBaseOffset:
+            request.groundBaseOffset ??
+            existing?.draft.definition.groundBaseOffset ??
+            0,
+        masksGroundCells:
+            request.masksGroundCells ??
+            existing?.draft.definition.masksGroundCells ??
+            false,
         primitives: [for (final source in sources) source.draft],
         defaults:
             existing?.draft.definition.defaults ??
@@ -59,7 +75,7 @@ Future<ResourceMutationReceipt> _createBorder(
               maxOverlapPx: 8,
               gapTolerancePx: 1,
               depthRows: 1,
-              allowAutoRotation: false,
+              allowAutoRotation: request.followContourDirection == true,
             ),
         ground: existing?.draft.definition.ground,
         categoryId: existing?.draft.definition.categoryId,
@@ -153,6 +169,9 @@ ResourceFailure _resourceFailure(Object error) {
 }
 
 String _borderPublicationDiagnostic(Map diagnostic) {
+  if (diagnostic['code'] == 'border.spatial.corner_turn_missing') {
+    return 'Associez un angle sortant et un angle rentrant à cette falaise.';
+  }
   final parameters = diagnostic['parameters'] is Map
       ? diagnostic['parameters'] as Map
       : const <String, Object?>{};

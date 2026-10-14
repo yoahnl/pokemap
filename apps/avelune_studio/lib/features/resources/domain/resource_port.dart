@@ -55,9 +55,14 @@ final class BorderCreationRequest {
     this.capModelId,
     this.straightModelId,
     this.cornerModelId,
+    this.innerCornerModelId,
     this.primitiveModelIds = const {},
     this.primitiveModelSettings = const {},
     this.straightOnly,
+    this.followContourDirection,
+    this.replacesGround,
+    this.masksGroundCells,
+    this.groundBaseOffset,
     this.jumpSide,
     this.expectedRecord,
     this.blueprintId,
@@ -70,9 +75,14 @@ final class BorderCreationRequest {
   final String? straightElementId;
   final String? cornerElementId;
   final String? capModelId, straightModelId, cornerModelId;
+  final String? innerCornerModelId;
   final Map<String, String> primitiveModelIds;
   final Map<String, BorderModelSettings> primitiveModelSettings;
   final bool? straightOnly;
+  final bool? followContourDirection;
+  final bool? replacesGround;
+  final bool? masksGroundCells;
+  final double? groundBaseOffset;
   final BorderLineSide? jumpSide;
   final BorderBlueprintRecord? expectedRecord;
   final String? blueprintId;

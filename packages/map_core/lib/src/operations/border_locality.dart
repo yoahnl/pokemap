@@ -1,4 +1,3 @@
-import 'ledge_line_border_resolver.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/border_feature.dart';
 import '../models/border_geometry.dart';
@@ -9,6 +8,7 @@ import '../models/geometry.dart';
 import 'border_fingerprints.dart';
 import 'border_linear_lattice.dart';
 import 'border_local_resolution_scope.dart';
+import 'ledge_line_border_resolver.dart';
 import 'masonry_line_border_resolver.dart';
 import 'organic_edge_border_resolver.dart';
 import 'post_and_rail_line_border_resolver.dart';
@@ -214,11 +214,27 @@ BorderLocalResolutionState resolveBorderFeatureLocalBaseline(
     );
   }
   final capture = BorderLocalResolutionCapture();
-  final result = switch (revision.definition.template) {
+  final result = _resolveBorderFeatureWithCapture(request, capture);
+  return capture.finish(request: request, result: result);
+}
+
+Set<String> resolveBorderFeatureBaseSlotKeys(BorderResolutionRequest request) {
+  final capture = BorderLocalResolutionCapture();
+  _resolveBorderFeatureWithCapture(request, capture);
+  return capture.baseSlotKeys;
+}
+
+BorderResolutionResult _resolveBorderFeatureWithCapture(
+    BorderResolutionRequest request, BorderLocalResolutionCapture capture) {
+  final revision = request.blueprintRevision;
+  if (revision == null) {
+    throw const ValidationException('Border slot generation requires a published blueprint revision');
+  }
+  return switch (revision.definition.template) {
     BorderBlueprintTemplate.ledgeLine => resolveLedgeLineBorderWithEvidence(
-      request,
-      localCapture: capture,
-    ).result,
+        request,
+        localCapture: capture,
+      ).result,
     BorderBlueprintTemplate.organicEdge => resolveOrganicEdgeBorderWithEvidence(
         request,
         localCapture: capture,
@@ -243,7 +259,6 @@ BorderLocalResolutionState resolveBorderFeatureLocalBaseline(
         localCapture: capture,
       ).result,
   };
-  return capture.finish(request: request, result: result);
 }
 
 /// Regenerates only subproblems intersecting the conservative dirty halo.
@@ -276,10 +291,10 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
   );
   final result = switch (revision.definition.template) {
     BorderBlueprintTemplate.ledgeLine => resolveLedgeLineBorderWithEvidence(
-      request,
-      localScope: scope,
-      localCapture: capture,
-    ).result,
+        request,
+        localScope: scope,
+        localCapture: capture,
+      ).result,
     BorderBlueprintTemplate.organicEdge => resolveOrganicEdgeBorderWithEvidence(
         request,
         localScope: scope,

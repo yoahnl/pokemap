@@ -24,6 +24,8 @@ enum BorderLineSide { primary, inverted }
 /// Authored cardinal orientation of one Border primitive.
 enum BorderPrimitiveOrientation { legacyAxis, east, south, west, north }
 
+enum BorderCornerTurn { right, left }
+
 /// Functional primitive roles supported by V1.
 enum BorderPrimitiveRole {
   structureLarge,

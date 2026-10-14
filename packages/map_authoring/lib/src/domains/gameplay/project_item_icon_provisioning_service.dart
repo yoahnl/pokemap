@@ -65,7 +65,7 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
   Directory? staging;
   try {
     final snapshot = await snapshots.load(opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+        policy: ProjectSnapshotLoadPolicy.resourceUsageReadProjection);
     _requireCurrent(shouldContinue);
     if (!snapshot.manifest.pokemon.enabled) {
       return {

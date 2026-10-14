@@ -649,6 +649,10 @@ AuthoringMutationDraft _publishSpatial(
       previewSeed: draft.previewSeed,
       template: draft.template,
       straightOnly: draft.straightOnly,
+      followContourDirection: draft.followContourDirection,
+      replacesGround: draft.replacesGround,
+      masksGroundCells: draft.masksGroundCells,
+      groundBaseOffset: draft.groundBaseOffset,
       primitives: [
         for (final primitive in draft.primitives)
           if (primitive.weight > 0)
@@ -656,6 +660,7 @@ AuthoringMutationDraft _publishSpatial(
               id: primitive.id,
               sourceModelId: primitive.sourceModelId,
               role: primitive.role,
+              cornerTurn: primitive.cornerTurn,
               authoredOrientation: primitive.authoredOrientation,
               weight: primitive.weight,
               transforms: primitive.transforms,
@@ -993,6 +998,26 @@ AuthoringActionDescriptor _descriptor(
               },
               'required': ['side', 'distanceCells', 'durationMs', 'peakHeightPx'],
             },
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'spatialGroundContact': {
+            'enabledBy': 'replacesGround',
+            'offsetField': 'groundBaseOffset',
+            'offsetMaximum': 0,
+            'offsetUnits': 'model',
+            'appliesTo': 'nativeGroundOnly',
+            'preservesModelGeometry': true,
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'spatialGroundMask': {
+            'enabledBy': 'masksGroundCells',
+            'geometry': 'cellCenteredStroke',
+            'scope': 'allNativeGroundLayers',
+            'units': 'logicalCell',
+            'independentOfMeshBounds': true,
+            'preservesNavigation': true,
           },
         if (id == 'border.blueprint.delete' ||
             id == 'border.blueprint.set_deprecated')

@@ -175,6 +175,13 @@ final class MapBorderDrawingDraft {
     id: 'trait',
     sampledPoints: closed ? [...anchors, anchors.first] : anchors,
     closed: closed,
+    preserveTraversal:
+        sourceProject?.borderCatalog
+            .recordById(blueprintId)
+            ?.latestPublished
+            ?.definition
+            .followContourDirection ??
+        false,
   );
 
   bool get canFinish {

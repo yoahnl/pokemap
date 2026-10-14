@@ -1,4 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_border_tool_panel.dart';
@@ -27,6 +28,173 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_border_fixture.dart';
 
 void main() {
+  test('a cliff drawing keeps the direction of the mouse gesture', () {
+    final base = spatialBorderProject();
+    final raw = encodeBorderBlueprintRecordJson(
+      base.borderCatalog.records.single,
+      formatVersion: 5,
+    );
+    for (final key in ['draft', 'latestPublished']) {
+      final definition = (raw[key] as Map)['definition'] as Map;
+      definition['followContourDirection'] = true;
+    }
+    final project = base.copyWith(
+      borderCatalog: ProjectBorderCatalog(
+        formatVersion: 5,
+        records: [decodeBorderBlueprintRecordJson(raw, formatVersion: 5)],
+      ),
+    );
+    final map = spatialBorderMap();
+    final draft = MapBorderDrawingDraft.start(
+      mapId: map.id,
+      mapSize: map.size,
+      blueprintId: project.borderCatalog.records.single.id,
+      origin: const GridPos(x: 5, y: 2),
+      sourceMap: map,
+      sourceProject: project,
+    ).addAngle(const GridPos(x: 2, y: 2));
+    expect(draft.stroke.points.first, const GridPos(x: 5, y: 2));
+    expect(draft.stroke.points.last, const GridPos(x: 2, y: 2));
+  });
+
+  testWidgets(
+    'cliff edition exposes and keeps both corner families separately',
+    (tester) async {
+      tester.view.physicalSize = const Size(1440, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final base = spatialBorderProject();
+      final raw = encodeBorderBlueprintRecordJson(
+        base.borderCatalog.records.single,
+        formatVersion: 5,
+      );
+      final definition = (raw['draft'] as Map)['definition'] as Map;
+      definition['followContourDirection'] = true;
+      definition['replacesGround'] = true;
+      definition['groundBaseOffset'] = -.0625;
+      final primitives = definition['primitives'] as List;
+      final corner = primitives.cast<Map>().singleWhere(
+        (p) => p['role'] == 'lineCorner',
+      );
+      corner['cornerTurn'] = 'right';
+      primitives.add({...corner, 'id': 'lineCornerLeft', 'cornerTurn': 'left'});
+      final project = base.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+          formatVersion: 5,
+          records: [decodeBorderBlueprintRecordJson(raw, formatVersion: 5)],
+        ),
+      );
+      final controller = MapWorkspaceController(
+        workspaceSession,
+        WorkspaceMemoryPort(),
+      )..project = project;
+      final port = _BorderRequestPort(project);
+      final navigation = ResourceNavigation(
+        workspace: controller,
+        port: port,
+        visuals: WorkspaceTestVisuals(),
+        onUse: (_) {},
+      );
+      addTearDown(navigation.dispose);
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => StudioButton(
+                label: 'Modifier',
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => BorderCreationDialog(
+                    navigation: navigation,
+                    project: project,
+                    visuals: WorkspaceTestVisuals(),
+                    initialRecord: project.borderCatalog.records.single,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('border-ground-base-offset')),
+        findsOneWidget,
+      );
+      final groundField = find.descendant(
+        of: find.byKey(const ValueKey('border-ground-base-offset')),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(groundField, '-1');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('L’abaissement doit être un nombre positif ou nul.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('border-replaces-ground')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('border-ground-base-offset')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('border-replaces-ground')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(groundField).controller!.text, '0');
+      await tester.enterText(groundField, '0,125');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('border-masks-ground-cells')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('border-masks-ground-cells')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('border-ground-base-offset')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('border-masks-ground-cells')));
+      await tester.tap(find.byKey(const ValueKey('border-replaces-ground')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(groundField).controller!.text, '0');
+      await tester.enterText(groundField, '0,125');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('border-pattern-Angle rentrant')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('border-pattern-Angle sortant')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('border-pattern-Angle haut gauche')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const ValueKey('border-settings-piece')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Angle rentrant').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('border-settings-blocks-movement')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('border-settings-blocks-movement')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('border-publish')));
+      await tester.pumpAndSettle();
+      expect(port.request!.followContourDirection, isTrue);
+      expect(port.request!.groundBaseOffset, -.125);
+      expect(
+        port.request!.primitiveModelSettings['lineCornerLeft']!.blocksMovement,
+        isFalse,
+      );
+      expect(
+        port.request!.primitiveModelSettings.containsKey('lineCorner'),
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'tapping the interactive 3D slot preview assigns its active border model',
     (tester) async {

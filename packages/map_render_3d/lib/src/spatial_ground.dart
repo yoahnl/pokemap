@@ -19,6 +19,15 @@ final class SpatialGroundPlan {
   SpatialGroundPlan(MapData map, ProjectManifest project)
     : scene = map.spatialScene {
     final catalog = project.smartTileCatalog;
+    borderGroundReplacements = scene == null
+        ? const {}
+        : indexSpatialBorderGroundReplacements(
+            scene: scene!,
+            replacements: resolveSpatialBorderGroundReplacements(
+              manifest: project,
+              map: map,
+            ),
+          );
     final materials = {
       for (final material in catalog.materials) material.id: material,
     };
@@ -28,7 +37,12 @@ final class SpatialGroundPlan {
       sourceCellWidth: project.settings.tileWidth,
       sourceCellHeight: project.settings.tileHeight,
     ).groundReplacements;
+    final borderMaskCells = resolveSpatialBorderGroundMaskCells(
+      manifest: project,
+      map: map,
+    );
     groundReplacementCells = Set.unmodifiable({
+      ...borderMaskCells,
       for (final cells in replacements.values) ...cells,
     });
     final bridgeCells = <(int, int)>{};
@@ -109,7 +123,7 @@ final class SpatialGroundPlan {
       }
     }
     this.bridgeCells = Set.unmodifiable(bridgeCells);
-    final covered = <(int, int)>{};
+    final covered = <(int, int)>{...borderMaskCells};
     for (var index = _layerIds.length - 1; index >= 0; index--) {
       covered.addAll(replacements[_layerIds[index]] ?? const {});
       _layerExclusions.insert(0, Set<(int, int)>.unmodifiable(covered));
@@ -117,6 +131,7 @@ final class SpatialGroundPlan {
   }
 
   final MapSpatialScene? scene;
+  late final SpatialBorderGroundReplacementIndex borderGroundReplacements;
   late final Set<(int, int)> bridgeCells;
   late final Set<(int, int)> groundReplacementCells;
   ({String tilesetId, SmartTileSourceRect sourceRect})? cliff;
@@ -243,11 +258,13 @@ List<Vertex> spatialGroundVertices(
   double height = 0,
   MapSpatialScene? scene,
   Set<(int, int)> excludedCells = const {},
+  SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) => _spatialGroundVertices(
   geometry,
   height: height,
   scene: scene,
   excludedCells: excludedCells,
+  groundReplacements: groundReplacements,
 );
 
 List<Vertex> _spatialGroundVertices(
@@ -256,6 +273,7 @@ List<Vertex> _spatialGroundVertices(
   MapSpatialScene? scene,
   ({SmartTileSourceRect sourceRect, Texture texture})? atlasFrame,
   Set<(int, int)> excludedCells = const {},
+  SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) {
   Vector2 textureUv(Vector2 uv) {
     final frame = atlasFrame;
@@ -312,6 +330,7 @@ List<Vertex> _spatialGroundVertices(
       top: geometry.visualBounds.top,
       right: geometry.visualBounds.right,
       bottom: geometry.visualBounds.bottom,
+      groundReplacements: groundReplacements,
     ))
       if (!excludedCells.contains(patch.cell))
         for (final point in patch.corners)
@@ -327,6 +346,7 @@ Iterable<Mesh> spatialGroundMeshes(
   Map<String, Texture> textures, {
   MapSpatialScene? scene,
   Set<(int, int)> Function(SmartTileLayerVisual visual)? excludedCellsFor,
+  SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
   var mesh = Mesh();
   (String, double)? previous;
@@ -375,6 +395,7 @@ Iterable<Mesh> spatialGroundMeshes(
       scene: scene,
       atlasFrame: (sourceRect: rect, texture: texture),
       excludedCells: excludedCellsFor?.call(visual) ?? const {},
+      groundReplacements: groundReplacements,
     );
     for (var offset = 0; offset < quads.length; offset += 4) {
       final base = vertices.length;

@@ -72,7 +72,7 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
       };
   try {
     final snapshot = await snapshots.load(opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+        policy: ProjectSnapshotLoadPolicy.resourceUsageReadProjection);
     _requireCurrent(shouldContinue);
     if (!snapshot.manifest.pokemon.enabled) return result('pokemon-disabled');
     final catalogPath = snapshot.manifest.pokemon.catalogFiles['items'];
