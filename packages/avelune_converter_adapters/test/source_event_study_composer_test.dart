@@ -28,6 +28,93 @@ void main() {
         isNull);
   });
 
+  test('missing NPC sprite quarantines its whole event and preserves the map',
+      () async {
+    final temporary =
+        await Directory.systemTemp.createTemp('ac13-missing-npc-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        includeEventSystem: true,
+        extraFiles: {
+          'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = PresentActor\n'),
+          'Graphics/Characters/PresentActor.png': image
+              .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+        },
+        maps: [
+          LiteralFixtureMap(id: 1, width: 4, height: 4, layers: [
+            List.filled(16, 384),
+            List.filled(16, 0),
+            List.filled(16, 0)
+          ], events: const [
+            LiteralFixtureEvent(id: 1, name: 'Missing NPC', x: 1, y: 1, pages: [
+              LiteralFixtureEventPage(characterName: 'MissingActor', commands: [
+                LiteralFixtureEventCommand(101, ['Ne pas activer']),
+                LiteralFixtureEventCommand(123, ['A', 0]),
+              ]),
+              LiteralFixtureEventPage(
+                  characterName: 'MissingActor', selfSwitch: 'A', commands: []),
+            ]),
+            LiteralFixtureEvent(id: 2, name: 'Present NPC', x: 2, y: 2, pages: [
+              LiteralFixtureEventPage(characterName: 'PresentActor', commands: [
+                LiteralFixtureEventCommand(101, ['Bienvenue']),
+              ]),
+            ]),
+          ])
+        ]);
+    expect(fixture.source.canPlan, isTrue);
+    final literal = await const LiteralTileComposer().compose(
+        source: fixture.source,
+        files: fixture.files,
+        selectedSourceMapIds: [1],
+        projectName: 'Missing sprite study',
+        parentPath: temporary.path,
+        folderName: 'missing-sprite-study');
+    final semantic = (await const SourceSemanticStudyComposer()
+        .compose(source: fixture.source, base: literal, files: fixture.files))!;
+    final composed = (await const SourceEventStudyComposer().compose(
+        source: fixture.source, base: semantic, files: fixture.files))!;
+    final events = composed.projection.semanticEvidence['events'] as List;
+    final missing = events
+        .cast<Map>()
+        .singleWhere((entry) => (entry['locator'] as Map)['eventId'] == 1);
+    expect(missing['status'], 'quarantinedWholeEvent');
+    expect(missing['gaps'], contains('characterBindingMissing'));
+    expect(missing['pages'], hasLength(2));
+    final records = composed.projection.registry.records;
+    expect(records.where((record) => record.definitionOrNull != null),
+        hasLength(1));
+    expect(records.where((record) => record.draftOrNull != null), hasLength(1));
+    expect(composed.projection.facts, isEmpty);
+    expect(composed.projection.dialogueSources.values.single,
+        contains('Bienvenue'));
+    final approval = approveNativeFixtureDraft(composed.draft);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, composed.draft);
+    expect(receipt.verified, isTrue);
+    final handles = WorkspaceHandleStore();
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(receipt.projectPath);
+    try {
+      final native = await ProjectSnapshotLoader(handles: handles)
+          .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(native.loadDiagnostics, isEmpty);
+      final map = native.mapById(composed.draft.mapIds[1]!)!;
+      final actors =
+          map.entities.where((entity) => entity.kind != MapEntityKind.spawn);
+      expect(actors.map((entity) => entity.name), ['Present NPC']);
+      expect(native.manifest.eventRegistry!.records, records);
+      expect(native.manifest.facts, isEmpty);
+      expect(map.size, const GridSize(width: 4, height: 4));
+    } finally {
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
+
   test(
       'qualified pages survive canonical native write and reject altered actions',
       () async {

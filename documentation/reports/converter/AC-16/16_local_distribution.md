@@ -642,3 +642,87 @@ MCP : ce choix appartient aux contrats source Converter et ne crée aucune séma
 Auto-critique : le choix explicite de backup et l’étude à deux cartes ne suffisent pas à rendre automatique la conversion complète de Kanto. La publication/renommage sauvegardé sont maintenant des preuves réelles ; la fidélité complète du backup, l’édition des cellules/décors, KAN03 et le contrôle de la fenêtre release finale ne sont pas acquis. Les règles native/runtime ne sont pas affaiblies pour présenter un faux vert. Goal complet ouvert, aucune estimation horaire inventée.
 
 Git avant commit :13fichiers possédés et ce rapport,64 chemins étrangers inchangés, index vide. Aucun nouveau Markdown ni pub/lock de dépendances du host modifié ; les distributions locales déclarées sont générées sous build/distribution. Aucun push/rebase/amend/branche/worktree. Le reçu commit-atlas-after-01.json et Notion portent le SHA et l’état final vérifiés après le commit local ciblé. Prochaine action : édition de décors réellement sauvegardée/reouverte puis parcours Player contrôlé, sans réduire les lots restants à ce test de métadonnées.
+
+## Édition de cellule et absence d’un sprite de PNJ — 14 octobre 2026
+
+**Verdict : correction du blocage de carte vérifiée ; AC-16 et le goal complet restent DOING / PARTIAL.** Une vraie cellule du nouvel export Kanto original a été effacée dans Studio, sauvegardée et retrouvée exactement après fermeture/réouverture. La préparation d’une tranche de trois cartes incluant le Centre Pokémon aboutit maintenant malgré un sprite absent. La première publication de cette tranche a été interrompue par le délai du harnais ; aucun projet final de trois cartes n’est annoncé comme publié ou jouable.
+
+### Audit initial et portée
+
+Base19b55b84bf8c60b086638395650bdcc31fbe4732, main, index vide,64 chemins étrangers inchangés. Le dernier tour de statut a fourni une nouvelle preuve de cold-reopen puis fermé sa propre fenêtre, donc est classé PROGRESS. Le writer natif étranger est exclu de la qualification et du commit. Les skills systematic-debugging, test-driven-development, verification-before-completion, using-pokemap-mcp et test-flutter-desktop guident la vérification ; codex_rule.md et les exigences KAN-03 du kit ont été relus. Les instructions humaines sur commits locaux, source immuable, absence d’IA obligatoire et combat Avelune priment.
+
+Le probe source98/100/166/205 termine avec FRLG_Caves manquant. Le probe98/100/102 termine avec normalization.missing_image sur Map102/event7/page0, NPC_FRLG_WOMAN_2_FORMAL, absent du corpus régional inspecté. Un sprite de PNJ absent bloquait toute la carte alors que la projection canonique sait déjà quarantiner l’événement entier lorsqu’aucun character binding n’existe. Le correctif vise uniquement cette absence ; aucune image de remplacement n’est inventée. Les ambiguïtés, chemins invalides, images de tileset/autotile, quotas, hashes et changements de source restent bloquants.
+
+Inventaire exact contre la base :
+
+| Fichier | Zones du diff | Raison / impact |
+|---|---|---|
+| packages/avelune_converter_core/lib/src/source_normalization.dart | _normalizedJson, ligne429 ; resolveImage, ligne1540 | Extracteur v4 ; diagnostic non bloquant uniquement pour une image character absente avec locator map/event/page complet. Référence et raw data conservées. |
+| packages/avelune_converter_core/test/source_normalization_test.dart | Version attendue ; tests autour de1315 | Absence non bloquante avec locator exact ; ambiguïté et traversal restent bloquants. |
+| packages/avelune_converter_adapters/test/source_event_study_composer_test.dart | Nouveau test autour de31 | PNJ manquant à deux pages avec self-switch, voisin valide, writer réel et relecture stricte ; aucun acteur/fact/dialogue actif issu du manquant. |
+| documentation/reports/converter/AC-16/16_local_distribution.md | Présent complément | Preuves, interruption, artefacts et limites consolidés ; zéro nouveau Markdown. |
+
+Trois fichiers code/tests :138 insertions/4 suppressions. Aucun commentaire de code ajouté, conformément à l’instruction directe. Source_normalization.dart et les deux tests host sont byte-identical au snapshot qualifié ; ledger missing-npc-final-pins-01.json. Le modèle natif, Studio, runtime, moteur de combat et writer ne sont pas modifiés. La version d’extraction entre dans les hashes de normalisation/plan ; Settings3/Recipe4/Store3 demeurent leurs contrats courants. Un ancien plan v3 doit être recomposé et approuvé de nouveau.
+
+### Édition native réellement persistée
+
+Source publiée originale : …/AC16-refresh-20261014-ftgqyeej/output/Kanto-interface-atlas-r1. Nouvelle copie byte-identical29 fichiers : /Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/AC16-Kanto-cell-edit-20261014-ftgqyeej/Projet converti. La fenêtre normale Studio ouvre Route9 ; zoom36%, gomme choisie dans la vraie palette, geste au centre observé de la cellule10,10. Le layer z0 passe uniquement son index730 de17 à0. Undo restaure la map entière ; redo retrouve exactement cette cellule ; Enregistrer termine dirty=false/error=null. Les captures avant/après montrent568 pixels changés dans le seul rectangle de cellule24×24 à cette échelle.
+
+La relecture disque retrouve cette unique différence ; toutes les autres données map sont conservées. Hash du fichier map modifié77cab1205f5a7424f22ea3e7ccddcfe79d0180e73076c57d81ad6dc26eec4580. Après fermeture du PID356 et nouveau processus4203, la map entière observée est exactement égale à la map éditée/sauvegardée, dirty=false/error=null. Preuves Q/cell-edit-01/trace-01.json, saved-cell-proof-01.json et cold-reopen-proof-01.json contenant la map réellement relue. Les29 fichiers de la publication source restent intacts. La peinture d’une autre tuile n’a pas été menée à son terme et n’est pas revendiquée.
+
+Les deux fenêtres QA sont fermées, connexions Marionette déconnectées : studio-run-01 exit0/401.032s et studio-reopen-01 exit0/562.088s, aucun signal ni survivant, protégés inchangés. Studio utilisateur1307 et son runner310/superviseur308 restent intacts ; aucun contrôle sur sa partie.
+
+### Commandes et résultats terminaux
+
+Q = /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej. Les argv/cwd complets, identités de processus, pins et SHA des logs sont conservés dans les reçus. Les commandes ci-dessous s’exécutent dans leurs packages du snapshot privé ; aucun lock/pub/config du host modifié.
+
+| Reçu | Commande / contrôle | Résultat exact | Durée |
+|---|---|---|---|
+| missing-npc-core-red-01 | dart test source_normalization_test, plain-name du nouveau comportement | RED : expected true / actual false, exit1 |3.899s|
+| missing-npc-adapters-red-02 | dart test source_event_study_composer_test, plain-name du nouveau comportement | RED : expected true / actual false, exit1 |5.183s|
+| missing-npc-core-green-01 | dart test test/source_normalization_test.dart --reporter expanded --concurrency=1 |66PASS/1SKIP, exit0|5.618s|
+| missing-npc-adapters-green-01 | Test composer/writer/relecture stricte avec Scripts attestés |1PASS/0SKIP, exit0|8.577s|
+| missing-npc-core-full-01 | dart test --reporter expanded --concurrency=2 |827PASS/1SKIP, exit0|60.786s|
+| missing-npc-adapters-regression-01 | dart test : composer, character importer, projection, workflow, recette et composer littéral |185PASS/3SKIP, exit0|33.542s|
+| missing-npc-core-analyze-01 | dart analyze |No issues found, exit0|2.113s|
+| missing-npc-adapters-analyze-01 | dart analyze |No issues found, exit0|2.729s|
+| missing-npc-cli-build-01 | dart compile exe bin/avelune_converter.dart -o Q/bin/avelune-converter-missing-npc-v4 |AOT arm64, exit0|27.188s|
+| missing-npc-app-build-01 | flutter build macos --release --no-pub |71.1MB, arm64+x86_64 vérifiés par lipo, exit0|63.585s|
+| normalizer-upgrade-run-02 | Ancienne CLI v3 plan → nouvelle CLI v4 convert avec ancien hash approuvé |Refus réel workflow.recipe.stale/code7 ; source/recette intactes, aucune destination ; contrôle exit0|0.396s|
+| missing-npc-package-01 | python3 tool/package_distribution.py, release/CLI v4/fixture originale |ZIP/inventaire scellés, exit0|4.217s|
+| install-missing-npc-v4-run-01 | Archive extraite, inventaire/modes/liens ; CLI --help→plan→convert→verify |2cartes/1atlas synthétiques, source intacte, verify read-only, exit0|1.359s|
+| missing-npc-mcp-dependencies-01 | npm ci --offline --ignore-scripts dans snapshot |22packages installés, lock stable, exit0|1.015s|
+| missing-npc-mcp-build-01 / check-01 | npm run build / npm run check |exit0 / exit0|1.812s /1.834s|
+| missing-npc-mcp-live-01 | node --import tsx --test --test-concurrency=1 test/narrative_event_typed_stdio.test.ts |1PASS/0SKIP ; describe, action canonique, apply/refus/reopen/query/close live|10.903s|
+| centre-source-copy-run-01 | Copie APFS de la source restaurée ; deux médias au hash historique exact |23720fichiers, copie de base intacte, exit0|16.969s|
+| kan03-probe-run-04 | Workflow public, source restaurée, sélection98/100/102, trois sorties hors sélection exclues |canApprove=true, profil exact,44events,78artefacts natifs/421mutations ; aucun export à ce stade, exit0|206.231s|
+
+Les SKIP restent des absences de preuve. Le premier harnais Dart offrepo ne compilait pas (paramètre profile et méthode draft), et le premier test adapter ajouté ne compilait pas (commands requis/nom GridSize) ; les erreurs et leurs logs sont conservés avant les RED fonctionnels. Le premier contrôle AOT de version pointait une fixture inexistante : source.root_invalid/code3 ; chemin corrigé, contrôle02 ci-dessus. Aucun contournement de validation ni suppression de test. Build app réape seulement deux ibtoold prouvés avec SIGTERM ; zéro survivant et protégés inchangés dans tous les reçus terminaux réussis.
+
+Nouvelle archive locale : apps/avelune_converter/build/distribution/AC16-local-20261014-missing-npc-v4/AveluneConverter-local-validation.zip,37772313octets, SHA9fd23706722dc8c569aafb9150e5fd9f502bbd169fc81defe2c3d175e08d27d7 ; inventaire SHA957bb919288ae3fee3eb0c570c558a0e3b27952cc2462896e397a9669198c752.38fichiers/35répertoires/9liens relatifs,1NOTICE réel,0sidecar Pods. App.framework SHA9a96fb01786dbff7962d52ffa9536900413960998e22d0f6649eaa60330fc728 ; CLI SHA6a66af109f1e84a27d2033661be710bc89b21530bd51869292ad75790261cf20. L’installation extraite publie la révision synthétique6b3a9535a1bfb5d9cc566b8bbf759e6dabdfe6024ea4a34fcafe8fa3c656049a. Distribution privée, non notarized/non publiée ; aucun média Pokémon incorporé.
+
+### Tranche Centre et publication interrompue
+
+Entrée /Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16-Kanto-Centre-20261014-w6qqnxwc/Kanto source restaurée : copie exacte des23718 fichiers r9 attestés, plus BGM Centre et SE Exit Door depuis Hoenn, correspondant en taille et SHA aux witnesses Kanto r8. Les deux correspondances historiques sont relues par le root dans centre-media-historical-check-01.json. Cette entrée demeure une restauration partielle de source historique ; elle ne remplace pas le dossier Kanto original actuel et ne rend pas ses fichiers manquants disponibles silencieusement.
+
+Préparation : snapshot fd1e6e73879d90d3dbedffcd703e5bac5b3b58c9fc8a9186ce1e5d98233dbe4e ;8events adaptés/36whole-quarantined, dont les11events du Centre ; aucune arrival anchor de porte active. Map102/event7 conserve characterBindingMissing. Trois transferts vers166/205/205 exclus explicitement en étude, première frame d’eau admise explicitement. Recette4167octets, plan approuvé245bb21a2f355828c24d5a4cd7a31d5f8e6a01c2579d911404240f11fa473dec. La préparation admissible n’est pas une preuve de jeu jouable.
+
+La CLI réelle v4 restaure cette recette et applique155/421 opérations avant la borne du harnais600s. centre-native-convert-01 : exit-15, timedOut=true,600.405s, SIGTERM limité à son PID19051, zéro survivant, protégés inchangés. Le projet final n’existe pas ; journal privé c32767c002445f564c9310683e11c9f651833e18 conservé jusqu’à bootstrapCompleted, staging partiel conservé. Une tentative de protéger le superviseur échoue sur son contrôle d’identité car le processus est déjà terminal ; aucun signal supplémentaire envoyé. Le sample échoue également parce que le PID est absent. Ces erreurs ne sont pas maquillées en attente d’un processus vivant.
+
+Après lecture de begin/reconcile, le retry utilise exactement la même recette et les mêmes binaires dans un nouveau job privé, sans supprimer le précédent staging ni recréer un projet final existant ; borne2400s et reçu centre-native-convert-02. Ce run reste à surveiller et n’est pas inclus dans les résultats terminaux ci-dessus. Aucun redémarrage sur simple expiration d’observation : le premier arrêt a été confirmé par son reçu et son handle terminal.
+
+### Parité, passes et critique finale
+
+MCP : aucun nouveau contrat ou action natifs. Le writer conserve ses appels map_authoring canoniques ; le test du PNJ manquant vérifie ses vrais effets et la relecture stricte. Le serveur est néanmoins reconstruit/checké dans le snapshot et son catalogue event_v2.record_upsert observé par un vrai client stdio sur une racine temporaire étroite. La projection MCP des nouveaux trois fichiers Kanto et leur UI n’est pas revendiquée. La révision de normalisation ne modifie pas le modèle de combat.
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture root + ac15_connection_review_fresh | Cause globale trop large prouvée ; dépendance d’image de PNJ distinguée des images nécessaires au rendu de carte. Source incomplète et commandes Centre non qualifiées identifiées. |
+| Implémentation root |7lignes de normalizer, deux zones de tests ; source raw/locator conservés, événement entier fermé, zéro modèle natif modifié. |
+| Tests root |RED fonctionnels puis827core/185adapter ; writer/relecture et ancien plan réellement refusé ; SKIP/erreurs initiales déclarés. |
+| Build / Validation root |Release/AOT/ZIP/extraction réelle PASS ; édition native cold-reopen prouvée ; première publication de trois cartes interrompue, retry encore en cours. |
+| Critique indépendante |Aucun P1/P2 trouvé dans les consommateurs inspectés : importer exige fichier/hash, toute page sans binding ferme l’événement, aucune entité/fact/scène active ; limites de source et de KAN03 conservées. |
+
+Auto-critique : le correctif rend la carte importable, pas le PNJ manquant visible ni les portes/soins du Centre fonctionnels. Le jeune PNJ102/14 contient contrôles de texte et route25 vers le joueur ; la porte exige SE/tone/wait/no-fade et un garde de réentrée. Ajouter seulement un facing de warp ou ignorer ces commandes serait un faux raccourci. KAN03 reste non certifié, l’édition par peinture et la fenêtre release/picker restent ouvertes, les anciens travaux publiés/qualifiés demeurent distincts. Aucune roadmap ou gate bêta modifiée.
+
+Git avant commit : quatre chemins de l’inventaire à commiter, index vide, hashes/modes des64 étrangers revérifiés inchangés. Le contrôle après commit produira et vérifiera commit-missing-npc-after-01.json avec SHA/parent/blobs/index et conservation des étrangers. Aucun push/rebase/amend/branche/worktree. Le ticket AC16 existant reste dans son unique grand domaine Post Bêta Monde & narration, DOING/PARTIAL. La suite conserve le goal complet : terminer la publication en cours, puis porter et tester le véritable dialogue/passage Centre avec état et sauvegarde.

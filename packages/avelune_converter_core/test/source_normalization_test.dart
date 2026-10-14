@@ -766,7 +766,7 @@ void main() {
     expect(row.rawDataRef.binaryLocation.graphPath, contains('[2]'));
     expect(row.toJson()['nativeOffset'], 0);
     expect(row.toJson()['sourceDirection'], 'E');
-    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v3');
+    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v4');
   });
 
   test(
@@ -1312,20 +1312,62 @@ void main() {
     }
   });
 
-  test('event character image absence blocks with the original page locator',
+  test('missing event character stays unresolved without blocking the map',
       () async {
     final result = await _normalize(_source(_project(maps: {
       1: _map(events: {
         2: _event(2, [_page([], character: 'AbsentCharacter')])
       })
     })));
-    _blocked(result, file: 'Data/Map001.rxdata');
+    expect(result.canPlan, isTrue);
     final image = result.eventImages.single;
     expect(image.sourceName, 'AbsentCharacter');
     expect(
         [image.locator.mapId, image.locator.eventId, image.locator.pageIndex],
         [1, 2, 0]);
     expect(image.sourceFile, isNull);
+    expect(image.state, 'missing');
+    final diagnostic = result.diagnostics
+        .singleWhere((item) => item.code == 'normalization.missing_image');
+    expect(diagnostic.blocksPlanning, isFalse);
+    expect(diagnostic.locator.toJson(), image.locator.toJson());
+    expect(diagnostic.relatedPaths, ['Graphics/Characters/AbsentCharacter']);
+    expect(result.maps.single.map.events.single.pages.single.rawDataRef,
+        isNotNull);
+  });
+
+  test('ambiguous event character images still block planning', () async {
+    final project = _project(maps: {
+      1: _map(events: {
+        2: _event(2, [_page([], character: 'AmbiguousCharacter')])
+      })
+    });
+    project['Graphics/Characters/AmbiguousCharacter.png'] = _png();
+    project['Graphics/Characters/AmbiguousCharacter.bmp'] = _png();
+    final result = await _normalize(_source(project));
+    _blocked(result, file: 'Data/Map001.rxdata');
+    expect(result.eventImages.single.state, 'ambiguous');
+    expect(
+        result.diagnostics
+            .singleWhere((item) => item.code == 'normalization.ambiguous_image')
+            .blocksPlanning,
+        isTrue);
+  });
+
+  test('invalid event character paths still block planning', () async {
+    final result = await _normalize(_source(_project(maps: {
+      1: _map(events: {
+        2: _event(2, [_page([], character: '../UnsafeCharacter')])
+      })
+    })));
+    _blocked(result, file: 'Data/Map001.rxdata');
+    expect(result.eventImages.single.state, 'invalid');
+    expect(
+        result.diagnostics
+            .singleWhere(
+                (item) => item.code == 'normalization.invalid_media_path')
+            .blocksPlanning,
+        isTrue);
   });
 
   test('content hash drift is refused without admitting changed bytes',

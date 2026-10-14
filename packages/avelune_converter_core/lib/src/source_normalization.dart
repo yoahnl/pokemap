@@ -426,7 +426,7 @@ final class NormalizedSourceProject {
   Map<String, Object?> _normalizedJson() => {
         'schemaVersion': '1.0',
         'kind': 'normalizedSourceProject',
-        'extractorVersion': 'rmxp-normalization-v3',
+        'extractorVersion': 'rmxp-normalization-v4',
         'connections':
             connections.map((connection) => connection.toJson()).toList(),
         'connectionsState': connectionsState.name,
@@ -1540,6 +1540,11 @@ final class _SourceNormalizationRun {
     if (state != 'resolved') {
       diagnostic('normalization.${state}_image', loc,
           'Source image $role "$name" is $state',
+          blocks: !(state == 'missing' &&
+              role == 'character' &&
+              loc.mapId != null &&
+              loc.eventId != null &&
+              loc.pageIndex != null),
           paths: candidates.isEmpty
               ? [path]
               : candidates.map((entry) => entry.relativePath).toList());
