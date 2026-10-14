@@ -498,6 +498,73 @@ List<_RubyObject> _interactionFacingCommands() {
 }
 
 void main() {
+  final doorStep =
+      _RubyObject('RPG::MoveCommand', {'@code': 4, '@parameters': <Object?>[]});
+  final doorRoute = [
+    _command(209, [
+      -1,
+      _RubyObject('RPG::MoveRoute', {
+        '@repeat': false,
+        '@skippable': true,
+        '@list': [
+          doorStep,
+          _RubyObject(
+              'RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})
+        ],
+      })
+    ]),
+    _command(509, [doorStep]),
+  ];
+  final doorPrograms = <String, List<_RubyObject>>{
+    'forcedRoute': doorRoute,
+    'routeBarrier': [_command(210, [])],
+    'playerVisibility': [
+      _command(208, [0])
+    ],
+    'playerOnEvent': [
+      _command(111, [12, 'get_self.onEvent?']),
+      _command(412, [])
+    ],
+    'tempSwitchSetter': [
+      _command(355, ['setTempSwitchOn("A")'])
+    ],
+  };
+  for (final entry in doorPrograms.entries) {
+    test(
+        'door IR ${entry.key} keeps dependent rewards and every page quarantined',
+        () async {
+      final source = await _events([
+        _page([
+          _command(101, ['Lower page stays inactive'])
+        ]),
+        _page([
+          _command(123, ['A', 0]),
+          ...entry.value,
+          _command(123, ['B', 0]),
+          _command(0, [])
+        ]),
+      ]);
+      final result = _projectEvents(source);
+      final evidence = jsonEncode(result.semanticEvidence);
+      expect(
+          evidence,
+          contains(entry.key == 'tempSwitchSetter'
+              ? 'sourceTempSwitchUnsupported'
+              : 'sourceDoorProgramUnsupported'));
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(
+          result.registry.records
+              .where((record) => record.enabledOrNull == true),
+          isEmpty);
+      expect(result.facts, isEmpty);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.nativeMaps.values.expand((map) => map.entities), isEmpty);
+      expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
+      expect(result.staticSemanticsQualified, isFalse);
+    });
+  }
+
   final presentationCommands = [
     _command(223, [_tone([-255, -255, -255, 0]), 6]),
     _command(106, [8]),
@@ -505,6 +572,32 @@ void main() {
       '@name': 'Exit Door', '@volume': 80, '@pitch': 100,
     })]),
   ];
+  test(
+      'door IR TempSwitch page cannot become a persistent fact or fallback page',
+      () async {
+    final source = await _events([
+      _page([
+        _command(101, ['Do not admit the lower page'])
+      ]),
+      _withCondition(
+          _page([
+            _command(123, ['A', 0]),
+            _command(0, [])
+          ], trigger: 3),
+          {'@switch1_valid': true, '@switch1_id': 22}),
+    ],
+        switches: List.generate(
+            23, (id) => id == 22 ? 's:tsOff?("A")' : 'Switch $id'));
+    final result = _projectEvents(source);
+    expect(jsonEncode(result.semanticEvidence),
+        contains('sourceTempSwitchUnsupported'));
+    expect(result.registry.records.single.definitionOrNull, isNull);
+    expect(result.facts, isEmpty);
+    expect(result.scenes, isEmpty);
+    expect(result.dialogues, isEmpty);
+    expect(result.nativeMaps.values.expand((map) => map.entities), isEmpty);
+    expect(result.staticSemanticsQualified, isFalse);
+  });
   for (final command in presentationCommands) {
     test('recognized presentation ${command.fields['@code']} keeps every page quarantined', () async {
       final source = await _events([
@@ -526,9 +619,11 @@ void main() {
       expect(result.staticSemanticsQualified, isFalse);
       expect(source.canonicalHash, before);
       final profile = result.semanticEvidence['sourceProfile'] as Map;
-      expect(profile['profile'], 'kanto-events-static-v3');
-      expect(result.semanticEvidence['sourceProfileHash'], canonicalHashOf(profile).value);
-      final historical = jsonDecode(jsonEncode(profile)) as Map<String, dynamic>;
+      expect(profile['profile'], 'kanto-events-static-v4');
+      expect(result.semanticEvidence['sourceProfileHash'],
+          canonicalHashOf(profile).value);
+      final historical =
+          jsonDecode(jsonEncode(profile)) as Map<String, dynamic>;
       historical['profile'] = 'kanto-events-static-v2';
       (historical['oracleSections'] as Map).remove('039');
       expect(canonicalHashOf(historical).value,

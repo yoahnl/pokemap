@@ -5,7 +5,7 @@
 Implémentation livrée pour revue, avec trois traces EV-A/B/C converties depuis des fichiers RMXP originaux synthétiques, relues strictement au format natif, exécutées par le vrai runtime puis sauvegardées et chargées par une nouvelle instance de `FileGameSaveRepository`. Le domaine reste PARTIAL : la conversion de jeu entier, les événements Kanto et la parité de toute instruction Essentials ne sont pas certifiés.
 
 
-État actuel au 14 octobre : voir les derniers compléments « Dialogue du Centre et orientation bornée », « Passages natifs et qualification du Centre », « Reconnaissance des commandes de présentation source » et « Présentation native 2D ». Les fonctions natives de son et de Tone sont raccordées ; les portes source restent inactives. Les copies QA et leurs captures ne sont plus présentes au contrôle courant ; les reçus historiques ne constituent pas des projets disponibles. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
+État actuel au 14 octobre : voir les derniers compléments « Présentation native 2D » et « Lecture du programme original de la porte ». Son/Tone natifs sont raccordés et l'IR v4 reconnaît le programme entier de la porte ; ses routes, visibilité, état d'instance et arrivée restent à raccorder au Player. Les portes source restent inactives. Les anciennes copies QA et leurs captures sont absentes au contrôle courant ; les reçus historiques ne constituent pas des projets disponibles. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
 La grammaire porte textes, choix et annulation typée, pages conditionnelles, switches booléens, self-switches et transferts constants vers des cartes sélectionnées. Un bloc inconnu désactive l’événement entier. Les données sources restent conservées sous forme inerte, avec références et SHA, même pour une quarantaine intégrale. Ruby exécuté : 0 ; appels IA dans la conversion : 0. Les fixtures distribuées sont originales ; aucun asset Pokémon du corpus privé n’entre dans Git.
 
 La politique native de choix/cancel et les capacités nécessaires pour avancer ont été approuvées explicitement par Yoahn dans le fil, avant extension du modèle cible. La commande secondaire rejoint une issue déclarée ou reste désactivée selon la source. L’autorisation de faire tous les lots et de commiter entre lots permet d’enchaîner AC-14 ; la restriction du kit sur une suite implicite ne remplace pas cette instruction directe. La règle directe sans commentaires prévaut sur le §3 de `codex_rule.md` ; aucun commentaire de code ajouté.
@@ -1161,3 +1161,80 @@ Auto-critique : la télémétrie de deux scènes manuelles ne qualifie aucune po
 Suite fidèle identifiée dans l'audit original : Map100/event8 doit conserver les poses de porte colonne3, les routes209 et toutes copies509, les barrières210, la visibilité208, le pas joueur borné et la condition exacte get_self.onEvent?. TempSwitchA appartient à l'instance Game_Event ; le MapFactory source est sauvegardé, donc il ne faut pas le perdre arbitrairement au chargement. La sortie102/event1 arrive exactement sur la porte(13,25), puis la page d'accueil déplace le joueur(13,26) ; décaler l'arrival supprimerait le programme. La SourceIR suivante conserve l'inactivité de l'événement entier jusqu'à ce que les primitives et les deux sens soient réellement qualifiés.
 
 Git : commit local ciblé autorisé de37chemins, sans push/rebase/amend/branche/worktree. Les64travaux étrangers doivent rester hors index et byte-exacts. Les gels runtime04, promotion01 et UI6 sont réunis dans native-presentation-host-publish-02.json. Les pins35 du build final les relient au code compilé. L'hygiène Markdown, le diffcheck, l'index et les37blobs seront contrôlés avant staging ; le reçu après commit enregistrera SHA/parent/index et64empreintes étrangères conservées. Le ticket AC13 existant reste dans l'unique domaine Post Bêta Monde & narration, TO REVIEW pour les tranches implémentées et PARTIAL pour le résultat global ; DONE réservé à Yoahn, gate bêta inchangée.
+
+## Complément du 14 octobre 2026 — Lecture du programme original de la porte
+
+**AC-13 / KAN-03 : reconnaissance IR complète de cette porte, admission native toujours fermée.** Après le commit natif6a687e4dc93174aa3c536a2e2a1f8753d92b5c7b, le lecteur source reconnaît le programme original Map100/event8 et la sortie Map102/event1. Il conserve leurs routes, pages et références sans les transformer en scènes exécutables. nativeDoorProgramImplemented=false et sourceAdmission=false ; aucun parcours source jouable n'est déclaré.
+
+### Audit, scope et règles source
+
+Base host6a687e4dc, main, index vide. Les quatre fichiers Converter sont qualifiés dans R privé ; leurs baselines host proviennent du commitIR957d244cd et n'ont pas changé pendant le chantier natif. Q/door-ir-host-publish-01.json atteste leur publication et les64empreintes étrangères conservées ; le writer étranger reste exclu. La règle directe sans commentaires demeure prioritaire. Aucun nouveau Markdown, asset Pokémon ou script Ruby exécutable n'est ajouté.
+
+Les bytes archivés du probe05 sont l'input effectivement disponible : le normalized possède exactement l'empreinte de l'input historique06. Les identités source et les locators bruts sont revérifiés, sans lire un dossier publié disparu. Scripts conserve3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d. L'oracle est lu comme texte inerte dans le dossier outputs de l'audit ledgeSource précédent :034.rb:848–875 pour208/209/210 ;033.rb:106–114 pour l'attente des routes joueur/événements/followers ;044.rb:427 pour leurs instructions ;045.rb:26/64/129–130 pour TempSwitch et position ;027.rb:63–66 pour la sauvegarde du MapFactory. Aucune exécution Ruby ni appel IA.
+
+L'audit architectural indépendant confirme qu'aucun contrat natif actuel n'exprime intégralement TempSwitch. NarrativeFactDefinition est global et n'a pas de scope ; NarrativeEventProgress persiste consommation/reset mais son oneShot/onMapReentry ne représente pas un bool arbitraire d'instance modifiable au milieu d'une scène. Une nouvelle activation et une reprise de sauvegarde ne sont pas interchangeables. SceneConditionSourceKind ne porte pas la position exacte du joueur ; playerOnMap ne vérifie que la carte, et triggerEnter n'émet pas un front après spawn/load lorsque previous=null. Ces primitives ne sont pas détournées pour simuler onEvent?.
+
+| Fichier | Zones modifiées et raison |
+|---|---|
+| packages/avelune_converter_core/lib/src/source_events.dart | Profilv4/oracle033 ; conditions tempSwitch/playerOnEvent, modèles routes/barrière/visibilité/setter ; dispatch208/209/210 ; raw route et toutes copies509 ; lecteurs de littéraux et branche111 stricts. Delta384+/5-. |
+| packages/avelune_converter_core/test/source_events_test.dart | Programme synthétique fidèle, routes et flags, copies manquantes/divergentes/surnuméraires, cibles/indent/arity/terminator, visibilité, littéraux exacts, annotations et paramètres bruts ; collections immuables et évaluation inconnue. Delta465+/3-. |
+| packages/avelune_converter_adapters/lib/src/source_event_projection.dart | sourceDoorProgramUnsupported et sourceTempSwitchUnsupported avant projection ; récursion des conditions/blocs conservée, aucune création de Fact temporaire. Delta10+/0-. |
+| packages/avelune_converter_adapters/test/source_event_projection_test.dart | Six cas empêchent activation partielle, récompense dépendante et page inférieure ; profil/evidencev4. Delta98+/3-. |
+| documentation/reports/converter/AC-13/13_native_events.md | État courant et ce complément consolidé ; anciennes preuves conservées et bornées. |
+
+### Contrat de reconnaissance et preuve réelle
+
+SourceForcedMoveRouteNode conserve la cible source0/self,-1/player ou l'ID positif, repeat/skippable, étapes typées, le terminateur0, le profileHash et les références de chaque copie509. Les étapes admises sont celles attestées ici : pas nord/sud, attente, quatre orientations, throughON/OFF et SE. Les autres opcodes restent inconnus. Les flags ne sont pas remplacés par des defaults. La route face-player déjà qualifiée garde ses exigences exactes ; aucun fallback de profil n'est ajouté.
+
+Chaque copie509 doit avoir le bon opcode, index et indent, puis correspondre aux valeurs de son MoveCommand brut ; noms/classes/champs, arités, entiers et références sont contrôlés. La barrière210 décrit toutes les routes forcées, pas la dernière seulement.208 exige0/1 littéraux. Les expressions reconnues sont les formes exactes attestées de tsOffA/onEvent/setTempSwitchOnA ; aucune évaluation Ruby générale. TempSwitchA a lifetime=mapEventInstance, factId absent et saveResumeQualification=notImplemented. evaluate retourne null sans contexte ; aucune page de repli active n'est déduite de ce null.
+
+Profil courant kanto-events-static-v4, hashc120cd79123b1aac91cb686f930818816a799aead10712ea3659949003cd66b8. Le changement de profil impose une recomposition des plans et de leur evidence ; v3 n'est pas un alias accepté.
+
+Q/door-ir-source-proof-05.json, SHA2452a1b396f8814a4dbbc5433b2a51e8fbf5a26dc91842bd4a24a8e9302f7c7c, confirme l'entrée originale en douze nœuds et la page de retour en deux nœuds :
+
+- Map100/event8/page0, trigger1, porte en13,25, OBJ_FRLG_Doors3, sud/pattern3. Ouverture avecfrlg_pcdoor100/100 et waits2ticks ; barrière ; route joueur throughON/nord/throughOFF ; barrière ; joueur invisible ; fermeture et barrière ; Tone noir300ms,Wait400ms,joueur visible,Warp102(9,10)nord sansfade,Tone neutre300ms.
+- Page1, trigger3 et TempSwitchOffA : la branche get_self.onEvent? conserve le masquage, l'ouverture, le pas sud et la fermeture. SetterA à l'index26 après la fermeture de branche25, y compris lorsque le prédicat est faux. Les six routes du programme conservent repeat=false/skippable=true.
+- Map102/event1 garde ses cinq nœudsSE/Tone/Wait/Warp/Tone. Les deux événements restent quarantinedWholeEvent, nativeEventId=null et adaptedCommands=[].
+
+Snapshotfd1e6e73879d90d3dbedffcd703e5bac5b3b58c9fc8a9186ce1e5d98233dbe4e, normalizatione152056177a5d5cb0ca8c902a62748c88b27f9da00504e85404e7ad06f23d17f et archive8f7ea614cdd7b36bce09df3c62f014305aa7df2857275df8560c3345a945c734 sont inchangés. Le probe lit sept fichiers figés ; il ne publie ni projet ni scène et n'exécute pas le jeu source.
+
+### RED, validation et compilation
+
+Les quatre blobs host/R correspondent au gel Q/door-ir-freeze-01.json, SHAe12fbd686290567528b9acdac6d2e714a0c75c2ec460d19ef300db1aae7e35c4 ; patchba85603cc2c90a1e22871fab91edadff4785f6b9e2f8123aa4774c6803258c30. Les commandes exactes, cwd, logSHA et pins sont dans chaque reçu. Les runs finaux protégés sont stables et n'ont ni signal ni survivant confirmé.
+
+| Reçu | Commande / portée | Résultat terminal |
+|---|---|---|
+| door-ir-core-red-02 | Core, tests nouveaux avant implémentation |1 PASS/3 FAIL,exit1,3.921s|
+| door-ir-adapters-red-02 | Adapter, six gardes avant projection |0 PASS/6 FAIL,exit1,4.447s|
+| door-ir-raw-guards-red-01 | Discriminateur brut annoté |1 FAIL,exit1,3.411s|
+| door-ir-temp-raw-red-01 | NomSystem22 et paramètres111 annotés |2 FAIL,exit1,3.508s|
+| door-ir-core-full-05 | core : dart test test/source_events_test.dart --reporter expanded |140 PASS,exit0,5.293s ; fichier complet ciblé|
+| door-ir-adapters-full-05 | adapters : dart test test/source_event_projection_test.dart --reporter expanded |41 PASS,exit0,5.779s ; fichier complet ciblé|
+| door-ir-core-analyze-04 | dart analyze lib/src/source_events.dart test/source_events_test.dart |No issues,exit0,1.339s|
+| door-ir-adapters-analyze-04 | dart analyze lib/src/source_event_projection.dart test/source_event_projection_test.dart |No issues,exit0,2.233s|
+| door-ir-source-probe-run-05 | adapters : dart --packages=.dart_tool/package_config.json Q/door-ir-source-probe-01.dart Q/kan03-probe-05 Q/door-ir-source-proof-05.json |PASS,exit0,15.086s ; pins4+input/helper stables|
+| door-ir-package-core-final-01 | core : dart test --reporter expanded --concurrency=1 |936 PASS/1 SKIP,exit0,79.017s ; quatre pins finaux stables|
+| door-ir-package-adapters-final-01 | adapters : dart test --reporter expanded --concurrency=1 |782 PASS/91 SKIP,exit0,235.319s ; quatre pins finaux stables|
+| door-ir-adapters-qualified-final-01 | adapters : dart test des cinq suites music/pickup/eventStudy/catalogStudy/workflow, reporter expanded, concurrency1 ; AVELUNE_AC13_SOURCE_SCRIPTS pointe le vraiScripts restauré |122 PASS/4 SKIP,exit0,192.002s ; quatre pins+Scripts stables|
+| door-ir-cli-build-final-01 | tools/avelune_converter_cli : dart compile exe bin/avelune_converter.dart -o Q/door-ir-converter-cli-final-01 |PASS,exit0,26.864s ; quatre pins stables, AOT privé seulement|
+| door-ir-cli-help-final-01 | Binaire AOT privé --help |exit0,0.396s ; binaire piné, aucune conversion de jeu déduite|
+
+Les totaux ne sont pas additionnés : plusieurs suites sont rejouées dans les packages complets. Core ignore le corpus opt-in CONN15. La suite adapters sans variables de source ignore91cas ; les cinq suites Source qualifiées sont donc relancées avec le vrai Scripts, toujours vérifié auSHA3cfd90e8. Quatre cas restent ignorés dans ce run, dont le snapshot Route9 non fourni. Ce n'est pas une couverture de tous les corpus ni une certification de toutes les animations.
+
+REDCore01 comprenait une fixture float invalide, corrigée avant RED02 ; une analyse intermédiaire signalait cinq infos de braces, corrigées avant l'analyse finale. Probe04 est fonctionnel exit0, mais protectedUnchanged=false parce que l'ancienPID310, absent avant, a été réutilisé par powerdatadUID0 pendant le run. Aucun signal ne lui a été envoyé ; ce reçu n'est pas utilisé comme preuve de gardes stables. Probe05 l'est. Aucune application Studio n'est ouverte par cette tranche.
+
+### Parité, critique et suite nécessaire
+
+Ce changement porte le contrat SourceIR du convertisseur et ses diagnostics ; il n'introduit aucune commande authoring native ou action MCP de porte. La compilation CLI et le projector sont vérifiés, et la projection conserve les événements inactifs. Une persistance JSON de l'IR n'est pas revendiquée comme support sémantique natif. Les primitives de la tranche native suivante devront avoir leur propre API, UI, JSONL et MCP qualifiés avant admission.
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture — root + ac15_connection_review_fresh | Programme original, six routes, durée d'instance et arrivée occupée identifiés ; absence des contrats natifs prouvée. |
+| Implémentation — ac13_warp_runtime_tests | Quatre fichiers, profilv4 et reconnaissance strictement bornée ; aucune activation source. |
+| Tests — agent + root | RED fonctionnels,140/41ciblés,936/782runs packages avec SKIP déclarés,122qualifiés, analyses Noissues. |
+| Build / Validation — root | CLI AOT compilée et --help exécuté ; aucun nouveau build/releaseGUI ou parcours Player source revendiqué. |
+| Critique finale — ac15_connection_review_fresh | Quatre pins et oracles/logs recomputés ; les deux lecteurs bruts initialement ouverts sont corrigés ; aucun P1/P2 restant sur l'IR. |
+
+Auto-critique : reconnaître douze nœuds ne les exécute pas. La chorégraphie native, la visibilité, le through borné, la condition de position et le state d'instance avec save/reprise restent à implémenter. L'arrivee doit rester13,25 et ne tolérer que la collision propriétaire attestée, avant le pas13,26 ; aucun décalage d'ancre ou bypass global n'est autorisé comme preuve de fidélité. La source est la restauration attestée, pas le Kanto original incomplet rendu autonome. Le goal AC00–16 demeure actif ; AC13/FG082/090/093 PARTIAL,FG092 TODO, roadmap inchangée.
+
+Git : cinq chemins de tranche, local commit autorisé, aucun push/rebase/amend/branche/worktree. Le reçu de précommit vérifie les64empreintes étrangères, index vide, quatre blobs finaux et rapport ; celui d'après commit vérifiera SHA/parent/arbre/index. Le ticket AC13 existant sera actualisé avec ce SHA, TO REVIEW pour le code et PARTIAL global, unique domaine Monde & narration Post Bêta, aucune gate bêta changée.

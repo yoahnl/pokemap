@@ -108,6 +108,10 @@ final class _MarshalFixture {
     final prior = _objects[value];
     if (prior != null) return [0x40, ..._packed(prior)];
     _objects[value] = _objects.length;
+    if (value is double) {
+      final bytes = ascii.encode(value.toString());
+      return [0x66, ..._packed(bytes.length), ...bytes];
+    }
     if (value is String || value is _RubyBytes) {
       final bytes =
           value is String ? utf8.encode(value) : (value as _RubyBytes).bytes;
@@ -247,6 +251,91 @@ List<_RubyObject> _facingCommands({Object? target = 0, Object? route}) => [
       _command(509, [_moveCommand(25)]),
       _command(0, []),
     ];
+
+List<_RubyObject> _forcedRoute(List<_RubyObject> steps,
+        {Object? target = 0,
+        int indent = 0,
+        bool repeat = false,
+        bool skippable = true}) =>
+    [
+      _command(
+          209,
+          [
+            target,
+            _RubyObject('RPG::MoveRoute', {
+              '@repeat': repeat,
+              '@skippable': skippable,
+              '@list': [...steps, _moveCommand(0)],
+            })
+          ],
+          indent: indent),
+      for (final step in steps) _command(509, [step], indent: indent),
+    ];
+
+List<_RubyObject> _doorTurns({bool opening = true}) => [
+      _moveCommand(15, parameters: [2]),
+      _moveCommand(opening ? 17 : 18),
+      _moveCommand(15, parameters: [2]),
+      _moveCommand(opening ? 18 : 17),
+      _moveCommand(15, parameters: [2]),
+      _moveCommand(opening ? 19 : 16),
+      _moveCommand(15, parameters: [2]),
+    ];
+
+List<String> _doorSwitches({String literal = 's:tsOff?("A")'}) =>
+    List.generate(23, (id) => id == 22 ? literal : 'Switch $id');
+
+List<_RubyObject> _doorPages() {
+  final enter = _page([
+    ..._forcedRoute([
+      _moveCommand(44, parameters: [_se(name: 'frlg_pcdoor', volume: 100)]),
+      ..._doorTurns()
+    ]),
+    _command(210, []),
+    ..._forcedRoute([_moveCommand(37), _moveCommand(4), _moveCommand(38)],
+        target: -1),
+    _command(210, []),
+    _command(208, [0]),
+    ..._forcedRoute(_doorTurns(opening: false)),
+    _command(210, []),
+    _command(223, [
+      _tone([-255, -255, -255, 0]),
+      6
+    ]),
+    _command(106, [8]),
+    _command(208, [1]),
+    _command(201, [0, 102, 9, 10, 8, 1]),
+    _command(223, [
+      _tone([0, 0, 0, 0]),
+      6
+    ]),
+    _command(0, []),
+  ], trigger: 1, character: 'OBJ_FRLG_Doors3');
+  final arrive = _withCondition(
+      _page([
+        _command(111, [12, 'get_self.onEvent?']),
+        _command(208, [0], indent: 1),
+        ..._forcedRoute([
+          _moveCommand(44, parameters: [_se(name: 'frlg_pcdoor', volume: 100)]),
+          ..._doorTurns()
+        ], indent: 1),
+        _command(210, [], indent: 1),
+        _command(208, [1], indent: 1),
+        ..._forcedRoute([_moveCommand(1)], target: -1, indent: 1),
+        _command(210, [], indent: 1),
+        ..._forcedRoute(_doorTurns(opening: false).sublist(1), indent: 1),
+        _command(210, [], indent: 1),
+        _command(0, [], indent: 1),
+        _command(412, []),
+        _command(355, ['setTempSwitchOn("A")']),
+        _command(0, []),
+      ], trigger: 3, character: 'OBJ_FRLG_Doors3'),
+      {'@switch1_valid': true, '@switch1_id': 22});
+  for (final page in [enter, arrive]) {
+    (page.fields['@graphic'] as _RubyObject).fields['@pattern'] = 3;
+  }
+  return [enter, arrive];
+}
 
 _RubyObject _changedFacingRoute(Map<String, Object?> fields) =>
     _facingRoute()..fields.addAll(fields);
@@ -480,6 +569,377 @@ extension on SourceEventAnalysis {
 }
 
 void main() {
+  test('door IR recognizes the original Center entry without flattening routes',
+      () async {
+    final bytes = _project(maps: {
+      100: _map(
+          width: 20,
+          height: 30,
+          events: {8: _event(8, _doorPages(), x: 13, y: 25)}),
+      102: _map(width: 20, height: 14),
+    });
+    bytes['Data/System.rxdata'] = _MarshalFixture()
+        .dump(_RubyObject('RPG::System', {'@switches': _doorSwitches()}));
+    final project = await _normalize(_source(bytes), includeEventSystem: true);
+    final before = project.canonicalHash;
+    final archive = project.archive.canonicalHash;
+    final result = _analyzer(project).analyze();
+    final event = result.requireEvent(100, 8);
+    final entry = event.pages.first;
+    expect(entry.body.nodes.map((node) => node.runtimeType.toString()), [
+      'SourceForcedMoveRouteNode',
+      'SourceMoveRouteBarrierNode',
+      'SourceForcedMoveRouteNode',
+      'SourceMoveRouteBarrierNode',
+      'SourcePlayerVisibilityNode',
+      'SourceForcedMoveRouteNode',
+      'SourceMoveRouteBarrierNode',
+      'SourceToneNode',
+      'SourceWaitNode',
+      'SourcePlayerVisibilityNode',
+      'SourceWarpNode',
+      'SourceToneNode',
+    ]);
+    expect(entry.isQuarantined, isFalse);
+    expect(
+        [entry.triggerCode, entry.graphic!.direction, entry.graphic!.pattern],
+        [1, 2, 3]);
+    expect(entry.graphic!.characterName, 'OBJ_FRLG_Doors3');
+    final route = entry.body.nodes.first as SourceForcedMoveRouteNode;
+    final routeJson = route.toJson() as Map;
+    expect(routeJson['targetSourceCharacterId'], 0);
+    expect(routeJson['repeat'], isFalse);
+    expect(routeJson['skippable'], isTrue);
+    expect((routeJson['steps'] as List).map((dynamic step) => step['kind']), [
+      'soundEffect',
+      'wait',
+      'turnLeft',
+      'wait',
+      'turnRight',
+      'wait',
+      'turnUp',
+      'wait'
+    ]);
+    expect((routeJson['steps'] as List).first['sound'],
+        {'name': 'frlg_pcdoor', 'volume': 100, 'pitch': 100});
+    expect(route.rawDataRefs, hasLength(9));
+    expect([route.span.firstCommandIndex, route.span.lastCommandIndex], [0, 8]);
+    final playerRoute = entry.body.nodes[2] as SourceForcedMoveRouteNode;
+    expect(playerRoute.toJson()['targetSourceCharacterId'], -1);
+    expect(
+        (playerRoute.toJson()['steps'] as List)
+            .map((dynamic step) => step['kind']),
+        ['throughOn', 'moveUp', 'throughOff']);
+    expect(
+        (entry.body.nodes[4] as SourcePlayerVisibilityNode).visible, isFalse);
+    expect((entry.body.nodes[9] as SourcePlayerVisibilityNode).visible, isTrue);
+    expect(
+        (entry.body.nodes[1] as SourceMoveRouteBarrierNode).toJson()['scope'],
+        'allForcedRoutes');
+    final warp = entry.body.nodes[10] as SourceWarpNode;
+    expect([warp.targetSourceMapId, warp.x, warp.y, warp.direction, warp.fade],
+        [102, 9, 10, 8, false]);
+    final returnPage = event.pages[1];
+    expect(returnPage.triggerCode, 3);
+    expect(returnPage.condition.children.single.kind.name, 'tempSwitch');
+    expect(
+        returnPage.condition.children.single.toJson()['tempSwitchLetter'], 'A');
+    expect(returnPage.condition.children.single.toJson()['lifetime'],
+        'mapEventInstance');
+    expect(returnPage.condition.children.single.factId, isNull);
+    expect(returnPage.condition.evaluate(), isNull);
+    expect(event.selectPage(facts: {_analyzer(project).globalFactId(22): true}),
+        isNull);
+    expect(returnPage.body.nodes.map((node) => node.runtimeType.toString()),
+        ['SourceConditionalNode', 'SourceTempSwitchNode']);
+    final branch = returnPage.body.nodes.first as SourceConditionalNode;
+    expect(branch.condition.kind.name, 'playerOnEvent');
+    expect(branch.condition.evaluate(), isNull);
+    expect(
+        branch.whenTrue.nodes.where((node) =>
+            node.runtimeType.toString() == 'SourceForcedMoveRouteNode'),
+        hasLength(3));
+    expect(branch.whenFalse.nodes, isEmpty);
+    final setter = returnPage.body.nodes.last as SourceTempSwitchNode;
+    expect(setter.toJson()['letter'], 'A');
+    expect(setter.toJson()['value'], isTrue);
+    expect(setter.toJson()['lifetime'], 'mapEventInstance');
+    expect(setter.span.firstCommandIndex,
+        greaterThan(branch.span.lastCommandIndex));
+    expect([branch.span.lastCommandIndex, setter.span.firstCommandIndex],
+        [25, 26]);
+    expect(result.profile.toJson()['profile'], 'kanto-events-static-v4');
+    expect(project.canonicalHash, before);
+    expect(project.archive.canonicalHash, archive);
+  });
+
+  test('door IR typed route collections preserve distinct copy locators',
+      () async {
+    final project = await _events([
+      _page([
+        ..._forcedRoute([
+          _moveCommand(15, parameters: [2]),
+          _moveCommand(17)
+        ]),
+        _command(0, []),
+      ])
+    ]);
+    final analyzer = _analyzer(project);
+    final route = analyzer
+        .analyze()
+        .requireEvent(1, 1)
+        .pages
+        .single
+        .body
+        .nodes
+        .single as SourceForcedMoveRouteNode;
+    expect(
+        route.rawDataRefs.map((ref) => ref.locator!.commandIndex), [0, 1, 2]);
+    expect(route.rawDataRefs.map((ref) => ref.id).toSet(), hasLength(3));
+    expect(
+        route.steps.map((step) => step.rawDataRef), route.rawDataRefs.skip(1));
+    expect(route.profileHash, analyzer.profile.canonicalHash);
+    expect(route.steps.first.durationTicks, 2);
+    expect(route.steps.first.toJson()['durationMs'], 100);
+    expect(() => route.steps.clear(), throwsUnsupportedError);
+    expect(() => route.rawDataRefs.clear(), throwsUnsupportedError);
+    expect(() => (route.toJson()['steps'] as List).clear(),
+        throwsUnsupportedError);
+    final settingGlobal22 = await _events([
+      _page([
+        _command(121, [22, 22, 0]),
+        _command(0, [])
+      ])
+    ], switches: _doorSwitches());
+    expect(
+        _analyzer(settingGlobal22).analyze().requireEvent(1, 1).isQuarantined,
+        isTrue);
+    for (final scriptsHash in ['a' * 64]) {
+      final page = _analyzer(project, scriptsHash: scriptsHash)
+          .analyze()
+          .requireEvent(1, 1)
+          .pages
+          .single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.nodes.whereType<SourceForcedMoveRouteNode>(), isEmpty);
+    }
+  });
+
+  test('door IR validates every route copy including the last step', () async {
+    for (final variant in [
+      'missingCopy',
+      'extraCopy',
+      'wrongCopy',
+      'wrongIndent',
+      'badTerminator',
+      'extraTerminator',
+      'unknownStep',
+      'waitNegative',
+      'waitFractional',
+      'badSound',
+      'targetFractional'
+    ]) {
+      final steps = [
+        _moveCommand(15, parameters: [2]),
+        _moveCommand(17)
+      ];
+      final commands = _forcedRoute(steps);
+      final route =
+          (commands.first.fields['@parameters'] as List)[1] as _RubyObject;
+      final list = route.fields['@list'] as List;
+      switch (variant) {
+        case 'missingCopy':
+          commands.removeLast();
+        case 'extraCopy':
+          commands.add(_command(509, [_moveCommand(17)]));
+        case 'wrongCopy':
+          commands.last = _command(509, [_moveCommand(18)]);
+        case 'wrongIndent':
+          commands.last.fields['@indent'] = 1;
+        case 'badTerminator':
+          list.last = _moveCommand(0, parameters: [1]);
+        case 'extraTerminator':
+          list.insert(1, _moveCommand(0));
+        case 'unknownStep':
+          (steps.last.fields)['@code'] = 45;
+        case 'waitNegative':
+          steps.first.fields['@parameters'] = [-1];
+        case 'waitFractional':
+          steps.first.fields['@parameters'] = [2.5];
+        case 'badSound':
+          steps.last.fields.addAll({
+            '@code': 44,
+            '@parameters': [_se(pitch: 151)]
+          });
+        case 'targetFractional':
+          (commands.first.fields['@parameters'] as List)[0] = -.5;
+      }
+      commands.add(_command(0, []));
+      final project = await _events([_page(commands)]);
+      expect(
+          _analyzer(project).analyze().requireEvent(1, 1).isQuarantined, isTrue,
+          reason: variant);
+    }
+  });
+
+  test(
+      'door IR recognizes barriers and visibility with strict literal parameters',
+      () async {
+    final project = await _events([
+      _page([
+        _command(210, []),
+        _command(208, [0]),
+        _command(208, [1]),
+        _command(0, [])
+      ])
+    ]);
+    final page = _analyzer(project).analyze().requireEvent(1, 1).pages.single;
+    expect(page.body.nodes.map((node) => node.runtimeType.toString()), [
+      'SourceMoveRouteBarrierNode',
+      'SourcePlayerVisibilityNode',
+      'SourcePlayerVisibilityNode'
+    ]);
+    for (final command in [
+      _command(210, [0]),
+      _command(208, []),
+      _command(208, [2]),
+      _command(208, [false]),
+      _command(208, [0.0])
+    ]) {
+      final invalid = await _events([
+        _page([command, _command(0, [])])
+      ]);
+      expect(_analyzer(invalid).analyze().requireEvent(1, 1).isQuarantined,
+          isTrue);
+    }
+  });
+
+  test(
+      'door IR rejects annotated branch discriminators and temporary switch ids',
+      () async {
+    final branch = await _events([
+      _page([
+        _command(111, [
+          const _RubyAnnotation(12, extension: 'UnknownExtension'),
+          'get_self.onEvent?'
+        ]),
+        _command(412, []),
+        _command(0, []),
+      ])
+    ]);
+    expect(
+        _analyzer(branch).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+    final temporary = await _events([
+      _withCondition(_page([_command(0, [])]), {
+        '@switch1_valid': true,
+        '@switch1_id': const _RubyAnnotation(22, extension: 'UnknownExtension'),
+      }),
+    ], switches: _doorSwitches());
+    expect(_analyzer(temporary).analyze().requireEvent(1, 1).isQuarantined,
+        isTrue);
+  });
+
+  test('door IR only recognizes exact TempSwitch and onEvent literals',
+      () async {
+    for (final literal in [
+      's:tsOff?("A") ',
+      's:tsOff?("B")',
+      's:tsOff?(\'A\')',
+      's:tsOff?("A"); dangerous()'
+    ]) {
+      final page = _withCondition(_page([_command(0, [])]),
+          {'@switch1_valid': true, '@switch1_id': 22});
+      final project =
+          await _events([page], switches: _doorSwitches(literal: literal));
+      expect(_analyzer(project).analyze().requireEvent(1, 1).isQuarantined,
+          isTrue);
+    }
+    for (final script in [
+      'get_self.onEvent? ',
+      'get_self.onEvent?; dangerous()',
+      'onEvent?'
+    ]) {
+      final project = await _events([
+        _page([
+          _command(111, [12, script]),
+          _command(412, []),
+          _command(0, [])
+        ])
+      ]);
+      expect(_analyzer(project).analyze().requireEvent(1, 1).isQuarantined,
+          isTrue);
+    }
+    for (final script in [
+      'setTempSwitchOn("A") ',
+      'setTempSwitchOn("B")',
+      'setTempSwitchOn("A"); dangerous()'
+    ]) {
+      final project = await _events([
+        _page([
+          _command(355, [script]),
+          _command(0, [])
+        ])
+      ]);
+      expect(_analyzer(project).analyze().requireEvent(1, 1).isQuarantined,
+          isTrue);
+    }
+    final continued = await _events([
+      _page([
+        _command(355, ['setTempSwitchOn("A")']),
+        _command(655, ['dangerous()']),
+        _command(0, [])
+      ])
+    ]);
+    expect(_analyzer(continued).analyze().requireEvent(1, 1).isQuarantined,
+        isTrue);
+    final exact = await _events([
+      _page([
+        _command(355, ['setTempSwitchOn("A")']),
+        _command(0, [])
+      ])
+    ]);
+    expect(
+        _analyzer(exact)
+            .analyze()
+            .requireEvent(1, 1)
+            .pages
+            .single
+            .body
+            .nodes
+            .single
+            .runtimeType
+            .toString(),
+        'SourceTempSwitchNode');
+  });
+
+  test('door IR rejects annotated dynamic switch names', () async {
+    for (final name in [
+      const _RubyAnnotation('s:tsOff?("A")', extension: 'UnknownExtension'),
+      const _RubyAnnotation('s:tsOff?("A")', userClass: 'UnknownString'),
+      const _RubyAnnotation('s:tsOff?("A")', fields: {'@unknown': true}),
+    ]) {
+      final switches = <Object?>[..._doorSwitches()]..[22] = name;
+      final project = await _events([
+        _withCondition(_page([_command(0, [])]),
+            {'@switch1_valid': true, '@switch1_id': 22}),
+      ], switches: switches);
+      final page = _analyzer(project).analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.condition.isQualified, isFalse);
+    }
+  });
+
+  test('door IR rejects annotated TempSwitch branch parameters', () async {
+    for (var slot = 0; slot < 3; slot++) {
+      final parameters = <Object?>[0, 22, 0];
+      parameters[slot] = _RubyAnnotation(parameters[slot], extension: 'UnknownExtension');
+      final project = await _events([_page([
+        _command(111, parameters), _command(412, []), _command(0, []),
+      ])], switches: _doorSwitches());
+      expect(_analyzer(project).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+    }
+  });
+
   test('Center 102 exit recognizes presentation IR without source mutation',
       () async {
     final commands = [
@@ -726,9 +1186,11 @@ void main() {
     final profile =
         SourceEventProfile.kantoForProject(await _events([_page([])]));
     final json = profile.toJson();
-    expect(json['profile'], 'kanto-events-static-v3');
-    expect(json['oracleSections'], containsPair('039',
-        '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d'));
+    expect(json['profile'], 'kanto-events-static-v4');
+    expect(
+        json['oracleSections'],
+        containsPair('039',
+            '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d'));
     expect(
         json['oracleSections'],
         containsPair('044',

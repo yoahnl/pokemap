@@ -7,6 +7,8 @@ enum SourceEventConditionKind {
   selfSwitch,
   variableAtLeast,
   pickup,
+  tempSwitch,
+  playerOnEvent,
   unqualified,
 }
 
@@ -34,7 +36,7 @@ final class SourceEventProfile {
       scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-events-static-v3',
+        'profile': 'kanto-events-static-v4',
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
@@ -73,6 +75,7 @@ final class SourceEventCondition {
     this.minimum,
     this.reason,
     this.pickup,
+    this.tempSwitchLetter,
     List<SourceEventCondition> children = const [],
   }) : children = List.unmodifiable(children);
 
@@ -83,6 +86,7 @@ final class SourceEventCondition {
   final int? minimum;
   final String? reason;
   final SourcePickupNode? pickup;
+  final String? tempSwitchLetter;
   final List<SourceEventCondition> children;
   bool get isQualified => switch (kind) {
         SourceEventConditionKind.unqualified => false,
@@ -94,6 +98,8 @@ final class SourceEventCondition {
         SourceEventConditionKind.variableAtLeast =>
           variableId != null && minimum != null,
         SourceEventConditionKind.pickup => pickup != null,
+        SourceEventConditionKind.tempSwitch => tempSwitchLetter == 'A',
+        SourceEventConditionKind.playerOnEvent => true,
         SourceEventConditionKind.always => true,
       };
   bool? evaluate(
@@ -127,6 +133,13 @@ final class SourceEventCondition {
         'minimum': minimum,
         'reason': reason,
         'pickup': pickup?.toJson(),
+        if (kind == SourceEventConditionKind.tempSwitch) ...{
+          'tempSwitchLetter': tempSwitchLetter,
+          'lifetime': 'mapEventInstance',
+          'saveResumeQualification': 'notImplemented',
+        },
+        if (kind == SourceEventConditionKind.playerOnEvent)
+          'predicate': 'currentMapAndPlayerOnEventCoordinates',
         'children': children.map((child) => child.toJson()).toList(),
       };
 }
@@ -328,6 +341,129 @@ final class SourceInteractionFacingNode extends SourceEventNode {
       {required List<SourcePreservedData> rawDataRefs})
       : rawDataRefs = List.unmodifiable(rawDataRefs);
   final List<SourcePreservedData> rawDataRefs;
+}
+
+enum SourceMoveRouteStepKind {
+  moveDown,
+  moveUp,
+  wait,
+  turnDown,
+  turnLeft,
+  turnRight,
+  turnUp,
+  throughOn,
+  throughOff,
+  soundEffect,
+}
+
+final class SourceMoveRouteStep {
+  const SourceMoveRouteStep(
+      {required this.kind,
+      required this.sourceCode,
+      required this.rawDataRef,
+      required this.routeNodeId,
+      this.durationTicks,
+      this.soundName,
+      this.soundVolume,
+      this.soundPitch});
+  final SourceMoveRouteStepKind kind;
+  final int sourceCode, routeNodeId;
+  final SourcePreservedData rawDataRef;
+  final int? durationTicks, soundVolume, soundPitch;
+  final String? soundName;
+  Map<String, Object?> toJson() => {
+        'kind': kind.name,
+        'sourceCode': sourceCode,
+        if (durationTicks != null) ...{
+          'durationTicks': durationTicks,
+          'ticksPerSecond': 20,
+          'durationMs': durationTicks! * 50,
+        },
+        if (soundName != null)
+          'sound': {
+            'name': soundName,
+            'volume': soundVolume,
+            'pitch': soundPitch,
+          },
+        'rawDataRef': rawDataRef.toJson(),
+        'routeNodeId': routeNodeId,
+      };
+}
+
+final class SourceForcedMoveRouteNode extends SourceEventNode {
+  SourceForcedMoveRouteNode(super.span,
+      {required this.targetSourceCharacterId,
+      required this.repeat,
+      required this.skippable,
+      required List<SourceMoveRouteStep> steps,
+      required List<SourcePreservedData> rawDataRefs,
+      required this.terminatorNodeId,
+      required this.profileHash})
+      : steps = List.unmodifiable(steps),
+        rawDataRefs = List.unmodifiable(rawDataRefs);
+  final int targetSourceCharacterId, terminatorNodeId;
+  final bool repeat, skippable;
+  final List<SourceMoveRouteStep> steps;
+  final List<SourcePreservedData> rawDataRefs;
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {
+        'kind': 'forcedMoveRoute',
+        'targetSourceCharacterId': targetSourceCharacterId,
+        'repeat': repeat,
+        'skippable': skippable,
+        'waitForCompletion': false,
+        'steps': List.unmodifiable(steps.map((step) => step.toJson())),
+        'terminatorNodeId': terminatorNodeId,
+        'span': span.toJson(),
+        'rawDataRefs':
+            List.unmodifiable(rawDataRefs.map((ref) => ref.toJson())),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
+final class SourceMoveRouteBarrierNode extends SourceEventNode {
+  const SourceMoveRouteBarrierNode(super.span, {required this.profileHash});
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {
+        'kind': 'moveRouteBarrier',
+        'scope': 'allForcedRoutes',
+        'includes': ['player', 'mapEvents', 'followers'],
+        'span': span.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
+final class SourcePlayerVisibilityNode extends SourceEventNode {
+  const SourcePlayerVisibilityNode(super.span,
+      {required this.visible, required this.profileHash});
+  final bool visible;
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {
+        'kind': 'playerVisibility',
+        'visible': visible,
+        'span': span.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
+final class SourceTempSwitchNode extends SourceEventNode {
+  const SourceTempSwitchNode(super.span, {required this.profileHash});
+  final Sha256Hash profileHash;
+  String get letter => 'A';
+  bool get value => true;
+  Map<String, Object?> toJson() => {
+        'kind': 'tempSwitch',
+        'letter': letter,
+        'value': value,
+        'lifetime': 'mapEventInstance',
+        'saveResumeQualification': 'notImplemented',
+        'span': span.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
 }
 
 final class SourcePickupNode extends SourceEventNode {
@@ -578,7 +714,12 @@ final class SourceEventAnalyzer {
         if (array.kind != MarshalKind.array) return null;
         return List.unmodifiable(array.elements.map((id) {
           final node = file.document.node(id);
-          return node.kind == MarshalKind.string ? node.text().text : null;
+          if (node.kind != MarshalKind.string) return null;
+          try {
+            return _eventLiteralText(file.document, id);
+          } on FormatException {
+            return null;
+          }
         }));
       } on FormatException {
         return null;
@@ -593,6 +734,12 @@ final class SourceEventAnalyzer {
       return _unqualifiedEventCondition('events.missing_switch_name');
     }
     if (names[id]!.startsWith('s:')) {
+      if (_isQualified && id == 22 && names[id] == 's:tsOff?("A")') {
+        return SourceEventCondition(
+            kind: SourceEventConditionKind.tempSwitch,
+            tempSwitchLetter: 'A',
+            expectedValue: !value);
+      }
       return _unqualifiedEventCondition('events.dynamic_switch_name');
     }
     return SourceEventCondition(
@@ -616,7 +763,18 @@ final class SourceEventAnalyzer {
           file.document, _eventField(fields, '@switch${slot}_valid'))) {
         final id =
             _eventInt(file.document, _eventField(fields, '@switch${slot}_id'));
-        children.add(_switchCondition(id, true, names));
+        final condition = _switchCondition(id, true, names);
+        if (condition.kind == SourceEventConditionKind.tempSwitch) {
+          for (final name in ['@switch${slot}_id', '@switch${slot}_valid']) {
+            final node = file.document.node(_eventField(fields, name));
+            if (node.extensions.isNotEmpty ||
+                node.userClass != null ||
+                node.instanceVariables.isNotEmpty) {
+              throw const FormatException();
+            }
+          }
+        }
+        children.add(condition);
       }
     }
     if (_eventBool(file.document, _eventField(fields, '@variable_valid'))) {
@@ -784,6 +942,31 @@ String _eventText(MarshalDocument doc, int id) {
   return node.text().text!;
 }
 
+String _eventLiteralText(MarshalDocument doc, int id) {
+  final node = doc.node(id);
+  if (node.kind != MarshalKind.string ||
+      node.extensions.isNotEmpty ||
+      node.userClass != null) {
+    throw const FormatException();
+  }
+  for (final pair in node.instanceVariables) {
+    final key = doc.node(pair.key);
+    final value = doc.node(pair.value);
+    if (key.kind != MarshalKind.symbol ||
+        !const {'E', 'encoding'}.contains(key.name) ||
+        key.extensions.isNotEmpty ||
+        key.userClass != null ||
+        key.instanceVariables.isNotEmpty ||
+        value.kind != (key.name == 'E' ? MarshalKind.boolean : MarshalKind.string) ||
+        value.extensions.isNotEmpty ||
+        value.userClass != null ||
+        value.instanceVariables.isNotEmpty) {
+      throw const FormatException();
+    }
+  }
+  return _eventText(doc, id);
+}
+
 final class _SourceEventParser {
   _SourceEventParser(this.analyzer, this.commands, this.locator, this.mapId,
       this.eventId, this.switchNames, this.rawPage);
@@ -934,6 +1117,9 @@ final class _SourceEventParser {
         }
         for (var id = firstId; id <= lastId; id++) {
           final condition = analyzer._switchCondition(id, value, switchNames);
+          if (condition.kind == SourceEventConditionKind.tempSwitch) {
+            return _unknown('events.dynamic_switch_name');
+          }
           if (!condition.isQualified) return _unknown(condition.reason!);
         }
         final current = index++;
@@ -988,7 +1174,37 @@ final class _SourceEventParser {
             direction: direction,
             fade: fade == 0);
       case 209:
-        return _interactionFacing(indent);
+        return _forcedMoveRoute(indent);
+      case 208:
+        if (!analyzer._isQualified) {
+          return _unknown('events.unqualified_profile');
+        }
+        _arity(command.parameters, 1);
+        final visibilityRaw = _rawFacingParameters(command, 1);
+        final visibilityDoc =
+            analyzer.project.archive.files[rawPage!.fileId]!.document;
+        final visibility = _eventInt(
+            visibilityDoc,
+            _facingPlain(
+                visibilityDoc, visibilityRaw.single, MarshalKind.integer));
+        if (![0, 1].contains(visibility) ||
+            visibility != _integer(command.parameters.single)) {
+          throw const FormatException();
+        }
+        final visibilityIndex = index++;
+        return SourcePlayerVisibilityNode(
+            _span(visibilityIndex, visibilityIndex),
+            visible: visibility == 1,
+            profileHash: analyzer.profile.canonicalHash);
+      case 210:
+        if (!analyzer._isQualified) {
+          return _unknown('events.unqualified_profile');
+        }
+        _arity(command.parameters, 0);
+        _rawFacingParameters(command, 0);
+        final barrierIndex = index++;
+        return SourceMoveRouteBarrierNode(_span(barrierIndex, barrierIndex),
+            profileHash: analyzer.profile.canonicalHash);
       case 223:
         return _tone();
       case 250:
@@ -1002,6 +1218,17 @@ final class _SourceEventParser {
           index++;
         } while (index < commands.length &&
             [355, 655].contains(commands[index].code));
+        if (analyzer._isQualified &&
+            index == first + 1 &&
+            script == 'setTempSwitchOn("A")\n') {
+          final raw = _rawFacingParameters(command, 1);
+          final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+          if (_routeText(doc, raw.single) != 'setTempSwitchOn("A")') {
+            throw const FormatException();
+          }
+          return SourceTempSwitchNode(_span(first, first),
+              profileHash: analyzer.profile.canonicalHash);
+        }
         _diagnostic('events.script_group_quarantined', first, index - 1);
         return SourceScriptNode(_span(first, index - 1), script);
       default:
@@ -1145,6 +1372,135 @@ final class _SourceEventParser {
         rawDataRefs: [route, copy]);
   }
 
+  SourceEventNode _forcedMoveRoute(int indent) {
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final first = index;
+    final command = commands[first];
+    _arity(command.parameters, 2);
+    final raw = _rawFacingParameters(command, 2);
+    final route = _facingReference(command, 1, raw[1]);
+    final doc = analyzer.project.archive.files[route.fileId]!.document;
+    final target =
+        _eventInt(doc, _facingPlain(doc, raw[0], MarshalKind.integer));
+    if (target < -1 || target != _integer(command.parameters[0])) {
+      throw const FormatException();
+    }
+    final fields = _facingFields(doc, route.nodeId, 'RPG::MoveRoute',
+        const {'@repeat', '@skippable', '@list'});
+    final repeat = _eventBool(doc,
+        _facingPlain(doc, _eventField(fields, '@repeat'), MarshalKind.boolean));
+    final skippable = _eventBool(
+        doc,
+        _facingPlain(
+            doc, _eventField(fields, '@skippable'), MarshalKind.boolean));
+    final list = doc
+        .node(
+            _facingPlain(doc, _eventField(fields, '@list'), MarshalKind.array))
+        .elements;
+    if (list.isEmpty) throw const FormatException();
+    _facingMoveCommand(doc, list.last, 0);
+    if (list.length == 2) {
+      final only = _facingFields(
+          doc, list.first, 'RPG::MoveCommand', const {'@code', '@parameters'});
+      if (_eventInt(
+              doc,
+              _facingPlain(
+                  doc, _eventField(only, '@code'), MarshalKind.integer)) ==
+          25) {
+        return _interactionFacing(indent);
+      }
+    }
+    final steps = <SourceMoveRouteStep>[];
+    final refs = <SourcePreservedData>[route];
+    for (var stepIndex = 0; stepIndex < list.length - 1; stepIndex++) {
+      final copyIndex = first + stepIndex + 1;
+      if (copyIndex >= commands.length) throw const FormatException();
+      final copyCommand = commands[copyIndex];
+      if (copyCommand.code != 509 ||
+          copyCommand.indent != indent ||
+          copyCommand.originalIndex != command.originalIndex + stepIndex + 1) {
+        throw const FormatException();
+      }
+      _arity(copyCommand.parameters, 1);
+      final copyRaw = _rawFacingParameters(copyCommand, 1);
+      final copy = _facingReference(copyCommand, 0, copyRaw.single);
+      final sourceValue = _routeStepValue(doc, list[stepIndex]);
+      final copyValue = _routeStepValue(doc, copy.nodeId);
+      if (canonicalJsonOf(sourceValue) != canonicalJsonOf(copyValue)) {
+        throw const FormatException();
+      }
+      refs.add(copy);
+      steps.add(SourceMoveRouteStep(
+          kind: SourceMoveRouteStepKind.values
+              .byName(sourceValue['kind'] as String),
+          sourceCode: sourceValue['code'] as int,
+          rawDataRef: copy,
+          routeNodeId: list[stepIndex],
+          durationTicks: sourceValue['ticks'] as int?,
+          soundName: sourceValue['name'] as String?,
+          soundVolume: sourceValue['volume'] as int?,
+          soundPitch: sourceValue['pitch'] as int?));
+    }
+    index = first + list.length;
+    return SourceForcedMoveRouteNode(_span(first, index - 1),
+        targetSourceCharacterId: target,
+        repeat: repeat,
+        skippable: skippable,
+        steps: steps,
+        rawDataRefs: refs,
+        terminatorNodeId: list.last,
+        profileHash: analyzer.profile.canonicalHash);
+  }
+
+  Map<String, Object?> _routeStepValue(MarshalDocument doc, int id) {
+    final fields = _facingFields(
+        doc, id, 'RPG::MoveCommand', const {'@code', '@parameters'});
+    final code = _eventInt(doc,
+        _facingPlain(doc, _eventField(fields, '@code'), MarshalKind.integer));
+    final kind = switch (code) {
+      1 => SourceMoveRouteStepKind.moveDown,
+      4 => SourceMoveRouteStepKind.moveUp,
+      15 => SourceMoveRouteStepKind.wait,
+      16 => SourceMoveRouteStepKind.turnDown,
+      17 => SourceMoveRouteStepKind.turnLeft,
+      18 => SourceMoveRouteStepKind.turnRight,
+      19 => SourceMoveRouteStepKind.turnUp,
+      37 => SourceMoveRouteStepKind.throughOn,
+      38 => SourceMoveRouteStepKind.throughOff,
+      44 => SourceMoveRouteStepKind.soundEffect,
+      _ => throw const FormatException(),
+    };
+    final params = _facingArray(doc, _eventField(fields, '@parameters'),
+        [15, 44].contains(code) ? 1 : 0);
+    final result = <String, Object?>{'code': code, 'kind': kind.name};
+    if (code == 15) {
+      final ticks =
+          _eventInt(doc, _facingPlain(doc, params.single, MarshalKind.integer));
+      if (ticks < 0) throw const FormatException();
+      result['ticks'] = ticks;
+    } else if (code == 44) {
+      final sound = _facingFields(doc, params.single, 'RPG::AudioFile',
+          const {'@name', '@volume', '@pitch'});
+      final volume = _eventInt(
+          doc,
+          _facingPlain(
+              doc, _eventField(sound, '@volume'), MarshalKind.integer));
+      final pitch = _eventInt(doc,
+          _facingPlain(doc, _eventField(sound, '@pitch'), MarshalKind.integer));
+      if (volume < 0 || volume > 100 || pitch < 50 || pitch > 150) {
+        throw const FormatException();
+      }
+      result.addAll({
+        'name': _routeText(doc, _eventField(sound, '@name')),
+        'volume': volume,
+        'pitch': pitch
+      });
+    }
+    return result;
+  }
+
+  String _routeText(MarshalDocument doc, int id) => _eventLiteralText(doc, id);
+
   List<int> _rawFacingParameters(SourceCommand command, int arity) {
     final page = rawPage;
     if (page == null ||
@@ -1271,8 +1627,19 @@ final class _SourceEventParser {
     switch (_integer(params[0])) {
       case 0:
         _arity(params, 3);
-        return analyzer._switchCondition(
+        final condition = analyzer._switchCondition(
             _integer(params[1]), _onOff(params[2]), switchNames);
+        if (condition.kind == SourceEventConditionKind.tempSwitch) {
+          final raw = _rawFacingParameters(command, 3);
+          final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+          for (var slot = 0; slot < raw.length; slot++) {
+            if (_eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer)) !=
+                _integer(params[slot])) {
+              throw const FormatException();
+            }
+          }
+        }
+        return condition;
       case 2:
         _arity(params, 3);
         final letter = _string(params[1]);
@@ -1287,6 +1654,18 @@ final class _SourceEventParser {
         _arity(params, 2);
         if (!analyzer._isQualified) {
           return _unqualifiedEventCondition('events.unqualified_profile');
+        }
+        final raw = _rawFacingParameters(command, 2);
+        final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+        if (_eventInt(doc, _facingPlain(doc, raw[0], MarshalKind.integer)) !=
+            12) {
+          throw const FormatException();
+        }
+        final literal = _routeText(doc, raw[1]);
+        if (literal != _string(params[1])) throw const FormatException();
+        if (literal == 'get_self.onEvent?') {
+          return SourceEventCondition(
+              kind: SourceEventConditionKind.playerOnEvent);
         }
         final pickup =
             _SourcePickupLiteral(_string(params[1])).parse(_span(index, index));

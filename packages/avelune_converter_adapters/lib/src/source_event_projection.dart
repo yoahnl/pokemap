@@ -780,6 +780,10 @@ final class _ProjectionBuilder {
         }
       case SourceEventConditionKind.variableAtLeast:
         gaps.add('variableStateProjectionUnsupported');
+      case SourceEventConditionKind.tempSwitch:
+        gaps.add('sourceTempSwitchUnsupported');
+      case SourceEventConditionKind.playerOnEvent:
+        gaps.add('sourceDoorProgramUnsupported');
       case SourceEventConditionKind.unqualified:
         gaps.add('sourceConditionUnqualified');
     }
@@ -846,6 +850,12 @@ final class _ProjectionBuilder {
         case SourceWaitNode():
         case SourceSoundEffectNode():
           gaps.add('sourcePresentationUnsupported');
+        case SourceForcedMoveRouteNode():
+        case SourceMoveRouteBarrierNode():
+        case SourcePlayerVisibilityNode():
+          gaps.add('sourceDoorProgramUnsupported');
+        case SourceTempSwitchNode():
+          gaps.add('sourceTempSwitchUnsupported');
       }
     }
   }
