@@ -438,6 +438,7 @@ Map<String, dynamic> _$MapWarpToJson(_MapWarp instance) => <String, dynamic>{
 const _$MapWarpTriggerModeEnumMap = {
   MapWarpTriggerMode.onEnter: 'on_enter',
   MapWarpTriggerMode.onBump: 'on_bump',
+  MapWarpTriggerMode.sceneOnly: 'scene_only',
 };
 
 const _$EntityFacingEnumMap = {

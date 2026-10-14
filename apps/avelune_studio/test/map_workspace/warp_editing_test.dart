@@ -143,4 +143,21 @@ void main() {
     expect(document.current.warps.single.targetMapId, 'b');
     expect(document.dirty, isTrue);
   });
+
+  test('passive arrival creation delegates local targets and requires an explicit active conversion', () {
+    project = project.copyWith(maps: [workspaceEntries.first]);
+    commands = WarpEditingCommands(document, project);
+    final point = commands.placeArrival(const GridPos(x: 2, y: 3));
+    expect(point.targetMapId, document.current.id);
+    expect(point.targetPos, point.pos);
+    expect(point.triggerMode, MapWarpTriggerMode.sceneOnly);
+    expect(
+      () =>
+          commands.retarget(point.id, triggerMode: MapWarpTriggerMode.onEnter),
+      throwsA(isA<ValidationException>()),
+    );
+    expect(document.current.warps.single, point);
+    commands.move(point.id, const GridPos(x: 4, y: 5));
+    expect(document.current.warps.single.targetPos, const GridPos(x: 4, y: 5));
+  });
 }

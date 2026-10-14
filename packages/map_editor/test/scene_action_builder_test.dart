@@ -364,6 +364,43 @@ void main() {
     );
   });
 
+  testWidgets(
+    'warp picker keeps a passive Scene arrival point without inventing an outgoing warp',
+    (tester) async {
+      SceneNodePayload? submitted;
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.warp,
+        initialParameters: const {'destinationMapId': 'forest'},
+        options: _warpOptions,
+        loadWarpMap: (id) async => _warpMap(id).copyWith(
+          warps: [
+            MapWarp(
+              id: 'scene-arrival',
+              pos: const GridPos(x: 2, y: 3),
+              targetMapId: id,
+              targetPos: const GridPos(x: 2, y: 3),
+              triggerMode: MapWarpTriggerMode.sceneOnly,
+            ),
+          ],
+        ),
+        onSubmit: (payload) => submitted = payload,
+      );
+      final arrival = _picker(tester, 'Point d’arrivée');
+      expect(arrival.items.map((item) => item.value), ['scene-arrival']);
+      expect(_submitButton(tester).onPressed, isNotNull);
+      _submitButton(tester).onPressed!();
+      await tester.pump();
+      expect(
+        (submitted! as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.warp(
+          destinationMapId: 'forest',
+          warpId: 'scene-arrival',
+        ),
+      );
+    },
+  );
+
   for (final failure in ['missing', 'wrongIdentity', 'throws']) {
     testWidgets(
       'warp map loader refuses $failure without using stale options',

@@ -509,6 +509,8 @@ enum MapWarpTriggerMode {
   onEnter,
   @JsonValue('on_bump')
   onBump,
+  @JsonValue('scene_only')
+  sceneOnly,
 }
 
 @freezed

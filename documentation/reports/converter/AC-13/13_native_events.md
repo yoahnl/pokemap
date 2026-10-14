@@ -5,7 +5,7 @@
 Implémentation livrée pour revue, avec trois traces EV-A/B/C converties depuis des fichiers RMXP originaux synthétiques, relues strictement au format natif, exécutées par le vrai runtime puis sauvegardées et chargées par une nouvelle instance de `FileGameSaveRepository`. Le domaine reste PARTIAL : la conversion de jeu entier, les événements Kanto et la parité de toute instruction Essentials ne sont pas certifiés.
 
 
-État actuel au 14 octobre : voir les derniers compléments « Présentation native 2D », « Lecture du programme original de la porte » et « Routes natives finies et visibilité visuelle ». Tone/SE et les ports actorRoute/actorVisibility sont raccordés et testés dans le Player2D ; l’IR v4 reconnaît le programme original entier. La projection source des routes, la condition de position, l’état d’instance et l’arrivée propriétaire restent à qualifier. Les portes source restent inactives. L’éditeur des nouvelles routes reste unsupported. Les anciennes copies QA et captures absentes ne constituent pas des projets disponibles. Les livraisons initiales ci-dessous sont historiques. Domaine PARTIAL.
+État actuel au 14 octobre : les compléments successifs qualifient Tone/SE, routes finies, visibilité, états d’instance, sortie du contact d’un acteur, contact natif et points d’arrivée de scène. Les guides et transports canoniques sont décrits dans leurs preuves ciblées ; une capacité native ne vaut pas conversion du programme source. L’IR v4 reconnaît le programme original entier, mais la projection fidèle de la porte, l’autorun réévaluable, la cadence et les attentes source restent à fermer. Les portes source restent inactives ; dernier échantillon préparé : 9 événements adaptés sur 44. Les preuves et captures anciennes restent historiques, sans disponibilité actuelle implicite. Domaine PARTIAL.
 La grammaire porte textes, choix et annulation typée, pages conditionnelles, switches booléens, self-switches et transferts constants vers des cartes sélectionnées. Un bloc inconnu désactive l’événement entier. Les données sources restent conservées sous forme inerte, avec références et SHA, même pour une quarantaine intégrale. Ruby exécuté : 0 ; appels IA dans la conversion : 0. Les fixtures distribuées sont originales ; aucun asset Pokémon du corpus privé n’entre dans Git.
 
 La politique native de choix/cancel et les capacités nécessaires pour avancer ont été approuvées explicitement par Yoahn dans le fil, avant extension du modèle cible. La commande secondaire rejoint une issue déclarée ou reste désactivée selon la source. L’autorisation de faire tous les lots et de commiter entre lots permet d’enchaîner AC-14 ; la restriction du kit sur une suite implicite ne remplace pas cette instruction directe. La règle directe sans commentaires prévaut sur le §3 de `codex_rule.md` ; aucun commentaire de code ajouté.
@@ -1732,3 +1732,127 @@ Tous les derniers runs ont zéro survivant possédé et aucun signal ; aucune fe
 Cette capacité native ne convertit pas encore la porte originale. SourceMap100event8 page0 trigger1, page1 autorunTempA, Map102event1 retour Map100(13,25) puis Down(13,26), sans Through : profilv5/projection complète, état temporaire/lifetime, position/visibility/routes209-210, guides et vraie preuve originale aller/retour/save disque/Studio open-edit-save-reopen restent ouverts. Ne pas remplacer autorun par mapEnter sans équivalence source démontrée. Scripts statiques exacts lus comme oracle, jamais exécutés. Dernier échantillon original9/44événements inchangé. FG082/090/093PARTIAL,FG092TODO, roadmap inchangée. Goal AC00–16 actif et globalPARTIAL.
 
 Yoahn autorise commit et push directement sur main. Publication79chemins prévue, sans force-push/rebase/amend/branche/worktree. Garde fraîche avant copie : HEADfc,indexvide,blobs host scope égaux àbase, fichiers nouveaux absents ; SHA/modes des changements étrangers vérifiés avant/après. L'inventaire et les reçus publication-final-01 enregistrent parent/arbre exact/index/commit/remote et checks. Hygiene0nouveauMarkdown et scoped/staged diffcheck requis avantcommit. Aucun SHA futur inventé dans ce rapport. Ticket AC13 existant, unique grand domaine PostBêta Monde & narration, Gate bêta false : tranche TOREVIEW, résultatglobalPARTIAL, DONE réservé àYoahn ; audit Source suivant reprendDOING.
+
+
+## Complément AC-13 — Points d’arrivée de scène sans déclenchement automatique, 14 octobre 2026
+
+### Audit initial, périmètre et décision
+
+Base main `11f761ff18b67864347354f3f78c7261597d7ee7`, index vide. Les derniers travaux natifs de contact sont livrés, mais `SourceProjector.arrival()` fabrique encore une arrivée `onBump`. Placée sur la même ancre que la porte bloquante, cette arrivée est prioritaire sur le contact joueur/PNJ et peut masquer la seconde entrée. L’admission de la porte source reste fermée pendant ce raccord ; aucun script Ruby n’est exécuté.
+
+Le nouvel enum `MapWarpTriggerMode.sceneOnly`, fil `scene_only`, représente une destination nommée de Scene. Il garde les champs du modèle courant sous forme canonique locale : `targetMapId=map.id`, `targetPos=pos`. Sa présence ne déclenche aucun transport automatique. Les deux modes actifs gardent leurs valeurs exactes ; une valeur inconnue est refusée. Aucun reader legacy, migration, IA, asset source ou nouveau drapeau de sauvegarde.
+
+Le guide permet la création sur une carte unique. Créer, déplacer et convertir vers le mode passif normalise les coordonnées locales ; une cible explicite incohérente est refusée. Le passage du mode passif vers un mode actif exige la carte et les deux coordonnées explicitement choisies, puis une application volontaire. Les anciens facings/paddings restent conservés et inactifs en mode passif. Les points sont exclus des arêtes automatiques et opérations réciproques, tout en restant sélectionnables par leur identité dans les commandes SceneWarp.
+
+Les huit productions Studio et deux productions legacy emploient les primitives et tokens du design system existant. Le marqueur passif et l’inspecteur indiquent « Point d’arrivée » / « Utilisé par une scène », sans destination sortante inventée, flèche ou zone de déclenchement. Aucune nouvelle abstraction n’a été créée pour contourner les erreurs monolithiques legacy.
+
+### Inventaire exact et zones
+
+Manifest source `publication-final-01/code-manifest-final-01.json`, SHA `431bec1ab9f613d136326b6e2960a52b7385fad5a8b7fe27ca8c27f988e7b22a`, sous la racine QA indiquée ci-dessous. Il contient les baselines, blobs, SHA, modes et hunks : 31 fichiers de code/tests, dont six nouveaux tests, +2007/-347 lignes selon le regroupement difflib du manifest ; le présent rapport existant constitue le 32e chemin. Les zones suivantes sont les hunks contre la base, pas des copies de source.
+
+| Groupe | Chemin | Zones de diff ; ajout/retrait |
+|---|---|---|
+| Core | `packages/map_core/lib/src/models/map_data.dart` | @@ -509,6 +509,8 @@ ; +2/-0 |
+| Core | `packages/map_core/lib/src/models/map_data.g.dart` | @@ -438,6 +438,7 @@ ; +1/-0 |
+| Core | `packages/map_core/lib/src/operations/map_warps.dart` | @@ -2,6 +2,37 @@; @@ -33,12 +64,23 @@; @@ -82,14 +124,19 @@; @@ -102,8 +149,23 @@ ; +69/-7 |
+| Core | `packages/map_core/lib/src/validation/validators.dart` | @@ -2823,6 +2823,12 @@ ; +6/-0 |
+| Core | `packages/map_authoring/lib/src/domains/maps/warp_connection_actions.dart` | @@ -183,6 +183,7 @@; @@ -242,7 +243,7 @@; @@ -252,7 +253,7 @@; @@ -298,7 +299,8 @@; @@ -332,7 +334,9 @@; @@ -378,6 +382,7 @@; @@ -552,8 +557,21 @@; @@ -718,7 +736,7 @@; @@ -738,11 +756,40 @@; @@ -894,6 +941,7 @@ ; +55/-7 |
+| Core | `packages/map_authoring/lib/src/domains/maps/world_graph_queries.dart` | @@ -180,12 +180,22 @@ ; +16/-6 |
+| Core | `packages/map_core/test/scene_only_warp_operations_test.dart` | @@ -0,0 +1,164 @@ ; +164/-0 |
+| Core | `packages/map_authoring/test/domains/maps/scene_only_warp_transport_test.dart` | @@ -0,0 +1,311 @@ ; +311/-0 |
+| Core | `tools/pokemap_mcp/test/scene_only_warp_destination_stdio.test.ts` | @@ -0,0 +1,117 @@ ; +117/-0 |
+| Pure | `packages/map_gameplay/lib/src/spatial_warp_controller.dart` | @@ -49,6 +49,7 @@ ; +1/-0 |
+| Pure | `packages/map_gameplay/test/spatial_warp_controller_test.dart` | @@ -42,9 +42,13 @@; @@ -59,6 +63,37 @@ ; +38/-3 |
+| Pure | `packages/map_gameplay/lib/src/validation/narrative_physical_reachability_validator.dart` | @@ -585,6 +585,7 @@; @@ -860,9 +861,13 @@ ; +8/-3 |
+| Pure | `packages/map_gameplay/test/narrative_physical_reachability_validator_test.dart` | @@ -210,6 +210,57 @@ ; +51/-0 |
+| UI | `apps/avelune_studio/lib/features/map_workspace/application/warp_editing_commands.dart` | @@ -47,6 +47,17 @@ ; +11/-0 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart` | @@ -69,6 +69,7 @@; @@ -434,7 +435,11 @@ ; +6/-1 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_palette.dart` | @@ -11,54 +11,80 @@ ; +58/-32 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_panels.dart` | @@ -122,7 +122,15 @@; @@ -316,6 +324,8 @@ ; +10/-0 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_palette_dock.dart` | @@ -169,6 +169,9 @@ ; +3/-0 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_character_gesture.dart` | @@ -104,12 +104,14 @@ ; +8/-6 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_inspector.dart` | @@ -4,7 +4,9 @@; @@ -28,16 +30,70 @@; @@ -64,107 +120,152 @@ ; +180/-79 |
+| UI | `apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_overlay.dart` | @@ -194,7 +194,9 @@ ; +3/-1 |
+| UI | `packages/map_editor/lib/src/ui/panels/warp_properties_panel.dart` | @@ -7,6 +7,8 @@; @@ -30,6 +32,7 @@; @@ -64,7 +67,7 @@; @@ -129,7 +132,8 @@; @@ -153,7 +157,9 @@; @@ -161,7 +167,9 @@; @@ -245,13 +253,19 @@; @@ -280,6 +294,7 @@; @@ -297,12 +312,19 @@; @@ -311,22 +333,41 @@; @@ -354,23 +395,31 @@; @@ -386,10 +435,12 @@; @@ -407,127 +458,126 @@; @@ -538,7 +588,7 @@; @@ -559,7 +609,7 @@; @@ -572,7 +622,7 @@; @@ -580,7 +630,7 @@; @@ -597,24 +647,27 @@; @@ -645,46 +698,44 @@; @@ -966,6 +1017,7 @@ ; +242/-190 |
+| UI | `packages/map_editor/lib/src/ui/canvas/map_canvas/map_grid_painter.dart` | @@ -1288,13 +1288,14 @@; @@ -1331,14 +1332,25 @@ ; +20/-8 |
+| UI | `apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart` | @@ -0,0 +1,336 @@ ; +336/-0 |
+| UI | `apps/avelune_studio/test/map_workspace/warp_editing_test.dart` | @@ -143,4 +143,21 @@ ; +17/-0 |
+| UI | `apps/avelune_studio/test/map_workspace/warp_disk_journey_test.dart` | @@ -1,4 +1,5 @@; @@ -65,6 +66,43 @@ ; +38/-0 |
+| UI | `apps/avelune_studio/test/presentation/scene_warp_form_test.dart` | @@ -102,6 +102,37 @@ ; +31/-0 |
+| UI | `packages/map_editor/test/scene_action_builder_test.dart` | @@ -364,6 +364,43 @@ ; +37/-0 |
+| Root | `packages/map_core/test/scene_only_warp_destination_test.dart` | @@ -0,0 +1,34 @@ ; +34/-0 |
+| Root | `packages/map_gameplay/test/scene_only_warp_destination_contact_test.dart` | @@ -0,0 +1,51 @@ ; +51/-0 |
+| Root | `packages/map_runtime/test/playable_map_game_connection_arrival_collision_test.dart` | @@ -254,6 +254,78 @@; @@ -2107,6 +2179,8 @@; @@ -2162,6 +2236,7 @@; @@ -2231,12 +2306,16 @@ ; +83/-4 |
+
+
+Le modèle/génération ne conserve que l’ajout de l’enum et sa correspondance JSON. La génération filtrée a capturé 487 fichiers Core : deux sorties Freezed reformatées ont été restaurées exactement depuis leurs captures privées du même run. Le ledger de génération et les gels gardent cette preuve. Aucun barrel n’a changé. Le résolveur physique 2D comparait déjà les modes exacts ; il n’a pas été modifié. Le switch spatial et l’exploration de portée ferment explicitement le nouveau cas passif.
+
+### Tests, transports et build sur les octets gelés
+
+Racine de preuves : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac13-scene-arrival-20261014-md2ntt37`. R privé : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej/repository`. Les reçus JSON contiennent argv, cwd, identités des descendants, hashes avant/après et SHA de logs ; leurs bytes et pins courants sont revérifiés dans `root-qualification-final-02.json`.
+
+| Reçu | cwd relatif à R ; commande exacte | Résultat |
+|---|---|---|
+| `root-core-regression-final-02.json` | `packages/map_core` ; `/opt/homebrew/bin/dart test test/scene_only_warp_operations_test.dart test/scene_only_warp_destination_test.dart test/map_core_test.dart test/map_delta_validator_test.dart test/scene_warp_owner_arrival_test.dart test/map_events_test.dart --reporter expanded` | Core34 PASS ; six suites ; 1.932s ; exit0 |
+| `scene-arrival-api-final-01.json` | `packages/map_authoring` ; `/opt/homebrew/bin/dart test test/domains/maps/scene_only_warp_transport_test.dart test/domains/maps/warp_connection_transaction_test.dart --reporter expanded` | API directe + JSONL20 PASS ; 3.490s ; exit0 |
+| `scene-arrival-mcp-final-01.json` | `tools/pokemap_mcp` ; `node --import tsx --test --test-concurrency=1 test/scene_only_warp_destination_stdio.test.ts` | MCP live1 PASS,0 SKIP ; 9.111s ; exit0 |
+| `scene-arrival-core-analyze-final-01.json` | `packages/map_core` ; `/opt/homebrew/bin/dart analyze lib/src/models/map_data.dart lib/src/models/map_data.g.dart lib/src/operations/map_warps.dart lib/src/validation/validators.dart test/scene_only_warp_operations_test.dart` | 0 erreur/warning ;3 INFO baseline ; 1.368s ; exit0 |
+| `scene-arrival-api-analyze-final-01.json` | `packages/map_authoring` ; `/opt/homebrew/bin/dart analyze lib/src/domains/maps/warp_connection_actions.dart lib/src/domains/maps/world_graph_queries.dart test/domains/maps/scene_only_warp_transport_test.dart` | No issues found ; 2.597s ; exit0 |
+| `scene-arrival-mcp-check-final-01.json` | `tools/pokemap_mcp` ; `npm run check` | PASS ; 1.368s ; exit0 |
+| `scene-arrival-mcp-build-final-01.json` | `tools/pokemap_mcp` ; `npm run build` | PASS ; 1.356s ; exit0 |
+| `scene-only-pure-consumers-green-01.json` | `packages/map_gameplay` ; `/opt/homebrew/bin/dart test test/spatial_warp_controller_test.dart test/narrative_physical_reachability_validator_test.dart test/scene_only_warp_destination_contact_test.dart --reporter expanded --concurrency=1` | Pure30 PASS, dont Root2 ; 1.918s ; exit0 |
+| `scene-only-pure-consumers-analyze-01.json` | `packages/map_gameplay` ; `/opt/homebrew/bin/dart analyze lib/src/spatial_warp_controller.dart test/spatial_warp_controller_test.dart lib/src/validation/narrative_physical_reachability_validator.dart test/narrative_physical_reachability_validator_test.dart` | No issues found ; 1.623s ; exit0 |
+| `root-runtime-union-final-02.json` | `packages/map_runtime` ; `flutter test --no-pub test/scene_map_instance_consequence_writer_test.dart test/playable_map_game_connection_arrival_collision_test.dart test/scene_interactive_command_runtime_executor_test.dart test/scene_actor_visibility_render_test.dart test/narrative_command_runtime_parity_test.dart test/phase_a_golden_battle_slice_smoke_test.dart test/narrative_spatial_production_dispatch_bridge_test.dart test/narrative_map_enter_production_dispatch_bridge_test.dart test/playable_map_game_qualified_outcome_v2_integration_test.dart --reporter expanded --concurrency=1` | Runtime197 PASS ; neuf suites ; 19.030s ; exit0 |
+| `root-host-final-02.json` | `examples/playable_runtime_host` ; `flutter test --no-pub test/phase_a_golden_slice_launch_test.dart test/p3_narrative_smoke_slice_test.dart --reporter expanded --concurrency=1` | Host15 PASS ; deux suites ; 12.372s ; exit0 |
+| `root-converter-regression-final-01.json` | `packages/avelune_converter_adapters` ; `dart test test/source_event_projection_test.dart test/source_event_study_composer_test.dart test/source_event_arrival_validation_test.dart test/native_project_writer_test.dart --concurrency=2 --reporter expanded` | Adapters128 PASS,0 SKIP ; quatre suites ; 28.202s ; exit0 |
+| `root-core-model-analyze-final-02.json` | `packages/map_core` ; `dart analyze test/scene_only_warp_destination_test.dart` | No issues found ; 1.760s ; exit0 |
+| `root-pure-contact-analyze-final-02.json` | `packages/map_gameplay` ; `dart analyze test/scene_only_warp_destination_contact_test.dart` | No issues found ; 1.768s ; exit0 |
+| `root-runtime-test-analyze-final-02.json` | `packages/map_runtime` ; `dart analyze test/playable_map_game_connection_arrival_collision_test.dart` | No issues found ; 6.688s ; exit0 |
+| `scene-only-ui-studio-final-02.json` | `apps/avelune_studio` ; `flutter test --no-pub test/map_workspace/scene_only_warp_authoring_test.dart test/map_workspace/warp_editing_test.dart test/map_workspace/warp_canvas_test.dart test/map_workspace/warp_disk_journey_test.dart test/presentation/scene_warp_form_test.dart --reporter expanded --concurrency=1` | Studio31 PASS ; cinq suites ; 15.316s ; exit0 |
+| `scene-only-ui-legacy-builder-final-02.json` | `packages/map_editor` ; `flutter test --no-pub test/scene_action_builder_test.dart --reporter expanded --concurrency=1` | Legacy builder44 PASS ; 6.826s ; exit0 |
+| `scene-only-ui-modern-analyze-final-02.json` | `apps/avelune_studio` ; `dart analyze lib/features/map_workspace/application/warp_editing_commands.dart lib/presentation/features/map_workspace/map_workspace_view_state.dart lib/presentation/features/map_workspace/map_warp_palette.dart lib/presentation/features/map_workspace/map_workspace_panels.dart lib/presentation/features/map_workspace/map_workspace_palette_dock.dart lib/presentation/features/map_workspace/map_character_gesture.dart lib/presentation/features/map_workspace/map_warp_inspector.dart lib/presentation/features/map_workspace/map_canvas_overlay.dart test/map_workspace/scene_only_warp_authoring_test.dart test/map_workspace/warp_editing_test.dart test/map_workspace/warp_disk_journey_test.dart test/presentation/scene_warp_form_test.dart` | No issues found ;12 fichiers ; 7.543s ; exit0 |
+| `scene-only-ui-legacy-analyze-final-02.json` | `packages/map_editor` ; `dart analyze lib/src/ui/panels/warp_properties_panel.dart lib/src/ui/canvas/map_canvas/map_grid_painter.dart test/scene_action_builder_test.dart` | No issues found ;3 fichiers ; 9.412s ; exit0 |
+| `root-studio-build-final-01.json` | `apps/avelune_studio` ; `flutter build macos --debug --no-pub` | Studio macOS debug PASS ; aucune fenêtre lancée ; 31.992s ; exit0 |
+| `root-pmcp085-final-01.json` | `packages/map_authoring` ; `dart run tool/pmcp085_conformance.dart` | PARTIAL : catalogue complet, certification transports incomplète ; 10.525s ; exit1 |
+| `root-authoring-full-parity-final-01.json` | `packages/map_authoring` ; `dart test test/parity/full_authoring_parity_test.dart --reporter expanded` | Parité20 PASS ; 20.450s ; exit0 |
+| `root-mcp-conformance-final-01.json` | `tools/pokemap_mcp` ; `node --import tsx --test --test-concurrency=1 test/conformance_security.test.ts` | 5 PASS /1 FAIL ; inventaire outils attendu12, réel14 ; 11.149s ; exit1 |
+
+
+Core : les trois INFO de `validators.dart:155–157` correspondent aux mêmes lignes inchangées de la baseline, aucune nouvelle erreur/warning. Les analyses Root des trois tests sont propres. Les analyses UI portent sur les octets finaux et leurs 23 pins.
+
+Le MCP ciblé effectue réellement describe/plan/apply : création sur carte unique sans cible sortante, déplacement, refus des destinations incohérentes et transition active incomplète, puis fermeture/réouverture. L’API et JSONL qualifient les mêmes refus avant mutation, graphes et portails réciproques. Ce n’est pas une preuve par simple persistance JSON générique.
+
+Le parcours Studio testé passe par canvas/placement, déplacement/undo/redo, garde de coordonnées négatives, comparaison raster du marqueur passif, sauvegarde réelle sur disque puis destruction/recréation du contrôleur et sélection du même point par SceneWarp moderne/legacy. Ce sont des tests Flutter de production ; aucune GUI ni capture de cette tranche n’est présentée comme acquise. Le panneau et renderer legacy ont une lecture statique et une analyse propre ; leurs widgets monolithiques restent non certifiés. Les 14 erreurs nullable de la contrecompilation fc du complément précédent restent une preuve historique, sans nouveau passage global revendiqué.
+
+Le cycle Runtime utilise l’entrée clavier au contact, une vraie SceneWarp vers le point intérieur, un retour SceneWarp sur la porte avec propriétaire de collision, une vraie route de sortie bornée à ce propriétaire, puis un deuxième contact qui exécute une seconde scène. Il n’y a ni mock de warp ni exemption globale Through. Ce test ne comporte pas encore le programme Map100/Map102 original, sa cadence ou sa sauvegarde disque complète. Les obstacles et règles de collision précédemment qualifiés restent dans l’union197.
+
+Les deux anciens skips adapters ont été fermés en renseignant `AVELUNE_AC13_SOURCE_SCRIPTS` avec l’archive restaurée exacte : 1080290 octets, SHA `3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d`. Lecture statique seule, pin avant/après/courant intact. L’archive n’est pas ajoutée au dépôt.
+
+### RED, incidents et limites globales
+
+RED fonctionnels conservés : contrat JSON Root2PASS/1FAIL, contact physique Root1PASS/1FAIL, Core opérations0PASS/5FAIL, API2PASS/8FAIL, MCP0PASS/1FAIL ; guide Studio0PASS/3FAIL puis conversion passive→active3PASS/1FAIL. Le RED consommateurs Pure est distinct :0 test exécuté, deux loadFAIL dus à un switch non exhaustif après ajout de l’enum, pas une fausse contrepreuve fonctionnelle de trajet automatique.
+
+Le premier formatage Root a reflué des zones anciennes du gros test Runtime. Le gel01 reste historique ; le gel02 reconstruit la baseline exacte plus le nouveau test et trois zones de fixture. La requalification Runtime197 et les analyses passent sur ce gel02. L’analyse legacy initiale a également trouvé un callback nullable incompatible avec InspectorEmbeddedPrimaryCapsule : le mécanisme `enabled` du design system existant a corrigé ce défaut avant les deux finales UI02. Aucun échec, log ou reçu n’a été effacé.
+
+La commande PMCP-085 globale retourne exit1 :88 ressources/410 actions,0 bloquée/manquante et catalogue complet, mais138 actions avec preuve end-to-end et104 entièrement certifiées seulement ; transportCertificationComplete=false. Le test de parité passe20/20. La conformance MCP passe5/6 : son test inchangé de liste fermée attend12 outils alors que le serveur expose aussi les deux outils de création de projet. Les quatre fichiers tool/test/server/parité sont byte-identiques à11f ; la même dérive d’inventaire est documentée depuis AC15. Les nouveaux contrats ciblés ne réparent ni ne certifient le catalogue entier.
+
+Tous les reçus finaux ont leurs pins avant/après/courants exacts et aucun survivant confirmé. Les tests n’ont envoyé aucun signal. Le build a réapé par SIGTERM deux descendants ibtoold réellement observés, avec UID/date/commande revérifiés, puis zéro survivant ; aucun processus protégé touché. Aucune nouvelle fenêtre de test laissée ouverte.
+
+### Passes indépendantes, publication et suite réelle
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture Root et ac15_connection_review_fresh | Masquage du contact par fausse arrivée automatique reproduit ; point passif distinct, Source laissée fermée. |
+| Implémentation Core ac13_warp_runtime_tests / Pure ac15_connection_review_fresh / UI ac13_warp_final_review | Contrats, opérations, graphes et guides gelés ; pas de modèle d’état parallèle ni d’exécution source. |
+| Tests Root et propriétaires | RED observés puis finales sur octets actuels ; Core34/API20/Pure30/Runtime197/Host15/Adapters128/Studio31/Legacy44, sans additionner les cas rejoués. |
+| Build / Validation Root | Build Studio debug et check/build MCP acquis ; catalogue global PARTIAL explicitement conservé. |
+| Critique Core9 par ac15_connection_review_fresh ; Pure4 par ac13_warp_runtime_tests | Revues indépendantes favorables, aucun P1/P2 trouvé dans le périmètre inspecté. |
+| Critique UI15 + Root3 par ac13_warp_runtime_tests | Blobs, patches, pins et logs revérifiés ; guides, vrai disque, cycle physique et limites legacy confirmés, aucun P1/P2 trouvé. |
+
+Gels : Core9 `f9cf398a953c750f9bf2895ebc7a5342ada3516cb508f9b5a19b0a21e558fe96` ; Pure4 `27196077d24181c116a65bb3ea553489323fde19dafbdc767cc28f82c3e92f2d` ; UI15 `2aeacc6058e94831c01562922afc95f2e767056517d1c56bc9ad22e532bd666b` ; Root3 final02 `68068e775dc20ddc12efe427e2c6913e9b8a6eda70af89fc5771af4704b99b6d`.
+
+Le contrôle Git initial avait56 chemins étrangers ;60 sont capturés au premier contrôle de publication, les autres sessions ayant continué leurs travaux. Deux fichiers du lot chevauchent ces travaux : map_data.dart et validators.dart. Ils ne doivent pas être copiés ou stagés en entier depuis le host. La publication prépare les seules modifications propres contre11f, les fusionne avec les octets étrangers capturés et prouve par fusion inverse la restitution exacte de ces octets. L’index reçoit les blobs propres qualifiés. Les autres chemins étrangers doivent conserver leurs SHA et modes. Les reçus `publication-final-01` enregistreront l’état juste avant/après copie, index, commit et push normal, après exécution de chaque étape ; pas de force, rebase, amend, stash ou nettoyage.
+
+Le ticket existant AC13 reste DOING/PARTIAL dans son seul grand domaine Post Bêta Monde & narration, Gate bêta false. La tranche native est proposée à revue ; aucune clôture humaine DONE ni modification de roadmap. FG082/090/093 PARTIAL, FG092 TODO. Le goal complet AC00–16 reste actif.
+
+Auto-critique : le point d’arrivée ferme un blocage natif concret, mais n’augmente pas les9/44 événements source adaptés. SourceAdmission=false. La vraie porte exige encore l’autorun TempA=false réévaluable puis A=true hors branche d’ancre, la cadence capturée avant verrou, les attentes/yields et le déclenchement de sortie après déplacement complet, puis projectionv5 et parcours original aller/retour/save-disque/reload/Studio. L’audit source montre que mapEnter revendique une activation avant await et ne reprend pas après AuthorityBlocked/SceneFailed ; l’assimiler à un autorun perdrait le programme. La suite doit porter une vraie source entityAutorun avec attente par instance active et conditions réévaluées, sans modifier le contrat at-most-once de mapEnter ni inventer un flag de sauvegarde global.

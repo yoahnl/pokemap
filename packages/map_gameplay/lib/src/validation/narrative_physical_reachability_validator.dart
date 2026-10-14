@@ -585,6 +585,7 @@ _StateExploration _exploreSymbolicState({
     if (budgetExceeded) break;
 
     for (final warp in map.warps) {
+      if (warp.triggerMode == MapWarpTriggerMode.sceneOnly) continue;
       final search = _findPathToWarp(
         world: world,
         start: entry.pos,
@@ -860,9 +861,13 @@ _PathSearch _findPathToWarp({
           y: triggerCell.y - direction.dy,
         );
         if (!_inside(predecessor, world.map.size)) continue;
-        final resolves = warp.triggerMode == MapWarpTriggerMode.onEnter
-            ? world.warpOnEnterAt(x, y, direction)?.id == warp.id
-            : world.warpOnBumpAt(x, y, direction)?.id == warp.id;
+        final resolves = switch (warp.triggerMode) {
+          MapWarpTriggerMode.onEnter =>
+            world.warpOnEnterAt(x, y, direction)?.id == warp.id,
+          MapWarpTriggerMode.onBump =>
+            world.warpOnBumpAt(x, y, direction)?.id == warp.id,
+          MapWarpTriggerMode.sceneOnly => false,
+        };
         if (!resolves) continue;
         final search = _findPathToAny(
           world: world,

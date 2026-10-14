@@ -47,6 +47,17 @@ class WarpEditingCommands {
     return warp;
   }
 
+  MapWarp placeArrival(GridPos position) {
+    final warp = createMapWarp(
+      document.current,
+      id: _id(),
+      pos: position,
+      triggerMode: MapWarpTriggerMode.sceneOnly,
+    );
+    document.commit(addWarpToMap(document.current, warp: warp));
+    return warp;
+  }
+
   void move(String id, GridPos position) => document.commit(
     updateWarpOnMap(document.current, warpId: id, pos: position),
   );

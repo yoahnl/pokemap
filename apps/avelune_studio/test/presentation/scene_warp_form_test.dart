@@ -102,6 +102,37 @@ void main() {
     });
   });
 
+  testWidgets(
+    'a passive Scene arrival point remains selectable with its exact identity',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await pump(
+        tester,
+        loadMap: (id) async => _map(id).copyWith(
+          warps: [
+            MapWarp(
+              id: 'scene-arrival',
+              pos: const GridPos(x: 2, y: 3),
+              targetMapId: id,
+              targetPos: const GridPos(x: 2, y: 3),
+              triggerMode: MapWarpTriggerMode.sceneOnly,
+            ),
+          ],
+        ),
+        onApply: applied.add,
+      );
+      await pick(tester, 'Commande', 'Téléporter');
+      await pick(tester, 'Carte de destination', 'Village');
+      await pick(tester, 'Point d’arrivée', 'Point d’arrivée 1 · (2, 3)');
+      await tester.tap(find.text('Ajouter l’action'));
+      final command =
+          (applied.single as SceneActionPayload).interactiveCommand!;
+      expect(command.toJson()['destinationMapId'], 'village');
+      expect(command.toJson()['warpId'], 'scene-arrival');
+      expect(apply(tester).onPressed, isNotNull);
+    },
+  );
+
   testWidgets('arrival direction and transition selectors keep typed values', (
     tester,
   ) async {

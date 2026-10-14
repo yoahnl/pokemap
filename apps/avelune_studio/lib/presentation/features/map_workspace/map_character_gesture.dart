@@ -104,12 +104,14 @@ class MapCharacterGesture {
       view.select(document, MapSelectionFamily.marker, entity.id);
       return holding(null);
     }
-    if (view.tool == StudioMapTool.warp && view.warpDestination != null) {
-      final warp = WarpEditingCommands(
-        document,
-        project,
-      ).place(view.warpDestination!, origin);
-      view.select(document, MapSelectionFamily.warp, warp.id);
+    if (view.tool == StudioMapTool.warp &&
+        (view.warpPlacementMode == MapWarpTriggerMode.sceneOnly ||
+            view.warpDestination != null)) {
+      final warpCommands = WarpEditingCommands(document, project);
+      final placedWarp = view.warpPlacementMode == MapWarpTriggerMode.sceneOnly
+          ? warpCommands.placeArrival(origin)
+          : warpCommands.place(view.warpDestination!, origin);
+      view.select(document, MapSelectionFamily.warp, placedWarp.id);
       return holding(null);
     }
     if (view.tool == StudioMapTool.character && view.character != null) {

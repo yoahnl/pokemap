@@ -42,9 +42,13 @@ void main() {
         for (var x = 0; x < 6; x++) {
           for (final facing in EntityFacing.values) {
             final controller = SpatialWarpController(map: map, x: -1, z: -1);
-            final expected = mode == MapWarpTriggerMode.onEnter
-                ? oracle.warpOnEnterAt(x, z, facing.asDirection)
-                : oracle.warpOnBumpAt(x, z, facing.asDirection);
+            final expected = switch (mode) {
+              MapWarpTriggerMode.onEnter =>
+                oracle.warpOnEnterAt(x, z, facing.asDirection),
+              MapWarpTriggerMode.onBump =>
+                oracle.warpOnBumpAt(x, z, facing.asDirection),
+              MapWarpTriggerMode.sceneOnly => null,
+            };
             final actual = controller.update(
               x: mode == MapWarpTriggerMode.onEnter ? x + .5 : -1,
               z: mode == MapWarpTriggerMode.onEnter ? z + .5 : -1,
@@ -59,6 +63,37 @@ void main() {
       }
     }
   });
+
+  test('scene-only markers stay inert on entry and physical bump', () {
+    final marker = passage(
+      mode: MapWarpTriggerMode.sceneOnly,
+      padding: const WarpTriggerPadding(left: 16, right: 16, top: 16, bottom: 16),
+    ).copyWith(targetMapId: 'room', targetPos: const GridPos(x: 3, y: 2));
+    final controller = SpatialWarpController(map: warpMap(marker), x: 0, z: 0);
+    for (final facing in EntityFacing.values) {
+      expect(controller.update(x: 3.5, z: 2.5, facing: facing), isNull);
+      expect(controller.update(x: 2.5, z: 2.5, facing: facing,
+        bumpedCell: const GridPos(x: 3, y: 2)), isNull);
+      expect(controller.update(x: 0, z: 0, facing: facing), isNull);
+    }
+    expect(controller.map.warps.single, marker);
+  });
+
+  for (final mode in [MapWarpTriggerMode.onEnter, MapWarpTriggerMode.onBump]) {
+    test('scene-only marker does not shadow an automatic ${mode.name} warp', () {
+      final automatic = passage(mode: mode);
+      final marker = automatic.copyWith(id: 'arrival',
+        triggerMode: MapWarpTriggerMode.sceneOnly, targetMapId: 'room',
+        targetPos: automatic.pos);
+      final controller = SpatialWarpController(
+        map: warpMap(marker).copyWith(warps: [marker, automatic]), x: 0, z: 0);
+      expect(controller.update(
+        x: mode == MapWarpTriggerMode.onEnter ? 3.5 : 2.5,
+        z: 2.5, facing: EntityFacing.east,
+        bumpedCell: mode == MapWarpTriggerMode.onBump ? automatic.pos : null,
+      ), automatic);
+    });
+  }
 
   test('enter is edge triggered and arrival requires leaving then reentering',
       () {

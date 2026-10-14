@@ -183,6 +183,7 @@ final class WarpConnectionActions {
       final warps = map.warps.toList()
         ..sort((left, right) => left.id.compareTo(right.id));
       for (final warp in warps) {
+        if (warp.triggerMode == MapWarpTriggerMode.sceneOnly) continue;
         final target = byId[warp.targetMapId];
         final code = target == null
             ? 'warp.target_map_missing'
@@ -242,7 +243,7 @@ final class WarpConnectionActions {
 
     switch (actionId) {
       case 'warp.create':
-        final warp = _parseWarp(parameters.object('warp'));
+        final warp = _parseWarp(context.map, parameters.object('warp'));
         _validateWarpTarget(planning, context.map, warp);
         return context.draftMap(
           after: _addWarp(context.map, warp),
@@ -252,7 +253,7 @@ final class WarpConnectionActions {
         );
       case 'warp.update':
         final warpId = parameters.string('warpId');
-        final warp = _parseWarp(parameters.object('warp'));
+        final warp = _parseWarp(context.map, parameters.object('warp'));
         _validateWarpTarget(planning, context.map, warp);
         return context.draftMap(
           after: _replaceWarp(context.map, warpId, warp),
@@ -298,7 +299,8 @@ final class WarpConnectionActions {
     AuthoringPlanningContext planning,
     SemanticMapActionContext context,
   ) {
-    final sourceWarp = _parseWarp(context.parameters.object('warp'));
+    final sourceWarp = _parseWarp(context.map, context.parameters.object('warp'));
+    _requireActivePairWarp(sourceWarp);
     final target = _validateWarpTarget(planning, context.map, sourceWarp);
     _requireDistinctMaps(context.map, target, kind: 'warp pair');
     final reciprocalId =
@@ -332,7 +334,9 @@ final class WarpConnectionActions {
   ) {
     final warpId = context.parameters.string('warpId');
     final current = _warp(context.map, warpId);
-    final updated = _parseWarp(context.parameters.object('warp'));
+    _requireActivePairWarp(current);
+    final updated = _parseWarp(context.map, context.parameters.object('warp'));
+    _requireActivePairWarp(updated);
     if (updated.targetMapId != current.targetMapId) {
       throw _failure(
         'warp.pair_target_change_unsupported',
@@ -378,6 +382,7 @@ final class WarpConnectionActions {
   ) {
     final warpId = context.parameters.string('warpId');
     final sourceWarp = _warp(context.map, warpId);
+    _requireActivePairWarp(sourceWarp);
     final target = _targetMap(planning, sourceWarp.targetMapId, kind: 'warp');
     _requireDistinctMaps(context.map, target, kind: 'warp pair');
     final reciprocal = _requireReciprocal(
@@ -552,8 +557,21 @@ AuthoringActionDescriptor _descriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const {
+      extensions: {
         'multiFileGuarantee': 'recoverable',
+        if (id.startsWith('warp.'))
+          'warpDestinationContract': const {
+            'triggerModeValues': ['on_enter', 'on_bump', 'scene_only'],
+            'activeRequiredFields': ['targetMapId', 'targetPos'],
+            'sceneOnly': {
+              'automaticTraversal': false,
+              'reciprocal': false,
+              'targetMapId': 'owningMapId',
+              'targetPos': 'pos',
+              'explicitConflictingTarget': 'rejected',
+            },
+            'sceneOnlyToActiveRequiresExplicitDestination': true,
+          },
       },
     );
 
@@ -718,7 +736,7 @@ MapData _validateWarpTargetInSnapshot(
   return target;
 }
 
-MapWarp _parseWarp(Map<String, Object?> value) {
+MapWarp _parseWarp(MapData map, Map<String, Object?> value) {
   const allowed = {
     'id',
     'pos',
@@ -738,11 +756,40 @@ MapWarp _parseWarp(Map<String, Object?> value) {
     );
   }
   try {
-    return MapWarp.fromJson(Map<String, dynamic>.from(value));
+    final payload = Map<String, dynamic>.from(value);
+    if (value['triggerMode'] == 'scene_only') {
+      for (final key in ['targetMapId', 'targetPos']) {
+        if (value.containsKey(key) && value[key] == null) {
+          throw FormatException('Scene-only $key cannot be null');
+        }
+      }
+      payload.putIfAbsent('targetMapId', () => map.id);
+      payload.putIfAbsent('targetPos', () => value['pos']);
+    }
+    final warp = MapWarp.fromJson(payload);
+    return createMapWarp(
+      map.copyWith(warps: const []),
+      id: warp.id,
+      pos: warp.pos,
+      triggerMode: warp.triggerMode,
+      targetMapId: warp.targetMapId,
+      targetPos: warp.targetPos,
+      allowedApproachFacings: warp.allowedApproachFacings,
+      triggerPadding: warp.triggerPadding,
+    );
   } on Object {
     throw _failure(
       'warp.payload_invalid',
       'The warp payload is not valid typed PokeMap data.',
+    );
+  }
+}
+
+void _requireActivePairWarp(MapWarp warp) {
+  if (warp.triggerMode == MapWarpTriggerMode.sceneOnly) {
+    throw _failure(
+      'warp.scene_only_not_reciprocal',
+      'A Scene-only arrival point cannot participate in a reciprocal portal pair.',
     );
   }
 }
@@ -894,6 +941,7 @@ List<MapWarp> _matchingReciprocals(
     targetMap.warps
         .where(
           (candidate) =>
+              candidate.triggerMode != MapWarpTriggerMode.sceneOnly &&
               candidate.pos == sourceWarp.targetPos &&
               candidate.targetMapId == sourceMap.id &&
               candidate.targetPos == sourceWarp.pos &&

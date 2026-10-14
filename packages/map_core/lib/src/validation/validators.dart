@@ -2823,6 +2823,12 @@ class MapValidator {
       final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
       _requireNonBlank(warp.targetMapId, 'Warp $warpId has empty targetMapId');
       _validatePositionInBounds(warp.pos, map.size, errorLabel: 'Warp $warpId');
+      if (warp.triggerMode == MapWarpTriggerMode.sceneOnly &&
+          (warp.targetMapId != map.id || warp.targetPos != warp.pos)) {
+        throw ValidationException(
+          'Scene-only point $warpId must target its own map and position',
+        );
+      }
       if (warp.targetPos.x < 0 || warp.targetPos.y < 0) {
         throw ValidationException(
           'Warp $warpId has invalid target position: (${warp.targetPos.x}, ${warp.targetPos.y})',

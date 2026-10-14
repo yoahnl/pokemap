@@ -194,7 +194,9 @@ class MapCanvasOverlay extends CustomPainter {
       _paintBadge(
         canvas,
         rect,
-        destination == null
+        warp.triggerMode == MapWarpTriggerMode.sceneOnly
+            ? 'Point d’arrivée'
+            : destination == null
             ? 'Destination introuvable'
             : '\u2192 ${destination.name}',
         chosen: chosen,

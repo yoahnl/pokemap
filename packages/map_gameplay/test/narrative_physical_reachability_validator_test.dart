@@ -210,6 +210,57 @@ void main() {
       expect(report.reachableMapIds, containsAll(<String>{'start', 'cave'}));
     });
 
+    for (final mode in MapWarpTriggerMode.values) {
+      test('automatic map reachability respects ${mode.name}', () {
+        final marker = MapWarp(
+          id: 'passage', pos: const GridPos(x: 2, y: 0),
+          targetMapId: mode == MapWarpTriggerMode.sceneOnly ? 'start' : 'cave',
+          targetPos: mode == MapWarpTriggerMode.sceneOnly
+              ? const GridPos(x: 2, y: 0) : const GridPos(x: 0, y: 0),
+          triggerMode: mode,
+        );
+        final start = _map(id: 'start', width: 3, height: 1,
+          warps: [marker],
+          collisions: [false, false, mode == MapWarpTriggerMode.onBump]);
+        final cave = _map(id: 'cave', width: 3, height: 1, withSpawn: false);
+        final report = validateNarrativePhysicalReachability(
+          project: _project([
+            _event(_eventA, NarrativeEventSourceRef.mapEnter('cave')),
+          ]), maps: [start, cave], narrativeReport: _symbolicReport());
+        if (mode == MapWarpTriggerMode.sceneOnly) {
+          expect(report.resultForEvent(_eventA)!.status,
+            NarrativePhysicalSourceStatus.permanentlyBlocked);
+          expect(report.reachableMapIds, {'start'});
+        } else {
+          expect(report.resultForEvent(_eventA)!.status,
+            NarrativePhysicalSourceStatus.reachable);
+          expect(report.reachableMapIds, contains('cave'));
+        }
+        expect(start.warps.single, marker);
+      });
+    }
+
+    test('inert arrival remains walkable without creating an automatic route', () {
+      final marker = MapWarp(id: 'scene-arrival',
+        pos: const GridPos(x: 1, y: 0), targetMapId: 'start',
+        targetPos: const GridPos(x: 1, y: 0),
+        triggerMode: MapWarpTriggerMode.sceneOnly);
+      final start = _map(id: 'start', width: 3, height: 1,
+        warps: [marker], triggers: [const MapTrigger(id: 'goal',
+          type: TriggerType.event,
+          area: MapRect(pos: GridPos(x: 2, y: 0),
+            size: GridSize(width: 1, height: 1)))]);
+      final report = validateNarrativePhysicalReachability(
+        project: _project([
+          _event(_eventA, NarrativeEventSourceRef.triggerEnter('start', 'goal')),
+        ]), maps: [start], narrativeReport: _symbolicReport());
+      expect(report.resultForEvent(_eventA)!.status,
+        NarrativePhysicalSourceStatus.reachable);
+      expect(report.resultForEvent(_eventA)!.path,
+        contains(const GridPos(x: 1, y: 0)));
+      expect(start.warps.single.id, 'scene-arrival');
+    });
+
     test('follows authored map connections with the gameplay resolver', () {
       final start = _map(
         id: 'start',

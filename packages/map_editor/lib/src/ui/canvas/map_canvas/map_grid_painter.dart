@@ -1288,13 +1288,14 @@ class MapGridPainter extends CustomPainter {
         continue;
       }
       final isSelected = warp.id == selectedWarpId;
+      final passive = warp.triggerMode == MapWarpTriggerMode.sceneOnly;
       final rect = Rect.fromLTWH(
         warp.pos.x * tileWidth,
         warp.pos.y * tileHeight,
         tileWidth,
         tileHeight,
       );
-      final activationRect = _warpActivationRect(warp);
+      final activationRect = passive ? rect : _warpActivationRect(warp);
       if (activationRect != rect) {
         final areaPaint = Paint()
           ..color =
@@ -1331,14 +1332,25 @@ class MapGridPainter extends CustomPainter {
         ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
       canvas.drawRect(rect, fillPaint);
       canvas.drawRect(rect, borderPaint);
-      _paintWarpApproachMarkers(
-        canvas,
-        activationRect: activationRect,
-        allowedApproachFacings: warp.allowedApproachFacings,
-        isSelected: isSelected,
-      );
+      if (!passive) {
+        _paintWarpApproachMarkers(
+          canvas,
+          activationRect: activationRect,
+          allowedApproachFacings: warp.allowedApproachFacings,
+          isSelected: isSelected,
+        );
+      }
       final center = Offset(rect.center.dx, rect.center.dy);
-      if (warp.triggerMode == MapWarpTriggerMode.onEnter) {
+      if (passive) {
+        canvas.drawCircle(
+          center,
+          (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.24,
+          Paint()
+            ..color = borderPaint.color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.8 / zoom,
+        );
+      } else if (warp.triggerMode == MapWarpTriggerMode.onEnter) {
         canvas.drawCircle(
           center,
           (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,

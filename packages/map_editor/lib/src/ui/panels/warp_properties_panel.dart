@@ -7,6 +7,8 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import '../design_system/pokemap_dropdown_field.dart';
+import '../../theme/theme.dart';
 
 class WarpPropertiesPanel extends ConsumerStatefulWidget {
   const WarpPropertiesPanel({
@@ -30,6 +32,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
   final _paddingBottomController = TextEditingController();
   final _paddingLeftController = TextEditingController();
   String? _boundWarpId;
+  String? _boundMapId;
   String? _selectedTargetMapId;
   MapWarpTriggerMode _selectedTriggerMode = MapWarpTriggerMode.onEnter;
   Set<EntityFacing> _selectedApproachFacings = <EntityFacing>{};
@@ -64,7 +67,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
       for (final mapEntry in projectMaps) mapEntry.id: mapEntry,
     };
     final selectedWarp = notifier.getSelectedWarp();
-    _syncControllers(selectedWarp);
+    _syncControllers(selectedWarp, map?.id);
 
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
     const accent = EditorChrome.inspectorJoyOrchid;
@@ -129,7 +132,8 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              CupertinoIcons.arrow_branch,
+                              warp.triggerMode == MapWarpTriggerMode.sceneOnly
+                                  ? CupertinoIcons.location : CupertinoIcons.arrow_branch,
                               size: 16,
                               color: warp.id == state.selectedWarpId
                                   ? accent
@@ -153,7 +157,9 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
+                                    warp.triggerMode == MapWarpTriggerMode.sceneOnly
+                                        ? '(${warp.pos.x}, ${warp.pos.y}) · Utilisé par une scène'
+                                        : '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: subtle,
@@ -161,7 +167,9 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${_modeLabel(warp.triggerMode, embedded: widget.embedded)} · ${_approachSummary(warp.allowedApproachFacings, embedded: widget.embedded)}',
+                                    warp.triggerMode == MapWarpTriggerMode.sceneOnly
+                                        ? _modeLabel(warp.triggerMode, embedded: widget.embedded)
+                                        : '${_modeLabel(warp.triggerMode, embedded: widget.embedded)} · ${_approachSummary(warp.allowedApproachFacings, embedded: widget.embedded)}',
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: subtle,
@@ -245,13 +253,19 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     BuildContext context,
     List<ProjectMapEntry> projectMaps,
   ) async {
+    final boundMapId = _boundMapId;
+    final boundWarpId = _boundWarpId;
     final picked = await showMacosListPicker<ProjectMapEntry>(
       context: context,
       title: 'Target Map',
       items: projectMaps,
       labelOf: (m) => '${m.name} (${m.id})',
     );
-    if (picked != null) {
+    if (picked != null &&
+        mounted &&
+        boundMapId == _boundMapId &&
+        boundWarpId == _boundWarpId &&
+        ref.read(editorNotifierProvider).activeMap?.id == boundMapId) {
       setState(() => _selectedTargetMapId = picked.id);
     }
   }
@@ -280,6 +294,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
+          onChanged: (_) => setState(() {}),
         ),
       ],
     );
@@ -297,12 +312,19 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     final currentTargetMapEntry = projectMapById[selectedWarp.targetMapId];
     final currentTargetMapLabel = currentTargetMapEntry == null
         ? (embedded
-            ? 'Carte manquante : ${selectedWarp.targetMapId}'
-            : 'Missing map: ${selectedWarp.targetMapId}')
+              ? 'Carte manquante : ${selectedWarp.targetMapId}'
+              : 'Missing map: ${selectedWarp.targetMapId}')
         : '${currentTargetMapEntry.name} (${currentTargetMapEntry.id})';
-    final canCreateReturnWarp = currentTargetMapEntry != null;
+    final passive = _selectedTriggerMode == MapWarpTriggerMode.sceneOnly;
+    final preparingPassage =
+        selectedWarp.triggerMode == MapWarpTriggerMode.sceneOnly && !passive;
+    final canCreateReturnWarp =
+        currentTargetMapEntry != null &&
+        selectedWarp.triggerMode != MapWarpTriggerMode.sceneOnly &&
+        !passive;
     final pickedTargetMapId = _selectedTargetMapId;
-    final pickedTargetMapExists = pickedTargetMapId != null &&
+    final pickedTargetMapExists =
+        pickedTargetMapId != null &&
         projectMapById.containsKey(pickedTargetMapId);
     final rawTargetId = pickedTargetMapId ?? '';
     final mapMenuIds = <String>[
@@ -311,22 +333,41 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
         rawTargetId,
       ...projectMaps.map((m) => m.id),
     ];
-    final effectiveMenuId =
-        mapMenuIds.contains(rawTargetId) ? rawTargetId : mapMenuIds.first;
+    final effectiveMenuId = mapMenuIds.contains(rawTargetId)
+        ? rawTargetId
+        : mapMenuIds.first;
     final tid = pickedTargetMapId;
     final targetValueLabel = tid == null || tid.isEmpty
         ? (embedded ? 'Choisir une carte…' : 'Select target map')
         : pickedTargetMapExists
-            ? '${projectMapById[tid]!.name} ($tid)'
-            : (embedded ? 'Manquante : $tid' : 'Missing: $tid');
+        ? '${projectMapById[tid]!.name} ($tid)'
+        : (embedded ? 'Manquante : $tid' : 'Missing: $tid');
+    final canSave =
+        projectMaps.isNotEmpty &&
+        (!preparingPassage ||
+            pickedTargetMapExists &&
+                int.tryParse(_targetXController.text.trim()) != null &&
+                int.tryParse(_targetYController.text.trim()) != null);
 
     Future<void> onSaveWarp() async {
-      final x = int.tryParse(_targetXController.text.trim());
-      final y = int.tryParse(_targetYController.text.trim());
-      final top = int.tryParse(_paddingTopController.text.trim());
-      final right = int.tryParse(_paddingRightController.text.trim());
-      final bottom = int.tryParse(_paddingBottomController.text.trim());
-      final left = int.tryParse(_paddingLeftController.text.trim());
+      final x = passive
+          ? selectedWarp.pos.x
+          : int.tryParse(_targetXController.text.trim());
+      final y = passive
+          ? selectedWarp.pos.y
+          : int.tryParse(_targetYController.text.trim());
+      final top = passive
+          ? selectedWarp.triggerPadding.top
+          : int.tryParse(_paddingTopController.text.trim());
+      final right = passive
+          ? selectedWarp.triggerPadding.right
+          : int.tryParse(_paddingRightController.text.trim());
+      final bottom = passive
+          ? selectedWarp.triggerPadding.bottom
+          : int.tryParse(_paddingBottomController.text.trim());
+      final left = passive
+          ? selectedWarp.triggerPadding.left
+          : int.tryParse(_paddingLeftController.text.trim());
       if (x == null || y == null) {
         await showCupertinoEditorAlert(
           context,
@@ -354,23 +395,31 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
         );
         return;
       }
-      final targetMapId = _selectedTargetMapId?.trim();
+      final targetMapId = passive
+          ? ref.read(editorNotifierProvider).activeMap!.id
+          : _selectedTargetMapId?.trim();
       if (targetMapId == null || targetMapId.isEmpty) {
         await showCupertinoEditorAlert(
           context,
-          message:
-              embedded ? 'Choisissez une carte cible.' : 'Select a target map',
+          message: embedded
+              ? 'Choisissez une carte cible.'
+              : 'Select a target map',
         );
         return;
       }
-      final sortedApproachFacings = _selectedApproachFacings.toList(
-          growable: false)
-        ..sort((a, b) => a.index.compareTo(b.index));
+      final sortedApproachFacings =
+          (passive
+                  ? selectedWarp.allowedApproachFacings
+                  : _selectedApproachFacings)
+              .toList(growable: false)
+            ..sort((a, b) => a.index.compareTo(b.index));
       notifier.updateSelectedWarp(
         id: _idController.text.trim(),
-        targetMapId: targetMapId,
-        targetPosX: x,
-        targetPosY: y,
+        targetMapId: passive
+            ? ref.read(editorNotifierProvider).activeMap!.id
+            : targetMapId,
+        targetPosX: passive ? selectedWarp.pos.x : x,
+        targetPosY: passive ? selectedWarp.pos.y : y,
         triggerMode: _selectedTriggerMode,
         allowedApproachFacings: sortedApproachFacings,
         triggerPadding: WarpTriggerPadding(
@@ -386,10 +435,12 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (embedded)
-          const InspectorEmbeddedSectionLabel('Warp sélectionné')
+          InspectorEmbeddedSectionLabel(
+            passive ? 'Point d’arrivée' : 'Warp sélectionné',
+          )
         else
           Text(
-            'Selected Warp',
+            passive ? 'Point d’arrivée' : 'Selected Warp',
             style: TextStyle(
               fontSize: 12,
               color: CupertinoColors.secondaryLabel.resolveFrom(context),
@@ -407,127 +458,126 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          embedded
-              ? 'Destination : $currentTargetMapLabel en (${selectedWarp.targetPos.x}, ${selectedWarp.targetPos.y})'
-              : 'Destination: $currentTargetMapLabel at (${selectedWarp.targetPos.x}, ${selectedWarp.targetPos.y})',
-          style: TextStyle(
-            fontSize: 11,
-            color: currentTargetMapEntry == null
-                ? EditorPaintColors.amber
-                : CupertinoColors.secondaryLabel.resolveFrom(context),
+        if (!passive) ...[
+          Text(
+            preparingPassage
+                ? 'Choisissez la carte et la case de sortie.'
+                : embedded
+                ? 'Destination : $currentTargetMapLabel en (${selectedWarp.targetPos.x}, ${selectedWarp.targetPos.y})'
+                : 'Destination: $currentTargetMapLabel at (${selectedWarp.targetPos.x}, ${selectedWarp.targetPos.y})',
+            style: TextStyle(
+              fontSize: 11,
+              color: currentTargetMapEntry == null
+                  ? EditorPaintColors.amber
+                  : CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: embedded ? 'Identifiant' : 'ID',
-          controller: _idController,
-        ),
-        const SizedBox(height: 8),
-        if (embedded) ...[
-          if (projectMaps.isNotEmpty)
-            InspectorEmbeddedDropdown(
-              accent: orchid,
-              fieldLabel: 'Carte cible',
-              valueLabel: targetValueLabel,
-              orderedIds: mapMenuIds,
-              selectedMenuValue: effectiveMenuId,
-              selectedIdForCheck: rawTargetId.isEmpty ? null : rawTargetId,
-              idToLabel: (id) => id.isEmpty
-                  ? '—'
-                  : projectMapById.containsKey(id)
-                      ? '${projectMapById[id]!.name} ($id)'
-                      : (embedded ? 'Manquante : $id' : 'Missing: $id'),
-              onSelected: (id) {
-                setState(() {
-                  _selectedTargetMapId = id.isEmpty ? null : id;
-                });
-              },
-              tooltip: 'Carte de destination du warp',
-            )
-          else
+          const SizedBox(height: 8),
+          _labeledField(
+            context,
+            label: embedded ? 'Identifiant' : 'ID',
+            controller: _idController,
+          ),
+          const SizedBox(height: 8),
+          if (embedded) ...[
+            if (projectMaps.isNotEmpty)
+              InspectorEmbeddedDropdown(
+                accent: orchid,
+                fieldLabel: 'Carte cible',
+                valueLabel: targetValueLabel,
+                orderedIds: mapMenuIds,
+                selectedMenuValue: effectiveMenuId,
+                selectedIdForCheck: rawTargetId.isEmpty ? null : rawTargetId,
+                idToLabel: (id) => id.isEmpty
+                    ? '—'
+                    : projectMapById.containsKey(id)
+                    ? '${projectMapById[id]!.name} ($id)'
+                    : (embedded ? 'Manquante : $id' : 'Missing: $id'),
+                onSelected: (id) {
+                  setState(() {
+                    _selectedTargetMapId = id.isEmpty ? null : id;
+                  });
+                },
+                tooltip: 'Carte de destination du warp',
+              )
+            else
+              Text(
+                'Aucune autre carte dans le projet.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: CupertinoColors.placeholderText.resolveFrom(context),
+                ),
+              ),
+          ] else ...[
             Text(
-              'Aucune autre carte dans le projet.',
+              'Target Map',
               style: TextStyle(
                 fontSize: 12,
-                color: CupertinoColors.placeholderText.resolveFrom(context),
+                fontWeight: FontWeight.w600,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
               ),
             ),
-        ] else ...[
-          Text(
-            'Target Map',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            ),
-          ),
-          const SizedBox(height: 6),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            alignment: Alignment.centerLeft,
-            onPressed: projectMaps.isEmpty
-                ? null
-                : () => _pickTargetMap(context, projectMaps),
-            child: Text(
-              pickedTargetMapId == null
-                  ? 'Select target map'
-                  : (pickedTargetMapExists
-                      ? '${projectMapById[pickedTargetMapId]!.name} ($pickedTargetMapId)'
-                      : 'Missing: $pickedTargetMapId'),
-            ),
-          ),
-        ],
-        if (pickedTargetMapId != null && !pickedTargetMapExists) ...[
-          const SizedBox(height: 6),
-          Text(
-            embedded
-                ? 'La carte cible est absente du projet : $pickedTargetMapId'
-                : 'Current target map is missing from project: $pickedTargetMapId',
-            style:
-                const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
-          ),
-        ],
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _labeledField(
-                context,
-                label: embedded ? 'Cible X' : 'Target X',
-                controller: _targetXController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _labeledField(
-                context,
-                label: embedded ? 'Cible Y' : 'Target Y',
-                controller: _targetYController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            const SizedBox(height: 6),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
+              onPressed: projectMaps.isEmpty
+                  ? null
+                  : () => _pickTargetMap(context, projectMaps),
+              child: Text(
+                pickedTargetMapId == null
+                    ? 'Select target map'
+                    : (pickedTargetMapExists
+                          ? '${projectMapById[pickedTargetMapId]!.name} ($pickedTargetMapId)'
+                          : 'Missing: $pickedTargetMapId'),
               ),
             ),
           ],
-        ),
+          if (pickedTargetMapId != null && !pickedTargetMapExists) ...[
+            const SizedBox(height: 6),
+            Text(
+              embedded
+                  ? 'La carte cible est absente du projet : $pickedTargetMapId'
+                  : 'Current target map is missing from project: $pickedTargetMapId',
+              style: const TextStyle(
+                fontSize: 11,
+                color: EditorPaintColors.amber,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _labeledField(
+                  context,
+                  label: embedded ? 'Cible X' : 'Target X',
+                  controller: _targetXController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _labeledField(
+                  context,
+                  label: embedded ? 'Cible Y' : 'Target Y',
+                  controller: _targetYController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
-        _buildTriggerModeSelector(
-          context,
-          embedded: embedded,
-        ),
+        _buildTriggerModeSelector(context, embedded: embedded),
         const SizedBox(height: 8),
-        _buildApproachFacingSelector(
-          context,
-          embedded: embedded,
-        ),
-        const SizedBox(height: 8),
-        _buildPaddingEditor(
-          context,
-          embedded: embedded,
-        ),
+        if (!passive) ...[
+          _buildApproachFacingSelector(context, embedded: embedded),
+          const SizedBox(height: 8),
+          _buildPaddingEditor(context, embedded: embedded),
+        ],
         const SizedBox(height: 10),
         if (embedded)
           Row(
@@ -538,7 +588,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                   icon: CupertinoIcons.checkmark_circle_fill,
                   label: 'Enregistrer',
                   prominent: true,
-                  enabled: projectMaps.isNotEmpty,
+                  enabled: canSave,
                   onPressed: onSaveWarp,
                 ),
               ),
@@ -559,7 +609,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
             children: [
               Expanded(
                 child: CupertinoButton.filled(
-                  onPressed: onSaveWarp,
+                  onPressed: canSave ? onSaveWarp : null,
                   child: const Text('Save Warp'),
                 ),
               ),
@@ -572,7 +622,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
             ],
           ),
         const SizedBox(height: 8),
-        if (embedded)
+        if (!passive && embedded)
           InspectorEmbeddedSecondaryCapsule(
             accent: orchid,
             icon: CupertinoIcons.arrow_left_right,
@@ -580,7 +630,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
             enabled: canCreateReturnWarp,
             onPressed: notifier.createReciprocalWarpForSelectedWarp,
           )
-        else
+        else if (!passive)
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
@@ -597,24 +647,27 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
               ),
             ),
           ),
-        const SizedBox(height: 4),
-        Text(
-          embedded
-              ? 'Ajoute un warp inverse sur la carte cible, à la case d’arrivée.'
-              : 'Creates a reciprocal warp in the target map at the destination cell.',
-          style: TextStyle(
-            fontSize: 11,
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        if (!passive) ...[
+          const SizedBox(height: 4),
+          Text(
+            embedded
+                ? 'Ajoute un warp inverse sur la carte cible, à la case d’arrivée.'
+                : 'Creates a reciprocal warp in the target map at the destination cell.',
+            style: TextStyle(
+              fontSize: 11,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
 
-  void _syncControllers(MapWarp? selectedWarp) {
+  void _syncControllers(MapWarp? selectedWarp, String? mapId) {
     final currentId = selectedWarp?.id;
-    if (currentId == _boundWarpId) return;
+    if (currentId == _boundWarpId && mapId == _boundMapId) return;
     _boundWarpId = currentId;
+    _boundMapId = mapId;
     if (selectedWarp == null) {
       _idController.text = '';
       _targetXController.text = '';
@@ -645,46 +698,44 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     BuildContext context, {
     required bool embedded,
   }) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = context.pokeMapColors.textMuted;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          embedded ? 'Mode d’activation' : 'Trigger Mode',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: secondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        CupertinoSlidingSegmentedControl<MapWarpTriggerMode>(
-          groupValue: _selectedTriggerMode,
-          children: {
+        PokeMapDropdownField<MapWarpTriggerMode>(
+          label: 'Utilisation',
+          value: _selectedTriggerMode,
+          compact: true,
+          items: [
             for (final mode in MapWarpTriggerMode.values)
-              mode: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(
-                  _modeLabel(mode, embedded: embedded),
-                  style: const TextStyle(fontSize: 12),
-                ),
+              PokeMapDropdownItem(
+                value: mode,
+                label: _modeLabel(mode, embedded: embedded),
               ),
-          },
-          onValueChanged: (value) {
-            if (value == null) return;
-            setState(() => _selectedTriggerMode = value);
+          ],
+          onChanged: (value) {
+            setState(() {
+              if (_selectedTriggerMode == MapWarpTriggerMode.sceneOnly &&
+                  value != MapWarpTriggerMode.sceneOnly) {
+                _selectedTargetMapId = null;
+                _targetXController.clear();
+                _targetYController.clear();
+              }
+              _selectedTriggerMode = value;
+            });
           },
         ),
         const SizedBox(height: 4),
         Text(
-          _selectedTriggerMode == MapWarpTriggerMode.onEnter
+          _selectedTriggerMode == MapWarpTriggerMode.sceneOnly
+              ? 'Utilisé par une scène'
+              : _selectedTriggerMode == MapWarpTriggerMode.onEnter
               ? (embedded
-                  ? 'Le warp se déclenche quand le joueur entre dans la zone.'
-                  : 'Warp triggers when the player enters its area.')
+                    ? 'Le warp se déclenche quand le joueur entre dans la zone.'
+                    : 'Warp triggers when the player enters its area.')
               : (embedded
-                  ? 'Le warp se déclenche quand le joueur pousse une case bloquée dans la zone.'
-                  : 'Warp triggers when movement is blocked while bumping into its area.'),
+                    ? 'Le warp se déclenche quand le joueur pousse une case bloquée dans la zone.'
+                    : 'Warp triggers when movement is blocked while bumping into its area.'),
           style: TextStyle(fontSize: 11, color: secondary),
         ),
       ],
@@ -966,6 +1017,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     return switch (mode) {
       MapWarpTriggerMode.onEnter => embedded ? 'Entrée' : 'Enter',
       MapWarpTriggerMode.onBump => embedded ? 'Collision' : 'Bump',
+      MapWarpTriggerMode.sceneOnly => 'Point d’arrivée',
     };
   }
 

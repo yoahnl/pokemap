@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -64,6 +65,43 @@ void main() {
     await workspace.initialize();
     return workspace;
   }
+
+  test('a single-map Scene arrival point survives a real disk save and cold reopen', () async {
+    final file = File(p.join(directory.path, 'project.json'));
+    final manifest = ProjectManifest.fromJson(
+      jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+    );
+    final entry = manifest.maps.singleWhere((entry) => entry.id == departure);
+    await file.writeAsString(
+      jsonEncode(manifest.copyWith(maps: [entry]).toJson()),
+    );
+    final workspace = await openWorkspace();
+    await workspace.activate(entry);
+    final before = workspace.active!.current;
+    final commands = WarpEditingCommands(workspace.active!, workspace.project!);
+    final point = commands.placeArrival(const GridPos(x: 4, y: 6));
+    commands.move(point.id, const GridPos(x: 5, y: 6));
+    expect(
+      await workspace.save(workspace.active!),
+      isTrue,
+      reason: workspace.error,
+    );
+    workspace.dispose();
+    final reopened = await openWorkspace();
+    addTearDown(reopened.dispose);
+    await reopened.activate(reopened.project!.maps.single);
+    final restored = reopened.active!.current;
+    final saved = restored.warps.single;
+    expect(saved.id, point.id);
+    expect(saved.triggerMode, MapWarpTriggerMode.sceneOnly);
+    expect(saved.pos, const GridPos(x: 5, y: 6));
+    expect(saved.targetMapId, departure);
+    expect(saved.targetPos, saved.pos);
+    expect(saved.toJson()['triggerMode'], 'scene_only');
+    expect(restored.layers, before.layers);
+    expect(restored.placedElements, before.placedElements);
+    expect(reopened.project!.maps, hasLength(1));
+  });
 
   test(
     'a warp saved on disk really carries the player to the other map',

@@ -259,6 +259,78 @@ void main() {
   );
 
   test(
+    'Scene-only arrivals preserve door reentry after owner egress',
+    () async {
+      final fixture = await _fixture(
+        warpArrival: true,
+        arrivalTriggerMode: MapWarpTriggerMode.sceneOnly,
+        sourceWarps: const [
+          MapWarp(
+            id: 'door-arrival',
+            pos: GridPos(x: 1, y: 0),
+            targetMapId: 'source',
+            targetPos: GridPos(x: 1, y: 0),
+            triggerMode: MapWarpTriggerMode.sceneOnly,
+          ),
+        ],
+        sourceEntities: const [_routeDoor],
+        characters: const [_routeDoorCharacter],
+        scenes: [
+          _entityBumpScene(
+            beforeReward: SceneInteractiveCommand.warp(
+              destinationMapId: 'target',
+              warpId: 'arrival',
+              transition: SceneWarpTransition.none,
+            ),
+          ),
+        ],
+        eventRegistry: _entityBumpRegistry(
+          reusePolicy: NarrativeEventReusePolicy.reusable,
+        ),
+      );
+      final game = fixture.game;
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      await _bumpUp(game);
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      final returned = await _warp(
+        game,
+        SceneInteractiveCommand.warp(
+          destinationMapId: 'source',
+          warpId: 'door-arrival',
+          arrivalFacing: EntityFacing.south,
+          arrivalCollisionOwnerEntityId: 'route-door',
+          transition: SceneWarpTransition.none,
+        ),
+      );
+      expect(returned.port, 'completed');
+      expect(game.gameStateSnapshot.currentMapId, 'source');
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 0));
+      expect(
+        await _finishActorRoute(
+          game,
+          game.debugExecuteSceneInteractiveCommand(
+            _actorRoute([
+              {
+                'kind': 'move',
+                'direction': 'south',
+                'durationMs': 100,
+                'initialCollisionOwnerEntityId': 'route-door',
+              },
+            ]),
+          ),
+        ),
+        'completed',
+      );
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+      await _bumpUp(game);
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 200);
+      expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+    },
+  );
+
+  test(
     'connection rejects feet collision when the cell centre is free',
     () async {
       final fixture = await _fixture(maskPixel: (16, 24));
@@ -2107,6 +2179,8 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   bool water = false,
   bool warpArrival = false,
   bool sameMapArrival = false,
+  MapWarpTriggerMode arrivalTriggerMode = MapWarpTriggerMode.onBump,
+  List<MapWarp> sourceWarps = const [],
   EntityFacing sourceFacing = EntityFacing.east,
   GameSaveRepository? saveRepository,
   SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort,
@@ -2162,6 +2236,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     mapMetadata: const MapMetadata(defaultSpawnId: 'start'),
     events: events,
     warps: [
+      ...sourceWarps,
       if (sameMapArrival)
         const MapWarp(id: 'same', pos: GridPos(x: 1, y: 1),
           targetMapId: 'source', targetPos: GridPos(x: 1, y: 1),
@@ -2231,12 +2306,16 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     ],
     warps: [
       if (warpArrival)
-        const MapWarp(
+        MapWarp(
           id: 'arrival',
           pos: GridPos(x: 0, y: 1),
-          targetMapId: 'source',
-          targetPos: GridPos(x: 1, y: 1),
-          triggerMode: MapWarpTriggerMode.onBump,
+          targetMapId: arrivalTriggerMode == MapWarpTriggerMode.sceneOnly
+              ? 'target'
+              : 'source',
+          targetPos: arrivalTriggerMode == MapWarpTriggerMode.sceneOnly
+              ? const GridPos(x: 0, y: 1)
+              : const GridPos(x: 1, y: 1),
+          triggerMode: arrivalTriggerMode,
         ),
     ],
     mapMetadata: MapMetadata(

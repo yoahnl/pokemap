@@ -49,6 +49,7 @@ final class SpatialWarpController {
           inside.contains(warp) && !_inside.contains(warp),
         MapWarpTriggerMode.onBump =>
           bumped.contains(warp) && !_bumped.contains(warp),
+        MapWarpTriggerMode.sceneOnly => false,
       };
       if (triggered) {
         candidate = warp;

@@ -180,12 +180,22 @@ final class WorldGraphQueries {
         }
       }
       for (final warp in map.warps) {
-        edges.add(WorldGraphEdge(
-          sourceMapId: map.id,
-          targetMapId: warp.targetMapId,
-          kind: WorldGraphEdgeKind.warp,
-          sourceId: warp.id,
-        ));
+        if (warp.triggerMode != MapWarpTriggerMode.sceneOnly) {
+          edges.add(WorldGraphEdge(
+            sourceMapId: map.id,
+            targetMapId: warp.targetMapId,
+            kind: WorldGraphEdgeKind.warp,
+            sourceId: warp.id,
+          ));
+        } else if (warp.targetMapId != map.id || warp.targetPos != warp.pos) {
+          issues.add(WorldGraphIssue(
+            code: 'world_graph.scene_only_target_invalid',
+            message: 'A Scene-only arrival point must target its own map and position.',
+            mapId: map.id,
+            targetMapId: warp.targetMapId,
+            sourceId: warp.id,
+          ));
+        }
         final target = snapshot.mapById(warp.targetMapId);
         if (target == null) {
           issues.add(_missingTarget(

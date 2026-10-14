@@ -69,6 +69,7 @@ class MapWorkspaceViewState {
       SmartTilePatternSelectionKind.stamp;
   ProjectCharacterEntry? character;
   ProjectMapEntry? warpDestination;
+  MapWarpTriggerMode warpPlacementMode = MapWarpTriggerMode.onEnter;
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
   ({MapBorderDrawingDraft draft, String message})? borderDraftFailure;
@@ -434,7 +435,11 @@ class MapWorkspaceViewState {
     tile = null;
     terrain = null;
     character = null;
-    tool = warpDestination == null ? StudioMapTool.select : StudioMapTool.warp;
+    tool =
+        warpDestination == null &&
+            warpPlacementMode != MapWarpTriggerMode.sceneOnly
+        ? StudioMapTool.select
+        : StudioMapTool.warp;
   }
 
   void prepareConnections() {

@@ -169,6 +169,9 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                     Text(
                       widget.view.tool == StudioMapTool.connection
                           ? 'Choisissez le bord et la carte voisine dans le panneau de droite.'
+                          : widget.view.warpPlacementMode ==
+                                MapWarpTriggerMode.sceneOnly
+                          ? 'Cliquez sur la carte pour poser le point d’arrivée.'
                           : 'Choisissez la carte vers laquelle mène le passage.',
                     ),
                 ],

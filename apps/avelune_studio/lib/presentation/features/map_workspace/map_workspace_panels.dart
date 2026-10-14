@@ -122,7 +122,15 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
             .where((entry) => entry.id != widget.document.current.id)
             .toList(),
         selectedId: view.warpDestination?.id,
+        arrivalSelected: view.warpPlacementMode == MapWarpTriggerMode.sceneOnly,
+        onPickArrival: () {
+          view.warpPlacementMode = MapWarpTriggerMode.sceneOnly;
+          view.warpDestination = null;
+          view.prepareWarpPlacement();
+          widget.onChanged();
+        },
         onPick: (entry) {
+          view.warpPlacementMode = MapWarpTriggerMode.onEnter;
           view.warpDestination = entry;
           view.brush = null;
           view.model3d = null;
@@ -316,6 +324,8 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
                 : kind == 'Passages'
                 ? view.tool == StudioMapTool.connection
                       ? 'Choisissez le bord et la carte voisine dans le panneau de droite.'
+                      : view.warpPlacementMode == MapWarpTriggerMode.sceneOnly
+                      ? 'Cliquez sur la carte pour poser le point d’arrivée.'
                       : view.warpDestination == null
                       ? 'Choisissez la carte vers laquelle mène le passage.'
                       : 'Passage vers ${view.warpDestination!.name}'
