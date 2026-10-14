@@ -256,7 +256,8 @@ final class _PlayableMapCinematicRuntimeHost
           EffectController(duration: 0.18, curve: Curves.easeOutBack),
         ),
       );
-    }));
+    }),
+    );
   }
 
   PositionComponent _emoteGlyphComponent(String emoteId) {
@@ -268,8 +269,7 @@ final class _PlayableMapCinematicRuntimeHost
           fontSize: 22,
           fontWeight: FontWeight.bold,
           shadows: <Shadow>[
-            Shadow(color: Colors.black, blurRadius: 3),
-          ],
+            Shadow(color: Colors.black, blurRadius: 3)],
         ),
       ),
       anchor: Anchor.bottomCenter,
@@ -529,8 +529,8 @@ class _LoadedPlayableMap {
   final Map<String, RuntimeTilesetImage> tileImagesById;
 }
 
-final class _LoadRuntimeSnapshot {
-  const _LoadRuntimeSnapshot({
+final class _RuntimeSpatialSnapshot {
+  const _RuntimeSpatialSnapshot({
     required this.gameState,
     required this.bundle,
     required this.world,
@@ -568,8 +568,7 @@ class _NpcCollisionDebugVisual {
 class _GridCellPos {
   const _GridCellPos({
     required this.x,
-    required this.y,
-  });
+    required this.y});
 
   final int x;
   final int y;
@@ -886,8 +885,7 @@ enum _TrainerSpotStage { exclamation, approaching }
 class _PendingTrainerSpot {
   _PendingTrainerSpot({
     required this.entityId,
-    required this.remainingSeconds,
-  });
+    required this.remainingSeconds});
 
   final String entityId;
   _TrainerSpotStage stage = _TrainerSpotStage.exclamation;
@@ -947,16 +945,14 @@ class _PendingScenarioReachedEnd {
 class _FollowPathPlan {
   const _FollowPathPlan({
     required this.destination,
-    required this.path,
-  });
+    required this.path});
 
   final GridPos destination;
   final List<GridPos> path;
 }
 
 enum _WarpTransitionStyle {
-  fade,
-}
+  fade }
 
 class _WarpTransitionSpec {
   const _WarpTransitionSpec({

@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_action_inspector.dart';
+import 'scene_actor_action_builder.dart';
 
 final class SceneActionPickerOption {
   const SceneActionPickerOption({
@@ -63,6 +64,8 @@ class SceneActionBuilder extends StatefulWidget {
     this.allowCommandSelection = true,
     this.initialParameters = const {},
     this.loadWarpMap,
+    this.project,
+    this.initialPayload,
   });
 
   final ValueChanged<SceneNodePayload> onSubmit;
@@ -75,6 +78,8 @@ class SceneActionBuilder extends StatefulWidget {
   final bool allowCommandSelection;
   final Map<String, String> initialParameters;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final ProjectManifest? project;
+  final SceneActionPayload? initialPayload;
 
   @override
   State<SceneActionBuilder> createState() => _SceneActionBuilderState();
@@ -101,12 +106,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
+  bool _isActorCommand(String id) =>
+      id == NarrativeCommandIds.actorRoute ||
+      id == NarrativeCommandIds.actorVisibility;
+
   List<NarrativeCommandDescriptor> get _availableCommands => [
     for (final command in _catalog.commands)
       if (command.capabilities.editor ==
               NarrativeCommandCapabilityStatus.supported &&
           _runtimeAllows(command))
-        command,
+        if (!_isActorCommand(command.id) ||
+            widget.project?.settings.dimension == ProjectDimension.twoD)
+          command,
   ];
 
   bool _runtimeAllows(NarrativeCommandDescriptor command) {
@@ -119,7 +130,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   String _initialCommandId() {
-    final requested = widget.initialCommandId;
+    final requested =
+        widget.initialCommandId ??
+        widget.initialPayload?.interactiveCommand?.kind.name;
     if (requested != null &&
         _availableCommands.any((command) => command.id == requested)) {
       return requested;
@@ -255,17 +268,20 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     super.dispose();
   }
 
-  List<NarrativeCommandParameterDescriptor> get _missingParameters => [
-    for (final parameter in _command.parameters)
-      if (_isParameterVisible(parameter) &&
-          (_isParameterRequired(parameter) ||
-              _command.id == NarrativeCommandIds.warp &&
-                  (parameter.id == 'arrivalFacing' ||
-                      parameter.id == 'transition') &&
-                  (_values[parameter.id]?.isNotEmpty ?? false)) &&
-          !_hasValidValue(parameter))
-        parameter,
-  ];
+  List<NarrativeCommandParameterDescriptor> get _missingParameters =>
+      _isActorCommand(_command.id)
+      ? const []
+      : [
+          for (final parameter in _command.parameters)
+            if (_isParameterVisible(parameter) &&
+                (_isParameterRequired(parameter) ||
+                    _command.id == NarrativeCommandIds.warp &&
+                        (parameter.id == 'arrivalFacing' ||
+                            parameter.id == 'transition') &&
+                        (_values[parameter.id]?.isNotEmpty ?? false)) &&
+                !_hasValidValue(parameter))
+              parameter,
+        ];
 
   bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
     if (_command.id == NarrativeCommandIds.railJourney) {
@@ -420,18 +436,20 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           ),
         ),
       ),
-      footer: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: const ValueKey('scene-action-submit'),
-            onPressed: _canSubmit ? _submit : null,
-            variant: PokeMapButtonVariant.primary,
-            child: const Text('Ajouter à la Scene'),
-          ),
-        ),
-      ),
+      footer: _isActorCommand(_command.id)
+          ? null
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: PokeMapButton(
+                  key: const ValueKey('scene-action-submit'),
+                  onPressed: _canSubmit ? _submit : null,
+                  variant: PokeMapButtonVariant.primary,
+                  child: const Text('Ajouter à la Scene'),
+                ),
+              ),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -459,11 +477,39 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                 .map((parameter) => parameter.label)
                 .toList(),
           ),
-          for (final parameter in _command.parameters)
-            if (_isParameterVisible(parameter)) ...[
-              const SizedBox(height: 12),
-              _buildParameter(parameter),
-            ],
+          if (_isActorCommand(_command.id))
+            if (widget.project case final project?)
+              SceneActorActionBuilder(
+                key: ValueKey(_commandId),
+                project: project,
+                commandId: _commandId,
+                current: widget.initialPayload,
+                loadMap: widget.loadWarpMap,
+                onApply: (payload) {
+                  widget.onSubmitResult?.call(
+                    SceneActionBuildResult(
+                      command: _command,
+                      payload: payload,
+                      parameters: payload is SceneActionPayload
+                          ? payload.parameters
+                          : const {},
+                    ),
+                  );
+                  widget.onSubmit(payload);
+                },
+              )
+            else
+              const PokeMapDiagnosticCallout(
+                severity: PokeMapDiagnosticSeverity.error,
+                title: 'Projet indisponible',
+                message: 'Ouvrir un projet 2D pour choisir un acteur.',
+              ),
+          if (!_isActorCommand(_command.id))
+            for (final parameter in _command.parameters)
+              if (_isParameterVisible(parameter)) ...[
+                const SizedBox(height: 12),
+                _buildParameter(parameter),
+              ],
           if (_submissionError != null) ...[
             const SizedBox(height: 12),
             PokeMapDiagnosticCallout(
@@ -568,7 +614,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           value: arrivalNeedsSelection ? '' : currentValue ?? options.first.id,
           items: [
             if (arrivalNeedsSelection)
-              const PokeMapDropdownItem(value: '', label: 'Choisir un point d’arrivée'),
+              const PokeMapDropdownItem(
+                value: '',
+                label: 'Choisir un point d’arrivée',
+              ),
             for (final option in options)
               PokeMapDropdownItem(value: option.id, label: option.label),
           ],
@@ -618,18 +667,27 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       NarrativeCommandParameterKind.movingPlatformMotion => const [
         SceneActionPickerOption(id: 'forward', label: 'Avancer'),
         SceneActionPickerOption(id: 'backward', label: 'Reculer'),
-        SceneActionPickerOption(id: 'rotateClockwise', label: 'Tourner vers la droite'),
+        SceneActionPickerOption(
+          id: 'rotateClockwise',
+          label: 'Tourner vers la droite',
+        ),
       ],
       NarrativeCommandParameterKind.characterDirection => [
         if (_command.id == NarrativeCommandIds.warp)
-          const SceneActionPickerOption(id: '', label: 'Conserver la direction'),
+          const SceneActionPickerOption(
+            id: '',
+            label: 'Conserver la direction',
+          ),
         const SceneActionPickerOption(id: 'south', label: 'Sud'),
         const SceneActionPickerOption(id: 'north', label: 'Nord'),
         const SceneActionPickerOption(id: 'east', label: 'Est'),
         const SceneActionPickerOption(id: 'west', label: 'Ouest'),
       ],
       NarrativeCommandParameterKind.warpTransition => const [
-        SceneActionPickerOption(id: 'mapDefault', label: 'Transition de la carte'),
+        SceneActionPickerOption(
+          id: 'mapDefault',
+          label: 'Transition de la carte',
+        ),
         SceneActionPickerOption(id: 'none', label: 'Sans transition'),
       ],
       NarrativeCommandParameterKind.customAnimationPlayback => const [

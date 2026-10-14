@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'border_catalog.dart';
 import 'project_model3d.dart';
 import 'map_spatial_scene.dart';
+import 'map_instance_retention_policy.dart';
 import 'badge_definition.dart';
 import 'element_collision_profile.dart';
 import 'environment.dart';
@@ -755,6 +756,8 @@ abstract class ProjectSettings with _$ProjectSettings {
   const factory ProjectSettings({
     @Default(ProjectDimension.twoD) ProjectDimension dimension,
     @JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,
+    @JsonKey(includeIfNull: false)
+    MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,
     @Default(16) int tileWidth,
     @Default(16) int tileHeight,
     @Default(2.0) double displayScale,

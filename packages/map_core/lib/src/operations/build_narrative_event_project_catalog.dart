@@ -201,6 +201,22 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
             );
           }
         },
+        mapEventInstanceBoolean: (mapId, eventId, _, _) {
+          final declarations = project.maps.where((entry) => entry.id == mapId);
+          final loaded = maps.where((map) => map.id == mapId).toList();
+          final owners = loaded.length == 1
+              ? loaded.single.entities.where((entity) => entity.id == eventId).toList()
+              : const <MapEntity>[];
+          if (declarations.length != 1 || loaded.length != 1 || owners.length != 1) {
+            valid = false;
+            _recordEventIssue(diagnostics: diagnostics,
+              code: declarations.length > 1 || loaded.length > 1 || owners.length > 1
+                  ? 'narrativeEventMapInstanceOwnerAmbiguous'
+                  : 'narrativeEventMapInstanceOwnerUnavailable',
+              message: 'Le booléen d’instance doit référencer une carte et une entité natives uniques chargées.',
+              eventId: record.id, suffix: 'conditions.$index.eventId');
+          }
+        },
         narrativeEventConsumed: (eventId, _) {
           eventDependencies.add(
             _EventDependency(eventId: eventId, conditionIndex: index),
@@ -279,6 +295,8 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
 
   diagnostics.sort(_compareDiagnostics);
   return NarrativeEventProjectCatalog(
+    nativeMapIds: [for (final entry in project.maps) entry.id],
+    nativeMaps: maps,
     manifestHash: _jsonFingerprint(project.toJson()),
     mapHashes: {
       for (final map in maps) map.id: _jsonFingerprint(map.toJson()),
@@ -492,6 +510,7 @@ Set<String> _dependencyCycleIds(Iterable<NarrativeEventRecord> records) {
         ...condition.whenTyped(
           fact: (_, __, ___) => const <String>[],
           narrativeEventConsumed: (eventId, _) => [eventId],
+          mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
         ),
     };
   }

@@ -3,6 +3,11 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+const _mapInstanceWorldStateJson = <String, Object?>{
+  'schemaVersion': currentMapInstanceWorldStateSchemaVersion,
+  'instancesByMapId': <String, Object?>{},
+};
+
 void main() {
   group('NarrativeFactRuntimeState', () {
     test('rejects integers outside the exact interoperable JSON range', () {
@@ -156,13 +161,17 @@ void main() {
 
   group('NarrativeFactRuntimeState persistence defaults', () {
     test('old GameState JSON without the subtree loads empty', () {
-      final state = GameState.fromJson({'saveId': 'legacy_game_state'});
+      final state = GameState.fromJson({
+        'mapInstanceWorldState': _mapInstanceWorldStateJson,
+        'saveId': 'legacy_game_state',
+      });
 
       expect(state.narrativeFactRuntimeState.overridesByFactId, isEmpty);
     });
 
     test('current SaveData JSON without the subtree loads empty', () {
       final save = SaveData.fromJson({
+        'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'save_data_without_fact_state',
         'itemSystemSchemaVersion': 1,
       });
@@ -173,6 +182,7 @@ void main() {
     test('explicit null subtree is rejected by GameState and SaveData', () {
       expect(
         () => GameState.fromJson({
+          'mapInstanceWorldState': _mapInstanceWorldStateJson,
           'saveId': 'invalid_game_state',
           'narrativeFactRuntimeState': null,
         }),
@@ -180,6 +190,7 @@ void main() {
       );
       expect(
         () => SaveData.fromJson({
+          'mapInstanceWorldState': _mapInstanceWorldStateJson,
           'saveId': 'invalid_save_data',
           'itemSystemSchemaVersion': 1,
           'narrativeFactRuntimeState': null,

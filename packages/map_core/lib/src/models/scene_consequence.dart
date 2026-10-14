@@ -7,6 +7,7 @@ import 'scene_finish_game_contract.dart';
 
 enum SceneConsequenceKind {
   setFact,
+  setMapEventInstanceBoolean,
   markEventConsumed,
   completeStoryStep,
   giveItem,
@@ -41,6 +42,15 @@ abstract base class SceneConsequence {
     String? label,
     String? notes,
   }) = SceneSetFactConsequence.typed;
+
+  factory SceneConsequence.setMapEventInstanceBoolean({
+    required String mapId,
+    required String eventId,
+    required String key,
+    required bool value,
+    String? label,
+    String? notes,
+  }) = SceneSetMapEventInstanceBooleanConsequence;
 
   factory SceneConsequence.markEventConsumed({
     required String mapId,
@@ -155,6 +165,8 @@ abstract base class SceneConsequence {
     final kind = _readKind(json['kind']);
     return switch (kind) {
       SceneConsequenceKind.setFact => SceneSetFactConsequence.fromJson(json),
+      SceneConsequenceKind.setMapEventInstanceBoolean =>
+        SceneSetMapEventInstanceBooleanConsequence.fromJson(json),
       SceneConsequenceKind.markEventConsumed =>
         SceneMarkEventConsumedConsequence.fromJson(json),
       SceneConsequenceKind.completeStoryStep =>
@@ -189,6 +201,80 @@ abstract base class SceneConsequence {
   SceneConsequenceKind get kind;
 
   Map<String, dynamic> toJson();
+}
+
+@immutable
+final class SceneSetMapEventInstanceBooleanConsequence extends SceneConsequence {
+  SceneSetMapEventInstanceBooleanConsequence({
+    required String mapId,
+    required String eventId,
+    required String key,
+    required this.value,
+    String? label,
+    String? notes,
+  }) : mapId = _instanceBooleanIdentity(mapId, 'mapId'),
+       eventId = _instanceBooleanIdentity(eventId, 'eventId'),
+       key = _instanceBooleanIdentity(key, 'key'),
+       label = _trimOptional(label),
+       notes = _trimOptional(notes);
+
+  factory SceneSetMapEventInstanceBooleanConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    const fields = {'kind', 'mapId', 'eventId', 'key', 'value', 'label', 'notes'};
+    if (json.keys.any((field) => !fields.contains(field)) ||
+        json['kind'] != 'setMapEventInstanceBoolean') {
+      throw const FormatException('Unknown instance boolean consequence field or kind.');
+    }
+    final value = json['value'];
+    if (value is! bool) {
+      throw const FormatException('Instance boolean consequence value must be a boolean.');
+    }
+    try {
+      return SceneSetMapEventInstanceBooleanConsequence(
+        mapId: _readRequiredString(json, 'mapId'),
+        eventId: _readRequiredString(json, 'eventId'),
+        key: _readRequiredString(json, 'key'),
+        value: value,
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message?.toString() ?? 'Invalid instance boolean consequence.');
+    }
+  }
+
+  final String mapId;
+  final String eventId;
+  final String key;
+  final bool value;
+  final String? label;
+  final String? notes;
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.setMapEventInstanceBoolean;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+    'kind': kind.name, 'mapId': mapId, 'eventId': eventId, 'key': key,
+    'value': value, 'label': label, 'notes': notes,
+  });
+
+  @override
+  bool operator ==(Object other) => identical(this, other) ||
+      other is SceneSetMapEventInstanceBooleanConsequence &&
+      other.mapId == mapId && other.eventId == eventId && other.key == key &&
+      other.value == value && other.label == label && other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(mapId, eventId, key, value, label, notes);
+}
+
+String _instanceBooleanIdentity(String value, String field) {
+  if (value.isEmpty || value.trim() != value) {
+    throw ArgumentError.value(value, field, 'must be a canonical identity');
+  }
+  return value;
 }
 
 @immutable
@@ -1183,6 +1269,7 @@ SceneConsequenceKind _readKind(Object? value) {
 String _kindToJson(SceneConsequenceKind kind) {
   return switch (kind) {
     SceneConsequenceKind.setFact => 'setFact',
+    SceneConsequenceKind.setMapEventInstanceBoolean => 'setMapEventInstanceBoolean',
     SceneConsequenceKind.markEventConsumed => 'markEventConsumed',
     SceneConsequenceKind.completeStoryStep => 'completeStoryStep',
     SceneConsequenceKind.giveItem => 'giveItem',

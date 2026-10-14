@@ -155,6 +155,16 @@ NarrativeEventAuthoringDiagnostic? validateNarrativeEventAuthoringConditions({
             ),
         };
       },
+      mapEventInstanceBoolean: (mapId, ownerId, _, _) {
+        final status = context.catalog.resolveMapEventInstanceOwner(mapId, ownerId).status;
+        if (status == NarrativeEventProjectResolutionStatus.found) return null;
+        return NarrativeEventAuthoringDiagnostic(
+          code: status == NarrativeEventProjectResolutionStatus.ambiguous
+              ? 'mapInstanceOwnerAmbiguous' : 'mapInstanceOwnerUnavailable',
+          message: 'Le booléen d’instance doit référencer une entité native unique sur sa carte chargée.',
+          path: 'conditions.$index.eventId',
+        );
+      },
       narrativeEventConsumed: (targetEventId, _) {
         if (targetEventId == eventId) {
           return NarrativeEventAuthoringDiagnostic(
@@ -486,6 +496,7 @@ List<String> _eventDependencies(List<NarrativeEventCondition> conditions) {
       ...condition.whenTyped(
         fact: (_, __, ___) => const <String>[],
         narrativeEventConsumed: (eventId, _) => [eventId],
+        mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
       ),
   ];
 }

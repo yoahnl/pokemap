@@ -9,6 +9,8 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_f
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 
+import 'scene_actor_action_form.dart';
+
 part 'scene_action_references.dart';
 
 class SceneActionForm extends StatefulWidget {
@@ -38,6 +40,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
         in widget.commandCatalog ??
             NarrativeCommandCatalog.canonical().commands)
       if (command.isPublishable &&
+          (!_isActorCommand(command.id) ||
+              widget.project.settings.dimension == ProjectDimension.twoD) &&
           (command.id != NarrativeCommandIds.playModelAnimation ||
               widget.project.settings.dimension == ProjectDimension.threeD) &&
           command.backend != NarrativeCommandBackend.dedicatedSceneNode)
@@ -56,6 +60,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
 
   NarrativeCommandDescriptor? get _command =>
       _commands.where((command) => command.id == _commandId).firstOrNull;
+
+  bool _isActorCommand(String? id) =>
+      id == NarrativeCommandIds.actorRoute ||
+      id == NarrativeCommandIds.actorVisibility;
 
   @override
   void initState() {
@@ -92,6 +100,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
         current.consequence?.kind.name ?? current.interactiveCommand?.kind.name;
     if (_command == null || data == null) {
       _commandId = null;
+      _loadReferenceMap();
+      return;
+    }
+    if (_isActorCommand(_commandId)) {
+      _unsupported = false;
       _loadReferenceMap();
       return;
     }
@@ -312,28 +325,43 @@ class _SceneActionFormState extends State<SceneActionForm> {
           onPressed: () => setState(_loadReferenceMap),
         ),
       ],
-      for (final parameter
-          in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
-        Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: _field(parameter),
+      if (_isActorCommand(_commandId))
+        SceneActorActionForm(
+          key: ValueKey(_commandId),
+          project: widget.project,
+          commandId: _commandId!,
+          current: widget.current is SceneActionPayload
+              ? widget.current as SceneActionPayload
+              : null,
+          loadMap: widget.loadMap,
+          onApply: widget.onApply,
         ),
-      if (_error != null) StudioNotice(_error!, isError: true),
-      const SizedBox(height: 12),
-      StudioButton(
-        label: widget.current == null
-            ? 'Ajouter l’action'
-            : 'Appliquer l’action',
-        onPressed: !_valid
-            ? null
-            : () {
-                try {
-                  widget.onApply(_buildPayload());
-                } catch (error) {
-                  setState(() => _error = 'Paramètres incompatibles : $error');
-                }
-              },
-      ),
+      if (!_isActorCommand(_commandId)) ...[
+        for (final parameter
+            in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _field(parameter),
+          ),
+        if (_error != null) StudioNotice(_error!, isError: true),
+        const SizedBox(height: 12),
+        StudioButton(
+          label: widget.current == null
+              ? 'Ajouter l’action'
+              : 'Appliquer l’action',
+          onPressed: !_valid
+              ? null
+              : () {
+                  try {
+                    widget.onApply(_buildPayload());
+                  } catch (error) {
+                    setState(
+                      () => _error = 'Paramètres incompatibles : $error',
+                    );
+                  }
+                },
+        ),
+      ],
     ],
   );
 

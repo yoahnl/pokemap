@@ -17,6 +17,7 @@ enum NarrativeCommandParameterKind {
   actorRouteSteps,
   actorTargetKind,
   actorEntityReference,
+  mapEntityReference,
   boolean,
   fact,
   event,

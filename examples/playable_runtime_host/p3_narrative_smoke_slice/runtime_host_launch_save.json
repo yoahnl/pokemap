@@ -1,6 +1,10 @@
 {
   "itemSystemSchemaVersion": 1,
   "saveId": "p3_narrative_smoke_save",
+  "mapInstanceWorldState": {
+    "schemaVersion": 1,
+    "instancesByMapId": {}
+  },
   "currentMapId": "p3_narrative_smoke_map",
   "playerPosition": {
     "x": 1,

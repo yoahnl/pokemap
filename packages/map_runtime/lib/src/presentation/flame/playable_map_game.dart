@@ -419,12 +419,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ),
           hydrateOwnedPlayerPokemon: ({
             required gameState,
-            required bundle,
-          }) =>
+            required bundle}) =>
               _hydrateOwnedPlayerPokemonProgression(
             gameState,
-            bundle: bundle,
-          ),
+            bundle: bundle),
           resolveSpeciesDisplayName: (speciesId) =>
               _battleSpeciesDisplayNames[speciesId] ?? speciesId,
           resolveMoveDisplayName: (moveId) =>
@@ -437,8 +435,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final cinematicMediaPlayback = FlameCinematicMediaPlaybackAdapter(
       mediaAssets: _bundle.manifest.cinematicMediaAssets,
       resolvePath: (asset) => p.normalize(
-        p.join(_bundle.projectRootDirectory, asset.relativePath),
-      ),
+        p.join(_bundle.projectRootDirectory, asset.relativePath)),
       fx: cinematicFxPlayback,
       audioMixer: audioMixer,
     );
@@ -571,7 +568,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimeDialogueTextSpeed.instant;
   final ValueNotifier<DialoguePresentationSnapshot?>
       _dialoguePresentationNotifier =
-      ValueNotifier<DialoguePresentationSnapshot?>(null);
+      ValueNotifier<DialoguePresentationSnapshot?>(null,
+  );
   final ValueNotifier<RuntimeInputAuthoritySnapshot> _inputAuthorityNotifier =
       ValueNotifier<RuntimeInputAuthoritySnapshot>(
     const RuntimeInputAuthoritySnapshot(
@@ -615,7 +613,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   TextComponent? _notification;
   final ValueNotifier<RuntimeNotificationSnapshot?>
       _runtimeNotificationNotifier =
-      ValueNotifier<RuntimeNotificationSnapshot?>(null);
+      ValueNotifier<RuntimeNotificationSnapshot?>(null,
+  );
   RuntimeNotificationSnapshot? _pendingRuntimeNotificationSnapshot;
   bool _runtimeNotificationPostFrameFlushScheduled = false;
   bool _preferFlutterNotifications = false;
@@ -659,8 +658,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimePokemonSpeciesLoader();
   late final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
       RuntimePokemonLearnsetLoader(
-    moveCatalogLoader: _battleMoveCatalogLoader,
-  );
+    moveCatalogLoader: _battleMoveCatalogLoader);
   late final BattlePokemonSpriteResolver _battleSpriteResolver;
   late final BattleBagItemIconResolver _battleBagItemIconResolver;
   late final RuntimePostBattleDecisionCoordinator
@@ -724,8 +722,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   RuntimeMusicService get _music =>
       _injectedMusicService ??
       (_musicService ??= RuntimeMusicService(
-        mixer: _audioMixer,
-      ));
+        mixer: _audioMixer));
 
   DialogueFeedbackPlaybackPort get _dialogueFeedbackAudio =>
       dialogueFeedbackPlaybackPort ?? _narrativeSoundAudio;
@@ -840,7 +837,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!identical(_cachedNarrativeFactResolverManifest, manifest)) {
       _cachedNarrativeFactResolverManifest = manifest;
       _cachedNarrativeFactResolver =
-          NarrativeFactRuntimeResolver.fromFacts(manifest.facts);
+          NarrativeFactRuntimeResolver.fromFacts(manifest.facts,
+      );
     }
     return _cachedNarrativeFactResolver!;
   }
@@ -1003,7 +1001,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final barrierCountBeforeFallback = _narrativeContinuationBarriers.length;
     if (_activeLegacyScenarioOutcomeCollector != null) {
       throw StateError(
-          'A legacy Scenario outcome collector is already active.');
+          'A legacy Scenario outcome collector is already active.',
+      );
     }
     _activeLegacyScenarioOutcomeCollector = outcomes;
     try {
@@ -1020,8 +1019,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             : null;
     await _publishRootNarrativeOutcomes(
       outcomes,
-      continuation: continuation,
-    );
+      continuation: continuation);
   }
 
   Future<NarrativeSpatialProductionDispatchResult> _dispatchSpatialOccurrence({
@@ -1175,8 +1173,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _installMapActivation(activation);
         _resetTriggerEnterOccupancy();
         unawaited(_dispatchCompletedMapActivation(activation));
-      },
-    );
+      });
     session.defersMapActivation = defersMapActivation;
     final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
     final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
@@ -1279,13 +1276,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (completionCoordinator != null) {
       unawaited(
         completionCoordinator.onGameStateCommitted(gameState).catchError(
-          (Object error, StackTrace stackTrace) {
+          (Object error, StackTrace stackTrace,
+        ) {
             debugPrint(
-              '[game_completion] emission failed: $error\n$stackTrace',
-            );
+              '[game_completion] emission failed: $error\n$stackTrace');
             _showNotification('Fin de partie impossible.');
-          },
-        ),
+          }),
       );
     }
   }
@@ -1311,8 +1307,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     });
     await _publishRootNarrativeOutcomes(
       outcomes,
-      continuation: continuation,
-    );
+      continuation: continuation);
   }
 
   Future<MapEnterProductionDispatchResult> _dispatchCompletedMapActivation(
@@ -1334,11 +1329,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return MapEnterProductionDispatchFailed(
           activation,
           error,
-          stackTrace,
-        );
+          stackTrace);
       }
       final result =
-          await _mapEnterDispatchBridge.dispatchCompletedActivation(activation);
+          await _mapEnterDispatchBridge.dispatchCompletedActivation(activation,
+      );
       final activationCompleted =
           result is MapEnterProductionDispatchLegacyFallback ||
               result is MapEnterProductionDispatchV2Handled ||
@@ -1444,8 +1439,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         // dispatcher wait on itself, so record the new activation and let the
         // outer loop resume it after the current delivery is committed.
         _rememberDeferredNarrativeOutcomeDrainActivation(
-          expectedActivationId,
-        );
+          expectedActivationId);
         return Future<void>.value();
       }
       return existing;
@@ -1575,7 +1569,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     final updated = await _narrativeStateTransactions
-        .transact<GameState>((transactionState) {
+        .transact<GameState>((transactionState,
+    ) {
       // Scenario callbacks update the live facade before they publish. Keep
       // those gameplay mutations, but always append to the transaction's
       // canonical outbox snapshot so two fire-and-forget producers cannot
@@ -1620,16 +1615,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     NarrativeEventDispatchAuthorityPreparation preparation;
     try {
       preparation =
-          await _prepareNarrativeDispatchAuthority(request.occurrence);
+          await _prepareNarrativeDispatchAuthority(request.occurrence,
+      );
     } catch (error) {
       return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
-          error);
+          error,
+      );
     }
     if (preparation is NarrativeEventDispatchAuthorityBlocked) {
       return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
         StateError(
-          'Outcome authority blocked: ${preparation.reason.name}.',
-        ),
+          'Outcome authority blocked: ${preparation.reason.name}.'),
       );
     }
 
@@ -1702,8 +1698,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _attachNarrativeOutcomeContinuationToBarrier(
         legacyResult,
-        continuation,
-      );
+        continuation);
       final pendingLegacyOutcomeTransition =
           _pendingScenarioTransitionMapRequest;
       if (pendingLegacyOutcomeTransition != null &&
@@ -1739,8 +1734,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     if (execution is NarrativeEventExecutionFailed) {
       return NarrativeOutcomeDispatchResult.terminalFailure(
-        execution.failure,
-      );
+        execution.failure);
     }
     return NarrativeOutcomeDispatchResult.terminalFailure(
       (execution as NarrativeEventExecutionCancelled).reason ??
@@ -1763,7 +1757,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _cachedStepStudioWorldRulesManifest = manifest;
     _cachedStepStudioWorldRules =
-        buildStepStudioWorldPresenceRuleList(manifest.scenarios);
+        buildStepStudioWorldPresenceRuleList(manifest.scenarios,
+    );
   }
 
   /// Cache de l'index chapitres globalStory (même politique que les règles
@@ -1780,7 +1775,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _cachedGlobalStoryChapterIndex == null) {
       _cachedGlobalStoryChapterIndexManifest = manifest;
       _cachedGlobalStoryChapterIndex =
-          buildGlobalStoryChapterStepIndex(manifest.scenarios);
+          buildGlobalStoryChapterStepIndex(manifest.scenarios,
+      );
     }
     return _cachedGlobalStoryChapterIndex!;
   }
@@ -1927,7 +1923,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   RuntimeBattleCaptureAttemptReceipt? _captureAttemptReceipt;
   final ValueNotifier<BattleCommandOverlaySnapshot?>
       _battleCommandOverlayNotifier =
-      ValueNotifier<BattleCommandOverlaySnapshot?>(null);
+      ValueNotifier<BattleCommandOverlaySnapshot?>(null,
+  );
   BattleCommandOverlaySnapshot? _pendingBattleCommandOverlaySnapshot;
   bool _battleCommandOverlayPostFrameFlushScheduled = false;
   _PendingConnectionEntryAnimation? _pendingConnectionEntryAnimation;
@@ -2115,8 +2112,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _setRuntimeNotificationSnapshot(
-    RuntimeNotificationSnapshot? snapshot,
-  ) {
+    RuntimeNotificationSnapshot? snapshot) {
     final phase = SchedulerBinding.instance.schedulerPhase;
     final shouldDefer = phase == SchedulerPhase.persistentCallbacks ||
         phase == SchedulerPhase.midFrameMicrotasks;
@@ -2209,8 +2205,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// mais le shell joueur passe par ce contrat afin de refuser les taps issus
   /// d'un snapshot obsolète.
   bool dispatchBattlePresentationCommand(
-    BattlePresentationCommand command,
-  ) {
+    BattlePresentationCommand command) {
     final snapshot = _battleCommandOverlayNotifier.value;
     if (snapshot == null ||
         !validateBattlePresentationCommand(snapshot, command).accepted) {
@@ -2226,7 +2221,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             selectBattleRootEntry(entryIndex),
           BattleCommandOverlayMode.fight ||
           BattleCommandOverlayMode.continueOnly =>
-            selectBattleChoiceEntry(entryIndex),
+            selectBattleChoiceEntry(entryIndex,
+        ),
           BattleCommandOverlayMode.bag => selectBattleBagEntry(entryIndex),
           BattleCommandOverlayMode.pokemon =>
             selectBattlePartyEntry(entryIndex),
@@ -2442,7 +2438,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       get overworldInteractions => _overworldInteractions;
 
   RuntimeOverworldInteractionRequest? hitTestOverworldInteraction(
-      Offset canvasPosition) {
+      Offset canvasPosition,
+  ) {
     if (!canvasPosition.isFinite) return null;
     final action = overworldInteractionSnapshot.tapAction;
     final activeMap = _loadedMapsById[_activeMapId];
@@ -2450,7 +2447,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final point = Vector2(canvasPosition.dx, canvasPosition.dy);
     if (!containsLocalPoint(point) ||
         !camera.viewport
-            .containsLocalPoint(camera.viewport.globalToLocal(point))) {
+            .containsLocalPoint(camera.viewport.globalToLocal(point),
+        )) {
       return null;
     }
     final mapPosition =
@@ -2461,12 +2459,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         bounds.leftPx.toDouble(),
         bounds.topPx.toDouble(),
         bounds.widthPx.toDouble(),
-        bounds.heightPx.toDouble());
+        bounds.heightPx.toDouble(),
+    );
     return target.contains(mapPosition.toOffset()) ? action.request : null;
   }
 
   bool dispatchOverworldInteraction(
-      RuntimeOverworldInteractionRequest request) {
+      RuntimeOverworldInteractionRequest request,
+  ) {
     final interaction =
         _resolveOverworldInteraction() ?? _resolveHiddenItemTapInteraction();
     if (interaction == null || interaction.action.request != request) {
@@ -2513,7 +2513,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       sprintAccepted: sprintAllowed && _sprintPressed,
       context: context,
       externalLocks:
-          Set<RuntimeExternalInputLock>.unmodifiable(_externalInputLocks.keys),
+          Set<RuntimeExternalInputLock>.unmodifiable(_externalInputLocks.keys,
+      ),
     );
   }
 
@@ -2563,8 +2564,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (previousToken != null) {
       _inputLocks.release(
         owner: previousToken.owner,
-        token: previousToken,
-      );
+        token: previousToken);
     }
     _flowPhase = phase;
     switch (phase) {
@@ -2620,8 +2620,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (token != null) {
       _inputLocks.release(
         owner: RuntimeInputLockOwner.cinematic,
-        token: token,
-      );
+        token: token);
     }
     _publishInputAuthoritySnapshot();
   }
@@ -3270,7 +3269,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _gameState = _gameState.copyWith(
       currentMapId: mapId,
       movingPlatformWorldState: initializeMovingPlatformWorldState(
-        map: _world.map, worldState: _gameState.movingPlatformWorldState),
+        map: _world.map, worldState: _gameState.movingPlatformWorldState,
+      ),
       playerPosition: _world.player.pos,
       playerPixelPosition: PixelOffset(
         x: _world.player.playerPositionPx.leftPx,
@@ -3463,7 +3463,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
         _pendingScenarioNpcWarpEntries.remove(id);
         final pendingMove =
-            _pendingScenarioMoveContinuationsByEntity.remove(id);
+            _pendingScenarioMoveContinuationsByEntity.remove(id,
+        );
         if (pendingMove != null) {
           _cancelNarrativeContinuationBarrier(pendingMove.runtimeSourceId);
         }
@@ -3494,7 +3495,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           continue;
         }
         final characterId =
-            resolveNpcCharacterId(entity, loaded.bundle.manifest);
+            resolveNpcCharacterId(entity, loaded.bundle.manifest,
+        );
         final character = characterId == null ? null : charById[characterId];
         if (character == null) continue;
         final actor = OverworldActorComponent(
@@ -3520,8 +3522,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _runtimeNpcPositions[entity.id] = entity.pos;
           _scriptedEntityMovementController?.trackEntity(
             entity.id,
-            entity.pos,
-          );
+            entity.pos);
         }
       }
     }
@@ -3659,7 +3660,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
     debugPrint(
-        '[runtime_game] tileset cache resolve ok result=${result.length}');
+        '[runtime_game] tileset cache resolve ok result=${result.length}',
+    );
     return result;
   }
 
@@ -3706,8 +3708,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   T _traceSync<T>(
     String domain,
     String label,
-    T Function() action,
-  ) {
+    T Function() action) {
     final stopwatch = Stopwatch()..start();
     try {
       return action();
@@ -3723,13 +3724,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     return switch (direction) {
       MapConnectionDirection.east =>
-        _GridCellPos(x: targetPos.x - 1, y: targetPos.y),
+        _GridCellPos(x: targetPos.x - 1, y: targetPos.y,
+      ),
       MapConnectionDirection.west =>
-        _GridCellPos(x: targetPos.x + 1, y: targetPos.y),
+        _GridCellPos(x: targetPos.x + 1, y: targetPos.y,
+      ),
       MapConnectionDirection.north =>
-        _GridCellPos(x: targetPos.x, y: targetPos.y + 1),
+        _GridCellPos(x: targetPos.x, y: targetPos.y + 1,
+      ),
       MapConnectionDirection.south =>
-        _GridCellPos(x: targetPos.x, y: targetPos.y - 1),
+        _GridCellPos(x: targetPos.x, y: targetPos.y - 1,
+      ),
     };
   }
 
@@ -3869,8 +3874,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _pendingScenarioMoveContinuationsByEntity.remove(normalized);
     if (replacedContinuation != null) {
       _cancelNarrativeContinuationBarrier(
-        replacedContinuation.runtimeSourceId,
-      );
+        replacedContinuation.runtimeSourceId);
       debugPrint(
         '[scenario_runtime] moveCharacter replaced continuation '
         'entity=$normalized source=${replacedContinuation.runtimeSourceId}',
@@ -3939,8 +3943,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void setDebugTileMarker({
     required GridPos? position,
-    String? label,
-  }) {
+    String? label}) {
     _debugTileMarkerPos = position;
     _debugTileMarkerLabel = label;
     if (!isLoaded) {
@@ -4014,16 +4017,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _projectMovingPlatformBundle(_bundle, _gameState),
       );
       final hydratedGameState =
-          _hydrateOwnedPlayerPokemonProgression(_gameState);
+          _hydrateOwnedPlayerPokemonProgression(_gameState,
+      );
       final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
       final itemCatalog = _runtimeItemCatalogLoader.loadSnapshot(
         projectRootDirectory: _bundle.projectRootDirectory,
         pokemonConfig: _bundle.manifest.pokemon,
       );
       debugPrint(
-          '[runtime_game] tileset image load start map=${_bundle.map.id}');
+          '[runtime_game] tileset image load start map=${_bundle.map.id}',
+      );
       final tilesetImages =
-          _loadTilesetImagesCached(_bundle.runtimeImageAbsolutePathsById);
+          _loadTilesetImagesCached(_bundle.runtimeImageAbsolutePathsById,
+      );
       final bootResources = await Future.wait<Object?>(
         <Future<Object?>>[
           hydratedGameState,
@@ -4031,9 +4037,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           tilesetImages,
           itemCatalog,
         ],
-        eagerError: false,
-      );
+        eagerError: false);
       _gameState = bootResources[0]! as GameState;
+      _initializeLogicalMapInstance();
       final loadedRootBorderAssets =
           bootResources[1]! as BorderRuntimeAssetBundle;
       final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
@@ -4074,7 +4080,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           tileHeight: _bundle.manifest.settings.tileHeight,
           npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
           mapEntityPresencePredicate:
-              _mapEntityPresencePredicateFor(_bundle.manifest),
+              _mapEntityPresencePredicateFor(_bundle.manifest,
+          ),
         );
         debugPrint(
           '[runtime] Save restored on map ${_bundle.map.id} at '
@@ -4094,7 +4101,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           tileHeight: _bundle.manifest.settings.tileHeight,
           npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
           mapEntityPresencePredicate:
-              _mapEntityPresencePredicateFor(_bundle.manifest),
+              _mapEntityPresencePredicateFor(_bundle.manifest,
+          ),
         );
         debugPrint(
           '[runtime] New game created from project contract on '
@@ -4112,14 +4120,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             tileHeight: _bundle.manifest.settings.tileHeight,
             npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
             mapEntityPresencePredicate:
-                _mapEntityPresencePredicateFor(_bundle.manifest),
+                _mapEntityPresencePredicateFor(_bundle.manifest,
+            ),
           );
           debugPrint(
             '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
           );
         } on GameplaySpawnResolutionException catch (e) {
           debugPrint(
-              '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+              '[runtime] Spawn resolution failed ($e), falling back to (0,0)',
+          );
           _world = GameplayWorldState.initial(
             movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                     ?.gameState.movingPlatformWorldState ??
@@ -4131,7 +4141,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             tileHeight: _bundle.manifest.settings.tileHeight,
             npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
             mapEntityPresencePredicate:
-                _mapEntityPresencePredicateFor(_bundle.manifest),
+                _mapEntityPresencePredicateFor(_bundle.manifest,
+            ),
           );
         }
       }
@@ -4449,6 +4460,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     try {
       _updateRuntime(dt);
     } finally {
+      _refreshLogicalMapInstances();
       _publishInputAuthoritySnapshot();
     }
   }
@@ -4563,13 +4575,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (scenarioOwner != null && matchingOwner == null) {
         _pendingScenarioWarpHandoff = null;
         _cancelNarrativeContinuationBarrier(
-          scenarioOwner.runtimeSourceId,
-        );
+          scenarioOwner.runtimeSourceId);
       }
       final warp = _handleWarp(
         pendingWarp,
         allowMapActivationWork:
-            _restoreFenceOwnsSource(matchingOwner?.runtimeSourceId),
+            _restoreFenceOwnsSource(matchingOwner?.runtimeSourceId,
+        ),
       );
       if (matchingOwner == null) {
         _runDetachedNarrativeTask(
@@ -4613,8 +4625,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               _syncGameStateFromWorld(mapIdOverride: _activeMapId);
               _cancelOwnedScenarioWarpContinuation(matchingOwner);
             }
-          }(),
-        );
+          }());
       }
       return;
     }
@@ -4784,8 +4795,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   MoveIntent _fullTileMoveIntent(Direction direction) {
     return MoveIntent(
       direction,
-      pixelsPerStep: _playerStepPixels(direction),
-    );
+      pixelsPerStep: _playerStepPixels(direction));
   }
 
   void _driveMovement() {
@@ -5301,7 +5311,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // callback may mutate the live facade and therefore belongs inside the
       // same checkpoint exclusion boundary as a V2 Scene execution.
       sceneLease =
-          _narrativeActivityGate.enter(NarrativeRuntimeActivity.sceneActive);
+          _narrativeActivityGate.enter(NarrativeRuntimeActivity.sceneActive,
+      );
     } on NarrativeRuntimeActivityBlockedException {
       debugPrint(
         '[scenario_runtime] blocked by checkpoint '
@@ -5370,7 +5381,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// pour ne pas relancer une cutscene locale dont la step est déjà complétée.
   ScenarioRuntimeExecutionContext _buildScenarioRuntimeExecutionContext(
       List<NarrativeOutcomeRef> deferredOutcomes,
-      {String? executionId}) {
+      {String? executionId,
+  }) {
     return ScenarioRuntimeExecutionContext(
       executionId: executionId ?? _nextNarrativeRuntimeId('scenario'),
       gameState: _gameState,
@@ -5408,14 +5420,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       },
       followCharacter: ({
-        required leaderEntityId,
-      }) {
+        required leaderEntityId}) {
         return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
       },
       faceCharacter: ({
         required entityId,
-        required direction,
-      }) {
+        required direction}) {
         return _runScenarioFaceCharacter(
           entityId: entityId,
           direction: direction,
@@ -5423,12 +5433,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       },
       transitionMap: ({
         required mapId,
-        required warpId,
-      }) {
+        required warpId}) {
         return _runScenarioTransitionMap(
           mapId: mapId,
-          warpId: warpId,
-        );
+          warpId: warpId);
       },
     );
   }
@@ -5439,7 +5447,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!identical(_cachedStepCompletionBundleForIndex, _bundle)) {
       _cachedStepCompletionBundleForIndex = _bundle;
       _cachedStepCompletionIndex =
-          buildStepCompletionCutsceneIndex(_bundle.manifest.scenarios);
+          buildStepCompletionCutsceneIndex(_bundle.manifest.scenarios,
+      );
     }
     return _cachedStepCompletionIndex!;
   }
@@ -5473,7 +5482,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final blockingReason = _scenarioCompletionBlockingReason();
     if (blockingReason == null) {
       _applyScenarioReachedEndCompletion(
-          scenarioId: scenarioId, origin: origin);
+          scenarioId: scenarioId, origin: origin,
+      );
       return;
     }
     for (final pending in _pendingScenarioReachedEndQueue) {
@@ -5607,7 +5617,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _lastScenarioCompletionBlockReason = null;
     }
     final pendingItems =
-        List<_PendingScenarioReachedEnd>.from(_pendingScenarioReachedEndQueue);
+        List<_PendingScenarioReachedEnd>.from(_pendingScenarioReachedEndQueue,
+    );
     _pendingScenarioReachedEndQueue.clear();
     for (final pending in pendingItems) {
       final waitMs = (_runtimeClockMs - pending.queuedAtMs).round();
@@ -5639,8 +5650,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       source,
       DialogueRef(
         dialogueId: normalizedDialogueId,
-        startNode: startNode,
-      ),
+        startNode: startNode),
       'Dialogue introuvable: $normalizedDialogueId',
     );
     if (!opened) {
@@ -5739,7 +5749,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final barrier = _narrativeContinuationBarrierFor(runtimeSourceId);
     if (barrier == null || barrier.advancing) {
       if (_reservedNarrativeContinuationRuntimeSourceIds
-          .contains(runtimeSourceId)) {
+          .contains(runtimeSourceId,
+      )) {
         // A valid Scenario cycle can synchronously start and complete the same
         // runtime source while its owning barrier is still advancing. Keep the
         // completion latched until the source reservation is claimed after the
@@ -5757,8 +5768,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _startScenarioPokemonGrantEffect(
-    ScenarioRuntimeExecutionResult result,
-  ) {
+    ScenarioRuntimeExecutionResult result) {
     final runtimeSourceId = _scenarioContinuationRuntimeSourceId(result);
     final pokemon = result.effect.pokemon;
     final grantOperationId = result.effect.grantOperationId?.trim() ?? '';
@@ -5826,11 +5836,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _showNotification('Transition impossible.');
         } finally {
           await _advanceNarrativeContinuationBarrier(
-            barrier.runtimeSourceId,
-          );
-        }
-      }(),
-    );
+            barrier.runtimeSourceId);
+      }
+    }());
   }
 
   Future<void> _advanceNarrativeContinuationBarrier(
@@ -5899,8 +5907,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         barrier.advancing = false;
         _claimNarrativeContinuationRuntimeSource(
           barrier,
-          nextRuntimeSourceId,
-        );
+          nextRuntimeSourceId);
         debugPrint(
           '[event_v2] continuation barrier transferred '
           'source=$nextRuntimeSourceId',
@@ -5983,7 +5990,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final barrier = _narrativeContinuationBarrierFor(runtimeSourceId);
     if (barrier == null || barrier.closed) {
       if (_reservedNarrativeContinuationRuntimeSourceIds
-          .contains(runtimeSourceId)) {
+          .contains(runtimeSourceId,
+      )) {
         _deferredNarrativeContinuationCancelSourceIds.add(runtimeSourceId);
       }
       return;
@@ -6096,9 +6104,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ) {
     _reservedNarrativeContinuationRuntimeSourceIds.remove(runtimeSourceId);
     final shouldCancel =
-        _deferredNarrativeContinuationCancelSourceIds.remove(runtimeSourceId);
+        _deferredNarrativeContinuationCancelSourceIds.remove(runtimeSourceId,
+    );
     final shouldAdvance =
-        _deferredNarrativeContinuationAdvanceSourceIds.remove(runtimeSourceId);
+        _deferredNarrativeContinuationAdvanceSourceIds.remove(runtimeSourceId,
+    );
     if (shouldCancel) {
       barrier.cancelled = true;
     }
@@ -6161,7 +6171,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Chercher l'entité NPC sur la map courante.
     final entity = _world.map.entities
         .cast<MapEntity?>()
-        .firstWhere((e) => e?.id == npcEntityId, orElse: () => null);
+        .firstWhere((e) => e?.id == npcEntityId, orElse: () => null,
+    );
     if (entity == null) {
       debugPrint(
         '[scenario_runtime] battle effect: npc entity "$npcEntityId" not found on current map',
@@ -6558,7 +6569,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         continue;
       }
       if (!_isScenarioNpcAnchorPassable(
-          entityId: moverEntityId, anchor: cell)) {
+          entityId: moverEntityId, anchor: cell,
+      )) {
         continue;
       }
       candidates.add(cell);
@@ -6628,7 +6640,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
     for (final cell
-        in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+        in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player',
+    )) {
       if (cell.x == anchor.x && cell.y == anchor.y) {
         return false;
       }
@@ -6869,7 +6882,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final entityIds = onlyEntityId == null
         ? (_pendingScenarioMoveContinuationsByEntity.keys
-            .toList(growable: false)
+            .toList(growable: false,
+          )
           ..sort())
         : <String>[onlyEntityId];
     for (final entityId in entityIds) {
@@ -6920,8 +6934,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (moveContinuation != null) {
           _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
           _cancelNarrativeContinuationBarrier(
-            moveContinuation.runtimeSourceId,
-          );
+            moveContinuation.runtimeSourceId);
         }
         _pendingScenarioFollowRequest = null;
         debugPrint(
@@ -6948,8 +6961,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (moveContinuation != null) {
           _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
           _cancelNarrativeContinuationBarrier(
-            moveContinuation.runtimeSourceId,
-          );
+            moveContinuation.runtimeSourceId);
         }
         _pendingScenarioFollowRequest = null;
         _despawnNpcFromActiveMap(pending.entityId);
@@ -6995,8 +7007,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _pendingScenarioLeaderWarpHandoff = null;
         _pendingScenarioFollowRequest = null;
         _cancelNarrativeContinuationBarrier(
-          moveContinuation.runtimeSourceId,
-        );
+          moveContinuation.runtimeSourceId);
       }
       return;
     }
@@ -7015,11 +7026,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[scenario_runtime] player warp failed: warp "${pending.warpId}" not found on map "${_bundle.map.id}"',
       );
       final moveContinuation =
-          _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
+          _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId,
+      );
       if (moveContinuation != null) {
         _cancelNarrativeContinuationBarrier(
-          moveContinuation.runtimeSourceId,
-        );
+          moveContinuation.runtimeSourceId);
       }
       return;
     }
@@ -7047,8 +7058,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (moveContinuation != null) {
         _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
         _cancelNarrativeContinuationBarrier(
-          moveContinuation.runtimeSourceId,
-        );
+          moveContinuation.runtimeSourceId);
       }
       return;
     }
@@ -7088,8 +7098,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _cancelOwnedScenarioWarpContinuation(
-    _PendingScenarioWarpHandoff owner,
-  ) {
+    _PendingScenarioWarpHandoff owner) {
     if (owner.kind == _ScenarioWarpHandoffKind.playerMove ||
         owner.kind == _ScenarioWarpHandoffKind.leaderMove) {
       final entityId = owner.entityId;
@@ -7135,11 +7144,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileHeight: _bundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(_bundle.manifest),
+          _mapEntityPresencePredicateFor(_bundle.manifest,
+      ),
     );
     _bundle = _bundle.copyWith(
-      map: updatedMap,
-    );
+      map: updatedMap);
 
     final loaded = _loadedMapsById[_activeMapId];
     if (loaded != null) {
@@ -7161,8 +7170,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _runScenarioFollowCharacter({
-    required String leaderEntityId,
-  }) {
+    required String leaderEntityId}) {
     _pendingScenarioFollowRequest = _PendingScenarioFollowRequest(
       leaderEntityId: leaderEntityId,
       requestedAtMs: _runtimeClockMs,
@@ -7333,8 +7341,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final currentPos = _world.player.pos;
     final direction = _directionBetweenAdjacent(
       from: currentPos,
-      to: nextPos,
-    );
+      to: nextPos);
     if (direction == null) {
       debugPrint(
         '[scenario_runtime] followCharacter invalid non-adjacent path step leader=$leaderEntityId from=(${currentPos.x},${currentPos.y}) to=(${nextPos.x},${nextPos.y})',
@@ -7385,7 +7392,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     if (entityId == 'player') {
       final next =
-          _world.player.copyWith(facing: _directionFromEntityFacing(facing));
+          _world.player.copyWith(facing: _directionFromEntityFacing(facing),
+      );
       _world = _world.withPlayer(next);
       _syncGameStateFromWorld();
       _player.syncState(_world.player, snapToGrid: true);
@@ -7438,8 +7446,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final updatedEntities = List<MapEntity>.from(entities);
     updatedEntities[index] = entity.copyWith(
-      npc: npc.copyWith(facing: facing),
-    );
+      npc: npc.copyWith(facing: facing));
     final updatedMap = _world.map.copyWith(entities: updatedEntities);
     final playerState = _world.player;
     _world = GameplayWorldState.initial(
@@ -7455,11 +7462,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileHeight: _bundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(_bundle.manifest),
+          _mapEntityPresencePredicateFor(_bundle.manifest,
+      ),
     );
     _bundle = _bundle.copyWith(
-      map: updatedMap,
-    );
+      map: updatedMap);
     _syncGameStateFromWorld();
     return true;
   }
@@ -7575,8 +7582,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _lastFollowPathDestination = candidate;
       return _FollowPathPlan(
         destination: candidate,
-        path: path,
-      );
+        path: path);
     }
 
     if (_isPosAdjacentToRect(currentPlayerPos, leaderRect) &&
@@ -7626,8 +7632,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _lastFollowPathDestination = candidate;
         return _FollowPathPlan(
           destination: candidate,
-          path: path,
-        );
+          path: path);
       }
     }
 
@@ -7674,7 +7679,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           return false;
         }
         final trial =
-            followWorld.withPlayer(followWorld.player.copyWith(pos: cell));
+            followWorld.withPlayer(followWorld.player.copyWith(pos: cell),
+        );
         return !trial.isBlocked(x, y);
       },
     );
@@ -7878,7 +7884,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return _world;
     }
     final index =
-        _world.map.entities.indexWhere((entity) => entity.id == normalized);
+        _world.map.entities.indexWhere((entity) => entity.id == normalized,
+    );
     if (index < 0) {
       return _world;
     }
@@ -7902,7 +7909,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileHeight: _bundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(_bundle.manifest),
+          _mapEntityPresencePredicateFor(_bundle.manifest,
+      ),
     );
   }
 
@@ -8090,11 +8098,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final battleStartSePath =
         _bundle.manifest.battleAudio?.battleStartSePath?.trim();
     if (battleStartSePath != null && battleStartSePath.isNotEmpty) {
-      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer))
+      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer,
+      ))
           .playProjectFile(
         p.normalize(
-          p.join(_bundle.projectRootDirectory, battleStartSePath),
-        ),
+          p.join(_bundle.projectRootDirectory, battleStartSePath)),
       );
     }
     final overlay = BattleTransitionOverlayComponent(
@@ -8188,7 +8196,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'battle',
         'selectPlayerBattleLineup',
         () => _battleSetupMapper
-            .selectPlayerBattleLineup(_battleRuntimeGameState.party),
+            .selectPlayerBattleLineup(_battleRuntimeGameState.party,
+        ),
       );
 
       PsdkBattleSetup? psdkSetup;
@@ -8237,7 +8246,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _battleRuntimeGameState,
           psdkSetup?.opponent.speciesId ?? setup!.enemyPokemon.speciesId,
         ),
-      ));
+      ),
+      );
       _setFlowPhase(_RuntimeFlowPhase.battle);
 
       // Lot 4 garde le routing de difficulté côté runtime :
@@ -8278,8 +8288,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'createSession',
           () => createBattleSession(
             setup!,
-            opponentPolicy: opponentPolicy,
-          ),
+            opponentPolicy: opponentPolicy),
         );
       }
       _activeBattleContext = RuntimeActiveBattleContext.withLineupMapping(
@@ -8313,8 +8322,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'musicResolver',
         () => _battleMusicResolver.resolve(
           request: request,
-          bundle: _bundle,
-        ),
+          bundle: _bundle),
       );
       _battleVictoryMusicActive = false;
       _trainerEncounterMusicActive = false;
@@ -8344,7 +8352,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         pokemonConfig: _bundle.manifest.pokemon,
       );
       final battleSpeciesDisplayNames =
-          await _loadBattleSpeciesDisplayNames(_battleSession!);
+          await _loadBattleSpeciesDisplayNames(_battleSession!,
+      );
       _battleSpeciesDisplayNames = battleSpeciesDisplayNames;
       final playerExperienceProgressByLineupIndex = await _traceAsync(
         'battle',
@@ -8389,7 +8398,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           // montent la scène immédiatement jouable, comme avant BAT-016.
           introEnabled: _battleTransitionOverlay != null,
           playSfx: (_battleSfxPlayer ??=
-                  FlameAudioBattleSfxPlayer(mixer: _audioMixer))
+                  FlameAudioBattleSfxPlayer(mixer: _audioMixer,
+          ))
               .play,
           // BETA-BAT-028 : les cris viennent de la DONNÉE du projet
           // (assets/pokemon/cries/<espèce>.ogg, 721 fichiers dans le Train),
@@ -8417,8 +8427,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           fxBundleCache: _battleFxBundleCache,
           bagItemIconResolver: _battleBagItemIconResolver,
           itemCapabilityResolver: ItemCapabilityResolver(
-            _itemCatalogSnapshot,
-          ),
+            _itemCatalogSnapshot),
           genderResolver: genderResolver,
           resolveBallSpritePath: captureSpriteResolver.resolve,
           resolveCombatantBallItemId: (side, lineupIndex) =>
@@ -8501,7 +8510,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _maybeRevealBattleScene();
       battleStopwatch.stop();
       debugPrint(
-          '[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms');
+          '[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms',
+      );
       debugPrint(
         '[battle] overlay opened requestId=${request.requestId} kind=${request.kind.name}',
       );
@@ -8540,7 +8550,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
       if (File(path).existsSync()) {
-        (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer))
+        (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer,
+        ))
             .playProjectFile(path);
         return;
       }
@@ -8733,7 +8744,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           final activeContext = _activeBattleContext;
           if (activeContext == null) {
             throw StateError(
-                'Capture requires an active runtime battle context.');
+                'Capture requires an active runtime battle context.',
+            );
           }
           final submission = submitRuntimeBattleCaptureAttempt(
             gameState: _battleRuntimeGameState,
@@ -8765,7 +8777,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           final activeContext = _activeBattleContext;
           if (activeContext == null) {
             throw StateError(
-                'Capture requires an active runtime battle context.');
+                'Capture requires an active runtime battle context.',
+            );
           }
           final submission = submitRuntimeBattleCaptureAttempt(
             gameState: _battleRuntimeGameState,
@@ -8788,8 +8801,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final overlay = _battleOverlay;
       overlay?.updateState(
         _battleSession!,
-        gameState: _battleRuntimeGameState,
-      );
+        gameState: _battleRuntimeGameState);
 
       // Vérifier si le combat est fini
       if (psdkSession != null && psdkSession.state.isFinished) {
@@ -9631,7 +9643,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           outcome: outcome,
           captureAttemptReceipt: _captureAttemptReceipt,
           storyFlagsManager: _storyFlags,
-        ));
+        ),
+        );
       }
 
       if (!postBattleFailed &&
@@ -9648,7 +9661,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _replaceBattleRuntimeGameState(_storyFlags.set(
             _battleRuntimeGameState,
             uniqueEncounterConsumedFlag(wildRequest.tableId),
-          ));
+          ),
+          );
         }
       }
 
@@ -9793,8 +9807,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final nextState = _storyFlags.set(_gameState, flagName);
       _gameState = nextState;
       debugPrint(
-        '[scenario_runtime] battle outcome flag set: $flagName',
-      );
+        '[scenario_runtime] battle outcome flag set: $flagName');
 
       // 2. Nettoyer le pending avant de reprendre le graphe.
       _pendingScenarioBattleHandoff = null;
@@ -9897,8 +9910,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _scheduleRootNarrativeOutcomePublication(
-    NarrativeOutcomeRef? outcome,
-  ) {
+    NarrativeOutcomeRef? outcome) {
     _scheduleNarrativeOutcomePublication(outcome);
   }
 
@@ -9910,9 +9922,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     _scheduleNarrativeOutcomesPublication(
-      <NarrativeOutcomeRef>[outcome],
-      continuation: continuation,
-    );
+      <NarrativeOutcomeRef>[outcome,
+    ],
+      continuation: continuation);
   }
 
   void _scheduleNarrativeOutcomesPublication(
@@ -9925,8 +9937,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     unawaited(
       _publishNarrativeOutcomesSafely(
         outcomes,
-        continuation: continuation,
-      ),
+        continuation: continuation),
     );
   }
 
@@ -9950,8 +9961,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     } catch (error, stackTrace) {
       debugPrint(
-        '[event_v2] outcome publication failed: $error\n$stackTrace',
-      );
+        '[event_v2] outcome publication failed: $error\n$stackTrace');
       _showNotification('Résultat narratif impossible.');
       return false;
     }
@@ -10188,8 +10198,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       occurrence: NarrativeEventOccurrence(
         source: NarrativeEventSourceRef.entityInteract(
           _activeMapId,
-          entity.id,
-        ),
+          entity.id),
       ),
       legacyFallback: (_) async => _runLegacyInteractionFallback(result),
       interactionGuard: interactionGuard,
@@ -10414,7 +10423,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           result.updatedGameState ?? session.gameState,
         );
         if (_isRemoved) {
-          throw StateError('The runtime was removed before the map event Scene commit.');
+          throw StateError('The runtime was removed before the map event Scene commit.',
+          );
         }
         final gameCompletion = result.consequenceWriteResult?.gameCompletion;
         if (gameCompletion != null) {
@@ -10482,8 +10492,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final adapter = SceneDialogueRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeExecutionSourceId,
           launcher: _CallbackSceneDialogueRuntimeLauncher(
-            _startSceneDialogue,
-          ),
+            _startSceneDialogue),
         );
         return adapter.showDialogue(intent).then((result) {
           final scenePortId = result.scenePortId;
@@ -10503,8 +10512,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           runtimeSourceId: runtimeExecutionSourceId,
           defaultNpcEntityId: defaultNpcEntityId,
           launcher: _CallbackSceneBattleRuntimeLauncher(
-            _startSceneBattle,
-          ),
+            _startSceneBattle),
         );
         return adapter.startBattle(intent).then((result) {
           final scenePortId = result.scenePortId;
@@ -10660,6 +10668,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mapsById: mapsById,
       maxHpByPartyIndex: recoveryCaps.maxHpByPartyIndex,
       maxPpByPartyIndex: recoveryCaps.maxPpByPartyIndex,
+      mapInstanceScopes: Map.unmodifiable({
+        for (final mapId
+            in gameState.mapInstanceWorldState.instancesByMapId.keys)
+          mapId: gameState.mapInstanceWorldState.instanceRef(mapId)!,
+      }),
     );
   }
 
@@ -10693,6 +10706,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       // Preserve all consequences already accumulated by the Scene before the
       // existing transition pipeline synchronizes the map and player position.
+      final checkpoint = _RuntimeSpatialSnapshot(
+        gameState: currentGameState(),
+        bundle: _bundle,
+        world: _world,
+        activeMapId: _activeMapId,
+        previousMapId: _previousMapId,
+        flowPhase: _flowPhase,
+        currentMapActivationId: _currentMapActivationId,
+        completedMapActivationDispatchCount:
+            _completedMapActivationDispatchCount,
+        lastCompletedMapActivation: _lastCompletedMapActivation,
+      );
+      final workingSession = _activeNarrativeSceneWorkingSession;
+      final previousDeferredActivation = workingSession?.deferredMapActivation;
+      workingSession?.registerCompensation(() async {
+        if (_isRemoved) return;
+        workingSession.gameState = checkpoint.gameState;
+        workingSession.deferredMapActivation = previousDeferredActivation;
+        if (!await _restoreRuntimeSpatialSnapshot(
+          checkpoint,
+          commitNarrativeState: false,
+        )) {
+          throw StateError('The Scene Warp source could not be restored.');
+        }
+      });
       _applyNarrativeGameState(currentGameState());
       final expectedFacing = command.arrivalFacing?.asDirection ?? _world.player.facing;
       final transitioned = await _handleWarp(
@@ -10705,6 +10743,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         allowMapActivationWork: true,
         arrivalFacing: command.arrivalFacing,
         skipVisualTransition: command.transition == SceneWarpTransition.none,
+        arrivalCollisionOwnerEntityId: command.arrivalCollisionOwnerEntityId,
       );
       final completed = transitioned &&
           _activeMapId == command.destinationMapId &&
@@ -11046,8 +11085,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     if (command.mapId != _activeMapId) {
       _notifySceneCommand(
-        'Le PNJ doit être déplacé depuis la map active.',
-      );
+        'Le PNJ doit être déplacé depuis la map active.');
       return Future<String>.value('blocked');
     }
     final map = _world.map;
@@ -11125,8 +11163,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return _executeSceneOpenShopRequest(
           controller,
           request,
-          shopId,
-        );
+          shopId);
       case OpenPcService():
         return _scenePortForPlayerService(
           await controller.openPc(request: request),
@@ -11195,7 +11232,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  bool _scenePresentationScopeIsCurrent(_NarrativeSceneWorkingSession? session) =>
+  bool _scenePresentationScopeIsCurrent(_NarrativeSceneWorkingSession? session,
+  ) =>
       !_isRemoved && identical(_activeNarrativeSceneWorkingSession, session);
 
   PositionComponent? _resolveSceneActor(
@@ -11225,7 +11263,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           mapOverride: _world.map,
         )(_activeMapId, entities.single) ||
         !(_world.npcMapPresencePredicate?.call(_activeMapId, entities.single) ?? true) ||
-        !(_world.mapEntityPresencePredicate?.call(_activeMapId, entities.single) ?? true)) {
+        !(_world.mapEntityPresencePredicate?.call(_activeMapId, entities.single,
+            ) ?? true)) {
       return null;
     }
     final actor =
@@ -11317,6 +11356,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       OverworldActorComponent() => actor.isVisible,
       _ => throw StateError('The actor has no visual visibility contract.'),
     };
+    final originalInstance = _battleRuntimeGameState.mapInstanceWorldState
+        .instanceRef(command.target.mapId);
+    final originalMapActivationId = _currentMapActivationId;
     void setVisible(bool value) {
       if (actor is PlayerComponent) {
         actor.isVisible = value;
@@ -11327,9 +11369,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     session?.registerCompensation(() async {
-      if (!_isRemoved) {
-        setVisible(visible);
+      if (_isRemoved) return;
+      final restored = _resolveSceneActor(command.target, session);
+      final restoredScopeIsCurrent = originalInstance != null
+          ? _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+                  command.target.mapId,
+                ) ==
+                originalInstance
+          : originalMapActivationId != null &&
+                _currentMapActivationId == originalMapActivationId;
+      if (restored == null ||
+          (!identical(restored, actor) && !restoredScopeIsCurrent)) {
+        return;
       }
+      if (restored is PlayerComponent) restored.isVisible = visible;
+      if (restored is OverworldActorComponent) restored.isVisible = visible;
     });
     setVisible(command.visible);
     return 'completed';
@@ -11377,19 +11431,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ? _world.map.entities.singleWhere((entity) => entity.id == target.entityId).npc!.facing
         : null;
     final originalSessionState = session?.gameState;
+    final originalInstance = _battleRuntimeGameState.mapInstanceWorldState
+        .instanceRef(target.mapId);
+    final originalMapActivationId = _currentMapActivationId;
     session?.registerCompensation(() async {
-      if (_isRemoved || !identical(_resolveSceneActor(target, session), actor)) {
+      if (_isRemoved) return;
+      final restoredActor = _resolveSceneActor(target, session);
+      final restoredScopeIsCurrent = originalInstance != null
+          ? _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+                  target.mapId,
+                ) ==
+                originalInstance
+          : originalMapActivationId != null &&
+                _currentMapActivationId == originalMapActivationId;
+      if (restoredActor == null ||
+          (!identical(restoredActor, actor) && !restoredScopeIsCurrent)) {
         return;
       }
-      if (actor is PlayerComponent) {
+      if (restoredActor is PlayerComponent) {
         _world = _world.withPlayer(originalPlayer);
-        actor.syncState(originalPlayer, snapToGrid: true);
+        restoredActor.syncState(originalPlayer, snapToGrid: true);
         _runtimeNpcPositions['player'] = originalPlayer.pos;
         _scriptedEntityMovementController?.syncTrackedEntityPosition(
           'player',
           originalPlayer.pos,
         );
-      } else if (actor is OverworldActorComponent &&
+      } else if (restoredActor is OverworldActorComponent &&
           originalPosition != null &&
           originalFacing != null) {
         _world = _world.withEntityPosition(target.entityId!, originalPosition)
@@ -11401,17 +11468,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             originalPosition,
           );
         }
-        actor.configureGridPlacement(
+        restoredActor.configureGridPlacement(
           pos: originalPosition,
           footprint: _world.map.entities
               .singleWhere((entity) => entity.id == target.entityId)
               .size,
           mapOrigin: _player.mapOrigin,
         );
-        actor.setMotion(originalFacing, CharacterAnimationState.idle);
+        restoredActor.setMotion(originalFacing, CharacterAnimationState.idle);
       }
       if (originalSessionState != null) {
         session.gameState = originalSessionState;
+        _applyNarrativeGameState(originalSessionState);
       }
     });
     final token = _inputLocks.acquire(
@@ -11592,7 +11660,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return 'blocked';
     }
     final media = _bundle.manifest.cinematicMediaAssets
-        .where((asset) => asset.id == command.mediaAssetId);
+        .where((asset) => asset.id == command.mediaAssetId,
+    );
     if (media.length != 1 ||
         media.single.kind != CinematicMediaAssetKind.sound ||
         media.single.loopByDefault) {
@@ -11807,8 +11876,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _showNotification('Le dialogue est introuvable.');
       if (identical(_pendingSceneDialogueCompleter, completer)) {
         _completePendingSceneDialogue(
-          result,
-        );
+          result);
       }
     }
 
@@ -11990,7 +12058,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
       return evaluateSceneInventoryCondition(
-              source: source, gameState: gameState)
+              source: source, gameState: gameState,
+          )
           ? 'true'
           : 'false';
     }
@@ -12006,6 +12075,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         source: source,
         gameState: gameState,
         resolver: _narrativeFactResolver,
+          )
+          ? 'true'
+          : 'false';
+    }
+
+    if (source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor) {
+      return evaluateScenePlayerAtEntityAnchor(
+            source: source,
+            world: _world,
+            currentMapId: _activeMapId,
+          )
+          ? 'true'
+          : 'false';
+    }
+    if (source.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) {
+      final scope = gameState.mapInstanceWorldState.instanceRef(_activeMapId);
+      if (scope == null)
+        throw StateError('The active map has no logical instance.');
+      return evaluateSceneMapEventInstanceBoolean(
+            source: source,
+            gameState: gameState,
+            map: _world.map,
+            scope: scope,
       )
           ? 'true'
           : 'false';
@@ -12029,7 +12121,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       SceneConditionOperator.isTrue => value,
       SceneConditionOperator.isFalse => !value,
       SceneConditionOperator.equals =>
-        _matchesSceneConditionEquals(source, value),
+        _matchesSceneConditionEquals(source, value,
+      ),
     };
     return matched ? 'true' : 'false';
   }
@@ -12137,8 +12230,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _activeScriptRuntimeSourceId = null;
         if (serial != null && ownsPendingWarp) {
           _clearBlockingInteractionWithoutUnlock(
-            reason: 'scriptWarpPending',
-          );
+            reason: 'scriptWarpPending');
           _setFlowPhase(_RuntimeFlowPhase.overworld);
         } else if (serial != null) {
           _releaseBlockingInteraction(
@@ -12191,7 +12283,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _openDialogueForScriptSource(
-      String runtimeSourceId, YarnDialogueRef dialogueRef) {
+      String runtimeSourceId, YarnDialogueRef dialogueRef,
+  ) {
     final serial = _activeBlockingInteractionSerial ??
         _beginBlockingInteraction(
           source: runtimeSourceId,
@@ -12211,7 +12304,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (resolved == null) {
       debugPrint(
-          '[script] failed to resolve dialogue: ${dialogueRef.filePath}');
+          '[script] failed to resolve dialogue: ${dialogueRef.filePath}',
+      );
       _abortActiveScriptAfterDialogueFailure(
         serial: serial,
         source: runtimeSourceId,
@@ -12308,7 +12402,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         break;
       case MapPlacedElementEffectType.openDialogue:
         effectApplied =
-            _tryOpenDialogue(element.id, effect.dialogue, element.elementId);
+            _tryOpenDialogue(element.id, effect.dialogue, element.elementId,
+        );
         break;
       case MapPlacedElementEffectType.setAnimationEnabled:
         final enabled = effect.animationEnabled;
@@ -12338,7 +12433,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         break;
       case MapPlacedElementEffectType.playAnimationOnce:
         final triggered =
-            _playPlacedElementAnimationOnce(instanceId: element.id);
+            _playPlacedElementAnimationOnce(instanceId: element.id,
+        );
         if (!triggered) {
           debugPrint(
             '[placed_behavior] playAnimationOnce ignored instance=${element.id} behavior=${cooldownKey.behaviorId} reason=no_animatable_frames',
@@ -12375,20 +12471,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _playPlacedElementAnimationOnce({
-    required String instanceId,
-  }) {
+    required String instanceId}) {
     final loaded = _loadedMapsById[_activeMapId];
     if (loaded == null) {
       return false;
     }
     final fromBackground =
         loaded.backgroundLayers.playPlacedElementAnimationOnce(
-      instanceId: instanceId,
-    );
+      instanceId: instanceId);
     final fromForeground =
         loaded.foregroundLayers.playPlacedElementAnimationOnce(
-      instanceId: instanceId,
-    );
+      instanceId: instanceId);
     return fromBackground || fromForeground;
   }
 
@@ -12485,11 +12578,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileHeight: _bundle.manifest.settings.tileHeight,
         npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
         mapEntityPresencePredicate:
-            _mapEntityPresencePredicateFor(_bundle.manifest),
+            _mapEntityPresencePredicateFor(_bundle.manifest,
+        ),
       );
       _bundle = _bundle.copyWith(
-        map: updatedMap,
-      );
+        map: updatedMap);
       final activeLoaded = _loadedMapsById[_activeMapId];
       if (activeLoaded != null) {
         activeLoaded.backgroundLayers.setPlacedElementAnimationEnabledOverride(
@@ -12562,8 +12655,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     void failDialogueLoad({
       Object? error,
-      StackTrace? stackTrace,
-    }) {
+      StackTrace? stackTrace}) {
       stopwatch.stop();
       if (!_isBlockingInteractionActive(serial)) {
         debugPrint(
@@ -12628,8 +12720,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     session = interpolateDialogueVariables(
       session,
-      _gameState.scriptVariables,
-    );
+      _gameState.scriptVariables);
     validateDialogueFeedbackReferences(
       session.lineFeedback,
       iconAssetIds: _bundle.runtimeImageAbsolutePathsById.keys.toSet(),
@@ -12685,10 +12776,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final openedState = session.state;
     if (openedState is DialogueShowingLine) {
       debugPrint(
-          '[dialogue] opened node=${session.currentNodeTitle} text="${openedState.text}"');
+          '[dialogue] opened node=${session.currentNodeTitle} text="${openedState.text}"',
+      );
     } else if (openedState is DialogueWaitingForChoice) {
       debugPrint(
-          '[dialogue] opened node=${session.currentNodeTitle} choice count=${openedState.choices.length}');
+          '[dialogue] opened node=${session.currentNodeTitle} choice count=${openedState.choices.length}',
+      );
     }
   }
 
@@ -12710,7 +12803,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[dialogue] line text="${newState.text}"');
     } else if (newState is DialogueWaitingForChoice) {
       debugPrint(
-          '[dialogue] choice opened count=${newState.choices.length} selected=0');
+          '[dialogue] choice opened count=${newState.choices.length} selected=0',
+      );
     }
   }
 
@@ -12731,7 +12825,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (state is DialogueWaitingForChoice) {
       final idx = state.selectedIndex;
       debugPrint(
-          '[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
+          '[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"',
+      );
       final ticket = _pendingFieldActionTicket;
       if (ticket != null) {
         if (idx == 0) {
@@ -12755,7 +12850,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[dialogue] line text="${newState.text}"');
     } else if (newState is DialogueWaitingForChoice) {
       debugPrint(
-          '[dialogue] choice opened count=${newState.choices.length} selected=0');
+          '[dialogue] choice opened count=${newState.choices.length} selected=0',
+      );
     }
   }
 
@@ -12780,8 +12876,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     return _npcPresencePredicateFor(_bundle.manifest)(
       _world.map.id,
-      found,
-    );
+      found);
   }
 
   void _handleNpcInteraction(MapEntity entity) {
@@ -12805,8 +12900,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final trainer =
         _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
               (t) => t?.id == trainerId,
-              orElse: () => null,
-            );
+              orElse: () => null);
     if (trainer == null) {
       debugPrint(
         '[battle] trainer not found: $trainerId for npc=${entity.id}, fallback to dialogue',
@@ -12878,8 +12972,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (entity.kind != MapEntityKind.npc) continue;
       if (!_npcPresencePredicateFor(_bundle.manifest)(
         _world.map.id,
-        entity,
-      )) {
+        entity)) {
         continue;
       }
 
@@ -12943,7 +13036,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final registry = _bundle.manifest.eventRegistry;
     if (registry == null) return false;
     final source =
-        NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id);
+        NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id,
+    );
     for (final record in registry.records) {
       final definition = record.definitionOrNull;
       if (record.enabledOrNull != true || definition?.source != source) {
@@ -12961,7 +13055,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               payload.battleKind == 'trainer' &&
               payload.trainerId != null &&
               _storyBranching.isTrainerDefeated(
-                  _gameState, payload.trainerId!)) {
+                  _gameState, payload.trainerId!,
+              )) {
             return true;
           }
         }
@@ -13006,7 +13101,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final entity = _world.map.entities.cast<MapEntity?>().firstWhere(
         (candidate) => candidate?.id == pending.entityId,
-        orElse: () => null);
+        orElse: () => null,
+    );
     if (entity == null) {
       _abandonTrainerSpot(pending, reason: 'entity left the map');
       return;
@@ -13038,7 +13134,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _startTrainerSpotApproach(
-      _PendingTrainerSpot pending, MapEntity entity) {
+      _PendingTrainerSpot pending, MapEntity entity,
+  ) {
     final destinations = _resolveScenarioEntityApproachCandidates(
       moverEntityId: pending.entityId,
       targetEntityId: 'player',
@@ -13127,8 +13224,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final trainer =
         _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
               (t) => t?.id == trainerId,
-              orElse: () => null,
-            );
+              orElse: () => null);
     if (trainer == null) {
       debugPrint('[trainer] not found trainer=$trainerId entity=${entity.id}');
       _showNotification('Dresseur introuvable.');
@@ -13151,8 +13247,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _tryOpenDialogue(
             entity.id,
             plan.dialogue,
-            entity.inspectorHeadline,
-          );
+            entity.inspectorHeadline);
           return;
         case RuntimeTrainerInteractionDisposition.blocked:
           debugPrint('[trainer] already defeated trainer=$trainerId');
@@ -13201,7 +13296,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     if (request != null) {
       debugPrint(
-          '[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
+          '[trainer] battle triggered trainer=$trainerId entity=${entity.id}',
+      );
       _triggeredTrainerBattles.add(entity.id);
       // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
       // This is consistent with wild encounters and allows proper timing
@@ -13213,7 +13309,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     } else {
       debugPrint(
-          '[trainer] battle request failed trainer=$trainerId entity=${entity.id}');
+          '[trainer] battle request failed trainer=$trainerId entity=${entity.id}',
+      );
     }
   }
 
@@ -13281,7 +13378,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     debugPrint(
-        '[surf] evaluation=${evaluation.runtimeType} -> dialogue=$yarnNode');
+        '[surf] evaluation=${evaluation.runtimeType} -> dialogue=$yarnNode',
+    );
 
     if (evaluation is CanPromptSurf) {
       // L'invitation délivre une autorisation datée sur la cellule proposée.
@@ -13356,7 +13454,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (isLoaded) {
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     }
-    final source = _LoadRuntimeSnapshot(
+    final source = _RuntimeSpatialSnapshot(
       gameState: _gameState,
       bundle: _bundle,
       world: _world,
@@ -13389,7 +13487,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       loadedState = normalizeLoadedGameState(rawLoadedState);
     } on Object catch (error, stackTrace) {
       debugPrint(
-          '[load] save migration or validation failed: $error\n$stackTrace');
+          '[load] save migration or validation failed: $error\n$stackTrace',
+      );
       _showNotification(
         'Chargement impossible : la sauvegarde est invalide. '
         'La partie en cours et le fichier ont été conservés.',
@@ -13419,6 +13518,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           '${loadedState.currentMapId}.',
         );
       }
+      _validateLogicalMapInstanceContext(
+        newBundle,
+        loadedState,
+        requireActive: true,
+      );
       loadedState = await _hydrateOwnedPlayerPokemonProgression(
         loadedState,
         bundle: newBundle,
@@ -13566,14 +13670,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  Future<bool> _restoreFailedLoad(_LoadRuntimeSnapshot source) async {
+  Future<bool> _restoreFailedLoad(_RuntimeSpatialSnapshot source) =>
+      _restoreRuntimeSpatialSnapshot(source, commitNarrativeState: true);
+
+  Future<bool> _restoreRuntimeSpatialSnapshot(
+    _RuntimeSpatialSnapshot source, {
+    required bool commitNarrativeState,
+  }) async {
     try {
       _gameState = source.gameState;
-      await _narrativeStateTransactions.transact<void>((_) {
+      if (commitNarrativeState) {
+        await _narrativeStateTransactions.transact<void>((_) {
         return NarrativeEventStateTransaction.commit(source.gameState, null);
       });
+      }
 
-      var sourceBundle = await prepareBorderRuntimeBundle(source.bundle);
+      var sourceBundle = await prepareBorderRuntimeBundle(source.bundle.copyWith(map: source.world.map),
+      );
       final sourceImages = await _loadTilesetImagesCached(
         sourceBundle.runtimeImageAbsolutePathsById,
         manifest: sourceBundle.manifest,
@@ -13600,6 +13713,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       sourceBundle = root.bundle;
       _bundle = sourceBundle;
+      _runtimeBundleByMapId[source.activeMapId] = source.bundle;
       _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
@@ -13765,6 +13879,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     bool allowMapActivationWork = false,
     bool skipVisualTransition = false,
     EntityFacing? arrivalFacing,
+    String? arrivalCollisionOwnerEntityId,
   }) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld ||
         (!allowMapActivationWork && _blocksOverworldForMapActivationWork)) {
@@ -13785,6 +13900,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final sourceMapId = _activeMapId;
     final sourcePos = _world.player.pos;
     final sourceFacing = _world.player.facing;
+    final sourceInstances = _battleRuntimeGameState.mapInstanceWorldState;
     WarpTransitionOverlayComponent? overlay;
     var swapCompleted = false;
     var transitionCompleted = false;
@@ -13858,15 +13974,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           tileHeight: newBundle.manifest.settings.tileHeight,
           npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
           mapEntityPresencePredicate:
-              _mapEntityPresencePredicateFor(newBundle.manifest),
+              _mapEntityPresencePredicateFor(newBundle.manifest,
+          ),
         ),
       );
-      if (newWorld.worldStaticObstaclesCollidePlayerCollisionRect() ||
-          (newWorld.isWaterCell(warp.targetPos.x, warp.targetPos.y) &&
-              newWorld.player.movementMode != MovementMode.surf)) {
+      final arrivalAllowed = arrivalCollisionOwnerEntityId == null
+          ? !newWorld.worldStaticObstaclesCollidePlayerCollisionRect() &&
+                (!newWorld.isWaterCell(warp.targetPos.x, warp.targetPos.y) ||
+                    newWorld.player.movementMode == MovementMode.surf)
+          : isSceneWarpArrivalAllowed(
+              world: newWorld,
+              project: newBundle.manifest,
+              arrivalCollisionOwnerEntityId: arrivalCollisionOwnerEntityId,
+            );
+      if (!arrivalAllowed) {
         throw StateError(
           'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
         );
+      }
+      if (newBundle.manifest.settings.mapInstanceRetentionPolicy != null) {
+        final nextInstances = sourceMapId == warp.targetMapId
+            ? preserveSameMapInstance(
+                state: sourceInstances,
+                mapId: sourceMapId,
+              )
+            : setupDifferentMapInstance(
+                state: sourceInstances,
+                targetMapId: warp.targetMapId,
+                allocateId: _allocateMapInstanceId,
+              );
+        _replaceLogicalMapInstances(nextInstances);
       }
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
@@ -13928,6 +14065,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[warp] transition failed: $e\n$st');
       _showNotification('La téléportation a échoué.');
       if (!swapCompleted) {
+        _replaceLogicalMapInstances(sourceInstances);
         await _recoverFromWarpFailure(
           sourceBundle: sourceBundle,
           sourceWorld: sourceWorld,
@@ -14057,7 +14195,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         manifest: fallbackBundle.manifest,
       );
       final fallbackBorderAssets =
-          await _loadBorderRuntimeAssets(fallbackBundle);
+          await _loadBorderRuntimeAssets(fallbackBundle,
+      );
       fallbackBundle = await prepareBorderRuntimeBundle(fallbackBundle);
       _unmountAllLoadedMaps();
       final root = await _mountLoadedMap(
@@ -14194,7 +14333,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final source = _loadedMapsById[_activeMapId];
       if (source == null) {
         debugPrint(
-            '[connection] source map visuals missing for id=$_activeMapId');
+            '[connection] source map visuals missing for id=$_activeMapId',
+        );
         _player.syncState(_world.player, snapToGrid: true);
         _showNotification('Le passage vers la carte voisine a échoué.');
         return;
@@ -14239,9 +14379,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileWidth: target.bundle.manifest.settings.tileWidth,
         tileHeight: target.bundle.manifest.settings.tileHeight,
         npcMapPresencePredicate:
-            _npcPresencePredicateFor(target.bundle.manifest),
+            _npcPresencePredicateFor(target.bundle.manifest,
+        ),
         mapEntityPresencePredicate:
-            _mapEntityPresencePredicateFor(target.bundle.manifest),
+            _mapEntityPresencePredicateFor(target.bundle.manifest,
+        ),
       );
       if (newWorld.worldStaticObstaclesCollidePlayerCollisionRect() ||
           (newWorld.isWaterCell(targetPos.x, targetPos.y) &&
@@ -14252,6 +14394,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _player.syncState(_world.player, snapToGrid: true);
         _showNotification('Connection blocked');
         return;
+      }
+      if (target.bundle.manifest.settings.mapInstanceRetentionPolicy != null) {
+        _replaceLogicalMapInstances(
+          retainMapInstance(
+            state: _battleRuntimeGameState.mapInstanceWorldState,
+            mapId: target.bundle.map.id,
+            allocateId: _allocateMapInstanceId,
+          ),
+        );
       }
       _bundle = target.bundle;
       _world = newWorld;
@@ -14618,7 +14769,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     unawaited(removed.then((_) {
       _retiringLoadedMaps.remove(loaded);
       _trimUnusedTilesetImages();
-    }));
+    }),
+    );
   }
 
   Future<_LoadedPlayableMap> _mountLoadedMap({
@@ -14648,7 +14800,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       showCollisionOverlay: _showCollisionOverlay,
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(preparedBundle.manifest),
+          _mapEntityPresencePredicateFor(preparedBundle.manifest,
+      ),
       borderAssets: resolvedBorderAssets,
       smartTileAnimationController: smartTileAnimationController,
     );
@@ -14667,7 +14820,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       showCollisionOverlay: false,
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(preparedBundle.manifest),
+          _mapEntityPresencePredicateFor(preparedBundle.manifest,
+      ),
       smartTileAnimationController: smartTileAnimationController,
     );
     foregroundLayers.position = _originPixels(
@@ -14685,8 +14839,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     actorOcclusionLayers.setMapOrigin(
       _originPixels(
         originCellX: originCellX,
-        originCellY: originCellY,
-      ),
+        originCellY: originCellY),
     );
     for (final row in actorOcclusionLayers.rows) {
       world.add(row);
@@ -14709,7 +14862,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     for (final instruction in occlusionInstructions) {
       if (!backgroundLayers
-          .usesPlacedElementOcclusionPatch(instruction.placedElementId)) {
+          .usesPlacedElementOcclusionPatch(instruction.placedElementId,
+      )) {
         continue;
       }
       final tilesetImage = tileImagesById[instruction.tilesetId];
@@ -14721,7 +14875,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tilesetImage: tilesetImage,
         overlayReplacesPatch: true,
         overlayPainter: backgroundLayers
-            .placedElementOcclusionOverlayPainter(instruction.placedElementId),
+            .placedElementOcclusionOverlayPainter(instruction.placedElementId,
+        ),
         visibleWorldRectProvider: () => camera.visibleWorldRect,
         visualWorldRectProvider: () {
           final instance = placedElementById[instruction.placedElementId];
@@ -14729,7 +14884,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               ? null
               : backgroundLayers.displayedPlacedElementRect(instance);
           return rect?.shift(
-              Offset(backgroundLayers.position.x, backgroundLayers.position.y));
+              Offset(backgroundLayers.position.x, backgroundLayers.position.y),
+          );
         },
         frameProvider: () {
           final instance = placedElementById[instruction.placedElementId];
@@ -14756,9 +14912,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       occlusionPatches.add(patch);
       backgroundLayers.setPlacedElementOcclusionPath(
-          instruction.placedElementId, patch.localOcclusionPath);
+          instruction.placedElementId, patch.localOcclusionPath,
+      );
       foregroundLayers.setPlacedElementOcclusionPath(
-          instruction.placedElementId, patch.localOcclusionPath);
+          instruction.placedElementId, patch.localOcclusionPath,
+      );
       world.add(patch);
     }
 
@@ -14770,7 +14928,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final cw = preparedBundle.cellWidth;
     final ch = preparedBundle.cellHeight;
     final originPx =
-        _originPixels(originCellX: originCellX, originCellY: originCellY);
+        _originPixels(originCellX: originCellX, originCellY: originCellY,
+    );
     for (final entity in preparedBundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
       if (!npcPred(preparedBundle.map.id, entity)) {
@@ -14881,7 +15040,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return loaded;
       } catch (e, st) {
         debugPrint(
-            '[connection] load failed target=$targetMapId error=$e\n$st');
+            '[connection] load failed target=$targetMapId error=$e\n$st',
+        );
         return null;
       }
     }
@@ -15060,7 +15220,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       try {
         final speciesIds = _collectActiveMapBattleSpeciesIds(active.bundle);
         final backgroundPaths =
-            _collectBattleBackgroundPathsForBundle(active.bundle).toList();
+            _collectBattleBackgroundPathsForBundle(active.bundle,
+        ).toList();
         if (speciesIds.isEmpty && backgroundPaths.isEmpty) {
           return;
         }
@@ -15272,6 +15433,124 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  String _allocateMapInstanceId(String mapId) {
+    final random = math.Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    return 'instance_${bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join()}';
+  }
+
+  void _initializeLogicalMapInstance() {
+    final policy = _bundle.manifest.settings.mapInstanceRetentionPolicy;
+    if (policy == null) return;
+    final state = _gameState.mapInstanceWorldState;
+    _validateLogicalMapInstanceContext(
+      _bundle,
+      _gameState,
+      requireActive:
+          initialMapActivationReason == MapActivationReason.saveRestore ||
+          state.instancesByMapId.isNotEmpty,
+    );
+    if (state.instanceRef(_bundle.map.id) != null) return;
+    _replaceLogicalMapInstances(
+      retainMapInstance(
+        state: state,
+        mapId: _bundle.map.id,
+        allocateId: _allocateMapInstanceId,
+      ),
+    );
+  }
+
+  void _validateLogicalMapInstanceContext(
+    RuntimeMapBundle bundle,
+    GameState gameState, {
+    required bool requireActive,
+  }) {
+    final policy = bundle.manifest.settings.mapInstanceRetentionPolicy;
+    if (policy == null) return;
+    for (final mapId in policy.clampViewportToMapIds) {
+      if (bundle.manifest.maps.where((map) => map.id == mapId).length != 1) {
+        throw StateError('Logical map viewport references unknown map $mapId.');
+      }
+    }
+    final state = gameState.mapInstanceWorldState;
+    for (final mapId in state.instancesByMapId.keys) {
+      if (bundle.manifest.maps.where((map) => map.id == mapId).length != 1) {
+        throw StateError(
+          'Saved logical instance references unknown map $mapId.',
+        );
+      }
+    }
+    if (requireActive && state.instanceRef(bundle.map.id) == null) {
+      throw StateError('The active map has no saved logical instance.');
+    }
+  }
+
+  void _replaceLogicalMapInstances(MapInstanceWorldState state) {
+    _gameState = _gameState.copyWith(mapInstanceWorldState: state);
+    final session = _activeNarrativeSceneWorkingSession;
+    if (session != null) {
+      session.gameState = session.gameState.copyWith(
+        mapInstanceWorldState: state,
+      );
+    }
+  }
+
+  void _refreshLogicalMapInstances() {
+    if (!isLoaded ||
+        _isRemoved ||
+        _flowPhase != _RuntimeFlowPhase.overworld ||
+        _player.isStepping ||
+        _pendingConnectionEntryAnimation != null)
+      return;
+    final policy = _bundle.manifest.settings.mapInstanceRetentionPolicy;
+    if (policy == null) return;
+    final active = _loadedMapsById[_activeMapId];
+    if (active == null) return;
+    final activeGeometry = MapInstanceMapGeometry(
+      mapId: _activeMapId,
+      originTiles: GridPos(x: active.originCellX, y: active.originCellY),
+      sizeTiles: _world.map.size,
+    );
+    final neighbors = <MapInstanceMapGeometry>[];
+    for (final connection in _world.map.connections) {
+      final target = _runtimeBundleByMapId[connection.targetMapId];
+      if (target == null) return;
+      final origin = _computeConnectedOriginCells(
+        source: active,
+        connection: TriggeredConnection(
+          direction: connection.direction,
+          targetMapId: connection.targetMapId,
+          offset: connection.offset,
+          sourcePos: _world.player.pos,
+        ),
+        targetSize: target.map.size,
+      );
+      neighbors.add(
+        MapInstanceMapGeometry(
+          mapId: target.map.id,
+          originTiles: GridPos(x: origin.x, y: origin.y),
+          sizeTiles: target.map.size,
+        ),
+      );
+    }
+    final state = _battleRuntimeGameState.mapInstanceWorldState;
+    final next = updateMapInstanceRetention(
+      state: state,
+      activeMap: activeGeometry,
+      directConnectedMaps: neighbors,
+      logicalViewport: resolveMapInstanceLogicalViewport(
+        playerAnchorX: _world.player.pos.x.toDouble(),
+        playerAnchorY: _world.player.pos.y.toDouble(),
+        activeMap: activeGeometry,
+        policy: policy,
+      ),
+      policy: policy,
+      settled: true,
+      allocateId: _allocateMapInstanceId,
+    );
+    if (!identical(next, state)) _replaceLogicalMapInstances(next);
+  }
+
   void _pruneLoadedMapsToActiveNeighborhood() {
     final active = _loadedMapsById[_activeMapId];
     if (active == null) {
@@ -15293,7 +15572,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _runtimeBundleByMapId.removeWhere((id, _) =>
         !keep.contains(id) && !_loadMapFutureById.containsKey(id) &&
-        !_runtimeBundleFutureByMapId.containsKey(id));
+        !_runtimeBundleFutureByMapId.containsKey(id),
+    );
     _trimUnusedTilesetImages();
   }
 
@@ -15308,14 +15588,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       maxBytes: 64 * 1024 * 1024,
       retainedImages: [
         ..._playerRetainedImages,
-        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps])
+        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps,
+        ])
           ...loaded.tileImagesById.values,
       ],
     );
     _borderRuntimeAssetCache.trimToBudget(
       maxBytes: 64 * 1024 * 1024,
       retainedImages: [
-        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps])
+        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps,
+        ])
           ...?loaded.backgroundLayers.borderAssets?.images,
       ],
     );
@@ -15323,8 +15605,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   Vector2 _originPixels({
     required int originCellX,
-    required int originCellY,
-  }) {
+    required int originCellY}) {
     return Vector2(originCellX * _cellWidth, originCellY * _cellHeight);
   }
 
@@ -15453,8 +15734,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (_world.movementBlockReasonAt(
             x: x,
             y: y,
-            movementMode: mode,
-          ) !=
+            movementMode: mode) !=
           null) {
         return true;
       }
@@ -15513,8 +15793,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       probe: probe,
       isDynamicallyBlocked: (cell) => _isScriptedNpcDynamicallyBlockedCell(
         cell,
-        ignoreEntityId: entityId,
-      ),
+        ignoreEntityId: entityId),
     );
     _cachedNpcRoutePlanningProbe = prepared;
     return probe == null ? null : prepared;
@@ -15568,7 +15847,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return block.name;
       }
       for (final cell
-          in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+          in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player',
+      )) {
         if (cell.x == to.x && cell.y == to.y) {
           debugPrint(
             '[npc_patrol] runtime step rejected entity=player to=(${to.x},${to.y}) reason=dynamic_blocker',
@@ -15723,8 +16003,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = _world.withPlayer(
         _gridAlignedPlayerState(
           position: position,
-          facing: facing,
-        ),
+          facing: facing),
       );
       _runtimeNpcPositions['player'] = position;
       _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
@@ -15739,8 +16018,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool _isCellReservedByScriptedNpc(
     GridPos cell, {
-    String? ignoreEntityId,
-  }) {
+    String? ignoreEntityId}) {
     for (final entry in _scriptedNpcReservedOccupiedCellsByEntity.entries) {
       if (ignoreEntityId != null && entry.key == ignoreEntityId) {
         continue;
@@ -15783,7 +16061,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           GridPos(x: fromAnchorPos.x, y: fromAnchorPos.y),
           GridPos(x: toAnchorPos.x, y: toAnchorPos.y),
         },
-        contactRect: null
+        contactRect: null,
       );
       return;
     }
@@ -15806,11 +16084,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final fromRect = resolveEntityCollisionRectPx(
         entity.copyWith(pos: fromAnchorPos),
         tileWidthPx: _world.tileWidthPx,
-        tileHeightPx: _world.tileHeightPx);
+        tileHeightPx: _world.tileHeightPx,
+    );
     final toRect = resolveEntityCollisionRectPx(
         entity.copyWith(pos: toAnchorPos),
         tileWidthPx: _world.tileWidthPx,
-        tileHeightPx: _world.tileHeightPx);
+        tileHeightPx: _world.tileHeightPx,
+    );
     final left = math.min(fromRect.leftPx, toRect.leftPx);
     final top = math.min(fromRect.topPx, toRect.topPx);
     _scriptedNpcReservedOccupiedCellsByEntity[entityId] = (
@@ -15819,11 +16099,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           leftPx: left,
           topPx: top,
           widthPx: math.max(fromRect.leftPx + fromRect.widthPx,
-                  toRect.leftPx + toRect.widthPx) -
+                  toRect.leftPx + toRect.widthPx,
+            ) -
               left,
           heightPx: math.max(fromRect.topPx + fromRect.heightPx,
-                  toRect.topPx + toRect.heightPx) -
-              top),
+                  toRect.topPx + toRect.heightPx,
+            ) -
+              top,
+      ),
     );
   }
 
@@ -15866,7 +16149,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pixelCamera.setPosition(Vector2(
       worldTopLeft.x + viewportSize.x / 2,
       worldTopLeft.y + viewportSize.y / 2,
-    ));
+    ),
+    );
   }
 
   void _syncCameraToPlayer() {

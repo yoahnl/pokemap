@@ -1081,6 +1081,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         requestedSelectionNonce: studioNavigation.revision,
       ),
       EditorWorkspaceMode.scenes => ScenesWorkspace(
+        project: editor.project,
         scenes: projection.scenes,
         requestedSceneId: selectedSceneRoute?.assetId ?? sceneFocus?.sceneId,
         requestedNodeId: selectedSceneRoute?.focusId,

@@ -8,6 +8,7 @@ import 'player_pause_menu_state.dart';
 import 'player_spatial_position.dart';
 import 'spatial_world_state.dart';
 import 'moving_platform.dart';
+import 'map_instance_world_state.dart';
 import 'rail_journey.dart';
 import 'save_data.dart';
 
@@ -87,6 +88,9 @@ abstract class GameState with _$GameState {
     PlayerSpatialPosition? playerSpatialPosition,
     @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
+    @JsonKey(readValue: readMapInstanceWorldStateJson)
+    @Default(MapInstanceWorldState.empty())
+    MapInstanceWorldState mapInstanceWorldState,
 
     /// Orientation du joueur.
     @Default(EntityFacing.south) EntityFacing playerFacing,

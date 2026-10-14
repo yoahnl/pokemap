@@ -2,6 +2,9 @@ library map_gameplay;
 
 export 'src/actor_route_executor.dart';
 export 'src/actor_route_motion.dart';
+export 'src/scene_warp_arrival.dart';
+export 'src/map_instance_lifecycle.dart';
+export 'src/scene_map_instance_condition_evaluator.dart';
 
 export 'src/border_directed_jump_binding.dart';
 export 'src/directed_jump_plan.dart';

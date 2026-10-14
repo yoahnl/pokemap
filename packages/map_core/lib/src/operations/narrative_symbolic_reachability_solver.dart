@@ -867,6 +867,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           }
         },
         narrativeEventConsumed: (_, __) {},
+        mapEventInstanceBoolean: (_, _, _, _) {},
       );
     }
     if (requiredTrueFacts.length < 2) continue;
@@ -960,6 +961,9 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       final source = payload.conditionSource;
       if (source == null) continue;
       switch (source.sourceKind) {
+        case SceneConditionSourceKind.playerAtEntityAnchor:
+        case SceneConditionSourceKind.mapEventInstanceBoolean:
+          break;
         case SceneConditionSourceKind.newGameDraft:
           break;
         case SceneConditionSourceKind.fact:
@@ -1073,6 +1077,7 @@ void _collectEventConditionReads(
       condition.whenTyped(
         fact: (factId, _, __) => factIds.add(factId),
         narrativeEventConsumed: (eventId, _) => consumedEventIds.add(eventId),
+        mapEventInstanceBoolean: (_, _, _, _) {},
       );
     case NarrativeEventConditionAll(:final children):
     case NarrativeEventConditionAny(:final children):
@@ -1129,6 +1134,11 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
       factIds: factIds,
       consumedEventIds: consumedEventIds,
     );
+    for (final condition in definition.conditions) {
+      condition.whenTyped(fact: (_, _, _) {}, narrativeEventConsumed: (_, _) {},
+        mapEventInstanceBoolean: (mapId, eventId, key, _) =>
+            reads.add('instance:$mapId:$eventId:$key'));
+    }
     reads.addAll(factIds.map((id) => 'fact:$id'));
     reads.addAll(consumedEventIds.map((id) => 'consumed:$id'));
     definition.source.when(
@@ -1156,6 +1166,11 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           final source = conditionSource;
           if (source == null) continue;
           switch (source.sourceKind) {
+            case SceneConditionSourceKind.playerAtEntityAnchor:
+              reads.add('anchor:${source.mapId}:${source.sourceId}');
+            case SceneConditionSourceKind.mapEventInstanceBoolean:
+              reads.add('instance:${source.mapId}:${source.sourceId}:${source.key}');
+              break;
             case SceneConditionSourceKind.newGameDraft:
               break;
             case SceneConditionSourceKind.fact:
@@ -1179,6 +1194,8 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           }
         case SceneActionPayload(:final consequence):
           switch (consequence) {
+            case SceneSetMapEventInstanceBooleanConsequence(:final mapId, :final eventId, :final key):
+              writes.add('instance:$mapId:$eventId:$key');
             case SceneSetFactConsequence(:final factId):
               writes.add('fact:$factId');
             case SceneCompleteStoryStepConsequence(:final stepId):
@@ -1401,6 +1418,14 @@ NarrativeSymbolicState _applyAction({
   final consequence = payload.consequence;
   if (consequence != null) {
     switch (consequence) {
+      case SceneSetMapEventInstanceBooleanConsequence():
+        next = next.copyWith(indeterminate: true);
+        addIssue(NarrativeSymbolicIssue(
+          code: NarrativeSymbolicIssueCode.unsupportedCommand,
+          verdict: NarrativeSymbolicVerdict.indeterminate,
+          message: 'Le solveur ne modélise pas le cycle de vie des booléens d’instance de carte.',
+          sceneId: scene.id, nodeId: node.id, eventId: eventId,
+          provenance: next.provenance));
       case SceneSetFactConsequence(:final factId, :final narrativeValue):
         next = next.copyWith(
           factValues: {...next.factValues, factId: narrativeValue},
@@ -1540,6 +1565,9 @@ bool? _sceneConditionValue(
 ) {
   if (source == null) return null;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.playerAtEntityAnchor:
+    case SceneConditionSourceKind.mapEventInstanceBoolean:
+      return null;
     case SceneConditionSourceKind.newGameDraft:
       // Decided by the graph: assigned upstream is true, never assigned is
       // false. Both are answers, so neither leaves the path indeterminate.
@@ -1611,6 +1639,7 @@ bool? _eventExpressionValue(
         },
         narrativeEventConsumed: (eventId, expectedValue) =>
             state.consumedEventIds.contains(eventId) == expectedValue,
+        mapEventInstanceBoolean: (_, _, _, _) => null,
       );
     case NarrativeEventConditionAll(:final children):
       final values = [

@@ -30,13 +30,20 @@ const _progress = RailJourneyProgress(
   },
 );
 
+const _mapInstanceWorldStateJson = <String, Object?>{
+  'schemaVersion': currentMapInstanceWorldStateSchemaVersion,
+  'instancesByMapId': <String, Object?>{},
+};
+
 void main() {
   group('RailJourney progress persistence', () {
     test('defaults missing GameState and SaveData progress', () {
       final gameState = GameState.fromJson(const <String, dynamic>{
+        'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'legacy-game-state',
       });
       final saveData = SaveData.fromJson(const <String, dynamic>{
+        'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'legacy-save-data',
         'itemSystemSchemaVersion': currentItemSystemSaveSchemaVersion,
       });

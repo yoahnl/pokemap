@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../models/map_data.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_fact.dart';
@@ -135,12 +136,16 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectFactEntry> facts,
     required List<NarrativeEventProjectEventEntry> events,
     required List<NarrativeEventProjectDiagnostic> diagnostics,
+    List<String> nativeMapIds = const [],
+    List<MapData> nativeMaps = const [],
   })  : manifestHash = _identity(manifestHash, 'manifestHash'),
         mapHashes = Map.unmodifiable(mapHashes),
         scenes = List.unmodifiable(scenes),
         facts = List.unmodifiable(facts),
         events = List.unmodifiable(events),
         diagnostics = List.unmodifiable(diagnostics),
+        nativeMapIds = List.unmodifiable(nativeMapIds),
+        nativeMaps = List.unmodifiable(nativeMaps),
         _scenesById = _index(scenes, (entry) => entry.scene.id),
         _factsById = _index(facts, (entry) => entry.fact.id),
         _eventsById = _index(events, (entry) => entry.record.id) {
@@ -167,6 +172,8 @@ final class NarrativeEventProjectCatalog {
   final List<NarrativeEventProjectFactEntry> facts;
   final List<NarrativeEventProjectEventEntry> events;
   final List<NarrativeEventProjectDiagnostic> diagnostics;
+  final List<String> nativeMapIds;
+  final List<MapData> nativeMaps;
   final Map<String, List<NarrativeEventProjectSceneEntry>> _scenesById;
   final Map<String, List<NarrativeEventProjectFactEntry>> _factsById;
   final Map<String, List<NarrativeEventProjectEventEntry>> _eventsById;
@@ -192,6 +199,31 @@ final class NarrativeEventProjectCatalog {
       mapEnter: (_) => _spatialResolution(source),
       outcomeReceived: _outcomeResolution,
     );
+  }
+
+  NarrativeEventProjectResolution<MapEntity> resolveMapEventInstanceOwner(
+    String mapId,
+    String eventId,
+  ) {
+    final declarations = nativeMapIds.where((id) => id == mapId).length;
+    final maps = nativeMaps.where((map) => map.id == mapId).toList();
+    if (declarations > 1 || maps.length > 1) {
+      return NarrativeEventProjectResolution(
+        status: NarrativeEventProjectResolutionStatus.ambiguous,
+        matches: const [],
+      );
+    }
+    if (declarations != 1 || maps.isEmpty) {
+      return NarrativeEventProjectResolution(
+        status: declarations == 0
+            ? NarrativeEventProjectResolutionStatus.missing
+            : NarrativeEventProjectResolutionStatus.unavailable,
+        matches: const [],
+      );
+    }
+    final owners = maps.single.entities.where((entity) => entity.id == eventId)
+        .toList(growable: false);
+    return _resolveIndexed(owners, available: (_) => true);
   }
 
   NarrativeEventProjectResolution<NarrativeEventProjectSceneEntry> resolveScene(
@@ -224,6 +256,9 @@ final class NarrativeEventProjectCatalog {
   Map<String, Object?> toDebugJson() => {
         'manifestHash': manifestHash,
         'mapHashes': mapHashes,
+        'nativeMapIds': nativeMapIds,
+        'mapEventOwners': [for (final map in nativeMaps)
+          {'mapId': map.id, 'entityIds': [for (final entity in map.entities) entity.id]}],
         'spatialSources': spatialSources.toDebugJson(),
         'outcomeSources': outcomeSources.toDebugJson(),
         'scenes': [for (final entry in scenes) entry.toDebugJson()],

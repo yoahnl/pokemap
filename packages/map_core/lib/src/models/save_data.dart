@@ -11,6 +11,7 @@ import 'player_pause_menu_state.dart';
 import 'player_spatial_position.dart';
 import 'spatial_world_state.dart';
 import 'moving_platform.dart';
+import 'map_instance_world_state.dart';
 import 'rail_journey.dart';
 
 part 'save_data.freezed.dart';
@@ -818,6 +819,9 @@ abstract class SaveData with _$SaveData {
     PlayerSpatialPosition? playerSpatialPosition,
     @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
+    @JsonKey(readValue: readMapInstanceWorldStateJson)
+    @Default(MapInstanceWorldState.empty())
+    MapInstanceWorldState mapInstanceWorldState,
     @Default(EntityFacing.south) EntityFacing playerFacing,
 
     /// Mode de déplacement du joueur au moment de la sauvegarde.

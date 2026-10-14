@@ -156,6 +156,8 @@ void main() {
       warp: handler,
       worldTone: handler,
       playSoundEffect: handler,
+      actorRoute: handler,
+      actorVisibility: handler,
       giveItem: (command) async {
         calls.add(command.kind);
         return 'received';
@@ -401,6 +403,15 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
           ),
       NarrativeCommandIds.playSoundEffect: () =>
           SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door-sound', volume: .8),
+      NarrativeCommandIds.actorRoute: () => SceneInteractiveCommand.actorRoute(
+            target: SceneActorTarget.player(mapId: 'map_test'),
+            steps: [SceneActorRouteStep.wait(durationMs: 0)],
+          ),
+      NarrativeCommandIds.actorVisibility: () =>
+          SceneInteractiveCommand.actorVisibility(
+            target: SceneActorTarget.player(mapId: 'map_test'),
+            visible: false,
+          ),
       NarrativeCommandIds.movePlatform: () => SceneInteractiveCommand.movePlatform(
             mapId: 'map_test', platformId: 'ferry', motion: MovingPlatformMotion.forward,
           ),

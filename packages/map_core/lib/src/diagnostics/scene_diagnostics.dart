@@ -35,10 +35,12 @@ enum SceneDiagnosticCode {
   conditionUsesRawTechnicalId,
   conditionSourceMigratesToFactRegistry,
   conditionFactRefUnknown,
+  conditionMapEntityRefUnknown,
   conditionBadgeRefUnknown,
   conditionWorldRuleRefUnknown,
   consequenceUnknownFact,
   consequenceUnknownEvent,
+  consequenceUnknownMapEventOwner,
   consequenceUnknownStoryStep,
   consequenceAmbiguousStoryStep,
   consequenceUnknownStarterOption,
@@ -55,6 +57,7 @@ enum SceneDiagnosticCode {
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
   commandInvalidActorTarget,
+  commandInvalidWarpArrivalOwner,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -629,6 +632,17 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
         if (source == null) {
           continue;
         }
+        if ((source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
+            source.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) &&
+            !_nativeEntityReferenceValid(source.mapId!, source.sourceId,
+                projectMapCounts: projectMapCounts, mapsById: mapsById,
+                requireAnchor: source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor)) {
+          diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.conditionMapEntityRefUnknown,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La condition doit référencer une entité native unique sur sa carte chargée ; l’ancre exige une carte 2D et une position valide.',
+            sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir le propriétaire logique sur sa carte.'));
+        }
         if (source.sourceKind == SceneConditionSourceKind.fact &&
             !factIds.contains(source.sourceId)) {
           diagnostics.add(
@@ -807,6 +821,8 @@ void _diagnoseConsequenceShape(
   List<SceneDiagnostic> diagnostics,
 ) {
   switch (consequence) {
+    case SceneSetMapEventInstanceBooleanConsequence():
+      break;
     case SceneSetFactConsequence():
       if (consequence.factId.trim().isEmpty) {
         diagnostics.add(
@@ -1160,6 +1176,26 @@ void _diagnoseActionConsequenceAgainstProject(
       );
     }
   }
+  if (interactiveCommand is SceneWarpInteractiveCommand &&
+      interactiveCommand.arrivalCollisionOwnerEntityId != null) {
+    final map = mapsById[interactiveCommand.destinationMapId];
+    final owners = map?.entities.where((entity) => entity.id ==
+        interactiveCommand.arrivalCollisionOwnerEntityId).toList() ?? const <MapEntity>[];
+    final arrivals = map?.warps.where((warp) => warp.id == interactiveCommand.warpId)
+        .toList() ?? const <MapWarp>[];
+    final valid = projectMapCounts[interactiveCommand.destinationMapId] == 1 &&
+        map != null && map.id == interactiveCommand.destinationMapId &&
+        map.spatialScene == null && owners.length == 1 && arrivals.length == 1 &&
+        isSceneActorEntityReferenceAvailable(project, owners.single) &&
+        owners.single.pos == arrivals.single.pos;
+    if (!valid) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandInvalidWarpArrivalOwner,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Le propriétaire d’arrivée doit être un PNJ unique avec un personnage connu sur la carte 2D destination, exactement à l’ancre du Warp.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir le PNJ qui possède cette arrivée.'));
+    }
+  }
   if (interactiveCommand is ScenePlayModelAnimationInteractiveCommand) {
     final map = mapsById[interactiveCommand.mapId];
     final instance = map?.spatialScene?.instances
@@ -1271,6 +1307,15 @@ void _diagnoseActionConsequenceAgainstProject(
   }
 
   switch (consequence) {
+    case SceneSetMapEventInstanceBooleanConsequence():
+      if (!_nativeEntityReferenceValid(consequence.mapId, consequence.eventId,
+          projectMapCounts: projectMapCounts, mapsById: mapsById)) {
+        diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.consequenceUnknownMapEventOwner,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Le booléen d’instance doit référencer une entité native unique sur sa carte chargée.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir le propriétaire logique de cet état.'));
+      }
     case SceneSetFactConsequence():
       if (consequence.factId.trim().isEmpty) {
         return;
@@ -2028,6 +2073,8 @@ _SceneOutputPortSpec? _findPortSpec(
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.newGameDraft => true,
+    SceneConditionSourceKind.playerAtEntityAnchor ||
+    SceneConditionSourceKind.mapEventInstanceBoolean => true,
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.storyStepCompletion ||
@@ -2046,6 +2093,10 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.playerAtEntityAnchor ||
+    SceneConditionSourceKind.mapEventInstanceBoolean =>
+      source.operator == SceneConditionOperator.isTrue ||
+      source.operator == SceneConditionOperator.isFalse,
     SceneConditionSourceKind.newGameDraft =>
       source.operator == SceneConditionOperator.isTrue ||
           source.operator == SceneConditionOperator.isFalse ||
@@ -2079,4 +2130,19 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
 bool _isStoryStepCompletionValue(String? value) {
   return value == SceneConditionValues.completed ||
       value == SceneConditionValues.notCompleted;
+}
+
+bool _nativeEntityReferenceValid(String mapId, String entityId, {
+  required Map<String, int> projectMapCounts,
+  required Map<String, MapData> mapsById,
+  bool requireAnchor = false,
+}) {
+  final map = mapsById[mapId];
+  if (projectMapCounts[mapId] != 1 || map == null || map.id != mapId) return false;
+  final entities = map.entities.where((entity) => entity.id == entityId).toList();
+  if (entities.length != 1) return false;
+  if (!requireAnchor) return true;
+  final pos = entities.single.pos;
+  return map.spatialScene == null && pos.x >= 0 && pos.y >= 0 &&
+      pos.x < map.size.width && pos.y < map.size.height;
 }

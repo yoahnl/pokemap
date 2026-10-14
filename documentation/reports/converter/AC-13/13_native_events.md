@@ -1335,3 +1335,154 @@ L’action sémantique scene.interactive_command.set reste canonique ; upsert et
 Auto-critique : ces commandes natives ne suffisent pas à convertir la porte originale. La condition de position exacte, la durée de vie/save/reset du TempSwitch de l’instance logique et l’exception d’arrivée limitée au propriétaire restent nécessaires. La compensation locale testée ne qualifie pas une erreur après Warp complet/remontage. Aucun comportement de concurrence générale RMXP209/210, pitch audio ou support3D n’est revendiqué. Les anciens projets QA/captures absents ne sont pas réintroduits comme preuves disponibles. L’IR v4, ses refus sourceDoorProgramUnsupported/sourceTempSwitchUnsupported et les commandes adaptées vides restent inchangés. La suite Source sera admise uniquement après preuve sur les deux événements originaux, aller/retour, save/reload et Studio open/edit/save/reopen.
 
 Git : Yoahn a explicitement autorisé commit et push directement sur main. Les47 commits précédents ont été poussés normalement jusqu’à4bfe47625, confirmé par ls-remote. Cette tranche prépare un commit séparé31 chemins, sans force-push/rebase/amend/branche/worktree. La garde de publication et les reçus après commit/push enregistreront arbre exact, index vide et64 empreintes étrangères préservées. AC13 existant reste dans l’unique domaine Post Bêta Monde & narration ; code proposé TO REVIEW, résultat global PARTIAL, DONE réservé à Yoahn. Le goal AC00–16 reste actif.
+
+
+## Complément AC-13 — Instances natives et formulaires Actor, publication du 14 octobre 2026
+
+### Résultat et audit initial
+
+Cette tranche prépare les états temporaires locaux nécessaires à la porte originale : condition d’ancre exacte, booléen par instance logique, sauvegarde/rechargement et reset selon la transition, arrivée Warp limitée au propriétaire. ActorRoute/ActorVisibility disposent maintenant de formulaires guidés modernes et de création legacy pour le Player2D. L’admission des deux événements originaux reste fermée ; le profil SourceIR v4 et ses quarantines ne changent pas. AC13 global et goal AC00–16 restent PARTIAL/actifs. Combat Avelune conservé.
+
+Audit initial : les routes et la visibilité existaient dans le moteur, sans guide ; aucun état natif ne représentait le TempSwitch de Game_Event et l’arrivée sur la porte13,25 était refusée. Les caches visuels et MapActivationId ne déterminent pas la durée de vie de cet état. L’oracle source est lu comme données inertes ; aucune exécution Ruby. Les scripts045/043/042/031/027 et les métadonnées compilées attestent setup différent, same-map préservé, viewport16×12 et marge6, save MapFactory. Le saut source et les modes safe/magic restent hors qualification. Les modèles et opérations restent Core/Gameplay purs ; les ports Flame restent Runtime.
+
+### Contrats et comportements
+
+MapInstanceWorldState schéma1 est strict, profondément immuable, avec IDs opaques uniques et booléens par owner natif. La zone est requise lors de la lecture GameState/SaveData ; les anciennes sauvegardes sans zone sont refusées, sans migration ni reader de compatibilité. L’enveloppe reste version1 et ItemV1 inchangé. Les fixtures natives ont été complétées ; le corpus historique et son checksum sont préservés.
+
+La policy de rétention est opt-in : viewport logique et clamps déclarés, distincts de la caméra responsive/cache. Boot crée une instance, Warp same-map la préserve, Warp différent la recrée après validation d’arrivée, connexion conserve/recrée la voisine ; pruning uniquement au repos avec géométrie disponible. Load refuse avant mutation une carte active sans instance ou une référence inconnue. Le writer capture les scopes, refuse les scopes périmés et conserve l’atomicité des récompenses. Une référence invalide ne devient pas false sous NOT. Le solver symbolique reste UNKNOWN pour ce nouveau contrat.
+
+L’arrivée Warp owner-only conserve terrain, eau/Surf, masks, bounds, autres NPC/présence ; elle ne change aucun flag global. Le retour13,25→13,26 original est une route moveDown sans Through. Son exemption de collision initiale demeure à implémenter et prouver avant admission source. Les routes finies restent le sous-ensemble natif déclaré.
+
+Après Warp réellement achevé suivi d’échec de Scene, un snapshot spatial remonte la source avec état logique et pose des acteurs ; les compensations LIFO restaurent position/facing/visibilité et GameState. Les composants recréés sont admis seulement pour la même ref logique ou, sans policy, une activation source capturée non nulle exactement restaurée. Aucun commit narratif imbriqué dans la transaction V2. Le catch interne post-swap préexistant reste hors verdict.
+
+Les guides Actor ciblent joueur/NPC+Character sur carte2D connue ; cinq étapes typées, ordre/ajout/suppression, valeurs validées, sons non loop, références uniques. Les réponses map tardives sont rejetées. Publication moderne prouvée par formulaire→scene.upsert→nouvel adaptateur→cold reopen. Création legacy qualifiée ; LegacyInspector editing, GUI native et3D non qualifiés. Les nouveaux guides de conditions/instance/Warp-owner et leur parité sémantique complète restent PARTIAL.
+
+### Inventaire précis des fichiers
+
+Les73 sources/tests ci-dessous et ce rapport existant constituent la publication. Le patch source final, les blobs et SHA/modes sont dans Q/map-instance-publication-union-final-01 ; Q est externe au dépôt. Aucun asset privé, lockfile, build ou nouveau Markdown ajouté.
+
+| Fichier | Zones modifiées, raison et impact |
+|---|---|
+| `apps/avelune_studio/lib/presentation/features/events/event_simulation_dialog.dart` | Libellé explicite de la nouvelle raison locale, switch exhaustif Studio. |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_action_form.dart` | Raccord au formulaire Actor guidé moderne et chargement des ressources. |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_actor_action_form.dart` | Pickers typés, cinq étapes, ordre, validation et refus des réponses tardives. |
+| `apps/avelune_studio/test/presentation/scene_actor_action_form_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `apps/avelune_studio/test/scenes/scene_actor_action_publication_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json` | Fixture native : ajout de la zone vide mapInstanceWorldState, autres données conservées. |
+| `examples/playable_runtime_host/p3_narrative_smoke_slice/runtime_host_launch_save.json` | Fixture native : ajout de la zone vide mapInstanceWorldState, autres données conservées. |
+| `packages/map_core/lib/map_core.dart` | Export public des modèles et helpers natifs. |
+| `packages/map_core/lib/src/authoring/narrative_event_configuration_validation.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/authoring/scene_authoring_operations.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/authoring/scene_command_payload_builder.dart` | Setter natif fermé et validation de ses références. |
+| `packages/map_core/lib/src/catalogs/narrative_event_project_catalog.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/diagnostics/scene_diagnostics.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/models/game_state.dart` | Zone mapInstanceWorldState obligatoire à la lecture JSON. |
+| `packages/map_core/lib/src/models/game_state.freezed.dart` | Génération ciblée des champs GameState/SaveData ou ProjectSettings ; stockage typé sans migration. |
+| `packages/map_core/lib/src/models/game_state.g.dart` | Génération ciblée des champs GameState/SaveData ou ProjectSettings ; stockage typé sans migration. |
+| `packages/map_core/lib/src/models/map_instance_retention_policy.dart` | MapInstanceRetentionPolicy : viewport/marge/clamps typés et stricts. |
+| `packages/map_core/lib/src/models/map_instance_world_state.dart` | MapInstanceRef/RuntimeState/WorldState : schéma1 strict, scopes et booléens immuables. |
+| `packages/map_core/lib/src/models/narrative_command_descriptor.dart` | ParameterKind.mapEntityReference, distinct des événements et acteurs NPC. |
+| `packages/map_core/lib/src/models/narrative_event_definition.dart` | Condition de page native map/event/key/expected. |
+| `packages/map_core/lib/src/models/project_manifest.dart` | ProjectSettings.mapInstanceRetentionPolicy nullable opt-in. |
+| `packages/map_core/lib/src/models/project_manifest.freezed.dart` | Génération ciblée des champs GameState/SaveData ou ProjectSettings ; stockage typé sans migration. |
+| `packages/map_core/lib/src/models/project_manifest.g.dart` | Génération ciblée des champs GameState/SaveData ou ProjectSettings ; stockage typé sans migration. |
+| `packages/map_core/lib/src/models/save_data.dart` | Même zone native obligatoire ; enveloppe1 et ItemV1 conservés. |
+| `packages/map_core/lib/src/models/save_data.freezed.dart` | Génération ciblée des champs GameState/SaveData ou ProjectSettings ; stockage typé sans migration. |
+| `packages/map_core/lib/src/models/save_data.g.dart` | Génération ciblée des champs GameState/SaveData ou ProjectSettings ; stockage typé sans migration. |
+| `packages/map_core/lib/src/models/scene_asset.dart` | Conditions playerAtEntityAnchor et mapEventInstanceBoolean. |
+| `packages/map_core/lib/src/models/scene_consequence.dart` | Conséquence typée setMapEventInstanceBoolean. |
+| `packages/map_core/lib/src/models/scene_interactive_command.dart` | Warp.arrivalCollisionOwnerEntityId : factory, parser fermé, JSON, égalité/hash. |
+| `packages/map_core/lib/src/operations/build_narrative_event_project_catalog.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/operations/game_state_persistence.dart` | Bridges GameState/SaveData préservent toute la zone et les IDs. |
+| `packages/map_core/lib/src/operations/narrative_event_dispatch_authority.dart` | Scope et cardinalité owner, trace spécifique, indisponible propagé sous NOT. |
+| `packages/map_core/lib/src/operations/narrative_project_validator.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/operations/narrative_symbolic_reachability_solver.dart` | Nouveau booléen/setter restent UNKNOWN dans le solver symbolique. |
+| `packages/map_core/lib/src/read_models/narrative_command_catalog.dart` | Setter non publiable ; deux commandes Actor editor/runtime2D publiables avec guides prouvés. |
+| `packages/map_core/lib/src/read_models/narrative_dependency_index.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/lib/src/read_models/narrative_event_validation_read_model.dart` | Reason/trace natifs booléen local, champs contextuels optionnels. |
+| `packages/map_core/lib/src/read_models/narrative_map_events_read_model.dart` | Condition, catalogue, diagnostics et index : nouvelles références de carte/owner, cardinalités et refus avant mutation. |
+| `packages/map_core/test/fixtures/item_system_v1_save.json` | Fixture native : ajout de la zone vide mapInstanceWorldState, autres données conservées. |
+| `packages/map_core/test/map_instance_dispatch_authority_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/map_instance_retention_policy_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/map_instance_world_state_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/narrative_event_legacy_corpus_test.dart` | Composition native de GameState ; corpus historique et checksum byte-exacts. |
+| `packages/map_core/test/narrative_event_progress_codec_test.dart` | Fixtures JSON positives et null négatives : zone valide explicite, guards initiaux encore vérifiés. |
+| `packages/map_core/test/narrative_fact_runtime_state_test.dart` | Fixtures JSON positives et null négatives : zone valide explicite, guards initiaux encore vérifiés. |
+| `packages/map_core/test/rail_journey_persistence_test.dart` | Fixtures JSON positives et null négatives : zone valide explicite, guards initiaux encore vérifiés. |
+| `packages/map_core/test/scene_actor_route_authoring_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/scene_map_instance_contract_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/scene_map_instance_references_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/scene_warp_owner_arrival_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_core/test/trainer_battle_receipt_persistence_test.dart` | Fixtures JSON positives et null négatives : zone valide explicite, guards initiaux encore vérifiés. |
+| `packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_simulation_sheet.dart` | Même raison de simulation exhaustive côté éditeur legacy. |
+| `packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart` | Même propagation vers la création d’action dans le canvas. |
+| `packages/map_editor/lib/src/ui/canvas/scenes/scene_action_builder.dart` | Raccord au formulaire Actor legacy. |
+| `packages/map_editor/lib/src/ui/canvas/scenes/scene_actor_action_builder.dart` | Guide legacy typé avec mêmes contrôles de références et valeurs. |
+| `packages/map_editor/lib/src/ui/canvas/scenes_workspace.dart` | Propagation des loaders map/ressources dans la création de scène. |
+| `packages/map_editor/test/scene_actor_action_builder_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_gameplay/lib/map_gameplay.dart` | Export public des trois helpers purs ; aucun Flutter/Flame. |
+| `packages/map_gameplay/lib/src/map_instance_lifecycle.dart` | Setup différent/same-map/retain/prune selon géométrie et viewport logique. |
+| `packages/map_gameplay/lib/src/scene_map_instance_condition_evaluator.dart` | Position exacte et booléen local ; erreur de scope/ref distincte de false. |
+| `packages/map_gameplay/lib/src/scene_warp_arrival.dart` | Arrivée 2D : exemption du seul NPC/Character propriétaire à son ancre exacte. |
+| `packages/map_gameplay/test/map_instance_lifecycle_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_gameplay/test/scene_map_instance_condition_evaluator_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_gameplay/test/scene_warp_arrival_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+| `packages/map_runtime/lib/src/application/narrative_scene_runtime_execution.dart` | Même projection dans NarrativeV2. |
+| `packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_write_result.dart` | missingMapInstanceScope/staleMapInstanceScope. |
+| `packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart` | Scopes capturés, setter strict, applyAll atomique sans récompense partielle. |
+| `packages/map_runtime/lib/src/application/scene_runtime/scene_event_runtime_hook.dart` | Projection des conséquences locales en attente pour la condition suivante. |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Boot/load/connection/Warp/rétention ; callbacks conditions ; compensation spatial/Actor après remount. |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game_support.dart` | RuntimeSpatialSnapshot partagé par load et rollback Scene. |
+| `packages/map_runtime/test/narrative_command_runtime_parity_test.dart` | Deux callbacks et samples Actor publiables ; aucune logique de combat modifiée. |
+| `packages/map_runtime/test/playable_map_game_connection_arrival_collision_test.dart` | Vrai Game : arrivée propriétaire, scopes/reset, load/save, conditions, rollback après Warp et gardes sans policy. |
+| `packages/map_runtime/test/scene_map_instance_consequence_writer_test.dart` | Tests ciblés du contrat nommé : cas positifs, refus, conservation et références natives. |
+
+### Vérifications exactes
+
+Q désigne QA/ac16-refresh-20261014-ftgqyeej. Chaque reçu contient commande/cwd, SHA log, pins avant/après et ownership des processus. Les suites rejouées ne sont pas additionnées. Les commandes ci-dessous sont terminales exit0 ; sources gelées, protégés inchangés et aucun survivant confirmé. Les73 pins du build final correspondent aux sources de publication.
+
+| Reçu Q ; cwd relatif à R | Commande exacte | Résultat ; durée |
+|---|---|---|
+| `map-instance-core-union-final-01.json` ; `packages/map_core` | `/opt/homebrew/bin/dart test test/map_instance_world_state_test.dart test/scene_map_instance_contract_test.dart test/map_instance_dispatch_authority_test.dart test/scene_map_instance_references_test.dart test/narrative_event_dispatch_authority_test.dart test/narrative_event_configuration_authoring_test.dart test/narrative_dependency_index_test.dart test/narrative_symbolic_reachability_solver_test.dart test/scene_authoring_operations_test.dart test/scene_diagnostics_test.dart test/game_state_persistence_test.dart test/save/game_state_save_envelope_mapper_test.dart test/save/save_envelope_codec_test.dart test/map_instance_retention_policy_test.dart test/scene_warp_owner_arrival_test.dart test/scene_interactive_command_test.dart test/bag_stack_identity_test.dart test/narrative_event_legacy_corpus_test.dart test/narrative_fact_runtime_state_test.dart test/narrative_event_progress_codec_test.dart test/rail_journey_persistence_test.dart test/trainer_battle_receipt_persistence_test.dart --reporter expanded` | 384 PASS,22 suites ; 4.835s ; exit0 |
+| `map-instance-gameplay-union-final-01.json` ; `packages/map_gameplay` | `dart test test/scene_map_instance_condition_evaluator_test.dart test/map_instance_lifecycle_test.dart test/scene_warp_arrival_test.dart test/actor_route_motion_test.dart test/npc_map_presence_predicate_test.dart --reporter expanded --concurrency=1` | 99 PASS ; 3.798s ; exit0 |
+| `map-instance-api-union-final-01.json` ; `packages/map_authoring` | `dart test test/domains/narrative/scene_actor_route_transport_test.dart --reporter expanded --concurrency=1` | 12 PASS,API et JSONL ; 6.627s ; exit0 |
+| `map-instance-runtime-union-final-01.json` ; `packages/map_runtime` | `flutter test --no-pub test/scene_map_instance_consequence_writer_test.dart test/playable_map_game_connection_arrival_collision_test.dart test/scene_interactive_command_runtime_executor_test.dart test/scene_actor_visibility_render_test.dart test/narrative_command_runtime_parity_test.dart test/phase_a_golden_battle_slice_smoke_test.dart --reporter expanded --concurrency=1` | 99 PASS,6 suites,0 SKIP ; 15.101s ; exit0 |
+| `map-instance-host-union-final-01.json` ; `examples/playable_runtime_host` | `flutter test --no-pub test/phase_a_golden_slice_launch_test.dart test/p3_narrative_smoke_slice_test.dart --reporter expanded --concurrency=1` | 15 PASS,GoldenBattle et P3 ; 9.742s ; exit0 |
+| `map-instance-core-analyze-union-final-01.json` ; `packages/map_core` | `/opt/homebrew/bin/dart analyze lib/map_core.dart lib/src/models/map_instance_world_state.dart lib/src/models/scene_asset.dart lib/src/models/scene_consequence.dart lib/src/models/narrative_event_definition.dart lib/src/operations/narrative_event_dispatch_authority.dart lib/src/read_models/narrative_event_validation_read_model.dart lib/src/models/game_state.dart lib/src/models/game_state.freezed.dart lib/src/models/game_state.g.dart lib/src/models/save_data.dart lib/src/models/save_data.freezed.dart lib/src/models/save_data.g.dart lib/src/operations/game_state_persistence.dart lib/src/operations/build_narrative_event_project_catalog.dart lib/src/catalogs/narrative_event_project_catalog.dart lib/src/authoring/narrative_event_configuration_validation.dart lib/src/read_models/narrative_map_events_read_model.dart lib/src/operations/narrative_project_validator.dart lib/src/operations/narrative_symbolic_reachability_solver.dart lib/src/diagnostics/scene_diagnostics.dart lib/src/authoring/scene_authoring_operations.dart lib/src/read_models/narrative_dependency_index.dart lib/src/read_models/narrative_command_catalog.dart lib/src/models/narrative_command_descriptor.dart lib/src/authoring/scene_command_payload_builder.dart test/map_instance_world_state_test.dart test/scene_map_instance_contract_test.dart test/map_instance_dispatch_authority_test.dart test/scene_map_instance_references_test.dart lib/src/models/scene_interactive_command.dart test/scene_warp_owner_arrival_test.dart test/narrative_event_legacy_corpus_test.dart test/narrative_fact_runtime_state_test.dart test/narrative_event_progress_codec_test.dart test/rail_journey_persistence_test.dart test/trainer_battle_receipt_persistence_test.dart lib/src/models/map_instance_retention_policy.dart lib/src/models/project_manifest.dart test/map_instance_retention_policy_test.dart` | 0 error/warning,18 infos baseline ; 1.649s ; exit0 |
+| `map-instance-gameplay-analyze-union-final-02.json` ; `packages/map_gameplay` | `dart analyze lib/map_gameplay.dart lib/src/map_instance_lifecycle.dart lib/src/scene_warp_arrival.dart lib/src/scene_map_instance_condition_evaluator.dart test/map_instance_lifecycle_test.dart test/scene_warp_arrival_test.dart test/scene_map_instance_condition_evaluator_test.dart` | 0 error/warning,1 info baseline ; 1.707s ; exit0 |
+| `map-instance-runtime-analyze-union-final-01.json` ; `packages/map_runtime` | `flutter analyze --no-pub --no-fatal-infos lib/src/presentation/flame/playable_map_game.dart lib/src/application/narrative_scene_runtime_execution.dart lib/src/application/scene_runtime/scene_event_runtime_hook.dart lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart lib/src/application/scene_runtime/scene_consequence_runtime_write_result.dart test/scene_map_instance_consequence_writer_test.dart test/playable_map_game_connection_arrival_collision_test.dart lib/src/presentation/flame/playable_map_game_support.dart test/narrative_command_runtime_parity_test.dart` | 0 error/warning,6 infos baseline ; 7.876s ; exit0 |
+| `map-instance-simulation-studio-final-01.json` ; `apps/avelune_studio` | `flutter test --no-pub test/events_ui08_conditions_simulation_test.dart --reporter expanded --concurrency=1` | 5 PASS ; 8.119s ; exit0 |
+| `map-instance-simulation-editor-final-01.json` ; `packages/map_editor` | `flutter test --no-pub test/event_builder_v2_simulation_test.dart --reporter expanded --concurrency=1` | 1 PASS ; 4.412s ; exit0 |
+| `map-instance-simulation-analyze-final-01.json` ; `apps/avelune_studio` | `flutter analyze --no-pub lib/presentation/features/events/event_simulation_dialog.dart ../../packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_simulation_sheet.dart` | No issues found,2 fichiers ; 6.294s ; exit0 |
+| `map-instance-arrival-test-cleanup-final-01.json` ; `packages/map_gameplay` | `dart test test/scene_warp_arrival_test.dart --reporter expanded` | 17 PASS ; 1.663s ; exit0 |
+| `map-instance-arrival-test-analyze-final-01.json` ; `packages/map_gameplay` | `dart analyze test/scene_warp_arrival_test.dart` | No issues found ; 1.699s ; exit0 |
+| `map-instance-studio-build-union-final-02.json` ; `apps/avelune_studio` | `flutter build macos --debug --no-pub` | Built Avelune Studio.app macOS debug ; 22.466s ; exit0 |
+| `map-instance-mcp-check-final-01.json` ; `tools/pokemap_mcp` | `npm run check` | tsc check PASS ; 1.022s ; exit0 |
+| `map-instance-mcp-build-final-01.json` ; `tools/pokemap_mcp` | `npm run build` | tsc build PASS ; 1.021s ; exit0 |
+| `map-instance-mcp-live-final-01.json` ; `tools/pokemap_mcp` | `node --test --test-concurrency=1 dist/test/scene_actor_route_stdio.test.js` | MCP réel1 PASS,0 SKIP ; 8.594s ; exit0 |
+
+UI11 gelé : Studio20 PASS22.646s (dont2 publication/cold reopen), Legacy18 PASS11.307s, Core32 PASS2.146s. Régressions Studio29 PASS13.463s et Legacy43 dans61PASS18.316s avant le delta uniquement accolades ; ce delta de5 paires dans2 fichiers est relu indépendamment et requalifié. Analyses Studio4/Legacy5/Core2 No issues5.693/12.435/1.647s. Les commandes exactes et logs se trouvent dans actor-ui-01/qualification-final-01.json et ses reçus.
+
+Contrepreuves : contrats/refs/scopes rouges fonctionnels avant implémentation ; Core élargi379PASS/5FAIL avant ajout de la zone aux4 fixtures, puis384PASS ; rollback après Warp0PASS/2FAIL, puis3PASS, enfin cas sans policy1PASS/1FAIL puis5PASS avec vrai déplacement source et arrival observés. Le premier union Runtime91PASS/5FAIL révélait les2 samples Actor manquants et3 échecs sur la même save GoldenBattle ; corrigés puis99PASS. Le build final01 échouait sur le nouveau reason non exhaustif : les deux consommateurs Studio/legacy sont corrigés, tests5+1PASS et build final02 PASS. Les erreurs de fixture/filter/compilation intermédiaires ne sont pas des validations.
+
+Les18 informations Core,1 Gameplay et6 Runtime correspondent à des instructions baseline conservées ; aucune erreur/warning restante dans ces analyses ciblées. Les2 infos nouvelles du test Arrival ont été retirées,17PASS et analyse sans issue. La réduction du churn de formatage conserve10/10 séquences lexèmes/commentaires, attestées par scanner Dart ;8 finals correspondent aux candidats02, les2 petits tests sont reconstruits baseline+seules additions nécessaires. Tous les tests terminés n’ont laissé aucun harness. Le build échoué avait2 descendants prouvés, terminés normalement ; le build final n’a envoyé aucun signal. Aucune nouvelle fenêtre de test ouverte.
+
+### Revues, parité et limites
+
+| Passe | Verdict borné |
+|---|---|
+| Audit / Architecture — root, ac15_connection_review_fresh | Oracle source, policy et géométrie attestés ; egress original explicitement ouvert. |
+| Implémentation — root + ac13_warp_runtime_tests + ac15_connection_review_fresh + ac13_warp_final_review | Core33/policy7/UI11 gelés, Runtime/fixtures raccordés ; frontières conservées. |
+| Tests — root et agents | Contrats/refus, save/reset, load avant mutation, vrais Game/Scene rollback, UI/API/JSONL/MCP par reçus distincts. |
+| Build / Validation — root | Studio macOS debug final02 PASS ; pas de qualification GUI de projet original. |
+| Critique finale — indépendante | Core/UI favorables ; P2 non-policy fermé par RED/GREEN réel ; aucun P1/P2 restant dans Root Runtime relu. Restauration de whitespace et gels relus, nouveau reason raccordé dans2 consommateurs. |
+
+L’action scene.interactive_command.set reste canonique, avec refus par set/upsert/graph.patch, direct/JSONL/MCP puis réouverture. Le catalogue live et le build MCP sont vérifiés pour Actor ; le setter d’instance reste non publiable dans le catalogue tant que ses guides/parités manquent. Générique persistence JSON ne vaut pas exposition sémantique. FG082/090/093 restent PARTIAL ; FG092 TODO, roadmap inchangée.
+
+Auto-critique : il s’agit de support natif vérifié, pas d’une qualification du programme original Map100/102. Egress owner-only, guides Warp/conditions/local setter, policy effectivement écrite par le convertisseur et nouvelle admission source sont encore nécessaires. Aller/retour original, save/reload et Studio open/edit/save/reopen restent à prouver sur le projet converti disponible. Aucun timing acoustique matériel, GUI,3D, safe/magic-save ou concurrence RMXP209/210 générale revendiqué.
+
+### État Git et suivi
+
+Autorisation directe de Yoahn : commit et push sur main. Initial : main `be9b1de9fc71545d44545a919a7db657be6c3957`, index vide, 35 chemins étrangers non stagés, empreintes SHA/modes enregistrées juste avant transfert. La tranche est préparée en archive privée depuis le main commité be9 et exclut les modifications étrangères ; aucun Git write n’est fait par les agents. Publication normale en un commit74 chemins, sans force-push/rebase/amend/branche/worktree. Le reçu de publication enregistre SHA exact, blobs, parent, index et empreintes après commit/push ; le SHA final est projeté dans le ticket Notion et la réponse finale. Le scope livré doit être propre même si les autres travaux restent dirty.
+
+AC13 existant demeure dans l’unique domaine Post Bêta Monde & narration, Gate bêta false. Tranche proposée TO REVIEW avec verdict global PARTIAL ; DONE réservé à Yoahn. Goal AC00–16 actif. Markdown hygiene et diffcheck exécutés avant publication ; leurs sorties exactes sont conservées dans les reçus.

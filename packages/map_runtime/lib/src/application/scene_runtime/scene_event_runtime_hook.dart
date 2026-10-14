@@ -113,11 +113,23 @@ final class SceneEventRuntimeHook {
             source == null ||
             (source.sourceKind != SceneConditionSourceKind.badge &&
                 source.sourceKind != SceneConditionSourceKind.inventoryItem &&
+                source.sourceKind != SceneConditionSourceKind.mapEventInstanceBoolean &&
                 source.sourceKind != SceneConditionSourceKind.fact)) {
           return callbacks.evaluateCondition(intent);
         }
         final projected = projectedState();
         final matched = switch (source.sourceKind) {
+          SceneConditionSourceKind.mapEventInstanceBoolean =>
+            evaluateSceneMapEventInstanceBoolean(
+              source: source,
+              gameState: projected,
+              map: map,
+              scope:
+                  writer.mapInstanceScopes[source.mapId] ??
+                  (throw StateError(
+                    'Scene condition instance scope is unavailable.',
+                  )),
+            ),
           SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
             source: source,
             gameState: projected,

@@ -280,6 +280,13 @@ sealed class NarrativeEventCondition {
     bool expectedValue,
   ) = _ConsumedNarrativeEventCondition;
 
+  factory NarrativeEventCondition.mapEventInstanceBoolean({
+    required String mapId,
+    required String eventId,
+    required String key,
+    required bool expectedValue,
+  }) = _MapEventInstanceBooleanNarrativeEventCondition;
+
   factory NarrativeEventCondition.fromJson(Object? json) {
     final object = NarrativeEventWire.object(json, path: 'condition');
     final kind = NarrativeEventWire.requiredString(
@@ -288,6 +295,16 @@ sealed class NarrativeEventCondition {
       path: 'condition',
     );
     switch (kind) {
+      case 'mapEventInstanceBoolean':
+        NarrativeEventWire.expectExactFields(object,
+          const {'kind', 'mapId', 'eventId', 'key', 'expectedValue'},
+          path: 'condition');
+        return NarrativeEventCondition.mapEventInstanceBoolean(
+          mapId: NarrativeEventWire.requiredIdentity(object, 'mapId', path: 'condition'),
+          eventId: NarrativeEventWire.requiredIdentity(object, 'eventId', path: 'condition'),
+          key: NarrativeEventWire.requiredIdentity(object, 'key', path: 'condition'),
+          expectedValue: NarrativeEventWire.requiredBool(object, 'expectedValue', path: 'condition'),
+        );
       case 'fact':
         final isTyped = object.containsKey('valueType') ||
             object.containsKey('operator') ||
@@ -388,6 +405,8 @@ sealed class NarrativeEventCondition {
     required T Function(String factId, bool expectedValue) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
   });
 
   T whenTyped<T>({
@@ -398,6 +417,8 @@ sealed class NarrativeEventCondition {
     ) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
   });
 
   Map<String, Object?> toJson();
@@ -444,6 +465,8 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
     required T Function(String factId, bool expectedValue) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
   }) =>
       fact(factId, expectedValue);
 
@@ -456,6 +479,8 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
     ) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
   }) =>
       fact(factId, comparisonOperator, expectedNarrativeValue);
 
@@ -510,6 +535,8 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
     required T Function(String factId, bool expectedValue) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
   }) =>
       narrativeEventConsumed(eventId, expectedValue);
 
@@ -522,6 +549,8 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
     ) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
   }) =>
       narrativeEventConsumed(eventId, expectedValue);
 
@@ -542,6 +571,74 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
   @override
   int get hashCode =>
       Object.hash('narrativeEventConsumed', eventId, expectedValue);
+}
+
+final class _MapEventInstanceBooleanNarrativeEventCondition
+    extends NarrativeEventCondition {
+  _MapEventInstanceBooleanNarrativeEventCondition({
+    required String mapId,
+    required String eventId,
+    required String key,
+    required this.expectedValue,
+  }) : mapId = _validateIdentityArgument(mapId, 'mapId'),
+       eventId = _validateIdentityArgument(eventId, 'eventId'),
+       key = _validateIdentityArgument(key, 'key'),
+       super._();
+
+  final String mapId;
+  final String eventId;
+  final String key;
+
+  @override
+  final bool expectedValue;
+
+  @override
+  NarrativeValue get expectedNarrativeValue => NarrativeValue.boolean(expectedValue);
+
+  @override
+  NarrativeFactOperator get comparisonOperator => NarrativeFactOperator.equals;
+
+  @override
+  T when<T>({
+    required T Function(String factId, bool expectedValue) fact,
+    required T Function(String eventId, bool expectedValue) narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
+  }) {
+    if (mapEventInstanceBoolean == null) {
+      throw UnsupportedError('This consumer does not support map instance booleans.');
+    }
+    return mapEventInstanceBoolean(mapId, eventId, key, expectedValue);
+  }
+
+  @override
+  T whenTyped<T>({
+    required T Function(String factId, NarrativeFactOperator operator,
+        NarrativeValue expectedValue) fact,
+    required T Function(String eventId, bool expectedValue) narrativeEventConsumed,
+    T Function(String mapId, String eventId, String key, bool expectedValue)?
+        mapEventInstanceBoolean,
+  }) {
+    if (mapEventInstanceBoolean == null) {
+      throw UnsupportedError('This consumer does not support map instance booleans.');
+    }
+    return mapEventInstanceBoolean(mapId, eventId, key, expectedValue);
+  }
+
+  @override
+  Map<String, Object?> toJson() => {
+    'kind': 'mapEventInstanceBoolean', 'mapId': mapId, 'eventId': eventId,
+    'key': key, 'expectedValue': expectedValue,
+  };
+
+  @override
+  bool operator ==(Object other) => identical(this, other) ||
+      other is _MapEventInstanceBooleanNarrativeEventCondition &&
+      other.mapId == mapId && other.eventId == eventId && other.key == key &&
+      other.expectedValue == expectedValue;
+
+  @override
+  int get hashCode => Object.hash(mapId, eventId, key, expectedValue);
 }
 
 @immutable

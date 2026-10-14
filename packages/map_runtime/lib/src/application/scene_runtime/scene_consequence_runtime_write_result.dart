@@ -2,8 +2,7 @@ import 'package:map_core/map_core.dart';
 
 enum SceneConsequenceRuntimeWriteStatus {
   applied,
-  failed,
-}
+  failed }
 
 enum SceneConsequenceRuntimeWriteErrorCode {
   unknownFact,
@@ -12,6 +11,8 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   factTypeMismatch,
   unknownMap,
   unknownEvent,
+  missingMapInstanceScope,
+  staleMapInstanceScope,
   unknownStoryStep,
   ambiguousStoryStep,
   missingItemReference,
@@ -50,7 +51,8 @@ final class SceneConsequenceRuntimeWriteResult {
     this.message,
     this.failedConsequence,
   }) : appliedConsequences =
-            List<SceneConsequence>.unmodifiable(appliedConsequences);
+            List<SceneConsequence>.unmodifiable(appliedConsequences,
+       );
 
   SceneConsequenceRuntimeWriteResult.applied({
     required GameState gameState,

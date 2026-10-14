@@ -195,6 +195,8 @@ String eventSimulationReason(NarrativeEventSimulationReason reason) =>
         'Condition d’état non satisfaite',
       NarrativeEventSimulationReason.narrativeEventConsumedConditionFalse =>
         'Condition d’événement non satisfaite',
+      NarrativeEventSimulationReason.mapEventInstanceBooleanConditionFalse =>
+        'État local de l’événement non satisfait',
       NarrativeEventSimulationReason.eventConsumed => 'Déjà joué',
       NarrativeEventSimulationReason.eventInFlight => 'Déjà en cours',
       NarrativeEventSimulationReason.claimTombstone =>

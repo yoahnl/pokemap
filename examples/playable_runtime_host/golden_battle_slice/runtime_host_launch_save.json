@@ -1,6 +1,10 @@
 {
   "itemSystemSchemaVersion": 1,
   "saveId": "phase-a-golden-slice",
+  "mapInstanceWorldState": {
+    "schemaVersion": 1,
+    "instancesByMapId": {}
+  },
   "currentMapId": "golden_field",
   "playerPosition": {
     "x": 1,

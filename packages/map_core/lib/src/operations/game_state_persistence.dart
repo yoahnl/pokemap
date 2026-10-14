@@ -2,6 +2,7 @@ import '../models/game_state.dart';
 import '../models/save_data.dart';
 import '../models/spatial_world_state.dart';
 import '../models/moving_platform.dart';
+import '../models/map_instance_world_state.dart';
 
 Map<String, dynamic> strictGameStateSaveJson(GameState state) {
   final normalized = normalizeLoadedGameState(state);
@@ -23,6 +24,11 @@ GameState gameStateFromStrictSaveJson(Map<String, dynamic> json) {
     throw const FormatException('The save is missing its moving platform world state.');
   }
   MovingPlatformWorldState.fromJson(Map<String, dynamic>.from(platforms));
+  final instances = json['mapInstanceWorldState'];
+  if (instances is! Map) {
+    throw const FormatException('The save is missing its map instance state.');
+  }
+  MapInstanceWorldState.fromJson(Map<String, dynamic>.from(instances));
   return normalizeLoadedGameState(GameState.fromJson(json));
 }
 
@@ -46,6 +52,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     playerSpatialPosition: normalizedSaveData.playerSpatialPosition,
     spatialWorldState: normalizedSaveData.spatialWorldState,
     movingPlatformWorldState: normalizedSaveData.movingPlatformWorldState,
+    mapInstanceWorldState: normalizedSaveData.mapInstanceWorldState,
     playerMovementMode: normalizedSaveData.playerMovementMode,
     playerFacing: normalizedSaveData.playerFacing,
     party: normalizedSaveData.party,
@@ -90,6 +97,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     playerSpatialPosition: normalizedGameState.playerSpatialPosition,
     spatialWorldState: normalizedGameState.spatialWorldState,
     movingPlatformWorldState: normalizedGameState.movingPlatformWorldState,
+    mapInstanceWorldState: normalizedGameState.mapInstanceWorldState,
     playerMovementMode: normalizedGameState.playerMovementMode,
     playerFacing: normalizedGameState.playerFacing,
     party: normalizedGameState.party,

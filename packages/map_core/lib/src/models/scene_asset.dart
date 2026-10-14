@@ -73,6 +73,8 @@ enum SceneConditionSourceKind {
   battleOutcome,
   scriptVariable,
   worldState,
+  playerAtEntityAnchor,
+  mapEventInstanceBoolean,
 }
 
 enum SceneConditionOperator {
@@ -98,8 +100,32 @@ final class SceneConditionSource {
     this.debugTechnicalLabel,
     this.factOperator,
     this.expectedFactValue,
+    this.mapId,
+    this.key,
   }) {
     _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
+    final isMapSource =
+        sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
+        sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean;
+    if (isMapSource) {
+      if (mapId == null || mapId!.isEmpty || mapId!.trim() != mapId ||
+          sourceId.trim() != sourceId) {
+        throw ArgumentError('Map conditions require canonical map and owner IDs.');
+      }
+      if (operator == SceneConditionOperator.equals || field != null ||
+          value != null || factOperator != null || expectedFactValue != null) {
+        throw ArgumentError('Map conditions require only a boolean operator.');
+      }
+      if (sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) {
+        if (key == null || key!.isEmpty || key!.trim() != key) {
+          throw ArgumentError('Instance boolean conditions require a canonical key.');
+        }
+      } else if (key != null) {
+        throw ArgumentError('Entity anchor conditions do not have a boolean key.');
+      }
+    } else if (mapId != null || key != null) {
+      throw ArgumentError('Map IDs and keys require a map condition source.');
+    }
     _requireOptionalNotBlank(field, 'SceneConditionSource.field');
     _requireOptionalNotBlank(value, 'SceneConditionSource.value');
     _requireOptionalNotBlank(label, 'SceneConditionSource.label');
@@ -152,6 +178,34 @@ final class SceneConditionSource {
       );
 
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
+    final kind = _readEnum(SceneConditionSourceKind.values,
+        json['sourceKind'], 'conditionSource.sourceKind');
+    if (kind == SceneConditionSourceKind.playerAtEntityAnchor ||
+        kind == SceneConditionSourceKind.mapEventInstanceBoolean) {
+      final fields = <String>{
+        'sourceKind', 'sourceId', 'mapId', 'operator', 'label',
+        'debugTechnicalLabel',
+        if (kind == SceneConditionSourceKind.mapEventInstanceBoolean) 'key',
+      };
+      if (json.keys.any((field) => !fields.contains(field))) {
+        throw const FormatException('Unknown or incompatible map condition field.');
+      }
+      try {
+        return SceneConditionSource(
+          sourceKind: kind,
+          sourceId: _readRequiredString(json, 'sourceId'),
+          mapId: _readRequiredString(json, 'mapId'),
+          key: kind == SceneConditionSourceKind.mapEventInstanceBoolean
+              ? _readRequiredString(json, 'key') : null,
+          operator: _readEnum(SceneConditionOperator.values,
+              json['operator'], 'conditionSource.operator'),
+          label: _readOptionalString(json, 'label'),
+          debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
+        );
+      } on ArgumentError catch (error) {
+        throw FormatException(error.message?.toString() ?? 'Invalid map condition.');
+      }
+    }
     return SceneConditionSource(
       sourceKind: _readEnum(
         SceneConditionSourceKind.values,
@@ -186,9 +240,43 @@ final class SceneConditionSource {
     );
   }
 
+  factory SceneConditionSource.playerAtEntityAnchor({
+    required String mapId,
+    required String entityId,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.playerAtEntityAnchor,
+    sourceId: entityId,
+    mapId: mapId,
+    operator: expected ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  factory SceneConditionSource.mapEventInstanceBoolean({
+    required String mapId,
+    required String eventId,
+    required String key,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.mapEventInstanceBoolean,
+    sourceId: eventId,
+    mapId: mapId,
+    key: key,
+    operator: expected ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
   Map<String, dynamic> toJson() => _withoutNulls({
         'sourceKind': _enumToJson(sourceKind),
         'sourceId': sourceId,
+        'mapId': mapId,
+        'key': key,
         'field': field,
         'operator': _enumToJson(operator),
         'value': value,
@@ -208,6 +296,8 @@ final class SceneConditionSource {
   final String? debugTechnicalLabel;
   final NarrativeFactOperator? factOperator;
   final NarrativeValue? expectedFactValue;
+  final String? mapId;
+  final String? key;
 
   bool? get badgeOwnershipExpected {
     if (sourceKind != SceneConditionSourceKind.badge ||
@@ -264,6 +354,8 @@ final class SceneConditionSource {
       other is SceneConditionSource &&
           other.sourceKind == sourceKind &&
           other.sourceId == sourceId &&
+          other.mapId == mapId &&
+          other.key == key &&
           other.field == field &&
           other.operator == operator &&
           other.value == value &&
@@ -276,6 +368,8 @@ final class SceneConditionSource {
   int get hashCode => Object.hash(
         sourceKind,
         sourceId,
+        mapId,
+        key,
         field,
         operator,
         value,

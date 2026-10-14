@@ -452,6 +452,7 @@ List<String> _factIds(NarrativeEventRecord? record) {
     condition.whenTyped(
       fact: (factId, _, __) => ids.add(factId),
       narrativeEventConsumed: (_, __) {},
+      mapEventInstanceBoolean: (_, _, _, _) {},
     );
   }
   final result = ids.toList()..sort(compareNarrativeEventUtf16);

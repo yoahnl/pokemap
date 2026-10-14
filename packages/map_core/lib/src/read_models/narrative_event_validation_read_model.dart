@@ -30,6 +30,7 @@ enum NarrativeEventSimulationReason {
   sourceMismatch,
   factConditionFalse,
   narrativeEventConsumedConditionFalse,
+  mapEventInstanceBooleanConditionFalse,
   eventConsumed,
   eventInFlight,
   claimTombstone,
@@ -38,7 +39,7 @@ enum NarrativeEventSimulationReason {
   runtimeReferenceUnavailable,
 }
 
-enum NarrativeEventSimulationConditionKind { fact, narrativeEventConsumed }
+enum NarrativeEventSimulationConditionKind { fact, narrativeEventConsumed, mapEventInstanceBoolean }
 
 @immutable
 final class NarrativeEventSimulationInput {
@@ -79,6 +80,9 @@ final class NarrativeEventSimulationConditionTrace {
     required bool? actualValue,
     required this.passed,
     required this.reason,
+    this.mapId,
+    this.key,
+    this.instanceId,
   })  : targetId = _identity(targetId, 'targetId'),
         expectedNarrativeValue = NarrativeValue.boolean(expectedValue),
         actualNarrativeValue =
@@ -94,11 +98,17 @@ final class NarrativeEventSimulationConditionTrace {
     required this.actualNarrativeValue,
     required this.passed,
     required this.reason,
+    this.mapId,
+    this.key,
+    this.instanceId,
   }) : targetId = _identity(targetId, 'targetId');
 
   final int index;
   final NarrativeEventSimulationConditionKind kind;
   final String targetId;
+  final String? mapId;
+  final String? key;
+  final String? instanceId;
   final NarrativeFactOperator operator;
   final NarrativeValue expectedNarrativeValue;
   final NarrativeValue? actualNarrativeValue;

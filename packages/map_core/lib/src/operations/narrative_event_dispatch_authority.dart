@@ -37,6 +37,7 @@ enum NarrativeEventDispatchReason {
   sourceMismatch,
   factConditionFalse,
   narrativeEventConsumedConditionFalse,
+  mapEventInstanceBooleanConditionFalse,
   eventConsumed,
   eventInFlight,
   claimTombstone,
@@ -476,6 +477,31 @@ final class NarrativeEventDispatchAuthorityReady
                 : NarrativeEventSimulationReason.factConditionFalse,
           );
         },
+        mapEventInstanceBoolean: (mapId, eventId, key, expectedValue) {
+          final scope = gameState.mapInstanceWorldState.instanceRef(mapId);
+          final maps = _worldRuleMaps.where((map) => map.id == mapId).toList();
+          final owners = maps.length == 1
+              ? maps.single.entities.where((entity) => entity.id == eventId).toList()
+              : const [];
+          final available = scope != null && maps.length == 1 && owners.length == 1 &&
+              _projectCatalog.resolveMapEventInstanceOwner(mapId, eventId).status ==
+                  NarrativeEventProjectResolutionStatus.found;
+          final actual = available
+              ? gameState.mapInstanceWorldState.eventBoolean(scope, eventId, key)
+              : null;
+          final passed = actual != null && actual == expectedValue;
+          return NarrativeEventSimulationConditionTrace(
+            index: index,
+            kind: NarrativeEventSimulationConditionKind.mapEventInstanceBoolean,
+            targetId: eventId, mapId: mapId, key: key, instanceId: scope?.instanceId,
+            expectedValue: expectedValue, actualValue: actual,
+            passed: passed,
+            reason: !available
+                ? NarrativeEventSimulationReason.runtimeReferenceUnavailable
+                : passed ? null
+                : NarrativeEventSimulationReason.mapEventInstanceBooleanConditionFalse,
+          );
+        },
         narrativeEventConsumed: (eventId, expectedValue) {
           if (_projectCatalog.resolveEvent(eventId).status !=
               NarrativeEventProjectResolutionStatus.found) {
@@ -573,6 +599,8 @@ final class NarrativeEventDispatchAuthorityReady
     );
     return _NarrativeEventCandidateEvaluation(
       switch (representative.kind) {
+        NarrativeEventSimulationConditionKind.mapEventInstanceBoolean =>
+          NarrativeEventDispatchReason.mapEventInstanceBooleanConditionFalse,
         NarrativeEventSimulationConditionKind.fact =>
           NarrativeEventDispatchReason.factConditionFalse,
         NarrativeEventSimulationConditionKind.narrativeEventConsumed =>
@@ -680,6 +708,8 @@ NarrativeEventSimulationReason _simulationReason(
         NarrativeEventSimulationReason.worldRuleHidden,
       NarrativeEventDispatchReason.sourceMismatch =>
         NarrativeEventSimulationReason.sourceMismatch,
+      NarrativeEventDispatchReason.mapEventInstanceBooleanConditionFalse =>
+        NarrativeEventSimulationReason.mapEventInstanceBooleanConditionFalse,
       NarrativeEventDispatchReason.factConditionFalse =>
         NarrativeEventSimulationReason.factConditionFalse,
       NarrativeEventDispatchReason.narrativeEventConsumedConditionFalse =>

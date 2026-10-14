@@ -1010,7 +1010,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$ProjectSettings {
 
- ProjectDimension get dimension;@JsonKey(includeIfNull: false) SpatialCameraProfile? get spatialCamera; int get tileWidth; int get tileHeight; double get displayScale; int get defaultMapWidth; int get defaultMapHeight;@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? get defaultPlayerCharacterId;/// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+ ProjectDimension get dimension;@JsonKey(includeIfNull: false) SpatialCameraProfile? get spatialCamera;@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? get mapInstanceRetentionPolicy; int get tileWidth; int get tileHeight; double get displayScale; int get defaultMapWidth; int get defaultMapHeight;@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? get defaultPlayerCharacterId;/// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
 ///
 /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
 /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
@@ -1027,16 +1027,16 @@ $ProjectSettingsCopyWith<ProjectSettings> get copyWith => _$ProjectSettingsCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.mapInstanceRetentionPolicy, mapInstanceRetentionPolicy) || other.mapInstanceRetentionPolicy == mapInstanceRetentionPolicy)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
+int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,mapInstanceRetentionPolicy,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
 
 @override
 String toString() {
-  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
+  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, mapInstanceRetentionPolicy: $mapInstanceRetentionPolicy, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
 }
 
 
@@ -1047,7 +1047,7 @@ abstract mixin class $ProjectSettingsCopyWith<$Res>  {
   factory $ProjectSettingsCopyWith(ProjectSettings value, $Res Function(ProjectSettings) _then) = _$ProjectSettingsCopyWithImpl;
 @useResult
 $Res call({
- ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
+ ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? mapInstanceRetentionPolicy, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
 });
 
 
@@ -1064,11 +1064,12 @@ class _$ProjectSettingsCopyWithImpl<$Res>
 
 /// Create a copy of ProjectSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? mapInstanceRetentionPolicy = freezed,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
   return _then(_self.copyWith(
 dimension: null == dimension ? _self.dimension : dimension // ignore: cast_nullable_to_non_nullable
 as ProjectDimension,spatialCamera: freezed == spatialCamera ? _self.spatialCamera : spatialCamera // ignore: cast_nullable_to_non_nullable
-as SpatialCameraProfile?,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
+as SpatialCameraProfile?,mapInstanceRetentionPolicy: freezed == mapInstanceRetentionPolicy ? _self.mapInstanceRetentionPolicy : mapInstanceRetentionPolicy // ignore: cast_nullable_to_non_nullable
+as MapInstanceRetentionPolicy?,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
 as int,tileHeight: null == tileHeight ? _self.tileHeight : tileHeight // ignore: cast_nullable_to_non_nullable
 as int,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as double,defaultMapWidth: null == defaultMapWidth ? _self.defaultMapWidth : defaultMapWidth // ignore: cast_nullable_to_non_nullable
@@ -1160,10 +1161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectSettings() when $default != null:
-return $default(_that.dimension,_that.spatialCamera,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
   return orElse();
 
 }
@@ -1181,10 +1182,10 @@ return $default(_that.dimension,_that.spatialCamera,_that.tileWidth,_that.tileHe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectSettings():
-return $default(_that.dimension,_that.spatialCamera,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1201,10 +1202,10 @@ return $default(_that.dimension,_that.spatialCamera,_that.tileWidth,_that.tileHe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectSettings() when $default != null:
-return $default(_that.dimension,_that.spatialCamera,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
   return null;
 
 }
@@ -1216,11 +1217,12 @@ return $default(_that.dimension,_that.spatialCamera,_that.tileWidth,_that.tileHe
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectSettings implements ProjectSettings {
-  const _ProjectSettings({this.dimension = ProjectDimension.twoD, @JsonKey(includeIfNull: false) this.spatialCamera, this.tileWidth = 16, this.tileHeight = 16, this.displayScale = 2.0, this.defaultMapWidth = 20, this.defaultMapHeight = 15, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) this.defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false) this.mistralApiKey});
+  const _ProjectSettings({this.dimension = ProjectDimension.twoD, @JsonKey(includeIfNull: false) this.spatialCamera, @JsonKey(includeIfNull: false) this.mapInstanceRetentionPolicy, this.tileWidth = 16, this.tileHeight = 16, this.displayScale = 2.0, this.defaultMapWidth = 20, this.defaultMapHeight = 15, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) this.defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false) this.mistralApiKey});
   factory _ProjectSettings.fromJson(Map<String, dynamic> json) => _$ProjectSettingsFromJson(json);
 
 @override@JsonKey() final  ProjectDimension dimension;
 @override@JsonKey(includeIfNull: false) final  SpatialCameraProfile? spatialCamera;
+@override@JsonKey(includeIfNull: false) final  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy;
 @override@JsonKey() final  int tileWidth;
 @override@JsonKey() final  int tileHeight;
 @override@JsonKey() final  double displayScale;
@@ -1246,16 +1248,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.mapInstanceRetentionPolicy, mapInstanceRetentionPolicy) || other.mapInstanceRetentionPolicy == mapInstanceRetentionPolicy)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
+int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,mapInstanceRetentionPolicy,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
 
 @override
 String toString() {
-  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
+  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, mapInstanceRetentionPolicy: $mapInstanceRetentionPolicy, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
 }
 
 
@@ -1266,7 +1268,7 @@ abstract mixin class _$ProjectSettingsCopyWith<$Res> implements $ProjectSettings
   factory _$ProjectSettingsCopyWith(_ProjectSettings value, $Res Function(_ProjectSettings) _then) = __$ProjectSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
+ ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? mapInstanceRetentionPolicy, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
 });
 
 
@@ -1283,11 +1285,12 @@ class __$ProjectSettingsCopyWithImpl<$Res>
 
 /// Create a copy of ProjectSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? mapInstanceRetentionPolicy = freezed,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
   return _then(_ProjectSettings(
 dimension: null == dimension ? _self.dimension : dimension // ignore: cast_nullable_to_non_nullable
 as ProjectDimension,spatialCamera: freezed == spatialCamera ? _self.spatialCamera : spatialCamera // ignore: cast_nullable_to_non_nullable
-as SpatialCameraProfile?,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
+as SpatialCameraProfile?,mapInstanceRetentionPolicy: freezed == mapInstanceRetentionPolicy ? _self.mapInstanceRetentionPolicy : mapInstanceRetentionPolicy // ignore: cast_nullable_to_non_nullable
+as MapInstanceRetentionPolicy?,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
 as int,tileHeight: null == tileHeight ? _self.tileHeight : tileHeight // ignore: cast_nullable_to_non_nullable
 as int,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as double,defaultMapWidth: null == defaultMapWidth ? _self.defaultMapWidth : defaultMapWidth // ignore: cast_nullable_to_non_nullable

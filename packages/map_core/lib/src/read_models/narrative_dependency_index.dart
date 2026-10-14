@@ -1460,6 +1460,10 @@ final class _NarrativeDependencyIndexBuilder {
     int index,
   ) {
     condition.whenTyped<void>(
+      mapEventInstanceBoolean: (mapId, ownerId, _, _) {
+        final path = 'eventRegistry.records[$eventId].conditions[$index]';
+        _collectMapInstanceOwner(owner, mapId, ownerId, path, 'eventId');
+      },
       fact: (factId, _, _) {
         _usage(
           target: NarrativeDependencyKey(
@@ -2430,6 +2434,23 @@ final class _NarrativeDependencyIndexBuilder {
           path: '$path.warpId',
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
         );
+        final arrivalOwnerId = command.arrivalCollisionOwnerEntityId;
+        if (arrivalOwnerId != null) {
+          final candidates = maps.where((map) => map.id == destinationMapId).toList();
+          final map = candidates.length == 1 ? candidates.single : null;
+          final entities = map?.entities.where((entity) => entity.id == arrivalOwnerId).toList()
+              ?? const <MapEntity>[];
+          final arrivals = map?.warps.where((warp) => warp.id == warpId).toList()
+              ?? const <MapWarp>[];
+          final incompatible = map != null && (map.spatialScene != null ||
+              arrivals.length != 1 || entities.length == 1 &&
+                (!isSceneActorEntityReferenceAvailable(project, entities.single) ||
+                 entities.single.pos != arrivals.single.pos));
+          _usage(target: _mapSourceChildKey(destinationMapId, 'entity', arrivalOwnerId),
+              owner: owner, path: '$path.arrivalCollisionOwnerEntityId',
+              criticality: NarrativeDependencyCriticality.runtimeBlocking,
+              resolution: incompatible ? NarrativeDependencyResolution.unavailable : null);
+        }
       case SceneOpenShopInteractiveCommand(:final shopId):
         _usage(
           target: NarrativeDependencyKey.synthetic(
@@ -2463,11 +2484,34 @@ final class _NarrativeDependencyIndexBuilder {
     }
   }
 
+  void _collectMapInstanceOwner(NarrativeDependencyKey owner, String mapId,
+      String entityId, String path, String entityField, {bool requireAnchor = false}) {
+    final loaded = maps.where((map) => map.id == mapId).toList();
+    final map = loaded.length == 1 ? loaded.single : null;
+    final entities = map?.entities.where((entity) => entity.id == entityId).toList()
+        ?? const <MapEntity>[];
+    final unavailable = project.maps.where((entry) => entry.id == mapId).length != 1 ||
+        (requireAnchor && map != null && (map.spatialScene != null ||
+          entities.length == 1 && (entities.single.pos.x < 0 || entities.single.pos.y < 0 ||
+            entities.single.pos.x >= map.size.width || entities.single.pos.y >= map.size.height)));
+    _usage(target: _mapKey(mapId), owner: owner, path: '$path.mapId',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking);
+    _usage(target: _mapSourceChildKey(mapId, 'entity', entityId), owner: owner,
+        path: '$path.$entityField', criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        resolution: unavailable ? NarrativeDependencyResolution.unavailable : null);
+  }
+
   void _collectSceneCondition(
     NarrativeDependencyKey owner,
     SceneConditionSource source,
     String path,
   ) {
+    if (source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
+        source.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) {
+      _collectMapInstanceOwner(owner, source.mapId!, source.sourceId, path, 'sourceId',
+          requireAnchor: source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor);
+      return;
+    }
     if (source.sourceKind == SceneConditionSourceKind.factLikeStoryFlag) {
       _collectLegacyFactRef(source.sourceId, owner, '$path.sourceId');
       return;
@@ -2543,7 +2587,9 @@ final class _NarrativeDependencyIndexBuilder {
     SceneConsequence consequence,
     String path,
   ) {
-    if (consequence is SceneSetFactConsequence) {
+    if (consequence is SceneSetMapEventInstanceBooleanConsequence) {
+      _collectMapInstanceOwner(owner, consequence.mapId, consequence.eventId, path, 'eventId');
+    } else if (consequence is SceneSetFactConsequence) {
       _usage(
         target: NarrativeDependencyKey(
           NarrativeDependencyTargetKind.fact,

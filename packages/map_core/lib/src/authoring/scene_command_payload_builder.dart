@@ -19,6 +19,8 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
   int integer(String id, {int fallback = 1}) =>
       int.tryParse(parameters[id] ?? '') ?? fallback;
   return switch (commandId) {
+    NarrativeCommandIds.setMapEventInstanceBoolean =>
+      SceneActionPayload.consequence(_mapEventInstanceBooleanConsequence(parameters)),
     NarrativeCommandIds.setFact => SceneActionPayload.consequence(
       SceneConsequence.setFact(
         factId: parameters['factId']!,
@@ -348,4 +350,16 @@ SceneActionPayload buildSceneRailJourneyPayload(
       doorSide: doorSide,
     ),
   );
+}
+
+SceneConsequence _mapEventInstanceBooleanConsequence(Map<String, String> parameters) {
+  const fields = {'mapId', 'eventId', 'key', 'value'};
+  if (parameters.length != fields.length || !parameters.keys.every(fields.contains) ||
+      (parameters['value'] != 'true' && parameters['value'] != 'false')) {
+    throw ArgumentError.value(parameters, 'parameters',
+        'Instance boolean requires mapId, eventId, key and a literal true/false value.');
+  }
+  return SceneConsequence.setMapEventInstanceBoolean(mapId: parameters['mapId']!,
+      eventId: parameters['eventId']!, key: parameters['key']!,
+      value: parameters['value'] == 'true');
 }

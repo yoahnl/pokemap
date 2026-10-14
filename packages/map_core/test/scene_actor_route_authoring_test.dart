@@ -142,7 +142,7 @@ ProjectManifest _project(
 
 void main() {
   test(
-    'actor commands expose a 2D runtime while the editor remains unsupported',
+    'actor commands expose a guided 2D editor and runtime',
     () {
       final catalog = NarrativeCommandCatalog.canonical();
       for (final id in ['actorRoute', 'actorVisibility']) {
@@ -156,14 +156,14 @@ void main() {
         );
         expect(descriptor.isPersistent, isFalse);
         expect(descriptor.isAwaitable, isTrue);
-        expect(descriptor.isPublishable, isFalse);
+        expect(descriptor.isPublishable, isTrue);
         expect(
           descriptor.capabilities.model,
           NarrativeCommandCapabilityStatus.supported,
         );
         expect(
           descriptor.capabilities.editor,
-          NarrativeCommandCapabilityStatus.unsupported,
+          NarrativeCommandCapabilityStatus.supported,
         );
         expect(
           descriptor.capabilities.runtime,
@@ -173,7 +173,7 @@ void main() {
         expect(descriptor.capabilities.reason, contains('Player 2D'));
         expect(
           descriptor.capabilities.reason,
-          contains('formulaire guidé non qualifié'),
+          contains('Formulaire guidé 2D dans Studio'),
         );
         expect(descriptor.capabilities.reason, contains('aucun support 3D'));
       }
@@ -723,7 +723,7 @@ void main() {
   });
 
   test(
-    'actor world actions compile while the no-code publication gate is closed',
+    'actor world actions compile with the guided publication gate open',
     () {
       for (final wire in [_route(), _visibility()]) {
         final scene = _scene(wire);
@@ -742,7 +742,7 @@ void main() {
           NarrativeCommandCatalog.canonical()
               .byId(wire['kind'] as String)!
               .isPublishable,
-          isFalse,
+          isTrue,
         );
       }
     },

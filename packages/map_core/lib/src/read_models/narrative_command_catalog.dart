@@ -1,8 +1,10 @@
 import '../models/narrative_command_descriptor.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/scene_consequence.dart';
 
 abstract final class NarrativeCommandIds {
   static const setFact = 'setFact';
+  static const setMapEventInstanceBoolean = 'setMapEventInstanceBoolean';
   static const markEventConsumed = 'markEventConsumed';
   static const completeStoryStep = 'completeStoryStep';
   static const giveItem = 'giveItem';
@@ -37,6 +39,8 @@ abstract final class NarrativeCommandIds {
   static const playCharacterAnimation = 'playCharacterAnimation';
   static const playModelAnimation = 'playModelAnimation';
   static const railJourney = 'railJourney';
+
+  static String forConsequence(SceneConsequence consequence) => consequence.kind.name;
 
   static String forInteractiveCommand(SceneInteractiveCommand command) =>
       command is SceneGiveItemInteractiveCommand ? giveItemGift : command.kind.name;
@@ -103,6 +107,26 @@ final class NarrativeCommandCatalog {
         );
 
     return NarrativeCommandCatalog._([
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.setMapEventInstanceBoolean,
+        label: 'Définir un booléen de cette instance',
+        description: 'État booléen capturé pour le propriétaire logique d’une instance de carte.',
+        backend: NarrativeCommandBackend.sceneConsequence,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.unsupported,
+          reason: 'Contrat d’instance logique ; formulaire guidé et exécution de programme complet non qualifiés, aucun support 3D annoncé.'),
+        fgLotId: 'FG-081',
+        wireId: 'SceneConsequence.setMapEventInstanceBoolean',
+        parameters: [
+          _parameter('mapId', 'Carte', NarrativeCommandParameterKind.map),
+          _parameter('eventId', 'Propriétaire logique', NarrativeCommandParameterKind.mapEntityReference),
+          _parameter('key', 'Clé locale', NarrativeCommandParameterKind.text),
+          _parameter('value', 'Valeur', NarrativeCommandParameterKind.boolean),
+        ],
+        isPersistent: true,
+      ),
       consequence(NarrativeCommandIds.setFact, 'Définir un Fact', 'FG-080', [
         _parameter('factId', 'Fact', NarrativeCommandParameterKind.fact),
         _parameter('value', 'Valeur', NarrativeCommandParameterKind.boolean),
@@ -469,9 +493,9 @@ final class NarrativeCommandCatalog {
         backend: NarrativeCommandBackend.interactiveRuntimeCommand,
         capabilities: const NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.supported,
-          editor: NarrativeCommandCapabilityStatus.unsupported,
+          editor: NarrativeCommandCapabilityStatus.supported,
           runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: 'Disponible dans le Player 2D ; formulaire guidé non qualifié ; aucun support 3D.',
+          reason: 'Formulaire guidé 2D dans Studio ; exécution dans le Player 2D ; aucun support 3D.',
         ),
         fgLotId: 'FG-092',
         wireId: 'SceneInteractiveCommand.actorRoute',
@@ -502,9 +526,9 @@ final class NarrativeCommandCatalog {
         backend: NarrativeCommandBackend.interactiveRuntimeCommand,
         capabilities: const NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.supported,
-          editor: NarrativeCommandCapabilityStatus.unsupported,
+          editor: NarrativeCommandCapabilityStatus.supported,
           runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: 'Disponible dans le Player 2D ; formulaire guidé non qualifié ; aucun support 3D.',
+          reason: 'Formulaire guidé 2D dans Studio ; exécution dans le Player 2D ; aucun support 3D.',
         ),
         fgLotId: 'FG-092',
         wireId: 'SceneInteractiveCommand.actorVisibility',

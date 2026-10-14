@@ -315,6 +315,11 @@ _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
           : SpatialCameraProfile.fromJson(
               json['spatialCamera'] as Map<String, dynamic>,
             ),
+      mapInstanceRetentionPolicy: json['mapInstanceRetentionPolicy'] == null
+          ? null
+          : MapInstanceRetentionPolicy.fromJson(
+              json['mapInstanceRetentionPolicy'] as Map<String, dynamic>,
+            ),
       tileWidth: (json['tileWidth'] as num?)?.toInt() ?? 16,
       tileHeight: (json['tileHeight'] as num?)?.toInt() ?? 16,
       displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
@@ -326,18 +331,20 @@ _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
       mistralApiKey: json['mistralApiKey'] as String?,
     );
 
-Map<String, dynamic> _$ProjectSettingsToJson(_ProjectSettings instance) =>
-    <String, dynamic>{
-      'dimension': _$ProjectDimensionEnumMap[instance.dimension]!,
-      'spatialCamera': ?instance.spatialCamera?.toJson(),
-      'tileWidth': instance.tileWidth,
-      'tileHeight': instance.tileHeight,
-      'displayScale': instance.displayScale,
-      'defaultMapWidth': instance.defaultMapWidth,
-      'defaultMapHeight': instance.defaultMapHeight,
-      'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
-      'mistralApiKey': ?instance.mistralApiKey,
-    };
+Map<String, dynamic> _$ProjectSettingsToJson(
+  _ProjectSettings instance,
+) => <String, dynamic>{
+  'dimension': _$ProjectDimensionEnumMap[instance.dimension]!,
+  'spatialCamera': ?instance.spatialCamera?.toJson(),
+  'mapInstanceRetentionPolicy': ?instance.mapInstanceRetentionPolicy?.toJson(),
+  'tileWidth': instance.tileWidth,
+  'tileHeight': instance.tileHeight,
+  'displayScale': instance.displayScale,
+  'defaultMapWidth': instance.defaultMapWidth,
+  'defaultMapHeight': instance.defaultMapHeight,
+  'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
+  'mistralApiKey': ?instance.mistralApiKey,
+};
 
 const _$ProjectDimensionEnumMap = {
   ProjectDimension.twoD: 'twoD',

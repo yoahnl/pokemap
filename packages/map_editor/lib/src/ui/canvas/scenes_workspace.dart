@@ -231,6 +231,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
     this.actionPickerOptions = const {},
     this.loadWarpMap,
+    this.project,
     this.requestedSceneId,
     this.requestedNodeId,
     this.requestedSceneFocusNonce,
@@ -285,6 +286,7 @@ class ScenesWorkspace extends StatefulWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
   actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final ProjectManifest? project;
   final String? requestedSceneId;
   final String? requestedNodeId;
   final int? requestedSceneFocusNonce;
@@ -890,6 +892,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
               consequenceCatalogs: widget.consequenceCatalogs,
               actionPickerOptions: widget.actionPickerOptions,
               loadWarpMap: widget.loadWarpMap,
+              project: widget.project,
               onAddEdgeDraft: _addEdgeDraft,
               onStartConnection: _startConnection,
               onCancelConnection: _cancelConnection,
@@ -1965,6 +1968,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.consequenceCatalogs,
     required this.actionPickerOptions,
     this.loadWarpMap,
+    this.project,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
@@ -2001,6 +2005,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final ProjectManifest? project;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
@@ -2042,6 +2047,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               consequenceCatalogs: consequenceCatalogs,
               actionPickerOptions: actionPickerOptions,
               loadWarpMap: loadWarpMap,
+              project: project,
               onAddEdgeDraft: onAddEdgeDraft,
               onStartConnection: onStartConnection,
               onCancelConnection: onCancelConnection,
@@ -2095,6 +2101,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.consequenceCatalogs,
     required this.actionPickerOptions,
     this.loadWarpMap,
+    this.project,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
@@ -2131,6 +2138,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final ProjectManifest? project;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
@@ -2185,6 +2193,7 @@ class _SelectedSceneSummary extends StatelessWidget {
             consequenceCatalogs: consequenceCatalogs,
             actionPickerOptions: actionPickerOptions,
             loadWarpMap: loadWarpMap,
+            project: project,
             onAddNodeDraft: onAddNodeDraft,
             onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
             onAddConsequenceActionNodeDraft: onAddConsequenceActionNodeDraft,
@@ -2258,6 +2267,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.consequenceCatalogs,
     required this.actionPickerOptions,
     this.loadWarpMap,
+    this.project,
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
@@ -2281,6 +2291,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
   actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final ProjectManifest? project;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final _SelectedConsequenceActionNodeDraftCreator
@@ -2720,6 +2731,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         child: SceneActionBuilder(
           pickerOptions: actionPickerOptions,
           loadWarpMap: loadWarpMap,
+          project: project,
           onSubmit: (payload) => Navigator.of(catalogContext).pop(payload),
         ),
       ),

@@ -1,6 +1,11 @@
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+const _mapInstanceWorldStateJson = <String, Object?>{
+  'schemaVersion': currentMapInstanceWorldStateSchemaVersion,
+  'instancesByMapId': <String, Object?>{},
+};
+
 void main() {
   test('completed battle request ids survive every gameplay save bridge', () {
     const state = GameState(
@@ -30,9 +35,11 @@ void main() {
 
   test('legacy saves default to an empty completed battle request ledger', () {
     final state = GameState.fromJson(const <String, dynamic>{
+      'mapInstanceWorldState': _mapInstanceWorldStateJson,
       'saveId': 'legacy',
     });
     final save = SaveData.fromJson(const <String, dynamic>{
+      'mapInstanceWorldState': _mapInstanceWorldStateJson,
       'saveId': 'legacy',
       'itemSystemSchemaVersion': currentItemSystemSaveSchemaVersion,
     });

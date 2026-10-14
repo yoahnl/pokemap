@@ -1,5 +1,9 @@
 {
   "saveId": "item-system-v1-golden",
+  "mapInstanceWorldState": {
+    "schemaVersion": 1,
+    "instancesByMapId": {}
+  },
   "itemSystemSchemaVersion": 1,
   "bag": {
     "entries": [

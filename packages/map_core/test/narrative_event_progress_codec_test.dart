@@ -7,6 +7,11 @@ const _deliveryA = 'outd_019abcde-0000-7000-8000-000000000001';
 const _deliveryB = 'outd_019abcde-0000-7000-8000-000000000002';
 const _correlation = 'corr_019abcde-0000-7000-8000-000000000001';
 
+const _mapInstanceWorldStateJson = <String, Object?>{
+  'schemaVersion': currentMapInstanceWorldStateSchemaVersion,
+  'instancesByMapId': <String, Object?>{},
+};
+
 void main() {
   test('encodes consumed and delivered sets lexically and pending FIFO', () {
     final progress = NarrativeEventProgress(
@@ -100,6 +105,7 @@ void main() {
 
   test('missing aggregate defaults empty while explicit null rejects', () {
     final state = GameState.fromJson({
+      'mapInstanceWorldState': _mapInstanceWorldStateJson,
       'saveId': 'old',
       'consumedEventIds': ['legacy_local'],
       'storyFlags': {
@@ -107,6 +113,7 @@ void main() {
       },
     });
     final save = SaveData.fromJson({
+      'mapInstanceWorldState': _mapInstanceWorldStateJson,
       'saveId': 'old',
       'itemSystemSchemaVersion': 1,
       'progression': {
@@ -121,6 +128,7 @@ void main() {
     expect(save.progression.storyFlags, ['legacy_flag']);
     expect(
       () => GameState.fromJson({
+        'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'bad',
         'narrativeEventProgress': null,
       }),
@@ -128,6 +136,7 @@ void main() {
     );
     expect(
       () => SaveData.fromJson({
+        'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'bad',
         'itemSystemSchemaVersion': 1,
         'narrativeEventProgress': null,

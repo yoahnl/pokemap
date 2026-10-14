@@ -1115,6 +1115,7 @@ void _appendSolvabilityDiagnostics(
             }
           },
           narrativeEventConsumed: (_, __) {},
+          mapEventInstanceBoolean: (_, _, _, _) {},
         );
       }
     }
@@ -1694,6 +1695,7 @@ bool _eventConditionsStaticallyReachable(
           possibleFactValues[factId]?.contains(expectedValue.boolValue) == true,
       narrativeEventConsumed: (eventId, expectedValue) =>
           expectedValue ? reachableEventIds.contains(eventId) : true,
+      mapEventInstanceBoolean: (_, _, _, _) => true,
     ),
   );
 }
@@ -1943,6 +1945,9 @@ bool _sceneEdgeIsStaticallyTraversable(
 
   Set<bool>? values;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.playerAtEntityAnchor:
+    case SceneConditionSourceKind.mapEventInstanceBoolean:
+      return (canBeTrue: true, canBeFalse: true);
     case SceneConditionSourceKind.newGameDraft:
       return (canBeTrue: true, canBeFalse: true);
     case SceneConditionSourceKind.fact:

@@ -73,8 +73,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   final writer = consequenceWriter ??
       SceneConsequenceRuntimeWriter(
         project: project,
-        mapsById: mapsById,
-      );
+        mapsById: mapsById);
   final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   bool? uniqueBattleConsumed;
   var blockedUniqueBattle = false;
@@ -102,7 +101,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                 SceneConditionSourceKind.inventoryItem,
                 SceneConditionSourceKind.badge,
                 SceneConditionSourceKind.fact,
-              }.contains(source.sourceKind)) {
+                    SceneConditionSourceKind.mapEventInstanceBoolean,
+                  }.contains(source.sourceKind)) {
             return callbacks.evaluateCondition(intent);
           }
           final projected = writer.applyAll(
@@ -117,7 +117,22 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
             );
           }
           final matched = switch (source.sourceKind) {
-            SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
+                SceneConditionSourceKind.mapEventInstanceBoolean =>
+                  evaluateSceneMapEventInstanceBoolean(
+                    source: source,
+                    gameState: projected.gameState,
+                    map:
+                        mapsById[source.mapId] ??
+                        (throw StateError(
+                          'Scene condition map is unavailable.',
+                        )),
+                    scope:
+                        writer.mapInstanceScopes[source.mapId] ??
+                        (throw StateError(
+                          'Scene condition instance scope is unavailable.',
+                        )),
+                  ),
+                SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
                 source: source,
                 gameState: projected.gameState,
               ),
@@ -200,7 +215,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         requestStructuredInteraction: callbacks.requestStructuredInteraction,
       ).toExecutionCallbacks(
         applyConsequence: (consequence) {
-          throw UnsupportedError('Scene node id is required for consequences.');
+          throw UnsupportedError('Scene node id is required for consequences.',
+              );
         },
         applyConsequenceWithNodeId: (nodeId, consequence) {
           final grantOperationId = scenePokemonGrantOperationId(
@@ -235,7 +251,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
           }
           pendingConsequences.add(consequence);
           pendingPokemonGrantOperationIds.add(grantOperationId);
-          pendingRailProgressionOperationIds.add(railProgressionOperationId);
+          pendingRailProgressionOperationIds.add(railProgressionOperationId,
+              );
           return 'completed';
         },
       ),

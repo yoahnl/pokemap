@@ -47,6 +47,7 @@ abstract base class SceneInteractiveCommand {
     required String warpId,
     EntityFacing? arrivalFacing,
     SceneWarpTransition transition,
+    String? arrivalCollisionOwnerEntityId,
   }) = SceneWarpInteractiveCommand;
 
   factory SceneInteractiveCommand.worldTone({
@@ -141,6 +142,10 @@ abstract base class SceneInteractiveCommand {
             ? _optionalEnum(json, 'transition', SceneWarpTransition.values) ??
                 (throw const FormatException('transition must be a string.'))
             : SceneWarpTransition.mapDefault,
+        arrivalCollisionOwnerEntityId:
+            json.containsKey('arrivalCollisionOwnerEntityId')
+            ? _arrivalCollisionOwner(json['arrivalCollisionOwnerEntityId'])
+            : null,
       ),
       SceneInteractiveCommandKind.worldTone =>
         SceneWorldToneInteractiveCommand.fromJson(json),
@@ -656,13 +661,18 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
     required String warpId,
     this.arrivalFacing,
     this.transition = SceneWarpTransition.mapDefault,
+    String? arrivalCollisionOwnerEntityId,
   }) : destinationMapId = _normalize(destinationMapId, 'destinationMapId'),
-       warpId = _normalize(warpId, 'warpId');
+       warpId = _normalize(warpId, 'warpId'),
+       arrivalCollisionOwnerEntityId = arrivalCollisionOwnerEntityId == null
+           ? null
+           : _arrivalCollisionOwner(arrivalCollisionOwnerEntityId);
 
   final String destinationMapId;
   final String warpId;
   final EntityFacing? arrivalFacing;
   final SceneWarpTransition transition;
+  final String? arrivalCollisionOwnerEntityId;
 
   @override
   SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.warp;
@@ -677,6 +687,8 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
     'warpId': warpId,
     if (arrivalFacing != null) 'arrivalFacing': arrivalFacing!.name,
     'transition': transition.name,
+    if (arrivalCollisionOwnerEntityId != null)
+      'arrivalCollisionOwnerEntityId': arrivalCollisionOwnerEntityId,
   };
 
   @override
@@ -685,11 +697,23 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
       other.destinationMapId == destinationMapId &&
       other.warpId == warpId &&
       other.arrivalFacing == arrivalFacing &&
-      other.transition == transition;
+      other.transition == transition &&
+      other.arrivalCollisionOwnerEntityId == arrivalCollisionOwnerEntityId;
 
   @override
   int get hashCode =>
-      Object.hash(destinationMapId, warpId, arrivalFacing, transition);
+      Object.hash(destinationMapId, warpId, arrivalFacing, transition,
+    arrivalCollisionOwnerEntityId,
+  );
+}
+
+String _arrivalCollisionOwner(Object? value) {
+  if (value is! String || value.isEmpty || value.trim() != value) {
+    throw const FormatException(
+      'Arrival collision owner must be a canonical entity identity.',
+    );
+  }
+  return value;
 }
 
 @immutable

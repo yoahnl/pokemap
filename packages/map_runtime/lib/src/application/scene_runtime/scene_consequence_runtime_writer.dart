@@ -54,6 +54,7 @@ final class SceneConsequenceRuntimeWriter {
     this.maxHpByPartyIndex = const <int, int>{},
     this.maxPpByPartyIndex = const <int, Map<String, int>>{},
     this.mutations = const GameStateMutations(),
+    this.mapInstanceScopes = const <String, MapInstanceRef>{},
   });
 
   final ProjectManifest project;
@@ -61,6 +62,7 @@ final class SceneConsequenceRuntimeWriter {
   final Map<int, int> maxHpByPartyIndex;
   final Map<int, Map<String, int>> maxPpByPartyIndex;
   final GameStateMutations mutations;
+  final Map<String, MapInstanceRef> mapInstanceScopes;
 
   static const int _maxPartySize = 6;
 
@@ -137,6 +139,11 @@ final class SceneConsequenceRuntimeWriter {
     String? railProgressionOperationId,
   ) {
     return switch (consequence.kind) {
+      SceneConsequenceKind.setMapEventInstanceBoolean =>
+        _applyMapEventInstanceBoolean(
+          gameState,
+          consequence as SceneSetMapEventInstanceBooleanConsequence,
+        ),
       SceneConsequenceKind.setFact => _applySetFact(
           gameState,
           consequence as SceneSetFactConsequence,
@@ -207,6 +214,53 @@ final class SceneConsequenceRuntimeWriter {
     };
   }
 
+  _SceneConsequenceRuntimeWriteStep _applyMapEventInstanceBoolean(
+    GameState gameState,
+    SceneSetMapEventInstanceBooleanConsequence consequence,
+  ) {
+    final map = mapsById[consequence.mapId];
+    if (map == null ||
+        map.id != consequence.mapId ||
+        project.maps.where((entry) => entry.id == consequence.mapId).length !=
+            1) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownMap,
+        'The map event instance owner map is unavailable.',
+      );
+    }
+    if (map.entities
+            .where((entity) => entity.id == consequence.eventId)
+            .length !=
+        1) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownEvent,
+        'The map event instance owner must be declared exactly once.',
+      );
+    }
+    final scope = mapInstanceScopes[consequence.mapId];
+    if (scope == null) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingMapInstanceScope,
+        'The Scene has no captured map event instance scope.',
+      );
+    }
+    try {
+      return _SceneConsequenceRuntimeWriteStep.applied(
+        applySceneMapEventInstanceBoolean(
+          gameState: gameState,
+          consequence: consequence,
+          map: map,
+          expectedInstance: scope,
+        ),
+      );
+    } on StateError catch (error) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.staleMapInstanceScope,
+        error.message,
+      );
+    }
+  }
+
   _SceneConsequenceRuntimeWriteStep _applySetFact(
     GameState gameState,
     SceneSetFactConsequence consequence,
@@ -240,7 +294,8 @@ final class SceneConsequenceRuntimeWriter {
     SceneMarkEventConsumedConsequence consequence,
   ) {
     final projectHasMap =
-        project.maps.any((map) => map.id == consequence.mapId);
+        project.maps.any((map) => map.id == consequence.mapId,
+    );
     final mapData = mapsById[consequence.mapId];
     if (!projectHasMap || mapData == null) {
       return _SceneConsequenceRuntimeWriteStep.failed(
@@ -250,7 +305,8 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
     final hasEvent =
-        mapData.events.any((event) => event.id == consequence.eventId);
+        mapData.events.any((event) => event.id == consequence.eventId,
+    );
     if (!hasEvent) {
       return _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.unknownEvent,
@@ -708,8 +764,7 @@ final class SceneConsequenceRuntimeWriter {
         trainerProfile: nextState.trainerProfile.copyWith(
           badgeIds: <String>[
             ...nextState.trainerProfile.badgeIds,
-            badgeId,
-          ],
+            badgeId],
         ),
       );
     }
@@ -821,16 +876,14 @@ final class _SceneConsequenceRuntimeWriteStep {
     SceneFinishGameConsequence? gameCompletion,
   }) : this._(
           gameState: gameState,
-          gameCompletion: gameCompletion,
-        );
+          gameCompletion: gameCompletion);
 
   const _SceneConsequenceRuntimeWriteStep.failed(
     SceneConsequenceRuntimeWriteErrorCode errorCode,
     String message,
   ) : this._(
           errorCode: errorCode,
-          message: message,
-        );
+          message: message);
 
   final GameState? gameState;
   final SceneConsequenceRuntimeWriteErrorCode? errorCode;

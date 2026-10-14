@@ -1861,6 +1861,14 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.playerAtEntityAnchor:
+    case SceneConditionSourceKind.mapEventInstanceBoolean:
+      if (source.mapId == null ||
+          (source.operator != SceneConditionOperator.isTrue &&
+           source.operator != SceneConditionOperator.isFalse)) {
+        throw ArgumentError('Map conditions require a map and boolean operator.');
+      }
+      return;
     case SceneConditionSourceKind.newGameDraft:
       if (source.operator != SceneConditionOperator.isTrue &&
           source.operator != SceneConditionOperator.isFalse &&
@@ -1975,6 +1983,10 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
 
 void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
   switch (consequence) {
+    case SceneSetMapEventInstanceBooleanConsequence():
+      _trimRequired(consequence.mapId, 'consequence.mapId', 'Map instance owner requires a map id.');
+      _trimRequired(consequence.eventId, 'consequence.eventId', 'Map instance owner requires an entity id.');
+      _trimRequired(consequence.key, 'consequence.key', 'Map instance boolean requires a key.');
     case SceneSetFactConsequence():
       _trimRequired(
         consequence.factId,
@@ -2742,6 +2754,7 @@ String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
 
 String _defaultConsequenceActionTitle(SceneConsequence consequence) {
   return switch (consequence) {
+    SceneSetMapEventInstanceBooleanConsequence() => 'Définir un booléen de cette instance',
     SceneSetFactConsequence() => 'Définir un Fact',
     SceneMarkEventConsumedConsequence() => 'Marquer event consommé',
     SceneCompleteStoryStepConsequence() => 'Terminer une étape narrative',

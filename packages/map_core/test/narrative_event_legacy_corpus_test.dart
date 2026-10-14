@@ -35,7 +35,11 @@ void main() {
           .map((value) => SceneAsset.fromJson(_dynamicObject(value)))
           .toList(growable: false);
       gameStates = _list(fixture, 'gameStates')
-          .map((value) => GameState.fromJson(_dynamicObject(value)))
+          .map((value) => GameState.fromJson({
+                ..._dynamicObject(value),
+                'mapInstanceWorldState':
+                    const MapInstanceWorldState.empty().toJson(),
+              }))
           .toList(growable: false);
       worldRules = _list(fixture, 'worldRules')
           .map((value) => WorldRuleDefinition.fromJson(_dynamicObject(value)))

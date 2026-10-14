@@ -504,6 +504,8 @@ String _reasonLabel(NarrativeEventSimulationReason reason) => switch (reason) {
         'Au moins un Fact est faux',
       NarrativeEventSimulationReason.narrativeEventConsumedConditionFalse =>
         'Une condition de progression est fausse',
+      NarrativeEventSimulationReason.mapEventInstanceBooleanConditionFalse =>
+        'État local de l’événement non satisfait',
       NarrativeEventSimulationReason.eventConsumed =>
         'Event one-shot déjà consommé',
       NarrativeEventSimulationReason.eventInFlight => 'Event déjà en cours',
