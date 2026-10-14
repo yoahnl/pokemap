@@ -464,6 +464,7 @@ String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
       entityBump: (mapId, _) => mapId,
       entityAutorun: (mapId, _) => mapId,
       modelInteract: (mapId, _) => mapId,
+      triggerBump: (mapId, _) => mapId,
       triggerEnter: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       outcomeReceived: (_) => null,

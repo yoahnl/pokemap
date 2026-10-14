@@ -125,6 +125,179 @@ GameplayEntityBumpContact? resolvePlayerEntityBumpContact(
   return null;
 }
 
+List<GameplayTriggerBumpContact> resolvePlayerTriggerBumpContacts(
+  GameplayWorldState world,
+  Direction direction, {
+  int attemptedPixelsPerStep = 1,
+  Iterable<PixelRect> characterReservations = const [],
+}) {
+  if (world.player.facing != direction) return const [];
+  final result = stepGameplayWorld(
+    world,
+    MoveIntent(direction, pixelsPerStep: attemptedPixelsPerStep),
+    characterReservations: characterReservations,
+  );
+  return result is Blocked && result.reason == GameplayMovementBlockReason.solid
+      ? result.triggerBumpContacts
+      : const [];
+}
+
+List<GameplayTriggerBumpContact> _collectTriggerBumpContacts(
+  GameplayWorldState world,
+  Direction direction, {
+  required int attemptedPixelsPerStep,
+  required Iterable<PixelRect> characterReservations,
+}) {
+  final player = world.player;
+  final maxStep = direction.dx == 0 ? world.tileHeightPx : world.tileWidthPx;
+  final next = GridPos(
+    x: player.pos.x + direction.dx,
+    y: player.pos.y + direction.dy,
+  );
+  if (attemptedPixelsPerStep < 1 ||
+      attemptedPixelsPerStep > maxStep ||
+      world.map.spatialScene != null ||
+      world.map.version == ProjectVersion.v9 ||
+      player.playerSpriteWidthPx <= 0 ||
+      player.playerSpriteHeightPx <= 0 ||
+      world.map.id.isEmpty ||
+      world.map.id.trim() != world.map.id ||
+      next.x < 0 ||
+      next.y < 0 ||
+      next.x >= world.map.size.width ||
+      next.y >= world.map.size.height ||
+      world.isWaterCell(next.x, next.y)) {
+    return const [];
+  }
+  bool inside(PixelRect rect) =>
+      rect.widthPx > 0 &&
+      rect.heightPx > 0 &&
+      rect.leftPx >= 0 &&
+      rect.topPx >= 0 &&
+      rect.leftPx + rect.widthPx <= world.map.size.width * world.tileWidthPx &&
+      rect.topPx + rect.heightPx <= world.map.size.height * world.tileHeightPx;
+  final currentRect = player.playerCollisionRectPx;
+  if (!inside(currentRect) ||
+      !inside(world.playerCharacterContactRect(currentRect)) ||
+      PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+            playerCollisionRectPx: currentRect,
+            tileWidthPx: world.tileWidthPx,
+            tileHeightPx: world.tileHeightPx,
+            mapWidthCells: world.map.size.width,
+            mapHeightCells: world.map.size.height,
+          ) !=
+          player.pos ||
+      world.worldStaticObstaclesCollidePixelRect(
+        currentRect,
+        playerContact: true,
+      )) {
+    return const [];
+  }
+  final counts = <String, int>{};
+  for (final trigger in world.map.triggers) {
+    counts[trigger.id] = (counts[trigger.id] ?? 0) + 1;
+  }
+  bool contains(MapRect area, GridPos pos) =>
+      pos.x >= area.pos.x &&
+      pos.y >= area.pos.y &&
+      pos.x < area.pos.x + area.size.width &&
+      pos.y < area.pos.y + area.size.height;
+  final triggers = world.map.triggers
+      .where((trigger) {
+        final area = trigger.area;
+        return trigger.type == TriggerType.event &&
+            counts[trigger.id] == 1 &&
+            trigger.id.isNotEmpty &&
+            trigger.id.trim() == trigger.id &&
+            area.size.width > 0 &&
+            area.size.height > 0 &&
+            area.pos.x >= 0 &&
+            area.pos.y >= 0 &&
+            area.pos.x + area.size.width <= world.map.size.width &&
+            area.pos.y + area.size.height <= world.map.size.height &&
+            contains(area, next) &&
+            !contains(area, player.pos);
+      })
+      .toList(growable: false);
+  if (triggers.isEmpty) return const [];
+  final reservations = characterReservations.toList(growable: false);
+  for (var pixel = 1; pixel <= attemptedPixelsPerStep; pixel++) {
+    final attemptedRect =
+        PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+          spriteTopLeftPx: PixelPosition(
+            leftPx: player.playerPositionPx.leftPx + direction.dx * pixel,
+            topPx: player.playerPositionPx.topPx + direction.dy * pixel,
+          ),
+          spriteWidthPx: player.playerSpriteWidthPx,
+          spriteHeightPx: player.playerSpriteHeightPx,
+        );
+    final contact = world.playerCharacterContactRect(attemptedRect);
+    if (!inside(attemptedRect) ||
+        !inside(contact) ||
+        reservations.any((rect) => _bumpRectsOverlap(contact, rect))) {
+      return const [];
+    }
+    if (!world.worldStaticObstaclesCollidePixelRect(
+      attemptedRect,
+      playerContact: true,
+    )) {
+      continue;
+    }
+    if (world.mapEntitiesCollidePixelRect(attemptedRect, playerContact: true)) {
+      return const [];
+    }
+    final contacts = <GameplayTriggerBumpContact>[];
+    for (final trigger in triggers) {
+      final area = trigger.area;
+      final left = area.pos.x * world.tileWidthPx;
+      final top = area.pos.y * world.tileHeightPx;
+      final right = left + area.size.width * world.tileWidthPx;
+      final bottom = top + area.size.height * world.tileHeightPx;
+      final clippedLeft = attemptedRect.leftPx > left
+          ? attemptedRect.leftPx
+          : left;
+      final clippedTop = attemptedRect.topPx > top ? attemptedRect.topPx : top;
+      final clippedRight = attemptedRect.leftPx + attemptedRect.widthPx < right
+          ? attemptedRect.leftPx + attemptedRect.widthPx
+          : right;
+      final clippedBottom =
+          attemptedRect.topPx + attemptedRect.heightPx < bottom
+          ? attemptedRect.topPx + attemptedRect.heightPx
+          : bottom;
+      final clipped = PixelRect(
+        leftPx: clippedLeft,
+        topPx: clippedTop,
+        widthPx: clippedRight - clippedLeft,
+        heightPx: clippedBottom - clippedTop,
+      );
+      if (clipped.widthPx <= 0 ||
+          clipped.heightPx <= 0 ||
+          !world.worldStaticObstaclesCollidePixelRect(clipped)) {
+        continue;
+      }
+      contacts.add(
+        GameplayTriggerBumpContact(
+          mapId: world.map.id,
+          triggerId: trigger.id,
+          direction: direction,
+          attemptedPixelsPerStep: attemptedPixelsPerStep,
+          playerPos: player.pos,
+          playerPositionPx: player.playerPositionPx,
+          playerSpriteWidthPx: player.playerSpriteWidthPx,
+          playerSpriteHeightPx: player.playerSpriteHeightPx,
+          triggerArea: area,
+          blockedPlayerCollisionRectPx: attemptedRect,
+        ),
+      );
+    }
+    contacts.sort(
+      (a, b) => compareNarrativeEventUtf16(a.triggerId, b.triggerId),
+    );
+    return List.unmodifiable(contacts);
+  }
+  return const [];
+}
+
 bool _bumpRectsOverlap(PixelRect a, PixelRect b) =>
     a.leftPx < b.leftPx + b.widthPx &&
     a.leftPx + a.widthPx > b.leftPx &&
@@ -231,13 +404,26 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
         MapPlacedElementTriggerType.onBump,
       );
     }
+    final entityContact = step > 0
+        ? resolvePlayerEntityBumpContact(
+            facingWorld,
+            direction,
+            attemptedPixelsPerStep: step,
+            characterReservations: characterReservations,
+          )
+        : null;
     return Blocked(
       facingWorld,
       reason: GameplayMovementBlockReason.solid,
-      entityBumpContact: step > 0
-          ? resolvePlayerEntityBumpContact(facingWorld, direction,
-              attemptedPixelsPerStep: step, characterReservations: characterReservations)
-          : null,
+      entityBumpContact: entityContact,
+      triggerBumpContacts: entityContact == null
+          ? _collectTriggerBumpContacts(
+              facingWorld,
+              direction,
+              attemptedPixelsPerStep: step,
+              characterReservations: characterReservations,
+            )
+          : const [],
     );
   }
 

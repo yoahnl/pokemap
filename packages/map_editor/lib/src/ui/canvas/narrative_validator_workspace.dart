@@ -1348,6 +1348,7 @@ String _sourceLabel(NarrativeMapEventEntry event) {
         MapEntityKind.spawn => 'Spawn',
         null => 'Entité de map',
       },
+    NarrativeEventSourceKind.triggerBump => 'Contact de zone',
     NarrativeEventSourceKind.triggerEnter => 'Zone',
     NarrativeEventSourceKind.modelInteract => 'Décor 3D',
     NarrativeEventSourceKind.mapEnter => 'Map',

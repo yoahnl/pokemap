@@ -297,6 +297,7 @@ NarrativePhysicalReachabilityReport validateNarrativePhysicalReachability({
     }
     final isIndeterminate = budgetExceeded ||
         event.source.kind == NarrativeEventSourceKind.entityBump ||
+        event.source.kind == NarrativeEventSourceKind.triggerBump ||
         narrativeReport.verdict == NarrativeSymbolicVerdict.indeterminate ||
         evidence?.indeterminateProgression == true;
     final status = isIndeterminate
@@ -375,6 +376,31 @@ NarrativePhysicalReachabilityIssue? _validateSourceReference(
         eventId: event.id,
         mapId: mapId,
         message: 'La zone source "$triggerId" est absente de "$mapId".',
+      );
+    },
+    triggerBump: (mapId, triggerId) {
+      final map = mapsById[mapId];
+      if (map == null) {
+        return NarrativePhysicalReachabilityIssue(
+          code: NarrativePhysicalIssueCode.missingSourceMap,
+          eventId: event.id,
+          mapId: mapId,
+          message: 'La map source "$mapId" est absente.',
+        );
+      }
+      if (isNarrativeTriggerBumpSourceAvailable(
+        project: project,
+        map: map,
+        triggerId: triggerId,
+      )) {
+        return null;
+      }
+      return NarrativePhysicalReachabilityIssue(
+        code: NarrativePhysicalIssueCode.missingSourceTarget,
+        eventId: event.id,
+        mapId: mapId,
+        message:
+            'La zone de contact "$triggerId" est indisponible dans "$mapId".',
       );
     },
     entityAutorun: (mapId, entityId) {
@@ -570,6 +596,26 @@ _StateExploration _exploreSymbolicState({
                   path: search.path!,
                 );
         },
+        triggerBump: (_, triggerId) {
+          final triggers = map.triggers.where(
+            (trigger) => trigger.id == triggerId,
+          );
+          if (triggers.length != 1) return null;
+          final search = _findPathToTriggerBump(
+            world: world,
+            start: entry.pos,
+            trigger: triggers.single,
+            budget: budget,
+          );
+          budgetExceeded = budgetExceeded || search.budgetExceeded;
+          return search.path == null
+              ? null
+              : _ReachabilityEvidence(
+                  mapId: map.id,
+                  reachedCell: search.path!.last,
+                  path: search.path!,
+                );
+        },
         entityBump: (_, entityId) {
           final entities = map.entities.where((entity) => entity.id == entityId);
           if (entities.length != 1) {
@@ -686,11 +732,63 @@ _PathSearch _findPathToEntityBump({
   required _ExplorationBudget budget,
 }) {
   final footprint = resolveEntityCollisionFootprint(entity);
+  return _findPathToBump(
+    world: world,
+    start: start,
+    budget: budget,
+    goals: {
+      ..._rectCells(footprint, world.map.size),
+      ..._adjacentCells(
+        entity.copyWith(pos: footprint.pos, size: footprint.size),
+        world.map.size,
+      ),
+    },
+    matches: (result) => result.entityBumpContact?.entityId == entity.id,
+  );
+}
+
+_PathSearch _findPathToTriggerBump({
+  required GameplayWorldState world,
+  required GridPos start,
+  required MapTrigger trigger,
+  required _ExplorationBudget budget,
+}) {
+  final cells = _rectCells(trigger.area, world.map.size).toSet();
+  final goals = <GridPos>{};
+  for (final cell in cells) {
+    for (final direction in Direction.values) {
+      final previous = GridPos(
+        x: cell.x - direction.dx,
+        y: cell.y - direction.dy,
+      );
+      if (_inside(previous, world.map.size) && !cells.contains(previous)) {
+        goals.add(previous);
+      }
+    }
+  }
+  return _findPathToBump(
+    world: world,
+    start: start,
+    budget: budget,
+    goals: goals,
+    matches: (result) => result.triggerBumpContacts.any(
+      (contact) => contact.triggerId == trigger.id,
+    ),
+  );
+}
+
+_PathSearch _findPathToBump({
+  required GameplayWorldState world,
+  required GridPos start,
+  required Iterable<GridPos> goals,
+  required bool Function(Blocked) matches,
+  required _ExplorationBudget budget,
+}) {
   final search = _findPathsToAll(
-    world: world, start: start, budget: budget,
-    goals: {..._rectCells(footprint, world.map.size),
-      ..._adjacentCells(entity.copyWith(pos: footprint.pos,
-        size: footprint.size), world.map.size)},
+    world: world,
+    start: start,
+    budget: budget,
+    goals: goals,
   );
   if (search.budgetExceeded) {
     return const _PathSearch.budgetExceeded();
@@ -733,7 +831,7 @@ _PathSearch _findPathToEntityBump({
       final distance = direction.dx == 0 ? world.tileHeightPx : world.tileWidthPx;
       final result = stepGameplayWorld(trial,
         MoveIntent(direction, pixelsPerStep: distance));
-      if (result is Blocked && result.entityBumpContact?.entityId == entity.id) {
+      if (result is Blocked && matches(result)) {
         return _PathSearch.path(path);
       }
     }
@@ -1052,6 +1150,7 @@ String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
       modelInteract: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       triggerEnter: (mapId, _) => mapId,
+      triggerBump: (mapId, _) => mapId,
       entityBump: (mapId, _) => mapId,
       entityInteract: (mapId, _) => mapId,
       outcomeReceived: (_) => null,

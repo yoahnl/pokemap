@@ -172,6 +172,7 @@ final class NarrativeEventRuntimeSnapshot {
           entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
           entityAutorun: (_, _) => const <NarrativeOutcomeRef>[],
           entityBump: (_, _) => const <NarrativeOutcomeRef>[],
+          triggerBump: (_, _) => const <NarrativeOutcomeRef>[],
           triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
           mapEnter: (_) => const <NarrativeOutcomeRef>[],
           outcomeReceived: (outcome) => <NarrativeOutcomeRef>[outcome],

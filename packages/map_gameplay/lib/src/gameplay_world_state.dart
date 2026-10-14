@@ -365,6 +365,19 @@ class GameplayWorldState {
     )) {
       return true;
     }
+    return mapEntitiesCollidePixelRect(
+      rect,
+      playerContact: playerContact,
+      ignoredEntityId: ignoredEntityId,
+    );
+  }
+
+  bool mapEntitiesCollidePixelRect(
+    PixelRect rect, {
+    bool playerContact = false,
+    String? ignoredEntityId,
+  }) {
+    if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
     final contact = playerContact ? playerCharacterContactRect(rect) : rect;
     final left = contact.leftPx < rect.leftPx ? contact.leftPx : rect.leftPx;
     final top = contact.topPx < rect.topPx ? contact.topPx : rect.topPx;

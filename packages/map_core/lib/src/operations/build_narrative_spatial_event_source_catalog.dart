@@ -12,6 +12,7 @@ import 'narrative_event_canonical_json.dart';
 import 'map_entity_collision_footprint.dart';
 import 'narrative_entity_bump_source_reference.dart';
 import 'narrative_entity_autorun_source_reference.dart';
+import 'narrative_trigger_bump_source_reference.dart';
 
 /// Builds the read-only spatial source catalog used by Event V2 authoring.
 ///
@@ -185,6 +186,7 @@ void _appendMapOptions({
     diagnostics: diagnostics,
   );
   _appendTriggerOptions(
+    project: project,
     entry: entry,
     map: map,
     mapUsable: mapSizeValid,
@@ -463,6 +465,7 @@ NarrativeSpatialEventSourceOption _entityOption({
 }
 
 void _appendTriggerOptions({
+  required ProjectManifest project,
   required ProjectMapEntry entry,
   required MapData map,
   required bool mapUsable,
@@ -489,6 +492,9 @@ void _appendTriggerOptions({
       );
     }
     for (final trigger in triggers) {
+      options.add(_triggerBumpOption(project: project, entry: entry, map: map,
+        trigger: trigger, mapUsable: mapUsable, mapIdentityUnique: mapIdentityUnique,
+        duplicate: duplicate));
       options.add(
         _triggerOption(
           entry: entry,
@@ -501,6 +507,41 @@ void _appendTriggerOptions({
       );
     }
   }
+}
+
+NarrativeSpatialEventSourceOption _triggerBumpOption({
+  required ProjectManifest project,
+  required ProjectMapEntry entry,
+  required MapData map,
+  required MapTrigger trigger,
+  required bool mapUsable,
+  required bool mapIdentityUnique,
+  required bool duplicate,
+}) {
+  final mapLabel = _display(entry.name, entry.id);
+  final label = _display(trigger.name, trigger.id);
+  final geometryValid = mapUsable && _rectWithinMap(trigger.area, map);
+  final source = _validIdentity(entry.id) && _validIdentity(trigger.id)
+      ? NarrativeEventSourceRef.triggerBump(entry.id, trigger.id) : null;
+  final available = source != null && !duplicate && mapIdentityUnique &&
+      isNarrativeTriggerBumpSourceAvailable(project: project, map: map, triggerId: trigger.id);
+  final reason = available ? null : duplicate
+      ? 'Cet identifiant est utilisé plusieurs fois sur la carte.'
+      : !mapIdentityUnique ? 'L’identifiant de la carte est dupliqué.'
+      : !geometryValid ? 'La surface de cette zone est invalide.'
+      : source == null ? 'L’identifiant de cette zone est invalide.'
+      : 'Le contact de zone nécessite une zone événement unique sur une carte 2D.';
+  return NarrativeSpatialEventSourceOption(source: source,
+    humanLabel: '$label — Contact de zone',
+    humanDescription: 'Tentative de marche bloquée contre $label, sur $mapLabel.',
+    mapId: entry.id, mapLabel: mapLabel, sourceTypeLabel: 'Contact de zone',
+    availability: available ? NarrativeSpatialEventSourceAvailability.selectable
+      : NarrativeSpatialEventSourceAvailability.incompatible,
+    unavailableReason: reason, origin: NarrativeSpatialEventSourceOrigin.canonical,
+    debugTechnicalLabel: 'triggerBump:${entry.id}:${trigger.id}',
+    geometry: geometryValid ? NarrativeSpatialSourceGeometrySummary.bounds(trigger.area)
+      : const NarrativeSpatialSourceGeometrySummary.unavailable(),
+    ownerKind: NarrativeSpatialEventSourceOwnerKind.trigger, ownerId: trigger.id);
 }
 
 NarrativeSpatialEventSourceOption _triggerOption({
@@ -793,6 +834,7 @@ String? _spatialSourceMapId(NarrativeEventSourceRef source) {
     entityBump: (mapId, _) => mapId,
     entityAutorun: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
+    triggerBump: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) => null,

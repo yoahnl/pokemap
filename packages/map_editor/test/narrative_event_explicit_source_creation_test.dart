@@ -247,6 +247,7 @@ void main() {
             entityAutorun: (_, _) => throw StateError('No automatic source is physically created.'),
             entityBump: (_, _) => throw StateError('No contact source is physically created.'),
             entityInteract: (_, entityId) => entityId,
+            triggerBump: (_, triggerId) => triggerId,
             triggerEnter: (_, triggerId) => triggerId,
             mapEnter: (_) => fail('A created source cannot be mapEnter.'),
             outcomeReceived: (_) =>

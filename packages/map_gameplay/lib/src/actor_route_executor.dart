@@ -56,9 +56,14 @@ final class ActorRouteExecutor {
           if (!port.isCurrent) {
             return ActorRouteExecutionOutcome.interrupted;
           }
-          if (outcome == ActorRouteMoveOutcome.obstructed &&
-              !command.skippable) {
-            return ActorRouteExecutionOutcome.blocked;
+          if (outcome == ActorRouteMoveOutcome.obstructed) {
+            if (!command.skippable) {
+              return ActorRouteExecutionOutcome.blocked;
+            }
+            await port.nextUpdate();
+            if (!port.isCurrent) {
+              return ActorRouteExecutionOutcome.interrupted;
+            }
           }
         case SceneActorWaitStep():
           await port.wait(step.durationMs);

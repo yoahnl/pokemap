@@ -77,15 +77,43 @@ final class GameplayEntityBumpContact {
   final PixelRect entityCollisionRectPx;
 }
 
+final class GameplayTriggerBumpContact {
+  const GameplayTriggerBumpContact({
+    required this.mapId,
+    required this.triggerId,
+    required this.direction,
+    required this.attemptedPixelsPerStep,
+    required this.playerPos,
+    required this.playerPositionPx,
+    required this.playerSpriteWidthPx,
+    required this.playerSpriteHeightPx,
+    required this.triggerArea,
+    required this.blockedPlayerCollisionRectPx,
+  });
+
+  final String mapId;
+  final String triggerId;
+  final Direction direction;
+  final int attemptedPixelsPerStep;
+  final GridPos playerPos;
+  final PixelPosition playerPositionPx;
+  final int playerSpriteWidthPx;
+  final int playerSpriteHeightPx;
+  final MapRect triggerArea;
+  final PixelRect blockedPlayerCollisionRectPx;
+}
+
 final class Blocked extends GameplayStepResult {
-  const Blocked(
+  Blocked(
     super.world, {
     this.reason = GameplayMovementBlockReason.solid,
     this.entityBumpContact,
-  });
+    List<GameplayTriggerBumpContact> triggerBumpContacts = const [],
+  }) : triggerBumpContacts = List.unmodifiable(triggerBumpContacts);
 
   final GameplayMovementBlockReason reason;
   final GameplayEntityBumpContact? entityBumpContact;
+  final List<GameplayTriggerBumpContact> triggerBumpContacts;
 }
 
 final class Jumped extends GameplayStepResult {

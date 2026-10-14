@@ -494,6 +494,7 @@ void _expectPlayerServicesContract(
           entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
           entityInteract: (mapId, entityId) =>
               mapId == 'map_port_brisants' ? entityId : null,
+          triggerBump: (_, _) => null,
           triggerEnter: (_, _) => null,
           mapEnter: (_) => null,
           outcomeReceived: (_) => null,
@@ -1005,6 +1006,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
     entityAutorun: (_, _) => fail('Cette fixture ne contient pas de source automatique.'),
     entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
     entityInteract: (_, _) => fail('La dissipation vient du boss.'),
+    triggerBump: (_, _) => fail('La dissipation vient du boss.'),
     triggerEnter: (_, _) => fail('La dissipation vient du boss.'),
     mapEnter: (_) => fail('La dissipation vient du boss.'),
     outcomeReceived: (outcome) {
@@ -1038,6 +1040,10 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
     entityAutorun: (_, _) => fail('Cette fixture ne contient pas de source automatique.'),
     entityBump: (_, _) => fail('Cette fixture ne contient pas de source de contact.'),
     entityInteract: (_, _) => fail('La clé doit être trouvée dans une zone.'),
+    triggerBump: (mapId, triggerId) {
+      expect(mapId, 'map_phare_exterieur');
+      expect(triggerId, 'tr_cabin_key_outside');
+    },
     triggerEnter: (mapId, triggerId) {
       expect(mapId, 'map_phare_exterieur');
       expect(triggerId, 'tr_cabin_key_outside');
@@ -1451,6 +1457,13 @@ void _expectEventSourcesClose(
             .cast<Map<String, dynamic>>()
             .map((entry) => entry['id']);
         expect(ids, contains(entityId), reason: definition.id);
+      },
+      triggerBump: (mapId, triggerId) {
+        final map = _mapJson(fixture, manifest, mapCache, mapId);
+        final ids = (map['triggers'] as List<dynamic>)
+            .cast<Map<String, dynamic>>()
+            .map((entry) => entry['id']);
+        expect(ids, contains(triggerId), reason: definition.id);
       },
       triggerEnter: (mapId, triggerId) {
         final map = _mapJson(fixture, manifest, mapCache, mapId);

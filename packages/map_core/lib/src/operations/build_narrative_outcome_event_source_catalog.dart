@@ -636,6 +636,7 @@ void _appendMissingReferences({
         entityBump: (_, _) {},
         entityAutorun: (_, _) {},
         modelInteract: (_, _) {},
+        triggerBump: (_, _) {},
         triggerEnter: (_, __) {},
         mapEnter: (_) {},
         outcomeReceived: references.add,

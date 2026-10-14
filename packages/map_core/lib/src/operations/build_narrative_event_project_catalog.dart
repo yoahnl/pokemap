@@ -377,6 +377,8 @@ NarrativeEventProjectResolutionStatus _resolveSource(
         _spatialStatus(spatialSources.resolve(source).status),
     modelInteract: (_, _) =>
         _spatialStatus(spatialSources.resolve(source).status),
+    triggerBump: (_, _) =>
+        _spatialStatus(spatialSources.resolve(source).status),
     triggerEnter: (_, __) =>
         _spatialStatus(spatialSources.resolve(source).status),
     mapEnter: (_) => _spatialStatus(spatialSources.resolve(source).status),

@@ -14,7 +14,11 @@ const _legacyFingerprint =
     'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 void main() {
-  group('native entityBump contact guard', () {
+  for (final source in [
+    NarrativeEventSourceRef.entityBump('map', 'npc'),
+    NarrativeEventSourceRef.triggerBump('map', 'zone'),
+  ]) {
+  group('native ${source.kind.name} contact guard', () {
     test(
       'requires physical contact evidence before authority preparation',
       () async {
@@ -22,7 +26,6 @@ void main() {
         var preparations = 0;
         var sceneCalls = 0;
         var legacyCalls = 0;
-        final source = NarrativeEventSourceRef.entityBump('map', 'npc');
         final bridge = _bridge(
           stateTransactions: NarrativeEventStateTransactions(state),
           currentGameState: () => state,
@@ -65,8 +68,7 @@ void main() {
           var applicable = loseAfterAuthority;
           var sceneCalls = 0;
           var legacyCalls = 0;
-          final source = NarrativeEventSourceRef.entityBump('map', 'npc');
-          final bridge = _bridge(
+            final bridge = _bridge(
             stateTransactions: NarrativeEventStateTransactions(state),
             currentGameState: () => state,
             onGameStateCommitted: (value) => state = value,
@@ -106,7 +108,6 @@ void main() {
       var applicable = true;
       var sceneCalls = 0;
       var legacyCalls = 0;
-      final source = NarrativeEventSourceRef.entityBump('map', 'npc');
       final bridge = _bridge(
         stateTransactions: NarrativeEventStateTransactions(state),
         currentGameState: () => state,
@@ -151,7 +152,6 @@ void main() {
       var state = const GameState(saveId: 'save');
       var sceneCalls = 0;
       var legacyCalls = 0;
-      final source = NarrativeEventSourceRef.entityBump('map', 'npc');
       final bridge = _bridge(
         stateTransactions: NarrativeEventStateTransactions(state),
         currentGameState: () => state,
@@ -179,6 +179,8 @@ void main() {
       expect(legacyCalls, 0);
     });
   });
+
+  }
 
   group('NS-EVENT-V2-20/21 spatial production dispatch bridge', () {
     test('executes one entityInteract occurrence through Event V2', () async {
@@ -998,6 +1000,19 @@ NarrativeEventProjectCatalog _catalog(
         pos: const GridPos(x: 0, y: 0),
       ),
       trigger: null,
+    ),
+    triggerBump: (mapId, triggerId) => (
+      mapId: mapId,
+      entity: null,
+      trigger: MapTrigger(
+        id: triggerId,
+        name: triggerId,
+        type: TriggerType.event,
+        area: const MapRect(
+          pos: GridPos(x: 0, y: 0),
+          size: GridSize(width: 1, height: 1),
+        ),
+      ),
     ),
     triggerEnter: (mapId, triggerId) => (
       mapId: mapId,

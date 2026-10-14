@@ -186,6 +186,11 @@ class NarrativeOverviewContext {
           missing: !mapNames.containsKey(map) ? 'Carte source absente : $map' : instances != null && instance == null ? 'Décor 3D absent ou ambigu : $id' : null,
         );
       },
+      triggerBump: (map, id) {
+        final target = located(map, id, false);
+        return (mapId: target.mapId, label: target.label,
+          when: 'Quand le joueur marche contre la zone', missing: target.missing);
+      },
       triggerEnter: (map, id) => located(map, id, false),
       mapEnter: (map) => located(map, null, false),
       outcomeReceived: (_) => (

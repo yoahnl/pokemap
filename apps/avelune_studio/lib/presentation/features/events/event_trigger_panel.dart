@@ -113,7 +113,8 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                 if (type != NarrativeEventSourceKind.modelInteract ||
                     widget.controller.project.settings.dimension == ProjectDimension.threeD)
                 if ((type != NarrativeEventSourceKind.entityBump &&
-                    type != NarrativeEventSourceKind.entityAutorun) ||
+                    type != NarrativeEventSourceKind.entityAutorun &&
+                    type != NarrativeEventSourceKind.triggerBump) ||
                     widget.controller.project.settings.dimension == ProjectDimension.twoD)
                 StudioChoice(
                   label: eventKindLabel(type),
@@ -126,6 +127,10 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                   ),
                   onTap: () => _choose(type),
                 ),
+              if (kind == NarrativeEventSourceKind.triggerBump) ...[
+                const SizedBox(height: 8),
+                const StudioNotice('L’événement se déclenche quand une tentative de marche est bloquée contre cette zone.'),
+              ],
               if (kind == NarrativeEventSourceKind.entityBump) ...[
                 const SizedBox(height: 8),
                 const StudioNotice(

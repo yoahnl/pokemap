@@ -929,6 +929,7 @@ NarrativeEventProjectCatalog _catalog(
     entityAutorun: (value, _) => value,
     entityBump: (value, _) => value,
     modelInteract: (value, _) => value,
+    triggerBump: (value, _) => value,
     triggerEnter: (value, _) => value,
     mapEnter: (value) => value,
     outcomeReceived: (_) => 'map',

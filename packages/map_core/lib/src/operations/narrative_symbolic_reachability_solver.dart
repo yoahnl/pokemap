@@ -8,6 +8,7 @@ import '../models/narrative_command_descriptor.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import 'narrative_entity_bump_source_reference.dart';
+import 'narrative_trigger_bump_source_reference.dart';
 import 'narrative_entity_autorun_source_reference.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -951,6 +952,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       entityBump: (_, _) {},
       entityAutorun: (_, _) {},
       modelInteract: (_, _) {},
+      triggerBump: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {
@@ -1154,6 +1156,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
       entityBump: (_, _) {},
       entityAutorun: (_, _) {},
       modelInteract: (_, _) {},
+      triggerBump: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {
@@ -1699,6 +1702,14 @@ bool? _sourceEligibility(
       modelInteract: (mapId, instanceId) =>
           mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ==
           true,
+      triggerBump: (mapId, triggerId) {
+        final map = mapsById[mapId];
+        if (map == null || mapCounts[mapId] != 1 ||
+            !isNarrativeTriggerBumpSourceAvailable(project: project, map: map, triggerId: triggerId)) {
+          return false;
+        }
+        return null;
+      },
       triggerEnter: (mapId, triggerId) =>
           mapsById[mapId]?.triggers.any((trigger) => trigger.id == triggerId) ==
           true,

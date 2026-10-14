@@ -519,6 +519,8 @@ bool _matchesSpatialDestination(
     entityBump: (mapId, entityId) => destination.mapId == mapId && destination.sourceOwnerId == entityId,
     entityInteract: (mapId, entityId) =>
         destination.mapId == mapId && destination.sourceOwnerId == entityId,
+    triggerBump: (mapId, triggerId) =>
+        destination.mapId == mapId && destination.sourceOwnerId == triggerId,
     triggerEnter: (mapId, triggerId) =>
         destination.mapId == mapId && destination.sourceOwnerId == triggerId,
     mapEnter: (mapId) =>

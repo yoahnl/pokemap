@@ -90,6 +90,7 @@ final class NarrativeEventMigrationPreviewUseCase {
             entityBump: (_, _) => const <NarrativeOutcomeRef>[],
             entityInteract: (_, _) => const <NarrativeOutcomeRef>[],
             modelInteract: (_, _) => const <NarrativeOutcomeRef>[],
+            triggerBump: (_, _) => const <NarrativeOutcomeRef>[],
             triggerEnter: (_, _) => const <NarrativeOutcomeRef>[],
             mapEnter: (_) => const <NarrativeOutcomeRef>[],
             outcomeReceived: (outcome) => [outcome],

@@ -36,6 +36,9 @@ NarrativeScenarioAuthoringSourceDraft
   NarrativeEventSourcePickerOption option,
 ) {
   return switch (option.sourceKind) {
+    NarrativeEventSourceKind.triggerBump => throw UnsupportedError(
+      'Trigger bump requires the canonical Event V2 source builder.',
+    ),
     NarrativeEventSourceKind.entityAutorun => throw UnsupportedError(
       'Entity autorun requires the canonical Event V2 source builder.',
     ),

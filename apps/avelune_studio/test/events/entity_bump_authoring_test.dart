@@ -354,6 +354,8 @@ void main() {
       expect(created.draftOrNull, isNotNull);
       await tester.tap(find.text('Contact du joueur'));
       await _io(tester);
+      await tester.ensureVisible(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       final entry = f.workspace.project!.maps.first;

@@ -180,9 +180,10 @@ final class NarrativeSpatialProductionDispatchBridge {
   }) async {
     try {
       _validateOccurrence(occurrenceId, occurrence);
-      if (occurrence.source.kind == NarrativeEventSourceKind.entityBump &&
+      if ((occurrence.source.kind == NarrativeEventSourceKind.entityBump ||
+           occurrence.source.kind == NarrativeEventSourceKind.triggerBump) &&
           contactIsApplicable == null) {
-        throw ArgumentError('Entity bump requires a physical contact guard.');
+        throw ArgumentError('A bump source requires a physical contact guard.');
       }
       if (contactIsApplicable != null && !contactIsApplicable()) {
         return _stale(occurrenceId, occurrence);
@@ -313,7 +314,8 @@ final class NarrativeSpatialProductionDispatchBridge {
 
       final noMatch = execution as NarrativeEventExecutionNoMatch;
       if (!noMatch.legacyFallbackAllowed ||
-          occurrence.source.kind == NarrativeEventSourceKind.entityBump) {
+          occurrence.source.kind == NarrativeEventSourceKind.entityBump ||
+          occurrence.source.kind == NarrativeEventSourceKind.triggerBump) {
         return NarrativeSpatialProductionDispatchNoFallback(
           occurrenceId,
           occurrence,
@@ -363,12 +365,13 @@ final class NarrativeSpatialProductionDispatchBridge {
     }
     if (occurrence.source.kind != NarrativeEventSourceKind.entityInteract &&
         occurrence.source.kind != NarrativeEventSourceKind.entityBump &&
+        occurrence.source.kind != NarrativeEventSourceKind.triggerBump &&
         occurrence.source.kind != NarrativeEventSourceKind.triggerEnter &&
         occurrence.source.kind != NarrativeEventSourceKind.modelInteract) {
       throw ArgumentError.value(
         occurrence.source.kind,
         'occurrence.source.kind',
-        'must be entityInteract, entityBump, modelInteract or triggerEnter',
+        'must be entityInteract, entityBump, triggerBump, modelInteract or triggerEnter',
       );
     }
   }

@@ -237,6 +237,7 @@ class NarrativeInteractionOpener {
               entityBump: (_, _) => null,
               entityInteract: (_, _) => null,
               modelInteract: (_, _) => null,
+              triggerBump: (_, _) => null,
               triggerEnter: (_, _) => null,
               mapEnter: (_) =>
                   'Cette interaction concerne l’arrivée sur une carte, sans point de localisation précis.',

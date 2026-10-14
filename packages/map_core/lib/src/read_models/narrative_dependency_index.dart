@@ -25,6 +25,7 @@ import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import '../operations/scene_actor_reference.dart';
 import '../operations/narrative_entity_bump_source_reference.dart';
+import '../operations/narrative_trigger_bump_source_reference.dart';
 import '../operations/narrative_entity_autorun_source_reference.dart';
 import 'linked_asset_public_contracts.dart';
 
@@ -1362,6 +1363,28 @@ final class _NarrativeDependencyIndexBuilder {
           target: _mapSourceChildKey(mapId, 'modelInstance', instanceId),
           owner: owner,
           path: '$prefix.instanceId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      },
+      triggerBump: (mapId, triggerId) {
+        _usage(
+          target: _mapKey(mapId),
+          owner: owner,
+          path: '$prefix.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        final targetMaps = maps.where((map) => map.id == mapId).toList();
+        final map = targetMaps.length == 1 ? targetMaps.single : null;
+        final owners = map?.triggers.where((trigger) => trigger.id == triggerId).toList() ?? const <MapTrigger>[];
+        final incompatible = project.settings.dimension != ProjectDimension.twoD ||
+            map?.spatialScene != null || map?.version == ProjectVersion.v9 ||
+            (map != null && owners.length == 1 &&
+              !isNarrativeTriggerBumpSourceAvailable(project: project, map: map, triggerId: triggerId));
+        _usage(
+          target: _mapSourceChildKey(mapId, 'trigger', triggerId),
+          owner: owner,
+          path: '$prefix.triggerId',
+          resolution: incompatible ? NarrativeDependencyResolution.unavailable : null,
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
         );
       },

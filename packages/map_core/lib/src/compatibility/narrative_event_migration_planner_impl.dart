@@ -328,6 +328,7 @@ final class NarrativeEventMigrationPlanner {
         entityBump: (mapId, _) => concernedMapIds.add(mapId),
         entityAutorun: (mapId, _) => concernedMapIds.add(mapId),
         modelInteract: (mapId, _) => concernedMapIds.add(mapId),
+        triggerBump: (mapId, _) => concernedMapIds.add(mapId),
         triggerEnter: (mapId, _) => concernedMapIds.add(mapId),
         mapEnter: concernedMapIds.add,
         outcomeReceived: (_) {},
@@ -2134,6 +2135,7 @@ List<NarrativeOutcomeRef> _candidateOutcomeReferences(
       entityBump: (_, _) {},
       entityAutorun: (_, _) {},
       modelInteract: (_, _) {},
+      triggerBump: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {

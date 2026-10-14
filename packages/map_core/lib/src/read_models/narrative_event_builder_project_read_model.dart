@@ -559,6 +559,7 @@ NarrativeEventBuilderProjectReadModel
           entityBump: (_, _) => const <NarrativeOutcomeRef>[],
           entityAutorun: (_, _) => const <NarrativeOutcomeRef>[],
           modelInteract: (_, _) => const <NarrativeOutcomeRef>[],
+          triggerBump: (_, _) => const <NarrativeOutcomeRef>[],
           triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
           mapEnter: (_) => const <NarrativeOutcomeRef>[],
           outcomeReceived: (outcome) => [outcome],
@@ -1939,6 +1940,16 @@ NarrativeEventSourceSummary _missingSourceSummary(
       humanSentence: reason ??
           'Source introuvable — le décor 3D « $instanceId » n’existe plus.',
       sourceTypeLabel: 'Interaction avec un décor 3D',
+      mapId: mapId,
+      mapLabel: mapLabelsById[mapId] ?? 'Map introuvable',
+      available: false,
+      debugTechnicalLabel: _canonicalKey(source.toJson()),
+    ),
+    triggerBump: (mapId, triggerId) => NarrativeEventSourceSummary(
+      source: source,
+      humanSentence: reason ??
+          'Source introuvable — la zone « $triggerId » n’existe plus.',
+      sourceTypeLabel: 'Contact contre une zone',
       mapId: mapId,
       mapLabel: mapLabelsById[mapId] ?? 'Map introuvable',
       available: false,

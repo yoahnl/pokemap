@@ -448,6 +448,7 @@ NarrativeGlobalSearchIndex buildNarrativeGlobalSearchIndex({
 String _eventSourceKindKeyword(NarrativeEventSourceKind kind) => switch (kind) {
       NarrativeEventSourceKind.mapEnter => 'mapEnter',
       NarrativeEventSourceKind.triggerEnter => 'triggerEnter',
+      NarrativeEventSourceKind.triggerBump => 'triggerBump',
       NarrativeEventSourceKind.entityInteract => 'entityInteract',
       NarrativeEventSourceKind.entityBump => 'entityBump',
       NarrativeEventSourceKind.entityAutorun => 'entityAutorun',
@@ -520,6 +521,7 @@ String? _eventSourceMapId(NarrativeEventSourceRef? source) => source?.when(
       entityBump: (mapId, entityId) => mapId,
       entityAutorun: (mapId, entityId) => mapId,
       modelInteract: (mapId, instanceId) => mapId,
+      triggerBump: (mapId, triggerId) => mapId,
       triggerEnter: (mapId, triggerId) => mapId,
       mapEnter: (mapId) => mapId,
       outcomeReceived: (outcome) => null,

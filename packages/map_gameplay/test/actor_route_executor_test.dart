@@ -291,10 +291,89 @@ void main() {
       expect(
           port.calls,
           skippable
-              ? ['move:north:50:false', 'wait:25', 'move:east:75:false']
+              ? ['move:north:50:false', 'nextUpdate', 'wait:25', 'move:east:75:false']
               : ['move:north:50:false']);
     });
   }
+
+  test(
+    'a skipped obstruction waits for the next update before sound',
+    () async {
+      final port = _Port()
+        ..moveOutcomes.add(ActorRouteMoveOutcome.obstructed)
+        ..gates['nextUpdate'] = Completer<void>();
+      var completed = false;
+      final running = executor
+          .execute(
+            _route([
+              SceneActorMoveStep(
+                direction: EntityFacing.south,
+                durationMs: 250,
+              ),
+              SceneActorSoundStep(mediaAssetId: 'after-skip', gain: .8),
+            ], skippable: true),
+            port: port,
+          )
+          .then((result) {
+            completed = true;
+            return result;
+          });
+      await Future<void>.delayed(Duration.zero);
+      expect(port.calls, ['move:south:250:false', 'nextUpdate']);
+      expect(completed, isFalse);
+      port.gates['nextUpdate']!.complete();
+      expect(await running, ActorRouteExecutionOutcome.completed);
+      expect(port.calls.last, 'sound:after-skip:0.8');
+    },
+  );
+
+  test('closure during the skipped pass prevents the following step', () async {
+    final port = _Port()
+      ..moveOutcomes.add(ActorRouteMoveOutcome.obstructed)
+      ..gates['nextUpdate'] = Completer<void>();
+    final running = executor.execute(
+      _route([
+        SceneActorMoveStep(direction: EntityFacing.south, durationMs: 250),
+        SceneActorSoundStep(mediaAssetId: 'must-not-start', gain: .8),
+      ], skippable: true),
+      port: port,
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(port.calls, ['move:south:250:false', 'nextUpdate']);
+    port.current = false;
+    port.gates['nextUpdate']!.complete();
+    expect(await running, ActorRouteExecutionOutcome.interrupted);
+    expect(port.calls, ['move:south:250:false', 'nextUpdate']);
+  });
+
+  test('the skipped pass propagates next-update failures', () async {
+    final port = _Port()
+      ..moveOutcomes.add(ActorRouteMoveOutcome.obstructed)
+      ..failingOperation = 'nextUpdate';
+    await expectLater(
+      executor.execute(
+        _route([
+          SceneActorMoveStep(direction: EntityFacing.south, durationMs: 250),
+        ], skippable: true),
+        port: port,
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('a successful skippable move adds no extra update', () async {
+    final port = _Port();
+    expect(
+      await executor.execute(
+        _route([
+          SceneActorMoveStep(direction: EntityFacing.south, durationMs: 250),
+        ], skippable: true),
+        port: port,
+      ),
+      ActorRouteExecutionOutcome.completed,
+    );
+    expect(port.calls, ['move:south:250:false']);
+  });
 
   test('actor route through never survives into another invocation', () async {
     final port = _Port();

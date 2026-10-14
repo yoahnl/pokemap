@@ -75,6 +75,7 @@ NarrativeOutcomeRef? _outcomeOrNull(NarrativeEventSourceRef source) {
     entityInteract: (_, __) => null,
     modelInteract: (_, __) => null,
     triggerEnter: (_, __) => null,
+    triggerBump: (_, __) => null,
     mapEnter: (_) => null,
     outcomeReceived: (outcome) => outcome,
   );
@@ -128,6 +129,11 @@ NarrativeSpatialEventSourceOption _spatialOption(
       entityId,
     ),
     triggerEnter: (mapId, triggerId) => (
+      mapId,
+      NarrativeSpatialEventSourceOwnerKind.trigger,
+      triggerId,
+    ),
+    triggerBump: (mapId, triggerId) => (
       mapId,
       NarrativeSpatialEventSourceOwnerKind.trigger,
       triggerId,

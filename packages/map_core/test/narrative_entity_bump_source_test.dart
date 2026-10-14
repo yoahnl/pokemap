@@ -13,6 +13,7 @@ void main() {
         entityInteract: (_, _) =>
             fail('entityInteract must never consume a bump'),
         modelInteract: (_, _) => fail('modelInteract'),
+        triggerBump: (_, _) => fail('triggerBump'),
         triggerEnter: (_, _) => fail('triggerEnter'),
         mapEnter: (_) => fail('mapEnter'),
         outcomeReceived: (_) => fail('outcomeReceived'),
@@ -23,6 +24,7 @@ void main() {
           #entityInteract: (String _, String _) => 'interact',
           #entityAutorun: (String _, String _) => 'autorun',
           #modelInteract: (String _, String _) => 'model',
+          #triggerBump: (String _, String _) => 'trigger',
           #triggerEnter: (String _, String _) => 'trigger',
           #mapEnter: (String _) => 'map',
           #outcomeReceived: (NarrativeOutcomeRef _) => 'outcome',

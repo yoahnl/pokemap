@@ -111,6 +111,85 @@ void main() {
       );
     });
 
+    for (final mode in ['solid', 'passable', 'sealed', 'duplicate']) {
+      test('triggerBump proves an actual refused frontier for $mode', () {
+        final collisions = List<bool>.filled(15, false);
+        if (mode != 'passable') collisions[1 * 5 + 3] = true;
+        if (mode == 'sealed') {
+          for (final y in [0, 1, 2]) {
+            collisions[y * 5 + 1] = true;
+          }
+        }
+        const trigger = MapTrigger(
+          id: 'exit',
+          type: TriggerType.event,
+          area: MapRect(
+            pos: GridPos(x: 3, y: 1),
+            size: GridSize(width: 1, height: 1),
+          ),
+        );
+        final map = _map(
+          id: 'start',
+          width: 5,
+          height: 3,
+          collisions: collisions,
+          triggers: [trigger, if (mode == 'duplicate') trigger],
+        );
+        final project =
+            _project([
+              _event(
+                _eventA,
+                NarrativeEventSourceRef.triggerBump('start', 'exit'),
+              ),
+              _event(
+                _eventB,
+                NarrativeEventSourceRef.triggerEnter('start', 'exit'),
+              ),
+            ]).copyWith(
+              maps: const [
+                ProjectMapEntry(
+                  id: 'start',
+                  name: 'Start',
+                  relativePath: 'maps/start.json',
+                ),
+              ],
+            );
+        final report = validateNarrativePhysicalReachability(
+          project: project,
+          maps: [map],
+          narrativeReport: _symbolicReport(),
+        );
+        final result = report.resultForEvent(_eventA)!;
+        if (mode == 'solid') {
+          expect(result.status, NarrativePhysicalSourceStatus.reachable);
+          expect(result.path, isNotEmpty);
+          expect(result.reachedCell, isNot(const GridPos(x: 3, y: 1)));
+          expect(
+            report.resultForEvent(_eventB)!.status,
+            NarrativePhysicalSourceStatus.permanentlyBlocked,
+          );
+        } else if (mode == 'duplicate') {
+          expect(result.status, isNot(NarrativePhysicalSourceStatus.reachable));
+          expect(
+            report.issues.any(
+              (issue) =>
+                  issue.code == NarrativePhysicalIssueCode.missingSourceTarget,
+            ),
+            isTrue,
+          );
+        } else {
+          expect(result.status, NarrativePhysicalSourceStatus.indeterminate);
+          expect(result.path, isEmpty);
+          if (mode == 'passable') {
+            expect(
+              report.resultForEvent(_eventB)!.status,
+              NarrativePhysicalSourceStatus.reachable,
+            );
+          }
+        }
+      });
+    }
+
     for (final mode in ['contact', 'terrain', 'nonblocking', 'duplicate']) {
       test('entityBump requires its own physical contact proof $mode', () {
         final owner = MapEntity(

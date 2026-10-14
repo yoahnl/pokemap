@@ -931,6 +931,7 @@ String? _proposalIssue(NarrativeEventCreatedSourceProposal proposal) {
       }
       return null;
     },
+    triggerBump: (_, _) => 'Le contact de zone exige une source Event V2 canonique existante.',
     triggerEnter: (_, triggerId) {
       if (proposal.physicalKind != NarrativeEventPhysicalSourceKind.zone1x1) {
         return 'Seule une zone peut être matérialisée par un trigger.';

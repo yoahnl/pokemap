@@ -206,14 +206,24 @@ final class EventV2Actions {
           )
         : _upsertNarrativeEventRecord(current, record);
     final projected = project.copyWith(eventRegistry: registry);
-    if (record.definitionOrNull != null) {
-      final catalog = buildNarrativeEventProjectCatalog(
-        project: projected,
-        maps: maps,
+    final source = record.definitionOrNull?.source ?? record.draftOrNull?.source;
+    final validatesContactSource =
+        source?.kind == NarrativeEventSourceKind.triggerBump;
+    final catalog = record.definitionOrNull != null || validatesContactSource
+        ? buildNarrativeEventProjectCatalog(project: projected, maps: maps)
+        : null;
+    if (validatesContactSource &&
+        catalog!.resolveSource(source!).status !=
+            NarrativeEventProjectResolutionStatus.found) {
+      throw NarrativeAuthoringException(
+        'event_v2.source_unavailable',
+        'The contact source requires one valid event trigger in a 2D map.',
       );
+    }
+    if (record.definitionOrNull != null) {
       final report = buildNarrativeEventValidationReportSubset(
         registry: registry,
-        catalog: catalog,
+        catalog: catalog!,
         eventIds: {record.id},
       );
       if (report.hasBlockingDiagnostics) {

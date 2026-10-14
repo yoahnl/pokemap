@@ -126,7 +126,8 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
         ? map.entities.where((e) => e.id == id).toList()
         : const <MapEntity>[];
     final entity = entities.length == 1 ? entities.single : null;
-    final trigger = source.kind == NarrativeEventSourceKind.triggerEnter
+    final trigger = (source.kind == NarrativeEventSourceKind.triggerEnter ||
+        source.kind == NarrativeEventSourceKind.triggerBump)
         ? map.triggers.where((t) => t.id == id).firstOrNull
         : null;
     final instance = source.kind == NarrativeEventSourceKind.modelInteract

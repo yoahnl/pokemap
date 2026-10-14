@@ -468,6 +468,7 @@ Set<String> _runtimeStartEventIds(ProjectManifest project) {
       entityInteract: (mapId, _) => mapId == startMapId,
       entityBump: (mapId, _) => mapId == startMapId,
       entityAutorun: (mapId, _) => mapId == startMapId,
+      triggerBump: (mapId, _) => mapId == startMapId,
       triggerEnter: (mapId, _) => mapId == startMapId,
       mapEnter: (mapId) => mapId == startMapId,
       outcomeReceived: (_) => false,

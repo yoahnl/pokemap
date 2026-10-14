@@ -27,6 +27,7 @@ NarrativeInteractionDraft? readStudioInteraction(
     entityBump: (map, _) => map,
     entityInteract: (map, _) => map,
     modelInteract: (map, _) => map,
+    triggerBump: (map, _) => map,
     triggerEnter: (map, _) => map,
     mapEnter: (map) => map,
     outcomeReceived: (_) => '',

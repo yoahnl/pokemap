@@ -165,8 +165,10 @@ final class NarrativeEventSourceDependencyGuard {
     required MapTrigger next,
   }) {
     final breaksIdentity = current.id != next.id;
-    final leavesEventSourceKinds = _isEventSourceTrigger(current.type) &&
-        !_isEventSourceTrigger(next.type);
+    final hasContact = _linkedEventIds(registry: registry,
+      matches: (source) => source == NarrativeEventSourceRef.triggerBump(mapId, current.id)).isNotEmpty;
+    final leavesEventSourceKinds = (_isEventSourceTrigger(current.type) &&
+        !_isEventSourceTrigger(next.type)) || (hasContact && next.type != TriggerType.event);
     if (!breaksIdentity && !leavesEventSourceKinds) {
       if (current == next) {
         return NarrativeEventSourceDependencyDecision.allowed();
@@ -174,14 +176,16 @@ final class NarrativeEventSourceDependencyGuard {
       return _revalidationDecision(
         registry: registry,
         matches: (source) =>
-            source == NarrativeEventSourceRef.triggerEnter(mapId, current.id),
+            (source == NarrativeEventSourceRef.triggerEnter(mapId, current.id) ||
+              source == NarrativeEventSourceRef.triggerBump(mapId, current.id)),
         operation: 'modification physique de la zone ${current.id}',
       );
     }
     return _decision(
       registry: registry,
       matches: (source) =>
-          source == NarrativeEventSourceRef.triggerEnter(mapId, current.id),
+          (source == NarrativeEventSourceRef.triggerEnter(mapId, current.id) ||
+              source == NarrativeEventSourceRef.triggerBump(mapId, current.id)),
       operation: breaksIdentity
           ? 'renommage du déclencheur ${current.id}'
           : 'conversion système du déclencheur ${current.id}',
@@ -196,7 +200,8 @@ final class NarrativeEventSourceDependencyGuard {
     return _decision(
       registry: registry,
       matches: (source) =>
-          source == NarrativeEventSourceRef.triggerEnter(mapId, triggerId),
+          (source == NarrativeEventSourceRef.triggerEnter(mapId, triggerId) ||
+            source == NarrativeEventSourceRef.triggerBump(mapId, triggerId)),
       operation: 'suppression du déclencheur $triggerId',
     );
   }
@@ -253,6 +258,7 @@ String? _mapId(NarrativeEventSourceRef source) {
     entityBump: (mapId, _) => mapId,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
+    triggerBump: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) => null,
@@ -286,6 +292,16 @@ bool _isResolvedByMap(NarrativeEventSourceRef source, MapData map) {
           (entity) =>
               entity.id == entityId && entity.kind != MapEntityKind.spawn,
         ),
+    triggerBump: (mapId, triggerId) {
+      final matches = map.triggers.where((trigger) => trigger.id == triggerId).toList();
+      if (mapId != map.id || map.spatialScene != null || map.version == ProjectVersion.v9 ||
+          matches.length != 1 || matches.single.type != TriggerType.event) {
+        return false;
+      }
+      final area = matches.single.area;
+      return area.pos.x >= 0 && area.pos.y >= 0 && area.size.width > 0 && area.size.height > 0 &&
+          area.pos.x + area.size.width <= map.size.width && area.pos.y + area.size.height <= map.size.height;
+    },
     triggerEnter: (mapId, triggerId) =>
         mapId == map.id &&
         map.triggers.any(

@@ -411,6 +411,7 @@ final class NarrativeEventNavigationIndex {
       entityBump: (_, _) => _spatialNavigation(source),
       entityAutorun: (_, _) => _spatialNavigation(source),
       modelInteract: (_, _) => _spatialNavigation(source),
+      triggerBump: (_, _) => _spatialNavigation(source),
       triggerEnter: (_, __) => _spatialNavigation(source),
       mapEnter: (_) => _spatialNavigation(source),
       outcomeReceived: navigationForOutcomeProducer,
@@ -425,6 +426,7 @@ final class NarrativeEventNavigationIndex {
       entityBump: (_, _) => _spatialNavigation(source),
       entityAutorun: (_, _) => _spatialNavigation(source),
       modelInteract: (_, _) => _spatialNavigation(source),
+      triggerBump: (_, _) => _spatialNavigation(source),
       triggerEnter: (_, __) => _spatialNavigation(source),
       mapEnter: (_) => _spatialNavigation(source),
       outcomeReceived: (_) => NarrativeEventNavigationIntent.noDestination(
@@ -546,6 +548,7 @@ final class NarrativeEventNavigationIndex {
       entityBump: (_, _) => _spatialDiagnostic(source, navigation),
       entityAutorun: (_, _) => _spatialDiagnostic(source, navigation),
       modelInteract: (_, _) => _spatialDiagnostic(source, navigation),
+      triggerBump: (_, _) => _spatialDiagnostic(source, navigation),
       triggerEnter: (_, __) => _spatialDiagnostic(source, navigation),
       mapEnter: (_) => _spatialDiagnostic(source, navigation),
       outcomeReceived: (outcome) {
@@ -751,6 +754,19 @@ final class NarrativeEventNavigationIndex {
               NarrativeEditorFocusTarget.modelInstance(mapId, instanceId, bounds),
         );
       },
+      triggerBump: (mapId, triggerId) {
+        final bounds = option.geometry.bounds;
+        if (bounds == null) {
+          return NarrativeEventNavigationIntent.noDestination(
+            'La surface de la zone référencée est indisponible.',
+          );
+        }
+        return NarrativeEventNavigationIntent.navigate(
+          NarrativeEditorDestination.focusTrigger(mapId, triggerId),
+          focusTarget:
+              NarrativeEditorFocusTarget.trigger(mapId, triggerId, bounds),
+        );
+      },
       triggerEnter: (mapId, triggerId) {
         final bounds = option.geometry.bounds;
         if (bounds == null) {
@@ -946,6 +962,7 @@ String _missingSpatialReason(NarrativeEventSourceRef source) {
     entityBump: (_, _) => 'L’entité référencée n’existe plus.',
     entityAutorun: (_, _) => 'L’entité référencée n’existe plus.',
     modelInteract: (_, _) => 'Le décor 3D référencé n’existe plus.',
+    triggerBump: (_, _) => 'La zone référencée n’existe plus.',
     triggerEnter: (_, __) => 'La zone référencée n’existe plus.',
     mapEnter: (_) => 'La map référencée n’existe plus.',
     outcomeReceived: (_) =>
@@ -974,6 +991,11 @@ Map<String, String> _sourceDebugReferences(NarrativeEventSourceRef source) {
       'sourceKind': source.kind.name,
       'mapId': mapId,
       'instanceId': instanceId,
+    },
+    triggerBump: (mapId, triggerId) => {
+      'sourceKind': source.kind.name,
+      'mapId': mapId,
+      'triggerId': triggerId,
     },
     triggerEnter: (mapId, triggerId) => {
       'sourceKind': source.kind.name,

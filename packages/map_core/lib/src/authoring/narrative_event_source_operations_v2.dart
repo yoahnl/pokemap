@@ -511,6 +511,18 @@ NarrativeEventSourceImpactPreview _sourceImpact({
             : null,
       );
     },
+    triggerBump: (mapId, triggerId) {
+      final option = _spatialOption(catalog, source);
+      return (
+        sentence: option?.humanDescription ??
+            'Entrée dans la zone $triggerId sur $mapId',
+        mapId: mapId,
+        origin: _spatialOrigin(option),
+        navigation: option?.selectable == true
+            ? NarrativeEditorDestination.focusTrigger(mapId, triggerId)
+            : null,
+      );
+    },
     triggerEnter: (mapId, triggerId) {
       final option = _spatialOption(catalog, source);
       return (

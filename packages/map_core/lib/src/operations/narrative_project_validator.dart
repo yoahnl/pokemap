@@ -16,6 +16,7 @@ import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import 'narrative_entity_bump_source_reference.dart';
+import 'narrative_trigger_bump_source_reference.dart';
 import 'narrative_entity_autorun_source_reference.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
@@ -1415,6 +1416,10 @@ bool _eventSourceStaticallyReachable(
       NarrativeEventSourceRef.entityInteract(mapId, instanceId),
       mapsById, project,
     ),
+    triggerBump: (mapId, triggerId) => _sourceConnected(
+      NarrativeEventSourceRef.triggerBump(mapId, triggerId),
+      mapsById, project,
+    ),
     triggerEnter: (mapId, triggerId) => _sourceConnected(
       NarrativeEventSourceRef.triggerEnter(mapId, triggerId),
       mapsById, project,
@@ -2154,6 +2159,7 @@ List<NarrativeEventCondition> _recordConditions(NarrativeEventRecord record) =>
       entityBump: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
       entityAutorun: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
       modelInteract: (mapId, instanceId) => (mapId: mapId, ownerId: instanceId),
+      triggerBump: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
       triggerEnter: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
       mapEnter: (mapId) => (mapId: mapId, ownerId: null),
       outcomeReceived: (_) => (mapId: null, ownerId: null),
@@ -2183,6 +2189,11 @@ bool _sourceConnected(
     modelInteract: (mapId, instanceId) =>
         mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ??
         false,
+    triggerBump: (mapId, triggerId) {
+      final map = mapsById[mapId];
+      return map != null && isNarrativeTriggerBumpSourceAvailable(
+        project: project, map: map, triggerId: triggerId);
+    },
     triggerEnter: (mapId, triggerId) =>
         mapsById[mapId]?.triggers.any((trigger) => trigger.id == triggerId) ??
         false,
@@ -2235,6 +2246,21 @@ bool _sourceConnected(
             .where((value) => value.id == instanceId).firstOrNull;
         return (label: instance?.modelId, entityKind: null);
       },
+    triggerBump: (mapId, triggerId) {
+      MapTrigger? trigger;
+      for (final candidate
+          in mapsById[mapId]?.triggers ?? const <MapTrigger>[]) {
+        if (candidate.id == triggerId) {
+          trigger = candidate;
+          break;
+        }
+      }
+      final name = trigger?.name.trim();
+      return (
+        label: name == null || name.isEmpty ? trigger?.id : name,
+        entityKind: null,
+      );
+    },
     triggerEnter: (mapId, triggerId) {
       MapTrigger? trigger;
       for (final candidate

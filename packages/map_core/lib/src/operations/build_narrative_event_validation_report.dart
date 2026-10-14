@@ -281,6 +281,7 @@ String? _recordSceneId(NarrativeEventRecord? record) {
     entityBump: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
     entityAutorun: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
     modelInteract: (mapId, instanceId) => (mapId: mapId, ownerId: instanceId),
+    triggerBump: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
     triggerEnter: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
     mapEnter: (mapId) => (mapId: mapId, ownerId: null),
     outcomeReceived: (_) => (mapId: null, ownerId: null),

@@ -63,6 +63,7 @@ class EventOutcomeSummary extends StatelessWidget {
     entityBump: (_, _) => null,
     entityInteract: (_, _) => null,
     modelInteract: (_, _) => null,
+      triggerBump: (_, _) => null,
       triggerEnter: (_, _) => null,
       mapEnter: (_) => null,
       outcomeReceived: (o) => o,

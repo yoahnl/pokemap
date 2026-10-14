@@ -608,6 +608,7 @@ bool _isSpatialAndAvailable(NarrativeEventProjectSummary event) {
     entityBump: (_, _) => true,
     entityInteract: (_, _) => true,
     modelInteract: (_, _) => true,
+    triggerBump: (_, _) => true,
     triggerEnter: (_, _) => true,
     mapEnter: (_) => true,
     outcomeReceived: (_) => false,

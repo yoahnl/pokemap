@@ -96,6 +96,11 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
               project: widget.loader.workspace.project!, map: map, entityId: id))) {
         return const Text('Source indisponible · personnage à réparer');
       }
+      if (widget.source.kind == NarrativeEventSourceKind.triggerBump &&
+          (widget.loader.workspace.project == null ||
+            !isNarrativeTriggerBumpSourceAvailable(project: widget.loader.workspace.project!, map: map, triggerId: id))) {
+        return const Text('Source indisponible · zone à réparer');
+      }
       final entitySource =
           (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
           widget.source.kind == NarrativeEventSourceKind.entityBump ||

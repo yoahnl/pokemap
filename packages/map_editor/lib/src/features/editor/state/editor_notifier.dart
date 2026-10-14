@@ -3572,6 +3572,7 @@ class EditorNotifier extends _$EditorNotifier
         selectedEntityKind = owner.kind;
         return true;
       },
+      triggerBump: (_, _) => false,
       triggerEnter: (mapId, triggerId) {
         if (mapId != proposal.afterMap.id ||
             !proposal.afterMap.triggers.any(
@@ -3927,6 +3928,7 @@ class EditorNotifier extends _$EditorNotifier
       entityBump: (_, _) {},
       entityInteract: (_, entityId) => removedEntityId = entityId,
       modelInteract: (_, _) {},
+      triggerBump: (_, _) {},
       triggerEnter: (_, triggerId) => removedTriggerId = triggerId,
       mapEnter: (_) {},
       outcomeReceived: (_) {},
@@ -4004,6 +4006,7 @@ class EditorNotifier extends _$EditorNotifier
               .toList(),
         );
       },
+      triggerBump: (_, _) => null,
       triggerEnter: (mapId, triggerId) {
         if (mapId != map.id) return null;
         final owners = map.triggers
@@ -4146,6 +4149,7 @@ class EditorNotifier extends _$EditorNotifier
       entityInteract: (mapId, entityId) =>
           map.id == mapId &&
           map.entities.any((candidate) => candidate.id == entityId),
+      triggerBump: (_, _) => false,
       triggerEnter: (mapId, triggerId) =>
           map.id == mapId &&
           map.triggers.any((candidate) => candidate.id == triggerId),
@@ -4195,6 +4199,7 @@ class EditorNotifier extends _$EditorNotifier
             ) ==
             interlock.sourceOwnerFingerprint;
       },
+      triggerBump: (_, _) => false,
       triggerEnter: (mapId, triggerId) {
         if (map.id != mapId) return false;
         final owners = map.triggers

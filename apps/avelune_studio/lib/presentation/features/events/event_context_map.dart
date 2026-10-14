@@ -57,6 +57,12 @@ class _EventContextMapState extends State<EventContextMap> {
   @override
   Widget build(BuildContext context) {
     final map = widget.map;
+    final sourceKind = widget.chooseKind ?? widget.source?.kind;
+    if (sourceKind == NarrativeEventSourceKind.triggerBump &&
+        (widget.project.settings.dimension != ProjectDimension.twoD ||
+          map.spatialScene != null || map.version == ProjectVersion.v9)) {
+      return const Text('Le contact de zone nécessite une carte 2D.');
+    }
     if (map.spatialScene != null) {
       return EventSpatialContextMap(
         map: map, project: widget.project, visuals: widget.visuals,
@@ -155,25 +161,23 @@ class _EventContextMapState extends State<EventContextMap> {
                   ),
                   entitySource(entity),
                 ),
-          if (widget.chooseKind == NarrativeEventSourceKind.triggerEnter ||
-              (widget.chooseKind == null &&
-                  eventMapId(widget.source) == map.id &&
-                  widget.source?.kind == NarrativeEventSourceKind.triggerEnter))
+          if (entityKind == NarrativeEventSourceKind.triggerEnter ||
+              entityKind == NarrativeEventSourceKind.triggerBump)
             for (final trigger in map.triggers)
-              if (widget.chooseKind == NarrativeEventSourceKind.triggerEnter
-                  ? _selectable(
-                      NarrativeEventSourceRef.triggerEnter(map.id, trigger.id),
-                    )
-                  : trigger.id == eventTargetId(widget.source))
+              if ((entityKind != NarrativeEventSourceKind.triggerBump ||
+                    isNarrativeTriggerBumpSourceAvailable(project: widget.project, map: map, triggerId: trigger.id)) &&
+                  (widget.chooseKind != null
+                    ? _selectable(entityKind == NarrativeEventSourceKind.triggerBump
+                        ? NarrativeEventSourceRef.triggerBump(map.id, trigger.id)
+                        : NarrativeEventSourceRef.triggerEnter(map.id, trigger.id))
+                    : trigger.id == eventTargetId(widget.source)))
                 (
                   trigger.name,
-                  Rect.fromLTWH(
-                    trigger.area.pos.x * cellWidth,
-                    trigger.area.pos.y * cellHeight,
-                    trigger.area.size.width * cellWidth,
-                    trigger.area.size.height * cellHeight,
-                  ),
-                  NarrativeEventSourceRef.triggerEnter(map.id, trigger.id),
+                  Rect.fromLTWH(trigger.area.pos.x * cellWidth, trigger.area.pos.y * cellHeight,
+                    trigger.area.size.width * cellWidth, trigger.area.size.height * cellHeight),
+                  entityKind == NarrativeEventSourceKind.triggerBump
+                    ? NarrativeEventSourceRef.triggerBump(map.id, trigger.id)
+                    : NarrativeEventSourceRef.triggerEnter(map.id, trigger.id),
                 ),
         ];
         return CallbackShortcuts(

@@ -1119,6 +1119,7 @@ final class NarrativeEventSpatialLinkJournalRepository
           'owner': owner.toJson(),
         };
       },
+      triggerBump: (_, _) => null,
       triggerEnter: (mapId, triggerId) {
         if (map.id != mapId) return null;
         final owners = map.triggers.where((trigger) => trigger.id == triggerId);
@@ -1161,6 +1162,7 @@ final class NarrativeEventSpatialLinkJournalRepository
             if (entity.id != entityId) entity,
         ],
       ),
+      triggerBump: (_, _) => throw ArgumentError.value(source, 'source'),
       triggerEnter: (_, triggerId) => map.copyWith(
         triggers: [
           for (final trigger in map.triggers)

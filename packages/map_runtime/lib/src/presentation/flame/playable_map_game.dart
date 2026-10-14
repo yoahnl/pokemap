@@ -1101,6 +1101,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         entityInteract: (mapId, entityId) => null,
         entityBump: (mapId, entityId) => null,
         modelInteract: (mapId, instanceId) => null,
+        triggerBump: (mapId, triggerId) => null,
         triggerEnter: (mapId, triggerId) => null,
         mapEnter: (_) => null,
         outcomeReceived: (_) => null,
@@ -1180,6 +1181,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       entityInteract: (mapId, entityId) => false,
       entityBump: (mapId, entityId) => false,
       modelInteract: (mapId, instanceId) => false,
+      triggerBump: (mapId, triggerId) => false,
       triggerEnter: (mapId, triggerId) => false,
       mapEnter: (_) => false,
       outcomeReceived: (_) => false,
@@ -1449,6 +1451,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           entityInteract: (_, entityId) => entityId,
           entityAutorun: (_, entityId) => entityId,
           entityBump: (_, entityId) => entityId,
+          triggerBump: (_, triggerId) => triggerId,
           triggerEnter: (_, triggerId) => triggerId,
           mapEnter: (mapId) => mapId,
           outcomeReceived: (_) => eventId,
@@ -5210,6 +5213,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _runDetachedNarrativeTask(
             operation: 'entityBump',
             task: () => _dispatchNarrativeEntityBump(contact),
+          );
+          return;
+        }
+      }
+      if (_canResolveOverworldInteraction()) {
+        final registry = _bundle.manifest.eventRegistry;
+        final contacts = result.triggerBumpContacts.where((contact) {
+          final source = NarrativeEventSourceRef.triggerBump(
+            contact.mapId,
+            contact.triggerId,
+          );
+          return registry != null && registry.records.any((record) =>
+              record.enabledOrNull == true && record.definitionOrNull?.source == source) &&
+              (registry.mode != EventSystemMode.legacyOnly ||
+                  registry.ownsSourceInLegacyMode(source));
+        }).toList(growable: false);
+        if (contacts.isNotEmpty) {
+          _runDetachedNarrativeTask(
+            operation: 'triggerBump.queue',
+            task: () => _dispatchNarrativeTriggerBumps(contacts),
           );
         }
       }
@@ -10415,6 +10438,108 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     _runLegacyInteractionFallback(result);
+  }
+
+  Future<void> _dispatchNarrativeTriggerBumps(
+    List<GameplayTriggerBumpContact> contacts,
+  ) async {
+    if (contacts.isEmpty) return;
+    final activationId = _currentMapActivationId;
+    final mapId = _activeMapId;
+    final instance = _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+      mapId,
+    );
+    _inFlightSpatialDispatchCount++;
+    _clearPressedMovementControls();
+    try {
+      for (final contact in contacts) {
+        if (_isRemoved ||
+            _activeMapId != mapId ||
+            contact.mapId != mapId ||
+            _currentMapActivationId != activationId ||
+            _battleRuntimeGameState.mapInstanceWorldState.instanceRef(mapId) !=
+                instance ||
+            _flowPhase != _RuntimeFlowPhase.overworld) {
+          return;
+        }
+        await _dispatchNarrativeTriggerBump(contact);
+      }
+    } finally {
+      _inFlightSpatialDispatchCount--;
+      _publishOverworldInteractions();
+    }
+  }
+
+  Future<void> _dispatchNarrativeTriggerBump(
+    GameplayTriggerBumpContact contact,
+  ) async {
+    final activationId = _currentMapActivationId;
+    final instance = _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+      contact.mapId,
+    );
+    bool applicable() {
+      if (_isRemoved ||
+          _activeMapId != contact.mapId ||
+          activationId != _currentMapActivationId ||
+          instance !=
+              _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+                contact.mapId,
+              ) ||
+          _player.isStepping ||
+          _player.isJumping ||
+          _world.player.facing != contact.direction ||
+          !isNarrativeTriggerBumpSourceAvailable(
+            project: _bundle.manifest,
+            map: _world.map,
+            triggerId: contact.triggerId,
+          )) {
+        return false;
+      }
+      final fresh = resolvePlayerTriggerBumpContacts(
+        _world,
+        contact.direction,
+        attemptedPixelsPerStep: contact.attemptedPixelsPerStep,
+        characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
+            .map((reservation) => reservation.contactRect)
+            .whereType<PixelRect>(),
+      );
+      return fresh.any(
+        (candidate) =>
+            candidate.mapId == contact.mapId &&
+            candidate.triggerId == contact.triggerId &&
+            candidate.direction == contact.direction &&
+            candidate.attemptedPixelsPerStep ==
+                contact.attemptedPixelsPerStep &&
+            candidate.playerPos == contact.playerPos &&
+            candidate.playerPositionPx.leftPx ==
+                contact.playerPositionPx.leftPx &&
+            candidate.playerPositionPx.topPx ==
+                contact.playerPositionPx.topPx &&
+            candidate.playerSpriteWidthPx == contact.playerSpriteWidthPx &&
+            candidate.playerSpriteHeightPx == contact.playerSpriteHeightPx &&
+            candidate.triggerArea == contact.triggerArea &&
+            candidate.blockedPlayerCollisionRectPx.leftPx ==
+                contact.blockedPlayerCollisionRectPx.leftPx &&
+            candidate.blockedPlayerCollisionRectPx.topPx ==
+                contact.blockedPlayerCollisionRectPx.topPx &&
+            candidate.blockedPlayerCollisionRectPx.widthPx ==
+                contact.blockedPlayerCollisionRectPx.widthPx &&
+            candidate.blockedPlayerCollisionRectPx.heightPx ==
+                contact.blockedPlayerCollisionRectPx.heightPx,
+      );
+    }
+
+    if (!applicable()) return;
+    await _dispatchSpatialOccurrence(
+      occurrence: NarrativeEventOccurrence(
+        source: NarrativeEventSourceRef.triggerBump(
+          contact.mapId,
+          contact.triggerId,
+        ),
+      ),
+      legacyFallback: (_) async {},
+      contactIsApplicable: applicable,
+    );
   }
 
   Future<void> _dispatchNarrativeEntityBump(

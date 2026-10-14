@@ -21,6 +21,7 @@ enum NarrativeEventSourceKind {
   outcomeReceived,
   entityBump,
   entityAutorun,
+  triggerBump,
 }
 
 enum NarrativeOutcomeProducerKind {
@@ -82,6 +83,8 @@ sealed class NarrativeEventSourceRef {
   static const contracts = <Map<String, Object?>>[
     {'kind': 'mapEnter', 'requiredFields': ['kind', 'mapId']},
     {'kind': 'triggerEnter', 'requiredFields': ['kind', 'mapId', 'triggerId']},
+    {'kind': 'triggerBump', 'requiredFields': ['kind', 'mapId', 'triggerId'],
+      'dimension': 'twoD', 'triggerReference': 'knownUniqueEventTriggerWithValidArea'},
     {'kind': 'entityInteract', 'requiredFields': ['kind', 'mapId', 'entityId']},
     {'kind': 'modelInteract', 'requiredFields': ['kind', 'mapId', 'instanceId'],
       'dimension': 'threeD'},
@@ -111,6 +114,11 @@ sealed class NarrativeEventSourceRef {
     String mapId,
     String instanceId,
   ) = _ModelInteractSourceRef;
+
+  factory NarrativeEventSourceRef.triggerBump(
+    String mapId,
+    String triggerId,
+  ) = _TriggerBumpSourceRef;
 
   factory NarrativeEventSourceRef.triggerEnter(
     String mapId,
@@ -202,6 +210,25 @@ sealed class NarrativeEventSourceRef {
           NarrativeEventWire.requiredIdentity(object, 'mapId', path: 'source'),
           NarrativeEventWire.requiredIdentity(object, 'instanceId', path: 'source'),
         );
+      case 'triggerBump':
+        NarrativeEventWire.expectExactFields(
+          object,
+          const {'kind', 'mapId', 'triggerId'},
+          path: 'source',
+          knownFields: _sourceWireFields,
+        );
+        return NarrativeEventSourceRef.triggerBump(
+          NarrativeEventWire.requiredIdentity(
+            object,
+            'mapId',
+            path: 'source',
+          ),
+          NarrativeEventWire.requiredIdentity(
+            object,
+            'triggerId',
+            path: 'source',
+          ),
+        );
       case 'triggerEnter':
         NarrativeEventWire.expectExactFields(
           object,
@@ -268,6 +295,7 @@ sealed class NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -294,6 +322,7 @@ final class _EntityInteractSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -336,6 +365,7 @@ final class _EntityBumpSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -378,6 +408,7 @@ final class _EntityAutorunSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -420,6 +451,7 @@ final class _ModelInteractSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -443,6 +475,49 @@ final class _ModelInteractSourceRef extends NarrativeEventSourceRef {
   int get hashCode => Object.hash(kind, mapId, instanceId);
 }
 
+final class _TriggerBumpSourceRef extends NarrativeEventSourceRef {
+  _TriggerBumpSourceRef(String mapId, String triggerId)
+      : mapId = _validateIdentityArgument(mapId, 'mapId'),
+        triggerId = _validateIdentityArgument(triggerId, 'triggerId'),
+        super._();
+
+  final String mapId;
+  final String triggerId;
+
+  @override
+  NarrativeEventSourceKind get kind => NarrativeEventSourceKind.triggerBump;
+
+  @override
+  T when<T>({
+    required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String entityId) entityBump,
+    required T Function(String mapId, String entityId) entityAutorun,
+    required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
+    required T Function(String mapId, String triggerId) triggerEnter,
+    required T Function(String mapId) mapEnter,
+    required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
+  }) =>
+      triggerBump(mapId, triggerId);
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': 'triggerBump',
+        'mapId': mapId,
+        'triggerId': triggerId,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _TriggerBumpSourceRef &&
+          other.mapId == mapId &&
+          other.triggerId == triggerId;
+
+  @override
+  int get hashCode => Object.hash(kind, mapId, triggerId);
+}
+
 final class _TriggerEnterSourceRef extends NarrativeEventSourceRef {
   _TriggerEnterSourceRef(String mapId, String triggerId)
       : mapId = _validateIdentityArgument(mapId, 'mapId'),
@@ -461,6 +536,7 @@ final class _TriggerEnterSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -501,6 +577,7 @@ final class _MapEnterSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -536,6 +613,7 @@ final class _OutcomeReceivedSourceRef extends NarrativeEventSourceRef {
     required T Function(String mapId, String entityId) entityBump,
     required T Function(String mapId, String entityId) entityAutorun,
     required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerBump,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,

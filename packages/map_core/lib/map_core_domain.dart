@@ -390,4 +390,5 @@ export 'src/operations/spatial_map_operations.dart';
 export 'src/operations/ledge_line_border_resolver.dart';
 
 export 'src/operations/narrative_entity_bump_source_reference.dart';
+export 'src/operations/narrative_trigger_bump_source_reference.dart';
 export 'src/operations/narrative_entity_autorun_source_reference.dart';

@@ -104,6 +104,266 @@ void main() {
   }
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('native trigger bump against blocked terrain', () {
+    test(
+      'runs once without entering the solid trigger cell or requiring a NPC',
+      () async {
+        final fixture = await _fixture(
+          sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+          sourceTriggers: const [_terrainBumpTrigger],
+          scenes: [_entityBumpScene()],
+          eventRegistry: _triggerBumpRegistry(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        await _bumpUp(game);
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 1, y: 1),
+        );
+        expect(game.debugIsPlayerStepping, isFalse);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        await _bumpUp(game);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      },
+    );
+
+    test(
+      'does not run on primary action or successful entry into the area',
+      () async {
+        final fixture = await _fixture(
+          sourceTriggers: const [_terrainBumpTrigger],
+          scenes: [_entityBumpScene()],
+          eventRegistry: _triggerBumpRegistry(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        );
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.primary),
+        );
+        await _settleEntityBump(game);
+        expect(game.gameStateSnapshot.trainerProfile.money, before);
+        await _bumpUp(game);
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 1, y: 0),
+        );
+        expect(game.gameStateSnapshot.trainerProfile.money, before);
+      },
+    );
+
+    test(
+      'does not reinterpret a scripted actor route as physical input',
+      () async {
+        final fixture = await _fixture(
+          sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+          sourceTriggers: const [_terrainBumpTrigger],
+          scenes: [_entityBumpScene()],
+          eventRegistry: _triggerBumpRegistry(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        final output = await game.debugExecuteSceneInteractiveCommand(
+          _actorRoute([
+            {'kind': 'move', 'direction': 'north', 'durationMs': 250},
+          ]),
+        );
+        expect(output, 'blocked');
+        expect(game.gameStateSnapshot.trainerProfile.money, before);
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 1, y: 1),
+        );
+      },
+    );
+
+    test(
+      'claims held input once and prevents saving while authority is pending',
+      () async {
+        final entered = Completer<void>();
+        final release = Completer<void>();
+        addTearDown(() {
+          if (!release.isCompleted) release.complete();
+        });
+        var preparations = 0;
+        final fixture = await _fixture(
+          sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+          sourceTriggers: const [_terrainBumpTrigger],
+          scenes: [_entityBumpScene()],
+          eventRegistry: _triggerBumpRegistry(
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+          ),
+          beforeNarrativeAuthorityPreparation: (occurrence) async {
+            if (occurrence.source.kind != NarrativeEventSourceKind.triggerBump) {
+              return;
+            }
+            preparations++;
+            entered.complete();
+            await release.future;
+          },
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.up),
+        );
+        game.update(.016);
+        for (var tick = 0; tick < 80 && !entered.isCompleted; tick++) {
+          game.update(.016);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(entered.isCompleted, isTrue);
+        expect(game.debugIsGameplayInputLocked, isTrue);
+        expect(await game.saveGame(), isFalse);
+        for (var tick = 0; tick < 20; tick++) {
+          game.update(.016);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(preparations, 1);
+        release.complete();
+        await _settleEntityBump(game);
+        for (var tick = 0; tick < 20; tick++) {
+          game.update(.016);
+        }
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.up),
+        );
+        expect(preparations, 1);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      },
+    );
+
+    test('refuses contact that changed during authority preparation', () async {
+      late PlayableMapGame game;
+      final fixture = await _fixture(
+        sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+        sourceTriggers: const [_terrainBumpTrigger],
+        scenes: [_entityBumpScene()],
+        eventRegistry: _triggerBumpRegistry(),
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind == NarrativeEventSourceKind.triggerBump) {
+            game.debugSetPlayerStateForTest(
+              position: const GridPos(x: 1, y: 2),
+              facing: Direction.north,
+            );
+          }
+        },
+      );
+      game = fixture.game;
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      await _bumpUp(game);
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 2));
+      expect(game.gameStateSnapshot.trainerProfile.money, before);
+      expect(
+        game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        isEmpty,
+      );
+    });
+
+    test('allows its own scene warp and preserves one-shot consumption through save reload', () async {
+      final repository = _MemorySaveRepository();
+      Future<PlayableMapGame> create() async => (await _fixture(
+        warpArrival: true,
+        saveRepository: repository,
+        sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+        sourceTriggers: const [_terrainBumpTrigger],
+        scenes: [
+          _entityBumpScene(
+            beforeReward: _arrivalCommand(transition: SceneWarpTransition.none),
+          ),
+        ],
+        eventRegistry: _triggerBumpRegistry(),
+      )).game;
+      final game = await create();
+      final before = game.gameStateSnapshot.trainerProfile.money;
+      await _bumpUp(game);
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 0, y: 1));
+      expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+      expect(await game.saveGame(), isTrue);
+      final disk = await repository.load();
+      expect(
+        disk!.narrativeEventProgress.consumedNarrativeEventIds,
+        contains(_entityBumpEventId),
+      );
+      game.onRemove();
+      final reopened = await create();
+      expect(await reopened.loadGame(), isTrue);
+      await _settleEntityBump(reopened);
+      expect(reopened.gameStateSnapshot.currentMapId, 'target');
+      expect(reopened.gameStateSnapshot.trainerProfile.money, before + 100);
+      await _move(reopened, RuntimeInputControl.left);
+      await _bumpUp(reopened);
+      expect(reopened.gameStateSnapshot.currentMapId, 'source');
+      expect(reopened.gameStateSnapshot.trainerProfile.money, before + 100);
+    });
+
+    test(
+      'drains overlapping contacts after a consumed one-shot source',
+      () async {
+        final fixture = await _fixture(
+          sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+          sourceTriggers: [
+            _terrainBumpTrigger.copyWith(id: 'a'),
+            _terrainBumpTrigger.copyWith(id: 'z'),
+          ],
+          scenes: [_entityBumpScene(), _secondTriggerBumpScene()],
+          eventRegistry: _overlappingTriggerBumpRegistry(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        await _bumpUp(game);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 200);
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 1, y: 1),
+        );
+        await _bumpUp(game);
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 300);
+      },
+    );
+
+    test(
+      'a same-position warp cancels the rest of the captured contact queue',
+      () async {
+        final fixture = await _fixture(
+          sameMapArrival: true,
+          sourceCollisionCells: const [GridPos(x: 1, y: 0)],
+          sourceTriggers: [
+            _terrainBumpTrigger.copyWith(id: 'a'),
+            _terrainBumpTrigger.copyWith(id: 'z'),
+          ],
+          scenes: [
+            _entityBumpScene(
+              beforeReward: SceneInteractiveCommand.warp(
+                destinationMapId: 'source',
+                warpId: 'same',
+                arrivalFacing: EntityFacing.north,
+                transition: SceneWarpTransition.none,
+              ),
+            ),
+            _secondTriggerBumpScene(),
+          ],
+          eventRegistry: _overlappingTriggerBumpRegistry(),
+        );
+        final game = fixture.game;
+        final before = game.gameStateSnapshot.trainerProfile.money;
+        final activation = game.debugCompletedMapActivationDispatchCount;
+        await _bumpUp(game);
+        expect(game.gameStateSnapshot.currentMapId, 'source');
+        expect(
+          game.gameStateSnapshot.playerPosition,
+          const GridPos(x: 1, y: 1),
+        );
+        expect(game.gameStateSnapshot.trainerProfile.money, before + 100);
+        expect(game.debugCompletedMapActivationDispatchCount, activation + 1);
+      },
+    );
+  });
+
   test(
     'world Scene wait preserves an independently running world tone',
     () async {
@@ -3371,6 +3631,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   MapWarpTriggerMode arrivalTriggerMode = MapWarpTriggerMode.onBump,
   List<MapWarp> sourceWarps = const [],
   List<MapTrigger> sourceTriggers = const [],
+  List<GridPos> sourceCollisionCells = const [],
   EntityFacing sourceFacing = EntityFacing.east,
   GameSaveRepository? saveRepository,
   SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort,
@@ -3405,7 +3666,14 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     id: 'source',
     name: 'Source',
     size: sourceSize,
-    layers: const [MapLayer.object(id: 'objects', name: 'Objects')],
+    layers: [
+      const MapLayer.object(id: 'objects', name: 'Objects'),
+      if (sourceCollisionCells.isNotEmpty) MapLayer.collision(
+        id: 'terrain-solid', name: 'Terrain',
+        collisions: List.generate(sourceSize.width * sourceSize.height,
+          (index) => sourceCollisionCells.contains(GridPos(x: index % sourceSize.width, y: index ~/ sourceSize.width))),
+      ),
+    ],
     entities: [
       ...sourceEntities,
       MapEntity(
@@ -3587,7 +3855,8 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       project: manifest, maps: [source, target]);
     for (final record in eventRegistry.records) {
       final eventSource = record.definitionOrNull?.source;
-      if (eventSource?.kind == NarrativeEventSourceKind.entityBump ||
+      if (eventSource?.kind == NarrativeEventSourceKind.triggerBump ||
+          eventSource?.kind == NarrativeEventSourceKind.entityBump ||
           eventSource?.kind == NarrativeEventSourceKind.entityAutorun) {
         expect(catalog.options.any((option) =>
             option.selectable && option.source == eventSource), isTrue,
@@ -4614,3 +4883,80 @@ final class _AutorunFileSaveRepository extends FileGameSaveRepository {
   Future<String> getSaveFilePath() async =>
       p.join(directory.path, 'game_save.json');
 }
+
+const _terrainBumpTrigger = MapTrigger(
+  id: 'terrain-contact',
+  name: 'Door threshold',
+  type: TriggerType.event,
+  area: MapRect(pos: GridPos(x: 1, y: 0), size: GridSize(width: 1, height: 1)),
+);
+
+NarrativeEventRegistry _triggerBumpRegistry({
+  NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.oneShot,
+}) => NarrativeEventRegistry(
+  schemaVersion: 1,
+  mode: EventSystemMode.v2Only,
+  records: [
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: _entityBumpEventId,
+        name: 'Terrain contact',
+        source: NarrativeEventSourceRef.triggerBump(
+          'source',
+          'terrain-contact',
+        ),
+        sceneId: 'entity-bump-scene',
+        conditions: const [],
+        reusePolicy: reusePolicy,
+        priority: 0,
+        order: 0,
+      ),
+      enabled: true,
+    ),
+  ],
+  legacyClaims: const [],
+);
+
+SceneAsset _secondTriggerBumpScene() => SceneAsset.fromJson({
+  ..._entityBumpScene().toJson(),
+  'id': 'second-contact-scene',
+});
+
+NarrativeEventRegistry _overlappingTriggerBumpRegistry() =>
+    NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.v2Only,
+      records: [
+        for (final entry in [
+          (
+            id: _entityBumpEventId,
+            triggerId: 'a',
+            sceneId: 'entity-bump-scene',
+            policy: NarrativeEventReusePolicy.oneShot,
+          ),
+          (
+            id: 'evt_019abcde-1400-7000-8000-000000000002',
+            triggerId: 'z',
+            sceneId: 'second-contact-scene',
+            policy: NarrativeEventReusePolicy.reusable,
+          ),
+        ])
+          NarrativeEventRecord.configuredStructurallyUnchecked(
+            NarrativeEventDefinition(
+              id: entry.id,
+              name: entry.triggerId,
+              source: NarrativeEventSourceRef.triggerBump(
+                'source',
+                entry.triggerId,
+              ),
+              sceneId: entry.sceneId,
+              conditions: const [],
+              reusePolicy: entry.policy,
+              priority: 0,
+              order: 0,
+            ),
+            enabled: true,
+          ),
+      ],
+      legacyClaims: const [],
+    );

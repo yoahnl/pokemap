@@ -1605,6 +1605,7 @@ void main() {
                 entityAutorun: (_, _) {},
                 entityBump: (_, _) {},
                 modelInteract: (_, __) {},
+                triggerBump: (_, _) {},
                 triggerEnter: (_, __) {},
                 mapEnter: (_) {},
                 outcomeReceived: (outcome) {

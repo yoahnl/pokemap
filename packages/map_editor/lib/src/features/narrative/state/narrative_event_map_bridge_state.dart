@@ -2206,6 +2206,7 @@ String _spatialMapId(NarrativeEventSourceRef source) {
     entityBump: (mapId, _) => mapId,
     entityInteract: (mapId, _) => mapId,
     modelInteract: (mapId, _) => mapId,
+    triggerBump: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) =>
@@ -2238,6 +2239,9 @@ bool _mapOwnsSource(MapData map, NarrativeEventSourceRef source) {
     entityInteract: (mapId, entityId) =>
         mapId == map.id &&
         map.entities.where((entity) => entity.id == entityId).length == 1,
+    triggerBump: (mapId, triggerId) =>
+        mapId == map.id &&
+        map.triggers.where((trigger) => trigger.id == triggerId).length == 1,
     triggerEnter: (mapId, triggerId) =>
         mapId == map.id &&
         map.triggers.where((trigger) => trigger.id == triggerId).length == 1,
