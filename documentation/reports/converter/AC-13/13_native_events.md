@@ -785,3 +785,80 @@ Auto-critique : les preuves sont fortes pour publication, gain natif et ETHER ap
 Commit local autorisé par le goal,33 chemins revus seulement, sans push/rebase/amend/branche. Garde fraîche juste avant staging : `/private/tmp/avelune-ac13-audio-precommit-20261013-01.json`, puis reçu SHA/index/foreign hashes après commit : `/private/tmp/avelune-ac13-audio-local-commit-20261013-01.json`. Les fichiers source et diffs Git restent canoniques. Avant clôture : diff scoped sans erreur, hygiène Markdown zéro nouveau fichier. Worktree final conserve les changements étrangers ; index doit être vide et leurs bytes/modes sont comparés avant/après, sans restore/cleanup.
 
 Ticket existant unique [AC-13](https://app.notion.com/p/3f7197a7bfa581dab5b9c551c806e2ce), grand domaine Post Bêta Monde & narration, hors gate. Après commit/vérification du reçu : TO REVIEW pour ce complément, domaine PARTIAL ; DONE réservé à Yoahn. Le goal complet reste actif. Suite déjà autorisée : vraie carte voisine et parcours intercartes avec état/sauvegarde, puis événements/rencontres/dresseurs raccordés au combat Avelune ; pas de connexions ou succès de région inventés.
+
+
+## Complément du 14 octobre 2026 — Dialogue du Centre et orientation bornée
+
+**Verdict : code et préparation réelle qualifiés, publication du nouveau dialogue en cours ; AC-13 reste PARTIAL à la revue.** Le goal AC-00 à AC-16 reste actif. Aucun jeu complet, parcours KAN-03, porte du Centre ou persistance du facing n'est déclaré certifié.
+
+### Audit initial, portée et source
+
+Base main51d82254108006dd982b4d274b43bd18e00429c3, index vide et64 chemins étrangers au début ; reçu static-dialogue-before-01.json. Le writer host étranger et les autres travaux bordures/spatial/mobile sont exclus. Le snapshot privé Q/repository contient le writer commité précédent, pas ces modifications étrangères. Q = /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej.
+
+Le vrai Map102/event14/page0 utilise le texte explicite b/n puis209 target0, route[25,0] non répétée/non skippable et509 copie du25. Le profile Scripts reste au SHA3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d. Les oracles statiques044/079/088 sont recomputés et ajoutés à kanto-events-static-v2. 079:9–12 fixe les couleurs homme/femme indépendamment du skin ;088:428–443 distingue nom d'acteur, newline et couleurs, sans exécution Ruby. 044:165–184 et033:65–69 tournent le PNJ vers le joueur avant son programme, sans restaurer son orientation après unlock.209/509 est adapté uniquement lorsque sa route finale est idempotente pendant une interaction frontale stationnaire.
+
+Le chemin natif moderne playable_map_game_interactions.dart406 appelle déjà _faceNpcTowardPlayer avant le dispatch EventV2 ; playable_map_game.dart14814 applique le facing opposé du joueur au rendu, sans mutation persistée de world.npc.facing. Aucun nouveau modèle cible n'est introduit. Les lots FG-082/FG-092 sont pertinents ; aucun statut FG ou gate bêta n'est modifié, aucune proposition DONE.
+
+### Inventaire complet et zones modifiées
+
+| Fichier | Zones | Effet |
+|---|---|---|
+| packages/avelune_converter_core/lib/src/source_events.dart | Profil ligne37 ; SourceInteractionFacingNode252 ; parser932–1069 et transmission de rawPage | Node strict209+509, références admises et immuables, locators et graphes source exacts ; aucun mouvement générique. |
+| packages/avelune_converter_core/test/source_events_test.dart | Fixtures annotées et tests autour451 | RED puis84 cas : forme réelle, paramètres/class/champs/annotations, copie absente ou altérée, profils/refs/indents invalides et conservation. |
+| packages/avelune_converter_adapters/lib/src/source_event_projection.dart | Lexer44 ; evidence376 ; contexte558 ; gaps793 ; scene1183/1266 | Couleurs/ombre et newline via DialogueLineFeedback existant ; facing admis seulement pour une pagealways, texte sans choix puis route, PNJ2D1×1 immobiletrigger0/nonthrough/noDirectionFix. |
+| packages/avelune_converter_adapters/test/source_event_projection_test.dart | Helpers de route et tests autour483–700 | Dialogue source réel, couleurs, uppercase, contexte interdit, contrôles inconnus, balises/entités et fermeture des effets dépendants. |
+| documentation/reports/converter/AC-13/13_native_events.md | Présent complément | Source, décisions, preuves et limites consolidées. |
+| documentation/reports/converter/AC-16/16_local_distribution.md | Actualisation de publication/distribution | Liens vers ce complément et nouveaux artefacts, sans réécrire les preuves anciennes. |
+
+Les quatre fichiers source/test host et QA sont byte-identical au gel static-dialogue-final-pins-02.json. Source core SHA92636a027208100d4addaedaf4fef0c40253491349b791480d229c34d579254f ; test190abb258628f71d850d9f08474ac44e27efdde83a678fca977507039d7b9615 ; projection7674c2c287de8d563e7b98c17bc9f4a2fe1806b49f014ead1d1cd0d901ac4072 ; testprojectione4578e84f5f15e27654124c1720caf6e51f31c5b2beae719223169a9eff50215. Aucun commentaire, dependency/pub/lock host, code runtime/Studio/combats ou format natif modifié.
+
+### Contrepreuves et commandes finales
+
+Chaque reçu conserve argv/cwd, UID/start/command des descendants, pins avant/après et SHA des logs ; static-dialogue-verification-01.json les revalide. Les commandes s'exécutent dans les packages de Q/repository.
+
+| Reçu | Commande / résultat exact | Durée |
+|---|---|---|
+| ac13-facing-red-01 | Core :31PASS/2FAIL, forme exacte encore quarantinée et profilv1 ; exit1 |3.682s|
+| ac13-facing-symbol-red-02 | Symbole de champ étendu accepté à tort ; Expected true/Actual false, exit1 | Voir reçu |
+| ac13-facing-green-02 | dart test test/source_events_test.dart --reporter expanded --concurrency=1 ;84PASS/0SKIP, exit0 |4.749s|
+| static-text-red-02 | Deux dialogues colorés refusés ; Expected notnull/Actual null, exit1 |4.318s|
+| static-text-edge-red-01 | Nom d'acteur n[1] admis à tort et uppercase refusé, exit1 |4.322s|
+| static-facing-projection-red-01 | Vrai programme text+route encore fermé, exit1 |4.583s|
+| static-formatting-red-01 | Programme coloré avec balise b admis à tort : Expected null/Actual NarrativeEventDefinition, exit1 |5.267s|
+| static-dialogue-core-full-01 | dart test --reporter expanded --concurrency=2 ;880PASS/1SKIP, exit0 |65.796s|
+| static-dialogue-adapters-full-02 | Même commande, AVELUNE_AC13_SOURCE_SCRIPTS attestés ;847PASS/40SKIP, exit0 |251.161s|
+| static-dialogue-core-analyze-01 / adapters-analyze-01 | dart analyze ; No issues found, exit0/0 |1.032s/2.597s|
+| static-dialogue-cli-build-01 | dart compile exe bin/avelune_converter.dart -o Q/bin/avelune-converter-static-dialogue-v2 ; AOTarm64, exit0 |27.513s|
+| static-dialogue-app-build-01 | flutter build macos --release --no-pub ;71.1MB, lipo x86_64 arm64, exit0 |72.299s|
+| static-dialogue-mcp-build-01 / check-01 | npm run build / npm run check, exit0/0 |1.780s/1.772s|
+| static-dialogue-mcp-live-01 | node --import tsx --test --test-concurrency=1 test/scene_dialogue_feedback_stdio.test.ts ;1PASS/0SKIP, exit0 |13.792s|
+| kan03-probe-run-06 | Workflow public sur98/100/102 : canApprove=true,44events,9adaptés/35quarantinés,79artefacts/431mutations, exit0 |208.745s|
+| static-dialogue-package-01 / install-static-dialogue-v2-run-01 | ZIP/inventaire puis extraction, CLI help→plan→convert→verify, source intacte/verify read-only, exit0/0 |4.430s/1.297s|
+
+Les SKIP sont des absences de preuve. Le premier test texte avait un const invalide sur DialogueTextSegment ; le premier test de symbole avait un getter de fixture sur le mauvais objet. Leurs logs sont conservés, puis des RED fonctionnels distincts précèdent les corrections. La première revalidation root utilisait une mauvaise clé pinsBefore au lieu de fileHashesBefore ; elle n'a écrit aucun reçu, le contrôle corrigé revalide tous les hashes. Le premier apply_patch de test supplémentaire ne trouvait pas la ligne reformattée et n'a effectué aucune mutation ; patch adapté ensuite. Aucune erreur n'est remplacée par une annonce de succès.
+
+La critique indépendante a reproduit par lecture le P2 d'admission des balises/entités :087:75 définit21tokens et087:89–95 sept entités. RED réel puis garde final correspondant exactement aux deux ensembles. Inconnus thing et AMP majuscule restent littéraux ; onze formes connues non portées ferment tout l'événement, sans fact/scène/dialogue actif. Fulladapter01/probe05 précèdent ce garde ; leurs résultats ne sont pas substitués aux runs finaux02/06.
+
+### Publication existante, nouveau plan et distribution
+
+La publication3cartes du normalizerv4 précédent termine dans centre-native-convert-02.json : exit0/1138.108s, published=true, verified=true, sourceUnchanged=true, playableCertified=false ; révision sha256:76958a78264921e865c12bce028ded97051c3a66d7f76d81021c3dfa6aa4e22c. Elle a8events adaptés/36inactifs ; le nouveau PNJ n'y est pas actif. CopieStudio1333fichiers byte-identical sous /Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/AC16-Kanto-Centre-20261014-ftgqyeej/Projet converti. UI réelle : Centre20×20 à29%, capture Q/centre-studio-01.png SHA0e47a79a1a4afbffea1e48241dc61e12d7255d1b55f8083b823897d125bcc4c4. Copie/source intactes après consultation ; aucune édition revendiquée pour ce Centre. Fenêtre30153 fermée, run177.430s, aucun survivant, protégés intacts.
+
+Préparation finale06 : source restaurée23720fichiers, snapshotfd1e6e73879d90d3dbedffcd703e5bac5b3b58c9fc8a9186ce1e5d98233dbe4e, mêmes3sorties hors sélection explicitement exclues. PNJ102/14 est adapté, aucun gap, raw209/509+span1..2 et persistentFacingCertified=false présents. Recette4167octets SHA467b842affac946a58eebf375c76fb4f1b4f847db78c2cc7bed0f3e3c7089d13 ; plan approuvé3fc3f8ee0acb4b8ddc1f24aba175c2d37056d8516e4777f07901c0ac901085c2. La CLI réelle restaure cette recette dans centre-dialogue-native-convert-01, borne2400s ; publication encore en cours lors de ce complément, aucune ouverture Player du nouveau PNJ annoncée.
+
+Nouvelle archive privée locale : apps/avelune_converter/build/distribution/AC16-local-20261014-static-dialogue-v2/AveluneConverter-local-validation.zip,37791981octets, SHA2c831dbd5cb438e9d5f826c5c8e46f2ff7b3007e19c3e652dfb0a68a3a20ea16 ; inventaire SHA6d81595fe401f169968c260000d69964574502b3a0b182681a603db0a0658f58.38files/35dirs/9liensrelatifs/1NOTICE/0sidecarPods. App.framework SHA6965b8111d5cf13b024f837c822e9ef690ca3a5e5ba9a02dd433989dbf1d1ed9 ; CLIb33c6779b6aea639d68652310b68fdea368cb1a0f81d529ba825f52a046f5698. Extraction réelle :2maps/1atlas synthétiques, révision33c5734abe5ae4b953dd8c6f7851617628f31a3733dcfe37e1454c622d690aa4. Pas de média Pokémon/source obligatoire, notarisation, publication publique ou validation x86_64 d'exécution ; le binaire GUI release final n'est pas encore qualifié visuellement.
+
+### Parité, passes et auto-critique
+
+API source/workflow/CLI et projection canonique sont testés ; writer existant non modifié. Aucun nouveau contrat cible ou action à enregistrer. MCP rebâti/checké, vrai describe du catalogue choicePolicy/lineFeedback/audioMedia/map.audio, mutation/refus/reopen/query/close passés sur racine temporaire étroite. PMCP-085 global reste PARTIAL ; cela ne constitue pas un nouveau parcours GUI du PNJ. Aucune modification par édition directe de projetJSON.
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture — root + ac15_connection_review_fresh | Source et contrat natif relus, couleurs/premierlock/facing bornés ; aucune règle de combat modifiée. |
+| Implémentation — ac13_static_facing + root | Parser strict et texte stylé, whole-quarantine, refs/evidence et limites explicites ;4fichiers source/tests. |
+| Tests — agent core + root | RED réels puis84core ciblés/880full/847adapters finals ; source réelle9/44 ; SKIP40+1 déclarés. |
+| Build / Validation — root | Release universelle/AOT/ZIP extrait PASS ; Centre antérieur visible et fermé ; exportdialogue encore en cours, Player non prouvé. |
+| Critique — ac15_connection_review_fresh | P2balises/entités trouvé puis fermé sur gel02, ensembles comparés exactement ; aucun autre P1/P2 concret. |
+
+Auto-critique : c'est une adaptation utile du vrai dialogue, pas une certification globale de l'Essentials. Cadre/police/préférences source, timing complet du scheduler et facing sauvegardé restent non qualifiés. La source demeure une restauration historique partielle, distincte de l'original incomplet.35événements restent inactifs, dont porte/soinsCentre ; pas d'arrivée directionnelle ni de garde de réentrée inventés. La suite conserve KAN03 départ/dialogue/warp/état/save et tous les lots restants.
+
+Git avant commit :6chemins ci-dessus, index vide et64étrangers à revalider en bytes/modes avant staging. Le contrôle après commit produira static-dialogue-commit-after-01.json avec SHA/parent/blobs/index/étrangers. Aucun push/rebase/amend/branche/worktree. AC13 existant dans Monde & narration PostBêta, actuellementDOING/PARTIAL ; après commit, TO REVIEW pour le code, sans DONE ni réduction des critères KAN03. AC16 garde DOING/PARTIAL.

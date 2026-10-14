@@ -459,7 +459,242 @@ bool _guard(
   };
 }
 
+List<_RubyObject> _interactionFacingCommands() {
+  final face = _RubyObject(
+      'RPG::MoveCommand', {'@code': 25, '@parameters': <Object?>[]});
+  return [
+    _command(209, [
+      0,
+      _RubyObject('RPG::MoveRoute', {
+        '@repeat': false,
+        '@skippable': false,
+        '@list': [
+          face,
+          _RubyObject(
+              'RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]}),
+        ],
+      }),
+    ]),
+    _command(509, [face]),
+  ];
+}
+
 void main() {
+  test('unported source formatting quarantines the whole colored event',
+      () async {
+    for (final text in [
+      r'\bHello<b>bold</b>',
+      r'\bHello<C3 = E00808,D0D0C8>red</C3>',
+      r'\rHello<icon=itemPotion>',
+      r'\bHello<br>next',
+      r'\bA&amp;B',
+      r'\bA&lt;B',
+      r'\bA&gt;B',
+      r'\bA&quot;B',
+      r'\bA&apos;B',
+      r'\bNidoran&m;',
+      r'\bNidoran&f;',
+    ]) {
+      final result = _projectEvents(await _events([
+        _page([
+          _command(101, [text]),
+          _command(123, ['A', 0]),
+        ])
+      ]));
+      expect(result.registry.records.single.definitionOrNull, isNull,
+          reason: text);
+      expect(result.facts, isEmpty, reason: text);
+      expect(result.scenes, isEmpty, reason: text);
+      expect(result.dialogues, isEmpty, reason: text);
+    }
+  });
+
+  test('stationary NPC source dialogue adapts its final face-player route',
+      () async {
+    final source = await _events([
+      _page([
+        _command(101, [r'\bI heard that ghosts haunt\nLavender Town.']),
+        ..._interactionFacingCommands(),
+        _command(0, []),
+      ])
+    ]);
+    final result = _projectEvents(source);
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    final payload = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .single;
+    expect(payload.linePolicies.single.feedback.plainText,
+        'I heard that ghosts haunt\nLavender Town.');
+    final event = (result.semanticEvidence['events'] as List).single as Map;
+    final page = (event['pages'] as List).single as Map;
+    final adaptation = (page['adaptedCommands'] as List).single as Map;
+    expect(adaptation['nativeContract'], 'npcFacingAtEntityInteract');
+    expect(adaptation['sourceOpcodes'], [209, 509]);
+    expect(adaptation['persistentFacingCertified'], isFalse);
+    expect((adaptation['span'] as Map)['firstCommandIndex'], 1);
+    expect((adaptation['span'] as Map)['lastCommandIndex'], 2);
+    expect(adaptation['rawDataRefs'], hasLength(2));
+    expect(result.facts, isEmpty);
+    expect(
+        result.nativeMaps[1]!.entities.single.npc!.facing, EntityFacing.south);
+  });
+
+  test(
+      'face-player routes stay inactive outside the stable interaction context',
+      () async {
+    for (final variant in [
+      'touch',
+      'through',
+      'directionFix',
+      'moving',
+      'branch',
+      'effect',
+      'routeFirst',
+      'multiPage',
+    ]) {
+      final page = _page([
+        if (variant == 'routeFirst') ..._interactionFacingCommands(),
+        if (variant == 'branch') _command(111, [0, 1, 0]),
+        _command(101, ['Hello'], indent: variant == 'branch' ? 1 : 0),
+        if (variant == 'branch') _command(412, []),
+        if (variant == 'effect') _command(123, ['A', 0]),
+        if (variant != 'routeFirst') ..._interactionFacingCommands(),
+      ], trigger: variant == 'touch' ? 1 : 0);
+      if (variant == 'through') page.fields['@through'] = true;
+      if (variant == 'directionFix') page.fields['@direction_fix'] = true;
+      if (variant == 'moving') page.fields['@move_type'] = 1;
+      final result = _projectEvents(await _events([
+        page,
+        if (variant == 'multiPage')
+          _page([
+            _command(101, ['Other page'])
+          ]),
+      ]));
+      expect(result.registry.records.single.definitionOrNull, isNull,
+          reason: variant);
+      expect(result.facts, isEmpty, reason: variant);
+      expect(result.scenes, isEmpty, reason: variant);
+      expect(jsonEncode(result.semanticEvidence),
+          contains('interactionFacingUnsupported'),
+          reason: variant);
+    }
+  });
+
+  test('static source dialogue preserves explicit colors and newlines',
+      () async {
+    final result = _projectEvents(await _events([
+      _page([
+        _command(101, [r'\bI heard that ghosts haunt\nLavender Town.']),
+      ])
+    ]));
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    final payload = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .single;
+    final document = const YarnDialogueCompiler()
+        .compile(result.dialogueSources.values.single);
+    final text =
+        (document.nodes.single.steps.single as RuntimeDialogueLine).text;
+    expect(text, 'I heard that ghosts haunt\nLavender Town.');
+    final feedback = payload.linePolicies.single.feedback;
+    expect(feedback.plainText, text);
+    expect(
+        feedback.segments.single,
+        DialogueTextSegment(text,
+            style: DialogueSegmentStyle(
+                colorArgb: 0xff3050c8, shadowColorArgb: 0xffd0d0c8)));
+  });
+
+  test('unknown tags and uppercase entities stay literal source text',
+      () async {
+    final result = _projectEvents(await _events([
+      _page([
+        _command(101, [r'\bA<thing>&AMP;B']),
+      ])
+    ]));
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    final payload = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .single;
+    expect(payload.linePolicies.single.feedback.plainText, 'A<thing>&AMP;B');
+  });
+
+  test('static source dialogue keeps color changes within the same line',
+      () async {
+    final result = _projectEvents(await _events([
+      _page([
+        _command(101, [r'Hello \bblue\rred\nnext']),
+      ])
+    ]));
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    final payload = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .single;
+    final feedback = payload.linePolicies.single.feedback;
+    expect(feedback.plainText, 'Hello bluered\nnext');
+    expect(feedback.segments, [
+      DialogueTextSegment('Hello '),
+      DialogueTextSegment('blue',
+          style: DialogueSegmentStyle(
+              colorArgb: 0xff3050c8, shadowColorArgb: 0xffd0d0c8)),
+      DialogueTextSegment('red\nnext',
+          style: DialogueSegmentStyle(
+              colorArgb: 0xffe00808, shadowColorArgb: 0xffd0d0c8)),
+    ]);
+  });
+
+  test('unqualified source text controls quarantine all dependent effects',
+      () async {
+    for (final text in [
+      r'\bHello\v[1]',
+      r'\PN',
+      r'\c[0]Hello',
+      r'Hello\wt[20]',
+      r'\bHello\n[1]',
+      r'\\bHello',
+      'Hello\\',
+    ]) {
+      final result = _projectEvents(await _events([
+        _page([
+          _command(101, [text]),
+          _command(123, ['A', 0]),
+        ])
+      ]));
+      expect(result.registry.records.single.definitionOrNull, isNull,
+          reason: text);
+      expect(result.scenes, isEmpty, reason: text);
+      expect(result.dialogues, isEmpty, reason: text);
+      expect(result.facts, isEmpty, reason: text);
+      expect(jsonEncode(result.semanticEvidence),
+          contains('sourceTextControlUnsupported'),
+          reason: text);
+    }
+  });
+
+  test('static source text controls use the oracle case-insensitive spelling',
+      () async {
+    final result = _projectEvents(await _events([
+      _page([
+        _command(101, [r'\BBlue\RRed\NNext']),
+      ])
+    ]));
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    final payload = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .single;
+    expect(payload.linePolicies.single.feedback.plainText, 'BlueRed\nNext');
+    expect(
+        payload.linePolicies.single.feedback.segments
+            .whereType<DialogueTextSegment>()
+            .map((segment) => segment.style!.colorArgb),
+        [0xff3050c8, 0xffe00808]);
+  });
+
   test('hidden item player touch requires source bump semantics', () async {
     final page = _page([
       _command(101, ['Hidden touch'])

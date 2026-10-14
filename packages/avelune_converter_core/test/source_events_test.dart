@@ -8,14 +8,23 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:test/test.dart';
 
 final class _RubyObject {
-  _RubyObject(this.className, this.fields);
+  _RubyObject(this.className, this.fields, {this.fieldExtensions = const {}});
   final String className;
   final Map<String, Object?> fields;
+  final Map<String, String> fieldExtensions;
 }
 
 final class _RubyBytes {
   const _RubyBytes(this.bytes);
   final List<int> bytes;
+}
+
+final class _RubyAnnotation {
+  const _RubyAnnotation(this.value,
+      {this.extension, this.userClass, this.fields = const {}});
+  final Object? value;
+  final String? extension, userClass;
+  final Map<String, Object?> fields;
 }
 
 final class _RubyTable {
@@ -52,6 +61,23 @@ final class _MarshalFixture {
   }
 
   List<int> _value(Object? value) {
+    if (value is _RubyAnnotation) {
+      if (value.extension != null) {
+        return [0x65, ..._symbol(value.extension!), ..._value(value.value)];
+      }
+      if (value.userClass != null) {
+        return [0x43, ..._symbol(value.userClass!), ..._value(value.value)];
+      }
+      return [
+        0x49,
+        ..._value(value.value),
+        ..._packed(value.fields.length),
+        for (final entry in value.fields.entries) ...[
+          ..._symbol(entry.key),
+          ..._value(entry.value)
+        ],
+      ];
+    }
     if (value == null) return [0x30];
     if (value is bool) return [value ? 0x54 : 0x46];
     if (value is int) return [0x69, ..._packed(value)];
@@ -86,6 +112,10 @@ final class _MarshalFixture {
         ..._symbol(value.className),
         ..._packed(value.fields.length),
         for (final entry in value.fields.entries) ...[
+          if (value.fieldExtensions[entry.key] case final extension?) ...[
+            0x65,
+            ..._symbol(extension),
+          ],
           ..._symbol(entry.key),
           ..._value(entry.value)
         ],
@@ -170,6 +200,24 @@ _RubyObject _tileset({String image = 'Terrain', List<String>? autotiles}) =>
 _RubyObject _command(int code, List<Object?> parameters, {int indent = 0}) =>
     _RubyObject('RPG::EventCommand',
         {'@code': code, '@indent': indent, '@parameters': parameters});
+
+_RubyObject _moveCommand(int code, {List<Object?> parameters = const []}) =>
+    _RubyObject('RPG::MoveCommand', {'@code': code, '@parameters': parameters});
+
+_RubyObject _facingRoute() => _RubyObject('RPG::MoveRoute', {
+      '@repeat': false,
+      '@skippable': false,
+      '@list': [_moveCommand(25), _moveCommand(0)],
+    });
+
+List<_RubyObject> _facingCommands({Object? target = 0, Object? route}) => [
+      _command(209, [target, route ?? _facingRoute()]),
+      _command(509, [_moveCommand(25)]),
+      _command(0, []),
+    ];
+
+_RubyObject _changedFacingRoute(Map<String, Object?> fields) =>
+    _facingRoute()..fields.addAll(fields);
 
 _RubyObject _page(List<_RubyObject> commands,
         {int trigger = 0, String character = ''}) =>
@@ -400,6 +448,335 @@ extension on SourceEventAnalysis {
 }
 
 void main() {
+  test('exact current-event facing route preserves its two-command source span',
+      () async {
+    final commands = [
+      _command(101, ['Hello']),
+      ..._facingCommands(),
+    ];
+    final project = await _events([_page(commands)]);
+    final before = project.archive.canonicalHash;
+    final analysis = _analyzer(project).analyze();
+    final page = analysis.requireEvent(1, 1).pages.single;
+    expect(page.isQuarantined, isFalse);
+    expect(analysis.diagnostics, isEmpty);
+    expect(page.body.nodes, hasLength(2));
+    final node = page.body.nodes.last as SourceInteractionFacingNode;
+    expect([node.span.firstCommandIndex, node.span.lastCommandIndex], [1, 2]);
+    expect(node.span.locator.commandIndex, 1);
+    expect(page.sourcePage.commands.map((command) => command.code),
+        [101, 209, 509, 0]);
+    expect(page.rawDataRef, isNotNull);
+    expect(node.rawDataRefs, hasLength(2));
+    for (var i = 0; i < node.rawDataRefs.length; i++) {
+      final reference = node.rawDataRefs[i];
+      final command = page.sourcePage.commands[1 + i];
+      final parameter = command.parameters[i == 0 ? 1 : 0] as Map;
+      expect(reference.id.value, parameter['preservedDataRef']);
+      expect(reference.locator!.toJson(), command.sourceLocator.toJson());
+      expect(reference.fileId, page.rawDataRef!.fileId);
+      expect(reference.contentHash,
+          project.archive.files[reference.fileId]!.contentHash);
+      expect(reference.status, 'preservedOnly');
+    }
+    expect(() => node.rawDataRefs.clear(), throwsUnsupportedError);
+    expect(project.archive.canonicalHash, before);
+  });
+
+  test('static event profile attests facing and native interaction oracles',
+      () async {
+    final profile =
+        SourceEventProfile.kantoForProject(await _events([_page([])]));
+    final json = profile.toJson();
+    expect(json['profile'], 'kanto-events-static-v2');
+    expect(
+        json['oracleSections'],
+        containsPair('044',
+            '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9'));
+    expect(
+        json['oracleSections'],
+        containsPair('079',
+            'eacf78724bf5ab978b4b74d73149e3e556906d8f63d0ed380310bdddae7a6dad'));
+    expect(
+        json['oracleSections'],
+        containsPair('088',
+            '82abdb33dfad9d735c4342ca63fa72483b1a34bb01bd2a1e034b03afa8207ec3'));
+  });
+
+  final rejectedRoutes = <String, Object?>{
+    'repeated route': _changedFacingRoute({'@repeat': true}),
+    'skippable route': _changedFacingRoute({'@skippable': true}),
+    'nonboolean repeat': _changedFacingRoute({'@repeat': 0}),
+    'nonboolean skippable': _changedFacingRoute({'@skippable': 0}),
+    'extra route field': _changedFacingRoute({'@wait': false}),
+    'missing repeat': _facingRoute()..fields.remove('@repeat'),
+    'missing skippable': _facingRoute()..fields.remove('@skippable'),
+    'missing route list': _facingRoute()..fields.remove('@list'),
+    'wrong route class': _RubyObject('CustomMoveRoute', _facingRoute().fields),
+    'untyped route map': _facingRoute().fields,
+    'empty route': _changedFacingRoute({'@list': <Object?>[]}),
+    'missing terminator': _changedFacingRoute({
+      '@list': [_moveCommand(25)]
+    }),
+    'extra movement': _changedFacingRoute({
+      '@list': [_moveCommand(25), _moveCommand(1), _moveCommand(0)]
+    }),
+    'unknown movement': _changedFacingRoute({
+      '@list': [_moveCommand(999), _moveCommand(0)]
+    }),
+    'fixed orientation': _changedFacingRoute({
+      '@list': [_moveCommand(24), _moveCommand(0)]
+    }),
+    'wrong terminator': _changedFacingRoute({
+      '@list': [_moveCommand(25), _moveCommand(999)]
+    }),
+    'facing parameter': _changedFacingRoute({
+      '@list': [
+        _moveCommand(25, parameters: [0]),
+        _moveCommand(0)
+      ]
+    }),
+    'terminator parameter': _changedFacingRoute({
+      '@list': [
+        _moveCommand(25),
+        _moveCommand(0, parameters: [0])
+      ]
+    }),
+    'extra movement field': _changedFacingRoute({
+      '@list': [_moveCommand(25)..fields['@extra'] = false, _moveCommand(0)]
+    }),
+    'missing movement parameters': _changedFacingRoute({
+      '@list': [_moveCommand(25)..fields.remove('@parameters'), _moveCommand(0)]
+    }),
+    'wrong movement class': _changedFacingRoute({
+      '@list': [
+        _RubyObject('UnknownCommand', _moveCommand(25).fields),
+        _moveCommand(0)
+      ]
+    }),
+    'extended route':
+        _RubyAnnotation(_facingRoute(), extension: 'UnknownExtension'),
+    'extended field symbol': _RubyObject(
+        'RPG::MoveRoute', _facingRoute().fields,
+        fieldExtensions: {'@repeat': 'UnknownExtension'}),
+    'forged reference marker': {'preservedDataRef': 'missing-reference'},
+    'invalid reference marker': {'preservedDataRef': 'invalid reference'},
+    'extended movement': _changedFacingRoute({
+      '@list': [
+        _RubyAnnotation(_moveCommand(25), extension: 'UnknownExtension'),
+        _moveCommand(0)
+      ]
+    }),
+    'extended route list': _changedFacingRoute({
+      '@list': _RubyAnnotation([_moveCommand(25), _moveCommand(0)],
+          extension: 'UnknownExtension')
+    }),
+    'custom route list': _changedFacingRoute({
+      '@list': _RubyAnnotation([_moveCommand(25), _moveCommand(0)],
+          userClass: 'UnknownArray')
+    }),
+    'annotated route list': _changedFacingRoute({
+      '@list': _RubyAnnotation([_moveCommand(25), _moveCommand(0)],
+          fields: {'@extra': true})
+    }),
+    'extended flag': _changedFacingRoute({
+      '@repeat': const _RubyAnnotation(false, extension: 'UnknownExtension')
+    }),
+    'annotated movement parameters': _changedFacingRoute({
+      '@list': [
+        _moveCommand(25)
+          ..fields['@parameters'] =
+              const _RubyAnnotation(<Object?>[], fields: {'@extra': true}),
+        _moveCommand(0)
+      ]
+    }),
+  };
+  for (final entry in rejectedRoutes.entries) {
+    test('${entry.key} quarantines the entire facing page', () async {
+      final commands = _facingCommands(route: entry.value);
+      commands.insert(2, _command(123, ['A', 0]));
+      final project = await _events([_page(commands)]);
+      final before = project.archive.canonicalHash;
+      final page = _analyzer(project).analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.isQuarantined, isTrue);
+      expect(page.body.nodes.map((node) => node.runtimeType.toString()),
+          isNot(contains('SourceInteractionFacingNode')));
+      expect(page.sourcePage.commands.map((command) => command.code),
+          [209, 509, 123, 0]);
+      expect(project.archive.canonicalHash, before);
+    });
+  }
+
+  final rejectedCommands = <String, List<_RubyObject>>{
+    'player target': _facingCommands(target: -1),
+    'named event target': _facingCommands(target: 1),
+    'string target': _facingCommands(target: '0'),
+    'boolean target': _facingCommands(target: false),
+    'missing route parameter': [
+      _command(209, [0]),
+      _command(509, [_moveCommand(25)]),
+      _command(0, [])
+    ],
+    'extra route parameter': [
+      _command(209, [0, _facingRoute(), false]),
+      _command(509, [_moveCommand(25)]),
+      _command(0, [])
+    ],
+    'missing copy': [
+      _command(209, [0, _facingRoute()]),
+      _command(0, [])
+    ],
+    'standalone copy': [
+      _command(509, [_moveCommand(25)]),
+      _command(0, [])
+    ],
+    'wrong copy opcode': [
+      _command(209, [0, _facingRoute()]),
+      _command(509, [_moveCommand(24)]),
+      _command(0, [])
+    ],
+    'copy parameter': [
+      _command(209, [0, _facingRoute()]),
+      _command(509, [
+        _moveCommand(25, parameters: [0])
+      ]),
+      _command(0, [])
+    ],
+    'extra copy field': [
+      _command(209, [0, _facingRoute()]),
+      _command(509, [_moveCommand(25)..fields['@extra'] = false]),
+      _command(0, [])
+    ],
+    'wrong copy indent': [
+      _command(209, [0, _facingRoute()]),
+      _command(509, [_moveCommand(25)], indent: 1),
+      _command(0, [])
+    ],
+    'missing copy payload': [
+      _command(209, [0, _facingRoute()]),
+      _command(509, []),
+      _command(0, [])
+    ],
+    'extra copy payload': [
+      _command(209, [0, _facingRoute()]),
+      _command(509, [_moveCommand(25), _moveCommand(25)]),
+      _command(0, [])
+    ],
+    'separated copy': [
+      _command(209, [0, _facingRoute()]),
+      _command(101, ['Interruption']),
+      _command(509, [_moveCommand(25)]),
+      _command(0, [])
+    ],
+    'extra event command field': _facingCommands()
+      ..first.fields['@extra'] = false,
+  };
+  for (final entry in rejectedCommands.entries) {
+    test('${entry.key} cannot qualify current-event facing', () async {
+      final commands = [...entry.value];
+      commands.insert(commands.length - 1, _command(123, ['A', 0]));
+      final page = _analyzer(await _events([_page(commands)]))
+          .analyze()
+          .requireEvent(1, 1)
+          .pages
+          .single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.isQuarantined, isTrue);
+      expect(page.body.nodes.map((node) => node.runtimeType.toString()),
+          isNot(contains('SourceInteractionFacingNode')));
+    });
+  }
+
+  test('facing cannot be enabled by another script hash or source binding',
+      () async {
+    final project = await _events([_page(_facingCommands())]);
+    for (final profile in [
+      SourceEventProfile.kantoForProject(project,
+          scriptsArchiveHash: Sha256Hash('a' * 64)),
+      SourceEventProfile.kanto(
+          scriptsArchiveHash:
+              Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+          sourceSnapshotHash: _hash([9]),
+          normalizationHash: project.canonicalHash),
+      SourceEventProfile.kanto(
+          scriptsArchiveHash:
+              Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+          sourceSnapshotHash: project.snapshot.canonicalHash,
+          normalizationHash: _hash([9])),
+    ]) {
+      final page = SourceEventAnalyzer.forProject(project, profile: profile)
+          .analyze()
+          .requireEvent(1, 1)
+          .pages
+          .single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.isQuarantined, isTrue);
+      expect(page.body.nodes.map((node) => node.runtimeType.toString()),
+          isNot(contains('SourceInteractionFacingNode')));
+    }
+  });
+
+  test('linked movement copies retain distinct exact command locators',
+      () async {
+    final move = _moveCommand(25);
+    final route = _changedFacingRoute({
+      '@list': [move, _moveCommand(0)]
+    });
+    final project = await _events([
+      _page([
+        _command(209, [0, route]),
+        _command(509, [move]),
+        _command(0, [])
+      ])
+    ]);
+    final page = _analyzer(project).analyze().requireEvent(1, 1).pages.single;
+    expect(page.isQuarantined, isFalse);
+    final node = page.body.nodes.single as SourceInteractionFacingNode;
+    expect(node.rawDataRefs.map((ref) => ref.locator!.commandIndex), [0, 1]);
+    expect(node.rawDataRefs.map((ref) => ref.id).toSet(), hasLength(2));
+  });
+
+  test(
+      'annotated raw event commands and parameter arrays cannot qualify facing',
+      () async {
+    final extended = _page(_facingCommands());
+    final commands = extended.fields['@list'] as List<_RubyObject>;
+    extended.fields['@list'] = [
+      _RubyAnnotation(commands.first, extension: 'UnknownExtension'),
+      ...commands.skip(1)
+    ];
+    final annotated = _page(_facingCommands());
+    final raw = (annotated.fields['@list'] as List<_RubyObject>).first;
+    raw.fields['@parameters'] =
+        _RubyAnnotation(raw.fields['@parameters'], fields: {'@extra': true});
+    for (final sourcePage in [extended, annotated]) {
+      final page = _analyzer(await _events([sourcePage]))
+          .analyze()
+          .requireEvent(1, 1)
+          .pages
+          .single;
+      expect(page.isQuarantined, isTrue);
+      expect(page.body.isQuarantined, isTrue);
+      expect(page.body.nodes.whereType<SourceInteractionFacingNode>(), isEmpty);
+    }
+  });
+
+  test('qualified facing cannot make an unknown suffix executable', () async {
+    final commands = _facingCommands();
+    commands.insert(2, _command(999, []));
+    commands.insert(3, _command(123, ['A', 0]));
+    final page = _analyzer(await _events([_page(commands)]))
+        .analyze()
+        .requireEvent(1, 1)
+        .pages
+        .single;
+    expect(page.isQuarantined, isTrue);
+    expect(page.body.isQuarantined, isTrue);
+    expect(page.body.nodes.first, isA<SourceInteractionFacingNode>());
+    expect(page.body.nodes[1], isA<SourceUnknownNode>());
+  });
+
   test(
       'RMXP internal zero preserves the original pickup branch and raw commands',
       () async {

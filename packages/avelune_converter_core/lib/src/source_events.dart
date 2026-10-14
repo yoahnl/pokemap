@@ -34,7 +34,7 @@ final class SourceEventProfile {
       scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-events-static-v1',
+        'profile': 'kanto-events-static-v2',
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
@@ -44,8 +44,14 @@ final class SourceEventProfile {
               'b2f4c542a1542a5908d1208b87eae05d8b6f6ec0d26df1835871595842ed0355',
           '034':
               'ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561',
+          '044':
+              '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9',
           '045':
               '8c11fb7f170df5ca2aff17725e1dbed031c94deebabdbbae69dd926e24acafa7',
+          '079':
+              'eacf78724bf5ab978b4b74d73149e3e556906d8f63d0ed380310bdddae7a6dad',
+          '088':
+              '82abdb33dfad9d735c4342ca63fa72483b1a34bb01bd2a1e034b03afa8207ec3',
           '127':
               'b280015f15e892754c90728bdbf23a77c280ebb86413cb51c64793e0b997757a',
           '241':
@@ -243,6 +249,13 @@ final class SourceScriptNode extends SourceEventNode {
   final String script;
 }
 
+final class SourceInteractionFacingNode extends SourceEventNode {
+  SourceInteractionFacingNode(super.span,
+      {required List<SourcePreservedData> rawDataRefs})
+      : rawDataRefs = List.unmodifiable(rawDataRefs);
+  final List<SourcePreservedData> rawDataRefs;
+}
+
 final class SourcePickupNode extends SourceEventNode {
   const SourcePickupNode(super.span,
       {required this.sourceSymbol, required this.quantity});
@@ -423,7 +436,7 @@ final class SourceEventAnalyzer {
                 .add(SourceEventDiagnostic('events.invalid_page_graphic', loc));
           }
           final body = _SourceEventParser(this, sourcePage.commands, loc,
-                  map.map.sourceMapId, event.sourceEventId, switches)
+                  map.map.sourceMapId, event.sourceEventId, switches, raw)
               .parse();
           pageDiagnostics.addAll(body.diagnostics);
           if (sourcePage.triggerCode < 0 || sourcePage.triggerCode > 4) {
@@ -699,12 +712,13 @@ String _eventText(MarshalDocument doc, int id) {
 
 final class _SourceEventParser {
   _SourceEventParser(this.analyzer, this.commands, this.locator, this.mapId,
-      this.eventId, this.switchNames);
+      this.eventId, this.switchNames, this.rawPage);
   final SourceEventAnalyzer analyzer;
   final List<SourceCommand> commands;
   final SourceLocator locator;
   final int mapId, eventId;
   final List<String?>? switchNames;
+  final SourcePreservedData? rawPage;
   final diagnostics = <SourceEventDiagnostic>[];
   var index = 0;
 
@@ -897,6 +911,8 @@ final class _SourceEventParser {
             y: y,
             direction: direction,
             fade: fade == 0);
+      case 209:
+        return _interactionFacing(indent);
       case 355:
         final first = index;
         var script = '';
@@ -911,6 +927,146 @@ final class _SourceEventParser {
       default:
         return _unknown('events.unknown_command');
     }
+  }
+
+  SourceEventNode _interactionFacing(int indent) {
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final first = index;
+    final routeCommand = commands[first];
+    _arity(routeCommand.parameters, 2);
+    if (_integer(routeCommand.parameters[0]) != 0 ||
+        first + 1 >= commands.length) {
+      throw const FormatException();
+    }
+    final copyCommand = commands[first + 1];
+    if (copyCommand.code != 509 ||
+        copyCommand.indent != indent ||
+        copyCommand.originalIndex != routeCommand.originalIndex + 1) {
+      throw const FormatException();
+    }
+    _arity(copyCommand.parameters, 1);
+    final routeParameters = _rawFacingParameters(routeCommand, 2);
+    final copyParameters = _rawFacingParameters(copyCommand, 1);
+    final route = _facingReference(routeCommand, 1, routeParameters[1]);
+    final copy = _facingReference(copyCommand, 0, copyParameters[0]);
+    final doc = analyzer.project.archive.files[route.fileId]!.document;
+    if (_eventInt(
+            doc, _facingPlain(doc, routeParameters[0], MarshalKind.integer)) !=
+        0) {
+      throw const FormatException();
+    }
+    final fields = _facingFields(doc, route.nodeId, 'RPG::MoveRoute',
+        const {'@repeat', '@skippable', '@list'});
+    for (final name in ['@repeat', '@skippable']) {
+      if (_eventBool(doc,
+          _facingPlain(doc, _eventField(fields, name), MarshalKind.boolean))) {
+        throw const FormatException();
+      }
+    }
+    final list = _facingArray(doc, _eventField(fields, '@list'), 2);
+    _facingMoveCommand(doc, list[0], 25);
+    _facingMoveCommand(doc, list[1], 0);
+    _facingMoveCommand(doc, copy.nodeId, 25);
+    index += 2;
+    return SourceInteractionFacingNode(_span(first, index - 1),
+        rawDataRefs: [route, copy]);
+  }
+
+  List<int> _rawFacingParameters(SourceCommand command, int arity) {
+    final page = rawPage;
+    if (page == null ||
+        canonicalJsonOf(page.locator?.toJson()) !=
+            canonicalJsonOf(locator.toJson()) ||
+        canonicalJsonOf(command.sourceLocator.toJson()) !=
+            canonicalJsonOf(
+                {...locator.toJson(), 'commandIndex': command.originalIndex})) {
+      throw const FormatException();
+    }
+    final doc = analyzer.project.archive.files[page.fileId]!.document;
+    final fields = _eventFields(doc, page.nodeId, 'RPG::Event::Page');
+    final list =
+        _facingArray(doc, _eventField(fields, '@list'), commands.length);
+    if (command.originalIndex < 0 || command.originalIndex >= list.length) {
+      throw const FormatException();
+    }
+    final raw = _facingFields(doc, list[command.originalIndex],
+        'RPG::EventCommand', const {'@code', '@indent', '@parameters'});
+    if (_eventInt(
+                doc,
+                _facingPlain(
+                    doc, _eventField(raw, '@code'), MarshalKind.integer)) !=
+            command.code ||
+        _eventInt(
+                doc,
+                _facingPlain(
+                    doc, _eventField(raw, '@indent'), MarshalKind.integer)) !=
+            command.indent) {
+      throw const FormatException();
+    }
+    return _facingArray(doc, _eventField(raw, '@parameters'), arity);
+  }
+
+  SourcePreservedData _facingReference(
+      SourceCommand command, int parameterIndex, int nodeId) {
+    final marker = command.parameters[parameterIndex];
+    if (marker is! Map ||
+        marker.length != 1 ||
+        marker['preservedDataRef'] is! String) {
+      throw const FormatException();
+    }
+    final reference =
+        analyzer._reference(ConverterId(marker['preservedDataRef'] as String));
+    if (reference == null ||
+        reference.fileId != rawPage!.fileId ||
+        reference.nodeId != nodeId ||
+        canonicalJsonOf(reference.locator?.toJson()) !=
+            canonicalJsonOf(command.sourceLocator.toJson())) {
+      throw const FormatException();
+    }
+    return reference;
+  }
+
+  Map<String, int> _facingFields(
+      MarshalDocument doc, int id, String className, Set<String> expected) {
+    final fields = _eventFields(doc, id, className);
+    for (final pair in doc.node(id).instanceVariables) {
+      _facingPlain(doc, pair.key, MarshalKind.symbol);
+    }
+    if (fields.length != expected.length ||
+        !fields.keys.every(expected.contains)) {
+      throw const FormatException();
+    }
+    return fields;
+  }
+
+  int _facingPlain(MarshalDocument doc, int id, MarshalKind kind) {
+    final node = doc.node(id);
+    if (node.kind != kind ||
+        node.extensions.isNotEmpty ||
+        node.userClass != null ||
+        node.instanceVariables.isNotEmpty) {
+      throw const FormatException();
+    }
+    return id;
+  }
+
+  List<int> _facingArray(MarshalDocument doc, int id, int arity) {
+    final list = doc.node(_facingPlain(doc, id, MarshalKind.array)).elements;
+    if (list.length != arity) throw const FormatException();
+    return list;
+  }
+
+  void _facingMoveCommand(MarshalDocument doc, int id, int code) {
+    final fields = _facingFields(
+        doc, id, 'RPG::MoveCommand', const {'@code', '@parameters'});
+    if (_eventInt(
+            doc,
+            _facingPlain(
+                doc, _eventField(fields, '@code'), MarshalKind.integer)) !=
+        code) {
+      throw const FormatException();
+    }
+    _facingArray(doc, _eventField(fields, '@parameters'), 0);
   }
 
   SourceConditionalNode _conditional(int indent) {

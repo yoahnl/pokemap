@@ -6,6 +6,82 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'source_pickup_feedback_binding.dart';
 
+final _sourceFormattingTag =
+    RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
+const _sourceFormattingTags = {
+  'b',
+  'i',
+  'u',
+  's',
+  'al',
+  'r',
+  'ar',
+  'ac',
+  'br',
+  'c',
+  'c2',
+  'c3',
+  'o',
+  'outln',
+  'outln2',
+  'fn',
+  'fs',
+  'icon',
+  'img',
+  'pg',
+  'pog',
+};
+const _sourceFormattingEntities = {
+  '&lt;',
+  '&gt;',
+  '&apos;',
+  '&quot;',
+  '&amp;',
+  '&m;',
+  '&f;',
+};
+
+DialogueLineFeedback? _staticSourceTextFeedback(String source) {
+  if (source.contains('\uFFFC') ||
+      _sourceFormattingEntities.any(source.contains) ||
+      _sourceFormattingTag.allMatches(source).any((match) =>
+          _sourceFormattingTags.contains(match.group(1)!.toLowerCase()))) {
+    return null;
+  }
+  final segments = <DialogueLineSegment>[];
+  var text = StringBuffer();
+  DialogueSegmentStyle? style;
+  void flush() {
+    if (text.isEmpty) return;
+    segments.add(DialogueTextSegment(text.toString(), style: style));
+    text = StringBuffer();
+  }
+
+  for (var index = 0; index < source.length; index++) {
+    if (source[index] != r'\') {
+      text.write(source[index]);
+      continue;
+    }
+    if (++index >= source.length) return null;
+    switch (source[index].toLowerCase()) {
+      case 'n':
+        if (index + 1 < source.length && source[index + 1] == '[') return null;
+        text.write('\n');
+      case 'b':
+      case 'r':
+        flush();
+        style = DialogueSegmentStyle(
+            colorArgb:
+                source[index].toLowerCase() == 'b' ? 0xff3050c8 : 0xffe00808,
+            shadowColorArgb: 0xffd0d0c8);
+      default:
+        return null;
+    }
+  }
+  flush();
+  return DialogueLineFeedback(segments: segments);
+}
+
 String sourceEventCharacterBindingKey(
         {required String characterName,
         required int pattern,
@@ -297,6 +373,21 @@ final class _ProjectionBuilder {
               'nativeEventId': gaps.isEmpty
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
+              'adaptedCommands': [
+                if (gaps.isEmpty)
+                  for (final node in page.body.nodes
+                      .whereType<SourceInteractionFacingNode>())
+                    {
+                      'sourceOpcodes': [209, 509],
+                      'span': node.span.toJson(),
+                      'rawDataRefs':
+                          node.rawDataRefs.map((ref) => ref.toJson()).toList(),
+                      'nativeContract': 'npcFacingAtEntityInteract',
+                      'equivalence':
+                          'finalFacingIsIdempotentDuringStationaryFrontInteraction',
+                      'persistentFacingCertified': false,
+                    },
+              ],
             }
         ],
       });
@@ -463,6 +554,26 @@ final class _ProjectionBuilder {
   String _name(SourceEventDefinition event) => event.name.trim().isEmpty
       ? 'Source event ${event.sourceEventId}'
       : event.name;
+
+  bool _supportsInteractionFacing(SourceEventDefinition event) {
+    if (event.pages.length != 1 ||
+        maps[event.sourceMapId]!.spatialScene != null) {
+      return false;
+    }
+    final page = event.pages.single;
+    final graphic = page.graphic;
+    return graphic != null &&
+        graphic.characterName.isNotEmpty &&
+        graphic.moveType == 0 &&
+        !graphic.directionFix &&
+        !graphic.through &&
+        page.triggerCode == 0 &&
+        page.condition.kind == SourceEventConditionKind.always &&
+        page.body.nodes.length == 2 &&
+        page.body.nodes.first is SourceTextNode &&
+        (page.body.nodes.first as SourceTextNode).followingChoice == null &&
+        page.body.nodes.last is SourceInteractionFacingNode;
+  }
 
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
@@ -679,7 +790,9 @@ final class _ProjectionBuilder {
     for (final node in block.nodes) {
       switch (node) {
         case SourceTextNode(:final text, :final followingChoice):
-          if (text.contains(r'\')) gaps.add('sourceTextControlUnsupported');
+          if (_staticSourceTextFeedback(text) == null) {
+            gaps.add('sourceTextControlUnsupported');
+          }
           if (followingChoice != null) {
             _choiceGaps(event, followingChoice, gaps);
           }
@@ -696,6 +809,10 @@ final class _ProjectionBuilder {
         case SourceSwitchNode():
         case SourceSelfSwitchNode():
           break;
+        case SourceInteractionFacingNode():
+          if (!_supportsInteractionFacing(event)) {
+            gaps.add('interactionFacingUnsupported');
+          }
         case SourceWarpNode(
             :final targetSourceMapId,
             :final x,
@@ -1063,6 +1180,8 @@ final class _SceneBuilder {
           next = _dialogue(node.span, text, followingChoice, next);
         case SourceChoiceNode():
           next = _dialogue(node.span, null, node, next);
+        case SourceInteractionFacingNode():
+          break;
         case SourceSwitchNode(:final factIds, :final value):
           for (final factId in factIds.reversed) {
             next = _fact(factId, value, next);
@@ -1144,6 +1263,10 @@ final class _SceneBuilder {
   String _dialogue(
       SourceEventSpan span, String? text, SourceChoiceNode? choice, String next,
       {List<DialogueLineFeedback>? feedbackLines}) {
+    final feedback = feedbackLines ??
+        (text != null && text.contains(r'\')
+            ? [_staticSourceTextFeedback(text)!]
+            : const <DialogueLineFeedback>[]);
     final id = projection._key(
         event, 'dialogue_${page.originalPageIndex}_${span.firstCommandIndex}');
     final outcomes = [
@@ -1164,8 +1287,8 @@ final class _SceneBuilder {
     final source = [
       'title: Start',
       '---',
-      if (feedbackLines != null)
-        ...feedbackLines.map((line) => '\\${jsonEncode(line.plainText)}')
+      if (feedback.isNotEmpty)
+        ...feedback.map((line) => '\\${jsonEncode(line.plainText)}')
       else if (text != null)
         '\\${jsonEncode(text)}',
       for (final branch in choice?.branches ?? <SourceChoiceBranch>[]) ...[
@@ -1189,8 +1312,7 @@ final class _SceneBuilder {
         yarnNodeName: 'Start',
         expectedOutcomes: outcomes,
         linePolicies: [
-          for (final entry
-              in (feedbackLines ?? <DialogueLineFeedback>[]).indexed)
+          for (final entry in feedback.indexed)
             SceneDialogueLinePolicy(
                 nodeName: 'Start', lineIndex: entry.$1, feedback: entry.$2)
         ],
