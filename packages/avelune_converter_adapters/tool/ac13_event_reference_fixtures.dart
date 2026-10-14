@@ -206,15 +206,15 @@ Future<void> main() async {
         humanConfirmed: true);
     final result = await workflow.writeApproved(approval);
     _require(
-        result.receipt.verified && result.sourceUnchanged && !result.published,
-        'The canonical writer must verify an unpublished source-preserving project');
+        result.receipt.verified && result.sourceUnchanged && result.published,
+        'The canonical workflow must publish a verified source-preserving project');
     const reader = LocalProjectFileReader();
     final handles = WorkspaceHandleStore();
     final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+        allowedRootPaths: [result.projectPath], fileReader: reader);
     final opener = ProjectOpenService(
         policy: policy, fileReader: reader, handles: handles);
-    final opened = await opener.openProject(result.receipt.projectPath);
+    final opened = await opener.openProject(result.projectPath);
     late ProjectManifest manifest;
     late MapData firstMap;
     try {
@@ -241,13 +241,13 @@ Future<void> main() async {
     final record = {
       'kind': 'originalSourceConvertedEventReference',
       'version': 1,
-      'projectFilePath': path.join(result.receipt.projectPath, 'project.json'),
+      'projectFilePath': path.join(result.projectPath, 'project.json'),
       'sourceRootPath': sourceRoot.path,
       'sourceScriptsArchiveHash': archiveHash,
       'sourceSnapshotHash': snapshot.canonicalHash.value,
       'sourceHashesBefore': sourceHashesBefore,
       'sourceHashesAfter': sourceHashesAfter,
-      'nativeHashes': await _directoryHashes(result.receipt.projectPath),
+      'nativeHashes': await _directoryHashes(result.projectPath),
       'nativeDraftHash': draft.canonicalHash.value,
       'nativeRevision': result.receipt.nativeRevision,
       'sourceNamespace': _namespace,
@@ -268,7 +268,7 @@ Future<void> main() async {
           .length,
       'sourceScriptsExecuted': 0,
       'aiCalls': 0,
-      'published': false,
+      'published': result.published,
       'globalPlayabilityCertified': false,
       'writerVerified': result.receipt.verified,
       'sourceUnchanged': result.sourceUnchanged,

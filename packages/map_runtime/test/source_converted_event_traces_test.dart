@@ -39,7 +39,7 @@ void main() {
     expect(reference.raw['sourceScriptsArchiveHash'], _archiveHash);
     expect(reference.raw['sourceScriptsExecuted'], 0);
     expect(reference.raw['aiCalls'], 0);
-    expect(reference.raw['published'], isFalse);
+    expect(reference.raw['published'], isTrue);
     expect(reference.raw['globalPlayabilityCertified'], isFalse);
     expect(
       reference.raw['sourceHashesAfter'],
@@ -306,7 +306,7 @@ void main() {
     expect(arrival.map.warps, hasLength(1));
     expect(arrival.map.warps.single.pos, const GridPos(x: 2, y: 2));
     expect(arrival.map.warps.single.targetMapId, reference.mapId(2));
-    expect(arrival.map.warps.single.triggerMode, MapWarpTriggerMode.onBump);
+    expect(arrival.map.warps.single.triggerMode, MapWarpTriggerMode.sceneOnly);
     expect(
       arrival.map.entities.where(
         (entity) => entity.kind != MapEntityKind.spawn,
