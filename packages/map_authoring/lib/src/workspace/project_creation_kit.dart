@@ -62,6 +62,7 @@ ProjectCreationKit buildProjectCreationKit(ProjectCreationRequest request) {
     settings: ProjectSettings(
         dimension: request.dimension,
         spatialCamera: camera,
+        mapInstanceRetentionPolicy: request.mapInstanceRetentionPolicy,
         tileWidth: request.tileSize,
         tileHeight: request.tileSize,
         defaultMapWidth: request.mapWidth,

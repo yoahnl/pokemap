@@ -153,6 +153,20 @@ void main() {
           compositionEvidence: fixture.draft.compositionEvidence,
           limits: limits);
 
+  test('source checkpoint import actions cannot bootstrap a fresh project', () async {
+    final draft = fixture.draft;
+    final changed = NativeProjectDraft(source: draft.source,
+        projectName: draft.projectName, parentPath: draft.parentPath,
+        folderName: draft.folderName, mapIds: draft.mapIds,
+        artifacts: draft.artifacts, sourceArtifacts: draft.sourceArtifacts,
+        compositionEvidence: draft.compositionEvidence,
+        mutations: [...draft.mutations, NativeMutation(
+          operationId: ConverterId('unsupported-source-checkpoint'), actionId: 'game_save.load',
+          sourceEntityIds: draft.mutations.first.sourceEntityIds,
+          targetEntityIds: draft.mutations.first.targetEntityIds, parameters: {})]);
+    await refuseBeforeStage(changed);
+  });
+
   test('AC-08 source PNG witnesses alter approval binding and are immutable',
       () {
     final witnesses = [NativeArtifact(bytes: fixture.atlasBytes)];

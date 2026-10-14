@@ -569,6 +569,14 @@ extension on SourceEventAnalysis {
 }
 
 void main() {
+  test('original door profile declares a map scoped route barrier and fresh followers', () {
+    final profile = SourceEventProfile.kanto(
+      scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+      sourceSnapshotHash: Sha256Hash('a' * 64), normalizationHash: Sha256Hash('b' * 64));
+    final timing = profile.toJson()['doorTiming'] as Map;
+    expect(timing['globalRouteBarrierScope'], 'allRepresentedForcedRoutesOnTheActiveNativeMap');
+    expect(timing['sourceExecutionContext'], 'freshNativeProjectWithoutImportedSourceFollowers');
+  });
   test('door IR recognizes the original Center entry without flattening routes',
       () async {
     final bytes = _project(maps: {
@@ -668,7 +676,7 @@ void main() {
         greaterThan(branch.span.lastCommandIndex));
     expect([branch.span.lastCommandIndex, setter.span.firstCommandIndex],
         [25, 26]);
-    expect(result.profile.toJson()['profile'], 'kanto-events-static-v4');
+    expect(result.profile.toJson()['profile'], 'kanto-events-static-v5');
     expect(project.canonicalHash, before);
     expect(project.archive.canonicalHash, archive);
   });
@@ -1186,7 +1194,7 @@ void main() {
     final profile =
         SourceEventProfile.kantoForProject(await _events([_page([])]));
     final json = profile.toJson();
-    expect(json['profile'], 'kanto-events-static-v4');
+    expect(json['profile'], 'kanto-events-static-v5');
     expect(
         json['oracleSections'],
         containsPair('039',

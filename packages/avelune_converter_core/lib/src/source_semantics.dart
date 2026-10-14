@@ -360,12 +360,41 @@ final class SourceConnectionEntryTilePassage {
       };
 }
 
+enum SourceEventTouchKind { enter, front, unqualified }
+
+final class SourceEventTouchResolution {
+  SourceEventTouchResolution(
+      {required this.kind,
+      required this.reason,
+      List<SourceTilePassageTrace> trace = const []})
+      : trace = List.unmodifiable(trace);
+  final SourceEventTouchKind kind;
+  final String reason;
+  final List<SourceTilePassageTrace> trace;
+  Map<String, Object?> toJson() => {
+        'kind': kind.name,
+        'reason': reason,
+        'sourceDirection': 0,
+        'directionBit': 0,
+        'trace': trace.map((step) => step.toJson()).toList(),
+        'oracle': {
+          'sectionIndex': 45,
+          'lines': [133, 139]
+        },
+      };
+}
+
 final class SourceSemanticResolver {
-  const SourceSemanticResolver({required this.profile}) : _maps = const {};
+  const SourceSemanticResolver({required this.profile})
+      : _maps = const {},
+        _eventFiles = const {};
 
   SourceSemanticResolver._(
-      {required this.profile, required Map<int, _SourceSemanticMap> maps})
-      : _maps = Map.unmodifiable(maps);
+      {required this.profile,
+      required Map<int, _SourceSemanticMap> maps,
+      required Map<ConverterId, SourceArchivedFile> eventFiles})
+      : _maps = Map.unmodifiable(maps),
+        _eventFiles = Map.unmodifiable(eventFiles);
 
   factory SourceSemanticResolver.forProject(NormalizedSourceProject project) {
     final scriptEntries = project.snapshot.entries
@@ -382,15 +411,117 @@ final class SourceSemanticResolver {
     final tilesets = {
       for (final tileset in project.tilesets) tileset.sourceTilesetId: tileset
     };
-    return SourceSemanticResolver._(profile: profile, maps: {
-      for (final source in project.maps)
-        source.map.sourceMapId: _SourceSemanticMap(
-            source.map, tilesets[source.map.sourceTilesetId]),
-    });
+    return SourceSemanticResolver._(
+        profile: profile,
+        eventFiles: project.archive.files,
+        maps: {
+          for (final source in project.maps)
+            source.map.sourceMapId: _SourceSemanticMap(
+                source.map, tilesets[source.map.sourceTilesetId]),
+        });
   }
 
   final SourceSemanticProfile profile;
   final Map<int, _SourceSemanticMap> _maps;
+  final Map<ConverterId, SourceArchivedFile> _eventFiles;
+
+  bool _plainTouchPage(SourceEventPageAnalysis page) {
+    final raw = page.rawDataRef;
+    final file = raw == null ? null : _eventFiles[raw.fileId];
+    if (raw == null || file == null || file.contentHash != raw.contentHash) {
+      return false;
+    }
+    final doc = file.document;
+    bool plain(MarshalNode node) =>
+        node.extensions.isEmpty &&
+        node.userClass == null &&
+        node.instanceVariables.isEmpty;
+    Map<String, int> fields(int id, String className, Set<String> names) {
+      final node = doc.node(id);
+      final values = _eventFields(doc, id, className);
+      if (values.length != names.length ||
+          !names.containsAll(values.keys) ||
+          node.instanceVariables.any((pair) => !plain(doc.node(pair.key)))) {
+        throw const FormatException();
+      }
+      return values;
+    }
+
+    void scalar(int id) {
+      final node = doc.node(id);
+      if (plain(node)) {
+        return;
+      }
+      if (node.kind != MarshalKind.string ||
+          node.instanceVariables.length > 1) {
+        throw const FormatException();
+      }
+      _eventLiteralText(doc, id);
+    }
+
+    try {
+      for (final node in doc.nodes) {
+        if (node.kind == MarshalKind.symbol &&
+            const {
+              'RPG::Event::Page',
+              'RPG::Event::Page::Graphic',
+              'RPG::Event::Page::Condition'
+            }.contains(node.name) &&
+            !plain(node)) {
+          return false;
+        }
+      }
+      final value = fields(raw.nodeId, 'RPG::Event::Page', const {
+        '@condition',
+        '@graphic',
+        '@move_type',
+        '@move_speed',
+        '@move_frequency',
+        '@move_route',
+        '@walk_anime',
+        '@step_anime',
+        '@direction_fix',
+        '@through',
+        '@always_on_top',
+        '@trigger',
+        '@list'
+      });
+      final graphic =
+          fields(value['@graphic']!, 'RPG::Event::Page::Graphic', const {
+        '@tile_id',
+        '@character_name',
+        '@character_hue',
+        '@direction',
+        '@pattern',
+        '@opacity',
+        '@blend_type'
+      });
+      final condition =
+          fields(value['@condition']!, 'RPG::Event::Page::Condition', const {
+        '@switch1_valid',
+        '@switch2_valid',
+        '@variable_valid',
+        '@self_switch_valid',
+        '@switch1_id',
+        '@switch2_id',
+        '@variable_id',
+        '@variable_value',
+        '@self_switch_ch'
+      });
+      for (final entry in value.entries) {
+        if (!const {'@condition', '@graphic', '@move_route', '@list'}
+            .contains(entry.key)) {
+          scalar(entry.value);
+        }
+      }
+      for (final id in [...graphic.values, ...condition.values]) {
+        scalar(id);
+      }
+      return true;
+    } on FormatException {
+      return false;
+    }
+  }
 
   SourceSemanticCell cellAt(int sourceMapId, int x, int y) {
     final map = _maps[sourceMapId];
@@ -421,6 +552,95 @@ final class SourceSemanticResolver {
       _resolveSourceDirectedJump(this, from, via, landing, direction, context);
 
   SourceConnectionEntryTilePassage resolveConnectionEntryTile(
+    SourceSemanticCell cell, {
+    SourceSemanticContext context = const SourceSemanticContext(),
+  }) =>
+      _resolveStationaryPlayerTiles(cell, context: context);
+
+  SourceEventTouchResolution resolveEventTouch({
+    required SourceSemanticCell cell,
+    required SourceEventDefinition event,
+    required SourceEventPageAnalysis page,
+    required Iterable<SourceEventDefinition> mapEvents,
+    SourceSemanticContext context = const SourceSemanticContext(),
+  }) {
+    SourceEventTouchResolution result(SourceEventTouchKind kind, String reason,
+            [List<SourceTilePassageTrace> trace = const []]) =>
+        SourceEventTouchResolution(kind: kind, reason: reason, trace: trace);
+    if (!profile.isQualified ||
+        !context.isQualified ||
+        page.isQuarantined ||
+        !page.condition.isQualified ||
+        !_plainTouchPage(page)) {
+      return result(
+          SourceEventTouchKind.unqualified, 'sourceContextUnqualified');
+    }
+    if (cell.sourceMapId != event.sourceMapId ||
+        cell.x != event.x ||
+        cell.y != event.y ||
+        !cell.isInBounds ||
+        !event.pages.contains(page)) {
+      return result(SourceEventTouchKind.unqualified, 'eventCellBinding');
+    }
+    bool unitFootprint(SourceEventDefinition value) {
+      final size = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+          .firstMatch(value.name);
+      return size == null ||
+          (int.tryParse(size.group(1)!) == 1 &&
+              int.tryParse(size.group(2)!) == 1);
+    }
+
+    final graphic = page.graphic;
+    if (graphic == null ||
+        !unitFootprint(event) ||
+        graphic.tileId != 0 ||
+        graphic.moveType != 0) {
+      return result(SourceEventTouchKind.unqualified,
+          'eventGraphicOrFootprintUnqualified');
+    }
+    if (graphic.characterName.isNotEmpty && !graphic.through) {
+      return result(SourceEventTouchKind.front, 'blockingCharacter');
+    }
+    if (RegExp('hiddenitem', caseSensitive: false).hasMatch(event.name)) {
+      return result(SourceEventTouchKind.front, 'hiddenItem');
+    }
+    final candidates = mapEvents
+        .where((value) => value.sourceMapId == event.sourceMapId)
+        .toList();
+    if (candidates.where((value) => value.identity == event.identity).length !=
+        1) {
+      return result(SourceEventTouchKind.unqualified, 'eventSetBinding');
+    }
+    for (final candidate in candidates) {
+      for (final other in candidate.pages) {
+        final image = other.graphic;
+        if (image == null || !_plainTouchPage(other)) {
+          return result(
+              SourceEventTouchKind.unqualified, 'tileEventStateUnqualified');
+        }
+        if (image.tileId <= 0 || image.through) {
+          continue;
+        }
+        if (image.moveType != 0 ||
+            !unitFootprint(candidate) ||
+            (candidate.x == event.x && candidate.y == event.y)) {
+          return result(
+              SourceEventTouchKind.unqualified, 'tileEventStateUnqualified');
+        }
+      }
+    }
+    final passage = _resolveStationaryPlayerTiles(cell, context: context);
+    return switch (passage.status) {
+      SourcePassageStatus.allowed => result(
+          SourceEventTouchKind.enter, 'stationaryTilesAllowed', passage.trace),
+      SourcePassageStatus.blocked => result(
+          SourceEventTouchKind.front, 'stationaryTilesBlocked', passage.trace),
+      SourcePassageStatus.unqualified => result(
+          SourceEventTouchKind.unqualified, passage.reason.name, passage.trace),
+    };
+  }
+
+  SourceConnectionEntryTilePassage _resolveStationaryPlayerTiles(
     SourceSemanticCell cell, {
     SourceSemanticContext context = const SourceSemanticContext(),
   }) {

@@ -22,6 +22,14 @@ const requestSchema = z.object({
   tileSize: z.union([z.literal(16), z.literal(32), z.literal(48)]).optional(),
   mapWidth: z.number().int().min(3).max(256).optional(),
   mapHeight: z.number().int().min(3).max(256).optional(),
+  mapInstanceRetentionPolicy: z.object({
+    schemaVersion: z.literal(1),
+    viewportWidthTiles: z.number().int().min(1).max(2147483647),
+    viewportHeightTiles: z.number().int().min(1).max(2147483647),
+    marginTiles: z.number().int().min(0).max(2147483647),
+    clampViewportToMapIds: z.array(z.string().min(1).refine((value) => value.trim() === value))
+      .refine((values) => new Set(values).size === values.length),
+  }).strict().optional(),
 }).strict();
 
 export function registerProjectCreationTools(

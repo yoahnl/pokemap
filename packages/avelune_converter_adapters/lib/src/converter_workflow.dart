@@ -1629,6 +1629,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 reviewSet: reviewSet,
                 canApprove: normalized.canPlan &&
                     draft != null &&
+                    (events?.projection.allEnabledOriginalEventsHaveExecutionContext ?? true) &&
                     settings.profileAcknowledgement.humanConfirmed &&
                     plan != null &&
                     !plan.findings.any((finding) => finding.blocksStudy)));

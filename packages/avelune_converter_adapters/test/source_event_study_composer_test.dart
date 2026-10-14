@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as image;
@@ -86,6 +87,7 @@ void main() {
         hasLength(1));
     expect(records.where((record) => record.draftOrNull != null), hasLength(1));
     expect(composed.projection.facts, isEmpty);
+    expect(composed.projection.allEnabledOriginalEventsHaveExecutionContext, isTrue);
     expect(composed.projection.dialogueSources.values.single,
         contains('Bienvenue'));
     final approval = approveNativeFixtureDraft(composed.draft);
@@ -197,6 +199,7 @@ void main() {
     final composed = (await const SourceEventStudyComposer().compose(
         source: fixture.source, base: semantic, files: fixture.files))!;
     final draft = composed.draft;
+    expect(composed.projection.allEnabledOriginalEventsHaveExecutionContext, isTrue);
     expect((draft.compositionEvidence['sourceEvents'] as Map)['aiCalls'], 0);
     expect(
         draft.mutations.where(
@@ -298,6 +301,24 @@ void main() {
         throwsA(isA<NativeWriteException>().having(
             (error) => error.code, 'code', 'native.semantics.regeneration')));
     expect(stages, isEmpty);
+    final forgedEvidence = jsonDecode(canonicalJsonOf(draft.compositionEvidence)) as Map<String, Object?>;
+    final eventEvidence = forgedEvidence['sourceEvents'] as Map;
+    final projectionEvidence = eventEvidence['projection'] as Map;
+    (projectionEvidence['doorExecutionQualification'] as Map)['sourceExecutionContext'] = {
+      'kind': 'sourceEventExecutionContext', 'version': 1, 'qualified': true,
+      'proof': {'origin': 'freshNativeProject', 'followers': 'newGameDeclaredEmpty'},
+    };
+    final forged = NativeProjectDraft(source: draft.source, projectName: draft.projectName,
+        parentPath: draft.parentPath, folderName: draft.folderName,
+        mapIds: draft.mapIds, artifacts: draft.artifacts, sourceArtifacts: draft.sourceArtifacts,
+        compositionEvidence: forgedEvidence, mutations: draft.mutations);
+    final forgedApproval = approveNativeFixtureDraft(forged);
+    await expectLater(NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+        .write(forgedApproval.plan, forgedApproval.context, forged),
+        throwsA(isA<NativeWriteException>().having((error) => error.code, 'code',
+          'native.semantics.regeneration')));
+    expect(stages, isEmpty);
+    expect(await Directory('${temporary.path}/${draft.folderName}-forged').exists(), isFalse);
     final dialogue = composed.projection.dialogues.first;
     await expectLater(
         NativeProjectWriter(checkpoint: (stage, _, projectPath) async {

@@ -705,6 +705,13 @@ final class JsonlWorker {
           'tileSizes': [16, 32, 48],
           'dimensions': ['twoD', 'threeD'],
           'defaultDimension': 'twoD',
+          'mapInstanceRetentionPolicy': {
+            'schemaVersion': 1, 'dimension': 'twoD',
+            'templates': ['empty'],
+            'fields': ['viewportWidthTiles', 'viewportHeightTiles', 'marginTiles', 'clampViewportToMapIds'],
+            'integerMaximum': 2147483647,
+            'confirmationBinding': 'exactPolicy',
+          },
           'threeDTemplates': ['empty'],
           'spatialCamera': {'mode': 'fixed', 'fields': ['pitchDegrees', 'yawDegrees', 'fieldOfViewDegrees', 'distance']},
         },

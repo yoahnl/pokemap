@@ -11,6 +11,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
+import 'package:avelune_converter_adapters/src/source_event_study_composer.dart';
+import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 
 final class _RubyObject {
   _RubyObject(this.className, this.fields);
@@ -21,6 +23,17 @@ final class _RubyObject {
 final class _RubyBytes {
   const _RubyBytes(this.bytes);
   final List<int> bytes;
+}
+
+final class _RubyIvars {
+  const _RubyIvars(this.value, this.fields);
+  final Object? value;
+  final Map<String, Object?> fields;
+}
+
+final class _RubyExtended {
+  const _RubyExtended(this.value);
+  final Object? value;
 }
 
 final class _RubyUserDefined {
@@ -71,6 +84,24 @@ final class _MarshalFixture {
   }
 
   List<int> _value(Object? value) {
+    if (value is _RubyIvars) {
+      return [
+        0x49,
+        ..._value(value.value),
+        ..._packed(value.fields.length),
+        for (final pair in value.fields.entries) ...[
+          ..._symbol(pair.key),
+          ..._value(pair.value)
+        ]
+      ];
+    }
+    if (value is _RubyExtended) {
+      return [
+        0x65,
+        ..._symbol('UnknownContactExtension'),
+        ..._value(value.value)
+      ];
+    }
     if (value == null) return [0x30];
     if (value is bool) return [value ? 0x54 : 0x46];
     if (value is int) return [0x69, ..._packed(value)];
@@ -409,12 +440,18 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     List<Object?> switches = const ['', 'Ready', 's:dangerous()'],
     String? eventName,
     _RubyObject? tileset,
-    Map<int, _RubyObject>? extraEvents}) async {
+    Map<int, _RubyObject>? extraEvents,
+    bool attestedScripts = false}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages, name: eventName), ...?extraEvents}),
     8: _map(),
   }, tileset: tileset);
   data['Graphics/Characters/QualifiedNpc.png'] = _png();
+  if (attestedScripts) {
+    data['Data/Scripts.rxdata'] =
+        await File(Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS']!)
+            .readAsBytes();
+  }
   if (system) {
     data['Data/System.rxdata'] = _MarshalFixture()
         .dump(_RubyObject('RPG::System', {'@switches': switches}));
@@ -498,6 +535,30 @@ List<_RubyObject> _interactionFacingCommands() {
 }
 
 void main() {
+  final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  for (final value in [null, false, true, 'invalid']) {
+    test('retention decodes strict selected SnapEdges $value', () async {
+      final bytes = _project(maps: {1: _map(), 8: _map()});
+      bytes['Data/Scripts.rxdata'] = await File(scriptsPath!).readAsBytes();
+      bytes['Data/map_metadata.dat'] = _MarshalFixture().dump({
+        1: _RubyObject('GameData::MapMetadata', {'@id': 1, '@snap_edges': value}),
+        8: _RubyObject('GameData::MapMetadata', {'@id': 8}),
+      });
+      final files = _source(bytes);
+      final source = await _normalize(files);
+      final operation = sourceEventMapRetentionPolicy(source: source, files: files,
+        nativeMapIds: {1: 'first', 8: 'second'});
+      if (value is String) {
+        await expectLater(operation, throwsA(isA<NativeWriteException>()));
+      } else {
+        final policy = await operation;
+        expect(policy.clampViewportToMapIds, value == true ? {'first'} : isEmpty);
+        expect(policy.viewportWidthTiles, 16);
+        expect(policy.viewportHeightTiles, 12);
+        expect(policy.marginTiles, 6);
+      }
+    }, skip: scriptsPath == null);
+  }
   final doorStep =
       _RubyObject('RPG::MoveCommand', {'@code': 4, '@parameters': <Object?>[]});
   final doorRoute = [
@@ -601,10 +662,14 @@ void main() {
   for (final command in presentationCommands) {
     test('recognized presentation ${command.fields['@code']} keeps every page quarantined', () async {
       final source = await _events([
-        _page([_command(101, ['A lower page must remain inactive'])]),
         _page([
-          _command(123, ['A', 0]), command,
-          _command(123, ['B', 0]), _command(0, []),
+          _command(101, ['A lower page must remain inactive'])
+        ]),
+        _page([
+          _command(123, ['A', 0]),
+          command,
+          _command(123, ['B', 0]),
+          _command(0, []),
         ]),
       ]);
       final before = source.canonicalHash;
@@ -619,7 +684,7 @@ void main() {
       expect(result.staticSemanticsQualified, isFalse);
       expect(source.canonicalHash, before);
       final profile = result.semanticEvidence['sourceProfile'] as Map;
-      expect(profile['profile'], 'kanto-events-static-v4');
+      expect(profile['profile'], 'kanto-events-static-v5');
       expect(result.semanticEvidence['sourceProfileHash'],
           canonicalHashOf(profile).value);
       final historical =
@@ -870,18 +935,76 @@ void main() {
         [0xff3050c8, 0xffe00808]);
   });
 
+  for (final variant in [
+    'throughIvar',
+    'throughExtension',
+    'tileIvar',
+    'nameIvar',
+    'conditionIvar',
+    'conditionExtension',
+    'pageUnknownIvar',
+    'graphicUnknownIvar'
+  ]) {
+    test('source touch rejects raw contact decoration $variant', () async {
+      final page = _page([
+        _command(101, ['Touch'])
+      ], trigger: 1, character: '')
+        ..fields['@through'] = true;
+      final graphic = page.fields['@graphic'] as _RubyObject;
+      final condition = page.fields['@condition'] as _RubyObject;
+      switch (variant) {
+        case 'throughIvar':
+          page.fields['@through'] = const _RubyIvars(true, {'@unknown': false});
+        case 'throughExtension':
+          page.fields['@through'] = const _RubyExtended(true);
+        case 'tileIvar':
+          graphic.fields['@tile_id'] = const _RubyIvars(0, {'@unknown': false});
+        case 'nameIvar':
+          graphic.fields['@character_name'] =
+              const _RubyIvars('', {'@unknown': false});
+        case 'conditionIvar':
+          condition.fields['@switch1_valid'] =
+              const _RubyIvars(false, {'@unknown': false});
+        case 'conditionExtension':
+          page.fields['@condition'] = _RubyExtended(condition);
+        case 'pageUnknownIvar':
+          page.fields['@unknown'] = false;
+        case 'graphicUnknownIvar':
+          graphic.fields['@unknown'] = false;
+      }
+      final result =
+          _projectEvents(await _events([page], attestedScripts: true));
+      expect(result.scenes, isEmpty);
+      expect(
+          result.registry.records
+              .every((record) => record.definitionOrNull == null),
+          isTrue);
+    }, skip: Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'] == null);
+  }
+
+  test('source touch accepts a plain attested passable page', () async {
+    final page = _page([
+      _command(101, ['Touch'])
+    ], trigger: 1, character: '')
+      ..fields['@through'] = true;
+    final result = _projectEvents(await _events([page], attestedScripts: true));
+    expect(result.scenes, hasLength(1));
+    expect(result.registry.records.single.definitionOrNull!.source.kind,
+        NarrativeEventSourceKind.triggerEnter);
+  }, skip: Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'] == null);
+
   test('hidden item player touch requires source bump semantics', () async {
     final page = _page([
       _command(101, ['Hidden touch'])
     ], trigger: 1, character: '')
       ..fields['@through'] = true;
-    final result =
-        _projectEvents(await _events([page], eventName: 'HiddenItem'));
+    final result = _projectEvents(
+        await _events([page], eventName: 'HiddenItem', attestedScripts: true));
     expect(result.registry.records.single.definitionOrNull, isNull);
     expect(result.scenes, isEmpty);
     expect(jsonEncode(result.semanticEvidence),
-        contains('touchInteractionFootprintUnsupported'));
-  });
+        contains('sourceTerrainBumpUnqualified'));
+  }, skip: scriptsPath == null);
   test(
       'player touch on an impassable source cell is not changed into an enter trigger',
       () async {
@@ -889,13 +1012,13 @@ void main() {
       _command(101, ['Blocked touch'])
     ], trigger: 1, character: '')
       ..fields['@through'] = true;
-    final result = _projectEvents(
-        await _events([page], tileset: _tileset(blockedTile: 400)));
+    final result = _projectEvents(await _events([page],
+        tileset: _tileset(blockedTile: 400), attestedScripts: true));
     expect(result.registry.records.single.definitionOrNull, isNull);
     expect(result.scenes, isEmpty);
     expect(jsonEncode(result.semanticEvidence),
-        contains('touchInteractionFootprintUnsupported'));
-  });
+        contains('sourceTerrainBumpUnqualified'));
+  }, skip: scriptsPath == null);
   test(
       'source event size directives do not qualify with a smaller native footprint',
       () async {
@@ -990,11 +1113,14 @@ void main() {
           ], character: '')
         ],
         eventName: 'HiddenItem warp',
+        attestedScripts: true,
         extraEvents: {
           2: _event(2, [touch], x: 2)
         });
     final maps = _nativeMaps(source);
     final result = _projectEvents(source);
+    expect(result.mutations.map((mutation) => mutation.actionId),
+        containsAll(['entity.upsert', 'trigger.create', 'warp.create']));
     final project =
         ProjectManifest(name: 'Projection', tilesets: const [], maps: [
       for (final map in maps.values)
@@ -1052,7 +1178,7 @@ void main() {
         canonicalJsonOf(jsonDecode(jsonEncode(maps[8]!.toJson()))),
         canonicalJsonOf(
             jsonDecode(jsonEncode(result.nativeMaps[8]!.toJson()))));
-  });
+  }, skip: scriptsPath == null);
 
   test(
       'projection Facts and World Rules pass their canonical authoring handlers',
@@ -1437,7 +1563,7 @@ void main() {
     ]));
     final warp = result.nativeMaps[8]!.warps.single;
     expect(warp.pos, const GridPos(x: 2, y: 1));
-    expect(warp.triggerMode, MapWarpTriggerMode.onBump);
+    expect(warp.triggerMode, MapWarpTriggerMode.sceneOnly);
     final action = result.scenes.single.graph.nodes
         .map((n) => n.payload)
         .whereType<SceneActionPayload>()

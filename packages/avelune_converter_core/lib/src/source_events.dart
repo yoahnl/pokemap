@@ -36,22 +36,33 @@ final class SourceEventProfile {
       scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-events-static-v4',
+        'profile': 'kanto-events-static-v5',
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
         'scope': 'staticEventPagesAndCommands',
+        'doorTiming': {
+          'playerStepMs': 250,
+          'movementContext': 'atFoot',
+          'faceSemantics': 'routePassYield',
+          'globalRouteBarrierScope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
+          'sourceExecutionContext': 'freshNativeProjectWithoutImportedSourceFollowers',
+          'nativeTimingQualification': 'required',
+        },
         'oracleSections': {
+          '032': '2ddbb7198dd0445142cf76c44b32ae8f983c11ec1230c6179d46808854356fe1',
           '033':
               'b2f4c542a1542a5908d1208b87eae05d8b6f6ec0d26df1835871595842ed0355',
           '034':
               'ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561',
           '039':
               '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d',
+          '043': 'bba3deeae94afff918edfcde6d251748498f44f59655fc9ce32aa42f304d98c6',
           '044':
               '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9',
           '045':
               '8c11fb7f170df5ca2aff17725e1dbed031c94deebabdbbae69dd926e24acafa7',
+          '046': '7159cc172004da46b72a51b7d009df24de7a297bdb09599de31a4b5116dab373',
           '079':
               'eacf78724bf5ab978b4b74d73149e3e556906d8f63d0ed380310bdddae7a6dad',
           '088':
@@ -136,7 +147,7 @@ final class SourceEventCondition {
         if (kind == SourceEventConditionKind.tempSwitch) ...{
           'tempSwitchLetter': tempSwitchLetter,
           'lifetime': 'mapEventInstance',
-          'saveResumeQualification': 'notImplemented',
+          'saveResumeQualification': 'nativeContractAvailableOriginalProgramProofRequired',
         },
         if (kind == SourceEventConditionKind.playerOnEvent)
           'predicate': 'currentMapAndPlayerOnEventCoordinates',
@@ -459,7 +470,7 @@ final class SourceTempSwitchNode extends SourceEventNode {
         'letter': letter,
         'value': value,
         'lifetime': 'mapEventInstance',
-        'saveResumeQualification': 'notImplemented',
+        'saveResumeQualification': 'nativeContractAvailableOriginalProgramProofRequired',
         'span': span.toJson(),
         'profileHash': profileHash.value,
         'targetQualification': 'required',

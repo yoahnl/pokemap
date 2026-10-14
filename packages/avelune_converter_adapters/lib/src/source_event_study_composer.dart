@@ -5,6 +5,8 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_event_projection.dart';
+import 'source_event_execution_context.dart';
+import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
@@ -92,6 +94,9 @@ final class SourceEventStudyComposer {
     final selectedEvents = analysis.events
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .toList();
+    final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis)
+        .where((event) => nativeMaps.containsKey(event.sourceMapId))
+        .map((event) => event.identity).toSet();
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -188,7 +193,32 @@ final class SourceEventStudyComposer {
         pickupEvidence.add({'status': 'preservedOnly', 'code': error.code});
       }
     }
+    final sounds = <String, SourceEventSoundBinding>{};
+    final soundEvidence = <Map<String, Object?>>[];
+    for (final name in {
+      for (final event in selectedEvents.where((event) => !event.isQuarantined &&
+          originalDoorIds.contains(event.identity)))
+        for (final page in event.pages) ..._soundNames(page.body),
+    }.toList()..sort()) {
+      try {
+        final binding = await const SourceEventSoundResolver().read(
+          source: source, files: recording, name: name, limits: limits,
+          cancellation: cancellation);
+        sounds[name] = binding;
+        soundEvidence.add({'sourceName': name, 'status': 'imported', ...binding.evidence});
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
     final bindings = <String, SourceEventCharacterBinding>{};
+    final retentionBinding = originalDoorIds.isNotEmpty
+      ? await _sourceEventMapRetentionBinding(source: source, files: recording,
+          nativeMapIds: base.mapIds, cancellation: cancellation) : null;
+    final retentionPolicy = retentionBinding?.policy;
+    final executionContext = originalDoorIds.isEmpty ? null :
+        await const SourceEventExecutionContextResolver().read(source: source,
+          base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
+          cancellation: cancellation);
     final characterArtifacts = <NativeArtifact>[];
     final characterMutations = <NativeMutation>[];
     final characterEvidence = <Map<String, Object?>>[];
@@ -199,6 +229,9 @@ final class SourceEventStudyComposer {
             analysis: analysis,
             nativeMaps: nativeMaps,
             pickupBindings: pickupBindings,
+            soundBindings: sounds,
+            retentionPolicy: retentionPolicy,
+            executionContext: executionContext,
             limits: limits);
     for (final event in characterCandidates) {
       for (final page in event.pages) {
@@ -259,6 +292,9 @@ final class SourceEventStudyComposer {
         nativeMaps: nativeMaps,
         characterBindings: bindings,
         pickupBindings: pickupBindings,
+        soundBindings: sounds,
+        retentionPolicy: retentionPolicy,
+        executionContext: executionContext,
         limits: limits);
     final usedPickupBindingKeys =
         (projection.semanticEvidence['usedPickupBindingKeys'] as List)
@@ -292,8 +328,14 @@ final class SourceEventStudyComposer {
         .where((entry) => const {
               'Data/items.dat',
               'Data/map_metadata.dat',
+              'Data/PluginScripts.rxdata',
+              'Data/CommonEvents.rxdata',
               'Graphics/Windowskins/speech hgss 1.png'
-            }.contains(entry['relativePath']))
+            }.contains(entry['relativePath']) ||
+            (executionContext != null &&
+                (entry['relativePath'] == 'Data/map_connections.dat' ||
+                    RegExp(r'^Data/Map\d+\.rxdata$')
+                        .hasMatch(entry['relativePath'] as String))))
         .map((entry) => entry['fileId'] as String));
     final catalogMutations = <NativeMutation>[];
     if (projection.itemCatalog != null) {
@@ -435,6 +477,7 @@ final class SourceEventStudyComposer {
         ...base.artifacts,
         ...characterArtifacts,
         ...pickupArtifacts,
+        ...sounds.values.map((binding) => binding.artifact),
         ...musicBindings.values.expand((entry) => entry.artifacts),
         ...preservedArtifacts.values,
         companion
@@ -455,6 +498,7 @@ final class SourceEventStudyComposer {
     for (final entry in [
       ...characterMutations,
       ...pickupMutations,
+      ...sounds.values.map((binding) => binding.mutation),
       ...musicBindings.values.expand((entry) => entry.importMutations),
       ...catalogMutations
     ]) {
@@ -489,6 +533,15 @@ final class SourceEventStudyComposer {
       'characters': characterEvidence,
       'items': items?.evidence,
       'pickups': pickupEvidence,
+      'sounds': soundEvidence,
+      if (retentionPolicy != null) 'mapInstanceRetention': {
+        ...retentionBinding!.evidence,
+        'policy': retentionPolicy.toJson(),
+        'sourceMetadataFile': source.snapshot.entries.singleWhere((entry) =>
+          entry.relativePath == 'Data/map_metadata.dat').toJson(),
+        'sourceOracle': {'viewport': '000:684-686', 'margin': '043:475-495',
+          'clamp': '042:322-341'},
+      },
       'mapMusic': musicEvidence,
       'witnesses': recording.evidence,
       'actorDepthParityQualified': false,
@@ -533,6 +586,265 @@ final class SourceEventStudyComposer {
             defaultMapHeight: base.defaultMapHeight,
             limits: limits));
   }
+}
+
+Iterable<String> _soundNames(SourceEventBlock block) sync* {
+  for (final node in block.nodes) {
+    switch (node) {
+      case SourceSoundEffectNode():
+        yield node.name;
+      case SourceForcedMoveRouteNode():
+        for (final step in node.steps) {
+          if (step.soundName != null) yield step.soundName!;
+        }
+      case SourceConditionalNode():
+        yield* _soundNames(node.whenTrue);
+        yield* _soundNames(node.whenFalse);
+      default:
+        break;
+    }
+  }
+}
+
+Future<MapInstanceRetentionPolicy> sourceEventMapRetentionPolicy({
+  required NormalizedSourceProject source, required SourceFilePort files,
+  required Map<int, String> nativeMapIds, ScanCancellation? cancellation,
+}) async => (await _sourceEventMapRetentionBinding(source: source, files: files,
+    nativeMapIds: nativeMapIds, cancellation: cancellation)).policy;
+
+Future<({MapInstanceRetentionPolicy policy, Map<String, Object?> evidence})>
+    _sourceEventMapRetentionBinding({required NormalizedSourceProject source,
+      required SourceFilePort files, required Map<int, String> nativeMapIds,
+      ScanCancellation? cancellation}) async {
+  cancellation?.check();
+  final entries = source.snapshot.entries.where((entry) =>
+    sourcePathCollisionKey(entry.relativePath) == 'data/map_metadata.dat').toList();
+  if (!SourceEventProfile.kantoForProject(source).isQualified || entries.length != 1 ||
+      entries.single.relativePath != 'Data/map_metadata.dat') {
+    throw const NativeWriteException('events.retention.metadata',
+      'Map retention requires the exact source map metadata');
+  }
+  final entry = entries.single;
+  final archive = SourceArchive(limits: const SourceArchiveLimits(maxFiles: 1,
+    maxFileBytes: 4194304, maxTotalBytes: 4194304,
+    maxTotalNodes: 100000, maxTotalEntries: 400000, maxReferences: 1));
+  final bytes = await files.read(entry.fileId);
+  cancellation?.check();
+  final document = archive.add(entry, bytes).document;
+  archive.seal();
+  Never invalid() => throw const NativeWriteException(
+    'events.retention.metadata',
+    'Map metadata must use its plain source schema',
+  );
+  bool undecorated(MarshalNode node) =>
+      node.extensions.isEmpty &&
+      node.userClass == null &&
+      node.instanceVariables.isEmpty;
+  bool plainScalar(MarshalNode node) =>
+      undecorated(node) && node.encoding == null;
+  bool plainValueShape(MarshalNode node) {
+    if (node.extensions.isNotEmpty || node.userClass != null) {
+      return false;
+    }
+    if (node.instanceVariables.isEmpty) {
+      return node.encoding == null;
+    }
+    if ((node.kind != MarshalKind.string && node.kind != MarshalKind.symbol) ||
+        node.instanceVariables.length != 1) {
+      return false;
+    }
+    final attribute = node.instanceVariables.single;
+    final key = document.node(attribute.key);
+    final value = document.node(attribute.value);
+    return key.kind == MarshalKind.symbol &&
+        plainScalar(key) &&
+        key.name == 'E' &&
+        value.kind == MarshalKind.boolean &&
+        plainScalar(value) &&
+        node.encoding == (value.booleanValue == true ? 'UTF-8' : 'US-ASCII');
+  }
+
+  for (final node in document.nodes) {
+    if (node.kind == MarshalKind.object) {
+      if (node.extensions.isNotEmpty || node.userClass != null ||
+          node.encoding != null) {
+        invalid();
+      }
+    } else if (!plainValueShape(node)) {
+      invalid();
+    }
+  }
+  final visited = <int>{};
+  final active = <int>{};
+  void validateValue(int nodeId) {
+    if (active.contains(nodeId)) {
+      invalid();
+    }
+    if (visited.contains(nodeId)) {
+      return;
+    }
+    final node = document.node(nodeId);
+    if (!plainValueShape(node) ||
+        !const {
+          MarshalKind.nil,
+          MarshalKind.boolean,
+          MarshalKind.integer,
+          MarshalKind.bigInteger,
+          MarshalKind.floating,
+          MarshalKind.string,
+          MarshalKind.symbol,
+          MarshalKind.array,
+          MarshalKind.hash,
+        }.contains(node.kind) ||
+        (node.encoding != null &&
+            node.kind != MarshalKind.string &&
+            node.kind != MarshalKind.symbol)) {
+      invalid();
+    }
+    active.add(nodeId);
+    for (final child in node.elements) {
+      validateValue(child);
+    }
+    for (final pair in node.pairs) {
+      validateValue(pair.key);
+      validateValue(pair.value);
+    }
+    final defaultId = node.defaultValue;
+    if (defaultId != null) {
+      final value = document.node(defaultId);
+      if (value.kind != MarshalKind.nil || !plainScalar(value)) {
+        invalid();
+      }
+    }
+    active.remove(nodeId);
+    visited.add(nodeId);
+  }
+
+  final root = document.node(document.rootId);
+  if (root.kind != MarshalKind.hash ||
+      !plainScalar(root) ||
+      root.pairs.length > 4096) {
+    invalid();
+  }
+  final defaultId = root.defaultValue;
+  if (defaultId != null) {
+    final value = document.node(defaultId);
+    if (value.kind != MarshalKind.nil || !plainScalar(value)) {
+      invalid();
+    }
+  }
+  const knownFields = {
+    '@id',
+    '@real_name',
+    '@outdoor_map',
+    '@announce_location',
+    '@can_bicycle',
+    '@always_bicycle',
+    '@teleport_destination',
+    '@weather',
+    '@town_map_position',
+    '@dive_map_id',
+    '@dark_map',
+    '@safari_map',
+    '@snap_edges',
+    '@still_reflections',
+    '@random_dungeon',
+    '@battle_background',
+    '@wild_battle_BGM',
+    '@trainer_battle_BGM',
+    '@wild_victory_BGM',
+    '@trainer_victory_BGM',
+    '@wild_capture_ME',
+    '@town_map_size',
+    '@battle_environment',
+    '@flags',
+    '@pbs_file_suffix',
+  };
+  final records = <int, Map<String, int>>{};
+  for (final pair in root.pairs) {
+    final key = document.node(pair.key);
+    final mapId = key.integerValue?.toInt();
+    if (key.kind != MarshalKind.integer ||
+        !plainScalar(key) ||
+        mapId == null ||
+        mapId < 1 ||
+        mapId > 2147483647 ||
+        records.containsKey(mapId)) {
+      invalid();
+    }
+    final record = document.node(pair.value);
+    if (record.kind != MarshalKind.object ||
+        record.className != 'GameData::MapMetadata' ||
+        record.extensions.isNotEmpty ||
+        record.userClass != null ||
+        record.encoding != null) {
+      invalid();
+    }
+    final fields = <String, int>{};
+    for (final field in record.instanceVariables) {
+      final name = document.node(field.key);
+      if (name.kind != MarshalKind.symbol ||
+          !plainScalar(name) ||
+          !knownFields.contains(name.name) ||
+          fields.containsKey(name.name)) {
+        invalid();
+      }
+      validateValue(field.value);
+      fields[name.name!] = field.value;
+    }
+    final id = fields['@id'];
+    if (id == null) {
+      invalid();
+    }
+    final identity = document.node(id);
+    if (identity.kind != MarshalKind.integer ||
+        !plainScalar(identity) ||
+        identity.integerValue != BigInt.from(mapId)) {
+      invalid();
+    }
+    final snapId = fields['@snap_edges'];
+    if (snapId != null) {
+      final snap = document.node(snapId);
+      if (!plainScalar(snap) ||
+          (snap.kind != MarshalKind.nil && snap.kind != MarshalKind.boolean)) {
+        invalid();
+      }
+    }
+    records[mapId] = fields;
+  }
+  final clamps = <String>{};
+  final values = <String, Object?>{};
+  for (final map in nativeMapIds.entries) {
+    final fields = records[map.key];
+    if (fields == null) {
+      values['${map.key}'] = {
+        'nativeMapId': map.value,
+        'snapEdges': null,
+        'record': 'absent',
+      };
+      continue;
+    }
+    final nodeId = fields['@snap_edges'];
+    if (nodeId == null) {
+      values['${map.key}'] = {
+        'nativeMapId': map.value,
+        'snapEdges': null,
+        'field': 'absent',
+      };
+      continue;
+    }
+    final value = document.node(nodeId);
+    values['${map.key}'] = {
+      'nativeMapId': map.value,
+      'snapEdges': value.kind == MarshalKind.nil ? null : value.booleanValue,
+      'kind': value.kind.name,
+    };
+    if (value.booleanValue == true) clamps.add(map.value);
+  }
+  return (policy: MapInstanceRetentionPolicy(viewportWidthTiles: 16, viewportHeightTiles: 12,
+    marginTiles: 6, clampViewportToMapIds: clamps),
+    evidence: {'sourceMetadataFile': entry.toJson(),
+      'sourceMetadataArchiveHash': archive.canonicalHash.value, 'selectedMapValues': values});
 }
 
 Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {

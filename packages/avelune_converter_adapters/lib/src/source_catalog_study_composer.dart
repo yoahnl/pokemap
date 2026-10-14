@@ -7,7 +7,10 @@ import 'native_project_writer.dart';
 import 'source_catalog_projection.dart';
 import 'source_semantic_study_composer.dart';
 
-const sourceCatalogStudyWriteLimits = NativeWriteLimits(maxArtifacts: 128);
+const sourceCatalogStudyWriteLimits = NativeWriteLimits(
+  maxArtifacts: 128,
+  jsonLimits: ContractLimits(maxTextCodeUnits: 8388608),
+);
 
 NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
   final mapCount = selectedMapCount.clamp(1, 8);

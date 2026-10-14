@@ -595,7 +595,8 @@ final class NativeProjectWriter {
       final prepared =
           await _prepareNativeDraft(plan, context, draft, limits, cancellation);
       final creator = creation ?? const LocalProjectCreationService();
-      final requested = _creationRequest(draft, draft.parentPath);
+      final requested = _creationRequest(draft, draft.parentPath,
+        retentionPolicy: prepared.bootstrap.settings.mapInstanceRetentionPolicy);
       requested.validate();
       _requireAbsolute(draft.parentPath);
       final parent = await Directory(draft.parentPath).resolveSymbolicLinks();
@@ -614,7 +615,8 @@ final class NativeProjectWriter {
           NativeWriteStage.stageCreated, stagingRoot, projectPath);
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
-      final stageRequest = _creationRequest(draft, stagingRoot);
+      final stageRequest = _creationRequest(draft, stagingRoot,
+        retentionPolicy: prepared.bootstrap.settings.mapInstanceRetentionPolicy);
       final destination = await creator.validateDestination(stageRequest);
       if (destination != projectPath) {
         throw const NativeWriteException('native.destination.changed',
@@ -1195,6 +1197,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       tilesets: const [],
       settings: ProjectSettings(
           dimension: ProjectDimension.twoD,
+          mapInstanceRetentionPolicy: semantics.events?.projection.retentionPolicy,
           tileWidth: 32,
           tileHeight: 32,
           defaultMapWidth: draft.defaultMapWidth,
@@ -1854,6 +1857,11 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         arrivalAnchorIds:
             (projectedEvents.semanticEvidence['arrivalAnchors'] as List)
                 .map((entry) => (entry as Map)['warpId'] as String),
+        arrivalCollisionOwners: {
+          for (final entry in projectedEvents.semanticEvidence['arrivalAnchors'] as List)
+            if ((entry as Map)['arrivalCollisionOwnerEntityId'] != null)
+              entry['warpId'] as String: entry['arrivalCollisionOwnerEntityId'] as String,
+        },
         cancellation: cancellation);
   }
   if (!semantics.verified) {
@@ -2266,6 +2274,9 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
           cancellation: cancellation);
       if (eventComposition == null) {
         throw const FormatException('Missing source event draft');
+      }
+      if (!eventComposition.projection.allEnabledOriginalEventsHaveExecutionContext) {
+        throw const FormatException('Enabled original source events require a regenerated execution context');
       }
     }
     final preceding = eventComposition?.draft ?? regenerated;
@@ -2858,13 +2869,14 @@ String _string(Map<String, Object?> values, String key) {
 }
 
 ProjectCreationRequest _creationRequest(
-        NativeProjectDraft draft, String parent) =>
+        NativeProjectDraft draft, String parent, {MapInstanceRetentionPolicy? retentionPolicy}) =>
     ProjectCreationRequest(
         name: draft.projectName,
         folderName: draft.folderName,
         parentPath: parent,
         template: ProjectCreationTemplate.empty,
         dimension: ProjectDimension.twoD,
+        mapInstanceRetentionPolicy: retentionPolicy,
         tileSize: 32,
         mapWidth: draft.defaultMapWidth,
         mapHeight: draft.defaultMapHeight);

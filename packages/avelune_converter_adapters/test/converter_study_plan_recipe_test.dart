@@ -309,6 +309,16 @@ void main() {
     }
   });
 
+  test('an imported recipe preserves its explicit aggregate text quota', () {
+    final recipe = connectionRecipe(2,
+        writeLimits: const NativeWriteLimits(
+            jsonLimits: ContractLimits(maxTextCodeUnits: 4194304)));
+    final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+    expect(decoded.settings.writeLimits.jsonLimits.maxTextCodeUnits, 4194304);
+    expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
+    expect(decoded.canonicalHash, recipe.canonicalHash);
+  });
+
   test('draft JSON budget settings and recipe hashes distinguish limits', () {
     final two = connectionRecipe(2,
         writeLimits: const NativeWriteLimits(maxTotalDraftJsonBytes: 2));

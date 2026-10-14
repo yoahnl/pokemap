@@ -13,7 +13,7 @@ MapWarp _arrival(String id, GridPos pos, {String mapId = 'map'}) => MapWarp(
     pos: pos,
     targetMapId: mapId,
     targetPos: pos,
-    triggerMode: MapWarpTriggerMode.onBump);
+    triggerMode: MapWarpTriggerMode.sceneOnly);
 
 MapData _map(
         {List<MapEntity> entities = const [],
@@ -86,6 +86,39 @@ Matcher _arrivalFailure(String code) => throwsA(
     isA<NativeWriteException>().having((error) => error.code, 'code', code));
 
 void main() {
+  test('rejects an active or nonlocal destination marker', () {
+    for (final warp in [
+      _arrival('arrival', _position).copyWith(triggerMode: MapWarpTriggerMode.onBump),
+      _arrival('arrival', _position).copyWith(
+        triggerMode: MapWarpTriggerMode.sceneOnly, targetMapId: 'other'),
+    ]) {
+      final map = _map(warps: [warp]);
+      expect(() => const SourceEventArrivalValidator().validate(
+        manifest: _manifest(map), maps: [map], arrivalAnchorIds: ['arrival']),
+        _arrivalFailure('events.arrival.binding'));
+    }
+  });
+
+  test('explicit owner admits only its collision and keeps a second blocker', () {
+    final owner = MapEntity(id: 'door', kind: MapEntityKind.npc,
+      pos: _position, npc: const MapEntityNpcData(characterId: 'doorCharacter'),
+      properties: const {mapEntityCollisionWidthProperty: '1',
+        mapEntityCollisionHeightProperty: '1', mapEntityCollisionOffsetYProperty: '0'});
+    for (final other in [false, true]) {
+      final map = _map(entities: [owner,
+        if (other) owner.copyWith(id: 'other')]);
+      final manifest = _manifest(map).copyWith(characters: const [
+        ProjectCharacterEntry(id: 'doorCharacter', name: 'Door',
+          tilesetId: 'tiles', frameHeight: 1),
+      ]);
+      void operation() => const SourceEventArrivalValidator().validate(
+        manifest: manifest, maps: [map], arrivalAnchorIds: ['arrival'],
+        arrivalCollisionOwners: {'arrival': 'door'});
+      expect(operation, other ? _arrivalFailure('events.arrival.blocked') : returnsNormally);
+      expect(map.entities.first, owner);
+    }
+  });
+
   test('accepts a free canonical destination without altering project data',
       () {
     final map = _map();

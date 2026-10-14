@@ -25,6 +25,7 @@ final class ProjectCreationRequest {
     this.template = ProjectCreationTemplate.playable,
     this.dimension = ProjectDimension.twoD,
     this.spatialCamera,
+    this.mapInstanceRetentionPolicy,
     this.tileSize = 16,
     this.mapWidth = 20,
     this.mapHeight = 15,
@@ -36,6 +37,7 @@ final class ProjectCreationRequest {
   final ProjectCreationTemplate template;
   final ProjectDimension dimension;
   final SpatialCameraProfile? spatialCamera;
+  final MapInstanceRetentionPolicy? mapInstanceRetentionPolicy;
   final int tileSize;
   final int mapWidth;
   final int mapHeight;
@@ -64,6 +66,10 @@ final class ProjectCreationRequest {
   }
 
   void validateGeometry() {
+    if (mapInstanceRetentionPolicy != null &&
+        (dimension != ProjectDimension.twoD || template != ProjectCreationTemplate.empty)) {
+      throw const FormatException('La conservation des cartes exige un projet 2D vide.');
+    }
     if (dimension == ProjectDimension.threeD &&
         template != ProjectCreationTemplate.empty) {
       throw const FormatException("Les projets 3D utilisent le modèle vide.");

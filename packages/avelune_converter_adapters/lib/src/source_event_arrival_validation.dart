@@ -131,11 +131,16 @@ final class SourceEventArrivalValidator {
     required ProjectManifest manifest,
     required List<MapData> maps,
     required Iterable<String> arrivalAnchorIds,
+    Map<String, String> arrivalCollisionOwners = const {},
     ScanCancellation? cancellation,
   }) {
     cancellation?.check();
     final anchorSet = arrivalAnchorIds.toSet();
     final anchors = anchorSet.toList()..sort();
+    if (!anchorSet.containsAll(arrivalCollisionOwners.keys)) {
+      throw const NativeWriteException('events.arrival.binding',
+        'Every collision owner requires its exact arrival marker');
+    }
     if (anchors.isEmpty) return;
     if (maps.map((map) => map.id).toSet().length != maps.length) {
       throw const NativeWriteException('events.arrival.binding',
@@ -159,6 +164,11 @@ final class SourceEventArrivalValidator {
             'Arrival anchor $id must resolve exactly once in the final maps');
       }
       final (map, warp) = matches.single;
+      if (warp.triggerMode != MapWarpTriggerMode.sceneOnly ||
+          warp.targetMapId != map.id || warp.targetPos != warp.pos) {
+        throw const NativeWriteException('events.arrival.binding',
+          'A Scene destination must be one inert local arrival marker');
+      }
       final pos = warp.pos;
       if (pos.x < 0 ||
           pos.y < 0 ||
@@ -182,9 +192,15 @@ final class SourceEventArrivalValidator {
           tileHeightPx: manifest.settings.tileHeight,
           mapWidthCells: map.size.width,
           mapHeightCells: map.size.height);
-      if (world
-          .withPlayer(player)
-          .worldStaticObstaclesCollidePlayerCollisionRect()) {
+      final bool allowed;
+      try {
+        allowed = isSceneWarpArrivalAllowed(world: world.withPlayer(player),
+          project: manifest, arrivalCollisionOwnerEntityId: arrivalCollisionOwners[id]);
+      } on StateError {
+        throw const NativeWriteException('events.arrival.binding',
+          'The explicit arrival owner must resolve to its exact native actor anchor');
+      }
+      if (!allowed) {
         throw NativeWriteException('events.arrival.blocked',
             'Arrival anchor $id overlaps a native static collision or a potentially present blocking entity');
       }

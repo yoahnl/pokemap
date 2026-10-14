@@ -745,6 +745,11 @@ void main() {
           .updateSettings(harness.settings(snapshot, selected: [1]));
       final prepared = await harness.workflow.prepareStudy();
       expect(prepared.canApprove, isTrue);
+      final eventEvidence = prepared.nativeDraft!.compositionEvidence['sourceEvents'] as Map;
+      final sourceProjection = eventEvidence['projection'] as Map;
+      expect((sourceProjection['doorExecutionQualification'] as Map)['sourceExecutionContext'], isNull);
+      expect((sourceProjection['events'] as List).cast<Map>().where((entry) =>
+          entry['status'] == 'quarantinedWholeEvent'), hasLength(1));
       expect(
           prepared.nativeDraft!.mutations.map((entry) => entry.actionId),
           containsAll([

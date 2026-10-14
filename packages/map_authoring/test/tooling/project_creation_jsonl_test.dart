@@ -43,6 +43,47 @@ void main() {
         'mapHeight': 18
       };
 
+  test('JSONL preserves a typed retention policy and binds its confirmation', () async {
+    final host = worker();
+    final retention = MapInstanceRetentionPolicy(viewportWidthTiles: 16,
+      viewportHeightTiles: 12, marginTiles: 6, clampViewportToMapIds: ['future-map']);
+    final args = {...request(), 'template': 'empty',
+      'mapInstanceRetentionPolicy': retention.toJson()};
+    final preview = await _request(host, 'project_create_preview', {'request': args});
+    expect(preview.status, AuthoringResultStatus.success, reason: preview.toJson().toString());
+    final changed = await _request(host, 'project_create', {'request': {
+      ...args, 'mapInstanceRetentionPolicy': {...retention.toJson(), 'marginTiles': 5}},
+      'confirmation': preview.data['confirmation']});
+    expect(changed.status, AuthoringResultStatus.failure);
+    expect(await root.list().toList(), isEmpty);
+    final created = await _request(host, 'project_create', {
+      'request': args, 'confirmation': preview.data['confirmation']});
+    expect(created.status, AuthoringResultStatus.success, reason: created.toJson().toString());
+    final manifest = ProjectManifest.fromJson(jsonDecode(await File(
+      p.join(created.data['projectPath'] as String, 'project.json')).readAsString()) as Map<String, dynamic>);
+    expect(manifest.settings.mapInstanceRetentionPolicy, retention);
+    final opened = await _request(host, 'open', {'projectRoot': created.data['projectPath']});
+    expect(opened.status, AuthoringResultStatus.success);
+  });
+
+  test('JSONL rejects invalid retention and unsupported templates before writes', () async {
+    final host = worker();
+    final retention = MapInstanceRetentionPolicy(viewportWidthTiles: 16,
+      viewportHeightTiles: 12, marginTiles: 6).toJson();
+    for (final args in [
+      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': null},
+      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': {...retention, 'marginTiles': -1}},
+      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': {...retention, 'extra': true}},
+      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': {...retention, 'clampViewportToMapIds': ['x', 'x']}},
+      {...request(), 'template': 'empty', 'dimension': 'threeD', 'mapInstanceRetentionPolicy': retention},
+      {...request(), 'mapInstanceRetentionPolicy': retention},
+    ]) {
+      final result = await _request(host, 'project_create_preview', {'request': args});
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(await root.list().toList(), isEmpty);
+    }
+  });
+
   test(
       'JSONL creates an exclusive empty 3D project and binds camera to confirmation',
       () async {

@@ -38,6 +38,18 @@ SourceSemanticCell _cell({List<SourceSemanticTile>? stack, int x = 0}) =>
 void main() {
   final resolver = SourceSemanticResolver(profile: _profile());
 
+  test('stationary d0 is not the union of four directional refusals', () {
+    final cell = _cell(stack: [
+      _tile(2, passage: 1, priority: 1),
+      _tile(1, passage: 2, priority: 1),
+      _tile(0, passage: 12, priority: 1),
+    ]);
+    expect(resolver.resolveCell(cell).blockedMask, 15);
+    final stationary = resolver.resolveConnectionEntryTile(cell);
+    expect(stationary.isPassable, isTrue);
+    expect(stationary.reason, SourcePassageReason.stackExhausted);
+  });
+
   test('connection entry uses source d0 rather than a reverse cardinal bit',
       () {
     for (final passage in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {

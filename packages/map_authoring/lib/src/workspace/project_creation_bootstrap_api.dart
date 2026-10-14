@@ -98,6 +98,7 @@ final class ProjectCreationBootstrapApi
       'mapWidth',
       'mapHeight',
       'dimension',
+      'mapInstanceRetentionPolicy',
       'spatialCamera'
     });
     final request = ProjectCreationRequest(
@@ -119,6 +120,10 @@ final class ProjectCreationBootstrapApi
           ? null
           : SpatialCameraProfile.fromJson(
               Map<String, dynamic>.from(wire['spatialCamera'] as Map)),
+      mapInstanceRetentionPolicy: !wire.containsKey('mapInstanceRetentionPolicy')
+          ? null
+          : MapInstanceRetentionPolicy.fromJson(
+              Map<String, dynamic>.from(wire['mapInstanceRetentionPolicy'] as Map)),
       tileSize:
           _integer(wire['tileSize'], wire['template'] == 'clairbois' ? 32 : 16),
       mapWidth:
@@ -136,6 +141,7 @@ final class ProjectCreationBootstrapApi
         template: request.template,
         dimension: request.dimension,
         spatialCamera: request.spatialCamera,
+        mapInstanceRetentionPolicy: request.mapInstanceRetentionPolicy,
         tileSize: request.tileSize,
         mapWidth: request.mapWidth,
         mapHeight: request.mapHeight);
@@ -152,6 +158,8 @@ final class ProjectCreationBootstrapApi
       'dimension': request.dimension.name,
       if (request.spatialCamera != null)
         'spatialCamera': request.spatialCamera!.toJson(),
+      if (request.mapInstanceRetentionPolicy != null)
+        'mapInstanceRetentionPolicy': request.mapInstanceRetentionPolicy!.toJson(),
       'tileSize': request.tileSize,
       'mapWidth': request.mapWidth,
       'mapHeight': request.mapHeight,
