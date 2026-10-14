@@ -1,14 +1,14 @@
 # AC-16 — Distribution du convertisseur V1
 
-Date : 13 octobre 2026, Europe/Paris. Branche : main. Base du lot : fb654a223c7996f3caf3a0562574acd1ffa16940, commit AC-15. Verdict de livraison locale : TO REVIEW / PARTIAL. REL-02 et REL-03 passent ; REL-01 conserve une limite de capture/contrôle de la release. Ce rapport ne déclare pas la V1 complète ni un Kanto entièrement jouable.
+État courant au 15 octobre 2026, Europe/Paris : DOING / PARTIAL. La distribution locale issue de eec7ae856 est reconstruite, extraite et vérifiée hors ligne, y compris la relecture du projet Kanto livré de trois cartes. REL-01 interface de release et REL-03 interface du plan courant restent ouverts. Les sections datées du 13 et du 14 octobre conservent leurs preuves historiques ; elles ne certifient pas rétroactivement les binaires du 15 octobre. Ni V1 complète ni Kanto entièrement jouable déclarés.
 
-## Résultat et périmètre
+## Résultat et périmètre — qualification historique du 13 octobre
 
 L’application indépendante se trouve dans apps/avelune_converter. Son design system est extrait dans un package Flutter partagé, sans importer Studio, le runtime ou le moteur de combat. La CLI compilée et l’interface utilisent ConverterWorkflow, la même recette fermée et une recomposition fraîche avant une nouvelle approbation. Aucune approbation persistée ne devient une autorisation automatique. Le convertisseur reste déterministe et hors ligne ; le combat conserve l’autorité Avelune.
 
-Le ZIP réel contient la release macOS, une CLI arm64, une fixture synthétique originale, les notices effectivement produites par le build et un README.txt de qualification privée. Après extraction dans un nouveau dossier, les 38 fichiers, 35 répertoires et neuf liens internes relatifs correspondent exactement à l’inventaire. Le binaire extrait réalise plan→convert→verify sur les deux cartes originales sans SDK installé pour l’exécution, sans modifier la source et sans écrire pendant verify. L’application macOS contient arm64 et x86_64 ; l’exécution a été qualifiée sur la machine arm64 uniquement.
+Le ZIP réel contient la release macOS, une CLI arm64, une fixture synthétique originale, les notices effectivement produites par le build et un README.txt de qualification privée. Après extraction dans un nouveau dossier, les 38 fichiers, 35 répertoires et neuf liens internes relatifs correspondent exactement à l’inventaire. Le binaire extrait réalise plan→convert→verify sur les deux cartes originales avec un PATH excluant les SDK Dart/Flutter, sans modifier la source et sans écrire pendant verify. L’application macOS contient arm64 et x86_64 ; l’exécution a été qualifiée sur la machine arm64 uniquement.
 
-La qualification UI réelle utilise une application native debug, la fixture originale et le même fichier de recette que la CLI. La sortie canonique de 20 fichiers est identique après vérification stricte. La release a été construite et lancée, mais ScreenCaptureKit -3811 bloque sa capture/son contrôle CUA : la capture debug ne remplace pas une capture de cette release.
+La qualification UI réelle du 13 octobre utilise une application native debug, la fixture originale et le même fichier de recette que la CLI. La sortie canonique de 20 fichiers est identique après vérification stricte. La release de cette qualification historique a été construite et lancée, mais ScreenCaptureKit -3811 bloque sa capture/son contrôle CUA : la capture debug ne remplace pas une capture de cette release. La release du 15 octobre n'a pas encore été lancée dans une fenêtre.
 
 La lacune de bibliothèque signalée par Yoahn est également corrigée au niveau des propositions perdues : Route 9 donne désormais 69 propositions de tuiles effectivement utilisées, 8 167 placements liés à leur source, et aucun diagnostic de proposition. Cela reste une base de revue, pas une bibliothèque terminée de pinceaux de chemin et d’arbres assemblés. Les pixels d’origine sont conservés. Aucun média Pokémon, projet Kanto ou secret n’entre dans le ZIP logiciel ou dans ce commit.
 
@@ -735,3 +735,58 @@ La seconde publication précédemment en cours est terminale et réussie : centr
 Le complément AC13 suivant reconnaît le vrai PNJ102/14 : texte b/r/n et route209/509 strictement bornée, sans changement natif/runtime/combats. Preuve finale de préparation9adaptés/35inactifs ; nouvelle publication centre-dialogue-native-convert-01 encore en cours. Rapport consolidé, audit, inventaire6fichiers, RED/GREEN, passes et risques : documentation/reports/converter/AC-13/13_native_events.md, complément du14octobre. Aucun Player du PNJ, porte ou KAN03 encore certifié.
 
 Distribution désormais AC16-local-20261014-static-dialogue-v2 : ZIP37791981B/SHA2c831dbd5cb438e9d5f826c5c8e46f2ff7b3007e19c3e652dfb0a68a3a20ea16 ;38files/35dirs/9liens, aucun médiaPokémon. Release71.1MB universelle/72.299s, CLIAOT27.513s ; extraction réelle help→plan→convert→verify2maps/1atlas PASS1.297s, source inchangée/vérificationread-only. Les vieilles archives/preuves demeurent leurs versions distinctes. REL01GUI/picker et REL03nouveauplanCLI/GUI restent ouverts ; AC16DOING/PARTIAL, goal complet actif.
+
+## Actualisation du 15 octobre — distribution des programmes de porte originaux
+
+**Verdict : artefact local et CLI extraits vérifiés ; AC-16 DOING / PARTIAL.** La distribution actuelle contient les changements poussés de `63577610e` et `eec7ae856`. La CLI extraite convertit la fixture originale et relit sans écriture le projet utilisateur Route 9 / Route 10 Nord / Centre Pokémon. Aucun lancement GUI de cette release ni aucune certification du jeu complet ne sont déduits de ces contrôles.
+
+### Audit initial, périmètre et inventaire
+
+Base exacte : `eec7ae856216bde9c9fc1f99256831be9e02c207`, main et origin/main synchronisés, index vide. Le reçu initial compte 96 chemins étrangers modifiés/non suivis, tous conservés en hash pendant la qualification. L'archive Git privée contient 10 710 membres ; un lien absolu historique de `packages/map_editor/macos/Flutter/ephemeral_backup_20260323/Packages/.packages/file_picker` est exclu de cette seule extraction. Aucun nettoyage du checkout hôte.
+
+La passe relit le kit AC-00 à AC-16, ses 80 cas d'acceptation, les rapports courants, `codex_rule.md`, les skills `verification-before-completion` et `using-pokemap-mcp`. Le tour précédent a surtout fourni un tableau de statut ; sa revue packaging a également renforcé les assertions requises pour la nouvelle extraction. Ce progrès de preuve est distinct d'une mutation produit. Ce tour ferme les preuves d'artefact et d'exécution de la distribution actuelle. L'objectif intégral conserve les 17 lots.
+
+Seul ce rapport existant est modifié dans le dépôt : en-tête actualisé et présent complément. Aucun code produit, test permanent, modèle, action MCP, dépendance, workflow CI ni ressource Kanto ajouté. Les scripts de qualification et les reçus restent externes sous `Q/native-global-routes-01/distribution-refresh-20261015`, où `Q=/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac13-source-door-timing-20261014-83ui2yih`.
+
+Le candidat et ses 40 fichiers épinglés correspondent aux blobs Git. `candidate-01.json` SHA `52b88370432e275940e2771e1ddb06d81d10d3a0020e6c497450423744e0420f`. Résolution offline uniquement dans l'archive privée ; aucun lockfile hôte modifié. Les packages Converter ne dépendent pas de Studio pour distribuer leur design system.
+
+### Commandes terminées et résultats
+
+Chaque commande utilise `Q/run_owned.py` avec cwd, 40 pins produit, scripts de contrôle, log/hash, identités des descendants et garde des PID protégés. Les temps ci-dessous sont ceux du superviseur, hors addition artificielle des replays.
+
+| Package / artefact | Commande exacte ou script contrôlé | Résultat |
+|---|---|---|
+| `packages/avelune_converter_adapters` | `dart pub get --offline` | exit 0, 1,327 s |
+| `tools/avelune_converter_cli` | `dart pub get --offline` | exit 0, 1,341 s |
+| `apps/avelune_converter` | `flutter pub get --offline` | exit 0, 1,338 s |
+| `tools/avelune_converter_cli` | `dart test --concurrency=1 --reporter=expanded` | exit 0, 32 PASS / 3 SKIP, 26,138 s ; corpus optionnels et branche non-macOS non exercés |
+| `tools/avelune_converter_cli` | `dart analyze` | exit 0, No issues found, 4,074 s |
+| `apps/avelune_converter` | `python3 -B tool/test_package_distribution.py` | exit 0, 22 PASS, 0,695 s |
+| `apps/avelune_converter` | `flutter build macos --release --no-pub --target lib/main.dart` | exit 0, 71,7 MB, 72,637 s ; warnings Swift de dépréciation et phase Flutter sans outputs conservés |
+| `tools/avelune_converter_cli` | `dart compile exe bin/avelune_converter.dart -o D/bin/avelune-converter` | exit 0, 25,488 s ; D est le dossier de qualification ci-dessus |
+| Fixture originale | `dart --packages=N/packages/avelune_converter_adapters/.dart_tool/package_config.json N/apps/avelune_converter/tool/create_original_fixture.dart D/original-source-01` | exit 0, 4,404 s ; N=D/repository, deux cartes 8×8, PNG original, aucun script Ruby |
+| Archive | `python3 -B tool/package_distribution.py --app 'N/apps/avelune_converter/build/macos/Build/Products/Release/Avelune Converter.app' --cli D/bin/avelune-converter --fixture D/original-source-01 --output /Users/karim/Project/pokemonProject/apps/avelune_converter/build/distribution/AC16-local-20261015-original-doors` | exit 0, 4,085 s |
+| Installation extraite | `python3 -B D/qualify_extracted_01.py` | exit 0, 1,664 s ; extraction réelle et cinq commandes CLI, dont refus d'approbation périmée |
+| Kanto utilisateur | `python3 -B D/qualify_kanto_readonly_01.py` | exit 0, 5,290 s ; CLI verify réelle 4,464 s, 3 cartes / 88 assets, 1 403 fichiers inchangés |
+
+Les suites core/adapters/application déjà enregistrées pour la cohorte Source30 ne sont pas présentées comme de nouveaux runs. Les tests du packager utilisent volontairement des exécutables synthétiques ; leur réussite est distincte de la compilation et de l'exécution AOT réelles ci-dessus.
+
+### Archive, extraction et vérification stricte
+
+Sortie locale : `apps/avelune_converter/build/distribution/AC16-local-20261015-original-doors`. ZIP de **38 172 807 octets**, SHA `b52fd0c6c9c1fdbae50962fc2787db76fc40682a8a65e25c84fda8ddda581fcd`. Inventaire SHA `10f7e20d0bd22a371bf22ce67a173db3c87b612566319dc353046d3de569826b` : 38 fichiers, 35 répertoires, neuf liens internes relatifs et une notice Flutter réelle. Fixture synthétique originale, aucun média Pokémon ni secret dans le logiciel. L'archive reste privée, non notarized, non publiée ; aucun grant global de licence du dépôt inventé.
+
+Après `ditto -x -k`, l'inventaire des octets/modes/liens est identique. La CLI extraite a le même SHA `54409e345152089100571c4f9288312ac13aed02e905dbcad40cd92dd417b8a9` que l'AOT compilée. Les deux exécutables sont de vrais Mach-O ; l'application annonce `x86_64 arm64`, et `codesign --verify --deep --strict` réussit. Seule l'exécution arm64 de la CLI est exercée ; ni lancement graphique ni exécution x86_64 ne sont inférés.
+
+Avec `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, la CLI extraite exécute `--help`, `plan --maps 1,8 --ack-profile --offline --json`, `convert` avec mauvais hash (exit 7, `workflow.stale_approval`, aucune destination créée), puis `convert` avec l'approbation fraîche exacte et `verify --offline --json`. La recette version 4, ses hashes d'approbation/préparation/snapshot et ses chemins sont contrôlés ; le projet comporte réellement deux fichiers de cartes 8×8 et deux IDs distincts. Les JSON convert/verify doivent annoncer les kinds/versions attendus, `verified=true`, `playableCertified=false`, deux cartes/un asset et la même révision `sha256:82301a2f5149ba98d409fd94b4f3c81019291985dad8a8ef861ba75dcb5a87b5`. Source, recette, payload extrait et projet après verify restent inchangés.
+
+Le même binaire extrait relit ensuite `/Users/karim/Documents/Avelune Converter Studies/Kanto - Route 9 Route 10 et Centre - 20261015/Projet Avelune`. Les 1 403 hashes correspondent avant et après au reçu de livraison Source30 ; trois cartes et 88 assets sont réellement relus, révision `sha256:f4f83a06aacb181c037eddb82dcfdd8c702ca2bb7485f7ebf8773c4b4aa07447`. `verified=true` reste distinct de `playableCertified=false` et de l'ouverture GUI du projet.
+
+### Preuves, passes et limites
+
+`build-qualification-01.json` SHA `9ceaf3059556c4d418f24c9b8592ad4a032407dbca97c22b05041dee127fd88c` lie les dix reçus terminaux. `extracted-qualification-01.json` SHA `3facf266aa38a945a74d32e4d2a43a38e3cc61dab2bacc4c17193e65581ba561` ; `extracted-run-01.json` SHA `ca20c9c7015e19f8c6997fe8b40b96f1c18a53e0099d3e3e593a4473e6030f06`. Le contrôle Root relit effectivement les exit codes, hashes des logs, pins avant/après/courants et absences de survivants. Deux descendants `ibtoold` du build ont reçu SIGTERM après revalidation PID/UID/start/commande ; les onze autres commandes supervisées n'ont aucun signal. Tous les PID protégés restent inchangés.
+
+Audit/Architecture : revue globale `overall-gates-audit-01.json`, SHA `e6bfee4929dacb9967e7e828dc4255ef2f6ef134a9137a7b190fb4178e369636`, avec les 17 critères de lot et 80 cas, sans exiger une conversion universelle absente du kit. Implémentation : aucune modification produit nécessaire pour reconstruire la cohorte publiée. Tests : 32 PASS/3 SKIP CLI et 22 PASS packaging ; Build/Validation : release, AOT, extraction/CLI et relecture Kanto acquises. Revue packaging indépendante `packaging-readonly-review-01.json`, SHA `849e49fb0acfaaa8341ccd3a9776a969effd7b49d21fef983cddcc185dc970bf`, puis contre-revue finale `final-independent-review-01.json`, SHA `5018d325c77f64af6c328be056d6de9b2cfd53a4222b222977ee5349affd48fa` : favorable dans ces limites, aucun P1/P2 identifié. La passe indépendante recalcule les pins et logs, les inventaires build/extrait, la chaîne d'ascendance des deux ibtoold et les 1 403 hashes de la livraison Kanto. Le contrôle Root confirme ces preuves ; les seules modifications du rapport après sa relecture sont cette référence et la précision de classement du tour précédent.
+
+Parité MCP nouvelle N/A : ce complément ne change aucune sémantique d'authoring, seulement la distribution des contrats déjà qualifiés. REL-03 du même plan courant via le transport interface reste ouvert ; un comparateur ou un workflow headless ne prouve pas ce transport. La GUI release/picker, Studio Source30 ouvrir/modifier/save/cold-reopen, le trajet unique KAN-03 incluant le vrai dialogue et l'audibilité restent des preuves distinctes. Les 11/44 événements adaptés et 33 quarantinés de ces trois cartes ne mesurent pas l'avancement global du produit. Pas de nouvel appel IA, aucune exécution Ruby source, moteur de combat Avelune conservé.
+
+Auto-critique : cette passe ferme la livraison logicielle actuelle et sa lecture native ; elle ne ferme pas les gates visibles ni l'objectif intégral. La suite reste le trajet KAN-03 combiné puis les gates GUI après déverrouillage humain du Mac, avec fermeture des outils possédés. Ticket existant AC-16 dans le seul domaine Post Bêta Monde & narration conservé DOING/PARTIAL, Gate bêta false. État Git final et SHA du commit consignés dans le reçu externe de publication après contrôle ciblé ; aucun changement étranger ne doit être indexé.
