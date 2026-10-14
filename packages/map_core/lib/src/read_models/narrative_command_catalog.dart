@@ -489,7 +489,7 @@ final class NarrativeCommandCatalog {
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.actorRoute,
         label: 'Déplacer un acteur',
-        description: 'Exécute une route finie et termine après ses étapes.',
+        description: 'Exécute une route finie et termine après ses étapes. L’option « Personnage à quitter » reste PARTIAL jusqu’à qualification des consommateurs et formulaires.',
         backend: NarrativeCommandBackend.interactiveRuntimeCommand,
         capabilities: const NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.supported,

@@ -11,6 +11,7 @@ final class _Port implements ActorRouteExecutionPort {
   final gates = <String, Completer<void>>{};
   final entered = <String, Completer<void>>{};
   final moveOutcomes = <ActorRouteMoveOutcome>[];
+  final initialCollisionOwners = <String?>[];
   String? failingOperation;
 
   @override
@@ -38,8 +39,11 @@ final class _Port implements ActorRouteExecutionPort {
   @override
   Future<ActorRouteMoveOutcome> move(
       SceneActorTarget target, EntityFacing direction,
-      {required int durationMs, required bool through}) async {
+      {required int durationMs,
+      required bool through,
+      String? initialCollisionOwnerEntityId}) async {
     targets.add(target);
+    initialCollisionOwners.add(initialCollisionOwnerEntityId);
     await _call('move', 'move:${direction.name}:$durationMs:$through');
     return moveOutcomes.isEmpty
         ? ActorRouteMoveOutcome.moved
@@ -70,6 +74,35 @@ SceneActorRouteInteractiveCommand _route(List<SceneActorRouteStep> steps,
 
 void main() {
   const executor = ActorRouteExecutor();
+
+  test('actor route forwards the initial owner only for its declared move',
+      () async {
+    final command = SceneInteractiveCommand.fromJson({
+      'kind': 'actorRoute',
+      'target': {'kind': 'player', 'mapId': 'centre'},
+      'steps': [
+        {
+          'kind': 'move',
+          'direction': 'south',
+          'durationMs': 250,
+          'initialCollisionOwnerEntityId': 'door',
+        },
+        {'kind': 'move', 'direction': 'south', 'durationMs': 250},
+      ],
+      'skippable': false,
+    }) as SceneActorRouteInteractiveCommand;
+    final port = _Port();
+    expect(await executor.execute(command, port: port),
+        ActorRouteExecutionOutcome.completed);
+    expect(port.initialCollisionOwners, ['door', null]);
+    expect(port.calls, ['move:south:250:false', 'move:south:250:false']);
+    await executor.execute(
+        _route([
+          SceneActorMoveStep(direction: EntityFacing.north, durationMs: 250),
+        ]),
+        port: port);
+    expect(port.initialCollisionOwners, ['door', null, null]);
+  });
 
   test('actor route executes typed operations in order with local through',
       () async {

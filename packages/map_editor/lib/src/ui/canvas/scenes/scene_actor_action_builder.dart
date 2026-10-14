@@ -76,7 +76,9 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
     if (command is SceneActorRouteInteractiveCommand && _route) {
       _skippable = command.skippable;
       for (final step in command.steps) {
-        _steps.add(_ActorStepDraft.fromStep(_nextStepId++, step));
+        _steps.add(
+          _ActorStepDraft.fromStep(_nextStepId++, step, mapId: target!.mapId),
+        );
       }
     } else if (command is SceneActorVisibilityInteractiveCommand && !_route) {
       _visible = command.visible;
@@ -117,6 +119,119 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
               : 'PNJ (${entity.id})',
     };
   }
+
+  Map<String, String> get _initialCollisionOwners {
+    final map = _map;
+    if (map == null) return const {};
+    final actors = _actors;
+    return {
+      for (final entity in map.entities)
+        if (actors.containsKey(entity.id) &&
+            isSceneActorInitialCollisionOwnerReferenceAvailable(
+              widget.project,
+              entity,
+            ))
+          entity.id: actors[entity.id]!,
+    };
+  }
+
+  bool _throughBefore(int index) {
+    var through = false;
+    for (final step in _steps.take(index)) {
+      if (step.kind == SceneActorRouteStepKind.through) {
+        through = step.enabled;
+      }
+    }
+    return through;
+  }
+
+  bool _canSelectInitialOwner(_ActorStepDraft step, int index) =>
+      step.kind == SceneActorRouteStepKind.move &&
+      _targetKind == SceneActorTargetKind.player &&
+      !_throughBefore(index);
+
+  String? _initialOwnerError(_ActorStepDraft step, int index) {
+    if (step.initialCollisionOwnerEntityId == null) return null;
+    if (step.kind != SceneActorRouteStepKind.move) {
+      return 'Ce personnage est réservé à un déplacement. Choisir Aucun pour retirer la sélection.';
+    }
+    if (_targetKind != SceneActorTargetKind.player) {
+      return 'Seul le joueur peut quitter la case d’un personnage. Choisir Aucun pour retirer la sélection.';
+    }
+    if (_throughBefore(index)) {
+      return 'Désactiver la traversée avant ce déplacement ou choisir Aucun.';
+    }
+    if (step.initialCollisionOwnerMapId != _mapId) {
+      return 'La carte a changé. Choisir à nouveau le personnage dans cette carte ou choisir Aucun.';
+    }
+    if (!_initialCollisionOwners.containsKey(
+      step.initialCollisionOwnerEntityId,
+    )) {
+      return 'Choisir un PNJ unique avec un personnage connu et un contact d’une case à la position du PNJ, ou choisir Aucun.';
+    }
+    return null;
+  }
+
+  Map<String, String> _initialOwnerOptions(_ActorStepDraft step, int index) => {
+    '': 'Aucun',
+    if (_initialOwnerError(step, index) != null)
+      'unavailable': 'Sélection conservée — à vérifier',
+    if (_canSelectInitialOwner(step, index))
+      for (final entry in _initialCollisionOwners.entries)
+        _initialOwnerOptionKey(entry.key): entry.value,
+  };
+
+  String _initialOwnerValue(_ActorStepDraft step, int index) =>
+      step.initialCollisionOwnerEntityId == null
+      ? ''
+      : _initialOwnerError(step, index) != null
+      ? 'unavailable'
+      : _initialOwnerOptionKey(step.initialCollisionOwnerEntityId!);
+
+  String _initialOwnerOptionKey(String entityId) =>
+      'entity:${_mapId!.length}:$_mapId:$entityId';
+
+  void _selectInitialOwner(_ActorStepDraft step, String value) {
+    if (value.isEmpty) {
+      step.initialCollisionOwnerEntityId = null;
+      step.initialCollisionOwnerMapId = null;
+    } else {
+      for (final entityId in _initialCollisionOwners.keys) {
+        if (_initialOwnerOptionKey(entityId) != value) continue;
+        step.initialCollisionOwnerEntityId = entityId;
+        step.initialCollisionOwnerMapId = _mapId;
+        return;
+      }
+    }
+  }
+
+  bool get _routeStepsValid {
+    for (var index = 0; index < _steps.length; index++) {
+      if (!_stepValid(_steps[index]) ||
+          _initialOwnerError(_steps[index], index) != null) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Widget _initialOwnerField(_ActorStepDraft step, int index) => Column(
+    key: ValueKey('actor-step-${step.id}-owner'),
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _select(
+        label: 'Personnage à quitter',
+        value: _initialOwnerValue(step, index),
+        options: _initialOwnerOptions(step, index),
+        onChanged: (value) => setState(() => _selectInitialOwner(step, value)),
+      ),
+      _notice(
+        'Pour quitter la case occupée par ce personnage. Les autres obstacles restent bloquants.',
+      ),
+      if (_initialOwnerError(step, index) case final String error)
+        _notice(error, isError: true),
+    ],
+  );
 
   Map<String, String> get _sounds {
     final counts = <String, int>{};
@@ -186,6 +301,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
     SceneActorRouteStepKind.move => SceneActorRouteStep.move(
       direction: step.direction,
       durationMs: step.duration!,
+      initialCollisionOwnerEntityId: step.initialCollisionOwnerEntityId,
     ),
     SceneActorRouteStepKind.wait => SceneActorRouteStep.wait(
       durationMs: step.duration!,
@@ -219,7 +335,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
       _maps.containsKey(_mapId) &&
       (_targetKind == SceneActorTargetKind.player ||
           _actors.containsKey(_entityId)) &&
-      (!_route || _steps.every(_stepValid));
+      (!_route || _routeStepsValid);
 
   void _submit() {
     if (!_valid) return;
@@ -481,6 +597,11 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
               onChanged: (value) => setState(() => step.durationText = value),
             ),
           ],
+          if (_canSelectInitialOwner(step, index) ||
+              step.initialCollisionOwnerEntityId != null) ...[
+            const SizedBox(height: 8),
+            _initialOwnerField(step, index),
+          ],
           if (step.kind == SceneActorRouteStepKind.through)
             PokeMapToggleTile(
               label: 'Traversée autorisée',
@@ -529,9 +650,14 @@ class _ActorStepDraft {
   EntityFacing direction = EntityFacing.south;
   String durationText = '0', gainText = '1';
   String? soundId;
+  String? initialCollisionOwnerEntityId, initialCollisionOwnerMapId;
   bool enabled = false;
 
-  factory _ActorStepDraft.fromStep(int id, SceneActorRouteStep step) {
+  factory _ActorStepDraft.fromStep(
+    int id,
+    SceneActorRouteStep step, {
+    required String mapId,
+  }) {
     final draft = _ActorStepDraft(id)..kind = step.kind;
     switch (step) {
       case SceneActorFaceStep():
@@ -540,6 +666,11 @@ class _ActorStepDraft {
       case SceneActorMoveStep():
         draft.direction = step.direction;
         draft.durationText = '${step.durationMs}';
+        draft.initialCollisionOwnerEntityId =
+            step.initialCollisionOwnerEntityId;
+        if (step.initialCollisionOwnerEntityId != null) {
+          draft.initialCollisionOwnerMapId = mapId;
+        }
       case SceneActorWaitStep():
         draft.durationText = '${step.durationMs}';
       case SceneActorThroughStep():

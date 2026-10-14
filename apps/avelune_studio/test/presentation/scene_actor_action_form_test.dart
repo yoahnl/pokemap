@@ -191,7 +191,438 @@ Future<void> _enter(WidgetTester tester, String key, String value) async {
   await tester.pump();
 }
 
+SceneActionPayload _egress({List<SceneActorRouteStep>? steps}) => _route(
+  target: SceneActorTarget.player(mapId: 'alpha'),
+  steps:
+      steps ??
+      [
+        SceneActorRouteStep.move(
+          direction: EntityFacing.south,
+          durationMs: 200,
+          initialCollisionOwnerEntityId: 'actor',
+        ),
+      ],
+);
+
+Future<void> _tapStep(WidgetTester tester, int id, String action) async {
+  final tool = find.byKey(ValueKey('actor-step-$id-$action'));
+  await tester.ensureVisible(tool);
+  await tester.tap(tool);
+  await tester.pump();
+}
+
 void main() {
+  testWidgets(
+    'egress stays unavailable in a 3D project even when its map is flat',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(
+        tester,
+        current: _egress(),
+        project: _project(spatial: true),
+        loadMap: (id) async => _map(id),
+        onApply: applied.add,
+        injected: false,
+      );
+      await tester.pumpAndSettle();
+      expect(_apply(tester).onPressed, isNull);
+      expect(_select('Personnage à quitter'), findsNothing);
+      expect(applied, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'egress stale owner choice cannot bind a same-ID character from another map',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(
+        tester,
+        current: _egress(
+          steps: [
+            SceneActorRouteStep.move(
+              direction: EntityFacing.south,
+              durationMs: 200,
+            ),
+          ],
+        ),
+        onApply: applied.add,
+      );
+      await tester.pumpAndSettle();
+      final picker = tester.widget<StudioSelect>(
+        _select('Personnage à quitter'),
+      );
+      final oldChoice = picker.options.entries
+          .singleWhere((entry) => entry.value == 'alpha actor')
+          .key;
+      final oldSelect = picker.onChanged!;
+      await _pick(tester, 'Carte de l’acteur', 'Beta');
+      oldSelect(oldChoice);
+      await tester.pump();
+      await _submit(tester);
+      final command =
+          (applied.single as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(command.target, SceneActorTarget.player(mapId: 'beta'));
+      expect(
+        (command.steps.single as SceneActorMoveStep)
+            .initialCollisionOwnerEntityId,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets('egress defaults to none and is chosen through the real picker', (
+    tester,
+  ) async {
+    final applied = <SceneNodePayload>[];
+    final ordinary = _egress(
+      steps: [
+        SceneActorRouteStep.move(
+          direction: EntityFacing.south,
+          durationMs: 200,
+        ),
+      ],
+    );
+    await _pump(
+      tester,
+      current: ordinary,
+      onApply: applied.add,
+      injected: false,
+    );
+    await tester.pumpAndSettle();
+    expect(_select('Personnage à quitter'), findsOneWidget);
+    expect(find.text('Aucun'), findsOneWidget);
+    await _submit(tester);
+    expect(applied.single, ordinary);
+    await _pick(tester, 'Personnage à quitter', 'alpha actor');
+    await _submit(tester);
+    expect(applied.last, _egress());
+  });
+
+  testWidgets(
+    'egress survives direction duration reorder add and delete edits',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(
+        tester,
+        current: _egress(
+          steps: [
+            SceneActorRouteStep.face(direction: EntityFacing.east),
+            (_egress().interactiveCommand as SceneActorRouteInteractiveCommand)
+                .steps
+                .single,
+            SceneActorRouteStep.wait(durationMs: 0),
+          ],
+        ),
+        onApply: applied.add,
+      );
+      await tester.pumpAndSettle();
+      await _enter(tester, 'actor-step-1-duration', '350');
+      await _pick(tester, 'Direction de l’étape 2', 'Ouest');
+      await _tapStep(tester, 1, 'up');
+      await _tapStep(tester, 2, 'delete');
+      final add = find.byKey(const ValueKey('actor-add-step'));
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pump();
+      await _pick(tester, 'Action de l’étape 3', 'Attendre');
+      await _enter(tester, 'actor-step-3-duration', '80');
+      await _submit(tester);
+      final payload = applied.single as SceneActionPayload;
+      final command =
+          payload.interactiveCommand as SceneActorRouteInteractiveCommand;
+      expect(command.steps, [
+        SceneActorRouteStep.move(
+          direction: EntityFacing.west,
+          durationMs: 350,
+          initialCollisionOwnerEntityId: 'actor',
+        ),
+        SceneActorRouteStep.face(direction: EntityFacing.east),
+        SceneActorRouteStep.wait(durationMs: 80),
+      ]);
+      expect(payload.actionKind, 'keep-action');
+      expect(payload.parameters, const {'keep': 'parameter'});
+    },
+  );
+
+  testWidgets(
+    'egress keeps its reference when actor becomes NPC until explicitly removed',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(tester, current: _egress(), onApply: applied.add);
+      await tester.pumpAndSettle();
+      await _pick(tester, 'Acteur', 'PNJ de la carte');
+      await _pick(tester, 'PNJ', 'alpha actor');
+      expect(_select('Personnage à quitter'), findsOneWidget);
+      expect(_apply(tester).onPressed, isNull);
+      expect(applied, isEmpty);
+      await _pick(tester, 'Acteur', 'Joueur');
+      await _submit(tester);
+      expect(applied.single, _egress());
+      await _pick(tester, 'Acteur', 'PNJ de la carte');
+      await _pick(tester, 'PNJ', 'alpha actor');
+      await _pick(tester, 'Personnage à quitter', 'Aucun');
+      expect(_apply(tester).onPressed, isNotNull);
+      await _submit(tester);
+      final command =
+          (applied.last as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(
+        command.target,
+        SceneActorTarget.entity(mapId: 'alpha', entityId: 'actor'),
+      );
+      expect(
+        (command.steps.single as SceneActorMoveStep)
+            .initialCollisionOwnerEntityId,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'egress checks cumulative through state after toggle and reorder',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(
+        tester,
+        current: _egress(
+          steps: [
+            SceneActorRouteStep.through(enabled: false),
+            (_egress().interactiveCommand as SceneActorRouteInteractiveCommand)
+                .steps
+                .single,
+            SceneActorRouteStep.through(enabled: true),
+          ],
+        ),
+        onApply: applied.add,
+      );
+      await tester.pumpAndSettle();
+      final toggle = find.descendant(
+        of: find.byKey(const ValueKey('actor-step-0')),
+        matching: find.byType(Switch),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pump();
+      expect(_apply(tester).onPressed, isNull);
+      expect(_select('Personnage à quitter'), findsOneWidget);
+      await tester.tap(toggle);
+      await tester.pump();
+      expect(_apply(tester).onPressed, isNotNull);
+      await _tapStep(tester, 1, 'down');
+      expect(_apply(tester).onPressed, isNull);
+      await _tapStep(tester, 1, 'up');
+      await _submit(tester);
+      final command =
+          (applied.single as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(
+        (command.steps[1] as SceneActorMoveStep).initialCollisionOwnerEntityId,
+        'actor',
+      );
+    },
+  );
+
+  testWidgets(
+    'egress changing step kind requires explicit removal instead of losing the reference',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(tester, current: _egress(), onApply: applied.add);
+      await tester.pumpAndSettle();
+      await _pick(tester, 'Action de l’étape 1', 'Attendre');
+      expect(_apply(tester).onPressed, isNull);
+      expect(_select('Personnage à quitter'), findsOneWidget);
+      await _pick(tester, 'Action de l’étape 1', 'Avancer d’une case');
+      await _submit(tester);
+      expect(applied.single, _egress());
+      await _pick(tester, 'Action de l’étape 1', 'Attendre');
+      await _pick(tester, 'Personnage à quitter', 'Aucun');
+      await _submit(tester);
+      final command =
+          (applied.last as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(command.steps.single, SceneActorRouteStep.wait(durationMs: 0));
+    },
+  );
+
+  testWidgets(
+    'egress map change never rebinds the same entity ID without an explicit selection',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(tester, current: _egress(), onApply: applied.add);
+      await tester.pumpAndSettle();
+      await _pick(tester, 'Carte de l’acteur', 'Beta');
+      expect(_apply(tester).onPressed, isNull);
+      expect(_select('Personnage à quitter'), findsOneWidget);
+      expect(applied, isEmpty);
+      await _pick(tester, 'Carte de l’acteur', 'Alpha');
+      await _submit(tester);
+      expect(applied.single, _egress());
+      await _pick(tester, 'Carte de l’acteur', 'Beta');
+      await _pick(tester, 'Personnage à quitter', 'beta actor');
+      await _submit(tester);
+      final command =
+          (applied.last as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(command.target, SceneActorTarget.player(mapId: 'beta'));
+      expect(
+        (command.steps.single as SceneActorMoveStep)
+            .initialCollisionOwnerEntityId,
+        'actor',
+      );
+    },
+  );
+
+  testWidgets(
+    'egress ignores stale map success and errors after explicit reselection',
+    (tester) async {
+      for (final error in [false, true]) {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        final first = Completer<MapData>();
+        final second = Completer<MapData>();
+        final applied = <SceneNodePayload>[];
+        await _pump(
+          tester,
+          current: _egress(),
+          loadMap: (id) => id == 'alpha' ? first.future : second.future,
+          onApply: applied.add,
+        );
+        await _pick(tester, 'Carte de l’acteur', 'Beta');
+        second.complete(_map('beta'));
+        await tester.pumpAndSettle();
+        expect(_apply(tester).onPressed, isNull);
+        await _pick(tester, 'Personnage à quitter', 'beta actor');
+        if (error) {
+          first.completeError(StateError('stale alpha owner'));
+        } else {
+          first.complete(_map('alpha'));
+        }
+        await tester.pumpAndSettle();
+        await _submit(tester);
+        final command =
+            (applied.single as SceneActionPayload).interactiveCommand
+                as SceneActorRouteInteractiveCommand;
+        expect(command.target, SceneActorTarget.player(mapId: 'beta'));
+        expect(
+          (command.steps.single as SceneActorMoveStep)
+              .initialCollisionOwnerEntityId,
+          'actor',
+        );
+      }
+    },
+  );
+
+  testWidgets(
+    'egress refuses ghost ambiguous non-NPC and non-1x1 contacts before Apply',
+    (tester) async {
+      final entity = _map('alpha').entities.single;
+      for (final mode in [
+        'sign',
+        'ghost',
+        'missing-character',
+        'duplicate-entity',
+        'duplicate-character',
+        'wide-contact',
+        'default-tall',
+        'shifted-contact',
+        'removed',
+        'spatial',
+        'wrong-map',
+      ]) {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        final applied = <SceneNodePayload>[];
+        final project = _project();
+        final entities = switch (mode) {
+          'sign' => [entity.copyWith(kind: MapEntityKind.sign)],
+          'ghost' => [entity.copyWith(npc: const MapEntityNpcData())],
+          'missing-character' => [
+            entity.copyWith(
+              npc: const MapEntityNpcData(characterId: 'missing'),
+            ),
+          ],
+          'duplicate-entity' => [
+            entity,
+            entity.copyWith(kind: MapEntityKind.sign),
+          ],
+          'wide-contact' => [
+            entity.copyWith(size: const GridSize(width: 2, height: 1)),
+          ],
+          'default-tall' => [
+            entity.copyWith(size: const GridSize(width: 1, height: 2)),
+          ],
+          'shifted-contact' => [
+            entity.copyWith(
+              size: const GridSize(width: 2, height: 1),
+              properties: const {
+                'collision.width': '1',
+                'collision.height': '1',
+                'collision.offsetX': '1',
+              },
+            ),
+          ],
+          'removed' => <MapEntity>[],
+          _ => [entity],
+        };
+        await _pump(
+          tester,
+          current: _egress(),
+          project: mode == 'duplicate-character'
+              ? project.copyWith(
+                  characters: [...project.characters, ...project.characters],
+                )
+              : project,
+          loadMap: (id) async => _map(
+            mode == 'wrong-map' ? 'beta' : id,
+            entities: entities,
+            spatial: mode == 'spatial',
+          ),
+          onApply: applied.add,
+        );
+        await tester.pumpAndSettle();
+        expect(_apply(tester).onPressed, isNull, reason: mode);
+        expect(applied, isEmpty);
+        if (mode != 'spatial' && mode != 'wrong-map') {
+          await _pick(tester, 'Personnage à quitter', 'Aucun');
+          expect(_apply(tester).onPressed, isNotNull, reason: mode);
+        }
+      }
+    },
+  );
+
+  testWidgets(
+    'egress accepts a tall trainer-backed character with a canonical 1x1 contact',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      final entity = _map('alpha').entities.single.copyWith(
+        size: const GridSize(width: 1, height: 2),
+        properties: const {'collision.height': '1', 'collision.offsetY': '0'},
+        npc: const MapEntityNpcData(trainerId: 'trainer'),
+      );
+      await _pump(
+        tester,
+        current: _egress(),
+        project: _project().copyWith(
+          trainers: const [
+            ProjectTrainerEntry(
+              id: 'trainer',
+              name: 'Original trainer',
+              trainerClass: 'QA',
+              characterId: 'actor-character',
+            ),
+          ],
+        ),
+        loadMap: (id) async => _map(id, entities: [entity]),
+        onApply: applied.add,
+      );
+      await tester.pumpAndSettle();
+      expect(_select('Personnage à quitter'), findsOneWidget);
+      expect(_apply(tester).onPressed, isNotNull);
+      await _submit(tester);
+      expect(applied.single, _egress());
+    },
+  );
   for (final route in [false, true]) {
     testWidgets(
       'default catalogue edits ${route ? 'actor route' : 'actor visibility'} without injected capabilities',

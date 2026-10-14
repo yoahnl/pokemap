@@ -30,6 +30,8 @@ ActorRouteMotionPlan? planActorRouteMove({
   required SceneActorTarget target,
   required EntityFacing direction,
   required bool through,
+  String? initialCollisionOwnerEntityId,
+  ProjectManifest? project,
   Iterable<GridPos> dynamicBlockedCells = const [],
   Iterable<PixelRect> characterReservations = const [],
 }) {
@@ -121,6 +123,54 @@ ActorRouteMotionPlan? planActorRouteMove({
       !inBounds(sourceMovementRect)) {
     throw StateError('Actor route initial footprint is outside the map.');
   }
+  PixelRect? initialOwnerContact;
+  final ownerId = initialCollisionOwnerEntityId;
+  if (ownerId != null) {
+    if (!isPlayer || through || ownerId.isEmpty || ownerId.trim() != ownerId) {
+      throw StateError(
+          'Initial collision owner requires a nonthrough player move.');
+    }
+    if (project == null ||
+        project.settings.dimension != ProjectDimension.twoD ||
+        project.maps.where((map) => map.id == world.map.id).length != 1) {
+      throw StateError(
+          'Initial collision owner requires its unique project map.');
+    }
+    final owners = world.map.entities.where((entity) => entity.id == ownerId);
+    if (owners.length != 1 ||
+        !isSceneActorInitialCollisionOwnerReferenceAvailable(
+            project, owners.single)) {
+      throw StateError(
+          'Initial collision owner requires one NPC Character contact.');
+    }
+    final owner = owners.single;
+    final ownerFootprint = resolveEntityCollisionFootprint(owner);
+    if (owner.pos != from || ownerFootprint.pos != from) {
+      throw StateError('Initial collision owner must match the player anchor.');
+    }
+    if (!(world.npcMapPresencePredicate?.call(world.map.id, owner) ?? true) ||
+        !(world.mapEntityPresencePredicate?.call(world.map.id, owner) ?? true)) {
+      throw StateError('Initial collision owner must be present.');
+    }
+    final ownerContact = resolveEntityCollisionRectPx(owner,
+        tileWidthPx: world.tileWidthPx, tileHeightPx: world.tileHeightPx);
+    final cell = PixelRect(
+      leftPx: from.x * world.tileWidthPx,
+      topPx: from.y * world.tileHeightPx,
+      widthPx: world.tileWidthPx,
+      heightPx: world.tileHeightPx,
+    );
+    if (!_contains(cell, ownerContact) ||
+        !_intersects(world.playerCharacterContactRect(sourceMovementRect),
+            ownerContact)) {
+      throw StateError('Initial collision owner must overlap inside its cell.');
+    }
+    initialOwnerContact = ownerContact;
+    final previousPresence = world.npcMapPresencePredicate;
+    collisionWorld = world.withNpcMapPresencePredicate((mapId, entity) =>
+        !(mapId == world.map.id && entity.id == ownerId) &&
+        (previousPresence?.call(mapId, entity) ?? true));
+  }
   final toPosition = PixelPosition(
       leftPx: fromPosition.leftPx + dx, topPx: fromPosition.topPx + dy);
   final toMovementRect =
@@ -137,6 +187,13 @@ ActorRouteMotionPlan? planActorRouteMove({
       to.x >= world.map.size.width ||
       to.y >= world.map.size.height ||
       !inBounds(toMovementRect)) {
+    return null;
+  }
+  final ownerContact = initialOwnerContact;
+  if (ownerContact != null &&
+      (to != GridPos(x: from.x + delta.dx, y: from.y + delta.dy) ||
+          areasAt(toMovementRect)
+              .any((rect) => _intersects(rect, ownerContact)))) {
     return null;
   }
   if (!through) {
@@ -231,3 +288,11 @@ bool _intersects(PixelRect a, PixelRect b) =>
     a.leftPx + a.widthPx > b.leftPx &&
     a.topPx < b.topPx + b.heightPx &&
     a.topPx + a.heightPx > b.topPx;
+
+bool _contains(PixelRect area, PixelRect rect) =>
+    rect.widthPx > 0 &&
+    rect.heightPx > 0 &&
+    rect.leftPx >= area.leftPx &&
+    rect.topPx >= area.topPx &&
+    rect.leftPx + rect.widthPx <= area.leftPx + area.widthPx &&
+    rect.topPx + rect.heightPx <= area.topPx + area.heightPx;

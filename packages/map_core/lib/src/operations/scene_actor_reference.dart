@@ -1,6 +1,18 @@
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/project_manifest.dart';
+import 'map_entity_collision_footprint.dart';
+
+bool isSceneActorInitialCollisionOwnerReferenceAvailable(
+  ProjectManifest project,
+  MapEntity entity,
+) {
+  if (!isSceneActorEntityReferenceAvailable(project, entity)) return false;
+  final footprint = resolveEntityCollisionFootprint(entity);
+  return footprint.size.width == 1 &&
+      footprint.size.height == 1 &&
+      footprint.pos == entity.pos;
+}
 
 bool isSceneActorEntityReferenceAvailable(
   ProjectManifest project,

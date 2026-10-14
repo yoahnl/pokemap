@@ -4,6 +4,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../authoring/storyline_legacy_import_preview.dart';
 import '../models/map_data.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/items/project_item_catalog.dart';
 import '../models/enums.dart';
 import '../models/cinematic_asset.dart';
@@ -2335,6 +2336,30 @@ final class _NarrativeDependencyIndexBuilder {
     );
   }
 
+  void _collectActorInitialCollisionOwner(
+    NarrativeDependencyKey owner,
+    SceneActorTarget target,
+    String ownerId,
+    String path,
+  ) {
+    final targetMaps = maps.where((map) => map.id == target.mapId);
+    final map = targetMaps.length == 1 ? targetMaps.single : null;
+    final entities = map?.entities.where((entity) => entity.id == ownerId)
+        .toList(growable: false) ?? const <MapEntity>[];
+    final incompatible = project.settings.dimension != ProjectDimension.twoD ||
+        project.maps.where((entry) => entry.id == target.mapId).length != 1 ||
+        map?.spatialScene != null ||
+        (entities.length == 1 &&
+          !isSceneActorInitialCollisionOwnerReferenceAvailable(project, entities.single));
+    _usage(
+      target: _mapSourceChildKey(target.mapId, 'entity', ownerId),
+      owner: owner,
+      path: path,
+      criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      resolution: incompatible ? NarrativeDependencyResolution.unavailable : null,
+    );
+  }
+
   void _collectSceneInteractiveCommand(
     NarrativeDependencyKey owner,
     SceneInteractiveCommand command,
@@ -2350,6 +2375,14 @@ final class _NarrativeDependencyIndexBuilder {
               owner,
               step.mediaAssetId,
               '$path.steps[$index].mediaAssetId',
+            );
+          } else if (step is SceneActorMoveStep &&
+              step.initialCollisionOwnerEntityId != null) {
+            _collectActorInitialCollisionOwner(
+              owner,
+              target,
+              step.initialCollisionOwnerEntityId!,
+              '$path.steps[$index].initialCollisionOwnerEntityId',
             );
           }
         }

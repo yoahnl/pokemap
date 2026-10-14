@@ -11,6 +11,7 @@ void main() {
 
   test('every catalog id is a declared command constant', () {
     const declared = <String>{
+      NarrativeCommandIds.setMapEventInstanceBoolean,
       NarrativeCommandIds.setFact,
       NarrativeCommandIds.markEventConsumed,
       NarrativeCommandIds.completeStoryStep,

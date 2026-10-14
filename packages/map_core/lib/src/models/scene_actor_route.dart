@@ -65,6 +65,7 @@ sealed class SceneActorRouteStep {
   factory SceneActorRouteStep.move({
     required EntityFacing direction,
     required int durationMs,
+    String? initialCollisionOwnerEntityId,
   }) = SceneActorMoveStep;
   factory SceneActorRouteStep.wait({required int durationMs}) =
       SceneActorWaitStep;
@@ -91,10 +92,18 @@ sealed class SceneActorRouteStep {
               : 0,
         );
       case SceneActorRouteStepKind.move:
-        _actorFields(json, const {'kind', 'direction', 'durationMs'});
+        _actorFields(
+          json,
+          const {'kind', 'direction', 'durationMs'},
+          optional: const {'initialCollisionOwnerEntityId'},
+        );
         return SceneActorMoveStep(
           direction: _actorEnum(json, 'direction', EntityFacing.values),
           durationMs: _actorJsonDuration(json, minimum: 1),
+          initialCollisionOwnerEntityId:
+              json.containsKey('initialCollisionOwnerEntityId')
+              ? _actorJsonInitialOwner(json['initialCollisionOwnerEntityId'])
+              : null,
         );
       case SceneActorRouteStepKind.wait:
         _actorFields(json, const {'kind', 'durationMs'});
@@ -147,10 +156,17 @@ final class SceneActorFaceStep extends SceneActorRouteStep {
 }
 
 final class SceneActorMoveStep extends SceneActorRouteStep {
-  SceneActorMoveStep({required this.direction, required int durationMs})
-    : durationMs = _actorDuration(durationMs, minimum: 1);
+  SceneActorMoveStep({
+    required this.direction,
+    required int durationMs,
+    String? initialCollisionOwnerEntityId,
+  }) : durationMs = _actorDuration(durationMs, minimum: 1),
+       initialCollisionOwnerEntityId = _actorInitialOwner(
+         initialCollisionOwnerEntityId,
+       );
   final EntityFacing direction;
   final int durationMs;
+  final String? initialCollisionOwnerEntityId;
   @override
   SceneActorRouteStepKind get kind => SceneActorRouteStepKind.move;
   @override
@@ -158,14 +174,18 @@ final class SceneActorMoveStep extends SceneActorRouteStep {
     'kind': kind.name,
     'direction': direction.name,
     'durationMs': durationMs,
+    if (initialCollisionOwnerEntityId != null)
+      'initialCollisionOwnerEntityId': initialCollisionOwnerEntityId,
   };
   @override
   bool operator ==(Object other) =>
       other is SceneActorMoveStep &&
       direction == other.direction &&
-      durationMs == other.durationMs;
+      durationMs == other.durationMs &&
+      initialCollisionOwnerEntityId == other.initialCollisionOwnerEntityId;
   @override
-  int get hashCode => Object.hash(kind, direction, durationMs);
+  int get hashCode =>
+      Object.hash(kind, direction, durationMs, initialCollisionOwnerEntityId);
 }
 
 final class SceneActorWaitStep extends SceneActorRouteStep {
@@ -251,6 +271,26 @@ String _actorJsonText(Map<String, dynamic> json, String field) {
     throw FormatException('$field must be a nonempty string.');
   }
   return value.trim();
+}
+
+String? _actorInitialOwner(String? value) {
+  if (value != null && (value.isEmpty || value.trim() != value)) {
+    throw ArgumentError.value(
+      value,
+      'initialCollisionOwnerEntityId',
+      'Must be a canonical nonempty identity.',
+    );
+  }
+  return value;
+}
+
+String _actorJsonInitialOwner(Object? value) {
+  if (value is! String || value.isEmpty || value.trim() != value) {
+    throw const FormatException(
+      'initialCollisionOwnerEntityId must be a canonical nonempty identity.',
+    );
+  }
+  return value;
 }
 
 T _actorEnum<T extends Enum>(

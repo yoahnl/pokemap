@@ -11,6 +11,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
+import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
 import 'package:map_runtime/src/presentation/flame/playable_map_game.dart' show RuntimeDialogueSessionLoader;
 import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_component.dart';
 import 'package:path/path.dart' as p;
@@ -1453,6 +1454,179 @@ void main() {
       );
     },
   );
+
+  test('actor route leaves its original owner without enabling through', () async {
+    final owner = _routeDoor.copyWith(pos: const GridPos(x: 0, y: 1));
+    final repository = _MemorySaveRepository();
+    final fixture = await _fixture(
+      warpArrival: true,
+      targetEntities: [owner],
+      characters: const [_routeDoorCharacter],
+      saveRepository: repository,
+    );
+    final game = fixture.game;
+    final arrival = await _warp(game, SceneInteractiveCommand.warp(
+      destinationMapId: 'target', warpId: 'arrival',
+      arrivalCollisionOwnerEntityId: owner.id,
+      transition: SceneWarpTransition.none,
+    ));
+    expect(arrival.port, 'completed');
+    final from = game.debugPlayerWorldTopLeft;
+    final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'move', 'direction': 'east', 'durationMs': 250,
+        'initialCollisionOwnerEntityId': owner.id},
+    ], mapId: 'target'));
+    await Future<void>.delayed(Duration.zero);
+    game.update(.1);
+    expect(game.debugIsPlayerStepping, isTrue);
+    expect(game.debugPlayerGridPosition, owner.pos);
+    expect(game.debugPlayerWorldTopLeft.x, greaterThan(from.x));
+    expect(await game.saveGame(), isFalse);
+    expect(await _finishActorRoute(game, execution), 'completed');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(game.debugNpcGridPosition(owner.id), owner.pos);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+    expect(await _finishActorRoute(game,
+      game.debugExecuteSceneInteractiveCommand(_actorRoute([
+        {'kind': 'move', 'direction': 'west', 'durationMs': 250},
+      ], mapId: 'target'))), 'blocked');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(await game.saveGame(), isTrue);
+    expect(await _finishActorRoute(game,
+      game.debugExecuteSceneInteractiveCommand(_actorRoute([
+        {'kind': 'move', 'direction': 'south', 'durationMs': 250},
+      ], mapId: 'target'))), 'completed');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
+    expect(await game.loadGame(), isTrue);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(game.debugRenderedPlayerFootCell, const GridPos(x: 1, y: 1));
+  });
+
+  for (final blockedDestination in [false, true]) {
+    test('actor route owner keeps bounds and other obstacles blocked=$blockedDestination', () async {
+      final owner = _routeDoor.copyWith(pos: const GridPos(x: 0, y: 1));
+      final fixture = await _fixture(
+        warpArrival: true,
+        targetEntities: [owner, if (blockedDestination) const MapEntity(
+          id: 'other-obstacle', name: 'Other obstacle',
+          kind: MapEntityKind.custom, pos: GridPos(x: 1, y: 1),
+          properties: {
+            mapEntityCollisionWidthProperty: '1',
+            mapEntityCollisionHeightProperty: '1',
+          },
+        )],
+        characters: const [_routeDoorCharacter],
+      );
+      final game = fixture.game;
+      expect(fixture.targetWorld.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+          blockedDestination);
+      expect((await _warp(game, SceneInteractiveCommand.warp(
+        destinationMapId: 'target', warpId: 'arrival',
+        arrivalCollisionOwnerEntityId: owner.id,
+        transition: SceneWarpTransition.none,
+      ))).port, 'completed');
+      expect(await _finishActorRoute(game,
+        game.debugExecuteSceneInteractiveCommand(_actorRoute([
+          {'kind': 'move', 'direction': blockedDestination ? 'east' : 'west',
+            'durationMs': 250, 'initialCollisionOwnerEntityId': owner.id},
+        ], mapId: 'target'))), 'blocked');
+      expect(game.debugPlayerGridPosition, owner.pos);
+      expect(game.debugIsPlayerStepping, isFalse);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+  }
+
+  test('actor route owner keeps another NPC real reservation at the destination', () async {
+    final owner = _routeDoor.copyWith(pos: const GridPos(x: 0, y: 1));
+    final other = _routeDoor.copyWith(id: 'other-npc',
+        pos: const GridPos(x: 2, y: 1), blocksMovement: false);
+    final fixture = await _fixture(warpArrival: true,
+        targetEntities: [owner, other], characters: const [_routeDoorCharacter]);
+    final game = fixture.game;
+    expect((await _warp(game, SceneInteractiveCommand.warp(
+      destinationMapId: 'target', warpId: 'arrival',
+      arrivalCollisionOwnerEntityId: owner.id,
+      transition: SceneWarpTransition.none,
+    ))).port, 'completed');
+    expect(fixture.targetWorld.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+        isFalse);
+    final moving = game.startScriptedNpcMove(entityId: other.id,
+        destination: const GridPos(x: 1, y: 1));
+    expect(moving.state, ScriptedEntityMovementState.moving);
+    game.update(.025);
+    final movingActor = _components(game).whereType<OverworldActorComponent>()
+        .singleWhere((candidate) => candidate.gridPos == const GridPos(x: 1, y: 1));
+    expect(movingActor.isStepping, isTrue);
+    expect(game.debugScriptedNpcDynamicBlockedCells(ignoreEntityId: 'player'),
+        contains(const GridPos(x: 1, y: 1)));
+    expect(await _finishActorRoute(game,
+      game.debugExecuteSceneInteractiveCommand(_actorRoute([
+        {'kind': 'move', 'direction': 'east', 'durationMs': 250,
+          'initialCollisionOwnerEntityId': owner.id},
+      ], mapId: 'target'))), 'blocked');
+    expect(game.debugPlayerGridPosition, owner.pos);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
+
+  test('actor route owner must be stationary before leaving its cell', () async {
+    final owner = _routeDoor.copyWith(pos: const GridPos(x: 0, y: 1));
+    final fixture = await _fixture(warpArrival: true,
+      targetEntities: [owner], characters: const [_routeDoorCharacter]);
+    final game = fixture.game;
+    expect((await _warp(game, SceneInteractiveCommand.warp(
+      destinationMapId: 'target', warpId: 'arrival',
+      arrivalCollisionOwnerEntityId: owner.id,
+      transition: SceneWarpTransition.none,
+    ))).port, 'completed');
+    final actor = _components(game).whereType<OverworldActorComponent>()
+        .singleWhere((candidate) => candidate.character.id == _routeDoorCharacter.id);
+    expect(actor.startGridStep(to: const GridPos(x: 0, y: 2),
+      facing: EntityFacing.south, durationSeconds: .25), isTrue);
+    expect(await _finishActorRoute(game,
+      game.debugExecuteSceneInteractiveCommand(_actorRoute([
+        {'kind': 'move', 'direction': 'east', 'durationMs': 250,
+          'initialCollisionOwnerEntityId': owner.id},
+      ], mapId: 'target'))), 'blocked');
+    expect(game.debugPlayerGridPosition, owner.pos);
+    expect(game.debugIsPlayerStepping, isFalse);
+  });
+
+  for (final moves in [false, true]) {
+    test('actor route owner change interrupts and restores the player moves=$moves', () async {
+      final owner = _routeDoor.copyWith(pos: const GridPos(x: 0, y: 1));
+      final fixture = await _fixture(warpArrival: true,
+        targetEntities: [owner], characters: const [_routeDoorCharacter]);
+      final game = fixture.game;
+      expect((await _warp(game, SceneInteractiveCommand.warp(
+        destinationMapId: 'target', warpId: 'arrival',
+        arrivalCollisionOwnerEntityId: owner.id,
+        transition: SceneWarpTransition.none,
+      ))).port, 'completed');
+      final actor = _components(game).whereType<OverworldActorComponent>()
+          .singleWhere((candidate) => candidate.character.id == _routeDoorCharacter.id);
+      final from = game.debugPlayerWorldTopLeft;
+      final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+        {'kind': 'move', 'direction': 'east', 'durationMs': 250,
+          'initialCollisionOwnerEntityId': owner.id},
+      ], mapId: 'target'));
+      final failure = expectLater(execution, throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      game.update(.05);
+      expect(game.debugIsPlayerStepping, isTrue);
+      if (moves) {
+        expect(actor.startGridStep(to: const GridPos(x: 0, y: 2),
+          facing: EntityFacing.south, durationSeconds: .25), isTrue);
+      } else {
+        actor.setGameplayVisible(false);
+      }
+      game.update(.025);
+      await failure;
+      expect(game.debugPlayerGridPosition, owner.pos);
+      expect(game.debugPlayerWorldTopLeft, from);
+      expect(game.debugIsPlayerStepping, isFalse);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+  }
 
   test(
     'scene warp owner exemption does not ignore another arrival entity',

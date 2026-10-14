@@ -6,6 +6,7 @@ import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/map_data.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
 import '../operations/scene_actor_reference.dart';
@@ -57,6 +58,7 @@ enum SceneDiagnosticCode {
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
   commandInvalidActorTarget,
+  commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
   consequenceMissingTarget,
   consequenceInvalidValue,
@@ -1145,6 +1147,35 @@ void _diagnoseActionConsequenceAgainstProject(
           suggestedFixLabel: 'Choisir un acteur disponible sur sa carte.',
         ),
       );
+    }
+  }
+  if (interactiveCommand is SceneActorRouteInteractiveCommand) {
+    final map = mapsById[interactiveCommand.target.mapId];
+    for (final step in interactiveCommand.steps) {
+      if (step is! SceneActorMoveStep ||
+          step.initialCollisionOwnerEntityId == null) {
+        continue;
+      }
+      final owners = map?.entities
+          .where((entity) => entity.id == step.initialCollisionOwnerEntityId)
+          .toList(growable: false) ?? const <MapEntity>[];
+      final valid = project.settings.dimension == ProjectDimension.twoD &&
+          projectMapCounts[interactiveCommand.target.mapId] == 1 &&
+          map != null && map.id == interactiveCommand.target.mapId &&
+          map.spatialScene == null && owners.length == 1 &&
+          isSceneActorInitialCollisionOwnerReferenceAvailable(
+            project, owners.single);
+      if (!valid) {
+        diagnostics.add(SceneDiagnostic(
+          code: SceneDiagnosticCode.commandInvalidActorInitialCollisionOwner,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Le personnage à quitter doit être un PNJ unique avec un personnage connu unique et un contact de collision 1×1 sur la carte 2D du joueur.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir le personnage qui occupe la case de départ.',
+        ));
+      }
     }
   }
   final soundMediaIds = [

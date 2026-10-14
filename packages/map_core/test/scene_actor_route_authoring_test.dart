@@ -31,6 +31,19 @@ Map<String, dynamic> _visibility({Map<String, dynamic>? target}) => {
   'visible': false,
 };
 
+Map<String, dynamic> _ownerRoute({String ownerId = 'door'}) => _route(
+  target: _target(),
+  steps: [
+    {'kind': 'face', 'direction': 'south', 'durationMs': 50},
+    {
+      'kind': 'move',
+      'direction': 'south',
+      'durationMs': 200,
+      'initialCollisionOwnerEntityId': ownerId,
+    },
+  ],
+);
+
 SceneAsset _scene(Map<String, dynamic> wire) => SceneAsset(
   id: 'scene',
   name: 'Scene',
@@ -141,6 +154,402 @@ ProjectManifest _project(
 );
 
 void main() {
+  test('ordinary actor publication stays open while the new owner option is partial', () {
+    final descriptor = NarrativeCommandCatalog.canonical().byId('actorRoute')!;
+    expect(descriptor.isPublishable, isTrue);
+    expect(descriptor.description, contains('Personnage à quitter'));
+    expect(descriptor.description, contains('PARTIAL'));
+  });
+
+  test(
+    'initial collision owner uses contact size rather than the visual envelope',
+    () {
+      final scene = _scene(_ownerRoute());
+      final project = _project(scene);
+      for (final entity in <MapEntity>[
+        _map().entities.single,
+        _map().entities.single.copyWith(
+          size: const GridSize(width: 1, height: 2),
+          properties: {'collision.height': '1', 'collision.offsetY': '0'},
+        ),
+        _map().entities.single.copyWith(
+          size: const GridSize(width: 2, height: 2),
+          properties: {'collision.width': '1', 'collision.height': '1', 'collision.offsetY': '0'},
+        ),
+      ]) {
+        expect(
+          isSceneActorInitialCollisionOwnerReferenceAvailable(project, entity),
+          isTrue,
+        );
+        expect(
+          diagnoseSceneAgainstProject(
+            scene,
+            project,
+            mapsById: {
+              'map': _map(entities: [entity]),
+            },
+          ).hasErrors,
+          isFalse,
+        );
+      }
+    },
+  );
+
+  test('initial collision owner contact must share the authored entity anchor', () {
+    final scene = _scene(_ownerRoute());
+    final project = _project(scene);
+    final tall = _map().entities.single.copyWith(size: const GridSize(width: 1, height: 2));
+    final shifted = _map().entities.single.copyWith(size: const GridSize(width: 2, height: 1),
+      properties: {'collision.width': '1', 'collision.offsetX': '1'});
+    for (final entity in [tall, shifted]) {
+      expect(isSceneActorInitialCollisionOwnerReferenceAvailable(project, entity), isFalse);
+      expect(diagnoseSceneAgainstProject(scene, project,
+        mapsById: {'map': _map(entities: [entity])}).diagnostics.map((d) => d.code.name),
+        contains('commandInvalidActorInitialCollisionOwner'));
+      final usage = buildNarrativeDependencyIndex(project: project,
+        maps: [_map(entities: [entity])]).usages
+        .singleWhere((u) => u.path.endsWith('.initialCollisionOwnerEntityId'));
+      expect(usage.resolution, NarrativeDependencyResolution.unavailable);
+    }
+    final anchored = tall.copyWith(properties: {'collision.height': '1', 'collision.offsetY': '0'});
+    expect(isSceneActorInitialCollisionOwnerReferenceAvailable(project, anchored), isTrue);
+  });
+
+  test(
+    'initial collision owner cannot borrow an absent or duplicate map entity',
+    () {
+      final scene = _scene(_ownerRoute());
+      for (final entities in <List<MapEntity>>[
+        [],
+        [..._map().entities, ..._map().entities],
+      ]) {
+        final result = diagnoseSceneAgainstProject(
+          scene,
+          _project(scene),
+          mapsById: {
+            'map': _map(entities: entities),
+            'other': _map(id: 'other'),
+          },
+        );
+        expect(
+          result.diagnostics.map((d) => d.code.name),
+          contains('commandInvalidActorInitialCollisionOwner'),
+        );
+        final usage =
+            buildNarrativeDependencyIndex(
+              project: _project(scene),
+              maps: [
+                _map(entities: entities),
+                _map(id: 'other'),
+              ],
+            ).usages.singleWhere(
+              (u) => u.path.endsWith('.initialCollisionOwnerEntityId'),
+            );
+        expect(
+          usage.resolution,
+          entities.isEmpty
+              ? NarrativeDependencyResolution.missing
+              : NarrativeDependencyResolution.ambiguous,
+        );
+      }
+    },
+  );
+
+  test(
+    'initial collision owner refuses a spatial or mismatched loaded map',
+    () {
+      final scene = _scene(_ownerRoute());
+      for (final map in [
+        _map(id: 'other'),
+        _map(spatialScene: MapSpatialScene(width: 2, depth: 2)),
+      ]) {
+        final result = diagnoseSceneAgainstProject(
+          scene,
+          _project(scene),
+          mapsById: {'map': map},
+        );
+        expect(
+          result.diagnostics.map((d) => d.code.name),
+          contains('commandInvalidActorInitialCollisionOwner'),
+        );
+      }
+    },
+  );
+
+  test(
+    'initial collision owner requires a native 2D project even for a flat map',
+    () {
+      final scene = _scene(_ownerRoute());
+      final project = _project(scene, dimension: ProjectDimension.threeD);
+      expect(
+        diagnoseSceneAgainstProject(
+          scene,
+          project,
+          mapsById: {'map': _map()},
+        ).diagnostics.map((d) => d.code.name),
+        contains('commandInvalidActorInitialCollisionOwner'),
+      );
+      final usage =
+          buildNarrativeDependencyIndex(
+            project: project,
+            maps: [_map()],
+          ).usages.singleWhere(
+            (u) => u.path.endsWith('.initialCollisionOwnerEntityId'),
+          );
+      expect(usage.resolution, NarrativeDependencyResolution.unavailable);
+    },
+  );
+
+  test('initial collision owner requires a known NPC with canonical one-cell contact', () {
+    final scene = _scene(_ownerRoute());
+    for (final entity in <MapEntity>[
+      const MapEntity(
+        id: 'door',
+        kind: MapEntityKind.sign,
+        pos: GridPos(x: 0, y: 0),
+      ),
+      const MapEntity(
+        id: 'door',
+        kind: MapEntityKind.custom,
+        pos: GridPos(x: 0, y: 0),
+      ),
+      const MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 0, y: 0),
+      ),
+      const MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 0, y: 0),
+        npc: MapEntityNpcData(characterId: 'missing'),
+      ),
+      const MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 0, y: 0),
+        size: GridSize(width: 2, height: 1),
+        npc: MapEntityNpcData(characterId: 'actor-character'),
+      ),
+      const MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 0, y: 0),
+        size: GridSize(width: 1, height: 2),
+        properties: {'collision.height': '2'},
+        npc: MapEntityNpcData(characterId: 'actor-character'),
+      ),
+    ]) {
+      expect(
+        isSceneActorInitialCollisionOwnerReferenceAvailable(
+          _project(scene),
+          entity,
+        ),
+        isFalse,
+      );
+      final result = diagnoseSceneAgainstProject(
+        scene,
+        _project(scene),
+        mapsById: {
+          'map': _map(entities: [entity]),
+        },
+      );
+      expect(result.hasErrors, isTrue, reason: entity.toString());
+      expect(
+        result.diagnostics.map((d) => d.code.name),
+        contains('commandInvalidActorInitialCollisionOwner'),
+      );
+      final usage =
+          buildNarrativeDependencyIndex(
+            project: _project(scene),
+            maps: [
+              _map(entities: [entity]),
+            ],
+          ).usages.singleWhere(
+            (u) => u.path.endsWith('.initialCollisionOwnerEntityId'),
+          );
+      expect(usage.resolution, NarrativeDependencyResolution.unavailable);
+    }
+  });
+
+  test('initial collision owner produces one precise blocking map entity dependency', () {
+    final scene = _scene(_ownerRoute());
+    final project = _project(scene);
+    final map = _map();
+    expect(
+      diagnoseSceneAgainstProject(
+        scene,
+        project,
+        mapsById: {'map': map},
+      ).hasErrors,
+      isFalse,
+    );
+    final usages = buildNarrativeDependencyIndex(project: project, maps: [map])
+        .usages
+        .where(
+          (u) => u.path.endsWith('.steps[1].initialCollisionOwnerEntityId'),
+        );
+    expect(usages, hasLength(1));
+    expect(
+      usages.single.target,
+      const NarrativeDependencyKey.mapSource(
+        mapId: 'map',
+        sourceKind: 'entity',
+        sourceId: 'door',
+      ),
+    );
+    expect(usages.single.resolution, NarrativeDependencyResolution.resolved);
+    expect(
+      usages.single.criticality,
+      NarrativeDependencyCriticality.runtimeBlocking,
+    );
+  });
+
+  test('typed actor route payload preserves owner and authoring metadata', () {
+    final route = SceneInteractiveCommand.fromJson(
+      _ownerRoute(),
+    ) as SceneActorRouteInteractiveCommand;
+    final payload = buildSceneActorRoutePayload(
+      target: route.target,
+      steps: route.steps,
+      actionKind: 'keep-action',
+      parameters: {'keep': 'parameter'},
+    );
+    expect(payload.interactiveCommand, route);
+    expect(payload.actionKind, 'keep-action');
+    expect(payload.parameters, {'keep': 'parameter'});
+    expect(SceneActionPayload.fromJson(payload.toJson()), payload);
+  });
+
+  test(
+    'initial collision owner validates character and trainer cardinality',
+    () {
+      final scene = _scene(_ownerRoute());
+      final character = _project(scene).characters.single;
+      const trainer = ProjectTrainerEntry(
+        id: 'actor-trainer',
+        name: 'QA',
+        trainerClass: 'QA',
+        characterId: 'actor-character',
+      );
+      for (final fixture
+          in <
+            (
+              MapEntityNpcData,
+              List<ProjectCharacterEntry>,
+              List<ProjectTrainerEntry>,
+            )
+          >[
+            (const MapEntityNpcData(), [character], []),
+            (const MapEntityNpcData(characterId: 'actor-character'), [], []),
+            (
+              const MapEntityNpcData(characterId: 'actor-character'),
+              [character, character],
+              [],
+            ),
+            (
+              const MapEntityNpcData(trainerId: 'missing'),
+              [character],
+              [trainer],
+            ),
+            (
+              const MapEntityNpcData(trainerId: 'actor-trainer'),
+              [character],
+              [trainer, trainer],
+            ),
+            (const MapEntityNpcData(trainerId: 'actor-trainer'), [], [trainer]),
+            (
+              const MapEntityNpcData(trainerId: 'actor-trainer'),
+              [character, character],
+              [trainer],
+            ),
+            (
+              const MapEntityNpcData(
+                characterId: 'missing',
+                trainerId: 'actor-trainer',
+              ),
+              [character],
+              [trainer],
+            ),
+          ]) {
+        final entity = _map().entities.single.copyWith(npc: fixture.$1);
+        final project = _project(
+          scene,
+          characters: fixture.$2,
+          trainers: fixture.$3,
+        );
+        expect(
+          isSceneActorInitialCollisionOwnerReferenceAvailable(project, entity),
+          isFalse,
+        );
+        expect(
+          diagnoseSceneAgainstProject(
+            scene,
+            project,
+            mapsById: {
+              'map': _map(entities: [entity]),
+            },
+          ).diagnostics.map((d) => d.code.name),
+          contains('commandInvalidActorInitialCollisionOwner'),
+        );
+        final usage =
+            buildNarrativeDependencyIndex(
+              project: project,
+              maps: [
+                _map(entities: [entity]),
+              ],
+            ).usages.singleWhere(
+              (u) => u.path.endsWith('.initialCollisionOwnerEntityId'),
+            );
+        expect(usage.resolution, NarrativeDependencyResolution.unavailable);
+      }
+      final entity = _map().entities.single.copyWith(
+        npc: const MapEntityNpcData(trainerId: 'actor-trainer'),
+      );
+      final project = _project(scene, trainers: [trainer]);
+      expect(
+        isSceneActorInitialCollisionOwnerReferenceAvailable(project, entity),
+        isTrue,
+      );
+      expect(
+        diagnoseSceneAgainstProject(
+          scene,
+          project,
+          mapsById: {
+            'map': _map(entities: [entity]),
+          },
+        ).hasErrors,
+        isFalse,
+      );
+    },
+  );
+
+  test('initial collision owner cannot resolve through duplicate project map declarations', () {
+    final scene = _scene(_ownerRoute());
+    final project = _project(
+      scene,
+      maps: const [
+        ProjectMapEntry(id: 'map', name: 'First', relativePath: 'maps/a.json'),
+        ProjectMapEntry(id: 'map', name: 'Second', relativePath: 'maps/b.json'),
+      ],
+    );
+    expect(
+      diagnoseSceneAgainstProject(
+        scene,
+        project,
+        mapsById: {'map': _map()},
+      ).diagnostics.map((d) => d.code.name),
+      contains('commandInvalidActorInitialCollisionOwner'),
+    );
+    final usage =
+        buildNarrativeDependencyIndex(
+          project: project,
+          maps: [_map()],
+        ).usages.singleWhere(
+          (u) => u.path.endsWith('.initialCollisionOwnerEntityId'),
+        );
+    expect(usage.resolution, isNot(NarrativeDependencyResolution.resolved));
+  });
   test(
     'actor commands expose a guided 2D editor and runtime',
     () {

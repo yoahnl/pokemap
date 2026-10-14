@@ -43,10 +43,10 @@ function scene(id: string, command: JsonRecord): JsonRecord {
 function target(mapId = "map", entityId?: string): JsonRecord {
   return { kind: entityId ? "entity" : "player", mapId, ...(entityId ? { entityId } : {}) };
 }
-function route(actor = target("map", "actor"), mediaAssetId = "door"): JsonRecord {
+function route(actor = target("map", "actor"), mediaAssetId = "door", initialCollisionOwnerEntityId?: string): JsonRecord {
   return { kind: "actorRoute", target: actor, steps: [
     { kind: "face", direction: "south", durationMs: 50 },
-    { kind: "move", direction: "south", durationMs: 200 },
+    { kind: "move", direction: "south", durationMs: 200, ...(initialCollisionOwnerEntityId === undefined ? {} : { initialCollisionOwnerEntityId }) },
     { kind: "wait", durationMs: 50 },
     { kind: "through", enabled: true },
     { kind: "sound", mediaAssetId, gain: 0.8 },
@@ -99,6 +99,12 @@ test("live MCP authors typed actor routes and visibility with strict references 
       { id: "ambiguous-trainer", kind: "npc", npc: { trainerId: "duplicate-trainer" } },
       { id: "trainer-character-missing", kind: "npc", npc: { trainerId: "unknown-character-trainer" } },
       { id: "invalid-direct", kind: "npc", npc: { characterId: "missing", trainerId: "actor-trainer" } },
+      { id: "wide-owner", kind: "npc", size: { width: 2, height: 1 }, npc: { characterId: "actor-character" } },
+      { id: "tall-owner", kind: "npc", size: { width: 1, height: 2 }, npc: { characterId: "actor-character" } },
+      { id: "shifted-owner", kind: "npc", size: { width: 2, height: 1 }, properties: { "collision.width": "1", "collision.offsetX": "1" }, npc: { characterId: "actor-character" } },
+      { id: "anchored-tall", kind: "npc", size: { width: 1, height: 2 }, properties: { "collision.height": "1", "collision.offsetY": "0" }, npc: { characterId: "actor-character" } },
+      { id: "duplicate-owner", kind: "npc", npc: { characterId: "actor-character" } },
+      { id: "duplicate-owner", kind: "sign" },
     ].map((value) => ({ ...value, pos: { x: 0, y: 0 } })),
     warps: [{ id: "arrival", pos: { x: 1, y: 1 }, targetMapId: "map", targetPos: { x: 1, y: 1 }, triggerMode: "on_bump" }] }));
   await writeFile(join(root, "maps", "spatial.json"), JSON.stringify({ version: "v9", id: "spatial", name: "Spatial", size: { width: 4, height: 4 }, layers: [],
@@ -114,7 +120,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
   async function call(name: string, input: JsonRecord, failure = false): Promise<JsonRecord> {
     const result = await client.callTool({ name, arguments: input });
     const envelope = record(result.structuredContent);
-    assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
+    assert.equal(envelope.ok, !failure, JSON.stringify({ tool: name, input, envelope }));
     return record(envelope[failure ? "error" : "data"]);
   }
   try {
@@ -131,26 +137,51 @@ test("live MCP authors typed actor routes and visibility with strict references 
     }
     assert.deepEqual(record(extension.actorRoute).stepKinds, ["face", "move", "wait", "through", "sound"]);
     assert.equal(record(extension.actorRoute).dynamicCollisionValidation, "runtime");
+    for (const id of ["scene.interactive_command.set", "scene.upsert", "scene.graph.patch"]) {
+      const descriptor = (description.mutationActions as JsonRecord[]).find((value) => value.id === id);
+      assert.ok(descriptor);
+      const contract = record(record(descriptor.extensions).actorRoute);
+      assert.deepEqual(record(contract.stepFields).move, ["kind", "direction", "durationMs", "initialCollisionOwnerEntityId"]);
+      assert.deepEqual(record(contract.stepOptionalFields).move, ["initialCollisionOwnerEntityId"]);
+      const owner = record(contract.initialCollisionOwner);
+      assert.equal(owner.status, "partial");
+      assert.equal(owner.targetKind, "player");
+      assert.equal(owner.effectiveThrough, false);
+      assert.equal(owner.reference, "knownUniqueNPCCharacterOnExactTargetMap");
+      assert.deepEqual(owner.collisionFootprintSize, [1, 1]);
+      assert.equal(owner.collisionFootprintAnchor, "sameAsEntityAnchor");
+      assert.equal(owner.collisionExemption, "initialOwnerOverlapOnly");
+      assert.equal(owner.absent, "ordinaryCollisionValidation");
+      assert.equal(owner.explicitNull, "rejected");
+      assert.equal(owner.identity, "canonicalNonempty");
+    }
     assert.equal(record(extension.actorVisibility).collisionEffect, "none");
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
-    async function plan(command: JsonRecord, failure = false): Promise<JsonRecord> {
+    async function plan(command: JsonRecord, failure = false, actionId = "scene.interactive_command.set"): Promise<JsonRecord> {
       assert.ok(workspace);
       const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
       const before = await readFile(file);
       const id = `presentation-${++sequence}`;
+      const draftScene = scene("edit", command);
+      const parameters = actionId === "scene.upsert" ? { scene: draftScene }
+        : actionId === "scene.graph.patch" ? { sceneId: "edit", upsertNodes: [(record(draftScene.graph).nodes as JsonRecord[])[1]] }
+        : { sceneId: "edit", nodeId: "action", command };
       const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
-        requestId: id, actionId: "scene.interactive_command.set", actionVersion: 1,
+        requestId: id, actionId, actionVersion: 1,
         workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
-        idempotencyKey: id, parameters: { sceneId: "edit", nodeId: "action", command },
+        idempotencyKey: id, dryRun: false, parameters,
       } }, failure);
       assert.deepEqual(await readFile(file), before);
       assert.deepEqual(await readFile(mapFile), mapBefore);
       return result;
     }
-    const commands = [route(), route(target()), route(target("map", "trainer-actor")), visibility()];
-    for (const command of commands) {
-      const planned = await plan(command);
+    const commands = [route(), route(target()), route(target("map", "trainer-actor")), visibility(),
+      route(target(), "door", "actor"), route(target(), "door", "anchored-tall"), route(target(), "door", "trainer-actor")];
+    const mutations = [...commands.map((command) => ({ command, actionId: "scene.interactive_command.set" })),
+      ...["scene.upsert", "scene.graph.patch"].map((actionId) => ({ command: route(target(), "door", actionId === "scene.upsert" ? "actor" : "trainer-actor"), actionId }))];
+    for (const { command, actionId } of mutations) {
+      const planned = await plan(command, false, actionId);
       await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: planned.planId, operationId: `apply-${sequence}` });
       const saved = record(JSON.parse((await readFile(file)).toString("utf8")));
       const scenes = saved.scenes as JsonRecord[];
@@ -172,6 +203,19 @@ test("live MCP authors typed actor routes and visibility with strict references 
       await plan(route(target("map", id)), true);
       await plan(visibility(target("map", id)), true);
     }
+    for (const id of ["missing", "sign", "custom", "missing-payload", "empty-payload", "unknown-character", "ambiguous-character", "unknown-trainer", "ambiguous-trainer", "trainer-character-missing", "invalid-direct", "wide-owner", "tall-owner", "shifted-owner", "duplicate-owner"]) {
+      for (const actionId of ["scene.interactive_command.set", "scene.upsert", "scene.graph.patch"]) {
+        await plan(route(target(), "door", id), true, actionId);
+      }
+    }
+    await plan(route(target("map", "actor"), "door", "actor"), true);
+    for (const owner of [null, "", " actor", "actor ", 8]) {
+      await plan({ ...route(target()), steps: [{ kind: "move", direction: "south", durationMs: 200, initialCollisionOwnerEntityId: owner }] }, true);
+    }
+    await plan({ ...route(target()), steps: [{ kind: "through", enabled: true },
+      { kind: "move", direction: "south", durationMs: 200, initialCollisionOwnerEntityId: "actor" }] }, true);
+    await plan({ ...route(target()), steps: [{ kind: "face", direction: "south", durationMs: 50, initialCollisionOwnerEntityId: "actor" }] }, true);
+    await plan({ ...route(target()), steps: [{ kind: "move", direction: "south", durationMs: 200, initialCollisionOwnerEntityId: "actor", unknown: true }] }, true);
     await plan({ ...route(), steps: [{ kind: "sound", mediaAssetId: "door", gain: 0.8, pitch: 100 }] }, true);
     await plan({ ...route(), steps: [{ kind: "move", direction: "south", durationMs: 0 }] }, true);
     await plan({ ...route(), steps: [{ kind: "jump", x: 1, y: 1 }] }, true);
@@ -180,8 +224,9 @@ test("live MCP authors typed actor routes and visibility with strict references 
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const result = await call("pokemap_query", { projectHandle: workspace.projectHandle, resourceKind: "scene", operation: "get", ids: ["edit"], view: "detail" });
-    assert.ok(JSON.stringify(result).includes('"actorVisibility"'));
-    assert.ok(JSON.stringify(result).includes('"actor"'));
+    assert.ok(JSON.stringify(result).includes('"actorRoute"'));
+    assert.ok(JSON.stringify(result).includes('"initialCollisionOwnerEntityId"'));
+    assert.ok(JSON.stringify(result).includes('"trainer-actor"'));
     assert.deepEqual(await readFile(file), stable);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = undefined;
@@ -195,6 +240,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
       await plan(route(actor), true);
       await plan(visibility(actor), true);
     }
+    await plan(route(target("spatial"), "door", "actor"), true);
   } finally {
     if (workspace) await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     await client.close();

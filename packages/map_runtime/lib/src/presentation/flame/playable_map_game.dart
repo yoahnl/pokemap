@@ -11495,80 +11495,123 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       faceAction: (target, facing) async =>
           _faceSceneActor(target, facing, session),
       moveAction:
-          (target, facing, {required durationMs, required through}) async {
+          (target, facing, {required durationMs, required through,
+            String? initialCollisionOwnerEntityId}) async {
             if (!current()) {
               throw StateError('The actor route target is no longer current.');
             }
+            final ownerId = initialCollisionOwnerEntityId;
+            final ownerTarget = ownerId == null ? null : SceneActorTarget.entity(
+                mapId: target.mapId, entityId: ownerId);
+            final resolvedOwner = ownerTarget == null
+                ? null : _resolveSceneActor(ownerTarget, session);
+            final ownerEntity = ownerId == null ? null : _world.map.entities
+                .where((entity) => entity.id == ownerId).firstOrNull;
+            if (ownerId != null &&
+                (resolvedOwner is! OverworldActorComponent ||
+                  resolvedOwner.isStepping || resolvedOwner.isRemoved ||
+                  ownerEntity == null ||
+                  resolvedOwner.gridPos != ownerEntity.pos ||
+                  !isSceneActorInitialCollisionOwnerReferenceAvailable(
+                    _bundle.manifest, ownerEntity))) {
+              return ActorRouteMoveOutcome.obstructed;
+            }
+            final owner = resolvedOwner is OverworldActorComponent
+                ? resolvedOwner : null;
+            final ownerPosition = owner?.position.clone();
+            final ownerAnchor = owner?.gridPos;
+            final ownerInstance = owner == null ? null :
+                _battleRuntimeGameState.mapInstanceWorldState.instanceRef(target.mapId);
+            bool stepCurrent() => current() && (owner == null ||
+                (identical(_resolveSceneActor(ownerTarget!, session), owner) &&
+                  !owner.isRemoved && !owner.isStepping &&
+                  owner.gridPos == ownerAnchor && owner.position == ownerPosition &&
+                  _world.map.entities.where((entity) => entity.id == ownerId)
+                      .single.pos == ownerEntity!.pos &&
+                  _battleRuntimeGameState.mapInstanceWorldState.instanceRef(target.mapId)
+                      == ownerInstance));
             _faceSceneActor(target, facing, session);
-            final plan = planActorRouteMove(
-              world: _world,
-              target: target,
-              direction: facing,
-              through: through,
-              dynamicBlockedCells: target.kind == SceneActorTargetKind.player
-                  ? _scriptedNpcReservedOccupiedCellsByEntity.entries
-                        .where((entry) => entry.key != 'player')
-                        .expand((entry) => entry.value.cells)
-                  : _scriptedNpcDynamicBlockedCells(
-                      ignoreEntityId: target.entityId,
-                    ),
-              characterReservations: _scriptedNpcReservedOccupiedCellsByEntity
-                  .entries
-                  .where(
-                    (entry) =>
-                        entry.key !=
-                        (target.kind == SceneActorTargetKind.player
-                            ? 'player'
-                            : target.entityId),
-                  )
-                  .map((entry) => entry.value.contactRect)
-                  .whereType<PixelRect>(),
-            );
-            if (plan == null) return ActorRouteMoveOutcome.obstructed;
-            if (actor is PlayerComponent) {
-              actor.startStep(
-                plan.playerState!,
-                durationSeconds: durationMs / 1000,
+            var playerStepStarted = false;
+            try {
+              final plan = planActorRouteMove(
+                world: _world,
+                target: target,
+                direction: facing,
+                through: through,
+                initialCollisionOwnerEntityId: ownerId,
+                project: _bundle.manifest,
+                dynamicBlockedCells: target.kind == SceneActorTargetKind.player
+                    ? _scriptedNpcReservedOccupiedCellsByEntity.entries
+                          .where((entry) => entry.key != 'player' && entry.key != ownerId)
+                          .expand((entry) => entry.value.cells)
+                    : _scriptedNpcDynamicBlockedCells(
+                        ignoreEntityId: target.entityId,
+                      ),
+                characterReservations: _scriptedNpcReservedOccupiedCellsByEntity
+                    .entries
+                    .where(
+                      (entry) => entry.key != ownerId &&
+                          entry.key !=
+                          (target.kind == SceneActorTargetKind.player
+                              ? 'player'
+                              : target.entityId),
+                    )
+                    .map((entry) => entry.value.contactRect)
+                    .whereType<PixelRect>(),
               );
-              await _waitForSceneActorRoute(
-                isCurrent: current,
-                isReady: () => !actor.isStepping,
-              );
-              if (!current()) {
-                throw StateError('Player movement was interrupted.');
-              }
-              _world = _world.withPlayer(plan.playerState!);
-              _runtimeNpcPositions['player'] = plan.to;
-              _scriptedEntityMovementController?.syncTrackedEntityPosition(
-                'player',
-                plan.to,
-              );
-              _syncSceneActorPlayerState(session);
-            } else if (actor is OverworldActorComponent) {
-              if (!actor.startGridStep(
-                to: plan.to,
-                facing: facing,
-                durationSeconds: durationMs / 1000,
-              )) {
-                throw StateError('The actor cannot start its route step.');
-              }
-              await _waitForSceneActorRoute(
-                isCurrent: current,
-                isReady: () => !actor.isStepping,
-              );
-              if (!current()) {
-                throw StateError('Entity movement was interrupted.');
-              }
-              _world = _world.withEntityPosition(target.entityId!, plan.to);
-              if (target.entityId != 'player') {
-                _runtimeNpcPositions[target.entityId!] = plan.to;
+              if (plan == null) return ActorRouteMoveOutcome.obstructed;
+              if (actor is PlayerComponent) {
+                actor.startStep(
+                  plan.playerState!,
+                  durationSeconds: durationMs / 1000,
+                );
+                playerStepStarted = true;
+                await _waitForSceneActorRoute(
+                  isCurrent: stepCurrent,
+                  isReady: () => !actor.isStepping,
+                );
+                if (!stepCurrent()) {
+                  throw StateError('Player movement was interrupted.');
+                }
+                _world = _world.withPlayer(plan.playerState!);
+                _runtimeNpcPositions['player'] = plan.to;
                 _scriptedEntityMovementController?.syncTrackedEntityPosition(
-                  target.entityId!,
+                  'player',
                   plan.to,
                 );
+                _syncSceneActorPlayerState(session);
+              } else if (actor is OverworldActorComponent) {
+                if (!actor.startGridStep(
+                  to: plan.to,
+                  facing: facing,
+                  durationSeconds: durationMs / 1000,
+                )) {
+                  throw StateError('The actor cannot start its route step.');
+                }
+                await _waitForSceneActorRoute(
+                  isCurrent: current,
+                  isReady: () => !actor.isStepping,
+                );
+                if (!current()) {
+                  throw StateError('Entity movement was interrupted.');
+                }
+                _world = _world.withEntityPosition(target.entityId!, plan.to);
+                if (target.entityId != 'player') {
+                  _runtimeNpcPositions[target.entityId!] = plan.to;
+                  _scriptedEntityMovementController?.syncTrackedEntityPosition(
+                    target.entityId!,
+                    plan.to,
+                  );
+                }
               }
+              return ActorRouteMoveOutcome.moved;
+            } on Object {
+              if (owner != null && playerStepStarted && actor is PlayerComponent &&
+                  identical(_resolveSceneActor(target, session), actor)) {
+                actor.syncState(_world.player, snapToGrid: true);
+              }
+              rethrow;
             }
-            return ActorRouteMoveOutcome.moved;
           },
       waitAction: (durationMs) =>
           _waitForSceneActorRoute(isCurrent: current, durationMs: durationMs),

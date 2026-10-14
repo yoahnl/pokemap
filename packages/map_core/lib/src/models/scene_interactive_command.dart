@@ -227,7 +227,20 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
     required this.target,
     required List<SceneActorRouteStep> steps,
     this.skippable = false,
-  }) : steps = List.unmodifiable(steps);
+  }) : steps = List.unmodifiable(steps) {
+    var through = false;
+    for (final step in this.steps) {
+      if (step is SceneActorThroughStep) {
+        through = step.enabled;
+      } else if (step is SceneActorMoveStep &&
+          step.initialCollisionOwnerEntityId != null &&
+          (target.kind != SceneActorTargetKind.player || through)) {
+        throw ArgumentError(
+          'An initial collision owner requires a player movement without through.',
+        );
+      }
+    }
+  }
 
   factory SceneActorRouteInteractiveCommand.fromJson(
     Map<String, dynamic> json,
@@ -241,16 +254,20 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
         (json.containsKey('skippable') && json['skippable'] is! bool)) {
       throw const FormatException('Invalid actor route command.');
     }
-    return SceneActorRouteInteractiveCommand(
-      target: SceneActorTarget.fromJson(
-        _actorCommandObject(json['target'], 'target'),
-      ),
-      steps: [
-        for (final step in json['steps'] as List)
-          SceneActorRouteStep.fromJson(_actorCommandObject(step, 'step')),
-      ],
-      skippable: json['skippable'] as bool? ?? false,
-    );
+    try {
+      return SceneActorRouteInteractiveCommand(
+        target: SceneActorTarget.fromJson(
+          _actorCommandObject(json['target'], 'target'),
+        ),
+        steps: [
+          for (final step in json['steps'] as List)
+            SceneActorRouteStep.fromJson(_actorCommandObject(step, 'step')),
+        ],
+        skippable: json['skippable'] as bool? ?? false,
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 
   final SceneActorTarget target;

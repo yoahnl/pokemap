@@ -20,6 +20,199 @@ Map<String, dynamic> _routeWire({bool entity = false}) => {
 };
 
 void main() {
+  test('actor move initial collision owner is canonical optional JSON', () {
+    for (final direction in EntityFacing.values) {
+      final wire = <String, dynamic>{
+        'kind': 'move',
+        'direction': direction.name,
+        'durationMs': 200,
+        'initialCollisionOwnerEntityId': 'door',
+      };
+      final step = SceneActorRouteStep.fromJson(wire);
+      expect(step, isA<SceneActorMoveStep>());
+      expect(step.toJson(), wire);
+      expect(SceneActorRouteStep.fromJson(step.toJson()), step);
+      expect(
+        SceneActorRouteStep.fromJson(step.toJson()).hashCode,
+        step.hashCode,
+      );
+      final ordinary = SceneActorRouteStep.fromJson(
+        {...wire}..remove('initialCollisionOwnerEntityId'),
+      );
+      expect(ordinary, isNot(step));
+      expect(
+        ordinary.toJson().containsKey('initialCollisionOwnerEntityId'),
+        isFalse,
+      );
+      final otherOwner = SceneActorRouteStep.fromJson({
+        ...wire,
+        'initialCollisionOwnerEntityId': 'another-door',
+      });
+      expect(otherOwner, isNot(step));
+    }
+  });
+
+  test(
+    'actor move initial collision owner rejects explicit null and noncanonical ids',
+    () {
+      for (final owner in <Object?>[null, '', ' ', ' door', 'door ', 8, true]) {
+        expect(
+          () => SceneActorRouteStep.fromJson({
+            'kind': 'move',
+            'direction': 'south',
+            'durationMs': 200,
+            'initialCollisionOwnerEntityId': owner,
+          }),
+          throwsFormatException,
+          reason: 'owner=$owner',
+        );
+      }
+    },
+  );
+
+  test('initial collision owner remains unknown on every other actor step', () {
+    for (final step in <Map<String, dynamic>>[
+      {'kind': 'face', 'direction': 'south', 'durationMs': 50},
+      {'kind': 'wait', 'durationMs': 100},
+      {'kind': 'through', 'enabled': false},
+      {'kind': 'sound', 'mediaAssetId': 'door-sound', 'gain': 1.0},
+    ]) {
+      expect(
+        () => SceneActorRouteStep.fromJson({
+          ...step,
+          'initialCollisionOwnerEntityId': 'door',
+        }),
+        throwsFormatException,
+      );
+    }
+  });
+
+  test('player route preserves one initial collision owner movement', () {
+    final wire = _routeWire()
+      ..['steps'] = [
+        {'kind': 'face', 'direction': 'south', 'durationMs': 50},
+        {
+          'kind': 'move',
+          'direction': 'south',
+          'durationMs': 200,
+          'initialCollisionOwnerEntityId': 'door',
+        },
+        {'kind': 'move', 'direction': 'south', 'durationMs': 200},
+      ];
+    final command = SceneInteractiveCommand.fromJson(wire);
+    expect(command.toJson(), wire);
+    expect(SceneInteractiveCommand.fromJson(command.toJson()), command);
+  });
+
+  test('initial collision owner is forbidden for an entity route target', () {
+    final step = SceneActorRouteStep.move(
+      direction: EntityFacing.south,
+      durationMs: 200,
+      initialCollisionOwnerEntityId: 'door',
+    );
+    final target = SceneActorTarget.entity(mapId: 'centre', entityId: 'actor');
+    for (final skippable in [false, true]) {
+      expect(
+        () => SceneInteractiveCommand.actorRoute(
+          target: target,
+          steps: [step],
+          skippable: skippable,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => SceneInteractiveCommand.fromJson({
+          ..._routeWire(entity: true),
+          'steps': [step.toJson()],
+          'skippable': skippable,
+        }),
+        throwsFormatException,
+      );
+    }
+  });
+
+  test(
+    'initial collision owner refuses effective through at its own movement',
+    () {
+      final owner = SceneActorMoveStep(
+        direction: EntityFacing.south,
+        durationMs: 200,
+        initialCollisionOwnerEntityId: 'door',
+      );
+      for (final steps in <List<SceneActorRouteStep>>[
+        [const SceneActorThroughStep(enabled: true), owner],
+        [
+          const SceneActorThroughStep(enabled: true),
+          SceneActorFaceStep(direction: EntityFacing.south),
+          SceneActorWaitStep(durationMs: 100),
+          SceneActorSoundStep(mediaAssetId: 'door-sound', gain: 1),
+          owner,
+        ],
+        [owner, const SceneActorThroughStep(enabled: true), owner],
+      ]) {
+        expect(
+          () => SceneInteractiveCommand.actorRoute(
+            target: SceneActorTarget.player(mapId: 'centre'),
+            steps: steps,
+            skippable: true,
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () => SceneInteractiveCommand.fromJson({
+            ..._routeWire(),
+            'steps': steps.map((step) => step.toJson()).toList(),
+          }),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+
+  test('through disabled before owner movement restores route eligibility', () {
+    final steps = <SceneActorRouteStep>[
+      const SceneActorThroughStep(enabled: true),
+      SceneActorMoveStep(direction: EntityFacing.south, durationMs: 100),
+      const SceneActorThroughStep(enabled: false),
+      SceneActorMoveStep(
+        direction: EntityFacing.south,
+        durationMs: 200,
+        initialCollisionOwnerEntityId: 'door',
+      ),
+      const SceneActorThroughStep(enabled: true),
+      SceneActorMoveStep(direction: EntityFacing.south, durationMs: 100),
+    ];
+    final route = SceneInteractiveCommand.actorRoute(
+      target: SceneActorTarget.player(mapId: 'centre'),
+      steps: steps,
+    );
+    expect(SceneInteractiveCommand.fromJson(route.toJson()), route);
+  });
+
+  test(
+    'initial collision owner constructors keep canonical identities immutable',
+    () {
+      for (final id in ['', ' ', ' door', 'door ']) {
+        expect(
+          () => SceneActorMoveStep(
+            direction: EntityFacing.south,
+            durationMs: 200,
+            initialCollisionOwnerEntityId: id,
+          ),
+          throwsArgumentError,
+        );
+      }
+      final step = SceneActorMoveStep(
+        direction: EntityFacing.south,
+        durationMs: 200,
+        initialCollisionOwnerEntityId: 'door',
+      );
+      final wire = step.toJson()..['initialCollisionOwnerEntityId'] = 'other';
+      expect(wire['initialCollisionOwnerEntityId'], 'other');
+      expect(step.initialCollisionOwnerEntityId, 'door');
+    },
+  );
+
   test('actor route constructors preserve immutable value contracts', () {
     final target = SceneActorTarget.entity(mapId: 'centre', entityId: 'door');
     final steps = <SceneActorRouteStep>[

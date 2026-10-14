@@ -56,13 +56,20 @@ Map<String, dynamic> _target({String mapId = 'map', String? entityId}) => {
 Map<String, dynamic> _route({
   Map<String, dynamic>? target,
   String mediaId = 'door',
+  String? initialCollisionOwnerEntityId,
 }) =>
     {
       'kind': 'actorRoute',
       'target': target ?? _target(entityId: 'actor'),
       'steps': [
         {'kind': 'face', 'direction': 'south', 'durationMs': 50},
-        {'kind': 'move', 'direction': 'south', 'durationMs': 200},
+        {
+          'kind': 'move',
+          'direction': 'south',
+          'durationMs': 200,
+          if (initialCollisionOwnerEntityId != null)
+            'initialCollisionOwnerEntityId': initialCollisionOwnerEntityId,
+        },
         {'kind': 'wait', 'durationMs': 50},
         {'kind': 'through', 'enabled': true},
         {'kind': 'sound', 'mediaAssetId': mediaId, 'gain': 0.8},
@@ -103,6 +110,55 @@ const _trainer = ProjectTrainerEntry(
     characterId: 'actor-character');
 
 void main() {
+  test('sparse Scene upsert input matches the real MCP request with an initial owner', () async {
+    final f = await _Fixture.create(entities: const [
+      MapEntity(id: 'trainer-actor', kind: MapEntityKind.npc, pos: GridPos(x: 0, y: 0),
+        npc: MapEntityNpcData(trainerId: 'actor-trainer')),
+    ], trainers: [_trainer]);
+    addTearDown(f.dispose);
+    final wire = _route(target: _target(), initialCollisionOwnerEntityId: 'trainer-actor');
+    final scene = <String, dynamic>{
+      'id': 'edit', 'name': 'edit', 'metadata': {'keep': 'metadata'},
+      'graph': {
+        'startNodeId': 'start',
+        'nodes': [
+          {'id': 'start', 'kind': 'start'},
+          {'id': 'action', 'kind': 'action', 'title': 'Keep title', 'payload': {
+            'actionKind': 'keep-action', 'parameters': {'keep': 'parameter'}, 'interactiveCommand': wire,
+          }},
+          {'id': 'end', 'kind': 'end'},
+        ],
+        'edges': _scene('edit', SceneInteractiveCommand.fromJson(wire)).graph.edges.map((edge) => edge.toJson()).toList(),
+      },
+    };
+    final request = AuthoringRequest(requestId: 'sparse-owner', actionId: 'scene.upsert',
+      actionVersion: 1, workspaceHandle: f.workspace.value, expectedRevision: (await f.snapshot()).revision,
+      idempotencyKey: 'sparse-owner', parameters: {'scene': scene});
+    final planned = await f.mutations.plan(f.project, request);
+    expect(planned['planId'], isNotNull);
+  });
+
+  test('all Scene mutation entrypoints describe the optional initial owner contract', () {
+    for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      final descriptor = SceneActions.descriptors.singleWhere((d) => d.id == action);
+      final route = descriptor.extensions['actorRoute'] as Map;
+      expect((route['stepFields'] as Map)['move'],
+        ['kind', 'direction', 'durationMs', 'initialCollisionOwnerEntityId']);
+      expect((route['stepOptionalFields'] as Map)['move'], ['initialCollisionOwnerEntityId']);
+      final owner = route['initialCollisionOwner'] as Map;
+      expect(owner['status'], 'partial');
+      expect(owner['targetKind'], 'player');
+      expect(owner['effectiveThrough'], isFalse);
+      expect(owner['reference'], 'knownUniqueNPCCharacterOnExactTargetMap');
+      expect(owner['collisionFootprintSize'], [1, 1]);
+      expect(owner['collisionFootprintAnchor'], 'sameAsEntityAnchor');
+      expect(owner['collisionExemption'], 'initialOwnerOverlapOnly');
+      expect(owner['absent'], 'ordinaryCollisionValidation');
+      expect(owner['explicitNull'], 'rejected');
+      expect(owner['identity'], 'canonicalNonempty');
+    }
+  });
+
   test(
       'canonical semantic action describes typed actor routes and visual visibility',
       () {
@@ -136,6 +192,145 @@ void main() {
 
   for (final jsonl in [false, true]) {
     final label = jsonl ? 'JSONL' : 'direct API';
+    for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      test('$label $action preserves the optional initial owner through cold reopen', () async {
+        final f = await _Fixture.create(entities: [
+          _actor,
+          const MapEntity(id: 'trainer-actor', kind: MapEntityKind.npc, pos: GridPos(x: 0, y: 0),
+            npc: MapEntityNpcData(trainerId: 'actor-trainer')),
+          _actor.copyWith(id: 'anchored-tall', size: const GridSize(width: 1, height: 2),
+            properties: {'collision.height': '1', 'collision.offsetY': '0'}),
+        ], trainers: [_trainer]);
+        addTearDown(f.dispose);
+        final draft = (await f.snapshot()).manifest.scenes.singleWhere((s) => s.id == 'unrelated-draft');
+        final mapBefore = await f.mapFile.readAsBytes();
+        for (final owner in ['actor', 'trainer-actor', 'anchored-tall']) {
+          final wire = _route(target: _target(), initialCollisionOwnerEntityId: owner);
+          final before = await f.projectFile.readAsBytes();
+          final request = await f.actionRequest(action, wire);
+          final planned = jsonl
+            ? await f.success('plan', {'projectHandle': f.project.value, 'request': request.toJson()})
+            : await f.mutations.plan(f.project, request);
+          expect(await f.projectFile.readAsBytes(), before);
+          expect(await f.mapFile.readAsBytes(), mapBefore);
+          if (jsonl) {
+            await f.success('apply', {'projectHandle': f.project.value,
+              'planId': planned['planId'], 'operationId': '${request.requestId}-apply'});
+          } else {
+            await f.mutations.apply(f.project, planId: planned['planId']! as String,
+              operationId: '${request.requestId}-apply');
+          }
+          final snapshot = await f.snapshot();
+          final scene = snapshot.manifest.scenes.singleWhere((s) => s.id == 'edit');
+          final node = scene.graph.nodes.singleWhere((n) => n.id == 'action');
+          final payload = node.payload as SceneActionPayload;
+          expect(payload.interactiveCommand!.toJson(), wire);
+          expect(payload.actionKind, 'keep-action');
+          expect(payload.parameters, {'keep': 'parameter'});
+          expect(node.title, 'Keep title');
+          expect(node.description, 'Keep description');
+          expect(scene.metadata, {'keep': 'metadata'});
+          expect(snapshot.manifest.scenes.singleWhere((s) => s.id == 'unrelated-draft'), draft);
+          final edge = ProjectReferenceIndex.fromSnapshot(snapshot).edges
+            .singleWhere((e) => e.owner.id == 'edit' && e.path.endsWith('.steps[1].initialCollisionOwnerEntityId'));
+          expect(edge.target.id, owner);
+          expect(edge.resolution, NarrativeDependencyResolution.resolved);
+          expect(await f.mapFile.readAsBytes(), mapBefore);
+        }
+        final bytes = await f.projectFile.readAsBytes();
+        await f.success('close', {'workspaceHandle': f.workspace.value});
+        await f.open();
+        expect(await f.projectFile.readAsBytes(), bytes);
+        final scene = (await f.snapshot()).manifest.scenes.singleWhere((s) => s.id == 'edit');
+        expect(((scene.graph.nodes.singleWhere((n) => n.id == 'action').payload as SceneActionPayload)
+          .interactiveCommand! as SceneActorRouteInteractiveCommand).steps[1].toJson()
+          ['initialCollisionOwnerEntityId'], 'anchored-tall');
+      });
+
+      test('$label $action rejects invalid initial owner before writes', () async {
+        final f = await _Fixture.create();
+        addTearDown(f.dispose);
+        final mapBefore = await f.mapFile.readAsBytes();
+        final ownerRoute = _route(target: _target(), initialCollisionOwnerEntityId: 'actor');
+        final invalid = <Map<String, dynamic>>[
+          _route(target: _target(), initialCollisionOwnerEntityId: 'missing'),
+          _route(target: _target(mapId: 'other'), initialCollisionOwnerEntityId: 'actor'),
+          _route(initialCollisionOwnerEntityId: 'actor'),
+          for (final owner in <Object?>[null, '', ' actor', 'actor ', true])
+            {...ownerRoute, 'steps': [
+              {'kind': 'move', 'direction': 'south', 'durationMs': 200,
+                'initialCollisionOwnerEntityId': owner},
+            ]},
+          {...ownerRoute, 'steps': [
+            {'kind': 'through', 'enabled': true},
+            {'kind': 'move', 'direction': 'south', 'durationMs': 200,
+              'initialCollisionOwnerEntityId': 'actor'},
+          ]},
+          {...ownerRoute, 'steps': [
+            {'kind': 'move', 'direction': 'south', 'durationMs': 200,
+              'initialCollisionOwnerEntityId': 'actor', 'unknown': true},
+          ]},
+          {...ownerRoute, 'steps': [
+            {'kind': 'face', 'direction': 'south', 'durationMs': 50,
+              'initialCollisionOwnerEntityId': 'actor'},
+          ]},
+        ];
+        for (final wire in invalid) {
+          final before = await f.projectFile.readAsBytes();
+          final request = await f.actionRequest(action, wire);
+          if (jsonl) {
+            final result = await f.command('plan', {'projectHandle': f.project.value,
+              'request': request.toJson()});
+            expect(result.status, AuthoringResultStatus.failure, reason: jsonEncode(wire));
+          } else {
+            await expectLater(f.mutations.plan(f.project, request),
+              throwsA(isA<NarrativeAuthoringException>()), reason: jsonEncode(wire));
+          }
+          expect(await f.projectFile.readAsBytes(), before);
+          expect(await f.mapFile.readAsBytes(), mapBefore);
+        }
+      });
+    }
+
+    test('$label initial owner rejects incompatible and ambiguous references on every entrypoint', () async {
+      for (final entities in <List<MapEntity>>[
+        const [MapEntity(id: 'actor', kind: MapEntityKind.sign, pos: GridPos(x: 0, y: 0))],
+        const [MapEntity(id: 'actor', kind: MapEntityKind.npc, pos: GridPos(x: 0, y: 0))],
+        const [MapEntity(id: 'actor', kind: MapEntityKind.npc, pos: GridPos(x: 0, y: 0),
+          npc: MapEntityNpcData(characterId: 'missing'))],
+        const [_actor, _actor],
+        [_actor.copyWith(size: const GridSize(width: 2, height: 1))],
+        [_actor.copyWith(size: const GridSize(width: 1, height: 2))],
+        [_actor.copyWith(size: const GridSize(width: 2, height: 1),
+          properties: {'collision.width': '1', 'collision.offsetX': '1'})],
+        [_actor.copyWith(size: const GridSize(width: 1, height: 2),
+          properties: {'collision.height': '2'})],
+      ]) {
+        final f = await _Fixture.create(entities: entities);
+        try {
+          for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+            final before = await f.projectFile.readAsBytes();
+            final mapBefore = await f.mapFile.readAsBytes();
+            final request = await f.actionRequest(action,
+              _route(target: _target(), initialCollisionOwnerEntityId: 'actor'));
+            if (jsonl) {
+              final result = await f.command('plan', {'projectHandle': f.project.value,
+                'request': request.toJson()});
+              expect(result.status, AuthoringResultStatus.failure, reason: action);
+              expect(result.error!.details['domainCode'], 'scene.publication_blocked');
+            } else {
+              await expectLater(f.mutations.plan(f.project, request),
+                throwsA(isA<NarrativeAuthoringException>()));
+            }
+            expect(await f.projectFile.readAsBytes(), before);
+            expect(await f.mapFile.readAsBytes(), mapBefore);
+          }
+        } finally {
+          await f.dispose();
+        }
+      }
+    });
+
     test(
       '$label actor commands preserve structured steps and metadata then cold reopen',
       () async {
@@ -775,6 +970,21 @@ final class _Fixture {
         idempotencyKey: 'edit-$sequence',
         parameters: {'sceneId': 'edit', 'nodeId': 'action', 'command': command},
       );
+  Future<AuthoringRequest> actionRequest(String action, Map<String, dynamic> wire) async {
+    final scene = _scene('edit', SceneInteractiveCommand.warp(
+      destinationMapId: 'map', warpId: 'arrival')).toJson();
+    final node = ((scene['graph'] as Map)['nodes'] as List)[1] as Map;
+    (node['payload'] as Map)['interactiveCommand'] = wire;
+    final id = 'owner-${++sequence}';
+    return AuthoringRequest(requestId: id, actionId: action, actionVersion: 1,
+      workspaceHandle: workspace.value, expectedRevision: (await snapshot()).revision,
+      idempotencyKey: id, parameters: switch (action) {
+        'scene.interactive_command.set' => {'sceneId': 'edit', 'nodeId': 'action', 'command': wire},
+        'scene.upsert' => {'scene': scene},
+        'scene.graph.patch' => {'sceneId': 'edit', 'upsertNodes': [node]},
+        _ => throw ArgumentError.value(action),
+      });
+  }
   Future<void> dispose() async {
     await success('close', {'workspaceHandle': workspace.value});
     await directory.delete(recursive: true);

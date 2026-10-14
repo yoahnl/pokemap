@@ -701,6 +701,7 @@ final class _FlameSceneActorRouteExecutionPort
     EntityFacing, {
     required int durationMs,
     required bool through,
+    String? initialCollisionOwnerEntityId,
   })
   moveAction;
   final Future<void> Function(int) waitAction;
@@ -719,7 +720,9 @@ final class _FlameSceneActorRouteExecutionPort
     EntityFacing direction, {
     required int durationMs,
     required bool through,
-  }) => moveAction(target, direction, durationMs: durationMs, through: through);
+    String? initialCollisionOwnerEntityId,
+  }) => moveAction(target, direction, durationMs: durationMs, through: through,
+      initialCollisionOwnerEntityId: initialCollisionOwnerEntityId);
   @override
   Future<void> wait(int durationMs) => waitAction(durationMs);
   @override

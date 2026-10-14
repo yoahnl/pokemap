@@ -232,9 +232,11 @@ Future<SceneActionPayload> _edit(
 }
 
 void main() {
-  for (final route in [false, true]) {
+  for (final mode in ['visibility', 'route', 'egress']) {
+    final route = mode != 'visibility';
+    final egress = mode == 'egress';
     testWidgets(
-      'guided ${route ? 'route' : 'visibility'} publishes edits through scene.upsert then cold reopens',
+      'guided $mode publishes edits through scene.upsert then cold reopens',
       (tester) async {
         final f = (await tester.runAsync(_Fixture.create))!;
         addTearDown(() => f.root.delete(recursive: true));
@@ -242,10 +244,9 @@ void main() {
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
-        final target = SceneActorTarget.entity(
-          mapId: 'alpha',
-          entityId: 'actor',
-        );
+        final target = egress
+            ? SceneActorTarget.player(mapId: 'alpha')
+            : SceneActorTarget.entity(mapId: 'alpha', entityId: 'actor');
         final payload = SceneActionPayload.interactive(
           route
               ? SceneInteractiveCommand.actorRoute(
@@ -258,6 +259,7 @@ void main() {
                     SceneActorRouteStep.move(
                       direction: EntityFacing.south,
                       durationMs: 200,
+                      initialCollisionOwnerEntityId: egress ? 'actor' : null,
                     ),
                     SceneActorRouteStep.wait(durationMs: 0),
                     SceneActorRouteStep.through(enabled: true),
@@ -285,6 +287,18 @@ void main() {
         expect(edited, isNot(payload));
         expect(edited.actionKind, payload.actionKind);
         expect(edited.parameters, payload.parameters);
+        if (egress) {
+          final command =
+              edited.interactiveCommand as SceneActorRouteInteractiveCommand;
+          expect(command.target, SceneActorTarget.player(mapId: 'alpha'));
+          expect(
+            command.steps
+                .whereType<SceneActorMoveStep>()
+                .single
+                .initialCollisionOwnerEntityId,
+            'actor',
+          );
+        }
         final mapBefore = (await tester.runAsync(f.mapFile.readAsBytes))!;
         final scene = _scene(edited);
         final receipt = (await tester.runAsync(

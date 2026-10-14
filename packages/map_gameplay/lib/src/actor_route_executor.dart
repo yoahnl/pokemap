@@ -9,7 +9,9 @@ abstract interface class ActorRouteExecutionPort {
   Future<void> face(SceneActorTarget target, EntityFacing direction);
   Future<ActorRouteMoveOutcome> move(
       SceneActorTarget target, EntityFacing direction,
-      {required int durationMs, required bool through});
+      {required int durationMs,
+      required bool through,
+      String? initialCollisionOwnerEntityId});
   Future<void> wait(int durationMs);
   Future<void> sound(String mediaAssetId, {required double gain});
   Future<void> setVisibility(SceneActorTarget target, {required bool visible});
@@ -42,6 +44,7 @@ final class ActorRouteExecutor {
             step.direction,
             durationMs: step.durationMs,
             through: through,
+            initialCollisionOwnerEntityId: step.initialCollisionOwnerEntityId,
           );
           if (!port.isCurrent) {
             return ActorRouteExecutionOutcome.interrupted;
