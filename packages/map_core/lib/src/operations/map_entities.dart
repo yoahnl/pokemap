@@ -3,6 +3,7 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_entity_editor_visual.dart';
+import '../models/map_entity_field_obstacle.dart';
 import '../models/map_entity_payloads.dart';
 import '../models/project_manifest.dart';
 import '../validation/dialogue_validation.dart';
@@ -71,6 +72,7 @@ MapData updateEntityOnMap(
   Object? sign = mapEntityTypedPayloadUnset,
   Object? item = mapEntityTypedPayloadUnset,
   Object? spawn = mapEntityTypedPayloadUnset,
+  Object? fieldObstacle = mapEntityTypedPayloadUnset,
   Object? editorVisual = mapEntityTypedPayloadUnset,
 }) {
   final index = map.entities.indexWhere((entity) => entity.id == entityId);
@@ -100,6 +102,9 @@ MapData updateEntityOnMap(
   }
   if (!identical(spawn, mapEntityTypedPayloadUnset)) {
     draft = draft.copyWith(spawn: spawn as MapEntitySpawnData?);
+  }
+  if (!identical(fieldObstacle, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(fieldObstacle: fieldObstacle as MapEntityFieldObstacleData?);
   }
   if (!identical(editorVisual, mapEntityTypedPayloadUnset)) {
     draft =
@@ -315,6 +320,20 @@ void _validateEntity(
 
 /// Règles métier sur les champs typés (également utilisées par [MapValidator]).
 void assertValidMapEntityTypedPayloads(MapEntity entity) {
+  if (entity.fieldObstacle != null &&
+      (entity.kind != MapEntityKind.custom ||
+          !entity.blocksMovement ||
+          entity.size.width != 1 ||
+          entity.size.height != 1 ||
+          entity.npc != null ||
+          entity.sign != null ||
+          entity.item != null ||
+          entity.spawn != null)) {
+    throw ValidationException(
+      'Entity ${entity.id} field obstacle requires one blocking custom cell without another typed payload.',
+    );
+  }
+
   switch (entity.kind) {
     case MapEntityKind.npc:
       final n = entity.npc ?? const MapEntityNpcData();

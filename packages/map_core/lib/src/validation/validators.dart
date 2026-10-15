@@ -2722,6 +2722,10 @@ class MapValidator {
           );
         }
       }
+      if (entity.fieldObstacle != null &&
+          (map.spatialScene != null || map.version == ProjectVersion.v9)) {
+        throw ValidationException('Field obstacles require a 2D map.');
+      }
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);

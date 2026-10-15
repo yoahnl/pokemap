@@ -6,7 +6,7 @@ void main() {
     'round-trips the empty typed instance state with its explicit schema',
     () {
       const state = MapInstanceWorldState.empty();
-      expect(state.toJson(), {'schemaVersion': 1, 'instancesByMapId': {}});
+      expect(state.toJson(), {'schemaVersion': 2, 'instancesByMapId': {}});
       expect(MapInstanceWorldState.fromJson(state.toJson()), state);
     },
   );
@@ -118,10 +118,18 @@ void main() {
     );
     expect(
       () => MapInstanceWorldState.fromJson({
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'instancesByMapId': {
-          'source': {'instanceId': 'same', 'eventBooleans': {}},
-          'neighbor': {'instanceId': 'same', 'eventBooleans': {}},
+          'source': {
+            'instanceId': 'same',
+            'clearedFieldObstacleIds': <String>[],
+            'eventBooleans': {},
+          },
+          'neighbor': {
+            'instanceId': 'same',
+            'clearedFieldObstacleIds': <String>[],
+            'eventBooleans': {},
+          },
         },
       }),
       throwsFormatException,
@@ -130,32 +138,34 @@ void main() {
 
   for (final json in <Map<String, dynamic>>[
     {},
-    {'schemaVersion': 1},
-    {'schemaVersion': 1.0, 'instancesByMapId': {}},
-    {'schemaVersion': 2, 'instancesByMapId': {}},
-    {'schemaVersion': 1, 'instancesByMapId': null},
-    {'schemaVersion': 1, 'instancesByMapId': {}, 'unknown': true},
+    {'schemaVersion': 2},
+    {'schemaVersion': 2.0, 'instancesByMapId': {}},
+    {'schemaVersion': 3, 'instancesByMapId': {}},
+    {'schemaVersion': 2, 'instancesByMapId': null},
+    {'schemaVersion': 2, 'instancesByMapId': {}, 'unknown': true},
     {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'instancesByMapId': {
         'source': {'instanceId': 'source-1'},
       },
     },
     {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
+          'clearedFieldObstacleIds': <String>[],
           'eventBooleans': {},
           'unknown': true,
         },
       },
     },
     {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
+          'clearedFieldObstacleIds': <String>[],
           'eventBooleans': {
             'door': {'A': 1},
           },
@@ -163,10 +173,11 @@ void main() {
       },
     },
     {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
+          'clearedFieldObstacleIds': <String>[],
           'eventBooleans': {
             'door': {'A': 'true'},
           },
@@ -174,9 +185,13 @@ void main() {
       },
     },
     {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'instancesByMapId': {
-        'source': {'instanceId': ' source-1', 'eventBooleans': {}},
+        'source': {
+          'instanceId': ' source-1',
+          'clearedFieldObstacleIds': <String>[],
+          'eventBooleans': {},
+        },
       },
     },
   ]) {

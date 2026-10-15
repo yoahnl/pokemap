@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -143,6 +144,16 @@ class MapEntityEditingCommands {
       ),
     );
   }
+
+  void setFieldObstacle(String id, MapEntityFieldObstacleData? fieldObstacle) =>
+      document.commit(
+        const EntityActions().setFieldObstacle(
+          document.current,
+          project: project,
+          entityId: id,
+          fieldObstacle: fieldObstacle,
+        ),
+      );
 
   void setBlocking(String id, {required bool blocks}) => document.commit(
     updateEntityOnMap(document.current, entityId: id, blocksMovement: blocks),

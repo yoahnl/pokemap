@@ -46,6 +46,37 @@ final class EntityActions {
     ])
       semanticActionDescriptor(entry.$1, entry.$2),
     AuthoringActionDescriptor(
+      id: 'entity.set_field_obstacle',
+      version: 1,
+      summary: 'Set or clear a typed field obstacle on an existing map object',
+      inputSchemaId: 'schema.entity.set_field_obstacle.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'fieldObstacle': {
+          'kinds': ['cutTree'],
+          'resetPolicies': ['mapInstance'],
+          'entityKind': 'custom',
+          'blocksMovement': true,
+          'footprint': {'width': 1, 'height': 1},
+          'mapMode': '2d',
+          'visual': 'existingProjectElement',
+          'clearValue': null,
+          'parameters': ['mapId', 'entityId', 'fieldObstacle'],
+        },
+      },
+    ),
+    AuthoringActionDescriptor(
       id: 'npc.set_counter_interaction_sides',
       version: 1,
       summary:
@@ -136,6 +167,20 @@ final class EntityActions {
             counterInteractionSides: List<EntityFacing>.unmodifiable(sides)));
   }
 
+  MapData setFieldObstacle(
+    MapData map, {
+    required ProjectManifest project,
+    required String entityId,
+    required MapEntityFieldObstacleData? fieldObstacle,
+  }) {
+    final entity = _entityById(map, entityId);
+    if (fieldObstacle != null) {
+      _assertFieldObstacleTarget(map, project, entity);
+    }
+    return updateEntityOnMap(map,
+        entityId: entityId, fieldObstacle: fieldObstacle);
+  }
+
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
@@ -156,6 +201,7 @@ final class EntityActions {
       'entity.set_spawn_payload' ||
       'entity.set_visual' =>
         const {'entityId', 'payload'},
+      'entity.set_field_obstacle' => const {'entityId', 'fieldObstacle'},
       'entity.set_blocks_movement' => const {'entityId', 'blocksMovement'},
       'entity.patch_properties' => const {'entityId', 'patch'},
       'npc.set_facing' => const {'entityId', 'facing'},
@@ -322,7 +368,12 @@ final class EntityActions {
           updated = _replaceEntity(
             context.map,
             entity.id,
-            entity.copyWith(npc: null, sign: null, item: null, spawn: null),
+            entity.copyWith(
+                npc: null,
+                sign: null,
+                item: null,
+                spawn: null,
+                fieldObstacle: null),
           );
         case 'entity.set_visual':
           updated = updateEntityOnMap(
@@ -338,6 +389,27 @@ final class EntityActions {
             entityId: parameters.string('entityId'),
             editorVisual: null,
           );
+        case 'entity.set_field_obstacle':
+          if (!parameters.contains('fieldObstacle')) {
+            throw invalidSemanticField(
+                'fieldObstacle', 'a typed payload or explicit null');
+          }
+          final rawObstacle = parameters.value('fieldObstacle');
+          MapEntityFieldObstacleData? obstacle;
+          if (rawObstacle != null) {
+            try {
+              obstacle = MapEntityFieldObstacleData.fromJson(
+                  _object(rawObstacle, 'fieldObstacle')
+                      .cast<String, dynamic>());
+            } on Object {
+              throw semanticFailure('entity.field_obstacle_invalid',
+                  'The field obstacle payload is unsupported.');
+            }
+          }
+          updated = setFieldObstacle(context.map,
+              project: context.manifest,
+              entityId: parameters.string('entityId'),
+              fieldObstacle: obstacle);
         case 'entity.set_blocks_movement':
           updated = updateEntityOnMap(
             context.map,
@@ -472,11 +544,39 @@ final class EntityActions {
       throw _entityFailure(error);
     }
 
+    for (final entity
+        in updated.entities.where((entity) => entity.fieldObstacle != null)) {
+      _assertFieldObstacleTarget(updated, context.manifest, entity);
+    }
+
     return context.draftMap(
       after: updated,
       operation: actionId,
       changedItems: changedItems,
     );
+  }
+}
+
+void _assertFieldObstacleTarget(
+    MapData map, ProjectManifest project, MapEntity entity) {
+  if (map.spatialScene != null ||
+      map.version == ProjectVersion.v9 ||
+      project.settings.dimension != ProjectDimension.twoD ||
+      entity.kind != MapEntityKind.custom ||
+      !entity.blocksMovement ||
+      entity.size.width != 1 ||
+      entity.size.height != 1 ||
+      entity.npc != null ||
+      entity.sign != null ||
+      entity.item != null ||
+      entity.spawn != null ||
+      entity.editorVisual == null ||
+      project.elements
+              .where((element) => element.id == entity.editorVisual!.elementId)
+              .length !=
+          1) {
+    throw semanticFailure('entity.field_obstacle_invalid',
+        'A field obstacle requires a blocking 1x1 custom object with an existing project visual on a 2D map.');
   }
 }
 
@@ -528,6 +628,7 @@ MapData _replaceEntity(MapData map, String entityId, MapEntity replacement) {
     sign: replacement.sign,
     item: replacement.item,
     spawn: replacement.spawn,
+    fieldObstacle: replacement.fieldObstacle,
     editorVisual: replacement.editorVisual,
   );
 }

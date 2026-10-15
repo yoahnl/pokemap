@@ -2,7 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 import 'package:meta/meta.dart' show immutable;
 
-const currentMapInstanceWorldStateSchemaVersion = 1;
+const currentMapInstanceWorldStateSchemaVersion = 2;
 const _collectionEquality = DeepCollectionEquality();
 
 Object? readMapInstanceWorldStateJson(Map<dynamic, dynamic> json, String key) {
@@ -37,7 +37,11 @@ final class MapInstanceRuntimeState {
   MapInstanceRuntimeState({
     required String instanceId,
     Map<String, Map<String, bool>> eventBooleans = const {},
+    Set<String> clearedFieldObstacleIds = const {},
   }) : instanceId = _identity(instanceId, 'instanceId'),
+       clearedFieldObstacleIds = Set.unmodifiable(
+         clearedFieldObstacleIds.map((id) => _identity(id, 'fieldObstacleId')),
+       ),
        eventBooleans = Map.unmodifiable({
          for (final event in eventBooleans.entries)
            _identity(event.key, 'eventId'): Map<String, bool>.unmodifiable({
@@ -48,9 +52,18 @@ final class MapInstanceRuntimeState {
 
   final String instanceId;
   final Map<String, Map<String, bool>> eventBooleans;
+  final Set<String> clearedFieldObstacleIds;
 
   factory MapInstanceRuntimeState.fromJson(Map<String, dynamic> json) {
-    _keys(json, {'instanceId', 'eventBooleans'});
+    _keys(json, {'instanceId', 'eventBooleans', 'clearedFieldObstacleIds'});
+    final cleared = json['clearedFieldObstacleIds'];
+    if (cleared is! List ||
+        cleared.any((id) => id is! String) ||
+        cleared.toSet().length != cleared.length) {
+      throw const FormatException(
+        'Cleared field obstacle identities must be a unique string list.',
+      );
+    }
     final events = _object(json['eventBooleans'], 'eventBooleans');
     final booleans = <String, Map<String, bool>>{};
     for (final event in events.entries) {
@@ -71,6 +84,7 @@ final class MapInstanceRuntimeState {
       return MapInstanceRuntimeState(
         instanceId: _string(json['instanceId'], 'instanceId'),
         eventBooleans: booleans,
+        clearedFieldObstacleIds: cleared.cast<String>().toSet(),
       );
     } on ArgumentError catch (error) {
       throw FormatException(error.message?.toString() ?? 'Invalid instance.');
@@ -81,6 +95,7 @@ final class MapInstanceRuntimeState {
     final eventIds = eventBooleans.keys.toList()..sort();
     return {
       'instanceId': instanceId,
+      'clearedFieldObstacleIds': clearedFieldObstacleIds.toList()..sort(),
       'eventBooleans': {
         for (final eventId in eventIds)
           eventId: {
@@ -96,11 +111,18 @@ final class MapInstanceRuntimeState {
       identical(this, other) ||
       other is MapInstanceRuntimeState &&
           other.instanceId == instanceId &&
-          _collectionEquality.equals(other.eventBooleans, eventBooleans);
+          _collectionEquality.equals(other.eventBooleans, eventBooleans) &&
+          _collectionEquality.equals(
+            other.clearedFieldObstacleIds,
+            clearedFieldObstacleIds,
+          );
 
   @override
-  int get hashCode =>
-      Object.hash(instanceId, _collectionEquality.hash(eventBooleans));
+  int get hashCode => Object.hash(
+    instanceId,
+    _collectionEquality.hash(eventBooleans),
+    _collectionEquality.hash(clearedFieldObstacleIds),
+  );
 }
 
 @immutable
@@ -177,9 +199,37 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
           eventBooleans: {
             ...instance.eventBooleans,
             eventId: {...?booleans, key: value},
+          },
+        ),
+      },
+    );
+  }
+
+  bool isFieldObstacleCleared(MapInstanceRef scope, String entityId) =>
+      _currentInstance(scope).clearedFieldObstacleIds.contains(
+        _identity(entityId, 'fieldObstacleId'),
+      );
+
+  MapInstanceWorldState clearFieldObstacle(
+    MapInstanceRef scope,
+    String entityId,
+  ) {
+    final instance = _currentInstance(scope);
+    _identity(entityId, 'fieldObstacleId');
+    if (instance.clearedFieldObstacleIds.contains(entityId)) return this;
+    return MapInstanceWorldState(
+      instancesByMapId: {
+        ...instancesByMapId,
+        scope.mapId: MapInstanceRuntimeState(
+          instanceId: instance.instanceId,
+          eventBooleans: instance.eventBooleans,
+          clearedFieldObstacleIds: {
+            ...instance.clearedFieldObstacleIds,
+            entityId,
           },
         ),
       },

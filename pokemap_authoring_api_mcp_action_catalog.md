@@ -1460,6 +1460,7 @@ entity.set_npc_payload
 entity.set_sign_payload
 entity.set_item_payload
 entity.set_spawn_payload
+entity.set_field_obstacle
 entity.clear_payload
 entity.set_visual
 entity.clear_visual
@@ -1467,6 +1468,17 @@ entity.set_blocks_movement
 entity.patch_properties
 entity.validate
 ```
+
+`entity.set_field_obstacle` (v1) définit ou retire un obstacle typé sur un
+objet existant. Les paramètres obligatoires sont `mapId`, `entityId` et
+`fieldObstacle`. Le payload accepté contient uniquement `kind: cutTree` et
+`resetPolicy: mapInstance` ; `null` explicite retire ce payload, tandis qu’un
+champ omis est refusé. L’objet doit être `custom`, bloquant, d’une case, sur une
+carte 2D et posséder un visuel du catalogue du projet. Les champs inconnus et
+les objets incompatibles sont refusés sans écriture. Position, visuel et autres
+propriétés sont conservés ; planification, contrôle de révision et annulation
+suivent le contrat canonique. Cette capacité post-bêta ne débloque pas Coupe
+pour le joueur et ne change pas le périmètre bêta signé de Surf.
 
 Actions NPC explicites :
 

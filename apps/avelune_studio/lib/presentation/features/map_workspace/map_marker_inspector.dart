@@ -55,11 +55,35 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     final spawn = entity.spawn;
     final sign = entity.sign;
     final blocked = _deletionProblem;
+    final cutTree = entity.fieldObstacle?.kind == FieldObstacleKind.cutTree;
+    final canConfigureCut =
+        entity.kind == MapEntityKind.custom &&
+        entity.blocksMovement &&
+        entity.size.width == 1 &&
+        entity.size.height == 1 &&
+        entity.npc == null &&
+        entity.sign == null &&
+        entity.item == null &&
+        entity.spawn == null &&
+        widget.document.current.spatialScene == null &&
+        widget.document.current.version != ProjectVersion.v9 &&
+        widget.project.settings.dimension == ProjectDimension.twoD &&
+        entity.editorVisual != null &&
+        widget.project.elements
+                .where(
+                  (element) => element.id == entity.editorVisual!.elementId,
+                )
+                .length ==
+            1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          spawn != null ? 'Point d’apparition' : 'Panneau',
+          spawn != null
+              ? 'Point d’apparition'
+              : cutTree
+              ? 'Arbre à couper'
+              : 'Panneau',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 6),
@@ -180,6 +204,26 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
             ),
           ),
         ],
+        if (canConfigureCut) ...[
+          const SizedBox(height: 12),
+          StudioChoice(
+            key: const ValueKey('field-obstacle-cut-tree'),
+            label: 'Arbre à couper',
+            subtitle:
+                'Requiert Coupe débloquée et un Pokémon apte à l’utiliser.',
+            selected: cutTree,
+            onTap: () => _change(
+              () => _commands.setFieldObstacle(
+                entity.id,
+                cutTree ? null : const MapEntityFieldObstacleData(),
+              ),
+            ),
+          ),
+          if (cutTree) ...[
+            const SizedBox(height: 6),
+            const Text('Réapparition : à la réinitialisation de la carte.'),
+          ],
+        ],
         const SizedBox(height: 16),
         if (blocked != null) ...[
           Text(
@@ -194,6 +238,8 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               ? 'Suppression bloquée par l’histoire'
               : spawn != null
               ? 'Supprimer ce départ'
+              : cutTree
+              ? 'Supprimer cet arbre'
               : 'Supprimer le panneau',
           icon: Icons.delete_outline,
           onPressed: blocked != null

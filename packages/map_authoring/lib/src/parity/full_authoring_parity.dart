@@ -509,6 +509,14 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'entity.set_field_obstacle') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/field_obstacle_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/field_obstacle_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/field_obstacle_inspector_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/field_obstacle_stdio.test.ts',
+    };
+  }
   if (actionId == 'npc.set_counter_interaction_sides') {
     return const {
       AuthoringTransport.directApi:
@@ -1314,6 +1322,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'entity.set_field_obstacle') {
+    return 'test/domains/maps/field_obstacle_actions_test.dart';
+  }
   if (actionId == 'npc.set_counter_interaction_sides') {
     return 'test/domains/maps/npc_counter_interaction_actions_test.dart';
   }

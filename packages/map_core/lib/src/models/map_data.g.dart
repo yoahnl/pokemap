@@ -366,6 +366,11 @@ _MapEntity _$MapEntityFromJson(Map<String, dynamic> json) => _MapEntity(
   spawn: json['spawn'] == null
       ? null
       : MapEntitySpawnData.fromJson(json['spawn'] as Map<String, dynamic>),
+  fieldObstacle: json['fieldObstacle'] == null
+      ? null
+      : MapEntityFieldObstacleData.fromJson(
+          json['fieldObstacle'] as Map<String, dynamic>,
+        ),
   editorVisual: json['editorVisual'] == null
       ? null
       : MapEntityEditorVisual.fromJson(
@@ -390,6 +395,7 @@ Map<String, dynamic> _$MapEntityToJson(_MapEntity instance) =>
       'sign': instance.sign?.toJson(),
       'item': instance.item?.toJson(),
       'spawn': instance.spawn?.toJson(),
+      'fieldObstacle': ?instance.fieldObstacle?.toJson(),
       'editorVisual': instance.editorVisual?.toJson(),
       'blocksMovement': instance.blocksMovement,
       'properties': instance.properties,

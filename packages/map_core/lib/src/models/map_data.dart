@@ -6,6 +6,7 @@ import 'enums.dart';
 import 'geometry.dart';
 import 'map_entity_editor_visual.dart';
 import 'map_entity_payloads.dart';
+import 'map_entity_field_obstacle.dart';
 import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
@@ -420,13 +421,38 @@ abstract class MapEntity with _$MapEntity {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
+    @JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle,
     MapEntityEditorVisual? editorVisual,
     @Default(true) bool blocksMovement,
     @Default({}) Map<String, String> properties,
   }) = _MapEntity;
 
   factory MapEntity.fromJson(Map<String, dynamic> json) =>
-      _$MapEntityFromJson(migrateMapEntityJson(json));
+      _$MapEntityFromJson(
+        _checkedFieldObstacleEntityJson(migrateMapEntityJson(json)),
+      );
+}
+
+Map<String, dynamic> _checkedFieldObstacleEntityJson(Map<String, dynamic> json) {
+  final raw = json['fieldObstacle'];
+  if (raw == null) return json;
+  if (raw is! Map || raw.keys.any((key) => key is! String)) {
+    throw const FormatException('The field obstacle must be a typed object.');
+  }
+  MapEntityFieldObstacleData.fromJson(Map<String, dynamic>.from(raw));
+  final size = json['size'];
+  if (json['kind'] != 'custom' ||
+      (json['blocksMovement'] != null && json['blocksMovement'] != true) ||
+      (size != null && (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
+      json['npc'] != null ||
+      json['sign'] != null ||
+      json['item'] != null ||
+      json['spawn'] != null) {
+    throw const FormatException(
+      'A field obstacle requires one blocking custom cell without another typed payload.',
+    );
+  }
+  return json;
 }
 
 extension MapEntityDisplayX on MapEntity {

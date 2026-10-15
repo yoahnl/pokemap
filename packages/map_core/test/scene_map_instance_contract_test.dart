@@ -2,10 +2,11 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 const _instanceJson = <String, dynamic>{
-  'schemaVersion': 1,
+  'schemaVersion': 2,
   'instancesByMapId': <String, dynamic>{
     'source': <String, dynamic>{
       'instanceId': 'map-instance-source-1',
+      'clearedFieldObstacleIds': <String>[],
       'eventBooleans': <String, dynamic>{
         'door': <String, dynamic>{'A': true, 'B': false},
         'other-door': <String, dynamic>{'A': false},
@@ -13,6 +14,7 @@ const _instanceJson = <String, dynamic>{
     },
     'neighbor': <String, dynamic>{
       'instanceId': 'map-instance-neighbor-1',
+      'clearedFieldObstacleIds': <String>[],
       'eventBooleans': <String, dynamic>{
         'door': <String, dynamic>{'A': false},
       },
@@ -147,7 +149,7 @@ void main() {
     final json = strictGameStateSaveJson(_state())
       ..['mapInstanceWorldState'] = <String, dynamic>{
         ..._instanceJson,
-        'schemaVersion': 2,
+        'schemaVersion': 3,
       };
     expect(() => gameStateFromStrictSaveJson(json), throwsFormatException);
   });
