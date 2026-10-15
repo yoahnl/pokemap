@@ -97,14 +97,19 @@ void addEntityVisualTilesetIds(
   final elementById = {for (final e in manifest.elements) e.id: e};
   for (final entity in map.entities) {
     final elementId = entity.resolvedProjectElementIdForEditor?.trim();
-    if (elementId == null || elementId.isEmpty) continue;
-    final entry = elementById[elementId];
-    if (entry == null || entry.frames.isEmpty) continue;
-    for (final frame in entry.frames) {
-      final tid = frame.tilesetId.trim().isNotEmpty
-          ? frame.tilesetId.trim()
-          : entry.tilesetId.trim();
-      if (tid.isNotEmpty) ids.add(tid);
+    final references = <String>[
+      if (elementId != null && elementId.isNotEmpty) elementId,
+      ...?entity.healingDisplay?.variantElementIds,
+    ];
+    for (final reference in references) {
+      final entry = elementById[reference];
+      if (entry == null || entry.frames.isEmpty) continue;
+      for (final frame in entry.frames) {
+        final tid = frame.tilesetId.trim().isNotEmpty
+            ? frame.tilesetId.trim()
+            : entry.tilesetId.trim();
+        if (tid.isNotEmpty) ids.add(tid);
+      }
     }
   }
 }
@@ -166,7 +171,8 @@ Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
       final payload = node.payload;
       if (payload is! SceneYarnDialoguePayload) continue;
       for (final policy in payload.linePolicies) {
-        for (final icon in policy.feedback.segments.whereType<DialogueIconSegment>()) {
+        for (final icon
+            in policy.feedback.segments.whereType<DialogueIconSegment>()) {
           if (registeredTilesets.contains(icon.assetId)) ids.add(icon.assetId);
         }
       }

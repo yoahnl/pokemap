@@ -13,6 +13,7 @@ import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_cut_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
+import 'source_healing_display_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -291,6 +292,7 @@ final class SourceEventProjector {
     SourceTownMapBinding? townMapBinding,
     Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
     SourcePartyTradeBinding? partyTradeBinding,
+    SourceHealingDisplayBinding? healingDisplayBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -302,10 +304,11 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isCutObstacleFamily(event) &&
+        !builder._isHealingDisplayFamily(event) &&
         builder._gaps(event, checkCharacterBindings: false).isEmpty));
   }
 
@@ -322,6 +325,7 @@ final class SourceEventProjector {
     SourceTownMapBinding? townMapBinding,
     Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
     SourcePartyTradeBinding? partyTradeBinding,
+    SourceHealingDisplayBinding? healingDisplayBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -345,7 +349,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding)
         .build();
   }
 }
@@ -405,7 +409,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding, this.healingDisplayBinding)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -428,6 +432,7 @@ final class _ProjectionBuilder {
   final SourcePokedexRewardBinding? pokedexRewardBinding;
   final SourceTownMapBinding? townMapBinding;
   final SourcePartyTradeBinding? partyTradeBinding;
+  final SourceHealingDisplayBinding? healingDisplayBinding;
   final Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
@@ -542,6 +547,22 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && _isHealingDisplayFamily(event))
+          'nativeHealingDisplay': {
+            ...healingDisplayBinding!.evidence,
+            'nativeEntityId': _key(event, 'anchor'),
+            'nativeExecutionQualified': true,
+            'nativeActivation': 'acceptedNurseServiceApplyingOnly',
+            'nativeFactsCreated': false,
+            'nativeSceneCreated': false,
+            'adaptedCommands': {
+              'sourcePages': [for (final page in event.pages) page.rawDataRef!.toJson()],
+              'sourceControl': 'sourceVariable6PageSelection',
+              'nativeControl': 'ephemeralActualPartyCountDuringAcceptedNativeHeal',
+              'scope': 'presentation',
+              'sourceRawPreserved': true,
+            },
+          },
         if (gaps.isEmpty && _isCutObstacleFamily(event))
           'nativeCutObstacle': {
             ...cutObstacleBindings[event.identity]!.toJson(),
@@ -581,6 +602,7 @@ final class _ProjectionBuilder {
             'sourceStatsExecuted': false,
             'sourcePokerusDialogueExecuted': false,
             'sourceHealingBallsAnimationQualified': false,
+            'nativeHealingDisplayEntityId': _healingDisplayEntityId,
             'sourceNurseMovementQualified': false,
             'sourceSilentWaitBeforeCompletionParityQualified': false,
             'recoveryMusic': centerRecoveryBinding!.evidence,
@@ -914,6 +936,7 @@ final class _ProjectionBuilder {
         },
       'usedTownMap': eventEvidence.any((row)=>row.containsKey('nativeTownMap')),
       'usedPartyTrade': eventEvidence.any((row) => row.containsKey('nativePartyTrade')),
+      'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedCutObstacles': eventEvidence.any((row) => row.containsKey('nativeCutObstacle')),
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
     };
@@ -1513,8 +1536,58 @@ final class _ProjectionBuilder {
     return const {};
   }
 
+  bool _isHealingDisplayFamily(SourceEventDefinition event) =>
+      event.sourceMapId == 102 && event.sourceEventId == 4;
+
+  String? get _healingDisplayEntityId {
+    final binding = healingDisplayBinding;
+    if (binding == null || gapsByEvent[binding.eventIdentity]?.isEmpty != true) {
+      return null;
+    }
+    final event = analysis.events.where((event) => event.identity == binding.eventIdentity).single;
+    return _key(event, 'anchor');
+  }
+
+  Set<String> _healingDisplayGaps(SourceEventDefinition event,
+      {required bool checkCharacterBindings}) {
+    final binding = healingDisplayBinding;
+    if (binding == null) return {'sourceHealingDisplayBindingMissing'};
+    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+      return {'sourceHealingDisplaySourceBindingInvalid'};
+    }
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+      return {'sourceHealingDisplaySpatialUnsupported'};
+    }
+    if (event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
+      return {'sourceHealingDisplayPositionInvalid'};
+    }
+    final passage = semanticResolver.resolveConnectionEntryTile(
+        semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
+    final collision = map.layers.whereType<CollisionLayer>().toList();
+    if (passage.status != SourcePassageStatus.blocked || collision.isEmpty ||
+        collision.any((layer) => layer.collisions.length != map.size.width * map.size.height) ||
+        !collision.any((layer) => layer.collisions[event.y * map.size.width + event.x])) {
+      return {'sourceHealingDisplayMachineCollisionUnqualified'};
+    }
+    if (map.entities.any((entity) => resolveEntityCollisionCells(entity)
+        .contains(GridPos(x: event.x, y: event.y))) ||
+        _sourceCounterCellOccupied(event, event.x, event.y)) {
+      return {'sourceHealingDisplayAnchorOccupied'};
+    }
+    final nurses = analysis.events.where((candidate) =>
+        candidate.sourceMapId == 102 && candidate.sourceEventId == 2).toList();
+    if (nurses.length != 1 || !_isNativeCenterNurse(nurses.single) ||
+        _nativeCenterNurseGaps(nurses.single,
+            checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+      return {'sourceHealingDisplayNurseNotAdmitted'};
+    }
+    return const {};
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_isHealingDisplayFamily(event)) return _healingDisplayGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isPartyTradeFamily(event)) return _partyTradeGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isCutObstacleFamily(event)) return _cutObstacleGaps(event);
     if (_isTownMapFamily(event)) return _townMapGaps(event);
@@ -1990,6 +2063,21 @@ final class _ProjectionBuilder {
   }
 
   void _projectEvent(SourceEventDefinition event) {
+    if (_isHealingDisplayFamily(event)) {
+      if (gapsByEvent[event.identity]?.isEmpty != true || healingDisplayBinding == null) {
+        throw const NativeWriteException('events.healing_display.binding_missing',
+            'The healing display requires its exact source program, assets and admitted native nurse.');
+      }
+      final map = maps[event.sourceMapId]!;
+      final object = healingDisplayBinding!.createNativeEntity(_key(event, 'anchor'))
+          .copyWith(properties: {'sourceEventIdentity': event.identity.value});
+      maps[event.sourceMapId] = map.copyWith(entities: [...map.entities, object]);
+      mutations.add(_mutation('entity.upsert', object.id,
+          [event.identity, event.sourceFileId], [map.id, object.id],
+          {'mapId': map.id, 'entity': object.toJson()}));
+      return;
+    }
+
     if (_isCutObstacleFamily(event)) {
       final map = maps[event.sourceMapId]!;
       final object = cutObstacleBindings[event.identity]!.createNativeEntity(_key(event, 'anchor'))
@@ -2503,7 +2591,8 @@ final class _SceneBuilder {
         cueId: projection._key(event, 'recovery_music'), line: completedLines.first);
     final completed = _dialogue(span(57, 65), null, null, next,
         feedbackLines: completedLines);
-    final heal = _interactive(SceneInteractiveCommand.openHeal(requiresConfirmation: false), completed);
+    final heal = _interactive(SceneInteractiveCommand.openHeal(requiresConfirmation: false,
+        displayEntityId: projection._healingDisplayEntityId), completed);
     final accepted = _dialogue(span(12, 12), program.acceptanceLines.join('\n'), null, heal);
     final refused = _dialogue(span(70, 70), program.refusalLines.join('\n'), null, next);
     final empty = SourceEventBlock(nodes: const [], span: program.span);

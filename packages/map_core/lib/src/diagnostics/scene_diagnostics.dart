@@ -10,6 +10,7 @@ import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
 import '../operations/scene_actor_reference.dart';
+import '../operations/map_healing_display.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
 enum SceneDiagnosticSeverity { error, warning, info }
@@ -59,6 +60,7 @@ enum SceneDiagnosticCode {
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
   commandInvalidActorTarget,
+  commandInvalidHealingDisplay,
   commandUnsupportedDimension,
   commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
@@ -1128,6 +1130,37 @@ void _diagnoseActionConsequenceAgainstProject(
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
+  if (interactiveCommand is SceneOpenHealInteractiveCommand &&
+      interactiveCommand.displayEntityId != null) {
+    final id = interactiveCommand.displayEntityId!;
+    final matches = mapsById.entries
+        .where((entry) => entry.key == entry.value.id &&
+            resolveHealingDisplayEntity(entry.value, id) != null)
+        .map((entry) => entry.value).toList();
+    if (project.settings.dimension != ProjectDimension.twoD || matches.length != 1 ||
+        projectMapCounts[matches.singleOrNull?.id] != 1) {
+      diagnostics.add(SceneDiagnostic(
+        code: SceneDiagnosticCode.commandInvalidHealingDisplay,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Le soin doit cibler un affichage de boules unique sur une carte 2D connue et chargée.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un affichage de soin disponible.',
+      ));
+    } else {
+      final entity = resolveHealingDisplayEntity(matches.single, id)!;
+      try {
+        assertHealingDisplayVisualsAgainstProject(entity, project);
+      } catch (_) {
+        diagnostics.add(SceneDiagnostic(
+          code: SceneDiagnosticCode.commandInvalidHealingDisplay,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Les six variantes de l’affichage de soin doivent référencer des éléments natifs valides.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir six variantes valides de même taille.',
+        ));
+      }
+    }
+  }
   if ((interactiveCommand is SceneWaitInteractiveCommand ||
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||

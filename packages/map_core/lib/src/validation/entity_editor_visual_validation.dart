@@ -1,11 +1,13 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
 import '../models/project_manifest.dart';
+import '../operations/map_healing_display.dart';
 
 void assertEntityEditorVisualAgainstProject(
   MapEntity entity,
   ProjectManifest project,
 ) {
+  assertHealingDisplayVisualsAgainstProject(entity, project);
   final v = entity.editorVisual;
   if (v == null) {
     return;

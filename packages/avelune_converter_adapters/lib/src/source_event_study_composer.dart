@@ -16,6 +16,7 @@ import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_cut_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
+import 'source_healing_display_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
@@ -227,6 +228,18 @@ final class SourceEventStudyComposer {
         centerRecoveryEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    SourceHealingDisplayBinding? healingDisplay;
+    final healingDisplayEvidence = <Map<String, Object?>>[];
+    try {
+      healingDisplay = await const SourceHealingDisplayBindingResolver().read(
+          source: source, analysis: analysis, files: recording,
+          limits: limits, cancellation: cancellation);
+      if (healingDisplay != null) {
+        healingDisplayEvidence.add({'status': 'attested', ...healingDisplay.evidence});
+      }
+    } on SourceHealingDisplayBindingUnavailable catch (error) {
+      healingDisplayEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
+    }
     final trainerBindings = await const SourceTrainerEventBindingResolver().read(
         source: source, analysis: analysis, files: recording,
         limits: limits, cancellation: cancellation);
@@ -280,6 +293,7 @@ final class SourceEventStudyComposer {
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
+            healingDisplayBinding: healingDisplay,
             cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
@@ -354,10 +368,13 @@ final class SourceEventStudyComposer {
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
+            healingDisplayBinding: healingDisplay,
             cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
         limits: limits);
+    final usedHealingDisplay = projection.semanticEvidence['usedHealingDisplay'] == true
+        ? healingDisplay : null;
     final usedCenterRecovery = projection.semanticEvidence['usedCenterRecovery'] == true
         ? centerRecovery : null;
     final usedPickupBindingKeys =
@@ -398,6 +415,10 @@ final class SourceEventStudyComposer {
     }
     if (usedCutObstacles != null) {
       preservedFileIds.addAll((usedCutObstacles.evidence['sourceFiles'] as List)
+          .cast<Map>().map((file) => file['fileId'] as String));
+    }
+    if (usedHealingDisplay != null) {
+      preservedFileIds.addAll((usedHealingDisplay.evidence['sourceImages'] as List)
           .cast<Map>().map((file) => file['fileId'] as String));
     }
     final systemFile = source.snapshot.entries
@@ -558,6 +579,7 @@ final class SourceEventStudyComposer {
         if(usedTownMap!=null)usedTownMap.artifact,
         if (usedCutObstacles != null) usedCutObstacles.artifact,
         ...characterArtifacts,
+        if (usedHealingDisplay != null) ...usedHealingDisplay.artifacts,
         if (usedCenterRecovery != null) usedCenterRecovery.artifact,
         ...pickupArtifacts,
         ...sounds.values.map((binding) => binding.artifact),
@@ -580,6 +602,7 @@ final class SourceEventStudyComposer {
     final operations = <ConverterId, NativeMutation>{};
     for (final entry in [
       ...characterMutations,
+      if (usedHealingDisplay != null) ...usedHealingDisplay.mutations,
       if (usedCutObstacles != null) ...usedCutObstacles.mutations,
       if (usedTownMap != null)
         ...usedTownMap.mutations.where((entry) => entry.actionId == 'asset.import'),
@@ -624,6 +647,8 @@ final class SourceEventStudyComposer {
       'pickups': pickupEvidence,
       'sounds': soundEvidence,
       'centerRecovery': centerRecoveryEvidence,
+      'healingDisplayBindings': healingDisplayEvidence,
+      if (usedHealingDisplay != null) 'healingDisplay': usedHealingDisplay.evidence,
       'pokedexRewardBinding': pokedexReward?.toJson(),
       if(usedTownMap!=null)'townMap':usedTownMap.evidence,
       if (projection.semanticEvidence['usedPartyTrade'] == true) 'partyTrade': partyTrade!.evidence,

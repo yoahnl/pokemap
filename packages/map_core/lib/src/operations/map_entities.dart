@@ -4,8 +4,10 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_entity_editor_visual.dart';
 import '../models/map_entity_field_obstacle.dart';
+import '../models/map_entity_healing_display.dart';
 import '../models/map_entity_payloads.dart';
 import '../models/project_manifest.dart';
+import 'map_healing_display.dart';
 import '../validation/dialogue_validation.dart';
 
 /// Valeur sentinelle pour [updateEntityOnMap] : ne pas modifier le bloc typé existant.
@@ -73,6 +75,7 @@ MapData updateEntityOnMap(
   Object? item = mapEntityTypedPayloadUnset,
   Object? spawn = mapEntityTypedPayloadUnset,
   Object? fieldObstacle = mapEntityTypedPayloadUnset,
+  Object? healingDisplay = mapEntityTypedPayloadUnset,
   Object? editorVisual = mapEntityTypedPayloadUnset,
 }) {
   final index = map.entities.indexWhere((entity) => entity.id == entityId);
@@ -105,6 +108,9 @@ MapData updateEntityOnMap(
   }
   if (!identical(fieldObstacle, mapEntityTypedPayloadUnset)) {
     draft = draft.copyWith(fieldObstacle: fieldObstacle as MapEntityFieldObstacleData?);
+  }
+  if (!identical(healingDisplay, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(healingDisplay: healingDisplay as MapEntityHealingDisplayData?);
   }
   if (!identical(editorVisual, mapEntityTypedPayloadUnset)) {
     draft =
@@ -315,11 +321,24 @@ void _validateEntity(
       throw ValidationException('Entity $id has an empty property key');
     }
   }
+  if (entity.healingDisplay != null &&
+      (map.spatialScene != null || map.version == ProjectVersion.v9)) {
+    throw const ValidationException('Healing displays require a 2D map.');
+  }
   assertValidMapEntityTypedPayloads(entity);
 }
 
 /// Règles métier sur les champs typés (également utilisées par [MapValidator]).
 void assertValidMapEntityTypedPayloads(MapEntity entity) {
+  if (entity.healingDisplay != null &&
+      (entity.kind != MapEntityKind.custom || entity.blocksMovement ||
+          entity.size.width != 1 || entity.size.height != 1 ||
+          entity.npc != null || entity.sign != null || entity.item != null ||
+          entity.spawn != null || entity.fieldObstacle != null || entity.editorVisual != null ||
+          healingDisplayHasCollisionOverride(entity))) {
+    throw ValidationException('Entity ${entity.id} healing display requires one nonblocking custom cell without another payload or collision override.');
+  }
+
   if (entity.fieldObstacle != null &&
       (entity.kind != MapEntityKind.custom ||
           !entity.blocksMovement ||
@@ -328,7 +347,7 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
           entity.npc != null ||
           entity.sign != null ||
           entity.item != null ||
-          entity.spawn != null)) {
+          entity.spawn != null || entity.healingDisplay != null)) {
     throw ValidationException(
       'Entity ${entity.id} field obstacle requires one blocking custom cell without another typed payload.',
     );

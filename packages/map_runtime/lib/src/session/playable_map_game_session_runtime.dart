@@ -325,6 +325,7 @@ final class PlayableMapGameSessionRuntime
       game.applyPlayerPreferences(preferences);
     }
     final playerServices = PlayerServiceRuntimeController.contextual(
+      healingDisplayMapReader: game.playerServiceHealingDisplayMap,
       currentGameState: () => game.playerServiceGameStateSnapshot,
       commitAndSave: game.commitAndSavePlayerServiceState,
       setInputLocked: (locked) => game.setExternalInputLock(

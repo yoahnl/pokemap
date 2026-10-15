@@ -219,6 +219,7 @@ class MapSelectionInspector extends StatelessWidget {
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(12),
                       child: MapMarkerInspector(
+                        elementPreview: (element) => visuals.thumbnail(element, size: 64),
                         document: document,
                         project: project,
                         entity: marker,

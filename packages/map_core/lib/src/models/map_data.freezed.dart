@@ -2180,7 +2180,7 @@ as bool,
 /// @nodoc
 mixin _$MapEntity {
 
- String get id; String get name; MapEntityKind get kind; GridPos get pos; GridSize get size; MapEntityNpcData? get npc; MapEntitySignData? get sign; MapEntityItemData? get item; MapEntitySpawnData? get spawn;@JsonKey(includeIfNull: false) MapEntityFieldObstacleData? get fieldObstacle; MapEntityEditorVisual? get editorVisual; bool get blocksMovement; Map<String, String> get properties;
+ String get id; String get name; MapEntityKind get kind; GridPos get pos; GridSize get size; MapEntityNpcData? get npc; MapEntitySignData? get sign; MapEntityItemData? get item; MapEntitySpawnData? get spawn;@JsonKey(includeIfNull: false) MapEntityFieldObstacleData? get fieldObstacle;@JsonKey(includeIfNull: false) MapEntityHealingDisplayData? get healingDisplay; MapEntityEditorVisual? get editorVisual; bool get blocksMovement; Map<String, String> get properties;
 /// Create a copy of MapEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2193,16 +2193,16 @@ $MapEntityCopyWith<MapEntity> get copyWith => _$MapEntityCopyWithImpl<MapEntity>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size)&&(identical(other.npc, npc) || other.npc == npc)&&(identical(other.sign, sign) || other.sign == sign)&&(identical(other.item, item) || other.item == item)&&(identical(other.spawn, spawn) || other.spawn == spawn)&&(identical(other.fieldObstacle, fieldObstacle) || other.fieldObstacle == fieldObstacle)&&(identical(other.editorVisual, editorVisual) || other.editorVisual == editorVisual)&&(identical(other.blocksMovement, blocksMovement) || other.blocksMovement == blocksMovement)&&const DeepCollectionEquality().equals(other.properties, properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size)&&(identical(other.npc, npc) || other.npc == npc)&&(identical(other.sign, sign) || other.sign == sign)&&(identical(other.item, item) || other.item == item)&&(identical(other.spawn, spawn) || other.spawn == spawn)&&(identical(other.fieldObstacle, fieldObstacle) || other.fieldObstacle == fieldObstacle)&&(identical(other.healingDisplay, healingDisplay) || other.healingDisplay == healingDisplay)&&(identical(other.editorVisual, editorVisual) || other.editorVisual == editorVisual)&&(identical(other.blocksMovement, blocksMovement) || other.blocksMovement == blocksMovement)&&const DeepCollectionEquality().equals(other.properties, properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,kind,pos,size,npc,sign,item,spawn,fieldObstacle,editorVisual,blocksMovement,const DeepCollectionEquality().hash(properties));
+int get hashCode => Object.hash(runtimeType,id,name,kind,pos,size,npc,sign,item,spawn,fieldObstacle,healingDisplay,editorVisual,blocksMovement,const DeepCollectionEquality().hash(properties));
 
 @override
 String toString() {
-  return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, fieldObstacle: $fieldObstacle, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
+  return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, fieldObstacle: $fieldObstacle, healingDisplay: $healingDisplay, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
 }
 
 
@@ -2213,7 +2213,7 @@ abstract mixin class $MapEntityCopyWith<$Res>  {
   factory $MapEntityCopyWith(MapEntity value, $Res Function(MapEntity) _then) = _$MapEntityCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, MapEntityKind kind, GridPos pos, GridSize size, MapEntityNpcData? npc, MapEntitySignData? sign, MapEntityItemData? item, MapEntitySpawnData? spawn,@JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle, MapEntityEditorVisual? editorVisual, bool blocksMovement, Map<String, String> properties
+ String id, String name, MapEntityKind kind, GridPos pos, GridSize size, MapEntityNpcData? npc, MapEntitySignData? sign, MapEntityItemData? item, MapEntitySpawnData? spawn,@JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle,@JsonKey(includeIfNull: false) MapEntityHealingDisplayData? healingDisplay, MapEntityEditorVisual? editorVisual, bool blocksMovement, Map<String, String> properties
 });
 
 
@@ -2230,7 +2230,7 @@ class _$MapEntityCopyWithImpl<$Res>
 
 /// Create a copy of MapEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? pos = null,Object? size = null,Object? npc = freezed,Object? sign = freezed,Object? item = freezed,Object? spawn = freezed,Object? fieldObstacle = freezed,Object? editorVisual = freezed,Object? blocksMovement = null,Object? properties = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? pos = null,Object? size = null,Object? npc = freezed,Object? sign = freezed,Object? item = freezed,Object? spawn = freezed,Object? fieldObstacle = freezed,Object? healingDisplay = freezed,Object? editorVisual = freezed,Object? blocksMovement = null,Object? properties = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -2242,7 +2242,8 @@ as MapEntityNpcData?,sign: freezed == sign ? _self.sign : sign // ignore: cast_n
 as MapEntitySignData?,item: freezed == item ? _self.item : item // ignore: cast_nullable_to_non_nullable
 as MapEntityItemData?,spawn: freezed == spawn ? _self.spawn : spawn // ignore: cast_nullable_to_non_nullable
 as MapEntitySpawnData?,fieldObstacle: freezed == fieldObstacle ? _self.fieldObstacle : fieldObstacle // ignore: cast_nullable_to_non_nullable
-as MapEntityFieldObstacleData?,editorVisual: freezed == editorVisual ? _self.editorVisual : editorVisual // ignore: cast_nullable_to_non_nullable
+as MapEntityFieldObstacleData?,healingDisplay: freezed == healingDisplay ? _self.healingDisplay : healingDisplay // ignore: cast_nullable_to_non_nullable
+as MapEntityHealingDisplayData?,editorVisual: freezed == editorVisual ? _self.editorVisual : editorVisual // ignore: cast_nullable_to_non_nullable
 as MapEntityEditorVisual?,blocksMovement: null == blocksMovement ? _self.blocksMovement : blocksMovement // ignore: cast_nullable_to_non_nullable
 as bool,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
@@ -2408,10 +2409,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn, @JsonKey(includeIfNull: false)  MapEntityFieldObstacleData? fieldObstacle,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn, @JsonKey(includeIfNull: false)  MapEntityFieldObstacleData? fieldObstacle, @JsonKey(includeIfNull: false)  MapEntityHealingDisplayData? healingDisplay,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntity() when $default != null:
-return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.fieldObstacle,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
+return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.fieldObstacle,_that.healingDisplay,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
   return orElse();
 
 }
@@ -2429,10 +2430,10 @@ return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn, @JsonKey(includeIfNull: false)  MapEntityFieldObstacleData? fieldObstacle,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn, @JsonKey(includeIfNull: false)  MapEntityFieldObstacleData? fieldObstacle, @JsonKey(includeIfNull: false)  MapEntityHealingDisplayData? healingDisplay,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntity():
-return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.fieldObstacle,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
+return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.fieldObstacle,_that.healingDisplay,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2449,10 +2450,10 @@ return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn, @JsonKey(includeIfNull: false)  MapEntityFieldObstacleData? fieldObstacle,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn, @JsonKey(includeIfNull: false)  MapEntityFieldObstacleData? fieldObstacle, @JsonKey(includeIfNull: false)  MapEntityHealingDisplayData? healingDisplay,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntity() when $default != null:
-return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.fieldObstacle,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
+return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.fieldObstacle,_that.healingDisplay,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
   return null;
 
 }
@@ -2464,7 +2465,7 @@ return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_t
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntity implements MapEntity {
-  const _MapEntity({required this.id, this.name = '', required this.kind, required this.pos, this.size = const GridSize(width: 1, height: 1), this.npc, this.sign, this.item, this.spawn, @JsonKey(includeIfNull: false) this.fieldObstacle, this.editorVisual, this.blocksMovement = true, final  Map<String, String> properties = const {}}): _properties = properties;
+  const _MapEntity({required this.id, this.name = '', required this.kind, required this.pos, this.size = const GridSize(width: 1, height: 1), this.npc, this.sign, this.item, this.spawn, @JsonKey(includeIfNull: false) this.fieldObstacle, @JsonKey(includeIfNull: false) this.healingDisplay, this.editorVisual, this.blocksMovement = true, final  Map<String, String> properties = const {}}): _properties = properties;
   factory _MapEntity.fromJson(Map<String, dynamic> json) => _$MapEntityFromJson(json);
 
 @override final  String id;
@@ -2477,6 +2478,7 @@ class _MapEntity implements MapEntity {
 @override final  MapEntityItemData? item;
 @override final  MapEntitySpawnData? spawn;
 @override@JsonKey(includeIfNull: false) final  MapEntityFieldObstacleData? fieldObstacle;
+@override@JsonKey(includeIfNull: false) final  MapEntityHealingDisplayData? healingDisplay;
 @override final  MapEntityEditorVisual? editorVisual;
 @override@JsonKey() final  bool blocksMovement;
  final  Map<String, String> _properties;
@@ -2500,16 +2502,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size)&&(identical(other.npc, npc) || other.npc == npc)&&(identical(other.sign, sign) || other.sign == sign)&&(identical(other.item, item) || other.item == item)&&(identical(other.spawn, spawn) || other.spawn == spawn)&&(identical(other.fieldObstacle, fieldObstacle) || other.fieldObstacle == fieldObstacle)&&(identical(other.editorVisual, editorVisual) || other.editorVisual == editorVisual)&&(identical(other.blocksMovement, blocksMovement) || other.blocksMovement == blocksMovement)&&const DeepCollectionEquality().equals(other._properties, _properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size)&&(identical(other.npc, npc) || other.npc == npc)&&(identical(other.sign, sign) || other.sign == sign)&&(identical(other.item, item) || other.item == item)&&(identical(other.spawn, spawn) || other.spawn == spawn)&&(identical(other.fieldObstacle, fieldObstacle) || other.fieldObstacle == fieldObstacle)&&(identical(other.healingDisplay, healingDisplay) || other.healingDisplay == healingDisplay)&&(identical(other.editorVisual, editorVisual) || other.editorVisual == editorVisual)&&(identical(other.blocksMovement, blocksMovement) || other.blocksMovement == blocksMovement)&&const DeepCollectionEquality().equals(other._properties, _properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,kind,pos,size,npc,sign,item,spawn,fieldObstacle,editorVisual,blocksMovement,const DeepCollectionEquality().hash(_properties));
+int get hashCode => Object.hash(runtimeType,id,name,kind,pos,size,npc,sign,item,spawn,fieldObstacle,healingDisplay,editorVisual,blocksMovement,const DeepCollectionEquality().hash(_properties));
 
 @override
 String toString() {
-  return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, fieldObstacle: $fieldObstacle, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
+  return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, fieldObstacle: $fieldObstacle, healingDisplay: $healingDisplay, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
 }
 
 
@@ -2520,7 +2522,7 @@ abstract mixin class _$MapEntityCopyWith<$Res> implements $MapEntityCopyWith<$Re
   factory _$MapEntityCopyWith(_MapEntity value, $Res Function(_MapEntity) _then) = __$MapEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, MapEntityKind kind, GridPos pos, GridSize size, MapEntityNpcData? npc, MapEntitySignData? sign, MapEntityItemData? item, MapEntitySpawnData? spawn,@JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle, MapEntityEditorVisual? editorVisual, bool blocksMovement, Map<String, String> properties
+ String id, String name, MapEntityKind kind, GridPos pos, GridSize size, MapEntityNpcData? npc, MapEntitySignData? sign, MapEntityItemData? item, MapEntitySpawnData? spawn,@JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle,@JsonKey(includeIfNull: false) MapEntityHealingDisplayData? healingDisplay, MapEntityEditorVisual? editorVisual, bool blocksMovement, Map<String, String> properties
 });
 
 
@@ -2537,7 +2539,7 @@ class __$MapEntityCopyWithImpl<$Res>
 
 /// Create a copy of MapEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? pos = null,Object? size = null,Object? npc = freezed,Object? sign = freezed,Object? item = freezed,Object? spawn = freezed,Object? fieldObstacle = freezed,Object? editorVisual = freezed,Object? blocksMovement = null,Object? properties = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? pos = null,Object? size = null,Object? npc = freezed,Object? sign = freezed,Object? item = freezed,Object? spawn = freezed,Object? fieldObstacle = freezed,Object? healingDisplay = freezed,Object? editorVisual = freezed,Object? blocksMovement = null,Object? properties = null,}) {
   return _then(_MapEntity(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -2549,7 +2551,8 @@ as MapEntityNpcData?,sign: freezed == sign ? _self.sign : sign // ignore: cast_n
 as MapEntitySignData?,item: freezed == item ? _self.item : item // ignore: cast_nullable_to_non_nullable
 as MapEntityItemData?,spawn: freezed == spawn ? _self.spawn : spawn // ignore: cast_nullable_to_non_nullable
 as MapEntitySpawnData?,fieldObstacle: freezed == fieldObstacle ? _self.fieldObstacle : fieldObstacle // ignore: cast_nullable_to_non_nullable
-as MapEntityFieldObstacleData?,editorVisual: freezed == editorVisual ? _self.editorVisual : editorVisual // ignore: cast_nullable_to_non_nullable
+as MapEntityFieldObstacleData?,healingDisplay: freezed == healingDisplay ? _self.healingDisplay : healingDisplay // ignore: cast_nullable_to_non_nullable
+as MapEntityHealingDisplayData?,editorVisual: freezed == editorVisual ? _self.editorVisual : editorVisual // ignore: cast_nullable_to_non_nullable
 as MapEntityEditorVisual?,blocksMovement: null == blocksMovement ? _self.blocksMovement : blocksMovement // ignore: cast_nullable_to_non_nullable
 as bool,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,

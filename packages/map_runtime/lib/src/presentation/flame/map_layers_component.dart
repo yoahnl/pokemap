@@ -6,12 +6,14 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../player/runtime_world_service_models.dart';
 import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_draw_instruction.dart';
 import '../../border/border_runtime_renderer.dart';
 import '../../infrastructure/project_tileset_visual_resolution.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import 'quarter_turn_pixel_renderer.dart';
+import 'healing_display_renderer.dart';
 import 'runtime_map_layer_paint_order.dart';
 import 'smart_tile_animation_activation_controller.dart';
 import 'smart_tile_visual_renderer.dart';
@@ -119,6 +121,7 @@ class MapLayersComponent extends PositionComponent {
     this.borderRenderer = const BorderRuntimeRenderer(),
     this.debugOnRenderProfile,
     this.smartTileAnimationController,
+    this.healingDisplaySnapshotProvider,
   })  : _fieldObstacleAuthoringEntities = List.unmodifiable(
             (fieldObstacleAuthoringMap ?? bundle.map).entities
                 .where((entity) => entity.fieldObstacle != null)),
@@ -169,6 +172,9 @@ class MapLayersComponent extends PositionComponent {
   }
 
   final RuntimeMapBundle bundle;
+  final RuntimeHealingDisplaySnapshot? Function()? healingDisplaySnapshotProvider;
+  late final _healingDisplayRenderer = RuntimeHealingDisplayRenderer(
+      bundle: bundle, images: tileImagesByTilesetId);
   final List<MapEntity> _fieldObstacleAuthoringEntities;
   final bool separatePlacedElementOcclusion;
   final _occlusionPaths = <String, Path>{};
@@ -918,6 +924,11 @@ class MapLayersComponent extends PositionComponent {
         entity.size.height * ch,
       );
       _paintEntityFrame(canvas, image, srcRect, bounds);
+    }
+    if (renderPass == MapLayerRenderPass.background && healingDisplaySnapshotProvider != null) {
+      _healingDisplayRenderer.render(canvas,
+          snapshot: healingDisplaySnapshotProvider!(), elapsedMs: elapsedMs,
+          visibleRect: visibleRect, entityPresence: mapEntityPresencePredicate);
     }
   }
 

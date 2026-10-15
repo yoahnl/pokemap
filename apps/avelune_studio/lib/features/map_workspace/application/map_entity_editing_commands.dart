@@ -155,6 +155,10 @@ class MapEntityEditingCommands {
         ),
       );
 
+  void setHealingDisplay(String id, MapEntityHealingDisplayData? display) =>
+      document.commit(const EntityActions().setHealingDisplay(
+        document.current, project: project, entityId: id, healingDisplay: display));
+
   void setBlocking(String id, {required bool blocks}) => document.commit(
     updateEntityOnMap(document.current, entityId: id, blocksMovement: blocks),
   );

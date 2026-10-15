@@ -609,6 +609,12 @@ final class NarrativeCommandCatalog {
             'Demander confirmation',
             NarrativeCommandParameterKind.boolean,
           ),
+          _parameter(
+            'displayEntityId',
+            'Affichage des boules de soin',
+            NarrativeCommandParameterKind.mapEntityReference,
+            required: false,
+          ),
         ],
       ),
       interactive(

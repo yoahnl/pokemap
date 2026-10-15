@@ -6,6 +6,7 @@ import '../../../features/map_workspace/application/map_entity_editing_commands.
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
+import 'healing_display_controls.dart';
 
 class MapMarkerInspector extends StatefulWidget {
   const MapMarkerInspector({
@@ -16,6 +17,7 @@ class MapMarkerInspector extends StatefulWidget {
     required this.onChanged,
     required this.onDeleted,
     this.referenceGuard,
+    this.elementPreview,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
@@ -23,6 +25,7 @@ class MapMarkerInspector extends StatefulWidget {
   final VoidCallback onChanged;
   final VoidCallback onDeleted;
   final MapReferenceGuard? referenceGuard;
+  final Widget Function(ProjectElementEntry)? elementPreview;
 
   @override
   State<MapMarkerInspector> createState() => _MapMarkerInspectorState();
@@ -55,6 +58,13 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     final spawn = entity.spawn;
     final sign = entity.sign;
     final blocked = _deletionProblem;
+    final healingDisplay = entity.healingDisplay;
+    final canConfigureHealingDisplay = entity.kind == MapEntityKind.custom &&
+        !entity.blocksMovement && entity.size.width == 1 && entity.size.height == 1 &&
+        entity.npc == null && entity.sign == null && entity.item == null && entity.spawn == null &&
+        entity.fieldObstacle == null && entity.editorVisual == null && !healingDisplayHasCollisionOverride(entity) &&
+        widget.document.current.spatialScene == null && widget.document.current.version != ProjectVersion.v9 &&
+        widget.project.settings.dimension == ProjectDimension.twoD;
     final cutTree = entity.fieldObstacle?.kind == FieldObstacleKind.cutTree;
     final canConfigureCut =
         entity.kind == MapEntityKind.custom &&
@@ -83,6 +93,8 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               ? 'Point d’apparition'
               : cutTree
               ? 'Arbre à couper'
+              : healingDisplay != null
+              ? 'Boules de soin'
               : 'Panneau',
           style: Theme.of(context).textTheme.titleMedium,
         ),
@@ -204,6 +216,12 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
             ),
           ),
         ],
+        if (canConfigureHealingDisplay) ...[
+          const SizedBox(height: 12),
+          HealingDisplayControls(key:ValueKey('healing-display-${entity.id}'),
+            entity:entity,project:widget.project,elementPreview:widget.elementPreview,
+            onChanged:(display)=>_change(()=>_commands.setHealingDisplay(entity.id,display))),
+        ],
         if (canConfigureCut) ...[
           const SizedBox(height: 12),
           StudioChoice(
@@ -240,6 +258,8 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               ? 'Supprimer ce départ'
               : cutTree
               ? 'Supprimer cet arbre'
+              : healingDisplay != null
+              ? 'Supprimer cet affichage de soin'
               : 'Supprimer le panneau',
           icon: Icons.delete_outline,
           onPressed: blocked != null

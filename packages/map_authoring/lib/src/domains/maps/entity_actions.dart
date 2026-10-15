@@ -77,6 +77,36 @@ final class EntityActions {
       },
     ),
     AuthoringActionDescriptor(
+      id: 'entity.set_healing_display',
+      version: 1,
+      summary: 'Set or clear six native party-healing display variants',
+      inputSchemaId: 'schema.entity.set_healing_display.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'healingDisplay': {
+          'variantCount': 6,
+          'variantReference': 'projectElement',
+          'entityKind': 'custom',
+          'blocksMovement': false,
+          'footprint': {'width': 1, 'height': 1},
+          'mapMode': '2d',
+          'clearValue': null,
+          'parameters': ['mapId', 'entityId', 'healingDisplay'],
+        },
+      },
+    ),
+    AuthoringActionDescriptor(
       id: 'npc.set_counter_interaction_sides',
       version: 1,
       summary:
@@ -181,6 +211,28 @@ final class EntityActions {
         entityId: entityId, fieldObstacle: fieldObstacle);
   }
 
+  MapData setHealingDisplay(
+    MapData map, {
+    required ProjectManifest project,
+    required String entityId,
+    required MapEntityHealingDisplayData? healingDisplay,
+  }) {
+    _entityById(map, entityId);
+    try {
+      final updated = updateEntityOnMap(map,
+          entityId: entityId, healingDisplay: healingDisplay);
+      if (healingDisplay != null) {
+        _assertHealingDisplayTarget(updated, project, _entityById(updated, entityId));
+      }
+      return updated;
+    } on MapAuthoringException {
+      rethrow;
+    } on Object {
+      throw semanticFailure('entity.healing_display_invalid',
+          'Healing display requires six valid native elements on a nonblocking 1x1 custom object in 2D.');
+    }
+  }
+
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
@@ -202,6 +254,7 @@ final class EntityActions {
       'entity.set_visual' =>
         const {'entityId', 'payload'},
       'entity.set_field_obstacle' => const {'entityId', 'fieldObstacle'},
+      'entity.set_healing_display' => const {'entityId', 'healingDisplay'},
       'entity.set_blocks_movement' => const {'entityId', 'blocksMovement'},
       'entity.patch_properties' => const {'entityId', 'patch'},
       'npc.set_facing' => const {'entityId', 'facing'},
@@ -373,7 +426,8 @@ final class EntityActions {
                 sign: null,
                 item: null,
                 spawn: null,
-                fieldObstacle: null),
+                fieldObstacle: null,
+                healingDisplay: null),
           );
         case 'entity.set_visual':
           updated = updateEntityOnMap(
@@ -410,6 +464,26 @@ final class EntityActions {
               project: context.manifest,
               entityId: parameters.string('entityId'),
               fieldObstacle: obstacle);
+        case 'entity.set_healing_display':
+          if (!parameters.contains('healingDisplay')) {
+            throw invalidSemanticField(
+                'healingDisplay', 'a typed payload or explicit null');
+          }
+          final rawDisplay = parameters.value('healingDisplay');
+          MapEntityHealingDisplayData? display;
+          if (rawDisplay != null) {
+            try {
+              display = MapEntityHealingDisplayData.fromJson(
+                  _object(rawDisplay, 'healingDisplay').cast<String, dynamic>());
+            } on Object {
+              throw semanticFailure('entity.healing_display_invalid',
+                  'The healing display payload is unsupported.');
+            }
+          }
+          updated = setHealingDisplay(context.map,
+              project: context.manifest,
+              entityId: parameters.string('entityId'),
+              healingDisplay: display);
         case 'entity.set_blocks_movement':
           updated = updateEntityOnMap(
             context.map,
@@ -549,11 +623,29 @@ final class EntityActions {
       _assertFieldObstacleTarget(updated, context.manifest, entity);
     }
 
+    for (final entity
+        in updated.entities.where((entity) => entity.healingDisplay != null)) {
+      _assertHealingDisplayTarget(updated, context.manifest, entity);
+    }
+
     return context.draftMap(
       after: updated,
       operation: actionId,
       changedItems: changedItems,
     );
+  }
+}
+
+void _assertHealingDisplayTarget(
+    MapData map, ProjectManifest project, MapEntity entity) {
+  try {
+    if (resolveHealingDisplayEntity(map, entity.id) != entity) {
+      throw const ValidationException('Invalid healing display target.');
+    }
+    assertHealingDisplayVisualsAgainstProject(entity, project);
+  } on Object {
+    throw semanticFailure('entity.healing_display_invalid',
+        'Healing display requires six valid native elements on a nonblocking 1x1 custom object in 2D.');
   }
 }
 
@@ -629,6 +721,7 @@ MapData _replaceEntity(MapData map, String entityId, MapEntity replacement) {
     item: replacement.item,
     spawn: replacement.spawn,
     fieldObstacle: replacement.fieldObstacle,
+    healingDisplay: replacement.healingDisplay,
     editorVisual: replacement.editorVisual,
   );
 }

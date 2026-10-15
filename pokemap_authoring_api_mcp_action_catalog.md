@@ -1461,6 +1461,7 @@ entity.set_sign_payload
 entity.set_item_payload
 entity.set_spawn_payload
 entity.set_field_obstacle
+entity.set_healing_display
 entity.clear_payload
 entity.set_visual
 entity.clear_visual
@@ -1479,6 +1480,19 @@ les objets incompatibles sont refusés sans écriture. Position, visuel et autre
 propriétés sont conservés ; planification, contrôle de révision et annulation
 suivent le contrat canonique. Cette capacité post-bêta ne débloque pas Coupe
 pour le joueur et ne change pas le périmètre bêta signé de Surf.
+
+`entity.set_healing_display` (v1) définit ou retire les six variantes natives
+associées à la taille de l’équipe pendant un soin. Les paramètres obligatoires
+sont `mapId`, `entityId` et `healingDisplay`. Le payload contient uniquement
+`variantElementIds`, une liste ordonnée de six références uniques à des éléments
+du projet ; `null` explicite retire ce payload. L’objet doit être `custom`, non
+bloquant, d’une case, sur une carte 2D, sans autre payload ni visuel statique.
+Les variantes doivent avoir des cadres natifs valides, sans collision et de
+dimensions identiques. Les commandes génériques préservent ou valident ce
+contrat. Planification sans écriture, contrôle de révision et annulation suivent
+le contrat canonique. La commande de scène `openHeal` peut désigner cet objet
+par `displayEntityId` ; seul le soin natif accepté pilote son affichage éphémère.
+Cette capacité post-bêta ne modifie pas le périmètre bêta signé.
 
 Actions NPC explicites :
 

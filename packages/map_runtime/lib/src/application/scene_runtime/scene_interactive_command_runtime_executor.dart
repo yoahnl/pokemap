@@ -178,10 +178,11 @@ final class SceneInteractiveCommandRuntimeExecutor {
           interactionId: 'scene.openShop:$shopId',
           shopId: shopId,
         ),
-      SceneOpenHealInteractiveCommand(:final requiresConfirmation) =>
+      SceneOpenHealInteractiveCommand(:final requiresConfirmation, :final displayEntityId) =>
         OpenHealService(
           interactionId: 'scene.openHeal',
           requiresConfirmation: requiresConfirmation,
+          displayEntityId: displayEntityId,
         ),
       SceneOpenPcInteractiveCommand(:final storageId) => OpenPcService(
           interactionId: 'scene.openPc:${storageId ?? 'default'}',

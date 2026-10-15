@@ -27,6 +27,14 @@ class PlayerHealConfirmation extends StatelessWidget {
         onClose: () => _emit(RuntimeWorldServiceAction.close),
       );
     }
+    final request = snapshot.request;
+    if (snapshot.stage == RuntimeWorldServiceStage.applying &&
+        request is OpenHealService &&
+        !request.requiresConfirmation &&
+        content.display != null &&
+        content.display!.entityId == request.displayEntityId) {
+      return const SizedBox.shrink();
+    }
     final completed = snapshot.stage == RuntimeWorldServiceStage.completed;
     final applying = snapshot.stage == RuntimeWorldServiceStage.applying;
     final failed = snapshot.stage == RuntimeWorldServiceStage.failed;

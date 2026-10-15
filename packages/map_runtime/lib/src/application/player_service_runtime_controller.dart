@@ -141,6 +141,13 @@ final class PlayerServiceRuntimeResult {
   final String? safeMessage;
 }
 
+const nativeHealingDisplayDuration = Duration(milliseconds: 2900);
+
+typedef PlayerServiceHealingDisplayMapReader = MapData? Function(String mapId);
+typedef PlayerServiceHealingDisplayWaiter = Future<void> Function(Duration duration);
+
+Future<void> _defaultHealingDisplayWaiter(Duration duration) => Future<void>.delayed(duration);
+
 typedef PlayerServiceGameStateReader = GameState Function();
 typedef PlayerServiceStateTransaction = Future<void> Function(GameState state);
 typedef PlayerServiceInputLockSetter = void Function(bool locked);
@@ -158,6 +165,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceStateTransaction commitAndSave,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
+    this._healingDisplayMapReader,
+    this._waitForHealingDisplay = _defaultHealingDisplayWaiter,
     ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
     Set<String> grantedCapabilities = const <String>{},
     String? projectRootDirectory,
@@ -191,6 +200,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceStateTransaction commitAndSave,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
+    this._healingDisplayMapReader,
+    this._waitForHealingDisplay = _defaultHealingDisplayWaiter,
     ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
     Set<String> grantedCapabilities = const <String>{},
     String? projectRootDirectory,
@@ -225,6 +236,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   String? Function()? _pauseMutationUnavailableReason;
   final PlayerServiceInputLockSetter _setInputLocked;
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
+  final PlayerServiceHealingDisplayMapReader? _healingDisplayMapReader;
+  final PlayerServiceHealingDisplayWaiter _waitForHealingDisplay;
   final ScriptEvaluationContext _conditionContext;
   final Set<String> _grantedCapabilities;
   final String? _projectRootDirectory;
@@ -1185,24 +1198,29 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _setInputLocked(true);
       inputLocked = true;
       final caps = await _loadRecoveryCaps(state);
+      if (_disposed || _currentGameState() != state) {
+        return const PlayerServiceRuntimeResult.cancelled();
+      }
       final session = _ContextualHealSession(
         request: request,
         gameState: state,
         recoveryCaps: caps,
+        displayEntity: _resolveHealDisplayEntity(request, state),
       );
+      _healSession = session;
       if (!request.requiresConfirmation) {
         if (!_hasAllHealCaps(session)) {
           return const PlayerServiceRuntimeResult.unavailable(
             'Les données de soin de l’équipe sont incomplètes.',
           );
         }
-        final recovered = _recoverHealSession(session);
-        if (recovered != state) {
-          await _commitAndSave(recovered);
+        if (!await _prepareHealPresentation(session)) {
+          return const PlayerServiceRuntimeResult.cancelled();
         }
+        final recovered = _recoverHealSession(session);
+        if (recovered != state) await _commitHealState(session, recovered);
         return PlayerServiceRuntimeResult.completed(recovered);
       }
-      _healSession = session;
       _publishWorldService(_buildHealSnapshot(session));
       return await session.result.future;
     } catch (error) {
@@ -1215,10 +1233,55 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
   }
 
+  Future<void> _commitHealState(
+    _ContextualHealSession session,
+    GameState recovered,
+  ) {
+    session.pendingState = recovered;
+    final commit = Future<void>.microtask(() => _commitAndSave(recovered));
+    session.pendingCommit = commit;
+    return commit;
+  }
+
+  Future<bool> _prepareHealPresentation(_ContextualHealSession session) async {
+    if (!_canContinueHeal(session)) return false;
+    final snapshot = _buildHealSnapshot(session, stage: RuntimeWorldServiceStage.applying,
+        safeMessage: 'Soin en cours…');
+    _publishWorldService(snapshot);
+    if ((snapshot.content as RuntimeHealServiceContent).display != null) {
+      await Future.any<void>([
+        _waitForHealingDisplay(nativeHealingDisplayDuration),
+        session.result.future.then((_) {}),
+      ]);
+    }
+    return _canContinueHeal(session);
+  }
+
+  MapEntity? _resolveHealDisplayEntity(OpenHealService request, GameState state) {
+    final id = request.displayEntityId;
+    if (id == null) return null;
+    final map = _healingDisplayMapReader?.call(state.currentMapId);
+    return map == null || map.id != state.currentMapId ? null : resolveHealingDisplayEntity(map, id);
+  }
+
+  bool _canContinueHeal(_ContextualHealSession session) => !_disposed &&
+      identical(_healSession, session) && !session.result.isCompleted &&
+      _currentGameState() == session.gameState &&
+      _resolveHealDisplayEntity(session.request, session.gameState) == session.displayEntity &&
+      _worldRequestUnavailableReason(session.request, session.gameState) == null;
+
   String? _worldRequestUnavailableReason(
     RuntimeWorldServiceRequest request,
     GameState state,
   ) {
+    if (request is OpenHealService && request.displayEntityId != null) {
+      final map = _healingDisplayMapReader?.call(state.currentMapId);
+      if (_host != null || map == null || map.id != state.currentMapId ||
+          state.party.members.length > 6 ||
+          resolveHealingDisplayEntity(map, request.displayEntityId!) == null) {
+        return 'L’affichage du soin n’est pas disponible sur cette carte.';
+      }
+    }
     final missingCapabilities =
         request.requiredCapabilities.difference(_grantedCapabilities);
     if (missingCapabilities.isNotEmpty) {
@@ -1823,23 +1886,25 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   ) async {
     switch (command.action) {
       case RuntimeWorldServiceAction.confirm:
-        _publishWorldService(
-          _buildHealSnapshot(
-            session,
-            stage: RuntimeWorldServiceStage.applying,
-            safeMessage: 'Soin en cours…',
-          ),
-        );
         try {
+          if (!await _prepareHealPresentation(session)) {
+            if (!_disposed) {
+              session.failure = StateError('The healing session changed before commit.');
+              _publishWorldService(_buildHealSnapshot(session, stage: RuntimeWorldServiceStage.failed,
+                  safeMessage: 'Le soin a été interrompu avant son enregistrement.'));
+            }
+            return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.stale);
+          }
           final recovered = _recoverHealSession(session);
           if (recovered != session.gameState) {
-            await _commitAndSave(recovered);
+            await _commitHealState(session, recovered);
           }
           session
             ..gameState = recovered
             ..wasHealed = true
             ..failure = null;
-          _publishWorldService(
+          if (!_disposed) {
+            _publishWorldService(
             _buildHealSnapshot(
               session,
               stage: RuntimeWorldServiceStage.completed,
@@ -1847,20 +1912,23 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                   ? 'Votre équipe est déjà entièrement soignée.'
                   : 'Votre équipe est entièrement soignée.',
             ),
-          );
+            );
+          }
           return const RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.accepted,
           );
         } catch (error) {
           session.failure = error;
           const message = 'Le soin n’a pas pu être enregistré.';
-          _publishWorldService(
+          if (!_disposed) {
+            _publishWorldService(
             _buildHealSnapshot(
               session,
               stage: RuntimeWorldServiceStage.failed,
               safeMessage: message,
             ),
-          );
+            );
+          }
           return const RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.failed,
             safeMessage: message,
@@ -1940,6 +2008,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             : 'Restaurer les PV, les PP et les altérations de statut.',
         members: members,
         wasHealed: session.wasHealed,
+        display: stage == RuntimeWorldServiceStage.applying &&
+                session.request.displayEntityId != null && members.isNotEmpty
+            ? RuntimeHealingDisplaySnapshot(mapId: session.gameState.currentMapId,
+                entityId: session.request.displayEntityId!, memberCount: members.length)
+            : null,
       ),
       safeMessage: safeMessage,
       actions: switch (stage) {
@@ -2357,7 +2430,21 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     _shopSession = null;
     final heal = _healSession;
     if (heal != null && !heal.result.isCompleted) {
-      heal.result.complete(const PlayerServiceRuntimeResult.cancelled());
+      final pending = heal.pendingCommit;
+      if (pending == null) {
+        heal.result.complete(const PlayerServiceRuntimeResult.cancelled());
+      } else {
+        try {
+          await pending;
+          if (!heal.result.isCompleted) {
+            heal.result.complete(PlayerServiceRuntimeResult.completed(heal.pendingState!));
+          }
+        } catch (error) {
+          if (!heal.result.isCompleted) {
+            heal.result.complete(PlayerServiceRuntimeResult.failed(error));
+          }
+        }
+      }
     }
     _healSession = null;
     final pc = _pcSession;
@@ -2417,13 +2504,17 @@ final class _ContextualHealSession {
     required this.request,
     required GameState gameState,
     required this.recoveryCaps,
+    this.displayEntity,
   })  : initialGameState = gameState,
         gameState = gameState;
 
   final OpenHealService request;
   final GameState initialGameState;
+  final MapEntity? displayEntity;
   final RuntimePlayerServiceRecoveryCaps recoveryCaps;
   final result = Completer<PlayerServiceRuntimeResult>();
+  Future<void>? pendingCommit;
+  GameState? pendingState;
   GameState gameState;
   bool wasHealed = false;
   Object? failure;

@@ -2510,6 +2510,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   GameState get playerServiceGameStateSnapshot =>
       _activeNarrativeSceneWorkingSession?.gameState ?? gameStateSnapshot;
 
+  MapData? playerServiceHealingDisplayMap(String mapId) {
+    if (!isLoaded || _isRemoved || mapId != _activeMapId ||
+        _bundle.map.id != mapId) {
+      return null;
+    }
+    return _bundle.map;
+  }
+
+  RuntimeHealingDisplaySnapshot? _activeHealingDisplaySnapshot() {
+    final snapshot = _playerServiceRuntimeController?.worldServiceSnapshot;
+    if (snapshot?.stage != RuntimeWorldServiceStage.applying) return null;
+    final content = snapshot?.content;
+    return content is RuntimeHealServiceContent ? content.display : null;
+  }
+
   /// Installs the host-owned Shop/PC coordinator after the Flame game exists.
   ///
   /// The host needs the game instance to provide state, save and input-lock
@@ -15577,6 +15592,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final backgroundLayers = MapLayersComponent(
       bundle: preparedBundle,
       fieldObstacleAuthoringMap: (_runtimeBundleByMapId[bundle.map.id] ?? bundle).map,
+      healingDisplaySnapshotProvider: _activeHealingDisplaySnapshot,
       separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
@@ -15597,6 +15613,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final foregroundLayers = MapLayersComponent(
       bundle: preparedBundle,
       fieldObstacleAuthoringMap: (_runtimeBundleByMapId[bundle.map.id] ?? bundle).map,
+      healingDisplaySnapshotProvider: _activeHealingDisplaySnapshot,
       separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,

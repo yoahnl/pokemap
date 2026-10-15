@@ -49,11 +49,13 @@ final class OpenHealService extends RuntimeWorldServiceRequest {
   const OpenHealService({
     required super.interactionId,
     this.requiresConfirmation = true,
+    this.displayEntityId,
     super.requiredCapabilities,
     super.availabilityCondition,
   });
 
   final bool requiresConfirmation;
+  final String? displayEntityId;
 
   @override
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.heal;
@@ -267,6 +269,7 @@ final class RuntimeHealServiceContent {
     List<RuntimeHealPartyMemberSnapshot> members =
         const <RuntimeHealPartyMemberSnapshot>[],
     this.wasHealed = false,
+    this.display,
   })  : assert(title != ''),
         members = List<RuntimeHealPartyMemberSnapshot>.unmodifiable(members);
 
@@ -274,6 +277,20 @@ final class RuntimeHealServiceContent {
   final String message;
   final List<RuntimeHealPartyMemberSnapshot> members;
   final bool wasHealed;
+  final RuntimeHealingDisplaySnapshot? display;
+}
+
+final class RuntimeHealingDisplaySnapshot {
+  RuntimeHealingDisplaySnapshot({required this.mapId, required this.entityId, required this.memberCount}) {
+    if (mapId.isEmpty || mapId.trim() != mapId || entityId.isEmpty || entityId.trim() != entityId ||
+        memberCount < 1 || memberCount > 6) {
+      throw const FormatException('Unsupported healing display state.');
+    }
+  }
+
+  final String mapId;
+  final String entityId;
+  final int memberCount;
 }
 
 final class RuntimePcBoxSnapshot {

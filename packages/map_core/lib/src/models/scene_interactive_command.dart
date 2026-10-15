@@ -99,7 +99,7 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
 
-  factory SceneInteractiveCommand.openHeal({bool requiresConfirmation}) =
+  factory SceneInteractiveCommand.openHeal({bool requiresConfirmation, String? displayEntityId}) =
       SceneOpenHealInteractiveCommand;
 
   factory SceneInteractiveCommand.openPc({String storageId}) =
@@ -187,10 +187,7 @@ abstract base class SceneInteractiveCommand {
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
         shopId: _required(json, 'shopId'),
       ),
-      SceneInteractiveCommandKind.openHeal => SceneOpenHealInteractiveCommand(
-        requiresConfirmation:
-            _optionalBool(json, 'requiresConfirmation') ?? true,
-      ),
+      SceneInteractiveCommandKind.openHeal => SceneOpenHealInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openPc => SceneOpenPcInteractiveCommand(
         storageId: _optional(json, 'storageId'),
       ),
@@ -850,9 +847,23 @@ final class SceneOpenShopInteractiveCommand extends SceneInteractiveCommand {
 
 @immutable
 final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
-  const SceneOpenHealInteractiveCommand({this.requiresConfirmation = true});
+  SceneOpenHealInteractiveCommand({this.requiresConfirmation = true, String? displayEntityId})
+      : displayEntityId = _healingDisplayIdentity(displayEntityId);
+
+  factory SceneOpenHealInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json.keys.any((key) => !const {'kind', 'requiresConfirmation', 'displayEntityId'}.contains(key)) ||
+        (json.containsKey('requiresConfirmation') && json['requiresConfirmation'] is! bool) ||
+        (json.containsKey('displayEntityId') && json['displayEntityId'] is! String)) {
+      throw const FormatException('Unsupported healing service options.');
+    }
+    return SceneOpenHealInteractiveCommand(
+      requiresConfirmation: json['requiresConfirmation'] as bool? ?? true,
+      displayEntityId: json['displayEntityId'] as String?,
+    );
+  }
 
   final bool requiresConfirmation;
+  final String? displayEntityId;
 
   @override
   SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.openHeal;
@@ -864,15 +875,16 @@ final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
   Map<String, dynamic> toJson() => {
     'kind': kind.name,
     'requiresConfirmation': requiresConfirmation,
+    if (displayEntityId != null) 'displayEntityId': displayEntityId,
   };
 
   @override
   bool operator ==(Object other) =>
       other is SceneOpenHealInteractiveCommand &&
-      other.requiresConfirmation == requiresConfirmation;
+      other.requiresConfirmation == requiresConfirmation && other.displayEntityId == displayEntityId;
 
   @override
-  int get hashCode => requiresConfirmation.hashCode;
+  int get hashCode => Object.hash(requiresConfirmation, displayEntityId);
 }
 
 @immutable
@@ -1157,4 +1169,11 @@ RailJourneyDirection? _optionalRailJourneyDirection(
     'return' => RailJourneyDirection.returnJourney,
     _ => throw FormatException('$field is invalid.'),
   };
+}
+
+String? _healingDisplayIdentity(String? value) {
+  if (value != null && (value.isEmpty || value.trim() != value)) {
+    throw const FormatException('The healing display identity must be nonblank and exact.');
+  }
+  return value;
 }

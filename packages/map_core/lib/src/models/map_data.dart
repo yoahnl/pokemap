@@ -7,6 +7,7 @@ import 'geometry.dart';
 import 'map_entity_editor_visual.dart';
 import 'map_entity_payloads.dart';
 import 'map_entity_field_obstacle.dart';
+import 'map_entity_healing_display.dart';
 import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
@@ -422,6 +423,7 @@ abstract class MapEntity with _$MapEntity {
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
     @JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle,
+    @JsonKey(includeIfNull: false) MapEntityHealingDisplayData? healingDisplay,
     MapEntityEditorVisual? editorVisual,
     @Default(true) bool blocksMovement,
     @Default({}) Map<String, String> properties,
@@ -429,7 +431,9 @@ abstract class MapEntity with _$MapEntity {
 
   factory MapEntity.fromJson(Map<String, dynamic> json) =>
       _$MapEntityFromJson(
-        _checkedFieldObstacleEntityJson(migrateMapEntityJson(json)),
+        _checkedHealingDisplayEntityJson(
+          _checkedFieldObstacleEntityJson(migrateMapEntityJson(json)),
+        ),
       );
 }
 
@@ -447,10 +451,31 @@ Map<String, dynamic> _checkedFieldObstacleEntityJson(Map<String, dynamic> json) 
       json['npc'] != null ||
       json['sign'] != null ||
       json['item'] != null ||
-      json['spawn'] != null) {
+      json['spawn'] != null || json['healingDisplay'] != null) {
     throw const FormatException(
       'A field obstacle requires one blocking custom cell without another typed payload.',
     );
+  }
+  return json;
+}
+
+Map<String, dynamic> _checkedHealingDisplayEntityJson(Map<String, dynamic> json) {
+  final raw = json['healingDisplay'];
+  if (raw == null) return json;
+  if (raw is! Map || raw.keys.any((key) => key is! String)) {
+    throw const FormatException('The healing display must be a typed object.');
+  }
+  MapEntityHealingDisplayData.fromJson(Map<String, dynamic>.from(raw));
+  final size = json['size'];
+  if (json['kind'] != 'custom' || json['blocksMovement'] != false ||
+      (size != null && (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
+      json['npc'] != null || json['sign'] != null || json['item'] != null ||
+      json['spawn'] != null || json['fieldObstacle'] != null || json['editorVisual'] != null) {
+    throw const FormatException('A healing display requires one nonblocking custom cell without another payload.');
+  }
+  final properties = json['properties'];
+  if (properties is Map && properties.keys.any((key) => key is String && (key.startsWith('collision.') || const {'collisionWidth', 'collisionHeight', 'collisionOffsetX', 'collisionOffsetY'}.contains(key)))) {
+    throw const FormatException('A healing display cannot override collision.');
   }
   return json;
 }

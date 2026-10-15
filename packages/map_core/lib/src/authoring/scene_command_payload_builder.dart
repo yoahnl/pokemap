@@ -155,6 +155,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.openHeal => SceneActionPayload.interactive(
       SceneInteractiveCommand.openHeal(
         requiresConfirmation: parameters['requiresConfirmation'] != 'false',
+        displayEntityId: parameters['displayEntityId'],
       ),
     ),
     NarrativeCommandIds.openPc => SceneActionPayload.interactive(

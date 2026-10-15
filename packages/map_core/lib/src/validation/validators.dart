@@ -2722,6 +2722,10 @@ class MapValidator {
           );
         }
       }
+      if (entity.healingDisplay != null &&
+          (map.spatialScene != null || map.version == ProjectVersion.v9)) {
+        throw ValidationException('Healing displays require a 2D map.');
+      }
       if (entity.fieldObstacle != null &&
           (map.spatialScene != null || map.version == ProjectVersion.v9)) {
         throw ValidationException('Field obstacles require a 2D map.');

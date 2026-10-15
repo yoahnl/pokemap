@@ -509,6 +509,14 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'entity.set_healing_display') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/healing_display_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/healing_display_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/healing_display_inspector_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/healing_display_stdio.test.ts',
+    };
+  }
   if (actionId == 'entity.set_field_obstacle') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/field_obstacle_transport_test.dart',
@@ -1322,6 +1330,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'entity.set_healing_display') {
+    return 'test/domains/maps/healing_display_actions_test.dart';
+  }
   if (actionId == 'entity.set_field_obstacle') {
     return 'test/domains/maps/field_obstacle_actions_test.dart';
   }
