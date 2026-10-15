@@ -4,11 +4,14 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'native_psdk_trainer_bundle.dart';
+import 'native_trainer_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
 import 'source_semantic_study_composer.dart';
 
 const sourceCatalogStudyWriteLimits = NativeWriteLimits(
-  maxArtifacts: 128,
+  maxArtifacts: 512,
+  maxMutations: 1024,
   jsonLimits: ContractLimits(maxTextCodeUnits: 8388608),
 );
 
@@ -16,7 +19,7 @@ NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
   final mapCount = selectedMapCount.clamp(1, 8);
   return NativeWriteLimits(
     maxArtifacts:
-        (sourceCatalogStudyWriteLimits.maxArtifacts * mapCount).clamp(1, 256),
+        (sourceCatalogStudyWriteLimits.maxArtifacts * mapCount).clamp(1, 512),
     maxMutations:
         (sourceCatalogStudyWriteLimits.maxMutations * mapCount).clamp(1, 2048),
     maxArtifactBytes: sourceCatalogStudyWriteLimits.maxArtifactBytes,
@@ -37,7 +40,10 @@ final class SourceCatalogStudyComposition {
 }
 
 final class SourceCatalogStudyComposer {
-  const SourceCatalogStudyComposer();
+  const SourceCatalogStudyComposer(
+      {this.nativeTrainerMovePolicy =
+          NativeTrainerMovePolicy.nativeAveluneDefaults});
+  final NativeTrainerMovePolicy nativeTrainerMovePolicy;
 
   Future<SourceCatalogStudyComposition?> compose({
     required NormalizedSourceProject source,
@@ -64,7 +70,8 @@ final class SourceCatalogStudyComposer {
           'Catalog composition requires its exact preceding semantic study');
     }
     final recording = SourceSemanticWitnessFiles(
-        source.snapshot, files, limits, cancellation);
+        source.snapshot, files, limits, cancellation,
+        preservePngAsByteChunks: true);
     final scripts = source.snapshot.entries
         .singleWhere((entry) => entry.relativePath == 'Data/Scripts.rxdata');
     await recording.read(scripts.fileId);
@@ -76,6 +83,14 @@ final class SourceCatalogStudyComposer {
     if (pbs.documents.isEmpty) return null;
     final selection = _catalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
+    final native = NativePsdkTrainerBundle.builtin();
+    final supported =
+        (native.evidence['sourceTrainerKeys'] as List).cast<String>().toSet();
+    final nativeKeys = selection.trainers
+        .where((key) =>
+            key.version == 0 &&
+            supported.contains('${key.trainerType},${key.trainerName}'))
+        .toList();
     final projection = await const SourceCatalogProjector().read(
         source: source,
         pbs: pbs,
@@ -84,6 +99,9 @@ final class SourceCatalogStudyComposer {
         existingItemCatalog: existing?.catalog,
         requestedItemSymbols: selection.items,
         requestedTrainerKeys: selection.trainers,
+        nativeTrainerKeys: nativeKeys,
+        nativeTrainerBundle: nativeKeys.isEmpty ? null : native,
+        nativeTrainerMovePolicy: nativeTrainerMovePolicy,
         cancellation: cancellation);
     final owners = pbs.documents
         .map((document) => document.file.fileId)
@@ -344,6 +362,10 @@ final class SourceCatalogStudyComposer {
         entry.handle: entry
     }.values.toList()
       ..sort((a, b) => a.handle.compareTo(b.handle));
+    if (artifacts.length + witnesses.length > limits.maxArtifacts) {
+      throw NativeWriteException('catalogs.artifacts.quota',
+          'Catalog composition requires ${artifacts.length + witnesses.length} artifacts (${artifacts.length} output, ${witnesses.length} source); the admitted limit is ${limits.maxArtifacts}.');
+    }
     return SourceCatalogStudyComposition(
         projection: projection,
         draft: NativeProjectDraft(

@@ -848,6 +848,29 @@ final class NativeProjectWriter {
         }
         assetHashes[entry.key] = hash;
       }
+      for (final entry in prepared.pokemonMedia.entries) {
+        _checkCancelled(cancellation);
+        final record = prepared.catalog.require(entry.key);
+        final bytes = await session.readCompanion(
+          record.logicalPath,
+          entry.value,
+          errorCode: 'native.verify.pokemon_media',
+        );
+        const NativePngValidator().validate(bytes, limits: limits);
+        final blob = await session.snapshots.readRetainedAssetBlob(
+          session.project,
+          entry.value.reference,
+        );
+        if (blob == null ||
+            blob.length != bytes.length ||
+            sha256.convert(blob) != sha256.convert(bytes)) {
+          throw const NativeWriteException(
+            'native.verify.pokemon_media',
+            'Native Pokemon media logical image and retained blob must match exact approved bytes.',
+          );
+        }
+        assetHashes[entry.key] = Sha256Hash(sha256.convert(bytes).toString());
+      }
       for (final entry in prepared.borderSnapshots.entries) {
         _checkCancelled(cancellation);
         final bytes = await session.readCompanion(entry.key, entry.value,
@@ -869,7 +892,11 @@ final class NativeProjectWriter {
       ProjectValidator.validate(finalSnapshot.manifest, maps: finalSnapshot.maps);
       for (final map in finalSnapshot.maps) { MapValidator.validate(map, projectDialogueContext: finalSnapshot.manifest); }
       await _verifyNativeCatalogs(session, prepared, limits, cancellation);
-      for (final entry in {...prepared.companions, ...prepared.audio}.entries) {
+      for (final entry in {
+        ...prepared.companions,
+        ...prepared.audio,
+        ...prepared.pokemonMedia
+      }.entries) {
         _checkCancelled(cancellation);
         await session.readCompanion(
             prepared.catalog.require(entry.key).logicalPath, entry.value,
@@ -912,6 +939,7 @@ final class _PreparedNativeDraft {
       this.maps,
       this.tilesets,
       this.companions,
+      this.pokemonMedia,
       this.catalog,
       this.dialogueSources,
       this.audio,
@@ -923,6 +951,7 @@ final class _PreparedNativeDraft {
   final Map<String, MapData> maps;
   final Map<String, NativeArtifact> tilesets;
   final Map<String, NativeArtifact> companions;
+  final Map<String, NativeArtifact> pokemonMedia;
   final AssetCatalog catalog;
   final Map<String, String> dialogueSources;
   final Map<String, NativeArtifact> audio;
@@ -1212,6 +1241,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final animatedTilesets = <String>{};
   final usedArtifacts = <String>{};
   final companions = <String, NativeArtifact>{};
+  final pokemonMedia = <String, NativeArtifact>{};
   final audio = <String, NativeArtifact>{};
   final mediaAssets = <CinematicMediaAsset>[];
   final categories = <ProjectElementCategory>[];
@@ -1531,6 +1561,67 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               artifact: artifact.reference,
               tags: (parameters['tags'] as List).cast<String>(),
               usages: (parameters['usages'] as List).cast<String>()));
+          break;
+        }
+        if (artifact?.reference.mediaType == 'image/png') {
+          semantics.requireOperation(mutation);
+          final projection = semantics.catalogs?.projection;
+          final binding = projection?.assetMutations
+              .where(
+                (operation) => operation.operationId == mutation.operationId,
+              )
+              .singleOrNull;
+          final logicalPath = _string(parameters, 'logicalPath');
+          final declared =
+              projection?.documents
+                  .where(
+                    (document) =>
+                        document.kind == SourceCatalogDocumentKind.media,
+                  )
+                  .any((document) {
+                    final media = PokemonMediaFile.fromJson(
+                      Map<String, dynamic>.from(document.document),
+                    );
+                    return media.variants.values.any(
+                      (variant) =>
+                          variant.frontStatic == logicalPath ||
+                          variant.backStatic == logicalPath,
+                    );
+                  }) ??
+              false;
+          if (binding == null ||
+              binding.actionId != 'asset.import' ||
+              canonicalJsonOf(binding.parameters, limits: limits.jsonLimits) !=
+                  canonicalJsonOf(parameters, limits: limits.jsonLimits) ||
+              !projection!.artifacts.any(
+                (entry) =>
+                    entry.handle == handle &&
+                    entry.rawSha256 == artifact!.rawSha256,
+              ) ||
+              !declared ||
+              !RegExp(r'^assets/pokemon/native/[a-z0-9_]+_(front|back)\.png$')
+                  .hasMatch(logicalPath) ||
+              assetRecords.any(
+                (entry) => entry.id == id || entry.logicalPath == logicalPath,
+              ) ||
+              !_targetIds(mutation.targetEntityIds, {id})) {
+            throw const NativeWriteException(
+              'native.catalogs.media',
+              'Pokemon battle media requires one exact regenerated catalog binding.',
+            );
+          }
+          _pngDimensions(artifact!.bytes, limits);
+          pokemonMedia[id] = artifact;
+          usedArtifacts.add(handle);
+          assetRecords.add(
+            AssetRecord(
+              id: id,
+              logicalPath: logicalPath,
+              artifact: artifact.reference,
+              tags: (parameters['tags'] as List).cast<String>(),
+              usages: (parameters['usages'] as List).cast<String>(),
+            ),
+          );
           break;
         }
         if (artifact == null ||
@@ -1873,6 +1964,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       maps,
       tilesets,
       companions,
+      pokemonMedia,
       AssetCatalog(records: assetRecords),
       projectedEvents?.dialogueSources ?? const {},
       audio,

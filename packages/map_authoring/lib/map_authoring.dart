@@ -183,6 +183,8 @@ export 'src/workspace/workspace_policy.dart';
 
 export 'src/domains/gameplay/pokemon_media_import_actions.dart';
 export 'src/domains/gameplay/pokemon_external/showdown_move_catalog_converter.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_sdk_species_converter.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_sdk_move_catalog_converter.dart';
 export 'src/domains/gameplay/pokemon_external/pokemon_moves_catalog_merge.dart';
 export 'src/domains/gameplay/pokemon_external/showdown_pokemon_species_converter.dart';
 export 'src/domains/gameplay/pokemon_external/pokeapi_pokemon_species_enricher.dart';

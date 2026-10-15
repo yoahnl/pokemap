@@ -223,12 +223,14 @@ List<LiteralDependencyDecision> sourceSemanticDependencyDecisions(
 
 final class SourceSemanticWitnessFiles implements SourceFilePort {
   SourceSemanticWitnessFiles(
-      this.snapshot, this.delegate, this.limits, this.cancellation);
+      this.snapshot, this.delegate, this.limits, this.cancellation,
+      {this.preservePngAsByteChunks = false});
 
   final SourceSnapshot snapshot;
   final SourceFilePort delegate;
   final NativeWriteLimits limits;
   final ScanCancellation? cancellation;
+  final bool preservePngAsByteChunks;
   final Map<String, NativeArtifact> artifacts = {};
   final Map<ConverterId, Map<String, Object?>> _evidence = {};
   final Map<ConverterId, List<int>> _bytes = {};
@@ -255,7 +257,8 @@ final class SourceSemanticWitnessFiles implements SourceFilePort {
           'A semantic witness requires one exact inventoried source file');
     }
     final entry = entries.single;
-    final png = entry.relativePath.toLowerCase().endsWith('.png');
+    final png = entry.relativePath.toLowerCase().endsWith('.png') &&
+        !preservePngAsByteChunks;
     final chunkCount =
         png ? 1 : (entry.byteLength + chunkSize - 1) ~/ chunkSize;
     final artifactCount = chunkCount == 0 ? 1 : chunkCount;

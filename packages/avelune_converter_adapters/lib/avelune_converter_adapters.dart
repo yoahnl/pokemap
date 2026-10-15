@@ -26,6 +26,8 @@ export 'src/source_event_arrival_validation.dart';
 export 'src/source_event_item_bindings.dart';
 export 'src/source_pickup_feedback_binding.dart';
 export 'src/source_catalog_projection.dart';
+export 'src/native_psdk_trainer_bundle.dart';
+export 'src/native_trainer_catalog_bindings.dart';
 export 'src/source_catalog_study_composer.dart';
 export 'src/converter_study_plan_recipe.dart';
 export 'src/local_study_plan_store.dart';

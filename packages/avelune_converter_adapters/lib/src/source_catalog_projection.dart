@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
+import 'package:image/image.dart' as image;
 import 'native_project_writer.dart';
+import 'native_psdk_trainer_bundle.dart';
+import 'native_trainer_catalog_bindings.dart';
 
 enum SourceCatalogDocumentKind { catalog, species, learnset, evolution, media }
 
@@ -110,6 +114,10 @@ final class SourceCatalogProjector {
           ProjectItemCatalog? existingItemCatalog,
           List<String> requestedItemSymbols = const [],
           List<SourcePbsIdentity> requestedTrainerKeys = const [],
+          List<SourcePbsIdentity> nativeTrainerKeys = const [],
+          NativePsdkTrainerBundle? nativeTrainerBundle,
+          NativeTrainerMovePolicy nativeTrainerMovePolicy =
+              NativeTrainerMovePolicy.unresolved,
           SourceCatalogProjectionLimits limits =
               const SourceCatalogProjectionLimits(),
           ScanCancellation? cancellation}) async =>
@@ -121,6 +129,9 @@ final class SourceCatalogProjector {
               existingItemCatalog,
               requestedItemSymbols,
               requestedTrainerKeys,
+              nativeTrainerKeys,
+              nativeTrainerBundle,
+              nativeTrainerMovePolicy,
               limits,
               cancellation ?? ScanCancellation())
           .read();
@@ -134,8 +145,19 @@ Object? _freeze(Object? value) => switch (value) {
     };
 
 final class _Run {
-  _Run(this.source, this.pbs, this.files, this.maps, this.existing, this.items,
-      this.trainers, this.limits, this.cancel);
+  _Run(
+      this.source,
+      this.pbs,
+      this.files,
+      this.maps,
+      this.existing,
+      this.items,
+      this.trainers,
+      this.nativeTrainers,
+      this.nativeBundle,
+      this.nativeMovePolicy,
+      this.limits,
+      this.cancel);
   final NormalizedSourceProject source;
   final SourcePbsProject pbs;
   final SourceFilePort files;
@@ -143,6 +165,11 @@ final class _Run {
   final ProjectItemCatalog? existing;
   final List<String> items;
   final List<SourcePbsIdentity> trainers;
+  final List<SourcePbsIdentity> nativeTrainers;
+  final NativePsdkTrainerBundle? nativeBundle;
+  final NativeTrainerMovePolicy nativeMovePolicy;
+  final nativeArtifacts = <NativeArtifact>[];
+  final nativeAssetMutations = <NativeMutation>[];
   final SourceCatalogProjectionLimits limits;
   final ScanCancellation cancel;
   final entries = <String, SourcePbsEntry>{};
@@ -434,21 +461,32 @@ final class _Run {
         .where((i) => i.family == SourcePbsFamily.items)
         .toList();
     final itemConflict = itemKeys.any((i) => invalid.contains(i.key));
+    final nativeBinding = await _bindNativeTrainers();
     final merged = itemConflict
-        ? null
+        ? nativeBinding == null
+            ? null
+            : existing ??
+                const ProjectItemCatalog(schemaVersion: 1, entries: [])
         : ProjectItemCatalog(
             schemaVersion: 1,
             entries: itemDefinitions.values.toList()
               ..sort((a, b) => a.id.compareTo(b.id)));
+    final boundIds =
+        nativeBinding?.trainers.map((trainer) => trainer.id).toSet() ??
+            <String>{};
     final result = SourceCatalogProjection(
+        artifacts: nativeArtifacts,
+        assetMutations: nativeAssetMutations,
         documents: documents,
         mergedItemCatalog: merged,
         encounterTables: tables,
         trainers: [
           for (final e in sorted)
             if (!invalid.contains(e.identity!.key) &&
-                trainerDefinitions.containsKey(e.identity!.key))
-              trainerDefinitions[e.identity!.key]!
+                trainerDefinitions.containsKey(e.identity!.key) &&
+                !boundIds.contains(trainerDefinitions[e.identity!.key]!.id))
+              trainerDefinitions[e.identity!.key]!,
+          ...?nativeBinding?.trainers,
         ],
         diagnostics: diagnostics,
         evidence: {
@@ -460,6 +498,8 @@ final class _Run {
           'profile': pbs.profile.name,
           'namespace': namespace.value,
           'battleAuthority': 'aveluneNative',
+          if (nativeBinding != null)
+            'nativeTrainerBindings': nativeBinding.evidence,
           'sourceBattleScriptsExecuted': false,
           'sourceAbilitySlotSemanticsQualified': false,
           'runtimeReady': false,
@@ -502,6 +542,14 @@ final class _Run {
             'preservedExistingIds':
                 existing?.entries.map((i) => i.id).toList() ?? [],
             'conflicted': itemConflict,
+            'sourceMergeApplied': !itemConflict,
+            'nativeCatalogPolicy': !itemConflict
+                ? 'sourceMerge'
+                : nativeBinding == null
+                    ? 'sourceMergeBlocked'
+                    : existing == null
+                        ? 'initializeEmptyNative'
+                        : 'preserveExistingNative',
             'effectsImported': false
           },
           'oracle': {
@@ -518,6 +566,237 @@ final class _Run {
           'Projection evidence exceeds its bounded size.');
     }
     return result;
+  }
+
+  Future<NativeTrainerCatalogBindingResult?> _bindNativeTrainers() async {
+    if (nativeTrainers.isEmpty) return null;
+    final bundle = nativeBundle;
+    if (bundle == null ||
+        nativeTrainers.any(
+            (key) => !trainers.any((requested) => requested.key == key.key))) {
+      throw ContractError('native_trainer.projection_binding', r'$',
+          'Native trainer bindings require their explicit requested source roots and bundle.');
+    }
+    final result = const NativeTrainerCatalogBindings().bind(
+        source: pbs,
+        requestedTrainers: nativeTrainers,
+        native: bundle,
+        movePolicy: nativeMovePolicy);
+    for (final catalog in bundle.catalogs.values) {
+      final path = 'data/pokemon/catalogs/${catalog.catalog}.json';
+      final existing = documents
+          .where((document) => document.relativePath == path)
+          .singleOrNull;
+      final rows = <String, Map<String, dynamic>>{};
+      if (existing != null) {
+        for (final entry
+            in (existing.document['entries'] as List).cast<Map>()) {
+          rows[entry['id'] as String] = Map<String, dynamic>.from(entry);
+        }
+        documents.remove(existing);
+      }
+      for (final row in catalog.entries) {
+        final id = row['id'] as String;
+        if (rows.containsKey(id) &&
+            canonicalHashOf(rows[id]) != canonicalHashOf(row)) {
+          throw ContractError('native_trainer.catalog_conflict', path,
+              'Native catalog identities cannot replace conflicting source entries.');
+        }
+        rows[id] = row;
+      }
+      documents.add(SourceCatalogDocument(
+          kind: SourceCatalogDocumentKind.catalog,
+          relativePath: path,
+          document: PokemonCatalogFile(
+                  schemaVersion: 1,
+                  kind: catalog.kind,
+                  catalog: catalog.catalog,
+                  meta: catalog.meta,
+                  entries: rows.values.toList()
+                    ..sort((a, b) =>
+                        (a['id'] as String).compareTo(b['id'] as String)))
+              .toJson()));
+    }
+    for (final species in bundle.speciesById.values) {
+      _doc(SourceCatalogDocumentKind.species, 'species', species.id,
+          species.toJson());
+      _doc(SourceCatalogDocumentKind.learnset, 'learnsets', species.id,
+          bundle.learnsetsBySpeciesId[species.id]!.toJson());
+      _doc(SourceCatalogDocumentKind.evolution, 'evolutions', species.id,
+          bundle.evolutionsBySpeciesId[species.id]!.toJson());
+      _doc(SourceCatalogDocumentKind.media, 'media', species.id,
+          bundle.mediaBySpeciesId[species.id]!.toJson());
+    }
+    final targets = <String>{};
+    for (final media in bundle.mediaBySpeciesId.values) {
+      for (final variant in media.variants.values) {
+        targets.addAll([variant.frontStatic!, variant.backStatic!]);
+      }
+    }
+    final mediaEvidence = <Map<String, Object?>>[];
+    var staticMediaOracleVerified = false;
+    const staticMediaOraclePath =
+        'Plugins/[DBK_009] Animated Pokemon System/[008] Deluxe Bitmap.rb';
+    const staticMediaOracleHash =
+        'c0d70ca1dad14a6f92307029d5c813094d4c91bd3a7dc72e9fd53218ca2e35a5';
+    for (final target in targets.toList()..sort()) {
+      cancel.check();
+      final fallback = bundle.fallbackMedia[target];
+      late List<int> bytes;
+      late ConverterId owner;
+      late Map<String, Object?> witness;
+      if (fallback != null) {
+        bytes = base64Decode(fallback['bytesBase64'] as String);
+        owner = pbs.documents.first.file.fileId;
+        witness = {
+          'provider': 'nativePsdkReference',
+          'sourcePath': fallback['sourcePath'],
+          'sha256': fallback['sha256']
+        };
+      } else {
+        final match =
+            RegExp(r'^assets/pokemon/native/([a-z0-9_]+)_(front|back)\.png$')
+                .firstMatch(target);
+        if (match == null || match[1]!.contains('_form')) {
+          throw ContractError('native_trainer.media_binding', target,
+              'A native form requires its attested PSDK media.');
+        }
+        final sourcePath =
+            'Graphics/Pokemon/${match[2] == 'front' ? 'Front' : 'Back'}/${match[1]!.toUpperCase()}.png';
+        final sourceFile = source.snapshot.entries
+            .where((entry) => entry.relativePath == sourcePath)
+            .singleOrNull;
+        if (sourceFile == null ||
+            sourceFile.kind != SourceNodeKind.file ||
+            sourceFile.sha256 == null ||
+            sourceFile.byteLength > 1048576) {
+          throw ContractError('native_trainer.media_missing', sourcePath,
+              'Native Pokemon battle media must resolve one bounded exact source image.');
+        }
+        bytes = await files.read(sourceFile.fileId);
+        cancel.check();
+        if (bytes.length != sourceFile.byteLength ||
+            crypto.sha256.convert(bytes).toString() !=
+                sourceFile.sha256!.value) {
+          throw ContractError('native_trainer.media_changed', sourcePath,
+              'Pokemon media differs from its admitted source witness.');
+        }
+        owner = sourceFile.fileId;
+        witness = {
+          'provider': 'essentialsSourceMedia',
+          'fileId': owner.value,
+          'sourcePath': sourcePath,
+          'sha256': sourceFile.sha256!.value
+        };
+      }
+      final decoder = image.PngDecoder();
+      final info = decoder.startDecode(Uint8List.fromList(bytes));
+      if (info == null ||
+          info.width < 1 ||
+          info.height < 1 ||
+          info.width * info.height > 16777216) {
+        throw ContractError('native_trainer.media_dimensions', target,
+            'Native media must be a bounded PNG.');
+      }
+      if (fallback == null && info.width > info.height * 2) {
+        if (!staticMediaOracleVerified) {
+          final oracle = source.snapshot.entries
+              .where((entry) => entry.relativePath == staticMediaOraclePath)
+              .singleOrNull;
+          if (oracle == null ||
+              oracle.kind != SourceNodeKind.file ||
+              oracle.byteLength > 65536 ||
+              oracle.sha256?.value != staticMediaOracleHash) {
+            throw ContractError(
+                'native_trainer.media_oracle',
+                staticMediaOraclePath,
+                'Animated source media requires its exact inert frame-layout oracle.');
+          }
+          final oracleBytes = await files.read(oracle.fileId);
+          cancel.check();
+          if (oracleBytes.length != oracle.byteLength ||
+              crypto.sha256.convert(oracleBytes).toString() !=
+                  staticMediaOracleHash) {
+            throw ContractError(
+                'native_trainer.media_oracle',
+                staticMediaOraclePath,
+                'The source frame-layout oracle differs from its admitted bytes.');
+          }
+          staticMediaOracleVerified = true;
+        }
+        final decoded = decoder.decodeFrame(0);
+        if (decoded == null) {
+          throw ContractError('native_trainer.media_decode', target,
+              'The source static frame could not be decoded.');
+        }
+        bytes = image.encodePng(image.copyCrop(
+            decoded.convert(format: image.Format.uint8, numChannels: 4),
+            x: 0,
+            y: 0,
+            width: info.height,
+            height: info.height));
+        witness = {
+          ...witness,
+          'sourceDimensions': {'width': info.width, 'height': info.height},
+          'outputDimensions': {'width': info.height, 'height': info.height},
+          'staticFrameIndex': 0,
+          'frameLayout': 'horizontalSquareFramesWhenWidthExceedsTwiceHeight',
+          'sourcePixelsResampled': false,
+          'outputPixelFormat': 'rgba8',
+          'animationPlaybackQualified': false,
+          'oracle': {
+            'path': staticMediaOraclePath,
+            'sha256': staticMediaOracleHash,
+            'lines': [21, 144, 145, 146, 147, 148, 150, 201, 202, 203, 221, 227]
+          }
+        };
+      }
+      final artifact = NativeArtifact(bytes: bytes);
+      nativeArtifacts.add(artifact);
+      final assetId =
+          'native_pokemon_${canonicalHashOf(target).value.substring(0, 24)}';
+      nativeAssetMutations.add(NativeMutation(
+          operationId: ConverterId('native_trainer_media_${canonicalHashOf({
+                'target': target,
+                'sha256': artifact.rawSha256.value
+              }).value}'),
+          actionId: 'asset.import',
+          sourceEntityIds: [
+            owner
+          ],
+          targetEntityIds: [
+            ConverterId(assetId)
+          ],
+          parameters: {
+            'artifactHandle': artifact.handle,
+            'assetId': assetId,
+            'logicalPath': target,
+            'tags': ['native-pokemon-battle-media'],
+            'usages': ['pokemon.battleMedia']
+          }));
+      mediaEvidence.add({
+        ...witness,
+        'targetPath': target,
+        'artifactHandle': artifact.handle,
+        'outputSha256': artifact.rawSha256.value,
+        'byteLength': bytes.length
+      });
+    }
+    documents.sort((a, b) => a.relativePath.compareTo(b.relativePath));
+    if (documents.length > limits.maxNativeDocuments) {
+      throw ContractError('source.catalog.quota', r'$',
+          'Native closure exceeds its document limit.');
+    }
+    return NativeTrainerCatalogBindingResult(
+        trainers: result.trainers,
+        evidence: {
+          ...result.evidence,
+          'nativeClosureComplete': true,
+          'globalLearnsetsPublished': true,
+          'globalCatalogComplete': false,
+          'conditionalEvolutionExecutionQualified': false,
+          'media': mediaEvidence
+        });
   }
 
   Future<void> _readDex() async {

@@ -15,6 +15,24 @@ import 'support/original_autotile_fixture.dart';
 import 'support/source_map_music_fixture.dart';
 
 void main() {
+  test(
+      'catalogue study budget admits a bounded native closure for one to eight maps',
+      () {
+    final one = sourceCatalogStudyWriteLimitsFor(1);
+    final eight = sourceCatalogStudyWriteLimitsFor(8);
+    expect((one.maxArtifacts, one.maxMutations), (512, 1024));
+    expect((eight.maxArtifacts, eight.maxMutations), (512, 2048));
+    expect((
+      const NativeWriteLimits().maxArtifacts,
+      const NativeWriteLimits().maxMutations
+    ), (
+      32,
+      256
+    ));
+    one.validate();
+    eight.validate();
+  });
+
   test('workflow consumes and persists explicit missing atlas image decisions',
       () async {
     final harness = await _WorkflowHarness.create();
@@ -85,14 +103,18 @@ void main() {
       try {
         final resumed = await ConverterReviewSessionResumer.resume(
             stored: reopened!, workflow: fresh);
-        expect(resumed.settings.imageBindings.single.toJson(), binding.toJson());
-        expect(resumed.reviewSet!.canonicalHash, stored.reviewSet.canonicalHash);
+        expect(
+            resumed.settings.imageBindings.single.toJson(), binding.toJson());
+        expect(
+            resumed.reviewSet!.canonicalHash, stored.reviewSet.canonicalHash);
         expect(resumed.canApprove, isTrue);
         expect(fresh.state.approval, isNull);
         expect(fresh.state.result, isNull);
-        expect((await LocalReviewSessionStore(rootPath: storePath)
-                .load(stored.reviewSet.sessionId))!
-            .canonicalHash, stored.canonicalHash);
+        expect(
+            (await LocalReviewSessionStore(rootPath: storePath)
+                    .load(stored.reviewSet.sessionId))!
+                .canonicalHash,
+            stored.canonicalHash);
       } finally {
         await fresh.dispose();
       }
@@ -151,17 +173,18 @@ void main() {
       expect(prepared.assetCandidates, hasLength(288));
       expect(prepared.assetProposalDiagnostics, isEmpty);
       expect(prepared.reviewSet!.segments.keys, [1, 8]);
-      expect(prepared.settings.writeLimits.maxArtifacts, 256);
-      expect(prepared.settings.writeLimits.maxMutations, 512);
+      expect(prepared.settings.writeLimits.maxArtifacts, 512);
+      expect(prepared.settings.writeLimits.maxMutations, 2048);
       expect(prepared.settings.writeLimits.maxTotalArtifactBytes,
           sourceCatalogStudyWriteLimits.maxTotalArtifactBytes);
-      harness.workflow.updateSettings(harness.settings(snapshot,
-          writeLimits: sourceCatalogStudyWriteLimits));
+      const boundedLimits = NativeWriteLimits(maxArtifacts: 128);
+      harness.workflow.updateSettings(
+          harness.settings(snapshot, writeLimits: boundedLimits));
       final bounded = await harness.workflow.prepareStudy();
       expect(bounded.settings.writeLimits.maxMutations,
-          sourceCatalogStudyWriteLimits.maxMutations);
+          boundedLimits.maxMutations);
       expect(bounded.settings.writeLimits.maxArtifacts,
-          sourceCatalogStudyWriteLimits.maxArtifacts);
+          boundedLimits.maxArtifacts);
       expect(bounded.assetCandidates, isEmpty);
       expect(bounded.assetProposalDiagnostics.map((d) => d.code),
           contains('asset.proposal.quota'));
@@ -745,11 +768,18 @@ void main() {
           .updateSettings(harness.settings(snapshot, selected: [1]));
       final prepared = await harness.workflow.prepareStudy();
       expect(prepared.canApprove, isTrue);
-      final eventEvidence = prepared.nativeDraft!.compositionEvidence['sourceEvents'] as Map;
+      final eventEvidence =
+          prepared.nativeDraft!.compositionEvidence['sourceEvents'] as Map;
       final sourceProjection = eventEvidence['projection'] as Map;
-      expect((sourceProjection['doorExecutionQualification'] as Map)['sourceExecutionContext'], isNull);
-      expect((sourceProjection['events'] as List).cast<Map>().where((entry) =>
-          entry['status'] == 'quarantinedWholeEvent'), hasLength(1));
+      expect(
+          (sourceProjection['doorExecutionQualification']
+              as Map)['sourceExecutionContext'],
+          isNull);
+      expect(
+          (sourceProjection['events'] as List)
+              .cast<Map>()
+              .where((entry) => entry['status'] == 'quarantinedWholeEvent'),
+          hasLength(1));
       expect(
           prepared.nativeDraft!.mutations.map((entry) => entry.actionId),
           containsAll([
