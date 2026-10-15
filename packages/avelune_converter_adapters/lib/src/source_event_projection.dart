@@ -84,6 +84,15 @@ DialogueLineFeedback? _staticSourceTextFeedback(String source) {
   return DialogueLineFeedback(segments: segments);
 }
 
+const _sourceSignWindowControl = r'\w[signskin]';
+
+DialogueLineFeedback? _staticSourceSignFeedback(String source) {
+  if (!source.startsWith(_sourceSignWindowControl)) return null;
+  final text = source.substring(_sourceSignWindowControl.length);
+  if (text.trim().isEmpty) return null;
+  return _staticSourceTextFeedback(text);
+}
+
 String sourceEventCharacterBindingKey(
         {required String characterName,
         required int pattern,
@@ -489,6 +498,23 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if (gaps.isEmpty && _supportsStaticSign(event))
+                  for (final node in page.body.nodes.whereType<SourceTextNode>())
+                    {
+                      'sourceOpcodes': [
+                        101,
+                        if (node.span.firstCommandIndex !=
+                            node.span.lastCommandIndex)
+                          401,
+                      ],
+                      'span': node.span.toJson(),
+                      'rawDataRefs': [page.rawDataRef!.toJson()],
+                      'sourceControl': _sourceSignWindowControl,
+                      'targetStyle': 'aveluneNativeDialogue',
+                      'nativeContract': 'staticSignDialogueAtTerrainBump',
+                      'equivalenceScope': ['plainText', 'frontTerrainBump'],
+                      'windowSkinParityQualified': false,
+                    },
                 if (gaps.isEmpty)
                   for (final node in page.body.nodes
                       .whereType<SourceInteractionFacingNode>())
@@ -711,9 +737,58 @@ final class _ProjectionBuilder {
         page.body.nodes.last is SourceInteractionFacingNode;
   }
 
+  bool _supportsStaticSign(SourceEventDefinition event) {
+    if (event.pages.length != 1 || event.isQuarantined ||
+        maps[event.sourceMapId]!.spatialScene != null) {
+      return false;
+    }
+    final size = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+        .firstMatch(event.name);
+    if (size != null &&
+        (int.tryParse(size.group(1)!) != 1 ||
+            int.tryParse(size.group(2)!) != 1)) {
+      return false;
+    }
+    final page = event.pages.single;
+    final graphic = page.graphic;
+    if (page.rawDataRef == null ||
+        page.triggerCode != 1 ||
+        page.condition.kind != SourceEventConditionKind.always ||
+        graphic == null ||
+        graphic.characterName.isNotEmpty ||
+        graphic.tileId != 0 ||
+        graphic.moveType != 0 ||
+        graphic.through ||
+        graphic.directionFix ||
+        graphic.stepAnime ||
+        graphic.alwaysOnTop ||
+        graphic.hue != 0 ||
+        graphic.opacity != 255 ||
+        graphic.blendType != 0 ||
+        page.body.nodes.length != 1) {
+      return false;
+    }
+    final node = page.body.nodes.single;
+    if (node is! SourceTextNode ||
+        node.followingChoice != null ||
+        _staticSourceSignFeedback(node.text) == null) {
+      return false;
+    }
+    final touch = _touch(event, page);
+    return touch.kind == SourceEventTouchKind.front &&
+        touch.reason == 'stationaryTilesBlocked' &&
+        _nativeSolidAt(event);
+  }
+
+  DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text) =>
+      _supportsStaticSign(event)
+          ? _staticSourceSignFeedback(text)
+          : _staticSourceTextFeedback(text);
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     final gaps = <String>{};
+    final staticSign = _supportsStaticSign(event);
     if (_isOriginalDoor(event) && !executionContextQualified) {
       gaps.addAll(executionContext?.refusals.isNotEmpty == true
           ? executionContext!.refusals : ['sourceExecutionContextUnknown']);
@@ -808,7 +883,8 @@ final class _ProjectionBuilder {
         }
       }
       if (page.triggerCode != 0 &&
-          !(page.triggerCode == 1 && graphic.through) && !_isOriginalDoor(event)) {
+          !(page.triggerCode == 1 && graphic.through) &&
+          !_isOriginalDoor(event) && !staticSign) {
         gaps.add('triggerContractUnsupported');
       }
       if (page.triggerCode == 0 && !page.isEmpty) {
@@ -826,7 +902,7 @@ final class _ProjectionBuilder {
           gaps.add('sourceTouchContactUnqualified');
         } else if (touch.kind == SourceEventTouchKind.front &&
             (graphic.characterName.isEmpty || graphic.through)) {
-          if (!_isOriginalDoor(event) ||
+          if ((!_isOriginalDoor(event) && !staticSign) ||
               touch.reason != 'stationaryTilesBlocked' ||
               !_nativeSolidAt(event)) {
             gaps.add('sourceTerrainBumpUnqualified');
@@ -951,7 +1027,7 @@ final class _ProjectionBuilder {
     for (final node in block.nodes) {
       switch (node) {
         case SourceTextNode(:final text, :final followingChoice):
-          if (_staticSourceTextFeedback(text) == null) {
+          if (_textFeedback(event, text) == null) {
             gaps.add('sourceTextControlUnsupported');
           }
           if (followingChoice != null) {
@@ -1559,7 +1635,7 @@ final class _SceneBuilder {
       {List<DialogueLineFeedback>? feedbackLines}) {
     final feedback = feedbackLines ??
         (text != null && text.contains(r'\')
-            ? [_staticSourceTextFeedback(text)!]
+            ? [projection._textFeedback(event, text)!]
             : const <DialogueLineFeedback>[]);
     final id = projection._key(
         event, 'dialogue_${page.originalPageIndex}_${span.firstCommandIndex}');

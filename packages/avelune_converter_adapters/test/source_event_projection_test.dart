@@ -499,6 +499,24 @@ SourceEventProjection _projectEvents(NormalizedSourceProject source,
                     sourceDirection: 2),
         });
 
+Future<SourceEventProjection> _projectSign(_RubyObject page,
+    {String eventName = 'Route sign',
+    bool blockedSource = true,
+    bool blockedNative = true}) async {
+  final source = await _events([page],
+      eventName: eventName,
+      tileset: _tileset(blockedTile: blockedSource ? 400 : null),
+      attestedScripts: true);
+  final maps = _nativeMaps(source);
+  maps[1] = maps[1]!.copyWith(layers: [
+    MapLayer.collision(
+        id: 'sign_collision',
+        name: 'Collision',
+        collisions: List.generate(6, (index) => index == 4 && blockedNative)),
+  ]);
+  return _projectEvents(source, maps: maps);
+}
+
 bool _guard(
     NarrativeEventConditionExpression expression, Map<String, bool> facts) {
   return switch (expression) {
@@ -992,6 +1010,174 @@ void main() {
     expect(result.registry.records.single.definitionOrNull!.source.kind,
         NarrativeEventSourceKind.triggerEnter);
   }, skip: Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'] == null);
+
+  for (final entry in {
+    'Route 9 sign': r'Route 9\nCerulean City - Rock Tunnel',
+    'Rock tunnel sign': r'Rock Tunnel\nDetour to Lavender Town',
+    'Power plant sign': 'Power Plant',
+  }.entries) {
+    test('unit sign ${entry.key} adapts presentation with the proved front bump',
+        () async {
+      final result = await _projectSign(
+          _page([
+            _command(101, [r'\w[signskin]' + entry.value]),
+            _command(0, []),
+          ], trigger: 1, character: ''),
+          eventName: entry.key);
+      final record = result.registry.records.single;
+      expect(record.definitionOrNull, isNotNull,
+          reason: 'A qualified unit sign must publish its front bump event.');
+      final definition = record.definitionOrNull!;
+      expect(record.enabledOrNull, isTrue);
+      expect(definition.source.kind, NarrativeEventSourceKind.triggerBump);
+      final map = result.nativeMaps[1]!;
+      expect(map.triggers.single.area.pos, const GridPos(x: 1, y: 1));
+      expect(map.triggers.single.area.size,
+          const GridSize(width: 1, height: 1));
+      expect(map.entities.single.blocksMovement, isFalse);
+      final payload = result.scenes.single.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneYarnDialoguePayload>()
+          .single;
+      expect(payload.linePolicies.single.feedback.plainText,
+          entry.value.replaceAll(r'\n', '\n'));
+      final event = (result.semanticEvidence['events'] as List).single as Map;
+      final page = (event['pages'] as List).single as Map;
+      expect(page['sourceContact'], containsPair('kind', 'front'));
+      expect(page['sourceContact'],
+          containsPair('reason', 'stationaryTilesBlocked'));
+      final adaptation = (page['adaptedCommands'] as List).single as Map;
+      expect(adaptation['sourceOpcodes'], [101]);
+      expect(adaptation['sourceControl'], r'\w[signskin]');
+      expect(adaptation['targetStyle'], 'aveluneNativeDialogue');
+      expect(adaptation['equivalenceScope'], ['plainText', 'frontTerrainBump']);
+      expect(adaptation['windowSkinParityQualified'], isFalse);
+      expect(adaptation['rawDataRefs'], hasLength(1));
+      expect((adaptation['span'] as Map)['firstCommandIndex'], 0);
+      expect((adaptation['span'] as Map)['lastCommandIndex'], 0);
+      expect(result.facts, isEmpty);
+      expect(result.worldRules, isEmpty);
+      expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
+      expect(result.semanticEvidence['sourceAdmission'], isFalse);
+      expect(result.semanticEvidence['globalPlayabilityCertified'], isFalse);
+    }, skip: scriptsPath == null);
+  }
+
+  for (final entry in [(false, true), (true, false), (false, false)]) {
+    test('unit sign refuses source/native collision ${entry.$1}/${entry.$2}',
+        () async {
+      final result = await _projectSign(
+          _page([
+            _command(101, [r'\w[signskin]Route 9']),
+            _command(0, []),
+          ], trigger: 1, character: ''),
+          blockedSource: entry.$1,
+          blockedNative: entry.$2);
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(result.nativeMaps[1]!.triggers, isEmpty);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+    }, skip: scriptsPath == null);
+  }
+
+  test('unit sign refuses a missing raw page attestation without crashing',
+      () async {
+    final source = await _events([
+      _page([
+        _command(101, [r'\w[signskin]Route 9']),
+        _command(0, []),
+      ], trigger: 1, character: ''),
+    ], tileset: _tileset(blockedTile: 400), attestedScripts: true);
+    final original = _analyzer(source).analyze();
+    final event = original.events.single;
+    final page = event.pages.single;
+    final analysis = SourceEventAnalysis(
+        profile: original.profile,
+        diagnostics: original.diagnostics,
+        events: [
+          SourceEventDefinition(
+              sourceMapId: event.sourceMapId,
+              sourceEventId: event.sourceEventId,
+              sourceFileId: event.sourceFileId,
+              identity: event.identity,
+              name: event.name,
+              x: event.x,
+              y: event.y,
+              locator: event.locator,
+              pages: [
+                SourceEventPageAnalysis(
+                    sourcePage: page.sourcePage,
+                    locator: page.locator,
+                    condition: page.condition,
+                    graphic: page.graphic,
+                    body: page.body,
+                    rawDataRef: null,
+                    diagnostics: page.diagnostics),
+              ]),
+        ]);
+    final maps = _nativeMaps(source);
+    maps[1] = maps[1]!.copyWith(layers: [
+      MapLayer.collision(
+          id: 'sign_collision',
+          name: 'Collision',
+          collisions: List.generate(6, (index) => index == 4)),
+    ]);
+    final result = const SourceEventProjector().project(
+        source: source, analysis: analysis, nativeMaps: maps);
+    expect(result.registry.records.single.definitionOrNull, isNull);
+    expect(result.scenes, isEmpty);
+    expect(result.dialogues, isEmpty);
+    expect(result.facts, isEmpty);
+    expect(result.nativeMaps[1]!.triggers, isEmpty);
+    expect(result.nativeMaps[1]!.entities, isEmpty);
+  }, skip: scriptsPath == null);
+
+  for (final text in [
+    r'\w[other]Route 9',
+    r'\w[signskinRoute 9',
+    r'\w[signskin]Route 9\PN',
+    r'\w[signskin]Route 9\w[signskin]',
+    r'\W[signskin]Route 9',
+    r'Route 9\w[signskin]',
+    r'\w[signskin]',
+  ]) {
+    test('unit sign rejects unknown or malformed presentation $text', () async {
+      final result = await _projectSign(_page([
+        _command(101, [text]),
+        _command(0, []),
+      ], trigger: 1, character: ''));
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(result.nativeMaps[1]!.triggers, isEmpty);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+    }, skip: scriptsPath == null);
+  }
+
+  for (final variant in ['unknown', 'reward', 'moving', 'wide', 'touchThrough']) {
+    test('unit sign keeps every dependent effect quarantined for $variant',
+        () async {
+      final page = _page([
+        _command(101, [r'\w[signskin]Route 9']),
+        if (variant == 'unknown') _command(355, ['unqualified_call()']),
+        if (variant == 'reward') _command(123, ['A', 0]),
+        _command(0, []),
+      ], trigger: 1, character: '');
+      if (variant == 'moving') page.fields['@move_type'] = 1;
+      if (variant == 'touchThrough') page.fields['@through'] = true;
+      final result = await _projectSign(page,
+          eventName: variant == 'wide' ? 'Sign size(2,1)' : 'Route sign');
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(result.nativeMaps[1]!.triggers, isEmpty);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+    }, skip: scriptsPath == null);
+  }
 
   test('hidden item player touch requires source bump semantics', () async {
     final page = _page([
