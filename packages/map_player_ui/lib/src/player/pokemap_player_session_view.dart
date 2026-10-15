@@ -23,6 +23,7 @@ import 'player_dialogue_overlay.dart';
 import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
 import 'player_regional_map_overlay.dart';
+import 'player_party_trade_overlay.dart';
 import 'player_pause_menu.dart';
 import 'player_pc_overlay.dart';
 import 'player_scene_interaction_surface.dart';
@@ -908,6 +909,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     if (!command.isPress) return;
     final snapshot = _latestSnapshot;
     if (snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap ||
+        snapshot.worldService?.request.kind ==
+            RuntimeWorldServiceKind.partyTrade ||
         snapshot.phase == RuntimePlayerPhase.paused ||
         snapshot.phase == RuntimePlayerPhase.title &&
             snapshot.pauseSection == RuntimePlayerPauseSection.options) {
@@ -1534,6 +1537,12 @@ class _RuntimeWorldServiceOverlay extends StatelessWidget {
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),
         ),
+      RuntimeWorldServiceKind.partyTrade => PlayerPartyTradeOverlay(
+        snapshot: snapshot,
+        onCommand: (command) => onCommand(command),
+        controlProfile: controlProfile,
+        hardwareGamepadEnabled: hardwareGamepadEnabled,
+      ),
       RuntimeWorldServiceKind.regionalMap => PlayerRegionalMapOverlay(
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),

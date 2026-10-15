@@ -191,6 +191,7 @@ export 'src/application/player_service_runtime_controller.dart'
         PlayerServiceInputLockSetter,
         PlayerServiceRecoveryCapsLoader,
         PlayerServiceRuntimeController,
+        RuntimePartyTradeService,
         loadRuntimePlayerServiceRecoveryCaps;
 export 'src/application/rail_journey_runtime_coordinator.dart';
 export 'src/application/rail_journey_runtime_transaction.dart';

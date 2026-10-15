@@ -51,6 +51,17 @@ final class RuntimePokemonEvolutionLoader {
     );
   }
 
+  Future<List<PokemonEvolutionCandidate>> loadTradeCandidates({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required String sourceSpeciesId,
+  }) => _loadCandidates(
+    projectRootDirectory: projectRootDirectory,
+    pokemonConfig: pokemonConfig,
+    sourceSpeciesId: sourceSpeciesId,
+    acceptedTriggers: const {PokemonEvolutionTriggerKind.trade},
+  );
+
   Future<List<PokemonEvolutionCandidate>> _loadCandidates({
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
@@ -104,8 +115,13 @@ final class RuntimePokemonEvolutionLoader {
         'known_move' =>
           PokemonEvolutionTriggerKind.levelUp,
         'use_item' || 'item' => PokemonEvolutionTriggerKind.itemUse,
+        'trade' => PokemonEvolutionTriggerKind.trade,
         _ => null,
       };
+      if (declaredTrigger == null &&
+          acceptedTriggers.contains(PokemonEvolutionTriggerKind.trade)) {
+        throw _invalidRule(sourceId, file.path, index);
+      }
       if (declaredTrigger == null ||
           !acceptedTriggers.contains(declaredTrigger)) {
         continue;
@@ -204,6 +220,10 @@ final class RuntimePokemonEvolutionLoader {
 
     try {
       return switch (method) {
+        'trade' => PokemonEvolutionCondition.trade(
+          requirements: PokemonEvolutionEntry.fromJson(entry)
+              .tradeRequirements!,
+        ).validated(),
         'level_up' when rawMinFriendship != null =>
           PokemonEvolutionCondition.friendship(
             minFriendship: rawMinFriendship as int,
@@ -238,6 +258,9 @@ final class RuntimePokemonEvolutionLoader {
 
   String _conditionToken(PokemonEvolutionCondition condition) {
     return switch (condition.kind) {
+      PokemonEvolutionConditionKind.trade =>
+        '${condition.tradeRequirements!.requiredHeldItemId ?? "none"}:'
+            '${condition.tradeRequirements!.requiredPartnerSpeciesId ?? "any"}',
       PokemonEvolutionConditionKind.level => '${condition.minLevel}',
       PokemonEvolutionConditionKind.friendship =>
         '${condition.minLevel}:${condition.minFriendship}',
@@ -290,8 +313,9 @@ final class RuntimePokemonEvolutionLoader {
   }) {
     final root = p.normalize(p.absolute(projectRootDirectory));
     final trimmedDirectory = configuredDirectory.trim();
-    final relativeDirectory =
-        trimmedDirectory.isEmpty ? 'data/pokemon/evolutions' : trimmedDirectory;
+    final relativeDirectory = trimmedDirectory.isEmpty
+        ? 'data/pokemon/evolutions'
+        : trimmedDirectory;
     if (p.isAbsolute(relativeDirectory)) {
       throw RuntimeBattleSetupException(
         'Le dossier d’évolution Pokémon doit appartenir au projet.',

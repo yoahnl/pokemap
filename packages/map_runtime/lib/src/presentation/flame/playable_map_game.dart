@@ -11666,6 +11666,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return _scenePortForPlayerService(
           await controller.openHealCenter(request: request),
         );
+      case OpenPartyTradeService():
+        return _scenePortForPlayerService(
+          await controller.openPartyTrade(request: request),
+        );
       case OpenRegionalMapService():
         if (_bundle.manifest.regionalMap == null) {
           _notifySceneCommand('Carte régionale indisponible dans ce projet.');

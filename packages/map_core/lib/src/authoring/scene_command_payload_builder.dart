@@ -165,6 +165,14 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         null => SceneInteractiveCommand.openPc(),
       },
     ),
+    NarrativeCommandIds.openPartyTrade =>
+      parameters.isEmpty
+          ? SceneActionPayload.interactive(
+              SceneInteractiveCommand.openPartyTrade(),
+            )
+          : throw const FormatException(
+              'Party trade commands do not accept options.',
+            ),
     NarrativeCommandIds.openRegionalMap => parameters.isEmpty
         ? SceneActionPayload.interactive(SceneInteractiveCommand.openRegionalMap())
         : throw const FormatException('Regional map commands do not accept options.'),

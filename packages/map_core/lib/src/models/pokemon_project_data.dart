@@ -1,3 +1,5 @@
+import 'pokemon_trade_evolution.dart';
+
 const currentPokemonDataSchemaVersion = 1;
 
 final class UnsupportedPokemonDataSchema extends FormatException {
@@ -900,6 +902,7 @@ class PokemonEvolutionEntry {
     this.itemId,
     this.requiredMoveId,
     this.conditionText = const <String, String>{},
+    this.tradeRequirements,
   });
 
   final String targetSpeciesId;
@@ -909,19 +912,75 @@ class PokemonEvolutionEntry {
   final String? itemId;
   final String? requiredMoveId;
   final Map<String, String> conditionText;
+  final PokemonTradeEvolutionRequirements? tradeRequirements;
 
-  factory PokemonEvolutionEntry.fromJson(Map<String, dynamic> json) =>
-      PokemonEvolutionEntry(
+  factory PokemonEvolutionEntry.fromJson(Map<String, dynamic> json) {
+    final method = (json['method'] as String?)?.trim() ?? '';
+    final rawTrade = json['tradeRequirements'];
+    PokemonTradeEvolutionRequirements? trade;
+    if (method == 'trade') {
+      if (json.keys.any(
+        (key) => !const {
+          'targetSpeciesId',
+          'method',
+          'minLevel',
+          'minFriendship',
+          'itemId',
+          'requiredMoveId',
+          'conditionText',
+          'tradeRequirements',
+        }.contains(key),
+      )) {
+        throw const FormatException('Unknown native trade evolution field.');
+      }
+      if (rawTrade is! Map || rawTrade.keys.any((key) => key is! String)) {
+        throw const FormatException(
+          'Native trade evolution requires a closed requirement object.',
+        );
+      }
+      trade = PokemonTradeEvolutionRequirements.fromJson(
+        rawTrade.cast<String, dynamic>(),
+      );
+    } else if (rawTrade != null) {
+      throw const FormatException(
+        'Trade requirements require a native trade evolution.',
+      );
+    }
+    return PokemonEvolutionEntry(
         targetSpeciesId: (json['targetSpeciesId'] as String?)?.trim() ?? '',
-        method: (json['method'] as String?)?.trim() ?? '',
+        method: method,
         minLevel: (json['minLevel'] as num?)?.toInt(),
         minFriendship: (json['minFriendship'] as num?)?.toInt(),
         itemId: _readOptionalTrimmedString(json['itemId']),
         requiredMoveId: _readOptionalTrimmedString(json['requiredMoveId']),
         conditionText: _readStringMap(json['conditionText']),
-      );
+      tradeRequirements: trade,
+    ).validated();
+  }
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  PokemonEvolutionEntry validated() {
+    if (method == 'trade') {
+      if (tradeRequirements == null ||
+          minLevel != null ||
+          minFriendship != null ||
+          itemId != null ||
+          requiredMoveId != null) {
+        throw const FormatException(
+          'Native trade evolution contains incompatible requirements.',
+        );
+      }
+      tradeRequirements!.validated();
+    } else if (tradeRequirements != null) {
+      throw const FormatException(
+        'Trade requirements require a native trade evolution.',
+      );
+    }
+    return this;
+  }
+
+  Map<String, Object?> toJson() {
+    validated();
+    return <String, Object?>{
     'targetSpeciesId': targetSpeciesId,
     'method': method,
     'minLevel': minLevel,
@@ -929,7 +988,10 @@ class PokemonEvolutionEntry {
     'itemId': itemId,
     'requiredMoveId': requiredMoveId,
     'conditionText': Map<String, String>.from(conditionText),
-  };
+      if (tradeRequirements != null)
+        'tradeRequirements': tradeRequirements!.toJson(),
+    };
+  }
 }
 
 class PokemonEvolutionFile {

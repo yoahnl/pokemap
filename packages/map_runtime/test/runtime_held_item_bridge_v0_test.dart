@@ -55,6 +55,199 @@ void main() {
       expect(unsupported.status, RuntimeHeldItemSupportStatus.unsupported);
     });
 
+    test('only explicit native passive effects are neutral in battle', () {
+      final catalog = ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            ProjectItemDefinition(
+              id: 'guard',
+              displayName: 'Guard',
+              pocketId: 'held-items',
+              heldEffectId: 'prevent_evolution',
+            ),
+            ProjectItemDefinition(
+              id: 'unknown',
+              displayName: 'Unknown',
+              pocketId: 'held-items',
+              heldEffectId: 'future_effect',
+            ),
+            ProjectItemDefinition(
+              id: 'alias',
+              displayName: 'Alias',
+              pocketId: 'held-items',
+              heldEffectId: 'prevent-evolution',
+            ),
+          ],
+        ),
+      );
+      final native = resolveRuntimeHeldItemEffect(
+        itemCatalog: catalog,
+        itemId: 'guard',
+      );
+      expect(native.isRuntimeSupported, isTrue);
+      expect(native.heldEffectId, PokemonPassiveHeldEffect.preventEvolution.id);
+      expect(
+        ItemEffectRegistry().supportsHeldEffect(native.heldEffectId!),
+        isFalse,
+      );
+      for (final id in ['unknown', 'alias', 'absent']) {
+        expect(
+          resolveRuntimeHeldItemEffect(
+            itemCatalog: catalog,
+            itemId: id,
+          ).isRuntimeSupported,
+          isFalse,
+          reason: id,
+        );
+      }
+    });
+
+    test('native passive held items reconcile unchanged removed and received slots', () {
+      final state = PsdkBattleState.fromSetup(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+          player: _combatant(id: 'player_0', heldItemId: 'prevent_evolution'),
+          playerReserves: [
+            _combatant(id: 'player_1'),
+            _combatant(id: 'player_2', heldItemId: 'prevent_evolution'),
+            _combatant(id: 'player_3'),
+          ],
+          opponent: _combatant(id: 'opponent_0'),
+          rngSeeds: _rngSeeds,
+        ),
+      );
+      const saved = GameState(
+        saveId: 'native-held-writeback',
+        party: PlayerParty(
+          members: [
+            PlayerPokemon(
+              speciesId: 'a',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              heldItemId: 'guard',
+            ),
+            PlayerPokemon(
+              speciesId: 'b',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              heldItemId: 'guard',
+            ),
+            PlayerPokemon(
+              speciesId: 'c',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+            ),
+            PlayerPokemon(
+              speciesId: 'd',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+            ),
+          ],
+        ),
+      );
+      final catalog = ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            ProjectItemDefinition(
+              id: 'guard',
+              displayName: 'Guard',
+              pocketId: 'held-items',
+              heldEffectId: 'prevent_evolution',
+            ),
+          ],
+        ),
+      );
+      final result = writePlayerPsdkHeldItemsBackToPartySlots(
+        gameState: saved,
+        context: _context(),
+        psdkState: state,
+        itemCatalog: catalog,
+      );
+      expect(result.party.members.map((pokemon) => pokemon.heldItemId), [
+        'guard',
+        '',
+        'guard',
+        '',
+      ]);
+    });
+
+    test(
+      'a native evolution guard can be equipped and returned to the bag',
+      () async {
+        var state = const GameState(
+          saveId: 'native-equip',
+          party: PlayerParty(
+            members: [
+              PlayerPokemon(
+                individualId: 'lead',
+                speciesId: 'machoke',
+                natureId: 'hardy',
+                abilityId: 'guts',
+              ),
+            ],
+          ),
+          bag: Bag(entries: [BagEntry(itemId: 'guard', quantity: 1)]),
+        );
+        final saved = <GameState>[];
+        final controller = PlayerServiceRuntimeController.contextual(
+          currentGameState: () => state,
+          commitAndSave: (next) async {
+            saved.add(next);
+            state = next;
+          },
+          setInputLocked: (_) {},
+          loadRecoveryCaps: (_) async =>
+              throw StateError('No healing requested'),
+          itemCatalog: ItemCatalogSnapshot.fromCatalog(
+            const ProjectItemCatalog(
+              schemaVersion: 1,
+              entries: [
+                ProjectItemDefinition(
+                  id: 'guard',
+                  displayName: 'Evolution Guard',
+                  pocketId: 'held-items',
+                  heldEffectId: 'prevent_evolution',
+                ),
+              ],
+            ),
+          ),
+        );
+        addTearDown(controller.dispose);
+        expect(
+          (await controller.useBagItemOutsideBattle(
+            const RuntimePlayerPauseCommand.equipHeldItem(
+              itemTargetId: 'guard',
+              partyTargetId: 'party.0',
+            ),
+          )).status,
+          RuntimePlayerPauseCommandStatus.accepted,
+        );
+        expect(state.party.members.single.heldItemId, 'guard');
+        expect(
+          state.bag.entries.where(
+            (entry) => entry.itemId == 'guard' && entry.quantity > 0,
+          ),
+          isEmpty,
+        );
+        expect(
+          (await controller.useBagItemOutsideBattle(
+            const RuntimePlayerPauseCommand.unequipHeldItem(
+              partyTargetId: 'party.0',
+            ),
+          )).status,
+          RuntimePlayerPauseCommandStatus.accepted,
+        );
+        expect(state.party.members.single.heldItemId, '');
+        expect(
+          state.bag.entries
+              .singleWhere((entry) => entry.itemId == 'guard')
+              .quantity,
+          1,
+        );
+        expect(saved, hasLength(2));
+    });
+
     test('a runtime seed hydrates and executes its held-item effect', () {
       final playerSeed = RuntimePsdkBattleCombatantSeed(
         speciesId: 'player',

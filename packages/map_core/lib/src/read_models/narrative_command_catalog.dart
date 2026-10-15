@@ -26,6 +26,7 @@ abstract final class NarrativeCommandIds {
   static const openHeal = 'openHeal';
   static const openPc = 'openPc';
   static const openRegionalMap = 'openRegionalMap';
+  static const openPartyTrade = 'openPartyTrade';
   static const dialogue = 'dialogue';
   static const trainerBattle = 'trainerBattle';
   static const staticEncounter = 'staticEncounter';
@@ -77,6 +78,7 @@ final class NarrativeCommandCatalog {
       String lot,
       List<NarrativeCommandParameterDescriptor> parameters, {
       String? wireId,
+      bool isPersistent = false,
     }
     ) =>
         NarrativeCommandDescriptor(
@@ -89,6 +91,7 @@ final class NarrativeCommandCatalog {
           wireId: wireId ?? 'SceneInteractiveCommand.$id',
           parameters: parameters,
           isAwaitable: true,
+      isPersistent: isPersistent,
         );
     NarrativeCommandDescriptor node(
       String id,
@@ -619,6 +622,13 @@ final class NarrativeCommandCatalog {
         'Afficher la carte régionale',
         'FG-164',
         const [],
+      ),
+      interactive(
+        NarrativeCommandIds.openPartyTrade,
+        'Échanger deux Pokémon de l’équipe',
+        'FG-055',
+        const [],
+        isPersistent: true,
       ),
       interactive(
         NarrativeCommandIds.movePlatform,

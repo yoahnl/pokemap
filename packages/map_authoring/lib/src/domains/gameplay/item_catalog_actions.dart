@@ -466,6 +466,20 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
         : AuthoringRiskLevel.medium,
     resourceKinds: const <String>['itemCatalog', 'itemDefinition'],
     capabilityIds: const <String>['authoring.gameplay.items'],
+    extensions: id == 'item.set_held_effect'
+        ? {
+            'heldEffectIds':
+                itemSystemV1CapabilityTruth.supportedHeldEffectIds.toList()
+                  ..sort(),
+            'nativePassiveEffects': {
+              PokemonPassiveHeldEffect.preventEvolution.id: {
+                'evolution': 'prevented',
+                'battle': 'neutral',
+                'consumed': false,
+              },
+            },
+          }
+        : const {},
     requiredPermissions: const <AuthoringPermission>[
       AuthoringPermission.projectWrite,
     ],

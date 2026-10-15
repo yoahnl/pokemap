@@ -87,6 +87,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
           command,
           legacyHandler: openPc,
         ),
+      SceneInteractiveCommandKind.openPartyTrade => await _executeService(
+        command,
+        legacyHandler: null,
+      ),
       SceneInteractiveCommandKind.openRegionalMap => await _executeService(
           command,
           legacyHandler: null,
@@ -183,6 +187,9 @@ final class SceneInteractiveCommandRuntimeExecutor {
           interactionId: 'scene.openPc:${storageId ?? 'default'}',
           storageId: storageId,
         ),
+      SceneOpenPartyTradeInteractiveCommand() => const OpenPartyTradeService(
+        interactionId: 'scene.openPartyTrade',
+      ),
       SceneOpenRegionalMapInteractiveCommand() => const OpenRegionalMapService(
           interactionId: 'scene.openRegionalMap',
         ),

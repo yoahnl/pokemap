@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
@@ -7,6 +10,114 @@ import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart'
 
 void main() {
   group('RuntimeBattleRewardResolver', () {
+    test('real held catalog prevents level evolution without losing XP or the physical item', () async {
+      final root = await Directory.systemTemp.createTemp(
+        'native-held-post-battle-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final file = File('${root.path}/items.json');
+      await file.writeAsString(
+        jsonEncode(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'native-guard',
+                displayName: 'Evolution Guard',
+                pocketId: 'held-items',
+                heldEffectId: 'prevent_evolution',
+              ),
+              ProjectItemDefinition(
+                id: 'native-leftovers',
+                displayName: 'Leftovers',
+                pocketId: 'held-items',
+                heldEffectId: 'leftovers',
+              ),
+              ProjectItemDefinition(
+                id: 'unknown',
+                displayName: 'Unknown',
+                pocketId: 'held-items',
+                heldEffectId: 'unqualified_effect',
+              ),
+            ],
+          ).toJson(),
+        ),
+      );
+      final base = _bundle();
+      final bundle = RuntimeMapBundle(
+        manifest: base.manifest.copyWith(
+          pokemon: base.manifest.pokemon.copyWith(
+            catalogFiles: {'items': 'items.json'},
+          ),
+        ),
+        map: base.map,
+        projectRootDirectory: root.path,
+        tilesetAbsolutePathsById: base.tilesetAbsolutePathsById,
+      );
+      final resolver = RuntimeBattleRewardResolver(
+        loadSpecies: _SpeciesLoader({
+          'hero': _species('hero', baseExp: 64),
+          'foe': _species('foe', baseExp: 200),
+        }).load,
+        loadMoveLearningCandidates: _LearnsetLoader(const []).load,
+        loadEvolutionCandidates: _EvolutionLoader([
+          PokemonEvolutionCandidate(
+            opportunityId: 'native-level-evolution',
+            sourceSpeciesId: 'hero',
+            targetSpeciesId: 'hero_evolved',
+            minLevel: 6,
+            targetBaseStats: const PokemonBaseStats(
+              hp: 60,
+              attack: 62,
+              defense: 63,
+              specialAttack: 80,
+              specialDefense: 80,
+              speed: 60,
+            ),
+            targetPrimaryAbilityId: 'hero_power',
+            targetAbilityIds: ['hero_power'],
+          ),
+        ]).load,
+      );
+      for (final held in ['native-guard', 'native-leftovers', 'unknown']) {
+        final state = _state().copyWith(
+          party: PlayerParty(
+            members: [_state().party.members.single.copyWith(heldItemId: held)],
+          ),
+        );
+        final running = resolver.resolve(
+          bundle: bundle,
+          postWriteBackState: state,
+          runtimeContext: _context(_wildRequest()),
+          outcome: _outcome(level: 20),
+        );
+        if (held == 'unknown') {
+          await expectLater(
+            running,
+            throwsA(isA<RuntimePostBattleResolutionException>()),
+          );
+          continue;
+        }
+        final resolution = await running;
+        expect(
+          resolution.progression.state.party.members.single.heldItemId,
+          held,
+        );
+        expect(
+          resolution.progression.state.party.members.single.level,
+          greaterThan(5),
+        );
+        expect(
+          resolution.progression.state.party.members.single.experience,
+          greaterThan(125),
+        );
+        expect(
+          resolution.progression.pendingEvolution != null,
+          held == 'native-leftovers',
+        );
+      }
+    });
+
     test('previews levels, loads crossed catalog data, then replays once',
         () async {
       final speciesLoader = _SpeciesLoader(<String, RuntimePokemonSpecies>{

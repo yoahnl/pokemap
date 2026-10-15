@@ -174,6 +174,8 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                               ),
                             RuntimeWorldServiceKind.regionalMap =>
                               PlayerRegionalMapOverlay(snapshot: service, onCommand: command),
+                            RuntimeWorldServiceKind.partyTrade =>
+                              PlayerPartyTradeOverlay(snapshot: service, onCommand: command),
                           };
                         },
                       ),

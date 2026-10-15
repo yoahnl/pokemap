@@ -21,3 +21,5 @@ export 'src/operations/validate_spatial_world_state.dart';
 export 'src/read_models/spatial_gameplay_capabilities.dart';
 
 export 'src/models/pokedex_species_range.dart';
+
+export 'src/models/pokemon_trade_evolution.dart';

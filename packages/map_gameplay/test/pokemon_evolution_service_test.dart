@@ -28,12 +28,109 @@ void main() {
     ),
   );
 
+  final nativeHeldCatalog = ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog(
+    schemaVersion: 1,
+    entries: [
+      ...itemCatalog.definitions,
+      const ProjectItemDefinition(
+          id: 'native-guard',
+          displayName: 'Evolution Guard',
+          pocketId: 'held-items',
+          heldEffectId: 'prevent_evolution'),
+      const ProjectItemDefinition(
+          id: 'native-leftovers',
+          displayName: 'Leftovers',
+          pocketId: 'held-items',
+          heldEffectId: 'leftovers'),
+    ],
+  ));
+
+  test(
+      'native evolution guard prevents item evolution without consuming either item',
+      () {
+    final state =
+        _state([_pokemon(currentHp: 20).copyWith(heldItemId: 'native-guard')])
+            .copyWith(
+                bag: const Bag(
+                    entries: [BagEntry(itemId: 'leaf-stone', quantity: 1)]));
+    final result = const PokemonEvolutionItemOperations().useItem(state,
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        itemId: 'leaf-stone',
+        partyIndex: 0,
+        candidate: _candidate(
+            condition:
+                const PokemonEvolutionCondition.item(itemId: 'leaf-stone')),
+        sourceMaxHp: 20,
+        itemCatalog: nativeHeldCatalog);
+    expect(result.isSuccess, false);
+    expect(result.state, same(state));
+    expect(result.consumptionReceipt, isNull);
+    expect(result.state.party.members.single.heldItemId, 'native-guard');
+    expect(result.state.bag.entries.single.quantity, 1);
+  });
+  test(
+      'ordinary known held effects allow level evolution and unknown items refuse it',
+      () {
+    BattleProgressionResult run(String heldId) =>
+        const BattleProgressionService().apply(
+            state:
+                _state([_pokemon(currentHp: 19).copyWith(heldItemId: heldId)]),
+            context: _context(evolutionCandidatesBySlot: {
+              0: [_candidate(minLevel: 6)]
+            }),
+            reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+            itemCatalog: nativeHeldCatalog);
+    expect(run('native-leftovers').pendingEvolution, isNotNull);
+    expect(() => run('unknown-held-item'), throwsStateError);
+  });
+
+  test(
+      'native evolution guard prevents a level offer while preserving earned XP',
+      () {
+    final result = const BattleProgressionService().apply(
+        state: _state(
+            [_pokemon(currentHp: 19).copyWith(heldItemId: 'native-guard')]),
+        context: _context(evolutionCandidatesBySlot: {
+          0: [_candidate(minLevel: 6)]
+        }),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+        itemCatalog: nativeHeldCatalog);
+    expect(result.pendingEvolution, isNull);
+    expect(result.remainingEvolutionCount, 0);
+    expect(result.state.party.members.single.level, 6);
+    expect(result.state.party.members.single.speciesId, 'sproutle');
+    expect(result.state.party.members.single.heldItemId, 'native-guard');
+    expect(result.changes.single.experienceAwarded, greaterThan(0));
+  });
+
+  test('known held items allow item evolution and unknown held ids refuse', () {
+    for (final held in ['native-leftovers', 'missing-item']) {
+      final state = _state([_pokemon(currentHp: 20).copyWith(heldItemId: held)])
+          .copyWith(
+              bag: const Bag(
+                  entries: [BagEntry(itemId: 'leaf-stone', quantity: 1)]));
+      final result = const PokemonEvolutionItemOperations().useItem(state,
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          itemId: 'leaf-stone',
+          partyIndex: 0,
+          candidate: _candidate(
+              condition:
+                  const PokemonEvolutionCondition.item(itemId: 'leaf-stone')),
+          sourceMaxHp: 20,
+          itemCatalog: nativeHeldCatalog);
+      expect(result.isSuccess, held == 'native-leftovers');
+      expect(result.state.party.members.single.heldItemId, held);
+      expect(const BagOperations().quantityOf(result.state.bag, 'leaf-stone'),
+          held == 'native-leftovers' ? 0 : 1);
+    }
+  });
+
   group('PokemonEvolutionService', () {
     test('accept preserves identity fields and a compatible ability', () {
       final source = _pokemon(
         currentHp: 15,
         abilityId: 'shared_ability',
-      );
+      ).copyWith(heldItemId: 'oran_berry');
 
       final result = evolutionService.evolve(
         ruleset: PokemonRulesetProfile.pokeMapBetaV1,
@@ -773,7 +870,7 @@ PlayerPokemon _pokemon({
     currentHp: currentHp,
     statusId: 'poison',
     isShiny: true,
-    heldItemId: 'oran_berry',
+    heldItemId: '',
   );
 }
 

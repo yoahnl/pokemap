@@ -394,6 +394,7 @@ String _formatDebugStringList(List<String> values) {
 enum RuntimeHeldItemSupportStatus {
   invalidDefinition,
   passive,
+  nativePassive,
   supported,
   unsupported,
 }
@@ -408,6 +409,10 @@ final class RuntimeHeldItemEffectResolution {
   final String itemId;
   final String? heldEffectId;
   final RuntimeHeldItemSupportStatus status;
+
+  bool get isRuntimeSupported =>
+      status == RuntimeHeldItemSupportStatus.supported ||
+      status == RuntimeHeldItemSupportStatus.nativePassive;
 }
 
 RuntimeHeldItemEffectResolution resolveRuntimeHeldItemEffect({
@@ -431,6 +436,13 @@ RuntimeHeldItemEffectResolution resolveRuntimeHeldItemEffect({
       itemId: definition.id,
       heldEffectId: null,
       status: RuntimeHeldItemSupportStatus.passive,
+    );
+  }
+  if (PokemonPassiveHeldEffect.fromId(definition.heldEffectId) != null) {
+    return RuntimeHeldItemEffectResolution(
+      itemId: definition.id,
+      heldEffectId: heldEffectId,
+      status: RuntimeHeldItemSupportStatus.nativePassive,
     );
   }
   return RuntimeHeldItemEffectResolution(
@@ -908,7 +920,8 @@ class RuntimeBattleCombatantSeedBuilder {
       itemId: trimmed,
     );
     return switch (resolution.status) {
-      RuntimeHeldItemSupportStatus.supported => resolution.heldEffectId,
+      RuntimeHeldItemSupportStatus.supported ||
+      RuntimeHeldItemSupportStatus.nativePassive => resolution.heldEffectId,
       RuntimeHeldItemSupportStatus.invalidDefinition =>
         throw RuntimeBattleSetupException(
           '$combatantLabel tient un objet absent du catalogue.',

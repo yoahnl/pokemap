@@ -21,6 +21,7 @@ enum SceneInteractiveCommandKind {
   openHeal,
   openPc,
   openRegionalMap,
+  openPartyTrade,
   playCharacterAnimation,
   playModelAnimation,
   railJourney,
@@ -107,6 +108,9 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.openRegionalMap() =
       SceneOpenRegionalMapInteractiveCommand;
 
+  factory SceneInteractiveCommand.openPartyTrade() =
+      SceneOpenPartyTradeInteractiveCommand;
+
   factory SceneInteractiveCommand.playCharacterAnimation({
     required CharacterCustomAnimationRuntimeCommand runtimeCommand,
   }) = SceneCharacterCustomAnimationInteractiveCommand;
@@ -192,6 +196,8 @@ abstract base class SceneInteractiveCommand {
       ),
       SceneInteractiveCommandKind.openRegionalMap =>
         SceneOpenRegionalMapInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.openPartyTrade =>
+        SceneOpenPartyTradeInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playCharacterAnimation =>
         SceneCharacterCustomAnimationInteractiveCommand(
           runtimeCommand: CharacterCustomAnimationRuntimeCommand.fromJson(
@@ -918,6 +924,40 @@ final class SceneOpenRegionalMapInteractiveCommand extends SceneInteractiveComma
 
   @override
   bool operator ==(Object other) => other is SceneOpenRegionalMapInteractiveCommand;
+
+  @override
+  int get hashCode => kind.hashCode;
+}
+
+@immutable
+final class SceneOpenPartyTradeInteractiveCommand
+    extends SceneInteractiveCommand {
+  const SceneOpenPartyTradeInteractiveCommand();
+
+  factory SceneOpenPartyTradeInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    if (json.keys.any((key) => key != 'kind')) {
+      throw const FormatException(
+        'Party trade commands do not accept options.',
+      );
+    }
+    return const SceneOpenPartyTradeInteractiveCommand();
+  }
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.openPartyTrade;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'cancelled'];
+
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name};
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneOpenPartyTradeInteractiveCommand;
 
   @override
   int get hashCode => kind.hashCode;

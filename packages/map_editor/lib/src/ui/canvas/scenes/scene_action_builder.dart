@@ -108,6 +108,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   bool _is2DPresentationCommand(String id) =>
       id == NarrativeCommandIds.openRegionalMap ||
+      id == NarrativeCommandIds.openPartyTrade ||
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||

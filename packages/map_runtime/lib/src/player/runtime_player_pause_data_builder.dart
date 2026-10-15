@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/runtime_pokemon_evolution_loader.dart';
+import '../application/runtime_pokemon_evolution_held_item_policy.dart';
 import '../application/dialogue_portrait_resolver.dart';
 import '../application/runtime_item_catalog_loader.dart';
 import '../application/runtime_battle_combatant_seed_builder.dart';
@@ -68,6 +69,7 @@ final class RuntimePlayerPauseDataBuilder {
     final isFrench = (uiLocale ?? locale).toLowerCase().startsWith('fr');
     final evolutionItemIds = await _loadEvolutionItemIds(
       gameState,
+      itemCatalog: resolvedItemCatalog,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
     );
@@ -443,7 +445,7 @@ final class RuntimePlayerPauseDataBuilder {
         itemCatalog: itemCatalog,
         itemId: entry.itemId,
       );
-      if (resolution.status != RuntimeHeldItemSupportStatus.supported) continue;
+      if (!resolution.isRuntimeSupported) continue;
       final definition = itemCatalog.definitionFor(entry.itemId);
       if (definition == null) continue;
       options.add(
@@ -683,6 +685,7 @@ final class RuntimePlayerPauseDataBuilder {
 
   Future<Set<String>> _loadEvolutionItemIds(
     GameState gameState, {
+    required ItemCatalogSnapshot itemCatalog,
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
   }) async {
@@ -693,8 +696,10 @@ final class RuntimePlayerPauseDataBuilder {
     if (ownedItemIds.isEmpty) return const <String>{};
     final itemIds = <String>{};
     final loadedSpeciesIds = <String>{};
+    final heldPolicy = resolveRuntimeEvolutionHeldItemPolicy(itemCatalog);
     final loader = RuntimePokemonEvolutionLoader();
     for (final pokemon in gameState.party.members) {
+      if (!heldPolicy.recognizes(pokemon.heldItemId) || heldPolicy.preventsEvolution(pokemon.heldItemId)) continue;
       if (!loadedSpeciesIds.add(pokemon.speciesId)) continue;
       try {
         final candidates = <PokemonEvolutionCandidate>[];

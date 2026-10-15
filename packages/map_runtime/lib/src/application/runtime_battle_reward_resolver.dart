@@ -7,6 +7,8 @@ import 'runtime_battle_progression_context_mapper.dart';
 import 'runtime_map_bundle.dart';
 import 'battle_start_request.dart';
 import 'runtime_pokemon_evolution_loader.dart';
+import 'runtime_item_catalog_loader.dart';
+import 'runtime_pokemon_evolution_held_item_policy.dart';
 import 'runtime_pokemon_learnset_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
 
@@ -235,6 +237,11 @@ final class RuntimeBattleRewardResolver {
         );
       }
 
+      final heldCatalog = postWriteBackState.party.members.any((member) => member.heldItemId.isNotEmpty)
+          ? await const RuntimeItemCatalogLoader().loadSnapshot(
+              projectRootDirectory: bundle.projectRootDirectory, pokemonConfig: bundle.manifest.pokemon)
+          : ItemCatalogSnapshot.empty();
+      final heldPolicy = resolveRuntimeEvolutionHeldItemPolicy(heldCatalog);
       final context = BattleProgressionContext(
         outcome: mapped.outcome,
         ruleset: bundle.manifest.pokemon.ruleset,
@@ -249,6 +256,7 @@ final class RuntimeBattleRewardResolver {
         context: context,
         reward: reward,
         applyAuthoredRewards: false,
+        evolutionHeldItemPolicy: heldPolicy,
       );
       return RuntimeBattleRewardResolution(
         baseState: postWriteBackState,

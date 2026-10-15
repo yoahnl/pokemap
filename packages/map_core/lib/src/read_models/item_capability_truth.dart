@@ -1,3 +1,4 @@
+import '../models/pokemon_trade_evolution.dart';
 import '../models/items/project_item_capabilities.dart';
 import '../models/items/project_item_effect_definition.dart';
 
@@ -70,8 +71,14 @@ final class ItemCapabilityTruth {
   bool supportsSemanticAction(String actionId) =>
       supportedSemanticActionIds.contains(actionId.trim());
 
-  bool supportsHeldEffect(String heldEffectId) => supportedHeldEffectIds
-      .contains(heldEffectId.trim().toLowerCase().replaceAll('-', '_'));
+  bool supportsHeldEffect(String heldEffectId) {
+    final normalized = heldEffectId.trim().toLowerCase().replaceAll('-', '_');
+    if (PokemonPassiveHeldEffect.fromId(normalized) != null &&
+        normalized != heldEffectId) {
+      return false;
+    }
+    return supportedHeldEffectIds.contains(normalized);
+  }
 }
 
 final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
@@ -105,7 +112,7 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
       effect: ProjectItemEffectCapability.revive,
     ),
   },
-  supportedHeldEffectIds: <String>{'leftovers'},
+  supportedHeldEffectIds: <String>{'leftovers', 'prevent_evolution'},
   supportsCapture: true,
   supportsMoveMachines: true,
 );

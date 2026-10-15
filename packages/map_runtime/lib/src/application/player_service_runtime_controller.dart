@@ -13,8 +13,11 @@ import 'runtime_move_machine_loader.dart';
 import 'runtime_item_catalog_loader.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_evolution_loader.dart';
+import 'runtime_pokemon_evolution_held_item_policy.dart';
 import 'runtime_pokemon_species_loader.dart';
 import '../player/runtime_pokemon_summary.dart';
+
+part 'runtime_party_trade_service.dart';
 
 final class RuntimePlayerServiceRecoveryCaps {
   const RuntimePlayerServiceRecoveryCaps({
@@ -242,6 +245,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   _ContextualPcSession? _pcSession;
   _ContextualRegionalMapSession? _regionalMapSession;
   var _regionalMapRevision = -1;
+  _ContextualPartyTradeSession? _partyTradeSession;
+  var _partyTradeRevision = -1;
   _ContextualTextSession? _textSession;
   var _textRevision = -1;
 
@@ -770,6 +775,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             safeMessage:
                 'Cet effet d’objet tenu n’est pas pris en charge en combat.',
           );
+        case RuntimeHeldItemSupportStatus.nativePassive:
         case RuntimeHeldItemSupportStatus.supported:
           break;
       }
@@ -1034,6 +1040,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
     try {
       final pokemon = state.party.members[partyIndex];
+      final heldPolicy = resolveRuntimeEvolutionHeldItemPolicy(itemCatalog);
+      if (!heldPolicy.recognizes(pokemon.heldItemId) || heldPolicy.preventsEvolution(pokemon.heldItemId)) {
+        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'L’objet tenu ne permet pas cette évolution.');
+      }
       final candidates = await _evolutionLoader.loadItemUseCandidates(
         projectRootDirectory: projectRootDirectory,
         pokemonConfig: pokemonConfig,
@@ -1078,6 +1089,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               candidate: eligible.single,
               sourceMaxHp: maxHp,
               itemCatalog: itemCatalog,
+              heldItemPolicy: heldPolicy,
             )
           : const PokemonEvolutionItemOperations().useItemByIndividualId(
               state,
@@ -1087,6 +1099,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               candidate: eligible.single,
               sourceMaxHp: maxHp,
               itemCatalog: itemCatalog,
+              heldItemPolicy: heldPolicy,
             );
       if (!result.isSuccess) {
         return const RuntimePlayerPauseCommandResult(
@@ -1294,6 +1307,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           : PlayerServiceRuntimeResult.completed(_currentGameState()));
       return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.accepted);
     }
+    final trade = _partyTradeSession;
+    if (trade != null) return _dispatchPartyTrade(trade, command);
     final text = _textSession;
     if (text != null) return _dispatchText(text, command);
     return const RuntimeWorldServiceCommandResult(
@@ -2334,6 +2349,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    await _disposePartyTrade();
     final shop = _shopSession;
     if (shop != null && !shop.result.isCompleted) {
       shop.result.complete(const PlayerServiceHostResult.cancelled());

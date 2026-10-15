@@ -60,6 +60,20 @@ final class SceneActions {
     'outputPorts': ['completed'],
   };
 
+  static const _openPartyTradeContract = {
+    'projectDimension': 'twoD',
+    'parameters': [],
+    'selection': 'individualIdentity',
+    'teamOrder': 'preserved',
+    'partner': 'unchanged',
+    'evolution': 'firstPokemonNativeTradeRules',
+    'cancellation': 'noMutation',
+    'commit': 'onceAfterConfirmation',
+    'completion': 'closed',
+    'persistent': true,
+    'outputPorts': ['completed', 'cancelled'],
+  };
+
   static const _openRegionalMapContract = {
     'projectDimension': 'twoD',
     'parameters': [],
@@ -177,6 +191,7 @@ final class SceneActions {
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
+        'openPartyTrade': _openPartyTradeContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
         'actorRoute': _actorRouteContract,
@@ -221,6 +236,7 @@ final class SceneActions {
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
+        'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
       },
@@ -266,6 +282,7 @@ final class SceneActions {
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
+        'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
         'badgeCondition': {

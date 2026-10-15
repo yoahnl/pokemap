@@ -34,6 +34,7 @@ void main() {
       NarrativeCommandIds.openHeal,
       NarrativeCommandIds.openPc,
       NarrativeCommandIds.openRegionalMap,
+      NarrativeCommandIds.openPartyTrade,
       NarrativeCommandIds.dialogue,
       NarrativeCommandIds.trainerBattle,
       NarrativeCommandIds.staticEncounter,
@@ -110,6 +111,8 @@ void main() {
       NarrativeCommandIds.openHeal: 'SceneInteractiveCommand.openHeal',
       NarrativeCommandIds.openPc: 'SceneInteractiveCommand.openPc',
       NarrativeCommandIds.openRegionalMap: 'SceneInteractiveCommand.openRegionalMap',
+      NarrativeCommandIds.openPartyTrade:
+          'SceneInteractiveCommand.openPartyTrade',
       NarrativeCommandIds.playCharacterAnimation:
           'SceneInteractiveCommand.playCharacterAnimation',
       NarrativeCommandIds.playModelAnimation:

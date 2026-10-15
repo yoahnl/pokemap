@@ -35,6 +35,36 @@ void main() {
       expect(actionIds, _durableItemActionIds);
     });
 
+    test('native evolution prevention is authored through API and JSONL',
+        () async {
+      const scenario = _ItemMutationScenario('item.set_held_effect', {
+        'itemId': 'potion',
+        'heldEffectId': 'prevent_evolution',
+      });
+      for (final jsonl in [false, true]) {
+        final harness =
+            await _ItemTransportHarness.create('native-held-$jsonl');
+        addTearDown(harness.dispose);
+        final result = jsonl
+            ? await harness.executeJsonl(scenario)
+            : await harness.executeDirect(scenario);
+        expect(
+            ProjectItemCatalog.fromJson(result.catalog)
+                .entries
+                .singleWhere((item) => item.id == 'potion')
+                .heldEffectId,
+            PokemonPassiveHeldEffect.preventEvolution.id);
+        final refusal = const _ItemMutationScenario('item.set_held_effect', {
+          'itemId': 'potion',
+          'heldEffectId': 'prevent-evolution',
+        });
+        final rejected = jsonl
+            ? await harness.refuseJsonl(refusal)
+            : await harness.refuseDirect(refusal);
+        expect(rejected.beforeCatalog, rejected.afterCatalog);
+      }
+    });
+
     test('executes every mutation through direct API and JSONL', () async {
       final executedByTransport = <String, Set<String>>{
         'direct': <String>{},

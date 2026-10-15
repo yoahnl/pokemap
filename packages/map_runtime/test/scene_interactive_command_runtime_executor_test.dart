@@ -28,6 +28,8 @@ void main() {
           OpenShopService() => SceneInteractiveCommandKind.openShop,
           OpenHealService() => SceneInteractiveCommandKind.openHeal,
           OpenPcService() => SceneInteractiveCommandKind.openPc,
+            OpenPartyTradeService() =>
+              SceneInteractiveCommandKind.openPartyTrade,
           OpenRegionalMapService() => SceneInteractiveCommandKind.openRegionalMap,
           _ => throw StateError('Unexpected service'),
         });
@@ -67,6 +69,7 @@ void main() {
       SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.openPc(),
       SceneInteractiveCommand.openRegionalMap(),
+        SceneInteractiveCommand.openPartyTrade(),
       SceneInteractiveCommand.playCharacterAnimation(
         runtimeCommand: CharacterCustomAnimationRuntimeCommand(
           actorId: 'npc.guard',

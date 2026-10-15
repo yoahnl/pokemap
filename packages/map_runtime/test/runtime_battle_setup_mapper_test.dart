@@ -9,6 +9,7 @@ import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
@@ -34,6 +35,12 @@ final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
         heldEffectId: 'mystic_water',
       ),
       ProjectItemDefinition(
+        id: 'native-stone',
+        displayName: 'Evolution Guard',
+        pocketId: 'held-items',
+        heldEffectId: 'prevent_evolution',
+      ),
+      ProjectItemDefinition(
         id: 'custom-oran',
         displayName: 'Custom Oran',
         pocketId: 'held-items',
@@ -44,13 +51,15 @@ final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
 );
 
 void main() {
-  test('Item System V1 exposes only held effects registered by battle', () {
+  test(
+    'Item System V1 exposes battle effects or typed native passive effects', () {
     final registry = ItemEffectRegistry();
 
     for (final heldEffectId
         in itemSystemV1CapabilityTruth.supportedHeldEffectIds) {
       expect(
-        registry.supportsHeldEffect(heldEffectId),
+        registry.supportsHeldEffect(heldEffectId) ||
+              PokemonPassiveHeldEffect.fromId(heldEffectId) != null,
         isTrue,
         reason: heldEffectId,
       );
@@ -73,6 +82,74 @@ void main() {
         await tempProjectRoot.delete(recursive: true);
       }
     });
+
+    test(
+      'native evolution prevention stays held through a battle turn and save',
+      () async {
+        final manifest = await _writeAndLoadProjectManifest(
+          tempProjectRoot,
+          trainers: const <ProjectTrainerEntry>[],
+        );
+        final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+        const gameState = GameState(
+          saveId: 'native-passive-held',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['coil'],
+                currentPpByMoveId: <String, int>{'coil': 20},
+                currentHp: 23,
+                heldItemId: 'native-stone',
+              ),
+            ],
+          ),
+        );
+        final request = _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+          generationSeed: 0x12345678,
+        );
+        final setup = await RuntimePsdkBattleSetupMapper().map(
+          bundle: bundle,
+          gameState: gameState,
+          request: request,
+          itemCatalog: _heldItemCatalog,
+        );
+        expect(setup.player.heldItemId, 'prevent_evolution');
+        final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
+        final before = session.state.psdkState.battlerAt(psdkPlayerSlot);
+        expect(before.heldItemId, 'prevent_evolution');
+        expect(
+          before.effects.effects.map((effect) => effect.id),
+          isNot(contains('item:prevent_evolution')),
+        );
+        final slot = session.decisionRequest.fightChoices
+            .singleWhere((choice) => choice.moveId == 'coil')
+            .moveSlot;
+        session.submitPlayerChoice(PlayerBattleChoiceFight(slot));
+        final after = session.state.psdkState.battlerAt(psdkPlayerSlot);
+        expect(after.statStages.valueOf('accuracy'), 1);
+        expect(after.heldItemId, 'prevent_evolution');
+        expect(after.itemConsumed, isFalse);
+        final saved = writePlayerPsdkHeldItemsBackToPartySlots(
+          gameState: gameState,
+          context: RuntimeActiveBattleContext(
+            request: request,
+            playerPartyIndex: 0,
+          ),
+          psdkState: session.state.psdkState,
+          itemCatalog: _heldItemCatalog,
+        );
+        expect(saved.party.members.single.heldItemId, 'native-stone');
+        expect(
+          GameState.fromJson(saved.toJson()).party.members.single.heldItemId,
+          'native-stone',
+        );
+      });
 
     test('hydrates one wild request with a versioned generated individual',
         () async {

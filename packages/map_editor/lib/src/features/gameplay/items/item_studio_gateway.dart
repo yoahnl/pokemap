@@ -292,6 +292,9 @@ List<ItemStudioOption> _options(Iterable<String?> ids) {
 }
 
 String _label(String id) {
+  if (id == PokemonPassiveHeldEffect.preventEvolution.id) {
+    return 'Bloque l’évolution quand tenu';
+  }
   return id
       .split(RegExp(r'[_\-.]+'))
       .where((part) => part.isNotEmpty)

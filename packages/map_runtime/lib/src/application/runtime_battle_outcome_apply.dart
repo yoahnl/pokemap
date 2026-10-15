@@ -814,7 +814,7 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
           );
     final nextSavedItemId = finalEngineItemId == null
         ? ''
-        : savedResolution?.status == RuntimeHeldItemSupportStatus.supported &&
+        : savedResolution?.isRuntimeSupported == true &&
                 savedResolution?.heldEffectId == finalEngineItemId
             ? savedItemId
             : _canonicalItemIdForHeldEffect(
@@ -886,7 +886,7 @@ String _canonicalItemIdForHeldEffect({
       )
       .where(
         (resolution) =>
-            resolution.status == RuntimeHeldItemSupportStatus.supported &&
+            resolution.isRuntimeSupported &&
             resolution.heldEffectId == heldEffectId,
       )
       .toList(growable: false);

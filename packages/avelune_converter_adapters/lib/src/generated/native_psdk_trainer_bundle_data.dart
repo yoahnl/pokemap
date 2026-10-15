@@ -26687,14 +26687,15 @@ const nativePsdkTrainerBundleJson = r'''{
       "evolutions": [
         {
           "targetSpeciesId": "golem",
-          "method": "conditional",
+          "method": "trade",
           "minLevel": null,
           "minFriendship": null,
           "itemId": null,
           "requiredMoveId": null,
           "conditionText": {
             "psdk": "[{\"type\":\"trade\",\"value\":true}]"
-          }
+          },
+          "tradeRequirements": {}
         }
       ]
     },
@@ -26705,14 +26706,15 @@ const nativePsdkTrainerBundleJson = r'''{
       "evolutions": [
         {
           "targetSpeciesId": "golem_form1",
-          "method": "conditional",
+          "method": "trade",
           "minLevel": null,
           "minFriendship": null,
           "itemId": null,
           "requiredMoveId": null,
           "conditionText": {
             "psdk": "[{\"type\":\"trade\",\"value\":true}]"
-          }
+          },
+          "tradeRequirements": {}
         }
       ]
     },
@@ -26789,14 +26791,15 @@ const nativePsdkTrainerBundleJson = r'''{
       "evolutions": [
         {
           "targetSpeciesId": "machamp",
-          "method": "conditional",
+          "method": "trade",
           "minLevel": null,
           "minFriendship": null,
           "itemId": null,
           "requiredMoveId": null,
           "conditionText": {
             "psdk": "[{\"type\":\"trade\",\"value\":true}]"
-          }
+          },
+          "tradeRequirements": {}
         }
       ]
     },
@@ -26897,13 +26900,16 @@ const nativePsdkTrainerBundleJson = r'''{
       "evolutions": [
         {
           "targetSpeciesId": "steelix",
-          "method": "conditional",
+          "method": "trade",
           "minLevel": null,
           "minFriendship": null,
           "itemId": null,
           "requiredMoveId": null,
           "conditionText": {
             "psdk": "[{\"type\":\"trade\",\"value\":true},{\"type\":\"itemHold\",\"value\":\"metal_coat\"}]"
+          },
+          "tradeRequirements": {
+            "requiredHeldItemId": "metal_coat"
           }
         }
       ]
@@ -27076,13 +27082,16 @@ const nativePsdkTrainerBundleJson = r'''{
       "evolutions": [
         {
           "targetSpeciesId": "rhyperior",
-          "method": "conditional",
+          "method": "trade",
           "minLevel": null,
           "minFriendship": null,
           "itemId": null,
           "requiredMoveId": null,
           "conditionText": {
             "psdk": "[{\"type\":\"trade\",\"value\":true},{\"type\":\"itemHold\",\"value\":\"protector\"}]"
+          },
+          "tradeRequirements": {
+            "requiredHeldItemId": "protector"
           }
         }
       ]

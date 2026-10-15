@@ -5,7 +5,9 @@ import 'package:map_core/map_core.dart';
 import 'runtime_pokemon_summary.dart';
 import 'runtime_player_pause_data.dart';
 
-enum RuntimeWorldServiceKind { shop, heal, pc, textInput, regionalMap }
+enum RuntimeWorldServiceKind { shop, heal, pc, textInput, regionalMap,
+  partyTrade,
+}
 
 /// Typed request emitted by an interaction in the running world.
 ///
@@ -86,6 +88,51 @@ final class RuntimeRegionalMapServiceContent {
   const RuntimeRegionalMapServiceContent({required this.detail});
 
   final RuntimePlayerPauseDetailSnapshot detail;
+}
+
+final class OpenPartyTradeService extends RuntimeWorldServiceRequest {
+  const OpenPartyTradeService({
+    required super.interactionId,
+    super.requiredCapabilities,
+    super.availabilityCondition,
+  });
+
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.partyTrade;
+}
+
+enum RuntimePartyTradePhase {
+  selectFirst,
+  choosePartner,
+  selectPartner,
+  review,
+  completed,
+}
+
+final class RuntimePartyTradePokemonSnapshot {
+  const RuntimePartyTradePokemonSnapshot({
+    required this.individualId,
+    required this.speciesId,
+    required this.label,
+    required this.level,
+  });
+  final String individualId, speciesId, label;
+  final int level;
+}
+
+final class RuntimePartyTradeServiceContent {
+  RuntimePartyTradeServiceContent({
+    required this.phase,
+    required Iterable<RuntimePartyTradePokemonSnapshot> members,
+    this.firstIndividualId,
+    this.partnerIndividualId,
+    this.completionMessage,
+  }) : members = List.unmodifiable(members);
+  static const samePartnerTarget = 'trade:partner:self';
+  static const otherPartnerTarget = 'trade:partner:choose';
+  final RuntimePartyTradePhase phase;
+  final List<RuntimePartyTradePokemonSnapshot> members;
+  final String? firstIndividualId, partnerIndividualId, completionMessage;
 }
 
 final class OpenTextInputService extends RuntimeWorldServiceRequest {

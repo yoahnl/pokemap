@@ -5,6 +5,7 @@ import 'battle_reward.dart';
 import 'game_state_mutations.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'pokemon_evolution_service.dart';
+import 'pokemon_evolution_held_item_policy.dart';
 import 'pokemon_experience_curve.dart';
 import 'pokemon_gameplay_rules.dart';
 import 'pokemon_stat_calculator.dart';
@@ -139,6 +140,7 @@ final class BattleProgressionService {
     required BattleReward reward,
     bool applyAuthoredRewards = true,
     ItemCatalogSnapshot? itemCatalog,
+    PokemonEvolutionHeldItemPolicy? evolutionHeldItemPolicy,
   }) {
     final rules = PokemonGameplayRules.fromProfile(context.ruleset);
     if (context.outcome != BattleProgressionOutcomeKind.victory) {
@@ -327,6 +329,12 @@ final class BattleProgressionService {
               progressedPokemon,
               trigger: const PokemonEvolutionTrigger.levelUp(),
             )) {
+          final policy = evolutionHeldItemPolicy ?? PokemonEvolutionHeldItemPolicy.fromCatalog(
+            itemCatalog ?? ItemCatalogSnapshot.empty());
+          if (!policy.recognizes(progressedPokemon.heldItemId)) {
+            throw StateError('Evolution requires a known native held-item definition.');
+          }
+          if (policy.preventsEvolution(progressedPokemon.heldItemId)) continue;
           evolutionOpportunities.add(
             BattleEvolutionOpportunity(
               occurrenceId: _evolutionOccurrenceId(

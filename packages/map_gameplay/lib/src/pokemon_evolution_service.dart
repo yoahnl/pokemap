@@ -4,26 +4,42 @@ import 'items/bag_operation_result.dart';
 import 'items/bag_operations.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'pokemon_stat_calculator.dart';
+import 'pokemon_evolution_held_item_policy.dart';
 import 'pokemon_gameplay_rules.dart';
 
 enum PokemonEvolutionTriggerKind {
   levelUp,
   itemUse,
+  trade,
 }
 
 final class PokemonEvolutionTrigger {
   const PokemonEvolutionTrigger.levelUp()
       : kind = PokemonEvolutionTriggerKind.levelUp,
-        itemId = null;
+        itemId = null,
+        partnerSpeciesId = null;
 
   const PokemonEvolutionTrigger.itemUse(this.itemId)
-      : kind = PokemonEvolutionTriggerKind.itemUse;
+      : kind = PokemonEvolutionTriggerKind.itemUse,
+        partnerSpeciesId = null;
+
+  const PokemonEvolutionTrigger.trade({required this.partnerSpeciesId})
+      : kind = PokemonEvolutionTriggerKind.trade,
+        itemId = null;
 
   final PokemonEvolutionTriggerKind kind;
   final String? itemId;
+  final String? partnerSpeciesId;
 
   PokemonEvolutionTrigger validated() {
     if (kind == PokemonEvolutionTriggerKind.levelUp) return this;
+    if (kind == PokemonEvolutionTriggerKind.trade) {
+      if (partnerSpeciesId == null ||
+          !RegExp(r'^[a-z0-9][a-z0-9_-]*$').hasMatch(partnerSpeciesId!)) {
+        throw ArgumentError.value(partnerSpeciesId, 'partnerSpeciesId');
+      }
+      return this;
+    }
     final normalizedItemId = itemId?.trim() ?? '';
     if (normalizedItemId.isEmpty) {
       throw ArgumentError.value(itemId, 'itemId', 'must not be empty');
@@ -39,6 +55,7 @@ enum PokemonEvolutionConditionKind {
   friendship,
   item,
   knownMove,
+  trade,
 }
 
 /// One supported, serializable evolution condition.
@@ -52,37 +69,56 @@ final class PokemonEvolutionCondition {
   })  : kind = PokemonEvolutionConditionKind.level,
         minFriendship = null,
         itemId = null,
-        moveId = null;
+        moveId = null,
+        tradeRequirements = null;
 
   const PokemonEvolutionCondition.friendship({
     required this.minFriendship,
     this.minLevel = 2,
   })  : kind = PokemonEvolutionConditionKind.friendship,
         itemId = null,
-        moveId = null;
+        moveId = null,
+        tradeRequirements = null;
 
   const PokemonEvolutionCondition.item({
     required this.itemId,
     this.minLevel = 1,
   })  : kind = PokemonEvolutionConditionKind.item,
         minFriendship = null,
-        moveId = null;
+        moveId = null,
+        tradeRequirements = null;
 
   const PokemonEvolutionCondition.knownMove({
     required this.moveId,
     this.minLevel = 2,
   })  : kind = PokemonEvolutionConditionKind.knownMove,
         minFriendship = null,
-        itemId = null;
+        itemId = null,
+        tradeRequirements = null;
+
+  const PokemonEvolutionCondition.trade({
+    PokemonTradeEvolutionRequirements requirements =
+        const PokemonTradeEvolutionRequirements(),
+  })  : kind = PokemonEvolutionConditionKind.trade,
+        minLevel = 1,
+        minFriendship = null,
+        itemId = null,
+        moveId = null,
+        tradeRequirements = requirements;
 
   final PokemonEvolutionConditionKind kind;
   final int minLevel;
   final int? minFriendship;
   final String? itemId;
   final String? moveId;
+  final PokemonTradeEvolutionRequirements? tradeRequirements;
 
   PokemonEvolutionCondition validated() {
-    final minimumLevel = kind == PokemonEvolutionConditionKind.item ? 1 : 2;
+    final minimumLevel = const {
+      PokemonEvolutionConditionKind.item,
+      PokemonEvolutionConditionKind.trade
+    }.contains(kind)
+        ? 1 : 2;
     RangeError.checkValueInInterval(
       minLevel,
       minimumLevel,
@@ -90,6 +126,9 @@ final class PokemonEvolutionCondition {
       'minLevel',
     );
     switch (kind) {
+      case PokemonEvolutionConditionKind.trade:
+        tradeRequirements!.validated();
+        return this;
       case PokemonEvolutionConditionKind.level:
         return this;
       case PokemonEvolutionConditionKind.friendship:
@@ -133,6 +172,14 @@ final class PokemonEvolutionCondition {
     final event = trigger.validated();
     if (pokemon.level < condition.minLevel) return false;
     return switch (condition.kind) {
+      PokemonEvolutionConditionKind.trade =>
+        event.kind == PokemonEvolutionTriggerKind.trade &&
+            (condition.tradeRequirements!.requiredHeldItemId == null ||
+                pokemon.heldItemId ==
+                    condition.tradeRequirements!.requiredHeldItemId) &&
+            (condition.tradeRequirements!.requiredPartnerSpeciesId == null ||
+                event.partnerSpeciesId ==
+                    condition.tradeRequirements!.requiredPartnerSpeciesId),
       PokemonEvolutionConditionKind.level =>
         event.kind == PokemonEvolutionTriggerKind.levelUp,
       PokemonEvolutionConditionKind.friendship =>
@@ -410,6 +457,7 @@ final class PokemonEvolutionItemOperations {
     required PokemonEvolutionCandidate candidate,
     required int sourceMaxHp,
     required ItemCatalogSnapshot itemCatalog,
+    PokemonEvolutionHeldItemPolicy? heldItemPolicy,
   }) {
     PokemonGameplayRules.fromProfile(ruleset).requireEvolutionSupported();
     final normalizedItemId = itemId.trim();
@@ -439,6 +487,10 @@ final class PokemonEvolutionItemOperations {
       );
     }
     final pokemon = state.party.members[partyIndex];
+    final policy = heldItemPolicy ?? PokemonEvolutionHeldItemPolicy.fromCatalog(itemCatalog);
+    if (!policy.recognizes(pokemon.heldItemId) || policy.preventsEvolution(pokemon.heldItemId)) {
+      return PokemonEvolutionItemUseResult.failed(state, PokemonEvolutionItemUseFailure.conditionNotMet);
+    }
     final trigger = PokemonEvolutionTrigger.itemUse(normalizedItemId);
     if (!candidate.validated().isEligible(pokemon, trigger: trigger)) {
       return PokemonEvolutionItemUseResult.failed(
@@ -491,6 +543,7 @@ final class PokemonEvolutionItemOperations {
     required PokemonEvolutionCandidate candidate,
     required int sourceMaxHp,
     required ItemCatalogSnapshot itemCatalog,
+    PokemonEvolutionHeldItemPolicy? heldItemPolicy,
   }) {
     final normalizedId = individualId.trim();
     final matches = state.party.members
@@ -512,6 +565,7 @@ final class PokemonEvolutionItemOperations {
       candidate: candidate,
       sourceMaxHp: sourceMaxHp,
       itemCatalog: itemCatalog,
+      heldItemPolicy: heldItemPolicy,
     );
   }
 }

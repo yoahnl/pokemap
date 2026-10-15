@@ -388,9 +388,12 @@ final class NativePsdkTrainerBundleBuilder {
               evolution['form'] as int);
           final condition = conditions.length == 1 ? conditions.single : null;
           final type = condition?['type'];
+          final trade = _nativeTradeRequirements(conditions);
           evolutionEntries.add(PokemonEvolutionEntry(
               targetSpeciesId: target,
-              method: type == 'minLevel'
+              method: trade != null
+                  ? 'trade'
+                  : type == 'minLevel'
                   ? 'level_up'
                   : type == 'minLoyalty'
                       ? 'friendship'
@@ -402,7 +405,8 @@ final class NativePsdkTrainerBundleBuilder {
                   type == 'minLoyalty' ? condition!['value'] as int : null,
               requiredMoveId:
                   type == 'skill1' ? condition!['value'] as String : null,
-              conditionText: {'psdk': jsonEncode(conditions)}));
+              conditionText: {'psdk': jsonEncode(conditions)},
+              tradeRequirements: trade));
         }
         evolutions.add(
             PokemonEvolutionFile(speciesId: id, evolutions: evolutionEntries)
@@ -653,3 +657,42 @@ String nativePsdkFormSpeciesId(String id, int form) =>
     form == 0 ? id : '${id}_form$form';
 String nativePsdkMediaTarget(String id, String side) =>
     'assets/pokemon/native/${id}_$side.png';
+
+PokemonTradeEvolutionRequirements? _nativeTradeRequirements(
+    List<Map<String, dynamic>> conditions) {
+  if (conditions.isEmpty || conditions.length > 2) return null;
+  final seen = <String>{};
+  String? item, partner;
+  var trade = false;
+  for (final condition in conditions) {
+    if (condition.length != 2 ||
+        !condition.containsKey('type') ||
+        !condition.containsKey('value')) {
+      return null;
+    }
+    final type = condition['type'];
+    if (type is! String || !seen.add(type)) return null;
+    final value = condition['value'];
+    switch (type) {
+      case 'trade':
+        if (value != true || partner != null) return null;
+        trade = true;
+      case 'tradeWith':
+        if (value is! String || trade) return null;
+        partner = value;
+      case 'itemHold':
+        if (value is! String) return null;
+        item = value;
+      default:
+        return null;
+    }
+  }
+  if (!trade && partner == null) return null;
+  try {
+    return PokemonTradeEvolutionRequirements(
+            requiredHeldItemId: item, requiredPartnerSpeciesId: partner)
+        .validated();
+  } on FormatException {
+    return null;
+  }
+}

@@ -493,6 +493,11 @@ final class SpatialExplorationGameSessionRuntime
                       ),
                     OpenHealService() => openHealCenter(request: request),
                     OpenPcService() => openPc(request: request),
+            OpenPartyTradeService() => Future<PlayerServiceRuntimeResult>.value(
+              const PlayerServiceRuntimeResult.unavailable(
+                'Ce service nécessite une carte 2D.',
+              ),
+            ),
                     OpenRegionalMapService() => Future<PlayerServiceRuntimeResult>.value(
                         const PlayerServiceRuntimeResult.unavailable('La carte régionale en scène n’est pas disponible en 3D.')),
                     OpenShopService(:final shopId) => openShop(
