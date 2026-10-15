@@ -299,8 +299,17 @@ final class NativeProjectDraft {
     if (mapIds.length > limits.maxMutations ||
         artifacts.length + sourceArtifacts.length > limits.maxArtifacts ||
         mutations.length > limits.maxMutations) {
-      throw const NativeWriteException(
-          'native.quota.draft', 'Draft entry budget exceeded');
+      final uniqueArtifacts = {
+        for (final artifact in [...artifacts, ...sourceArtifacts])
+          artifact.handle,
+      }.length;
+      throw NativeWriteException('native.quota.draft',
+          'Draft entry budget exceeded: artifacts=${artifacts.length}, '
+          'sourceArtifacts=${sourceArtifacts.length}, '
+          'totalArtifacts=${artifacts.length + sourceArtifacts.length}, '
+          'uniqueArtifacts=$uniqueArtifacts, maxArtifacts=${limits.maxArtifacts}; '
+          'mutations=${mutations.length}, maxMutations=${limits.maxMutations}; '
+          'maps=${mapIds.length}, maxMaps=${limits.maxMutations}.');
     }
     var total = 0;
     for (final artifact in [...artifacts, ...sourceArtifacts]) {
