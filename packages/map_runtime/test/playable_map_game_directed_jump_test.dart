@@ -911,5 +911,8 @@ final class _JumpSounds implements OverworldSfxPlayer {
   Future<void> playJump() async => starts++;
 
   @override
+  Future<void> playCut() async {}
+
+  @override
   Future<void> dispose() async => disposals++;
 }

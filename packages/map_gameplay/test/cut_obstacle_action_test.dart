@@ -45,6 +45,28 @@ CutObstacleTicket _ticket(GameState state,
         playerFacing: state.playerFacing);
 
 void main() {
+  test('a typed Cut obstacle blocks without untyped collision properties', () {
+    final map = _map();
+    final state = _ready();
+    expect(map.entities.single.properties, isEmpty);
+    final world = GameplayWorldState.initial(
+      map: map,
+      playerPos: state.playerPosition,
+      playerFacing: Direction.east,
+    );
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(2, 1), isTrue);
+    final occupied = GameplayWorldState.initial(
+      map: map,
+      playerPos: const GridPos(x: 2, y: 1),
+    );
+    expect(occupied.worldStaticObstaclesCollidePlayerCollisionRect(), isTrue);
+    final ordinary = GameplayWorldState.initial(
+      map: map.copyWith(
+          entities: [map.entities.single.copyWith(fieldObstacle: null)]),
+      playerPos: const GridPos(x: 2, y: 1),
+    );
+    expect(ordinary.worldStaticObstaclesCollidePlayerCollisionRect(), isFalse);
+  });
   test(
       'a usable Cut party and native unlock can prompt the real front obstacle',
       () {

@@ -7,6 +7,7 @@ final class _ResolvedOverworldInteraction {
     this.entity,
     this.eventId,
     this.sceneId,
+    this.isIntrinsicCutObstacle = false,
   });
 
   final RuntimeOverworldInteractionAction action;
@@ -14,6 +15,7 @@ final class _ResolvedOverworldInteraction {
   final MapEntity? entity;
   final String? eventId;
   final String? sceneId;
+  final bool isIntrinsicCutObstacle;
 }
 
 extension _PlayableMapInteractions on PlayableMapGame {
@@ -180,6 +182,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
     var verb = RuntimeOverworldInteractionVerb.interact;
     String? eventId;
     String? sceneId;
+    var isIntrinsicCutObstacle = false;
     late String actionId;
     late String targetId;
     late GridPos cell;
@@ -194,6 +197,20 @@ extension _PlayableMapInteractions on PlayableMapGame {
         eventId = decision.eventId;
         sceneId = decision.sceneId;
         actionId = jsonEncode(['eventV2', eventId, sceneId]);
+      } else if (decision is NarrativeEventDispatchNoMatch &&
+          entity.fieldObstacle?.kind == FieldObstacleKind.cutTree &&
+          !_hasIntrinsicCutObstacleOwner(entity)) {
+        final evaluation = evaluateCutObstacleAttempt(
+            map: _world.map, gameState: _gameState, entityId: entity.id);
+        if (evaluation case CutObstacleUnavailable(:final reason)
+            when reason != CutObstacleBlockReason.missingMove &&
+                reason != CutObstacleBlockReason.locked) {
+          return null;
+        }
+        final instance = _gameState.mapInstanceWorldState.instanceRef(_activeMapId)!;
+        isIntrinsicCutObstacle = true;
+        actionId = jsonEncode(['fieldObstacle', entity.id,
+            entity.fieldObstacle!.toJson(), instance.instanceId]);
       } else if (decision is NarrativeEventDispatchNoMatch &&
           decision.legacyFallbackAllowed) {
         final source = _scenarioRuntime.selectSource(
@@ -301,6 +318,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
           kind == RuntimeOverworldInteractionTargetKind.entity ? entity : null,
       eventId: eventId,
       sceneId: sceneId,
+      isIntrinsicCutObstacle: isIntrinsicCutObstacle,
     );
   }
 
@@ -409,6 +427,18 @@ extension _PlayableMapInteractions on PlayableMapGame {
       _runLegacyInteractionFallback(interaction.result);
       return;
     }
+    if (interaction.isIntrinsicCutObstacle) {
+      if (_resolveOverworldInteraction(includeHidden: true)?.action.request !=
+          interaction.action.request) {
+        return;
+      }
+      final prepared = prepareCutObstacleInteraction(map: _world.map,
+          gameState: _gameState, stateRevision: _gameStateRevision, entityId: entity.id);
+      if (prepared == null) return;
+      _openDialogue(prepared.session,
+          onDialogueFinished: (outcome) => _completeIntrinsicCutObstacle(prepared, outcome));
+      return;
+    }
     if (entity.kind == MapEntityKind.npc) _faceNpcTowardPlayer(entity.id);
     _runDetachedNarrativeTask(
         operation: 'entityInteract',
@@ -427,4 +457,58 @@ extension _PlayableMapInteractions on PlayableMapGame {
               ),
             ));
   }
+  bool _hasIntrinsicCutObstacleOwner(MapEntity entity) {
+    final source = NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id);
+    final registry = _bundle.manifest.eventRegistry;
+    if (registry?.records.any((record) => record.definitionOrNull?.source == source) == true ||
+        registry?.legacyClaims.any((claim) => claim.source == source) == true ||
+        _bundle.map.events.any((event) => event.position.x == entity.pos.x &&
+            event.position.y == entity.pos.y)) {
+      return true;
+    }
+    return _bundle.manifest.scenarios.any((scenario) => scenario.nodes.any((node) =>
+        node.type == ScenarioNodeType.reference &&
+        node.payload.actionKind?.trim() == kScenarioSourceEntityInteract &&
+        node.binding.entityId?.trim() == entity.id &&
+        ((node.binding.mapId?.trim().isEmpty ?? true) ||
+            node.binding.mapId?.trim() == _activeMapId)));
+  }
+
+  void _completeIntrinsicCutObstacle(RuntimeCutObstacleInteraction interaction,
+      String? outcomeId) {
+    final decision = interaction.complete(outcomeId: outcomeId,
+        map: _world.map, gameState: _gameState,
+        currentStateRevision: _gameStateRevision);
+    if (decision is CutObstacleRefused) {
+      _showNotification('Cette action n’est plus disponible.');
+      return;
+    }
+    if (decision is! CutObstacleApplied) return;
+    final instance = decision.gameState.mapInstanceWorldState.instanceRef(_activeMapId)!;
+    final map = applyFieldObstacleWorldStateToMap(map: _world.map,
+        instances: decision.gameState.mapInstanceWorldState, instance: instance);
+    final nextWorld = GameplayWorldState.initial(map: map,
+        movingPlatformWorldState: decision.gameState.movingPlatformWorldState,
+        project: _bundle.manifest, playerPos: _world.player.pos,
+        playerFacing: _world.player.facing, playerMovementMode: _world.player.movementMode,
+        tileWidth: _bundle.manifest.settings.tileWidth,
+        tileHeight: _bundle.manifest.settings.tileHeight,
+        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(_bundle.manifest))
+        .withPlayer(_world.player);
+    final loaded = _loadedMapsById[_activeMapId];
+    loaded?.backgroundLayers.applyFieldObstacleProjection(
+        instances: decision.gameState.mapInstanceWorldState, instance: instance);
+    loaded?.foregroundLayers.applyFieldObstacleProjection(
+        instances: decision.gameState.mapInstanceWorldState, instance: instance);
+    _replaceLogicalMapInstances(decision.gameState.mapInstanceWorldState);
+    _world = nextWorld;
+    _bundle = _bundle.copyWith(map: map);
+    if (loaded != null) loaded.bundle = _bundle;
+    _syncGameStateFromWorld();
+    unawaited(_overworldSfxPlayer.playCut());
+    _showNotification('Votre Pokémon utilise Coupe !');
+    _publishOverworldInteractions();
+  }
+
 }

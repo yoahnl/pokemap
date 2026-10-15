@@ -5,6 +5,7 @@ import 'runtime_audio_mixer.dart';
 
 abstract interface class OverworldSfxPlayer {
   Future<void> playJump();
+  Future<void> playCut();
   Future<void> dispose();
 }
 
@@ -16,6 +17,8 @@ final class FlameAudioOverworldSfxPlayer implements OverworldSfxPlayer {
 
   static const jumpAsset =
       'packages/map_runtime/assets/audio/overworld/jump.wav';
+  static const cutAsset =
+      'packages/map_runtime/assets/audio/battle/se/063-swing02.ogg';
   static final _cache = AudioCache(prefix: '');
   final RuntimeAudioMixer? mixer;
   final AudioPlayer Function() _playerFactory;
@@ -24,7 +27,12 @@ final class FlameAudioOverworldSfxPlayer implements OverworldSfxPlayer {
   var _reportedFailure = false;
 
   @override
-  Future<void> playJump() async {
+  Future<void> playJump() => _play(jumpAsset);
+
+  @override
+  Future<void> playCut() => _play(cutAsset);
+
+  Future<void> _play(String asset) async {
     if (_disposed) return;
     final player = _player ??= _playerFactory()..audioCache = _cache;
     try {
@@ -36,11 +44,11 @@ final class FlameAudioOverworldSfxPlayer implements OverworldSfxPlayer {
         setVolume: player.setVolume,
       );
       if (_disposed) return;
-      await player.play(AssetSource(jumpAsset));
+      await player.play(AssetSource(asset));
     } on Object catch (error) {
       if (!_disposed && !_reportedFailure) {
         _reportedFailure = true;
-        debugPrint('[overworld-sfx] jump playback failed: $error');
+        debugPrint('[overworld-sfx] playback failed asset=$asset: $error');
       }
     }
   }

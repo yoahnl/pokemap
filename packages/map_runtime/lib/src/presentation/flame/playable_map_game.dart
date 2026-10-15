@@ -66,6 +66,7 @@ import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
+import '../../application/cut_obstacle_interaction.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
@@ -1129,7 +1130,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool _usesLogicalMapInstances(RuntimeMapBundle bundle) =>
       bundle.manifest.settings.mapInstanceRetentionPolicy != null ||
-      _entityAutorunSourcesFor(bundle.manifest).isNotEmpty;
+      _entityAutorunSourcesFor(bundle.manifest).isNotEmpty ||
+      _gameState.mapInstanceWorldState.instancesByMapId.isNotEmpty ||
+      (_runtimeBundleByMapId[bundle.map.id] ?? bundle)
+          .map.entities.any((entity) => entity.fieldObstacle != null);
 
   NarrativeEventDispatchHandled? _selectEntityAutorun() {
     NarrativeEventDispatchHandled? selected;
@@ -4268,6 +4272,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         await _narrativeRuntimeSnapshotFor(_bundle.manifest);
       }
       _initializeLogicalMapInstance();
+      _bundle = _projectMovingPlatformBundle(_bundle, _gameState);
       final loadedRootBorderAssets =
           bootResources[1]! as BorderRuntimeAssetBundle;
       final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
@@ -11180,6 +11185,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final checkpoint = _RuntimeSpatialSnapshot(
         gameState: currentGameState(),
         bundle: _bundle,
+        authoredBundle: _runtimeBundleByMapId[_activeMapId] ?? _bundle,
         world: _world,
         activeMapId: _activeMapId,
         previousMapId: _previousMapId,
@@ -11423,9 +11429,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeMapBundle bundle,
     GameState state,
   ) {
+    var map = bundle.map;
+    final authored = _runtimeBundleByMapId[map.id]?.map;
+    if (authored != null && !identical(authored, map)) {
+      map = map.copyWith(entities: [
+        ...map.entities.where((entity) => entity.fieldObstacle == null),
+        ...authored.entities.where((entity) => entity.fieldObstacle != null),
+      ]);
+    }
+    final instance = state.mapInstanceWorldState.instanceRef(map.id);
+    if (instance != null) {
+      map = applyFieldObstacleWorldStateToMap(
+        map: map,
+        instances: state.mapInstanceWorldState,
+        instance: instance,
+      );
+    }
     return bundle.copyWith(
       map: applyMovingPlatformWorldStateToMap(
-        map: bundle.map,
+        map: map,
         worldState: state.movingPlatformWorldState,
         tileSize: PixelSize(
           width: bundle.manifest.settings.tileWidth,
@@ -14171,6 +14193,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final source = _RuntimeSpatialSnapshot(
       gameState: _gameState,
       bundle: _bundle,
+      authoredBundle: _runtimeBundleByMapId[_activeMapId] ?? _bundle,
       world: _world,
       activeMapId: _activeMapId,
       previousMapId: _previousMapId,
@@ -14399,6 +14422,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       });
       }
 
+      _runtimeBundleByMapId[source.activeMapId] = source.authoredBundle;
       var sourceBundle = await prepareBorderRuntimeBundle(source.bundle.copyWith(map: source.world.map),
       );
       final sourceImages = await _loadTilesetImagesCached(
@@ -14427,7 +14451,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       sourceBundle = root.bundle;
       _bundle = sourceBundle;
-      _runtimeBundleByMapId[source.activeMapId] = source.bundle;
       _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
@@ -14637,6 +14660,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         () => _loadRuntimeMapBundleCached(warp.targetMapId),
       );
       debugPrint('[warp] target map loaded id=${newBundle.map.id}');
+      final transitionState = _battleRuntimeGameState;
+      final nextInstances = _usesLogicalMapInstances(newBundle)
+          ? sourceMapId == newBundle.map.id
+              ? preserveSameMapInstance(state: sourceInstances, mapId: sourceMapId)
+              : setupDifferentMapInstance(
+                  state: sourceInstances,
+                  targetMapId: newBundle.map.id,
+                  allocateId: _allocateMapInstanceId,
+                )
+          : sourceInstances;
       final transitionSpec = _resolveWarpTransitionSpec(
         sourceMap: sourceBundle.map,
         targetMap: newBundle.map,
@@ -14665,7 +14698,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       newBundle = await _traceAsync(
         'warp',
         'revalidateBorderBeforeSwap',
-        () => prepareBorderRuntimeBundle(newBundle),
+        () => prepareBorderRuntimeBundle(_projectMovingPlatformBundle(
+          newBundle,
+          transitionState.copyWith(mapInstanceWorldState: nextInstances),
+        )),
       );
       if (!_isWithinMapBounds(newBundle.map, warp.targetPos)) {
         throw StateError(
@@ -14706,19 +14742,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
         );
       }
-      if (_usesLogicalMapInstances(newBundle)) {
-        final nextInstances = sourceMapId == warp.targetMapId
-            ? preserveSameMapInstance(
-                state: sourceInstances,
-                mapId: sourceMapId,
-              )
-            : setupDifferentMapInstance(
-                state: sourceInstances,
-                targetMapId: warp.targetMapId,
-                allocateId: _allocateMapInstanceId,
-              );
-        _replaceLogicalMapInstances(nextInstances);
-      }
+      _replaceLogicalMapInstances(nextInstances);
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
         'warp',
@@ -15081,11 +15105,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[connection] computed entry pos=(${targetPos.x}, ${targetPos.y})',
       );
+      final transitionState = _battleRuntimeGameState;
+      final nextInstances = !_usesLogicalMapInstances(target.bundle)
+          ? transitionState.mapInstanceWorldState
+          : target.bundle.manifest.settings.mapInstanceRetentionPolicy == null
+              ? setupDifferentMapInstance(
+                  state: transitionState.mapInstanceWorldState,
+                  targetMapId: target.bundle.map.id,
+                  allocateId: _allocateMapInstanceId,
+                )
+              : retainMapInstance(
+                  state: transitionState.mapInstanceWorldState,
+                  mapId: target.bundle.map.id,
+                  allocateId: _allocateMapInstanceId,
+                );
+      final targetBundle = _projectMovingPlatformBundle(target.bundle,
+          transitionState.copyWith(mapInstanceWorldState: nextInstances));
       final newWorld = GameplayWorldState.initial(
         movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                 ?.gameState.movingPlatformWorldState ??
             _gameState.movingPlatformWorldState,
-        map: target.bundle.map,
+        map: targetBundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
         playerMovementMode: _world.player.movementMode,
@@ -15109,21 +15149,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('Connection blocked');
         return;
       }
-      if (_usesLogicalMapInstances(target.bundle)) {
-        _replaceLogicalMapInstances(
-          target.bundle.manifest.settings.mapInstanceRetentionPolicy == null
-              ? setupDifferentMapInstance(
-                  state: _battleRuntimeGameState.mapInstanceWorldState,
-                  targetMapId: target.bundle.map.id,
-                  allocateId: _allocateMapInstanceId,
-                )
-              : retainMapInstance(
-                  state: _battleRuntimeGameState.mapInstanceWorldState,
-                  mapId: target.bundle.map.id,
-                  allocateId: _allocateMapInstanceId,
-                ),
-        );
+      final targetInstance = nextInstances.instanceRef(targetBundle.map.id);
+      if (targetInstance != null) {
+        target.backgroundLayers.applyFieldObstacleProjection(
+            instances: nextInstances, instance: targetInstance);
+        target.foregroundLayers.applyFieldObstacleProjection(
+            instances: nextInstances, instance: targetInstance);
       }
+      _replaceLogicalMapInstances(nextInstances);
+      target.bundle = targetBundle;
       _bundle = target.bundle;
       _world = newWorld;
       _previousMapId = _activeMapId;
@@ -15515,6 +15549,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     final backgroundLayers = MapLayersComponent(
       bundle: preparedBundle,
+      fieldObstacleAuthoringMap: (_runtimeBundleByMapId[bundle.map.id] ?? bundle).map,
       separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
@@ -15534,6 +15569,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final foregroundLayers = MapLayersComponent(
       bundle: preparedBundle,
+      fieldObstacleAuthoringMap: (_runtimeBundleByMapId[bundle.map.id] ?? bundle).map,
       separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,
@@ -15701,7 +15737,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileImagesById: tileImagesById,
     );
     _loadedMapsById[preparedBundle.map.id] = loaded;
-    _runtimeBundleByMapId[preparedBundle.map.id] = preparedBundle;
     _applyNpcVisibilityToLoadedMap(loaded);
     return loaded;
   }

@@ -116,6 +116,37 @@ void main() {
     },
   );
 
+  test(
+    'Cut uses the explicit native sound on the overworld effects route',
+    () async {
+      final mixer = RuntimeAudioMixer(
+        mix: const RuntimeAudioMix(masterVolume: .5, effectsVolume: .4),
+      );
+      final voice = _Voice();
+      final player = FlameAudioOverworldSfxPlayer(
+        mixer: mixer,
+        playerFactory: () => voice,
+      );
+      await player.playCut();
+      expect(voice.sources, hasLength(1));
+      expect(
+        (voice.sources.single as AssetSource).path,
+        FlameAudioOverworldSfxPlayer.cutAsset,
+      );
+      expect(voice.effectivePlayVolumes, [.2]);
+      await player.dispose();
+      await player.playCut();
+      expect(voice.sources, hasLength(1));
+      expect(voice.disposals, 1);
+    },
+  );
+
+  test('the explicit native Cut asset is packaged independently from source audio parity', () async {
+    final bytes = await rootBundle.load(FlameAudioOverworldSfxPlayer.cutAsset);
+    expect(bytes.lengthInBytes, 7259);
+    expect(String.fromCharCodes(bytes.buffer.asUint8List(0, 4)), 'OggS');
+  });
+
   test('jump WAV is included in the runtime asset bundle', () async {
     final bytes = await rootBundle.load(FlameAudioOverworldSfxPlayer.jumpAsset);
     expect(bytes.lengthInBytes, 29612);

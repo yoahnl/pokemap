@@ -107,6 +107,7 @@ final class _MapLayersRenderCounter {
 class MapLayersComponent extends PositionComponent {
   MapLayersComponent({
     required this.bundle,
+    MapData? fieldObstacleAuthoringMap,
     required this.tileImagesByTilesetId,
     this.renderPass = MapLayerRenderPass.background,
     this.showCollisionOverlay = false,
@@ -118,7 +119,10 @@ class MapLayersComponent extends PositionComponent {
     this.borderRenderer = const BorderRuntimeRenderer(),
     this.debugOnRenderProfile,
     this.smartTileAnimationController,
-  })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
+  })  : _fieldObstacleAuthoringEntities = List.unmodifiable(
+            (fieldObstacleAuthoringMap ?? bundle.map).entities
+                .where((entity) => entity.fieldObstacle != null)),
+        _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
         _foregroundTileCellIndicesByLayerId =
             _buildForegroundTileCellIndicesByLayerId(bundle),
         _animatedPlacedCellsByLayerId =
@@ -131,6 +135,12 @@ class MapLayersComponent extends PositionComponent {
             bundle.map.size.height * bundle.cellHeight,
           ),
         ) {
+    if (fieldObstacleAuthoringMap != null &&
+        (fieldObstacleAuthoringMap.id != bundle.map.id ||
+            fieldObstacleAuthoringMap.size != bundle.map.size ||
+            fieldObstacleAuthoringMap.version != bundle.map.version)) {
+      throw ArgumentError('Field obstacle authoring requires the same native map.');
+    }
     _animatedInstanceById = _buildAnimatedPlacedInstanceById(
       bundle,
       _animatedPlacedCellsByLayerId,
@@ -145,7 +155,21 @@ class MapLayersComponent extends PositionComponent {
     }.length;
   }
 
+  void applyFieldObstacleProjection({
+    required MapInstanceWorldState instances,
+    required MapInstanceRef instance,
+  }) {
+    final authored = bundle.map.copyWith(entities: [
+      ...bundle.map.entities.where((entity) => entity.fieldObstacle == null),
+      ..._fieldObstacleAuthoringEntities,
+    ]);
+    final projected = applyFieldObstacleWorldStateToMap(
+        map: authored, instances: instances, instance: instance);
+    _entitySpatialIndex = _buildEntitySpatialIndex(bundle.copyWith(map: projected));
+  }
+
   final RuntimeMapBundle bundle;
+  final List<MapEntity> _fieldObstacleAuthoringEntities;
   final bool separatePlacedElementOcclusion;
   final _occlusionPaths = <String, Path>{};
   late final List<MapPlacedElement> _orderedPlacedElements =
@@ -389,7 +413,7 @@ class MapLayersComponent extends PositionComponent {
   late final Map<String, SmartTilePatternOwnerIndex>
       _patternOwnerIndicesByLayerId;
   late final _RuntimeSpatialIndex<MapPlacedElement> _placedElementSpatialIndex;
-  late final _RuntimeSpatialIndex<MapEntity> _entitySpatialIndex;
+  late _RuntimeSpatialIndex<MapEntity> _entitySpatialIndex;
   late final int _regularTileVisualCacheCapacity;
   _MapLayersRenderCounter? _activeRenderCounter;
   int _renderedFrameCount = 0;

@@ -516,7 +516,7 @@ class _LoadedPlayableMap {
     required this.tileImagesById,
   });
 
-  final RuntimeMapBundle bundle;
+  RuntimeMapBundle bundle;
   final int originCellX;
   final int originCellY;
   final MapLayersComponent backgroundLayers;
@@ -533,6 +533,7 @@ final class _RuntimeSpatialSnapshot {
   const _RuntimeSpatialSnapshot({
     required this.gameState,
     required this.bundle,
+    required this.authoredBundle,
     required this.world,
     required this.activeMapId,
     required this.previousMapId,
@@ -544,6 +545,7 @@ final class _RuntimeSpatialSnapshot {
 
   final GameState gameState;
   final RuntimeMapBundle bundle;
+  final RuntimeMapBundle authoredBundle;
   final GameplayWorldState world;
   final String activeMapId;
   final String? previousMapId;
