@@ -377,7 +377,7 @@ final class SourceCatalogStudyComposer {
             mapIds: base.mapIds,
             artifacts: artifacts,
             sourceArtifacts: witnesses,
-            mutations: [...base.mutations, ...mutations],
+            mutations: _mergeCatalogMutations(base.mutations, mutations),
             compositionEvidence: {
               ...base.compositionEvidence,
               'sourceCatalogs': evidence
@@ -386,6 +386,50 @@ final class SourceCatalogStudyComposer {
             defaultMapHeight: base.defaultMapHeight,
             limits: limits));
   }
+}
+
+List<NativeMutation> _mergeCatalogMutations(
+    List<NativeMutation> base, List<NativeMutation> catalogs) {
+  final declarations = {
+    for (final mutation in catalogs)
+      if (mutation.actionId == 'campaign.trainer.upsert')
+        (mutation.parameters['value'] as Map)['id'] as String: mutation
+  };
+  final consumed = <String>{};
+  var insertionIndex = -1;
+  for (var index = 0; index < base.length; index++) {
+    final mutation = base[index];
+    final references = <String?>[];
+    if (mutation.actionId == 'entity.upsert') {
+      final entity = MapEntity.fromJson(
+          Map<String, dynamic>.from(mutation.parameters['entity'] as Map));
+      references.add(entity.npc?.trainerId);
+    } else if (mutation.actionId == 'scene.upsert') {
+      final scene = SceneAsset.fromJson(
+          Map<String, dynamic>.from(mutation.parameters['scene'] as Map));
+      references.addAll(scene.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneBattlePayload>()
+          .map((payload) => payload.trainerId));
+    }
+    for (final reference in references) {
+      if (declarations.containsKey(reference)) {
+        consumed.add(reference!);
+        if (insertionIndex < 0) insertionIndex = index;
+      }
+    }
+  }
+  if (insertionIndex < 0) return [...base, ...catalogs];
+  final promoted = {
+    for (final entry in declarations.entries)
+      if (consumed.contains(entry.key)) entry.value.operationId
+  };
+  return [
+    ...base.take(insertionIndex),
+    ...catalogs.where((mutation) => promoted.contains(mutation.operationId)),
+    ...base.skip(insertionIndex),
+    ...catalogs.where((mutation) => !promoted.contains(mutation.operationId)),
+  ];
 }
 
 ({ProjectItemCatalog catalog, List<int> bytes})? _precedingItemCatalog(
