@@ -13,6 +13,8 @@ import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_trainer_event_bindings.dart';
 import 'source_pokedex_reward_binding.dart';
+import 'source_town_map_binding.dart';
+import 'source_cut_obstacle_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
@@ -229,6 +231,27 @@ final class SourceEventStudyComposer {
         limits: limits, cancellation: cancellation);
     final pokedexReward = await const SourcePokedexRewardBindingResolver().read(
         source: source, analysis: analysis, files: recording, cancellation: cancellation);
+    SourceTownMapBinding? townMap;
+    if(selectedEvents.any((event)=>event.pages.expand((page)=>page.body.nodes).any((node)=>node is SourceTownMapProgramNode))) {
+      try {
+        townMap=await const SourceTownMapBindingResolver().read(source:source,files:recording,
+          nativeMapIds:{for(final entry in nativeMaps.entries)entry.key:entry.value.id},limits:limits,cancellation:cancellation);
+      } on SourceTownMapBindingUnavailable {
+        townMap=null;
+      }
+    }
+    SourceCutObstacleBindings? cutObstacles;
+    final cutBindingEvidence = <Map<String, Object?>>[];
+    try {
+      cutObstacles = await const SourceCutObstacleBindingResolver().read(
+          source: source, analysis: analysis, files: recording,
+          limits: limits, cancellation: cancellation);
+      if (cutObstacles != null) {
+        cutBindingEvidence.add({'status': 'attested', ...cutObstacles.evidence});
+      }
+    } on SourceCutObstacleBindingUnavailable catch (error) {
+      cutBindingEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
+    }
     final bindings = <String, SourceEventCharacterBinding>{};
     final retentionBinding = originalDoorIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
@@ -252,6 +275,8 @@ final class SourceEventStudyComposer {
             centerRecoveryBinding: centerRecovery,
             trainerBindings: trainerBindings.byEventIdentity,
             pokedexRewardBinding: pokedexReward,
+            townMapBinding: townMap,
+            cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
             limits: limits);
@@ -318,6 +343,8 @@ final class SourceEventStudyComposer {
         centerRecoveryBinding: centerRecovery,
         trainerBindings: trainerBindings.byEventIdentity,
             pokedexRewardBinding: pokedexReward,
+            townMapBinding: townMap,
+            cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
         limits: limits);
@@ -327,6 +354,9 @@ final class SourceEventStudyComposer {
         (projection.semanticEvidence['usedPickupBindingKeys'] as List)
             .cast<String>()
             .toSet();
+    final usedTownMap=projection.semanticEvidence['usedTownMap']==true?townMap:null;
+    final usedCutObstacles = projection.semanticEvidence['usedCutObstacles'] == true
+        ? cutObstacles : null;
     final usedPickupBindings = pickupBindings.entries
         .where((entry) => usedPickupBindingKeys.contains(entry.key))
         .map((entry) => entry.value)
@@ -352,6 +382,13 @@ final class SourceEventStudyComposer {
     if (pokedexReward != null) {
       preservedFileIds.addAll(pokedexReward.archive.files.keys.map((id) => id.value));
       preservedFileIds.addAll(pokedexReward.itemArchive.files.keys.map((id) => id.value));
+    }
+    if(usedTownMap!=null) {
+      preservedFileIds.addAll((usedTownMap.evidence['sourceFiles'] as List).cast<Map>().map((file)=>file['fileId'] as String));
+    }
+    if (usedCutObstacles != null) {
+      preservedFileIds.addAll((usedCutObstacles.evidence['sourceFiles'] as List)
+          .cast<Map>().map((file) => file['fileId'] as String));
     }
     final systemFile = source.snapshot.entries
         .where((entry) => entry.relativePath == 'Data/System.rxdata')
@@ -508,6 +545,8 @@ final class SourceEventStudyComposer {
     final artifacts = {
       for (final entry in [
         ...base.artifacts,
+        if(usedTownMap!=null)usedTownMap.artifact,
+        if (usedCutObstacles != null) usedCutObstacles.artifact,
         ...characterArtifacts,
         if (usedCenterRecovery != null) usedCenterRecovery.artifact,
         ...pickupArtifacts,
@@ -531,6 +570,9 @@ final class SourceEventStudyComposer {
     final operations = <ConverterId, NativeMutation>{};
     for (final entry in [
       ...characterMutations,
+      if (usedCutObstacles != null) ...usedCutObstacles.mutations,
+      if (usedTownMap != null)
+        ...usedTownMap.mutations.where((entry) => entry.actionId == 'asset.import'),
       if (usedCenterRecovery != null) usedCenterRecovery.mutation,
       ...pickupMutations,
       ...sounds.values.map((binding) => binding.mutation),
@@ -550,6 +592,8 @@ final class SourceEventStudyComposer {
       }
     }
     final eventMutations = [
+      if (usedTownMap != null)
+        ...usedTownMap.mutations.where((entry) => entry.actionId != 'asset.import'),
       for (final sourceMapId in musicMapIds)
         if (musicBindings.containsKey(sourceMapId))
           musicBindings[sourceMapId]!
@@ -571,6 +615,9 @@ final class SourceEventStudyComposer {
       'sounds': soundEvidence,
       'centerRecovery': centerRecoveryEvidence,
       'pokedexRewardBinding': pokedexReward?.toJson(),
+      if(usedTownMap!=null)'townMap':usedTownMap.evidence,
+      if (usedCutObstacles != null) 'cutObstacles': usedCutObstacles.evidence,
+      'cutObstacleBindings': cutBindingEvidence,
       'trainerBindings': {
         'bindings': trainerBindings.byEventIdentity.values
             .map((binding) => binding.toJson()).toList(),

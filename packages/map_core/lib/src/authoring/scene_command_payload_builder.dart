@@ -165,6 +165,9 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         null => SceneInteractiveCommand.openPc(),
       },
     ),
+    NarrativeCommandIds.openRegionalMap => parameters.isEmpty
+        ? SceneActionPayload.interactive(SceneInteractiveCommand.openRegionalMap())
+        : throw const FormatException('Regional map commands do not accept options.'),
     NarrativeCommandIds.movePlatform => SceneActionPayload.interactive(
       switch (_parseNpcRef(parameters['platformRef'])) {
         (final mapId, final platformId) => SceneInteractiveCommand.movePlatform(

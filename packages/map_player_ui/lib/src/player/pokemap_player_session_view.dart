@@ -22,6 +22,7 @@ import 'player_world_loading_surface.dart';
 import 'player_dialogue_overlay.dart';
 import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
+import 'player_regional_map_overlay.dart';
 import 'player_pause_menu.dart';
 import 'player_pc_overlay.dart';
 import 'player_scene_interaction_surface.dart';
@@ -906,7 +907,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   Future<void> _routeSurfaceInput(PlayerInputCommand command) async {
     if (!command.isPress) return;
     final snapshot = _latestSnapshot;
-    if (snapshot.phase == RuntimePlayerPhase.paused ||
+    if (snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap ||
+        snapshot.phase == RuntimePlayerPhase.paused ||
         snapshot.phase == RuntimePlayerPhase.title &&
             snapshot.pauseSection == RuntimePlayerPauseSection.options) {
       final focusContext = FocusManager.instance.primaryFocus?.context;
@@ -1342,6 +1344,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
           _RuntimeWorldServiceOverlay(
             snapshot: service,
             onCommand: widget.controller.dispatchWorldService,
+            controlProfile: _controlProfile,
+            hardwareGamepadEnabled: !widget.controllerInputEnabled,
           ),
         if (showInputHints)
           if (widget.battlePresentation case final battle?)
@@ -1500,9 +1504,13 @@ class _RuntimeWorldServiceOverlay extends StatelessWidget {
   const _RuntimeWorldServiceOverlay({
     required this.snapshot,
     required this.onCommand,
+    required this.controlProfile,
+    required this.hardwareGamepadEnabled,
   });
 
   final RuntimeWorldServiceSnapshot snapshot;
+  final PlayerControlProfile controlProfile;
+  final bool hardwareGamepadEnabled;
   final Future<RuntimeWorldServiceCommandResult> Function(
     RuntimeWorldServiceCommand command,
   ) onCommand;
@@ -1525,6 +1533,12 @@ class _RuntimeWorldServiceOverlay extends StatelessWidget {
       RuntimeWorldServiceKind.textInput => PlayerTextInputOverlay(
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),
+        ),
+      RuntimeWorldServiceKind.regionalMap => PlayerRegionalMapOverlay(
+          snapshot: snapshot,
+          onCommand: (command) => onCommand(command),
+          controlProfile: controlProfile,
+          hardwareGamepadEnabled: hardwareGamepadEnabled,
         ),
     };
   }

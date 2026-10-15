@@ -33,6 +33,7 @@ void main() {
       NarrativeCommandIds.openShop,
       NarrativeCommandIds.openHeal,
       NarrativeCommandIds.openPc,
+      NarrativeCommandIds.openRegionalMap,
       NarrativeCommandIds.dialogue,
       NarrativeCommandIds.trainerBattle,
       NarrativeCommandIds.staticEncounter,
@@ -108,6 +109,7 @@ void main() {
       NarrativeCommandIds.openShop: 'SceneInteractiveCommand.openShop',
       NarrativeCommandIds.openHeal: 'SceneInteractiveCommand.openHeal',
       NarrativeCommandIds.openPc: 'SceneInteractiveCommand.openPc',
+      NarrativeCommandIds.openRegionalMap: 'SceneInteractiveCommand.openRegionalMap',
       NarrativeCommandIds.playCharacterAnimation:
           'SceneInteractiveCommand.playCharacterAnimation',
       NarrativeCommandIds.playModelAnimation:

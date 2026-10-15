@@ -20,6 +20,7 @@ enum SceneInteractiveCommandKind {
   openShop,
   openHeal,
   openPc,
+  openRegionalMap,
   playCharacterAnimation,
   playModelAnimation,
   railJourney,
@@ -102,6 +103,9 @@ abstract base class SceneInteractiveCommand {
 
   factory SceneInteractiveCommand.openPc({String storageId}) =
       SceneOpenPcInteractiveCommand;
+
+  factory SceneInteractiveCommand.openRegionalMap() =
+      SceneOpenRegionalMapInteractiveCommand;
 
   factory SceneInteractiveCommand.playCharacterAnimation({
     required CharacterCustomAnimationRuntimeCommand runtimeCommand,
@@ -186,6 +190,8 @@ abstract base class SceneInteractiveCommand {
       SceneInteractiveCommandKind.openPc => SceneOpenPcInteractiveCommand(
         storageId: _optional(json, 'storageId'),
       ),
+      SceneInteractiveCommandKind.openRegionalMap =>
+        SceneOpenRegionalMapInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playCharacterAnimation =>
         SceneCharacterCustomAnimationInteractiveCommand(
           runtimeCommand: CharacterCustomAnimationRuntimeCommand.fromJson(
@@ -888,6 +894,33 @@ final class SceneOpenPcInteractiveCommand extends SceneInteractiveCommand {
 
   @override
   int get hashCode => storageId.hashCode;
+}
+
+@immutable
+final class SceneOpenRegionalMapInteractiveCommand extends SceneInteractiveCommand {
+  const SceneOpenRegionalMapInteractiveCommand();
+
+  factory SceneOpenRegionalMapInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json.keys.any((key) => key != 'kind')) {
+      throw const FormatException('Regional map commands do not accept options.');
+    }
+    return const SceneOpenRegionalMapInteractiveCommand();
+  }
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.openRegionalMap;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'cancelled'];
+
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name};
+
+  @override
+  bool operator ==(Object other) => other is SceneOpenRegionalMapInteractiveCommand;
+
+  @override
+  int get hashCode => kind.hashCode;
 }
 
 @immutable

@@ -10,6 +10,8 @@ import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_trainer_event_bindings.dart';
 import 'source_pokedex_reward_binding.dart';
+import 'source_town_map_binding.dart';
+import 'source_cut_obstacle_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -285,6 +287,8 @@ final class SourceEventProjector {
     SourceCenterRecoveryBinding? centerRecoveryBinding,
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     SourcePokedexRewardBinding? pokedexRewardBinding,
+    SourceTownMapBinding? townMapBinding,
+    Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -296,9 +300,10 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
+        !builder._isCutObstacleFamily(event) &&
         builder._gaps(event, checkCharacterBindings: false).isEmpty));
   }
 
@@ -312,6 +317,8 @@ final class SourceEventProjector {
       SourceCenterRecoveryBinding? centerRecoveryBinding,
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     SourcePokedexRewardBinding? pokedexRewardBinding,
+    SourceTownMapBinding? townMapBinding,
+    Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -335,7 +342,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings)
         .build();
   }
 }
@@ -395,7 +402,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -416,6 +423,8 @@ final class _ProjectionBuilder {
   final SourceCenterRecoveryBinding? centerRecoveryBinding;
   final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
   final SourcePokedexRewardBinding? pokedexRewardBinding;
+  final SourceTownMapBinding? townMapBinding;
+  final Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
   final bool executionContextQualified;
@@ -529,6 +538,12 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && _isCutObstacleFamily(event))
+          'nativeCutObstacle': {
+            ...cutObstacleBindings[event.identity]!.toJson(),
+            'nativeActivation': 'intrinsicTypedObjectAfterAuthorityReadyAndNoEventMatch',
+            'nativeExecutionQualified': true,
+          },
         if (gaps.isEmpty && _isNativeCenterPc(event))
           'nativeCenterService': {
             'nativeCommand': 'openPc',
@@ -601,6 +616,17 @@ final class _ProjectionBuilder {
             'sourceAfterInteractionFacing': 'nativeNpcInteractionVisualFacing',
             'persistentFacingCertified': false,
           },
+        if(gaps.isEmpty && _isTownMapFamily(event))
+          'nativeTownMap': {
+            ...townMapBinding!.evidence,
+            'sourceProgram':_townMapProgram(event)!.toJson(),
+            'nativeExecutionQualified':true,
+            'sourceFootprint':{'width':2,'height':1},
+            'nativeActivation':'entityInteractAcrossSourceFootprint',
+            'nativeCloseContract':'awaitRegionalMapScreenClose',
+            'sourceScriptsExecuted':0,
+            'fullSourceTownMapParityQualified':false,
+          },
         'pages': [
           for (final page in event.pages)
             {
@@ -617,6 +643,18 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if(gaps.isEmpty && _isTownMapFamily(event))
+                  {
+                    'sourceOpcodes':[101,355,0],
+                    'span':page.body.nodes.single.span.toJson(),
+                    'rawDataRefs':[page.rawDataRef!.toJson()],
+                    'nativeContract':'sourceRegionalMapAndAwaitableNativeScreen',
+                    'sourceFootprint':{'width':2,'height':1},
+                    'equivalenceScope':['sourceText','frontActionAcrossFootprint','regionalMapData','awaitClose'],
+                    'nativePresentation':'aveluneRegionalMapReadOnly2D',
+                    'sourceScriptsExecuted':0,
+                    'fullSourceTownMapParityQualified':false,
+                  },
                 if (gaps.isEmpty && _isPokedexRewardFamily(event))
                   {
                     'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
@@ -851,6 +889,8 @@ final class _ProjectionBuilder {
           'sourceBagMutationTimingQualified': false,
           'fullPickupParityQualified': false,
         },
+      'usedTownMap': eventEvidence.any((row)=>row.containsKey('nativeTownMap')),
+      'usedCutObstacles': eventEvidence.any((row) => row.containsKey('nativeCutObstacle')),
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
     };
     final artifact = NativeArtifact(
@@ -1233,6 +1273,67 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  late final SourceEventAnalysis _townMapSourceAnalysis =
+      SourceEventAnalyzer.forProject(source,profile:analysis.profile).analyze();
+
+  bool _isTownMapFamily(SourceEventDefinition event) =>
+      (event.sourceMapId==102 && event.sourceEventId==6) || event.pages
+          .expand((page)=>page.body.nodes).any((node)=>node is SourceTownMapProgramNode);
+
+  SourceTownMapProgramNode? _townMapProgram(SourceEventDefinition event) {
+    if(!analysis.profile.isQualified || event.isQuarantined || event.sourceMapId!=102 || event.sourceEventId!=6 ||
+        event.pages.length!=1 || event.name!='Town Map size(2,1)' || event.identity!=source.eventIdentity(102,6)) { return null; }
+    final original=_townMapSourceAnalysis.eventAt(102,6);
+    if(original==null || original.pages.length!=1 || original.sourceFileId!=event.sourceFileId ||
+        original.x!=event.x || original.y!=event.y ||
+        canonicalJsonOf(original.locator.toJson())!=canonicalJsonOf(event.locator.toJson())) { return null; }
+    final page=event.pages.single;
+    final expected=original.pages.single;
+    if(page.body.nodes.length!=1 || page.body.nodes.single is! SourceTownMapProgramNode || page.rawDataRef==null ||
+        canonicalJsonOf(page.sourcePage.toJson())!=canonicalJsonOf(expected.sourcePage.toJson()) ||
+        canonicalJsonOf(page.rawDataRef!.toJson())!=canonicalJsonOf(expected.rawDataRef?.toJson()) ||
+        canonicalJsonOf(page.locator.toJson())!=canonicalJsonOf(expected.locator.toJson()) ||
+        canonicalJsonOf(page.condition.toJson())!=canonicalJsonOf(expected.condition.toJson())) { return null; }
+    final program=page.body.nodes.single as SourceTownMapProgramNode;
+    final rawMap=source.maps.singleWhere((map)=>map.map.sourceMapId==102).map;
+    final rawEvent=rawMap.events.singleWhere((event)=>event.sourceEventId==6);
+    if(!program.isBoundToSourceEvent(source:source,profile:analysis.profile,sourceMapId:102,event:rawEvent)) { return null; }
+    final graphic=page.graphic;
+    if(graphic==null || graphic.tileId!=0 || graphic.characterName.isNotEmpty || graphic.hue!=0 ||
+        graphic.direction!=2 || graphic.pattern!=0 || graphic.opacity!=255 || graphic.blendType!=0 ||
+        graphic.moveType!=0 || graphic.moveSpeed!=3 || graphic.moveFrequency!=3 || !graphic.walkAnime ||
+        graphic.stepAnime || graphic.directionFix || graphic.through || graphic.alwaysOnTop ||
+        graphic.moveRouteNodeId!=expected.graphic?.moveRouteNodeId) { return null; }
+    return program;
+  }
+
+  Set<String> _townMapGaps(SourceEventDefinition event) {
+    final binding=townMapBinding;
+    if(binding==null) { return {'sourceTownMapBindingsMissing'}; }
+    if(!binding.isBoundTo(source,analysis.profile,{for(final entry in maps.entries)entry.key:entry.value.id})) {
+      return {'sourceTownMapCatalogBindingInvalid'};
+    }
+    if(_townMapProgram(event)==null) { return {'sourceTownMapSourceBindingInvalid'}; }
+    final map=maps[event.sourceMapId]!;
+    if(map.spatialScene!=null || map.version==ProjectVersion.v9) { return {'sourceTownMapSpatialUnsupported'}; }
+    if(event.x<0 || event.y<0 || event.x+2>map.size.width || event.y>=map.size.height) { return {'eventPositionInvalid'}; }
+    final contact=semanticResolver.resolveStaticActionFootprint(event:event,page:event.pages.single,
+      mapEvents:_townMapSourceAnalysis.events,width:2,height:1);
+    if(contact.kind!=SourceEventTouchKind.front || contact.reason!='stationaryFootprintTilesBlocked') {
+      return {'sourceTownMapFootprintUnqualified'};
+    }
+    for(var dx=0;dx<2;dx++) {
+      final index=event.y*map.size.width+event.x+dx;
+      if(!map.layers.whereType<CollisionLayer>().any((layer)=>index<layer.collisions.length && layer.collisions[index])) {
+        return {'sourceTownMapNativeCollisionUnqualified'};
+      }
+      if(map.entities.any((entity)=>resolveEntityCollisionCells(entity).contains(GridPos(x:event.x+dx,y:event.y)))) {
+        return {'sourceTownMapNativeFootprintOccupied'};
+      }
+    }
+    return const {};
+  }
+
   bool _isPokedexRewardFamily(SourceEventDefinition event) =>
       (event.sourceMapId == 102 && event.sourceEventId == 10) ||
       event.pages.expand((page) => page.body.nodes).any((node) => node is SourcePokedexRewardProgramNode);
@@ -1278,8 +1379,48 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  bool _isCutObstacleFamily(SourceEventDefinition event) =>
+      (event.sourceMapId == 98 && event.sourceEventId == 3) ||
+      (event.sourceMapId == 100 && const {2, 3, 4, 5}.contains(event.sourceEventId)) ||
+      event.pages.expand((page) => page.body.nodes).any((node) => node is SourceCutObstacleProgramNode);
+
+  Set<String> _cutObstacleGaps(SourceEventDefinition event) {
+    final binding = cutObstacleBindings[event.identity];
+    if (binding == null) return {'sourceCutBindingsMissing'};
+    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+      return {'sourceCutSourceBindingInvalid'};
+    }
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+      return {'sourceCutSpatialUnsupported'};
+    }
+    if (event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
+      return {'eventPositionInvalid'};
+    }
+    final sourceFloor = semanticResolver.resolveConnectionEntryTile(
+        semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
+    if (sourceFloor.status != SourcePassageStatus.allowed) {
+      return {'sourceCutSourceFloorUnqualified'};
+    }
+    if (map.entities.any((entity) => entity.id == _key(event, 'anchor'))) {
+      return {'sourceCutNativeIdentityOccupied'};
+    }
+    final index = event.y * map.size.width + event.x;
+    if (map.layers.whereType<CollisionLayer>().any((layer) =>
+        index >= layer.collisions.length || layer.collisions[index])) {
+      return {'sourceCutNativeFloorBlocked'};
+    }
+    if (map.entities.any((entity) => resolveEntityCollisionCells(entity)
+        .contains(GridPos(x: event.x, y: event.y)))) {
+      return {'sourceCutNativeFootprintOccupied'};
+    }
+    return const {};
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_isCutObstacleFamily(event)) return _cutObstacleGaps(event);
+    if (_isTownMapFamily(event)) return _townMapGaps(event);
     if (_isPokedexRewardFamily(event)) {
       return _pokedexRewardGaps(event,checkCharacterBindings:checkCharacterBindings);
     }
@@ -1605,6 +1746,10 @@ final class _ProjectionBuilder {
           gaps.add('sourceTrainerBindingsMissing');
         case SourcePokedexRewardProgramNode():
           gaps.add('sourcePokedexRewardBindingsMissing');
+        case SourceTownMapProgramNode():
+          gaps.add('sourceTownMapBindingsMissing');
+        case SourceCutObstacleProgramNode():
+          gaps.add('sourceCutBindingsMissing');
         case SourceToneNode():
         case SourceWaitNode():
         case SourceSoundEffectNode():
@@ -1746,6 +1891,17 @@ final class _ProjectionBuilder {
   }
 
   void _projectEvent(SourceEventDefinition event) {
+    if (_isCutObstacleFamily(event)) {
+      final map = maps[event.sourceMapId]!;
+      final object = cutObstacleBindings[event.identity]!.createNativeEntity(_key(event, 'anchor'))
+          .copyWith(properties: {'sourceEventIdentity': event.identity.value});
+      maps[event.sourceMapId] = map.copyWith(entities: [...map.entities, object]);
+      mutations.add(_mutation('entity.upsert', object.id,
+          [event.identity, event.sourceFileId], [map.id, object.id],
+          {'mapId': map.id, 'entity': object.toJson()}));
+      return;
+    }
+
     final nativeCenterPc = _isNativeCenterPc(event);
     final nativeCenterNurse = _isNativeCenterNurse(event);
     final trainer = _hasTrainerProgram(event) ? trainerBindings[event.identity] : null;
@@ -1771,7 +1927,8 @@ final class _ProjectionBuilder {
         kind: character == null ? MapEntityKind.custom : MapEntityKind.npc,
         pos: GridPos(x: event.x, y: event.y),
         size: (_supportsStaticWideInteraction(event) ||
-            (_supportsStaticSign(event) && _staticSignWidth(event) == 2))
+            (_supportsStaticSign(event) && _staticSignWidth(event) == 2) ||
+            _isTownMapFamily(event))
             ? const GridSize(width: 2, height: 1)
             : const GridSize(width: 1, height: 1),
         blocksMovement: character != null && !graphic.through,
@@ -2106,6 +2263,8 @@ final class _SceneBuilder {
           next = _trainer(node, next);
         case SourcePokedexRewardProgramNode():
           next = _pokedexReward(node,next);
+        case SourceTownMapProgramNode():
+          next = _townMap(node,next);
         default:
           throw const NativeWriteException('events.block.unqualified',
               'A quarantined source block cannot become a scene');
@@ -2121,6 +2280,16 @@ final class _SceneBuilder {
         SceneEdgeKind.actionCompleted);
     }
     return action;
+  }
+
+  String _townMap(SourceTownMapProgramNode program,String next) {
+    if (projection.gapsByEvent[event.identity]?.isEmpty != true ||
+        projection._townMapProgram(event) == null) {
+      throw const NativeWriteException('events.town_map.bindings_missing',
+        'The source wall map requires its exact regional catalog and two-cell interaction.');
+    }
+    final opened=_interactive(SceneInteractiveCommand.openRegionalMap(),next);
+    return _dialogue(program.text.span,program.text.text,null,opened);
   }
 
   String _pokedexReward(SourcePokedexRewardProgramNode program, String next) {

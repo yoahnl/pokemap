@@ -60,6 +60,16 @@ final class SceneActions {
     'outputPorts': ['completed'],
   };
 
+  static const _openRegionalMapContract = {
+    'projectDimension': 'twoD',
+    'parameters': [],
+    'mode': 'readOnly',
+    'fastTravel': false,
+    'completion': 'closed',
+    'persistent': false,
+    'outputPorts': ['completed', 'cancelled'],
+  };
+
   static const _worldToneContract = {
     'projectDimension': 'twoD',
     'parameters': ['red', 'green', 'blue', 'gray', 'durationMs'],
@@ -166,6 +176,7 @@ final class SceneActions {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
+        'openRegionalMap': _openRegionalMapContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
         'actorRoute': _actorRouteContract,
@@ -209,6 +220,7 @@ final class SceneActions {
         'playSoundEffect': _soundEffectContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
+        'openRegionalMap': _openRegionalMapContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
       },
@@ -253,6 +265,7 @@ final class SceneActions {
         'playSoundEffect': _soundEffectContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
+        'openRegionalMap': _openRegionalMapContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
         'badgeCondition': {

@@ -23,6 +23,16 @@ void main() {
       openShop: handler,
       openHeal: handler,
       openPc: handler,
+      openWorldService: (request) async {
+        calls.add(switch (request) {
+          OpenShopService() => SceneInteractiveCommandKind.openShop,
+          OpenHealService() => SceneInteractiveCommandKind.openHeal,
+          OpenPcService() => SceneInteractiveCommandKind.openPc,
+          OpenRegionalMapService() => SceneInteractiveCommandKind.openRegionalMap,
+          _ => throw StateError('Unexpected service'),
+        });
+        return 'completed';
+      },
       playCharacterAnimation: handler,
       playModelAnimation: handler,
       railJourney: handler,
@@ -56,6 +66,7 @@ void main() {
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.openPc(),
+      SceneInteractiveCommand.openRegionalMap(),
       SceneInteractiveCommand.playCharacterAnimation(
         runtimeCommand: CharacterCustomAnimationRuntimeCommand(
           actorId: 'npc.guard',
@@ -97,6 +108,28 @@ void main() {
     ]) {
       await expectLater(executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command: command)), throwsStateError);
     }
+  });
+
+  test('regional map awaits its world service before advancing the scene', () async {
+    final release = Completer<String>();
+    var calls = 0;
+    var finished = false;
+    final executor = SceneInteractiveCommandRuntimeExecutor(
+        warp: (_) async => 'completed',
+        openWorldService: (request) {
+          expect(request, isA<OpenRegionalMapService>());
+          expect(request.kind, RuntimeWorldServiceKind.regionalMap);
+          calls++;
+          return release.future;
+        });
+    final execution = executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(
+        command: SceneInteractiveCommand.openRegionalMap()));
+    execution.then((_) => finished = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(finished, isFalse);
+    expect(calls, 1);
+    release.complete('completed');
+    expect(await execution, 'completed');
   });
 
   test(

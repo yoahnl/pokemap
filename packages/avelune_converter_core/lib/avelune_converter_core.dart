@@ -30,3 +30,5 @@ part 'src/source_trainer_program.dart';
 part 'src/source_pbs.dart';
 
 part 'src/source_pokedex_reward_program.dart';
+part 'src/source_town_map_program.dart';
+part 'src/source_cut_obstacle_program.dart';

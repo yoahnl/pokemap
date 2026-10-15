@@ -153,6 +153,21 @@ void main() {
           compositionEvidence: fixture.draft.compositionEvidence,
           limits: limits);
 
+  test('native writing reuses certified snapshots and verifies with a cold session', () async {
+    final profiles = <ProjectSnapshotLoadProfile>[];
+    final approval = approveNativeFixtureDraft(fixture.draft);
+    int? coldStart;
+    final receipt = await NativeProjectWriter(snapshotProfileSink: profiles.add,
+        checkpoint: (stage, _, __) {
+          if (stage == NativeWriteStage.afterMutations) coldStart = profiles.length;
+        }).write(approval.plan, approval.context, fixture.draft);
+    expect(receipt.verified, isTrue);
+    expect(profiles.where((profile) => profile.cacheHit), isNotEmpty);
+    expect(coldStart, isNotNull);
+    expect(profiles[coldStart!].cacheHit, isFalse);
+    await sourceUnchanged();
+  });
+
   test('source checkpoint import actions cannot bootstrap a fresh project', () async {
     final draft = fixture.draft;
     final changed = NativeProjectDraft(source: draft.source,

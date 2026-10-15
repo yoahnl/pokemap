@@ -87,6 +87,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
           command,
           legacyHandler: openPc,
         ),
+      SceneInteractiveCommandKind.openRegionalMap => await _executeService(
+          command,
+          legacyHandler: null,
+        ),
       SceneInteractiveCommandKind.playCharacterAnimation =>
         await _executeRequired(
           command,
@@ -178,6 +182,9 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneOpenPcInteractiveCommand(:final storageId) => OpenPcService(
           interactionId: 'scene.openPc:${storageId ?? 'default'}',
           storageId: storageId,
+        ),
+      SceneOpenRegionalMapInteractiveCommand() => const OpenRegionalMapService(
+          interactionId: 'scene.openRegionalMap',
         ),
       SceneWarpInteractiveCommand() => throw StateError(
           'Warp commands are not world services.',

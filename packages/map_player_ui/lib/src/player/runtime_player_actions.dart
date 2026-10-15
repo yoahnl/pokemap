@@ -105,17 +105,20 @@ class RuntimePlayerActions extends StatelessWidget {
     required this.onMenu,
     required this.onInputSourceChanged,
     required this.child,
+    this.includeDefaultKeyboardShortcuts = true,
   });
 
   final VoidCallback onBack;
   final VoidCallback onMenu;
   final ValueChanged<PlayerInputSource> onInputSourceChanged;
   final Widget child;
+  final bool includeDefaultKeyboardShortcuts;
 
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
+      shortcuts: includeDefaultKeyboardShortcuts
+          ? const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.arrowUp): RuntimePlayerLogicalIntent(
           PlayerInputAction.up,
           source: PlayerInputSource.keyboard,
@@ -157,7 +160,8 @@ class RuntimePlayerActions extends StatelessWidget {
           PlayerInputAction.menu,
           source: PlayerInputSource.keyboard,
         ),
-      },
+            }
+          : const <ShortcutActivator, Intent>{},
       child: Actions(
         actions: <Type, Action<Intent>>{
           RuntimePlayerLogicalIntent:

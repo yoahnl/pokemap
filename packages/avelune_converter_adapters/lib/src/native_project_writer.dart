@@ -252,6 +252,7 @@ final class NativeMutation {
   final Map<String, Object?> parameters;
 
   OperationDomain get domain => switch (actionId.split('.').first) {
+        'regionalMap' => OperationDomain.project,
         'map' ||
         'entity' ||
         'trigger' ||
@@ -582,10 +583,11 @@ final class NativeWriteException implements Exception {
 
 final class NativeProjectWriter {
   const NativeProjectWriter(
-      {this.creation, this.checkpoint, this.stagingFactory});
+      {this.creation, this.checkpoint, this.stagingFactory, this.snapshotProfileSink});
   final ProjectCreationPort? creation;
   final NativeWriteCheckpoint? checkpoint;
   final NativeStagingFactory? stagingFactory;
+  final ProjectSnapshotLoadProfileSink? snapshotProfileSink;
 
   Future<NativeWriteReceipt> write(
     ConversionPlan plan,
@@ -649,7 +651,7 @@ final class NativeProjectWriter {
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
       session = await _NativeSession.open(projectPath,
-          allowedRoot: stagingRoot, mutable: true);
+          allowedRoot: stagingRoot, mutable: true, profileSink: snapshotProfileSink);
       final api = session.mutations!;
       for (final artifact in draft.artifacts) {
         _checkCancelled(cancellation);
@@ -720,7 +722,7 @@ final class NativeProjectWriter {
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
       session = await _NativeSession.open(projectPath,
-          allowedRoot: stagingRoot, mutable: false);
+          allowedRoot: stagingRoot, mutable: false, profileSink: snapshotProfileSink);
       final snapshot = await session.snapshots
           .load(session.project, policy: ProjectSnapshotLoadPolicy.strict);
       if (snapshot.loadDiagnostics.isNotEmpty ||
@@ -857,13 +859,20 @@ final class NativeProjectWriter {
         }
         assetHashes[entry.key] = hash;
       }
-      for (final entry in prepared.pokemonMedia.entries) {
+      for (final entry in {
+        ...prepared.pokemonMedia,
+        ...prepared.regionalMapImages,
+      }.entries) {
         _checkCancelled(cancellation);
+        final regional = prepared.regionalMapImages.containsKey(entry.key);
+        final verificationCode = regional
+            ? 'native.verify.regional_map_image'
+            : 'native.verify.pokemon_media';
         final record = prepared.catalog.require(entry.key);
         final bytes = await session.readCompanion(
           record.logicalPath,
           entry.value,
-          errorCode: 'native.verify.pokemon_media',
+          errorCode: verificationCode,
         );
         const NativePngValidator().validate(bytes, limits: limits);
         final blob = await session.snapshots.readRetainedAssetBlob(
@@ -873,9 +882,11 @@ final class NativeProjectWriter {
         if (blob == null ||
             blob.length != bytes.length ||
             sha256.convert(blob) != sha256.convert(bytes)) {
-          throw const NativeWriteException(
-            'native.verify.pokemon_media',
-            'Native Pokemon media logical image and retained blob must match exact approved bytes.',
+          throw NativeWriteException(
+            verificationCode,
+            regional
+                ? 'Native regional map image and retained blob must match exact approved bytes.'
+                : 'Native Pokemon media logical image and retained blob must match exact approved bytes.',
           );
         }
         assetHashes[entry.key] = Sha256Hash(sha256.convert(bytes).toString());
@@ -904,7 +915,8 @@ final class NativeProjectWriter {
       for (final entry in {
         ...prepared.companions,
         ...prepared.audio,
-        ...prepared.pokemonMedia
+        ...prepared.pokemonMedia,
+        ...prepared.regionalMapImages,
       }.entries) {
         _checkCancelled(cancellation);
         await session.readCompanion(
@@ -949,6 +961,7 @@ final class _PreparedNativeDraft {
       this.tilesets,
       this.companions,
       this.pokemonMedia,
+      this.regionalMapImages,
       this.catalog,
       this.dialogueSources,
       this.audio,
@@ -961,6 +974,7 @@ final class _PreparedNativeDraft {
   final Map<String, NativeArtifact> tilesets;
   final Map<String, NativeArtifact> companions;
   final Map<String, NativeArtifact> pokemonMedia;
+  final Map<String, NativeArtifact> regionalMapImages;
   final AssetCatalog catalog;
   final Map<String, String> dialogueSources;
   final Map<String, NativeArtifact> audio;
@@ -1174,6 +1188,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'item.create',
           'scene.dialogue.audioMedia.import',
           'map.audio.update',
+          'campaign.badge.upsert',
+          'regionalMap.region.upsert',
+          'regionalMap.poi.upsert',
         }.contains(mutation.actionId);
     final catalogs = draft.compositionEvidence.containsKey('sourceCatalogs') &&
         const {
@@ -1251,6 +1268,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final usedArtifacts = <String>{};
   final companions = <String, NativeArtifact>{};
   final pokemonMedia = <String, NativeArtifact>{};
+  final regionalMapImages = <String, NativeArtifact>{};
+  ProjectRegionalMapCatalog? regionalMap;
   final audio = <String, NativeArtifact>{};
   final mediaAssets = <CinematicMediaAsset>[];
   final categories = <ProjectElementCategory>[];
@@ -1261,6 +1280,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   var borderCatalog = ProjectBorderCatalog();
   final borderSnapshots = <String, NativeArtifact>{};
   final characters = <ProjectCharacterEntry>[];
+  final trainersById = <String, ProjectTrainerEntry>{};
+  final badges = <BadgeDefinition>[];
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
@@ -1574,13 +1595,47 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }
         if (artifact?.reference.mediaType == 'image/png') {
           semantics.requireOperation(mutation);
+          final logicalPath = _string(parameters, 'logicalPath');
+          if (logicalPath.startsWith('assets/regions/')) {
+            final townMap = _regeneratedTownMap(semantics);
+            final image = townMap?['image'];
+            final expected = semantics.events?.draft.mutations
+                .where((entry) => entry.operationId == mutation.operationId)
+                .singleOrNull;
+            if (image is! Map ||
+                image['assetId'] != id ||
+                image['logicalPath'] != logicalPath ||
+                image['artifactHandle'] != handle ||
+                image['sha256'] != artifact!.rawSha256.value ||
+                expected == null ||
+                canonicalJsonOf(expected.parameters, limits: limits.jsonLimits) !=
+                    canonicalJsonOf(parameters, limits: limits.jsonLimits) ||
+                !semantics.events!.draft.artifacts.any((entry) =>
+                    entry.handle == handle &&
+                    entry.rawSha256 == artifact.rawSha256) ||
+                !RegExp(r'^assets/regions/source_region_image_[0-9a-f]{24}\.png$')
+                    .hasMatch(logicalPath) ||
+                assetRecords.any((entry) =>
+                    entry.id == id || entry.logicalPath == logicalPath) ||
+                !_targetIds(mutation.targetEntityIds, {id})) {
+              throw const NativeWriteException('native.events.town_map_image',
+                  'A regional map image requires its exact regenerated source binding.');
+            }
+            const NativePngValidator().validate(artifact.bytes, limits: limits);
+            regionalMapImages[id] = artifact;
+            usedArtifacts.add(handle);
+            assetRecords.add(AssetRecord(id: id, logicalPath: logicalPath,
+                artifact: artifact.reference,
+                tags: (parameters['tags'] as List).cast<String>(),
+                usages: (parameters['usages'] as List).cast<String>()));
+            break;
+          }
           final projection = semantics.catalogs?.projection;
           final binding = projection?.assetMutations
               .where(
                 (operation) => operation.operationId == mutation.operationId,
               )
               .singleOrNull;
-          final logicalPath = _string(parameters, 'logicalPath');
           final declared =
               projection?.documents
                   .where(
@@ -1844,6 +1899,36 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           throw const NativeWriteException('native.catalogs.binding',
               'Catalog documents require their exact regenerated source projection');
         }
+        if (mutation.actionId == 'campaign.trainer.upsert') {
+          final trainer = ProjectTrainerEntry.fromJson(
+              Map<String, dynamic>.from(parameters['value'] as Map));
+          trainersById[trainer.id] = trainer;
+        }
+      case 'campaign.badge.upsert':
+        semantics.requireOperation(mutation);
+        if (semantics.events == null) {
+          throw const NativeWriteException('native.events.binding',
+              'Cut badge publication requires exact regenerated source events.');
+        }
+        _allowParameters(parameters, const {'value'});
+        final badge = BadgeDefinition.fromJson(
+            Map<String, dynamic>.from(parameters['value'] as Map));
+        final identity = canonicalHashOf({
+          'namespace': draft.source.snapshot.logicalProjectNamespace.value,
+          'kind': 'sourceCutObstacle',
+        }).value.substring(0, 24);
+        final expected = BadgeDefinition(
+            id: 'source_cascade_badge_$identity', label: 'Cascade Badge',
+            fieldAbilityUnlock: FieldAbility.cut);
+        if (badge != expected || !_targetIds(mutation.targetEntityIds, {expected.id})) {
+          throw const NativeWriteException('native.events.cut_badge',
+              'Cut requires the exact source Cascade Badge definition without a player grant.');
+        }
+        if (badges.any((value) => value.id == badge.id)) {
+          throw const NativeWriteException('native.events.cut_badge',
+              'The source Cascade Badge definition must occur exactly once.');
+        }
+        badges.add(badge);
       case 'item.create':
       case 'fact.create':
       case 'fact.update':
@@ -1861,6 +1946,38 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           throw const NativeWriteException('native.events.binding',
               'Event mutations require their exact regenerated source event projection');
         }
+      case 'regionalMap.region.upsert':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'region'});
+        final townMap = _regeneratedTownMap(semantics);
+        final region = ProjectRegionDefinition.fromJson(
+            Map<String, dynamic>.from(parameters['region'] as Map));
+        final image = townMap?['image'];
+        if (townMap == null || image is! Map ||
+            townMap['nativeRegionId'] != region.id ||
+            region.imagePath != image['logicalPath'] ||
+            !regionalMapImages.containsKey(image['assetId']) ||
+            !_targetIds(mutation.targetEntityIds, {region.id})) {
+          throw const NativeWriteException('native.events.town_map_region',
+              'A regional map requires its exact imported source image and region.');
+        }
+        regionalMap = const RegionalMapActions().upsertRegion(
+            bootstrap.copyWith(regionalMap: regionalMap), region: region).regionalMap;
+      case 'regionalMap.poi.upsert':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'poi'});
+        final point = ProjectRegionPointOfInterest.fromJson(
+            Map<String, dynamic>.from(parameters['poi'] as Map));
+        final townMap = _regeneratedTownMap(semantics);
+        if (townMap == null || point.destination != null ||
+            point.regionId != townMap['nativeRegionId'] ||
+            !(regionalMap?.regions.any((region) => region.id == point.regionId) ?? false) ||
+            !_targetIds(mutation.targetEntityIds, {point.id})) {
+          throw const NativeWriteException('native.events.town_map_point',
+              'A regional point requires its exact read-only source region.');
+        }
+        regionalMap = const RegionalMapActions().upsertPoint(
+            bootstrap.copyWith(regionalMap: regionalMap), point: point).regionalMap;
       default:
         throw const NativeWriteException('native.action.unsupported',
             'Only image import, atlas animation upsert, map creation and native map save are admitted');
@@ -1895,22 +2012,30 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           materials: smartTileMaterials,
           presets: smartTilePresets),
       characters: characters,
+      badges: badges,
       pokemon: bootstrap.pokemon.copyWith(
           enabled: projectedEvents?.itemCatalog != null ||
               projectedCatalogs?.mergedItemCatalog != null ||
               (projectedCatalogs?.documents.isNotEmpty ?? false)),
       encounterTables: projectedCatalogs?.encounterTables ?? const [],
-      trainers: projectedCatalogs?.trainers ?? const [],
+      trainers: trainersById.values.toList(),
       cinematicMediaAssets: mediaAssets,
       facts: projectedEvents?.facts ?? const [],
       worldRules: projectedEvents?.worldRules ?? const [],
       eventRegistry: projectedEvents?.registry,
       dialogues: projectedEvents?.dialogues ?? const [],
       scenes: projectedEvents?.scenes ?? const [],
+      regionalMap: regionalMap,
       settings: bootstrap.settings
           .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));
   if (projectedCatalogs != null) {
     _validateCatalogReferences(projectedCatalogs, manifest);
+  }
+  if (validateProjectRegionalMap(catalog: manifest.regionalMap,
+      projectMapIds: manifest.maps.map((entry) => entry.id),
+      maps: maps.values).isNotEmpty) {
+    throw const NativeWriteException('native.events.town_map_references',
+        'Regional map references must resolve in the final native project.');
   }
   var derivedBytes = 0;
   var derivedPixels = 0;
@@ -1974,12 +2099,24 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       tilesets,
       companions,
       pokemonMedia,
+      regionalMapImages,
       AssetCatalog(records: assetRecords),
       projectedEvents?.dialogueSources ?? const {},
       audio,
       projectedCatalogs?.mergedItemCatalog ?? projectedEvents?.itemCatalog,
       projectedCatalogs?.documents ?? const [],
       borderSnapshots);
+}
+
+Map<String, Object?>? _regeneratedTownMap(_VerifiedSourceSemantics semantics) {
+  final events = semantics.events?.draft.compositionEvidence['sourceEvents'];
+  final townMap = events is Map ? events['townMap'] : null;
+  if (townMap is! Map<String, Object?> ||
+      townMap['kind'] != 'sourceTownMapBinding' || townMap['version'] != 1 ||
+      townMap['sourceWallMap'] != true || townMap['flyEnabled'] != false) {
+    return null;
+  }
+  return townMap;
 }
 
 void _validateCatalogReferences(
@@ -3076,12 +3213,17 @@ final class _NativeSession {
   final WorkspaceHandleStore handles;
 
   static Future<_NativeSession> open(String root,
-      {required String allowedRoot, required bool mutable}) async {
+      {required String allowedRoot, required bool mutable,
+      ProjectSnapshotLoadProfileSink? profileSink}) async {
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [allowedRoot], fileReader: reader);
     final handles = WorkspaceHandleStore();
-    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final snapshots = ProjectSnapshotLoader(
+        handles: handles,
+        profileSink: profileSink,
+        fingerprintCache: ProjectSnapshotFingerprintCache(),
+        snapshotCache: ProjectSnapshotCache(maximumProjects: 1));
     final opener = ProjectOpenService(
         policy: policy, fileReader: reader, handles: handles);
     final opened = await opener.openProject(root);

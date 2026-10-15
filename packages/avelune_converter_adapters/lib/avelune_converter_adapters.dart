@@ -39,3 +39,5 @@ export 'src/source_directed_jump_study_composer.dart';
 export 'src/source_center_recovery_binding.dart';
 
 export 'src/source_pokedex_reward_binding.dart';
+export 'src/source_town_map_binding.dart';
+export 'src/source_cut_obstacle_binding.dart';

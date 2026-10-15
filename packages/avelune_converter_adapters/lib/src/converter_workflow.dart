@@ -2112,6 +2112,8 @@ const _nativeStudyActions = [
   'warp.create',
   'dialogue.create',
   'scene.upsert',
+  'regionalMap.region.upsert',
+  'regionalMap.poi.upsert',
   'world_rule.create',
   'event_v2.record_upsert',
   'scene.dialogue.audioMedia.import',

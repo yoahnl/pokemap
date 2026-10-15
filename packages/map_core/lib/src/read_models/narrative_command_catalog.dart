@@ -25,6 +25,7 @@ abstract final class NarrativeCommandIds {
   static const openShop = 'openShop';
   static const openHeal = 'openHeal';
   static const openPc = 'openPc';
+  static const openRegionalMap = 'openRegionalMap';
   static const dialogue = 'dialogue';
   static const trainerBattle = 'trainerBattle';
   static const staticEncounter = 'staticEncounter';
@@ -611,6 +612,12 @@ final class NarrativeCommandCatalog {
         NarrativeCommandIds.openPc,
         'Ouvrir le PC',
         'FG-091',
+        const [],
+      ),
+      interactive(
+        NarrativeCommandIds.openRegionalMap,
+        'Afficher la carte régionale',
+        'FG-164',
         const [],
       ),
       interactive(

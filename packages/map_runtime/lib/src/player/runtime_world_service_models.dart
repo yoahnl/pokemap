@@ -3,8 +3,9 @@ import 'dart:collection';
 import 'package:map_core/map_core.dart';
 
 import 'runtime_pokemon_summary.dart';
+import 'runtime_player_pause_data.dart';
 
-enum RuntimeWorldServiceKind { shop, heal, pc, textInput }
+enum RuntimeWorldServiceKind { shop, heal, pc, textInput, regionalMap }
 
 /// Typed request emitted by an interaction in the running world.
 ///
@@ -68,6 +69,23 @@ final class OpenPcService extends RuntimeWorldServiceRequest {
 
   @override
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.pc;
+}
+
+final class OpenRegionalMapService extends RuntimeWorldServiceRequest {
+  const OpenRegionalMapService({
+    required super.interactionId,
+    super.requiredCapabilities,
+    super.availabilityCondition,
+  });
+
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.regionalMap;
+}
+
+final class RuntimeRegionalMapServiceContent {
+  const RuntimeRegionalMapServiceContent({required this.detail});
+
+  final RuntimePlayerPauseDetailSnapshot detail;
 }
 
 final class OpenTextInputService extends RuntimeWorldServiceRequest {

@@ -107,6 +107,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.openRegionalMap ||
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||

@@ -1129,6 +1129,7 @@ void _diagnoseActionConsequenceAgainstProject(
 }) {
   final interactiveCommand = payload.interactiveCommand;
   if ((interactiveCommand is SceneWaitInteractiveCommand ||
+          interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
           interactiveCommand is ScenePlaySoundEffectInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {

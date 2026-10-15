@@ -493,6 +493,8 @@ final class SpatialExplorationGameSessionRuntime
                       ),
                     OpenHealService() => openHealCenter(request: request),
                     OpenPcService() => openPc(request: request),
+                    OpenRegionalMapService() => Future<PlayerServiceRuntimeResult>.value(
+                        const PlayerServiceRuntimeResult.unavailable('La carte régionale en scène n’est pas disponible en 3D.')),
                     OpenShopService(:final shopId) => openShop(
                         _session!.bundle.manifest.shops
                             .firstWhere((shop) => shop.id == shopId),

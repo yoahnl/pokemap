@@ -668,11 +668,15 @@ final class SourceEventAnalyzer {
             pageDiagnostics
                 .add(SourceEventDiagnostic('events.invalid_page_graphic', loc));
           }
-          final body = _sourceCenterServiceBlock(this, map.map.sourceMapId,
+          final body = _sourceCutObstacleProgramBlock(this, map.map.sourceMapId,
+                  event, sourcePage, loc) ??
+              _sourceCenterServiceBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
               _sourceTrainerProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
               _sourcePokedexRewardProgramBlock(this, map.map.sourceMapId,
+                  event, sourcePage, loc) ??
+              _sourceTownMapProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
               _SourceEventParser(this, sourcePage.commands, loc,
                   map.map.sourceMapId, event.sourceEventId, switches, raw)

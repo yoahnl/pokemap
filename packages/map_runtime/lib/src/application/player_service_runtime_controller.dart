@@ -240,6 +240,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   _ContextualShopSession? _shopSession;
   _ContextualHealSession? _healSession;
   _ContextualPcSession? _pcSession;
+  _ContextualRegionalMapSession? _regionalMapSession;
+  var _regionalMapRevision = -1;
   _ContextualTextSession? _textSession;
   var _textRevision = -1;
 
@@ -468,6 +470,47 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             : host.openShop(serviceRequest);
       },
     );
+  }
+
+  Future<PlayerServiceRuntimeResult> openRegionalMap({
+    required OpenRegionalMapService request,
+    required RuntimePlayerPauseDetailSnapshot detail,
+  }) async {
+    if (_disposed) {
+      return PlayerServiceRuntimeResult.failed(StateError('The player-service controller is disposed.'));
+    }
+    if (_active) return const PlayerServiceRuntimeResult.busy();
+    final reason = _worldRequestUnavailableReason(request, _currentGameState());
+    if (reason != null) return PlayerServiceRuntimeResult.unavailable(reason);
+    if (detail.section != RuntimePlayerPauseSection.map ||
+        (detail.regionalMap?.regions.isEmpty ?? true)) {
+      return const PlayerServiceRuntimeResult.unavailable('Aucune carte régionale n’est disponible.');
+    }
+    final session = _ContextualRegionalMapSession();
+    _regionalMapSession = session;
+    _active = true;
+    var inputLocked = false;
+    try {
+      _setInputLocked(true);
+      inputLocked = true;
+      _publishWorldService(RuntimeWorldServiceSnapshot(
+          revision: ++_regionalMapRevision,
+          request: request,
+          stage: RuntimeWorldServiceStage.active,
+          content: RuntimeRegionalMapServiceContent(detail: detail),
+          actions: const [
+            RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.close),
+            RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.cancel),
+          ]));
+      return await session.result.future;
+    } catch (error) {
+      return PlayerServiceRuntimeResult.failed(error);
+    } finally {
+      if (identical(_regionalMapSession, session)) _regionalMapSession = null;
+      _publishWorldService(null);
+      if (inputLocked) _setInputLocked(false);
+      _active = false;
+    }
   }
 
   Future<PlayerServiceRuntimeResult> openPc({
@@ -1241,6 +1284,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (heal != null) return _dispatchHeal(heal, command);
     final pc = _pcSession;
     if (pc != null) return _dispatchPc(pc, command);
+    final regionalMap = _regionalMapSession;
+    if (regionalMap != null) {
+      if (regionalMap.result.isCompleted) {
+        return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.stale);
+      }
+      regionalMap.result.complete(command.action == RuntimeWorldServiceAction.cancel
+          ? const PlayerServiceRuntimeResult.cancelled()
+          : PlayerServiceRuntimeResult.completed(_currentGameState()));
+      return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.accepted);
+    }
     final text = _textSession;
     if (text != null) return _dispatchText(text, command);
     return const RuntimeWorldServiceCommandResult(
@@ -2296,6 +2349,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       pc.result.complete(const PlayerServiceRuntimeResult.cancelled());
     }
     _pcSession = null;
+    final regionalMap = _regionalMapSession;
+    if (regionalMap != null && !regionalMap.result.isCompleted) {
+      regionalMap.result.complete(const PlayerServiceRuntimeResult.cancelled());
+    }
+    _regionalMapSession = null;
     final text = _textSession;
     if (text != null && !text.result.isCompleted) {
       text.result.complete(const PlayerServiceRuntimeResult.cancelled());
@@ -2304,6 +2362,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     _publishWorldService(null);
     await _worldServiceSnapshots.close();
   }
+}
+
+final class _ContextualRegionalMapSession {
+  final result = Completer<PlayerServiceRuntimeResult>();
 }
 
 final class _ContextualTextSession {

@@ -56,6 +56,7 @@ import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
 import '../../player/runtime_world_service_models.dart';
+import '../../player/runtime_regional_map_builder.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_experience_progress.dart';
@@ -11665,6 +11666,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return _scenePortForPlayerService(
           await controller.openHealCenter(request: request),
         );
+      case OpenRegionalMapService():
+        if (_bundle.manifest.regionalMap == null) {
+          _notifySceneCommand('Carte régionale indisponible dans ce projet.');
+          return 'cancelled';
+        }
+        final regionalBundle = _bundle;
+        final regionalScene = _activeNarrativeSceneWorkingSession;
+        final regionalActivation = _nextMapActivationSerial;
+        final detail = await const RuntimeRegionalMapBuilder().build(
+            gameState: playerServiceGameStateSnapshot,
+            projectRootDirectory: regionalBundle.projectRootDirectory,
+            locale: runtimeLocale,
+            catalog: regionalBundle.manifest.regionalMap,
+            projectMaps: regionalBundle.manifest.maps);
+        if (_isRemoved ||
+            regionalActivation != _nextMapActivationSerial ||
+            !identical(regionalBundle, _bundle) ||
+            !identical(regionalScene, _activeNarrativeSceneWorkingSession) ||
+            !identical(controller, _playerServiceRuntimeController)) {
+          return 'cancelled';
+        }
+        return _scenePortForPlayerService(await controller.openRegionalMap(request: request, detail: detail));
     }
   }
 
