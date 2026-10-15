@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -41,6 +42,65 @@ Matcher _error(String value) =>
     isA<ContractError>().having((error) => error.code, 'code', value);
 
 void main() {
+  group('sealed source digests', () {
+    test(
+        'unsealed archive stays fresh and sealed archive reuses its exact digest',
+        () {
+      final archive = SourceArchive();
+      final empty = archive.canonicalHash;
+      final bytes = _marshal(_text('opaque'));
+      final entry = _entry(bytes);
+      archive.add(entry, bytes);
+      final added = archive.canonicalHash;
+      expect(added, isNot(empty));
+      archive.reference(fileId: entry.fileId, nodeId: 0);
+      final referenced = archive.canonicalHash;
+      expect(referenced, isNot(added));
+      archive.seal();
+      final sealed = archive.canonicalHash;
+      expect(sealed, referenced);
+      expect(archive.canonicalHash, same(sealed));
+      archive.seal();
+      expect(archive.canonicalHash, same(sealed));
+      final oracle = _mutable(archive);
+      for (final file in oracle['files'] as List) {
+        (file as Map).remove('rawBytes');
+      }
+      expect(sealed, canonicalHashOf(oracle));
+      expect(() => archive.add(entry, bytes),
+          throwsA(_error('source_archive.sealed')));
+      expect(() => archive.reference(fileId: entry.fileId, nodeId: 0),
+          throwsA(_error('source_archive.sealed')));
+    });
+
+    test(
+        'sealed byte buffers and roundtrip input cannot mutate the cached archive',
+        () {
+      final bytes = _marshal(_text('opaque'));
+      final entry = _entry(bytes);
+      final archive = SourceArchive()
+        ..add(entry, bytes)
+        ..seal();
+      final first = archive.canonicalHash;
+      final file = archive.files.values.single;
+      expect(() => (file.rawBytes as Uint8List).buffer.asUint8List()[0] = 0,
+          throwsUnsupportedError);
+      final node = file.document.node(file.document.rootId);
+      expect(() => (node.bytes as Uint8List).buffer.asUint8List()[0] = 0,
+          throwsUnsupportedError);
+      final restored = SourceArchive.fromJson(_mutable(archive));
+      expect(restored.canonicalHash, first);
+      expect(restored.canonicalHash, same(restored.canonicalHash));
+      expect(restored.canonicalHash, isNot(same(first)));
+      final forged = _mutable(archive);
+      (forged['files'] as List).single['rawBytes'] = base64Encode([4, 8, 48]);
+      expect(
+          () => SourceArchive.fromJson(forged), throwsA(isA<ContractError>()));
+      bytes[0] = 0;
+      expect(archive.canonicalHash, first);
+    });
+  });
+
   test('archive retains exact immutable bytes and decodes each file once', () {
     final bytes = _marshal(_text('opaque'));
     final original = [...bytes];

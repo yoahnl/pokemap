@@ -474,6 +474,119 @@ List<Object?> _routeConnections() => [
     ];
 
 void main() {
+  group('sealed source digests', () {
+    test('normalized digest is reused and equals the uncached JSON oracle',
+        () async {
+      final source = await _normalize(_source(_project()));
+      expect(source.archive.isSealed, isTrue);
+      final oracleJson = Map<String, Object?>.from(source.toJson())
+        ..remove('archive');
+      final oracle = canonicalHashOf(oracleJson,
+          limits: const ContractLimits(
+              maxNodes: 40000000,
+              maxStringCodeUnits: 1048576,
+              maxTextCodeUnits: 134217728));
+      final first = source.canonicalHash;
+      expect(first, oracle);
+      expect(source.canonicalHash, same(first));
+      expect(source.canonicalHash, same(first));
+    });
+
+    test('immutable normalized graph refuses every reachable mutation',
+        () async {
+      final input = _project(image: false, maps: {
+        1: _map(events: {
+          1: _event(1, [
+            _page([
+              _command(101, ['Hello'])
+            ])
+          ])
+        })
+      });
+      final source = await _normalize(_source(input));
+      final first = source.canonicalHash;
+      for (final list in <List>[
+        source.maps,
+        source.connections,
+        source.mapHierarchy,
+        source.tilesets,
+        source.eventImages,
+        source.diagnostics,
+        source.preservedParameterRefs,
+        source.selectedSourceMapIds,
+        source.unprocessedSourceMapIds,
+        source.tilesets.single.images,
+        source.snapshot.entries,
+        source.snapshot.excludedPaths,
+        source.snapshot.profileEvidence,
+        for (final diagnostic in source.diagnostics) diagnostic.relatedPaths,
+      ]) {
+        expect(() => list.clear(), throwsUnsupportedError);
+      }
+      void frozenJson(Object? value) {
+        if (value is Map) {
+          expect(() => value['forged'] = true, throwsUnsupportedError);
+          for (final nested in value.values) {
+            frozenJson(nested);
+          }
+        } else if (value is List) {
+          expect(() => value.add(null), throwsUnsupportedError);
+          for (final nested in value) {
+            frozenJson(nested);
+          }
+        }
+      }
+
+      frozenJson(source.maps.single.toJson());
+      expect(() => source.archive.files.clear(), throwsUnsupportedError);
+      expect(() => source.archive.references.clear(), throwsUnsupportedError);
+      for (final file in source.archive.files.values) {
+        expect(() => file.rawBytes[0] = 0, throwsUnsupportedError);
+        final bytes = file.rawBytes as Uint8List;
+        expect(() => bytes.buffer.asUint8List()[0] = 0, throwsUnsupportedError);
+        expect(() => file.document.nodes.clear(), throwsUnsupportedError);
+        for (final node in file.document.nodes) {
+          for (final list in <List>[
+            node.elements,
+            node.pairs,
+            node.instanceVariables,
+            node.extensions,
+          ]) {
+            expect(() => list.clear(), throwsUnsupportedError);
+          }
+          if (node.bytes case final Uint8List bytes when bytes.isNotEmpty) {
+            expect(() => bytes[0] = 0, throwsUnsupportedError);
+            expect(() => bytes.buffer.asUint8List()[0] = 0,
+                throwsUnsupportedError);
+          }
+        }
+      }
+      for (final bytes in input.values) {
+        if (bytes.isNotEmpty) bytes[0] = 0;
+      }
+      final exported = source.toJson();
+      exported['sourceProfileId'] = 'changed-only-in-export';
+      expect(source.canonicalHash, first);
+      expect(
+          source.toJson()['sourceProfileId'], isNot('changed-only-in-export'));
+    });
+
+    test(
+        'a new normalization has an independent digest for changed source bytes',
+        () async {
+      final first = await _normalize(_source(_project()));
+      final second =
+          await _normalize(_source(_project(maps: {1: _map(width: 4)})));
+      expect(first.maps.single.map.sourceMapId,
+          second.maps.single.map.sourceMapId);
+      expect(first.canonicalHash, isNot(second.canonicalHash));
+      expect(first.archive.canonicalHash, isNot(second.archive.canonicalHash));
+      final equivalent = await _normalize(_source(_project()));
+      expect(equivalent.canonicalHash, first.canonicalHash);
+      expect(equivalent.canonicalHash, isNot(same(first.canonicalHash)));
+    });
+  });
+
   test(
       'explicit atlas image binding resolves a missing reference with provenance',
       () async {

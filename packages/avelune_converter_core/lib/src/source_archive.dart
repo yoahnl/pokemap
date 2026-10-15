@@ -191,6 +191,7 @@ final class SourceArchive {
   int _totalLocationUnits = 0;
   int _encodedUnits = 0;
   bool _sealed = false;
+  Sha256Hash? _sealedCanonicalHash;
   bool get isSealed => _sealed;
   void seal() => _sealed = true;
   Map<ConverterId, SourceArchivedFile> get files => UnmodifiableMapView(_files);
@@ -204,7 +205,11 @@ final class SourceArchive {
         maxTextCodeUnits: limits.maxEncodedCodeUnits,
       );
 
-  Sha256Hash get canonicalHash {
+  Sha256Hash get canonicalHash => _sealed
+      ? _sealedCanonicalHash ??= _computeCanonicalHash()
+      : _computeCanonicalHash();
+
+  Sha256Hash _computeCanonicalHash() {
     _quota(_encodedUnits, limits.maxEncodedCodeUnits, 'encoded', r'$');
     final digest = _SourceDigestSink();
     final sink = sha256.startChunkedConversion(digest);

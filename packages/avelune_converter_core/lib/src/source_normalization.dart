@@ -386,7 +386,12 @@ final class NormalizedSourceProject {
         preservedParameterRefs = List.unmodifiable(preservedParameterRefs),
         selectedSourceMapIds = List.unmodifiable(selectedSourceMapIds),
         unprocessedSourceMapIds = List.unmodifiable(unprocessedSourceMapIds),
-        diagnostics = List.unmodifiable(diagnostics);
+        diagnostics = List.unmodifiable(diagnostics) {
+    if (!archive.isSealed) {
+      throw StateError(
+          'A normalized source project requires a sealed archive.');
+    }
+  }
 
   final SourceSnapshot snapshot;
   final ConverterId sourceProfileId;
@@ -448,14 +453,14 @@ final class NormalizedSourceProject {
         'archiveHash': archive.canonicalHash.value,
       };
 
-  Sha256Hash get canonicalHash => canonicalHashOf(
-        _normalizedJson(),
-        limits: const ContractLimits(
-          maxNodes: 40000000,
-          maxStringCodeUnits: 1048576,
-          maxTextCodeUnits: 134217728,
-        ),
-      );
+  late final Sha256Hash canonicalHash = canonicalHashOf(
+    _normalizedJson(),
+    limits: const ContractLimits(
+      maxNodes: 40000000,
+      maxStringCodeUnits: 1048576,
+      maxTextCodeUnits: 134217728,
+    ),
+  );
 
   Map<String, Object?> toJson() => {
         ..._normalizedJson(),
