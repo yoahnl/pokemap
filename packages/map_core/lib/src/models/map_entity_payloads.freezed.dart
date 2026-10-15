@@ -1152,7 +1152,7 @@ $DialogueRefCopyWith<$Res> get dialogue {
 /// @nodoc
 mixin _$MapEntityNpcData {
 
- String get displayName; DialogueRef? get dialogue; EntityFacing get facing; String get visualElementId; String? get trainerId; int get lineOfSightRange; DialogueRef? get defeatDialogueRef; String? get characterId; MapEntityNpcMovementConfig get movement;/// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
+ String get displayName; DialogueRef? get dialogue; EntityFacing get facing; String get visualElementId; String? get trainerId; int get lineOfSightRange; List<EntityFacing> get counterInteractionSides; DialogueRef? get defeatDialogueRef; String? get characterId; MapEntityNpcMovementConfig get movement;/// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
  MapEntityNpcVisibilityRule? get visibilityRule;/// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
  List<MapEntityConditionalDialogue> get conditionalDialogues;
 /// Create a copy of MapEntityNpcData
@@ -1167,16 +1167,16 @@ $MapEntityNpcDataCopyWith<MapEntityNpcData> get copyWith => _$MapEntityNpcDataCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other.conditionalDialogues, conditionalDialogues));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&const DeepCollectionEquality().equals(other.counterInteractionSides, counterInteractionSides)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other.conditionalDialogues, conditionalDialogues));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,lineOfSightRange,defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(conditionalDialogues));
+int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,lineOfSightRange,const DeepCollectionEquality().hash(counterInteractionSides),defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(conditionalDialogues));
 
 @override
 String toString() {
-  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
+  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, counterInteractionSides: $counterInteractionSides, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
 }
 
 
@@ -1187,7 +1187,7 @@ abstract mixin class $MapEntityNpcDataCopyWith<$Res>  {
   factory $MapEntityNpcDataCopyWith(MapEntityNpcData value, $Res Function(MapEntityNpcData) _then) = _$MapEntityNpcDataCopyWithImpl;
 @useResult
 $Res call({
- String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId, int lineOfSightRange, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
+ String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId, int lineOfSightRange, List<EntityFacing> counterInteractionSides, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
 });
 
 
@@ -1204,7 +1204,7 @@ class _$MapEntityNpcDataCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? lineOfSightRange = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? lineOfSightRange = null,Object? counterInteractionSides = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
   return _then(_self.copyWith(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
@@ -1212,7 +1212,8 @@ as DialogueRef?,facing: null == facing ? _self.facing : facing // ignore: cast_n
 as EntityFacing,visualElementId: null == visualElementId ? _self.visualElementId : visualElementId // ignore: cast_nullable_to_non_nullable
 as String,trainerId: freezed == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
 as String?,lineOfSightRange: null == lineOfSightRange ? _self.lineOfSightRange : lineOfSightRange // ignore: cast_nullable_to_non_nullable
-as int,defeatDialogueRef: freezed == defeatDialogueRef ? _self.defeatDialogueRef : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
+as int,counterInteractionSides: null == counterInteractionSides ? _self.counterInteractionSides : counterInteractionSides // ignore: cast_nullable_to_non_nullable
+as List<EntityFacing>,defeatDialogueRef: freezed == defeatDialogueRef ? _self.defeatDialogueRef : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,characterId: freezed == characterId ? _self.characterId : characterId // ignore: cast_nullable_to_non_nullable
 as String?,movement: null == movement ? _self.movement : movement // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcMovementConfig,visibilityRule: freezed == visibilityRule ? _self.visibilityRule : visibilityRule // ignore: cast_nullable_to_non_nullable
@@ -1347,10 +1348,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntityNpcData() when $default != null:
-return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
+return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
   return orElse();
 
 }
@@ -1368,10 +1369,10 @@ return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElemen
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcData():
-return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
+return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1388,10 +1389,10 @@ return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElemen
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcData() when $default != null:
-return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
+return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
   return null;
 
 }
@@ -1403,7 +1404,7 @@ return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElemen
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntityNpcData implements MapEntityNpcData {
-  const _MapEntityNpcData({this.displayName = '', this.dialogue, this.facing = EntityFacing.south, this.visualElementId = '', this.trainerId, this.lineOfSightRange = 0, this.defeatDialogueRef, this.characterId, this.movement = const MapEntityNpcMovementConfig(), this.visibilityRule, final  List<MapEntityConditionalDialogue> conditionalDialogues = const <MapEntityConditionalDialogue>[]}): _conditionalDialogues = conditionalDialogues;
+  const _MapEntityNpcData({this.displayName = '', this.dialogue, this.facing = EntityFacing.south, this.visualElementId = '', this.trainerId, this.lineOfSightRange = 0, final  List<EntityFacing> counterInteractionSides = const <EntityFacing>[], this.defeatDialogueRef, this.characterId, this.movement = const MapEntityNpcMovementConfig(), this.visibilityRule, final  List<MapEntityConditionalDialogue> conditionalDialogues = const <MapEntityConditionalDialogue>[]}): _counterInteractionSides = counterInteractionSides,_conditionalDialogues = conditionalDialogues;
   factory _MapEntityNpcData.fromJson(Map<String, dynamic> json) => _$MapEntityNpcDataFromJson(json);
 
 @override@JsonKey() final  String displayName;
@@ -1412,6 +1413,13 @@ class _MapEntityNpcData implements MapEntityNpcData {
 @override@JsonKey() final  String visualElementId;
 @override final  String? trainerId;
 @override@JsonKey() final  int lineOfSightRange;
+ final  List<EntityFacing> _counterInteractionSides;
+@override@JsonKey() List<EntityFacing> get counterInteractionSides {
+  if (_counterInteractionSides is EqualUnmodifiableListView) return _counterInteractionSides;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_counterInteractionSides);
+}
+
 @override final  DialogueRef? defeatDialogueRef;
 @override final  String? characterId;
 @override@JsonKey() final  MapEntityNpcMovementConfig movement;
@@ -1440,16 +1448,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other._conditionalDialogues, _conditionalDialogues));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&const DeepCollectionEquality().equals(other._counterInteractionSides, _counterInteractionSides)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other._conditionalDialogues, _conditionalDialogues));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,lineOfSightRange,defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(_conditionalDialogues));
+int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,lineOfSightRange,const DeepCollectionEquality().hash(_counterInteractionSides),defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(_conditionalDialogues));
 
 @override
 String toString() {
-  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
+  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, counterInteractionSides: $counterInteractionSides, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
 }
 
 
@@ -1460,7 +1468,7 @@ abstract mixin class _$MapEntityNpcDataCopyWith<$Res> implements $MapEntityNpcDa
   factory _$MapEntityNpcDataCopyWith(_MapEntityNpcData value, $Res Function(_MapEntityNpcData) _then) = __$MapEntityNpcDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId, int lineOfSightRange, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
+ String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId, int lineOfSightRange, List<EntityFacing> counterInteractionSides, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
 });
 
 
@@ -1477,7 +1485,7 @@ class __$MapEntityNpcDataCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? lineOfSightRange = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? lineOfSightRange = null,Object? counterInteractionSides = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
   return _then(_MapEntityNpcData(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
@@ -1485,7 +1493,8 @@ as DialogueRef?,facing: null == facing ? _self.facing : facing // ignore: cast_n
 as EntityFacing,visualElementId: null == visualElementId ? _self.visualElementId : visualElementId // ignore: cast_nullable_to_non_nullable
 as String,trainerId: freezed == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
 as String?,lineOfSightRange: null == lineOfSightRange ? _self.lineOfSightRange : lineOfSightRange // ignore: cast_nullable_to_non_nullable
-as int,defeatDialogueRef: freezed == defeatDialogueRef ? _self.defeatDialogueRef : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
+as int,counterInteractionSides: null == counterInteractionSides ? _self._counterInteractionSides : counterInteractionSides // ignore: cast_nullable_to_non_nullable
+as List<EntityFacing>,defeatDialogueRef: freezed == defeatDialogueRef ? _self.defeatDialogueRef : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,characterId: freezed == characterId ? _self.characterId : characterId // ignore: cast_nullable_to_non_nullable
 as String?,movement: null == movement ? _self.movement : movement // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcMovementConfig,visibilityRule: freezed == visibilityRule ? _self.visibilityRule : visibilityRule // ignore: cast_nullable_to_non_nullable

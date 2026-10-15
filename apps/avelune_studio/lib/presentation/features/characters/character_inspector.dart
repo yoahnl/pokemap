@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/characters/application/character_editing_commands.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -182,6 +183,34 @@ class _CharacterInspectorState extends State<CharacterInspector> {
         Text('Interaction', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
         const Text('Quand le joueur lui parle'),
+        if (widget.document.current.spatialScene == null &&
+            widget.document.current.version != ProjectVersion.v9 &&
+            entity.size.width == 1 &&
+            entity.size.height == 1) ...[
+          const SizedBox(height: 8),
+          const Text('Parler par-dessus un comptoir'),
+          for (final side in EntityFacing.values)
+            StudioChoice(
+              key: ValueKey('counter-side-${side.name}'),
+              label: switch (side) {
+                EntityFacing.north => 'Depuis le haut du personnage',
+                EntityFacing.south => 'Depuis le bas du personnage',
+                EntityFacing.west => 'Depuis la gauche du personnage',
+                EntityFacing.east => 'Depuis la droite du personnage',
+              },
+              selected: npc.counterInteractionSides.contains(side),
+              onTap: () => _change(
+                () => _commands.setCounterInteractionSides(
+                  entity.id,
+                  npc.counterInteractionSides.contains(side)
+                      ? npc.counterInteractionSides
+                            .where((value) => value != side)
+                            .toList()
+                      : [...npc.counterInteractionSides, side],
+                ),
+              ),
+            ),
+        ],
         if (widget.document.current.spatialScene != null)
           DropdownButtonFormField<String>(
             key: ValueKey('dialogue-${entity.id}-${npc.dialogue?.dialogueId}'),

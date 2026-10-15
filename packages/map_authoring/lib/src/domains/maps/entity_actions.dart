@@ -45,6 +45,36 @@ final class EntityActions {
       ('npc.waypoint_clear', 'Clear NPC patrol waypoints'),
     ])
       semanticActionDescriptor(entry.$1, entry.$2),
+    AuthoringActionDescriptor(
+      id: 'npc.set_counter_interaction_sides',
+      version: 1,
+      summary:
+          'Set NPC sides allowing interaction across one blocking counter cell',
+      inputSchemaId: 'schema.npc.set_counter_interaction_sides.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'counterInteraction': {
+          'relativeTo': 'npc',
+          'directions': ['north', 'south', 'east', 'west'],
+          'distanceCells': 2,
+          'intermediateCell': 'blockingAndWithoutEntity',
+          'npcFootprint': {'width': 1, 'height': 1},
+          'mapMode': '2d',
+          'parameters': ['mapId', 'entityId', 'sides'],
+        },
+      },
+    ),
   ]);
 
   MapData create(MapData map, MapEntity entity) {
@@ -84,6 +114,28 @@ final class EntityActions {
     return List.unmodifiable([entity.pos, ...entity.npc!.movement.waypoints]);
   }
 
+  MapData setCounterInteractionSides(
+    MapData map, {
+    required String entityId,
+    required List<EntityFacing> sides,
+  }) {
+    final entity = _npcEntity(map, entityId);
+    if (sides.toSet().length != sides.length ||
+        sides.length > 4 ||
+        (sides.isNotEmpty &&
+            (entity.size.width != 1 ||
+                entity.size.height != 1 ||
+                map.spatialScene != null ||
+                map.version == ProjectVersion.v9))) {
+      throw semanticFailure('npc.counter_interaction_invalid',
+          'Counter interaction requires unique cardinal sides and a 1x1 NPC on a 2D map.');
+    }
+    return updateEntityOnMap(map,
+        entityId: entityId,
+        npc: entity.npc!.copyWith(
+            counterInteractionSides: List<EntityFacing>.unmodifiable(sides)));
+  }
+
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
@@ -107,6 +159,7 @@ final class EntityActions {
       'entity.set_blocks_movement' => const {'entityId', 'blocksMovement'},
       'entity.patch_properties' => const {'entityId', 'patch'},
       'npc.set_facing' => const {'entityId', 'facing'},
+      'npc.set_counter_interaction_sides' => const {'entityId', 'sides'},
       'npc.set_character' => const {'entityId', 'characterId'},
       'npc.set_trainer' => const {'entityId', 'trainerId'},
       'npc.set_dialogue' || 'npc.set_defeat_dialogue' => const {
@@ -310,6 +363,21 @@ final class EntityActions {
             parameters.string('entityId'),
             {'facing': parameters.string('facing')},
           );
+        case 'npc.set_counter_interaction_sides':
+          final sides = parameters.list('sides');
+          if (sides.any((side) =>
+              side is! String ||
+              !EntityFacing.values
+                  .any((direction) => direction.name == side))) {
+            throw invalidSemanticField(
+                'sides', 'a list of cardinal direction names');
+          }
+          updated = setCounterInteractionSides(context.map,
+              entityId: parameters.string('entityId'),
+              sides: [
+                for (final side in sides)
+                  EntityFacing.values.byName(side as String)
+              ]);
         case 'npc.set_character':
           updated = _patchNpcJson(
             context.map,

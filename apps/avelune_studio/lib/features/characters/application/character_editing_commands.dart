@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../map_workspace/application/map_entity_editing_commands.dart';
@@ -143,4 +144,13 @@ class CharacterEditingCommands {
       ),
     );
   }
+
+  void setCounterInteractionSides(String id, List<EntityFacing> sides) =>
+      document.commit(
+        const EntityActions().setCounterInteractionSides(
+          document.current,
+          entityId: id,
+          sides: sides,
+        ),
+      );
 }

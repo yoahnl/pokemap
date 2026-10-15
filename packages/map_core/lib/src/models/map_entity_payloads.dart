@@ -124,6 +124,7 @@ abstract class MapEntityNpcData with _$MapEntityNpcData {
     @Default('') String visualElementId,
     String? trainerId,
     @Default(0) int lineOfSightRange,
+    @Default(<EntityFacing>[]) List<EntityFacing> counterInteractionSides,
     DialogueRef? defeatDialogueRef,
     String? characterId,
     @Default(MapEntityNpcMovementConfig()) MapEntityNpcMovementConfig movement,

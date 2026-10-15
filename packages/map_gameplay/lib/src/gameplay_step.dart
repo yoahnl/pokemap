@@ -714,6 +714,25 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
     };
   }
 
+  final across = world.entityAt(tx + facing.dx, ty + facing.dy);
+  final counterSide = switch (facing) {
+    Direction.north => EntityFacing.south,
+    Direction.south => EntityFacing.north,
+    Direction.east => EntityFacing.west,
+    Direction.west => EntityFacing.east,
+  };
+  if (world.map.spatialScene == null &&
+      world.map.version != ProjectVersion.v9 &&
+      across != null && across.kind == MapEntityKind.npc &&
+      across.npc != null && across.size.width == 1 && across.size.height == 1 &&
+      across.npc!.counterInteractionSides.contains(counterSide) &&
+      world.isCellCenterBlockedLegacyForGridIndexedSystems(tx, ty) &&
+      world.map.entities.where((candidate) =>
+          resolveEntityCollisionCells(candidate).contains(across.pos))
+          .length == 1) {
+    return NpcInteracted(world, across);
+  }
+
   final actionBehavior = world.placedElementBehaviorOnActionAt(tx, ty);
   if (actionBehavior != null &&
       _passesBehaviorScopeForAction(

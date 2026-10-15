@@ -8,6 +8,7 @@ import 'package:avelune_studio/presentation/features/characters/character_inspec
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+
 import '../support/map_workspace_fixture.dart';
 import 'character_editing_test.dart' show guide;
 
@@ -46,9 +47,8 @@ void main() {
       Widget app(Widget child) => MaterialApp(
         theme: studioTheme(),
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(1.5)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(1.5)),
           child: child!,
         ),
         home: Scaffold(body: SizedBox(width: 300, child: child)),
@@ -124,6 +124,27 @@ void main() {
       await tester.tap(find.text('Alice').last);
       await tester.pumpAndSettle();
       expect(commands.selected(selected)!.npc!.trainerId, 'alice');
+      final beforeCounter = document.current;
+      final counter = find.byKey(const ValueKey('counter-side-south'));
+      await tester.ensureVisible(counter);
+      await tester.tap(counter);
+      await tester.pump();
+      expect(commands.selected(selected)!.npc!.counterInteractionSides, [
+        EntityFacing.south,
+      ]);
+      document.restore(redo: false);
+      expect(document.current, beforeCounter);
+      document.restore(redo: true);
+      expect(commands.selected(selected)!.npc!.counterInteractionSides, [
+        EntityFacing.south,
+      ]);
+      await tester.pump();
+      await tester.tap(counter);
+      await tester.pump();
+      expect(
+        commands.selected(selected)!.npc!.counterInteractionSides,
+        isEmpty,
+      );
       await tester.ensureVisible(find.text('Écrire son interaction'));
       await tester.tap(find.text('Écrire son interaction'));
       expect(edited!.id, selected);

@@ -98,6 +98,11 @@ _MapEntityNpcData _$MapEntityNpcDataFromJson(Map<String, dynamic> json) =>
       visualElementId: json['visualElementId'] as String? ?? '',
       trainerId: json['trainerId'] as String?,
       lineOfSightRange: (json['lineOfSightRange'] as num?)?.toInt() ?? 0,
+      counterInteractionSides:
+          (json['counterInteractionSides'] as List<dynamic>?)
+              ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
+              .toList() ??
+          const <EntityFacing>[],
       defeatDialogueRef: json['defeatDialogueRef'] == null
           ? null
           : DialogueRef.fromJson(
@@ -133,6 +138,9 @@ Map<String, dynamic> _$MapEntityNpcDataToJson(_MapEntityNpcData instance) =>
       'visualElementId': instance.visualElementId,
       'trainerId': instance.trainerId,
       'lineOfSightRange': instance.lineOfSightRange,
+      'counterInteractionSides': instance.counterInteractionSides
+          .map((e) => _$EntityFacingEnumMap[e]!)
+          .toList(),
       'defeatDialogueRef': instance.defeatDialogueRef?.toJson(),
       'characterId': instance.characterId,
       'movement': instance.movement.toJson(),

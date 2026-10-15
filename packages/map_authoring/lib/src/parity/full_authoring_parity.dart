@@ -509,6 +509,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'npc.set_counter_interaction_sides') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/npc_counter_interaction_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/npc_counter_interaction_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/characters/character_widgets_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/npc_counter_interaction_stdio.test.ts',
+    };
+  }
   if (actionId == 'scene.dialogue.audioMedia.import') {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/dialogue_audio_media_actions_test.dart',
@@ -1302,6 +1314,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'npc.set_counter_interaction_sides') {
+    return 'test/domains/maps/npc_counter_interaction_actions_test.dart';
+  }
   if (actionId == 'map3d.instance.delete_batch') {
     return 'test/domains/maps/spatial_map_actions_test.dart';
   }

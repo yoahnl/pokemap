@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+
 import '../support/map_workspace_fixture.dart';
 
 const guide = ProjectCharacterEntry(
@@ -105,6 +106,44 @@ void main() {
     expect(document.undoCount, 0);
     expect(document.dirty, isFalse);
   });
+  test(
+    'counter interaction sides use undoable canonical character editing',
+    () {
+      final first = commands.place(guide, const GridPos(x: 2, y: 3));
+      commands.update(first.id, name: 'Accueil', facing: EntityFacing.east);
+      final before = document.current;
+      commands.setCounterInteractionSides(first.id, [EntityFacing.south]);
+      final after = document.current;
+      final actual = commands.selected(first.id)!;
+      expect(actual.npc!.counterInteractionSides, [EntityFacing.south]);
+      expect(actual.pos, first.pos);
+      expect(
+        actual.npc,
+        before.entities.single.npc!.copyWith(
+          counterInteractionSides: [EntityFacing.south],
+        ),
+      );
+      document.restore(redo: false);
+      expect(document.current, before);
+      document.restore(redo: true);
+      expect(document.current, after);
+      final count = document.undoCount;
+      expect(
+        () => commands.setCounterInteractionSides(first.id, [
+          EntityFacing.south,
+          EntityFacing.south,
+        ]),
+        throwsA(isA<Exception>()),
+      );
+      expect(document.undoCount, count);
+      expect(document.current, after);
+      commands.setCounterInteractionSides(first.id, []);
+      expect(
+        commands.selected(first.id)!.npc!.counterInteractionSides,
+        isEmpty,
+      );
+    },
+  );
   test('assigning a real trainer is undoable and rejects stale IDs', () {
     project = project.copyWith(
       trainers: [
