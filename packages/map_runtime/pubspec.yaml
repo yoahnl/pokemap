@@ -41,6 +41,7 @@ dependencies:
   freezed_annotation: '>=2.4.1 <4.0.0'
 
 dev_dependencies:
+  crypto: ^3.0.7
   flame_cli: 0.1.1-dev.1
   flutter_test:
     sdk: flutter
