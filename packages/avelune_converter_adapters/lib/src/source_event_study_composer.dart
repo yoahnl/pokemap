@@ -15,6 +15,7 @@ import 'source_trainer_event_bindings.dart';
 import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_cut_obstacle_binding.dart';
+import 'source_party_trade_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
@@ -231,6 +232,8 @@ final class SourceEventStudyComposer {
         limits: limits, cancellation: cancellation);
     final pokedexReward = await const SourcePokedexRewardBindingResolver().read(
         source: source, analysis: analysis, files: recording, cancellation: cancellation);
+    final partyTrade = const SourcePartyTradeBindingResolver().resolve(source: source, analysis: analysis,
+        visualPolicy: SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard);
     SourceTownMapBinding? townMap;
     if(selectedEvents.any((event)=>event.pages.expand((page)=>page.body.nodes).any((node)=>node is SourceTownMapProgramNode))) {
       try {
@@ -276,6 +279,7 @@ final class SourceEventStudyComposer {
             trainerBindings: trainerBindings.byEventIdentity,
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
+            partyTradeBinding: partyTrade,
             cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
@@ -290,11 +294,14 @@ final class SourceEventStudyComposer {
             pattern: graphic.pattern,
             direction: graphic.direction);
         if (!visited.add(key)) continue;
+        final visualAdaptation = partyTrade != null &&
+                partyTrade.isBoundToEvent(source: source, analysis: analysis, event: event)
+            ? partyTrade.visualAdaptation : null;
         try {
           final imported = await const SourceEventCharacterImporter().read(
               snapshot: source.snapshot,
               files: recording,
-              charsetName: graphic.characterName,
+              charsetName: visualAdaptation?.actualCharsetName ?? graphic.characterName,
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
               limits: limits,
@@ -303,7 +310,9 @@ final class SourceEventStudyComposer {
           characterArtifacts.addAll(imported.artifacts);
           characterMutations.addAll(imported.mutations);
           characterEvidence.add(
-              {'bindingKey': key, 'status': 'imported', ...imported.evidence});
+              {'bindingKey': key, 'status': 'imported', ...imported.evidence,
+                'requestedGraphic': graphic.characterName,
+                if (visualAdaptation != null) 'visualAdaptation': visualAdaptation.toJson()});
         } on NativeWriteException catch (error) {
           cancellation?.check();
           if (error.code.contains('quota') ||
@@ -344,6 +353,7 @@ final class SourceEventStudyComposer {
         trainerBindings: trainerBindings.byEventIdentity,
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
+            partyTradeBinding: partyTrade,
             cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
@@ -616,6 +626,7 @@ final class SourceEventStudyComposer {
       'centerRecovery': centerRecoveryEvidence,
       'pokedexRewardBinding': pokedexReward?.toJson(),
       if(usedTownMap!=null)'townMap':usedTownMap.evidence,
+      if (projection.semanticEvidence['usedPartyTrade'] == true) 'partyTrade': partyTrade!.evidence,
       if (usedCutObstacles != null) 'cutObstacles': usedCutObstacles.evidence,
       'cutObstacleBindings': cutBindingEvidence,
       'trainerBindings': {

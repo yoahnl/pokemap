@@ -12,6 +12,7 @@ import 'source_trainer_event_bindings.dart';
 import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_cut_obstacle_binding.dart';
+import 'source_party_trade_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -289,6 +290,7 @@ final class SourceEventProjector {
     SourcePokedexRewardBinding? pokedexRewardBinding,
     SourceTownMapBinding? townMapBinding,
     Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
+    SourcePartyTradeBinding? partyTradeBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -300,7 +302,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isCutObstacleFamily(event) &&
@@ -319,6 +321,7 @@ final class SourceEventProjector {
     SourcePokedexRewardBinding? pokedexRewardBinding,
     SourceTownMapBinding? townMapBinding,
     Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
+    SourcePartyTradeBinding? partyTradeBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -342,7 +345,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding)
         .build();
   }
 }
@@ -402,7 +405,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -424,6 +427,7 @@ final class _ProjectionBuilder {
   final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
   final SourcePokedexRewardBinding? pokedexRewardBinding;
   final SourceTownMapBinding? townMapBinding;
+  final SourcePartyTradeBinding? partyTradeBinding;
   final Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
@@ -616,6 +620,14 @@ final class _ProjectionBuilder {
             'sourceAfterInteractionFacing': 'nativeNpcInteractionVisualFacing',
             'persistentFacingCertified': false,
           },
+        if (gaps.isEmpty && _isPartyTradeFamily(event))
+          'nativePartyTrade': {
+            ...partyTradeBinding!.evidence,
+            'nativeExecutionQualified': true,
+            'nativeActivation': 'sourceAnchorNpcInteractAndWestFacing',
+            'nativeCommand': 'openPartyTrade',
+            'nativeCloseContract': 'awaitNativeTradeScreenClose',
+          },
         if(gaps.isEmpty && _isTownMapFamily(event))
           'nativeTownMap': {
             ...townMapBinding!.evidence,
@@ -643,6 +655,17 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if (gaps.isEmpty && _isPartyTradeFamily(event))
+                  {
+                    'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
+                    'span': page.body.nodes.single.span.toJson(),
+                    'rawDataRefs': [page.rawDataRef!.toJson()],
+                    'nativeContract': 'nativeOwnPartySelectionTradeEvolutionAndSingleCommit',
+                    'equivalenceScope': ['sourceIntroAndRefusal', 'playerFacingWest', 'twoOwnPartySelections', 'sameIndividualBranch', 'firstIndividualOnlyEvolution', 'partnerAndPartyOrderPreserved', 'cancelWithoutMutation'],
+                    'adaptedSourceEffects': partyTradeBinding!.program.toJson()['adaptedSourceEffects'],
+                    'sourceScriptsExecuted': 0,
+                    'fullSourceTradePresentationParityQualified': false,
+                  },
                 if(gaps.isEmpty && _isTownMapFamily(event))
                   {
                     'sourceOpcodes':[101,355,0],
@@ -890,6 +913,7 @@ final class _ProjectionBuilder {
           'fullPickupParityQualified': false,
         },
       'usedTownMap': eventEvidence.any((row)=>row.containsKey('nativeTownMap')),
+      'usedPartyTrade': eventEvidence.any((row) => row.containsKey('nativePartyTrade')),
       'usedCutObstacles': eventEvidence.any((row) => row.containsKey('nativeCutObstacle')),
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
     };
@@ -1379,6 +1403,78 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  bool _isPartyTradeFamily(SourceEventDefinition event) =>
+      (event.sourceMapId == 102 && event.sourceEventId == 7) ||
+      event.pages.expand((page) => page.body.nodes).any((node) => node is SourcePartyTradeProgramNode);
+
+  Set<String> _partyTradeGaps(SourceEventDefinition event, {required bool checkCharacterBindings}) {
+    final binding = partyTradeBinding;
+    if (binding == null) return {'sourcePartyTradeBindingsMissing'};
+    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+      return {'sourcePartyTradeSourceBindingInvalid'};
+    }
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+      return {'sourcePartyTradeSpatialUnsupported'};
+    }
+    if (event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
+      return {'eventPositionInvalid'};
+    }
+    final gaps = <String>{};
+    final passage = semanticResolver.resolveConnectionEntryTile(
+        semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
+    final collisionLayers = map.layers.whereType<CollisionLayer>().toList();
+    if (collisionLayers.isEmpty || collisionLayers.any((layer) =>
+        layer.collisions.length != map.size.width * map.size.height) ||
+        passage.status == SourcePassageStatus.unqualified ||
+        (passage.status == SourcePassageStatus.blocked) != _nativeSolidAt(event)) {
+      gaps.add('sourcePartyTradeAnchorPassageUnqualified');
+    }
+    final approachX = event.x + 1;
+    final approach = semanticResolver.resolveConnectionEntryTile(
+        semanticResolver.cellAt(event.sourceMapId, approachX, event.y));
+    final approachIndex = event.y * map.size.width + approachX;
+    if (approachX >= map.size.width || approach.status != SourcePassageStatus.allowed ||
+        collisionLayers.any((layer) => approachIndex >= layer.collisions.length || layer.collisions[approachIndex]) ||
+        map.entities.any((entity) => resolveEntityCollisionCells(entity).contains(GridPos(x: approachX, y: event.y))) ||
+        _sourceCounterCellOccupied(event, approachX, event.y)) {
+      gaps.add('sourcePartyTradeFacingApproachUnqualified');
+    }
+    if (map.entities.any((entity) => resolveEntityCollisionCells(entity).contains(GridPos(x: event.x, y: event.y))) ||
+        _sourceCounterCellOccupied(event, event.x, event.y)) {
+      gaps.add('sourcePartyTradeAnchorOccupied');
+    }
+    final page = event.pages.single;
+    final graphic = page.graphic;
+    if (page.triggerCode != 0 || graphic == null || graphic.moveType != 0 || graphic.tileId != 0 ||
+        graphic.characterName != 'NPC_FRLG_WOMAN_2_FORMAL' || graphic.hue != 0 || graphic.direction != 6 ||
+        graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 || graphic.moveSpeed != 3 ||
+        graphic.moveFrequency != 3 || !graphic.walkAnime || graphic.stepAnime || graphic.directionFix ||
+        graphic.through || graphic.alwaysOnTop || page.condition.kind != SourceEventConditionKind.always) {
+      gaps.add('sourcePartyTradeGraphicUnsupported');
+    }
+    if (checkCharacterBindings) {
+      final character = characterBindings[sourceEventCharacterBindingKey(
+          characterName: 'NPC_FRLG_WOMAN_2_FORMAL', pattern: 0, direction: 6)];
+      final file = source.snapshot.entries.where((entry) => entry.fileId == character?.sourceFileId).firstOrNull;
+      final visual = binding.visualAdaptation;
+      final expectedPath = visual?.actualSourceFile.relativePath ?? 'Graphics/Characters/NPC_FRLG_WOMAN_2_FORMAL.png';
+      if (character == null || character.characterId.trim().isEmpty || character.sourceSnapshotHash != sourceSnapshotHash ||
+          character.sourcePattern != 0 || character.sourceDirection != 6 || file?.sha256 != character.sourceFileHash ||
+          file?.relativePath != expectedPath || (visual != null &&
+            (character.sourceFileId != visual.actualSourceFile.fileId || character.sourceFileHash != visual.actualSourceFile.sha256))) {
+        gaps.add('characterBindingMissing');
+      }
+    }
+    if ([...binding.program.greetingLines, binding.program.refusalLine].any((text) {
+      final feedback = _staticSourceTextFeedback(text.text);
+      return feedback == null || feedback.plainText.trim().isEmpty;
+    })) {
+      gaps.add('sourcePartyTradeTextControlUnsupported');
+    }
+    return gaps;
+  }
+
   bool _isCutObstacleFamily(SourceEventDefinition event) =>
       (event.sourceMapId == 98 && event.sourceEventId == 3) ||
       (event.sourceMapId == 100 && const {2, 3, 4, 5}.contains(event.sourceEventId)) ||
@@ -1419,6 +1515,7 @@ final class _ProjectionBuilder {
 
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_isPartyTradeFamily(event)) return _partyTradeGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isCutObstacleFamily(event)) return _cutObstacleGaps(event);
     if (_isTownMapFamily(event)) return _townMapGaps(event);
     if (_isPokedexRewardFamily(event)) {
@@ -1750,6 +1847,8 @@ final class _ProjectionBuilder {
           gaps.add('sourceTownMapBindingsMissing');
         case SourceCutObstacleProgramNode():
           gaps.add('sourceCutBindingsMissing');
+        case SourcePartyTradeProgramNode():
+          gaps.add('sourcePartyTradeBindingsMissing');
         case SourceToneNode():
         case SourceWaitNode():
         case SourceSoundEffectNode():
@@ -2265,6 +2364,8 @@ final class _SceneBuilder {
           next = _pokedexReward(node,next);
         case SourceTownMapProgramNode():
           next = _townMap(node,next);
+        case SourcePartyTradeProgramNode():
+          next = _partyTrade(node, next);
         default:
           throw const NativeWriteException('events.block.unqualified',
               'A quarantined source block cannot become a scene');
@@ -2366,6 +2467,31 @@ final class _SceneBuilder {
           feedbackLines: [_staticSourceTextFeedback(messages[index])!]);
     }
     return continuation;
+  }
+
+  String _partyTrade(SourcePartyTradeProgramNode program, String next) {
+    if (projection.gapsByEvent[event.identity]?.isEmpty != true ||
+        projection.partyTradeBinding == null || !projection.partyTradeBinding!.isBoundToEvent(
+          source: projection.source, analysis: projection.analysis, event: event)) {
+      throw const NativeWriteException('events.party_trade.bindings_missing',
+          'Source party trade requires its qualified native bindings');
+    }
+    final trade = _interactive(SceneInteractiveCommand.openPartyTrade(), next);
+    final refused = _dialogue(program.refusalLine.span, null, null, next,
+        feedbackLines: [_staticSourceTextFeedback(program.refusalLine.text)!]);
+    final empty = SourceEventBlock(nodes: const [], span: program.span);
+    final choice = SourceChoiceNode(program.span, cancelType: program.cancelType, branches: [
+      for (final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1, label.$2, empty),
+    ]);
+    final offered = _dialogue(SourceEventSpan(firstCommandIndex: 1, lastCommandIndex: 3,
+        locator: program.span.locator), null, choice, next,
+        feedbackLines: [for (final text in program.greetingLines) _staticSourceTextFeedback(text.text)!],
+        choiceTargets: {0: trade, 1: refused});
+    final condition = _node(SceneConditionPayload(conditionSource: SceneConditionSource.playerFacing(
+        direction: EntityFacing.west, expected: true)));
+    _edge(condition, 'true', offered, SceneEdgeKind.conditionTrue);
+    _edge(condition, 'false', next, SceneEdgeKind.conditionFalse);
+    return condition;
   }
 
   String _centerNurse(SourceCenterServiceProgramNode program, String next) {

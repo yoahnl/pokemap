@@ -569,7 +569,7 @@ final class _Run {
   }
 
   Future<NativeTrainerCatalogBindingResult?> _bindNativeTrainers() async {
-    if (nativeTrainers.isEmpty) return null;
+    if (nativeTrainers.isEmpty && nativeBundle == null) return null;
     final bundle = nativeBundle;
     if (bundle == null ||
         nativeTrainers.any(

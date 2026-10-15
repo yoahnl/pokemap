@@ -137,6 +137,19 @@ final class SourceEventItemBinding {
         'fullUseParityQualified': false,
         'useGaps': useGaps,
         'unprojectedSourceFlags': flags,
+        if (definition.heldEffectId == PokemonPassiveHeldEffect.preventEvolution.id)
+          'passiveHeldEffect': {
+            'sourceSymbol': sourceSymbol,
+            'nativeEffectId': definition.heldEffectId,
+            'physicalItemId': definition.id,
+            'sourceOracle': {'archiveSha256': '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d',
+              '273_Pokemon': '2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec', 'lines': '1036-1037'},
+            'evolutionScope': ['trade', 'levelUp', 'itemUse'],
+            'nativeCombatPolicy': 'explicitPassiveNeutral',
+            'consumedByEvolutionPrevention': false,
+            'sourceScriptsExecuted': 0,
+            'otherSourceHeldEffectsQualified': false,
+          },
       }) as Map<String, Object?>;
 }
 
@@ -478,6 +491,8 @@ final class SourceEventItemBindingResolver {
           buyPrice: price,
           sellPrice: sell,
           tags: const {'source-imported'},
+          heldEffectId: qualified && symbol == 'EVERSTONE'
+              ? PokemonPassiveHeldEffect.preventEvolution.id : null,
           uses: uses,
         ).normalized();
         final references = <String, SourcePreservedData>{};

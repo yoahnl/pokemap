@@ -668,7 +668,9 @@ final class SourceEventAnalyzer {
             pageDiagnostics
                 .add(SourceEventDiagnostic('events.invalid_page_graphic', loc));
           }
-          final body = _sourceCutObstacleProgramBlock(this, map.map.sourceMapId,
+          final body = _sourcePartyTradeProgramBlock(this, map.map.sourceMapId,
+                  event, sourcePage, loc) ??
+              _sourceCutObstacleProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
               _sourceCenterServiceBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??

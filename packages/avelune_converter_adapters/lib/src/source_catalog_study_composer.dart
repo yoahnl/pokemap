@@ -84,6 +84,8 @@ final class SourceCatalogStudyComposer {
     final selection = _catalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
     final native = NativePsdkTrainerBundle.builtin();
+    final sourceEvents = base.compositionEvidence['sourceEvents'];
+    final nativePartyTrade = sourceEvents is Map && sourceEvents['partyTrade'] is Map;
     final supported =
         (native.evidence['sourceTrainerKeys'] as List).cast<String>().toSet();
     final nativeKeys = selection.trainers
@@ -100,7 +102,7 @@ final class SourceCatalogStudyComposer {
         requestedItemSymbols: selection.items,
         requestedTrainerKeys: selection.trainers,
         nativeTrainerKeys: nativeKeys,
-        nativeTrainerBundle: nativeKeys.isEmpty ? null : native,
+        nativeTrainerBundle: nativeKeys.isEmpty && !nativePartyTrade ? null : native,
         nativeTrainerMovePolicy: nativeTrainerMovePolicy,
         cancellation: cancellation);
     final owners = pbs.documents
