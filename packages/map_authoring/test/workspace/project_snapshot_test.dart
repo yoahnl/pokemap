@@ -6,6 +6,63 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final entry in [
+    (
+      'data/pokemon/catalogs/items.json',
+      itemCatalogResourceIdentity,
+      <String, Object?>{'schemaVersion': 1, 'entries': <Object?>[]}
+    ),
+    (
+      'data/pokemon/catalogs/moves.json',
+      'pokemonCatalog:moves',
+      <String, Object?>{
+        'schemaVersion': 1,
+        'kind': 'pokemon_catalog',
+        'catalog': 'moves',
+        'entries': <Object?>[]
+      }
+    ),
+    (
+      projectMediaCatalogStorageKey,
+      projectMediaCatalogResourceIdentity,
+      ProjectMediaCatalog(entries: const []).toJson()
+    ),
+  ]) {
+    test('cached snapshot observes optional resource creation ${entry.$2}',
+        () async {
+      final sandbox =
+          await Directory.systemTemp.createTemp('snapshot-optional-creation-');
+      addTearDown(() => sandbox.delete(recursive: true));
+      final root =
+          await _writeProject(sandbox, mapEntries: const [], maps: const []);
+      final cache = ProjectSnapshotCache();
+      final harness = await _SnapshotHarness.create(
+          allowedRoot: sandbox,
+          snapshotCache: cache,
+          fingerprintCache: ProjectSnapshotFingerprintCache());
+      final opened = await harness.openService.openProject(root.path);
+      final before = await harness.loader.load(opened.projectHandle);
+      expect(before.resourceFingerprints.containsKey(entry.$2), isFalse);
+      expect((await harness.loader.load(opened.projectHandle)).revision,
+          before.revision);
+      expect(cache.hits, greaterThan(0));
+      final file = File('${root.path}/${entry.$1}');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(entry.$3), flush: true);
+      final after = await harness.loader.load(opened.projectHandle);
+      expect(after.resourceFingerprints.containsKey(entry.$2), isTrue);
+      expect(after.revision, isNot(before.revision));
+      final cold = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final coldOpened = await cold.openService.openProject(root.path);
+      expect((await cold.loader.load(coldOpened.projectHandle)).revision,
+          after.revision);
+      await file.delete();
+      final removed = await harness.loader.load(opened.projectHandle);
+      expect(removed.resourceFingerprints.containsKey(entry.$2), isFalse);
+      expect(removed.revision, before.revision);
+    });
+  }
+
   group('ProjectSnapshotLoader', () {
     test('loads the manifest and maps from the real fixture', () async {
       final fixture = _realFixtureDirectory();
@@ -191,16 +248,44 @@ void main() {
 
       expect(hit, isNotNull);
       expect(cache.canonicalHits, 1);
-      // project.json, the map and the asset catalog are mutable and observed
-      // twice; the eight blobs are named by their own digest.
-      expect(
-        statsForHit,
-        lessThanOrEqualTo(8),
-        reason: 'stat count must not scale with the blob store',
+      expect(statsForHit, greaterThan(0));
+      final expandedArtifacts = <ContentArtifactRef>[
+        ...artifacts,
+        for (var index = 8; index < 16; index += 1)
+          ContentArtifactRef.fromBytes(
+            <int>[..._blobBytes, index],
+            mediaType: 'image/png',
+          ),
+      ];
+      for (final (index, artifact) in expandedArtifacts.indexed.skip(8)) {
+        final blobFile = File('${root.path}/${assetBlobStorageKey(artifact)}');
+        await blobFile.parent.create(recursive: true);
+        await blobFile.writeAsBytes(<int>[..._blobBytes, index], flush: true);
+      }
+      await catalogFile.writeAsString(
+        jsonEncode(
+          AssetCatalog(
+            records: <AssetRecord>[
+              for (final (index, artifact) in expandedArtifacts.indexed)
+                AssetRecord(
+                  id: 'blob-$index',
+                  logicalPath: 'assets/blob-$index.png',
+                  artifact: artifact,
+                ),
+            ],
+          ).toJson(),
+        ),
+        flush: true,
       );
+      final expanded = await harness.loader.load(opened.projectHandle);
+      expect(expanded.revision, isNot(hit.revision));
+      final beforeExpandedHit = cache.identityReads;
+      final expandedHit = await harness.loader.load(opened.projectHandle);
+      expect(expandedHit.revision, expanded.revision);
+      expect(cache.identityReads - beforeExpandedHit, statsForHit,
+          reason: 'stat count must not scale with the blob store');
+      expect(cache.canonicalHits, 2);
 
-      // Skipping the blobs must not blind the cache to real edits: a mutable
-      // resource still invalidates the entry.
       await File('${root.path}/maps/map.json').writeAsString(
         jsonEncode(
           const MapData(
@@ -214,7 +299,7 @@ void main() {
       );
       final afterEdit = await harness.loader.load(opened.projectHandle);
       expect(afterEdit.mapById('map')!.name, 'Renamed');
-      expect(cache.canonicalHits, 1, reason: 'the edit must miss the cache');
+      expect(cache.canonicalHits, 2, reason: 'the edit must miss the cache');
     });
 
     test('the revision follows resource content, not resource identity',

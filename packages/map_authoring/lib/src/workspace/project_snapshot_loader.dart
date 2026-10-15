@@ -377,6 +377,13 @@ final class ProjectSnapshotLoader {
     final cacheIdentityReadsBefore =
         profiler == null ? 0 : snapshotCache?.identityReads ?? 0;
     final access = _handles.resolveProject(projectHandle);
+    final absentResourcePaths = <String>{};
+    Future<ProjectResourceBytes?> readOptional(String path) async {
+      final bytes = await _readOptional(access, path);
+      if (bytes == null) absentResourcePaths.add(path);
+      return bytes;
+    }
+
     final cached = await snapshotCache?.lookup(
       access,
       projectHandle,
@@ -499,10 +506,7 @@ final class ProjectSnapshotLoader {
         );
       }
       final itemCatalogReadTimer = profiler?.startStage();
-      final itemCatalogBytes = await _readOptional(
-        access,
-        normalizedItemCatalogPath,
-      );
+      final itemCatalogBytes = await readOptional(normalizedItemCatalogPath);
       profiler?.recordInitialRead(itemCatalogReadTimer!);
       if (itemCatalogBytes == null) {
         final references = buildProjectItemReferenceIndex(
@@ -615,7 +619,7 @@ final class ProjectSnapshotLoader {
             'Two project resources resolve to the same storage path.',
           );
         }
-        final bytes = await _readOptional(access, path);
+        final bytes = await readOptional(path);
         if (bytes == null) continue;
         resources.add(_LoadedProjectResource(
           relativePath: path,
@@ -713,7 +717,7 @@ final class ProjectSnapshotLoader {
               'Two project resources resolve to the same storage path.',
             );
           }
-          final speciesBytes = await _readOptional(access, speciesPath);
+          final speciesBytes = await readOptional(speciesPath);
           if (speciesBytes != null) {
             resources.add(
               _LoadedProjectResource(
@@ -732,7 +736,7 @@ final class ProjectSnapshotLoader {
               'Two project resources resolve to the same storage path.',
             );
           }
-          final mediaBytes = await _readOptional(access, mediaPath);
+          final mediaBytes = await readOptional(mediaPath);
           if (mediaBytes == null) continue;
           resources.add(
             _LoadedProjectResource(
@@ -745,14 +749,10 @@ final class ProjectSnapshotLoader {
       }
     }
 
-    final absentMenuAssetPaths = <String>[];
     final modelSourceArtifacts = <String, ContentArtifactRef>{};
     final modelBlobBytes = <ContentArtifactRef, ProjectResourceBytes>{};
     final assetCatalogReadTimer = profiler?.startStage();
-    final assetCatalogBytes = await _readOptional(
-      access,
-      assetCatalogStorageKey,
-    );
+    final assetCatalogBytes = await readOptional(assetCatalogStorageKey);
     profiler?.recordInitialRead(assetCatalogReadTimer!);
     if (assetCatalogBytes == null && manifest.models3d.isNotEmpty) {
       throw const ProjectSnapshotException('project.model3d_catalog_missing',
@@ -807,14 +807,13 @@ final class ProjectSnapshotLoader {
             'A Pokemon menu asset conflicts with another project resource.',
           );
         }
-        final bytes = await _readOptional(access, path);
+        final bytes = await readOptional(path);
         if (bytes == null) {
           if (managedModelSource) {
             throw const ProjectSnapshotException(
                 'project.model3d_source_missing',
                 'A model source is missing from the project.');
           }
-          absentMenuAssetPaths.add(path);
         } else {
           if (managedModelSource) {
             final actual = ContentArtifactRef.fromBytes(bytes.bytes,
@@ -891,10 +890,8 @@ final class ProjectSnapshotLoader {
     }
 
     final projectMediaCatalogReadTimer = profiler?.startStage();
-    final projectMediaCatalogBytes = await _readOptional(
-      access,
-      projectMediaCatalogStorageKey,
-    );
+    final projectMediaCatalogBytes =
+        await readOptional(projectMediaCatalogStorageKey);
     profiler?.recordInitialRead(projectMediaCatalogReadTimer!);
     if (projectMediaCatalogBytes != null) {
       final projectMediaCatalogDecodeTimer = profiler?.startStage();
@@ -930,11 +927,11 @@ final class ProjectSnapshotLoader {
         );
       }
     }
-    for (final path in absentMenuAssetPaths) {
+    for (final path in absentResourcePaths) {
       if (await _readOptional(access, path) != null) {
         throw const ProjectSnapshotException(
           'project.changed_during_snapshot',
-          'A logical asset image appeared while the snapshot was loading.',
+          'A project resource appeared while the snapshot was loading.',
         );
       }
     }
@@ -1059,10 +1056,7 @@ final class ProjectSnapshotLoader {
       snapshotCache?.store(
         snapshot: snapshot,
         identities: completeIdentities,
-        absentResourcePaths: [
-          if (assetCatalogBytes == null) assetCatalogStorageKey,
-          ...absentMenuAssetPaths,
-        ],
+        absentResourcePaths: absentResourcePaths,
       );
     }
     profiler?.recordProjection(projectionTimer!);
