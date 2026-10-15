@@ -114,6 +114,8 @@ Map<String, Object?> _item(String symbol,
     };
 
 const _audioPath = 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1).wav';
+const _machineAudioPath =
+    'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2)).wav';
 const _skinPath = 'Graphics/Windowskins/speech hgss 1.png';
 const _iconPath = 'Graphics/Icons/bagPocket2.png';
 
@@ -165,6 +167,8 @@ Future<_Fixture> _fixture(
     int skinWidth = 96,
     int skinHeight = 48,
     Map<String, Object?> patch = const {},
+    bool machine = false,
+    String? movePbs,
     bool missingMetadata = false,
     bool missingIcon = false,
     bool missingAudio = false,
@@ -175,9 +179,10 @@ Future<_Fixture> _fixture(
   final original =
       await LiteralTileFixture.create(scriptsBytes: scripts, extraFiles: {
     'Data/items.dat': _dump({
-      for (final symbol in ['BURNHEAL', 'ETHER'])
+      for (final symbol in machine ? ['TM101'] : ['BURNHEAL', 'ETHER'])
         _Symbol(symbol): _Object('GameData::Item', _item(symbol, patch: patch))
     }),
+    if (movePbs != null) 'PBS/moves.txt': utf8.encode(movePbs),
     if (!missingMetadata)
       'Data/map_metadata.dat': metadataBytes ??
           _dump({
@@ -188,9 +193,12 @@ Future<_Fixture> _fixture(
             })
           }),
     if (!missingIcon) _iconPath: iconBytes ?? _png(18, 32),
+    if (machine && !missingIcon)
+      'Graphics/Icons/bagPocket4.png': iconBytes ?? _png(18, 32),
     _skinPath:
         _png(skinWidth, skinHeight, dark: dark, transparent: transparent),
-    if (!missingAudio) _audioPath: audioBytes ?? _wav(),
+    if (!missingAudio)
+      (machine ? _machineAudioPath : _audioPath): audioBytes ?? _wav(),
     if (duplicateAudio)
       'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1).ogg': _wav(),
   });
@@ -230,7 +238,7 @@ Future<_Fixture> _fixture(
   final items = await const SourceEventItemBindingResolver().read(
       snapshot: snapshot,
       files: files,
-      symbols: ['BURNHEAL', 'ETHER'],
+      symbols: machine ? ['TM101'] : ['BURNHEAL', 'ETHER'],
       eventProfile: SourceEventProfile.kantoForProject(source));
   files.reads.clear();
   return _Fixture(source, files, items);
@@ -652,6 +660,68 @@ void main() {
           patch: {'@field_use': 3, '@move': const _Symbol('AERIALACE')});
       await expectLater(
           _read(machine), _unavailable('pickup.feedback.item_unsupported'));
+    });
+    test('machine pickup feedback includes its attested source move name',
+        () async {
+      final f = await _fixture(
+          scripts: scripts,
+          machine: true,
+          movePbs: '[AERIALACE]\nName = Aerial Ace\n',
+          patch: {
+            '@pocket': 4,
+            '@field_use': 3,
+            '@battle_use': 0,
+            '@move': const _Symbol('AERIALACE'),
+            '@consumable': false
+          });
+      final result = await _read(f, symbol: 'TM101');
+      final found = result.foundFeedback(cueId: 'tm101-found');
+      expect(found.plainText, 'You found TM101 Aerial Ace!');
+      expect(found.advance, DialogueLineAdvancePolicy.autoAfterReveal(3500000));
+      expect(result.bagFeedback.plainText,
+          "You put the TM101 in\nyour Bag's \uFFFCTMs & HMs pocket.");
+      expect(result.item.definition.machine, isNull);
+      expect(result.item.useParity, SourceEventItemUseParity.unqualified);
+      expect(result.audioFile.relativePath, _machineAudioPath);
+      expect((result.evidence['bagFullFoundFeedback'] as Map)['segments'],
+          isNotEmpty);
+      expect(
+          DialogueLineFeedback.fromJson(Map<String, dynamic>.from(
+                  result.evidence['bagFullFoundFeedback'] as Map))
+              .plainText,
+          'You found TM101 Aerial Ace!');
+      final full = DialogueLineFeedback.fromJson(
+          Map<String, dynamic>.from(result.evidence['bagFullFeedback'] as Map));
+      expect(full.plainText, 'But your Bag is full...');
+      expect(full.advance, const DialogueLineAdvancePolicy.confirm());
+      expect(full.audioCue, isNull);
+      expect(result.evidence['nativeProjectMoveMachine'], isNull);
+      expect(result.evidence['sourceMachineMove'],
+          result.item.toJson()['sourceMachineMove']);
+      expect(result.evidence['fullMachineUseParityQualified'], isFalse);
+    });
+    test('machine feedback refuses absent or injected move name witnesses',
+        () async {
+      for (final movePbs in <String?>[
+        null,
+        '[FLY]\nName = Fly\n',
+        r'[AERIALACE]' '\n' r'Name = Aerial Ace\me[anything]' '\n',
+      ]) {
+        final f = await _fixture(
+            scripts: scripts,
+            machine: true,
+            movePbs: movePbs,
+            patch: {
+              '@pocket': 4,
+              '@field_use': 3,
+              '@battle_use': 0,
+              '@move': const _Symbol('AERIALACE'),
+              '@consumable': false
+            });
+        await expectLater(_read(f, symbol: 'TM101'),
+            _unavailable('pickup.feedback.machine_move_unqualified'));
+        expect(f.files.reads, isEmpty);
+      }
     });
     test('missing and ambiguous audio dependencies are quarantinable',
         () async {

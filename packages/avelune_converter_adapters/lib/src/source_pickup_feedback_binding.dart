@@ -30,6 +30,8 @@ final class SourcePickupFeedbackBinding {
     required this.metadataReference,
     required this.metadataArchive,
     required this.bagFeedback,
+    required this.bagFullFoundFeedback,
+    required this.bagFullFeedback,
     required this.music,
     required List<DialogueLineSegment> foundSegments,
     required List<NativeArtifact> artifacts,
@@ -52,6 +54,8 @@ final class SourcePickupFeedbackBinding {
   final SourcePreservedData metadataReference;
   final SourceArchive metadataArchive;
   final DialogueLineFeedback bagFeedback;
+  final DialogueLineFeedback bagFullFoundFeedback;
+  final DialogueLineFeedback bagFullFeedback;
   final SourceMapMusicBinding? music;
   final List<DialogueLineSegment> _foundSegments;
   final List<NativeArtifact> artifacts;
@@ -62,7 +66,8 @@ final class SourcePickupFeedbackBinding {
       DialogueLineFeedback(
         segments: _foundSegments,
         revealIntervalMicros: 25000,
-        advance: DialogueLineAdvancePolicy.autoAfterReveal(2000000),
+        advance: DialogueLineAdvancePolicy.autoAfterReveal(
+            item.isMachine ? 3500000 : 2000000),
         audioCue: DialogueAudioCue(
           mediaAssetId: mediaId,
           cueId: cueId,
@@ -102,12 +107,24 @@ final class SourcePickupFeedbackResolver {
     if (!profile.isQualified) _unavailable('profile_unqualified');
     if (!item.pickupQualified ||
         item.isKeyItem ||
-        item.isMachine ||
+        (item.isMachine && item.sourcePocketIndex != 4) ||
         item.sourceSymbol == 'DNASPLICERS') {
       _unavailable('item_unsupported');
     }
     if (RegExp(r'[\\<>\x00-\x1f]').hasMatch(item.portionName)) {
       _unavailable('item_name_controls');
+    }
+    final machineMove = item.sourceMachineMove;
+    if (item.isMachine &&
+        (machineMove == null ||
+            machineMove.sourceSymbol != item.moveSymbol ||
+            machineMove.sourceSnapshotHash != snapshot.canonicalHash ||
+            !snapshot.entries.any((entry) =>
+                entry.fileId == machineMove.file.fileId &&
+                entry.relativePath == machineMove.file.relativePath &&
+                entry.sha256 == machineMove.file.sha256 &&
+                entry.byteLength == machineMove.file.byteLength))) {
+      _unavailable('machine_move_unqualified');
     }
     if (limits.maxArtifacts < 2 || limits.maxMutations < 2) _quota();
     final maps =
@@ -233,7 +250,9 @@ final class SourcePickupFeedbackResolver {
     final iconFile =
         entry('Graphics/Icons/bagPocket${item.sourcePocketIndex}.png', 'icon');
     final skinFile = entry('Graphics/Windowskins/speech hgss 1.png', 'skin');
-    const audioBase = 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1)';
+    final audioBase = item.isMachine
+        ? 'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2))'
+        : 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1)';
     const mediaTypes = {
       'ogg': 'audio/ogg',
       'wav': 'audio/wav',
@@ -331,7 +350,7 @@ final class SourcePickupFeedbackResolver {
             'artifactHandle': audioArtifact.handle,
             'assetId': audioAssetId,
             'mediaId': mediaId,
-            'label': 'FRLG item found',
+            'label': item.isMachine ? 'FRLG machine found' : 'FRLG item found',
             'logicalPath': logicalAudioPath
           },
           limits: limits),
@@ -342,8 +361,10 @@ final class SourcePickupFeedbackResolver {
         ? 'an'
         : 'a';
     final foundSegments = [
-      DialogueTextSegment('You found $article ', style: standard),
-      DialogueTextSegment(name, style: highlighted),
+      DialogueTextSegment(item.isMachine ? 'You found ' : 'You found $article ',
+          style: standard),
+      DialogueTextSegment(item.isMachine ? '$name ${machineMove!.name}' : name,
+          style: highlighted),
       DialogueTextSegment('!', style: standard)
     ];
     final bag = DialogueLineFeedback(segments: [
@@ -353,6 +374,11 @@ final class SourcePickupFeedbackResolver {
       DialogueTextSegment(_pocketNames[item.sourcePocketIndex - 1],
           style: highlighted),
       DialogueTextSegment(' pocket.', style: standard),
+    ], revealIntervalMicros: 25000);
+    final bagFullFound = DialogueLineFeedback(
+        segments: foundSegments, revealIntervalMicros: 25000);
+    final bagFull = DialogueLineFeedback(segments: [
+      DialogueTextSegment('But your Bag is full...', style: standard)
     ], revealIntervalMicros: 25000);
     return SourcePickupFeedbackBinding._(
         item: item,
@@ -367,6 +393,8 @@ final class SourcePickupFeedbackResolver {
         metadataReference: metadataReference,
         metadataArchive: metadataArchive,
         bagFeedback: bag,
+        bagFullFoundFeedback: bagFullFound,
+        bagFullFeedback: bagFull,
         music: music,
         foundSegments: foundSegments,
         artifacts: [iconArtifact, audioArtifact],
@@ -380,6 +408,9 @@ final class SourcePickupFeedbackResolver {
           'sourceMapId': sourceMapId,
           'sourceSymbol': item.sourceSymbol,
           'itemReference': item.itemReference.toJson(),
+          if (item.isMachine) 'sourceMachineMove': machineMove!.toJson(),
+          if (item.isMachine) 'nativeProjectMoveMachine': null,
+          if (item.isMachine) 'fullMachineUseParityQualified': false,
           'metadataFile': metadataFile.toJson(),
           'metadataReference': metadataReference.toJson(),
           'metadataArchiveHash': metadataArchive.canonicalHash.value,
@@ -413,8 +444,10 @@ final class SourcePickupFeedbackResolver {
           'highlightStyle': highlighted.toJson(),
           'foundText': foundSegments.map((segment) => segment.plainText).join(),
           'bagFeedback': bag.toJson(),
+          'bagFullFoundFeedback': bagFullFound.toJson(),
+          'bagFullFeedback': bagFull.toJson(),
           'revealIntervalMicros': 25000,
-          'foundAutoAfterRevealMicros': 2000000,
+          'foundAutoAfterRevealMicros': item.isMachine ? 3500000 : 2000000,
           'sourceAudioGain': 0.8,
           'nativeAudioGain': music?.nativeVolume ?? 0.8,
           'nativeAudioRole': music == null ? 'effect' : 'musicEffect',

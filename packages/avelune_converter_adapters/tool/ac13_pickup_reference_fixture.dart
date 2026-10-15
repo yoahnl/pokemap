@@ -19,6 +19,8 @@ const _namespace = 'original-ac13-pickup-runtime-reference';
 const _skinPath = 'Graphics/Windowskins/speech hgss 1.png';
 const _iconPath = 'Graphics/Icons/bagPocket2.png';
 const _audioPath = 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1).wav';
+const _machineAudioPath =
+    'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2)).wav';
 
 final class Ac13PickupReferenceFixture {
   Ac13PickupReferenceFixture({
@@ -35,6 +37,7 @@ final class Ac13PickupReferenceFixture {
 Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
   required String sourceScriptsPath,
   String? outputParentPath,
+  bool machinePickup = false,
 }) async {
   _require(path.isAbsolute(sourceScriptsPath),
       'The source archive path must be absolute');
@@ -58,27 +61,31 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
   final sourceRoot = Directory(path.join(root.path, 'original-source'));
   final destination =
       await Directory(path.join(root.path, 'native-output')).create();
+  final symbol = machinePickup ? 'TM101' : 'BURNHEAL';
+  final itemName = machinePickup ? 'TM101' : 'Burn Heal';
+  final iconPath = machinePickup ? 'Graphics/Icons/bagPocket4.png' : _iconPath;
+  final audioPath = machinePickup ? _machineAudioPath : _audioPath;
   final originalFiles = {
     'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
     'Graphics/Characters/OriginalPlayer.png': _characterPng(48),
     'Graphics/Characters/OriginalPickup.png': _characterPng(144),
     'Data/items.dat': _marshal({
-      const _Symbol('BURNHEAL'): _Object('GameData::Item', {
-        '@id': const _Symbol('BURNHEAL'),
-        '@real_name': 'Burn Heal',
-        '@real_name_plural': 'Burn Heals',
+      _Symbol(symbol): _Object('GameData::Item', {
+        '@id': _Symbol(symbol),
+        '@real_name': itemName,
+        '@real_name_plural': machinePickup ? 'TM101s' : 'Burn Heals',
         '@real_portion_name': null,
         '@real_portion_name_plural': null,
-        '@pocket': 2,
+        '@pocket': machinePickup ? 4 : 2,
         '@price': 200,
         '@sell_price': 50,
         '@bp_price': 1,
-        '@field_use': 1,
-        '@battle_use': 1,
+        '@field_use': machinePickup ? 3 : 1,
+        '@battle_use': machinePickup ? 0 : 1,
         '@flags': ['Fling_30'],
-        '@consumable': true,
+        '@consumable': !machinePickup,
         '@show_quantity': null,
-        '@move': null,
+        '@move': machinePickup ? const _Symbol('AERIALACE') : null,
         '@real_description': 'Original burn cure qualification fixture.',
         '@pbs_file_suffix': '',
       }),
@@ -90,9 +97,11 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
         '@real_name': 'Original pickup reference',
       }),
     }),
+    if (machinePickup)
+      'PBS/moves.txt': utf8.encode('[AERIALACE]\nName = Aerial Ace\n'),
     _skinPath: _skinPng(),
-    _iconPath: _iconPng(),
-    _audioPath: _wav(),
+    iconPath: _iconPng(),
+    audioPath: _wav(),
   };
   final fixture = await LiteralTileFixture.create(
     namespace: _namespace,
@@ -107,7 +116,7 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
         width: 6,
         height: 5,
         layers: [List.filled(30, 384), List.filled(30, 0), List.filled(30, 0)],
-        events: const [
+        events: [
           LiteralFixtureEvent(
             id: 1,
             x: 1,
@@ -117,8 +126,7 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
               LiteralFixtureEventPage(
                 characterName: 'OriginalPickup',
                 commands: [
-                  LiteralFixtureEventCommand(
-                      111, [12, 'pbItemBall(:BURNHEAL)']),
+                  LiteralFixtureEventCommand(111, [12, 'pbItemBall(:$symbol)']),
                   LiteralFixtureEventCommand(123, ['A', 0], indent: 1),
                   LiteralFixtureEventCommand(412, []),
                 ],
@@ -136,8 +144,7 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
                 characterName: 'OriginalPickup',
                 commands: [
                   LiteralFixtureEventCommand(355, ['originalUnknownReward()']),
-                  LiteralFixtureEventCommand(
-                      111, [12, 'pbItemBall(:BURNHEAL)']),
+                  LiteralFixtureEventCommand(111, [12, 'pbItemBall(:$symbol)']),
                   LiteralFixtureEventCommand(123, ['A', 0], indent: 1),
                   LiteralFixtureEventCommand(412, []),
                 ],
@@ -201,7 +208,7 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
   }
   _require(
       itemCatalog.entries.length == 1 &&
-          itemCatalog.entries.single.displayName == 'Burn Heal',
+          itemCatalog.entries.single.displayName == itemName,
       'Only the qualified pickup may produce its native item');
   final sourceHashesAfter = await _directoryHashes(sourceRoot.path);
   _require(
@@ -227,6 +234,8 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
     'nativeDraftHash': draft.canonicalHash.value,
     'nativeRevision': receipt.nativeRevision,
     'sourceNamespace': _namespace,
+    'pickupSymbol': symbol,
+    'machineUseQualified': false,
     'mapId': map.id,
     'itemId': itemCatalog.entries.single.id,
     'entityIds': {
@@ -244,15 +253,15 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
         'sha256': _hash(originalFiles[_skinPath]!)
       },
       'icon': {
-        'relativePath': _iconPath,
+        'relativePath': iconPath,
         'width': 18,
         'height': 32,
-        'sha256': _hash(originalFiles[_iconPath]!)
+        'sha256': _hash(originalFiles[iconPath]!)
       },
       'audio': {
-        'relativePath': _audioPath,
+        'relativePath': audioPath,
         'durationMs': 1000,
-        'sha256': _hash(originalFiles[_audioPath]!)
+        'sha256': _hash(originalFiles[audioPath]!)
       },
     },
     'configuredRecordCount': manifest.eventRegistry!.records
@@ -286,8 +295,12 @@ Future<void> main() async {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   _require(scriptsPath != null,
       'AVELUNE_AC13_SOURCE_SCRIPTS must identify the exact inert source archive');
-  final fixture =
-      await buildAc13PickupReferenceFixture(sourceScriptsPath: scriptsPath!);
+  final fixture = await buildAc13PickupReferenceFixture(
+      sourceScriptsPath: scriptsPath!,
+      outputParentPath:
+          Platform.environment['AVELUNE_AC13_PICKUP_OUTPUT_PARENT'],
+      machinePickup:
+          Platform.environment['AVELUNE_AC13_PICKUP_SYMBOL'] == 'TM101');
   stdout.writeln(jsonEncode({
     'manifestPath': fixture.manifestPath,
     'projectFilePath': fixture.projectFilePath,

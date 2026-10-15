@@ -9,8 +9,10 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as path;
 
-const _found = 'You found a Burn Heal!';
-const _bag = "You put the Burn Heal in\nyour Bag's \uFFFCMedicine pocket.";
+late String _found;
+late String _bag;
+late String _itemName;
+late int _delayMicros;
 const _archiveHash =
     '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
 
@@ -31,6 +33,15 @@ void main() {
         jsonDecode(await File(manifestPath).readAsString()) as Map,
       ),
     );
+    final symbol = reference.raw['pickupSymbol'] ?? 'BURNHEAL';
+    expect(symbol, isIn(['BURNHEAL', 'TM101']));
+    final machine = symbol == 'TM101';
+    _itemName = machine ? 'TM101' : 'Burn Heal';
+    _found = machine ? 'You found TM101 Aerial Ace!' : 'You found a Burn Heal!';
+    _bag =
+        "You put the $_itemName in\nyour Bag's \uFFFC${machine ? 'TMs & HMs' : 'Medicine'} pocket.";
+    _delayMicros = machine ? 3500000 : 2000000;
+    expect(reference.raw['machineUseQualified'] ?? false, isFalse);
     expect(reference.raw['writerVerified'], isTrue);
     expect(reference.raw['sourceUnchanged'], isTrue);
     expect(reference.raw['sourceScriptsArchiveHash'], _archiveHash);
@@ -99,13 +110,15 @@ void main() {
     final bag = policies[_bag]!;
     expect(found.revealIntervalMicros, 25000);
     expect(found.advance.kind, DialogueLineAdvanceKind.autoAfterReveal);
-    expect(found.advance.delayMicros, 2000000);
+    expect(found.advance.delayMicros, _delayMicros);
     expect(found.audioCue!.volume, 0.8);
     expect(bag.revealIntervalMicros, 25000);
     expect(bag.advance.kind, DialogueLineAdvanceKind.confirm);
     expect(bag.audioCue, isNull);
     final name = found.segments.whereType<DialogueTextSegment>().singleWhere(
-      (segment) => segment.text == 'Burn Heal',
+      (segment) =>
+          segment.text ==
+          (_itemName == 'TM101' ? 'TM101 Aerial Ace' : _itemName),
     );
     expect(name.style!.colorArgb, 0xff0070f8);
     final icon = bag.segments.whereType<DialogueIconSegment>().single;
@@ -183,7 +196,7 @@ void main() {
       );
       _press(game, RuntimeInputControl.primary);
       expect(game.dialoguePresentationListenable.value!.fullText, _found);
-      game.update(1.999);
+      game.update(_delayMicros / 1000000 - 0.001);
       await Future<void>.delayed(Duration.zero);
       expect(game.dialoguePresentationListenable.value!.fullText, _found);
       game.update(0.0011);

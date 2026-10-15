@@ -4,6 +4,36 @@ import 'package:map_core/map_core.dart';
 
 enum SourceEventItemUseParity { qualified, partial, unqualified }
 
+final class SourceEventMachineMoveBinding {
+  const SourceEventMachineMoveBinding._({
+    required this.sourceSymbol,
+    required this.name,
+    required this.file,
+    required this.headerLocator,
+    required this.nameLocator,
+    required this.sourceSnapshotHash,
+  });
+
+  final String sourceSymbol;
+  final String name;
+  final SourceFileEntry file;
+  final SourceLocator headerLocator;
+  final SourceLocator nameLocator;
+  final Sha256Hash sourceSnapshotHash;
+
+  Map<String, Object?> toJson() => {
+        'sourceSymbol': sourceSymbol,
+        'name': name,
+        'file': file.toJson(),
+        'headerLocator': headerLocator.toJson(),
+        'nameLocator': nameLocator.toJson(),
+        'sourceSnapshotHash': sourceSnapshotHash.value,
+        'scope': 'sourceMachinePickupDisplayNameOnly',
+        'nativeProjectMoveMachine': null,
+        'fullMachineUseParityQualified': false,
+      };
+}
+
 final class SourceEventItemBindingLimits {
   const SourceEventItemBindingLimits({
     this.maxCatalogBytes = 4194304,
@@ -47,6 +77,7 @@ final class SourceEventItemBinding {
     required this.isKeyItem,
     required this.isMachine,
     required this.moveSymbol,
+    required this.sourceMachineMove,
     required this.sourceConsumable,
     required this.sourceSnapshotHash,
     required this.pickupQualified,
@@ -67,6 +98,7 @@ final class SourceEventItemBinding {
   final bool isKeyItem;
   final bool isMachine;
   final String? moveSymbol;
+  final SourceEventMachineMoveBinding? sourceMachineMove;
   final bool sourceConsumable;
   final Sha256Hash sourceSnapshotHash;
   final bool pickupQualified;
@@ -92,6 +124,9 @@ final class SourceEventItemBinding {
         'isKeyItem': isKeyItem,
         'isMachine': isMachine,
         'moveSymbol': moveSymbol,
+        'sourceMachineMove': sourceMachineMove?.toJson(),
+        if (isMachine) 'nativeProjectMoveMachine': null,
+        if (isMachine) 'fullMachineUseParityQualified': false,
         'sourceConsumable': sourceConsumable,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'pickupQualified': pickupQualified,
@@ -285,6 +320,48 @@ final class SourceEventItemBindingResolver {
         selected.putIfAbsent(key.name!, () => []).add(pair.value);
       }
     }
+    SourcePbsProject? moveCatalog;
+    Future<SourceEventMachineMoveBinding?> machineMove(String symbol) async {
+      final pbs = moveCatalog ??= await const SourcePbsParser().read(
+          snapshot: snapshot,
+          files: files,
+          families: const {SourcePbsFamily.moves},
+          limits: SourcePbsLimits(
+              maxDocuments: 8,
+              maxFileBytes: limits.maxCatalogBytes,
+              maxTotalBytes: limits.maxCatalogBytes,
+              maxLines: limits.maxNodes,
+              maxLineCodeUnits: limits.maxTextCodeUnits,
+              maxEntries: limits.maxCatalogEntries,
+              maxFields: limits.maxNodes,
+              maxTokens: limits.maxNodes * 4,
+              maxDiagnostics: limits.maxNodes),
+          cancellation: cancel);
+      final move = pbs.lookup(SourcePbsIdentity(
+          namespace: snapshot.logicalProjectNamespace,
+          family: SourcePbsFamily.moves,
+          sourceSymbol: symbol));
+      if (move == null || move.fieldsNamed('Name').length != 1) return null;
+      final field = move.field('Name')!;
+      if (field.values.length != 1) return null;
+      final name = field.values.single;
+      if (name.trim().isEmpty ||
+          name.length > limits.maxTextCodeUnits ||
+          RegExp(r'[\\<>\x00-\x1f]').hasMatch(name)) {
+        return null;
+      }
+      final document = pbs.documents
+          .where((document) => document.entries.contains(move))
+          .single;
+      return SourceEventMachineMoveBinding._(
+          sourceSymbol: symbol,
+          name: name,
+          file: document.file,
+          headerLocator: move.headerLocator,
+          nameLocator: field.locator,
+          sourceSnapshotHash: snapshot.canonicalHash);
+    }
+
     for (final symbol in ordered) {
       cancel.check();
       final matches = selected[symbol] ?? const <int>[];
@@ -336,6 +413,14 @@ final class SourceEventItemBindingResolver {
             (eventProfile?.isQualified ?? false) && reasons.isEmpty;
         final isKey = flags.any((flag) => flag.toLowerCase() == 'keyitem');
         final isMachine = const [3, 4, 5].contains(fieldUse);
+        final sourceMachineMove = qualified &&
+                isMachine &&
+                pocket == 4 &&
+                battleUse == 0 &&
+                !isKey &&
+                move != null
+            ? await machineMove(move)
+            : null;
         final uses = <ProjectItemUseDefinition>[];
         final useGaps = <String>[];
         var useParity = SourceEventItemUseParity.unqualified;
@@ -376,6 +461,8 @@ final class SourceEventItemBindingResolver {
           ));
           useGaps.add('item.use.battle_restore_pp');
           useParity = SourceEventItemUseParity.partial;
+        } else if (isMachine) {
+          useGaps.add('item.use.machine_not_projected');
         } else {
           useGaps.add('item.use.source_handler_unqualified');
         }
@@ -412,6 +499,7 @@ final class SourceEventItemBindingResolver {
           isKeyItem: isKey,
           isMachine: isMachine,
           moveSymbol: move,
+          sourceMachineMove: sourceMachineMove,
           sourceConsumable: consumable!,
           sourceSnapshotHash: snapshot.canonicalHash,
           pickupQualified: qualified,

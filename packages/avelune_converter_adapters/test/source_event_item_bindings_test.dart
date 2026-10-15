@@ -113,6 +113,7 @@ final class _Files implements SourceFilePort {
     List<int>? raw,
     bool missing = false,
     bool duplicate = false,
+    String? movePbs,
     String namespace = 'item-source'}) {
   final data = raw ??
       [
@@ -135,10 +136,21 @@ final class _Files implements SourceFilePort {
       sha256: Sha256Hash(crypto.sha256.convert(data).toString()),
       format: 'marshal',
       family: 'data');
+  final moveBytes = movePbs == null ? null : utf8.encode(movePbs);
+  final moveEntry = moveBytes == null
+      ? null
+      : SourceFileEntry(
+          fileId: ConverterId('source-moves'),
+          relativePath: 'PBS/moves.txt',
+          kind: SourceNodeKind.file,
+          byteLength: moveBytes.length,
+          sha256: Sha256Hash(crypto.sha256.convert(moveBytes).toString()),
+          format: 'pbs',
+          family: 'pbs');
   final snapshot = SourceSnapshot(
       logicalProjectNamespace: ConverterId(namespace),
       policyHash: SourceScanPolicy().canonicalHash,
-      entries: missing ? [] : [entry],
+      entries: missing ? [] : [entry, if (moveEntry != null) moveEntry],
       diagnostics: [],
       excludedPaths: [],
       profileEvidence: [],
@@ -151,7 +163,10 @@ final class _Files implements SourceFilePort {
           canonicalHashOf({'fixture': 'static-oracle-contract'}));
   return (
     snapshot: snapshot,
-    files: _Files({entry.fileId: data}),
+    files: _Files({
+      entry.fileId: data,
+      if (moveEntry != null) moveEntry.fileId: moveBytes!
+    }),
     profile: profile
   );
 }
@@ -249,6 +264,81 @@ void main() {
     expect(tm.pickupQualified, isTrue);
     expect(r.bindings['RARECANDY']!.useGaps,
         contains('item.use.source_handler_unqualified'));
+  });
+  test('binds TM101 pickup name to its attested AERIALACE source entry',
+      () async {
+    final f = _fixture(items: {
+      'TM101': _item('TM101', patch: {
+        '@pocket': 4,
+        '@field_use': 3,
+        '@battle_use': 0,
+        '@move': const _Symbol('AERIALACE'),
+        '@consumable': false
+      })
+    }, movePbs: '[AERIALACE]\nName = Aerial Ace\n');
+    final result = await _read(f, symbols: ['TM101']);
+    final tm = result.bindings['TM101']!;
+    final witness = tm.toJson()['sourceMachineMove'] as Map?;
+    expect(witness, isNotNull);
+    expect(witness!['sourceSymbol'], 'AERIALACE');
+    expect(witness['name'], 'Aerial Ace');
+    expect((witness['file'] as Map)['sha256'],
+        f.snapshot.entries.last.sha256!.value);
+    expect((witness['nameLocator'] as Map)['line'], 2);
+    expect(tm.definition.machine, isNull);
+    expect(tm.definition.uses, isEmpty);
+    expect(tm.useParity, SourceEventItemUseParity.unqualified);
+    expect(tm.useGaps, contains('item.use.machine_not_projected'));
+    expect(tm.fullPickupParityQualified, isFalse);
+    expect(tm.toJson()['nativeProjectMoveMachine'], isNull);
+  });
+  test('does not bind a missing, ambiguous or controlled machine move name',
+      () async {
+    for (final source in <String?>[
+      null,
+      '[FLY]\nName = Fly\n',
+      '[AERIALACE]\nName = Aerial Ace\n[AERIALACE]\nName = Other\n',
+      r'[AERIALACE]' '\n' r'Name = Aerial Ace\c[1]' '\n',
+      '[AERIALACE]\nName = <command>\n',
+    ]) {
+      final f = _fixture(items: {
+        'TM101': _item('TM101', patch: {
+          '@pocket': 4,
+          '@field_use': 3,
+          '@battle_use': 0,
+          '@move': const _Symbol('AERIALACE'),
+          '@consumable': false
+        })
+      }, movePbs: source);
+      final result = await _read(f, symbols: ['TM101']);
+      expect(result.bindings['TM101']!.toJson()['sourceMachineMove'], isNull,
+          reason: '$source');
+      expect(result.bindings['TM101']!.definition.machine, isNull);
+    }
+  });
+  test('refuses changed or over-quota machine move witnesses', () async {
+    final item = _item('TM101', patch: {
+      '@pocket': 4,
+      '@field_use': 3,
+      '@battle_use': 0,
+      '@move': const _Symbol('AERIALACE'),
+      '@consumable': false
+    });
+    final changed = _fixture(
+        items: {'TM101': item}, movePbs: '[AERIALACE]\nName = Aerial Ace\n');
+    changed.files.bytes[ConverterId('source-moves')] =
+        utf8.encode('[AERIALACE]\nName = Counterfeit\n');
+    await expectLater(_read(changed, symbols: ['TM101']),
+        throwsA(_code('pbs.source_changed')));
+    final oversized = _fixture(
+        items: {'TM101': item},
+        movePbs: '[AERIALACE]\nName = Aerial Ace\n#${'x' * 2048}\n');
+    await expectLater(
+        _read(oversized,
+            symbols: ['TM101'],
+            limits: const SourceEventItemBindingLimits(maxCatalogBytes: 1024)),
+        throwsA(_code('pbs.quota')));
+    expect(oversized.files.reads, [ConverterId('source-items')]);
   });
   test(
       'unknown requested symbol is quarantined without selecting another object',
