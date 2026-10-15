@@ -483,6 +483,22 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && _isNativeCenterPc(event))
+          'nativeCenterService': {
+            'nativeCommand': 'openPc',
+            'sourcePageIndices': [0, 1],
+            'sourceRawPages': [
+              for (final page in event.pages) page.rawDataRef!.toJson(),
+            ],
+            'sourcePrograms': [
+              for (final page in event.pages)
+                (page.body.nodes.single as SourceCenterServiceProgramNode).toJson(),
+            ],
+            'nativeActivation': 'reusableEntityInteractAtSourceAnchor',
+            'sourcePcSelfSwitchCycleExecuted': false,
+            'sourcePcActiveTileAnimationQualified': false,
+            'fullSourceServiceParityQualified': false,
+          },
         'pages': [
           for (final page in event.pages)
             {
@@ -494,7 +510,8 @@ final class _ProjectionBuilder {
               'locator': page.locator.toJson(),
               'isEmpty': page.isEmpty,
               'rawDataRef': page.rawDataRef?.toJson(),
-              'nativeEventId': gaps.isEmpty
+              'nativeEventId': gaps.isEmpty &&
+                      (!_isNativeCenterPc(event) || page.originalPageIndex == 0)
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
@@ -829,8 +846,72 @@ final class _ProjectionBuilder {
         index < layer.collisions.length && layer.collisions[index]);
   }
 
+  bool _isNativeCenterPc(SourceEventDefinition event) {
+    if (!analysis.profile.isQualified || event.isQuarantined ||
+        event.sourceMapId != 102 || event.sourceEventId != 3 ||
+        event.name != 'PC' || event.pages.length != 2 ||
+        event.pages[0].originalPageIndex != 0 ||
+        event.pages[1].originalPageIndex != 1 ||
+        event.identity != source.eventIdentity(102, 3)) {
+      return false;
+    }
+    final originalMap = source.maps.singleWhere((map) => map.map.sourceMapId == 102).map;
+    if (event.sourceFileId != originalMap.sourceFileId) return false;
+    final original = originalMap.events.singleWhere((candidate) => candidate.sourceEventId == 3);
+    if (event.x != original.x || event.y != original.y) return false;
+    for (final page in event.pages) {
+      if (page.body.nodes.length != 1) return false;
+      final program = page.body.nodes.single;
+      if (program is! SourceCenterServiceProgramNode || !program.isPc ||
+          !program.isBoundToSourceEvent(source: source, profile: analysis.profile,
+              sourceMapId: event.sourceMapId, event: original)) {
+        return false;
+      }
+      final expectedKind = page.originalPageIndex == 0
+          ? SourceCenterServiceProgramKind.pcActivation
+          : SourceCenterServiceProgramKind.pcOpen;
+      final expectedCondition = page.originalPageIndex == 0
+          ? SourceEventCondition(kind: SourceEventConditionKind.always)
+          : SourceEventCondition(kind: SourceEventConditionKind.all, children: [
+              SourceEventCondition(kind: SourceEventConditionKind.selfSwitch,
+                  factId: 'source:${source.snapshot.logicalProjectNamespace.value}:map:102:event:3:self:A'),
+            ]);
+      final graphic = page.graphic;
+      if (program.kind != expectedKind ||
+          page.rawDataRef?.id != program.rawDataRef.id ||
+          canonicalJsonOf(page.sourcePage.toJson()) != canonicalJsonOf(
+              original.pages[page.originalPageIndex].toJson()) ||
+          canonicalJsonOf(page.condition.toJson()) != canonicalJsonOf(
+              expectedCondition.toJson()) ||
+          graphic == null || graphic.characterName.isNotEmpty ||
+          graphic.tileId != (page.originalPageIndex == 0 ? 0 : 647) ||
+          graphic.hue != 0 || graphic.direction != 2 || graphic.pattern != 0 ||
+          graphic.opacity != 255 || graphic.blendType != 0 ||
+          graphic.moveType != 0 || graphic.moveSpeed != 3 ||
+          graphic.moveFrequency != 3 || !graphic.walkAnime || graphic.stepAnime ||
+          graphic.directionFix || graphic.through || graphic.alwaysOnTop) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Set<String> _nativeCenterPcGaps(SourceEventDefinition event) {
+    final map = maps[event.sourceMapId]!;
+    final passage = semanticResolver.resolveConnectionEntryTile(
+        semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
+    return {
+      if (map.spatialScene != null) 'sourceCenterPcSpatialUnsupported',
+      if (passage.status != SourcePassageStatus.blocked ||
+          !_nativeSolidAt(event)) 'sourceCenterPcContactUnqualified',
+      if (map.entities.any((entity) => resolveEntityCollisionCells(entity)
+          .contains(GridPos(x: event.x, y: event.y)))) 'sourceCenterPcAnchorOccupied',
+    };
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_isNativeCenterPc(event)) return _nativeCenterPcGaps(event);
     final gaps = <String>{};
     final staticSign = _supportsStaticSign(event);
     final staticWideInteraction = _supportsStaticWideInteraction(event);
@@ -1136,6 +1217,8 @@ final class _ProjectionBuilder {
           gaps.add('sourceCommandUnqualified');
         case SourceCenterServiceProgramNode():
           gaps.add('sourceCenterServiceBindingsMissing');
+        case SourceTrainerProgramNode():
+          gaps.add('sourceTrainerBindingsMissing');
         case SourceToneNode():
         case SourceWaitNode():
         case SourceSoundEffectNode():
@@ -1273,8 +1356,10 @@ final class _ProjectionBuilder {
   }
 
   void _projectEvent(SourceEventDefinition event) {
+    final nativeCenterPc = _isNativeCenterPc(event);
+    final projectedPages = nativeCenterPc ? [event.pages.first] : event.pages;
     final factIds = <String>{};
-    for (final page in event.pages) {
+    for (final page in projectedPages) {
       _collectFacts(page.condition, factIds);
       _blockFacts(page.body, factIds);
     }
@@ -1396,11 +1481,11 @@ final class _ProjectionBuilder {
             {'rule': rule.toJson()}));
       }
     }
-    for (var index = 0; index < event.pages.length; index++) {
-      final page = event.pages[index];
+    for (var index = 0; index < projectedPages.length; index++) {
+      final page = projectedPages[index];
       final guard = _all([
         _pageGuard(event, page.condition),
-        _not(_any(event.pages
+        _not(_any(projectedPages
             .skip(index + 1)
             .map((p) => _pageGuard(event, p.condition))
             .toList()))
@@ -1612,8 +1697,14 @@ final class _SceneBuilder {
           _edge(action, 'blocked', blocked, SceneEdgeKind.actionCompleted);
           next = action;
         case SourceCenterServiceProgramNode():
-          throw const NativeWriteException('events.center_service.bindings_missing',
-              'A source Center program requires its qualified native service bindings');
+          if (!node.isPc || !projection._isNativeCenterPc(event)) {
+            throw const NativeWriteException('events.center_service.bindings_missing',
+                'A source Center program requires its qualified native service bindings');
+          }
+          next = _interactive(SceneInteractiveCommand.openPc(), next);
+        case SourceTrainerProgramNode():
+          throw const NativeWriteException('events.trainer.bindings_missing',
+              'A source trainer program requires its qualified native battle bindings');
         default:
           throw const NativeWriteException('events.block.unqualified',
               'A quarantined source block cannot become a scene');

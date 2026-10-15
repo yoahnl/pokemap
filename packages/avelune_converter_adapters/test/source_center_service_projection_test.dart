@@ -1,0 +1,332 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:test/test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:avelune_converter_adapters/src/source_event_projection.dart';
+
+final class _Files implements SourceFilePort {
+  _Files(this.bytes);
+  final Map<ConverterId, List<int>> bytes;
+
+  @override
+  Future<List<int>> read(ConverterId id) async => List.of(bytes[id]!);
+}
+
+List<int> _replaceLiteral(List<int> bytes, String before, String after) {
+  final old = utf8.encode(before), next = utf8.encode(after);
+  final pattern = [0x22, old.length + 5, ...old];
+  for (var index = 0; index <= bytes.length - pattern.length; index++) {
+    if (List.generate(pattern.length, (slot) => bytes[index + slot])
+        .indexed
+        .every((entry) => entry.$2 == pattern[entry.$1])) {
+      return [
+        ...bytes.take(index),
+        0x22,
+        next.length + 5,
+        ...next,
+        ...bytes.skip(index + pattern.length)
+      ];
+    }
+  }
+  throw StateError('Source literal not found: $before');
+}
+
+Future<NormalizedSourceProject> _source(String folder,
+    {String? before, String? after}) async {
+  final input = jsonDecode(await File('$folder/snapshot.json').readAsString())
+      as Map<String, dynamic>;
+  final frozen =
+      jsonDecode(await File('$folder/normalized.json').readAsString())
+          as Map<String, dynamic>;
+  final bytes = <ConverterId, List<int>>{
+    for (final dynamic row in frozen['archive']['files'])
+      ConverterId(row['entry']['fileId'] as String):
+          base64Decode(row['rawBytes'] as String)
+  };
+  final map = (input['entries'] as List)
+      .cast<Map>()
+      .singleWhere((row) => row['relativePath'] == 'Data/Map102.rxdata');
+  final mapId = ConverterId(map['fileId'] as String);
+  if (before != null) {
+    bytes[mapId] = _replaceLiteral(bytes[mapId]!, before, after!);
+  }
+  final snapshot = SourceSnapshot(
+      logicalProjectNamespace:
+          ConverterId(input['logicalProjectNamespace'] as String),
+      policyHash: Sha256Hash(input['policyHash'] as String),
+      entries: [
+        for (final dynamic row in input['entries'])
+          SourceFileEntry(
+              fileId: ConverterId(row['fileId'] as String),
+              relativePath: row['relativePath'] as String,
+              kind: SourceNodeKind.values.byName(row['kind'] as String),
+              byteLength: row['fileId'] == mapId.value && before != null
+                  ? bytes[mapId]!.length
+                  : row['byteLength'] as int,
+              sha256: row['sha256'] == null
+                  ? null
+                  : Sha256Hash(row['fileId'] == mapId.value && before != null
+                      ? crypto.sha256.convert(bytes[mapId]!).toString()
+                      : row['sha256'] as String),
+              format: row['format'] as String,
+              family: row['family'] as String)
+      ],
+      diagnostics: [],
+      excludedPaths: (input['excludedPaths'] as List).cast<String>(),
+      profileEvidence: [
+        for (final dynamic row in input['profileEvidence'])
+          SourceProfileEvidence(
+              relativePath: row['relativePath'] as String,
+              fileHash: Sha256Hash(row['fileHash'] as String),
+              version: row['version'] as String,
+              line: row['line'] as int,
+              excerpt: row['excerpt'] as String)
+      ],
+      state: SourceScanState.values.byName(input['state'] as String));
+  return const RmxpSourceNormalizer().normalize(
+      snapshot: snapshot,
+      files: _Files(bytes),
+      selectedMapIds: {102},
+      includeEventSystem: true);
+}
+
+SourceEventProjection _project(NormalizedSourceProject source,
+    {bool nativeBlocked = true,
+    SourceEventAnalysis? analysis,
+    List<MapEntity> nativeEntities = const []}) {
+  final map = source.maps.single.map;
+  final native = MapData(
+      id: 'center_native',
+      name: map.name,
+      size: GridSize(width: map.width, height: map.height),
+      entities: nativeEntities,
+      layers: [
+        MapLayer.collision(
+            id: 'collision',
+            name: 'Collision',
+            collisions: List.generate(map.width * map.height,
+                (index) => nativeBlocked && index == 3 * map.width + 13))
+      ]);
+  return const SourceEventProjector().project(
+      source: source,
+      analysis: analysis ??
+          SourceEventAnalyzer.forProject(source,
+                  profile: SourceEventProfile.kantoForProject(source))
+              .analyze(),
+      nativeMaps: {102: native});
+}
+
+Map _evidence(SourceEventProjection projection, int eventId) =>
+    (projection.semanticEvidence['events'] as List)
+        .cast<Map>()
+        .singleWhere((row) => (row['locator'] as Map)['eventId'] == eventId);
+
+void main() {
+  final archive = Platform.environment['AVELUNE_AC13_DOOR_ARCHIVE'];
+  group('source Center native projection', () {
+    late NormalizedSourceProject source;
+    late SourceEventProjection projection;
+    setUpAll(() async {
+      source = await _source(archive!);
+      projection = _project(source);
+    });
+
+    test('PC two-page source becomes one native reusable interaction', () {
+      final evidence = _evidence(projection, 3);
+      expect(evidence['status'], 'adaptedStaticSemantics',
+          reason: '${evidence['gaps']}');
+      final anchor = projection.nativeMaps[102]!.entities
+          .singleWhere((entity) => entity.name == 'PC');
+      expect(anchor.pos, const GridPos(x: 13, y: 3));
+      final records = projection.registry.records
+          .where((record) =>
+              record.definitionOrNull?.source.toJson()['entityId'] == anchor.id)
+          .toList();
+      expect(records, hasLength(1));
+      final event = records.single.definitionOrNull!;
+      expect(event.source.toJson()['kind'], 'entityInteract');
+      expect(event.reusePolicy, NarrativeEventReusePolicy.reusable);
+      expect(event.conditionExpression.leaves, isEmpty);
+      final scene =
+          projection.scenes.singleWhere((scene) => scene.id == event.sceneId);
+      final commands = scene.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .map((payload) => payload.interactiveCommand)
+          .whereType<SceneInteractiveCommand>();
+      expect(commands.single.kind, SceneInteractiveCommandKind.openPc);
+      expect(
+          scene.graph.nodes
+              .where((node) => node.kind == SceneNodeKind.condition),
+          isEmpty);
+    });
+
+    for (final serviceResult in ['completed', 'cancelled']) {
+      test(
+          'real source interaction dispatches one native PC command $serviceResult',
+          () async {
+        final map = projection.nativeMaps[102]!;
+        final interaction = stepGameplayWorld(
+            GameplayWorldState.initial(
+                map: map,
+                playerPos: const GridPos(x: 13, y: 4),
+                playerFacing: Direction.north),
+            const InteractIntent());
+        expect(interaction, isA<EntityInteracted>());
+        final anchor = (interaction as EntityInteracted).entity;
+        final record = projection.registry.records.singleWhere((record) =>
+            record.definitionOrNull?.source.toJson()['entityId'] == anchor.id);
+        final scene = projection.scenes.singleWhere(
+            (scene) => scene.id == record.definitionOrNull!.sceneId);
+        final commands = <SceneInteractiveCommand>[];
+        final result = await SceneRuntimeExecutor(
+            callbacks: SceneRuntimeExecutionCallbacks(
+                evaluateCondition: (_) =>
+                    throw StateError('PC has no source cycle guard'),
+                showDialogue: (_) =>
+                    throw StateError('PC uses its native service'),
+                startBattle: (_) => throw StateError('No battle'),
+                playCinematic: (_) => throw StateError('No cinematic'),
+                applyConsequence: (_) =>
+                    throw StateError('No source self switch'),
+                executeInteractiveCommand: (intent) {
+                  commands.add(intent.interactiveCommand!);
+                  return serviceResult;
+                })).execute(buildSceneRuntimePlan(scene).plan!);
+        expect(result.status, SceneRuntimeExecutionStatus.completed);
+        expect(commands, [SceneInteractiveCommand.openPc()]);
+      });
+    }
+
+    test('PC source cycle is explicitly adapted with both raw witnesses', () {
+      final evidence = _evidence(projection, 3);
+      final adaptation = evidence['nativeCenterService'] as Map;
+      expect(adaptation['nativeCommand'], 'openPc');
+      expect(adaptation['sourcePageIndices'], [0, 1]);
+      expect(adaptation['sourceRawPages'], hasLength(2));
+      expect(adaptation['fullSourceServiceParityQualified'], isFalse);
+      expect(adaptation['sourcePcSelfSwitchCycleExecuted'], isFalse);
+    });
+
+    test('PC refuses missing native collision rather than changing the anchor',
+        () {
+      final rejected = _project(source, nativeBlocked: false);
+      expect(_evidence(rejected, 3)['status'], 'quarantinedWholeEvent');
+      expect(_evidence(rejected, 3)['gaps'],
+          contains('sourceCenterPcContactUnqualified'));
+      expect(rejected.nativeMaps[102]!.entities.where((e) => e.name == 'PC'),
+          isEmpty);
+    });
+
+    test(
+        'nurse remains refused until its real native counter capability is ready',
+        () {
+      expect(_evidence(projection, 2)['status'], 'quarantinedWholeEvent');
+      expect(_evidence(projection, 2)['gaps'],
+          contains('counterInteractionReachUnsupported'));
+    });
+
+    for (final variant in ['customWide', 'npcWide', 'npcOffset']) {
+      test('PC refuses native collision footprint occupied by $variant', () {
+        final occupant = MapEntity(
+            id: 'existing_occupant',
+            name: 'Occupant',
+            kind: variant == 'customWide'
+                ? MapEntityKind.custom
+                : MapEntityKind.npc,
+            pos: const GridPos(x: 12, y: 3),
+            size: const GridSize(width: 2, height: 1),
+            blocksMovement: true,
+            npc: variant == 'customWide'
+                ? null
+                : const MapEntityNpcData(
+                    characterId: 'existing_character', displayName: 'Occupant'),
+            properties: {
+              mapEntityCollisionWidthProperty:
+                  variant == 'npcOffset' ? '1' : '2',
+              mapEntityCollisionHeightProperty: '1',
+              mapEntityCollisionOffsetXProperty:
+                  variant == 'npcOffset' ? '1' : '0',
+              mapEntityCollisionOffsetYProperty: '0',
+            });
+        expect(resolveEntityCollisionCells(occupant),
+            contains(const GridPos(x: 13, y: 3)));
+        final rejected = _project(source, nativeEntities: [occupant]);
+        expect(_evidence(rejected, 3)['status'], 'quarantinedWholeEvent');
+        expect(_evidence(rejected, 3)['gaps'],
+            contains('sourceCenterPcAnchorOccupied'));
+        expect(
+            rejected.nativeMaps[102]!.entities
+                .where((entity) => entity.name == 'PC'),
+            isEmpty);
+        expect(
+            rejected.nativeMaps[102]!.entities
+                .where((entity) => entity.id == occupant.id),
+            [occupant]);
+      });
+    }
+
+    test(
+        'PC program refuses changed analyzed raw, condition and graphic witnesses',
+        () {
+      final analysis = SourceEventAnalyzer.forProject(source,
+              profile: SourceEventProfile.kantoForProject(source))
+          .analyze();
+      final original = analysis.eventAt(102, 3)!;
+      final page = original.pages.first;
+      for (final changed in [
+        SourceEventPageAnalysis(
+            sourcePage: page.sourcePage,
+            locator: page.locator,
+            condition: page.condition,
+            graphic: page.graphic,
+            body: page.body,
+            rawDataRef: null,
+            diagnostics: []),
+        SourceEventPageAnalysis(
+            sourcePage: page.sourcePage,
+            locator: page.locator,
+            condition: SourceEventCondition(
+                kind: SourceEventConditionKind.globalSwitch,
+                factId: 'unrelated'),
+            graphic: page.graphic,
+            body: page.body,
+            rawDataRef: page.rawDataRef,
+            diagnostics: []),
+        SourceEventPageAnalysis(
+            sourcePage: page.sourcePage,
+            locator: page.locator,
+            condition: page.condition,
+            graphic: null,
+            body: page.body,
+            rawDataRef: page.rawDataRef,
+            diagnostics: []),
+      ]) {
+        final replacement = SourceEventDefinition(
+            sourceMapId: original.sourceMapId,
+            sourceEventId: original.sourceEventId,
+            sourceFileId: original.sourceFileId,
+            identity: original.identity,
+            name: original.name,
+            x: original.x,
+            y: original.y,
+            locator: original.locator,
+            pages: [changed, original.pages.last]);
+        final changedAnalysis = SourceEventAnalysis(
+            profile: analysis.profile,
+            events: [
+              for (final event in analysis.events)
+                if (event.identity == original.identity) replacement else event
+            ],
+            diagnostics: analysis.diagnostics);
+        expect(
+            _evidence(_project(source, analysis: changedAnalysis), 3)['status'],
+            'quarantinedWholeEvent');
+      }
+    });
+  }, skip: archive == null);
+}
