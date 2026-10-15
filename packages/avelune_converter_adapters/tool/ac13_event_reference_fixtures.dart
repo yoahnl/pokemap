@@ -101,6 +101,34 @@ List<LiteralFixtureMap> _originalMaps() => [
                 LiteralFixtureEventCommand(201, [0, 2, 2, 2, 0, 0]),
               ]),
             ]),
+            LiteralFixtureEvent(
+                id: 5,
+                x: 3,
+                y: 3,
+                name: 'Empty final page',
+                pages: [
+                  LiteralFixtureEventPage(
+                      characterName: 'ReferenceNpc',
+                      commands: [
+                        LiteralFixtureEventCommand(
+                            101, ['Première page à jouer avant la page vide.']),
+                        LiteralFixtureEventCommand(123, ['A', 0]),
+                      ]),
+                  LiteralFixtureEventPage(
+                      characterName: 'ReferenceNpc',
+                      selfSwitch: 'A',
+                      commands: [
+                        LiteralFixtureEventCommand(
+                            101, ['Cette page inférieure doit rester muette.']),
+                        LiteralFixtureEventCommand(123, ['B', 0]),
+                      ]),
+                  LiteralFixtureEventPage(
+                      characterName: 'ReferenceNpc',
+                      selfSwitch: 'A',
+                      commands: [
+                        LiteralFixtureEventCommand(0, []),
+                      ]),
+                ]),
           ]),
       LiteralFixtureMap(
           id: 2,
@@ -197,9 +225,9 @@ Future<void> main() async {
     final projection =
         Map<String, dynamic>.from(eventEvidence['projection'] as Map);
     _require(
-        projection['qualifiedEventCount'] == 3 &&
+        projection['qualifiedEventCount'] == 4 &&
             projection['quarantinedEventCount'] == 1,
-        'Exactly three original events must project and the unknown reward must quarantine');
+        'Exactly four original events must project and the unknown reward must quarantine');
     final approval = workflow.approvePrepared(
         sessionRevision: prepared.sessionRevision,
         preparationHash: prepared.preparationHash,
