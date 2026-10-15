@@ -1470,15 +1470,11 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                     'workflow.review_set.stale',
                     'A stored review segment seed differs from its fresh source proposals.');
               }
-              for (final candidate in child.activeCandidates) {
-                const LocalAssetProposer().validatePlacementClaims(
-                    source: normalized,
-                    literal: composition,
-                    candidate: candidate,
-                    claims:
-                        child.frame.placementClaims[candidate.candidateId] ??
-                            const []);
-              }
+              const LocalAssetProposer().validatePlacementClaimsBatch(
+                  source: normalized,
+                  literal: composition,
+                  candidates: child.activeCandidates,
+                  placementClaims: child.frame.placementClaims);
               segments[entry.key] = child;
             } else {
               segments[entry.key] = AssetReviewSession.create(

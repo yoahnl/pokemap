@@ -1,7 +1,35 @@
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:test/test.dart';
 
+import 'support/literal_tile_fixture.dart';
+
 void main() {
+  test('draft entry refusal reports measured counts and unique artifacts',
+      () async {
+    final fixture = await LiteralTileFixture.create(
+        maps: [LiteralFixtureMap(id: 1)]);
+    final artifact = NativeArtifact(bytes: [1, 2, 3]);
+    expect(
+        () => NativeProjectDraft(
+            source: fixture.source,
+            projectName: 'Measured quota',
+            parentPath: '/private/tmp/native-draft-budget',
+            folderName: 'measured-quota',
+            mapIds: const {1: 'map-one'},
+            artifacts: [artifact, artifact],
+            sourceArtifacts: [artifact, artifact],
+            mutations: const [],
+            limits: const NativeWriteLimits(maxArtifacts: 3)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.draft')
+            .having(
+                (error) => error.message,
+                'message',
+                'Draft entry budget exceeded: artifacts=2, sourceArtifacts=2, '
+                    'totalArtifacts=4, uniqueArtifacts=1, maxArtifacts=3; '
+                    'mutations=0, maxMutations=256; maps=1, maxMaps=256.')));
+  });
+
   test('allows an explicit bounded 512 artifact native catalogue study', () {
     const limits = NativeWriteLimits(maxArtifacts: 512);
     expect(limits.validate, returnsNormally);

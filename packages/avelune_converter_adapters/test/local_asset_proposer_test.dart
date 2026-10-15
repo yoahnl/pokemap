@@ -132,6 +132,114 @@ Future<LiteralTileFixture> _mapFileLookupFixture() =>
     ]);
 
 void main() {
+  test('batch placement validation preserves every candidate claim and mode',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final proposals = await _usedTiles(fixture, literal);
+    final candidates = [
+      ...proposals.candidates,
+      for (final candidate in proposals.candidates)
+        AssetCandidate.fromJson({
+          ...candidate.toJson(),
+          'outputMode': AssetOutputMode.standaloneObjects.name,
+        }),
+    ];
+    final before = [for (final candidate in candidates) candidate.toJson()];
+    final claims = {
+      for (final entry in proposals.placementClaims.entries)
+        entry.key: [for (final claim in entry.value) claim.toJson()],
+    };
+    for (final candidate in candidates) {
+      const LocalAssetProposer().validatePlacementClaims(
+          source: fixture.source,
+          literal: literal,
+          candidate: candidate,
+          claims: proposals.placementClaims[candidate.candidateId]!);
+    }
+    const LocalAssetProposer().validatePlacementClaimsBatch(
+        source: fixture.source,
+        literal: literal,
+        candidates: candidates,
+        placementClaims: proposals.placementClaims);
+    expect([for (final candidate in candidates) candidate.toJson()], before);
+    expect({
+      for (final entry in proposals.placementClaims.entries)
+        entry.key: [for (final claim in entry.value) claim.toJson()],
+    }, claims);
+  });
+
+  test('batch placement validation preserves source and claim refusals',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final proposals = await _usedTiles(fixture, literal);
+    final candidate = proposals.candidates.first;
+    final claim = proposals.placementClaims[candidate.candidateId]!.first;
+    for (final fields in [
+      {'sourceMapHash': '0' * 64},
+      {'x': claim.x + 2},
+    ]) {
+      final changed = SourcePlacementClaim.fromJson({
+        ...claim.toJson(),
+        ...fields,
+      });
+      String? singleCode;
+      try {
+        const LocalAssetProposer().validatePlacementClaims(
+            source: fixture.source,
+            literal: literal,
+            candidate: candidate,
+            claims: [changed]);
+      } on ContractError catch (error) {
+        singleCode = error.code;
+      }
+      expect(singleCode, isNotNull);
+      expect(
+          () => const LocalAssetProposer().validatePlacementClaimsBatch(
+              source: fixture.source,
+              literal: literal,
+              candidates: proposals.candidates,
+              placementClaims: {
+                ...proposals.placementClaims,
+                candidate.candidateId: [changed],
+              }),
+          throwsA(_failure(singleCode!)));
+    }
+    final changedSource = await LiteralTileFixture.create(
+        namespace: 'other-original-map-file-lookup',
+        maps: [LiteralFixtureMap(id: 1), LiteralFixtureMap(id: 8)]);
+    expect(
+        () => const LocalAssetProposer().validatePlacementClaimsBatch(
+            source: changedSource.source,
+            literal: literal,
+            candidates: proposals.candidates,
+            placementClaims: proposals.placementClaims),
+        throwsA(_failure('asset.proposal.binding')));
+  });
+
+  test('batch placement validation retains quotas and empty selection behavior',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final proposals = await _usedTiles(fixture, literal);
+    const proposer = LocalAssetProposer();
+    expect(
+        () => proposer.validatePlacementClaimsBatch(
+            source: fixture.source,
+            literal: literal,
+            candidates: proposals.candidates,
+            placementClaims: proposals.placementClaims,
+            limits: const LocalAssetProposalLimits(maxClaimsPerCandidate: 1)),
+        throwsA(_failure('asset.proposal.quota')));
+    proposer.validatePlacementClaimsBatch(
+        source: fixture.source,
+        literal: literal,
+        candidates: const [],
+        placementClaims: const {},
+        limits: const LocalAssetProposalLimits(maxSourceImages: 0));
+  });
+
   test(
       'map segments preserve all proposal identities geometry and exact claims',
       () async {

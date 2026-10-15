@@ -708,6 +708,22 @@ final class LocalAssetProposer {
   }) =>
       _AssetInputs(source, literal, candidate.outputMode, limits)
           .validatePlacementClaims(candidate, claims);
+
+  void validatePlacementClaimsBatch({
+    required NormalizedSourceProject source,
+    required LiteralTileComposition literal,
+    required List<AssetCandidate> candidates,
+    required Map<ConverterId, List<SourcePlacementClaim>> placementClaims,
+    LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
+  }) {
+    final inputsByMode = <AssetOutputMode, _AssetInputs>{};
+    for (final candidate in candidates) {
+      final inputs = inputsByMode.putIfAbsent(candidate.outputMode,
+          () => _AssetInputs(source, literal, candidate.outputMode, limits));
+      inputs.validatePlacementClaims(
+          candidate, placementClaims[candidate.candidateId] ?? const []);
+    }
+  }
 }
 
 Never _quota(String message) =>
