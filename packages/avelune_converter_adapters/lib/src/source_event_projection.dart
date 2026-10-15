@@ -95,6 +95,15 @@ DialogueLineFeedback? _staticSourceSignFeedback(String source) {
   return _staticSourceTextFeedback(text);
 }
 
+int? _staticSignWidth(SourceEventDefinition event) {
+  final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+      .allMatches(event.name).toList();
+  if (sizes.isEmpty) return 1;
+  if (sizes.length != 1 || int.tryParse(sizes.single.group(2)!) != 1) return null;
+  final width = int.tryParse(sizes.single.group(1)!);
+  return width == 1 || width == 2 ? width : null;
+}
+
 EntityFacing? _sourceFacingDirection(int? direction) => switch (direction) {
   2 => EntityFacing.south,
   4 => EntityFacing.west,
@@ -625,6 +634,7 @@ final class _ProjectionBuilder {
                       'span': page.body.nodes.single.span.toJson(),
                       'rawDataRefs': [page.rawDataRef!.toJson()],
                       'sourceControl': _sourceSignWindowControl,
+                      'nativeFootprint': {'width': _staticSignWidth(event), 'height': 1},
                       'targetStyle': 'aveluneNativeDialogue',
                       'nativeContract': 'staticSignDialogueAtTerrainBump',
                       'equivalenceScope': ['plainText', 'frontTerrainBump',
@@ -867,11 +877,10 @@ final class _ProjectionBuilder {
         maps[event.sourceMapId]!.spatialScene != null) {
       return false;
     }
-    final size = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
-        .firstMatch(event.name);
-    if (size != null &&
-        (int.tryParse(size.group(1)!) != 1 ||
-            int.tryParse(size.group(2)!) != 1)) {
+    final width = _staticSignWidth(event);
+    final nativeMap = maps[event.sourceMapId]!;
+    if (width == null || event.x < 0 || event.y < 0 ||
+        event.x + width > nativeMap.size.width || event.y >= nativeMap.size.height) {
       return false;
     }
     final page = event.pages.single;
@@ -899,9 +908,16 @@ final class _ProjectionBuilder {
       return false;
     }
     final touch = _touch(event, page);
-    return touch.kind == SourceEventTouchKind.front &&
-        touch.reason == 'stationaryTilesBlocked' &&
-        _nativeSolidAt(event);
+    if (touch.kind != SourceEventTouchKind.front ||
+        touch.reason != (width == 1 ? 'stationaryTilesBlocked' : 'stationaryFootprintTilesBlocked') ||
+        !_nativeSolidAt(event)) {
+      return false;
+    }
+    if (width == 1) return true;
+    final map = maps[event.sourceMapId]!;
+    final index = event.y * map.size.width + event.x + 1;
+    return map.layers.whereType<CollisionLayer>().any((layer) =>
+        index < layer.collisions.length && layer.collisions[index]);
   }
 
   DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text) =>
@@ -1207,7 +1223,7 @@ final class _ProjectionBuilder {
         .firstMatch(event.name);
     if (size != null &&
         (int.tryParse(size.group(1)!) != 1 ||
-            int.tryParse(size.group(2)!) != 1) && !staticWideInteraction) {
+            int.tryParse(size.group(2)!) != 1) && !staticWideInteraction && !staticSign) {
       gaps.add('eventFootprintUnsupported');
     }
     final map = maps[event.sourceMapId]!;
@@ -1308,7 +1324,8 @@ final class _ProjectionBuilder {
         } else if (touch.kind == SourceEventTouchKind.front &&
             (graphic.characterName.isEmpty || graphic.through)) {
           if ((!_isOriginalDoor(event) && !staticSign) ||
-              touch.reason != 'stationaryTilesBlocked' ||
+              touch.reason != (staticSign && _staticSignWidth(event) == 2
+                  ? 'stationaryFootprintTilesBlocked' : 'stationaryTilesBlocked') ||
               !_nativeSolidAt(event)) {
             gaps.add('sourceTerrainBumpUnqualified');
           }
@@ -1333,7 +1350,10 @@ final class _ProjectionBuilder {
 
   SourceEventTouchResolution _touch(
           SourceEventDefinition event, SourceEventPageAnalysis page) =>
-      semanticResolver.resolveEventTouch(
+      page.triggerCode == 1 && _staticSignWidth(event) == 2
+          ? semanticResolver.resolveStaticBumpFootprint(event: event, page: page,
+              mapEvents: analysis.events, width: 2, height: 1)
+          : semanticResolver.resolveEventTouch(
           cell: semanticResolver.cellAt(event.sourceMapId, event.x, event.y),
           event: event,
           page: page,
@@ -1662,7 +1682,8 @@ final class _ProjectionBuilder {
         name: _name(event),
         kind: character == null ? MapEntityKind.custom : MapEntityKind.npc,
         pos: GridPos(x: event.x, y: event.y),
-        size: _supportsStaticWideInteraction(event)
+        size: (_supportsStaticWideInteraction(event) ||
+            (_supportsStaticSign(event) && _staticSignWidth(event) == 2))
             ? const GridSize(width: 2, height: 1)
             : const GridSize(width: 1, height: 1),
         blocksMovement: character != null && !graphic.through,
@@ -1702,7 +1723,7 @@ final class _ProjectionBuilder {
           name: _name(event),
           type: TriggerType.event,
           area: MapRect(
-              pos: entity.pos, size: const GridSize(width: 1, height: 1)));
+              pos: entity.pos, size: entity.size));
       maps[event.sourceMapId] =
           map.copyWith(triggers: [...map.triggers, trigger]);
       mutations.add(_mutation(

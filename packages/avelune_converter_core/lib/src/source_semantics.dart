@@ -647,6 +647,29 @@ final class SourceSemanticResolver {
     required int width,
     required int height,
     SourceSemanticContext context = const SourceSemanticContext(),
+  }) => _resolveStaticFrontFootprint(event: event, page: page,
+      mapEvents: mapEvents, width: width, height: height, context: context,
+      expectedTriggerCode: 0);
+
+  SourceEventTouchResolution resolveStaticBumpFootprint({
+    required SourceEventDefinition event,
+    required SourceEventPageAnalysis page,
+    required Iterable<SourceEventDefinition> mapEvents,
+    required int width,
+    required int height,
+    SourceSemanticContext context = const SourceSemanticContext(),
+  }) => _resolveStaticFrontFootprint(event: event, page: page,
+      mapEvents: mapEvents, width: width, height: height, context: context,
+      expectedTriggerCode: 1);
+
+  SourceEventTouchResolution _resolveStaticFrontFootprint({
+    required int expectedTriggerCode,
+    required SourceEventDefinition event,
+    required SourceEventPageAnalysis page,
+    required Iterable<SourceEventDefinition> mapEvents,
+    required int width,
+    required int height,
+    SourceSemanticContext context = const SourceSemanticContext(),
   }) {
     SourceEventTouchResolution refused(String reason,
             [List<SourceTilePassageTrace> trace = const []]) =>
@@ -654,7 +677,7 @@ final class SourceSemanticResolver {
             kind: SourceEventTouchKind.unqualified, reason: reason, trace: trace);
     if (!profile.isQualified || !context.isQualified ||
         event.isQuarantined || event.pages.length != 1 ||
-        !event.pages.contains(page) || page.triggerCode != 0 ||
+        !event.pages.contains(page) || page.triggerCode != expectedTriggerCode ||
         page.condition.kind != SourceEventConditionKind.always ||
         !_plainTouchPage(page)) {
       return refused('sourceContextUnqualified');

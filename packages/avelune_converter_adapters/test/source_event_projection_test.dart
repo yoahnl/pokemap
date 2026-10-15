@@ -1067,6 +1067,76 @@ void main() {
         NarrativeEventSourceKind.triggerEnter);
   }, skip: Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'] == null);
 
+  test('original Center sign retains its complete two-cell bump footprint', () async {
+    final root = Platform.environment['AVELUNE_AC13_SOURCE_ROOT']!;
+    final data = {
+      'README.md': utf8.encode('Pokemon Essentials v21.1\n'),
+      for (final path in ['Data/MapInfos.rxdata', 'Data/Map100.rxdata',
+        'Data/Tilesets.rxdata', 'Data/System.rxdata', 'Data/Scripts.rxdata'])
+        path: await File('$root/$path').readAsBytes(),
+    };
+    expect(_hash(data['Data/Map100.rxdata']!).value,
+        '3a101f07319e797c0021212ce5e6adc5344128eaff4b1ea2c4712219289c47a0');
+    final source = await _normalize(_source(data), selectedMapIds: {100}, includeEventSystem: true);
+    final maps = _nativeMaps(source);
+    final map = maps[100]!;
+    maps[100] = map.copyWith(layers: [MapLayer.collision(id: 'sign-collision', name: 'Collision',
+      collisions: List.generate(map.size.width * map.size.height,
+        (index) => index ~/ map.size.width == 25 && [11, 12].contains(index % map.size.width)))]);
+    final result = _projectEvents(source, maps: maps);
+    final definition = result.registry.records.map((record) => record.definitionOrNull)
+        .whereType<NarrativeEventDefinition>().singleWhere((definition) =>
+          definition.source.kind == NarrativeEventSourceKind.triggerBump);
+    final trigger = result.nativeMaps[100]!.triggers.singleWhere((trigger) => trigger.id == definition.source.toJson()['triggerId']);
+    expect(trigger.area.pos, const GridPos(x: 11, y: 25));
+    expect(trigger.area.size, const GridSize(width: 2, height: 1));
+    final scene = result.scenes.singleWhere((scene) => scene.id == definition.sceneId);
+    final condition = scene.graph.nodes.map((node) => node.payload).whereType<SceneConditionPayload>().single.conditionSource;
+    expect(condition, SceneConditionSource.playerFacing(direction: EntityFacing.north, expected: true));
+    final text = scene.graph.nodes.map((node) => node.payload).whereType<SceneYarnDialoguePayload>().single;
+    expect(text.linePolicies.single.feedback.plainText, '“Heal your Pokémon!”\nPokémon Center');
+    final event = (result.semanticEvidence['events'] as List).cast<Map>().singleWhere((event) =>
+      (event['locator'] as Map)['mapId'] == 100 && (event['locator'] as Map)['eventId'] == 10);
+    expect(event['status'], 'adaptedStaticSemantics');
+    expect(event['gaps'], isEmpty);
+    expect(((event['pages'] as List).single as Map)['sourceContact'], containsPair('reason', 'stationaryFootprintTilesBlocked'));
+    expect(result.nativeMaps[100]!.entities.singleWhere((entity) => entity.pos == trigger.area.pos).size,
+      const GridSize(width: 2, height: 1));
+  }, skip: scriptsPath == null || Platform.environment['AVELUNE_AC13_SOURCE_ROOT'] == null);
+
+  test('two-cell sign cannot be an import candidate outside native bounds', () async {
+    final source = await _bookshelfSource(page: _facingSignPage(), eventName: 'Center sign size(2,1)');
+    final maps = _bookshelfMaps(source);
+    maps[1] = maps[1]!.copyWith(size: const GridSize(width: 2, height: 3), layers: [
+      MapLayer.collision(id: 'narrow', name: 'Collision', collisions: [false, false, false, true, true, false]),
+    ]);
+    final candidates = const SourceEventProjector().characterImportCandidates(
+      source: source, analysis: _analyzer(source).analyze(), nativeMaps: maps);
+    expect(candidates, isEmpty);
+  }, skip: scriptsPath == null);
+
+  test('two-cell sign refuses an overlapping source event on its second cell', () async {
+    final source = await _bookshelfSource(page: _facingSignPage(), eventName: 'Center sign size(2,1)',
+      extraEvents: {2: _event(2, [_page([_command(0, [])], character: '')], x: 2, y: 1)});
+    final result = _projectEvents(source, maps: _bookshelfMaps(source));
+    expect(result.registry.records.first.definitionOrNull, isNull);
+    expect(result.nativeMaps[1]!.triggers, isEmpty);
+  }, skip: scriptsPath == null);
+
+  for (final blocked in [<int>{5, 6}, <int>{5}, <int>{6}, <int>{}]) {
+    test('two-cell directional sign requires both native blocked cells $blocked', () async {
+      final source = await _bookshelfSource(page: _facingSignPage(), eventName: 'Center sign size(2,1)');
+      final result = _projectEvents(source, maps: _bookshelfMaps(source, blockedCells: blocked));
+      if (blocked.length == 2) {
+        expect(result.registry.records.single.definitionOrNull, isNotNull);
+        expect(result.nativeMaps[1]!.triggers.single.area.size, const GridSize(width: 2, height: 1));
+      } else {
+        expect(result.registry.records.single.definitionOrNull, isNull);
+        expect(result.nativeMaps[1]!.triggers, isEmpty);
+      }
+    }, skip: scriptsPath == null);
+  }
+
   for (final entry in {
     'Route 9 sign': r'Route 9\nCerulean City - Rock Tunnel',
     'Rock tunnel sign': r'Rock Tunnel\nDetour to Lavender Town',

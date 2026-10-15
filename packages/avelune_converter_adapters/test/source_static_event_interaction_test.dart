@@ -10,6 +10,7 @@ Future<NormalizedSourceProject> _source({
   String eventName = 'Bookshelf size(2,1)',
   int x = 1,
   bool through = false,
+  int trigger = 0,
   List<LiteralFixtureEvent> extraEvents = const [],
 }) async {
   final fixture = await LiteralTileFixture.create(
@@ -23,7 +24,7 @@ Future<NormalizedSourceProject> _source({
           List.generate(12, (index) => blockedCells.contains(index) ? 400 : 0),
         ], events: [
           LiteralFixtureEvent(id: 1, x: x, y: 1, name: eventName, pages: [
-            LiteralFixtureEventPage(through: through, commands: const [
+            LiteralFixtureEventPage(through: through, trigger: trigger, commands: const [
               LiteralFixtureEventCommand(101, ['Books.']),
               LiteralFixtureEventCommand(0, []),
             ]),
@@ -52,6 +53,19 @@ SourceEventTouchResolution _resolve(NormalizedSourceProject source,
 
 void main() {
   final scriptsMissing = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'] == null;
+
+  for (final trigger in [0, 1, 2, 3, 4]) {
+    test('static bump footprint accepts only player-touch trigger $trigger', () async {
+      final source = await _source(trigger: trigger);
+      final analysis = _analysis(source);
+      final event = analysis.eventAt(1, 1)!;
+      final resolver = SourceSemanticResolver.forProject(source);
+      final result = resolver.resolveStaticBumpFootprint(event: event,
+        page: event.pages.single, mapEvents: analysis.events, width: 2, height: 1);
+      expect(result.kind, trigger == 1 ? SourceEventTouchKind.front : SourceEventTouchKind.unqualified);
+      if (trigger == 1) expect(_resolve(source).kind, SourceEventTouchKind.unqualified);
+    }, skip: scriptsMissing);
+  }
 
   test('static action footprint proves both cells with the sealed source', () async {
     final result = _resolve(await _source());
