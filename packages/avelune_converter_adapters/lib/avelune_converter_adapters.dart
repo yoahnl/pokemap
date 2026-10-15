@@ -24,6 +24,7 @@ export 'src/source_event_study_composer.dart';
 export 'src/source_map_music_binding.dart';
 export 'src/source_event_arrival_validation.dart';
 export 'src/source_event_item_bindings.dart';
+export 'src/source_trainer_event_bindings.dart';
 export 'src/source_pickup_feedback_binding.dart';
 export 'src/source_catalog_projection.dart';
 export 'src/native_psdk_trainer_bundle.dart';

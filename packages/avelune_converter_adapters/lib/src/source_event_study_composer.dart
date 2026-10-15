@@ -11,6 +11,7 @@ import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
+import 'source_trainer_event_bindings.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
@@ -222,6 +223,9 @@ final class SourceEventStudyComposer {
         centerRecoveryEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    final trainerBindings = await const SourceTrainerEventBindingResolver().read(
+        source: source, analysis: analysis, files: recording,
+        limits: limits, cancellation: cancellation);
     final bindings = <String, SourceEventCharacterBinding>{};
     final retentionBinding = originalDoorIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
@@ -243,6 +247,7 @@ final class SourceEventStudyComposer {
             pickupBindings: pickupBindings,
             soundBindings: sounds,
             centerRecoveryBinding: centerRecovery,
+            trainerBindings: trainerBindings.byEventIdentity,
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
             limits: limits);
@@ -307,6 +312,7 @@ final class SourceEventStudyComposer {
         pickupBindings: pickupBindings,
         soundBindings: sounds,
         centerRecoveryBinding: centerRecovery,
+        trainerBindings: trainerBindings.byEventIdentity,
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
         limits: limits);
@@ -336,6 +342,8 @@ final class SourceEventStudyComposer {
     }
     final preservedFileIds =
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
+    preservedFileIds.addAll(trainerBindings.byEventIdentity.values
+        .map((binding) => binding.sourceRosterFile.fileId.value));
     final systemFile = source.snapshot.entries
         .where((entry) => entry.relativePath == 'Data/System.rxdata')
         .firstOrNull;
@@ -553,6 +561,13 @@ final class SourceEventStudyComposer {
       'pickups': pickupEvidence,
       'sounds': soundEvidence,
       'centerRecovery': centerRecoveryEvidence,
+      'trainerBindings': {
+        'bindings': trainerBindings.byEventIdentity.values
+            .map((binding) => binding.toJson()).toList(),
+        'refusals': [for (final refusal in trainerBindings.refusals.entries) {
+          'sourceEventIdentity': refusal.key.value, 'reason': refusal.value,
+        }],
+      },
       if (retentionPolicy != null) 'mapInstanceRetention': {
         ...retentionBinding!.evidence,
         'policy': retentionPolicy.toJson(),

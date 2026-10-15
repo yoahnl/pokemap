@@ -8,6 +8,7 @@ import 'source_pickup_feedback_binding.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
+import 'source_trainer_event_bindings.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -268,6 +269,7 @@ final class SourceEventProjector {
     Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventSoundBinding> soundBindings = const {},
     SourceCenterRecoveryBinding? centerRecoveryBinding,
+    Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -279,7 +281,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         builder._gaps(event, checkCharacterBindings: false).isEmpty));
@@ -293,6 +295,7 @@ final class SourceEventProjector {
       Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
       Map<String, SourceEventSoundBinding> soundBindings = const {},
       SourceCenterRecoveryBinding? centerRecoveryBinding,
+      Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -316,7 +319,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings)
         .build();
   }
 }
@@ -376,7 +379,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -395,6 +398,7 @@ final class _ProjectionBuilder {
   final Map<String, SourcePickupFeedbackBinding> pickupBindings;
   final Map<String, SourceEventSoundBinding> soundBindings;
   final SourceCenterRecoveryBinding? centerRecoveryBinding;
+  final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
   final bool executionContextQualified;
@@ -547,6 +551,23 @@ final class _ProjectionBuilder {
             'sourceScriptsExecuted': 0,
             'fullSourceServiceParityQualified': false,
           },
+        if (gaps.isEmpty && _hasTrainerProgram(event))
+          'nativeTrainerEncounter': {
+            ...trainerBindings[event.identity]!.toJson(),
+            'nativeExecutionQualified': true,
+            'nativeActivation': 'aveluneNpcLineOfSightAndEntityInteract',
+            'sourceRawPages': [for (final page in event.pages) page.rawDataRef!.toJson()],
+            'sourceDefeatedCondition': 'victoryOnlyAfterPbsLoseText',
+            'sourceEndSpeechCommentExecuted': false,
+            'nativeVictorySpeech': 'sceneAfterNativeBattle',
+            'nativeTrainerVictoryDialogueId': trainerBindings[event.identity]!.nativeTrainer.victoryDialogueId,
+            'sourceApproachTimingParityQualified': false,
+            'sourceTrainerIntroPresentationParityQualified': false,
+            'sourceAutonomousMovementExecuted': false,
+            'sourceAfterWinFacing': 'nativeNpcInteractionVisualFacing',
+            'persistentFacingCertified': false,
+            'fullSourceTrainerParityQualified': false,
+          },
         'pages': [
           for (final page in event.pages)
             {
@@ -563,6 +584,16 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if (gaps.isEmpty && _hasTrainerProgram(event))
+                  {
+                    'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
+                    'span': page.body.nodes.single.span.toJson(),
+                    'rawDataRefs': [page.rawDataRef!.toJson()],
+                    'nativeContract': 'aveluneTrainerBattleAndSourceWinnerFact',
+                    'equivalenceScope': ['sourceChallengeAndAfterWinText', 'nativeAveluneBattle', 'winnerSelfSwitchA'],
+                    'sourceScriptsExecuted': 0,
+                    'fullSourceTrainerParityQualified': false,
+                  },
                 if (gaps.isEmpty && _supportsStaticWideInteraction(event))
                   {
                     'sourceOpcodes': [101,
@@ -1081,8 +1112,80 @@ final class _ProjectionBuilder {
     };
   }
 
+  bool _hasTrainerProgram(SourceEventDefinition event) => event.pages
+      .expand((page) => page.body.nodes).whereType<SourceTrainerProgramNode>().isNotEmpty;
+
+  Set<String> _nativeTrainerGaps(SourceEventDefinition event,
+      {required bool checkCharacterBindings}) {
+    final binding = trainerBindings[event.identity];
+    if (binding == null) return {'sourceTrainerBindingsMissing'};
+    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+      return {'sourceTrainerSourceBindingInvalid'};
+    }
+    final gaps = <String>{};
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+      gaps.add('sourceTrainerSpatialUnsupported');
+    }
+    if (event.pages.any((page) => page.graphic!.moveType != 0)) {
+      gaps.add('sourceTrainerAutonomousMovementUnsupported');
+    }
+    final passage = semanticResolver.resolveConnectionEntryTile(
+        semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
+    if (passage.status != SourcePassageStatus.allowed || _nativeSolidAt(event)) {
+      gaps.add('sourceTrainerAnchorPassageUnqualified');
+    }
+    if (map.entities.any((entity) => resolveEntityCollisionCells(entity)
+            .contains(GridPos(x: event.x, y: event.y))) ||
+        _sourceCounterCellOccupied(event, event.x, event.y)) {
+      gaps.add('sourceTrainerAnchorOccupied');
+    }
+    final initial = event.pages.first.graphic!;
+    for (final page in event.pages) {
+      final graphic = page.graphic!;
+      if (graphic.tileId != 0 || graphic.characterName.isEmpty ||
+          graphic.characterName != initial.characterName || graphic.hue != 0 ||
+          graphic.direction != initial.direction || _sourceFacingDirection(graphic.direction) == null ||
+          graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
+          !graphic.walkAnime || graphic.stepAnime || graphic.directionFix ||
+          graphic.through || graphic.alwaysOnTop) {
+        gaps.add('sourceTrainerGraphicUnsupported');
+      }
+      if (checkCharacterBindings) {
+        final character = characterBindings[sourceEventCharacterBindingKey(
+            characterName: graphic.characterName, pattern: graphic.pattern,
+            direction: graphic.direction)];
+        final file = source.snapshot.entries.where((file) => file.fileId == character?.sourceFileId).firstOrNull;
+        if (character == null || character.characterId.trim().isEmpty ||
+            character.sourceSnapshotHash != sourceSnapshotHash ||
+            character.sourcePattern != graphic.pattern ||
+            character.sourceDirection != graphic.direction ||
+            file?.sha256 != character.sourceFileHash ||
+            file?.relativePath != 'Graphics/Characters/${graphic.characterName}.png') {
+          gaps.add('characterBindingMissing');
+        }
+      }
+    }
+    final program = binding.programs.first;
+    if ([...program.challengeLines, ...program.afterWinLines, binding.nativeVictorySpeech]
+        .any((text) {
+          final feedback = _staticSourceTextFeedback(text);
+          return feedback == null || feedback.plainText.trim().isEmpty;
+        })) {
+      gaps.add('sourceTrainerTextControlUnsupported');
+    }
+    if (binding.nativeTrainer.victoryDialogueId != null ||
+        binding.nativeTrainer.defeatDialogueId != null) {
+      gaps.add('sourceTrainerNativeSpeechConflict');
+    }
+    return gaps;
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_hasTrainerProgram(event)) {
+      return _nativeTrainerGaps(event, checkCharacterBindings: checkCharacterBindings);
+    }
     if (_isNativeCenterPc(event)) return _nativeCenterPcGaps(event);
     if (_isNativeCenterNurse(event)) {
       return _nativeCenterNurseGaps(event, checkCharacterBindings: checkCharacterBindings);
@@ -1507,6 +1610,8 @@ final class _ProjectionBuilder {
           ids.addAll(factIds);
         case SourceSelfSwitchNode(:final factId):
           ids.add(factId);
+        case SourceTrainerProgramNode(:final defeatedFactId):
+          ids.add(defeatedFactId);
         case SourceConditionalNode(
             :final condition,
             :final whenTrue,
@@ -1535,6 +1640,7 @@ final class _ProjectionBuilder {
   void _projectEvent(SourceEventDefinition event) {
     final nativeCenterPc = _isNativeCenterPc(event);
     final nativeCenterNurse = _isNativeCenterNurse(event);
+    final trainer = _hasTrainerProgram(event) ? trainerBindings[event.identity] : null;
     final projectedPages = nativeCenterPc || nativeCenterNurse ? [event.pages.first] : event.pages;
     final factIds = <String>{};
     for (final page in projectedPages) {
@@ -1565,6 +1671,8 @@ final class _ProjectionBuilder {
             : MapEntityNpcData(
                 characterId: character.characterId,
                 displayName: _name(event),
+                trainerId: trainer?.nativeTrainer.id,
+                lineOfSightRange: trainer?.programs.first.detectionDistance ?? 0,
                 counterInteractionSides: nativeCenterNurse ? _nurseCounterSides(event) : const [],
                 facing: switch (graphic.direction) {
                   2 => EntityFacing.south,
@@ -1583,7 +1691,7 @@ final class _ProjectionBuilder {
           },
         });
     NarrativeEventSourceRef sourceRef;
-    if (event.pages.first.triggerCode == 0) {
+    if (event.pages.first.triggerCode == 0 || trainer != null) {
       sourceRef = NarrativeEventSourceRef.entityInteract(map.id, entityId);
     } else if (_isOriginalDoor(event) && graphic.characterName.isNotEmpty && !graphic.through) {
       sourceRef = NarrativeEventSourceRef.entityBump(map.id, entityId);
@@ -1886,8 +1994,7 @@ final class _SceneBuilder {
           }
           next = _interactive(SceneInteractiveCommand.openPc(), next);
         case SourceTrainerProgramNode():
-          throw const NativeWriteException('events.trainer.bindings_missing',
-              'A source trainer program requires its qualified native battle bindings');
+          next = _trainer(node, next);
         default:
           throw const NativeWriteException('events.block.unqualified',
               'A quarantined source block cannot become a scene');
@@ -1903,6 +2010,47 @@ final class _SceneBuilder {
         SceneEdgeKind.actionCompleted);
     }
     return action;
+  }
+
+  String _trainer(SourceTrainerProgramNode program, String next) {
+    final binding = projection.trainerBindings[event.identity];
+    if (binding == null || !binding.isBoundToEvent(source: projection.source,
+        analysis: projection.analysis, event: event)) {
+      throw const NativeWriteException('events.trainer.bindings_missing',
+          'A source trainer program requires its qualified native battle bindings');
+    }
+    final messages = program.kind == SourceTrainerProgramKind.encounter
+        ? program.challengeLines : program.afterWinLines;
+    final commands = page.sourcePage.commands.where((command) => command.code == 101).toList();
+    if (messages.length != commands.length) {
+      throw const NativeWriteException('events.trainer.dialogue_binding',
+          'Every source trainer message requires its complete raw command span');
+    }
+    var continuation = next;
+    if (program.kind == SourceTrainerProgramKind.encounter) {
+      final winner = _fact(program.defeatedFactId, true, next);
+      final speech = _dialogue(program.span, null, null, winner,
+          dialogueKey: 'trainer_pbs_lose_text',
+          feedbackLines: [_staticSourceTextFeedback(binding.nativeVictorySpeech)!]);
+      final battle = _node(SceneBattlePayload(battleKind: 'trainer',
+          trainerId: binding.nativeTrainer.id,
+          npcEntityId: projection._key(event, 'anchor'),
+          declaredOutcomes: const ['victory', 'defeat']));
+      _edge(battle, 'victory', speech, SceneEdgeKind.battleVictory);
+      _edge(battle, 'defeat', next, SceneEdgeKind.battleDefeat);
+      continuation = battle;
+    }
+    for (var index = messages.length - 1; index >= 0; index--) {
+      final command = commands[index];
+      final end = page.sourcePage.commands.skip(command.originalIndex + 1)
+          .takeWhile((command) => command.code == 401).length;
+      continuation = _dialogue(SourceEventSpan(
+          firstCommandIndex: command.originalIndex,
+          lastCommandIndex: command.originalIndex + end,
+          locator: command.sourceLocator), null, null, continuation,
+          feedbackLines: [_staticSourceTextFeedback(messages[index])!]);
+    }
+    return continuation;
   }
 
   String _centerNurse(SourceCenterServiceProgramNode program, String next) {
@@ -1987,13 +2135,14 @@ final class _SceneBuilder {
 
   String _dialogue(
       SourceEventSpan span, String? text, SourceChoiceNode? choice, String next,
-      {List<DialogueLineFeedback>? feedbackLines, Map<int, String>? choiceTargets}) {
+      {List<DialogueLineFeedback>? feedbackLines, Map<int, String>? choiceTargets,
+      String? dialogueKey}) {
     final feedback = feedbackLines ??
         (text != null && text.contains(r'\')
             ? [projection._textFeedback(event, text)!]
             : const <DialogueLineFeedback>[]);
     final id = projection._key(
-        event, 'dialogue_${page.originalPageIndex}_${span.firstCommandIndex}');
+        event, 'dialogue_${page.originalPageIndex}_${dialogueKey ?? span.firstCommandIndex}');
     final outcomes = [
       for (final branch in choice?.branches ?? <SourceChoiceBranch>[])
         'choice_${branch.index}',
