@@ -16,12 +16,24 @@ import 'support/source_map_music_fixture.dart';
 
 void main() {
   test(
-      'catalogue study budget admits a bounded native closure for one to eight maps',
+      'catalogue study budget retains 512 for one map and admits 1024 for multiple maps',
       () {
     final one = sourceCatalogStudyWriteLimitsFor(1);
+    final two = sourceCatalogStudyWriteLimitsFor(2);
     final eight = sourceCatalogStudyWriteLimitsFor(8);
     expect((one.maxArtifacts, one.maxMutations), (512, 1024));
-    expect((eight.maxArtifacts, eight.maxMutations), (512, 2048));
+    expect((two.maxArtifacts, two.maxMutations), (1024, 2048));
+    expect((eight.maxArtifacts, eight.maxMutations), (1024, 2048));
+    for (final limits in [one, two, eight]) {
+      expect(limits.maxArtifactBytes, sourceCatalogStudyWriteLimits.maxArtifactBytes);
+      expect(limits.maxTotalArtifactBytes,
+          sourceCatalogStudyWriteLimits.maxTotalArtifactBytes);
+      expect(limits.maxTotalDraftJsonBytes,
+          sourceCatalogStudyWriteLimits.maxTotalDraftJsonBytes);
+      expect(limits.maxImagePixels, sourceCatalogStudyWriteLimits.maxImagePixels);
+      expect(limits.maxMapCells, sourceCatalogStudyWriteLimits.maxMapCells);
+      expect(limits.jsonLimits, sourceCatalogStudyWriteLimits.jsonLimits);
+    }
     expect((
       const NativeWriteLimits().maxArtifacts,
       const NativeWriteLimits().maxMutations
@@ -30,6 +42,7 @@ void main() {
       256
     ));
     one.validate();
+    two.validate();
     eight.validate();
   });
 
@@ -173,7 +186,7 @@ void main() {
       expect(prepared.assetCandidates, hasLength(288));
       expect(prepared.assetProposalDiagnostics, isEmpty);
       expect(prepared.reviewSet!.segments.keys, [1, 8]);
-      expect(prepared.settings.writeLimits.maxArtifacts, 512);
+      expect(prepared.settings.writeLimits.maxArtifacts, 1024);
       expect(prepared.settings.writeLimits.maxMutations, 2048);
       expect(prepared.settings.writeLimits.maxTotalArtifactBytes,
           sourceCatalogStudyWriteLimits.maxTotalArtifactBytes);

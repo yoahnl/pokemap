@@ -48,7 +48,7 @@ final class NativeWriteLimits {
 
   void _validate() {
     final values = [
-      (maxArtifacts, 512),
+      (maxArtifacts, 1024),
       (maxMutations, 2048),
       (maxArtifactBytes, 67108864),
       (maxTotalArtifactBytes, 268435456),

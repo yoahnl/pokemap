@@ -37,6 +37,19 @@ void main() {
     expect(limits.maxArtifactBytes, 16777216);
     expect(limits.maxTotalArtifactBytes, 67108864);
     expect(limits.maxTotalDraftJsonBytes, 67108864);
+    expect(limits.maxImagePixels, 16777216);
+    expect(limits.maxMapCells, 1048576);
+  });
+
+  test('allows an explicit bounded 1024 artifact multi-map catalogue study', () {
+    const limits = NativeWriteLimits(maxArtifacts: 1024);
+    expect(limits.validate, returnsNormally);
+    expect(limits.maxMutations, 256);
+    expect(limits.maxArtifactBytes, 16777216);
+    expect(limits.maxTotalArtifactBytes, 67108864);
+    expect(limits.maxTotalDraftJsonBytes, 67108864);
+    expect(limits.maxImagePixels, 16777216);
+    expect(limits.maxMapCells, 1048576);
   });
 
   test('keeps the default artifact budget small', () {
@@ -45,7 +58,7 @@ void main() {
     expect(limits.validate, returnsNormally);
   });
 
-  for (final count in [-1, 0, 513, 1000000]) {
+  for (final count in [-1, 0, 1025, 1000000]) {
     test('refuses an invalid artifact count $count', () {
       expect(NativeWriteLimits(maxArtifacts: count).validate,
           throwsA(isA<NativeWriteException>().having(

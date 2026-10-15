@@ -19,7 +19,7 @@ NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
   final mapCount = selectedMapCount.clamp(1, 8);
   return NativeWriteLimits(
     maxArtifacts:
-        (sourceCatalogStudyWriteLimits.maxArtifacts * mapCount).clamp(1, 512),
+        (sourceCatalogStudyWriteLimits.maxArtifacts * mapCount).clamp(1, 1024),
     maxMutations:
         (sourceCatalogStudyWriteLimits.maxMutations * mapCount).clamp(1, 2048),
     maxArtifactBytes: sourceCatalogStudyWriteLimits.maxArtifactBytes,
