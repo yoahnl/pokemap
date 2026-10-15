@@ -195,6 +195,10 @@ final class NativePsdkTrainerBundle {
       };
 }
 
+const nativeQualifiedFieldMoveSourceHashes = <String, String>{
+  'cut': 'e9c317f52c3785df6ac9731ef14d791903b5f5e5b28aee1264893f731a56fdb5',
+};
+
 final class NativePsdkTrainerBundleBuilder {
   const NativePsdkTrainerBundleBuilder();
 
@@ -217,6 +221,12 @@ final class NativePsdkTrainerBundleBuilder {
     Map<String, dynamic> read(String path, String id) {
       final file = index[path];
       if (file == null) _invalid('source_missing:$path');
+      final fieldMoveHash = nativeQualifiedFieldMoveSourceHashes[id];
+      if (path == 'Data/Studio/moves/$id.json' &&
+          fieldMoveHash != null &&
+          file.sha256.value != fieldMoveHash) {
+        _invalid('field_move_source_witness:$path');
+      }
       final raw =
           (jsonDecode(utf8.decode(file.bytes)) as Map).cast<String, dynamic>();
       if (raw['dbSymbol'] != id) _invalid('source_identity:$path');
@@ -229,7 +239,7 @@ final class NativePsdkTrainerBundleBuilder {
     final evolutions = <Map<String, Object?>>[];
     final media = <Map<String, Object?>>[];
     final fallbackMedia = <Map<String, Object?>>[];
-    final selectedMoves = <String>{};
+    final selectedMoves = nativeQualifiedFieldMoveSourceHashes.keys.toSet();
     final battleDefaultMoves = <String>{};
     final abilityIds = <String>{};
     final growthIds = <String>{};
@@ -484,7 +494,8 @@ final class NativePsdkTrainerBundleBuilder {
     final moveCatalog = catalogs.single;
     for (final value in moveCatalog['entries'] as List) {
       final move = value as Map<String, dynamic>;
-      if (!battleDefaultMoves.contains(move['id'])) {
+      if (!battleDefaultMoves.contains(move['id']) &&
+          !nativeQualifiedFieldMoveSourceHashes.containsKey(move['id'])) {
         move['engineSupportLevel'] = 'catalog_only';
         move['unsupportedReasons'] = [
           ...move['unsupportedReasons'] as List,
@@ -549,6 +560,10 @@ final class NativePsdkTrainerBundleBuilder {
         'sourceScriptsExecuted': 0,
         'aiCalls': 0,
         'nativeBattleDefaultMoveIds': battleDefaultMoves.toList()..sort(),
+        'nativeQualifiedFieldMoveIds':
+            nativeQualifiedFieldMoveSourceHashes.keys.toList()..sort(),
+        'nativeQualifiedFieldMoveSourceHashes':
+            nativeQualifiedFieldMoveSourceHashes,
         'nativeStatProfile': 'trainerV0',
         'nativeAbilityPolicy': 'speciesPrimary',
         'movePolicy': 'nativeAveluneDefaults',

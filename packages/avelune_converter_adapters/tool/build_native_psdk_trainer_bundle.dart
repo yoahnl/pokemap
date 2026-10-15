@@ -90,7 +90,7 @@ Future<void> main(List<String> args) async {
     return (jsonDecode(utf8.decode(bytes)) as Map).cast<String, dynamic>();
   }
 
-  final moves = <String>{};
+  final moves = nativeQualifiedFieldMoveSourceHashes.keys.toSet();
   final abilities = <String>{};
   final species = levels.keys.toSet();
   final queue = levels.keys.toList()..sort();

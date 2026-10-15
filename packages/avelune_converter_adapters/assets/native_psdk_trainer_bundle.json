@@ -32678,10 +32678,9 @@
           "effects": [],
           "shortDescription": "",
           "description": "",
-          "engineSupportLevel": "catalog_only",
+          "engineSupportLevel": "structured_partial",
           "unsupportedReasons": [
-            "psdk_method:s_basic",
-            "native_roster_unused_move_unqualified"
+            "psdk_method:s_basic"
           ],
           "sourceRefs": {
             "showdownMoveId": null,
@@ -48192,6 +48191,12 @@
       "twineedle",
       "wrap"
     ],
+    "nativeQualifiedFieldMoveIds": [
+      "cut"
+    ],
+    "nativeQualifiedFieldMoveSourceHashes": {
+      "cut": "e9c317f52c3785df6ac9731ef14d791903b5f5e5b28aee1264893f731a56fdb5"
+    },
     "nativeStatProfile": "trainerV0",
     "nativeAbilityPolicy": "speciesPrimary",
     "movePolicy": "nativeAveluneDefaults",
