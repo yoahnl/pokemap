@@ -498,6 +498,23 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if (gaps.isEmpty && _supportsStaticWideInteraction(event))
+                  {
+                    'sourceOpcodes': [101,
+                      if (page.body.nodes.single.span.firstCommandIndex !=
+                          page.body.nodes.single.span.lastCommandIndex) 401],
+                    'span': page.body.nodes.single.span.toJson(),
+                    'rawDataRefs': [page.rawDataRef!.toJson()],
+                    'nativeContract': 'staticActionAcrossFootprint',
+                    'sourceFootprint': {'width': 2, 'height': 1},
+                    'sourceCellPassages': [
+                      for (var dx = 0; dx < 2; dx++)
+                        semanticResolver.resolveConnectionEntryTile(
+                            semanticResolver.cellAt(event.sourceMapId,
+                                event.x + dx, event.y)).toJson(),
+                    ],
+                    'equivalenceScope': ['plainText', 'frontActionAcrossFootprint'],
+                  },
                 if (gaps.isEmpty && _supportsStaticSign(event))
                   for (final node in page.body.nodes.whereType<SourceTextNode>())
                     {
@@ -785,10 +802,38 @@ final class _ProjectionBuilder {
           ? _staticSourceSignFeedback(text)
           : _staticSourceTextFeedback(text);
 
+  bool _supportsStaticWideInteraction(SourceEventDefinition event) {
+    final map = maps[event.sourceMapId]!;
+    if (event.pages.length != 1 || event.isQuarantined ||
+        map.spatialScene != null || event.x < 0 || event.y < 0 ||
+        event.x + 2 > map.size.width || event.y >= map.size.height) {
+      return false;
+    }
+    final page = event.pages.single;
+    if (page.body.nodes.length != 1) return false;
+    final text = page.body.nodes.single;
+    if (text is! SourceTextNode || text.followingChoice != null ||
+        _staticSourceTextFeedback(text.text) == null) {
+      return false;
+    }
+    final contact = semanticResolver.resolveStaticActionFootprint(
+        event: event, page: page, mapEvents: analysis.events,
+        width: 2, height: 1);
+    if (contact.kind != SourceEventTouchKind.front ||
+        contact.reason != 'stationaryFootprintTilesBlocked' ||
+        !_nativeSolidAt(event)) {
+      return false;
+    }
+    final index = event.y * map.size.width + event.x + 1;
+    return map.layers.whereType<CollisionLayer>().any((layer) =>
+        index < layer.collisions.length && layer.collisions[index]);
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     final gaps = <String>{};
     final staticSign = _supportsStaticSign(event);
+    final staticWideInteraction = _supportsStaticWideInteraction(event);
     if (_isOriginalDoor(event) && !executionContextQualified) {
       gaps.addAll(executionContext?.refusals.isNotEmpty == true
           ? executionContext!.refusals : ['sourceExecutionContextUnknown']);
@@ -803,7 +848,7 @@ final class _ProjectionBuilder {
         .firstMatch(event.name);
     if (size != null &&
         (int.tryParse(size.group(1)!) != 1 ||
-            int.tryParse(size.group(2)!) != 1)) {
+            int.tryParse(size.group(2)!) != 1) && !staticWideInteraction) {
       gaps.add('eventFootprintUnsupported');
     }
     final map = maps[event.sourceMapId]!;
@@ -889,7 +934,8 @@ final class _ProjectionBuilder {
       }
       if (page.triggerCode == 0 && !page.isEmpty) {
         if ((graphic.characterName.isEmpty || graphic.through) &&
-            !RegExp('hiddenitem', caseSensitive: false).hasMatch(event.name)) {
+            !RegExp('hiddenitem', caseSensitive: false).hasMatch(event.name) &&
+            !staticWideInteraction) {
           gaps.add('interactionFootprintUnsupported');
         }
         if (_hasAdjacentSourceCounter(event)) {
@@ -1016,6 +1062,8 @@ final class _ProjectionBuilder {
         if (!_isOriginalDoor(event)) gaps.add('sourceTempSwitchUnsupported');
       case SourceEventConditionKind.playerOnEvent:
         if (!_isOriginalDoor(event)) gaps.add('sourceDoorProgramUnsupported');
+      case SourceEventConditionKind.playerFacing:
+        gaps.add('sourcePlayerFacingUnsupported');
       case SourceEventConditionKind.unqualified:
         gaps.add('sourceConditionUnqualified');
     }
@@ -1086,6 +1134,8 @@ final class _ProjectionBuilder {
         case SourceUnknownNode():
         case SourcePickupNode():
           gaps.add('sourceCommandUnqualified');
+        case SourceCenterServiceProgramNode():
+          gaps.add('sourceCenterServiceBindingsMissing');
         case SourceToneNode():
         case SourceWaitNode():
         case SourceSoundEffectNode():
@@ -1243,6 +1293,9 @@ final class _ProjectionBuilder {
         name: _name(event),
         kind: character == null ? MapEntityKind.custom : MapEntityKind.npc,
         pos: GridPos(x: event.x, y: event.y),
+        size: _supportsStaticWideInteraction(event)
+            ? const GridSize(width: 2, height: 1)
+            : const GridSize(width: 1, height: 1),
         blocksMovement: character != null && !graphic.through,
         npc: character == null
             ? null
@@ -1558,6 +1611,9 @@ final class _SceneBuilder {
           final blocked = _node(SceneEndPayload());
           _edge(action, 'blocked', blocked, SceneEdgeKind.actionCompleted);
           next = action;
+        case SourceCenterServiceProgramNode():
+          throw const NativeWriteException('events.center_service.bindings_missing',
+              'A source Center program requires its qualified native service bindings');
         default:
           throw const NativeWriteException('events.block.unqualified',
               'A quarantined source block cannot become a scene');

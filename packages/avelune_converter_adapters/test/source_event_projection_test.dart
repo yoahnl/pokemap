@@ -517,6 +517,48 @@ Future<SourceEventProjection> _projectSign(_RubyObject page,
   return _projectEvents(source, maps: maps);
 }
 
+Future<NormalizedSourceProject> _bookshelfSource({
+  Set<int> blockedCells = const {5, 6},
+  String eventName = 'Bookshelf size(2,1)',
+  _RubyObject? page,
+  Map<int, _RubyObject>? extraEvents,
+}) async {
+  final data = _project(maps: {
+    1: _map(
+        width: 4,
+        height: 3,
+        data: _RubyTable(4, 3, 3, [
+          ...List.filled(12, 384),
+          ...List.filled(12, 0),
+          ...List.generate(12, (index) => blockedCells.contains(index) ? 400 : 0),
+        ]),
+        events: {
+          1: _event(1, [
+            page ?? _page([
+              _command(101, [r"It's crammed full of Pokémon\nbooks."]),
+              _command(0, []),
+            ], character: ''),
+          ], name: eventName),
+          ...?extraEvents,
+        }),
+  }, tileset: _tileset(blockedTile: 400));
+  data['Data/Scripts.rxdata'] =
+      await File(Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS']!).readAsBytes();
+  return _normalize(_source(data), includeEventSystem: true);
+}
+
+Map<int, MapData> _bookshelfMaps(NormalizedSourceProject source,
+    {Set<int> blockedCells = const {5, 6}}) {
+  final maps = _nativeMaps(source);
+  maps[1] = maps[1]!.copyWith(layers: [
+    MapLayer.collision(
+        id: 'bookshelf_collision',
+        name: 'Collision',
+        collisions: List.generate(12, blockedCells.contains)),
+  ]);
+  return maps;
+}
+
 bool _guard(
     NarrativeEventConditionExpression expression, Map<String, bool> facts) {
   return switch (expression) {
@@ -1259,6 +1301,98 @@ void main() {
     expect(jsonEncode(result.semanticEvidence),
         contains('interactionFootprintUnsupported'));
   });
+
+  test('bookshelf projects one native two-cell action footprint', () async {
+    final source = await _bookshelfSource();
+    final result = _projectEvents(source, maps: _bookshelfMaps(source));
+    final record = result.registry.records.single;
+    expect(record.definitionOrNull, isNotNull,
+        reason: 'Both proved blocked cells must share one action event.');
+    expect(record.definitionOrNull!.source.kind,
+        NarrativeEventSourceKind.entityInteract);
+    final map = result.nativeMaps[1]!;
+    final entity = map.entities.single;
+    expect(entity.size, const GridSize(width: 2, height: 1));
+    expect(entity.pos, const GridPos(x: 1, y: 1));
+    expect(entity.blocksMovement, isFalse);
+    expect(map.triggers, isEmpty);
+    expect(result.facts, isEmpty);
+    final payload = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .single;
+    expect(payload.linePolicies.single.feedback.plainText,
+        "It's crammed full of Pokémon\nbooks.");
+    for (final approach in [
+      (const GridPos(x: 1, y: 2), Direction.north),
+      (const GridPos(x: 2, y: 2), Direction.north),
+      (const GridPos(x: 0, y: 1), Direction.east),
+      (const GridPos(x: 3, y: 1), Direction.west),
+    ]) {
+      final world = GameplayWorldState.initial(
+          map: map, playerPos: approach.$1, playerFacing: approach.$2,
+          tileWidth: 32, tileHeight: 32);
+      final interaction = stepGameplayWorld(world, const InteractIntent());
+      expect(interaction, isA<EntityInteracted>(), reason: '$approach');
+      expect((interaction as EntityInteracted).entity.id, entity.id);
+    }
+    final event = (result.semanticEvidence['events'] as List).single as Map;
+    final page = (event['pages'] as List).single as Map;
+    final adaptation = (page['adaptedCommands'] as List).single as Map;
+    expect(adaptation['nativeContract'], 'staticActionAcrossFootprint');
+    expect(adaptation['sourceFootprint'], {'width': 2, 'height': 1});
+    expect(adaptation['sourceCellPassages'], hasLength(2));
+  }, skip: scriptsPath == null);
+
+  test('bookshelf rejects native dimensions before footprint qualification', () async {
+    final source = await _bookshelfSource();
+    final maps = _bookshelfMaps(source, blockedCells: const {3, 4});
+    maps[1] = maps[1]!.copyWith(size: const GridSize(width: 2, height: 6));
+    expect(() => _projectEvents(source, maps: maps),
+        throwsA(isA<NativeWriteException>().having(
+            (error) => error.code, 'code', 'events.target.binding')));
+  }, skip: scriptsPath == null);
+
+  for (final blocked in [<int>{5}, <int>{6}, <int>{}]) {
+    for (final mismatch in ['source', 'native']) {
+      test('bookshelf refuses $mismatch collision cells $blocked', () async {
+        final source = await _bookshelfSource(
+            blockedCells: mismatch == 'source' ? blocked : const {5, 6});
+        final result = _projectEvents(source,
+            maps: _bookshelfMaps(source,
+                blockedCells: mismatch == 'native' ? blocked : const {5, 6}));
+        expect(result.registry.records.single.definitionOrNull, isNull);
+        expect(result.nativeMaps[1]!.entities, isEmpty);
+        expect(result.nativeMaps[1]!.triggers, isEmpty);
+        expect(result.scenes, isEmpty);
+        expect(result.dialogues, isEmpty);
+        expect(result.facts, isEmpty);
+      }, skip: scriptsPath == null);
+    }
+  }
+
+  for (final variant in ['unknown', 'through', 'moving', 'large', 'raw']) {
+    test('bookshelf retains whole-event quarantine for $variant', () async {
+      final page = _page([
+        _command(101, [r"It's crammed full of Pokémon\nbooks."]),
+        if (variant == 'unknown') _command(355, ['pbShowMap']),
+        _command(0, []),
+      ], character: '');
+      if (variant == 'through') page.fields['@through'] = true;
+      if (variant == 'moving') page.fields['@move_type'] = 1;
+      if (variant == 'raw') page.fields['@unknown'] = false;
+      final source = await _bookshelfSource(page: page,
+          eventName: variant == 'large' ? 'Bookshelf size(3,1)' : 'Bookshelf size(2,1)');
+      final result = _projectEvents(source, maps: _bookshelfMaps(source));
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+      expect(result.nativeMaps[1]!.triggers, isEmpty);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.facts, isEmpty);
+    }, skip: scriptsPath == null);
+  }
+
   test(
       'through source interaction is not silently changed to front cell interaction',
       () async {

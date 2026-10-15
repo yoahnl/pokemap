@@ -9,6 +9,7 @@ enum SourceEventConditionKind {
   pickup,
   tempSwitch,
   playerOnEvent,
+  playerFacing,
   unqualified,
 }
 
@@ -87,6 +88,7 @@ final class SourceEventCondition {
     this.reason,
     this.pickup,
     this.tempSwitchLetter,
+    this.sourceDirection,
     List<SourceEventCondition> children = const [],
   }) : children = List.unmodifiable(children);
 
@@ -98,8 +100,11 @@ final class SourceEventCondition {
   final String? reason;
   final SourcePickupNode? pickup;
   final String? tempSwitchLetter;
+  final int? sourceDirection;
   final List<SourceEventCondition> children;
-  bool get isQualified => switch (kind) {
+  bool get isQualified =>
+      (kind == SourceEventConditionKind.playerFacing || sourceDirection == null) &&
+      switch (kind) {
         SourceEventConditionKind.unqualified => false,
         SourceEventConditionKind.all =>
           children.every((child) => child.isQualified),
@@ -111,15 +116,18 @@ final class SourceEventCondition {
         SourceEventConditionKind.pickup => pickup != null,
         SourceEventConditionKind.tempSwitch => tempSwitchLetter == 'A',
         SourceEventConditionKind.playerOnEvent => true,
+        SourceEventConditionKind.playerFacing =>
+          const [2, 4, 6, 8].contains(sourceDirection),
         SourceEventConditionKind.always => true,
       };
   bool? evaluate(
       {Map<String, bool> facts = const {},
-      Map<int, int> variables = const {}}) {
+      Map<int, int> variables = const {}, int? playerFacing}) {
     if (!isQualified) return null;
     if (kind == SourceEventConditionKind.all) {
       final values = children
-          .map((child) => child.evaluate(facts: facts, variables: variables))
+          .map((child) => child.evaluate(facts: facts, variables: variables,
+              playerFacing: playerFacing))
           .toList();
       return values.contains(null)
           ? null
@@ -132,6 +140,8 @@ final class SourceEventCondition {
         (facts[factId] ?? false) == expectedValue,
       SourceEventConditionKind.variableAtLeast =>
         (variables[variableId] ?? 0) >= minimum!,
+      SourceEventConditionKind.playerFacing => playerFacing == null
+          ? null : (playerFacing == sourceDirection) == expectedValue,
       _ => null,
     };
   }
@@ -151,6 +161,8 @@ final class SourceEventCondition {
         },
         if (kind == SourceEventConditionKind.playerOnEvent)
           'predicate': 'currentMapAndPlayerOnEventCoordinates',
+        if (kind == SourceEventConditionKind.playerFacing)
+          'sourceDirection': sourceDirection,
         'children': children.map((child) => child.toJson()).toList(),
       };
 }
@@ -656,7 +668,9 @@ final class SourceEventAnalyzer {
             pageDiagnostics
                 .add(SourceEventDiagnostic('events.invalid_page_graphic', loc));
           }
-          final body = _SourceEventParser(this, sourcePage.commands, loc,
+          final body = _sourceCenterServiceBlock(this, map.map.sourceMapId,
+                  event, sourcePage, loc) ??
+              _SourceEventParser(this, sourcePage.commands, loc,
                   map.map.sourceMapId, event.sourceEventId, switches, raw)
               .parse();
           pageDiagnostics.addAll(body.diagnostics);
@@ -1661,6 +1675,29 @@ final class _SourceEventParser {
             kind: SourceEventConditionKind.selfSwitch,
             factId: analyzer.selfFactId(mapId, eventId, letter),
             expectedValue: _onOff(params[2]));
+      case 6:
+        if (!analyzer._isQualified) {
+          return _unqualifiedEventCondition('events.unqualified_profile');
+        }
+        _arity(params, 3);
+        if (_integer(params[1]) != -1) {
+          return _unqualifiedEventCondition('events.unsupported_facing_actor');
+        }
+        final direction = _integer(params[2]);
+        if (!const [2, 4, 6, 8].contains(direction)) {
+          return _unqualifiedEventCondition('events.invalid_facing_direction');
+        }
+        final facingRaw = _rawFacingParameters(command, 3);
+        final facingDoc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+        for (var slot = 0; slot < facingRaw.length; slot++) {
+          if (_eventInt(facingDoc,
+                  _facingPlain(facingDoc, facingRaw[slot], MarshalKind.integer)) !=
+              _integer(params[slot])) {
+            throw const FormatException();
+          }
+        }
+        return SourceEventCondition(kind: SourceEventConditionKind.playerFacing,
+            sourceDirection: direction);
       case 12:
         _arity(params, 2);
         if (!analyzer._isQualified) {

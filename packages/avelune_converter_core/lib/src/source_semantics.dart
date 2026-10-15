@@ -640,6 +640,93 @@ final class SourceSemanticResolver {
     };
   }
 
+  SourceEventTouchResolution resolveStaticActionFootprint({
+    required SourceEventDefinition event,
+    required SourceEventPageAnalysis page,
+    required Iterable<SourceEventDefinition> mapEvents,
+    required int width,
+    required int height,
+    SourceSemanticContext context = const SourceSemanticContext(),
+  }) {
+    SourceEventTouchResolution refused(String reason,
+            [List<SourceTilePassageTrace> trace = const []]) =>
+        SourceEventTouchResolution(
+            kind: SourceEventTouchKind.unqualified, reason: reason, trace: trace);
+    if (!profile.isQualified || !context.isQualified ||
+        event.isQuarantined || event.pages.length != 1 ||
+        !event.pages.contains(page) || page.triggerCode != 0 ||
+        page.condition.kind != SourceEventConditionKind.always ||
+        !_plainTouchPage(page)) {
+      return refused('sourceContextUnqualified');
+    }
+    final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+        .allMatches(event.name).toList();
+    if (width < 1 || width > 2 || height != 1 || sizes.length > 1 ||
+        (sizes.isEmpty ? width != 1 :
+            int.tryParse(sizes.single.group(1)!) != width ||
+            int.tryParse(sizes.single.group(2)!) != height)) {
+      return refused('eventFootprintUnqualified');
+    }
+    final map = _maps[event.sourceMapId];
+    final graphic = page.graphic;
+    if (map == null || event.x < 0 || event.y < 0 ||
+        event.x + width > map.width || event.y + height > map.height ||
+        graphic == null || graphic.tileId != 0 ||
+        graphic.characterName.isNotEmpty || graphic.moveType != 0 ||
+        graphic.through || graphic.directionFix || graphic.stepAnime ||
+        graphic.alwaysOnTop || graphic.hue != 0 || graphic.opacity != 255 ||
+        graphic.blendType != 0 ||
+        page.rawDataRef?.fileId != event.sourceFileId) {
+      return refused('eventGraphicOrFootprintUnqualified');
+    }
+    final candidates = mapEvents.where((candidate) =>
+        candidate.sourceMapId == event.sourceMapId).toList();
+    if (candidates.where((candidate) => candidate.identity == event.identity)
+            .length != 1) {
+      return refused('eventSetBinding');
+    }
+    for (final candidate in candidates) {
+      final otherSizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+          .allMatches(candidate.name).toList();
+      final otherWidth = otherSizes.isEmpty ? 1 :
+          int.tryParse(otherSizes.first.group(1)!);
+      final otherHeight = otherSizes.isEmpty ? 1 :
+          int.tryParse(otherSizes.first.group(2)!);
+      if (otherSizes.length > 1 || otherWidth == null ||
+          otherWidth < 1 || otherWidth > 2 || otherHeight != 1) {
+        return refused('eventFootprintUnqualified');
+      }
+      if (candidate.identity != event.identity &&
+          candidate.x < event.x + width &&
+          candidate.x + otherWidth > event.x &&
+          candidate.y == event.y) {
+        return refused('overlappingEventFootprint');
+      }
+      for (final other in candidate.pages) {
+        final image = other.graphic;
+        if (image == null || !_plainTouchPage(other)) {
+          return refused('tileEventStateUnqualified');
+        }
+        if (image.tileId <= 0 || image.through) continue;
+        if (image.moveType != 0 || otherWidth != 1) {
+          return refused('tileEventStateUnqualified');
+        }
+      }
+    }
+    final trace = <SourceTilePassageTrace>[];
+    for (var dx = 0; dx < width; dx++) {
+      final passage = _resolveStationaryPlayerTiles(
+          map.cellAt(event.x + dx, event.y), context: context);
+      trace.addAll(passage.trace);
+      if (passage.status != SourcePassageStatus.blocked) {
+        return refused('footprintTilePassageUnqualified', trace);
+      }
+    }
+    return SourceEventTouchResolution(
+        kind: SourceEventTouchKind.front,
+        reason: 'stationaryFootprintTilesBlocked', trace: trace);
+  }
+
   SourceConnectionEntryTilePassage _resolveStationaryPlayerTiles(
     SourceSemanticCell cell, {
     SourceSemanticContext context = const SourceSemanticContext(),
