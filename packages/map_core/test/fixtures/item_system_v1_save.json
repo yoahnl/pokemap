@@ -1,7 +1,7 @@
 {
   "saveId": "item-system-v1-golden",
   "mapInstanceWorldState": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "instancesByMapId": {}
   },
   "itemSystemSchemaVersion": 1,
