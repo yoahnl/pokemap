@@ -107,8 +107,9 @@ final class PsdkBattleActionDecisionMapper {
           );
     return PsdkBattleFightAction(
       user: user,
-      target:
-          forcedTarget ?? requestedTarget ?? _targetFor(user: user, move: move),
+      target: forcedTarget ??
+          requestedTarget ??
+          _targetFor(state: state, user: user, move: move),
       moveSlot: effectiveMoveSlot,
       move: move,
       speed: _actionSpeed(state: state, user: user, battler: battler),
@@ -323,11 +324,15 @@ bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
 }
 
 PsdkBattleSlotRef _targetFor({
+  required PsdkBattleState state,
   required PsdkBattleSlotRef user,
   required PsdkBattleMoveData move,
 }) {
   return switch (move.target) {
-    PsdkBattleMoveTarget.user || PsdkBattleMoveTarget.self => user,
+    PsdkBattleMoveTarget.user ||
+    PsdkBattleMoveTarget.self ||
+    PsdkBattleMoveTarget.adjacentAllyOrSelf =>
+      user,
     PsdkBattleMoveTarget.adjacentFoe ||
     PsdkBattleMoveTarget.anyFoe ||
     PsdkBattleMoveTarget.allAdjacent ||
@@ -342,10 +347,9 @@ PsdkBattleSlotRef _targetFor({
     PsdkBattleMoveTarget.allBattlers ||
     PsdkBattleMoveTarget.none =>
       user,
-    PsdkBattleMoveTarget.adjacentAlly ||
-    PsdkBattleMoveTarget.adjacentAllyOrSelf =>
-      throw UnsupportedError(
-        'PSDK target ${move.target.name} needs multi-target action support.',
-      ),
+    PsdkBattleMoveTarget.adjacentAlly => switch (state.alliesOf(user)) {
+        [final ally, ...] => ally,
+        _ => user,
+      },
   };
 }
