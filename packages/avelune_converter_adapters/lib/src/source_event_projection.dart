@@ -93,6 +93,27 @@ DialogueLineFeedback? _staticSourceSignFeedback(String source) {
   return _staticSourceTextFeedback(text);
 }
 
+EntityFacing? _sourceFacingDirection(int? direction) => switch (direction) {
+  2 => EntityFacing.south,
+  4 => EntityFacing.west,
+  6 => EntityFacing.east,
+  8 => EntityFacing.north,
+  _ => null,
+};
+
+SourceTextNode? _staticSignText(SourceEventNode node) {
+  if (node is SourceConditionalNode) {
+    if (node.condition.kind != SourceEventConditionKind.playerFacing ||
+        _sourceFacingDirection(node.condition.sourceDirection) == null ||
+        !node.condition.expectedValue || node.whenTrue.nodes.length != 1 ||
+        node.whenFalse.nodes.isNotEmpty) {
+      return null;
+    }
+    node = node.whenTrue.nodes.single;
+  }
+  return node is SourceTextNode && node.followingChoice == null ? node : null;
+}
+
 String sourceEventCharacterBindingKey(
         {required String characterName,
         required int pattern,
@@ -533,20 +554,31 @@ final class _ProjectionBuilder {
                     'equivalenceScope': ['plainText', 'frontActionAcrossFootprint'],
                   },
                 if (gaps.isEmpty && _supportsStaticSign(event))
-                  for (final node in page.body.nodes.whereType<SourceTextNode>())
+                  for (final node in [_staticSignText(page.body.nodes.single)!])
                     {
                       'sourceOpcodes': [
+                        if (page.body.nodes.single is SourceConditionalNode) 111,
                         101,
                         if (node.span.firstCommandIndex !=
                             node.span.lastCommandIndex)
                           401,
+                        if (page.body.nodes.single is SourceConditionalNode) 412,
                       ],
-                      'span': node.span.toJson(),
+                      'span': page.body.nodes.single.span.toJson(),
                       'rawDataRefs': [page.rawDataRef!.toJson()],
                       'sourceControl': _sourceSignWindowControl,
                       'targetStyle': 'aveluneNativeDialogue',
                       'nativeContract': 'staticSignDialogueAtTerrainBump',
-                      'equivalenceScope': ['plainText', 'frontTerrainBump'],
+                      'equivalenceScope': ['plainText', 'frontTerrainBump',
+                        if (page.body.nodes.single is SourceConditionalNode)
+                          'playerFacingBoolean'],
+                      if (page.body.nodes.single is SourceConditionalNode) ...{
+                        'sourceFacingDirection': (page.body.nodes.single as SourceConditionalNode)
+                            .condition.sourceDirection,
+                        'nativeFacingDirection': _sourceFacingDirection(
+                            (page.body.nodes.single as SourceConditionalNode)
+                                .condition.sourceDirection)!.name,
+                      },
                       'windowSkinParityQualified': false,
                     },
                 if (gaps.isEmpty)
@@ -802,9 +834,8 @@ final class _ProjectionBuilder {
         page.body.nodes.length != 1) {
       return false;
     }
-    final node = page.body.nodes.single;
-    if (node is! SourceTextNode ||
-        node.followingChoice != null ||
+    final node = _staticSignText(page.body.nodes.single);
+    if (node == null ||
         _staticSourceSignFeedback(node.text) == null) {
       return false;
     }
@@ -1144,7 +1175,9 @@ final class _ProjectionBuilder {
       case SourceEventConditionKind.playerOnEvent:
         if (!_isOriginalDoor(event)) gaps.add('sourceDoorProgramUnsupported');
       case SourceEventConditionKind.playerFacing:
-        gaps.add('sourcePlayerFacingUnsupported');
+        if (_sourceFacingDirection(condition.sourceDirection) == null) {
+          gaps.add('sourcePlayerFacingUnsupported');
+        }
       case SourceEventConditionKind.unqualified:
         gaps.add('sourceConditionUnqualified');
     }
@@ -1764,6 +1797,10 @@ final class _SceneBuilder {
         conditionSource: condition.kind == SourceEventConditionKind.playerOnEvent
           ? SceneConditionSource.playerAtEntityAnchor(mapId: projection.maps[event.sourceMapId]!.id,
               entityId: projection._key(event, 'anchor'), expected: condition.expectedValue)
+          : condition.kind == SourceEventConditionKind.playerFacing
+          ? SceneConditionSource.playerFacing(
+              direction: _sourceFacingDirection(condition.sourceDirection)!,
+              expected: condition.expectedValue)
           : condition.kind == SourceEventConditionKind.tempSwitch
           ? SceneConditionSource.mapEventInstanceBoolean(mapId: projection.maps[event.sourceMapId]!.id,
               eventId: projection._key(event, 'anchor'), key: condition.tempSwitchLetter!,

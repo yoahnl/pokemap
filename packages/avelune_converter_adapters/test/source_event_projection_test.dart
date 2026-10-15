@@ -517,6 +517,20 @@ Future<SourceEventProjection> _projectSign(_RubyObject page,
   return _projectEvents(source, maps: maps);
 }
 
+_RubyObject _facingSignPage({
+  List<Object?> condition = const [6, -1, 8],
+  String text = r'\w[signskin]“Heal your Pokémon!”\nPokémon ',
+  List<_RubyObject> suffix = const [],
+}) => _page([
+  _command(111, condition),
+  _command(101, [text], indent: 1),
+  _command(401, ['Center'], indent: 1),
+  _command(0, [], indent: 1),
+  _command(412, []),
+  ...suffix,
+  _command(0, []),
+], trigger: 1, character: '');
+
 Future<NormalizedSourceProject> _bookshelfSource({
   Set<int> blockedCells = const {5, 6},
   String eventName = 'Bookshelf size(2,1)',
@@ -1102,6 +1116,86 @@ void main() {
       expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
       expect(result.semanticEvidence['sourceAdmission'], isFalse);
       expect(result.semanticEvidence['globalPlayabilityCertified'], isFalse);
+    }, skip: scriptsPath == null);
+  }
+
+  for (final entry in {
+    2: EntityFacing.south, 4: EntityFacing.west,
+    6: EntityFacing.east, 8: EntityFacing.north,
+  }.entries) {
+    test('directional sign maps source facing ${entry.key} to native ${entry.value.name}',
+        () async {
+      final result = await _projectSign(_facingSignPage(condition: [6, -1, entry.key]));
+      final record = result.registry.records.single;
+      expect(record.definitionOrNull, isNotNull);
+      expect(record.definitionOrNull!.source.kind, NarrativeEventSourceKind.triggerBump);
+      final scene = result.scenes.single;
+      final condition = scene.graph.nodes.map((node) => node.payload)
+          .whereType<SceneConditionPayload>().single.conditionSource;
+      expect(condition, SceneConditionSource.playerFacing(direction: entry.value, expected: true));
+      for (final facing in Direction.values) {
+        final world = GameplayWorldState.initial(map: result.nativeMaps[1]!,
+            playerPos: const GridPos(x: 0, y: 0), playerFacing: facing);
+        final shown = <String>[];
+        final execution = await SceneRuntimeExecutor(callbacks:
+            SceneRuntimeExecutionCallbacks(
+              evaluateCondition: (intent) => evaluateScenePlayerFacing(
+                  source: intent.conditionSource!, world: world) ? 'true' : 'false',
+              showDialogue: (intent) {
+                shown.add(intent.linePolicies.single.feedback.plainText);
+                return 'completed';
+              },
+              startBattle: (_) => throw StateError('Sign has no battle'),
+              playCinematic: (_) => throw StateError('Sign has no cinematic'),
+              applyConsequence: (_) => throw StateError('Sign has no consequence'),
+              executeInteractiveCommand: (_) => throw StateError('Sign has no service'),
+            )).execute(buildSceneRuntimePlan(scene).plan!);
+        expect(execution.status, SceneRuntimeExecutionStatus.completed);
+        expect(shown, facing == entry.value.asDirection
+            ? ['“Heal your Pokémon!”\nPokémon Center'] : isEmpty);
+      }
+      final evidence = (result.semanticEvidence['events'] as List).single as Map;
+      final page = (evidence['pages'] as List).single as Map;
+      final adaptation = (page['adaptedCommands'] as List).single as Map;
+      expect(adaptation['sourceOpcodes'], [111, 101, 401, 412]);
+      expect(adaptation['sourceControl'], r'\w[signskin]');
+      expect(adaptation['sourceFacingDirection'], entry.key);
+      expect(adaptation['nativeFacingDirection'], entry.value.name);
+      expect(adaptation['windowSkinParityQualified'], isFalse);
+      expect(result.facts, isEmpty);
+      expect(result.worldRules, isEmpty);
+    }, skip: scriptsPath == null);
+  }
+
+  for (final variant in ['actor', 'direction', 'arity', 'skin', 'control', 'suffix']) {
+    test('directional sign retains whole-event quarantine for $variant', () async {
+      final page = _facingSignPage(
+          condition: switch (variant) {
+            'actor' => [6, 0, 8], 'direction' => [6, -1, 5],
+            'arity' => [6, -1, 8, true], _ => [6, -1, 8],
+          },
+          text: variant == 'skin' ? r'\w[unknown]Heal'
+              : variant == 'control' ? r'\w[signskin]Heal\unknown'
+              : r'\w[signskin]“Heal your Pokémon!”\nPokémon ',
+          suffix: variant == 'suffix' ? [_command(355, ['unknown()'])] : const []);
+      final result = await _projectSign(page);
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+      expect(result.nativeMaps[1]!.triggers, isEmpty);
+      expect(result.scenes, isEmpty);
+      expect(result.dialogues, isEmpty);
+      expect(result.facts, isEmpty);
+    }, skip: scriptsPath == null);
+  }
+
+  for (final entry in [(false, true), (true, false), (false, false)]) {
+    test('directional sign refuses source/native collision ${entry.$1}/${entry.$2}', () async {
+      final result = await _projectSign(_facingSignPage(),
+          blockedSource: entry.$1, blockedNative: entry.$2);
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+      expect(result.nativeMaps[1]!.triggers, isEmpty);
+      expect(result.scenes, isEmpty);
     }, skip: scriptsPath == null);
   }
 
