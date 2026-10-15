@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
+import 'package:avelune_converter_adapters/src/source_center_recovery_binding.dart';
 
 final class _Files implements SourceFilePort {
   _Files(this.bytes);
@@ -97,6 +98,9 @@ Future<NormalizedSourceProject> _source(String folder,
 SourceEventProjection _project(NormalizedSourceProject source,
     {bool nativeBlocked = true,
     SourceEventAnalysis? analysis,
+    bool nativeCounter = false,
+    bool bindNurse = false,
+    SourceCenterRecoveryBinding? centerRecoveryBinding,
     List<MapEntity> nativeEntities = const []}) {
   final map = source.maps.single.map;
   final native = MapData(
@@ -108,8 +112,11 @@ SourceEventProjection _project(NormalizedSourceProject source,
         MapLayer.collision(
             id: 'collision',
             name: 'Collision',
-            collisions: List.generate(map.width * map.height,
-                (index) => nativeBlocked && index == 3 * map.width + 13))
+            collisions: List.generate(
+                map.width * map.height,
+                (index) =>
+                    (nativeBlocked && index == 3 * map.width + 13) ||
+                    (nativeCounter && index == 5 * map.width + 9)))
       ]);
   return const SourceEventProjector().project(
       source: source,
@@ -117,7 +124,32 @@ SourceEventProjection _project(NormalizedSourceProject source,
           SourceEventAnalyzer.forProject(source,
                   profile: SourceEventProfile.kantoForProject(source))
               .analyze(),
-      nativeMaps: {102: native});
+      nativeMaps: {102: native},
+      centerRecoveryBinding: centerRecoveryBinding,
+      characterBindings: {
+        if (bindNurse)
+          for (final file in source.snapshot.entries.where((file) =>
+              file.relativePath == 'Graphics/Characters/NPC_FRLG_NURSE.png'))
+            sourceEventCharacterBindingKey(
+                    characterName: 'NPC_FRLG_NURSE', pattern: 0, direction: 2):
+                SourceEventCharacterBinding(
+                    characterId: 'native_nurse',
+                    sourceSnapshotHash: source.snapshot.canonicalHash,
+                    sourceFileId: file.fileId,
+                    sourceFileHash: file.sha256!,
+                    sourcePattern: 0,
+                    sourceDirection: 2),
+      });
+}
+
+final class _OriginalAudioFiles implements SourceFilePort {
+  _OriginalAudioFiles(this.source, this.root);
+  final NormalizedSourceProject source;
+  final String root;
+  @override
+  Future<List<int>> read(ConverterId id) => File(
+          '$root/${source.snapshot.entries.singleWhere((entry) => entry.fileId == id).relativePath}')
+      .readAsBytes();
 }
 
 Map _evidence(SourceEventProjection projection, int eventId) =>
@@ -127,6 +159,7 @@ Map _evidence(SourceEventProjection projection, int eventId) =>
 
 void main() {
   final archive = Platform.environment['AVELUNE_AC13_DOOR_ARCHIVE'];
+  final sourceRoot = Platform.environment['AVELUNE_AC13_SOURCE_ROOT'];
   group('source Center native projection', () {
     late NormalizedSourceProject source;
     late SourceEventProjection projection;
@@ -328,5 +361,197 @@ void main() {
             'quarantinedWholeEvent');
       }
     });
+    for (final decision in ['yes', 'no', 'cancel', 'close', 'serviceCancel']) {
+      test('nurse native scene follows $decision without source side effects',
+          () async {
+        final recovery = await const SourceCenterRecoveryResolver().read(
+            source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+        final result = _project(source,
+            bindNurse: true,
+            nativeCounter: true,
+            centerRecoveryBinding: recovery);
+        final nurse = result.nativeMaps[102]!.entities
+            .singleWhere((entity) => entity.name == 'Nurse');
+        final record = result.registry.records.singleWhere((record) =>
+            record.definitionOrNull?.source.toJson()['entityId'] == nurse.id);
+        final definition = record.definitionOrNull!;
+        expect(definition.source.toJson()['kind'], 'entityInteract');
+        expect(definition.conditionExpression.leaves, isEmpty);
+        expect(definition.reusePolicy, NarrativeEventReusePolicy.reusable);
+        final scene = result.scenes
+            .singleWhere((scene) => scene.id == definition.sceneId);
+        final trace = <String>[];
+        final music = <DialogueLineFeedback>[];
+        final execution = await SceneRuntimeExecutor(
+            callbacks: SceneRuntimeExecutionCallbacks(
+                evaluateCondition: (_) =>
+                    throw StateError('No source StartingOver guard'),
+                showDialogue: (intent) {
+                  final policies = intent.linePolicies;
+                  trace.add(policies
+                      .map((policy) => policy.feedback.plainText)
+                      .join(' | '));
+                  music.addAll(policies
+                      .map((policy) => policy.feedback)
+                      .where((feedback) => feedback.audioCue != null));
+                  if (intent.expectedOutcomes.isEmpty) return 'completed';
+                  expect(intent.choicePolicies.single.cancellation.outcomeId,
+                      'choice_1');
+                  return switch (decision) {
+                    'yes' || 'serviceCancel' => 'choice_0',
+                    'no' => 'choice_1',
+                    'cancel' =>
+                      intent.choicePolicies.single.cancellation.outcomeId!,
+                    _ => 'completed',
+                  };
+                },
+                startBattle: (_) => throw StateError('No battle'),
+                playCinematic: (_) => throw StateError('No source animation'),
+                applyConsequence: (_) => throw StateError(
+                    'No source stats, facts or checkpoint mutation'),
+                executeInteractiveCommand: (intent) {
+                  expect(
+                      intent.interactiveCommand,
+                      SceneInteractiveCommand.openHeal(
+                          requiresConfirmation: false));
+                  trace.add('nativeHeal');
+                  return decision == 'serviceCancel'
+                      ? 'cancelled'
+                      : 'completed';
+                })).execute(buildSceneRuntimePlan(scene).plan!);
+        expect(execution.status, SceneRuntimeExecutionStatus.completed);
+        expect(
+            trace.first, contains('Hello, and welcome to the Pokémon Center.'));
+        if (decision == 'yes') {
+          expect(trace, hasLength(4));
+          expect(trace[1], contains('take your'));
+          expect(trace[2], 'nativeHeal');
+          expect(trace[3], contains('Thank you for waiting'));
+          expect(music, hasLength(1));
+          expect(music.single.audioCue!.mediaAssetId, recovery.mediaId);
+          expect(music.single.advance.delayMicros, 2900000);
+        } else {
+          expect(music, isEmpty);
+          expect(trace.where((line) => line.contains('Thank you for waiting')),
+              isEmpty);
+          expect(trace.where((line) => line == 'nativeHeal'),
+              decision == 'serviceCancel' ? hasLength(1) : isEmpty);
+          if (decision == 'no' || decision == 'cancel') {
+            expect(trace.last, contains('see you again'));
+          }
+        }
+      }, skip: sourceRoot == null);
+    }
+
+    test(
+        'nurse refuses missing recovery music, native counter collision and character binding',
+        () async {
+      final recovery = await const SourceCenterRecoveryResolver().read(
+          source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+      for (final entry in [
+        (
+          _project(source, bindNurse: true, nativeCounter: true),
+          'sourceCenterRecoveryBindingMissing'
+        ),
+        (
+          _project(source, bindNurse: true, centerRecoveryBinding: recovery),
+          'counterInteractionReachUnsupported'
+        ),
+        (
+          _project(source,
+              nativeCounter: true, centerRecoveryBinding: recovery),
+          'characterBindingMissing'
+        ),
+      ]) {
+        expect(_evidence(entry.$1, 2)['status'], 'quarantinedWholeEvent');
+        expect(_evidence(entry.$1, 2)['gaps'], contains(entry.$2));
+        expect(
+            entry.$1.nativeMaps[102]!.entities
+                .where((entity) => entity.name == 'Nurse'),
+            isEmpty);
+      }
+    }, skip: sourceRoot == null);
+
+    test(
+        'nurse refuses source and native footprints covering its counter or anchor',
+        () async {
+      final recovery = await const SourceCenterRecoveryResolver().read(
+          source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+      final analysis = SourceEventAnalyzer.forProject(source,
+              profile: SourceEventProfile.kantoForProject(source))
+          .analyze();
+      final book = analysis.eventAt(102, 5)!;
+      final movedBook = SourceEventDefinition(
+          sourceMapId: book.sourceMapId,
+          sourceEventId: book.sourceEventId,
+          sourceFileId: book.sourceFileId,
+          identity: book.identity,
+          name: book.name,
+          x: 8,
+          y: 5,
+          locator: book.locator,
+          pages: book.pages);
+      final sourceOccupied = SourceEventAnalysis(
+          profile: analysis.profile,
+          events: [
+            for (final event in analysis.events)
+              if (event.identity == book.identity) movedBook else event
+          ],
+          diagnostics: analysis.diagnostics);
+      final rejected = _project(source,
+          analysis: sourceOccupied,
+          nativeCounter: true,
+          bindNurse: true,
+          centerRecoveryBinding: recovery);
+      expect(_evidence(rejected, 2)['status'], 'quarantinedWholeEvent');
+      expect(_evidence(rejected, 2)['gaps'],
+          contains('counterInteractionReachUnsupported'));
+      for (final y in [4, 5]) {
+        final nativeOccupied = _project(source,
+            nativeCounter: true,
+            bindNurse: true,
+            centerRecoveryBinding: recovery,
+            nativeEntities: [
+              MapEntity(
+                  id: 'wide_counter_occupant',
+                  name: 'Wide occupant',
+                  kind: MapEntityKind.custom,
+                  pos: GridPos(x: 8, y: y),
+                  size: const GridSize(width: 2, height: 1),
+                  blocksMovement: true)
+            ]);
+        expect(_evidence(nativeOccupied, 2)['status'], 'quarantinedWholeEvent');
+        expect(
+            _evidence(nativeOccupied, 2)['gaps'],
+            contains(y == 4
+                ? 'sourceCenterNurseAnchorOccupied'
+                : 'counterInteractionReachUnsupported'));
+      }
+    }, skip: sourceRoot == null);
+
+    test(
+        'nurse source consent opens native heal through the attested south counter',
+        () async {
+      final recovery = await const SourceCenterRecoveryResolver().read(
+          source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+      final result = _project(source,
+          bindNurse: true,
+          nativeCounter: true,
+          centerRecoveryBinding: recovery);
+      expect(_evidence(result, 2)['status'], 'adaptedStaticSemantics',
+          reason: '${_evidence(result, 2)['gaps']}');
+      final nurse = result.nativeMaps[102]!.entities
+          .singleWhere((entity) => entity.name == 'Nurse');
+      expect(nurse.pos, const GridPos(x: 9, y: 4));
+      expect(nurse.npc!.counterInteractionSides, [EntityFacing.south]);
+      expect(
+          stepGameplayWorld(
+              GameplayWorldState.initial(
+                  map: result.nativeMaps[102]!,
+                  playerPos: const GridPos(x: 9, y: 6),
+                  playerFacing: Direction.north),
+              const InteractIntent()),
+          isA<NpcInteracted>());
+    }, skip: sourceRoot == null);
   }, skip: archive == null);
 }

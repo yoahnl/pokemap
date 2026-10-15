@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_execution_context.dart';
+import 'source_center_recovery_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -266,6 +267,7 @@ final class SourceEventProjector {
     required Map<int, MapData> nativeMaps,
     Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventSoundBinding> soundBindings = const {},
+    SourceCenterRecoveryBinding? centerRecoveryBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -277,7 +279,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         builder._gaps(event, checkCharacterBindings: false).isEmpty));
@@ -290,6 +292,7 @@ final class SourceEventProjector {
       Map<String, SourceEventCharacterBinding> characterBindings = const {},
       Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
       Map<String, SourceEventSoundBinding> soundBindings = const {},
+      SourceCenterRecoveryBinding? centerRecoveryBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -313,7 +316,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding)
         .build();
   }
 }
@@ -373,7 +376,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -391,6 +394,7 @@ final class _ProjectionBuilder {
   final Map<String, SourceEventCharacterBinding> characterBindings;
   final Map<String, SourcePickupFeedbackBinding> pickupBindings;
   final Map<String, SourceEventSoundBinding> soundBindings;
+  final SourceCenterRecoveryBinding? centerRecoveryBinding;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
   final bool executionContextQualified;
@@ -520,6 +524,29 @@ final class _ProjectionBuilder {
             'sourcePcActiveTileAnimationQualified': false,
             'fullSourceServiceParityQualified': false,
           },
+        if (gaps.isEmpty && _isNativeCenterNurse(event))
+          'nativeCenterService': {
+            'nativeCommand': 'openHeal',
+            'requiresConfirmation': false,
+            'sourcePageIndices': [0, 1],
+            'sourceRawPages': [for (final page in event.pages) page.rawDataRef!.toJson()],
+            'sourcePrograms': [for (final page in event.pages)
+              (page.body.nodes.single as SourceCenterServiceProgramNode).toJson()],
+            'nativeActivation': 'reusableNpcInteractAcrossDeclaredSourceCounter',
+            'counterInteractionSides': _nurseCounterSides(event).map((side) => side.name).toList(),
+            'sourceCheckpointTiming': 'beforeSourceChoice',
+            'nativeCheckpointTiming': 'afterAcceptedNativeHeal',
+            'nativeRecovery': 'avelunePlayerServiceRecoveryPoint',
+            'sourceRecoveryAutorunExecuted': false,
+            'sourceStatsExecuted': false,
+            'sourcePokerusDialogueExecuted': false,
+            'sourceHealingBallsAnimationQualified': false,
+            'sourceNurseMovementQualified': false,
+            'sourceSilentWaitBeforeCompletionParityQualified': false,
+            'recoveryMusic': centerRecoveryBinding!.evidence,
+            'sourceScriptsExecuted': 0,
+            'fullSourceServiceParityQualified': false,
+          },
         'pages': [
           for (final page in event.pages)
             {
@@ -532,7 +559,7 @@ final class _ProjectionBuilder {
               'isEmpty': page.isEmpty,
               'rawDataRef': page.rawDataRef?.toJson(),
               'nativeEventId': gaps.isEmpty &&
-                      (!_isNativeCenterPc(event) || page.originalPageIndex == 0)
+                      ((!_isNativeCenterPc(event) && !_isNativeCenterNurse(event)) || page.originalPageIndex == 0)
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
@@ -714,6 +741,7 @@ final class _ProjectionBuilder {
         for (final id in factsById.keys.toList()..sort()) id: factsById[id]!.id
       },
       'quarantinedEventCount': quarantinedCount,
+      'usedCenterRecovery': events.any((event) => gapsByEvent[event.identity]!.isEmpty && _isNativeCenterNurse(event)),
       'nativeMapHashes': {
         for (final id in maps.keys.toList()..sort())
           '$id':
@@ -940,9 +968,125 @@ final class _ProjectionBuilder {
     };
   }
 
+  bool _isNativeCenterNurse(SourceEventDefinition event) {
+    if (!analysis.profile.isQualified || event.isQuarantined ||
+        event.sourceMapId != 102 || event.sourceEventId != 2 ||
+        event.name != 'Nurse' || event.pages.length != 2 ||
+        event.pages[0].originalPageIndex != 0 || event.pages[1].originalPageIndex != 1 ||
+        event.identity != source.eventIdentity(102, 2)) {
+      return false;
+    }
+    final originalMap = source.maps.singleWhere((map) => map.map.sourceMapId == 102).map;
+    final original = originalMap.events.singleWhere((candidate) => candidate.sourceEventId == 2);
+    if (event.sourceFileId != originalMap.sourceFileId ||
+        event.x != original.x || event.y != original.y) {
+      return false;
+    }
+    for (final page in event.pages) {
+      if (page.body.nodes.length != 1) return false;
+      final program = page.body.nodes.single;
+      final expectedCondition = page.originalPageIndex == 0
+          ? SourceEventCondition(kind: SourceEventConditionKind.always)
+          : SourceEventCondition(kind: SourceEventConditionKind.all, children: [
+              SourceEventCondition(kind: SourceEventConditionKind.globalSwitch,
+                  factId: 'source:${source.snapshot.logicalProjectNamespace.value}:switch:1'),
+            ]);
+      final graphic = page.graphic;
+      if (page.triggerCode != (page.originalPageIndex == 0 ? 0 : 3) ||
+          program is! SourceCenterServiceProgramNode || program.isPc ||
+          program.kind != (page.originalPageIndex == 0
+              ? SourceCenterServiceProgramKind.nurseChoice
+              : SourceCenterServiceProgramKind.nurseRecovery) ||
+          !program.isBoundToSourceEvent(source: source, profile: analysis.profile,
+              sourceMapId: 102, event: original) ||
+          page.rawDataRef?.id != program.rawDataRef.id ||
+          canonicalJsonOf(page.sourcePage.toJson()) !=
+              canonicalJsonOf(original.pages[page.originalPageIndex].toJson()) ||
+          canonicalJsonOf(page.condition.toJson()) != canonicalJsonOf(expectedCondition.toJson()) ||
+          graphic == null || graphic.characterName != 'NPC_FRLG_NURSE' ||
+          graphic.tileId != 0 || graphic.hue != 0 || graphic.direction != 2 ||
+          graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
+          graphic.moveType != 0 || graphic.moveSpeed != 3 || graphic.moveFrequency != 3 ||
+          !graphic.walkAnime || graphic.stepAnime || graphic.directionFix ||
+          graphic.through || graphic.alwaysOnTop) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _sourceCounterCellOccupied(SourceEventDefinition owner, int x, int y) {
+    for (final candidate in analysis.events.where((candidate) =>
+        candidate.sourceMapId == owner.sourceMapId)) {
+      final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+          .allMatches(candidate.name).toList();
+      final width = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(1)!);
+      final height = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(2)!);
+      if (sizes.length > 1 || width == null || width < 1 || width > 2 || height != 1) {
+        return true;
+      }
+      if (candidate.identity != owner.identity && candidate.y == y &&
+          candidate.x <= x && x < candidate.x + width) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<EntityFacing> _nurseCounterSides(SourceEventDefinition event) {
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9 ||
+        event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
+      return const [];
+    }
+    final sides = <EntityFacing>[];
+    for (final side in const [(EntityFacing.north, 0, -1),
+      (EntityFacing.south, 0, 1), (EntityFacing.east, 1, 0), (EntityFacing.west, -1, 0)]) {
+      final x = event.x + side.$2, y = event.y + side.$3;
+      if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) continue;
+      final cell = semanticResolver.cellAt(event.sourceMapId, x, y);
+      if (!semanticResolver.resolveCell(cell).counter ||
+          semanticResolver.resolveConnectionEntryTile(cell).status != SourcePassageStatus.blocked ||
+          !map.layers.whereType<CollisionLayer>().any((layer) =>
+              y * map.size.width + x < layer.collisions.length &&
+              layer.collisions[y * map.size.width + x]) ||
+          map.entities.any((entity) => resolveEntityCollisionCells(entity)
+              .contains(GridPos(x: x, y: y))) ||
+          _sourceCounterCellOccupied(event, x, y)) {
+        continue;
+      }
+      sides.add(side.$1);
+    }
+    return sides;
+  }
+
+  Set<String> _nativeCenterNurseGaps(SourceEventDefinition event,
+      {required bool checkCharacterBindings}) {
+    final graphic = event.pages.first.graphic!;
+    final binding = characterBindings[sourceEventCharacterBindingKey(
+        characterName: graphic.characterName, pattern: graphic.pattern, direction: graphic.direction)];
+    final file = source.snapshot.entries.where((entry) => entry.fileId == binding?.sourceFileId).firstOrNull;
+    return {
+      if (centerRecoveryBinding?.isBoundTo(source, analysis.profile) != true)
+        'sourceCenterRecoveryBindingMissing',
+      if (_nurseCounterSides(event).isEmpty) 'counterInteractionReachUnsupported',
+      if (maps[event.sourceMapId]!.entities.any((entity) =>
+          resolveEntityCollisionCells(entity).contains(GridPos(x: event.x, y: event.y))))
+        'sourceCenterNurseAnchorOccupied',
+      if (checkCharacterBindings && (binding == null || binding.characterId.trim().isEmpty ||
+          binding.sourceSnapshotHash != sourceSnapshotHash || binding.sourcePattern != 0 ||
+          binding.sourceDirection != 2 || file?.sha256 != binding.sourceFileHash ||
+          file?.relativePath != 'Graphics/Characters/NPC_FRLG_NURSE.png'))
+        'characterBindingMissing',
+    };
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     if (_isNativeCenterPc(event)) return _nativeCenterPcGaps(event);
+    if (_isNativeCenterNurse(event)) {
+      return _nativeCenterNurseGaps(event, checkCharacterBindings: checkCharacterBindings);
+    }
     final gaps = <String>{};
     final staticSign = _supportsStaticSign(event);
     final staticWideInteraction = _supportsStaticWideInteraction(event);
@@ -1390,7 +1534,8 @@ final class _ProjectionBuilder {
 
   void _projectEvent(SourceEventDefinition event) {
     final nativeCenterPc = _isNativeCenterPc(event);
-    final projectedPages = nativeCenterPc ? [event.pages.first] : event.pages;
+    final nativeCenterNurse = _isNativeCenterNurse(event);
+    final projectedPages = nativeCenterPc || nativeCenterNurse ? [event.pages.first] : event.pages;
     final factIds = <String>{};
     for (final page in projectedPages) {
       _collectFacts(page.condition, factIds);
@@ -1420,6 +1565,7 @@ final class _ProjectionBuilder {
             : MapEntityNpcData(
                 characterId: character.characterId,
                 displayName: _name(event),
+                counterInteractionSides: nativeCenterNurse ? _nurseCounterSides(event) : const [],
                 facing: switch (graphic.direction) {
                   2 => EntityFacing.south,
                   4 => EntityFacing.west,
@@ -1730,6 +1876,10 @@ final class _SceneBuilder {
           _edge(action, 'blocked', blocked, SceneEdgeKind.actionCompleted);
           next = action;
         case SourceCenterServiceProgramNode():
+          if (!node.isPc && projection._isNativeCenterNurse(event)) {
+            next = _centerNurse(node, next);
+            break;
+          }
           if (!node.isPc || !projection._isNativeCenterPc(event)) {
             throw const NativeWriteException('events.center_service.bindings_missing',
                 'A source Center program requires its qualified native service bindings');
@@ -1753,6 +1903,27 @@ final class _SceneBuilder {
         SceneEdgeKind.actionCompleted);
     }
     return action;
+  }
+
+  String _centerNurse(SourceCenterServiceProgramNode program, String next) {
+    SourceEventSpan span(int first, int last) => SourceEventSpan(
+        firstCommandIndex: first, lastCommandIndex: last, locator: program.span.locator);
+    final completedLines = [for (final text in program.completionLines)
+      _staticSourceTextFeedback(text)!];
+    completedLines[0] = projection.centerRecoveryBinding!.recoveryFeedback(
+        cueId: projection._key(event, 'recovery_music'), line: completedLines.first);
+    final completed = _dialogue(span(57, 65), null, null, next,
+        feedbackLines: completedLines);
+    final heal = _interactive(SceneInteractiveCommand.openHeal(requiresConfirmation: false), completed);
+    final accepted = _dialogue(span(12, 12), program.acceptanceLines.join('\n'), null, heal);
+    final refused = _dialogue(span(70, 70), program.refusalLines.join('\n'), null, next);
+    final empty = SourceEventBlock(nodes: const [], span: program.span);
+    final choice = SourceChoiceNode(span(10, 72), cancelType: program.cancelType!, branches: [
+      for (final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1, label.$2, empty),
+    ]);
+    return _dialogue(span(7, 9), null, choice, next,
+        feedbackLines: [for (final text in program.greetingLines) _staticSourceTextFeedback(text)!],
+        choiceTargets: {0: accepted, 1: refused});
   }
 
   String _fact(String factId, bool value, String next) {
@@ -1816,7 +1987,7 @@ final class _SceneBuilder {
 
   String _dialogue(
       SourceEventSpan span, String? text, SourceChoiceNode? choice, String next,
-      {List<DialogueLineFeedback>? feedbackLines}) {
+      {List<DialogueLineFeedback>? feedbackLines, Map<int, String>? choiceTargets}) {
     final feedback = feedbackLines ??
         (text != null && text.contains(r'\')
             ? [projection._textFeedback(event, text)!]
@@ -1887,7 +2058,7 @@ final class _SceneBuilder {
               ]));
     _edge(node, 'completed', next);
     for (final branch in choice?.branches ?? <SourceChoiceBranch>[]) {
-      _edge(node, 'choice_${branch.index}', _block(branch.body, next),
+      _edge(node, 'choice_${branch.index}', choiceTargets?[branch.index] ?? _block(branch.body, next),
           SceneEdgeKind.dialogueOutcome);
     }
     if (choice?.cancelType == 5) {

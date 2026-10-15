@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_event_projection.dart';
+import 'source_center_recovery_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
@@ -210,6 +211,17 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    SourceCenterRecoveryBinding? centerRecovery;
+    final centerRecoveryEvidence = <Map<String, Object?>>[];
+    if (selectedEvents.any((event) => event.sourceMapId == 102 && event.sourceEventId == 2)) {
+      try {
+        centerRecovery = await const SourceCenterRecoveryResolver().read(
+            source: source, files: recording, limits: limits, cancellation: cancellation);
+        centerRecoveryEvidence.add({'status': 'attested', ...centerRecovery.evidence});
+      } on SourceCenterRecoveryBindingUnavailable catch (error) {
+        centerRecoveryEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
     final bindings = <String, SourceEventCharacterBinding>{};
     final retentionBinding = originalDoorIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
@@ -230,6 +242,7 @@ final class SourceEventStudyComposer {
             nativeMaps: nativeMaps,
             pickupBindings: pickupBindings,
             soundBindings: sounds,
+            centerRecoveryBinding: centerRecovery,
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
             limits: limits);
@@ -293,9 +306,12 @@ final class SourceEventStudyComposer {
         characterBindings: bindings,
         pickupBindings: pickupBindings,
         soundBindings: sounds,
+        centerRecoveryBinding: centerRecovery,
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
         limits: limits);
+    final usedCenterRecovery = projection.semanticEvidence['usedCenterRecovery'] == true
+        ? centerRecovery : null;
     final usedPickupBindingKeys =
         (projection.semanticEvidence['usedPickupBindingKeys'] as List)
             .cast<String>()
@@ -476,6 +492,7 @@ final class SourceEventStudyComposer {
       for (final entry in [
         ...base.artifacts,
         ...characterArtifacts,
+        if (usedCenterRecovery != null) usedCenterRecovery.artifact,
         ...pickupArtifacts,
         ...sounds.values.map((binding) => binding.artifact),
         ...musicBindings.values.expand((entry) => entry.artifacts),
@@ -497,6 +514,7 @@ final class SourceEventStudyComposer {
     final operations = <ConverterId, NativeMutation>{};
     for (final entry in [
       ...characterMutations,
+      if (usedCenterRecovery != null) usedCenterRecovery.mutation,
       ...pickupMutations,
       ...sounds.values.map((binding) => binding.mutation),
       ...musicBindings.values.expand((entry) => entry.importMutations),
@@ -534,6 +552,7 @@ final class SourceEventStudyComposer {
       'items': items?.evidence,
       'pickups': pickupEvidence,
       'sounds': soundEvidence,
+      'centerRecovery': centerRecoveryEvidence,
       if (retentionPolicy != null) 'mapInstanceRetention': {
         ...retentionBinding!.evidence,
         'policy': retentionPolicy.toJson(),
