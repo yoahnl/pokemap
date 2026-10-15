@@ -9,6 +9,7 @@ import 'source_event_sound_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_trainer_event_bindings.dart';
+import 'source_pokedex_reward_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -85,6 +86,10 @@ DialogueLineFeedback? _staticSourceTextFeedback(String source) {
   flush();
   return DialogueLineFeedback(segments: segments);
 }
+
+DialogueLineFeedback? _pokedexRewardTextFeedback(String source, PokedexSpeciesRange range) =>
+    _staticSourceTextFeedback(source.replaceAll(r'\PN', '{{ player_name }}')
+        .replaceAll(r'\v[2]', range.dialoguePlaceholder));
 
 const _sourceSignWindowControl = r'\w[signskin]';
 
@@ -279,6 +284,7 @@ final class SourceEventProjector {
     Map<String, SourceEventSoundBinding> soundBindings = const {},
     SourceCenterRecoveryBinding? centerRecoveryBinding,
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
+    SourcePokedexRewardBinding? pokedexRewardBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -290,7 +296,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         builder._gaps(event, checkCharacterBindings: false).isEmpty));
@@ -305,6 +311,7 @@ final class SourceEventProjector {
       Map<String, SourceEventSoundBinding> soundBindings = const {},
       SourceCenterRecoveryBinding? centerRecoveryBinding,
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
+    SourcePokedexRewardBinding? pokedexRewardBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -328,7 +335,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding)
         .build();
   }
 }
@@ -388,7 +395,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -408,6 +415,7 @@ final class _ProjectionBuilder {
   final Map<String, SourceEventSoundBinding> soundBindings;
   final SourceCenterRecoveryBinding? centerRecoveryBinding;
   final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
+  final SourcePokedexRewardBinding? pokedexRewardBinding;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
   final bool executionContextQualified;
@@ -577,6 +585,22 @@ final class _ProjectionBuilder {
             'persistentFacingCertified': false,
             'fullSourceTrainerParityQualified': false,
           },
+        if (gaps.isEmpty && _isPokedexRewardFamily(event))
+          'nativePokedexReward': {
+            ...pokedexRewardBinding!.toJson(),
+            'nativeExecutionQualified': true,
+            'nativeActivation': 'reusableNpcInteractAtSourceAnchor',
+            'sourceCountAuthority': 'regionalDexIndex1ExactCanonicalNationalRange',
+            'nativeCountAuthority': 'historicalCaughtCanonicalSpecies',
+            'sourceVariableWritesExecuted': false,
+            'sourcePlayerNameControl': r'\PN',
+            'nativePlayerNameVariable': '{{ player_name }}',
+            'sourceOwnedCountControl': r'\v[2]',
+            'nativeOwnedCountVariable': pokedexRewardBinding!.range.dialoguePlaceholder,
+            'sourceRewardFactTiming': 'afterSuccessfulNativeGrantAndExplanation',
+            'sourceAfterInteractionFacing': 'nativeNpcInteractionVisualFacing',
+            'persistentFacingCertified': false,
+          },
         'pages': [
           for (final page in event.pages)
             {
@@ -593,6 +617,18 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if (gaps.isEmpty && _isPokedexRewardFamily(event))
+                  {
+                    'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
+                    'span': page.body.nodes.single.span.toJson(),
+                    'rawDataRefs': [page.rawDataRef!.toJson()],
+                    'nativeContract': 'nativeCaughtCanonicalCountAndAtomicItemReward',
+                    'equivalenceScope': ['sourceDialogueAndChoice', 'caughtSpeciesThreshold', 'nativeBagGrant', 'successSelfSwitchA'],
+                    'sourceGiftFeedbackPresentationAdapted': true,
+                    'sourceGiftPresentationParityQualified': false,
+                    'sourceScriptsExecuted': 0,
+                    'fullSourceRewardParityQualified': false,
+                  },
                 if (gaps.isEmpty && _hasTrainerProgram(event))
                   {
                     'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
@@ -1197,8 +1233,56 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  bool _isPokedexRewardFamily(SourceEventDefinition event) =>
+      (event.sourceMapId == 102 && event.sourceEventId == 10) ||
+      event.pages.expand((page) => page.body.nodes).any((node) => node is SourcePokedexRewardProgramNode);
+
+  Set<String> _pokedexRewardGaps(SourceEventDefinition event, {required bool checkCharacterBindings}) {
+    final binding = pokedexRewardBinding;
+    if (binding == null) return {'sourcePokedexRewardBindingsMissing'};
+    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+      return {'sourcePokedexRewardSourceBindingInvalid'};
+    }
+    final map = maps[event.sourceMapId]!;
+    final gaps = <String>{};
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) { gaps.add('sourcePokedexRewardSpatialUnsupported'); }
+    if (event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
+      return {'eventPositionInvalid'};
+    }
+    final passage = semanticResolver.resolveConnectionEntryTile(
+      semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
+    if (passage.status != SourcePassageStatus.allowed || _nativeSolidAt(event)) { gaps.add('sourcePokedexRewardAnchorPassageUnqualified'); }
+    if (map.entities.any((entity) => resolveEntityCollisionCells(entity).contains(GridPos(x:event.x,y:event.y))) ||
+        _sourceCounterCellOccupied(event,event.x,event.y)) { gaps.add('sourcePokedexRewardAnchorOccupied'); }
+    for (final page in event.pages) {
+      final graphic = page.graphic;
+      if (page.sourcePage.triggerCode != 0 || graphic == null || graphic.moveType != 0 ||
+          graphic.tileId != 0 || graphic.characterName != 'NPC_FRLG_SCIENTIST' || graphic.hue != 0 ||
+          graphic.direction != 2 || graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
+          !graphic.walkAnime || graphic.stepAnime || graphic.directionFix || graphic.through || graphic.alwaysOnTop) {
+        gaps.add('sourcePokedexRewardGraphicUnsupported');
+      }
+      if (checkCharacterBindings) {
+        final character = characterBindings[sourceEventCharacterBindingKey(
+          characterName:'NPC_FRLG_SCIENTIST',pattern:0,direction:2)];
+        final file = source.snapshot.entries.where((file) => file.fileId == character?.sourceFileId).firstOrNull;
+        if (character == null || character.characterId.trim().isEmpty || character.sourceSnapshotHash != sourceSnapshotHash ||
+            character.sourcePattern != 0 || character.sourceDirection != 2 || file?.sha256 != character.sourceFileHash ||
+            file?.relativePath != 'Graphics/Characters/NPC_FRLG_SCIENTIST.png') { gaps.add('characterBindingMissing'); }
+      }
+    }
+    if (binding.programs.expand((program) => program.textGroups.values.expand((texts) => texts)).any((text) {
+      final feedback = _pokedexRewardTextFeedback(text.text,binding.range);
+      return feedback == null || feedback.plainText.trim().isEmpty;
+    })) { gaps.add('sourcePokedexRewardTextControlUnsupported'); }
+    return gaps;
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_isPokedexRewardFamily(event)) {
+      return _pokedexRewardGaps(event,checkCharacterBindings:checkCharacterBindings);
+    }
     if (_hasTrainerProgram(event)) {
       return _nativeTrainerGaps(event, checkCharacterBindings: checkCharacterBindings);
     }
@@ -1519,6 +1603,8 @@ final class _ProjectionBuilder {
           gaps.add('sourceCenterServiceBindingsMissing');
         case SourceTrainerProgramNode():
           gaps.add('sourceTrainerBindingsMissing');
+        case SourcePokedexRewardProgramNode():
+          gaps.add('sourcePokedexRewardBindingsMissing');
         case SourceToneNode():
         case SourceWaitNode():
         case SourceSoundEffectNode():
@@ -1632,6 +1718,8 @@ final class _ProjectionBuilder {
           ids.add(factId);
         case SourceTrainerProgramNode(:final defeatedFactId):
           ids.add(defeatedFactId);
+        case SourcePokedexRewardProgramNode(:final rewardFactId):
+          ids.add(rewardFactId);
         case SourceConditionalNode(
             :final condition,
             :final whenTrue,
@@ -2016,6 +2104,8 @@ final class _SceneBuilder {
           next = _interactive(SceneInteractiveCommand.openPc(), next);
         case SourceTrainerProgramNode():
           next = _trainer(node, next);
+        case SourcePokedexRewardProgramNode():
+          next = _pokedexReward(node,next);
         default:
           throw const NativeWriteException('events.block.unqualified',
               'A quarantined source block cannot become a scene');
@@ -2031,6 +2121,41 @@ final class _SceneBuilder {
         SceneEdgeKind.actionCompleted);
     }
     return action;
+  }
+
+  String _pokedexReward(SourcePokedexRewardProgramNode program, String next) {
+    final binding = projection.pokedexRewardBinding;
+    if (binding == null || !binding.isBoundToEvent(source: projection.source,analysis: projection.analysis,event:event)) {
+      throw const NativeWriteException('events.pokedex_reward.bindings_missing',
+        'The complete source reward requires its qualified native data bindings.');
+    }
+    String dialogue(SourcePokedexRewardTextGroup group,String continuation,
+      {SourceChoiceNode? choice, Map<int,String>? targets}) {
+      final texts = program.texts(group);
+      return _dialogue(texts.first.span,null,choice,continuation,
+        feedbackLines:[for(final text in texts) _pokedexRewardTextFeedback(text.text,binding.range)!],
+        choiceTargets:targets);
+    }
+    if (program.kind == SourcePokedexRewardProgramKind.afterReward) {
+      return dialogue(SourcePokedexRewardTextGroup.explanation,next);
+    }
+    projection.usedItems[binding.item.definition.id] = binding.item.definition;
+    final marked = _fact(program.rewardFactId,true,next);
+    final explanation = dialogue(SourcePokedexRewardTextGroup.explanation,marked);
+    final grant = _node(SceneActionPayload.consequence(SceneConsequence.giveItem(
+      itemId:binding.item.definition.id,quantity:1)));
+    _edge(grant,'completed',explanation,SceneEdgeKind.actionCompleted);
+    final eligible = dialogue(SourcePokedexRewardTextGroup.eligible,grant);
+    final insufficient = dialogue(SourcePokedexRewardTextGroup.insufficient,next);
+    final condition = _node(SceneConditionPayload(conditionSource:SceneConditionSource.pokedexCaughtAtLeast(
+      range:binding.range,minimum:program.minimumCount)));
+    _edge(condition,'true',eligible,SceneEdgeKind.conditionTrue);
+    _edge(condition,'false',insufficient,SceneEdgeKind.conditionFalse);
+    final refused = dialogue(SourcePokedexRewardTextGroup.refused,next);
+    final empty = SourceEventBlock(nodes:const[],span:program.span);
+    final choice = SourceChoiceNode(program.span,cancelType:program.cancelType!,branches:[
+      for(final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1,label.$2,empty)]);
+    return dialogue(SourcePokedexRewardTextGroup.greeting,next,choice:choice,targets:{0:condition,1:refused});
   }
 
   String _trainer(SourceTrainerProgramNode program, String next) {

@@ -37,3 +37,5 @@ export 'src/converter_asset_review_set.dart';
 
 export 'src/source_directed_jump_study_composer.dart';
 export 'src/source_center_recovery_binding.dart';
+
+export 'src/source_pokedex_reward_binding.dart';

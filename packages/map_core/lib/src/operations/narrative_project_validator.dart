@@ -1962,6 +1962,7 @@ bool _sceneEdgeIsStaticallyTraversable(
 
   Set<bool>? values;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.playerAtEntityAnchor:
     case SceneConditionSourceKind.mapEventInstanceBoolean:

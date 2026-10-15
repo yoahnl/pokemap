@@ -12,6 +12,7 @@ import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_trainer_event_bindings.dart';
+import 'source_pokedex_reward_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
@@ -226,6 +227,8 @@ final class SourceEventStudyComposer {
     final trainerBindings = await const SourceTrainerEventBindingResolver().read(
         source: source, analysis: analysis, files: recording,
         limits: limits, cancellation: cancellation);
+    final pokedexReward = await const SourcePokedexRewardBindingResolver().read(
+        source: source, analysis: analysis, files: recording, cancellation: cancellation);
     final bindings = <String, SourceEventCharacterBinding>{};
     final retentionBinding = originalDoorIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
@@ -248,6 +251,7 @@ final class SourceEventStudyComposer {
             soundBindings: sounds,
             centerRecoveryBinding: centerRecovery,
             trainerBindings: trainerBindings.byEventIdentity,
+            pokedexRewardBinding: pokedexReward,
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
             limits: limits);
@@ -313,6 +317,7 @@ final class SourceEventStudyComposer {
         soundBindings: sounds,
         centerRecoveryBinding: centerRecovery,
         trainerBindings: trainerBindings.byEventIdentity,
+            pokedexRewardBinding: pokedexReward,
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
         limits: limits);
@@ -344,6 +349,10 @@ final class SourceEventStudyComposer {
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
     preservedFileIds.addAll(trainerBindings.byEventIdentity.values
         .map((binding) => binding.sourceRosterFile.fileId.value));
+    if (pokedexReward != null) {
+      preservedFileIds.addAll(pokedexReward.archive.files.keys.map((id) => id.value));
+      preservedFileIds.addAll(pokedexReward.itemArchive.files.keys.map((id) => id.value));
+    }
     final systemFile = source.snapshot.entries
         .where((entry) => entry.relativePath == 'Data/System.rxdata')
         .firstOrNull;
@@ -561,6 +570,7 @@ final class SourceEventStudyComposer {
       'pickups': pickupEvidence,
       'sounds': soundEvidence,
       'centerRecovery': centerRecoveryEvidence,
+      'pokedexRewardBinding': pokedexReward?.toJson(),
       'trainerBindings': {
         'bindings': trainerBindings.byEventIdentity.values
             .map((binding) => binding.toJson()).toList(),

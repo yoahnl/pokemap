@@ -971,6 +971,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       final source = payload.conditionSource;
       if (source == null) continue;
       switch (source.sourceKind) {
+        case SceneConditionSourceKind.pokedexCaughtCount:
         case SceneConditionSourceKind.playerFacing:
         case SceneConditionSourceKind.playerAtEntityAnchor:
         case SceneConditionSourceKind.mapEventInstanceBoolean:
@@ -1180,6 +1181,9 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           final source = conditionSource;
           if (source == null) continue;
           switch (source.sourceKind) {
+            case SceneConditionSourceKind.pokedexCaughtCount:
+              reads.add('pokedex:caught:${source.sourceId}');
+              break;
             case SceneConditionSourceKind.playerFacing:
               reads.add('player:facing');
               break;
@@ -1582,6 +1586,7 @@ bool? _sceneConditionValue(
 ) {
   if (source == null) return null;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.playerAtEntityAnchor:
     case SceneConditionSourceKind.mapEventInstanceBoolean:

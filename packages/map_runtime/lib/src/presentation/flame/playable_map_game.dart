@@ -2471,24 +2471,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   ({String mapId, int playerX, int playerY, String facing, String movementMode})
       get saveLoadInfo {
-    if (isLoaded) {
-      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-    }
+    final state = gameStateSnapshot;
     return (
-      mapId: _gameState.currentMapId,
-      playerX: _gameState.playerPosition.x,
-      playerY: _gameState.playerPosition.y,
-      facing: _gameState.playerFacing.name,
-      movementMode: _gameState.playerMovementMode.name,
+      mapId: state.currentMapId,
+      playerX: state.playerPosition.x,
+      playerY: state.playerPosition.y,
+      facing: state.playerFacing.name,
+      movementMode: state.playerMovementMode.name,
     );
   }
 
-  GameState get gameStateSnapshot {
-    if (isLoaded) {
-      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-    }
-    return _gameState;
-  }
+  GameState get gameStateSnapshot =>
+      isLoaded ? _captureGameStateFromWorld() : _gameState;
 
   GameState get companionGameStateSnapshot => !isLoaded
       ? _gameState
@@ -3471,8 +3465,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _syncGameStateFromWorld({String? mapIdOverride}) {
     _gameStateRevision += 1;
+    _gameState = _captureGameStateFromWorld(mapIdOverride: mapIdOverride);
+  }
+
+  GameState _captureGameStateFromWorld({String? mapIdOverride}) {
     final mapId = mapIdOverride ?? _activeMapId;
-    _gameState = _gameState.copyWith(
+    return _gameState.copyWith(
       currentMapId: mapId,
       movingPlatformWorldState: initializeMovingPlatformWorldState(
         map: _world.map, worldState: _gameState.movingPlatformWorldState,
@@ -12561,7 +12559,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return completer.future;
     }
 
-    loadFuture.then((session) {
+    loadFuture.then((session) async {
       stopwatch.stop();
       if (!_isBlockingInteractionActive(serial)) {
         debugPrint(
@@ -12592,7 +12590,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'request=${request.requestId} '
         'elapsedMs=${stopwatch.elapsedMilliseconds}',
       );
-      _openDialogue(
+      await _openDialogue(
         session.withChoicePolicies(request.choicePolicies).withLinePolicies(request.linePolicies),
         onDialogueFailed: (error) {
           _completePendingSceneDialogue(
@@ -12713,13 +12711,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return completer.future;
   }
 
-  String _resolveSceneConditionOutput(
+  Future<String> _resolveSceneConditionOutput(
     SceneRuntimePlanIntent intent, {
     required GameState gameState,
-  }) {
+  }) async {
     final source = intent.conditionSource;
     if (source == null) {
       throw StateError('Scene condition intent is missing a condition source.');
+    }
+
+    if (source.sourceKind == SceneConditionSourceKind.pokedexCaughtCount) {
+      final bundle = _bundle;
+      final sceneSession = _activeNarrativeSceneWorkingSession;
+      final revision = _gameStateRevision;
+      final index = await _battleSpeciesLoader.loadIndex(
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+      );
+      if (_isRemoved || !identical(bundle, _bundle) ||
+          !identical(sceneSession, _activeNarrativeSceneWorkingSession) ||
+          revision != _gameStateRevision ||
+          (sceneSession != null && !identical(gameState, sceneSession.gameState))) {
+        throw StateError('The caught species condition session changed while loading.');
+      }
+      return evaluateScenePokedexCaughtCondition(
+        source: source, gameState: gameState, speciesIndex: index,
+      ) ? 'true' : 'false';
     }
 
     if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
@@ -12986,7 +13003,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     final stopwatch = Stopwatch()..start();
-    _dialogueSessionLoader(resolved).then((session) {
+    _dialogueSessionLoader(resolved).then((session) async {
       stopwatch.stop();
       if (!_isBlockingInteractionActive(serial)) {
         debugPrint(
@@ -13011,7 +13028,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _resumeActiveScriptAfterDialogue(runtimeSourceId);
       };
 
-      _openDialogue(session);
+      await _openDialogue(session);
     }).onError((Object error, StackTrace stackTrace) {
       debugPrint(
         '[dialogue] failed to load source=$runtimeSourceId error=$error\n$stackTrace',
@@ -13361,7 +13378,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
-    loadFuture.then((session) {
+    loadFuture.then((session) async {
       stopwatch.stop();
       if (!_isBlockingInteractionActive(serial)) {
         debugPrint(
@@ -13377,21 +13394,43 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[dialogue] content loaded source=$entityId elapsedMs=${stopwatch.elapsedMilliseconds}',
       );
       debugPrint('[dialogue] opening dialogue for entity=$entityId');
-      _openDialogue(session);
+      await _openDialogue(session);
     }).onError((Object error, StackTrace stackTrace) {
       failDialogueLoad(error: error, stackTrace: stackTrace);
     });
     return true;
   }
 
-  void _openDialogue(
+  Future<void> _openDialogue(
     DialogueSession session, {
     void Function(String? outcomeId)? onDialogueFinished,
     void Function(Object error)? onDialogueFailed,
-  }) {
+  }) async {
+    final bundle = _bundle;
+    final sceneSession = _activeNarrativeSceneWorkingSession;
+    final serial = _activeBlockingInteractionSerial;
+    final revision = _gameStateRevision;
+    final state = sceneSession?.gameState ?? _gameState;
+    PokemonSpeciesIndex? speciesIndex;
+    if (dialogueUsesPokedexCaughtCount(session)) {
+      speciesIndex = await _battleSpeciesLoader.loadIndex(
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+      );
+      if (_isRemoved || !identical(bundle, _bundle) ||
+          serial != _activeBlockingInteractionSerial ||
+          revision != _gameStateRevision ||
+          !identical(sceneSession, _activeNarrativeSceneWorkingSession) ||
+          (sceneSession != null && !identical(state, sceneSession.gameState))) {
+        throw StateError('The dialogue session changed while loading caught species.');
+      }
+    }
     session = interpolateDialogueVariables(
-      session,
-      _gameState.scriptVariables);
+      session, state.scriptVariables,
+      pokedexCaughtCount: speciesIndex == null ? null : (range) => countPokedexCaughtSpecies(
+        gameState: state, speciesIndex: speciesIndex!, range: range,
+      ),
+    );
     validateDialogueFeedbackReferences(
       session.lineFeedback,
       iconAssetIds: _bundle.runtimeImageAbsolutePathsById.keys.toSet(),
@@ -14062,7 +14101,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         issuedAtStateRevision: _gameStateRevision,
       );
     }
-    _openDialogue(session);
+    unawaited(_openDialogue(session).catchError((Object error, StackTrace stackTrace) {
+      debugPrint('[surf] dialogue failed: $error\n$stackTrace');
+      _pendingFieldActionTicket = null;
+      _showNotification(waterRequiresSurfFeedbackMessage);
+    }));
   }
 
   /// Sauvegarde l'état actuel de la partie.

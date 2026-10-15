@@ -19,3 +19,5 @@ export 'src/models/moving_platform.dart';
 export 'src/operations/moving_platform_operations.dart';
 export 'src/operations/validate_spatial_world_state.dart';
 export 'src/read_models/spatial_gameplay_capabilities.dart';
+
+export 'src/models/pokedex_species_range.dart';

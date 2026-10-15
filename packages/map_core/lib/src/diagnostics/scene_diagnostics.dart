@@ -39,6 +39,7 @@ enum SceneDiagnosticCode {
   conditionMapEntityRefUnknown,
   conditionBadgeRefUnknown,
   conditionWorldRuleRefUnknown,
+  conditionUnsupportedDimension,
   consequenceUnknownFact,
   consequenceUnknownEvent,
   consequenceUnknownMapEventOwner,
@@ -634,6 +635,20 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
         final source = payload.conditionSource;
         if (source == null) {
           continue;
+        }
+        if (source.sourceKind == SceneConditionSourceKind.pokedexCaughtCount &&
+            project.settings.dimension != ProjectDimension.twoD) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.conditionUnsupportedDimension,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'Le comptage des espèces capturées exige un projet 2D.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir une condition prise en charge par ce projet.',
+            ),
+          );
         }
         if ((source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
             source.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) &&
@@ -2143,6 +2158,7 @@ _SceneOutputPortSpec? _findPortSpec(
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.newGameDraft => true,
+    SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
     SceneConditionSourceKind.mapEventInstanceBoolean => true,
@@ -2164,6 +2180,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
     SceneConditionSourceKind.mapEventInstanceBoolean =>

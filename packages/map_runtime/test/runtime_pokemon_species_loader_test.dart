@@ -25,37 +25,93 @@ void main() {
       }
     });
 
-    test('rejects a disabled species without blocking enabled neighbors',
-        () async {
-      final file =
-          File(p.join(tempRoot.path, 'data/pokemon/species/disabled.json'));
-      await _writeValidSpeciesFile(file, declaredId: 'disabled');
-      final data =
-          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      data['classification'] = {'isEnabledInProject': false};
-      await file.writeAsString(jsonEncode(data));
-      await _writeValidSpeciesFile(
+    test(
+      'rejects a disabled species without blocking enabled neighbors',
+      () async {
+        final file = File(
+          p.join(tempRoot.path, 'data/pokemon/species/disabled.json'),
+        );
+        await _writeValidSpeciesFile(file, declaredId: 'disabled');
+        final data =
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        data['classification'] = {'isEnabledInProject': false};
+        await file.writeAsString(jsonEncode(data));
+        await _writeValidSpeciesFile(
           File(p.join(file.parent.path, 'enabled.json')),
-          declaredId: 'enabled');
-      final loader = RuntimePokemonSpeciesLoader();
-      const config =
-          ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1);
-      await expectLater(
+          declaredId: 'enabled',
+        );
+        final loader = RuntimePokemonSpeciesLoader();
+        const config = ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        );
+        await expectLater(
           loader.loadById(
             projectRootDirectory: tempRoot.path,
             pokemonConfig: config,
             speciesId: 'disabled',
           ),
-          throwsA(isA<RuntimeBattleSetupException>()
-              .having((e) => e.message, 'message', contains('désactivée'))));
-      expect(
+          throwsA(
+            isA<RuntimeBattleSetupException>().having(
+              (e) => e.message,
+              'message',
+              contains('désactivée'),
+            ),
+          ),
+        );
+        expect(
           (await loader.loadById(
             projectRootDirectory: tempRoot.path,
             pokemonConfig: config,
             speciesId: 'enabled',
-          ))
-              .id,
-          'enabled');
+          )).id,
+          'enabled',
+        );
+      },
+    );
+
+    test('canonical index shares the battle snapshot without filtering disabled history', () async {
+      final directory = Directory(
+        p.join(tempRoot.path, 'data/pokemon/species'),
+      );
+      await directory.create(recursive: true);
+      for (final value in [('bulbasaur', 1, true), ('ivysaur', 2, false)]) {
+        final file = File(p.join(directory.path, '${value.$1}.json'));
+        await _writeValidSpeciesFile(file, declaredId: value.$1);
+        final data =
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        data['nationalDex'] = value.$2;
+        data['genIntroduced'] = 0;
+        data['classification'] = {'isEnabledInProject': value.$3};
+        await file.writeAsString(jsonEncode(data));
+      }
+      final metrics = _CountingRuntimePokemonSpeciesSnapshotMetrics();
+      final loader = RuntimePokemonSpeciesLoader(snapshotMetrics: metrics);
+      const config = ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      );
+      final index = await loader.loadIndex(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: config,
+      );
+      expect(index.entries.map((entry) => (entry.id, entry.nationalDex)), [
+        ('bulbasaur', 1),
+        ('ivysaur', 2),
+      ]);
+      await loader.loadById(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: config,
+        speciesId: 'bulbasaur',
+      );
+      expect(
+        await loader.loadIndex(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: config,
+        ),
+        same(index),
+      );
+      expect(metrics.snapshotBuilds, 1);
+      expect(metrics.directoryListings, 1);
+      expect(metrics.speciesJsonReads, 2);
     });
 
     test('reuses one catalog snapshot across species ids', () async {
@@ -112,77 +168,78 @@ void main() {
       expect(loader.debugActualReadCount, 2);
     });
 
-    test('projects the complete runtime species view from the snapshot',
-        () async {
-      final speciesDir = Directory(
-        p.join(tempRoot.path, 'data', 'pokemon', 'species'),
-      );
-      await speciesDir.create(recursive: true);
-      await File(p.join(speciesDir.path, 'noncanonical-name.json'))
-          .writeAsString(
-        jsonEncode(<String, dynamic>{
-          'schemaVersion': currentPokemonDataSchemaVersion,
-          'id': 'targetmon',
-          'names': <String, String>{
-            'en': 'Targetmon',
-            'fr': 'Ciblemon',
-          },
-          'forms': <String, dynamic>{'formId': 'summer'},
-          'typing': <String, dynamic>{
-            'types': <String>['grass'],
-          },
-          'baseStats': <String, dynamic>{
-            'hp': 45,
-            'atk': 49,
-            'def': 49,
-            'spa': 65,
-            'spd': 65,
-            'spe': 45,
-          },
-          'abilities': <String, dynamic>{
-            'primary': 'overgrow',
-            'secondary': 'chlorophyll',
-            'hidden': 'leaf_guard',
-          },
-          'breeding': <String, dynamic>{
-            'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
-          },
-          'refs': <String, dynamic>{'learnset': 'targetmon'},
-          'progression': <String, dynamic>{
-            'growthRateId': 'medium_slow',
-            'baseExp': 64,
-            'catchRate': 45,
-            'baseFriendship': 70,
-          },
-        }),
-      );
+    test(
+      'projects the complete runtime species view from the snapshot',
+      () async {
+        final speciesDir = Directory(
+          p.join(tempRoot.path, 'data', 'pokemon', 'species'),
+        );
+        await speciesDir.create(recursive: true);
+        await File(
+          p.join(speciesDir.path, 'noncanonical-name.json'),
+        ).writeAsString(
+          jsonEncode(<String, dynamic>{
+            'schemaVersion': currentPokemonDataSchemaVersion,
+            'id': 'targetmon',
+            'names': <String, String>{'en': 'Targetmon', 'fr': 'Ciblemon'},
+            'forms': <String, dynamic>{'formId': 'summer'},
+            'typing': <String, dynamic>{
+              'types': <String>['grass'],
+            },
+            'baseStats': <String, dynamic>{
+              'hp': 45,
+              'atk': 49,
+              'def': 49,
+              'spa': 65,
+              'spd': 65,
+              'spe': 45,
+            },
+            'abilities': <String, dynamic>{
+              'primary': 'overgrow',
+              'secondary': 'chlorophyll',
+              'hidden': 'leaf_guard',
+            },
+            'breeding': <String, dynamic>{
+              'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
+            },
+            'refs': <String, dynamic>{'learnset': 'targetmon'},
+            'progression': <String, dynamic>{
+              'growthRateId': 'medium_slow',
+              'baseExp': 64,
+              'catchRate': 45,
+              'baseFriendship': 70,
+            },
+          }),
+        );
 
-      final species = await RuntimePokemonSpeciesLoader().loadById(
-        projectRootDirectory: tempRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(
-          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-        ),
-        speciesId: 'targetmon',
-      );
+        final species = await RuntimePokemonSpeciesLoader().loadById(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          ),
+          speciesId: 'targetmon',
+        );
 
-      expect(species.formId, 'summer');
-      expect(species.displayName('fr-FR'), 'Ciblemon');
-      expect(species.displayName('de'), 'targetmon');
-      expect(species.primaryAbilityId, 'overgrow');
-      expect(species.standardAbilityIds, <String>['overgrow', 'chlorophyll']);
-      expect(
-        species.abilityIds,
-        <String>['overgrow', 'chlorophyll', 'leaf_guard'],
-      );
-      expect(species.genderRatio, <String, double>{
-        'male': 0.875,
-        'female': 0.125,
-      });
-      expect(species.growthRateId, 'medium_slow');
-      expect(species.baseExp, 64);
-      expect(species.catchRate, 45);
-      expect(species.baseFriendship, 70);
-    });
+        expect(species.formId, 'summer');
+        expect(species.displayName('fr-FR'), 'Ciblemon');
+        expect(species.displayName('de'), 'targetmon');
+        expect(species.primaryAbilityId, 'overgrow');
+        expect(species.standardAbilityIds, <String>['overgrow', 'chlorophyll']);
+        expect(species.abilityIds, <String>[
+          'overgrow',
+          'chlorophyll',
+          'leaf_guard',
+        ]);
+        expect(species.genderRatio, <String, double>{
+          'male': 0.875,
+          'female': 0.125,
+        });
+        expect(species.growthRateId, 'medium_slow');
+        expect(species.baseExp, 64);
+        expect(species.catchRate, 45);
+        expect(species.baseFriendship, 70);
+      },
+    );
 
     test('rejects duplicate ids with deterministic file ordering', () async {
       final speciesDir = Directory(
@@ -237,10 +294,7 @@ void main() {
         ),
         throwsA(isA<RuntimeBattleSetupException>()),
       );
-      await _writeValidSpeciesFile(
-        speciesFile,
-        declaredId: 'bulbasaur',
-      );
+      await _writeValidSpeciesFile(speciesFile, declaredId: 'bulbasaur');
 
       final species = await loader.loadById(
         projectRootDirectory: tempRoot.path,
@@ -268,13 +322,7 @@ void main() {
       });
       await _writeValidSpeciesFile(
         File(
-          p.join(
-            tempRoot.path,
-            'data',
-            'pokemon',
-            'species',
-            'bulbasaur.json',
-          ),
+          p.join(tempRoot.path, 'data', 'pokemon', 'species', 'bulbasaur.json'),
         ),
         declaredId: 'bulbasaur',
         baseHp: 45,
@@ -319,13 +367,7 @@ void main() {
 
     test('rebuilds a project snapshot after explicit invalidation', () async {
       final speciesFile = File(
-        p.join(
-          tempRoot.path,
-          'data',
-          'pokemon',
-          'species',
-          'bulbasaur.json',
-        ),
+        p.join(tempRoot.path, 'data', 'pokemon', 'species', 'bulbasaur.json'),
       );
       await _writeValidSpeciesFile(
         speciesFile,
@@ -545,11 +587,13 @@ void main() {
 
       for (final config in <ProjectPokemonConfig>[
         const ProjectPokemonConfig(
-            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-            speciesDir: '../outside'),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          speciesDir: '../outside',
+        ),
         ProjectPokemonConfig(
-            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-            speciesDir: externalSpeciesDir.path),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          speciesDir: externalSpeciesDir.path,
+        ),
       ]) {
         await expectLater(
           () => RuntimePokemonSpeciesLoader().loadById(
@@ -562,56 +606,43 @@ void main() {
       }
     });
 
-    test('fails with a typed setup error when abilities is not an object',
-        () async {
-      final file = File(
-        p.join(
-          tempRoot.path,
-          'data',
-          'pokemon',
-          'species',
-          'targetmon.json',
-        ),
-      );
-      for (final rawAbilities in <Object>[
-        <Object?>[],
-        'overgrow',
-      ]) {
-        await _writeValidSpeciesFile(
-          file,
-          declaredId: 'targetmon',
-          abilities: rawAbilities,
+    test(
+      'fails with a typed setup error when abilities is not an object',
+      () async {
+        final file = File(
+          p.join(tempRoot.path, 'data', 'pokemon', 'species', 'targetmon.json'),
         );
+        for (final rawAbilities in <Object>[<Object?>[], 'overgrow']) {
+          await _writeValidSpeciesFile(
+            file,
+            declaredId: 'targetmon',
+            abilities: rawAbilities,
+          );
 
-        await expectLater(
-          () => RuntimePokemonSpeciesLoader().loadById(
-            projectRootDirectory: tempRoot.path,
-            pokemonConfig: const ProjectPokemonConfig(
-              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-              speciesDir: 'data/pokemon/species',
+          await expectLater(
+            () => RuntimePokemonSpeciesLoader().loadById(
+              projectRootDirectory: tempRoot.path,
+              pokemonConfig: const ProjectPokemonConfig(
+                ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+                speciesDir: 'data/pokemon/species',
+              ),
+              speciesId: 'targetmon',
             ),
-            speciesId: 'targetmon',
-          ),
-          throwsA(
-            isA<RuntimeBattleSetupException>().having(
-              (error) => error.debugDetails,
-              'debugDetails',
-              contains('abilities'),
+            throwsA(
+              isA<RuntimeBattleSetupException>().having(
+                (error) => error.debugDetails,
+                'debugDetails',
+                contains('abilities'),
+              ),
             ),
-          ),
-        );
-      }
-    });
+          );
+        }
+      },
+    );
 
     test('rejects a future shared species schema explicitly', () async {
       final file = File(
-        p.join(
-          tempRoot.path,
-          'data',
-          'pokemon',
-          'species',
-          'targetmon.json',
-        ),
+        p.join(tempRoot.path, 'data', 'pokemon', 'species', 'targetmon.json'),
       );
       await _writeValidSpeciesFile(
         file,
@@ -640,21 +671,12 @@ void main() {
 
     test('rejects a missing shared species schema explicitly', () async {
       final file = File(
-        p.join(
-          tempRoot.path,
-          'data',
-          'pokemon',
-          'species',
-          'targetmon.json',
-        ),
+        p.join(tempRoot.path, 'data', 'pokemon', 'species', 'targetmon.json'),
       );
-      await _writeValidSpeciesFile(
-        file,
-        declaredId: 'targetmon',
-      );
-      final rawJson = jsonDecode(await file.readAsString())
-          as Map<String, dynamic>
-        ..remove('schemaVersion');
+      await _writeValidSpeciesFile(file, declaredId: 'targetmon');
+      final rawJson =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>
+            ..remove('schemaVersion');
       await file.writeAsString(jsonEncode(rawJson));
 
       await expectLater(
@@ -682,9 +704,7 @@ Future<void> _writeSpecies(
   Directory root, {
   required Object? progression,
 }) async {
-  final speciesDir = Directory(
-    p.join(root.path, 'data', 'pokemon', 'species'),
-  );
+  final speciesDir = Directory(p.join(root.path, 'data', 'pokemon', 'species'));
   await speciesDir.create(recursive: true);
   final file = File(p.join(speciesDir.path, 'targetmon.json'));
   await file.writeAsString(
@@ -692,7 +712,7 @@ Future<void> _writeSpecies(
       'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'targetmon',
       'typing': <String, dynamic>{
-        'types': <String>['grass']
+        'types': <String>['grass'],
       },
       'baseStats': <String, dynamic>{
         'hp': 45,

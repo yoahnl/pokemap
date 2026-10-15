@@ -339,3 +339,5 @@ export 'src/spatial_warp_controller.dart';
 export 'src/spatial_npc_interaction.dart';
 
 export 'src/scene_player_facing_condition_evaluator.dart';
+
+export 'src/pokedex_caught_count.dart';

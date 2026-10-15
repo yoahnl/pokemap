@@ -3033,6 +3033,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       SceneConditionSourceKind.scriptVariable ||
       SceneConditionSourceKind.worldState ||
       SceneConditionSourceKind.playerAtEntityAnchor ||
+      SceneConditionSourceKind.pokedexCaughtCount ||
       SceneConditionSourceKind.mapEventInstanceBoolean =>
         false,
     };
@@ -3416,6 +3417,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.worldState ||
     SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
+    SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.mapEventInstanceBoolean =>
       SceneConditionOperator.isTrue,
   };
@@ -3440,6 +3442,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.worldState ||
     SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
+    SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.mapEventInstanceBoolean =>
       null,
   };

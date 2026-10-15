@@ -177,6 +177,18 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'pokedexCaughtCount': {
+          'sourceKind': 'pokedexCaughtCount',
+          'projectDimension': 'twoD',
+          'sourceId': 'national:first:last',
+          'field': 'minimumCount',
+          'value': 'positiveInteger',
+          'bounds': [1, 65535],
+          'operators': ['isTrue', 'isFalse'],
+          'state': 'historicalCaughtSpeciesNationalNumbers',
+          'forms': 'deduplicateNationalNumber',
+          'unresolvedSpecies': 'refuse',
+        },
         'playerFacing': {
           'sourceKind': 'playerFacing',
           'sourceId': ['north', 'south', 'east', 'west'],

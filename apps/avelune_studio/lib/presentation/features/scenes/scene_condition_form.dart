@@ -25,6 +25,7 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     'storyStepCompletion': 'Étape d’histoire',
     'consumedEvent': 'Interaction déjà jouée',
     'playerFacing': 'Orientation du joueur',
+    'pokedexCaughtCount': 'Pokédex : espèces capturées',
   };
   static const operators = {
     'equals': 'Est égal à',
@@ -40,6 +41,16 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   bool _boolean = true;
   String _text = '';
   bool _unsupported = false;
+  String _firstNational = '1';
+  String _lastNational = '151';
+  String _minimumCount = '20';
+
+  Map<String, String> get _availableFamilies => {
+    for (final entry in families.entries)
+      if (entry.key != 'pokedexCaughtCount' ||
+          widget.project.settings.dimension == ProjectDimension.twoD)
+        entry.key: entry.value,
+  };
 
   @override
   void initState() {
@@ -50,7 +61,10 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   @override
   void didUpdateWidget(SceneConditionForm old) {
     super.didUpdateWidget(old);
-    if (old.current != widget.current) _reset();
+    if (old.current != widget.current ||
+        old.project.settings.dimension != widget.project.settings.dimension) {
+      _reset();
+    }
   }
 
   void _reset() {
@@ -60,9 +74,15 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     _operator = NarrativeFactOperator.equals;
     _boolean = true;
     _text = '';
-    _unsupported = source != null && !families.containsKey(_family);
+    _unsupported = source != null && !_availableFamilies.containsKey(_family);
     if (_unsupported || source == null) return;
-    if (_family == 'fact') {
+    if (_family == 'pokedexCaughtCount') {
+      final range = source.pokedexSpeciesRange;
+      _firstNational = '${range!.firstNationalDex}';
+      _lastNational = '${range.lastNationalDex}';
+      _minimumCount = '${source.pokedexMinimumCaughtCount!}';
+      _boolean = source.operator != SceneConditionOperator.isFalse;
+    } else if (_family == 'fact') {
       try {
         _operator = source.resolvedFactOperator;
         final expected = source.resolvedExpectedFactValue;
@@ -111,6 +131,29 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
       widget.project.facts.where((fact) => fact.id == _id).firstOrNull;
 
   SceneConditionSource? get _prepared {
+    if (_family == 'pokedexCaughtCount' && !_unsupported) {
+      try {
+        final first = int.parse(_firstNational);
+        final last = int.parse(_lastNational);
+        final minimum = int.parse(_minimumCount);
+        if ('$first' != _firstNational ||
+            '$last' != _lastNational ||
+            '$minimum' != _minimumCount) {
+          return null;
+        }
+        return SceneConditionSource.pokedexCaughtAtLeast(
+          range: PokedexSpeciesRange(
+            firstNationalDex: first,
+            lastNationalDex: last,
+          ),
+          minimum: minimum,
+          expected: _boolean,
+          label: 'Au moins $minimum espèces capturées (n° $first à $last)',
+        );
+      } on Object {
+        return null;
+      }
+    }
     final id = _id;
     if (_unsupported || id == null || !_references.containsKey(id)) return null;
     final existing = widget.current.conditionSource;
@@ -192,7 +235,7 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
         StudioSelect(
           label: 'Source de la condition',
           value: _family,
-          options: families,
+          options: _availableFamilies,
           onChanged: (value) => setState(() {
             _family = value;
             _id = null;
@@ -200,20 +243,60 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
           }),
         ),
         const SizedBox(height: 12),
-        StudioSelect(
-          label: 'Référence',
-          value: _id,
-          options: references,
-          onChanged: _selectReference,
-        ),
-        if (references.isEmpty) ...[
+        if (_family != 'pokedexCaughtCount')
+          StudioSelect(
+            label: 'Référence',
+            value: _id,
+            options: references,
+            onChanged: _selectReference,
+          ),
+        if (_family != 'pokedexCaughtCount' && references.isEmpty) ...[
           const SizedBox(height: 8),
           const StudioNotice(
             'Aucune référence disponible dans ce projet. La condition actuelle reste conservée.',
           ),
         ],
         const SizedBox(height: 12),
-        if (fact != null) ...[
+        if (_family == 'pokedexCaughtCount' && !_unsupported) ...[
+          StudioDraftField(
+            key: const ValueKey('pokedex-first-national'),
+            label: 'Premier numéro du Pokédex national',
+            value: _firstNational,
+            onChanged: (value) => setState(() => _firstNational = value),
+          ),
+          const SizedBox(height: 12),
+          StudioDraftField(
+            key: const ValueKey('pokedex-last-national'),
+            label: 'Dernier numéro du Pokédex national',
+            value: _lastNational,
+            onChanged: (value) => setState(() => _lastNational = value),
+          ),
+          const SizedBox(height: 12),
+          StudioDraftField(
+            key: const ValueKey('pokedex-minimum-count'),
+            label: 'Nombre d’espèces capturées',
+            value: _minimumCount,
+            onChanged: (value) => setState(() => _minimumCount = value),
+          ),
+          const SizedBox(height: 12),
+          StudioSelect(
+            label: 'Comparaison',
+            value: '$_boolean',
+            options: const {
+              'true': 'Au moins ce nombre',
+              'false': 'Moins que ce nombre',
+            },
+            onChanged: (value) => setState(() => _boolean = value == 'true'),
+          ),
+          if (source == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: StudioNotice(
+                'Choisissez des numéros ordonnés et un nombre entier positif, au plus 65 535.',
+                isError: true,
+              ),
+            ),
+        ] else if (fact != null) ...[
           StudioSelect(
             label: 'Comparaison',
             value: _operator.name,

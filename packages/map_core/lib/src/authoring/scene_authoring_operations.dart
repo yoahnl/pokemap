@@ -1861,6 +1861,7 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
       return;
     case SceneConditionSourceKind.playerAtEntityAnchor:

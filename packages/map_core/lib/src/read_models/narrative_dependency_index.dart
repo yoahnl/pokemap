@@ -2624,7 +2624,8 @@ final class _NarrativeDependencyIndexBuilder {
     // reference at error severity, and made the export refuse a project the
     // canonical authoring action had just produced.
     if (source.sourceKind == SceneConditionSourceKind.newGameDraft ||
-        source.sourceKind == SceneConditionSourceKind.playerFacing) {
+        source.sourceKind == SceneConditionSourceKind.playerFacing ||
+        source.sourceKind == SceneConditionSourceKind.pokedexCaughtCount) {
       return;
     }
     final target = switch (source.sourceKind) {

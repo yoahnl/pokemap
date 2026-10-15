@@ -672,6 +672,8 @@ final class SourceEventAnalyzer {
                   event, sourcePage, loc) ??
               _sourceTrainerProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
+              _sourcePokedexRewardProgramBlock(this, map.map.sourceMapId,
+                  event, sourcePage, loc) ??
               _SourceEventParser(this, sourcePage.commands, loc,
                   map.map.sourceMapId, event.sourceEventId, switches, raw)
               .parse();

@@ -55,6 +55,8 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     const conditionAction = (description.mutationActions as JsonRecord[])
       .find(action => action.id === "scene.condition.set")!;
     assert.ok(JSON.stringify(conditionAction).includes('"playerFacing"'));
+    assert.ok(JSON.stringify(conditionAction).includes('"pokedexCaughtCount"'));
+    assert.equal(record(record(conditionAction.extensions).pokedexCaughtCount).projectDimension, "twoD");
     const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const beforeOther = await call("pokemap_query", { projectHandle: workspace.projectHandle,
       resourceKind: "scene", operation: "get", ids: ["other"], view: "detail" });
@@ -80,6 +82,8 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
         sourceKind: "badge", sourceId: "fog", operator: "isFalse", label: "Sans badge Brume" } }],
       ["scene.condition.set", { sceneId: "scene", nodeId: "check", conditionSource: {
         sourceKind: "playerFacing", sourceId: "west", operator: "isFalse" } }],
+      ["scene.condition.set", { sceneId: "scene", nodeId: "check", conditionSource: {
+        sourceKind: "pokedexCaughtCount", sourceId: "national:1:151", operator: "isTrue", field: "minimumCount", value: "20" } }],
       ["scene.interactive_command.set", { sceneId: "scene", nodeId: "gift", command: { kind: "giveItem", itemId: "tm23", quantity: 2 } }],
     ] as [string, JsonRecord][]) {
       const planned = await plan(action, parameters);
@@ -97,8 +101,17 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     assert.deepEqual(scenes[0]?.metadata, scene.metadata);
     const check = (record(scenes[0]?.graph).nodes as JsonRecord[]).find(node => node.id === "check")!;
     assert.deepEqual(record(record(check.payload).conditionSource), {
-      sourceKind: "playerFacing", sourceId: "west", operator: "isFalse",
+      sourceKind: "pokedexCaughtCount", sourceId: "national:1:151", operator: "isTrue", field: "minimumCount", value: "20",
     });
+    for (const value of ["0", "20.5", "65536"]) {
+      const invalidCount = await plan("scene.condition.set", {
+        sceneId: "scene", nodeId: "check", conditionSource: {
+          sourceKind: "pokedexCaughtCount", sourceId: "national:1:151", operator: "isTrue", field: "minimumCount", value,
+        },
+      }, true);
+      assert.ok(invalidCount.domainCode);
+      assert.deepEqual(JSON.parse(await readFile(file, "utf8")), saved);
+    }
     const invalidFacing = await plan("scene.condition.set", {
       sceneId: "scene", nodeId: "check", conditionSource: {
         sourceKind: "playerFacing", sourceId: "diagonal", operator: "isTrue",
@@ -110,6 +123,58 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     assert.equal(record(record(gift.payload).interactiveCommand).quantity, 2);
     assert.equal(gift.title, "Cadeau");
     assert.equal(record(record(scenes[0]?.graph).nodes instanceof Array ? (record(scenes[0]?.graph).nodes as JsonRecord[])[2] : undefined).title, "Fin");
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("MCP refuses caught species conditions in spatial projects before writes", { timeout: 120_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokedex-spatial-mcp-"));
+  const file = join(root, "project.json");
+  const source = { sourceKind: "pokedexCaughtCount", sourceId: "national:1:151", operator: "isTrue", field: "minimumCount", value: "20" };
+  const scene = { id: "scene", name: "Caught species", graph: { startNodeId: "start", nodes: [
+    { id: "start", kind: "start" },
+    { id: "check", kind: "condition", payload: { conditionSource: { sourceKind: "badge", sourceId: "fog", operator: "isTrue" } } },
+    { id: "end", kind: "end" },
+  ], edges: [
+    { id: "enter", fromNodeId: "start", fromPortId: "completed", toNodeId: "check", kind: "default" },
+    { id: "yes", fromNodeId: "check", fromPortId: "true", toNodeId: "end", kind: "conditionTrue" },
+    { id: "no", fromNodeId: "check", fromPortId: "false", toNodeId: "end", kind: "conditionFalse" },
+  ] } };
+  await writeFile(file, JSON.stringify({ name: "Spatial condition", version: "v9", settings: { dimension: "threeD" },
+    pokemon: canonicalPokemonConfig(), maps: [], tilesets: [], scenes: [scene], badges: [{ id: "fog", label: "Badge Brume" }] }));
+  const args = [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
+  if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
+  const client = new Client({ name: "spatial-pokedex-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
+  async function call(name: string, input: JsonRecord, failure = false): Promise<JsonRecord> {
+    const envelope = record((await client.callTool({ name, arguments: input })).structuredContent);
+    assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
+    return record(envelope[failure ? "error" : "data"]);
+  }
+  try {
+    await client.connect(transport);
+    const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    const node = { id: "check", kind: "condition", payload: { conditionSource: source } };
+    let sequence = 0;
+    for (const [actionId, parameters] of [
+      ["scene.condition.set", { sceneId: "scene", nodeId: "check", conditionSource: source }],
+      ["scene.graph.patch", { sceneId: "scene", upsertNodes: [node] }],
+      ["scene.upsert", { scene: { ...scene, graph: { ...scene.graph, nodes: scene.graph.nodes.map(value => value.id === "check" ? node : value) } } }],
+    ] as [string, JsonRecord][]) {
+      const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+      const before = await readFile(file);
+      const id = `reject-${++sequence}`;
+      const error = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+        requestId: id, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle,
+        expectedRevision: validation.snapshotRevision, idempotencyKey: id, parameters,
+      } }, true);
+      assert.equal(error.domainCode, "scene.publication_blocked");
+      assert.ok(JSON.stringify(error).includes("conditionUnsupportedDimension"));
+      assert.deepEqual(await readFile(file), before);
+    }
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
   } finally {
     await client.close();

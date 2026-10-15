@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
 import 'narrative_value.dart';
+import 'pokedex_species_range.dart';
 import 'enums.dart';
 import 'dialogue_line_feedback.dart';
 import 'presentation_interaction_outcome.dart';
@@ -76,6 +77,7 @@ enum SceneConditionSourceKind {
   worldState,
   playerAtEntityAnchor,
   playerFacing,
+  pokedexCaughtCount,
   mapEventInstanceBoolean,
 }
 
@@ -106,6 +108,16 @@ final class SceneConditionSource {
     this.key,
   }) {
     _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
+    if (sourceKind == SceneConditionSourceKind.pokedexCaughtCount &&
+        (PokedexSpeciesRange.tryFromKey(sourceId) == null ||
+         operator == SceneConditionOperator.equals || field != 'minimumCount' ||
+         value == null || !RegExp(r'^[1-9][0-9]*$').hasMatch(value!) ||
+         int.tryParse(value!)?.toString() != value ||
+         int.tryParse(value!) == null || int.parse(value!) > 65535 ||
+         mapId != null || key != null || factOperator != null || expectedFactValue != null)) {
+      throw ArgumentError('Caught species conditions require a bounded national range, minimum count and boolean operator.');
+    }
+
     if (sourceKind == SceneConditionSourceKind.playerFacing &&
         (!EntityFacing.values.any((direction) => direction.name == sourceId) ||
          operator == SceneConditionOperator.equals || field != null ||
@@ -189,6 +201,22 @@ final class SceneConditionSource {
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
     final kind = _readEnum(SceneConditionSourceKind.values,
         json['sourceKind'], 'conditionSource.sourceKind');
+    if (kind == SceneConditionSourceKind.pokedexCaughtCount) {
+      const fields = {'sourceKind', 'sourceId', 'operator', 'field', 'value', 'label', 'debugTechnicalLabel'};
+      if (json.keys.any((field) => !fields.contains(field))) {
+        throw const FormatException('Unknown or incompatible Pokédex count condition field.');
+      }
+      try {
+        return SceneConditionSource(sourceKind: kind,
+            sourceId: _readRequiredString(json, 'sourceId'),
+            operator: _readEnum(SceneConditionOperator.values, json['operator'], 'conditionSource.operator'),
+            field: _readRequiredString(json, 'field'), value: _readRequiredString(json, 'value'),
+            label: _readOptionalString(json, 'label'),
+            debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+      } on ArgumentError catch (error) {
+        throw FormatException(error.message?.toString() ?? 'Invalid Pokédex count condition.');
+      }
+    }
     if (kind == SceneConditionSourceKind.playerFacing) {
       const fields = {'sourceKind', 'sourceId', 'operator', 'label',
         'debugTechnicalLabel'};
@@ -267,6 +295,19 @@ final class SceneConditionSource {
             ),
     );
   }
+
+  factory SceneConditionSource.pokedexCaughtAtLeast({
+    required PokedexSpeciesRange range, required int minimum,
+    bool expected = true, String? label, String? debugTechnicalLabel,
+  }) => SceneConditionSource(sourceKind: SceneConditionSourceKind.pokedexCaughtCount,
+      sourceId: range.key, operator: expected ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+      field: 'minimumCount', value: minimum.toString(), label: label, debugTechnicalLabel: debugTechnicalLabel);
+
+  PokedexSpeciesRange? get pokedexSpeciesRange =>
+      sourceKind == SceneConditionSourceKind.pokedexCaughtCount ? PokedexSpeciesRange.tryFromKey(sourceId) : null;
+
+  int? get pokedexMinimumCaughtCount =>
+      sourceKind == SceneConditionSourceKind.pokedexCaughtCount ? int.tryParse(value ?? '') : null;
 
   factory SceneConditionSource.playerFacing({
     required EntityFacing direction,

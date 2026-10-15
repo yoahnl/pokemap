@@ -11,10 +11,10 @@ import 'runtime_battle_setup_exception.dart';
 final class RuntimePokemonSpeciesNotFoundException
     extends RuntimeBattleSetupException {
   const RuntimePokemonSpeciesNotFoundException(this.speciesId)
-      : super(
-          'Espèce Pokémon introuvable pour démarrer le combat.',
-          debugDetails: 'speciesId=$speciesId',
-        );
+    : super(
+        'Espèce Pokémon introuvable pour démarrer le combat.',
+        debugDetails: 'speciesId=$speciesId',
+      );
 
   final String speciesId;
 }
@@ -22,10 +22,10 @@ final class RuntimePokemonSpeciesNotFoundException
 final class RuntimePokemonSpeciesDisabledException
     extends RuntimeBattleSetupException {
   const RuntimePokemonSpeciesDisabledException(String speciesId)
-      : super(
-          'Cette espèce Pokémon est désactivée dans le projet.',
-          debugDetails: 'speciesId=$speciesId',
-        );
+    : super(
+        'Cette espèce Pokémon est désactivée dans le projet.',
+        debugDetails: 'speciesId=$speciesId',
+      );
 }
 
 /// Projection progression validée d'une fiche espèce projet.
@@ -61,8 +61,9 @@ RuntimePokemonSpeciesProgression parseRuntimePokemonSpeciesProgression(
   required String filePath,
 }) {
   final rawDeclaredSpeciesId = rawJson['id'];
-  final declaredSpeciesId =
-      rawDeclaredSpeciesId is String ? rawDeclaredSpeciesId.trim() : '';
+  final declaredSpeciesId = rawDeclaredSpeciesId is String
+      ? rawDeclaredSpeciesId.trim()
+      : '';
   if (declaredSpeciesId != expectedSpeciesId) {
     throw RuntimeBattleSetupException(
       'Les données de progression Pokémon locales sont invalides; combat impossible.',
@@ -72,8 +73,9 @@ RuntimePokemonSpeciesProgression parseRuntimePokemonSpeciesProgression(
   }
 
   final rawProgression = rawJson['progression'];
-  final progression =
-      rawProgression is Map ? rawProgression.cast<String, dynamic>() : null;
+  final progression = rawProgression is Map
+      ? rawProgression.cast<String, dynamic>()
+      : null;
   if (progression == null) {
     throw RuntimeBattleSetupException(
       'Les données de progression Pokémon locales sont invalides; combat impossible.',
@@ -82,8 +84,9 @@ RuntimePokemonSpeciesProgression parseRuntimePokemonSpeciesProgression(
     );
   }
   final rawGrowthRateId = progression['growthRateId'];
-  final growthRateId =
-      rawGrowthRateId is String ? rawGrowthRateId.trim().toLowerCase() : '';
+  final growthRateId = rawGrowthRateId is String
+      ? rawGrowthRateId.trim().toLowerCase()
+      : '';
   final rawBaseExp = progression['baseExp'];
   final rawCatchRate = progression['catchRate'];
   final baseExp = rawBaseExp is int ? rawBaseExp : null;
@@ -149,19 +152,9 @@ class RuntimePokemonSpeciesLoader {
     }
     final normalizedSpeciesId = speciesId;
 
-    final speciesDirectoryPath = _resolveBoundedProjectDirectory(
-      projectRootDirectory,
-      _normalizeConfiguredRelativePath(
-        pokemonConfig.speciesDir,
-        fallback: 'data/pokemon/species',
-      ),
-    );
-    final projectRoot = _normalizedProjectRoot(projectRootDirectory);
-    final cacheKey = '$projectRoot|${p.normalize(speciesDirectoryPath)}';
-    final snapshot = await _snapshot(
-      cacheKey: cacheKey,
-      projectRoot: projectRoot,
-      speciesDirectoryPath: speciesDirectoryPath,
+    final snapshot = await _projectSnapshot(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
     );
     final indexed = snapshot.index.byId(normalizedSpeciesId);
     if (indexed == null) {
@@ -179,6 +172,34 @@ class RuntimePokemonSpeciesLoader {
       );
     }
     return species;
+  }
+
+  Future<PokemonSpeciesIndex> loadIndex({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) async => (await _projectSnapshot(
+    projectRootDirectory: projectRootDirectory,
+    pokemonConfig: pokemonConfig,
+  )).index;
+
+  Future<_RuntimePokemonSpeciesSnapshot> _projectSnapshot({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) {
+    final speciesDirectoryPath = _resolveBoundedProjectDirectory(
+      projectRootDirectory,
+      _normalizeConfiguredRelativePath(
+        pokemonConfig.speciesDir,
+        fallback: 'data/pokemon/species',
+      ),
+    );
+    final projectRoot = _normalizedProjectRoot(projectRootDirectory);
+    final cacheKey = '$projectRoot|${p.normalize(speciesDirectoryPath)}';
+    return _snapshot(
+      cacheKey: cacheKey,
+      projectRoot: projectRoot,
+      speciesDirectoryPath: speciesDirectoryPath,
+    );
   }
 
   Future<_RuntimePokemonSpeciesSnapshot> _snapshot({
@@ -231,10 +252,7 @@ class RuntimePokemonSpeciesLoader {
     for (final file in files) {
       snapshotMetrics.onSpeciesJsonRead(projectRoot, file.path);
       _actualReadCount += 1;
-      final rawJson = await _readJsonFile(
-        file,
-        label: 'Pokemon species file',
-      );
+      final rawJson = await _readJsonFile(file, label: 'Pokemon species file');
       final rawSpeciesId = rawJson['id'];
       final speciesId = rawSpeciesId is String ? rawSpeciesId.trim() : '';
       if (!_isSafeSpeciesId(speciesId)) {
@@ -244,8 +262,9 @@ class RuntimePokemonSpeciesLoader {
               'Unsafe declared speciesId=$speciesId, file=${file.path}',
         );
       }
-      final relativePath =
-          p.normalize(p.relative(file.path, from: projectRoot));
+      final relativePath = p.normalize(
+        p.relative(file.path, from: projectRoot),
+      );
       final previousPath = relativePathById[speciesId];
       if (previousPath != null) {
         throw RuntimeBattleSetupException(
@@ -307,10 +326,8 @@ class RuntimePokemonSpeciesLoader {
     }
   }
 
-  ({
-    PokemonSpeciesFile speciesFile,
-    RuntimePokemonSpecies runtimeSpecies,
-  }) _parseRuntimeSpecies(
+  ({PokemonSpeciesFile speciesFile, RuntimePokemonSpecies runtimeSpecies})
+  _parseRuntimeSpecies(
     Map<String, dynamic> rawJson, {
     required String expectedSpeciesId,
     required String filePath,
@@ -538,8 +555,8 @@ class RuntimePokemonSpeciesLoader {
     required String ratioKey,
   }) {
     final breeding = (rawBreeding as Map?)?.cast<String, dynamic>();
-    final genderRatio =
-        (breeding?['genderRatio'] as Map?)?.cast<String, dynamic>();
+    final genderRatio = (breeding?['genderRatio'] as Map?)
+        ?.cast<String, dynamic>();
     final rawValue = genderRatio?[ratioKey];
     if (rawValue is num) {
       return rawValue.toDouble();
@@ -630,11 +647,11 @@ final class _RuntimePokemonSpeciesSnapshot {
     required Map<String, RuntimePokemonSpecies> speciesById,
     required Map<String, String> relativePathById,
     required Set<String> disabledSpeciesIds,
-  })  : speciesById = Map<String, RuntimePokemonSpecies>.unmodifiable(
-          speciesById,
-        ),
-        relativePathById = Map<String, String>.unmodifiable(relativePathById),
-        disabledSpeciesIds = Set.unmodifiable(disabledSpeciesIds);
+  }) : speciesById = Map<String, RuntimePokemonSpecies>.unmodifiable(
+         speciesById,
+       ),
+       relativePathById = Map<String, String>.unmodifiable(relativePathById),
+       disabledSpeciesIds = Set.unmodifiable(disabledSpeciesIds);
 
   final PokemonSpeciesIndex index;
   final Map<String, RuntimePokemonSpecies> speciesById;
@@ -677,11 +694,8 @@ class RuntimePokemonSpecies {
   final Map<String, String> names;
   final String formId;
 
-  String displayName(String locale) => resolveLocalizedName(
-        names: names,
-        locale: locale,
-        fallback: id,
-      );
+  String displayName(String locale) =>
+      resolveLocalizedName(names: names, locale: locale, fallback: id);
 
   /// Typing défensif minimal réellement nécessaire à partir de BE5.
   ///
