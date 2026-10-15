@@ -33,6 +33,8 @@ extension _EntityPropertiesNpcRuntime on _EntityPropertiesPanelState {
     EditorNotifier notifier,
   ) {
     final modeIds = MapEntityNpcMovementMode.values
+        .where((mode) => mode != MapEntityNpcMovementMode.fixedRoute ||
+            _npcMovementMode == MapEntityNpcMovementMode.fixedRoute)
         .map((mode) => mode.name)
         .toList(growable: false);
 
@@ -66,7 +68,9 @@ extension _EntityPropertiesNpcRuntime on _EntityPropertiesPanelState {
                   await showCupertinoListPicker<MapEntityNpcMovementMode>(
                 context: context,
                 title: _l('Déplacement PNJ', 'NPC movement'),
-                items: MapEntityNpcMovementMode.values,
+                items: MapEntityNpcMovementMode.values.where((mode) =>
+                    mode != MapEntityNpcMovementMode.fixedRoute ||
+                    _npcMovementMode == MapEntityNpcMovementMode.fixedRoute).toList(),
                 labelOf: _npcMovementModeLabel,
               );
               if (picked != null) {

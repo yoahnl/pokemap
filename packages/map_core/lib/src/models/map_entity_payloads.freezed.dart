@@ -1555,7 +1555,7 @@ $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule {
 /// @nodoc
 mixin _$MapEntityNpcMovementConfig {
 
- MapEntityNpcMovementMode get mode; List<GridPos> get waypoints; bool get loop; int get pauseDurationMs; int get stepDurationMs;
+ MapEntityNpcMovementMode get mode; List<GridPos> get waypoints; List<MapEntityNpcRouteStep> get routeSteps; MapEntityNpcRouteInstanceBoolean? get suspendWhenInstanceBoolean; bool get loop; int get pauseDurationMs; int get stepDurationMs;
 /// Create a copy of MapEntityNpcMovementConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1568,16 +1568,16 @@ $MapEntityNpcMovementConfigCopyWith<MapEntityNpcMovementConfig> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other.waypoints, waypoints)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other.waypoints, waypoints)&&const DeepCollectionEquality().equals(other.routeSteps, routeSteps)&&(identical(other.suspendWhenInstanceBoolean, suspendWhenInstanceBoolean) || other.suspendWhenInstanceBoolean == suspendWhenInstanceBoolean)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(waypoints),loop,pauseDurationMs,stepDurationMs);
+int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(waypoints),const DeepCollectionEquality().hash(routeSteps),suspendWhenInstanceBoolean,loop,pauseDurationMs,stepDurationMs);
 
 @override
 String toString() {
-  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
+  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, routeSteps: $routeSteps, suspendWhenInstanceBoolean: $suspendWhenInstanceBoolean, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
 }
 
 
@@ -1588,7 +1588,7 @@ abstract mixin class $MapEntityNpcMovementConfigCopyWith<$Res>  {
   factory $MapEntityNpcMovementConfigCopyWith(MapEntityNpcMovementConfig value, $Res Function(MapEntityNpcMovementConfig) _then) = _$MapEntityNpcMovementConfigCopyWithImpl;
 @useResult
 $Res call({
- MapEntityNpcMovementMode mode, List<GridPos> waypoints, bool loop, int pauseDurationMs, int stepDurationMs
+ MapEntityNpcMovementMode mode, List<GridPos> waypoints, List<MapEntityNpcRouteStep> routeSteps, MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean, bool loop, int pauseDurationMs, int stepDurationMs
 });
 
 
@@ -1605,11 +1605,13 @@ class _$MapEntityNpcMovementConfigCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcMovementConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? mode = null,Object? waypoints = null,Object? loop = null,Object? pauseDurationMs = null,Object? stepDurationMs = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? mode = null,Object? waypoints = null,Object? routeSteps = null,Object? suspendWhenInstanceBoolean = freezed,Object? loop = null,Object? pauseDurationMs = null,Object? stepDurationMs = null,}) {
   return _then(_self.copyWith(
 mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcMovementMode,waypoints: null == waypoints ? _self.waypoints : waypoints // ignore: cast_nullable_to_non_nullable
-as List<GridPos>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
+as List<GridPos>,routeSteps: null == routeSteps ? _self.routeSteps : routeSteps // ignore: cast_nullable_to_non_nullable
+as List<MapEntityNpcRouteStep>,suspendWhenInstanceBoolean: freezed == suspendWhenInstanceBoolean ? _self.suspendWhenInstanceBoolean : suspendWhenInstanceBoolean // ignore: cast_nullable_to_non_nullable
+as MapEntityNpcRouteInstanceBoolean?,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,pauseDurationMs: null == pauseDurationMs ? _self.pauseDurationMs : pauseDurationMs // ignore: cast_nullable_to_non_nullable
 as int,stepDurationMs: null == stepDurationMs ? _self.stepDurationMs : stepDurationMs // ignore: cast_nullable_to_non_nullable
 as int,
@@ -1697,10 +1699,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  bool loop,  int pauseDurationMs,  int stepDurationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  int stepDurationMs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntityNpcMovementConfig() when $default != null:
-return $default(_that.mode,_that.waypoints,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
+return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
   return orElse();
 
 }
@@ -1718,10 +1720,10 @@ return $default(_that.mode,_that.waypoints,_that.loop,_that.pauseDurationMs,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  bool loop,  int pauseDurationMs,  int stepDurationMs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  int stepDurationMs)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcMovementConfig():
-return $default(_that.mode,_that.waypoints,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
+return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1738,10 +1740,10 @@ return $default(_that.mode,_that.waypoints,_that.loop,_that.pauseDurationMs,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  bool loop,  int pauseDurationMs,  int stepDurationMs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  int stepDurationMs)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcMovementConfig() when $default != null:
-return $default(_that.mode,_that.waypoints,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
+return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
   return null;
 
 }
@@ -1753,7 +1755,7 @@ return $default(_that.mode,_that.waypoints,_that.loop,_that.pauseDurationMs,_tha
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntityNpcMovementConfig implements MapEntityNpcMovementConfig {
-  const _MapEntityNpcMovementConfig({this.mode = MapEntityNpcMovementMode.idle, final  List<GridPos> waypoints = const <GridPos>[], this.loop = true, this.pauseDurationMs = 0, this.stepDurationMs = 200}): _waypoints = waypoints;
+  const _MapEntityNpcMovementConfig({this.mode = MapEntityNpcMovementMode.idle, final  List<GridPos> waypoints = const <GridPos>[], final  List<MapEntityNpcRouteStep> routeSteps = const <MapEntityNpcRouteStep>[], this.suspendWhenInstanceBoolean, this.loop = true, this.pauseDurationMs = 0, this.stepDurationMs = 200}): _waypoints = waypoints,_routeSteps = routeSteps;
   factory _MapEntityNpcMovementConfig.fromJson(Map<String, dynamic> json) => _$MapEntityNpcMovementConfigFromJson(json);
 
 @override@JsonKey() final  MapEntityNpcMovementMode mode;
@@ -1764,6 +1766,14 @@ class _MapEntityNpcMovementConfig implements MapEntityNpcMovementConfig {
   return EqualUnmodifiableListView(_waypoints);
 }
 
+ final  List<MapEntityNpcRouteStep> _routeSteps;
+@override@JsonKey() List<MapEntityNpcRouteStep> get routeSteps {
+  if (_routeSteps is EqualUnmodifiableListView) return _routeSteps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_routeSteps);
+}
+
+@override final  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean;
 @override@JsonKey() final  bool loop;
 @override@JsonKey() final  int pauseDurationMs;
 @override@JsonKey() final  int stepDurationMs;
@@ -1781,16 +1791,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other._waypoints, _waypoints)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other._waypoints, _waypoints)&&const DeepCollectionEquality().equals(other._routeSteps, _routeSteps)&&(identical(other.suspendWhenInstanceBoolean, suspendWhenInstanceBoolean) || other.suspendWhenInstanceBoolean == suspendWhenInstanceBoolean)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(_waypoints),loop,pauseDurationMs,stepDurationMs);
+int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(_waypoints),const DeepCollectionEquality().hash(_routeSteps),suspendWhenInstanceBoolean,loop,pauseDurationMs,stepDurationMs);
 
 @override
 String toString() {
-  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
+  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, routeSteps: $routeSteps, suspendWhenInstanceBoolean: $suspendWhenInstanceBoolean, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
 }
 
 
@@ -1801,7 +1811,7 @@ abstract mixin class _$MapEntityNpcMovementConfigCopyWith<$Res> implements $MapE
   factory _$MapEntityNpcMovementConfigCopyWith(_MapEntityNpcMovementConfig value, $Res Function(_MapEntityNpcMovementConfig) _then) = __$MapEntityNpcMovementConfigCopyWithImpl;
 @override @useResult
 $Res call({
- MapEntityNpcMovementMode mode, List<GridPos> waypoints, bool loop, int pauseDurationMs, int stepDurationMs
+ MapEntityNpcMovementMode mode, List<GridPos> waypoints, List<MapEntityNpcRouteStep> routeSteps, MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean, bool loop, int pauseDurationMs, int stepDurationMs
 });
 
 
@@ -1818,11 +1828,13 @@ class __$MapEntityNpcMovementConfigCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcMovementConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? mode = null,Object? waypoints = null,Object? loop = null,Object? pauseDurationMs = null,Object? stepDurationMs = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? mode = null,Object? waypoints = null,Object? routeSteps = null,Object? suspendWhenInstanceBoolean = freezed,Object? loop = null,Object? pauseDurationMs = null,Object? stepDurationMs = null,}) {
   return _then(_MapEntityNpcMovementConfig(
 mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcMovementMode,waypoints: null == waypoints ? _self._waypoints : waypoints // ignore: cast_nullable_to_non_nullable
-as List<GridPos>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
+as List<GridPos>,routeSteps: null == routeSteps ? _self._routeSteps : routeSteps // ignore: cast_nullable_to_non_nullable
+as List<MapEntityNpcRouteStep>,suspendWhenInstanceBoolean: freezed == suspendWhenInstanceBoolean ? _self.suspendWhenInstanceBoolean : suspendWhenInstanceBoolean // ignore: cast_nullable_to_non_nullable
+as MapEntityNpcRouteInstanceBoolean?,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,pauseDurationMs: null == pauseDurationMs ? _self.pauseDurationMs : pauseDurationMs // ignore: cast_nullable_to_non_nullable
 as int,stepDurationMs: null == stepDurationMs ? _self.stepDurationMs : stepDurationMs // ignore: cast_nullable_to_non_nullable
 as int,

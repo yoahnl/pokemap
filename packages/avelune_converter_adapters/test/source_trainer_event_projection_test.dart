@@ -222,13 +222,13 @@ void main() {
       projection = project();
     });
 
-    test('eight stationary source trainers become native NPC encounters', () {
+    test('eleven source trainers become native NPC encounters with bounded autonomous routes', () {
       final eligible = const SourceEventProjector().characterImportCandidates(
           source: source,
           analysis: analysis,
           nativeMaps: nativeMaps,
           trainerBindings: bindings.byEventIdentity);
-      expect(eligible, hasLength(8));
+      expect(eligible, hasLength(11));
       for (final event in eligible) {
         final program =
             event.pages.first.body.nodes.single as SourceTrainerProgramNode;
@@ -271,8 +271,8 @@ void main() {
                 .where((node) => node.kind == SceneNodeKind.battle),
             isEmpty);
       }
-      expect(projection.scenes, hasLength(16));
-      expect(projection.facts, hasLength(8));
+      expect(projection.scenes, hasLength(22));
+      expect(projection.facts, hasLength(11));
       expect(
           projection.nativeMaps.values.expand((map) => map.triggers), isEmpty);
     });
@@ -311,22 +311,17 @@ void main() {
       }
     });
 
-    test('three autonomous trainers remain whole-event quarantined', () {
+    test('three autonomous trainers retain native typed routes and trainer bindings', () {
       for (final eventId in [6, 8, 11]) {
         final event = analysis.eventAt(98, eventId)!;
-        expect(_eventEvidence(projection, event)['status'],
-            'quarantinedWholeEvent');
-        expect(_eventEvidence(projection, event)['gaps'],
-            contains('sourceTrainerAutonomousMovementUnsupported'));
-        expect(
-            projection.nativeMaps[98]!.entities.where((entity) =>
-                entity.properties['sourceEventIdentity'] ==
-                event.identity.value),
-            isEmpty);
-        expect(
-            projection.scenes.where((scene) =>
-                scene.metadata['sourceEventIdentity'] == event.identity.value),
-            isEmpty);
+        expect(_eventEvidence(projection, event)['status'], 'adaptedStaticSemantics');
+        expect(_eventEvidence(projection, event)['gaps'], isEmpty);
+        final entity = _anchor(projection, event);
+        expect(entity.npc!.movement.mode, MapEntityNpcMovementMode.fixedRoute);
+        expect(entity.npc!.movement.routeSteps, isNotEmpty);
+        expect(entity.npc!.trainerId, bindings.byEventIdentity[event.identity]!.nativeTrainer.id);
+        expect(projection.scenes.where((scene) =>
+            scene.metadata['sourceEventIdentity'] == event.identity.value), hasLength(2));
       }
     });
 

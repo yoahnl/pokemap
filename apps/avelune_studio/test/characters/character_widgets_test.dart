@@ -117,7 +117,7 @@ void main() {
       await tester.tap(find.text('Bloque le passage'));
       await tester.pump();
       expect(commands.selected(selected)!.blocksMovement, isFalse);
-      final trainerPicker = find.byType(DropdownButtonFormField<String>);
+      final trainerPicker = find.byKey(ValueKey('trainer-$selected-null'));
       await tester.ensureVisible(trainerPicker);
       await tester.tap(trainerPicker);
       await tester.pumpAndSettle();

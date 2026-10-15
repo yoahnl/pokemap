@@ -168,6 +168,18 @@ _MapEntityNpcMovementConfig _$MapEntityNpcMovementConfigFromJson(
           ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <GridPos>[],
+  routeSteps:
+      (json['routeSteps'] as List<dynamic>?)
+          ?.map(
+            (e) => MapEntityNpcRouteStep.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const <MapEntityNpcRouteStep>[],
+  suspendWhenInstanceBoolean: json['suspendWhenInstanceBoolean'] == null
+      ? null
+      : MapEntityNpcRouteInstanceBoolean.fromJson(
+          json['suspendWhenInstanceBoolean'] as Map<String, dynamic>,
+        ),
   loop: json['loop'] as bool? ?? true,
   pauseDurationMs: (json['pauseDurationMs'] as num?)?.toInt() ?? 0,
   stepDurationMs: (json['stepDurationMs'] as num?)?.toInt() ?? 200,
@@ -178,6 +190,8 @@ Map<String, dynamic> _$MapEntityNpcMovementConfigToJson(
 ) => <String, dynamic>{
   'mode': _$MapEntityNpcMovementModeEnumMap[instance.mode]!,
   'waypoints': instance.waypoints.map((e) => e.toJson()).toList(),
+  'routeSteps': instance.routeSteps.map((e) => e.toJson()).toList(),
+  'suspendWhenInstanceBoolean': instance.suspendWhenInstanceBoolean?.toJson(),
   'loop': instance.loop,
   'pauseDurationMs': instance.pauseDurationMs,
   'stepDurationMs': instance.stepDurationMs,
@@ -187,6 +201,7 @@ const _$MapEntityNpcMovementModeEnumMap = {
   MapEntityNpcMovementMode.idle: 'idle',
   MapEntityNpcMovementMode.patrol: 'patrol',
   MapEntityNpcMovementMode.scriptedOnly: 'scriptedOnly',
+  MapEntityNpcMovementMode.fixedRoute: 'fixedRoute',
 };
 
 _MapEntitySignData _$MapEntitySignDataFromJson(Map<String, dynamic> json) =>

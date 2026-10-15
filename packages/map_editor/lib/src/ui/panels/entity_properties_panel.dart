@@ -88,6 +88,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   final _npcMovementPauseMs = TextEditingController();
   final _npcMovementStepMs = TextEditingController();
   final _npcWaypointRows = <_NpcWaypointDraft>[];
+  final _npcRouteSteps = <MapEntityNpcRouteStep>[];
+  MapEntityNpcRouteInstanceBoolean? _npcRouteSuspension;
+  List<EntityFacing> _npcCounterInteractionSides = const [];
 
   // --- Visibilité PNJ + dialogues conditionnels (Map Entities, pas Step Studio) ---
   NpcRuntimeVisibilityUiMode _npcVisUiMode = NpcRuntimeVisibilityUiMode.always;
@@ -536,11 +539,13 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   }
 
   String _npcMovementModeLabel(MapEntityNpcMovementMode mode) {
+    if (mode == MapEntityNpcMovementMode.fixedRoute) return _l('Suite de pas', 'Fixed steps');
     if (!widget.embedded) return mode.name;
     return switch (mode) {
       MapEntityNpcMovementMode.idle => 'Immobile',
       MapEntityNpcMovementMode.patrol => 'Patrouille',
       MapEntityNpcMovementMode.scriptedOnly => 'Scripted only',
+      MapEntityNpcMovementMode.fixedRoute => 'Suite de pas',
     };
   }
 
@@ -2067,6 +2072,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     _npcLineOfSight.text = n.lineOfSightRange.toString();
     final movement = n.movement;
     _npcMovementMode = movement.mode;
+    _npcRouteSteps..clear()..addAll(movement.routeSteps);
+    _npcRouteSuspension = movement.suspendWhenInstanceBoolean;
+    _npcCounterInteractionSides = n.counterInteractionSides;
     _npcMovementLoop = movement.loop;
     _npcMovementPauseMs.text = movement.pauseDurationMs.toString();
     _npcMovementStepMs.text = movement.stepDurationMs.toString();
@@ -2315,7 +2323,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         final pauseMs = int.tryParse(_npcMovementPauseMs.text.trim()) ?? 0;
         final stepMs = int.tryParse(_npcMovementStepMs.text.trim()) ?? 200;
         final waypoints = <GridPos>[];
-        for (var i = 0; i < _npcWaypointRows.length; i++) {
+        for (var i = 0; _npcMovementMode != MapEntityNpcMovementMode.fixedRoute && i < _npcWaypointRows.length; i++) {
           final row = _npcWaypointRows[i];
           final wx = int.tryParse(row.xController.text.trim());
           final wy = int.tryParse(row.yController.text.trim());
@@ -2392,11 +2400,14 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           visualElementId: '',
           trainerId: trainerId,
           lineOfSightRange: losRange.clamp(0, 999),
+          counterInteractionSides: _npcCounterInteractionSides,
           defeatDialogueRef: defeatDlgRef,
           characterId: charId,
           movement: MapEntityNpcMovementConfig(
             mode: _npcMovementMode,
-            waypoints: waypoints,
+            waypoints: _npcMovementMode == MapEntityNpcMovementMode.fixedRoute ? const [] : waypoints,
+            routeSteps: _npcMovementMode == MapEntityNpcMovementMode.fixedRoute ? List.unmodifiable(_npcRouteSteps) : const [],
+            suspendWhenInstanceBoolean: _npcMovementMode == MapEntityNpcMovementMode.fixedRoute ? _npcRouteSuspension : null,
             loop: _npcMovementLoop,
             pauseDurationMs: pauseMs < 0 ? 0 : pauseMs,
             stepDurationMs: stepMs <= 0 ? 200 : stepMs,

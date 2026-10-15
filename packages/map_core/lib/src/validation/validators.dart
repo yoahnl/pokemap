@@ -7,6 +7,7 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/items/project_item_catalog.dart';
 import '../models/map_data.dart';
+import '../models/map_entity_payloads.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
@@ -2729,6 +2730,13 @@ class MapValidator {
       if (entity.fieldObstacle != null &&
           (map.spatialScene != null || map.version == ProjectVersion.v9)) {
         throw ValidationException('Field obstacles require a 2D map.');
+      }
+      if ((map.spatialScene != null || map.version == ProjectVersion.v9) &&
+          entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute) {
+        throw const ValidationException(
+          'Fixed NPC routes require a 2D map.',
+          code: 'npc.fixed_route.dimension',
+        );
       }
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {

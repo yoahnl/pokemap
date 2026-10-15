@@ -14,6 +14,7 @@ import 'source_town_map_binding.dart';
 import 'source_cut_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
 import 'source_healing_display_binding.dart';
+import 'source_npc_fixed_route_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -417,7 +418,12 @@ final class _ProjectionBuilder {
         sourceSnapshotHash = source.snapshot.canonicalHash, originalDoorIdentities = {
           for (final event in analysis.events)
             if (analysis.profile.isQualified && _hasOriginalDoorMapHash(source, event)) event.identity,
-        };
+        } {
+    if (analysis.events.map((event) => event.identity).toSet().length != analysis.events.length ||
+        analysis.events.map((event) => (event.sourceMapId, event.sourceEventId)).toSet().length != analysis.events.length) {
+      throw const NativeWriteException('events.source.binding', 'Source event identities must be unique.');
+    }
+  }
   final NormalizedSourceProject source;
   final SourceSemanticResolver semanticResolver;
   final Sha256Hash sourceSnapshotHash;
@@ -621,10 +627,27 @@ final class _ProjectionBuilder {
             'nativeTrainerVictoryDialogueId': trainerBindings[event.identity]!.nativeTrainer.victoryDialogueId,
             'sourceApproachTimingParityQualified': false,
             'sourceTrainerIntroPresentationParityQualified': false,
-            'sourceAutonomousMovementExecuted': false,
+            'nativeAutonomousMovementExecuted': _fixedRouteBindings(event) != null,
             'sourceAfterWinFacing': 'nativeNpcInteractionVisualFacing',
             'persistentFacingCertified': false,
             'fullSourceTrainerParityQualified': false,
+          },
+        if (gaps.isEmpty && _fixedRouteBindings(event) != null)
+          'nativeFixedRoute': {
+            'nativeExecutionQualified': true,
+            'pages': [for (final binding in _fixedRouteBindings(event)!) binding.toJson()],
+            'movement': _nativeFixedMovement(event).toJson(),
+            'sourceProgramQualified': true,
+            'sourceParity': false,
+            'nativePauseScope': 'allAutonomousNpcsDuringDialogueOrMenu',
+            'counterInteractionSides': _fixedRouteCounterSides(event)!.map((side) => side.name).toList(),
+            'sourcePauseScope': 'interactingEventOwner',
+            if (_hasTrainerProgram(event)) ...{
+              'nativeDefeatedTrainerLineOfSight': 'persistentAveluneDefeatGuard',
+              'sourceDefeatedPageLineOfSightAfterNewInstanceParity': false,
+              'nativeDefeatedTrainerVoluntaryInteraction': true,
+            },
+            'sourceScriptsExecuted': 0,
           },
         if (gaps.isEmpty && _isPokedexRewardFamily(event))
           'nativePokedexReward': {
@@ -975,6 +998,109 @@ final class _ProjectionBuilder {
       ? 'Source event ${event.sourceEventId}'
       : event.name;
 
+  late final SourceNpcFixedRouteBindingResolver _fixedRouteResolver =
+      SourceNpcFixedRouteBindingResolver.forProject(source);
+  final _fixedRouteBindingsByEvent =
+      Map<SourceEventDefinition, List<SourceNpcFixedRouteBinding>?>.identity();
+
+  List<SourceNpcFixedRouteBinding>? _fixedRouteBindings(
+      SourceEventDefinition event) {
+    if (_fixedRouteBindingsByEvent.containsKey(event)) {
+      return _fixedRouteBindingsByEvent[event];
+    }
+    final bindings = <SourceNpcFixedRouteBinding>[];
+    try {
+      for (final page in event.pages) {
+        if (page.graphic?.moveType != 3) {
+          _fixedRouteBindingsByEvent[event] = null;
+          return null;
+        }
+        final binding = _fixedRouteResolver.resolve(
+            sourceMapId: event.sourceMapId,
+            sourceEventId: event.sourceEventId,
+            sourcePageIndex: page.originalPageIndex);
+        if (!binding.isBoundToPage(source: source, profile: analysis.profile,
+            event: event, page: page) ||
+            (bindings.isNotEmpty &&
+                (bindings.first.nativeMovement != binding.nativeMovement ||
+                 bindings.first.initialFacing != binding.initialFacing))) {
+          _fixedRouteBindingsByEvent[event] = null;
+          return null;
+        }
+        bindings.add(binding);
+      }
+    } on SourceNpcFixedRouteBindingUnavailable {
+      _fixedRouteBindingsByEvent[event] = null;
+      return null;
+    }
+    final result = bindings.isEmpty ? null : List<SourceNpcFixedRouteBinding>.unmodifiable(bindings);
+    _fixedRouteBindingsByEvent[event] = result;
+    return result;
+  }
+
+  MapEntityNpcMovementConfig _nativeFixedMovement(SourceEventDefinition event) {
+    final bindings = _fixedRouteBindings(event);
+    if (bindings == null) return const MapEntityNpcMovementConfig();
+    return bindings.first.nativeMovement.copyWith(
+      suspendWhenInstanceBoolean: _hasTrainerProgram(event)
+          ? MapEntityNpcRouteInstanceBoolean(key: 'npc.autonomousRouteStopped')
+          : null,
+    );
+  }
+
+  List<EntityFacing>? _fixedRouteCounterSides(SourceEventDefinition event) {
+    final bindings = _fixedRouteBindings(event);
+    if (bindings == null) return null;
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) return null;
+    final positions = <GridPos>{GridPos(x: event.x, y: event.y)};
+    var position = positions.single;
+    for (final step in bindings.first.nativeMovement.routeSteps) {
+      if (step is! MapEntityNpcMoveStep) continue;
+      final delta = switch (step.direction) {
+        EntityFacing.north => (0, -1), EntityFacing.south => (0, 1),
+        EntityFacing.east => (1, 0), EntityFacing.west => (-1, 0),
+      };
+      position = GridPos(x: position.x + delta.$1, y: position.y + delta.$2);
+      if (position.x < 0 || position.y < 0 || position.x >= map.size.width ||
+          position.y >= map.size.height) {
+        return null;
+      }
+      positions.add(position);
+    }
+    if (bindings.first.nativeMovement.loop &&
+        position != GridPos(x: event.x, y: event.y)) {
+      return null;
+    }
+    const sides = [(EntityFacing.north, 0, -1), (EntityFacing.south, 0, 1),
+      (EntityFacing.east, 1, 0), (EntityFacing.west, -1, 0)];
+    final found = <EntityFacing>{};
+    for (final position in positions) {
+      for (final side in sides) {
+        final x = position.x + side.$2, y = position.y + side.$3;
+        if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) continue;
+        final cell = semanticResolver.cellAt(event.sourceMapId, x, y);
+        if (semanticResolver.resolveCell(cell).counter) found.add(side.$1);
+      }
+    }
+    for (final position in positions) {
+      for (final side in sides.where((side) => found.contains(side.$1))) {
+        final x = position.x + side.$2, y = position.y + side.$3;
+        if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) continue;
+        final cell = semanticResolver.cellAt(event.sourceMapId, x, y);
+        final counter = semanticResolver.resolveCell(cell).counter;
+        final blocked = map.layers.whereType<CollisionLayer>().any((layer) =>
+            y * map.size.width + x < layer.collisions.length &&
+            layer.collisions[y * map.size.width + x]);
+        if (counter != blocked || (counter &&
+            semanticResolver.resolveConnectionEntryTile(cell).status != SourcePassageStatus.blocked)) {
+          return null;
+        }
+      }
+    }
+    return List.unmodifiable(found);
+  }
+
   bool _supportsInteractionFacing(SourceEventDefinition event) {
     if (event.pages.length != 1 ||
         maps[event.sourceMapId]!.spatialScene != null) {
@@ -984,14 +1110,15 @@ final class _ProjectionBuilder {
     final graphic = page.graphic;
     return graphic != null &&
         graphic.characterName.isNotEmpty &&
-        graphic.moveType == 0 &&
+        (graphic.moveType == 0 || _fixedRouteBindings(event) != null) &&
         !graphic.directionFix &&
         !graphic.through &&
         page.triggerCode == 0 &&
         page.condition.kind == SourceEventConditionKind.always &&
-        page.body.nodes.length == 2 &&
-        page.body.nodes.first is SourceTextNode &&
-        (page.body.nodes.first as SourceTextNode).followingChoice == null &&
+        page.body.nodes.length >= 2 &&
+        (page.body.nodes.length == 2 || _fixedRouteBindings(event) != null) &&
+        page.body.nodes.take(page.body.nodes.length - 1).every((node) =>
+            node is SourceTextNode && node.followingChoice == null) &&
         page.body.nodes.last is SourceInteractionFacingNode;
   }
 
@@ -1266,8 +1393,12 @@ final class _ProjectionBuilder {
     if (map.spatialScene != null || map.version == ProjectVersion.v9) {
       gaps.add('sourceTrainerSpatialUnsupported');
     }
-    if (event.pages.any((page) => page.graphic!.moveType != 0)) {
+    if (event.pages.any((page) => page.graphic!.moveType != 0) &&
+        _fixedRouteBindings(event) == null) {
       gaps.add('sourceTrainerAutonomousMovementUnsupported');
+    }
+    if (_fixedRouteBindings(event) != null && _fixedRouteCounterSides(event) == null) {
+      gaps.add('sourceFixedRouteCounterReachUnqualified');
     }
     final passage = semanticResolver.resolveConnectionEntryTile(
         semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
@@ -1602,6 +1733,13 @@ final class _ProjectionBuilder {
       return _nativeCenterNurseGaps(event, checkCharacterBindings: checkCharacterBindings);
     }
     final gaps = <String>{};
+    if (maps[event.sourceMapId]!.version == ProjectVersion.v9 &&
+        _fixedRouteBindings(event) != null) {
+      gaps.add('sourceFixedRouteSpatialUnsupported');
+    }
+    if (_fixedRouteBindings(event) != null && _fixedRouteCounterSides(event) == null) {
+      gaps.add('sourceFixedRouteCounterReachUnqualified');
+    }
     final staticSign = _supportsStaticSign(event);
     final staticWideInteraction = _supportsStaticWideInteraction(event);
     if (_isOriginalDoor(event) && !executionContextQualified) {
@@ -1655,7 +1793,7 @@ final class _ProjectionBuilder {
           graphic.hue != 0 ||
           graphic.opacity != 255 ||
           graphic.blendType != 0 ||
-          graphic.moveType != 0 ||
+          (graphic.moveType != 0 && _fixedRouteBindings(event) == null) ||
           graphic.stepAnime ||
           graphic.alwaysOnTop ||
           (graphic.characterName.isNotEmpty &&
@@ -1708,7 +1846,9 @@ final class _ProjectionBuilder {
             !staticWideInteraction) {
           gaps.add('interactionFootprintUnsupported');
         }
-        if (_hasAdjacentSourceCounter(event)) {
+        if (_hasAdjacentSourceCounter(event) &&
+            (_fixedRouteBindings(event) == null ||
+                _fixedRouteCounterSides(event) == null)) {
           gaps.add('counterInteractionReachUnsupported');
         }
       }
@@ -2124,9 +2264,11 @@ final class _ProjectionBuilder {
             : MapEntityNpcData(
                 characterId: character.characterId,
                 displayName: _name(event),
+                movement: _nativeFixedMovement(event),
                 trainerId: trainer?.nativeTrainer.id,
                 lineOfSightRange: trainer?.programs.first.detectionDistance ?? 0,
-                counterInteractionSides: nativeCenterNurse ? _nurseCounterSides(event) : const [],
+                counterInteractionSides: nativeCenterNurse ? _nurseCounterSides(event)
+                    : _fixedRouteCounterSides(event) ?? const [],
                 facing: switch (graphic.direction) {
                   2 => EntityFacing.south,
                   4 => EntityFacing.west,
@@ -2532,7 +2674,17 @@ final class _SceneBuilder {
     }
     var continuation = next;
     if (program.kind == SourceTrainerProgramKind.encounter) {
-      final winner = _fact(program.defeatedFactId, true, next);
+      var afterVictory = next;
+      if (projection._fixedRouteBindings(event) != null) {
+        afterVictory = _node(SceneActionPayload.consequence(
+          SceneConsequence.setMapEventInstanceBoolean(
+            mapId: projection.maps[event.sourceMapId]!.id,
+            eventId: projection._key(event, 'anchor'),
+            key: 'npc.autonomousRouteStopped', value: true),
+        ));
+        _edge(afterVictory, 'completed', next, SceneEdgeKind.actionCompleted);
+      }
+      final winner = _fact(program.defeatedFactId, true, afterVictory);
       final speech = _dialogue(program.span, null, null, winner,
           dialogueKey: 'trainer_pbs_lose_text',
           feedbackLines: [_staticSourceTextFeedback(binding.nativeVictorySpeech)!]);

@@ -325,6 +325,13 @@ void _validateEntity(
       (map.spatialScene != null || map.version == ProjectVersion.v9)) {
     throw const ValidationException('Healing displays require a 2D map.');
   }
+  if ((map.spatialScene != null || map.version == ProjectVersion.v9) &&
+      entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute) {
+    throw const ValidationException(
+      'Fixed NPC routes require a 2D map.',
+      code: 'npc.fixed_route.dimension',
+    );
+  }
   assertValidMapEntityTypedPayloads(entity);
 }
 
@@ -356,6 +363,7 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
   switch (entity.kind) {
     case MapEntityKind.npc:
       final n = entity.npc ?? const MapEntityNpcData();
+      assertValidMapEntityNpcMovementConfig(n.movement);
       final d = n.dialogue;
       if (d != null && d.dialogueId.trim().isEmpty) {
         throw ValidationException(
@@ -570,4 +578,31 @@ bool _containsPos(
       pos.y >= entity.pos.y &&
       pos.x < entity.pos.x + entity.size.width &&
       pos.y < entity.pos.y + entity.size.height;
+}
+
+void assertValidMapEntityNpcMovementConfig(
+  MapEntityNpcMovementConfig movement,
+) {
+  if (movement.mode != MapEntityNpcMovementMode.fixedRoute) {
+    if (movement.routeSteps.isNotEmpty || movement.suspendWhenInstanceBoolean != null) {
+      throw const ValidationException(
+        'Autonomous route steps require the fixedRoute movement mode.',
+        code: 'npc.fixed_route.invalid',
+      );
+    }
+    return;
+  }
+  if (movement.routeSteps.isEmpty ||
+      movement.routeSteps.length > 256 ||
+      movement.waypoints.isNotEmpty ||
+      movement.pauseDurationMs < 0 ||
+      movement.pauseDurationMs > 3600000 ||
+      movement.stepDurationMs < 1 ||
+      movement.stepDurationMs > 60000) {
+    throw const ValidationException(
+      'A fixed NPC route requires 1 to 256 autonomous steps, no waypoints, '
+      'a pause from 0 to 3600000ms and a step from 1 to 60000ms.',
+      code: 'npc.fixed_route.invalid',
+    );
+  }
 }

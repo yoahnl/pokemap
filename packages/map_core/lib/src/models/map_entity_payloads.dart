@@ -148,6 +148,138 @@ enum MapEntityNpcMovementMode {
   patrol,
   @JsonValue('scriptedOnly')
   scriptedOnly,
+  @JsonValue('fixedRoute')
+  fixedRoute,
+}
+
+enum MapEntityNpcRouteStepKind { move, face, randomFacing }
+
+@immutable
+sealed class MapEntityNpcRouteStep {
+  const MapEntityNpcRouteStep();
+
+  const factory MapEntityNpcRouteStep.move({required EntityFacing direction}) =
+      MapEntityNpcMoveStep;
+  const factory MapEntityNpcRouteStep.face({required EntityFacing direction}) =
+      MapEntityNpcFaceStep;
+  const factory MapEntityNpcRouteStep.randomFacing() =
+      MapEntityNpcRandomFacingStep;
+
+  factory MapEntityNpcRouteStep.fromJson(Map<String, dynamic> json) {
+    final kind = json['kind'];
+    final fields = kind == 'randomFacing'
+        ? const {'kind'}
+        : const {'kind', 'direction'};
+    if (json.length != fields.length || !json.keys.every(fields.contains)) {
+      throw const FormatException(
+        'An autonomous NPC step has unexpected fields.',
+      );
+    }
+    if (kind == 'randomFacing') {
+      return const MapEntityNpcRouteStep.randomFacing();
+    }
+    final rawDirection = json['direction'];
+    if (rawDirection is! String ||
+        !EntityFacing.values.any(
+          (direction) => direction.name == rawDirection,
+        )) {
+      throw const FormatException(
+        'An autonomous NPC step requires a cardinal direction.',
+      );
+    }
+    final direction = EntityFacing.values.byName(rawDirection);
+    return switch (kind) {
+      'move' => MapEntityNpcRouteStep.move(direction: direction),
+      'face' => MapEntityNpcRouteStep.face(direction: direction),
+      _ => throw const FormatException('Unsupported autonomous NPC step.'),
+    };
+  }
+
+  MapEntityNpcRouteStepKind get kind;
+  Map<String, dynamic> toJson();
+}
+
+@immutable
+final class MapEntityNpcMoveStep extends MapEntityNpcRouteStep {
+  const MapEntityNpcMoveStep({required this.direction});
+  final EntityFacing direction;
+  @override
+  MapEntityNpcRouteStepKind get kind => MapEntityNpcRouteStepKind.move;
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'direction': direction.name,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is MapEntityNpcMoveStep && direction == other.direction;
+  @override
+  int get hashCode => Object.hash(kind, direction);
+}
+
+@immutable
+final class MapEntityNpcFaceStep extends MapEntityNpcRouteStep {
+  const MapEntityNpcFaceStep({required this.direction});
+  final EntityFacing direction;
+  @override
+  MapEntityNpcRouteStepKind get kind => MapEntityNpcRouteStepKind.face;
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'direction': direction.name,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is MapEntityNpcFaceStep && direction == other.direction;
+  @override
+  int get hashCode => Object.hash(kind, direction);
+}
+
+@immutable
+final class MapEntityNpcRandomFacingStep extends MapEntityNpcRouteStep {
+  const MapEntityNpcRandomFacingStep();
+  @override
+  MapEntityNpcRouteStepKind get kind => MapEntityNpcRouteStepKind.randomFacing;
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name};
+  @override
+  bool operator ==(Object other) => other is MapEntityNpcRandomFacingStep;
+  @override
+  int get hashCode => kind.hashCode;
+}
+
+@immutable
+final class MapEntityNpcRouteInstanceBoolean {
+  MapEntityNpcRouteInstanceBoolean({required String key, this.value = true})
+      : key = _npcRouteInstanceKey(key);
+
+  final String key;
+  final bool value;
+
+  factory MapEntityNpcRouteInstanceBoolean.fromJson(Map<String,dynamic> json) {
+    if (json.length != 2 || !json.keys.every(const {'key','value'}.contains) ||
+        json['key'] is! String || json['value'] is! bool) {
+      throw const FormatException('A route suspension requires one instance boolean key and value.');
+    }
+    try {
+      return MapEntityNpcRouteInstanceBoolean(key: json['key'] as String, value: json['value'] as bool);
+    } on ArgumentError {
+      throw const FormatException('A route suspension requires a bounded canonical instance boolean key.');
+    }
+  }
+
+  Map<String,dynamic> toJson() => {'key':key,'value':value};
+  @override
+  bool operator ==(Object other) => other is MapEntityNpcRouteInstanceBoolean && key == other.key && value == other.value;
+  @override
+  int get hashCode => Object.hash(key,value);
+}
+
+String _npcRouteInstanceKey(String key) {
+  if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$').hasMatch(key)) {
+    throw ArgumentError.value(key, 'key', 'Must be a bounded canonical instance boolean identity.');
+  }
+  return key;
 }
 
 @freezed
@@ -156,6 +288,8 @@ abstract class MapEntityNpcMovementConfig with _$MapEntityNpcMovementConfig {
   const factory MapEntityNpcMovementConfig({
     @Default(MapEntityNpcMovementMode.idle) MapEntityNpcMovementMode mode,
     @Default(<GridPos>[]) List<GridPos> waypoints,
+    @Default(<MapEntityNpcRouteStep>[]) List<MapEntityNpcRouteStep> routeSteps,
+    MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,
     @Default(true) bool loop,
     @Default(0) int pauseDurationMs,
     @Default(200) int stepDurationMs,

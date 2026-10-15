@@ -161,6 +161,7 @@ import 'warp_transition_overlay_component.dart';
 
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
+part 'playable_map_game_npc_fixed_routes.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
@@ -274,6 +275,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
     @visibleForTesting math.Random? encounterRandom,
+    @visibleForTesting math.Random? npcRouteRandom,
     RuntimePostBattleDecisionCoordinator? postBattleDecisionCoordinator,
     @visibleForTesting this.postBattleOverlayMounter,
     @visibleForTesting this.beforePostBattleStateCommit,
@@ -320,7 +322,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             runtimeTilesetImageLoader ?? loadTilesetImagesById,
         _runtimePlayerPokemonProgressionCatalogLoader =
             runtimePlayerPokemonProgressionCatalogLoader,
-        _encounterRandom = encounterRandom ?? math.Random() {
+        _encounterRandom = encounterRandom ?? math.Random(),
+        _npcRouteRandom = npcRouteRandom ?? math.Random() {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
@@ -649,6 +652,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Injected only by deterministic acceptance tests. Production retains a
   /// fresh random source and the encounter engine remains the sole consumer.
   final math.Random _encounterRandom;
+  final math.Random _npcRouteRandom;
+  final Map<String, _NpcFixedRouteRuntimeEntry> _npcFixedRoutes = {};
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
       RuntimeMoveCatalogLoader();
@@ -1134,7 +1139,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _entityAutorunSourcesFor(bundle.manifest).isNotEmpty ||
       _gameState.mapInstanceWorldState.instancesByMapId.isNotEmpty ||
       (_runtimeBundleByMapId[bundle.map.id] ?? bundle)
-          .map.entities.any((entity) => entity.fieldObstacle != null);
+          .map.entities.any((entity) => entity.fieldObstacle != null ||
+              entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute);
 
   NarrativeEventDispatchHandled? _selectEntityAutorun() {
     NarrativeEventDispatchHandled? selected;
@@ -3788,6 +3794,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _triggeredTrainerBattles.remove(entity.id);
     }
     _applyNpcOverworldDefaultMovement();
+    _resetNpcFixedRoutes();
   }
 
   void _syncNpcRenderVisibility() {
@@ -4195,6 +4202,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _disposeNpcFixedRoutes();
     for (final pending in _sceneActorRouteWaits) {
       pending.completer.completeError(
         StateError('Scene presentation interrupted when the runtime closed.'),
@@ -4708,6 +4716,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     super.update(dt);
     try {
       _updateRuntime(dt);
+      _updateNpcFixedRoutes(dt);
     } finally {
       _refreshLogicalMapInstances();
       _publishInputAuthoritySnapshot();
@@ -13852,6 +13861,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   static const double _trainerSpotExclamationSeconds = 0.9;
 
   void _beginTrainerSpotSequence(MapEntity entity) {
+    _interruptNpcFixedRoute(entity.id);
     _pendingTrainerSpot = _PendingTrainerSpot(
       entityId: entity.id,
       remainingSeconds: _trainerSpotExclamationSeconds,
@@ -16433,6 +16443,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _faceNpcTowardPlayer(String entityId) {
+    _interruptNpcFixedRoute(entityId);
     final loaded = _loadedMapsById[_activeMapId];
     final actor = loaded?.npcActorByEntityId[entityId];
     if (actor == null) {
@@ -16446,6 +16457,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       Direction.west => EntityFacing.east,
     };
     actor.setMotion(npcFacing, CharacterAnimationState.idle);
+    if (_npcFixedRoutes.containsKey(entityId)) {
+      _world = _world.withEntityFacing(entityId, npcFacing);
+    }
   }
 
   /// (Re)crée le contrôleur de déplacement scripté pour la map active.

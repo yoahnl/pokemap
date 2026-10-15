@@ -37,7 +37,6 @@ final class EntityActions {
       ('npc.conditional_dialogue_add', 'Add conditional NPC dialogue'),
       ('npc.conditional_dialogue_update', 'Update conditional NPC dialogue'),
       ('npc.conditional_dialogue_remove', 'Remove conditional NPC dialogue'),
-      ('npc.set_movement_mode', 'Set NPC movement configuration'),
       ('npc.waypoint_add', 'Add an NPC patrol waypoint'),
       ('npc.waypoint_move', 'Move an NPC patrol waypoint'),
       ('npc.waypoint_reorder', 'Reorder an NPC patrol waypoint'),
@@ -45,6 +44,38 @@ final class EntityActions {
       ('npc.waypoint_clear', 'Clear NPC patrol waypoints'),
     ])
       semanticActionDescriptor(entry.$1, entry.$2),
+    AuthoringActionDescriptor(
+      id: 'npc.set_movement_mode', version: 1,
+      summary: 'Set typed NPC movement, direct autonomous steps and instance suspension atomically',
+      inputSchemaId: 'schema.npc.set_movement_mode.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map','preset'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
+      extensions: const {
+        'semanticIds':true,'rawTilesetRequired':false,
+        'npcMovement': {
+          'modes':['idle','patrol','scriptedOnly','fixedRoute'],
+          'parameters':['mapId','entityId','mode','routeSteps','suspendWhenInstanceBoolean',
+            'loop','pauseDurationMs','stepDurationMs'],
+          'fixedRoute': {
+            'mapMode':'2d','stepKinds':['move','face','randomFacing'],
+            'directions':['north','south','east','west'],'maximumSteps':256,
+            'skippable':false,'pathfinding':false,'initialPause':true,
+            'pauseAfterCompletionOrObstruction':true,
+            'suspensionScope':'ownNpcCurrentMapInstanceBoolean',
+          },
+          'routeStepFields': {
+            'move':['kind','direction'],'face':['kind','direction'],'randomFacing':['kind'],
+          },
+          'suspendWhenInstanceBoolean': {'optional':true,'fields':['key','value'],
+            'maximumKeyLength':128,'owner':'currentNpc','scope':'currentMapInstance'},
+          'fixedRouteTimingLimits': {'pauseDurationMs':[0,3600000],'stepDurationMs':[1,60000]},
+        },
+      },
+    ),
     AuthoringActionDescriptor(
       id: 'entity.set_field_obstacle',
       version: 1,
@@ -172,7 +203,39 @@ final class EntityActions {
 
   List<GridPos> previewNpcRoute(MapData map, String entityId) {
     final entity = _npcEntity(map, entityId);
-    return List.unmodifiable([entity.pos, ...entity.npc!.movement.waypoints]);
+    final movement = entity.npc!.movement;
+    if (movement.mode != MapEntityNpcMovementMode.fixedRoute) {
+      return List.unmodifiable([entity.pos, ...movement.waypoints]);
+    }
+    final positions = <GridPos>[entity.pos];
+    for (final step in movement.routeSteps) {
+      if (step is! MapEntityNpcMoveStep) {
+        continue;
+      }
+      final (dx,dy) = switch (step.direction) {
+        EntityFacing.north => (0,-1), EntityFacing.south => (0,1),
+        EntityFacing.east => (1,0), EntityFacing.west => (-1,0),
+      };
+      final current = positions.last;
+      positions.add(GridPos(x:current.x+dx,y:current.y+dy));
+    }
+    return List.unmodifiable(positions);
+  }
+
+  MapData setMovementConfiguration(MapData map, {
+    required String entityId, required MapEntityNpcMovementConfig movement,
+  }) {
+    final entity = _npcEntity(map,entityId);
+    try {
+      assertValidMapEntityNpcMovementConfig(movement);
+      return updateEntityOnMap(map, entityId:entity.id, npc:entity.npc!.copyWith(
+        movement:movement.copyWith(routeSteps:List.unmodifiable(movement.routeSteps),
+          waypoints:List.unmodifiable(movement.waypoints))));
+    } on MapAuthoringException {
+      rethrow;
+    } on Object catch (error) {
+      throw _entityFailure(error,code:'npc.movement_invalid');
+    }
   }
 
   MapData setCounterInteractionSides(
@@ -283,6 +346,8 @@ final class EntityActions {
       'npc.set_movement_mode' => const {
           'entityId',
           'mode',
+          'routeSteps',
+          'suspendWhenInstanceBoolean',
           'loop',
           'pauseDurationMs',
           'stepDurationMs',
@@ -573,6 +638,23 @@ final class EntityActions {
           );
           final movement = entity.npc!.movement.toJson();
           movement['mode'] = parameters.string('mode');
+          final fixedRoute = movement['mode'] == MapEntityNpcMovementMode.fixedRoute.name;
+          if (fixedRoute) {
+            movement['waypoints'] = <Object>[];
+            if (parameters.contains('routeSteps')) {
+              movement['routeSteps'] = parameters.list('routeSteps');
+            }
+            if (parameters.contains('suspendWhenInstanceBoolean')) {
+              movement['suspendWhenInstanceBoolean'] = parameters.value('suspendWhenInstanceBoolean');
+            }
+          } else {
+            if ((parameters.contains('routeSteps') && parameters.list('routeSteps').isNotEmpty) ||
+                (parameters.contains('suspendWhenInstanceBoolean') && parameters.value('suspendWhenInstanceBoolean') != null)) {
+              throw semanticFailure('npc.movement_invalid','Autonomous steps and suspension require fixedRoute.');
+            }
+            movement['routeSteps'] = <Object>[];
+            movement['suspendWhenInstanceBoolean'] = null;
+          }
           if (parameters.contains('loop')) {
             movement['loop'] = parameters.boolean('loop');
           }
@@ -582,11 +664,8 @@ final class EntityActions {
           if (parameters.contains('stepDurationMs')) {
             movement['stepDurationMs'] = parameters.integer('stepDurationMs');
           }
-          updated = _patchNpcJson(
-            context.map,
-            entity.id,
-            {'movement': movement},
-          );
+          updated = setMovementConfiguration(context.map, entityId:entity.id,
+            movement:MapEntityNpcMovementConfig.fromJson(movement));
         case 'npc.waypoint_add':
         case 'npc.waypoint_move':
         case 'npc.waypoint_reorder':

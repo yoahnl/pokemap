@@ -145,6 +145,15 @@ class CharacterEditingCommands {
     );
   }
 
+  void setMovementConfiguration(String id, MapEntityNpcMovementConfig movement) {
+    if (movement.mode == MapEntityNpcMovementMode.fixedRoute &&
+        project.settings.dimension != ProjectDimension.twoD) {
+      throw StateError('Les suites de pas sont disponibles sur les cartes 2D.');
+    }
+    document.commit(const EntityActions().setMovementConfiguration(
+        document.current, entityId: id, movement: movement));
+  }
+
   void setCounterInteractionSides(String id, List<EntityFacing> sides) =>
       document.commit(
         const EntityActions().setCounterInteractionSides(

@@ -9,6 +9,7 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'character_workspace_visuals.dart';
+import 'character_fixed_route_inspector.dart';
 
 class CharacterInspector extends StatefulWidget {
   const CharacterInspector({
@@ -179,6 +180,10 @@ class _CharacterInspectorState extends State<CharacterInspector> {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        CharacterFixedRouteInspector(entity: entity, map: widget.document.current,
+          project: widget.project, onChanged: (movement) => _change(() =>
+            _commands.setMovementConfiguration(entity.id, movement))),
         const SizedBox(height: 18),
         Text('Interaction', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
