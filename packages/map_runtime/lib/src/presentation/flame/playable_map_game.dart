@@ -12746,6 +12746,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           : 'false';
     }
 
+    if (source.sourceKind == SceneConditionSourceKind.playerFacing) {
+      return evaluateScenePlayerFacing(source: source, world: _world)
+          ? 'true' : 'false';
+    }
+
     if (source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor) {
       return evaluateScenePlayerAtEntityAnchor(
             source: source,

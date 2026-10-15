@@ -2618,6 +2618,20 @@ List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
     );
   }
 
+  for (final direction in EntityFacing.values) {
+    add(SceneConditionSourcePickerOption(
+      sourceKind: SceneConditionSourceKind.playerFacing,
+      sourceId: direction.name,
+      label: switch (direction) {
+        EntityFacing.north => 'Nord',
+        EntityFacing.south => 'Sud',
+        EntityFacing.east => 'Est',
+        EntityFacing.west => 'Ouest',
+      },
+      debugTechnicalLabel: direction.name,
+    ));
+  }
+
   for (final badge in project.badges) {
     add(
       SceneConditionSourcePickerOption(

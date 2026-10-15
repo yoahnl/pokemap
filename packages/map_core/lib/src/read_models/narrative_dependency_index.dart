@@ -2623,7 +2623,8 @@ final class _NarrativeDependencyIndexBuilder {
     // through to the synthetic catch-all below, came back as a legacy external
     // reference at error severity, and made the export refuse a project the
     // canonical authoring action had just produced.
-    if (source.sourceKind == SceneConditionSourceKind.newGameDraft) {
+    if (source.sourceKind == SceneConditionSourceKind.newGameDraft ||
+        source.sourceKind == SceneConditionSourceKind.playerFacing) {
       return;
     }
     final target = switch (source.sourceKind) {

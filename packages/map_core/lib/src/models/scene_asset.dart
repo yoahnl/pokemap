@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
 import 'narrative_value.dart';
+import 'enums.dart';
 import 'dialogue_line_feedback.dart';
 import 'presentation_interaction_outcome.dart';
 import 'scene_consequence.dart';
@@ -74,6 +75,7 @@ enum SceneConditionSourceKind {
   scriptVariable,
   worldState,
   playerAtEntityAnchor,
+  playerFacing,
   mapEventInstanceBoolean,
 }
 
@@ -104,6 +106,13 @@ final class SceneConditionSource {
     this.key,
   }) {
     _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
+    if (sourceKind == SceneConditionSourceKind.playerFacing &&
+        (!EntityFacing.values.any((direction) => direction.name == sourceId) ||
+         operator == SceneConditionOperator.equals || field != null ||
+         value != null || mapId != null || key != null ||
+         factOperator != null || expectedFactValue != null)) {
+      throw ArgumentError('Player facing requires a cardinal direction and boolean operator.');
+    }
     final isMapSource =
         sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
         sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean;
@@ -180,6 +189,25 @@ final class SceneConditionSource {
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
     final kind = _readEnum(SceneConditionSourceKind.values,
         json['sourceKind'], 'conditionSource.sourceKind');
+    if (kind == SceneConditionSourceKind.playerFacing) {
+      const fields = {'sourceKind', 'sourceId', 'operator', 'label',
+        'debugTechnicalLabel'};
+      if (json.keys.any((field) => !fields.contains(field))) {
+        throw const FormatException('Unknown or incompatible facing condition field.');
+      }
+      try {
+        return SceneConditionSource(
+          sourceKind: kind,
+          sourceId: _readRequiredString(json, 'sourceId'),
+          operator: _readEnum(SceneConditionOperator.values,
+              json['operator'], 'conditionSource.operator'),
+          label: _readOptionalString(json, 'label'),
+          debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
+        );
+      } on ArgumentError catch (error) {
+        throw FormatException(error.message?.toString() ?? 'Invalid facing condition.');
+      }
+    }
     if (kind == SceneConditionSourceKind.playerAtEntityAnchor ||
         kind == SceneConditionSourceKind.mapEventInstanceBoolean) {
       final fields = <String>{
@@ -239,6 +267,23 @@ final class SceneConditionSource {
             ),
     );
   }
+
+  factory SceneConditionSource.playerFacing({
+    required EntityFacing direction,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.playerFacing,
+    sourceId: direction.name,
+    operator: expected ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  EntityFacing? get playerFacingDirection =>
+      sourceKind == SceneConditionSourceKind.playerFacing
+          ? EntityFacing.values.byName(sourceId) : null;
 
   factory SceneConditionSource.playerAtEntityAnchor({
     required String mapId,

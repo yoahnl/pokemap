@@ -102,6 +102,38 @@ void main() {
     expect(find.text('Est supérieur à'), findsNothing);
   });
 
+  testWidgets('player facing uses guided direction and expectation', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      SceneConditionSource.playerFacing(direction: EntityFacing.north),
+    );
+    expect(find.textContaining('Condition avancée conservée'), findsNothing);
+    expect(changes, isEmpty);
+    var selectors = tester
+        .widgetList<DropdownButtonFormField<String>>(
+          find.byType(DropdownButtonFormField<String>),
+        )
+        .toList();
+    expect(selectors, hasLength(3));
+    selectors[1].onChanged!('west');
+    await tester.pump();
+    selectors = tester
+        .widgetList<DropdownButtonFormField<String>>(
+          find.byType(DropdownButtonFormField<String>),
+        )
+        .toList();
+    selectors[2].onChanged!('false');
+    await tester.pump();
+    expect(changes, isEmpty);
+    await tester.tap(find.text('Appliquer la condition'));
+    expect(changes.single.playerFacingDirection, EntityFacing.west);
+    expect(changes.single.operator, SceneConditionOperator.isFalse);
+    expect(changes.single.label, 'Ouest');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'advanced source remains intact without selecting a replacement',
     (tester) async {

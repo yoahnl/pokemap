@@ -335,3 +335,5 @@ export 'src/spatial_model_animation_controller.dart';
 export 'src/spatial_warp_controller.dart';
 
 export 'src/spatial_npc_interaction.dart';
+
+export 'src/scene_player_facing_condition_evaluator.dart';

@@ -2143,6 +2143,7 @@ _SceneOutputPortSpec? _findPortSpec(
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.newGameDraft => true,
+    SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
     SceneConditionSourceKind.mapEventInstanceBoolean => true,
     SceneConditionSourceKind.fact ||
@@ -2163,6 +2164,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
     SceneConditionSourceKind.mapEventInstanceBoolean =>
       source.operator == SceneConditionOperator.isTrue ||

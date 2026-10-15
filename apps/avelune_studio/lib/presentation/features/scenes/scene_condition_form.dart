@@ -24,6 +24,7 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     'fact': 'État du monde',
     'storyStepCompletion': 'Étape d’histoire',
     'consumedEvent': 'Interaction déjà jouée',
+    'playerFacing': 'Orientation du joueur',
   };
   static const operators = {
     'equals': 'Est égal à',
@@ -82,6 +83,12 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   }
 
   Map<String, String> get _references => switch (_family) {
+    'playerFacing' => {
+      'north': 'Nord',
+      'south': 'Sud',
+      'east': 'Est',
+      'west': 'Ouest',
+    },
     'fact' => {for (final value in widget.project.facts) value.id: value.label},
     'storyStepCompletion' => {
       for (final story in widget.project.storylines)
@@ -246,6 +253,8 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
           StudioSelect(
             label: _family == 'storyStepCompletion'
                 ? 'État de l’étape'
+                : _family == 'playerFacing'
+                ? 'Regarde dans cette direction'
                 : 'Déjà jouée',
             value: '$_boolean',
             options: _family == 'storyStepCompletion'

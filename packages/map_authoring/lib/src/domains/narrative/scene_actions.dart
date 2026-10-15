@@ -175,7 +175,16 @@ final class SceneActions {
       'scene.condition.set',
       'Configure one typed Scene condition without replacing its graph',
       resourceKinds: const ['project', 'scene'],
-      extensions: const {'parameters': ['sceneId', 'nodeId', 'conditionSource']},
+      extensions: const {
+        'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'playerFacing': {
+          'sourceKind': 'playerFacing',
+          'sourceId': ['north', 'south', 'east', 'west'],
+          'operators': ['isTrue', 'isFalse'],
+          'state': 'livePlayerFacing',
+          'independentOfEntityFacing': true,
+        },
+      },
     ),
     narrativeActionDescriptor(
       'scene.interactive_command.set',

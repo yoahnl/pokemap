@@ -52,6 +52,9 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     for (const id of ["scene.graph.patch", "scene.condition.set", "scene.interactive_command.set"]) {
       assert.ok((description.mutationActions as JsonRecord[]).some(action => action.id === id));
     }
+    const conditionAction = (description.mutationActions as JsonRecord[])
+      .find(action => action.id === "scene.condition.set")!;
+    assert.ok(JSON.stringify(conditionAction).includes('"playerFacing"'));
     const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const beforeOther = await call("pokemap_query", { projectHandle: workspace.projectHandle,
       resourceKind: "scene", operation: "get", ids: ["other"], view: "detail" });
@@ -75,6 +78,8 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
         edge("received", "gift", "received", "end"), edge("full", "gift", "bagFull", "end")] }],
       ["scene.condition.set", { sceneId: "scene", nodeId: "check", conditionSource: {
         sourceKind: "badge", sourceId: "fog", operator: "isFalse", label: "Sans badge Brume" } }],
+      ["scene.condition.set", { sceneId: "scene", nodeId: "check", conditionSource: {
+        sourceKind: "playerFacing", sourceId: "west", operator: "isFalse" } }],
       ["scene.interactive_command.set", { sceneId: "scene", nodeId: "gift", command: { kind: "giveItem", itemId: "tm23", quantity: 2 } }],
     ] as [string, JsonRecord][]) {
       const planned = await plan(action, parameters);
@@ -90,6 +95,17 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     assert.deepEqual(afterOther.items, beforeOther.items);
     assert.deepEqual(scenes[0]?.layout, scene.layout);
     assert.deepEqual(scenes[0]?.metadata, scene.metadata);
+    const check = (record(scenes[0]?.graph).nodes as JsonRecord[]).find(node => node.id === "check")!;
+    assert.deepEqual(record(record(check.payload).conditionSource), {
+      sourceKind: "playerFacing", sourceId: "west", operator: "isFalse",
+    });
+    const invalidFacing = await plan("scene.condition.set", {
+      sceneId: "scene", nodeId: "check", conditionSource: {
+        sourceKind: "playerFacing", sourceId: "diagonal", operator: "isTrue",
+      },
+    }, true);
+    assert.ok(invalidFacing.domainCode);
+    assert.deepEqual(JSON.parse(await readFile(file, "utf8")), saved);
     const gift = (record(scenes[0]?.graph).nodes as JsonRecord[]).find(node => node.id === "gift")!;
     assert.equal(record(record(gift.payload).interactiveCommand).quantity, 2);
     assert.equal(gift.title, "Cadeau");

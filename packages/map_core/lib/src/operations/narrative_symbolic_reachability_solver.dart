@@ -971,6 +971,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       final source = payload.conditionSource;
       if (source == null) continue;
       switch (source.sourceKind) {
+        case SceneConditionSourceKind.playerFacing:
         case SceneConditionSourceKind.playerAtEntityAnchor:
         case SceneConditionSourceKind.mapEventInstanceBoolean:
           break;
@@ -1179,6 +1180,9 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           final source = conditionSource;
           if (source == null) continue;
           switch (source.sourceKind) {
+            case SceneConditionSourceKind.playerFacing:
+              reads.add('player:facing');
+              break;
             case SceneConditionSourceKind.playerAtEntityAnchor:
               reads.add('anchor:${source.mapId}:${source.sourceId}');
             case SceneConditionSourceKind.mapEventInstanceBoolean:
@@ -1578,6 +1582,7 @@ bool? _sceneConditionValue(
 ) {
   if (source == null) return null;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.playerAtEntityAnchor:
     case SceneConditionSourceKind.mapEventInstanceBoolean:
       return null;

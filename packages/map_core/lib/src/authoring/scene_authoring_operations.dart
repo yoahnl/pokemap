@@ -1861,6 +1861,8 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.playerFacing:
+      return;
     case SceneConditionSourceKind.playerAtEntityAnchor:
     case SceneConditionSourceKind.mapEventInstanceBoolean:
       if (source.mapId == null ||

@@ -2632,6 +2632,13 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
             _ConditionButtonRow(
               label: 'Source',
               children: [
+                if (_optionsForKind(SceneConditionSourceKind.playerFacing).isNotEmpty)
+                  _conditionButton(
+                    key: const ValueKey('scene-condition-source-kind-playerFacing'),
+                    label: 'Orientation du joueur',
+                    selected: _sourceKind == SceneConditionSourceKind.playerFacing,
+                    onPressed: () => _selectSourceKind(SceneConditionSourceKind.playerFacing),
+                  ),
                 if (_optionsForKind(SceneConditionSourceKind.badge).isNotEmpty)
                   _conditionButton(
                     key: const ValueKey('scene-condition-source-kind-badge'),
@@ -3014,7 +3021,8 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       SceneConditionSourceKind.factLikeStoryFlag ||
       SceneConditionSourceKind.fact ||
       SceneConditionSourceKind.storyStepCompletion ||
-      SceneConditionSourceKind.consumedEvent =>
+      SceneConditionSourceKind.consumedEvent ||
+      SceneConditionSourceKind.playerFacing =>
         true,
       SceneConditionSourceKind.storyStepActive ||
       SceneConditionSourceKind.inventoryItem ||
@@ -3406,6 +3414,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
     SceneConditionSourceKind.worldState ||
+    SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
     SceneConditionSourceKind.mapEventInstanceBoolean =>
       SceneConditionOperator.isTrue,
@@ -3429,6 +3438,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
     SceneConditionSourceKind.worldState ||
+    SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
     SceneConditionSourceKind.mapEventInstanceBoolean =>
       null,
