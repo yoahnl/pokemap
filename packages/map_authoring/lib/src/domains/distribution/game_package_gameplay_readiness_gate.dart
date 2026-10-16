@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_project_projection_builder.dart';
@@ -149,6 +150,29 @@ final class GamePackageGameplayReadinessGate {
       }
     }
 
+    for (final map in maps) {
+      for (final zone in map.gameplayZones.where(isDiveZone)) {
+        final link = zone.fieldAction?.dive?.link;
+        final target = maps.where((map) => map.id == link?.mapId).firstOrNull;
+        if (link == null ||
+            target == null ||
+            !divePairHasSafeArrivals(
+                sourceMap: map,
+                sourceZoneId: zone.id,
+                targetMap: target,
+                targetZoneId: link.zoneId,
+                project: project)) {
+          diagnostics.add(_diagnostic(
+              code: 'dive.arrival_unsafe',
+              message:
+                  'Reliez deux points de Plongée avec des arrivées sûres avant le playtest ou l’export.',
+              path: 'maps/${map.id}/gameplayZones/${zone.id}',
+              domain: NarrativeProjectDiagnosticDomain.map,
+              destination: NarrativeProjectDiagnosticDestination.map,
+              mapId: map.id));
+        }
+      }
+    }
     final speciesIds =
         project.pokemon.enabled ? _projectedSpeciesIds(projection) : null;
     final moveIds =

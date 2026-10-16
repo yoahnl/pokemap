@@ -4,6 +4,7 @@ import 'field_ability_gate.dart';
 import 'field_action.dart';
 
 enum FlyBlockReason {
+  underwater,
   unsupportedMap,
   indoor,
   invalidDestination,
@@ -66,6 +67,9 @@ FlyEvaluation evaluateFlyAttempt({
           (targetMap.spatialScene != null ||
               targetMap.version != ProjectVersion.v8))) {
     return const FlyUnavailable(FlyBlockReason.unsupportedMap);
+  }
+  if (gameState.playerMovementMode == MovementMode.dive) {
+    return const FlyUnavailable(FlyBlockReason.underwater);
   }
   if (sourceRole == MapRole.interior ||
       sourceMap.mapMetadata.isIndoor ||

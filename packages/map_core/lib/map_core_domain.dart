@@ -17,6 +17,7 @@ export 'src/operations/narrative_project_fingerprint.dart';
 export 'src/operations/narrative_validation_report_codec.dart';
 
 export 'src/models/enums.dart';
+export 'src/operations/dive_zone_validation.dart';
 export 'src/models/geometry.dart';
 export 'src/models/tileset.dart';
 export 'src/models/tileset_transparent_color.dart';

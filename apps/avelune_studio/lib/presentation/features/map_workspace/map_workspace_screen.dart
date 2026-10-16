@@ -80,6 +80,9 @@ import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
+import '../../../features/map_workspace/domain/map_dive_pair_port.dart';
+import 'map_dive_zone_panel.dart';
+
 part 'workspace_home_binding.dart';
 part 'workspace_environment_binding.dart';
 part 'workspace_story_binding.dart';
@@ -271,5 +274,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildWorkspace(context);
+  Widget build(BuildContext context) => DivePairPublishingScope(
+    controller: _controller,
+    port: widget.mapConnectionPort is MapDivePairPort
+        ? widget.mapConnectionPort as MapDivePairPort
+        : null,
+    child: _buildWorkspace(context),
+  );
 }

@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'map_dive_zone_panel.dart';
 
 String zoneKindLabel(GameplayZoneKind kind) => switch (kind) {
   GameplayZoneKind.encounter => 'Rencontres',
@@ -31,15 +32,31 @@ List<Widget> zonePayloadFields({
           value: fieldAction.actionKind.name,
           options: {
             'darkness': 'Zone sombre (Flash · 2D)',
+            if (zone.area.size == const GridSize(width: 1, height: 1))
+              'dive': 'Plongée · 2D',
             if (commands.waterfallDirections(zone).isNotEmpty)
               'waterfall': 'Cascade · 2D',
           },
           onChanged: (kind) => onChanged(
-            () => kind == 'waterfall'
+            () => kind == 'dive'
+                ? commands.configureDive(zone.id)
+                : kind == 'waterfall'
                 ? commands.configureWaterfall(zone.id)
                 : commands.configureDarkness(zone.id),
           ),
         );
+  if (fieldAction?.dive != null) {
+    return [
+      actionSelector!,
+      const SizedBox(height: 8),
+      MapDiveZonePanel(
+        key: ValueKey('dive-${commands.document.current.id}-${zone.id}'),
+        zone: zone,
+        commands: commands,
+        onChanged: onChanged,
+      ),
+    ];
+  }
   final waterfall = fieldAction?.waterfall;
   if (waterfall != null) {
     final direction = waterfall.direction;
@@ -336,6 +353,7 @@ List<Widget> zonePayloadFields({
 String movementModeLabel(MovementMode mode) => switch (mode) {
   MovementMode.walk => 'À pied',
   MovementMode.surf => 'En surf',
+  MovementMode.dive => 'Sous l’eau (Plongée)',
   MovementMode.fly => 'En vol',
   MovementMode.cut => 'Après avoir coupé',
   MovementMode.strength => 'Avec la force',

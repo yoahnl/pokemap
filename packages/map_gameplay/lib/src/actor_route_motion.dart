@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'movement_terrain_policy.dart';
 
 import 'collision/pixel_movement_resolver.dart';
 import 'direction.dart';
@@ -190,6 +191,27 @@ ActorRouteMotionPlan? planActorRouteMove({
       !inBounds(toMovementRect)) {
     return null;
   }
+  {
+    final pixels = dx.abs() + dy.abs();
+    for (var step = 0; step <= pixels; step++) {
+      final rect =
+          PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+              spriteTopLeftPx: PixelPosition(
+                  leftPx: fromPosition.leftPx + delta.dx * step,
+                  topPx: fromPosition.topPx + delta.dy * step),
+              spriteWidthPx: spriteWidth,
+              spriteHeightPx: spriteHeight);
+      if (areasAt(rect).any((area) => !movementTerrainAllowsRect(
+          map: world.map,
+          rect: area,
+          tileWidth: world.tileWidthPx,
+          tileHeight: world.tileHeightPx,
+          mode: isPlayer ? world.player.movementMode : MovementMode.walk,
+          bypassSurfRequirement: through))) {
+        return null;
+      }
+    }
+  }
   final ownerContact = initialOwnerContact;
   if (ownerContact != null &&
       (to != GridPos(x: from.x + delta.dx, y: from.y + delta.dy) ||
@@ -249,18 +271,13 @@ ActorRouteMotionPlan? planActorRouteMove({
         );
         if (areas.any((area) => _intersects(area, rect))) return true;
       }
-      if (!isPlayer || world.player.movementMode != MovementMode.surf) {
-        for (final area in areas) {
-          for (var y = area.topPx ~/ world.tileHeightPx;
-              y <= (area.topPx + area.heightPx - 1) ~/ world.tileHeightPx;
-              y++) {
-            for (var x = area.leftPx ~/ world.tileWidthPx;
-                x <= (area.leftPx + area.widthPx - 1) ~/ world.tileWidthPx;
-                x++) {
-              if (world.isWaterCell(x, y)) return true;
-            }
-          }
-        }
+      if (areas.any((area) => !movementTerrainAllowsRect(
+          map: world.map,
+          rect: area,
+          tileWidth: world.tileWidthPx,
+          tileHeight: world.tileHeightPx,
+          mode: isPlayer ? world.player.movementMode : MovementMode.walk))) {
+        return true;
       }
       return false;
     }

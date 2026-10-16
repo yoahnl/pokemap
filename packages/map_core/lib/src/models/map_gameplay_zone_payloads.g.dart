@@ -67,6 +67,7 @@ Map<String, dynamic> _$MovementZonePayloadToJson(
 };
 
 const _$MovementModeEnumMap = {
+  MovementMode.dive: 'dive',
   MovementMode.walk: 'walk',
   MovementMode.surf: 'surf',
   MovementMode.fly: 'fly',
@@ -140,7 +141,10 @@ Map<String, dynamic> _$SpecialZonePayloadToJson(_SpecialZonePayload instance) =>
 _FieldActionZonePayload _$FieldActionZonePayloadFromJson(
   Map<String, dynamic> json,
 ) {
-  $checkKeys(json, allowedKeys: const ['actionKind', 'darkness', 'waterfall']);
+  $checkKeys(
+    json,
+    allowedKeys: const ['actionKind', 'darkness', 'waterfall', 'dive'],
+  );
   return _FieldActionZonePayload(
     actionKind: $enumDecode(_$FieldActionZoneKindEnumMap, json['actionKind']),
     darkness: json['darkness'] == null
@@ -153,6 +157,9 @@ _FieldActionZonePayload _$FieldActionZonePayloadFromJson(
         : WaterfallZonePayload.fromJson(
             json['waterfall'] as Map<String, dynamic>,
           ),
+    dive: json['dive'] == null
+        ? null
+        : DiveZonePayload.fromJson(json['dive'] as Map<String, dynamic>),
   );
 }
 
@@ -162,9 +169,11 @@ Map<String, dynamic> _$FieldActionZonePayloadToJson(
   'actionKind': _$FieldActionZoneKindEnumMap[instance.actionKind]!,
   'darkness': ?instance.darkness?.toJson(),
   'waterfall': ?instance.waterfall?.toJson(),
+  'dive': ?instance.dive?.toJson(),
 };
 
 const _$FieldActionZoneKindEnumMap = {
+  FieldActionZoneKind.dive: 'dive',
   FieldActionZoneKind.waterfall: 'waterfall',
   FieldActionZoneKind.darkness: 'darkness',
 };
@@ -205,3 +214,37 @@ Map<String, dynamic> _$WaterfallZonePayloadToJson(
   'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
   'requiresSurf': instance.requiresSurf,
 };
+
+_DiveZonePayload _$DiveZonePayloadFromJson(Map<String, dynamic> json) {
+  $checkKeys(json, allowedKeys: const ['role', 'arrivalSpawnId', 'link']);
+  return _DiveZonePayload(
+    role: $enumDecode(_$DiveZoneRoleEnumMap, json['role']),
+    arrivalSpawnId: json['arrivalSpawnId'] as String?,
+    link: json['link'] == null
+        ? null
+        : DiveZoneLink.fromJson(json['link'] as Map<String, dynamic>),
+  );
+}
+
+Map<String, dynamic> _$DiveZonePayloadToJson(_DiveZonePayload instance) =>
+    <String, dynamic>{
+      'role': _$DiveZoneRoleEnumMap[instance.role]!,
+      'arrivalSpawnId': ?instance.arrivalSpawnId,
+      'link': ?instance.link?.toJson(),
+    };
+
+const _$DiveZoneRoleEnumMap = {
+  DiveZoneRole.surface: 'surface',
+  DiveZoneRole.underwater: 'underwater',
+};
+
+_DiveZoneLink _$DiveZoneLinkFromJson(Map<String, dynamic> json) {
+  $checkKeys(json, allowedKeys: const ['mapId', 'zoneId']);
+  return _DiveZoneLink(
+    mapId: json['mapId'] as String,
+    zoneId: json['zoneId'] as String,
+  );
+}
+
+Map<String, dynamic> _$DiveZoneLinkToJson(_DiveZoneLink instance) =>
+    <String, dynamic>{'mapId': instance.mapId, 'zoneId': instance.zoneId};

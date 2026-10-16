@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart' show immutable;
+import 'dive_zone_validation.dart';
 
 import '../diagnostics/cinematic_diagnostics.dart';
 import '../diagnostics/event_scene_link_diagnostics.dart';
@@ -254,6 +255,20 @@ NarrativeProjectValidationReport validateNarrativeProject(
 }) {
   final diagnostics = <NarrativeProjectDiagnostic>[];
   final mapsById = {for (final map in maps) map.id: map};
+  for (final problem in diveZonePairDiagnostics(maps)) {
+    diagnostics.add(
+      NarrativeProjectDiagnostic(
+        code: 'dive.invalid_pair',
+        severity: NarrativeProjectDiagnosticSeverity.error,
+        domain: NarrativeProjectDiagnosticDomain.map,
+        message: problem.message,
+        path: 'maps/${problem.mapId}/gameplayZones/${problem.zoneId}',
+        destination: NarrativeProjectDiagnosticDestination.map,
+        mapId: problem.mapId,
+        suggestedFixLabel: 'Relier les points de Plongée',
+      ),
+    );
+  }
   final normalizedKnownSpeciesIds = knownSpeciesIds == null
       ? null
       : _trimmedNonBlankIds(knownSpeciesIds);

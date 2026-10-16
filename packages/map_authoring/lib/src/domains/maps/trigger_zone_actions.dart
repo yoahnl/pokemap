@@ -50,7 +50,7 @@ final class TriggerZoneActions {
       ),
       (
         'gameplay_zone.set_field_action_payload',
-        'Set a typed darkness or Cascade passage payload (2D)'
+        'Set a typed Flash, Cascade or Dive payload (2D)'
       ),
       ('gameplay_zone.clear_payload', 'Clear a gameplay-zone payload'),
       ('gameplay_zone.set_priority', 'Set gameplay-zone priority'),
@@ -63,7 +63,17 @@ final class TriggerZoneActions {
             'rawTilesetRequired': false,
             'fieldActionZone': {
               'mapMode': '2d',
-              'actionKinds': ['darkness', 'waterfall'],
+              'actionKinds': ['darkness', 'waterfall', 'dive'],
+              'dive': {
+                'roles': ['surface', 'underwater'],
+                'pointSize': [1, 1],
+                'arrivalSpawnId': 'exactLocalMapEntityId',
+                'unlinked': 'inactivePreparation',
+                'linkAction': 'gameplay_zone.dive.link_pair_apply',
+                'unlinkAction': 'gameplay_zone.dive.unlink_pair_apply',
+                'savedMovementMode': 'dive',
+                'consumesPp': false
+              },
               'waterfall': {
                 'required': ['entry', 'path', 'exit', 'direction'],
                 'requiresSurf': {'default': true},
@@ -99,6 +109,10 @@ final class TriggerZoneActions {
 
   MapData createZone(MapData map, {required MapGameplayZone zone}) {
     _assertStrictZonePayload(zone);
+    if (zone.fieldAction?.dive?.link != null) {
+      throw semanticFailure('dive.link_requires_pair',
+          'Prepare an unlinked endpoint, then publish its pair.');
+    }
     return addGameplayZoneToMap(map, zone: zone);
   }
 
@@ -106,6 +120,10 @@ final class TriggerZoneActions {
           {required String zoneId, required FieldActionZonePayload payload}) =>
       _setZonePayload(
           map, zoneId, GameplayZoneKind.fieldAction, payload.toJson());
+
+  MapData setMovementPayload(MapData map,
+          {required String zoneId, required MovementZonePayload payload}) =>
+      _setZonePayload(map, zoneId, GameplayZoneKind.movement, payload.toJson());
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
@@ -279,6 +297,11 @@ final class TriggerZoneActions {
             zone: source.copyWith(
               id: parameters.string('newId'),
               smartTileProvenance: null,
+              fieldAction: source.fieldAction?.dive == null
+                  ? source.fieldAction
+                  : source.fieldAction!.copyWith(
+                      dive: source.fieldAction!.dive!
+                          .copyWith(link: null, arrivalSpawnId: null)),
               area: source.area.copyWith(
                 pos: GridPos(
                   x: parameters.integer('x'),
@@ -377,6 +400,13 @@ final class TriggerZoneActions {
       );
     }
 
+    for (final zone in updated.gameplayZones) {
+      if (zone.fieldAction?.dive?.link !=
+          findGameplayZoneById(context.map, zone.id)?.fieldAction?.dive?.link) {
+        throw semanticFailure('dive.link_requires_pair',
+            'Use the reciprocal Dive pair publication actions.');
+      }
+    }
     return context.draftMap(
       after: updated,
       operation: actionId,
@@ -508,6 +538,12 @@ MapData _setZonePayload(
 ) {
   final zone = _zoneById(map, zoneId);
   if (zone.kind != expected) throw _zoneKindFailure(zone, expected.name);
+  if (expected == GameplayZoneKind.fieldAction &&
+      FieldActionZonePayload.fromJson(raw.cast<String, dynamic>()).dive?.link !=
+          zone.fieldAction?.dive?.link) {
+    throw semanticFailure('dive.link_requires_pair',
+        'Use the reciprocal Dive pair publication actions.');
+  }
   return switch (expected) {
     GameplayZoneKind.fieldAction => updateGameplayZoneOnMap(map,
         zoneId: zoneId,

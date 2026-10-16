@@ -71,6 +71,7 @@ import '../../application/runtime_overworld_interaction.dart';
 import '../../application/field_obstacle_interaction.dart';
 import '../../application/flash_zone_interaction.dart';
 import '../../application/waterfall_interaction.dart';
+import '../../application/dive_interaction.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
@@ -169,6 +170,7 @@ import 'warp_presentation_renderer.dart';
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_waterfall.dart';
+part 'playable_map_game_dive.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
 part 'playable_map_game_warp_presentation.dart';
 
@@ -475,6 +477,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeCommittedMovementSink? onCommittedMovement;
   int _committedMovementRevision = 0;
   bool _waterfallTraversalActive = false;
+  bool _diveTransferInFlight = false;
   RuntimeCommittedMovement? _lastCommittedMovement;
   bool _isPublishingCommittedMovement = false;
   bool _reportedCommittedMovementSinkFailure = false;
@@ -923,6 +926,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _cinematicRuntimeController.isPlaying;
 
   bool get _hasCheckpointUnsafeRuntimeWorkForSave =>
+      _diveTransferInFlight ||
       _flyTransferInFlight ||
       _hasCheckpointUnsafeRuntimeWork ||
       _pendingWarp != null ||
@@ -11918,10 +11922,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
     final offset = state.playerPixelPosition;
-    if (offset == null) return world;
-    final player = world.player.copyWith(
-      playerPositionPx: PixelPosition(leftPx: offset.x, topPx: offset.y),
-    );
+    final player = offset == null
+        ? world.player
+        : world.player.copyWith(
+            playerPositionPx: PixelPosition(leftPx: offset.x, topPx: offset.y),
+          );
     final projected = PlayerCollisionConventionsV1.projectFeetAnchorToCell(
       playerCollisionRectPx: player.playerCollisionRectPx,
       tileWidthPx: world.tileWidthPx,
@@ -11931,7 +11936,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     final restored = world.withPlayer(player);
     if (projected != state.playerPosition ||
-        restored.worldStaticObstaclesCollidePlayerCollisionRect()) {
+        !isDiveEndpointPoseSafe(world: restored)) {
       throw StateError(
         'Saved player pixel position does not match a traversable world position.',
       );
@@ -15106,6 +15111,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     EntityFacing? arrivalFacing,
     MovementMode? arrivalMovementMode,
     bool Function(MapInstanceWorldState? nextInstances)? transferGuard,
+    bool Function(MapActivation activation)? destinationTransferGuard,
     String? arrivalCollisionOwnerEntityId,
     _SceneWarpPresentationOwner? presentationOwner,
   }) async {
@@ -15129,6 +15135,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final sourceBundle = _bundle;
     final sourceWorld = _world;
     final sourceMapId = _activeMapId;
+    final sourceActivationId = _currentMapActivationId;
     final sourcePos = _world.player.pos;
     final sourceFacing = _world.player.facing;
     final sourceInstances = _battleRuntimeGameState.mapInstanceWorldState;
@@ -15223,15 +15230,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ),
         ),
       );
-      final arrivalAllowed = arrivalCollisionOwnerEntityId == null && arrivalMovementMode == null
-          ? !newWorld.worldStaticObstaclesCollidePlayerCollisionRect() &&
-                (!newWorld.isWaterCell(warp.targetPos.x, warp.targetPos.y) ||
-                    newWorld.player.movementMode == MovementMode.surf)
-          : isSceneWarpArrivalAllowed(
-              world: newWorld,
-              project: newBundle.manifest,
-              arrivalCollisionOwnerEntityId: arrivalCollisionOwnerEntityId,
-            );
+      final arrivalAllowed = isSceneWarpArrivalAllowed(
+        world: newWorld,
+        project: newBundle.manifest,
+        arrivalCollisionOwnerEntityId: arrivalCollisionOwnerEntityId,
+      );
       if (!arrivalAllowed) {
         throw StateError(
           'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
@@ -15274,6 +15277,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.syncState(_world.player, snapToGrid: true);
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       swapCompleted = true;
+      if (destinationTransferGuard?.call(activation) == false) {
+        return false;
+      }
       debugPrint(
         '[warp] player placed at map=${newBundle.map.id} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
@@ -15302,6 +15308,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           '[warp] fade in durationMs=${transitionSpec.fadeIn.inMilliseconds}',
         );
         await overlay!.fadeIn(duration: transitionSpec.fadeIn);
+      }
+      if (destinationTransferGuard?.call(activation) == false) {
+        return false;
       }
       warpStopwatch.stop();
       debugPrint('[perf][warp] total=${warpStopwatch.elapsedMilliseconds}ms');
@@ -15377,6 +15386,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final session = _activeNarrativeSceneWorkingSession;
         if (session != null && session.defersMapActivation) {
           session.deferredMapActivation = activation;
+        } else if (destinationTransferGuard?.call(activation) == false) {
+          transitionCompleted = false;
+          if (_activeMapId == activation.mapId &&
+              _currentMapActivationId == sourceActivationId) {
+            _installMapActivation(activation);
+            _resetTriggerEnterOccupancy();
+          }
         } else {
           _installMapActivation(activation);
           _resetTriggerEnterOccupancy();
@@ -15384,6 +15400,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           if (transferGuard != null && (dispatch is MapEnterProductionDispatchFailed ||
               dispatch is MapEnterProductionDispatchAuthorityBlocked || dispatch is MapEnterProductionDispatchStale)) {
             throw StateError('The Fly destination activation failed.');
+          }
+          if (destinationTransferGuard?.call(activation) == false) {
+            transitionCompleted = false;
           }
         }
       }
@@ -15660,9 +15679,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             _mapEntityPresencePredicateFor(target.bundle.manifest,
         ),
       );
-      if (newWorld.worldStaticObstaclesCollidePlayerCollisionRect() ||
-          (newWorld.isWaterCell(targetPos.x, targetPos.y) &&
-              newWorld.player.movementMode != MovementMode.surf)) {
+      if (!isSceneWarpArrivalAllowed(
+        world: newWorld,
+        project: target.bundle.manifest,
+      )) {
         debugPrint(
           '[connection] blocked entry map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
         );

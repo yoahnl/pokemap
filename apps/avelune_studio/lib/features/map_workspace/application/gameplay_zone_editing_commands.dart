@@ -230,10 +230,10 @@ class GameplayZoneEditingCommands {
     final payload = selected(id)?.movement;
     if (payload == null) return;
     document.commit(
-      updateGameplayZoneOnMap(
+      const TriggerZoneActions().setMovementPayload(
         document.current,
         zoneId: id,
-        movement: payload.copyWith(
+        payload: payload.copyWith(
           requiredMode: requiredMode ?? payload.requiredMode,
         ),
       ),
@@ -341,6 +341,30 @@ class GameplayZoneEditingCommands {
             exit: cell(end),
             direction: facing,
             requiresSurf: requiresSurf ?? previous?.requiresSurf ?? true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void configureDive(String id, {DiveZoneRole? role, String? arrivalSpawnId}) {
+    final zone = selected(id);
+    if (zone == null) return;
+    final previous = zone.fieldAction?.dive;
+    if (previous?.link != null) {
+      throw const ValidationException(
+        'Déliez les deux points avant de modifier leur configuration.',
+      );
+    }
+    document.commit(
+      const TriggerZoneActions().setFieldActionPayload(
+        document.current,
+        zoneId: id,
+        payload: FieldActionZonePayload(
+          actionKind: FieldActionZoneKind.dive,
+          dive: DiveZonePayload(
+            role: role ?? previous?.role ?? DiveZoneRole.surface,
+            arrivalSpawnId: arrivalSpawnId ?? previous?.arrivalSpawnId,
           ),
         ),
       ),

@@ -55,6 +55,7 @@ export 'src/domains/maps/smart_tile_pattern_actions.dart';
 export 'src/domains/maps/smart_tile_native_transition_guard.dart';
 export 'src/domains/maps/smart_tile_transition_guards.dart';
 export 'src/domains/maps/trigger_zone_actions.dart';
+export 'src/domains/maps/dive_pair_actions.dart';
 export 'src/domains/maps/warp_connection_actions.dart';
 export 'src/domains/maps/world_graph_queries.dart';
 export 'src/domains/gameplay/pokemon_catalog_actions.dart';

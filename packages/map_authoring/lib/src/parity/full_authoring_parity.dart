@@ -509,6 +509,17 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('gameplay_zone.dive.')) {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/dive_pair_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/dive_pair_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/dive_zone_editing_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/dive_pair_stdio.test.ts',
+    };
+  }
   if (actionId == 'gameplay_zone.set_field_action_payload') {
     return const {
       AuthoringTransport.directApi:
@@ -1350,6 +1361,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId.startsWith('gameplay_zone.dive.')) {
+    return 'test/domains/maps/dive_pair_actions_test.dart';
+  }
   if (actionId == 'gameplay_zone.set_field_action_payload') {
     return 'test/domains/maps/flash_zone_transport_test.dart';
   }

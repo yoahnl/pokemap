@@ -321,7 +321,11 @@ enum GameplayZoneKind {
 ///
 /// Cette enum vit dans `map_core` pour rester indépendante du runtime
 /// `map_gameplay`, qui fera plus tard le mapping vers GameplayMovementEffect.
+enum DiveZoneRole { surface, underwater }
+
 enum FieldActionZoneKind {
+  @JsonValue('dive')
+  dive,
   @JsonValue('waterfall')
   waterfall,
   @JsonValue('darkness')
@@ -351,6 +355,8 @@ enum HazardKind {
 
 /// Mode de déplacement requis ou appliqué dans une zone gameplay.
 enum MovementMode {
+  @JsonValue('dive')
+  dive,
   @JsonValue('walk')
   walk,
   @JsonValue('surf')

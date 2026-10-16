@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'movement_terrain_policy.dart';
 
 import 'gameplay_world_state.dart';
 
@@ -55,6 +56,10 @@ bool isSceneWarpArrivalAllowed({
         (previousPresence?.call(mapId, entity) ?? true));
   }
   return !collisionWorld.worldStaticObstaclesCollidePlayerCollisionRect() &&
-      (!world.isWaterCell(anchor.x, anchor.y) ||
-          world.player.movementMode == MovementMode.surf);
+      [rect, contact].every((area) => movementTerrainAllowsRect(
+          map: world.map,
+          rect: area,
+          tileWidth: world.tileWidthPx,
+          tileHeight: world.tileHeightPx,
+          mode: world.player.movementMode));
 }

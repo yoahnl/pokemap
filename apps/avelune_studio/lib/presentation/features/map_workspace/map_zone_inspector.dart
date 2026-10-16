@@ -131,6 +131,8 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
         Text(
           zone.fieldAction?.actionKind == FieldActionZoneKind.waterfall
               ? 'L’entrée et la sortie restent accessibles. Le trajet est réservé à Cascade ; un passage occupé est refusé avant le départ puis revérifié à chaque pas.'
+              : zone.fieldAction?.actionKind == FieldActionZoneKind.dive
+              ? 'Les deux points de Plongée relient une arrivée de surface à une arrivée sous-marine. Enregistrez les deux cartes avant de les lier ; Délier annule cette publication.'
               : zone.kind == GameplayZoneKind.fieldAction
               ? 'Les zones sombres superposées restent indépendantes. Le voile le plus sombre s’applique ; Flash éclaire une seule zone à la fois.'
               : 'Quand deux zones se superposent, la priorité la plus haute gagne.',

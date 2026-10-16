@@ -574,6 +574,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }
 
   String _flyUnavailableMessage(FlyBlockReason? reason) => switch (reason) {
+    FlyBlockReason.underwater =>
+      'Remontez à la surface avec Plongée avant d’utiliser Vol.',
     FlyBlockReason.indoor =>
       'Vol est indisponible à l’intérieur et dans les grottes.',
     FlyBlockReason.notVisited => 'Visitez ce lieu avant de pouvoir y voler.',

@@ -2962,3 +2962,11 @@ La bonne unité de construction n’est pas « le serveur MCP ». C’est le
 Une fois cette API en place, le MCP devient relativement petit et stable. Sans
 elle, il ne ferait que déplacer le tâtonnement des fichiers vers un nouveau
 protocole.
+
+### CS-07 — Plongée native 2D
+
+`gameplay_zone.set_field_action_payload` prépare un point `dive` de 1 × 1 case avec un rôle `surface` ou `underwater` et un `arrivalSpawnId` local exact (`MapEntity.id`). Un point sans lien reste enregistrable et inactif ; il bloque le playtest et l’export.
+
+`gameplay_zone.dive.link_pair_apply` prend `mapId`, `zoneId`, `targetMapId` et `targetZoneId`. Deux points propres, non liés, de rôles opposés et sur deux cartes distinctes sont publiés ensemble après validation des deux spawns, terrains et empreintes. `gameplay_zone.dive.unlink_pair_apply` prend `mapId` et `zoneId` et retire les deux liens réciproques en conservant rôle et spawn. La garantie multi-fichier est récupérable.
+
+Les sélecteurs rôle et spawn restent des brouillons locaux avec Undo/redo. Carte et point opposé sont des sélections UI temporaires ; seul Lier publie les liens. Lier/Délier demandent deux cartes enregistrées et rafraîchissent leurs historiques locaux. Le runtime persiste `MovementMode.dive`, revalide le ticket et les deux arrivées aux frontières asynchrones, et restaure le checkpoint source si le transfert échoue. Aucun PP n’est consommé et le périmètre bêta signé reste inchangé.

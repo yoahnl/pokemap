@@ -193,6 +193,7 @@ abstract class FieldActionZonePayload with _$FieldActionZonePayload {
     required FieldActionZoneKind actionKind,
     @JsonKey(includeIfNull: false) DarknessZonePayload? darkness,
     @JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall,
+    @JsonKey(includeIfNull: false) DiveZonePayload? dive,
   }) = _FieldActionZonePayload;
 
   factory FieldActionZonePayload.fromJson(Map<String, dynamic> json) =>
@@ -203,14 +204,10 @@ FieldActionZonePayload _fieldActionZonePayloadFromJson(
   Map<String, dynamic> json,
 ) {
   final kind = json['actionKind'];
-  if (json.keys.any(
-        (key) => !{'actionKind', 'darkness', 'waterfall'}.contains(key),
-      ) ||
-      (kind != 'darkness' && kind != 'waterfall') ||
-      (kind == 'darkness' &&
-          (json['darkness'] is! Map || json.containsKey('waterfall'))) ||
-      (kind == 'waterfall' &&
-          (json['waterfall'] is! Map || json.containsKey('darkness')))) {
+  const kinds = {'darkness', 'waterfall', 'dive'};
+  if (!kinds.contains(kind) ||
+      json.keys.any((key) => key != 'actionKind' && key != kind) ||
+      json[kind] is! Map) {
     throw const FormatException(
       'Field-action zones require one exclusive typed payload.',
     );
@@ -279,3 +276,51 @@ WaterfallZonePayload _waterfallZonePayloadFromJson(Map<String, dynamic> json) {
     throw const FormatException('Unsupported waterfall payload.');
   }
 }
+
+@freezed
+abstract class DiveZonePayload with _$DiveZonePayload {
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory DiveZonePayload({
+    required DiveZoneRole role,
+    @JsonKey(includeIfNull: false) String? arrivalSpawnId,
+    @JsonKey(includeIfNull: false) DiveZoneLink? link,
+  }) = _DiveZonePayload;
+  factory DiveZonePayload.fromJson(Map<String, dynamic> json) =>
+      _diveZonePayloadFromJson(json);
+}
+
+@freezed
+abstract class DiveZoneLink with _$DiveZoneLink {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory DiveZoneLink({required String mapId, required String zoneId}) =
+      _DiveZoneLink;
+  factory DiveZoneLink.fromJson(Map<String, dynamic> json) =>
+      _diveZoneLinkFromJson(json);
+}
+
+DiveZoneLink _diveZoneLinkFromJson(Map<String, dynamic> json) {
+  if (json.keys.any((key) => !{'mapId', 'zoneId'}.contains(key)) ||
+      !_diveCanonicalId(json['mapId']) ||
+      !_diveCanonicalId(json['zoneId'])) {
+    throw const FormatException('Dive link requires exact map and zone IDs.');
+  }
+  return _$DiveZoneLinkFromJson(json);
+}
+
+DiveZonePayload _diveZonePayloadFromJson(Map<String, dynamic> json) {
+  if (json.keys.any(
+        (key) => !{'role', 'arrivalSpawnId', 'link'}.contains(key),
+      ) ||
+      !{'surface', 'underwater'}.contains(json['role']) ||
+      (json.containsKey('arrivalSpawnId') &&
+          !_diveCanonicalId(json['arrivalSpawnId'])) ||
+      (json.containsKey('link') && json['link'] is! Map)) {
+    throw const FormatException(
+      'Dive requires a role and optional canonical spawn and link.',
+    );
+  }
+  return _$DiveZonePayloadFromJson(json);
+}
+
+bool _diveCanonicalId(Object? value) =>
+    value is String && value.isNotEmpty && value.trim() == value;

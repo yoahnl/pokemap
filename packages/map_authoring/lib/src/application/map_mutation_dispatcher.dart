@@ -1,4 +1,5 @@
 import '../domains/maps/spatial_map_actions.dart';
+import '../domains/maps/dive_pair_actions.dart';
 import '../domains/maps/moving_platform_actions.dart';
 import 'dart:async';
 
@@ -268,6 +269,9 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: placedElement.build,
         ),
+      for (final descriptor in DivePairActions.descriptors)
+        MapMutationActionRegistration(
+            descriptor: descriptor, build: const DivePairActions().build),
       for (final descriptor in TriggerZoneActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

@@ -176,7 +176,18 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map',
         summary: 'Editable PokeMap map',
         extensions: const {
-          'documentedFieldMasks': ['connections'],
+          'documentedFieldMasks': ['connections', 'gameplayZones'],
+          'gameplayZoneFieldActions': ['darkness', 'waterfall', 'dive'],
+          'divePair': {
+            'shape': '1x1',
+            'mapMode': '2d',
+            'roles': ['surface', 'underwater'],
+            'spawnIdentity': 'MapEntity.id',
+            'unlinked': 'inactivePreparation',
+            'linkAction': 'gameplay_zone.dive.link_pair_apply',
+            'unlinkAction': 'gameplay_zone.dive.unlink_pair_apply',
+            'multiFileGuarantee': 'recoverable'
+          },
         },
       ),
       AuthoringResourceKindDescriptor(

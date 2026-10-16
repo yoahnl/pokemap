@@ -1446,7 +1446,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$FieldActionZonePayload {
 
- FieldActionZoneKind get actionKind;@JsonKey(includeIfNull: false) DarknessZonePayload? get darkness;@JsonKey(includeIfNull: false) WaterfallZonePayload? get waterfall;
+ FieldActionZoneKind get actionKind;@JsonKey(includeIfNull: false) DarknessZonePayload? get darkness;@JsonKey(includeIfNull: false) WaterfallZonePayload? get waterfall;@JsonKey(includeIfNull: false) DiveZonePayload? get dive;
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1459,16 +1459,16 @@ $FieldActionZonePayloadCopyWith<FieldActionZonePayload> get copyWith => _$FieldA
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness)&&(identical(other.waterfall, waterfall) || other.waterfall == waterfall));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness)&&(identical(other.waterfall, waterfall) || other.waterfall == waterfall)&&(identical(other.dive, dive) || other.dive == dive));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,actionKind,darkness,waterfall);
+int get hashCode => Object.hash(runtimeType,actionKind,darkness,waterfall,dive);
 
 @override
 String toString() {
-  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness, waterfall: $waterfall)';
+  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness, waterfall: $waterfall, dive: $dive)';
 }
 
 
@@ -1479,11 +1479,11 @@ abstract mixin class $FieldActionZonePayloadCopyWith<$Res>  {
   factory $FieldActionZonePayloadCopyWith(FieldActionZonePayload value, $Res Function(FieldActionZonePayload) _then) = _$FieldActionZonePayloadCopyWithImpl;
 @useResult
 $Res call({
- FieldActionZoneKind actionKind,@JsonKey(includeIfNull: false) DarknessZonePayload? darkness,@JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall
+ FieldActionZoneKind actionKind,@JsonKey(includeIfNull: false) DarknessZonePayload? darkness,@JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall,@JsonKey(includeIfNull: false) DiveZonePayload? dive
 });
 
 
-$DarknessZonePayloadCopyWith<$Res>? get darkness;$WaterfallZonePayloadCopyWith<$Res>? get waterfall;
+$DarknessZonePayloadCopyWith<$Res>? get darkness;$WaterfallZonePayloadCopyWith<$Res>? get waterfall;$DiveZonePayloadCopyWith<$Res>? get dive;
 
 }
 /// @nodoc
@@ -1496,12 +1496,13 @@ class _$FieldActionZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? actionKind = null,Object? darkness = freezed,Object? waterfall = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? actionKind = null,Object? darkness = freezed,Object? waterfall = freezed,Object? dive = freezed,}) {
   return _then(_self.copyWith(
 actionKind: null == actionKind ? _self.actionKind : actionKind // ignore: cast_nullable_to_non_nullable
 as FieldActionZoneKind,darkness: freezed == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
 as DarknessZonePayload?,waterfall: freezed == waterfall ? _self.waterfall : waterfall // ignore: cast_nullable_to_non_nullable
-as WaterfallZonePayload?,
+as WaterfallZonePayload?,dive: freezed == dive ? _self.dive : dive // ignore: cast_nullable_to_non_nullable
+as DiveZonePayload?,
   ));
 }
 /// Create a copy of FieldActionZonePayload
@@ -1527,6 +1528,18 @@ $WaterfallZonePayloadCopyWith<$Res>? get waterfall {
 
   return $WaterfallZonePayloadCopyWith<$Res>(_self.waterfall!, (value) {
     return _then(_self.copyWith(waterfall: value));
+  });
+}/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DiveZonePayloadCopyWith<$Res>? get dive {
+    if (_self.dive == null) {
+    return null;
+  }
+
+  return $DiveZonePayloadCopyWith<$Res>(_self.dive!, (value) {
+    return _then(_self.copyWith(dive: value));
   });
 }
 }
@@ -1610,10 +1623,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall, @JsonKey(includeIfNull: false)  DiveZonePayload? dive)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FieldActionZonePayload() when $default != null:
-return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
+return $default(_that.actionKind,_that.darkness,_that.waterfall,_that.dive);case _:
   return orElse();
 
 }
@@ -1631,10 +1644,10 @@ return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall, @JsonKey(includeIfNull: false)  DiveZonePayload? dive)  $default,) {final _that = this;
 switch (_that) {
 case _FieldActionZonePayload():
-return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
+return $default(_that.actionKind,_that.darkness,_that.waterfall,_that.dive);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1651,10 +1664,10 @@ return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall, @JsonKey(includeIfNull: false)  DiveZonePayload? dive)?  $default,) {final _that = this;
 switch (_that) {
 case _FieldActionZonePayload() when $default != null:
-return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
+return $default(_that.actionKind,_that.darkness,_that.waterfall,_that.dive);case _:
   return null;
 
 }
@@ -1666,12 +1679,13 @@ return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _FieldActionZonePayload implements FieldActionZonePayload {
-  const _FieldActionZonePayload({required this.actionKind, @JsonKey(includeIfNull: false) this.darkness, @JsonKey(includeIfNull: false) this.waterfall});
+  const _FieldActionZonePayload({required this.actionKind, @JsonKey(includeIfNull: false) this.darkness, @JsonKey(includeIfNull: false) this.waterfall, @JsonKey(includeIfNull: false) this.dive});
   factory _FieldActionZonePayload.fromJson(Map<String, dynamic> json) => _$FieldActionZonePayloadFromJson(json);
 
 @override final  FieldActionZoneKind actionKind;
 @override@JsonKey(includeIfNull: false) final  DarknessZonePayload? darkness;
 @override@JsonKey(includeIfNull: false) final  WaterfallZonePayload? waterfall;
+@override@JsonKey(includeIfNull: false) final  DiveZonePayload? dive;
 
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
@@ -1686,16 +1700,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness)&&(identical(other.waterfall, waterfall) || other.waterfall == waterfall));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness)&&(identical(other.waterfall, waterfall) || other.waterfall == waterfall)&&(identical(other.dive, dive) || other.dive == dive));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,actionKind,darkness,waterfall);
+int get hashCode => Object.hash(runtimeType,actionKind,darkness,waterfall,dive);
 
 @override
 String toString() {
-  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness, waterfall: $waterfall)';
+  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness, waterfall: $waterfall, dive: $dive)';
 }
 
 
@@ -1706,11 +1720,11 @@ abstract mixin class _$FieldActionZonePayloadCopyWith<$Res> implements $FieldAct
   factory _$FieldActionZonePayloadCopyWith(_FieldActionZonePayload value, $Res Function(_FieldActionZonePayload) _then) = __$FieldActionZonePayloadCopyWithImpl;
 @override @useResult
 $Res call({
- FieldActionZoneKind actionKind,@JsonKey(includeIfNull: false) DarknessZonePayload? darkness,@JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall
+ FieldActionZoneKind actionKind,@JsonKey(includeIfNull: false) DarknessZonePayload? darkness,@JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall,@JsonKey(includeIfNull: false) DiveZonePayload? dive
 });
 
 
-@override $DarknessZonePayloadCopyWith<$Res>? get darkness;@override $WaterfallZonePayloadCopyWith<$Res>? get waterfall;
+@override $DarknessZonePayloadCopyWith<$Res>? get darkness;@override $WaterfallZonePayloadCopyWith<$Res>? get waterfall;@override $DiveZonePayloadCopyWith<$Res>? get dive;
 
 }
 /// @nodoc
@@ -1723,12 +1737,13 @@ class __$FieldActionZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? actionKind = null,Object? darkness = freezed,Object? waterfall = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? actionKind = null,Object? darkness = freezed,Object? waterfall = freezed,Object? dive = freezed,}) {
   return _then(_FieldActionZonePayload(
 actionKind: null == actionKind ? _self.actionKind : actionKind // ignore: cast_nullable_to_non_nullable
 as FieldActionZoneKind,darkness: freezed == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
 as DarknessZonePayload?,waterfall: freezed == waterfall ? _self.waterfall : waterfall // ignore: cast_nullable_to_non_nullable
-as WaterfallZonePayload?,
+as WaterfallZonePayload?,dive: freezed == dive ? _self.dive : dive // ignore: cast_nullable_to_non_nullable
+as DiveZonePayload?,
   ));
 }
 
@@ -1755,6 +1770,18 @@ $WaterfallZonePayloadCopyWith<$Res>? get waterfall {
 
   return $WaterfallZonePayloadCopyWith<$Res>(_self.waterfall!, (value) {
     return _then(_self.copyWith(waterfall: value));
+  });
+}/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DiveZonePayloadCopyWith<$Res>? get dive {
+    if (_self.dive == null) {
+    return null;
+  }
+
+  return $DiveZonePayloadCopyWith<$Res>(_self.dive!, (value) {
+    return _then(_self.copyWith(dive: value));
   });
 }
 }
@@ -2091,7 +2118,7 @@ as bool,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get entry {
-
+  
   return $GridPosCopyWith<$Res>(_self.entry, (value) {
     return _then(_self.copyWith(entry: value));
   });
@@ -2100,7 +2127,7 @@ $GridPosCopyWith<$Res> get entry {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get exit {
-
+  
   return $GridPosCopyWith<$Res>(_self.exit, (value) {
     return _then(_self.copyWith(exit: value));
   });
@@ -2323,7 +2350,7 @@ as bool,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get entry {
-
+  
   return $GridPosCopyWith<$Res>(_self.entry, (value) {
     return _then(_self.copyWith(entry: value));
   });
@@ -2332,11 +2359,570 @@ $GridPosCopyWith<$Res> get entry {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get exit {
-
+  
   return $GridPosCopyWith<$Res>(_self.exit, (value) {
     return _then(_self.copyWith(exit: value));
   });
 }
+}
+
+
+/// @nodoc
+mixin _$DiveZonePayload {
+
+ DiveZoneRole get role;@JsonKey(includeIfNull: false) String? get arrivalSpawnId;@JsonKey(includeIfNull: false) DiveZoneLink? get link;
+/// Create a copy of DiveZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DiveZonePayloadCopyWith<DiveZonePayload> get copyWith => _$DiveZonePayloadCopyWithImpl<DiveZonePayload>(this as DiveZonePayload, _$identity);
+
+  /// Serializes this DiveZonePayload to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiveZonePayload&&(identical(other.role, role) || other.role == role)&&(identical(other.arrivalSpawnId, arrivalSpawnId) || other.arrivalSpawnId == arrivalSpawnId)&&(identical(other.link, link) || other.link == link));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,role,arrivalSpawnId,link);
+
+@override
+String toString() {
+  return 'DiveZonePayload(role: $role, arrivalSpawnId: $arrivalSpawnId, link: $link)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DiveZonePayloadCopyWith<$Res>  {
+  factory $DiveZonePayloadCopyWith(DiveZonePayload value, $Res Function(DiveZonePayload) _then) = _$DiveZonePayloadCopyWithImpl;
+@useResult
+$Res call({
+ DiveZoneRole role,@JsonKey(includeIfNull: false) String? arrivalSpawnId,@JsonKey(includeIfNull: false) DiveZoneLink? link
+});
+
+
+$DiveZoneLinkCopyWith<$Res>? get link;
+
+}
+/// @nodoc
+class _$DiveZonePayloadCopyWithImpl<$Res>
+    implements $DiveZonePayloadCopyWith<$Res> {
+  _$DiveZonePayloadCopyWithImpl(this._self, this._then);
+
+  final DiveZonePayload _self;
+  final $Res Function(DiveZonePayload) _then;
+
+/// Create a copy of DiveZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? role = null,Object? arrivalSpawnId = freezed,Object? link = freezed,}) {
+  return _then(_self.copyWith(
+role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as DiveZoneRole,arrivalSpawnId: freezed == arrivalSpawnId ? _self.arrivalSpawnId : arrivalSpawnId // ignore: cast_nullable_to_non_nullable
+as String?,link: freezed == link ? _self.link : link // ignore: cast_nullable_to_non_nullable
+as DiveZoneLink?,
+  ));
+}
+/// Create a copy of DiveZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DiveZoneLinkCopyWith<$Res>? get link {
+    if (_self.link == null) {
+    return null;
+  }
+
+  return $DiveZoneLinkCopyWith<$Res>(_self.link!, (value) {
+    return _then(_self.copyWith(link: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [DiveZonePayload].
+extension DiveZonePayloadPatterns on DiveZonePayload {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DiveZonePayload value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DiveZonePayload() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DiveZonePayload value)  $default,){
+final _that = this;
+switch (_that) {
+case _DiveZonePayload():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DiveZonePayload value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DiveZonePayload() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DiveZoneRole role, @JsonKey(includeIfNull: false)  String? arrivalSpawnId, @JsonKey(includeIfNull: false)  DiveZoneLink? link)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DiveZonePayload() when $default != null:
+return $default(_that.role,_that.arrivalSpawnId,_that.link);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DiveZoneRole role, @JsonKey(includeIfNull: false)  String? arrivalSpawnId, @JsonKey(includeIfNull: false)  DiveZoneLink? link)  $default,) {final _that = this;
+switch (_that) {
+case _DiveZonePayload():
+return $default(_that.role,_that.arrivalSpawnId,_that.link);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DiveZoneRole role, @JsonKey(includeIfNull: false)  String? arrivalSpawnId, @JsonKey(includeIfNull: false)  DiveZoneLink? link)?  $default,) {final _that = this;
+switch (_that) {
+case _DiveZonePayload() when $default != null:
+return $default(_that.role,_that.arrivalSpawnId,_that.link);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _DiveZonePayload implements DiveZonePayload {
+  const _DiveZonePayload({required this.role, @JsonKey(includeIfNull: false) this.arrivalSpawnId, @JsonKey(includeIfNull: false) this.link});
+  factory _DiveZonePayload.fromJson(Map<String, dynamic> json) => _$DiveZonePayloadFromJson(json);
+
+@override final  DiveZoneRole role;
+@override@JsonKey(includeIfNull: false) final  String? arrivalSpawnId;
+@override@JsonKey(includeIfNull: false) final  DiveZoneLink? link;
+
+/// Create a copy of DiveZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DiveZonePayloadCopyWith<_DiveZonePayload> get copyWith => __$DiveZonePayloadCopyWithImpl<_DiveZonePayload>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DiveZonePayloadToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiveZonePayload&&(identical(other.role, role) || other.role == role)&&(identical(other.arrivalSpawnId, arrivalSpawnId) || other.arrivalSpawnId == arrivalSpawnId)&&(identical(other.link, link) || other.link == link));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,role,arrivalSpawnId,link);
+
+@override
+String toString() {
+  return 'DiveZonePayload(role: $role, arrivalSpawnId: $arrivalSpawnId, link: $link)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DiveZonePayloadCopyWith<$Res> implements $DiveZonePayloadCopyWith<$Res> {
+  factory _$DiveZonePayloadCopyWith(_DiveZonePayload value, $Res Function(_DiveZonePayload) _then) = __$DiveZonePayloadCopyWithImpl;
+@override @useResult
+$Res call({
+ DiveZoneRole role,@JsonKey(includeIfNull: false) String? arrivalSpawnId,@JsonKey(includeIfNull: false) DiveZoneLink? link
+});
+
+
+@override $DiveZoneLinkCopyWith<$Res>? get link;
+
+}
+/// @nodoc
+class __$DiveZonePayloadCopyWithImpl<$Res>
+    implements _$DiveZonePayloadCopyWith<$Res> {
+  __$DiveZonePayloadCopyWithImpl(this._self, this._then);
+
+  final _DiveZonePayload _self;
+  final $Res Function(_DiveZonePayload) _then;
+
+/// Create a copy of DiveZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? role = null,Object? arrivalSpawnId = freezed,Object? link = freezed,}) {
+  return _then(_DiveZonePayload(
+role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as DiveZoneRole,arrivalSpawnId: freezed == arrivalSpawnId ? _self.arrivalSpawnId : arrivalSpawnId // ignore: cast_nullable_to_non_nullable
+as String?,link: freezed == link ? _self.link : link // ignore: cast_nullable_to_non_nullable
+as DiveZoneLink?,
+  ));
+}
+
+/// Create a copy of DiveZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DiveZoneLinkCopyWith<$Res>? get link {
+    if (_self.link == null) {
+    return null;
+  }
+
+  return $DiveZoneLinkCopyWith<$Res>(_self.link!, (value) {
+    return _then(_self.copyWith(link: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$DiveZoneLink {
+
+ String get mapId; String get zoneId;
+/// Create a copy of DiveZoneLink
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DiveZoneLinkCopyWith<DiveZoneLink> get copyWith => _$DiveZoneLinkCopyWithImpl<DiveZoneLink>(this as DiveZoneLink, _$identity);
+
+  /// Serializes this DiveZoneLink to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiveZoneLink&&(identical(other.mapId, mapId) || other.mapId == mapId)&&(identical(other.zoneId, zoneId) || other.zoneId == zoneId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,mapId,zoneId);
+
+@override
+String toString() {
+  return 'DiveZoneLink(mapId: $mapId, zoneId: $zoneId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DiveZoneLinkCopyWith<$Res>  {
+  factory $DiveZoneLinkCopyWith(DiveZoneLink value, $Res Function(DiveZoneLink) _then) = _$DiveZoneLinkCopyWithImpl;
+@useResult
+$Res call({
+ String mapId, String zoneId
+});
+
+
+
+
+}
+/// @nodoc
+class _$DiveZoneLinkCopyWithImpl<$Res>
+    implements $DiveZoneLinkCopyWith<$Res> {
+  _$DiveZoneLinkCopyWithImpl(this._self, this._then);
+
+  final DiveZoneLink _self;
+  final $Res Function(DiveZoneLink) _then;
+
+/// Create a copy of DiveZoneLink
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? mapId = null,Object? zoneId = null,}) {
+  return _then(_self.copyWith(
+mapId: null == mapId ? _self.mapId : mapId // ignore: cast_nullable_to_non_nullable
+as String,zoneId: null == zoneId ? _self.zoneId : zoneId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DiveZoneLink].
+extension DiveZoneLinkPatterns on DiveZoneLink {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DiveZoneLink value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DiveZoneLink() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DiveZoneLink value)  $default,){
+final _that = this;
+switch (_that) {
+case _DiveZoneLink():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DiveZoneLink value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DiveZoneLink() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String mapId,  String zoneId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DiveZoneLink() when $default != null:
+return $default(_that.mapId,_that.zoneId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String mapId,  String zoneId)  $default,) {final _that = this;
+switch (_that) {
+case _DiveZoneLink():
+return $default(_that.mapId,_that.zoneId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String mapId,  String zoneId)?  $default,) {final _that = this;
+switch (_that) {
+case _DiveZoneLink() when $default != null:
+return $default(_that.mapId,_that.zoneId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _DiveZoneLink implements DiveZoneLink {
+  const _DiveZoneLink({required this.mapId, required this.zoneId});
+  factory _DiveZoneLink.fromJson(Map<String, dynamic> json) => _$DiveZoneLinkFromJson(json);
+
+@override final  String mapId;
+@override final  String zoneId;
+
+/// Create a copy of DiveZoneLink
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DiveZoneLinkCopyWith<_DiveZoneLink> get copyWith => __$DiveZoneLinkCopyWithImpl<_DiveZoneLink>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DiveZoneLinkToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiveZoneLink&&(identical(other.mapId, mapId) || other.mapId == mapId)&&(identical(other.zoneId, zoneId) || other.zoneId == zoneId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,mapId,zoneId);
+
+@override
+String toString() {
+  return 'DiveZoneLink(mapId: $mapId, zoneId: $zoneId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DiveZoneLinkCopyWith<$Res> implements $DiveZoneLinkCopyWith<$Res> {
+  factory _$DiveZoneLinkCopyWith(_DiveZoneLink value, $Res Function(_DiveZoneLink) _then) = __$DiveZoneLinkCopyWithImpl;
+@override @useResult
+$Res call({
+ String mapId, String zoneId
+});
+
+
+
+
+}
+/// @nodoc
+class __$DiveZoneLinkCopyWithImpl<$Res>
+    implements _$DiveZoneLinkCopyWith<$Res> {
+  __$DiveZoneLinkCopyWithImpl(this._self, this._then);
+
+  final _DiveZoneLink _self;
+  final $Res Function(_DiveZoneLink) _then;
+
+/// Create a copy of DiveZoneLink
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? mapId = null,Object? zoneId = null,}) {
+  return _then(_DiveZoneLink(
+mapId: null == mapId ? _self.mapId : mapId // ignore: cast_nullable_to_non_nullable
+as String,zoneId: null == zoneId ? _self.zoneId : zoneId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
 }
 
 // dart format on

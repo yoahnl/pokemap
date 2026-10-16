@@ -77,6 +77,16 @@ MapData updateGameplayZoneOnMap(
   if (index < 0) throw ValidationException('Gameplay zone not found: $zoneId');
 
   final current = map.gameplayZones[index];
+  if (current.fieldAction?.dive?.link != null &&
+      ((kind != null && kind != current.kind) ||
+          (id != null && id != current.id) ||
+          (!identical(fieldAction, _kUnset) &&
+              (fieldAction as FieldActionZonePayload?)?.dive?.role !=
+                  current.fieldAction!.dive!.role))) {
+    throw const ValidationException(
+      'Unlink the Dive pair before changing its endpoint type or role.',
+    );
+  }
   var draft = current.copyWith(
     id: id?.trim() ?? current.id,
     name: name?.trim() ?? current.name,
@@ -164,6 +174,11 @@ MapData resizeGameplayZoneOnMap(
 MapData removeGameplayZoneFromMap(MapData map, {required String zoneId}) {
   final index = map.gameplayZones.indexWhere((z) => z.id == zoneId);
   if (index < 0) throw ValidationException('Gameplay zone not found: $zoneId');
+  if (map.gameplayZones[index].fieldAction?.dive?.link != null) {
+    throw const ValidationException(
+      'Unlink the Dive pair before deleting its endpoint.',
+    );
+  }
   final updated = List<MapGameplayZone>.from(map.gameplayZones, growable: true)
     ..removeAt(index);
   return map.copyWith(gameplayZones: updated);
@@ -222,6 +237,19 @@ void _validateZone(
       }
     }
   }
+  if (zone.movement?.allowedModes.contains(MovementMode.dive) == true) {
+    throw const ValidationException(
+      'Dive cannot be an additional allowed movement mode.',
+    );
+  }
+  validateDiveMovementZones(
+    map.copyWith(
+      gameplayZones: [
+        ...map.gameplayZones.where((other) => other.id != zone.id),
+        zone,
+      ],
+    ),
+  );
   final movementEffect = zone.movementEffect;
   if (zone.kind == GameplayZoneKind.movementEffect && movementEffect == null) {
     throw ValidationException(
@@ -290,10 +318,41 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
       'Field-action zones are supported on 2D maps only.',
     );
   }
+  if (payload.actionKind == FieldActionZoneKind.dive) {
+    final dive = payload.dive;
+    if (dive == null ||
+        payload.darkness != null ||
+        payload.waterfall != null ||
+        zone.area.size != const GridSize(width: 1, height: 1)) {
+      throw const ValidationException('Dive requires an exclusive 1x1 point.');
+    }
+    DiveZonePayload.fromJson(dive.toJson());
+    final spawnId = dive.arrivalSpawnId;
+    if (dive.link != null && spawnId == null) {
+      throw const ValidationException(
+        'A linked Dive point requires an arrival spawn.',
+      );
+    }
+    if (spawnId != null) {
+      final entities = map.entities
+          .where((entity) => entity.id == spawnId)
+          .toList();
+      if (entities.length != 1 ||
+          entities.single.kind != MapEntityKind.spawn ||
+          entities.single.spawn == null ||
+          entities.single.pos != zone.area.pos) {
+        throw const ValidationException(
+          'Dive arrival must be one exact local spawn ID on its point.',
+        );
+      }
+    }
+    return;
+  }
   if (payload.actionKind == FieldActionZoneKind.waterfall) {
     final route = payload.waterfall;
     if (route == null ||
         payload.darkness != null ||
+        payload.dive != null ||
         route.path.isEmpty ||
         route.path.length > 256) {
       throw const ValidationException(
@@ -323,7 +382,9 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
     }
     return;
   }
-  if (payload.darkness == null || payload.waterfall != null) {
+  if (payload.darkness == null ||
+      payload.waterfall != null ||
+      payload.dive != null) {
     throw const ValidationException(
       'Darkness requires its exclusive typed payload.',
     );
@@ -333,5 +394,42 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
     throw const ValidationException(
       'Darkness opacity must be between 0.35 and 0.95.',
     );
+  }
+}
+
+void validateDiveMovementZones(MapData map) {
+  final movements = map.gameplayZones
+      .where(
+        (zone) =>
+            zone.kind == GameplayZoneKind.movement && zone.movement != null,
+      )
+      .toList();
+  for (final zone in movements) {
+    final payload = zone.movement!;
+    if (payload.allowedModes.contains(MovementMode.dive)) {
+      throw const ValidationException(
+        'Dive cannot be an additional allowed movement mode.',
+      );
+    }
+    if (payload.requiredMode != MovementMode.dive) continue;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+      throw const ValidationException(
+        'Dive movement terrain is supported on 2D maps only.',
+      );
+    }
+    for (final other in movements) {
+      if (other.movement!.requiredMode != MovementMode.surf &&
+          !other.movement!.allowedModes.contains(MovementMode.surf))
+        continue;
+      final a = zone.area, b = other.area;
+      if (a.pos.x < b.pos.x + b.size.width &&
+          a.pos.x + a.size.width > b.pos.x &&
+          a.pos.y < b.pos.y + b.size.height &&
+          a.pos.y + a.size.height > b.pos.y) {
+        throw const ValidationException(
+          'Surf and Dive terrains cannot overlap.',
+        );
+      }
+    }
   }
 }

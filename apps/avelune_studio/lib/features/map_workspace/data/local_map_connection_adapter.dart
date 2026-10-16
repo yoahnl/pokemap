@@ -5,10 +5,12 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
 import '../domain/map_connection_port.dart';
+import '../domain/map_dive_pair_port.dart';
 import '../domain/map_workspace_port.dart';
 import 'local_map_workspace_adapter.dart';
 
-final class LocalMapConnectionAdapter implements MapConnectionPort {
+final class LocalMapConnectionAdapter
+    implements MapConnectionPort, MapDivePairPort {
   const LocalMapConnectionAdapter(this.mapAdapter);
 
   final LocalMapWorkspaceAdapter mapAdapter;
@@ -46,6 +48,29 @@ final class LocalMapConnectionAdapter implements MapConnectionPort {
     expectedTarget: expectedTarget,
     action: 'connection.delete_bidirectional_apply',
     parameters: {'mapId': source.id, 'direction': direction.name},
+  );
+
+  @override
+  Future<void> publishDivePair({
+    required ProjectSession session,
+    required MapData source,
+    required MapData expectedTarget,
+    required String zoneId,
+    required String targetZoneId,
+    required bool unlink,
+  }) => _run(
+    session: session,
+    source: source,
+    expectedTarget: expectedTarget,
+    action: unlink
+        ? 'gameplay_zone.dive.unlink_pair_apply'
+        : 'gameplay_zone.dive.link_pair_apply',
+    parameters: {
+      'mapId': source.id,
+      'zoneId': zoneId,
+      if (!unlink) 'targetMapId': expectedTarget.id,
+      if (!unlink) 'targetZoneId': targetZoneId,
+    },
   );
 
   Future<void> _run({

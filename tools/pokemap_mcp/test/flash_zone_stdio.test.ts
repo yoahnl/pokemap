@@ -70,7 +70,7 @@ test("live MCP discovers native Flash and proves create, set, cancel, undo, revi
     assert.equal(contract.mapMode, "2d"); assert.equal(contract.lifetime, "byActionKind");
     assert.equal(record(contract.waterfall).lifetime, "traversal");
     assert.equal(record(contract.darkness).lifetime, "mapInstance");
-    assert.deepEqual(contract.actionKinds, ["darkness", "waterfall"]); assert.equal(contract.consumesPp, false);
+    assert.deepEqual(contract.actionKinds, ["darkness", "waterfall", "dive"]); assert.equal(contract.consumesPp, false);
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const initial = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     await apply("gameplay_zone.create", { zone: zone() });

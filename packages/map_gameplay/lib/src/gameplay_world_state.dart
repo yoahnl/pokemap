@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
+import 'movement_terrain_policy.dart';
 
 import 'direction.dart';
 import 'border_directed_jump_binding.dart';
@@ -489,9 +490,9 @@ class GameplayWorldState {
     required int cellY,
     required MovementMode movementMode,
   }) {
-    if (isWaterCell(cellX, cellY) && movementMode != MovementMode.surf) {
-      return GameplayMovementBlockReason.waterRequiresSurf;
-    }
+    final terrain = movementTerrainBlockReasonAt(
+        map: map, x: cellX, y: cellY, mode: movementMode);
+    if (terrain != null) return terrain;
     if (isCellCenterBlockedLegacyForGridIndexedSystems(cellX, cellY)) {
       return GameplayMovementBlockReason.solid;
     }

@@ -4,6 +4,17 @@ import 'package:test/test.dart';
 
 void main() {
   flyTests();
+  test('Fly cannot bypass a validated Dive ascent', () {
+    final result = evaluateFlyAttempt(
+        sourceMap: sourceMap(),
+        sourceRole: MapRole.exterior,
+        targetMap: targetMap(),
+        gameState:
+            readyForFly().copyWith(playerMovementMode: MovementMode.dive),
+        catalog: flyCatalog(),
+        pointId: 'town.poi');
+    expect(result, isA<FlyUnavailable>());
+  });
   test('Vol is serializable and remains outside the signed beta abilities', () {
     final ability = FieldAbility.values.byName('fly');
     expect(ability.moveId, 'fly');

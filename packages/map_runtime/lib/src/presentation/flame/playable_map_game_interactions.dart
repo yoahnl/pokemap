@@ -10,6 +10,7 @@ final class _ResolvedOverworldInteraction {
     this.isIntrinsicFieldObstacle = false,
     this.flashZoneId,
     this.waterfallZoneId,
+    this.diveZoneId,
   });
 
   final RuntimeOverworldInteractionAction action;
@@ -20,11 +21,13 @@ final class _ResolvedOverworldInteraction {
   final bool isIntrinsicFieldObstacle;
   final String? flashZoneId;
   final String? waterfallZoneId;
+  final String? diveZoneId;
 }
 
 extension _PlayableMapInteractions on PlayableMapGame {
   bool _canResolveOverworldInteraction({bool duringDispatch = false}) {
-    if (_isRemoved ||
+    if (_diveTransferInFlight ||
+        _isRemoved ||
         _currentMapActivationId == null ||
         _onLoadInProgress ||
         _flowPhase != _RuntimeFlowPhase.overworld ||
@@ -301,7 +304,38 @@ extension _PlayableMapInteractions on PlayableMapGame {
     } else {
       final selected = _selectInteractionMapEvent();
       if (selected == null) {
-        final waterfall = findWaterfallTarget(map: _world.map, gameState: _gameState);
+        final dive = findDiveTarget(map: _world.map, gameState: _gameState);
+        if (dive != null && _activeNarrativeSceneWorkingSession == null) {
+          final settings = _bundle.manifest.settings;
+          return _ResolvedOverworldInteraction(
+            action: RuntimeOverworldInteractionAction(
+              request: RuntimeOverworldInteractionRequest(
+                sessionId: _interactionSessionId,
+                mapActivationId: _currentMapActivationId!,
+                mapId: _activeMapId,
+                targetKind: RuntimeOverworldInteractionTargetKind.gameplayZone,
+                targetId: dive.id,
+                actionId: narrativeEventCanonicalSha256(
+                  jsonEncode(['dive', dive.toJson()]),
+                ),
+              ),
+              verb: RuntimeOverworldInteractionVerb.interact,
+              targetCell: _world.player.pos,
+              targetBounds: PixelRect(
+                leftPx: _world.player.pos.x * settings.tileWidth,
+                topPx: _world.player.pos.y * settings.tileHeight,
+                widthPx: settings.tileWidth,
+                heightPx: settings.tileHeight,
+              ),
+            ),
+            result: result,
+            diveZoneId: dive.id,
+          );
+        }
+        final waterfall = findWaterfallTarget(
+          map: _world.map,
+          gameState: _gameState,
+        );
         if (waterfall != null) {
           final prepared = prepareWaterfallInteraction(
             map: _world.map,
@@ -541,6 +575,11 @@ extension _PlayableMapInteractions on PlayableMapGame {
   }
 
   void _executeOverworldInteraction(_ResolvedOverworldInteraction interaction) {
+    final diveZoneId = interaction.diveZoneId;
+    if (diveZoneId != null) {
+      unawaited(_openDiveInteraction(diveZoneId));
+      return;
+    }
     final waterfallZoneId = interaction.waterfallZoneId;
     if (waterfallZoneId != null) {
       final prepared = prepareWaterfallInteraction(

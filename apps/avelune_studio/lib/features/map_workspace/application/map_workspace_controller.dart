@@ -142,6 +142,7 @@ class MapWorkspaceController {
     if (_disposed || project == null) return;
     final activeId = active?.base.mapId;
     for (final id in mapIds) {
+      _previews.remove(id);
       final document = documents[id];
       if (document?.dirty == true || document?.saving == true) {
         throw const MapWorkspaceFailure(

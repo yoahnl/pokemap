@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'movement_terrain_policy.dart';
 
 import 'collision/pixel_movement_resolver.dart';
 import 'collision/border_collision_geometry.dart';
@@ -31,14 +32,24 @@ GameplayEntityBumpContact? resolvePlayerEntityBumpContact(
     x: player.pos.x + direction.dx,
     y: player.pos.y + direction.dy,
   );
-  if (attemptedPixelsPerStep < 1 || attemptedPixelsPerStep > maxStep ||
-      world.map.spatialScene != null || world.map.version == ProjectVersion.v9 ||
-      player.playerSpriteWidthPx <= 0 || player.playerSpriteHeightPx <= 0 ||
-      world.map.id.isEmpty || world.map.id.trim() != world.map.id ||
-      next.x < 0 || next.y < 0 ||
-      next.x >= world.map.size.width || next.y >= world.map.size.height ||
-      (world.isWaterCell(next.x, next.y) &&
-          player.movementMode != MovementMode.surf)) {
+  if (attemptedPixelsPerStep < 1 ||
+      attemptedPixelsPerStep > maxStep ||
+      world.map.spatialScene != null ||
+      world.map.version == ProjectVersion.v9 ||
+      player.playerSpriteWidthPx <= 0 ||
+      player.playerSpriteHeightPx <= 0 ||
+      world.map.id.isEmpty ||
+      world.map.id.trim() != world.map.id ||
+      next.x < 0 ||
+      next.y < 0 ||
+      next.x >= world.map.size.width ||
+      next.y >= world.map.size.height ||
+      movementTerrainBlockReasonAt(
+              map: world.map,
+              x: next.x,
+              y: next.y,
+              mode: player.movementMode) !=
+          null) {
     return null;
   }
   bool inside(PixelRect rect) => rect.widthPx > 0 && rect.heightPx > 0 &&
@@ -166,7 +177,12 @@ List<GameplayTriggerBumpContact> _collectTriggerBumpContacts(
       next.y < 0 ||
       next.x >= world.map.size.width ||
       next.y >= world.map.size.height ||
-      world.isWaterCell(next.x, next.y)) {
+      movementTerrainBlockReasonAt(
+              map: world.map,
+              x: next.x,
+              y: next.y,
+              mode: player.movementMode) !=
+          null) {
     return const [];
   }
   bool inside(PixelRect rect) =>
@@ -346,11 +362,15 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
     );
   }
 
-  if (facingWorld.isWaterCell(nextCellX, nextCellY) &&
-      facingWorld.player.movementMode != MovementMode.surf) {
+  final terrainBlock = movementTerrainBlockReasonAt(
+      map: facingWorld.map,
+      x: nextCellX,
+      y: nextCellY,
+      mode: facingWorld.player.movementMode);
+  if (terrainBlock != null) {
     return Blocked(
       facingWorld,
-      reason: GameplayMovementBlockReason.waterRequiresSurf,
+      reason: terrainBlock,
     );
   }
 
@@ -369,6 +389,14 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
         return true;
       }
       final contact = facingWorld.playerCharacterContactRect(rect);
+      if ([rect, contact].any((area) => !movementTerrainAllowsRect(
+          map: facingWorld.map,
+          rect: area,
+          tileWidth: facingWorld.tileWidthPx,
+          tileHeight: facingWorld.tileHeightPx,
+          mode: facingWorld.player.movementMode))) {
+        return true;
+      }
       return characterReservations.any((obstacle) =>
           contact.leftPx < obstacle.leftPx + obstacle.widthPx &&
           contact.leftPx + contact.widthPx > obstacle.leftPx &&
@@ -550,20 +578,14 @@ GameplayStepResult? _resolveBorderJump(
         world.player.pos != sourceCell) {
       return Blocked(world, reason: GameplayMovementBlockReason.outOfBounds);
     }
-    if (world.player.movementMode != MovementMode.surf) {
-      for (final area in [rect, contact]) {
-        for (var y = area.topPx ~/ world.tileHeightPx;
-            y <= (area.topPx + area.heightPx - 1) ~/ world.tileHeightPx;
-            y++) {
-          for (var x = area.leftPx ~/ world.tileWidthPx;
-              x <= (area.leftPx + area.widthPx - 1) ~/ world.tileWidthPx;
-              x++) {
-            if (world.isWaterCell(x, y)) {
-              return Blocked(world, reason: GameplayMovementBlockReason.waterRequiresSurf);
-            }
-          }
-        }
-      }
+    if ([rect, contact].any((area) => !movementTerrainAllowsRect(
+        map: world.map,
+        rect: area,
+        tileWidth: world.tileWidthPx,
+        tileHeight: world.tileHeightPx,
+        mode: world.player.movementMode))) {
+      return Blocked(world,
+          reason: GameplayMovementBlockReason.invalidMovementTerrain);
     }
     if (world.worldStaticObstaclesCollidePixelRect(
           rect,

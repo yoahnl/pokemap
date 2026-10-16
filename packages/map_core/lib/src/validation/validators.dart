@@ -3049,6 +3049,11 @@ class MapValidator {
           'Gameplay zone $zoneId area extends outside map bounds',
         );
       }
+      if (zone.movement?.allowedModes.contains(MovementMode.dive) == true) {
+        throw const ValidationException(
+          'Dive cannot be an additional allowed movement mode.',
+        );
+      }
       validateFieldActionZone(map, zone);
       validateGameplayZoneCellMask(zone);
     }
@@ -3057,6 +3062,7 @@ class MapValidator {
       (zone) => zone.id,
       duplicateMessagePrefix: 'Duplicate gameplay zone ID',
     );
+    validateDiveMovementZones(map);
     final encounterAmbiguities = findEncounterZoneAmbiguities(
       map.gameplayZones,
     );

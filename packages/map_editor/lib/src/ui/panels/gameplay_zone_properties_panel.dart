@@ -1324,6 +1324,7 @@ class _GameplayZonePropertiesPanelState
       MovementMode.cut => 'Cut',
       MovementMode.strength => 'Strength',
       MovementMode.rockSmash => 'Rock Smash',
+      MovementMode.dive => 'Dive',
     };
   }
 

@@ -17,6 +17,8 @@ dependencies:
   image: ^4.2.0
   map_core:
     path: ../map_core
+  map_gameplay:
+    path: ../map_gameplay
   map_distribution:
     path: ../map_distribution
   path: ^1.9.1
