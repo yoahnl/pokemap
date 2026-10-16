@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -16,6 +18,88 @@ void main() {
     fixture = await MapCatalogFixture.create();
   });
   tearDown(() => fixture.dispose());
+
+  test(
+    'regional catalogue survives native rename reconcile and cold reopen',
+    () async {
+      final controller = await _regionalController(fixture);
+      addTearDown(controller.dispose);
+      final before = controller.project!;
+      final target = before.maps.first;
+      final result = await controller.mutateCatalog('map.update_metadata', {
+        'mapId': target.id,
+        'name': 'Regional title',
+      });
+      expect(result.published, isTrue, reason: result.error);
+      expect(result.integrated, isTrue, reason: result.error);
+      expect(controller.project!.regionalMap, before.regionalMap);
+      expect(controller.pendingCatalogReceipt, isNull);
+      final reopened = MapWorkspaceController(
+        fixture.session,
+        LocalMapWorkspaceAdapter(),
+      );
+      addTearDown(reopened.dispose);
+      await reopened.initialize();
+      expect(reopened.error, isNull);
+      expect(reopened.project, controller.project);
+      expect(reopened.active!.current.name, 'Regional title');
+    },
+  );
+
+  for (final field in ['u', 'destination']) {
+    test(
+      'regional catalogue reconciliation refuses a changed $field',
+      () async {
+        final controller = await _regionalController(fixture);
+        addTearDown(controller.dispose);
+        final before = controller.project!;
+        final receipt = await fixture.catalog.mutate(
+          fixture.session,
+          'map.update_metadata',
+          {'mapId': before.maps.first.id, 'name': 'Native title'},
+          expectedManifest: before,
+        );
+        final regional = receipt.manifest.regionalMap!;
+        final poi = regional.pointsOfInterest.single;
+        final forgedRegional = ProjectRegionalMapCatalog.fromJson({
+          ...regional.toJson(),
+          'pointsOfInterest': [
+            {
+              ...poi.toJson(),
+              field: field == 'u' ? 0.75 : {'mapId': before.maps.last.id},
+            },
+          ],
+        });
+        final forged = MapCatalogReceipt(
+          before: receipt.before,
+          manifest: receipt.manifest.copyWith(regionalMap: forgedRegional),
+          beforeRevision: receipt.beforeRevision,
+          revision: receipt.revision,
+          changedPaths: receipt.changedPaths,
+          documents: receipt.documents,
+        );
+        final file = File(p.join(fixture.root.path, 'project.json'));
+        final bytes = await file.readAsBytes();
+        await expectLater(
+          fixture.catalog.reconcile(fixture.session, forged),
+          throwsA(
+            isA<MapWorkspaceFailure>().having(
+              (failure) => failure.problem,
+              'problem',
+              MapWorkspaceProblem.conflict,
+            ),
+          ),
+        );
+        expect(await file.readAsBytes(), bytes);
+        await fixture.catalog.reconcile(fixture.session, receipt);
+        expect(
+          (await fixture.adapter.resourceBaseline(fixture.session)).manifest,
+          receipt.manifest,
+        );
+        expect(await file.readAsBytes(), bytes);
+      },
+    );
+  }
 
   test('undo refuses an old passage to a canonically removed map', () async {
     expect(
@@ -211,4 +295,34 @@ void main() {
     );
     expect(document.current, isNot(changed));
   });
+}
+Future<MapWorkspaceController> _regionalController(
+  MapCatalogFixture fixture,
+) async {
+  final project = fixture.controller.project!;
+  final regional = ProjectRegionalMapCatalog(
+    regions: [ProjectRegionDefinition(id: 'region', label: 'Region')],
+    pointsOfInterest: [
+      ProjectRegionPointOfInterest(
+        id: 'poi',
+        regionId: 'region',
+        label: 'Town',
+        u: 0.25,
+        v: 0.5,
+        mapIds: [project.maps.first.id],
+        destination: ProjectRegionDestination(mapId: project.maps.first.id),
+      ),
+    ],
+  );
+  await File(
+    p.join(fixture.root.path, 'project.json'),
+  ).writeAsString(jsonEncode(project.copyWith(regionalMap: regional).toJson()));
+  final controller = MapWorkspaceController(
+    fixture.session,
+    fixture.adapter,
+    catalogPort: fixture.catalog,
+  );
+  await controller.initialize();
+  expect(controller.error, isNull);
+  return controller;
 }

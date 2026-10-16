@@ -47,6 +47,20 @@ final class ProjectRegionalMapCatalog {
         .map((point) => point.toJson())
         .toList(),
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProjectRegionalMapCatalog &&
+      schemaVersion == other.schemaVersion &&
+      _listsEqual(regions, other.regions) &&
+      _listsEqual(pointsOfInterest, other.pointsOfInterest);
+
+  @override
+  int get hashCode => Object.hash(
+    schemaVersion,
+    Object.hashAll(regions),
+    Object.hashAll(pointsOfInterest),
+  );
 }
 
 final class ProjectRegionDefinition {
@@ -103,6 +117,20 @@ final class ProjectRegionDefinition {
     'sampling': sampling.name,
     'sortOrder': sortOrder,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProjectRegionDefinition &&
+      id == other.id &&
+      label == other.label &&
+      _mapsEqual(labels, other.labels) &&
+      imagePath == other.imagePath &&
+      sampling == other.sampling &&
+      sortOrder == other.sortOrder;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, _mapHash(labels), imagePath, sampling, sortOrder);
 }
 
 final class ProjectRegionDestination {
@@ -127,6 +155,15 @@ final class ProjectRegionDestination {
     'mapId': mapId,
     if (spawnId != null) 'spawnId': spawnId,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProjectRegionDestination &&
+      mapId == other.mapId &&
+      spawnId == other.spawnId;
+
+  @override
+  int get hashCode => Object.hash(mapId, spawnId);
 }
 
 final class ProjectRegionPointOfInterest {
@@ -258,7 +295,59 @@ final class ProjectRegionPointOfInterest {
     if (destination != null) 'destination': destination!.toJson(),
     'sortOrder': sortOrder,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProjectRegionPointOfInterest &&
+      id == other.id &&
+      regionId == other.regionId &&
+      label == other.label &&
+      _mapsEqual(labels, other.labels) &&
+      u == other.u &&
+      v == other.v &&
+      visibility == other.visibility &&
+      discovery == other.discovery &&
+      _listsEqual(mapIds, other.mapIds) &&
+      description == other.description &&
+      _mapsEqual(descriptions, other.descriptions) &&
+      thumbnailPath == other.thumbnailPath &&
+      destination == other.destination &&
+      sortOrder == other.sortOrder;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    regionId,
+    label,
+    _mapHash(labels),
+    u,
+    v,
+    visibility,
+    discovery,
+    Object.hashAll(mapIds),
+    description,
+    _mapHash(descriptions),
+    thumbnailPath,
+    destination,
+    sortOrder,
+  );
 }
+
+bool _listsEqual<T>(List<T> left, List<T> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
+bool _mapsEqual(Map<String, String> left, Map<String, String> right) =>
+    left.length == right.length &&
+    left.entries.every((entry) => right[entry.key] == entry.value);
+
+int _mapHash(Map<String, String> values) => Object.hashAllUnordered(
+  values.entries.map((entry) => Object.hash(entry.key, entry.value)),
+);
 
 void _keys(Map<String, dynamic> json, Set<String> allowed) {
   if (json.keys.any((key) => !allowed.contains(key))) {

@@ -2,6 +2,181 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'regional values preserve equality and hashes across independent decoding',
+    () {
+      final region = ProjectRegionDefinition(
+        id: 'west',
+        label: 'West',
+        labels: {'fr': 'Ouest', 'en': 'West'},
+        imagePath: 'assets/west.png',
+        sortOrder: 2,
+      );
+      final destination = ProjectRegionDestination(
+        mapId: 'town',
+        spawnId: 'arrival',
+      );
+      final poi = ProjectRegionPointOfInterest.fromJson({
+        ...point().toJson(),
+        'description': 'A town',
+        'descriptions': {'fr': 'Un village', 'en': 'A town'},
+        'thumbnailPath': 'assets/town.png',
+        'destination': destination.toJson(),
+        'sortOrder': 3,
+      });
+      final catalog = ProjectRegionalMapCatalog(
+        regions: [region],
+        pointsOfInterest: [poi],
+      );
+      final values = <Object, Object>{
+        region: ProjectRegionDefinition.fromJson(region.toJson()),
+        destination: ProjectRegionDestination.fromJson(destination.toJson()),
+        poi: ProjectRegionPointOfInterest.fromJson(poi.toJson()),
+        catalog: ProjectRegionalMapCatalog.fromJson(catalog.toJson()),
+      };
+      for (final entry in values.entries) {
+        expect(entry.value, entry.key);
+        expect(entry.value.hashCode, entry.key.hashCode);
+        expect({entry.key, entry.value}, hasLength(1));
+      }
+      final project = ProjectManifest(
+        name: 'Regional equality',
+        maps: [],
+        tilesets: [],
+        regionalMap: catalog,
+      );
+      expect(ProjectManifest.fromJson(project.toJson()), project);
+      final reordered = ProjectRegionDefinition.fromJson({
+        ...region.toJson(),
+        'labels': {'en': 'West', 'fr': 'Ouest'},
+      });
+      expect(reordered, region);
+      expect(reordered.hashCode, region.hashCode);
+      final reorderedPoi = ProjectRegionPointOfInterest.fromJson({
+        ...poi.toJson(),
+        'descriptions': {'en': 'A town', 'fr': 'Un village'},
+      });
+      expect(reorderedPoi, poi);
+      expect(reorderedPoi.hashCode, poi.hashCode);
+    },
+  );
+
+  test('regional definition equality distinguishes every authored field', () {
+    final region = ProjectRegionDefinition(id: 'west', label: 'West');
+    for (final change in <Map<String, dynamic>>[
+      {'id': 'east'},
+      {'label': 'East'},
+      {
+        'labels': {'fr': 'Ouest'},
+      },
+      {'imagePath': 'assets/region.png'},
+      {'sampling': 'pixelArt'},
+      {'sortOrder': 1},
+    ]) {
+      expect(
+        ProjectRegionDefinition.fromJson({...region.toJson(), ...change}),
+        isNot(region),
+        reason: change.keys.single,
+      );
+    }
+  });
+
+  test(
+    'regional point equality distinguishes every authored field and destination',
+    () {
+      final poi = ProjectRegionPointOfInterest.fromJson({
+        ...point().toJson(),
+        'description': 'A town',
+        'descriptions': {'fr': 'Un village'},
+      });
+      for (final change in <Map<String, dynamic>>[
+        {'id': 'other'},
+        {'regionId': 'east'},
+        {'label': 'Other'},
+        {
+          'labels': {'fr': 'Autre'},
+        },
+        {'u': 0.5},
+        {'v': 0.5},
+        {'visibility': 'hidden'},
+        {'discovery': 'always'},
+        {
+          'mapIds': ['other'],
+        },
+        {'description': 'Description'},
+        {
+          'descriptions': {'fr': 'Description'},
+        },
+        {'thumbnailPath': 'assets/thumbnail.png'},
+        {
+          'destination': {'mapId': 'town', 'spawnId': 'arrival'},
+        },
+        {'sortOrder': 1},
+      ]) {
+        expect(
+          ProjectRegionPointOfInterest.fromJson({...poi.toJson(), ...change}),
+          isNot(poi),
+          reason: change.keys.join(','),
+        );
+      }
+      final destination = ProjectRegionDestination(
+        mapId: 'town',
+        spawnId: 'arrival',
+      );
+      expect(
+        ProjectRegionDestination(mapId: 'other', spawnId: 'arrival'),
+        isNot(destination),
+      );
+      expect(
+        ProjectRegionDestination(mapId: 'town', spawnId: 'other'),
+        isNot(destination),
+      );
+      expect(ProjectRegionDestination(mapId: 'town'), isNot(destination));
+    },
+  );
+
+  test('regional catalog equality preserves ordered collections', () {
+    final west = ProjectRegionDefinition(id: 'west', label: 'West');
+    final east = ProjectRegionDefinition(id: 'east', label: 'East');
+    final first = point();
+    final second = ProjectRegionPointOfInterest.fromJson({
+      ...first.toJson(),
+      'id': 'second',
+    });
+    final catalog = ProjectRegionalMapCatalog(
+      regions: [west, east],
+      pointsOfInterest: [first, second],
+    );
+    expect(
+      ProjectRegionalMapCatalog(
+        regions: [east, west],
+        pointsOfInterest: [first, second],
+      ),
+      isNot(catalog),
+    );
+    expect(
+      ProjectRegionalMapCatalog(
+        regions: [west, east],
+        pointsOfInterest: [second, first],
+      ),
+      isNot(catalog),
+    );
+    expect(
+      ProjectRegionalMapCatalog(
+        regions: [west],
+        pointsOfInterest: [first, second],
+      ),
+      isNot(catalog),
+    );
+    expect(
+      ProjectRegionalMapCatalog(
+        regions: [west, east],
+        pointsOfInterest: [first],
+      ),
+      isNot(catalog),
+    );
+  });
+
   for (final spawnId in ['arrival-entity', 'arrival-key']) {
     test('map validation preserves the regional destination $spawnId', () {
       const spawn = MapEntity(
