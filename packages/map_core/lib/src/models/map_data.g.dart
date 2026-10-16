@@ -135,6 +135,11 @@ _MapGameplayZone _$MapGameplayZoneFromJson(
   hazard: json['hazard'] == null
       ? null
       : HazardZonePayload.fromJson(json['hazard'] as Map<String, dynamic>),
+  fieldAction: json['fieldAction'] == null
+      ? null
+      : FieldActionZonePayload.fromJson(
+          json['fieldAction'] as Map<String, dynamic>,
+        ),
   special: json['special'] == null
       ? null
       : SpecialZonePayload.fromJson(json['special'] as Map<String, dynamic>),
@@ -157,6 +162,7 @@ Map<String, dynamic> _$MapGameplayZoneToJson(_MapGameplayZone instance) =>
       'movement': instance.movement?.toJson(),
       'movementEffect': instance.movementEffect?.toJson(),
       'hazard': instance.hazard?.toJson(),
+      'fieldAction': ?instance.fieldAction?.toJson(),
       'special': instance.special?.toJson(),
       'smartTileProvenance': ?instance.smartTileProvenance?.toJson(),
     };
@@ -165,6 +171,7 @@ const _$GameplayZoneKindEnumMap = {
   GameplayZoneKind.encounter: 'encounter',
   GameplayZoneKind.movement: 'movement',
   GameplayZoneKind.movementEffect: 'movementEffect',
+  GameplayZoneKind.fieldAction: 'fieldAction',
   GameplayZoneKind.hazard: 'hazard',
   GameplayZoneKind.special: 'special',
   GameplayZoneKind.custom: 'custom',

@@ -279,7 +279,7 @@ class _GameplayZonePropertiesPanelState
             accent: coral,
             fieldLabel: 'Kind',
             valueLabel: _kindLabel(_selectedKind),
-            orderedIds: GameplayZoneKind.values.map((k) => k.name).toList(),
+            orderedIds: GameplayZoneKind.values.where((kind) => kind != GameplayZoneKind.fieldAction).map((k) => k.name).toList(),
             selectedMenuValue: _selectedKind.name,
             selectedIdForCheck: _selectedKind.name,
             idToLabel: (id) => _kindLabel(
@@ -302,7 +302,7 @@ class _GameplayZonePropertiesPanelState
               final picked = await showCupertinoListPicker<GameplayZoneKind>(
                 context: context,
                 title: 'Kind',
-                items: GameplayZoneKind.values,
+                items: GameplayZoneKind.values.where((kind) => kind != GameplayZoneKind.fieldAction).toList(),
                 labelOf: _kindLabel,
               );
               if (picked != null) setState(() => _selectedKind = picked);
@@ -1203,6 +1203,8 @@ class _GameplayZonePropertiesPanelState
           hazardKind: _hazardKind,
           damagePerStep: _hazardDamagePerStep,
         );
+      case GameplayZoneKind.fieldAction:
+        return;
       case GameplayZoneKind.special:
       case GameplayZoneKind.custom:
         special = SpecialZonePayload(
@@ -1296,6 +1298,7 @@ class _GameplayZonePropertiesPanelState
       GameplayZoneKind.movement => CupertinoIcons.arrow_right_arrow_left,
       GameplayZoneKind.movementEffect => CupertinoIcons.arrow_2_circlepath,
       GameplayZoneKind.hazard => CupertinoIcons.exclamationmark_triangle,
+      GameplayZoneKind.fieldAction => CupertinoIcons.lightbulb,
       GameplayZoneKind.special => CupertinoIcons.star,
       GameplayZoneKind.custom => CupertinoIcons.square_stack_3d_up,
     };
@@ -1307,6 +1310,7 @@ class _GameplayZonePropertiesPanelState
       GameplayZoneKind.movement => 'Movement',
       GameplayZoneKind.movementEffect => 'Movement Effect',
       GameplayZoneKind.hazard => 'Hazard',
+      GameplayZoneKind.fieldAction => 'Flash (Avelune Studio)',
       GameplayZoneKind.special => 'Special',
       GameplayZoneKind.custom => 'Custom',
     };

@@ -136,3 +136,33 @@ Map<String, dynamic> _$SpecialZonePayloadToJson(_SpecialZonePayload instance) =>
       'scriptKey': instance.scriptKey,
       'properties': instance.properties,
     };
+
+_FieldActionZonePayload _$FieldActionZonePayloadFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(json, allowedKeys: const ['actionKind', 'darkness']);
+  return _FieldActionZonePayload(
+    actionKind: $enumDecode(_$FieldActionZoneKindEnumMap, json['actionKind']),
+    darkness: DarknessZonePayload.fromJson(
+      json['darkness'] as Map<String, dynamic>,
+    ),
+  );
+}
+
+Map<String, dynamic> _$FieldActionZonePayloadToJson(
+  _FieldActionZonePayload instance,
+) => <String, dynamic>{
+  'actionKind': _$FieldActionZoneKindEnumMap[instance.actionKind]!,
+  'darkness': instance.darkness.toJson(),
+};
+
+const _$FieldActionZoneKindEnumMap = {FieldActionZoneKind.darkness: 'darkness'};
+
+_DarknessZonePayload _$DarknessZonePayloadFromJson(Map<String, dynamic> json) {
+  $checkKeys(json, allowedKeys: const ['opacity']);
+  return _DarknessZonePayload(opacity: (json['opacity'] as num).toDouble());
+}
+
+Map<String, dynamic> _$DarknessZonePayloadToJson(
+  _DarknessZonePayload instance,
+) => <String, dynamic>{'opacity': instance.opacity};

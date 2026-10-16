@@ -3273,6 +3273,7 @@ class MapGridPainter extends CustomPainter {
       GameplayZoneKind.movementEffect =>
         PokeMapLegacyColors.gameplayMovementEffect,
       GameplayZoneKind.hazard => PokeMapLegacyColors.gameplayHazard,
+      GameplayZoneKind.fieldAction => PokeMapLegacyColors.gameplaySpecial,
       GameplayZoneKind.special => PokeMapLegacyColors.gameplaySpecial,
       GameplayZoneKind.custom => PokeMapLegacyColors.gameplayCustom,
     };

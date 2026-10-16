@@ -1551,6 +1551,7 @@ gameplay_zone.delete
 gameplay_zone.set_encounter_payload
 gameplay_zone.set_movement_payload
 gameplay_zone.set_movement_effect_payload
+gameplay_zone.set_field_action_payload
 gameplay_zone.set_hazard_payload
 gameplay_zone.set_special_payload
 gameplay_zone.clear_payload

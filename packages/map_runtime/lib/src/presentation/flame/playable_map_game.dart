@@ -69,6 +69,7 @@ import '../../application/runtime_committed_movement.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
 import '../../application/field_obstacle_interaction.dart';
+import '../../application/flash_zone_interaction.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
@@ -146,6 +147,7 @@ import 'flame_cinematic_fx_playback_adapter.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 import 'flame_narrative_sound_playback_adapter.dart';
 import 'flame_world_tone_post_process.dart';
+import 'flame_darkness_post_process.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
 import 'map_layers_component.dart';
 import 'overworld_render_priority.dart';
@@ -1151,6 +1153,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       bundle.manifest.settings.mapInstanceRetentionPolicy != null ||
       _entityAutorunSourcesFor(bundle.manifest).isNotEmpty ||
       _gameState.mapInstanceWorldState.instancesByMapId.isNotEmpty ||
+      bundle.map.gameplayZones.any(isDarknessZone) ||
       (_runtimeBundleByMapId[bundle.map.id] ?? bundle)
           .map.entities.any((entity) => entity.fieldObstacle != null ||
               entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute);
@@ -4508,7 +4511,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _syncGameStateFromWorld();
       _configureCameraViewport();
       final tonePostProcess = PostProcessComponent(
-        postProcess: FlameWorldTonePostProcess(controller: _worldTone),
+        postProcess: PostProcessSequentialGroup(postProcesses: [
+          FlameWorldTonePostProcess(controller: _worldTone),
+          FlameDarknessPostProcess(readOpacity: () => resolveDarknessOpacity(
+            map: _world.map, gameState: _gameState)),
+        ]),
       );
       _worldTonePostProcessComponent = tonePostProcess;
       camera.add(tonePostProcess);
@@ -11589,6 +11596,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
     for (final entry in state.mapInstanceWorldState.instancesByMapId.entries) {
+      validateFlashInstanceState(
+        map: maps[entry.key]!,
+        instances: state.mapInstanceWorldState,
+      );
       maps[entry.key] = applyFieldObstacleWorldStateToMap(
         map: maps[entry.key]!, instances: state.mapInstanceWorldState,
         movingPlatformWorldState: state.movingPlatformWorldState,
@@ -16503,6 +16514,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
     final state = gameState.mapInstanceWorldState;
+    validateFlashInstanceState(map: bundle.map, instances: state);
     if (policy == null &&
         state.instancesByMapId.keys.any((mapId) => mapId != bundle.map.id)) {
       throw StateError(

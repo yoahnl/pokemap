@@ -1442,4 +1442,551 @@ as Map<String, String>,
 
 }
 
+
+/// @nodoc
+mixin _$FieldActionZonePayload {
+
+ FieldActionZoneKind get actionKind; DarknessZonePayload get darkness;
+/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FieldActionZonePayloadCopyWith<FieldActionZonePayload> get copyWith => _$FieldActionZonePayloadCopyWithImpl<FieldActionZonePayload>(this as FieldActionZonePayload, _$identity);
+
+  /// Serializes this FieldActionZonePayload to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,actionKind,darkness);
+
+@override
+String toString() {
+  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FieldActionZonePayloadCopyWith<$Res>  {
+  factory $FieldActionZonePayloadCopyWith(FieldActionZonePayload value, $Res Function(FieldActionZonePayload) _then) = _$FieldActionZonePayloadCopyWithImpl;
+@useResult
+$Res call({
+ FieldActionZoneKind actionKind, DarknessZonePayload darkness
+});
+
+
+$DarknessZonePayloadCopyWith<$Res> get darkness;
+
+}
+/// @nodoc
+class _$FieldActionZonePayloadCopyWithImpl<$Res>
+    implements $FieldActionZonePayloadCopyWith<$Res> {
+  _$FieldActionZonePayloadCopyWithImpl(this._self, this._then);
+
+  final FieldActionZonePayload _self;
+  final $Res Function(FieldActionZonePayload) _then;
+
+/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? actionKind = null,Object? darkness = null,}) {
+  return _then(_self.copyWith(
+actionKind: null == actionKind ? _self.actionKind : actionKind // ignore: cast_nullable_to_non_nullable
+as FieldActionZoneKind,darkness: null == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
+as DarknessZonePayload,
+  ));
+}
+/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DarknessZonePayloadCopyWith<$Res> get darkness {
+
+  return $DarknessZonePayloadCopyWith<$Res>(_self.darkness, (value) {
+    return _then(_self.copyWith(darkness: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [FieldActionZonePayload].
+extension FieldActionZonePayloadPatterns on FieldActionZonePayload {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FieldActionZonePayload value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FieldActionZonePayload() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FieldActionZonePayload value)  $default,){
+final _that = this;
+switch (_that) {
+case _FieldActionZonePayload():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FieldActionZonePayload value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FieldActionZonePayload() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind,  DarknessZonePayload darkness)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FieldActionZonePayload() when $default != null:
+return $default(_that.actionKind,_that.darkness);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind,  DarknessZonePayload darkness)  $default,) {final _that = this;
+switch (_that) {
+case _FieldActionZonePayload():
+return $default(_that.actionKind,_that.darkness);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( FieldActionZoneKind actionKind,  DarknessZonePayload darkness)?  $default,) {final _that = this;
+switch (_that) {
+case _FieldActionZonePayload() when $default != null:
+return $default(_that.actionKind,_that.darkness);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _FieldActionZonePayload implements FieldActionZonePayload {
+  const _FieldActionZonePayload({required this.actionKind, required this.darkness});
+  factory _FieldActionZonePayload.fromJson(Map<String, dynamic> json) => _$FieldActionZonePayloadFromJson(json);
+
+@override final  FieldActionZoneKind actionKind;
+@override final  DarknessZonePayload darkness;
+
+/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FieldActionZonePayloadCopyWith<_FieldActionZonePayload> get copyWith => __$FieldActionZonePayloadCopyWithImpl<_FieldActionZonePayload>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FieldActionZonePayloadToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,actionKind,darkness);
+
+@override
+String toString() {
+  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FieldActionZonePayloadCopyWith<$Res> implements $FieldActionZonePayloadCopyWith<$Res> {
+  factory _$FieldActionZonePayloadCopyWith(_FieldActionZonePayload value, $Res Function(_FieldActionZonePayload) _then) = __$FieldActionZonePayloadCopyWithImpl;
+@override @useResult
+$Res call({
+ FieldActionZoneKind actionKind, DarknessZonePayload darkness
+});
+
+
+@override $DarknessZonePayloadCopyWith<$Res> get darkness;
+
+}
+/// @nodoc
+class __$FieldActionZonePayloadCopyWithImpl<$Res>
+    implements _$FieldActionZonePayloadCopyWith<$Res> {
+  __$FieldActionZonePayloadCopyWithImpl(this._self, this._then);
+
+  final _FieldActionZonePayload _self;
+  final $Res Function(_FieldActionZonePayload) _then;
+
+/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? actionKind = null,Object? darkness = null,}) {
+  return _then(_FieldActionZonePayload(
+actionKind: null == actionKind ? _self.actionKind : actionKind // ignore: cast_nullable_to_non_nullable
+as FieldActionZoneKind,darkness: null == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
+as DarknessZonePayload,
+  ));
+}
+
+/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DarknessZonePayloadCopyWith<$Res> get darkness {
+
+  return $DarknessZonePayloadCopyWith<$Res>(_self.darkness, (value) {
+    return _then(_self.copyWith(darkness: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$DarknessZonePayload {
+
+ double get opacity;
+/// Create a copy of DarknessZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DarknessZonePayloadCopyWith<DarknessZonePayload> get copyWith => _$DarknessZonePayloadCopyWithImpl<DarknessZonePayload>(this as DarknessZonePayload, _$identity);
+
+  /// Serializes this DarknessZonePayload to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DarknessZonePayload&&(identical(other.opacity, opacity) || other.opacity == opacity));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,opacity);
+
+@override
+String toString() {
+  return 'DarknessZonePayload(opacity: $opacity)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DarknessZonePayloadCopyWith<$Res>  {
+  factory $DarknessZonePayloadCopyWith(DarknessZonePayload value, $Res Function(DarknessZonePayload) _then) = _$DarknessZonePayloadCopyWithImpl;
+@useResult
+$Res call({
+ double opacity
+});
+
+
+
+
+}
+/// @nodoc
+class _$DarknessZonePayloadCopyWithImpl<$Res>
+    implements $DarknessZonePayloadCopyWith<$Res> {
+  _$DarknessZonePayloadCopyWithImpl(this._self, this._then);
+
+  final DarknessZonePayload _self;
+  final $Res Function(DarknessZonePayload) _then;
+
+/// Create a copy of DarknessZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? opacity = null,}) {
+  return _then(_self.copyWith(
+opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DarknessZonePayload].
+extension DarknessZonePayloadPatterns on DarknessZonePayload {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DarknessZonePayload value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DarknessZonePayload() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DarknessZonePayload value)  $default,){
+final _that = this;
+switch (_that) {
+case _DarknessZonePayload():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DarknessZonePayload value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DarknessZonePayload() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double opacity)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DarknessZonePayload() when $default != null:
+return $default(_that.opacity);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double opacity)  $default,) {final _that = this;
+switch (_that) {
+case _DarknessZonePayload():
+return $default(_that.opacity);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double opacity)?  $default,) {final _that = this;
+switch (_that) {
+case _DarknessZonePayload() when $default != null:
+return $default(_that.opacity);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _DarknessZonePayload implements DarknessZonePayload {
+  const _DarknessZonePayload({required this.opacity});
+  factory _DarknessZonePayload.fromJson(Map<String, dynamic> json) => _$DarknessZonePayloadFromJson(json);
+
+@override final  double opacity;
+
+/// Create a copy of DarknessZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DarknessZonePayloadCopyWith<_DarknessZonePayload> get copyWith => __$DarknessZonePayloadCopyWithImpl<_DarknessZonePayload>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DarknessZonePayloadToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DarknessZonePayload&&(identical(other.opacity, opacity) || other.opacity == opacity));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,opacity);
+
+@override
+String toString() {
+  return 'DarknessZonePayload(opacity: $opacity)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DarknessZonePayloadCopyWith<$Res> implements $DarknessZonePayloadCopyWith<$Res> {
+  factory _$DarknessZonePayloadCopyWith(_DarknessZonePayload value, $Res Function(_DarknessZonePayload) _then) = __$DarknessZonePayloadCopyWithImpl;
+@override @useResult
+$Res call({
+ double opacity
+});
+
+
+
+
+}
+/// @nodoc
+class __$DarknessZonePayloadCopyWithImpl<$Res>
+    implements _$DarknessZonePayloadCopyWith<$Res> {
+  __$DarknessZonePayloadCopyWithImpl(this._self, this._then);
+
+  final _DarknessZonePayload _self;
+  final $Res Function(_DarknessZonePayload) _then;
+
+/// Create a copy of DarknessZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? opacity = null,}) {
+  return _then(_DarknessZonePayload(
+opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
 // dart format on

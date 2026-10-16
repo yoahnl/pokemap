@@ -69,6 +69,7 @@ MapData updateGameplayZoneOnMap(
   Object? movement = _kUnset,
   Object? movementEffect = _kUnset,
   Object? hazard = _kUnset,
+  Object? fieldAction = _kUnset,
   Object? special = _kUnset,
   Object? smartTileProvenance = _kUnset,
 }) {
@@ -96,6 +97,9 @@ MapData updateGameplayZoneOnMap(
     draft = draft.copyWith(
       movementEffect: movementEffect as MovementEffectZonePayload?,
     );
+  }
+  if (!identical(fieldAction, _kUnset)) {
+    draft = draft.copyWith(fieldAction: fieldAction as FieldActionZonePayload?);
   }
   if (!identical(hazard, _kUnset)) {
     draft = draft.copyWith(hazard: hazard as HazardZonePayload?);
@@ -206,6 +210,7 @@ void _validateZone(
       'with size (${area.size.width}x${area.size.height})',
     );
   }
+  validateFieldActionZone(map, zone);
   validateGameplayZoneCellMask(zone);
   final specialProps = zone.special?.properties;
   if (specialProps != null) {
@@ -261,5 +266,34 @@ void validateGameplayZoneCellMask(MapGameplayZone zone) {
             cell.y >= zone.area.size.height,
       )) {
     throw ValidationException('Gameplay zone ${zone.id} has invalid cell mask');
+  }
+}
+
+void validateFieldActionZone(MapData map, MapGameplayZone zone) {
+  final payload = zone.fieldAction;
+  if (zone.kind != GameplayZoneKind.fieldAction && payload == null) return;
+  if (zone.kind != GameplayZoneKind.fieldAction ||
+      payload == null ||
+      zone.encounter != null ||
+      zone.movement != null ||
+      zone.movementEffect != null ||
+      zone.hazard != null ||
+      zone.special != null ||
+      zone.cellMask != null ||
+      zone.smartTileProvenance != null) {
+    throw const ValidationException(
+      'Field-action zones require their exclusive typed payload.',
+    );
+  }
+  if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+    throw const ValidationException(
+      'Flash darkness zones are supported on 2D maps only.',
+    );
+  }
+  final opacity = payload.darkness.opacity;
+  if (!opacity.isFinite || opacity < .35 || opacity > .95) {
+    throw const ValidationException(
+      'Darkness opacity must be between 0.35 and 0.95.',
+    );
   }
 }

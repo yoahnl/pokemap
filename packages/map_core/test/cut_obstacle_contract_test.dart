@@ -72,7 +72,7 @@ void main() {
     test('typed position wire refuses malformed $position', () {
       expect(
         () => MapInstanceWorldState.fromJson({
-          'schemaVersion': 3,
+          'schemaVersion': 4,
           'instancesByMapId': {
             'route': {
               'instanceId': 'r1',
@@ -80,6 +80,7 @@ void main() {
               'eventBooleans': {},
               'npcPositions': {},
               'strengthActive': true,
+              'illuminatedZoneIds': <String>[],
               'fieldObstaclePositions': {'rock': position},
             },
           },
@@ -159,10 +160,10 @@ void main() {
     },
   );
   test(
-    'instance state v3 persists cleared obstacles alongside event booleans',
+    'instance state v4 persists cleared obstacles alongside event booleans',
     () {
       final json = <String, dynamic>{
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'instancesByMapId': {
           'route': {
             'instanceId': 'route-1',
@@ -175,6 +176,7 @@ void main() {
             },
             'npcPositions': {},
             'strengthActive': true,
+            'illuminatedZoneIds': <String>[],
           },
         },
       };
@@ -245,10 +247,10 @@ void main() {
     [' padded'],
     [''],
   ]) {
-    test('instance v3 rejects malformed cleared obstacle identities $raw', () {
+    test('instance v4 rejects malformed cleared obstacle identities $raw', () {
       expect(
         () => MapInstanceWorldState.fromJson({
-          'schemaVersion': 3,
+          'schemaVersion': 4,
           'instancesByMapId': {
             'route': {
               'instanceId': 'route-1',
@@ -257,6 +259,7 @@ void main() {
               'fieldObstaclePositions': {},
               'npcPositions': {},
               'strengthActive': false,
+              'illuminatedZoneIds': <String>[],
             },
           },
         }),

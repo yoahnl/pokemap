@@ -3049,6 +3049,7 @@ class MapValidator {
           'Gameplay zone $zoneId area extends outside map bounds',
         );
       }
+      validateFieldActionZone(map, zone);
       validateGameplayZoneCellMask(zone);
     }
     _validateUniqueIds(

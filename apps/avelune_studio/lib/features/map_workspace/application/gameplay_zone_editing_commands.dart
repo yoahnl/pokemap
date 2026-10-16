@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -7,6 +8,22 @@ class GameplayZoneEditingCommands {
   final EditableMapDocument document;
   final ProjectManifest project;
   static int _sequence = 0;
+
+  bool get supportsDarkness =>
+      document.current.spatialScene == null &&
+      document.current.version != ProjectVersion.v9;
+  List<GameplayZoneKind> get availableKinds => studioGameplayZoneKinds
+      .where((kind) => supportsDarkness || kind != GameplayZoneKind.fieldAction)
+      .toList(growable: false);
+
+  List<GameplayZoneKind> availableKindsFor(MapGameplayZone zone) =>
+      availableKinds
+          .where(
+            (kind) =>
+                zone.smartTileProvenance == null ||
+                kind != GameplayZoneKind.fieldAction,
+          )
+          .toList(growable: false);
 
   String _id() {
     String id;
@@ -33,6 +50,11 @@ class GameplayZoneEditingCommands {
   }
 
   String? coverageProblem(MapGameplayZone zone) {
+    if (zone.kind == GameplayZoneKind.fieldAction &&
+        (document.current.spatialScene != null ||
+            document.current.version == ProjectVersion.v9)) {
+      return 'Flash et les zones sombres sont disponibles sur les cartes 2D uniquement.';
+    }
     if (zone.kind != GameplayZoneKind.encounter) return null;
     final id = zone.encounter?.encounterTableId;
     if (id == null || id.isEmpty) {
@@ -66,6 +88,12 @@ class GameplayZoneEditingCommands {
       movementEffect: kind == GameplayZoneKind.movementEffect
           ? const MovementEffectZonePayload()
           : null,
+      fieldAction: kind == GameplayZoneKind.fieldAction
+          ? const FieldActionZonePayload(
+              actionKind: FieldActionZoneKind.darkness,
+              darkness: DarknessZonePayload(opacity: .7),
+            )
+          : null,
       hazard: kind == GameplayZoneKind.hazard
           ? const HazardZonePayload()
           : null,
@@ -73,7 +101,9 @@ class GameplayZoneEditingCommands {
           ? const SpecialZonePayload()
           : null,
     );
-    document.commit(addGameplayZoneToMap(document.current, zone: zone));
+    document.commit(
+      const TriggerZoneActions().createZone(document.current, zone: zone),
+    );
     return zone;
   }
 
@@ -133,6 +163,13 @@ class GameplayZoneEditingCommands {
             : null,
         movementEffect: kind == GameplayZoneKind.movementEffect
             ? (zone.movementEffect ?? const MovementEffectZonePayload())
+            : null,
+        fieldAction: kind == GameplayZoneKind.fieldAction
+            ? (zone.fieldAction ??
+                  const FieldActionZonePayload(
+                    actionKind: FieldActionZoneKind.darkness,
+                    darkness: DarknessZonePayload(opacity: .7),
+                  ))
             : null,
         hazard: kind == GameplayZoneKind.hazard
             ? (zone.hazard ?? const HazardZonePayload())
@@ -222,6 +259,20 @@ class GameplayZoneEditingCommands {
     );
   }
 
+  void updateDarkness(String id, {required double opacity}) {
+    final payload = selected(id)?.fieldAction;
+    if (payload == null) return;
+    document.commit(
+      const TriggerZoneActions().setFieldActionPayload(
+        document.current,
+        zoneId: id,
+        payload: payload.copyWith(
+          darkness: DarknessZonePayload(opacity: opacity),
+        ),
+      ),
+    );
+  }
+
   void updateHazard(String id, {HazardKind? hazardKind, int? damagePerStep}) {
     final payload = selected(id)?.hazard;
     if (payload == null) return;
@@ -242,6 +293,7 @@ String defaultZoneName(GameplayZoneKind kind) => switch (kind) {
   GameplayZoneKind.encounter => 'Zone de rencontres',
   GameplayZoneKind.movement => 'Zone de déplacement',
   GameplayZoneKind.movementEffect => 'Zone à effet',
+  GameplayZoneKind.fieldAction => 'Zone sombre',
   GameplayZoneKind.hazard => 'Zone dangereuse',
   GameplayZoneKind.special => 'Zone spéciale',
   GameplayZoneKind.custom => 'Zone héritée',
@@ -251,6 +303,7 @@ const studioGameplayZoneKinds = [
   GameplayZoneKind.encounter,
   GameplayZoneKind.movement,
   GameplayZoneKind.movementEffect,
+  GameplayZoneKind.fieldAction,
   GameplayZoneKind.hazard,
   GameplayZoneKind.special,
 ];

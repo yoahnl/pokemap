@@ -62,13 +62,13 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
         const SizedBox(height: 12),
         DropdownButtonFormField<GameplayZoneKind>(
           key: ValueKey('zone-kind-${zone.id}-${zone.kind.name}'),
-          initialValue: studioGameplayZoneKinds.contains(zone.kind)
+          initialValue: _commands.availableKindsFor(zone).contains(zone.kind)
               ? zone.kind
               : null,
           isExpanded: true,
           decoration: const InputDecoration(labelText: 'Type'),
           items: [
-            for (final kind in studioGameplayZoneKinds)
+            for (final kind in _commands.availableKindsFor(zone))
               DropdownMenuItem(
                 value: kind,
                 child: Text(
@@ -82,6 +82,20 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
               ? null
               : _change(() => _commands.retype(zone.id, kind)),
         ),
+        if (zone.smartTileProvenance != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour utiliser Flash.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        if (!_commands.supportsDarkness) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Flash et les zones sombres sont disponibles sur les cartes 2D uniquement.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
         if (problem != null) ...[
           const SizedBox(height: 6),
           Text(
@@ -115,7 +129,9 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Quand deux zones se superposent, la priorité la plus haute gagne.',
+          zone.kind == GameplayZoneKind.fieldAction
+              ? 'Les zones sombres superposées restent indépendantes. Le voile le plus sombre s’applique ; Flash éclaire une seule zone à la fois.'
+              : 'Quand deux zones se superposent, la priorité la plus haute gagne.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 16),

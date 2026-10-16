@@ -48,11 +48,49 @@ final class TriggerZoneActions {
         'gameplay_zone.set_special_payload',
         'Set a typed special-zone payload',
       ),
+      (
+        'gameplay_zone.set_field_action_payload',
+        'Set a typed Flash darkness-zone payload (2D, map-instance lifetime)'
+      ),
       ('gameplay_zone.clear_payload', 'Clear a gameplay-zone payload'),
       ('gameplay_zone.set_priority', 'Set gameplay-zone priority'),
     ])
-      semanticActionDescriptor(entry.$1, entry.$2),
+      if (entry.$1 == 'gameplay_zone.set_field_action_payload')
+        AuthoringActionDescriptor.fromJson({
+          ...semanticActionDescriptor(entry.$1, entry.$2).toJson(),
+          'extensions': {
+            'semanticIds': true,
+            'rawTilesetRequired': false,
+            'fieldActionZone': {
+              'mapMode': '2d',
+              'actionKinds': ['darkness'],
+              'payload': {
+                'actionKind': 'darkness',
+                'darkness': {
+                  'opacity': {'minimum': .35, 'maximum': .95}
+                }
+              },
+              'scope': 'zone',
+              'lifetime': 'mapInstance',
+              'saved': true,
+              'consumesPp': false,
+              'parameters': ['mapId', 'zoneId', 'payload'],
+            },
+          },
+        })
+      else
+        semanticActionDescriptor(entry.$1, entry.$2),
   ]);
+
+  MapData createZone(MapData map, {required MapGameplayZone zone}) {
+    _assertStrictZonePayload(zone);
+    return addGameplayZoneToMap(map, zone: zone);
+  }
+
+  MapData setFieldActionPayload(MapData map,
+          {required String zoneId, required FieldActionZonePayload payload}) =>
+      _setZonePayload(
+          map, zoneId, GameplayZoneKind.fieldAction, payload.toJson());
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
@@ -76,6 +114,7 @@ final class TriggerZoneActions {
       'gameplay_zone.set_encounter_payload' ||
       'gameplay_zone.set_movement_payload' ||
       'gameplay_zone.set_movement_effect_payload' ||
+      'gameplay_zone.set_field_action_payload' ||
       'gameplay_zone.set_hazard_payload' ||
       'gameplay_zone.set_special_payload' =>
         const {'zoneId', 'payload'},
@@ -187,11 +226,13 @@ final class TriggerZoneActions {
             name: zone.name,
             kind: zone.kind,
             area: zone.area,
+            cellMask: zone.cellMask,
             priority: zone.priority,
             encounter: zone.encounter,
             movement: zone.movement,
             movementEffect: zone.movementEffect,
             hazard: zone.hazard,
+            fieldAction: zone.fieldAction,
             special: zone.special,
             smartTileProvenance: zone.smartTileProvenance,
           );
@@ -257,6 +298,9 @@ final class TriggerZoneActions {
             GameplayZoneKind.movementEffect,
             parameters.object('payload'),
           );
+        case 'gameplay_zone.set_field_action_payload':
+          updated = _setZonePayload(context.map, parameters.string('zoneId'),
+              GameplayZoneKind.fieldAction, parameters.object('payload'));
         case 'gameplay_zone.set_hazard_payload':
           updated = _setZonePayload(
             context.map,
@@ -288,12 +332,14 @@ final class TriggerZoneActions {
           updated = updateGameplayZoneOnMap(
             context.map,
             zoneId: zone.id,
-            kind: zone.kind == GameplayZoneKind.movementEffect
+            kind: zone.kind == GameplayZoneKind.movementEffect ||
+                    zone.kind == GameplayZoneKind.fieldAction
                 ? GameplayZoneKind.custom
                 : zone.kind,
             encounter: null,
             movement: null,
             movementEffect: null,
+            fieldAction: null,
             hazard: null,
             special: null,
           );
@@ -388,7 +434,16 @@ MapGameplayZone _zoneById(MapData map, String id) {
 }
 
 void _assertStrictZonePayload(MapGameplayZone zone) {
+  if (zone.kind != GameplayZoneKind.fieldAction && zone.fieldAction != null) {
+    throw _zoneKindFailure(zone, zone.kind.name);
+  }
   final matches = switch (zone.kind) {
+    GameplayZoneKind.fieldAction => zone.fieldAction != null &&
+        zone.encounter == null &&
+        zone.movement == null &&
+        zone.movementEffect == null &&
+        zone.hazard == null &&
+        zone.special == null,
     GameplayZoneKind.encounter => zone.movement == null &&
         zone.movementEffect == null &&
         zone.hazard == null &&
@@ -439,6 +494,10 @@ MapData _setZonePayload(
   final zone = _zoneById(map, zoneId);
   if (zone.kind != expected) throw _zoneKindFailure(zone, expected.name);
   return switch (expected) {
+    GameplayZoneKind.fieldAction => updateGameplayZoneOnMap(map,
+        zoneId: zoneId,
+        fieldAction:
+            FieldActionZonePayload.fromJson(raw.cast<String, dynamic>())),
     GameplayZoneKind.encounter => updateGameplayZoneOnMap(
         map,
         zoneId: zoneId,

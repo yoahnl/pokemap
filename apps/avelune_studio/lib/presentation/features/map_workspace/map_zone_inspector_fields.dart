@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/gameplay_zone_editing_commands.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 
 String zoneKindLabel(GameplayZoneKind kind) => switch (kind) {
   GameplayZoneKind.encounter => 'Rencontres',
   GameplayZoneKind.movement => 'Déplacement requis',
   GameplayZoneKind.movementEffect => 'Effet de surface',
+  GameplayZoneKind.fieldAction => 'Zone sombre (Flash · 2D)',
   GameplayZoneKind.hazard => 'Danger',
   GameplayZoneKind.special => 'Spéciale',
   GameplayZoneKind.custom => 'Héritée',
@@ -18,6 +20,36 @@ List<Widget> zonePayloadFields({
   required GameplayZoneEditingCommands commands,
   required void Function(VoidCallback) onChanged,
 }) {
+  final darkness = zone.fieldAction?.darkness;
+  if (darkness != null) {
+    return [
+      StudioSelect(
+        key: ValueKey('zone-darkness-${zone.id}-${darkness.opacity}'),
+        label: 'Obscurité avant Flash',
+        value: '${darkness.opacity}',
+        options: {
+          for (final opacity in <double>{
+            .35,
+            .5,
+            .7,
+            .85,
+            .95,
+            darkness.opacity,
+          }.toList()..sort())
+            '$opacity': '${(opacity * 100).round()} %',
+        },
+        onChanged: (opacity) => onChanged(
+          () =>
+              commands.updateDarkness(zone.id, opacity: double.parse(opacity)),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Flash éclaire uniquement ce rectangle. L’éclairage dure jusqu’au renouvellement de l’instance de carte et est conservé dans la sauvegarde. Aucune dépense de PP. Disponible en 2D.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ];
+  }
   final encounter = zone.encounter;
   if (encounter != null) {
     final tables = commands.encounterTables();

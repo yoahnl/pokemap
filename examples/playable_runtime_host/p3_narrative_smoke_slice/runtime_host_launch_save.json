@@ -2,7 +2,7 @@
   "itemSystemSchemaVersion": 1,
   "saveId": "p3_narrative_smoke_save",
   "mapInstanceWorldState": {
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "instancesByMapId": {}
   },
   "currentMapId": "p3_narrative_smoke_map",

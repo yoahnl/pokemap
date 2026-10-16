@@ -509,6 +509,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'gameplay_zone.set_field_action_payload') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/flash_zone_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/flash_zone_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/flash_zone_editing_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/flash_zone_stdio.test.ts',
+    };
+  }
   if (actionId == 'entity.set_healing_display') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/healing_display_transport_test.dart',
@@ -1338,6 +1350,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'gameplay_zone.set_field_action_payload') {
+    return 'test/domains/maps/flash_zone_transport_test.dart';
+  }
   if (actionId == 'entity.set_healing_display') {
     return 'test/domains/maps/healing_display_actions_test.dart';
   }

@@ -184,3 +184,50 @@ Map<String, dynamic> migrateMapGameplayZoneJson(Map<String, dynamic> json) {
 
   return out;
 }
+
+@freezed
+abstract class FieldActionZonePayload with _$FieldActionZonePayload {
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory FieldActionZonePayload({
+    required FieldActionZoneKind actionKind,
+    required DarknessZonePayload darkness,
+  }) = _FieldActionZonePayload;
+
+  factory FieldActionZonePayload.fromJson(Map<String, dynamic> json) =>
+      _fieldActionZonePayloadFromJson(json);
+}
+
+FieldActionZonePayload _fieldActionZonePayloadFromJson(
+  Map<String, dynamic> json,
+) {
+  if (json.keys.any((key) => !{'actionKind', 'darkness'}.contains(key)) ||
+      json['actionKind'] != 'darkness' ||
+      json['darkness'] is! Map) {
+    throw const FormatException('Unsupported field-action zone kind.');
+  }
+  return _$FieldActionZonePayloadFromJson(json);
+}
+
+@freezed
+abstract class DarknessZonePayload with _$DarknessZonePayload {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory DarknessZonePayload({required double opacity}) =
+      _DarknessZonePayload;
+
+  factory DarknessZonePayload.fromJson(Map<String, dynamic> json) =>
+      _darknessZonePayloadFromJson(json);
+}
+
+DarknessZonePayload _darknessZonePayloadFromJson(Map<String, dynamic> json) {
+  final opacity = json['opacity'];
+  if (json.keys.any((key) => key != 'opacity') ||
+      opacity is! num ||
+      !opacity.isFinite ||
+      opacity < .35 ||
+      opacity > .95) {
+    throw const FormatException(
+      'Darkness opacity must be between 0.35 and 0.95.',
+    );
+  }
+  return _$DarknessZonePayloadFromJson(json);
+}

@@ -5,16 +5,9 @@ import '../models/map_data.dart';
 import '../models/map_gameplay_zone_payloads.dart';
 import '../models/smart_tile_gameplay_zone_provenance.dart';
 
-enum SmartTileGameplayZoneGenerationStrategy {
-  boundingBox,
-  greedyRectangles,
-}
+enum SmartTileGameplayZoneGenerationStrategy { boundingBox, greedyRectangles }
 
-enum SmartTileGameplayZoneGenerationDiagnosticSeverity {
-  error,
-  warning,
-  info,
-}
+enum SmartTileGameplayZoneGenerationDiagnosticSeverity { error, warning, info }
 
 enum SmartTileGameplayZoneGenerationDiagnosticKind {
   emptySource,
@@ -36,11 +29,11 @@ final class SmartTileGameplayZoneGenerationSource {
     required String materialId,
     required Iterable<GridPos> cells,
     this.mapSize,
-  })  : smartTileLayerId = smartTileLayerId.trim(),
-        smartTileLayerName = smartTileLayerName.trim(),
-        smartTilePresetId = smartTilePresetId.trim(),
-        materialId = materialId.trim(),
-        cells = _normalizeCells(cells, mapSize: mapSize) {
+  }) : smartTileLayerId = smartTileLayerId.trim(),
+       smartTileLayerName = smartTileLayerName.trim(),
+       smartTilePresetId = smartTilePresetId.trim(),
+       materialId = materialId.trim(),
+       cells = _normalizeCells(cells, mapSize: mapSize) {
     if (this.smartTileLayerId.isEmpty) {
       throw const ValidationException('smartTileLayerId cannot be empty');
     }
@@ -78,43 +71,42 @@ final class SmartTileGameplayZoneGenerationSource {
 
   @override
   int get hashCode => Object.hash(
-        smartTileLayerId,
-        smartTileLayerName,
-        smartTilePresetId,
-        materialId,
-        mapSize,
-        Object.hashAll(cells),
-      );
+    smartTileLayerId,
+    smartTileLayerName,
+    smartTilePresetId,
+    materialId,
+    mapSize,
+    Object.hashAll(cells),
+  );
 }
 
 final class SmartTileGameplayZoneBehaviorDraft {
   const SmartTileGameplayZoneBehaviorDraft.encounter(
     EncounterZonePayload this.encounter,
-  )   : kind = GameplayZoneKind.encounter,
-        movement = null,
-        hazard = null,
-        special = null;
+  ) : kind = GameplayZoneKind.encounter,
+      movement = null,
+      hazard = null,
+      special = null;
 
   const SmartTileGameplayZoneBehaviorDraft.movement(
     MovementZonePayload this.movement,
-  )   : kind = GameplayZoneKind.movement,
-        encounter = null,
-        hazard = null,
-        special = null;
+  ) : kind = GameplayZoneKind.movement,
+      encounter = null,
+      hazard = null,
+      special = null;
 
-  const SmartTileGameplayZoneBehaviorDraft.hazard(
-    HazardZonePayload this.hazard,
-  )   : kind = GameplayZoneKind.hazard,
-        encounter = null,
-        movement = null,
-        special = null;
+  const SmartTileGameplayZoneBehaviorDraft.hazard(HazardZonePayload this.hazard)
+    : kind = GameplayZoneKind.hazard,
+      encounter = null,
+      movement = null,
+      special = null;
 
   const SmartTileGameplayZoneBehaviorDraft.special(
     SpecialZonePayload this.special,
-  )   : kind = GameplayZoneKind.special,
-        encounter = null,
-        movement = null,
-        hazard = null;
+  ) : kind = GameplayZoneKind.special,
+      encounter = null,
+      movement = null,
+      hazard = null;
 
   final GameplayZoneKind kind;
   final EncounterZonePayload? encounter;
@@ -134,13 +126,7 @@ final class SmartTileGameplayZoneBehaviorDraft {
   }
 
   @override
-  int get hashCode => Object.hash(
-        kind,
-        encounter,
-        movement,
-        hazard,
-        special,
-      );
+  int get hashCode => Object.hash(kind, encounter, movement, hazard, special);
 }
 
 final class SmartTileGameplayZoneCoverageReport {
@@ -176,12 +162,12 @@ final class SmartTileGameplayZoneCoverageReport {
 
   @override
   int get hashCode => Object.hash(
-        sourceCellCount,
-        coveredSourceCellCount,
-        missingSourceCellCount,
-        extraCellCount,
-        zoneCount,
-      );
+    sourceCellCount,
+    coveredSourceCellCount,
+    missingSourceCellCount,
+    extraCellCount,
+    zoneCount,
+  );
 }
 
 final class SmartTileGameplayZoneGenerationDiagnostic {
@@ -217,12 +203,12 @@ final class SmartTileGameplayZoneGenerationPlan {
     required Iterable<MapRect> rectangles,
     required this.coverage,
     required Iterable<SmartTileGameplayZoneGenerationDiagnostic> diagnostics,
-  })  : generatedZones = List<MapGameplayZone>.unmodifiable(generatedZones),
-        rectangles = List<MapRect>.unmodifiable(rectangles),
-        diagnostics =
-            List<SmartTileGameplayZoneGenerationDiagnostic>.unmodifiable(
-          diagnostics,
-        );
+  }) : generatedZones = List<MapGameplayZone>.unmodifiable(generatedZones),
+       rectangles = List<MapRect>.unmodifiable(rectangles),
+       diagnostics =
+           List<SmartTileGameplayZoneGenerationDiagnostic>.unmodifiable(
+             diagnostics,
+           );
 
   final SmartTileGameplayZoneGenerationSource source;
   final SmartTileGameplayZoneBehaviorDraft behavior;
@@ -233,16 +219,16 @@ final class SmartTileGameplayZoneGenerationPlan {
   final List<SmartTileGameplayZoneGenerationDiagnostic> diagnostics;
 
   bool get hasBlockingDiagnostics => diagnostics.any(
-        (diagnostic) =>
-            diagnostic.severity ==
-            SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
-      );
+    (diagnostic) =>
+        diagnostic.severity ==
+        SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
+  );
 
   bool get hasWarnings => diagnostics.any(
-        (diagnostic) =>
-            diagnostic.severity ==
-            SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
-      );
+    (diagnostic) =>
+        diagnostic.severity ==
+        SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
+  );
 
   bool get isExactCoverage => coverage.isExact;
 
@@ -263,14 +249,14 @@ final class SmartTileGameplayZoneGenerationPlan {
 
   @override
   int get hashCode => Object.hash(
-        source,
-        behavior,
-        strategy,
-        Object.hashAll(generatedZones),
-        Object.hashAll(rectangles),
-        coverage,
-        Object.hashAll(diagnostics),
-      );
+    source,
+    behavior,
+    strategy,
+    Object.hashAll(generatedZones),
+    Object.hashAll(rectangles),
+    coverage,
+    Object.hashAll(diagnostics),
+  );
 }
 
 SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
@@ -297,8 +283,8 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
       .toList(growable: false);
   final rectangles = switch (strategy) {
     SmartTileGameplayZoneGenerationStrategy.boundingBox => [
-        _boundingBox(source.cells),
-      ],
+      _boundingBox(source.cells),
+    ],
     SmartTileGameplayZoneGenerationStrategy.greedyRectangles =>
       _greedyRectangles(source.cells),
   };
@@ -330,7 +316,8 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
       SmartTileGameplayZoneGenerationDiagnostic(
         severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
         kind: SmartTileGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
-        message: '${rectangles.length} rectangles will be generated, above the '
+        message:
+            '${rectangles.length} rectangles will be generated, above the '
             'recommended threshold of $maxRectanglesWarningThreshold.',
       ),
     );
@@ -403,10 +390,7 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
   );
 }
 
-List<GridPos> _normalizeCells(
-  Iterable<GridPos> cells, {
-  GridSize? mapSize,
-}) {
+List<GridPos> _normalizeCells(Iterable<GridPos> cells, {GridSize? mapSize}) {
   final unique = <GridPos>{};
   for (final cell in cells) {
     if (cell.x < 0 || cell.y < 0) {
@@ -439,10 +423,7 @@ MapRect _boundingBox(List<GridPos> cells) {
   }
   return MapRect(
     pos: GridPos(x: minX, y: minY),
-    size: GridSize(
-      width: maxX - minX + 1,
-      height: maxY - minY + 1,
-    ),
+    size: GridSize(width: maxX - minX + 1, height: maxY - minY + 1),
   );
 }
 
@@ -502,10 +483,12 @@ SmartTileGameplayZoneCoverageReport _buildCoverage(
     }
   }
   final coveredSourceCellCount = sourceSet.where(coveredCells.contains).length;
-  final missingSourceCellCount =
-      sourceSet.where((cell) => !coveredCells.contains(cell)).length;
-  final extraCellCount =
-      coveredCells.where((cell) => !sourceSet.contains(cell)).length;
+  final missingSourceCellCount = sourceSet
+      .where((cell) => !coveredCells.contains(cell))
+      .length;
+  final extraCellCount = coveredCells
+      .where((cell) => !sourceSet.contains(cell))
+      .length;
 
   return SmartTileGameplayZoneCoverageReport(
     sourceCellCount: sourceSet.length,
@@ -547,10 +530,11 @@ String _behaviorKey(SmartTileGameplayZoneBehaviorDraft behavior) {
     GameplayZoneKind.hazard =>
       'hazard.${behavior.hazard?.hazardKind.name ?? 'other'}',
     GameplayZoneKind.special => 'special',
-    GameplayZoneKind.movementEffect || GameplayZoneKind.custom =>
-      throw const ValidationException(
-        'Unsupported Smart Tile gameplay-zone behavior',
-      ),
+    GameplayZoneKind.fieldAction ||
+    GameplayZoneKind.movementEffect ||
+    GameplayZoneKind.custom => throw const ValidationException(
+      'Unsupported Smart Tile gameplay-zone behavior',
+    ),
   };
 }
 
@@ -561,7 +545,8 @@ String _baseZoneId({
   required int count,
 }) {
   final prefix = _normalizeIdPrefix(
-      zoneIdPrefix.trim().isEmpty ? fallback : zoneIdPrefix.trim());
+    zoneIdPrefix.trim().isEmpty ? fallback : zoneIdPrefix.trim(),
+  );
   if (count == 1) return prefix;
   return '$prefix-${index + 1}';
 }
@@ -587,8 +572,9 @@ String _zoneName({
   required int index,
   required int count,
 }) {
-  final prefix =
-      zoneNamePrefix.trim().isEmpty ? fallback : zoneNamePrefix.trim();
+  final prefix = zoneNamePrefix.trim().isEmpty
+      ? fallback
+      : zoneNamePrefix.trim();
   if (count == 1) return prefix;
   return '$prefix ${index + 1}';
 }

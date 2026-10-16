@@ -360,3 +360,5 @@ export 'src/pokemon_party_trade.dart';
 export 'src/pokemon_evolution_held_item_policy.dart';
 
 export 'src/npc_fixed_route_controller.dart';
+
+export 'src/flash_zone_action.dart';

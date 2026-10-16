@@ -109,8 +109,11 @@ void validateSpatialMapStructure(MapData map) {
             layer.content.targetTileLayerId != null ||
                 (!layer.content.targetsSpatialTerrain &&
                     layer.content.areas.isNotEmpty),
-          BorderLayer() => layer.content.features.any((feature) =>
-            feature.materialization != null && !feature.materialization!.targetsSpatialScene),
+          BorderLayer() => layer.content.features.any(
+            (feature) =>
+                feature.materialization != null &&
+                !feature.materialization!.targetsSpatialScene,
+          ),
           _ => true,
         },
       ) ||
@@ -127,7 +130,9 @@ void validateSpatialMapStructure(MapData map) {
     for (final area in layer.content.areas) {
       for (final id in area.generatedPlacementIds) {
         if (!instanceIds.contains(id) || !ownedIds.add(id)) {
-          throw const FormatException('A spatial Environment placement requires one existing instance and one owning area.');
+          throw const FormatException(
+            'A spatial Environment placement requires one existing instance and one owning area.',
+          );
         }
       }
     }
@@ -136,7 +141,9 @@ void validateSpatialMapStructure(MapData map) {
     for (final feature in layer.content.features) {
       for (final id in feature.generatedPlacementIds) {
         if (!instanceIds.contains(id) || !ownedIds.add(id)) {
-          throw const FormatException('A spatial Border placement requires one existing instance and one owning feature.');
+          throw const FormatException(
+            'A spatial Border placement requires one existing instance and one owning feature.',
+          );
         }
       }
     }
@@ -259,6 +266,7 @@ abstract class MapGameplayZone with _$MapGameplayZone {
 
     /// Payload pour [GameplayZoneKind.hazard].
     HazardZonePayload? hazard,
+    @JsonKey(includeIfNull: false) FieldActionZonePayload? fieldAction,
 
     /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
     SpecialZonePayload? special,
@@ -267,7 +275,45 @@ abstract class MapGameplayZone with _$MapGameplayZone {
   }) = _MapGameplayZone;
 
   factory MapGameplayZone.fromJson(Map<String, dynamic> json) =>
-      _$MapGameplayZoneFromJson(migrateMapGameplayZoneJson(json));
+      _$MapGameplayZoneFromJson(_checkedGameplayZoneJson(json));
+}
+
+Map<String, dynamic> _checkedGameplayZoneJson(Map<String, dynamic> json) {
+  if (json['kind'] == 'fieldAction' || json['fieldAction'] != null) {
+    const fields = {
+      'id',
+      'name',
+      'kind',
+      'area',
+      'cellMask',
+      'priority',
+      'encounter',
+      'movement',
+      'movementEffect',
+      'hazard',
+      'special',
+      'fieldAction',
+      'smartTileProvenance',
+    };
+    if (json.keys.any((key) => !fields.contains(key)) ||
+        json['kind'] != 'fieldAction' ||
+        json['fieldAction'] is! Map ||
+        [
+          'encounter',
+          'movement',
+          'movementEffect',
+          'hazard',
+          'special',
+          'cellMask',
+          'smartTileProvenance',
+        ].any((key) => json[key] != null)) {
+      throw const FormatException(
+        'A field-action zone requires its exclusive typed payload.',
+      );
+    }
+    return json;
+  }
+  return migrateMapGameplayZoneJson(json);
 }
 
 int _mapPlacedElementQuarterTurnsFromJson(Object? value) {
@@ -429,15 +475,16 @@ abstract class MapEntity with _$MapEntity {
     @Default({}) Map<String, String> properties,
   }) = _MapEntity;
 
-  factory MapEntity.fromJson(Map<String, dynamic> json) =>
-      _$MapEntityFromJson(
-        _checkedHealingDisplayEntityJson(
-          _checkedFieldObstacleEntityJson(migrateMapEntityJson(json)),
-        ),
-      );
+  factory MapEntity.fromJson(Map<String, dynamic> json) => _$MapEntityFromJson(
+    _checkedHealingDisplayEntityJson(
+      _checkedFieldObstacleEntityJson(migrateMapEntityJson(json)),
+    ),
+  );
 }
 
-Map<String, dynamic> _checkedFieldObstacleEntityJson(Map<String, dynamic> json) {
+Map<String, dynamic> _checkedFieldObstacleEntityJson(
+  Map<String, dynamic> json,
+) {
   final raw = json['fieldObstacle'];
   if (raw == null) return json;
   if (raw is! Map || raw.keys.any((key) => key is! String)) {
@@ -447,11 +494,13 @@ Map<String, dynamic> _checkedFieldObstacleEntityJson(Map<String, dynamic> json) 
   final size = json['size'];
   if (json['kind'] != 'custom' ||
       (json['blocksMovement'] != null && json['blocksMovement'] != true) ||
-      (size != null && (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
+      (size != null &&
+          (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
       json['npc'] != null ||
       json['sign'] != null ||
       json['item'] != null ||
-      json['spawn'] != null || json['healingDisplay'] != null) {
+      json['spawn'] != null ||
+      json['healingDisplay'] != null) {
     throw const FormatException(
       'A field obstacle requires one blocking custom cell without another typed payload.',
     );
@@ -459,7 +508,9 @@ Map<String, dynamic> _checkedFieldObstacleEntityJson(Map<String, dynamic> json) 
   return json;
 }
 
-Map<String, dynamic> _checkedHealingDisplayEntityJson(Map<String, dynamic> json) {
+Map<String, dynamic> _checkedHealingDisplayEntityJson(
+  Map<String, dynamic> json,
+) {
   final raw = json['healingDisplay'];
   if (raw == null) return json;
   if (raw is! Map || raw.keys.any((key) => key is! String)) {
@@ -467,14 +518,33 @@ Map<String, dynamic> _checkedHealingDisplayEntityJson(Map<String, dynamic> json)
   }
   MapEntityHealingDisplayData.fromJson(Map<String, dynamic>.from(raw));
   final size = json['size'];
-  if (json['kind'] != 'custom' || json['blocksMovement'] != false ||
-      (size != null && (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
-      json['npc'] != null || json['sign'] != null || json['item'] != null ||
-      json['spawn'] != null || json['fieldObstacle'] != null || json['editorVisual'] != null) {
-    throw const FormatException('A healing display requires one nonblocking custom cell without another payload.');
+  if (json['kind'] != 'custom' ||
+      json['blocksMovement'] != false ||
+      (size != null &&
+          (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
+      json['npc'] != null ||
+      json['sign'] != null ||
+      json['item'] != null ||
+      json['spawn'] != null ||
+      json['fieldObstacle'] != null ||
+      json['editorVisual'] != null) {
+    throw const FormatException(
+      'A healing display requires one nonblocking custom cell without another payload.',
+    );
   }
   final properties = json['properties'];
-  if (properties is Map && properties.keys.any((key) => key is String && (key.startsWith('collision.') || const {'collisionWidth', 'collisionHeight', 'collisionOffsetX', 'collisionOffsetY'}.contains(key)))) {
+  if (properties is Map &&
+      properties.keys.any(
+        (key) =>
+            key is String &&
+            (key.startsWith('collision.') ||
+                const {
+                  'collisionWidth',
+                  'collisionHeight',
+                  'collisionOffsetX',
+                  'collisionOffsetY',
+                }.contains(key)),
+      )) {
     throw const FormatException('A healing display cannot override collision.');
   }
   return json;

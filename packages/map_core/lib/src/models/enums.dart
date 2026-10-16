@@ -305,6 +305,8 @@ enum GameplayZoneKind {
   movement, // Zone à contrainte de déplacement (surf requis, etc.)
   @JsonValue('movementEffect')
   movementEffect, // Zone qui déclenche un effet de mouvement (glissade, coût, etc.)
+  @JsonValue('fieldAction')
+  fieldAction,
   @JsonValue('hazard')
   hazard, // Danger environnemental (lave, marais, etc.)
   @JsonValue('special')
@@ -319,6 +321,11 @@ enum GameplayZoneKind {
 ///
 /// Cette enum vit dans `map_core` pour rester indépendante du runtime
 /// `map_gameplay`, qui fera plus tard le mapping vers GameplayMovementEffect.
+enum FieldActionZoneKind {
+  @JsonValue('darkness')
+  darkness,
+}
+
 enum MovementEffectZoneKind {
   @JsonValue('slide')
   slide,

@@ -6,7 +6,8 @@ enum RuntimeOverworldInteractionTargetKind {
   entity,
   placedElement,
   mapEvent,
-  modelInstance
+  modelInstance,
+  gameplayZone,
 }
 
 final class RuntimeOverworldInteractionRequest {

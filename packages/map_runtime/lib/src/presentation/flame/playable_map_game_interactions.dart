@@ -8,6 +8,7 @@ final class _ResolvedOverworldInteraction {
     this.eventId,
     this.sceneId,
     this.isIntrinsicFieldObstacle = false,
+    this.flashZoneId,
   });
 
   final RuntimeOverworldInteractionAction action;
@@ -16,6 +17,7 @@ final class _ResolvedOverworldInteraction {
   final String? eventId;
   final String? sceneId;
   final bool isIntrinsicFieldObstacle;
+  final String? flashZoneId;
 }
 
 extension _PlayableMapInteractions on PlayableMapGame {
@@ -296,7 +298,24 @@ extension _PlayableMapInteractions on PlayableMapGame {
       };
     } else {
       final selected = _selectInteractionMapEvent();
-      if (selected == null) return null;
+      if (selected == null) {
+        final target = findFlashTarget(map: _world.map, gameState: _gameState);
+        if (target == null) return null;
+        final prepared = prepareFlashInteraction(map: _world.map, gameState: _gameState,
+          stateRevision: _gameStateRevision, zoneId: target.id);
+        if (prepared == null) return null;
+        final settings = _bundle.manifest.settings;
+        return _ResolvedOverworldInteraction(
+          action: RuntimeOverworldInteractionAction(
+            request: RuntimeOverworldInteractionRequest(sessionId: _interactionSessionId,
+              mapActivationId: _currentMapActivationId!, mapId: _activeMapId,
+              targetKind: RuntimeOverworldInteractionTargetKind.gameplayZone,
+              targetId: target.id, actionId: narrativeEventCanonicalSha256(jsonEncode(['flash', target.toJson()]))),
+            verb: RuntimeOverworldInteractionVerb.interact, targetCell: _world.player.pos,
+            targetBounds: PixelRect(leftPx: _world.player.pos.x * settings.tileWidth,
+              topPx: _world.player.pos.y * settings.tileHeight, widthPx: settings.tileWidth, heightPx: settings.tileHeight)),
+          result: result, flashZoneId: target.id);
+      }
       if (!includeHidden && selected.$2.page.isHidden) return null;
       kind = RuntimeOverworldInteractionTargetKind.mapEvent;
       targetId = selected.$1.id;
@@ -482,6 +501,25 @@ extension _PlayableMapInteractions on PlayableMapGame {
   }
 
   void _executeOverworldInteraction(_ResolvedOverworldInteraction interaction) {
+    final flashZoneId = interaction.flashZoneId;
+    if (flashZoneId != null) {
+      final prepared = prepareFlashInteraction(map: _world.map, gameState: _gameState,
+        stateRevision: _gameStateRevision, zoneId: flashZoneId);
+      if (prepared == null) return;
+      _openDialogue(prepared.session, onDialogueFinished: (outcome) {
+        final result = prepared.complete(outcomeId: outcome, map: _world.map,
+          gameState: _gameState, currentStateRevision: _gameStateRevision);
+        if (result is FlashRefused) {
+          _showNotification('Cette action n’est plus disponible.');
+        } else if (result is FlashApplied) {
+          _replaceLogicalMapInstances(result.gameState.mapInstanceWorldState);
+          _gameStateRevision += 1;
+          _showNotification('Votre Pokémon utilise Flash ! Cette zone est éclairée.');
+          _publishOverworldInteractions();
+        }
+      });
+      return;
+    }
     final entity = interaction.entity;
     if (entity == null) {
       _runLegacyInteractionFallback(interaction.result);
