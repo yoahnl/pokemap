@@ -15,10 +15,10 @@
 - Date : 16 octobre 2026.
 - Ticket existant : [POST-WLD-ASSET-PACK-001](https://app.notion.com/p/3fb197a7bfa581379199ceec8afe5486).
 - Domaine unique : Monde & narration, Post Bêta. Aucun changement de gate ou dépendance bêta.
-- Ce document est un plan de réalisation. Les types, fichiers et contrats marqués « nouveaux » sont proposés et n'existent pas encore.
-- Aucun code produit n'est implémenté par la rédaction de ce plan.
+- Plan initial puis suivi d’exécution autorisée : les statuts, commits et preuves actuels sont en section13. Les descriptions des lots fixent la cible ; elles ne prouvent pas à elles seules sa réalisation.
+- La rédaction initiale ne modifiait aucun code ; Yoahn a ensuite autorisé l’implémentation et un commit par lot. P13, constitution des galeries, est explicitement reporté.
 - Source inspectée : main, 00c3112c0754ee54553584d38f7e44598c3077c3 ; checkout partagé avec modifications préexistantes/concurrentes.
-- Aucun commit, rebase, push, création de branche ou worktree autorisé par la demande de plan.
+- Autorisation ultérieure : commits propres par lot et prérequis natifs précis. Aucun push, rebase, changement de branche ou worktree autorisé.
 - Un seul document persistant est prévu pour cette mission. Les futures preuves de réalisation complètent ce document ou le ticket ; aucun rapport par agent.
 
 La demande couvre deux capacités livrables : la classification des ressources et le transport de bibliothèques. Les cinq collections Pokémon sont le contenu destiné à utiliser ces capacités, avec une qualification distincte :
@@ -175,6 +175,8 @@ Le contrat portable utilise resourceKind comme nom JSON du discriminant ; ses va
 
 Chaque entrée files est un ResourcePackFileBinding : id local au pack, logicalPath relatif virtuel, archivePath sous blobs/, rawSha256, byteLength, mediaType, provenanceId et licenseIds. Les IDs natifs sourceAssetId/assetId des définitions pointent vers ces bindings. Aucun ContentArtifactRef ni AssetRecord d'une ancienne session n'est sérialisé dans ce binding. À l'import, le moteur calcule ses propres AssetRecord et chemins cibles.
 
+Le profil PNG v1 est statique, y compris pour les textures PNG intégrées aux GLB : après contrôle des bornes d'en-tête, chaque candidat est réellement décodé séparément ; les animations sont portées par les frames natives, pas par un APNG. L'inspecteur GLB reçoit ce profil explicitement, sans changer le profil existant des jeux. Les rectangles d'éléments/palette utilisent la grille canonique de leur atlas régulier ; les rectangles des animations de personnages suivent leurs unités natives et leur source effective. Sans source dédiée, une coordonnée de frame de personnage est multipliée par la taille effective du personnage et celle des cellules, comme dans le runtime actuel ; ce n'est pas une coordonnée de cellule d'atlas. Un tileset imageCollection autonome reste portable avec ses pages, tiles et animations natives. Une frame sans identifiant de tile sparse ne peut pas lui inventer une correspondance x→tileId : la combinaison non résoluble est refusée avec diagnostic, sans conversion implicite ni suppression de champs.
+
 La section provenance contient des enregistrements id/author/sourceUrl optionnelle/licenseIds ; chaque licence renvoie à un document inventorié sous licenses/. Une URL de provenance est du texte d'attribution et n'est jamais téléchargée pendant inspection/import. Les versions de codecs natifs Smart Tiles/Border sont fixées explicitement par compatibility et vérifiées contre les constantes du lecteur.
 
 Pour v1, chaque licenseId est le chemin d'archive exact licenses/<raw-sha256>.txt. Il se résout directement dans content.files, sans second registre de licences. Le document doit exister, être inventorié, avoir le MIME text/plain, la taille et le hash annoncés et contenir du texte UTF-8 valide. Tester licenseId inconnu, document non inventorié et UTF-8 invalide. La validité technique d'une déclaration ne certifie pas son étendue juridique.
@@ -218,6 +220,7 @@ Règles d'export :
 - une référence non portable non couverte par la matrice bloque la racine concernée avec diagnostic ;
 - mapId privé est retiré dans la copie portable et affiché comme promotion à portée projet dans l'aperçu ; le projet source reste inchangé ;
 - groupId lié à l'arbre des cartes et recommendedLayerId ne sont pas copiés comme identités valides dans un autre projet : aperçu des informations d'organisation retirées, acquittement explicite dans la sélection export ;
+- isWorldTileset est une désignation unique du projet, pas une propriété activable par une bibliothèque : l'export le met à false dans la copie portable, le contrat refuse true et l'import préserve le choix monde du projet cible. Plusieurs tilesets alternatifs ordinaires peuvent donc coexister dans le pack ;
 - toute donnée de rendu/collision/comportement prise en charge doit être conservée ; aucune normalisation silencieuse pour faire passer un export ;
 - fermeture sur les références sortantes, distincte du graphe de consommateurs existant ;
 - détection des références absentes et des cycles invalides avant écriture ;
@@ -673,25 +676,29 @@ flutter analyze --no-pub
 **Créer :**
 
 - packages/map_core/lib/src/models/resource_pack.dart
+- packages/map_core/lib/src/models/resource_pack_catalog.dart
 - packages/map_core/lib/src/models/resource_pack_installation_catalog.dart
 - packages/map_core/lib/src/operations/resource_pack_dependency_graph.dart
+- packages/map_core/lib/src/operations/resource_pack_native_json.dart
+- packages/map_core/lib/src/operations/resource_pack_publication.dart
 - packages/map_core/test/resource_pack_contract_test.dart
 - packages/map_core/test/resource_pack_installation_catalog_test.dart
 - packages/map_core/test/resource_pack_dependency_graph_test.dart
+- packages/map_core/test/resource_pack_publication_test.dart
 
 **Modifier :** project_manifest.dart, ses sorties générées et les barrels core.
 
-- [ ] Implémenter les DTO stricts de la section2, sans dépendance archive, File ou Flutter dans core.
-- [ ] Fixer dans compatibility les versions natives exactes utilisées : Smart Tile7 et Border10 observées pendant l'audit, ResourceLibrary2 ; relire les constantes avant implémentation.
-- [ ] Définir précisément les sections du sous-catalogue : tilesets/elements/models3d/characters/environmentPresets, smartTileCatalog, borderCatalog, resourceLibraryCatalog, elementCategories/tilesetFolders/characterStudioCatalog et extras de motifs.
-- [ ] Rejeter toute section maps/groups/presentation/dialogues/events ou réglages de projet.
-- [ ] Construire un graphe de références sortantes avec ressource, support et fichier ; distinguer groupe local à un propriétaire et ID global.
-- [ ] Tester fermeture stable, dépendance partagée une fois, dépendance manquante par kind, parents de catégories, cycles interdits et énumération des motifs explicitement sélectionnés.
-- [ ] Tester un material.connectionGroupId identique dans deux packs : aucun raccord inter-pack après remappage.
-- [ ] Pour une bordure publiée, produire une projection portable de l'état publié et les supports nécessaires ; à l'import, reconstruire le draft natif éditable depuis cet état. Ne pas exporter le brouillon utilisateur divergent. Vérifier que les sources éditables donnent exactement les snapshots publiés ; sinon refuser cette racine dans la v1 avec diagnostic border.source_publication_mismatch.
-- [ ] Pour Smart Tiles, reconstruire au besoin le brouillon d'édition depuis le preset publié via le chemin canonique ; vérifier qu'il peut être édité/réenregistré. Aucun brouillon source privé n'est importé par simple copie de catalogue.
-- [ ] Persister ResourcePackInstallationCatalog dans le manifeste et tester absence/roundtrip/identité d'installation.
-- [ ] Régénérer et tester uniquement core :
+- [x] Implémenter les DTO stricts de la section2, sans dépendance archive, File ou Flutter dans core.
+- [x] Fixer dans compatibility les versions natives exactes utilisées : Smart Tile7 et Border10 observées pendant l'audit, ResourceLibrary2 ; relire les constantes avant implémentation.
+- [x] Définir précisément les sections du sous-catalogue : tilesets/elements/models3d/characters/environmentPresets, smartTileCatalog, borderCatalog, resourceLibraryCatalog, elementCategories/tilesetFolders/characterStudioCatalog et extras de motifs.
+- [x] Rejeter toute section maps/groups/presentation/dialogues/events ou réglages de projet.
+- [x] Construire un graphe de références sortantes avec ressource, support et fichier ; distinguer groupe local à un propriétaire et ID global.
+- [x] Tester fermeture stable, dépendance partagée une fois, dépendance manquante par kind, parents de catégories, cycles interdits et énumération des motifs explicitement sélectionnés.
+- [x] Tester un material.connectionGroupId identique dans deux packs : aucun raccord inter-pack après remappage.
+- [x] Pour une bordure publiée, produire une projection portable de l'état publié et les supports nécessaires ; à l'import, reconstruire le draft natif éditable depuis cet état. Ne pas exporter le brouillon utilisateur divergent. Vérifier que les sources éditables donnent exactement les snapshots publiés ; sinon refuser cette racine dans la v1 avec diagnostic border.source_publication_mismatch.
+- [x] Pour Smart Tiles, reconstruire au besoin le brouillon d'édition depuis le preset publié via le chemin canonique ; vérifier qu'il peut être édité/réenregistré. Aucun brouillon source privé n'est importé par simple copie de catalogue.
+- [x] Persister ResourcePackInstallationCatalog dans le manifeste et tester absence/roundtrip/identité d'installation.
+- [x] Régénérer et tester uniquement core :
 
 ~~~bash
 cd packages/map_core
@@ -709,24 +716,26 @@ dart analyze
 - packages/map_distribution/lib/src/resource_pack_security_policy.dart
 - packages/map_distribution/lib/src/resource_pack_manifest_codec.dart
 - packages/map_distribution/lib/src/resource_pack_inspector.dart
+- packages/map_distribution/lib/src/static_png_validation.dart
+- packages/map_distribution/test/static_png_validation_test.dart
 - packages/map_authoring/lib/src/ports/file_backed_payload_store.dart
 - packages/map_authoring/lib/src/infrastructure/local_resource_pack_store.dart
 - packages/map_distribution/test/resource_pack_inspector_test.dart
 - packages/map_distribution/test/resource_pack_manifest_codec_test.dart
 - packages/map_authoring/test/ports/file_backed_payload_store_test.dart
 
-**Modifier :** random_access_zip_structure_reader.dart pour un validateur spécifique si nécessaire, sans changer le profil des jeux ; barrels concernés.
+**Modifier :** random_access_zip_structure_reader.dart pour un validateur spécifique si nécessaire, glb_model3d_inspector.dart pour le profil explicite de textures statiques du pack, sans changer les profils existants des jeux ; barrels concernés.
 
-- [ ] Tester le stage d'une source sélectionnée, son lease, sa libération et son expiration ; une source modifiée pendant la copie est refusée.
-- [ ] Tester les racines autorisées et les liens sortants ; la sélection native peut autoriser ce fichier exact, sans ouvrir le dossier utilisateur entier.
-- [ ] Copier et hasher par chunks ; conserver le snapshot dans un cache privé avec budget total.
-- [ ] Inspecter structure et bornes avant lecture du catalogue ou décodage de médias.
-- [ ] Contrôler les versions/capacités, JSON strict, fichiers manquants et supplémentaires, SHA bruts, tailles, MIME et chemins.
-- [ ] Refuser glTF externe, URL de texture, archive compressée, ZIP64, symlink, doublon normalisé/casefold, traversée, section native interdite et référence structurée de sémantique inconnue.
-- [ ] Recalculer l'inspection GLB ; ne pas croire celle annoncée dans un JSON.
-- [ ] Tester les références de licence et le décodage UTF-8 des documents de provenance ; aucun téléchargement automatique.
-- [ ] Tester chaque quota à sa borne et à borne+1 avec sources virtuelles ; ne pas committer une archive de512Mio.
-- [ ] Exécuter :
+- [x] Tester le stage d'une source sélectionnée, son lease, sa libération et son expiration ; une source modifiée pendant la copie est refusée.
+- [x] Tester les racines autorisées et les liens sortants ; la sélection native peut autoriser ce fichier exact, sans ouvrir le dossier utilisateur entier.
+- [x] Copier et hasher par chunks ; conserver le snapshot dans un cache privé avec budget total.
+- [x] Inspecter structure et bornes avant lecture du catalogue ou décodage de médias.
+- [x] Contrôler les versions/capacités, JSON strict, fichiers manquants et supplémentaires, SHA bruts, tailles, MIME et chemins.
+- [x] Refuser glTF externe, URL de texture, archive compressée, ZIP64, symlink, doublon normalisé/casefold, traversée, section native interdite et référence structurée de sémantique inconnue.
+- [x] Recalculer l'inspection GLB ; ne pas croire celle annoncée dans un JSON.
+- [x] Tester les références de licence et le décodage UTF-8 des documents de provenance ; aucun téléchargement automatique.
+- [x] Tester chaque quota à sa borne et à borne+1 avec sources virtuelles ; ne pas committer une archive de512Mio.
+- [x] Exécuter :
 
 ~~~bash
 cd packages/map_distribution
@@ -761,6 +770,13 @@ dart analyze
 - references/resource_library_scope_guard.dart, uniquement ses accès génériques aux changements ;
 - support/authoring_fingerprint.dart, si un helper stream commun est nécessaire.
 - domains/assets/resource_source_guards.dart, element_definition_management.dart et model3d_actions.dart, ainsi que domains/maps/smart_tile_catalog_actions.dart : consommateurs binaires chargés ponctuellement par le port autorisé ; préserver les modifications étrangères de ces fichiers.
+- domains/assets/asset_actions.dart, tiled_tileset_import_projection.dart, presentation_media_import_actions.dart et presentation_preset_actions.dart ; domains/maps/tiled_map_import_actions.dart ; domains/gameplay/pokemon_media_import_actions.dart et character_studio/character_studio_deletion_safety.dart ; domains/narrative/presentation_publication_snapshot.dart : préserver les références binaires dans les projections, distinguer présence et disponibilité inline, lire seulement le média nécessaire.
+
+**Audit préalable d'exécution :** le recorder doit rendre les blobs d'historique durables avant le nettoyage des stages de transaction. Les leases du cache P04, même nommés history ou recovery, ne sont pas reconstructibles après fermeture du service : l'historique garde son CAS indépendant sous `.pokemap/authoring/blobs`, alimenté et vérifié par flux. Les domaines d'empreinte restent distincts : SHA brut du fichier, digest d'artefact cadré `artifact-content`, révision cadrée par `storageKey`, blob d'historique cadré `authoring-history-blob`. Une référence de snapshot partagée ne capture jamais le premier handle de workspace ; elle est résolue avec l'accès autorisé courant ou un cache privé immuable. La seconde observation forte des sources reste nécessaire, y compris pour les alias CAS désormais lazy. L'adoption du snapshot après commit doit préserver le reçu déjà durable et nettoyer les références possédées si le refresh échoue. Le test `retained_dependency_window_test.dart` ne constitue pas une garantie de verrouillage des écrivains externes.
+
+**Décisions de contrat P05 :** les payloads inline et stored sont deux variantes actives, sans lecteur de format ancien. `null` signifie absence ; un getter inline appelé sur un stored lève une erreur explicite. La fabrique stored vérifie taille, hash brut et révision cadrée par clé avant de construire une capacité associée non sérialisable ; les propriétaires du plan gèrent les leases séparément. Les snapshots partagés conservent des descriptors de sources natives et capturent sur disque les seuls préétats touchés. Undo copie les cibles historiques par flux vers le stage du plan, sans introduire de pins dans le CAS historique. Expiration, discard et détachement attendent leur nettoyage.
+
+Après reçu durable, une relecture indisponible produit `AuthoringMutationResult.snapshotRevision: null` et un diagnostic explicite sans chemin `snapshot.refresh_unavailable`, avec instruction de relire sans rejouer la mutation. Aucune révision touched, périmée ou de plan ne remplace une observation inconnue. Plan/query gardent leurs révisions obligatoires. Le pont `map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart` et ses consommateurs de révision d'application doivent transmettre cette distinction ; une projection réussie conserve sa révision réelle non nullable. Adapter uniquement les retours d'application et les contrôles de réconciliation concernés dans les services Smart Tiles, imports Tiled, connexions et adoption de snapshot de l'éditeur. Une comparaison `projection?.snapshotRevision == expectedSnapshotRevision` ne doit jamais autoriser le cas null/null. Le writer converter vérifie son propre snapshot frais et compare avec la révision d'application seulement lorsqu'elle existe ; préserver ses hunks étrangers. Les échecs avant commit, du recorder ou d'audit sécurisé ne sont pas absorbés par le catch de relecture.
 
 - [ ] Écrire un test montrant qu'un payload stored présent est reconnu comme présent, y compris dans le calcul destructif.
 - [ ] Ajouter les deux variantes et les leases ; les handles ne sont jamais résolus depuis un chemin fourni par le client. Les références du snapshot partagé survivent au rebind de nouveaux handles, sans dépendre d'une session expirée. Les empreintes resourceRevision restent cadrées par chaque storageKey ; un blob CAS et son alias logique partagent des octets, pas une révision de ressource.
@@ -821,20 +837,27 @@ dart analyze
 
 **Gate :** import et annulation historique volumineux restent autorisés dans leur portée vérifiée ; aucune action étrangère ne gagne un budget supérieur.
 
+**Audit préparatoire P06 :** les réécritures quadratiques sont présentes dans journaled_transaction et dans _checkpointEntry de recovery, même lorsqu'une révision est déjà after/before. Les deux chemins doivent utiliser le profil phaseOnly sans reconstruire toutes les entrées à chaque fichier. La provenance bulk est un contrat interne dédié, lié au projet, plan/opération, action/version, inventaire final et hash intégral ; elle n'est jamais déduite de request.extensions, de receipt.actionId ou d'un reçu client. P08 émet la capacité seulement après préparation canonique gelée ; P06 définit et teste ce contrat interne. Après reconstruction, journal strict et historique canonique hash-chain font foi, puis le certificat est revalidé contre leurs données. La menace couverte est l'usurpation par client API ; aucun HMAC, keystore ni protection contre la réécriture directe des fichiers privés par un attaquant filesystem n'est ajouté. Les payloadRefs/projections bornées relèvent du port canonique P06, leurs verbes/jobs de transport de P09.
+
 ### P07 — Export canonique déterministe
 
 **Créer :**
 
 - packages/map_authoring/lib/src/domains/assets/resource_pack_projection.dart
+- packages/map_authoring/lib/src/domains/maps/canonical_border_ground_composer.dart
 - packages/map_distribution/lib/src/resource_pack_builder.dart
 - packages/map_authoring/test/domains/assets/resource_pack_export_test.dart
 - packages/map_distribution/test/resource_pack_builder_test.dart
 
+**Modifier si nécessaire pour réutilisation canonique :** ResourcePackReferenceVisitor dans resource_pack_dependency_graph.dart, sans modifier rétroactivement le lot P03 ; border_smart_tile_ground_snapshot_service.dart dans map_editor délègue au composeur headless partagé, avec sa suite existante de composition/animation. Aucun import de map_editor dans authoring.
+
 - [ ] Écrire une fixture2D avec deux décors partageant un atlas et une fixture3D avec GLB embarqué, terrain, bordure et environnement.
 - [ ] Ajouter les personnages avec portraits/animations personnalisées et le cas motif indépendant.
 - [ ] Extraire une sélection et sa fermeture sortante ; rendre visibles les supports automatiques.
+- [ ] Fermer d'abord les seules racines natives sélectionnées, puis construire le catalogue portable strict ; un Border privé/non publié non sélectionné ne doit pas bloquer une racine exportable.
 - [ ] Normaliser explicitement la copie portable des champs d'organisation non portables, sans modifier la source.
 - [ ] Réécrire les identités typées, catégories, familles, groupes de connexion et supports ; ne pas préfixer aveuglément les IDs de snapshots content-addressed.
+- [ ] Prouver les pixels Border depuis les vraies sources avant puis après remappage ; conserver le hash RGBA et recalculer assetFingerprint lorsque ID/chemin changent. Si les candidats pondérés remappés ne reproduisent plus la publication, refuser explicitement, sans nouveau format RNG ni copie du snapshot comme preuve de lui-même.
 - [ ] Construire un ZIP vers sink avec offsets/CRC/tailles connus ; tri UTF-8, timestamps et attributs fixes. Le writer peut lire deux fois un fichier pour déterminer ses métadonnées, sans en retenir tous les octets.
 - [ ] Réinspecter l'archive finale ; deux exports de la même révision et mêmes métadonnées donnent exactement les mêmes octets.
 - [ ] Modifier une source pendant l'export : résultat refusé, aucun pack publié comme valide.
@@ -849,6 +872,8 @@ dart analyze
 ~~~
 
 **Gate :** source projet inchangée, archive autonome et roundtrip sémantique des sept kinds/supports.
+
+**Audit préparatoire P07 :** le ZIP existant et GamePackageBuilder matérialisent toute l'archive ; réutiliser leur profil déterministe STORE/UTF-8/attributs fixes mais écrire vers sink avec backpressure et deux lectures vérifiées, sans dépendance de distribution vers AuthoringPayload. Le composeur de sols Border est actuellement réservé à l'éditeur : extraire résolution des vingt rôles, timeline et transformations vers authoring avec callback de lecture PNG autorisée, conserver l'IO racine/chemin dans l'adaptateur éditeur. Utiliser ProjectTilesetVisualResolver pour les marges/gouttières ; une variante non reproductible doit être refusée clairement. Un SmartTileModel3dSource servant à produire le snapshot de sol2D est refusé en v1 faute de renderer3D headless ; cela ne retire pas le support des modèles GLB du pack. Les médias identiques partagent leur blob ZIP tout en conservant leurs bindings/chemins natifs propres.
 
 ### P08 — Préparation et installation additive
 
@@ -865,6 +890,7 @@ dart analyze
 - [ ] Construire un preparedImportHandle lié à archiveHash, sélection/révision, projet/révision, mappings, contraintes et inventaire exact.
 - [ ] Allouer tous les IDs et chemins avant le plan. Pour model3d : reconstruire assets/models3d/<nouvel-id>.glb et respecter le regex natif des IDs.
 - [ ] Remapper toutes les références et vérifier la fermeture après projection dans le manifeste cible.
+- [ ] Préserver la désignation isWorldTileset de la cible ; aucune bibliothèque importée ne choisit le tileset monde du projet.
 - [ ] Produire un changeset unique : définitions, classification, AssetCatalog, blobs/aliases, documents de licence et reçu d'installation.
 - [ ] Enregistrer resource_pack.import avec paramètre preparedImportHandle ; requête courte et projection compacte.
 - [ ] Protéger sources locales modifiées, identités occupées et dépendances déjà installées mais éditées.
@@ -1168,11 +1194,11 @@ L'état initial d'exécution est main, 00c3112c0754ee54553584d38f7e44598c3077c3,
 
 | Lot | État d'exécution | Preuve / limite |
 |---|---|---|
-| P01 | TO REVIEW | 9 tests core, 54 authoring et 1 MCP réussis ; revues conformité et qualité favorables ; limites globales détaillées ci-dessous |
-| P02 | TO REVIEW | 52 tests Studio et analyse réussis ; 7 tests spécialisés relancés après correction ; parcours natif classement/filtrage/réouverture vérifié |
-| P03 | DOING | DTOs stricts et traces en cours ; sous-catalogue, graphe et intégration à compléter avant toute livraison du lot |
-| P04 | TODO | Inspection et stage privé |
-| P05 | TODO | Payloads, historique et snapshot bornés |
+| P01 | TO REVIEW | Commit c490df127 ; 9 tests core, 54 authoring et 1 MCP réussis ; revues favorables ; limites globales détaillées ci-dessous |
+| P02 | TO REVIEW | Commit 420f2b9e3 ; 52 tests Studio, analyse et parcours natif réussis ; 7 tests spécialisés relancés après correction |
+| P03 | TO REVIEW | Commit625b94f4f, quinze fichiers ;47 tests ciblés,408 tests avec SmartTile/1skip en copie isolée, deux revues favorables ; prérequis natifs committés séparément |
+| P04 | TO REVIEW | Deux revues favorables ;351 tests distribution/35 authoring partagés,350 distribution/36 authoring dans la copie isolée sansP05 ; analyses/builds vérifiés, staging séparé préparé |
+| P05 | DOING | Audit et baseline consignés ; implémentation séquentielle engagée après les deux avis favorables P04 |
 | P06 | TODO | Journal bulk et budgets restreints |
 | P07 | TODO | Export portable |
 | P08 | TODO | Installation additive |
@@ -1261,3 +1287,134 @@ Commandes et résultats :
 Revue conformité : favorable après correction des compteurs d'arbres et du test de grand texte/clavier. Revue qualité : favorable après suppression du singleWhere par ligne dans la liste3D ; aucun finding restant dans les 24 fichiers P02 relus. Les relecteurs ont vérifié le diff sans revendiquer une nouvelle exécution Flutter. La passe Tests de l'implémenteur fournit les52 tests ; la passe Build/Validation root ajoute le build et le parcours natifs.
 
 Critique et limites : la fixture native contient cinq ressources originales et prouve le parcours visuel pour les décors ; les sept kinds sont couverts par les28 cycles du host et ses formulaires réels, dont un vrai GLB. Aucun aperçu GPU3D réel n'a été certifié par cette fixture. Les défauts globaux P01 déjà signalés ne sont pas masqués et aucune certification d'import massif P12 n'est revendiquée. P02 est proposé TO REVIEW ; les lots P03–P12 et P14 restent à livrer. La revue s'appuie sur le diff Git des24 fichiers, sans recopier leurs sources.
+
+### Preuves d'exécution du lot P03 — livraison autonome encore partielle
+
+P03 est committé sur main :625b94f4ff512979e934c2a7bc5e658418f67521, quinze fichiers et aucun hunk étranger. Les prérequis sont committés séparément : Border2fe848cc7285b092fee301ef881bed3b3941e298 ; SmartTile53b16bfb819781dcb1d1d561eea46960c5574c08 (dix fichiers/hunks expressément autorisés). Le correctif généré MapConnectionDirection de sept lignes a été intégré entre-temps dans9605357ad68f1c35f2e4878bef8dfe7ed5f36405 par un autre chantier : hash comparé identique au correctif qualifié, aucun commit redondant. Les étapes ci-dessous conservent les preuves des dépendances initialement masquées par le checkout partagé. Aucun push/rebase.
+
+Inventaire propre P03, sous packages/map_core :
+
+| Fichier | Zone et rôle |
+|---|---|
+| lib/src/models/resource_pack.dart | Sept kinds, identités, manifeste, compatibilité, bindings, inventaire et provenance par définition |
+| lib/src/models/resource_pack_installation_catalog.dart | Traces, mappings typés, propriétaires de supports, alias de fichiers cohérents et motifs seuls |
+| lib/src/models/resource_pack_catalog.dart | Sous-catalogue sans sections projet, cohérence des bindings et portée globale portable |
+| lib/src/operations/resource_pack_native_json.dart | Clés et types scalaires avant codecs permissifs, refus de troncature numérique |
+| lib/src/operations/resource_pack_dependency_graph.dart | Visiteur typé, parcours itératif partagé par closure/validateAll, références et diagnostics |
+| lib/src/operations/resource_pack_publication.dart | Publication Border sans brouillon privé, reconstruction éditable, preuve des pixels, reconstruction Smart Tile et groupes de connexion |
+| lib/src/models/project_manifest.dart |20 lignes : import, codec optionnel et champ resourcePackInstallations |
+| lib/src/models/project_manifest.freezed.dart | Sortie du champ,23 ajouts/20 suppressions après nettoyage ciblé de douze lignes blanches générées |
+| lib/src/models/project_manifest.g.dart |6 lignes de lecture/écriture conditionnelle |
+| lib/map_core_domain.dart | Seulement les cinq exports P03 en bas ; l'export escape_return_point reste étranger, les deux exports Border sont dans 2fe848cc7 |
+| test/resource_pack_contract_test.dart |13 tests de DTOs stricts |
+| test/resource_pack_installation_catalog_test.dart |10 tests de persistance et d'identité historique |
+| test/resource_pack_dependency_graph_test.dart |21 tests de références, portée, types, négatifs, longue chaîne et rejet du tileset monde portable |
+| test/resource_pack_publication_test.dart |3 tests de projection et édition native |
+
+Quinzième fichier, dans map_authoring : test/workspace/project_creation_facade_test.dart. La détection des directives Dart interprétait `part == '.'` comme une directive `part`, puis tentait d'ouvrir le message d'erreur comme fichier. Le matcher exclut les comparaisons et conserve le refus des imports directs, raw, conditionnels et commentés ; matrice ajoutée dans le test existant. RED puis GREEN : /tmp/p03_creation_facade_red.log et /tmp/p03_creation_facade_green.log, un test réussi. Les deux revues sont favorables après maintien de la couverture raw/commentaires.
+
+L'audit initial a confronté les codecs/générés courants, ProjectValidator, les publications Border et compileSmartTileAuthoringDraft. Les versions sont RL2/ST7/B10. Les object_reference restent des entiers natifs : une propriété de tuile/collision résout dans sa tuile ; source.properties, sans contexte de tuile, exige une cible unique dans le tileset. structured est refusé faute de sémantique. Le graphe vérifie les frames inter-tilesets, groupes owner-scoped, parents, Smart Tiles/motifs, personnages, environnements et sols/snapshots Border. Les supports non atteints par une sélection restent contrôlables avec validateAll.
+
+Corrections issues des passes : source.assetId et relativePath doivent désigner le même binding utile ; les fractions destinées à un entier natif sont refusées avant .toInt(), sans altérer les flottants légitimes ; EnvironmentPreset a sa preuve dédiée ; les objets de collision sont uniques par tuile, sans faux rejet des doublons entre tuiles ; des maps/sets locaux évitent les scans quadratiques de fichiers, provenance, classification, pages et snapshots.
+
+Commandes depuis packages/map_core et résultats :
+
+- dart run build_runner build --delete-conflicting-outputs → exit0, Built with build_runner/aot in8s; wrote112outputs. Le générateur signale le flag ignoré et un SDK plus récent que l'analyseur ; aucune dépendance changée. Trente et une sorties générées sont modifiées dans l'état partagé observé, dont deux Manifest propres à P03 et cinq déjà modifiées au premier relevé. Les vingt-quatre autres ne sont ni restaurées ni absorbées, car génération et éditions concurrentes se sont croisées.
+- dart test test/resource_pack_contract_test.dart test/resource_pack_installation_catalog_test.dart test/resource_pack_dependency_graph_test.dart test/resource_pack_publication_test.dart --reporter expanded → dernière passe après garde isWorldTileset : +47: All tests passed!, exit0. Log /tmp/p04_core_followup.log. La passe précédente collision comportait46 tests dans /tmp/p03_core_focused.log.
+- dart analyze sur les sept sources manuelles et les quatre tests P03 → No issues found!, exit0 après la dernière correction.
+- dart test test/project_model3d_test.dart test/project_tileset_source_test.dart test/environment_preset_json_codec_test.dart test/project_manifest_character_compatibility_test.dart test/project_manifest_environment_presets_test.dart test/smart_tiles/project_manifest_smart_tile_catalog_test.dart test/border/border_manifest_integration_test.dart test/smart_tiles/smart_tile_authoring_draft_compiler_test.dart --reporter expanded →00:00 +74: All tests passed!, exit0. Log /tmp/p03_native_regression.log.
+- dart compile kernel --packages=.dart_tool/package_config.json /tmp/p03_core_build.dart -o /tmp/p03_core_build.dill puis dart /tmp/p03_core_build.dill → exit0, sortie0:0. L'entrée importe le barrel public ; les46 tests finaux recompilent aussi ces exports après le dernier correctif.
+- dart test --reporter expanded → exit1,02:26 +5031 ~1 -16: Some tests failed. Dix fichiers suspects relancés seuls → exit1,00:00 +56 -16. Logs /tmp/p03_map_core_full_test.log, /tmp/p03_core_failures_isolated.log et /tmp/p03_core_failures.txt.
+- Les dix fichiers sont scene_runtime_dry_run_preview_test.dart, authoring_capability_inventory_test.dart, narrative_command_contract_parity_test.dart, narrative_spatial_event_source_catalog_test.dart, beta_playability_composition_test.dart, narrative_map_events_read_model_test.dart, cinematic_media_contract_fixture_test.dart, spatial_gameplay_capabilities_test.dart, project_transform_format_v8_test.dart et scene_map_instance_contract_test.dart (sept échecs). Aucun correctif hors périmètre appliqué ; une baseline de ces seize assertions n'a pas été rejouée.
+- dart analyze complet → exit0,129 informations, sans warning ni erreur ; l'analyse ciblée finale reste sans issue.
+- Revue conformité indépendante : quatre tests de garde-fous relancés, +4: All tests passed!, exit0. Revue qualité indépendante : la nouvelle non-régression collision relancée, +1: All tests passed!, exit0. Les deux verdicts sont favorables après corrections.
+- Les processus possédés des tests/build sont terminés. git diff --check sur le généré après nettoyage des douze ajouts blancs → exit0. Le contrôle Markdown des passes → exit0, aucun nouveau Markdown.
+
+Contrôle du patch isolé : copie de HEAD420f2b9e3c63b92345c07de6d408c3861897b17c, puis overlay des treize fichiers propres et des cinq exports P03, avec dépendances résolues offline dans ce répertoire temporaire seulement. Les tests de contrat obtiennent11 réussites et2 échecs sur la version native Border10 absente du HEAD. Le test du graphe ne compile pas faute de BorderGroundPoint/Footprint/Surface et des propriétés groundSurfaces/groundFootprints. Reçus : /tmp/avelune-p03-clean-probe.json, /tmp/avelune-p03-clean-probe-test.log et /tmp/avelune-p03-clean-probe-public.log. Le propriétaire de la reconstruction NB2 confirme que ces API sont ses prérequis encore non committés ; sa preuve GPU reste distincte et ouverte.
+
+Contrôle distinct du même HEAD pur, sans overlay P03 : dart test test/project_model3d_test.dart → exit1 à la compilation, _$MapConnectionDirectionEnumMap absent de map_gameplay_zone_payloads.g.dart:203/214. Ce défaut précis est donc présent avant P03 ; cela ne prouve pas l'antériorité des seize assertions de la suite partagée. Log /tmp/avelune-p03-head-baseline-test.log. Aucun changement de ce généré étranger n'a été intégré au patch P03.
+
+Après 2fe848cc7, une seconde copie isolée de ce HEAD reçoit uniquement les treize fichiers core P03 et ses cinq exports. Résultat :11 réussites et5 échecs, dont deux incompatibilités de codec et trois fichiers bloqués par le généré MapConnectionDirection. Le diagnostic détaillé établit que ProjectSmartTileCatalog.currentFormatVersion vaut4 au HEAD et7 sur le checkout partagé : le premier message générique de codec ne désignait donc pas uniquement Border. Le propriétaire confirme sept fichiers minimaux SmartTile5–7 (modèle, deux générés, validation et trois tests), distincts de son lot Border. Une qualification temporaire de cet ensemble est préparée avant toute nouvelle décision Git. Reçus /tmp/avelune-p03-qualified-probe.json et /tmp/avelune-p03-qualified-tests.log ; aucun de ces prérequis non autorisés n'est indexé.
+
+Auto-critique : les tests et revues démontrent le contrat sur les sources natives actuelles, pas encore un commit autonome ni un produit d'import. P07 doit produire les vraies frames RGBA depuis les sources canoniques pour le contrôle Border ; P09 doit exposer les sémantiques de transfert, P10/P11 l'UI, P12 les preuves de volume et Player. Aucun File/Flutter/archive n'est ajouté dans core. Après autorisation humaine complémentaire, les prérequis SmartTile sont committés par leur propriétaire et les quinze fichiers propres P03 par notre tâche. L'index est vide après625b94f4f. Les deux lignes Bicycle étrangères du généré Manifest et les espaces de génération restent hors du commit ; seuls les hunks propres aux installations de packs sont indexés.
+
+
+### Qualification native complémentaire avant commit P03
+
+Le premier périmètre SmartTile de sept fichiers compile et ses62 tests avec P03 passent, mais la revue indépendante retrouve quatre échecs dans trois suites natives existantes : elles attendent encore la sortie v4 et considèrent v5 comme une version future. Six assertions sont donc ajustées dans la copie isolée : deux dans project_smart_tile_catalog_test.dart, deux dans smart_tile_authoring_draft_test.dart et deux seulement dans smart_tile_pattern_test.dart. Les changements de gestes et le formatage étranger de ce dernier ne font pas partie du prérequis. Patch minimal /tmp/p03-smarttile-existing-version-tests.patch ; aucune modification de ces fichiers par notre tâche dans le checkout partagé.
+
+Qualification complète dans la copie HEAD2fe + P03 + dix fichiers/hunks SmartTile + sept lignes enum : dart test test/smart_tiles test/resource_pack_contract_test.dart test/resource_pack_installation_catalog_test.dart test/resource_pack_dependency_graph_test.dart test/resource_pack_publication_test.dart --reporter expanded →00:04 +408 ~1: All tests passed!, exit0. Log /tmp/p03-qualified-smarttile-regression-complete.log. Le premier essai large manquait deux fixtures tools/performance de l'archive limitée à core ; après extraction de leurs versions committées, il ne reste aucun échec. Une première génération filtrée avait aussi supprimé des sorties hors filtre dans cette copie temporaire ; elles ont été restaurées depuis HEAD, puis les seuls overlays propres réappliqués avant qualification. Aucun de ces ajustements d'outillage ne modifie le checkout partagé.
+
+Analyse ciblée des sources/tests P03 et SmartTile ainsi que du généré enum : No issues found!, exit0 ; /tmp/p03-qualified-native-prerequisites-analyze.log. Compilation kernel du barrel public : exit0 ; /tmp/p03-qualified-native-prerequisites-kernel.log. La revue indépendante valide que le correctif enum est exactement le HEAD plus ses sept lignes générées, SHA256 eee8e53eb91eea2fac226e4ec7b3192c52109878fb50a289aa8658a86840d0f3. Elle confirme l'absence de dépendance supplémentaire aux opérations de motifs, au resolver ou à readiness.
+
+La qualification porte sur DTO/codec/validation ; le resolver au HEAD ne consomme pas encore ces propriétés. Aucun rendu ou parcours Player SmartTile7 n'est revendiqué. Yoahn autorise explicitement les prérequis complets : dix fichiers/hunks natifs puis les commits P03/P04. Cet accord remplace le premier chiffrage incomplet à sept fichiers. SmartTile est committé en53b16bfb8 et Border reste indépendant ; le correctif enum identique est déjà fourni par9605357ad, sans nouveau commit à créer.
+
+### Preuves d'exécution du lot P04 — implémentation vérifiée
+
+Audit initial : réutilisation du lecteur ZIP random access, de l'inspecteur GLB, des domaines de hash P03 et des limites existantes de présentation. Le cache de stage appartient au service/session autorisé ; il ne sert pas de stockage historique durable. Le projet n'est jamais modifié par l'inspection. Les contrats publics de ports sont exportés depuis map_authoring, sans couplage aux internes de l'éditeur.
+
+Inventaire P04, quinze fichiers gelés dans /tmp/p04_cancel_failure_frozen_files.json :
+
+| Fichier | Zone et raison |
+|---|---|
+| packages/map_distribution/lib/src/resource_pack_security_policy.dart |144 lignes ; plafonds signés v1 et sous-limites de qualification, aucune hausse par configuration |
+| packages/map_distribution/lib/src/resource_pack_manifest_codec.dart |123 lignes ; JSON strict, taille/profondeur/nœuds, manifeste canonique et empreinte d'arbre |
+| packages/map_distribution/lib/src/resource_pack_inspector.dart |837 lignes ; structure/inventaire, graphe fermé, capacités, native validation, provenances, médias et pixels publiés |
+| packages/map_distribution/lib/src/static_png_validation.dart |245 lignes ; profil PNG statique, chunks/CRC, IHDR unique, dimensions et inflation bornée exacte avant décodage |
+| packages/map_distribution/lib/src/random_access_zip_structure_reader.dart |Extension ciblée du validateur de noms, plafonds d'entrées et lecture par chunks ; comportement par défaut conservé pour les autres profils |
+| packages/map_distribution/lib/src/glb_model3d_inspector.dart |Profil requireStaticTextures optionnel, false par défaut ; précontrôle PNG commun uniquement pour le profil pack activé |
+| packages/map_distribution/lib/map_distribution.dart |Trois exports publics des contrats du pack |
+| packages/map_distribution/test/resource_pack_manifest_codec_test.dart |327 lignes ; canonicalisation, versions, bornes, types et champs inconnus |
+| packages/map_distribution/test/resource_pack_inspector_test.dart |1456 lignes ; archives invalides, SHA/CRC, fermeture native, PNG/GLB, références et quotas |
+| packages/map_distribution/test/static_png_validation_test.dart |214 lignes ;37 cas couleurs/profondeurs/Adam7, flux zlib, fenêtre LZ77 et corruption |
+| packages/map_authoring/lib/src/ports/file_backed_payload_store.dart |68 lignes ; scope, handle, lease et source autorisée sans chemin public |
+| packages/map_authoring/lib/src/infrastructure/local_resource_pack_store.dart |705 lignes ; stage chunké, double observation, budgets concurrentiels, leases/readers/workers, expiration et fermeture possédée |
+| packages/map_authoring/lib/map_authoring_api.dart |Export du port canonique |
+| packages/map_authoring/lib/map_authoring_local.dart |Export de l'implémentation locale |
+| packages/map_authoring/test/ports/file_backed_payload_store_test.dart |774 lignes ; source/session, intégrité, quotas, racines/liens, lecteurs, workers et fermeture sur disque |
+
+Décisions et correctifs issus des revues :
+
+- Les ancêtres du cache et leur résolution canonique sont vérifiés ; un lien vers le projet est refusé. La sélection native autorise seulement le fichier exact, pas ses voisins.
+- Les frames sont validées dans leurs unités natives ; la grille de secours des personnages suit les dimensions réellement appliquées par le runtime. Une imageCollection autonome est acceptée, une combinaison raster rect-only nécessitant une sémantique absente est refusée explicitement.
+- Une en-tête PNG seule ne suffit pas. Le profil statique refuse APNG, puis valide/décode le média réel. Les textures PNG des GLB passent le même contrôle, tandis que le profil des jeux conserve son comportement par défaut.
+- Une inflation dépassant les scanlines annoncées est refusée avant le décodeur image : sortie zlib bornée, fenêtre32Kio et contrôle Adler/fin exacte, y compris les sept passes Adam7. Aucun tampon complet de pixels gonflés n'est conservé par ce précontrôle.
+- close ferme l'admission, annule les copies, attend lecteurs et workers, puis efface uniquement le répertoire privé de l'instance. La réentrance A→B→A est refusée avant changement d'état avec une clé Zone propre à chaque store. Un finally interne libère la réservation même si StreamIterator.cancel échoue, sans masquer cette erreur.
+- Les preuves de provenance sont déclarées seulement si elles couvrent toutes les racines ; aucune qualification de contenu n'est inventée. Les index évitent les scans imbriqués du catalogue et des bindings.
+
+Commandes et preuves finales :
+
+- Depuis packages/map_distribution, dart test --reporter expanded →00:18 +351: All tests passed!, exit0 ; /tmp/p04_quality_distribution_full.log. Les changements ultérieurs sont limités aux deux fichiers de stockage authoring, les treize autres SHA sont identiques.
+- dart analyze lib/src/resource_pack_security_policy.dart lib/src/resource_pack_manifest_codec.dart lib/src/resource_pack_inspector.dart lib/src/random_access_zip_structure_reader.dart lib/src/glb_model3d_inspector.dart lib/src/static_png_validation.dart test/resource_pack_manifest_codec_test.dart test/resource_pack_inspector_test.dart test/static_png_validation_test.dart → No issues found!, exit0 ; /tmp/p04_quality_distribution_analyze.log.
+- dart analyze complet distribution → exit0, une information unnecessary_library_name dans le barrel inchangé sur cette ligne ; /tmp/p04_quality_distribution_analyze_full.log.
+- Depuis packages/map_authoring, dart test test/ports/file_backed_payload_store_test.dart test/ports/artifact_staging_lifetime_test.dart test/tooling/jsonl_artifact_staging_test.dart →00:01 +35: All tests passed!, exit0 ; /tmp/p04_cancel_failure_authoring_final.log.
+- dart analyze complet authoring après correction nestedZone → No issues found!, exit0 ; /tmp/p04_nested_close_authoring_analyze.log. Après le dernier delta finally, dart analyze lib/src/infrastructure/local_resource_pack_store.dart test/ports/file_backed_payload_store_test.dart → No issues found!, exit0 ; /tmp/p04_cancel_failure_authoring_analyze.log.
+- dart compile exe bin/pokemap_authoring.dart -o /tmp/p04_authoring_validation → Generated: /tmp/p04_authoring_validation, exit0 ; /tmp/p04_cancel_failure_authoring_aot.log. Compilation kernel du barrel distribution via /tmp/p04_distribution_compile.dart → exit0 ; /tmp/p04_quality_distribution_kernel.log.
+- Revue conformité : huit scénarios de fermeture relancés, tous verts ; reproduction indépendante nestedZone refusée avec resource_pack.close_reentrant. Avis favorable. Le dernier delta de nettoyage est également relu par la qualité et couvert par les mêmes huit cas.
+- Revue qualité finale : helper PNG37pass, annulation défaillante1pass, fermeture8pass ; /tmp/p04_final_quality_png_test.log, /tmp/p04_final_quality_store_test.log, /tmp/p04_final_quality_shutdown_test.log. Reproduction initiale : budget4/disque4 après close/reopen, bombe PNG rejetée. Avis favorable sans finding restant.
+- RED conservés avant les correctifs : faux PNG, frames hors atlas, grille de secours, fermeture laissant des fichiers, inflation excédentaire, nestedZone puis fuite de réservation. Les derniers logs /tmp/p04_nested_close_red.log et /tmp/p04_cancel_failure_red.log démontrent les deux symptômes puis leurs GREEN.
+
+Tous les runs possédés sont tracés et leurs descendants terminés ; aucune terminaison d'un processus étranger. Aucun changement de dépendance, CI ou projet utilisateur. Le dernier état global observé compte305 puis306 entrées dirty concurrentes ; index vide et HEAD2fe848cc7. Les quinze sources finales sont sauvegardées avant P05 sous le chemin référencé par /tmp/avelune-p05-before.json ; les hunks étrangers ne sont pas candidats au commit P04. Le garde Markdown est vert, aucun nouveau document créé.
+
+Parité MCP : P04 fournit des ports et une inspection pure sans nouvelle commande produit. Les actions de transfert, leur catalogue découvrable et leurs preuves direct/JSONL/MCP restent explicitement P09 ; aucun support sémantique n'est déduit d'une sauvegarde JSON générique.
+
+Auto-critique et limites : central directory et un média candidat restent matérialisables dans les plafonds annoncés ; aucune mesure RSS n'est revendiquée. Un callback utilisateur actif peut retarder close ; un arrêt dur peut laisser le dossier privé temporaire, sans collecte aveugle des instances voisines. Le décodeur image tiers rejette un minuscule Adam7 dont le précontrôle est valide ; le pack est refusé strictement, sans patch de dépendance. Le CAS durable et l'ouverture lazy sont P05, les jobs/annulations P09, l'import produit P08–P11 et la certification volume/Player P12. Le code P04 est proposé TO REVIEW. Son commit séparé est préparé après625b94f4f, depuis les quinze fichiers figés et non depuis le checkout P05 en cours.
+
+### Baseline et démarrage P05
+
+Avant toute édition P05,62 tests ciblés transactions/recovery/history/snapshot passent en5s dans /tmp/avelune-p05-baseline.log. La suite authoring complète donne04:02 +1855 -40: Some tests failed., exit1 ; /tmp/avelune-p05-authoring-full-baseline.log et seize fichiers listés dans /tmp/avelune-p05-baseline-failure-files.txt. Ils sont prouvés antérieurs à P05, pas tous à P01 ; aucun vert global ni correction étrangère implicite. Le faux positif facade création lié à P03 est corrigé avec sa propre preuve RED/GREEN.
+
+Audit P05 et décisions de la section9 sont transmis à l'unique implémenteur après avis favorables P04. Un snapshot des2597 sources/tests/configurations de map_authoring, map_editor et converter est pris avant cette refonte : /tmp/avelune-p05-before.json. Il permet d'isoler les futurs deltas P05 des modifications étrangères déjà présentes. Aucun nouveau Markdown ni changement Git de branche n'est nécessaire.
+
+
+### Qualification de livraison P03/P04 et arbitrage exécuté
+
+Yoahn a confirmé les deux demandes Git, dont la précision complète à dix fichiers/hunks SmartTile. Le propriétaire livre53b16bfb819781dcb1d1d561eea46960c5574c08 :361 tests SmartTile passent,1 ignoré, analyse ciblée sans issue dans sa copie isolée. Le correctif enum indépendant est déjà dans9605357ad, strictement identique au SHA du généré qualifié. Aucun doublon de commit.
+
+Avant625b94f4f, dart test des quatre suites P03 est relancé sur le checkout :00:00 +47: All tests passed!, exit0 ; /tmp/p03-precommit-core-final.log. Façade création :1test passé et analyse ciblée No issues found!, /tmp/p03-creation-facade-final.log et /tmp/p03-creation-facade-final-analyze.log. Douze fichiers sont indexés entiers ; les deux générés Manifest et le barrel sont indexés depuis leurs seuls hunks propres. Contrôle de l'inventaire exact15fichiers et diff-check avant/après commit ; reçu /tmp/p03-commit-receipt.json, index vide. Aucun fichier P05 ni hunk Bicycle étranger.
+
+Qualification P04 autonome dans une copie HEAD9605357ad + prérequis SmartTile autorisés + seuls fichiers P03/P04, sans aucun overlay P05 : /tmp/avelune-p04-qualified-probe.json. Résolution offline seulement dans cette copie. Depuis map_distribution, dart test --reporter expanded →00:15 +350: All tests passed!, exit0 ; /tmp/p04-qualified-distribution-final.log. L'écart avec les351 tests partagés est exactement le test étranger ajouté à game_package_spatial_test.dart sur les chemins animés natifs, absent de ce patch isolé et hors commit P04.
+
+Depuis map_authoring, dart test test/ports/file_backed_payload_store_test.dart test/ports/artifact_staging_lifetime_test.dart test/tooling/jsonl_artifact_staging_test.dart test/workspace/project_creation_facade_test.dart --reporter expanded →00:03 +36: All tests passed!, exit0 ; /tmp/p04-qualified-authoring-final.log. Les36 comprennent les35 du groupe P04 et le test facade P03. Analyses ciblées des deux packages : No issues found!, exit0 ; /tmp/p04-qualified-distribution-analyze.log et /tmp/p04-qualified-authoring-analyze.log. dart compile exe bin/pokemap_authoring.dart -o /tmp/p04-qualified-authoring → Generated: /tmp/p04-qualified-authoring, exit0 ; /tmp/p04-qualified-authoring-aot.log. Processus possédés terminés, aucun reliquat.
+
+P04 est indexé depuis sa copie figée antérieure à P05. Les éventuels exports P05 ajoutés aux barrels partagés ne sont pas absorbés. Le plan consolidé est joint au commit P04 pour consigner les preuves actuelles des deux lots et les audits préparatoires ; les sources P05 restent en cours, non indexées. L'état global reste partagé et sale, sans revendication de vert global authoring ou de certification massive.

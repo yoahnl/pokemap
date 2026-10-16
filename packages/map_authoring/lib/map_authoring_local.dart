@@ -64,3 +64,5 @@ export 'src/workspace/project_snapshot_loader.dart'
         ProjectSnapshotLoader;
 export 'src/workspace/workspace_handle_store.dart' show WorkspaceHandleStore;
 export 'src/workspace/workspace_policy.dart' show WorkspacePolicy;
+
+export 'src/infrastructure/local_resource_pack_store.dart';

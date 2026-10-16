@@ -1,3 +1,4 @@
+import 'static_png_validation.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -9,10 +10,13 @@ import 'raster_image_dimensions.dart';
 
 final class GlbModel3dInspector {
   const GlbModel3dInspector(
-      {this.maxTextureDimension = 4096, this.maxTexturePixels = 16777216});
+      {this.maxTextureDimension = 4096,
+      this.maxTexturePixels = 16777216,
+      this.requireStaticTextures = false});
 
   final int maxTextureDimension;
   final int maxTexturePixels;
+  final bool requireStaticTextures;
 
   Model3dInspection inspect(List<int> bytes) {
     if (bytes.length < 28 || bytes.length > 128 * 1024 * 1024) {
@@ -55,15 +59,16 @@ final class GlbModel3dInspector {
           'A standalone GLB requires JSON and BIN chunks.');
     }
     return _Inspection(document, ByteData.sublistView(binary),
-            maxTextureDimension, maxTexturePixels)
+            maxTextureDimension, maxTexturePixels, requireStaticTextures)
         .inspect();
   }
 }
 
 final class _Inspection {
-  _Inspection(
-      this.json, this.binary, this.maxTextureDimension, this.maxTexturePixels);
+  _Inspection(this.json, this.binary, this.maxTextureDimension,
+      this.maxTexturePixels, this.requireStaticTextures);
   final int maxTextureDimension, maxTexturePixels;
+  final bool requireStaticTextures;
   final Map<String, dynamic> json;
   final ByteData binary;
   late final List<Map<String, dynamic>> views;
@@ -161,7 +166,14 @@ final class _Inspection {
         throw const FormatException('Model texture pixel budget exceeded.');
       }
       try {
-        final decoded = img.decodeImage(bytes);
+        final img.Image? decoded;
+        if (requireStaticTextures && image['mimeType'] == 'image/png') {
+          final decoder = validatedStaticPngDecoder(bytes,
+              maxDimension: maxTextureDimension, maxPixels: maxTexturePixels);
+          decoded = decoder.decodeFrame(0);
+        } else {
+          decoded = img.decodeImage(bytes);
+        }
         if (decoded == null ||
             decoded.width != dimensions.width ||
             decoded.height != dimensions.height) {

@@ -29,11 +29,25 @@ final class RandomAccessZipStructure {
 
 /// Random-access ZIP preflight that never loads payload regions as a whole.
 final class RandomAccessZipStructureReader {
-  const RandomAccessZipStructureReader(this.policy);
+  const RandomAccessZipStructureReader(
+    this.policy, {
+    this.entryNameValidator,
+    this.maxTotalEntries,
+    this.readChunkBytes = 1024 * 1024,
+  });
 
   final GamePackageSecurityPolicy policy;
+  final void Function(String name)? entryNameValidator;
+  final int? maxTotalEntries;
+  final int readChunkBytes;
 
   RandomAccessZipStructure read(RandomAccessPackageSource source) {
+    if (readChunkBytes < 1 || readChunkBytes > 1024 * 1024) {
+      throw ArgumentError.value(readChunkBytes, 'readChunkBytes');
+    }
+    if (maxTotalEntries != null && maxTotalEntries! < 1) {
+      throw ArgumentError.value(maxTotalEntries, 'maxTotalEntries');
+    }
     try {
       return _readChecked(source, source.length);
     } on GamePackageFormatException {
@@ -89,7 +103,8 @@ final class RandomAccessZipStructureReader {
         'Multi-disk, ZIP64, or archive comments are not supported.',
       );
     }
-    if (entryCount > policy.maxPayloadEntries + 1) {
+    if (entryCount > policy.maxPayloadEntries + 1 ||
+        maxTotalEntries != null && entryCount > maxTotalEntries!) {
       _fail(
         'entryCountExceeded',
         r'$',
@@ -156,7 +171,8 @@ final class RandomAccessZipStructureReader {
       if (!collisionKeys.add(PackagePathPolicy.collisionKey(name))) {
         _fail('pathCollision', name, 'Colliding ZIP entry names.');
       }
-      _validateName(name);
+      final validateName = entryNameValidator ?? _validateName;
+      validateName(name);
       if (previousName != null &&
           PackagePathPolicy.compareUtf8(previousName, name) >= 0) {
         _fail(
@@ -299,10 +315,23 @@ final class RandomAccessZipStructureReader {
     int offset,
     int length,
   ) {
-    if (offset < 0 || length < 0) throw const FormatException();
-    final bytes = source.readAtSync(offset, length);
-    if (bytes.length != length) throw const FormatException();
-    return bytes;
+    if (offset < 0 || length < 0 || offset + length > source.length) {
+      throw const FormatException();
+    }
+    if (length <= readChunkBytes) {
+      final bytes = source.readAtSync(offset, length);
+      if (bytes.length != length) throw const FormatException();
+      return bytes;
+    }
+    final result = Uint8List(length);
+    for (var cursor = 0; cursor < length; cursor += readChunkBytes) {
+      final remaining = length - cursor;
+      final count = remaining < readChunkBytes ? remaining : readChunkBytes;
+      final bytes = source.readAtSync(offset + cursor, count);
+      if (bytes.length != count) throw const FormatException();
+      result.setRange(cursor, cursor + count, bytes);
+    }
+    return result;
   }
 
   String _decodeName(List<int> bytes) {
