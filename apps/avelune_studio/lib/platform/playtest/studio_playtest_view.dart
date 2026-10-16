@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -9,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
 import 'studio_playtest_start.dart';
+import 'studio_playtest_player_view.dart';
 import 'studio_spatial_playtest.dart';
 import 'studio_spatial_playtest_view.dart';
 import '../../features/pokemon/data/studio_project_item_icons.dart';
@@ -46,6 +46,8 @@ class StudioPlaytestView extends StatefulWidget {
 class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   late Future<Object> _loading = _load();
   PlayableMapGame? _game;
+  RuntimeMapBundle? _playerBundle;
+  PlayerServiceRuntimeController? _playerServices;
   SpatialExplorationSession? _spatial;
   StudioSpatialPlaytest? _spatialPlaytest;
   late final _saves = widget.testSession ?? StudioPlaytestSession();
@@ -136,6 +138,31 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       initialMapActivationReason: MapActivationReason.initialBoot,
     );
     _game = game;
+    _playerBundle = bundle;
+    _playerServices = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => game.playerServiceGameStateSnapshot,
+      commitAndSave: game.commitAndSavePlayerServiceState,
+      setInputLocked: (locked) => game.setExternalInputLock(
+        RuntimeExternalInputLock.playerService,
+        locked: locked,
+      ),
+      loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+        gameState: state,
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+      ),
+      healingDisplayMapReader: game.playerServiceHealingDisplayMap,
+      conditionContext: ScriptEvaluationContext(
+        narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+          bundle.manifest.facts,
+        ),
+      ),
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
+      locale: 'fr',
+    );
+    game.setPlayerServiceRuntimeController(_playerServices!);
+    game.setDialogueFlutterOverlayPreferred(true);
     setState(() => _ready = true);
     return game;
   }
@@ -169,7 +196,12 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     _game?.pauseEngine();
     _finishSpatialMount(StateError('Test fermé'));
     unawaited(_spatialPlaytest?.dispose());
-    if (widget.testSession == null) _saves.delete();
+    final services = _playerServices;
+    final deleteSaves = widget.testSession == null;
+    unawaited(() async {
+      await services?.dispose();
+      if (deleteSaves) await _saves.delete();
+    }());
     super.dispose();
   }
 
@@ -224,15 +256,15 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     if (!mounted) return;
     setState(() {
       _busy = false;
-      _message = loaded
-          ? 'Sauvegarde du test reprise.'
-          : 'Reprise impossible pendant cette interaction ou après ce changement.';
+      _message = loaded ? 'Sauvegarde du test reprise.' : 'Reprise impossible pendant cette interaction ou après ce changement.';
     });
   }
 
   Future<void> _newGame() async {
     setState(() => _busy = true);
     _game?.pauseEngine();
+    await _playerServices?.dispose();
+    _playerServices = null;
     _game = null;
     final spatial = _spatialPlaytest;
     _spatialPlaytest = null;
@@ -390,14 +422,11 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
                 onError: _finishSpatialMount,
               );
             }
-            return ClipRect(
-              child: GameWidget<PlayableMapGame>(
-                key: ObjectKey(game),
-                game: game as PlayableMapGame,
-                autofocus: true,
-                errorBuilder: (context, error) =>
-                    Center(child: Text('Erreur du test : $error')),
-              ),
+            return StudioPlaytestPlayerView(
+              key: ObjectKey(game),
+              game: game as PlayableMapGame,
+              bundle: _playerBundle!,
+              services: _playerServices!,
             );
           },
         ),

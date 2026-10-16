@@ -7,11 +7,14 @@ import 'package:avelune_studio/platform/playtest/studio_playtest_start.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/game.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:path/path.dart' as p;
 
 import '../../tool/create_example_project.dart';
@@ -135,14 +138,75 @@ void main() {
     }
     expect(game, isNotNull);
     expect(game!.isLoaded, isTrue);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final size in const [Size(960, 810), Size(700, 620)]) {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pump(const Duration(milliseconds: 32));
+      final viewport = game.camera.viewport.size;
+      game.debugPublishBattleCommandOverlaySnapshotForTest(
+        _battleSnapshot(Size(viewport.x, viewport.y)),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(PlayerBattleOverlay), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('battle-hud-target-player')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('battle-hud-target-enemy')),
+        findsOneWidget,
+      );
+      expect(find.text('Que doit faire Charmander ?'), findsOneWidget);
+      expect(find.byKey(const ValueKey('battle-entry-0')), findsOneWidget);
+      final viewportRect = tester.getRect(
+        find.byType(GameWidget<PlayableMapGame>),
+      );
+      expect(tester.getRect(find.byType(PlayerBattleOverlay)), viewportRect);
+      for (final key in [
+        'battle-hud-target-player',
+        'battle-hud-target-enemy',
+        'battle-entry-0',
+      ]) {
+        final rect = tester.getRect(find.byKey(ValueKey(key)));
+        expect(rect.left, greaterThanOrEqualTo(viewportRect.left));
+        expect(rect.top, greaterThanOrEqualTo(viewportRect.top));
+        expect(rect.right, lessThanOrEqualTo(viewportRect.right));
+        expect(rect.bottom, lessThanOrEqualTo(viewportRect.bottom));
+      }
+      final battle = tester.widget<PlayerBattleOverlay>(
+        find.byType(PlayerBattleOverlay),
+      );
+      expect(battle.onCommand, equals(game.dispatchBattlePresentationCommand));
+      game.debugPublishBattleCommandOverlaySnapshotForTest(null);
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(PlayerBattleOverlay), findsNothing);
+    }
+    final pcResult = game.debugOpenPlayerServicePc();
+    for (var attempt = 0; attempt < 100; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      if (find.byType(PlayerPcOverlay).evaluate().isNotEmpty) break;
+    }
+    expect(find.byType(PlayerPcOverlay), findsOneWidget);
+    expect(game.inputAuthorityListenable.value.acceptsOverworldInput, isFalse);
+    await tester.tap(find.byKey(const ValueKey('pc-close')));
+    await tester.pump();
+    await tester.runAsync(
+      () async =>
+          expect((await pcResult).status, PlayerServiceRuntimeStatus.completed),
+    );
+    await tester.pump();
+    expect(find.byType(PlayerPcOverlay), findsNothing);
+    expect(game.inputAuthorityListenable.value.acceptsOverworldInput, isTrue);
     expect(game.debugPlayerGridPosition, const GridPos(x: 8, y: 9));
-    game.handleRuntimeInputEvent(
-      const RuntimeInputEvent.press(RuntimeInputControl.right),
-    );
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
     game.update(.016);
-    game.handleRuntimeInputEvent(
-      const RuntimeInputEvent.release(RuntimeInputControl.right),
-    );
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
     game.update(.3);
     expect(game.debugPlayerGridPosition, const GridPos(x: 9, y: 9));
     await tester.tap(find.text('Enregistrer le test'));
@@ -187,23 +251,19 @@ void main() {
           startingMoney: 75,
         ),
       );
-      await File(
-        p.join(directory.path, 'project.json'),
-      ).writeAsString(jsonEncode(configured.toJson()));
+      await File(p.join(directory.path, 'project.json'))
+          .writeAsString(jsonEncode(configured.toJson()));
       final otherMap = exampleMap(
         'clairiere',
         'Clairière',
         alternate: true,
       ).copyWith(entities: const []);
-      await File(
-        p.join(directory.path, 'maps', 'clairiere.json'),
-      ).writeAsString(jsonEncode(otherMap.toJson()));
-      projectBefore = await File(
-        p.join(directory.path, 'project.json'),
-      ).readAsString();
-      mapBefore = await File(
-        p.join(directory.path, 'maps', 'clairiere.json'),
-      ).readAsString();
+      await File(p.join(directory.path, 'maps', 'clairiere.json'))
+          .writeAsString(jsonEncode(otherMap.toJson()));
+      projectBefore = await File(p.join(directory.path, 'project.json'))
+          .readAsString();
+      mapBefore = await File(p.join(directory.path, 'maps', 'clairiere.json'))
+          .readAsString();
       port = LocalMapWorkspaceAdapter();
       await port.loadProject(session);
       entry = configured.maps.firstWhere((map) => map.id == 'clairiere');
@@ -245,7 +305,23 @@ void main() {
     expect(position, isNotNull);
     expect(position.x, inInclusiveRange(0, document.map.size.width - 1));
     expect(position.y, inInclusiveRange(0, document.map.size.height - 1));
+    final previousGame = game;
+    final pendingPc = game.debugOpenPlayerServicePc();
+    for (var attempt = 0; attempt < 100; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      if (find.byType(PlayerPcOverlay).evaluate().isNotEmpty) break;
+    }
+    expect(find.byType(PlayerPcOverlay), findsOneWidget);
     await tester.tap(find.text('Nouvelle partie'));
+    await tester.runAsync(
+      () async => expect(
+        (await pendingPc).status,
+        PlayerServiceRuntimeStatus.cancelled,
+      ),
+    );
     for (var attempt = 0; attempt < 300; attempt++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 10)),
@@ -257,6 +333,9 @@ void main() {
         if (game!.isLoaded && !game.debugIsMapActivationDispatchInFlight) break;
       }
     }
+    expect(game, isNot(same(previousGame)));
+    expect(previousGame.isPaused, isTrue);
+    expect(find.byType(PlayerPcOverlay), findsNothing);
     expect(game!.gameStateSnapshot.currentMapId, 'clairiere');
     expect(game.gameStateSnapshot.trainerProfile.money, 75);
     await tester.runAsync(() async {
@@ -265,9 +344,8 @@ void main() {
         projectBefore,
       );
       expect(
-        await File(
-          p.join(directory.path, 'maps', 'clairiere.json'),
-        ).readAsString(),
+        await File(p.join(directory.path, 'maps', 'clairiere.json'))
+            .readAsString(),
         mapBefore,
       );
     });
@@ -296,4 +374,49 @@ class _ChangedPort implements MapWorkspacePort {
     MapWorkspaceDocument base,
     MapData current,
   ) => throw UnimplementedError();
+}
+
+BattleCommandOverlaySnapshot _battleSnapshot(Size viewport) {
+  final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
+  return BattleCommandOverlaySnapshot(
+    revision: 12,
+    mode: BattleCommandOverlayMode.root,
+    viewportSize: viewport,
+    panelRect: layout.commandPanelRect,
+    enemyHud: BattleCommandOverlayHudSnapshot(
+      rect: layout.enemyHudRect,
+      ownerLabel: 'Heidi',
+      speciesLabel: 'Pikachu',
+      level: 20,
+      currentHp: 45,
+      maxHp: 60,
+      isPlayerSide: false,
+    ),
+    playerHud: BattleCommandOverlayHudSnapshot(
+      rect: layout.playerHudRect,
+      ownerLabel: 'Yoahn',
+      speciesLabel: 'Charmander',
+      level: 25,
+      currentHp: 55,
+      maxHp: 70,
+      isPlayerSide: true,
+    ),
+    battleLabel: 'Heidi',
+    title: 'COMMANDS',
+    prompt: 'Que doit faire Charmander ?',
+    narrationLines: const [],
+    entries: const [
+      BattleCommandOverlayEntry(
+        index: 0,
+        kind: BattleCommandOverlayEntryKind.root,
+        primaryLabel: 'Attaquer',
+        secondaryLabel: '',
+        enabled: true,
+        selected: true,
+        tone: BattleCommandOverlayEntryTone.attack,
+      ),
+    ],
+    interactionsEnabled: true,
+    canGoBack: false,
+  );
 }
