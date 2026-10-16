@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
+import 'support/source_catalog_preservation.dart';
 
 final class _Symbol {
   const _Symbol(this.text);
@@ -150,7 +151,10 @@ Future<SourceCatalogProjection> _read(
         cancellation: cancellation);
 List<Map<String, Object?>> _docs(
         SourceCatalogProjection p, SourceCatalogDocumentKind kind) =>
-    p.documents.where((d) => d.kind == kind).map((d) => d.document).toList();
+    preservedCatalogDocuments(p)
+        .where((d) => d.kind == kind)
+        .map((d) => d.document)
+        .toList();
 Matcher _code(String code) =>
     isA<ContractError>().having((e) => e.code, 'code', code);
 
@@ -159,7 +163,7 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
         PokemonCatalogCoherenceSnapshot(
             ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             catalogs: [
-          for (final d in p.documents
+          for (final d in preservedCatalogDocuments(p)
               .where((d) => d.kind == SourceCatalogDocumentKind.catalog))
             PokemonCatalogDocument(
                 path: d.relativePath,
@@ -172,12 +176,13 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
                   kind: 'items',
                   catalog: 'items',
                   meta: const PokemonDataMeta(description: 'Imported items'),
-                  entries: p.mergedItemCatalog!.entries
+                  entries: preservedCatalogItems(p)!
+                      .entries
                       .map((e) => Map<String, dynamic>.from(e.toJson()))
                       .toList()))
         ],
             species: [
-          for (final d in p.documents
+          for (final d in preservedCatalogDocuments(p)
               .where((d) => d.kind == SourceCatalogDocumentKind.species))
             PokemonCatalogDocument(
                 path: d.relativePath,
@@ -185,7 +190,7 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
                     Map<String, dynamic>.from(d.document)))
         ],
             learnsets: [
-          for (final d in p.documents
+          for (final d in preservedCatalogDocuments(p)
               .where((d) => d.kind == SourceCatalogDocumentKind.learnset))
             PokemonCatalogDocument(
                 path: d.relativePath,
@@ -193,7 +198,7 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
                     Map<String, dynamic>.from(d.document)))
         ],
             evolutions: [
-          for (final d in p.documents
+          for (final d in preservedCatalogDocuments(p)
               .where((d) => d.kind == SourceCatalogDocumentKind.evolution))
             PokemonCatalogDocument(
                 path: d.relativePath,
@@ -201,7 +206,7 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
                     Map<String, dynamic>.from(d.document)))
         ],
             media: [
-          for (final d in p.documents
+          for (final d in preservedCatalogDocuments(p)
               .where((d) => d.kind == SourceCatalogDocumentKind.media))
             PokemonCatalogDocument(
                 path: d.relativePath,
@@ -324,7 +329,7 @@ void main() {
     final f = await _fixture();
     final p = await _read(f);
     expect(_docs(p, SourceCatalogDocumentKind.species), hasLength(3));
-    final table = p.encounterTables.single;
+    final table = preservedCatalogEncounters(p).single;
     expect(table.chancePerStep, 0);
     expect(table.entries.map((e) => (e.weight, e.minLevel, e.maxLevel)),
         [(80, 14, 17), (70, 13, 17)]);
@@ -394,7 +399,7 @@ void main() {
       'missing dependency quarantines entire encounter table and dependent species',
       () async {
     final p = await _read(await _fixture(missingQuick: true));
-    expect(p.encounterTables, isEmpty);
+    expect(preservedCatalogEncounters(p), isEmpty);
     expect(_docs(p, SourceCatalogDocumentKind.species), isEmpty);
     expect(
         p.diagnostics.any(
@@ -406,7 +411,7 @@ void main() {
       () async {
     final p = await _read(await _fixture(compiled: false));
     expect(_docs(p, SourceCatalogDocumentKind.species), isEmpty);
-    expect(p.encounterTables, isEmpty);
+    expect(preservedCatalogEncounters(p), isEmpty);
     expect(
         p.diagnostics
             .any((d) => d.code == 'source.catalog.national_dex_unqualified'),
@@ -416,7 +421,7 @@ void main() {
     final p = await _read(await _fixture(
         pokemon:
             '${_species('RATTATA')}${_species('RATTATA')}${_species('SPEAROW')}'));
-    expect(p.encounterTables, isEmpty);
+    expect(preservedCatalogEncounters(p), isEmpty);
     expect(p.hasBlockingDiagnostics, true);
   });
   test('item merge retains AC13 ID and existing native use without duplication',
@@ -444,7 +449,7 @@ void main() {
     final p = await _read(f,
         items: ['BURNHEAL'],
         existing: ProjectItemCatalog(schemaVersion: 1, entries: [old]));
-    expect(p.mergedItemCatalog!.entries.single, old);
+    expect(preservedCatalogItems(p)!.entries.single, old);
     expect(p.assetMutations.where((m) => m.actionId == 'item.create'), isEmpty);
   });
   test(
@@ -465,7 +470,7 @@ void main() {
               buyPrice: 200,
               sellPrice: 50)
         ]));
-    expect(p.mergedItemCatalog, isNull);
+    expect(preservedCatalogItems(p), isNull);
     expect(
         p.diagnostics
             .any((d) => d.code == 'source.catalog.item_binding_conflict'),
@@ -483,12 +488,12 @@ void main() {
         trainerName: 'Jo',
         version: 2);
     final p = await _read(f, trainers: [key]);
-    expect(p.trainers.single.team.single.level, 15);
-    expect(p.trainers.single.preBattleDialogueId, isNull);
+    expect(preservedCatalogTrainers(p).single.team.single.level, 15);
+    expect(preservedCatalogTrainers(p).single.preBattleDialogueId, isNull);
     final incomplete = await _fixture(
         trainers: '[CAMPER,Jo,2]\nPokemon = MISSING,15\nMoves = TACKLE\n');
     final q = await _read(incomplete, trainers: [key]);
-    expect(q.trainers, isEmpty);
+    expect(preservedCatalogTrainers(q), isEmpty);
     expect(q.hasBlockingDiagnostics, true);
   });
   test(
@@ -503,7 +508,7 @@ void main() {
         trainerType: 'CAMPER',
         trainerName: 'Jo');
     final p = await _read(f, trainers: [key]);
-    expect(p.trainers, isEmpty);
+    expect(preservedCatalogTrainers(p), isEmpty);
     expect(
         p.diagnostics
             .any((d) => d.code == 'source.catalog.trainer_field_unsupported'),
@@ -560,8 +565,8 @@ void main() {
     final p = await _read(await _fixture(
         encounters:
             '[098]\nLand,20\n100,MISSING,3\nWater,5\n10,SPEAROW,7\nLand\n80,RATTATA,14,17\n'));
-    expect(p.encounterTables, hasLength(2));
-    final land = p.encounterTables
+    expect(preservedCatalogEncounters(p), hasLength(2));
+    final land = preservedCatalogEncounters(p)
         .singleWhere((t) => t.encounterKind == EncounterKind.walk);
     expect(land.entries.map((e) => e.weight), [80]);
     expect(p.hasBlockingDiagnostics, false);
@@ -604,7 +609,7 @@ void main() {
         trainerType: 'CAMPER',
         trainerName: 'Incomplete');
     final p = await _read(f, trainers: [key]);
-    expect(p.trainers, isEmpty);
+    expect(preservedCatalogTrainers(p), isEmpty);
     expect(
         p.diagnostics.any((d) =>
             d.code == 'source.catalog.trainer_incomplete' &&

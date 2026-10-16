@@ -10,6 +10,7 @@ import 'package:test/test.dart';
 
 import '../tool/ac14_catalog_reference_fixture.dart';
 import 'support/literal_tile_fixture.dart';
+import 'support/source_catalog_preservation.dart';
 import 'support/native_writer_fixture.dart';
 
 void main() {
@@ -74,7 +75,8 @@ void main() {
         final marker =
             candidate.draft.compositionEvidence['sourceCatalogs'] as Map;
         expect(marker['requestedTrainerKeys'], isEmpty);
-        expect(candidate.catalogs.projection.trainers, isEmpty);
+        expect(
+            preservedCatalogTrainers(candidate.catalogs.projection), isEmpty);
         expect(
             candidate.draft.mutations.where(
                 (mutation) => mutation.actionId == 'campaign.trainer.upsert'),
@@ -109,15 +111,51 @@ void main() {
           version: 2,
         );
         expect(marker['requestedTrainerKeys'], [expected.toJson()]);
-        expect(candidate.catalogs.projection.trainers,
+        expect(preservedCatalogTrainers(candidate.catalogs.projection),
             hasLength(entry.key == 'plain name' ? 1 : 0));
         if (entry.key == 'plain name') {
           expect(
-              candidate.catalogs.projection.trainers.single.team.single.level,
+              preservedCatalogTrainers(candidate.catalogs.projection)
+                  .single
+                  .team
+                  .single
+                  .level,
               15);
         }
       });
     }
+
+    test('source-only study keeps runtime-unbound data out of active mutations',
+        () {
+      expect(preservedCatalogItems(composition.catalogs.projection)!.entries,
+          isNotEmpty);
+      expect(
+          composition.draft.mutations.where((mutation) =>
+              mutation.actionId == 'pokemon.configuration.set_enabled' &&
+              mutation.parameters['enabled'] == true),
+          isEmpty);
+      expect(composition.catalogs.projection.documents, isEmpty);
+      expect(preservedCatalogDocuments(composition.catalogs.projection),
+          isNotEmpty);
+      expect(composition.catalogs.projection.trainers, isEmpty);
+      expect(preservedCatalogTrainers(composition.catalogs.projection),
+          isNotEmpty);
+      expect(composition.catalogs.projection.encounterTables, isEmpty);
+      expect(preservedCatalogEncounters(composition.catalogs.projection),
+          isNotEmpty);
+      expect(
+          composition.draft.mutations.where((mutation) => const {
+                'pokemon.documents.write',
+                'campaign.trainer.upsert',
+                'campaign.encounter_table.upsert',
+              }.contains(mutation.actionId)),
+          isEmpty);
+      expect(
+          composition.draft.mutations.where(
+              (mutation) => mutation.actionId == 'pokemon.catalog.write'),
+          isEmpty);
+      expect(composition.catalogs.projection.mergedItemCatalog, isNull);
+    });
 
     test(
         'qualifies only the exact semantic source and preserves data authority',
@@ -132,7 +170,7 @@ void main() {
       expect(projection.evidence['runtimeReady'], isFalse);
       expect(projection.evidence['battleAuthority'], 'aveluneNative');
       expect(projection.evidence['sourceBattleScriptsExecuted'], isFalse);
-      final moves = projection.documents
+      final moves = preservedCatalogDocuments(projection)
           .singleWhere((document) =>
               document.kind == SourceCatalogDocumentKind.catalog &&
               document.document['catalog'] == 'moves')
@@ -148,24 +186,26 @@ void main() {
       }
       expect(jsonEncode(projection.evidence),
           contains('OriginalUnqualifiedEffect'));
-      final item = projection.mergedItemCatalog!.entries.single;
+      final item = preservedCatalogItems(projection)!.entries.single;
       expect(item.displayName, 'Original cure');
       expect((item.buyPrice, item.sellPrice), (321, 123));
       expect(item.uses, isEmpty);
       expect(
           composition.draft.mutations.where(
               (mutation) => mutation.actionId == 'campaign.trainer.upsert'),
-          hasLength(1));
+          isEmpty);
       expect(
           composition.draft.mutations.where((mutation) =>
               mutation.actionId == 'campaign.encounter_table.upsert'),
-          hasLength(1));
-      final batch = composition.draft.mutations.singleWhere(
-          (mutation) => mutation.actionId == 'pokemon.documents.write');
-      expect(batch.parameters['documents'] as List, hasLength(12));
+          isEmpty);
+      expect(
+          composition.draft.mutations.where(
+              (mutation) => mutation.actionId == 'pokemon.documents.write'),
+          isEmpty);
     });
 
-    test('native writer reopens every projected document and reference exactly',
+    test(
+        'native writer preserves source-only documents in companion without runtime publication',
         () async {
       final draft = composition.draft;
       final approval = approveNativeFixtureDraft(draft);
@@ -177,21 +217,23 @@ void main() {
       try {
         final native = opened.snapshot;
         expect(native.loadDiagnostics, isEmpty);
-        expect(native.pokemonInventoryComplete, isTrue);
+        expect(native.manifest.pokemon.enabled, isFalse);
         final validation =
             await opened.api.validateProject(native.projectHandle);
         expect(validation.valid, isTrue,
             reason: jsonEncode(validation.toJson()));
         final projection = composition.catalogs.projection;
-        for (final document in projection.documents) {
-          final written =
-              await _jsonFile(receipt.projectPath, document.relativePath);
-          expect(written, document.document, reason: document.relativePath);
+        for (final document in preservedCatalogDocuments(projection)) {
+          expect(
+              await File(path.join(receipt.projectPath, document.relativePath))
+                  .exists(),
+              isFalse,
+              reason: document.relativePath);
         }
-        expect(native.manifest.encounterTables, projection.encounterTables);
-        expect(native.manifest.trainers, projection.trainers);
-        expect(native.itemCatalog, projection.mergedItemCatalog);
-        final species = projection.documents
+        expect(native.manifest.encounterTables, isEmpty);
+        expect(native.manifest.trainers, isEmpty);
+        expect(native.itemCatalog, isNull);
+        final species = preservedCatalogDocuments(projection)
             .where((document) =>
                 document.kind == SourceCatalogDocumentKind.species)
             .map((document) => PokemonSpeciesFile.fromJson(
@@ -254,39 +296,23 @@ void main() {
             final relativePath =
                 path.posix.join(reference.$1, '${reference.$2}.json');
             expect(
-                projection.documents
+                preservedCatalogDocuments(projection)
                     .any((document) => document.relativePath == relativePath),
                 isTrue,
                 reason: relativePath);
             expect(
                 await File(path.join(receipt.projectPath, relativePath))
                     .exists(),
-                isTrue);
+                isFalse);
           }
         }
-        final speciesIds = species.map((entry) => entry.id).toSet();
-        for (final table in native.manifest.encounterTables) {
-          expect(table.chancePerStep, 0);
-          expect(
-              table.entries.map(
-                  (entry) => (entry.weight, entry.minLevel, entry.maxLevel)),
-              [(80, 14, 17), (70, 13, 17)]);
-          expect(
-              table.entries
-                  .every((entry) => speciesIds.contains(entry.speciesId)),
-              isTrue);
-        }
-        final trainer = native.manifest.trainers.single;
-        expect(trainer.team, hasLength(1));
-        expect(trainer.team.single.level, 15);
-        expect(speciesIds, contains(trainer.team.single.speciesId));
-        expect(trainer.preBattleDialogueId, isNull);
         final catalog = AssetCatalog.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(
                 native.resourceBytes(assetCatalogResourceIdentity))) as Map));
         final evidence =
             await _projectionEvidence(receipt.projectPath, catalog);
         expect(evidence['kind'], 'sourceCatalogProjection');
+        expect(evidence['projection'], projection.toJson());
         final preserved =
             (evidence['preservedSourceFiles'] as List).cast<Map>();
         for (final witness in preserved.where(
@@ -308,8 +334,8 @@ void main() {
     test('missing species and incomplete trainer preserve whole blocked units',
         () {
       final projection = composition.catalogs.projection;
-      expect(projection.encounterTables, hasLength(1));
-      expect(projection.trainers, hasLength(1));
+      expect(preservedCatalogEncounters(projection), hasLength(1));
+      expect(preservedCatalogTrainers(projection), hasLength(1));
       expect(
           projection.diagnostics.any((diagnostic) =>
               diagnostic.blocking &&
@@ -327,7 +353,7 @@ void main() {
       }
       expect(jsonEncode(projection.evidence), contains('MISSING'));
       expect(jsonEncode(projection.evidence), contains('Incomplete'));
-      expect(projection.trainers.single.team.single.level, 15);
+      expect(preservedCatalogTrainers(projection).single.team.single.level, 15);
     });
 
     test(
@@ -335,13 +361,16 @@ void main() {
         () async {
       final draft = composition.draft;
       final approval = approveNativeFixtureDraft(draft);
-      final species = composition.catalogs.projection.documents.firstWhere(
-          (document) => document.kind == SourceCatalogDocumentKind.species);
+      final species = preservedCatalogDocuments(composition.catalogs.projection)
+          .firstWhere(
+              (document) => document.kind == SourceCatalogDocumentKind.species);
       await expectLater(
         NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
           if (stage == NativeWriteStage.beforeNativeVerify) {
+            await Directory(path.join(projectPath!, 'data/pokemon/species'))
+                .create(recursive: true);
             await File(path.join(
-                    projectPath!,
+                    projectPath,
                     path.posix.dirname(species.relativePath),
                     'unexpected.json'))
                 .writeAsString(jsonEncode({
@@ -360,7 +389,12 @@ void main() {
     for (final field in ['stats', 'id', 'form', 'ref']) {
       test('rehashed and reapproved $field alteration refuses before staging',
           () async {
-        final draft = _alterSpecies(composition.draft, field);
+        final sourceDocument =
+            preservedCatalogDocuments(composition.catalogs.projection)
+                .singleWhere((document) =>
+                    document.kind == SourceCatalogDocumentKind.species &&
+                    (document.document['forms'] as Map)['isBaseForm'] == false);
+        final draft = _alterSpecies(composition.draft, field, sourceDocument);
         expect(draft.canonicalHash, isNot(composition.draft.canonicalHash));
         await _refuseBeforeStage(draft, 'native.semantics.regeneration');
       });
@@ -553,10 +587,8 @@ void main() {
             await opened.api.validateProject(opened.snapshot.projectHandle);
         expect(validation.valid, isTrue,
             reason: jsonEncode(validation.toJson()));
-        expect(opened.snapshot.manifest.trainers,
-            large.catalogs.projection.trainers);
-        expect(opened.snapshot.manifest.encounterTables,
-            large.catalogs.projection.encounterTables);
+        expect(opened.snapshot.manifest.trainers, isEmpty);
+        expect(opened.snapshot.manifest.encounterTables, isEmpty);
         expect(
             await ac14CatalogDirectoryHashes(
                 large.sourceFixture.sourceRootPath!),
@@ -676,17 +708,20 @@ Future<void> _refuseBeforeStage(NativeProjectDraft draft, String code) async {
       before);
 }
 
-NativeProjectDraft _alterSpecies(NativeProjectDraft draft, String field) {
-  final selected = draft.mutations.singleWhere(
-      (mutation) => mutation.actionId == 'pokemon.documents.write');
-  final parameters = Map<String, Object?>.from(
-      jsonDecode(jsonEncode(selected.parameters)) as Map);
-  final member = (parameters['documents'] as List).cast<Map>().singleWhere(
-      (entry) =>
-          entry['actionId'] == 'pokemon.species.write' &&
-          ((((entry['parameters'] as Map)['document'] as Map)['forms']
-                  as Map)['isBaseForm'] ==
-              false));
+NativeProjectDraft _alterSpecies(NativeProjectDraft draft, String field,
+    SourceCatalogDocument sourceDocument) {
+  final parameters = <String, Object?>{
+    'documents': [
+      {
+        'actionId': 'pokemon.species.write',
+        'parameters': {
+          'relativePath': sourceDocument.relativePath,
+          'document': jsonDecode(jsonEncode(sourceDocument.document)),
+        },
+      }
+    ]
+  };
+  final member = (parameters['documents'] as List).single as Map;
   final document = (member['parameters'] as Map)['document'] as Map;
   switch (field) {
     case 'stats':
@@ -698,12 +733,15 @@ NativeProjectDraft _alterSpecies(NativeProjectDraft draft, String field) {
     case 'ref':
       (document['refs'] as Map)['learnset'] = 'pokemon/learnsets/altered.json';
   }
-  return _copyDraft(draft,
-      mutations: draft.mutations
-          .map((mutation) => identical(mutation, selected)
-              ? copyNativeFixtureMutation(mutation, parameters: parameters)
-              : mutation)
-          .toList());
+  return _copyDraft(draft, mutations: [
+    ...draft.mutations,
+    NativeMutation(
+        operationId: ConverterId('forged_source_species'),
+        actionId: 'pokemon.documents.write',
+        sourceEntityIds: draft.mutations.first.sourceEntityIds,
+        targetEntityIds: [ConverterId('forged_source_species')],
+        parameters: parameters),
+  ]);
 }
 
 NativeProjectDraft _alterWitness(NativeProjectDraft draft) {

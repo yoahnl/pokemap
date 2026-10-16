@@ -9,6 +9,7 @@ import 'package:test/test.dart';
 
 import '../../map_authoring/test/domains/maps/map_catalog_fixture.dart';
 import '../tool/ac14_catalog_reference_fixture.dart';
+import 'support/source_catalog_preservation.dart';
 
 void main() {
   test(
@@ -66,7 +67,6 @@ void main() {
     late Directory temporary;
     late Ac14CatalogReferenceComposition original;
     late NativeProjectDraft base;
-    late List<NativeMutation> catalogMutations;
     late NativeProjectDraft unchanged;
     setUpAll(() async {
       temporary = await Directory.systemTemp.createTemp('catalog-event-order-');
@@ -99,11 +99,6 @@ void main() {
           files: original.sourceFixture.files,
           limits: ac14CatalogReferenceLimits);
       unchanged = control!.draft;
-      final baseIds =
-          base.mutations.map((mutation) => mutation.operationId).toSet();
-      catalogMutations = unchanged.mutations
-          .where((mutation) => !baseIds.contains(mutation.operationId))
-          .toList();
     });
     tearDownAll(() async {
       await temporary.delete(recursive: true);
@@ -111,9 +106,10 @@ void main() {
 
     for (final sceneFirst in [false, true]) {
       test(
-          'declares a trainer before its first ${sceneFirst ? 'Scene battle' : 'NPC'} consumer and preserves item preimages',
+          'refuses a source-only trainer ${sceneFirst ? 'Scene battle' : 'NPC'} consumer',
           () async {
-        final trainer = original.catalogs.projection.trainers.single;
+        final trainer =
+            preservedCatalogTrainers(original.catalogs.projection).single;
         final mapId = base.mapIds[98]!;
         final entity = _mutation('entity.upsert', 'consumer-npc',
             {'mapId': mapId, 'entity': _entity(trainer.id).toJson()});
@@ -122,75 +118,14 @@ void main() {
         final consumers = sceneFirst ? [scene, entity] : [entity, scene];
         final preceding =
             _copyBase(base, mutations: [...base.mutations, ...consumers]);
-        final composed = await const SourceCatalogStudyComposer().compose(
-            source: original.sourceFixture.source,
-            base: preceding,
-            files: original.sourceFixture.files,
-            limits: ac14CatalogReferenceLimits);
-        expect(composed, isNotNull);
-        final ordered = composed!.draft.mutations;
-        final trainerIndex = ordered.indexWhere((mutation) =>
-            mutation.actionId == 'campaign.trainer.upsert' &&
-            (mutation.parameters['value'] as Map)['id'] == trainer.id);
-        final firstConsumer = ordered.indexWhere(
-            (mutation) => mutation.operationId == consumers.first.operationId);
-        expect(trainerIndex, lessThan(firstConsumer));
-        expect(trainerIndex, base.mutations.length);
-        final baseIds =
-            preceding.mutations.map((mutation) => mutation.operationId).toSet();
-        expect(
-            ordered
-                .where((mutation) => baseIds.contains(mutation.operationId))
-                .map((mutation) => mutation.toJson(0)),
-            preceding.mutations.map((mutation) => mutation.toJson(0)));
-        expect(
-            ordered
-                .where((mutation) =>
-                    mutation.actionId != 'campaign.trainer.upsert' &&
-                    !baseIds.contains(mutation.operationId))
-                .map((mutation) => mutation.toJson(0)),
-            catalogMutations
-                .where((mutation) =>
-                    mutation.actionId != 'campaign.trainer.upsert')
-                .map((mutation) => mutation.toJson(0)));
-        final replacement = ordered.singleWhere((mutation) =>
-            mutation.actionId == 'pokemon.catalog.write' &&
-            mutation.parameters.containsKey('beforeBytesBase64'));
-        final initialItems = ordered.lastWhere((mutation) =>
-            mutation.actionId == 'pokemon.catalog.write' &&
-            mutation.parameters['relativePath'] ==
-                replacement.parameters['relativePath'] &&
-            !mutation.parameters.containsKey('beforeBytesBase64'));
-        expect(ordered.indexOf(initialItems),
-            lessThan(ordered.indexOf(replacement)));
-        expect(
-            base64Decode(replacement.parameters['beforeBytesBase64'] as String),
-            utf8.encode(
-                '${const JsonEncoder.withIndent('  ').convert(encodeProjectItemCatalog(decodeProjectItemCatalog(initialItems.parameters['document'])))}\n'));
-        final testMap = catalogMap('route');
-        var project = catalogSnapshot([testMap]).manifest.copyWith(
-            pokemon: const ProjectPokemonConfig(
-                enabled: true, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
-        for (final mutation in ordered) {
-          if (mutation.actionId == 'campaign.trainer.upsert') {
-            final draft = const CampaignContentActions().build(catalogContext(
-                _snapshot(project, testMap),
-                mutation.actionId,
-                mutation.parameters));
-            project = ProjectManifest.fromJson(jsonDecode(
-                    utf8.decode(draft.changeSet.changes.single.afterBytes!))
-                as Map<String, dynamic>);
-          } else if (mutation.operationId == entity.operationId) {
-            expect(
-                _entityDraft(project, testMap, _entity(trainer.id))
-                    .changeSet
-                    .changes,
-                hasLength(1));
-          } else if (mutation.operationId == scene.operationId) {
-            project = const SceneActions()
-                .upsert(project, maps: [testMap], scene: _scene(trainer.id));
-          }
-        }
+        await expectLater(
+            const SourceCatalogStudyComposer().compose(
+                source: original.sourceFixture.source,
+                base: preceding,
+                files: original.sourceFixture.files,
+                limits: ac14CatalogReferenceLimits),
+            throwsA(isA<NativeWriteException>().having((error) => error.code,
+                'code', 'catalogs.trainer.unqualified')));
       });
     }
 

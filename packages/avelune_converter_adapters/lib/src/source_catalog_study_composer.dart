@@ -87,7 +87,8 @@ final class SourceCatalogStudyComposer {
     final existing = _precedingItemCatalog(base);
     final native = NativePsdkTrainerBundle.builtin();
     final sourceEvents = base.compositionEvidence['sourceEvents'];
-    final nativePartyTrade = sourceEvents is Map && sourceEvents['partyTrade'] is Map;
+    final nativePartyTrade =
+        sourceEvents is Map && sourceEvents['partyTrade'] is Map;
     final supported =
         (native.evidence['sourceTrainerKeys'] as List).cast<String>().toSet();
     final nativeKeys = selection.trainers
@@ -104,7 +105,8 @@ final class SourceCatalogStudyComposer {
         requestedItemSymbols: selection.items,
         requestedTrainerKeys: selection.trainers,
         nativeTrainerKeys: nativeKeys,
-        nativeTrainerBundle: nativeKeys.isEmpty && !nativePartyTrade ? null : native,
+        nativeTrainerBundle:
+            nativeKeys.isEmpty && !nativePartyTrade ? null : native,
         nativeTrainerMovePolicy: nativeTrainerMovePolicy,
         cancellation: cancellation);
     final owners = pbs.documents
@@ -126,8 +128,9 @@ final class SourceCatalogStudyComposer {
             targetEntityIds: [ConverterId(target)],
             parameters: parameters,
             limits: limits);
-    final hasData =
-        projection.documents.isNotEmpty || projection.mergedItemCatalog != null;
+    final nativeCatalogQualified =
+        projection.evidence['nativeTrainerBindings'] is Map;
+    final hasData = nativeCatalogQualified && projection.documents.isNotEmpty;
     if (hasData &&
         !base.mutations.any((entry) =>
             entry.actionId == 'pokemon.configuration.set_enabled' &&
@@ -138,7 +141,10 @@ final class SourceCatalogStudyComposer {
     const config =
         ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1);
     final itemPath = config.catalogFiles['items']!;
-    final documents = projection.documents.toList()
+    final documents = (nativeCatalogQualified
+            ? projection.documents
+            : const <SourceCatalogDocument>[])
+        .toList()
       ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
     final paths = <String>{};
     final speciesDocuments = <String, List<Map<String, Object?>>>{};
@@ -215,11 +221,15 @@ final class SourceCatalogStudyComposer {
         'document': encodeProjectItemCatalog(projection.mergedItemCatalog!),
       }));
     }
-    for (final table in projection.encounterTables) {
+    for (final table in nativeCatalogQualified
+        ? projection.encounterTables
+        : const <ProjectEncounterTable>[]) {
       mutations.add(mutation('campaign.encounter_table.upsert', table.id,
           {'value': table.toJson()}));
     }
-    for (final trainer in projection.trainers) {
+    for (final trainer in nativeCatalogQualified
+        ? projection.trainers
+        : const <ProjectTrainerEntry>[]) {
       mutations.add(mutation(
           'campaign.trainer.upsert', trainer.id, {'value': trainer.toJson()}));
     }
@@ -342,6 +352,8 @@ final class SourceCatalogStudyComposer {
       'witnesses': recording.evidence,
       'automatic': true,
       'aiCalls': 0,
+      'activeCatalogPolicy': 'nativeBundleOnly',
+      'sourceOnlyRuntimeDataPublished': false,
       'battleAuthority': 'aveluneNative',
       'sourceBattleScriptsExecuted': false,
       'playableCertified': false,
@@ -381,7 +393,10 @@ final class SourceCatalogStudyComposer {
             mapIds: base.mapIds,
             artifacts: artifacts,
             sourceArtifacts: witnesses,
-            mutations: _mergeCatalogMutations(base.mutations, mutations),
+            mutations: _mergeCatalogMutations(base.mutations, mutations,
+                sourceOnlyTrainerIds: {
+                  for (final key in selection.trainers) key.sourceId.value,
+                }),
             compositionEvidence: {
               ...base.compositionEvidence,
               'sourceCatalogs': evidence
@@ -393,7 +408,8 @@ final class SourceCatalogStudyComposer {
 }
 
 List<NativeMutation> _mergeCatalogMutations(
-    List<NativeMutation> base, List<NativeMutation> catalogs) {
+    List<NativeMutation> base, List<NativeMutation> catalogs,
+    {required Set<String> sourceOnlyTrainerIds}) {
   final declarations = {
     for (final mutation in catalogs)
       if (mutation.actionId == 'campaign.trainer.upsert')
@@ -417,6 +433,11 @@ List<NativeMutation> _mergeCatalogMutations(
           .map((payload) => payload.trainerId));
     }
     for (final reference in references) {
+      if (sourceOnlyTrainerIds.contains(reference) &&
+          !declarations.containsKey(reference)) {
+        throw const NativeWriteException('catalogs.trainer.unqualified',
+            'A source-only trainer cannot be referenced by an active native consumer');
+      }
       if (declarations.containsKey(reference)) {
         consumed.add(reference!);
         if (insertionIndex < 0) insertionIndex = index;

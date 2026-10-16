@@ -825,7 +825,8 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.items',
             'Fresh item catalog differs from the exact source bindings');
       }
-      await _verifyNativeCatalogs(session, prepared, limits, cancellation);
+      await _verifyNativeCatalogs(session, prepared, limits, cancellation,
+          verifyEmptyInventory: draft.compositionEvidence.containsKey('sourceCatalogs'));
       for (final entry in prepared.audio.entries) {
         final bytes = await session.readCompanion(
             prepared.catalog.require(entry.key).logicalPath, entry.value,
@@ -915,7 +916,8 @@ final class NativeProjectWriter {
       }
       ProjectValidator.validate(finalSnapshot.manifest, maps: finalSnapshot.maps);
       for (final map in finalSnapshot.maps) { MapValidator.validate(map, projectDialogueContext: finalSnapshot.manifest); }
-      await _verifyNativeCatalogs(session, prepared, limits, cancellation);
+      await _verifyNativeCatalogs(session, prepared, limits, cancellation,
+          verifyEmptyInventory: draft.compositionEvidence.containsKey('sourceCatalogs'));
       for (final entry in {
         ...prepared.companions,
         ...prepared.audio,
@@ -2025,7 +2027,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       badges: badges,
       pokemon: bootstrap.pokemon.copyWith(
           enabled: projectedEvents?.itemCatalog != null ||
-              projectedCatalogs?.mergedItemCatalog != null ||
+              projectedCatalogs?.evidence['nativeTrainerBindings'] is Map ||
               (projectedCatalogs?.documents.isNotEmpty ?? false)),
       encounterTables: projectedCatalogs?.encounterTables ?? const [],
       trainers: trainersById.values.toList(),
@@ -2214,8 +2216,9 @@ Future<void> _verifyNativeCatalogs(
     _NativeSession session,
     _PreparedNativeDraft prepared,
     NativeWriteLimits limits,
-    ScanCancellation? cancellation) async {
-  if (prepared.pokemonDocuments.isEmpty) return;
+    ScanCancellation? cancellation,
+    {bool verifyEmptyInventory = false}) async {
+  if (prepared.pokemonDocuments.isEmpty && !verifyEmptyInventory) return;
   final access = session.handles.resolveProject(session.project);
   final expectedPaths = <String>{};
   for (final document in prepared.pokemonDocuments) {
@@ -2259,6 +2262,7 @@ Future<void> _verifyNativeCatalogs(
           'Fresh Pokemon document inventory must equal its complete projection');
     }
   }
+  if (prepared.pokemonDocuments.isEmpty) return;
   final validation = await AuthoringReadApi(
           openService: session.opener, snapshotLoader: session.snapshots)
       .validateProject(session.project);

@@ -461,6 +461,20 @@ final class _Run {
         .where((i) => i.family == SourcePbsFamily.items)
         .toList();
     final itemConflict = itemKeys.any((i) => invalid.contains(i.key));
+    final sourceOnlyData = <String, Object?>{
+      'kind': 'sourceCatalogOnlyPreservation',
+      'runtimeReady': false,
+      'activeReferencesImported': false,
+      'documents': documents.map((document) => document.toJson()).toList(),
+      'encounterTables': tables.map((table) => table.toJson()).toList(),
+      'trainers': [
+        for (final entry in sorted)
+          if (!invalid.contains(entry.identity!.key) &&
+              trainerDefinitions.containsKey(entry.identity!.key))
+            trainerDefinitions[entry.identity!.key]!.toJson(),
+      ],
+    };
+    documents.clear();
     final nativeBinding = await _bindNativeTrainers();
     final merged = itemConflict
         ? nativeBinding == null
@@ -471,23 +485,14 @@ final class _Run {
             schemaVersion: 1,
             entries: itemDefinitions.values.toList()
               ..sort((a, b) => a.id.compareTo(b.id)));
-    final boundIds =
-        nativeBinding?.trainers.map((trainer) => trainer.id).toSet() ??
-            <String>{};
+    sourceOnlyData['mergedItemCatalog'] = merged?.toJson();
     final result = SourceCatalogProjection(
         artifacts: nativeArtifacts,
         assetMutations: nativeAssetMutations,
         documents: documents,
-        mergedItemCatalog: merged,
-        encounterTables: tables,
-        trainers: [
-          for (final e in sorted)
-            if (!invalid.contains(e.identity!.key) &&
-                trainerDefinitions.containsKey(e.identity!.key) &&
-                !boundIds.contains(trainerDefinitions[e.identity!.key]!.id))
-              trainerDefinitions[e.identity!.key]!,
-          ...?nativeBinding?.trainers,
-        ],
+        mergedItemCatalog: nativeBinding == null ? null : merged,
+        encounterTables: const [],
+        trainers: nativeBinding?.trainers ?? const [],
         diagnostics: diagnostics,
         evidence: {
           'kind': 'sourceCatalogProjection',
@@ -500,6 +505,7 @@ final class _Run {
           'battleAuthority': 'aveluneNative',
           if (nativeBinding != null)
             'nativeTrainerBindings': nativeBinding.evidence,
+          'sourceOnlyData': sourceOnlyData,
           'sourceBattleScriptsExecuted': false,
           'sourceAbilitySlotSemanticsQualified': false,
           'runtimeReady': false,
@@ -583,39 +589,10 @@ final class _Run {
         native: bundle,
         movePolicy: nativeMovePolicy);
     for (final catalog in bundle.catalogs.values) {
-      final path = 'data/pokemon/catalogs/${catalog.catalog}.json';
-      final existing = documents
-          .where((document) => document.relativePath == path)
-          .singleOrNull;
-      final rows = <String, Map<String, dynamic>>{};
-      if (existing != null) {
-        for (final entry
-            in (existing.document['entries'] as List).cast<Map>()) {
-          rows[entry['id'] as String] = Map<String, dynamic>.from(entry);
-        }
-        documents.remove(existing);
-      }
-      for (final row in catalog.entries) {
-        final id = row['id'] as String;
-        if (rows.containsKey(id) &&
-            canonicalHashOf(rows[id]) != canonicalHashOf(row)) {
-          throw ContractError('native_trainer.catalog_conflict', path,
-              'Native catalog identities cannot replace conflicting source entries.');
-        }
-        rows[id] = row;
-      }
       documents.add(SourceCatalogDocument(
           kind: SourceCatalogDocumentKind.catalog,
-          relativePath: path,
-          document: PokemonCatalogFile(
-                  schemaVersion: 1,
-                  kind: catalog.kind,
-                  catalog: catalog.catalog,
-                  meta: catalog.meta,
-                  entries: rows.values.toList()
-                    ..sort((a, b) =>
-                        (a['id'] as String).compareTo(b['id'] as String)))
-              .toJson()));
+          relativePath: 'data/pokemon/catalogs/${catalog.catalog}.json',
+          document: catalog.toJson()));
     }
     for (final species in bundle.speciesById.values) {
       _doc(SourceCatalogDocumentKind.species, 'species', species.id,

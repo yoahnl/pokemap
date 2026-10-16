@@ -102,7 +102,12 @@ void main() {
         native.movesById.values.where((move) =>
             move.engineSupportLevel ==
             PokemonMoveEngineSupportLevel.catalogOnly),
-        hasLength(336));
+        hasLength(335));
+    expect(native.evidence['nativeQualifiedFieldMoveIds'], ['cut']);
+    expect(native.movesById['cut']!.engineSupportLevel,
+        PokemonMoveEngineSupportLevel.structuredPartial);
+    expect(native.evidence['nativeBattleDefaultMoveIds'] as List,
+        isNot(contains('cut')));
     expect(native.evidence['globalCatalogComplete'], isFalse);
     expect(native.evidence['globalLearnsetsPublished'], isTrue);
     expect(native.evidence['sourceScriptsExecuted'], 0);
