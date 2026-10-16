@@ -2131,6 +2131,7 @@ const _nativeStudyActions = [
   'pokemon.evolution.write',
   'pokemon.media.write',
   'campaign.encounter_table.upsert',
+  'campaign.badge.upsert',
   'campaign.trainer.upsert',
 ];
 
@@ -2192,6 +2193,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'Exact-source south ledgeLine modules use canonical Border publication, per-edge replacements and materialization after map saves, with full regeneration and strict native reopen; event state and runtime journey are separate.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:AC15 workflow publishes native Borders with events and approved assets',
+                },
+              if (action == 'campaign.badge.upsert')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Canonical campaign.badge.upsert preserves the Cut badge definition through the public campaign API and admits original Route 10 Cut mutations through strict approvePrepared without granting player progress.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_cut_workflow_admission_test.dart',
                 },
               if (action == 'map.audio.update')
                 {
