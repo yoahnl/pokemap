@@ -5459,6 +5459,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// - on lit les triggers couvrant la nouvelle position,
   /// - on déclenche uniquement les IDs présents dans "nouvelle - ancienne".
   void _resetTriggerEnterOccupancy() {
+    _synchronizeTriggerEnterOccupancy();
+    _pendingNarrativeTriggerEntries.clear();
+  }
+
+  void _synchronizeTriggerEnterOccupancy() {
     _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
       map: _bundle.map,
       pos: _world.player.pos,
@@ -5468,7 +5473,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       currentPosition: _world.player.pos,
       previousOccupiedTriggerIds: null,
     ).currentOccupiedTriggerIds;
-    _pendingNarrativeTriggerEntries.clear();
   }
 
   void _dispatchScenarioTriggerEnterFromMovement({
@@ -12076,6 +12080,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         session.gameState = originalSessionState;
         _applyNarrativeGameState(originalSessionState);
       }
+      if (restoredActor is PlayerComponent) {
+        _synchronizeTriggerEnterOccupancy();
+      }
     });
     final token = _inputLocks.acquire(
       owner: RuntimeInputLockOwner.scriptedMovement,
@@ -12169,6 +12176,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   throw StateError('Player movement was interrupted.');
                 }
                 _world = _world.withPlayer(plan.playerState!);
+                _synchronizeTriggerEnterOccupancy();
                 _runtimeNpcPositions['player'] = plan.to;
                 _scriptedEntityMovementController?.syncTrackedEntityPosition(
                   'player',

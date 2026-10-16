@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
@@ -387,6 +388,148 @@ void main() {
         isNot(contains(eventId)),
         reason: 'A reusable Event must remain eligible after re-entry.',
       );
+    });
+
+    for (final startsInside in [true, false]) {
+      test(
+        'forced player route preserves trigger fronts startsInside=$startsInside',
+        () async {
+          final mapId = 'forced_route_contact_$startsInside';
+          const triggerId = 'door_contact';
+          const contactFactId = 'fact.route.reentered';
+          final source = NarrativeEventSourceRef.triggerEnter(mapId, triggerId);
+          final prepared = <NarrativeEventSourceRef>[];
+          final game = await _loadGame(
+            _bundle(
+              mapId: mapId,
+              triggers: [
+                MapTrigger(
+                  id: triggerId,
+                  name: 'Door contact',
+                  type: TriggerType.event,
+                  area: MapRect(
+                    pos: GridPos(x: 0, y: startsInside ? 1 : 2),
+                    size: const GridSize(width: 1, height: 1),
+                  ),
+                ),
+              ],
+              factIds: const [contactFactId],
+              records: [
+                _record(
+                  id: 'evt_019abcde-3000-7000-8000-000000000010',
+                  name: 'Arrival departure',
+                  source: NarrativeEventSourceRef.mapEnter(mapId),
+                  sceneId: 'arrival_route',
+                ),
+                _record(
+                  id: 'evt_019abcde-3000-7000-8000-000000000011',
+                  name: 'Door entry',
+                  source: source,
+                  sceneId: 'door_scene',
+                  reusePolicy: NarrativeEventReusePolicy.reusable,
+                ),
+              ],
+              scenes: [
+                _departureScene(mapId: mapId, sceneId: 'arrival_route'),
+                _factScene(sceneId: 'door_scene', factId: contactFactId),
+              ],
+            ),
+            beforeNarrativeAuthorityPreparation: (occurrence) async {
+              if (occurrence.source == source) prepared.add(occurrence.source);
+            },
+          );
+          expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 2));
+          expect(prepared, isEmpty);
+          expect(_factValue(game, contactFactId), isNot(isTrue));
+          await _runSingleMove(game, RuntimeInputControl.up);
+          await _pumpFrames(game, 20);
+          if (startsInside) {
+            expect(prepared, [source]);
+            expect(_factValue(game, contactFactId), isTrue);
+          } else {
+            expect(prepared, isEmpty);
+            await _runSingleMove(game, RuntimeInputControl.down);
+            await _pumpFrames(game, 20);
+            expect(prepared, [source]);
+            expect(_factValue(game, contactFactId), isTrue);
+          }
+          expect(game.debugPendingNarrativeTriggerEntryCount, 0);
+          expect(game.debugIsGameplayInputLocked, isFalse);
+        },
+      );
+    }
+
+    test('failed Scene restores trigger occupancy with its player route compensation', () async {
+      const mapId = 'forced_route_compensated_contact';
+      const triggerId = 'wide_door_contact';
+      const factId = 'fact.route.compensated.reentry';
+      final source = NarrativeEventSourceRef.triggerEnter(mapId, triggerId);
+      final prepared = <NarrativeEventSourceRef>[];
+      final game = await _loadGame(
+        _bundle(
+          mapId: mapId,
+          triggers: const [
+            MapTrigger(
+              id: triggerId,
+              name: 'Wide contact',
+              type: TriggerType.event,
+              area: MapRect(
+                pos: GridPos(x: 0, y: 1),
+                size: GridSize(width: 2, height: 1),
+              ),
+            ),
+          ],
+          factIds: const [factId],
+          dialogueIds: const ['failed_dialogue'],
+          records: [
+            _record(
+              id: 'evt_019abcde-3000-7000-8000-000000000012',
+              name: 'Compensated contact',
+              source: source,
+              sceneId: 'contact_scene',
+              reusePolicy: NarrativeEventReusePolicy.reusable,
+            ),
+          ],
+          scenes: [
+            _departureScene(
+              mapId: mapId,
+              sceneId: 'failed_route',
+              failAfterMove: true,
+            ),
+            _factScene(sceneId: 'contact_scene', factId: factId),
+          ],
+        ),
+        dialogueSessionLoader: (_) async =>
+            throw StateError('Dialogue unavailable after the completed route.'),
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source == source) prepared.add(occurrence.source);
+        },
+      );
+      final initial = game.gameStateSnapshot;
+      NarrativeSceneExecutionResult? result;
+      final execution = game
+          .debugExecuteNarrativeSceneForTest(
+            NarrativeSceneExecutionRequest(
+              eventId: 'failed_route_event',
+              sceneId: 'failed_route',
+              executionId: 'failed-route-1',
+              gameState: initial,
+            ),
+          )
+          .then((value) => result = value);
+      await _pumpUntil(game, () => result != null);
+      await execution;
+      expect(result, isA<NarrativeSceneExecutionFailed>());
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+      await _runSingleMove(game, RuntimeInputControl.right);
+      await _pumpFrames(game, 20);
+      expect(prepared, isEmpty);
+      expect(_factValue(game, factId), isNot(isTrue));
+      await _runSingleMove(game, RuntimeInputControl.right);
+      await _runSingleMove(game, RuntimeInputControl.left);
+      await _pumpFrames(game, 20);
+      expect(prepared, [source]);
+      expect(_factValue(game, factId), isTrue);
     });
 
     test('overlapping entries remain FIFO while the first Scene has dialogue',
@@ -1203,3 +1346,72 @@ final class _CheckpointCountingRepository implements GameSaveRepository {
     storedState = null;
   }
 }
+
+SceneAsset _departureScene({
+  required String mapId,
+  required String sceneId,
+  bool failAfterMove = false,
+}) => SceneAsset(
+  id: sceneId,
+  name: sceneId,
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'route',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload(
+          interactiveCommand: SceneInteractiveCommand.actorRoute(
+            target: SceneActorTarget.player(mapId: mapId),
+            steps: [
+              SceneActorRouteStep.move(
+                direction: EntityFacing.south,
+                durationMs: 250,
+              ),
+            ],
+            skippable: true,
+          ),
+        ),
+      ),
+      if (failAfterMove)
+        SceneNode(
+          id: 'failure',
+          kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'failed_dialogue'),
+        ),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ],
+    edges: [
+      SceneEdge(
+        id: 'start_route',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'route',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'route_completed',
+        fromNodeId: 'route',
+        fromPortId: 'completed',
+        toNodeId: failAfterMove ? 'failure' : 'end',
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+      SceneEdge(
+        id: 'route_blocked',
+        fromNodeId: 'route',
+        fromPortId: 'blocked',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+      if (failAfterMove)
+        SceneEdge(
+          id: 'failure_end',
+          fromNodeId: 'failure',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+    ],
+  ),
+);
