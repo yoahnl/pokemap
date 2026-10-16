@@ -274,7 +274,8 @@ final class SourceWarpNode extends SourceEventNode {
       required this.x,
       required this.y,
       required this.direction,
-      required this.fade});
+      required this.fade, this.originalProgram});
+  final SourceExternalWarpProgram? originalProgram;
   final int targetSourceMapId;
   final int x;
   final int y;
@@ -668,7 +669,9 @@ final class SourceEventAnalyzer {
             pageDiagnostics
                 .add(SourceEventDiagnostic('events.invalid_page_graphic', loc));
           }
-          final body = _sourcePartyTradeProgramBlock(this, map.map.sourceMapId,
+          final body = _sourceExternalWarpProgramBlock(this, map.map.sourceMapId,
+                  event, sourcePage, loc) ??
+              _sourcePartyTradeProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
               _sourceCutObstacleProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??

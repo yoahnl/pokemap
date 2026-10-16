@@ -17,6 +17,7 @@ import 'source_town_map_binding.dart';
 import 'source_cut_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
 import 'source_healing_display_binding.dart';
+import 'source_external_warp_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
@@ -104,6 +105,18 @@ final class SourceEventStudyComposer {
     final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis)
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .map((event) => event.identity).toSet();
+    SourceExternalWarpBinding? externalWarps;
+    final externalWarpEvidence = <Map<String, Object?>>[];
+    try {
+      externalWarps = await const SourceExternalWarpBindingResolver().read(
+          source: source, analysis: analysis, files: recording,
+          policy: SourceExternalWarpPolicy.nativeTransitionsWithoutEscapeState,
+          limits: limits, cancellation: cancellation);
+      if (externalWarps != null) externalWarpEvidence.add({'status': 'attested', ...externalWarps.evidence});
+    } on SourceExternalWarpBindingUnavailable catch (error) {
+      externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
+    }
+    final transitionIds = {...originalDoorIds, ...?externalWarps?.programs.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -204,7 +217,7 @@ final class SourceEventStudyComposer {
     final soundEvidence = <Map<String, Object?>>[];
     for (final name in {
       for (final event in selectedEvents.where((event) => !event.isQuarantined &&
-          originalDoorIds.contains(event.identity)))
+          transitionIds.contains(event.identity)))
         for (final page in event.pages) ..._soundNames(page.body),
     }.toList()..sort()) {
       try {
@@ -269,11 +282,11 @@ final class SourceEventStudyComposer {
       cutBindingEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final bindings = <String, SourceEventCharacterBinding>{};
-    final retentionBinding = originalDoorIds.isNotEmpty
+    final retentionBinding = transitionIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
           nativeMapIds: base.mapIds, cancellation: cancellation) : null;
     final retentionPolicy = retentionBinding?.policy;
-    final executionContext = originalDoorIds.isEmpty ? null :
+    final executionContext = transitionIds.isEmpty ? null :
         await const SourceEventExecutionContextResolver().read(source: source,
           base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
           cancellation: cancellation);
@@ -294,6 +307,7 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             healingDisplayBinding: healingDisplay,
+            externalWarpBinding: externalWarps,
             cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
             retentionPolicy: retentionPolicy,
             executionContext: executionContext,
@@ -369,10 +383,13 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             healingDisplayBinding: healingDisplay,
+            externalWarpBinding: externalWarps,
             cutObstacleBindings: cutObstacles?.byEventIdentity ?? const {},
         retentionPolicy: retentionPolicy,
         executionContext: executionContext,
         limits: limits);
+    final usedExternalWarps = projection.semanticEvidence['usedExternalWarps'] == true
+        ? externalWarps : null;
     final usedHealingDisplay = projection.semanticEvidence['usedHealingDisplay'] == true
         ? healingDisplay : null;
     final usedCenterRecovery = projection.semanticEvidence['usedCenterRecovery'] == true
@@ -404,6 +421,9 @@ final class SourceEventStudyComposer {
     }
     final preservedFileIds =
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
+    if (usedExternalWarps != null) {
+      preservedFileIds.addAll(usedExternalWarps.files.map((file) => file.fileId.value));
+    }
     preservedFileIds.addAll(trainerBindings.byEventIdentity.values
         .map((binding) => binding.sourceRosterFile.fileId.value));
     if (pokedexReward != null) {
@@ -580,6 +600,7 @@ final class SourceEventStudyComposer {
         if (usedCutObstacles != null) usedCutObstacles.artifact,
         ...characterArtifacts,
         if (usedHealingDisplay != null) ...usedHealingDisplay.artifacts,
+        if (usedExternalWarps != null) ...usedExternalWarps.artifacts,
         if (usedCenterRecovery != null) usedCenterRecovery.artifact,
         ...pickupArtifacts,
         ...sounds.values.map((binding) => binding.artifact),
@@ -601,6 +622,7 @@ final class SourceEventStudyComposer {
     final importedMutations = <NativeMutation>[];
     final operations = <ConverterId, NativeMutation>{};
     for (final entry in [
+      if (usedExternalWarps != null) ...usedExternalWarps.mutations,
       ...characterMutations,
       if (usedHealingDisplay != null) ...usedHealingDisplay.mutations,
       if (usedCutObstacles != null) ...usedCutObstacles.mutations,
@@ -646,6 +668,8 @@ final class SourceEventStudyComposer {
       'items': items?.evidence,
       'pickups': pickupEvidence,
       'sounds': soundEvidence,
+      'externalWarpBindings': externalWarpEvidence,
+      if (usedExternalWarps != null) 'externalWarps': usedExternalWarps.evidence,
       'centerRecovery': centerRecoveryEvidence,
       'healingDisplayBindings': healingDisplayEvidence,
       if (usedHealingDisplay != null) 'healingDisplay': usedHealingDisplay.evidence,
@@ -720,6 +744,8 @@ Iterable<String> _soundNames(SourceEventBlock block) sync* {
     switch (node) {
       case SourceSoundEffectNode():
         yield node.name;
+      case SourceWarpNode():
+        if (node.originalProgram != null) yield node.originalProgram!.sound.name;
       case SourceForcedMoveRouteNode():
         for (final step in node.steps) {
           if (step.soundName != null) yield step.soundName!;

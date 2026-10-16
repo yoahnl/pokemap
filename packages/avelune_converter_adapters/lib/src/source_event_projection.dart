@@ -15,6 +15,7 @@ import 'source_cut_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
 import 'source_healing_display_binding.dart';
 import 'source_npc_fixed_route_binding.dart';
+import 'source_external_warp_binding.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -294,6 +295,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
     SourcePartyTradeBinding? partyTradeBinding,
     SourceHealingDisplayBinding? healingDisplayBinding,
+    SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
     NativeWriteLimits limits = const NativeWriteLimits(),
@@ -305,7 +307,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isCutObstacleFamily(event) &&
@@ -327,6 +329,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
     SourcePartyTradeBinding? partyTradeBinding,
     SourceHealingDisplayBinding? healingDisplayBinding,
+    SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
       NativeWriteLimits limits = const NativeWriteLimits()}) {
@@ -350,7 +353,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding)
         .build();
   }
 }
@@ -410,7 +413,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding, this.healingDisplayBinding)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -439,6 +442,7 @@ final class _ProjectionBuilder {
   final SourceTownMapBinding? townMapBinding;
   final SourcePartyTradeBinding? partyTradeBinding;
   final SourceHealingDisplayBinding? healingDisplayBinding;
+  final SourceExternalWarpBinding? externalWarpBinding;
   final Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
@@ -459,15 +463,75 @@ final class _ProjectionBuilder {
   final gapsByEvent = <ConverterId, Set<String>>{};
   var quarantinedCount = 0;
 
-  bool _isOriginalDoor(SourceEventDefinition event) {
-    return originalDoorIdentities.contains(event.identity);
+  bool _isExternalWarpFamily(SourceEventDefinition event) => const {
+    (100, 6), (100, 7), (100, 13), (166, 1), (205, 2), (205, 4)
+  }.contains((event.sourceMapId, event.sourceEventId));
+
+  bool _isSourceTransition(SourceEventDefinition event) =>
+      originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event);
+
+  final _externalPrograms = <ConverterId, SourceExternalWarpProgram?>{};
+
+  SourceExternalWarpProgram? _externalWarpProgram(SourceEventDefinition event) =>
+      _externalPrograms.putIfAbsent(event.identity, () {
+        final binding = externalWarpBinding;
+        if (!_isExternalWarpFamily(event) || binding == null ||
+            binding.policy != SourceExternalWarpPolicy.nativeTransitionsWithoutEscapeState ||
+            !binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+          return null;
+        }
+        return binding.programs[event.identity];
+      });
+
+  SceneWarpPresentation _externalWarpPresentation(SourceExternalWarpProgram program) =>
+      SceneWarpPresentation(mode: switch(program.presentation) {
+        SourceExternalWarpPresentation.fade => SceneWarpPresentationMode.fade,
+        SourceExternalWarpPresentation.illustrated => SceneWarpPresentationMode.illustrated,
+        SourceExternalWarpPresentation.caveEntrance => SceneWarpPresentationMode.caveEntrance,
+        SourceExternalWarpPresentation.caveExit => SceneWarpPresentationMode.caveExit,
+      }, illustrationElementId: externalWarpBinding!.illustrations[program.illustrationName]?.id,
+      fadeOutMs: program.fadeOutMs, transferDelayMs: program.transferDelayMs,
+      revealMs: program.revealMs, illustrationHoldMs: program.illustrationHoldMs,
+      illustrationFadeMs: program.illustrationFadeMs);
+
+  Set<String> _externalWarpGaps(SourceEventDefinition event) {
+    final program = _externalWarpProgram(event);
+    if (program == null) return {'sourceExternalWarpBindingsMissing'};
+    final gaps = <String>{};
+    if (maps[event.sourceMapId]!.version == ProjectVersion.v9 ||
+        maps[event.sourceMapId]!.spatialScene != null) {
+      gaps.add('sourceExternalWarpSpatialUnsupported');
+    }
+    if (_sound(program.sound.name) == null || program.sound.pitch != 100) {
+      gaps.add('sourceSoundBindingMissing');
+    }
+    final target = maps[program.targetSourceMapId];
+    if (target == null) return {...gaps, 'warpDependencyMissing'};
+    if (target.version == ProjectVersion.v9 || target.spatialScene != null) {
+      gaps.add('sourceExternalWarpSpatialUnsupported');
+    }
+    final point = GridPos(x: program.x, y: program.y);
+    final inBounds = program.x >= 0 && program.y >= 0 &&
+        program.x < target.size.width && program.y < target.size.height;
+    final collisions = target.layers.whereType<CollisionLayer>().toList();
+    if (!inBounds || collisions.isEmpty || collisions.any((layer) =>
+        layer.collisions.length != target.size.width * target.size.height) ||
+        target.entities.any((entity) => resolveEntityCollisionCells(entity).contains(point)) ||
+        (inBounds && collisions.any((layer) =>
+            program.y * target.size.width + program.x >= layer.collisions.length ||
+            layer.collisions[program.y * target.size.width + program.x])) ||
+        semanticResolver.resolveConnectionEntryTile(semanticResolver.cellAt(
+          program.targetSourceMapId, program.x, program.y)).status != SourcePassageStatus.allowed) {
+      gaps.add('sourceExternalWarpArrivalUnqualified');
+    }
+    return gaps;
   }
 
   _Guard _pageGuard(SourceEventDefinition event, SourceEventCondition condition) {
     if (condition.kind == SourceEventConditionKind.all) {
       return _all(condition.children.map((child) => _pageGuard(event, child)).toList());
     }
-    if (condition.kind == SourceEventConditionKind.tempSwitch && _isOriginalDoor(event)) {
+    if (condition.kind == SourceEventConditionKind.tempSwitch && _isSourceTransition(event)) {
       return _Guard.expression(NarrativeEventConditionExpression.leaf(
         NarrativeEventCondition.mapEventInstanceBoolean(mapId: maps[event.sourceMapId]!.id,
           eventId: _key(event, 'anchor'), key: condition.tempSwitchLetter!,
@@ -476,10 +540,14 @@ final class _ProjectionBuilder {
     return _conditionGuard(condition);
   }
 
+  bool _isArrivalCollisionOwner(SourceEventDefinition event, SourceWarpNode node) =>
+      _isSourceTransition(event) && event.sourceMapId == node.targetSourceMapId &&
+      event.x == node.x && event.y == node.y &&
+      (!_isExternalWarpFamily(event) || _externalWarpProgram(event) != null) &&
+      event.pages.firstOrNull?.graphic?.characterName.isNotEmpty == true;
+
   String? _arrivalOwner(SourceWarpNode node) {
-    final owners = analysis.events.where((event) => _isOriginalDoor(event) &&
-      event.sourceMapId == node.targetSourceMapId && event.x == node.x && event.y == node.y &&
-      event.pages.first.graphic!.characterName.isNotEmpty).toList();
+    final owners = analysis.events.where((event) => _isArrivalCollisionOwner(event, node)).toList();
     return owners.length == 1 ? _key(owners.single, 'anchor') : null;
   }
 
@@ -553,6 +621,22 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && _isExternalWarpFamily(event))
+          'nativeExternalWarp': {
+            'program': _externalWarpProgram(event)!.toJson(),
+            'policy': externalWarpBinding!.policy.name,
+            'nativePresentation': _externalWarpPresentation(_externalWarpProgram(event)!).toJson(),
+            'nativeExecutionQualified': true,
+            'sourceScriptsExecuted': 0,
+            'fullSourceParity': false,
+            'sourceEscapePointImported': false,
+            'sourceDarkMapMaskImported': false,
+            'nativeCaveAdditionalPreludeMs': _externalWarpPresentation(_externalWarpProgram(event)!).hasCaveEffect
+                ? SceneWarpPresentation.caveBandsMs + SceneWarpPresentation.caveFillMs + SceneWarpPresentation.cavePauseMs : 0,
+            'sourceRawPreserved': true,
+            'sourceArrivalAutorunPagesPreserved': event.pages.skip(1)
+                .map((page) => page.rawDataRef!.toJson()).toList(),
+          },
         if (gaps.isEmpty && _isHealingDisplayFamily(event))
           'nativeHealingDisplay': {
             ...healingDisplayBinding!.evidence,
@@ -959,6 +1043,7 @@ final class _ProjectionBuilder {
         },
       'usedTownMap': eventEvidence.any((row)=>row.containsKey('nativeTownMap')),
       'usedPartyTrade': eventEvidence.any((row) => row.containsKey('nativePartyTrade')),
+      'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedCutObstacles': eventEvidence.any((row) => row.containsKey('nativeCutObstacle')),
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
@@ -987,7 +1072,7 @@ final class _ProjectionBuilder {
         staticSemanticsQualified:
             analysis.profile.isQualified && quarantinedCount == 0,
         allEnabledOriginalEventsHaveExecutionContext: executionContextQualified ||
-            !events.where(_isOriginalDoor).any((event) =>
+            !events.where(_isSourceTransition).any((event) =>
               records.any((record) => record.when(draft: (_) => false,
                 configured: (definition, enabled) => enabled && event.pages.any((page) =>
                   definition.id == _eventId(event, 'page_${page.originalPageIndex}'))))),
@@ -1718,6 +1803,13 @@ final class _ProjectionBuilder {
 
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (const {166, 205}.contains(event.sourceMapId) && !_isExternalWarpFamily(event)) {
+      return {'sourceExternalMapScopeExcluded'};
+    }
+    if (_isExternalWarpFamily(event)) {
+      final externalGaps = _externalWarpGaps(event);
+      if (externalGaps.isNotEmpty) return externalGaps;
+    }
     if (_isHealingDisplayFamily(event)) return _healingDisplayGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isPartyTradeFamily(event)) return _partyTradeGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isCutObstacleFamily(event)) return _cutObstacleGaps(event);
@@ -1742,11 +1834,11 @@ final class _ProjectionBuilder {
     }
     final staticSign = _supportsStaticSign(event);
     final staticWideInteraction = _supportsStaticWideInteraction(event);
-    if (_isOriginalDoor(event) && !executionContextQualified) {
+    if (_isSourceTransition(event) && !executionContextQualified) {
       gaps.addAll(executionContext?.refusals.isNotEmpty == true
           ? executionContext!.refusals : ['sourceExecutionContextUnknown']);
     }
-    if (_isOriginalDoor(event) && retentionPolicy == null) {
+    if (_isSourceTransition(event) && retentionPolicy == null) {
       gaps.add('sourceMapInstanceRetentionMissing');
     }
     if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
@@ -1771,7 +1863,7 @@ final class _ProjectionBuilder {
     for (final page in event.pages) {
       _conditionGaps(event, page.condition, gaps);
       _blockGaps(event, page.body, gaps, checkCharacterBindings: checkCharacterBindings);
-      if (_isOriginalDoor(event)) {
+      if (_isSourceTransition(event)) {
         for (final entry in _sourceMapScopes(page.body, event.sourceMapId).entries) {
           if (entry.key is SourceMoveRouteBarrierNode &&
               (entry.value.length != 1 || !maps.containsKey(entry.value.single) ||
@@ -1837,7 +1929,7 @@ final class _ProjectionBuilder {
       }
       if (page.triggerCode != 0 &&
           !(page.triggerCode == 1 && graphic.through) &&
-          !_isOriginalDoor(event) && !staticSign) {
+          !_isSourceTransition(event) && !staticSign) {
         gaps.add('triggerContractUnsupported');
       }
       if (page.triggerCode == 0 && !page.isEmpty) {
@@ -1858,7 +1950,7 @@ final class _ProjectionBuilder {
           gaps.add('sourceTouchContactUnqualified');
         } else if (touch.kind == SourceEventTouchKind.front &&
             (graphic.characterName.isEmpty || graphic.through)) {
-          if ((!_isOriginalDoor(event) && !staticSign) ||
+          if ((!_isSourceTransition(event) && !staticSign) ||
               touch.reason != (staticSign && _staticSignWidth(event) == 2
                   ? 'stationaryFootprintTilesBlocked' : 'stationaryTilesBlocked') ||
               !_nativeSolidAt(event)) {
@@ -1866,7 +1958,7 @@ final class _ProjectionBuilder {
           }
         }
       }
-      if (trigger != null && trigger != page.triggerCode && !_isOriginalDoor(event)) {
+      if (trigger != null && trigger != page.triggerCode && !_isSourceTransition(event)) {
         gaps.add('pageTriggerChanges');
       }
       trigger = page.triggerCode;
@@ -1973,9 +2065,9 @@ final class _ProjectionBuilder {
       case SourceEventConditionKind.variableAtLeast:
         gaps.add('variableStateProjectionUnsupported');
       case SourceEventConditionKind.tempSwitch:
-        if (!_isOriginalDoor(event)) gaps.add('sourceTempSwitchUnsupported');
+        if (!_isSourceTransition(event)) gaps.add('sourceTempSwitchUnsupported');
       case SourceEventConditionKind.playerOnEvent:
-        if (!_isOriginalDoor(event)) gaps.add('sourceDoorProgramUnsupported');
+        if (!_isSourceTransition(event)) gaps.add('sourceDoorProgramUnsupported');
       case SourceEventConditionKind.playerFacing:
         if (_sourceFacingDirection(condition.sourceDirection) == null) {
           gaps.add('sourcePlayerFacingUnsupported');
@@ -2021,20 +2113,21 @@ final class _ProjectionBuilder {
             :final direction,
             :final fade
           ):
+          if (node.originalProgram != null && _externalWarpProgram(event) == null) {
+            gaps.add('sourceExternalWarpBindingsMissing');
+          }
           final target = maps[targetSourceMapId];
           if (target == null) {
             gaps.add('warpDependencyMissing');
             break;
           }
-          for (final owner in analysis.events.where((owner) => _isOriginalDoor(owner) &&
-              owner.sourceMapId == targetSourceMapId && owner.x == x && owner.y == y &&
-              owner.pages.first.graphic!.characterName.isNotEmpty)) {
+          for (final owner in analysis.events.where((owner) => _isArrivalCollisionOwner(owner, node))) {
             if (_gaps(owner, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
               gaps.add('warpArrivalOwnerUnavailable');
             }
           }
-          if (direction != 0 && !_isOriginalDoor(event)) gaps.add('warpFacingUnsupported');
-          if (!fade && !_isOriginalDoor(event)) gaps.add('warpFadeUnsupported');
+          if (direction != 0 && !_isSourceTransition(event)) gaps.add('warpFacingUnsupported');
+          if (!fade && !_isSourceTransition(event)) gaps.add('warpFadeUnsupported');
           if (x < 0 ||
               y < 0 ||
               x >= target.size.width ||
@@ -2065,7 +2158,7 @@ final class _ProjectionBuilder {
         case SourceToneNode():
         case SourceWaitNode():
         case SourceSoundEffectNode():
-          if (!_isOriginalDoor(event)) {
+          if (!_isSourceTransition(event)) {
             gaps.add('sourcePresentationUnsupported');
           } else if (node is SourceSoundEffectNode &&
               (node.pitch != 100 || _sound(node.name) == null)) {
@@ -2074,7 +2167,7 @@ final class _ProjectionBuilder {
         case SourceForcedMoveRouteNode():
         case SourceMoveRouteBarrierNode():
         case SourcePlayerVisibilityNode():
-          if (!_isOriginalDoor(event)) {
+          if (!_isSourceTransition(event)) {
             gaps.add('sourceDoorProgramUnsupported');
           } else if (node is SourceForcedMoveRouteNode) {
             final index = block.nodes.indexOf(node);
@@ -2090,7 +2183,7 @@ final class _ProjectionBuilder {
             }
           }
         case SourceTempSwitchNode():
-          if (!_isOriginalDoor(event)) gaps.add('sourceTempSwitchUnsupported');
+          if (!_isSourceTransition(event)) gaps.add('sourceTempSwitchUnsupported');
       }
     }
   }
@@ -2288,7 +2381,7 @@ final class _ProjectionBuilder {
     NarrativeEventSourceRef sourceRef;
     if (event.pages.first.triggerCode == 0 || trainer != null) {
       sourceRef = NarrativeEventSourceRef.entityInteract(map.id, entityId);
-    } else if (_isOriginalDoor(event) && graphic.characterName.isNotEmpty && !graphic.through) {
+    } else if (_isSourceTransition(event) && graphic.characterName.isNotEmpty && !graphic.through) {
       sourceRef = NarrativeEventSourceRef.entityBump(map.id, entityId);
     } else {
       final triggerId = _key(event, 'trigger');
@@ -2573,11 +2666,19 @@ final class _SceneBuilder {
                     2 => EntityFacing.south, 4 => EntityFacing.west,
                     6 => EntityFacing.east, 8 => EntityFacing.north, _ => null,
                   }, transition: node.fade ? SceneWarpTransition.mapDefault : SceneWarpTransition.none,
-                  arrivalCollisionOwnerEntityId: projection._arrivalOwner(node))));
+                  arrivalCollisionOwnerEntityId: projection._arrivalOwner(node),
+                  presentation: node.originalProgram == null ? null : projection._externalWarpPresentation(
+                    projection._externalWarpProgram(event)!))));
           _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
           final blocked = _node(SceneEndPayload());
           _edge(action, 'blocked', blocked, SceneEdgeKind.actionCompleted);
           next = action;
+          if (node.originalProgram != null) {
+            final program = projection._externalWarpProgram(event)!;
+            final sound = projection._sound(program.sound.name)!;
+            next = _interactive(SceneInteractiveCommand.playSoundEffect(mediaAssetId: sound.mediaId,
+                volume: sound.gainForVolume(program.sound.volume)), next);
+          }
         case SourceCenterServiceProgramNode():
           if (!node.isPc && projection._isNativeCenterNurse(event)) {
             next = _centerNurse(node, next);

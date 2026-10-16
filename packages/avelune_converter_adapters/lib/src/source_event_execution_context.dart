@@ -12,6 +12,8 @@ const _mapExecutionAuditHashes = {
   98: 'b6761d596c30bf7fc7119cbc422ac9a01e910a77c0a4a3da597eb8e4be59b620',
   100: '3a101f07319e797c0021212ce5e6adc5344128eaff4b1ea2c4712219289c47a0',
   102: '85bf6e82ae6c6271b30546297f6d9bbd2f472b32f1e0e2ac383a3c6248315ce7',
+  166: '495202cfa479c7e587622b33697097f4605d7b182b3db897fea1d75572e786b2',
+  205: '6c458934f8de561e7de27615d1100e109794771477408c0afb391561ebd950f6',
 };
 
 String _mapSourcePath(int id) =>
@@ -282,14 +284,26 @@ final class SourceEventExecutionContextResolver {
     } else if (retainedMapIds.isNotEmpty) {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
+    final dormancy = activeMapIds.contains(205)
+        ? auditSourceParallelDormancy(source: source, profile: profile)
+        : null;
+    if (dormancy != null && !dormancy.isQualified) {
+      refusals.add('sourceParallelDormancyUnqualified');
+    }
     final pages = [
       for (final map in [...source.maps, ...?retainedSource?.maps])
-        for (final event in map.map.events) ...event.pages
+        for (final event in map.map.events)
+          for (final page in event.pages)
+            (map.map.sourceMapId, event.sourceEventId, page),
     ];
-    if (pages.any((page) => page.triggerCode == 4)) {
+    if (pages.any((entry) =>
+        entry.$3.triggerCode == 4 &&
+        dormancy?.permitsDormantParallelPage(entry.$1, entry.$2, entry.$3) !=
+            true)) {
       refusals.add('sourceParallelEventUnsupported');
     }
-    if (pages.any((page) => page.triggerCode < 0 || page.triggerCode > 4)) {
+    if (pages
+        .any((entry) => entry.$3.triggerCode < 0 || entry.$3.triggerCode > 4)) {
       refusals.add('sourceMapAutonomyContextUnsupported');
     }
     if (refusals.isEmpty) {
@@ -303,14 +317,17 @@ final class SourceEventExecutionContextResolver {
         'sourceCheckpoint': 'notImported',
         'followers': 'newGameDeclaredEmpty',
         'scope': {
-          'sourceMapIds': [100, 102],
+          'sourceMapIds': activeMapIds.toList()..sort(),
           'pages': ['100/8/0', '100/8/1', '102/1/0']
         },
         'sourceContextProfile': 'kanto-original-door-fresh-v1',
         'sourcePluginContext': 'exactCompiledPluginsWithFreshEmptyFollowers',
         'pluginInventoryHash': pluginInventoryHash.value,
         'commonEvents': 'manualOnly',
-        'parallelEvents': 'noneOnRepresentedMaps',
+        'parallelEvents': dormancy == null
+            ? 'noneOnRepresentedMaps'
+            : 'wholeEventQuarantinedWithClosedNativeWriterSet',
+        if (dormancy != null) 'parallelDormancy': dormancy.toJson(),
         'sourceMapExecutionScope': {
           'activeSourceMapIds': activeMapIds.toList()..sort(),
           'retainedOnlySourceMapIds': retainedMapIds.toList()..sort(),
@@ -318,7 +335,7 @@ final class SourceEventExecutionContextResolver {
           'retention': 'directNeighboursOfActiveMapsFromFreshSourceHistory',
         },
         'mapAutonomyAudit': {
-          'profile': 'kanto-five-map-fresh-door-autonomy-v1',
+          'profile': 'kanto-attested-map-fresh-door-autonomy-v2',
           'observationSha256':
               '1f704997de836250169e7d01f1b19fb212f38caa05330916465eb1a0cc41bc38',
           'mapHashes': {
