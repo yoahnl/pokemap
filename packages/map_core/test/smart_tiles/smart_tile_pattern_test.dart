@@ -39,8 +39,8 @@ void main() {
       ]);
 
       expect(legacy.patterns, isEmpty);
-      expect(legacy.formatVersion, 4);
-      expect(current.toJson()['formatVersion'], 4);
+      expect(legacy.formatVersion, ProjectSmartTileCatalog.currentFormatVersion);
+      expect(current.toJson()['formatVersion'], ProjectSmartTileCatalog.currentFormatVersion);
       expect(
         ProjectSmartTileCatalog.fromJson(current.toJson()).patterns,
         current.patterns,

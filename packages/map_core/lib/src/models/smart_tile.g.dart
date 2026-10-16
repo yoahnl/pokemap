@@ -280,6 +280,13 @@ _SmartTileVisualPart _$SmartTileVisualPartFromJson(
       SmartTileOffsetUnit.pixel,
   offsetX: (json['offsetX'] as num?)?.toInt() ?? 0,
   offsetY: (json['offsetY'] as num?)?.toInt() ?? 0,
+  spatialHeightOffset: (json['spatialHeightOffset'] as num?)?.toDouble() ?? 0,
+  spatialFollowTerrain: json['spatialFollowTerrain'] as bool? ?? true,
+  spatialClip: json['spatialClip'] == null
+      ? null
+      : SmartTileSpatialClip.fromJson(
+          json['spatialClip'] as Map<String, dynamic>,
+        ),
   footprintWidth: (json['footprintWidth'] as num?)?.toInt() ?? 1,
   footprintHeight: (json['footprintHeight'] as num?)?.toInt() ?? 1,
   anchorX: (json['anchorX'] as num?)?.toInt() ?? 0,
@@ -297,6 +304,13 @@ Map<String, dynamic> _$SmartTileVisualPartToJson(
   'offsetUnit': _$SmartTileOffsetUnitEnumMap[instance.offsetUnit]!,
   'offsetX': instance.offsetX,
   'offsetY': instance.offsetY,
+  'spatialHeightOffset': ?_optionalSpatialHeightOffset(
+    instance.spatialHeightOffset,
+  ),
+  'spatialFollowTerrain': ?_optionalSpatialFollowTerrain(
+    instance.spatialFollowTerrain,
+  ),
+  'spatialClip': ?instance.spatialClip?.toJson(),
   'footprintWidth': instance.footprintWidth,
   'footprintHeight': instance.footprintHeight,
   'anchorX': instance.anchorX,

@@ -486,6 +486,64 @@ sealed class SmartTileVisualSource with _$SmartTileVisualSource {
       _$SmartTileVisualSourceFromJson(json);
 }
 
+@immutable
+final class SmartTileSpatialClip {
+  SmartTileSpatialClip({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  }) {
+    if (![left, top, right, bottom].every((value) => value.isFinite) ||
+        left < 0 ||
+        top < 0 ||
+        right > 1 ||
+        bottom > 1 ||
+        left >= right ||
+        top >= bottom) {
+      throw const FormatException(
+        'Spatial clips require a non-empty rectangle inside the unit square',
+      );
+    }
+  }
+
+  factory SmartTileSpatialClip.fromJson(Map<String, dynamic> json) {
+    const fields = ['left', 'top', 'right', 'bottom'];
+    if (json.length != fields.length ||
+        fields.any((key) => json[key] is! num)) {
+      throw const FormatException(
+        'Spatial clips require exactly four numeric rectangle coordinates',
+      );
+    }
+    return SmartTileSpatialClip(
+      left: (json['left'] as num).toDouble(),
+      top: (json['top'] as num).toDouble(),
+      right: (json['right'] as num).toDouble(),
+      bottom: (json['bottom'] as num).toDouble(),
+    );
+  }
+
+  final double left, top, right, bottom;
+
+  Map<String, dynamic> toJson() => {
+    'left': left,
+    'top': top,
+    'right': right,
+    'bottom': bottom,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SmartTileSpatialClip &&
+      left == other.left &&
+      top == other.top &&
+      right == other.right &&
+      bottom == other.bottom;
+
+  @override
+  int get hashCode => Object.hash(left, top, right, bottom);
+}
+
 @freezed
 abstract class SmartTileVisualPart with _$SmartTileVisualPart {
   @Assert('footprintWidth > 0', 'footprintWidth must be positive')
@@ -500,6 +558,13 @@ abstract class SmartTileVisualPart with _$SmartTileVisualPart {
     @Default(SmartTileOffsetUnit.pixel) SmartTileOffsetUnit offsetUnit,
     @Default(0) int offsetX,
     @Default(0) int offsetY,
+    @Default(0)
+    @JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false)
+    double spatialHeightOffset,
+    @Default(true)
+    @JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false)
+    bool spatialFollowTerrain,
+    @JsonKey(includeIfNull: false) SmartTileSpatialClip? spatialClip,
     @Default(1) int footprintWidth,
     @Default(1) int footprintHeight,
     @Default(0) int anchorX,
@@ -512,6 +577,22 @@ abstract class SmartTileVisualPart with _$SmartTileVisualPart {
 }
 
 SmartTileVisualPart _smartTileVisualPartFromJson(Map<String, dynamic> json) {
+  if (json.containsKey('spatialFollowTerrain') &&
+      json['spatialFollowTerrain'] is! bool) {
+    throw const FormatException('spatialFollowTerrain must be a boolean');
+  }
+  if (json['spatialClip'] != null &&
+      json['spatialClip'] is! Map<String, dynamic>) {
+    throw const FormatException('spatialClip must be a rectangle object');
+  }
+  if (json.containsKey('spatialHeightOffset')) {
+    final value = json['spatialHeightOffset'];
+    if (value is! num || !value.isFinite) {
+      throw const FormatException(
+        'spatialHeightOffset must be a finite number',
+      );
+    }
+  }
   _requireStrictJsonIntegers(json, const <String>[
     'offsetX',
     'offsetY',
@@ -523,6 +604,9 @@ SmartTileVisualPart _smartTileVisualPartFromJson(Map<String, dynamic> json) {
   ]);
   return _$SmartTileVisualPartFromJson(json);
 }
+
+double? _optionalSpatialHeightOffset(double value) => value == 0 ? null : value;
+bool? _optionalSpatialFollowTerrain(bool value) => value ? null : value;
 
 @freezed
 abstract class SmartTilePatternCell with _$SmartTilePatternCell {
@@ -919,7 +1003,7 @@ ProjectSmartTileAuthoringDraft _projectSmartTileAuthoringDraftFromJson(
 
 @immutable
 final class ProjectSmartTileCatalog {
-  static const int currentFormatVersion = 4;
+  static const int currentFormatVersion = 7;
 
   const ProjectSmartTileCatalog.empty()
     : formatVersion = currentFormatVersion,
@@ -996,6 +1080,21 @@ final class ProjectSmartTileCatalog {
       throw FormatException(
         r'$.smartTileCatalog.formatVersion: '
         'smart_tile_catalog_version_unsupported ($version)',
+      );
+    }
+    if (version < 7 && _catalogHasPartField(json, 'spatialFollowTerrain')) {
+      throw const FormatException(
+        r'$.smartTileCatalog: spatialFollowTerrain requires catalog format version 7',
+      );
+    }
+    if (version < 6 && _catalogHasPartField(json, 'spatialClip')) {
+      throw const FormatException(
+        r'$.smartTileCatalog: spatialClip requires catalog format version 6',
+      );
+    }
+    if (version < 5 && _catalogHasPartField(json, 'spatialHeightOffset')) {
+      throw const FormatException(
+        r'$.smartTileCatalog: spatialHeightOffset requires catalog format version 5',
       );
     }
     if (version == 1) {
@@ -1112,6 +1211,35 @@ final class ProjectSmartTileCatalog {
     Object.hashAll(patterns),
     Object.hashAll(drafts),
   );
+}
+
+bool _catalogHasPartField(Map<String, dynamic> json, String field) {
+  bool usesField(Object? parts) =>
+      parts is List &&
+      parts.any((part) => part is Map && part.containsKey(field));
+  for (final key in ['presets', 'drafts']) {
+    final entries = json[key];
+    if (entries is! List) continue;
+    for (final entry in entries) {
+      if (entry is! Map || entry['rules'] is! List) continue;
+      for (final rule in entry['rules'] as List) {
+        if (rule is! Map || rule['candidates'] is! List) continue;
+        for (final candidate in rule['candidates'] as List) {
+          if (candidate is Map && usesField(candidate['parts'])) return true;
+        }
+      }
+    }
+  }
+  final patterns = json['patterns'];
+  if (patterns is List) {
+    for (final pattern in patterns) {
+      if (pattern is! Map || pattern['cells'] is! List) continue;
+      for (final cell in pattern['cells'] as List) {
+        if (cell is Map && usesField(cell['parts'])) return true;
+      }
+    }
+  }
+  return false;
 }
 
 Map<String, dynamic> _compactSmartTileMaterialJson(Map<String, dynamic> json) {

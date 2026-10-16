@@ -521,7 +521,9 @@ final class _SmartTileCatalogValidator {
             partIndex += 1
           ) {
             final part = candidate.parts[partIndex];
-            final sourcePath = '$candidatePath.parts[$partIndex].source';
+            final partPath = '$candidatePath.parts[$partIndex]';
+            final sourcePath = '$partPath.source';
+            _validateSpatialRasterHeight(part, partPath);
             part.source.when(
               model3d:
                   (
@@ -677,6 +679,7 @@ final class _SmartTileCatalogValidator {
         for (var partIndex = 0; partIndex < cell.parts.length; partIndex += 1) {
           final part = cell.parts[partIndex];
           final partPath = '$cellPath.parts[$partIndex]';
+          _validateSpatialRasterHeight(part, partPath);
           if (part.footprintWidth <= 0 || part.footprintHeight <= 0) {
             _error(
               code: 'smart_tiles.visual.footprint_invalid',
@@ -936,6 +939,7 @@ final class _SmartTileCatalogValidator {
         ) {
           final part = candidate.parts[partIndex];
           final partPath = '$candidatePath.parts[$partIndex]';
+          _validateSpatialRasterHeight(part, partPath);
           if (!smartTileTransformPolicyAllows(
             preset.transformPolicy,
             part.transform,
@@ -999,6 +1003,62 @@ final class _SmartTileCatalogValidator {
     }
     if (_templateMatchesTopology(preset)) {
       _validateNativeCoverage(preset, presetPath);
+    }
+  }
+
+  void _validateSpatialRasterHeight(SmartTileVisualPart part, String path) {
+    if (part.spatialClip != null) {
+      if (!spatial) {
+        _error(
+          code: 'smart_tiles.raster.clip_dimension_invalid',
+          path: '$path.spatialClip',
+          message: 'Raster clipping requires a 3D project.',
+        );
+      }
+      if (part.source is SmartTileModel3dSource) {
+        _error(
+          code: 'smart_tiles.raster.clip_source_invalid',
+          path: '$path.spatialClip',
+          message: 'Raster clipping requires a frame or animation source.',
+        );
+      }
+      if (part.channel != SmartTileRenderChannel.ground) {
+        _error(
+          code: 'smart_tiles.raster.clip_channel_invalid',
+          path: '$path.spatialClip',
+          message: 'Raster clipping requires the ground render channel.',
+        );
+      }
+    }
+    final height = part.spatialHeightOffset;
+    if (!height.isFinite) {
+      _error(
+        code: 'smart_tiles.raster.height_invalid',
+        path: '$path.spatialHeightOffset',
+        message: 'Raster height offsets must be finite.',
+      );
+    }
+    if (height == 0 && part.spatialFollowTerrain) return;
+    if (!spatial) {
+      _error(
+        code: 'smart_tiles.raster.height_dimension_invalid',
+        path: '$path.spatialHeightOffset',
+        message: 'Physical raster heights require a 3D project.',
+      );
+    }
+    if (part.source is SmartTileModel3dSource) {
+      _error(
+        code: 'smart_tiles.raster.height_source_invalid',
+        path: '$path.spatialHeightOffset',
+        message: 'Model sources use their own local Y offset.',
+      );
+    }
+    if (part.channel != SmartTileRenderChannel.ground) {
+      _error(
+        code: 'smart_tiles.raster.height_channel_invalid',
+        path: '$path.spatialHeightOffset',
+        message: 'Physical raster heights require the ground render channel.',
+      );
     }
   }
 

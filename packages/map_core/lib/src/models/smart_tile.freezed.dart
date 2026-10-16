@@ -2668,7 +2668,7 @@ as bool,
 /// @nodoc
 mixin _$SmartTileVisualPart {
 
- SmartTileVisualSource get source; SmartTileSpriteTransform get transform; SmartTileRenderChannel get channel; SmartTileFrameSampling get frameSampling; SmartTileOffsetUnit get offsetUnit; int get offsetX; int get offsetY; int get footprintWidth; int get footprintHeight; int get anchorX; int get anchorY; int get drawOrder;
+ SmartTileVisualSource get source; SmartTileSpriteTransform get transform; SmartTileRenderChannel get channel; SmartTileFrameSampling get frameSampling; SmartTileOffsetUnit get offsetUnit; int get offsetX; int get offsetY;@JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false) double get spatialHeightOffset;@JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false) bool get spatialFollowTerrain;@JsonKey(includeIfNull: false) SmartTileSpatialClip? get spatialClip; int get footprintWidth; int get footprintHeight; int get anchorX; int get anchorY; int get drawOrder;
 /// Create a copy of SmartTileVisualPart
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2681,16 +2681,16 @@ $SmartTileVisualPartCopyWith<SmartTileVisualPart> get copyWith => _$SmartTileVis
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileVisualPart&&(identical(other.source, source) || other.source == source)&&(identical(other.transform, transform) || other.transform == transform)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.frameSampling, frameSampling) || other.frameSampling == frameSampling)&&(identical(other.offsetUnit, offsetUnit) || other.offsetUnit == offsetUnit)&&(identical(other.offsetX, offsetX) || other.offsetX == offsetX)&&(identical(other.offsetY, offsetY) || other.offsetY == offsetY)&&(identical(other.footprintWidth, footprintWidth) || other.footprintWidth == footprintWidth)&&(identical(other.footprintHeight, footprintHeight) || other.footprintHeight == footprintHeight)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileVisualPart&&(identical(other.source, source) || other.source == source)&&(identical(other.transform, transform) || other.transform == transform)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.frameSampling, frameSampling) || other.frameSampling == frameSampling)&&(identical(other.offsetUnit, offsetUnit) || other.offsetUnit == offsetUnit)&&(identical(other.offsetX, offsetX) || other.offsetX == offsetX)&&(identical(other.offsetY, offsetY) || other.offsetY == offsetY)&&(identical(other.spatialHeightOffset, spatialHeightOffset) || other.spatialHeightOffset == spatialHeightOffset)&&(identical(other.spatialFollowTerrain, spatialFollowTerrain) || other.spatialFollowTerrain == spatialFollowTerrain)&&(identical(other.spatialClip, spatialClip) || other.spatialClip == spatialClip)&&(identical(other.footprintWidth, footprintWidth) || other.footprintWidth == footprintWidth)&&(identical(other.footprintHeight, footprintHeight) || other.footprintHeight == footprintHeight)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,source,transform,channel,frameSampling,offsetUnit,offsetX,offsetY,footprintWidth,footprintHeight,anchorX,anchorY,drawOrder);
+int get hashCode => Object.hash(runtimeType,source,transform,channel,frameSampling,offsetUnit,offsetX,offsetY,spatialHeightOffset,spatialFollowTerrain,spatialClip,footprintWidth,footprintHeight,anchorX,anchorY,drawOrder);
 
 @override
 String toString() {
-  return 'SmartTileVisualPart(source: $source, transform: $transform, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
+  return 'SmartTileVisualPart(source: $source, transform: $transform, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, spatialHeightOffset: $spatialHeightOffset, spatialFollowTerrain: $spatialFollowTerrain, spatialClip: $spatialClip, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
 }
 
 
@@ -2701,7 +2701,7 @@ abstract mixin class $SmartTileVisualPartCopyWith<$Res>  {
   factory $SmartTileVisualPartCopyWith(SmartTileVisualPart value, $Res Function(SmartTileVisualPart) _then) = _$SmartTileVisualPartCopyWithImpl;
 @useResult
 $Res call({
- SmartTileVisualSource source, SmartTileSpriteTransform transform, SmartTileRenderChannel channel, SmartTileFrameSampling frameSampling, SmartTileOffsetUnit offsetUnit, int offsetX, int offsetY, int footprintWidth, int footprintHeight, int anchorX, int anchorY, int drawOrder
+ SmartTileVisualSource source, SmartTileSpriteTransform transform, SmartTileRenderChannel channel, SmartTileFrameSampling frameSampling, SmartTileOffsetUnit offsetUnit, int offsetX, int offsetY,@JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false) double spatialHeightOffset,@JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false) bool spatialFollowTerrain,@JsonKey(includeIfNull: false) SmartTileSpatialClip? spatialClip, int footprintWidth, int footprintHeight, int anchorX, int anchorY, int drawOrder
 });
 
 
@@ -2718,7 +2718,7 @@ class _$SmartTileVisualPartCopyWithImpl<$Res>
 
 /// Create a copy of SmartTileVisualPart
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? transform = null,Object? channel = null,Object? frameSampling = null,Object? offsetUnit = null,Object? offsetX = null,Object? offsetY = null,Object? footprintWidth = null,Object? footprintHeight = null,Object? anchorX = null,Object? anchorY = null,Object? drawOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? transform = null,Object? channel = null,Object? frameSampling = null,Object? offsetUnit = null,Object? offsetX = null,Object? offsetY = null,Object? spatialHeightOffset = null,Object? spatialFollowTerrain = null,Object? spatialClip = freezed,Object? footprintWidth = null,Object? footprintHeight = null,Object? anchorX = null,Object? anchorY = null,Object? drawOrder = null,}) {
   return _then(_self.copyWith(
 source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as SmartTileVisualSource,transform: null == transform ? _self.transform : transform // ignore: cast_nullable_to_non_nullable
@@ -2727,7 +2727,10 @@ as SmartTileRenderChannel,frameSampling: null == frameSampling ? _self.frameSamp
 as SmartTileFrameSampling,offsetUnit: null == offsetUnit ? _self.offsetUnit : offsetUnit // ignore: cast_nullable_to_non_nullable
 as SmartTileOffsetUnit,offsetX: null == offsetX ? _self.offsetX : offsetX // ignore: cast_nullable_to_non_nullable
 as int,offsetY: null == offsetY ? _self.offsetY : offsetY // ignore: cast_nullable_to_non_nullable
-as int,footprintWidth: null == footprintWidth ? _self.footprintWidth : footprintWidth // ignore: cast_nullable_to_non_nullable
+as int,spatialHeightOffset: null == spatialHeightOffset ? _self.spatialHeightOffset : spatialHeightOffset // ignore: cast_nullable_to_non_nullable
+as double,spatialFollowTerrain: null == spatialFollowTerrain ? _self.spatialFollowTerrain : spatialFollowTerrain // ignore: cast_nullable_to_non_nullable
+as bool,spatialClip: freezed == spatialClip ? _self.spatialClip : spatialClip // ignore: cast_nullable_to_non_nullable
+as SmartTileSpatialClip?,footprintWidth: null == footprintWidth ? _self.footprintWidth : footprintWidth // ignore: cast_nullable_to_non_nullable
 as int,footprintHeight: null == footprintHeight ? _self.footprintHeight : footprintHeight // ignore: cast_nullable_to_non_nullable
 as int,anchorX: null == anchorX ? _self.anchorX : anchorX // ignore: cast_nullable_to_non_nullable
 as int,anchorY: null == anchorY ? _self.anchorY : anchorY // ignore: cast_nullable_to_non_nullable
@@ -2835,10 +2838,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( SmartTileVisualSource source,  SmartTileSpriteTransform transform,  SmartTileRenderChannel channel,  SmartTileFrameSampling frameSampling,  SmartTileOffsetUnit offsetUnit,  int offsetX,  int offsetY,  int footprintWidth,  int footprintHeight,  int anchorX,  int anchorY,  int drawOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( SmartTileVisualSource source,  SmartTileSpriteTransform transform,  SmartTileRenderChannel channel,  SmartTileFrameSampling frameSampling,  SmartTileOffsetUnit offsetUnit,  int offsetX,  int offsetY, @JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false)  double spatialHeightOffset, @JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false)  bool spatialFollowTerrain, @JsonKey(includeIfNull: false)  SmartTileSpatialClip? spatialClip,  int footprintWidth,  int footprintHeight,  int anchorX,  int anchorY,  int drawOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SmartTileVisualPart() when $default != null:
-return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_that.offsetUnit,_that.offsetX,_that.offsetY,_that.footprintWidth,_that.footprintHeight,_that.anchorX,_that.anchorY,_that.drawOrder);case _:
+return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_that.offsetUnit,_that.offsetX,_that.offsetY,_that.spatialHeightOffset,_that.spatialFollowTerrain,_that.spatialClip,_that.footprintWidth,_that.footprintHeight,_that.anchorX,_that.anchorY,_that.drawOrder);case _:
   return orElse();
 
 }
@@ -2856,10 +2859,10 @@ return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( SmartTileVisualSource source,  SmartTileSpriteTransform transform,  SmartTileRenderChannel channel,  SmartTileFrameSampling frameSampling,  SmartTileOffsetUnit offsetUnit,  int offsetX,  int offsetY,  int footprintWidth,  int footprintHeight,  int anchorX,  int anchorY,  int drawOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( SmartTileVisualSource source,  SmartTileSpriteTransform transform,  SmartTileRenderChannel channel,  SmartTileFrameSampling frameSampling,  SmartTileOffsetUnit offsetUnit,  int offsetX,  int offsetY, @JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false)  double spatialHeightOffset, @JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false)  bool spatialFollowTerrain, @JsonKey(includeIfNull: false)  SmartTileSpatialClip? spatialClip,  int footprintWidth,  int footprintHeight,  int anchorX,  int anchorY,  int drawOrder)  $default,) {final _that = this;
 switch (_that) {
 case _SmartTileVisualPart():
-return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_that.offsetUnit,_that.offsetX,_that.offsetY,_that.footprintWidth,_that.footprintHeight,_that.anchorX,_that.anchorY,_that.drawOrder);case _:
+return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_that.offsetUnit,_that.offsetX,_that.offsetY,_that.spatialHeightOffset,_that.spatialFollowTerrain,_that.spatialClip,_that.footprintWidth,_that.footprintHeight,_that.anchorX,_that.anchorY,_that.drawOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2876,10 +2879,10 @@ return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( SmartTileVisualSource source,  SmartTileSpriteTransform transform,  SmartTileRenderChannel channel,  SmartTileFrameSampling frameSampling,  SmartTileOffsetUnit offsetUnit,  int offsetX,  int offsetY,  int footprintWidth,  int footprintHeight,  int anchorX,  int anchorY,  int drawOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( SmartTileVisualSource source,  SmartTileSpriteTransform transform,  SmartTileRenderChannel channel,  SmartTileFrameSampling frameSampling,  SmartTileOffsetUnit offsetUnit,  int offsetX,  int offsetY, @JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false)  double spatialHeightOffset, @JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false)  bool spatialFollowTerrain, @JsonKey(includeIfNull: false)  SmartTileSpatialClip? spatialClip,  int footprintWidth,  int footprintHeight,  int anchorX,  int anchorY,  int drawOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _SmartTileVisualPart() when $default != null:
-return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_that.offsetUnit,_that.offsetX,_that.offsetY,_that.footprintWidth,_that.footprintHeight,_that.anchorX,_that.anchorY,_that.drawOrder);case _:
+return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_that.offsetUnit,_that.offsetX,_that.offsetY,_that.spatialHeightOffset,_that.spatialFollowTerrain,_that.spatialClip,_that.footprintWidth,_that.footprintHeight,_that.anchorX,_that.anchorY,_that.drawOrder);case _:
   return null;
 
 }
@@ -2891,7 +2894,7 @@ return $default(_that.source,_that.transform,_that.channel,_that.frameSampling,_
 
 @JsonSerializable(explicitToJson: true)
 class _SmartTileVisualPart implements SmartTileVisualPart {
-  const _SmartTileVisualPart({required this.source, this.transform = const SmartTileSpriteTransform(), this.channel = SmartTileRenderChannel.ground, this.frameSampling = SmartTileFrameSampling.fullFrame, this.offsetUnit = SmartTileOffsetUnit.pixel, this.offsetX = 0, this.offsetY = 0, this.footprintWidth = 1, this.footprintHeight = 1, this.anchorX = 0, this.anchorY = 0, this.drawOrder = 0}): assert(footprintWidth > 0, 'footprintWidth must be positive'),assert(footprintHeight > 0, 'footprintHeight must be positive');
+  const _SmartTileVisualPart({required this.source, this.transform = const SmartTileSpriteTransform(), this.channel = SmartTileRenderChannel.ground, this.frameSampling = SmartTileFrameSampling.fullFrame, this.offsetUnit = SmartTileOffsetUnit.pixel, this.offsetX = 0, this.offsetY = 0, @JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false) this.spatialHeightOffset = 0, @JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false) this.spatialFollowTerrain = true, @JsonKey(includeIfNull: false) this.spatialClip, this.footprintWidth = 1, this.footprintHeight = 1, this.anchorX = 0, this.anchorY = 0, this.drawOrder = 0}): assert(footprintWidth > 0, 'footprintWidth must be positive'),assert(footprintHeight > 0, 'footprintHeight must be positive');
   factory _SmartTileVisualPart.fromJson(Map<String, dynamic> json) => _$SmartTileVisualPartFromJson(json);
 
 @override final  SmartTileVisualSource source;
@@ -2901,6 +2904,9 @@ class _SmartTileVisualPart implements SmartTileVisualPart {
 @override@JsonKey() final  SmartTileOffsetUnit offsetUnit;
 @override@JsonKey() final  int offsetX;
 @override@JsonKey() final  int offsetY;
+@override@JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false) final  double spatialHeightOffset;
+@override@JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false) final  bool spatialFollowTerrain;
+@override@JsonKey(includeIfNull: false) final  SmartTileSpatialClip? spatialClip;
 @override@JsonKey() final  int footprintWidth;
 @override@JsonKey() final  int footprintHeight;
 @override@JsonKey() final  int anchorX;
@@ -2920,16 +2926,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SmartTileVisualPart&&(identical(other.source, source) || other.source == source)&&(identical(other.transform, transform) || other.transform == transform)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.frameSampling, frameSampling) || other.frameSampling == frameSampling)&&(identical(other.offsetUnit, offsetUnit) || other.offsetUnit == offsetUnit)&&(identical(other.offsetX, offsetX) || other.offsetX == offsetX)&&(identical(other.offsetY, offsetY) || other.offsetY == offsetY)&&(identical(other.footprintWidth, footprintWidth) || other.footprintWidth == footprintWidth)&&(identical(other.footprintHeight, footprintHeight) || other.footprintHeight == footprintHeight)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SmartTileVisualPart&&(identical(other.source, source) || other.source == source)&&(identical(other.transform, transform) || other.transform == transform)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.frameSampling, frameSampling) || other.frameSampling == frameSampling)&&(identical(other.offsetUnit, offsetUnit) || other.offsetUnit == offsetUnit)&&(identical(other.offsetX, offsetX) || other.offsetX == offsetX)&&(identical(other.offsetY, offsetY) || other.offsetY == offsetY)&&(identical(other.spatialHeightOffset, spatialHeightOffset) || other.spatialHeightOffset == spatialHeightOffset)&&(identical(other.spatialFollowTerrain, spatialFollowTerrain) || other.spatialFollowTerrain == spatialFollowTerrain)&&(identical(other.spatialClip, spatialClip) || other.spatialClip == spatialClip)&&(identical(other.footprintWidth, footprintWidth) || other.footprintWidth == footprintWidth)&&(identical(other.footprintHeight, footprintHeight) || other.footprintHeight == footprintHeight)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,source,transform,channel,frameSampling,offsetUnit,offsetX,offsetY,footprintWidth,footprintHeight,anchorX,anchorY,drawOrder);
+int get hashCode => Object.hash(runtimeType,source,transform,channel,frameSampling,offsetUnit,offsetX,offsetY,spatialHeightOffset,spatialFollowTerrain,spatialClip,footprintWidth,footprintHeight,anchorX,anchorY,drawOrder);
 
 @override
 String toString() {
-  return 'SmartTileVisualPart(source: $source, transform: $transform, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
+  return 'SmartTileVisualPart(source: $source, transform: $transform, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, spatialHeightOffset: $spatialHeightOffset, spatialFollowTerrain: $spatialFollowTerrain, spatialClip: $spatialClip, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
 }
 
 
@@ -2940,7 +2946,7 @@ abstract mixin class _$SmartTileVisualPartCopyWith<$Res> implements $SmartTileVi
   factory _$SmartTileVisualPartCopyWith(_SmartTileVisualPart value, $Res Function(_SmartTileVisualPart) _then) = __$SmartTileVisualPartCopyWithImpl;
 @override @useResult
 $Res call({
- SmartTileVisualSource source, SmartTileSpriteTransform transform, SmartTileRenderChannel channel, SmartTileFrameSampling frameSampling, SmartTileOffsetUnit offsetUnit, int offsetX, int offsetY, int footprintWidth, int footprintHeight, int anchorX, int anchorY, int drawOrder
+ SmartTileVisualSource source, SmartTileSpriteTransform transform, SmartTileRenderChannel channel, SmartTileFrameSampling frameSampling, SmartTileOffsetUnit offsetUnit, int offsetX, int offsetY,@JsonKey(toJson: _optionalSpatialHeightOffset, includeIfNull: false) double spatialHeightOffset,@JsonKey(toJson: _optionalSpatialFollowTerrain, includeIfNull: false) bool spatialFollowTerrain,@JsonKey(includeIfNull: false) SmartTileSpatialClip? spatialClip, int footprintWidth, int footprintHeight, int anchorX, int anchorY, int drawOrder
 });
 
 
@@ -2957,7 +2963,7 @@ class __$SmartTileVisualPartCopyWithImpl<$Res>
 
 /// Create a copy of SmartTileVisualPart
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? transform = null,Object? channel = null,Object? frameSampling = null,Object? offsetUnit = null,Object? offsetX = null,Object? offsetY = null,Object? footprintWidth = null,Object? footprintHeight = null,Object? anchorX = null,Object? anchorY = null,Object? drawOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? transform = null,Object? channel = null,Object? frameSampling = null,Object? offsetUnit = null,Object? offsetX = null,Object? offsetY = null,Object? spatialHeightOffset = null,Object? spatialFollowTerrain = null,Object? spatialClip = freezed,Object? footprintWidth = null,Object? footprintHeight = null,Object? anchorX = null,Object? anchorY = null,Object? drawOrder = null,}) {
   return _then(_SmartTileVisualPart(
 source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as SmartTileVisualSource,transform: null == transform ? _self.transform : transform // ignore: cast_nullable_to_non_nullable
@@ -2966,7 +2972,10 @@ as SmartTileRenderChannel,frameSampling: null == frameSampling ? _self.frameSamp
 as SmartTileFrameSampling,offsetUnit: null == offsetUnit ? _self.offsetUnit : offsetUnit // ignore: cast_nullable_to_non_nullable
 as SmartTileOffsetUnit,offsetX: null == offsetX ? _self.offsetX : offsetX // ignore: cast_nullable_to_non_nullable
 as int,offsetY: null == offsetY ? _self.offsetY : offsetY // ignore: cast_nullable_to_non_nullable
-as int,footprintWidth: null == footprintWidth ? _self.footprintWidth : footprintWidth // ignore: cast_nullable_to_non_nullable
+as int,spatialHeightOffset: null == spatialHeightOffset ? _self.spatialHeightOffset : spatialHeightOffset // ignore: cast_nullable_to_non_nullable
+as double,spatialFollowTerrain: null == spatialFollowTerrain ? _self.spatialFollowTerrain : spatialFollowTerrain // ignore: cast_nullable_to_non_nullable
+as bool,spatialClip: freezed == spatialClip ? _self.spatialClip : spatialClip // ignore: cast_nullable_to_non_nullable
+as SmartTileSpatialClip?,footprintWidth: null == footprintWidth ? _self.footprintWidth : footprintWidth // ignore: cast_nullable_to_non_nullable
 as int,footprintHeight: null == footprintHeight ? _self.footprintHeight : footprintHeight // ignore: cast_nullable_to_non_nullable
 as int,anchorX: null == anchorX ? _self.anchorX : anchorX // ignore: cast_nullable_to_non_nullable
 as int,anchorY: null == anchorY ? _self.anchorY : anchorY // ignore: cast_nullable_to_non_nullable
