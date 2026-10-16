@@ -407,3 +407,9 @@ export 'src/models/pokedex_species_range.dart';
 
 export 'src/models/scene_warp_presentation.dart';
 export 'src/operations/scene_warp_presentation_visual.dart';
+
+export 'src/models/resource_pack.dart';
+export 'src/models/resource_pack_catalog.dart';
+export 'src/models/resource_pack_installation_catalog.dart';
+export 'src/operations/resource_pack_dependency_graph.dart';
+export 'src/operations/resource_pack_publication.dart';

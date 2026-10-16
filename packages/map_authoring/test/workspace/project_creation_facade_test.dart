@@ -24,9 +24,28 @@ void main() {
     final pending = [
       File('lib/map_authoring_project_creation.dart').absolute.uri
     ];
-    final directives = RegExp(r'^\s*(?:import|export|part(?!\s+of))\s+([^;]+);',
+    final directives = RegExp(
+        r'^\s*(?:import|export|part(?!\s+of|\s*(?:==|!=)))\s+([^;]+);',
         multiLine: true);
     final strings = RegExp("['\"]([^'\"]+)['\"]");
+    final directiveExamples = {
+      "import r'dart:io';": ['dart:io'],
+      "import /* platform */ 'dart:ffi';": ['dart:ffi'],
+      "import 'primary.dart' if (dart.library.io) r'platform.dart';": [
+        'primary.dart',
+        'platform.dart',
+      ],
+      "part 'shared.dart';": ['shared.dart'],
+      "part of 'owner.dart';": <String>[],
+      "part == '.' || part != part.trim();": <String>[],
+    };
+    for (final example in directiveExamples.entries) {
+      final specifiers = directives.allMatches(example.key).expand((match) =>
+          strings
+              .allMatches(match.group(1)!)
+              .map((literal) => literal.group(1)!));
+      expect(specifiers, example.value, reason: example.key);
+    }
     while (pending.isNotEmpty) {
       final source = pending.removeLast();
       if (!visited.add(source)) continue;

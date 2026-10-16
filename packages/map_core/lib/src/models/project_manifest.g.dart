@@ -49,6 +49,9 @@ _ProjectManifest _$ProjectManifestFromJson(
   resourceLibraryCatalog: json['resourceLibraryCatalog'] == null
       ? const ResourceLibraryCatalog.empty()
       : _resourceLibraryCatalogFromJson(json['resourceLibraryCatalog']),
+  resourcePackInstallations: json['resourcePackInstallations'] == null
+      ? const ResourcePackInstallationCatalog.empty()
+      : _resourcePackInstallationsFromJson(json['resourcePackInstallations']),
   environmentPresets: json['environmentPresets'] == null
       ? const []
       : decodeEnvironmentPresets(json['environmentPresets']),
@@ -211,6 +214,9 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'elements': instance.elements.map((e) => e.toJson()).toList(),
   'resourceLibraryCatalog': ?_resourceLibraryCatalogToJson(
     instance.resourceLibraryCatalog,
+  ),
+  'resourcePackInstallations': ?_resourcePackInstallationsToJson(
+    instance.resourcePackInstallations,
   ),
   'environmentPresets': encodeEnvironmentPresets(instance.environmentPresets),
   'encounterTables': instance.encounterTables.map((e) => e.toJson()).toList(),
