@@ -287,10 +287,48 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
   }
   if (map.spatialScene != null || map.version == ProjectVersion.v9) {
     throw const ValidationException(
-      'Flash darkness zones are supported on 2D maps only.',
+      'Field-action zones are supported on 2D maps only.',
     );
   }
-  final opacity = payload.darkness.opacity;
+  if (payload.actionKind == FieldActionZoneKind.waterfall) {
+    final route = payload.waterfall;
+    if (route == null ||
+        payload.darkness != null ||
+        route.path.isEmpty ||
+        route.path.length > 256) {
+      throw const ValidationException(
+        'Waterfall requires an exclusive finite route of 1 to 256 intermediate cells.',
+      );
+    }
+    final cells = [route.entry, ...route.path, route.exit];
+    final (dx, dy) = switch (route.direction) {
+      MapConnectionDirection.north => (0, -1),
+      MapConnectionDirection.south => (0, 1),
+      MapConnectionDirection.east => (1, 0),
+      MapConnectionDirection.west => (-1, 0),
+    };
+    for (var i = 0; i < cells.length; i++) {
+      final cell = cells[i];
+      if (cell.x < 0 ||
+          cell.y < 0 ||
+          cell.x >= zone.area.size.width ||
+          cell.y >= zone.area.size.height ||
+          (i > 0 &&
+              (cell.x != cells[i - 1].x + dx ||
+                  cell.y != cells[i - 1].y + dy))) {
+        throw const ValidationException(
+          'Waterfall entry, path and exit must be contiguous, follow their direction and stay inside the zone.',
+        );
+      }
+    }
+    return;
+  }
+  if (payload.darkness == null || payload.waterfall != null) {
+    throw const ValidationException(
+      'Darkness requires its exclusive typed payload.',
+    );
+  }
+  final opacity = payload.darkness!.opacity;
   if (!opacity.isFinite || opacity < .35 || opacity > .95) {
     throw const ValidationException(
       'Darkness opacity must be between 0.35 and 0.95.',

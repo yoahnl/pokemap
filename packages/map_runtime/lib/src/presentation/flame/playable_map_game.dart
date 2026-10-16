@@ -70,6 +70,7 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
 import '../../application/field_obstacle_interaction.dart';
 import '../../application/flash_zone_interaction.dart';
+import '../../application/waterfall_interaction.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
@@ -167,6 +168,7 @@ import 'warp_presentation_renderer.dart';
 
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
+part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
 part 'playable_map_game_warp_presentation.dart';
 
@@ -472,6 +474,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final String projectFilePath;
   final RuntimeCommittedMovementSink? onCommittedMovement;
   int _committedMovementRevision = 0;
+  bool _waterfallTraversalActive = false;
   RuntimeCommittedMovement? _lastCommittedMovement;
   bool _isPublishingCommittedMovement = false;
   bool _reportedCommittedMovementSinkFailure = false;
@@ -5551,14 +5554,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameplayStepResult result, {
     required GridPos previousPlayerPos,
     bool animatePlayer = true,
+    bool publishMovement = true,
     Direction? attemptedDirection,
     int? attemptedX,
     int? attemptedY,
     bool attemptedOutOfBounds = false,
   }) {
-    if (result is Moved ||
+    if (publishMovement && (result is Moved ||
         result is WarpTriggered ||
-        result is PlacedElementInteracted) {
+        result is PlacedElementInteracted)) {
       _publishCommittedMovement(
         CommittedMovement(
           kind: _world.player.movementMode == MovementMode.surf
@@ -11904,6 +11908,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameplayWorldState world,
     GameState state,
   ) {
+    for (final zone in world.map.gameplayZones.where(isWaterfallZone)) {
+      validateFieldActionZone(world.map, zone);
+      final path = waterfallRouteCells(zone);
+      if (path.skip(1).take(path.length - 2).contains(state.playerPosition)) {
+        throw StateError(
+          'Saved player position is inside a transient Cascade passage.',
+        );
+      }
+    }
     final offset = state.playerPixelPosition;
     if (offset == null) return world;
     final player = world.player.copyWith(

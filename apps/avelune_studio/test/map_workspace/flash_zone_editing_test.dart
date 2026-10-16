@@ -47,12 +47,12 @@ void main() {
     final document = EditableMapDocument(base);
     final commands = GameplayZoneEditingCommands(document, loadedProject);
     final zone = commands.place(GameplayZoneKind.fieldAction, area);
-    expect(zone.fieldAction!.darkness.opacity, .7);
+    expect(zone.fieldAction!.darkness!.opacity, .7);
     commands.updateDarkness(zone.id, opacity: .85);
     final edited = document.current;
     document.restore(redo: false);
     expect(
-      document.current.gameplayZones.single.fieldAction!.darkness.opacity,
+      document.current.gameplayZones.single.fieldAction!.darkness!.opacity,
       .7,
     );
     document.restore(redo: true);
@@ -174,7 +174,7 @@ void main() {
       );
       await tester.tap(find.byType(DropdownButtonFormField<GameplayZoneKind>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zone sombre (Flash · 2D)').last);
+      await tester.tap(find.text('Action de terrain (2D)').last);
       await tester.pumpAndSettle();
       expect(
         document.current.gameplayZones.single.kind,
@@ -182,12 +182,12 @@ void main() {
       );
       expect(find.textContaining('L’éclairage dure'), findsOneWidget);
       expect(find.textContaining('Le voile le plus sombre'), findsOneWidget);
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(find.byKey(ValueKey('zone-darkness-${zone.id}-0.7')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('85 %').last);
       await tester.pumpAndSettle();
       expect(
-        document.current.gameplayZones.single.fieldAction!.darkness.opacity,
+        document.current.gameplayZones.single.fieldAction!.darkness!.opacity,
         .85,
       );
       expect(tester.takeException(), isNull);

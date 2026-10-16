@@ -129,7 +129,9 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
         ),
         const SizedBox(height: 8),
         Text(
-          zone.kind == GameplayZoneKind.fieldAction
+          zone.fieldAction?.actionKind == FieldActionZoneKind.waterfall
+              ? 'L’entrée et la sortie restent accessibles. Le trajet est réservé à Cascade ; un passage occupé est refusé avant le départ puis revérifié à chaque pas.'
+              : zone.kind == GameplayZoneKind.fieldAction
               ? 'Les zones sombres superposées restent indépendantes. Le voile le plus sombre s’applique ; Flash éclaire une seule zone à la fois.'
               : 'Quand deux zones se superposent, la priorité la plus haute gagne.',
           style: Theme.of(context).textTheme.bodySmall,

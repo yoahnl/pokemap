@@ -50,7 +50,7 @@ final class TriggerZoneActions {
       ),
       (
         'gameplay_zone.set_field_action_payload',
-        'Set a typed Flash darkness-zone payload (2D, map-instance lifetime)'
+        'Set a typed darkness or Cascade passage payload (2D)'
       ),
       ('gameplay_zone.clear_payload', 'Clear a gameplay-zone payload'),
       ('gameplay_zone.set_priority', 'Set gameplay-zone priority'),
@@ -63,7 +63,21 @@ final class TriggerZoneActions {
             'rawTilesetRequired': false,
             'fieldActionZone': {
               'mapMode': '2d',
-              'actionKinds': ['darkness'],
+              'actionKinds': ['darkness', 'waterfall'],
+              'waterfall': {
+                'required': ['entry', 'path', 'exit', 'direction'],
+                'requiresSurf': {'default': true},
+                'coordinateSpace': 'zoneRelative',
+                'pathMinCells': 1,
+                'pathMaxCells': 256,
+                'directions': ['north', 'south', 'east', 'west'],
+                'contiguous': true,
+                'stepDurationMs': 250,
+                'lifetime': 'traversal',
+                'saveDuringTraversal': false,
+                'intermediateTriggers': false,
+                'consumesPp': false,
+              },
               'payload': {
                 'actionKind': 'darkness',
                 'darkness': {
@@ -71,7 +85,8 @@ final class TriggerZoneActions {
                 }
               },
               'scope': 'zone',
-              'lifetime': 'mapInstance',
+              'lifetime': 'byActionKind',
+              'darkness': {'lifetime': 'mapInstance', 'saved': true},
               'saved': true,
               'consumesPp': false,
               'parameters': ['mapId', 'zoneId', 'payload'],

@@ -14,6 +14,9 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 const darkness = (opacity: number): JsonRecord => ({ actionKind: "darkness", darkness: { opacity } });
+const cascade = (requiresSurf: boolean): JsonRecord => ({ actionKind: "waterfall", waterfall: {
+  entry: { x: 0, y: 2 }, path: [{ x: 0, y: 1 }], exit: { x: 0, y: 0 }, direction: "north", requiresSurf,
+} });
 const zone = (): JsonRecord => ({ id: "dark", name: "Cave darkness", kind: "fieldAction",
   area: { pos: { x: 1, y: 1 }, size: { width: 3, height: 2 } }, fieldAction: darkness(.7) });
 
@@ -64,8 +67,10 @@ test("live MCP discovers native Flash and proves create, set, cancel, undo, revi
     const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === "gameplay_zone.set_field_action_payload");
     assert.ok(action);
     const contract = record(record(action.extensions).fieldActionZone);
-    assert.equal(contract.mapMode, "2d"); assert.equal(contract.lifetime, "mapInstance");
-    assert.deepEqual(contract.actionKinds, ["darkness"]); assert.equal(contract.consumesPp, false);
+    assert.equal(contract.mapMode, "2d"); assert.equal(contract.lifetime, "byActionKind");
+    assert.equal(record(contract.waterfall).lifetime, "traversal");
+    assert.equal(record(contract.darkness).lifetime, "mapInstance");
+    assert.deepEqual(contract.actionKinds, ["darkness", "waterfall"]); assert.equal(contract.consumesPp, false);
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const initial = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     await apply("gameplay_zone.create", { zone: zone() });
@@ -99,10 +104,23 @@ test("live MCP discovers native Flash and proves create, set, cancel, undo, revi
     assert.ok(JSON.stringify(reopened).includes('"fieldAction":{"actionKind":"darkness","darkness":{"opacity":0.7}}'));
     assert.equal((await zones())[0]!.name, "Dark cave");
     assert.deepEqual(await readFile(projectFile), projectBefore);
+    await apply("gameplay_zone.set_field_action_payload", { zoneId: "dark", payload: cascade(true) });
+    await plan("gameplay_zone.set_field_action_payload", { zoneId: "dark", payload: cascade(false) });
+    assert.deepEqual((await zones())[0]!.fieldAction, cascade(true));
+    await apply("gameplay_zone.set_field_action_payload", { zoneId: "dark", payload: cascade(false) });
+    assert.deepEqual((await zones())[0]!.fieldAction, cascade(false));
+    const cascadeHistory = await call("pokemap_history", { operation: "list", projectHandle: workspace.projectHandle, limit: 1 });
+    await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: (cascadeHistory.entries as JsonRecord[])[0]!.entryId, idempotencyKey: "undo-cascade" });
+    assert.deepEqual((await zones())[0]!.fieldAction, cascade(true));
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+    workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    const cascadeReopened = await call("pokemap_query", { projectHandle: workspace.projectHandle, resourceKind: "map", operation: "get", ids: ["cave"], view: "detail" });
+    assert.ok(JSON.stringify(cascadeReopened).includes('"actionKind":"waterfall"'));
     const receiptPath = process.env.POKEMAP_TEST_FLASH_RECEIPT;
     if (receiptPath) await writeFile(receiptPath, JSON.stringify({ action, live: true, transport: "MCP stdio",
       serverSha256: createHash("sha256").update(await readFile(resolve("dist/src/index.js"))).digest("hex"),
-      verified: ["describe", "create", "set", "cancel", "undo", "stale", "strictPayload", "move", "resize", "priority", "update", "clone", "clear", "delete", "coldReopen"] }, null, 2));
+      verified: ["describe", "create", "set", "cancel", "undo", "stale", "strictPayload", "move", "resize", "priority", "update", "clone", "clear", "delete", "coldReopen", "waterfallSet", "waterfallCancel", "waterfallUndo", "waterfallColdReopen"] }, null, 2));
   } finally {
     if (workspace) await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     await client.close(); await transport.close(); await rm(root, { recursive: true, force: true });

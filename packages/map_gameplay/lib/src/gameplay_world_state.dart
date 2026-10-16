@@ -356,8 +356,25 @@ class GameplayWorldState {
   bool worldStaticObstaclesCollidePixelRect(PixelRect rect,
       {bool playerContact = false,
       BorderCollisionExclusion? borderExclusion,
-      String? ignoredEntityId}) {
+      String? ignoredEntityId, String? permittedWaterfallZoneId}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
+    for (final zone in map.gameplayZones) {
+      if (zone.kind != GameplayZoneKind.fieldAction ||
+          zone.fieldAction?.actionKind != FieldActionZoneKind.waterfall ||
+          zone.id == permittedWaterfallZoneId) {
+        continue;
+      }
+      for (final cell in zone.fieldAction!.waterfall!.path) {
+        final left = (zone.area.pos.x + cell.x) * _tileWidth;
+        final top = (zone.area.pos.y + cell.y) * _tileHeight;
+        if (rect.leftPx < left + _tileWidth &&
+            rect.leftPx + rect.widthPx > left &&
+            rect.topPx < top + _tileHeight &&
+            rect.topPx + rect.heightPx > top) {
+          return true;
+        }
+      }
+    }
     if (_staticCollisionStorage.collidesPixelRect(
       rect,
       isDynamicCellBlocked: (_) => false,
@@ -431,6 +448,17 @@ class GameplayWorldState {
         cellX >= map.size.width ||
         cellY >= map.size.height) {
       return true;
+    }
+    for (final zone in map.gameplayZones) {
+      if (zone.fieldAction?.actionKind == FieldActionZoneKind.waterfall &&
+          (zone.fieldAction?.waterfall?.path.any(
+                (cell) =>
+                    zone.area.pos.x + cell.x == cellX &&
+                    zone.area.pos.y + cell.y == cellY,
+              ) ??
+              false)) {
+        return true;
+      }
     }
     return _staticCollisionStorage.isCellCenterBlocked(
       cellX,

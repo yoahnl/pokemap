@@ -8,7 +8,7 @@ String zoneKindLabel(GameplayZoneKind kind) => switch (kind) {
   GameplayZoneKind.encounter => 'Rencontres',
   GameplayZoneKind.movement => 'Déplacement requis',
   GameplayZoneKind.movementEffect => 'Effet de surface',
-  GameplayZoneKind.fieldAction => 'Zone sombre (Flash · 2D)',
+  GameplayZoneKind.fieldAction => 'Action de terrain (2D)',
   GameplayZoneKind.hazard => 'Danger',
   GameplayZoneKind.special => 'Spéciale',
   GameplayZoneKind.custom => 'Héritée',
@@ -20,9 +20,130 @@ List<Widget> zonePayloadFields({
   required GameplayZoneEditingCommands commands,
   required void Function(VoidCallback) onChanged,
 }) {
+  final fieldAction = zone.fieldAction;
+  final actionSelector = fieldAction == null
+      ? null
+      : StudioSelect(
+          key: ValueKey(
+            'zone-field-action-${zone.id}-${fieldAction.actionKind.name}',
+          ),
+          label: 'Action de terrain',
+          value: fieldAction.actionKind.name,
+          options: {
+            'darkness': 'Zone sombre (Flash · 2D)',
+            if (commands.waterfallDirections(zone).isNotEmpty)
+              'waterfall': 'Cascade · 2D',
+          },
+          onChanged: (kind) => onChanged(
+            () => kind == 'waterfall'
+                ? commands.configureWaterfall(zone.id)
+                : commands.configureDarkness(zone.id),
+          ),
+        );
+  final waterfall = fieldAction?.waterfall;
+  if (waterfall != null) {
+    final direction = waterfall.direction;
+    final vertical =
+        direction == MapConnectionDirection.north ||
+        direction == MapConnectionDirection.south;
+    final forward =
+        direction == MapConnectionDirection.south ||
+        direction == MapConnectionDirection.east;
+    final start = vertical ? waterfall.entry.y : waterfall.entry.x;
+    final end = vertical ? waterfall.exit.y : waterfall.exit.x;
+    final length = vertical ? zone.area.size.height : zone.area.size.width;
+    String directionName(MapConnectionDirection value) => switch (value) {
+      MapConnectionDirection.north => 'Vers le haut',
+      MapConnectionDirection.south => 'Vers le bas',
+      MapConnectionDirection.east => 'Vers la droite',
+      MapConnectionDirection.west => 'Vers la gauche',
+    };
+    Widget select(
+      String label,
+      String value,
+      Map<String, String> options,
+      void Function(String) changed,
+    ) => StudioSelect(
+      key: ValueKey('waterfall-${zone.id}-$label-$value'),
+      label: label,
+      value: value,
+      options: options,
+      onChanged: (next) => onChanged(() => changed(next)),
+    );
+    return [
+      actionSelector!,
+      const SizedBox(height: 8),
+      select(
+        'Sens de traversée',
+        direction.name,
+        {
+          for (final d in commands.waterfallDirections(zone))
+            d.name: directionName(d),
+        },
+        (next) => commands.configureWaterfall(
+          zone.id,
+          direction: MapConnectionDirection.values.byName(next),
+        ),
+      ),
+      const SizedBox(height: 8),
+      select(
+        vertical ? 'Colonne du passage' : 'Ligne du passage',
+        '${vertical ? waterfall.entry.x : waterfall.entry.y}',
+        {
+          for (
+            var i = 0;
+            i < (vertical ? zone.area.size.width : zone.area.size.height);
+            i++
+          )
+            '$i': '${i + 1}',
+        },
+        (next) => commands.configureWaterfall(zone.id, line: int.parse(next)),
+      ),
+      const SizedBox(height: 8),
+      select(
+        'Entrée (case du rectangle)',
+        '$start',
+        {
+          for (var i = 0; i < length; i++)
+            if ((end - i) * (forward ? 1 : -1) >= 2 && (end - i).abs() <= 257)
+              '$i': '${i + 1}',
+        },
+        (next) =>
+            commands.configureWaterfall(zone.id, entryIndex: int.parse(next)),
+      ),
+      const SizedBox(height: 8),
+      select(
+        'Sortie (case du rectangle)',
+        '$end',
+        {
+          for (var i = 0; i < length; i++)
+            if ((i - start) * (forward ? 1 : -1) >= 2 &&
+                (i - start).abs() <= 257)
+              '$i': '${i + 1}',
+        },
+        (next) =>
+            commands.configureWaterfall(zone.id, exitIndex: int.parse(next)),
+      ),
+      const SizedBox(height: 8),
+      select(
+        'Surf requis',
+        '${waterfall.requiresSurf}',
+        const {'true': 'Oui', 'false': 'Non'},
+        (next) =>
+            commands.configureWaterfall(zone.id, requiresSurf: next == 'true'),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Trajet : ${waterfall.path.length} cases entre l’entrée et la sortie. Placez le joueur à l’entrée dans le sens indiqué. Cascade exige un Pokémon conscient connaissant l’attaque et son déblocage. Aucun PP dépensé. Traversée 2D à pas de 0,25 s ; sauvegarde disponible après l’arrivée.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ];
+  }
   final darkness = zone.fieldAction?.darkness;
   if (darkness != null) {
     return [
+      actionSelector!,
+      const SizedBox(height: 8),
       StudioSelect(
         key: ValueKey('zone-darkness-${zone.id}-${darkness.opacity}'),
         label: 'Obscurité avant Flash',

@@ -322,6 +322,8 @@ enum GameplayZoneKind {
 /// Cette enum vit dans `map_core` pour rester indépendante du runtime
 /// `map_gameplay`, qui fera plus tard le mapping vers GameplayMovementEffect.
 enum FieldActionZoneKind {
+  @JsonValue('waterfall')
+  waterfall,
   @JsonValue('darkness')
   darkness,
 }

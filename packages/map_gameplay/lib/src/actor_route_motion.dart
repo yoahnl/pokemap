@@ -31,6 +31,7 @@ ActorRouteMotionPlan? planActorRouteMove({
   required EntityFacing direction,
   required bool through,
   String? initialCollisionOwnerEntityId,
+  MapGameplayZone? waterfallZone,
   ProjectManifest? project,
   Iterable<GridPos> dynamicBlockedCells = const [],
   Iterable<PixelRect> characterReservations = const [],
@@ -196,6 +197,31 @@ ActorRouteMotionPlan? planActorRouteMove({
               .any((rect) => _intersects(rect, ownerContact)))) {
     return null;
   }
+  if (waterfallZone != null) {
+    final zone = waterfallZone;
+    validateFieldActionZone(world.map, zone);
+    if (!isPlayer ||
+        through ||
+        zone.fieldAction?.waterfall == null ||
+        findGameplayZoneById(world.map, zone.id) != zone) {
+      return null;
+    }
+    final route = zone.fieldAction!.waterfall!;
+    final cells = [route.entry, ...route.path, route.exit]
+        .map(
+          (cell) =>
+              GridPos(x: zone.area.pos.x + cell.x, y: zone.area.pos.y + cell.y),
+        )
+        .toList();
+    final index = cells.indexOf(from);
+    if (index < 0 ||
+        index >= cells.length - 1 ||
+        cells[index + 1] != to ||
+        (route.requiresSurf &&
+            world.player.movementMode != MovementMode.surf)) {
+      return null;
+    }
+  }
   if (!through) {
     final reservations = characterReservations.toList(growable: false);
     final blockedCells = dynamicBlockedCells.toList(growable: false);
@@ -206,7 +232,7 @@ ActorRouteMotionPlan? planActorRouteMove({
       final footprint = footprintAt(movementRect);
       final areas = areasAt(movementRect);
       if (collisionWorld.worldStaticObstaclesCollidePixelRect(footprint,
-          playerContact: isPlayer)) {
+          playerContact: isPlayer, permittedWaterfallZoneId: waterfallZone?.id)) {
         return true;
       }
       if (!isPlayer && _intersects(footprint, playerContact)) return true;

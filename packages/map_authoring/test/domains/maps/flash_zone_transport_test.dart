@@ -21,6 +21,19 @@ Map<String, Object?> zoneJson() => {
       'fieldAction': darkness(.7),
     };
 
+Map<String, Object?> cascade(bool surf) => {
+      'actionKind': 'waterfall',
+      'waterfall': {
+        'entry': {'x': 0, 'y': 0},
+        'path': [
+          {'x': 1, 'y': 0}
+        ],
+        'exit': {'x': 2, 'y': 0},
+        'direction': 'east',
+        'requiresSurf': surf
+      },
+    };
+
 void main() {
   test(
       'Flash parity registry points to the four executed semantic transport journeys',
@@ -65,7 +78,7 @@ void main() {
             as Map<String, dynamic>);
     expect(updated.gameplayZones.single.cellMask, isNull);
     expect(updated.gameplayZones.single.kind, GameplayZoneKind.fieldAction);
-    expect(updated.gameplayZones.single.fieldAction!.darkness.opacity, .7);
+    expect(updated.gameplayZones.single.fieldAction!.darkness!.opacity, .7);
   });
   for (final jsonl in [false, true]) {
     test(
@@ -123,7 +136,11 @@ void main() {
       expect(
           ((descriptor['extensions'] as Map)['fieldActionZone']
               as Map)['lifetime'],
-          'mapInstance');
+          'byActionKind');
+      expect(
+          ((descriptor['extensions'] as Map)['fieldActionZone']
+              as Map)['actionKinds'],
+          contains('waterfall'));
       late ProjectHandle projectHandle;
       late WorkspaceHandle workspaceHandle;
       if (jsonl) {
@@ -188,22 +205,22 @@ void main() {
       Future<MapData> read() async => MapData.fromJson(
           jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
       await apply('gameplay_zone.create', {'zone': zoneJson()});
-      expect((await read()).gameplayZones.single.fieldAction!.darkness.opacity,
+      expect((await read()).gameplayZones.single.fieldAction!.darkness!.opacity,
           .7);
       await plan('gameplay_zone.set_field_action_payload',
           {'zoneId': 'dark', 'payload': darkness(.35)});
-      expect((await read()).gameplayZones.single.fieldAction!.darkness.opacity,
+      expect((await read()).gameplayZones.single.fieldAction!.darkness!.opacity,
           .7);
       await apply('gameplay_zone.set_field_action_payload',
           {'zoneId': 'dark', 'payload': darkness(.85)});
-      expect((await read()).gameplayZones.single.fieldAction!.darkness.opacity,
+      expect((await read()).gameplayZones.single.fieldAction!.darkness!.opacity,
           .85);
       final history = await call('history', {'limit': 1});
       await call('undo', {
         'entryId': ((history['entries'] as List).first as Map)['entryId'],
         'idempotencyKey': 'undo-flash'
       });
-      expect((await read()).gameplayZones.single.fieldAction!.darkness.opacity,
+      expect((await read()).gameplayZones.single.fieldAction!.darkness!.opacity,
           .7);
       await apply('gameplay_zone.move', {'zoneId': 'dark', 'x': 2, 'y': 1});
       await apply(
@@ -217,9 +234,57 @@ void main() {
       await apply('gameplay_zone.delete', {'zoneId': 'dark-copy'});
       final cold = MapData.fromJson(
           jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
-      expect(cold.gameplayZones.single.fieldAction!.darkness.opacity, .7);
+      expect(cold.gameplayZones.single.fieldAction!.darkness!.opacity, .7);
       expect(cold.gameplayZones.single.area.pos, const GridPos(x: 2, y: 1));
       expect(cold.gameplayZones.single.priority, 2);
+      await apply('gameplay_zone.set_field_action_payload',
+          {'zoneId': 'dark', 'payload': cascade(true)});
+      expect(
+          (await read())
+              .gameplayZones
+              .single
+              .fieldAction!
+              .waterfall!
+              .requiresSurf,
+          isTrue);
+      await plan('gameplay_zone.set_field_action_payload',
+          {'zoneId': 'dark', 'payload': cascade(false)});
+      expect(
+          (await read())
+              .gameplayZones
+              .single
+              .fieldAction!
+              .waterfall!
+              .requiresSurf,
+          isTrue);
+      await apply('gameplay_zone.set_field_action_payload',
+          {'zoneId': 'dark', 'payload': cascade(false)});
+      expect(
+          (await read())
+              .gameplayZones
+              .single
+              .fieldAction!
+              .waterfall!
+              .requiresSurf,
+          isFalse);
+      final cascadeHistory = await call('history', {'limit': 1});
+      await call('undo', {
+        'entryId':
+            ((cascadeHistory['entries'] as List).first as Map)['entryId'],
+        'idempotencyKey': 'undo-cascade'
+      });
+      expect(
+          (await read())
+              .gameplayZones
+              .single
+              .fieldAction!
+              .waterfall!
+              .requiresSurf,
+          isTrue);
+      final coldCascade = MapData.fromJson(
+          jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
+      expect(coldCascade.gameplayZones.single.fieldAction!.toJson(),
+          cascade(true));
       expect(await projectFile.readAsBytes(), projectBefore);
     });
   }

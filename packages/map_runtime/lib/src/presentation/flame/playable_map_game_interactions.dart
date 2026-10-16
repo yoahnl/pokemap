@@ -9,6 +9,7 @@ final class _ResolvedOverworldInteraction {
     this.sceneId,
     this.isIntrinsicFieldObstacle = false,
     this.flashZoneId,
+    this.waterfallZoneId,
   });
 
   final RuntimeOverworldInteractionAction action;
@@ -18,6 +19,7 @@ final class _ResolvedOverworldInteraction {
   final String? sceneId;
   final bool isIntrinsicFieldObstacle;
   final String? flashZoneId;
+  final String? waterfallZoneId;
 }
 
 extension _PlayableMapInteractions on PlayableMapGame {
@@ -299,6 +301,44 @@ extension _PlayableMapInteractions on PlayableMapGame {
     } else {
       final selected = _selectInteractionMapEvent();
       if (selected == null) {
+        final waterfall = findWaterfallTarget(map: _world.map, gameState: _gameState);
+        if (waterfall != null) {
+          final prepared = prepareWaterfallInteraction(
+            map: _world.map,
+            gameState: _gameState,
+            stateRevision: _gameStateRevision,
+            zoneId: waterfall.id,
+            world: _world,
+            project: _bundle.manifest,
+          );
+          if (prepared != null) {
+            final settings = _bundle.manifest.settings;
+            return _ResolvedOverworldInteraction(
+              action: RuntimeOverworldInteractionAction(
+                request: RuntimeOverworldInteractionRequest(
+                  sessionId: _interactionSessionId,
+                  mapActivationId: _currentMapActivationId!,
+                  mapId: _activeMapId,
+                  targetKind: RuntimeOverworldInteractionTargetKind.gameplayZone,
+                  targetId: waterfall.id,
+                  actionId: narrativeEventCanonicalSha256(
+                    jsonEncode(['waterfall', waterfall.toJson()]),
+                  ),
+                ),
+                verb: RuntimeOverworldInteractionVerb.interact,
+                targetCell: _world.player.pos,
+                targetBounds: PixelRect(
+                  leftPx: _world.player.pos.x * settings.tileWidth,
+                  topPx: _world.player.pos.y * settings.tileHeight,
+                  widthPx: settings.tileWidth,
+                  heightPx: settings.tileHeight,
+                ),
+              ),
+              result: result,
+              waterfallZoneId: waterfall.id,
+            );
+          }
+        }
         final target = findFlashTarget(map: _world.map, gameState: _gameState);
         if (target == null) return null;
         final prepared = prepareFlashInteraction(map: _world.map, gameState: _gameState,
@@ -501,6 +541,34 @@ extension _PlayableMapInteractions on PlayableMapGame {
   }
 
   void _executeOverworldInteraction(_ResolvedOverworldInteraction interaction) {
+    final waterfallZoneId = interaction.waterfallZoneId;
+    if (waterfallZoneId != null) {
+      final prepared = prepareWaterfallInteraction(
+        map: _world.map,
+        gameState: _gameState,
+        stateRevision: _gameStateRevision,
+        zoneId: waterfallZoneId,
+        world: _world,
+        project: _bundle.manifest,
+      );
+      if (prepared == null) return;
+      _openDialogue(
+        prepared.session,
+        onDialogueFinished: (outcome) {
+          if (outcome != 'waterfall-confirmed' || prepared.ticket == null) return;
+          unawaited(
+            _traverseWaterfall(prepared.ticket!).then((completed) {
+              if (!completed && !_isRemoved) {
+                _showNotification(
+                  'La traversée de la cascade n’est plus disponible.',
+                );
+              }
+            }),
+          );
+        },
+      );
+      return;
+    }
     final flashZoneId = interaction.flashZoneId;
     if (flashZoneId != null) {
       final prepared = prepareFlashInteraction(map: _world.map, gameState: _gameState,

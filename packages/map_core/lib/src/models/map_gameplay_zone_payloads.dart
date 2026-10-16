@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
+import 'geometry.dart';
 
 part 'map_gameplay_zone_payloads.freezed.dart';
 part 'map_gameplay_zone_payloads.g.dart';
@@ -190,7 +191,8 @@ abstract class FieldActionZonePayload with _$FieldActionZonePayload {
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory FieldActionZonePayload({
     required FieldActionZoneKind actionKind,
-    required DarknessZonePayload darkness,
+    @JsonKey(includeIfNull: false) DarknessZonePayload? darkness,
+    @JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall,
   }) = _FieldActionZonePayload;
 
   factory FieldActionZonePayload.fromJson(Map<String, dynamic> json) =>
@@ -200,10 +202,18 @@ abstract class FieldActionZonePayload with _$FieldActionZonePayload {
 FieldActionZonePayload _fieldActionZonePayloadFromJson(
   Map<String, dynamic> json,
 ) {
-  if (json.keys.any((key) => !{'actionKind', 'darkness'}.contains(key)) ||
-      json['actionKind'] != 'darkness' ||
-      json['darkness'] is! Map) {
-    throw const FormatException('Unsupported field-action zone kind.');
+  final kind = json['actionKind'];
+  if (json.keys.any(
+        (key) => !{'actionKind', 'darkness', 'waterfall'}.contains(key),
+      ) ||
+      (kind != 'darkness' && kind != 'waterfall') ||
+      (kind == 'darkness' &&
+          (json['darkness'] is! Map || json.containsKey('waterfall'))) ||
+      (kind == 'waterfall' &&
+          (json['waterfall'] is! Map || json.containsKey('darkness')))) {
+    throw const FormatException(
+      'Field-action zones require one exclusive typed payload.',
+    );
   }
   return _$FieldActionZonePayloadFromJson(json);
 }
@@ -230,4 +240,42 @@ DarknessZonePayload _darknessZonePayloadFromJson(Map<String, dynamic> json) {
     );
   }
   return _$DarknessZonePayloadFromJson(json);
+}
+
+@freezed
+abstract class WaterfallZonePayload with _$WaterfallZonePayload {
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory WaterfallZonePayload({
+    required GridPos entry,
+    required List<GridPos> path,
+    required GridPos exit,
+    required MapConnectionDirection direction,
+    @Default(true) bool requiresSurf,
+  }) = _WaterfallZonePayload;
+
+  factory WaterfallZonePayload.fromJson(Map<String, dynamic> json) =>
+      _waterfallZonePayloadFromJson(json);
+}
+
+WaterfallZonePayload _waterfallZonePayloadFromJson(Map<String, dynamic> json) {
+  bool cell(Object? raw) =>
+      raw is Map && raw.length == 2 && raw['x'] is int && raw['y'] is int;
+  final path = json['path'];
+  if (!cell(json['entry']) ||
+      !cell(json['exit']) ||
+      path is! List ||
+      path.isEmpty ||
+      path.length > 256 ||
+      !path.every(cell) ||
+      (json.containsKey('requiresSurf') && json['requiresSurf'] is! bool) ||
+      !{'north', 'south', 'east', 'west'}.contains(json['direction'])) {
+    throw const FormatException(
+      'Waterfall requires integer cells, a finite path, a cardinal direction and a boolean Surf requirement.',
+    );
+  }
+  try {
+    return _$WaterfallZonePayloadFromJson(json);
+  } on Object {
+    throw const FormatException('Unsupported waterfall payload.');
+  }
 }

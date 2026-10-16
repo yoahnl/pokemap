@@ -259,6 +259,107 @@ class GameplayZoneEditingCommands {
     );
   }
 
+  List<MapConnectionDirection> waterfallDirections(MapGameplayZone zone) => [
+    if (zone.area.size.height >= 3) ...[
+      MapConnectionDirection.north,
+      MapConnectionDirection.south,
+    ],
+    if (zone.area.size.width >= 3) ...[
+      MapConnectionDirection.east,
+      MapConnectionDirection.west,
+    ],
+  ];
+
+  void configureWaterfall(
+    String id, {
+    MapConnectionDirection? direction,
+    bool? requiresSurf,
+    int? line,
+    int? entryIndex,
+    int? exitIndex,
+  }) {
+    final zone = selected(id);
+    if (zone == null) return;
+    final previous = zone.fieldAction?.waterfall;
+    final facing =
+        direction ??
+        previous?.direction ??
+        waterfallDirections(zone).firstOrNull;
+    if (facing == null || !waterfallDirections(zone).contains(facing)) {
+      throw const ValidationException(
+        'Dessinez au moins trois cases dans le sens de la cascade.',
+      );
+    }
+    final vertical =
+        facing == MapConnectionDirection.north ||
+        facing == MapConnectionDirection.south;
+    final forward =
+        facing == MapConnectionDirection.south ||
+        facing == MapConnectionDirection.east;
+    final length = vertical ? zone.area.size.height : zone.area.size.width;
+    final preserve = previous?.direction == facing;
+    final cross =
+        line ??
+        (preserve ? (vertical ? previous!.entry.x : previous!.entry.y) : 0);
+    final start =
+        entryIndex ??
+        (preserve
+            ? (vertical ? previous!.entry.y : previous!.entry.x)
+            : forward
+            ? 0
+            : length - 1);
+    final end =
+        exitIndex ??
+        (preserve
+            ? (vertical ? previous!.exit.y : previous!.exit.x)
+            : forward
+            ? (length > 258 ? 257 : length - 1)
+            : (length > 258 ? length - 258 : 0));
+    if ((end - start) * (forward ? 1 : -1) < 2 || (end - start).abs() > 257) {
+      throw const ValidationException(
+        'La cascade exige une entrée, un trajet et une sortie distincts (256 cases de trajet maximum).',
+      );
+    }
+    GridPos cell(int along) =>
+        vertical ? GridPos(x: cross, y: along) : GridPos(x: along, y: cross);
+    document.commit(
+      const TriggerZoneActions().setFieldActionPayload(
+        document.current,
+        zoneId: id,
+        payload: FieldActionZonePayload(
+          actionKind: FieldActionZoneKind.waterfall,
+          waterfall: WaterfallZonePayload(
+            entry: cell(start),
+            path: [
+              for (
+                var i = start + (forward ? 1 : -1);
+                i != end;
+                i += forward ? 1 : -1
+              )
+                cell(i),
+            ],
+            exit: cell(end),
+            direction: facing,
+            requiresSurf: requiresSurf ?? previous?.requiresSurf ?? true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void configureDarkness(String id) {
+    document.commit(
+      const TriggerZoneActions().setFieldActionPayload(
+        document.current,
+        zoneId: id,
+        payload: const FieldActionZonePayload(
+          actionKind: FieldActionZoneKind.darkness,
+          darkness: DarknessZonePayload(opacity: .7),
+        ),
+      ),
+    );
+  }
+
   void updateDarkness(String id, {required double opacity}) {
     final payload = selected(id)?.fieldAction;
     if (payload == null) return;
@@ -293,7 +394,7 @@ String defaultZoneName(GameplayZoneKind kind) => switch (kind) {
   GameplayZoneKind.encounter => 'Zone de rencontres',
   GameplayZoneKind.movement => 'Zone de déplacement',
   GameplayZoneKind.movementEffect => 'Zone à effet',
-  GameplayZoneKind.fieldAction => 'Zone sombre',
+  GameplayZoneKind.fieldAction => 'Action de terrain',
   GameplayZoneKind.hazard => 'Zone dangereuse',
   GameplayZoneKind.special => 'Zone spéciale',
   GameplayZoneKind.custom => 'Zone héritée',

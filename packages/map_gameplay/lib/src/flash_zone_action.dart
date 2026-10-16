@@ -183,7 +183,7 @@ double resolveDarknessOpacity(
         (instance == null ||
             !gameState.mapInstanceWorldState
                 .isZoneIlluminated(instance, zone.id))) {
-      final next = zone.fieldAction!.darkness.opacity;
+      final next = zone.fieldAction!.darkness!.opacity;
       if (next > opacity) opacity = next;
     }
   }

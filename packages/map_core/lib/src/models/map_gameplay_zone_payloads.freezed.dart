@@ -1446,7 +1446,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$FieldActionZonePayload {
 
- FieldActionZoneKind get actionKind; DarknessZonePayload get darkness;
+ FieldActionZoneKind get actionKind;@JsonKey(includeIfNull: false) DarknessZonePayload? get darkness;@JsonKey(includeIfNull: false) WaterfallZonePayload? get waterfall;
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1459,16 +1459,16 @@ $FieldActionZonePayloadCopyWith<FieldActionZonePayload> get copyWith => _$FieldA
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness)&&(identical(other.waterfall, waterfall) || other.waterfall == waterfall));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,actionKind,darkness);
+int get hashCode => Object.hash(runtimeType,actionKind,darkness,waterfall);
 
 @override
 String toString() {
-  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness)';
+  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness, waterfall: $waterfall)';
 }
 
 
@@ -1479,11 +1479,11 @@ abstract mixin class $FieldActionZonePayloadCopyWith<$Res>  {
   factory $FieldActionZonePayloadCopyWith(FieldActionZonePayload value, $Res Function(FieldActionZonePayload) _then) = _$FieldActionZonePayloadCopyWithImpl;
 @useResult
 $Res call({
- FieldActionZoneKind actionKind, DarknessZonePayload darkness
+ FieldActionZoneKind actionKind,@JsonKey(includeIfNull: false) DarknessZonePayload? darkness,@JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall
 });
 
 
-$DarknessZonePayloadCopyWith<$Res> get darkness;
+$DarknessZonePayloadCopyWith<$Res>? get darkness;$WaterfallZonePayloadCopyWith<$Res>? get waterfall;
 
 }
 /// @nodoc
@@ -1496,21 +1496,37 @@ class _$FieldActionZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? actionKind = null,Object? darkness = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? actionKind = null,Object? darkness = freezed,Object? waterfall = freezed,}) {
   return _then(_self.copyWith(
 actionKind: null == actionKind ? _self.actionKind : actionKind // ignore: cast_nullable_to_non_nullable
-as FieldActionZoneKind,darkness: null == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
-as DarknessZonePayload,
+as FieldActionZoneKind,darkness: freezed == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
+as DarknessZonePayload?,waterfall: freezed == waterfall ? _self.waterfall : waterfall // ignore: cast_nullable_to_non_nullable
+as WaterfallZonePayload?,
   ));
 }
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$DarknessZonePayloadCopyWith<$Res> get darkness {
+$DarknessZonePayloadCopyWith<$Res>? get darkness {
+    if (_self.darkness == null) {
+    return null;
+  }
 
-  return $DarknessZonePayloadCopyWith<$Res>(_self.darkness, (value) {
+  return $DarknessZonePayloadCopyWith<$Res>(_self.darkness!, (value) {
     return _then(_self.copyWith(darkness: value));
+  });
+}/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WaterfallZonePayloadCopyWith<$Res>? get waterfall {
+    if (_self.waterfall == null) {
+    return null;
+  }
+
+  return $WaterfallZonePayloadCopyWith<$Res>(_self.waterfall!, (value) {
+    return _then(_self.copyWith(waterfall: value));
   });
 }
 }
@@ -1594,10 +1610,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind,  DarknessZonePayload darkness)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FieldActionZonePayload() when $default != null:
-return $default(_that.actionKind,_that.darkness);case _:
+return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
   return orElse();
 
 }
@@ -1615,10 +1631,10 @@ return $default(_that.actionKind,_that.darkness);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind,  DarknessZonePayload darkness)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall)  $default,) {final _that = this;
 switch (_that) {
 case _FieldActionZonePayload():
-return $default(_that.actionKind,_that.darkness);case _:
+return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1635,10 +1651,10 @@ return $default(_that.actionKind,_that.darkness);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( FieldActionZoneKind actionKind,  DarknessZonePayload darkness)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( FieldActionZoneKind actionKind, @JsonKey(includeIfNull: false)  DarknessZonePayload? darkness, @JsonKey(includeIfNull: false)  WaterfallZonePayload? waterfall)?  $default,) {final _that = this;
 switch (_that) {
 case _FieldActionZonePayload() when $default != null:
-return $default(_that.actionKind,_that.darkness);case _:
+return $default(_that.actionKind,_that.darkness,_that.waterfall);case _:
   return null;
 
 }
@@ -1650,11 +1666,12 @@ return $default(_that.actionKind,_that.darkness);case _:
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _FieldActionZonePayload implements FieldActionZonePayload {
-  const _FieldActionZonePayload({required this.actionKind, required this.darkness});
+  const _FieldActionZonePayload({required this.actionKind, @JsonKey(includeIfNull: false) this.darkness, @JsonKey(includeIfNull: false) this.waterfall});
   factory _FieldActionZonePayload.fromJson(Map<String, dynamic> json) => _$FieldActionZonePayloadFromJson(json);
 
 @override final  FieldActionZoneKind actionKind;
-@override final  DarknessZonePayload darkness;
+@override@JsonKey(includeIfNull: false) final  DarknessZonePayload? darkness;
+@override@JsonKey(includeIfNull: false) final  WaterfallZonePayload? waterfall;
 
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
@@ -1669,16 +1686,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FieldActionZonePayload&&(identical(other.actionKind, actionKind) || other.actionKind == actionKind)&&(identical(other.darkness, darkness) || other.darkness == darkness)&&(identical(other.waterfall, waterfall) || other.waterfall == waterfall));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,actionKind,darkness);
+int get hashCode => Object.hash(runtimeType,actionKind,darkness,waterfall);
 
 @override
 String toString() {
-  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness)';
+  return 'FieldActionZonePayload(actionKind: $actionKind, darkness: $darkness, waterfall: $waterfall)';
 }
 
 
@@ -1689,11 +1706,11 @@ abstract mixin class _$FieldActionZonePayloadCopyWith<$Res> implements $FieldAct
   factory _$FieldActionZonePayloadCopyWith(_FieldActionZonePayload value, $Res Function(_FieldActionZonePayload) _then) = __$FieldActionZonePayloadCopyWithImpl;
 @override @useResult
 $Res call({
- FieldActionZoneKind actionKind, DarknessZonePayload darkness
+ FieldActionZoneKind actionKind,@JsonKey(includeIfNull: false) DarknessZonePayload? darkness,@JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall
 });
 
 
-@override $DarknessZonePayloadCopyWith<$Res> get darkness;
+@override $DarknessZonePayloadCopyWith<$Res>? get darkness;@override $WaterfallZonePayloadCopyWith<$Res>? get waterfall;
 
 }
 /// @nodoc
@@ -1706,11 +1723,12 @@ class __$FieldActionZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of FieldActionZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? actionKind = null,Object? darkness = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? actionKind = null,Object? darkness = freezed,Object? waterfall = freezed,}) {
   return _then(_FieldActionZonePayload(
 actionKind: null == actionKind ? _self.actionKind : actionKind // ignore: cast_nullable_to_non_nullable
-as FieldActionZoneKind,darkness: null == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
-as DarknessZonePayload,
+as FieldActionZoneKind,darkness: freezed == darkness ? _self.darkness : darkness // ignore: cast_nullable_to_non_nullable
+as DarknessZonePayload?,waterfall: freezed == waterfall ? _self.waterfall : waterfall // ignore: cast_nullable_to_non_nullable
+as WaterfallZonePayload?,
   ));
 }
 
@@ -1718,10 +1736,25 @@ as DarknessZonePayload,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$DarknessZonePayloadCopyWith<$Res> get darkness {
+$DarknessZonePayloadCopyWith<$Res>? get darkness {
+    if (_self.darkness == null) {
+    return null;
+  }
 
-  return $DarknessZonePayloadCopyWith<$Res>(_self.darkness, (value) {
+  return $DarknessZonePayloadCopyWith<$Res>(_self.darkness!, (value) {
     return _then(_self.copyWith(darkness: value));
+  });
+}/// Create a copy of FieldActionZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WaterfallZonePayloadCopyWith<$Res>? get waterfall {
+    if (_self.waterfall == null) {
+    return null;
+  }
+
+  return $WaterfallZonePayloadCopyWith<$Res>(_self.waterfall!, (value) {
+    return _then(_self.copyWith(waterfall: value));
   });
 }
 }
@@ -1987,6 +2020,323 @@ as double,
 }
 
 
+}
+
+
+/// @nodoc
+mixin _$WaterfallZonePayload {
+
+ GridPos get entry; List<GridPos> get path; GridPos get exit; MapConnectionDirection get direction; bool get requiresSurf;
+/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WaterfallZonePayloadCopyWith<WaterfallZonePayload> get copyWith => _$WaterfallZonePayloadCopyWithImpl<WaterfallZonePayload>(this as WaterfallZonePayload, _$identity);
+
+  /// Serializes this WaterfallZonePayload to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WaterfallZonePayload&&(identical(other.entry, entry) || other.entry == entry)&&const DeepCollectionEquality().equals(other.path, path)&&(identical(other.exit, exit) || other.exit == exit)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.requiresSurf, requiresSurf) || other.requiresSurf == requiresSurf));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,entry,const DeepCollectionEquality().hash(path),exit,direction,requiresSurf);
+
+@override
+String toString() {
+  return 'WaterfallZonePayload(entry: $entry, path: $path, exit: $exit, direction: $direction, requiresSurf: $requiresSurf)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $WaterfallZonePayloadCopyWith<$Res>  {
+  factory $WaterfallZonePayloadCopyWith(WaterfallZonePayload value, $Res Function(WaterfallZonePayload) _then) = _$WaterfallZonePayloadCopyWithImpl;
+@useResult
+$Res call({
+ GridPos entry, List<GridPos> path, GridPos exit, MapConnectionDirection direction, bool requiresSurf
+});
+
+
+$GridPosCopyWith<$Res> get entry;$GridPosCopyWith<$Res> get exit;
+
+}
+/// @nodoc
+class _$WaterfallZonePayloadCopyWithImpl<$Res>
+    implements $WaterfallZonePayloadCopyWith<$Res> {
+  _$WaterfallZonePayloadCopyWithImpl(this._self, this._then);
+
+  final WaterfallZonePayload _self;
+  final $Res Function(WaterfallZonePayload) _then;
+
+/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? entry = null,Object? path = null,Object? exit = null,Object? direction = null,Object? requiresSurf = null,}) {
+  return _then(_self.copyWith(
+entry: null == entry ? _self.entry : entry // ignore: cast_nullable_to_non_nullable
+as GridPos,path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
+as List<GridPos>,exit: null == exit ? _self.exit : exit // ignore: cast_nullable_to_non_nullable
+as GridPos,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as MapConnectionDirection,requiresSurf: null == requiresSurf ? _self.requiresSurf : requiresSurf // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get entry {
+
+  return $GridPosCopyWith<$Res>(_self.entry, (value) {
+    return _then(_self.copyWith(entry: value));
+  });
+}/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get exit {
+
+  return $GridPosCopyWith<$Res>(_self.exit, (value) {
+    return _then(_self.copyWith(exit: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [WaterfallZonePayload].
+extension WaterfallZonePayloadPatterns on WaterfallZonePayload {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WaterfallZonePayload value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _WaterfallZonePayload() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WaterfallZonePayload value)  $default,){
+final _that = this;
+switch (_that) {
+case _WaterfallZonePayload():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WaterfallZonePayload value)?  $default,){
+final _that = this;
+switch (_that) {
+case _WaterfallZonePayload() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( GridPos entry,  List<GridPos> path,  GridPos exit,  MapConnectionDirection direction,  bool requiresSurf)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _WaterfallZonePayload() when $default != null:
+return $default(_that.entry,_that.path,_that.exit,_that.direction,_that.requiresSurf);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( GridPos entry,  List<GridPos> path,  GridPos exit,  MapConnectionDirection direction,  bool requiresSurf)  $default,) {final _that = this;
+switch (_that) {
+case _WaterfallZonePayload():
+return $default(_that.entry,_that.path,_that.exit,_that.direction,_that.requiresSurf);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( GridPos entry,  List<GridPos> path,  GridPos exit,  MapConnectionDirection direction,  bool requiresSurf)?  $default,) {final _that = this;
+switch (_that) {
+case _WaterfallZonePayload() when $default != null:
+return $default(_that.entry,_that.path,_that.exit,_that.direction,_that.requiresSurf);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _WaterfallZonePayload implements WaterfallZonePayload {
+  const _WaterfallZonePayload({required this.entry, required final  List<GridPos> path, required this.exit, required this.direction, this.requiresSurf = true}): _path = path;
+  factory _WaterfallZonePayload.fromJson(Map<String, dynamic> json) => _$WaterfallZonePayloadFromJson(json);
+
+@override final  GridPos entry;
+ final  List<GridPos> _path;
+@override List<GridPos> get path {
+  if (_path is EqualUnmodifiableListView) return _path;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_path);
+}
+
+@override final  GridPos exit;
+@override final  MapConnectionDirection direction;
+@override@JsonKey() final  bool requiresSurf;
+
+/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$WaterfallZonePayloadCopyWith<_WaterfallZonePayload> get copyWith => __$WaterfallZonePayloadCopyWithImpl<_WaterfallZonePayload>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$WaterfallZonePayloadToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WaterfallZonePayload&&(identical(other.entry, entry) || other.entry == entry)&&const DeepCollectionEquality().equals(other._path, _path)&&(identical(other.exit, exit) || other.exit == exit)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.requiresSurf, requiresSurf) || other.requiresSurf == requiresSurf));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,entry,const DeepCollectionEquality().hash(_path),exit,direction,requiresSurf);
+
+@override
+String toString() {
+  return 'WaterfallZonePayload(entry: $entry, path: $path, exit: $exit, direction: $direction, requiresSurf: $requiresSurf)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$WaterfallZonePayloadCopyWith<$Res> implements $WaterfallZonePayloadCopyWith<$Res> {
+  factory _$WaterfallZonePayloadCopyWith(_WaterfallZonePayload value, $Res Function(_WaterfallZonePayload) _then) = __$WaterfallZonePayloadCopyWithImpl;
+@override @useResult
+$Res call({
+ GridPos entry, List<GridPos> path, GridPos exit, MapConnectionDirection direction, bool requiresSurf
+});
+
+
+@override $GridPosCopyWith<$Res> get entry;@override $GridPosCopyWith<$Res> get exit;
+
+}
+/// @nodoc
+class __$WaterfallZonePayloadCopyWithImpl<$Res>
+    implements _$WaterfallZonePayloadCopyWith<$Res> {
+  __$WaterfallZonePayloadCopyWithImpl(this._self, this._then);
+
+  final _WaterfallZonePayload _self;
+  final $Res Function(_WaterfallZonePayload) _then;
+
+/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? entry = null,Object? path = null,Object? exit = null,Object? direction = null,Object? requiresSurf = null,}) {
+  return _then(_WaterfallZonePayload(
+entry: null == entry ? _self.entry : entry // ignore: cast_nullable_to_non_nullable
+as GridPos,path: null == path ? _self._path : path // ignore: cast_nullable_to_non_nullable
+as List<GridPos>,exit: null == exit ? _self.exit : exit // ignore: cast_nullable_to_non_nullable
+as GridPos,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as MapConnectionDirection,requiresSurf: null == requiresSurf ? _self.requiresSurf : requiresSurf // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get entry {
+
+  return $GridPosCopyWith<$Res>(_self.entry, (value) {
+    return _then(_self.copyWith(entry: value));
+  });
+}/// Create a copy of WaterfallZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get exit {
+
+  return $GridPosCopyWith<$Res>(_self.exit, (value) {
+    return _then(_self.copyWith(exit: value));
+  });
+}
 }
 
 // dart format on
