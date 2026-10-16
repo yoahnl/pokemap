@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_library_bindings.dart';
@@ -8,8 +11,163 @@ import 'package:map_core/map_core.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/uwu_resource_host.dart';
+import '../../../../packages/map_authoring/test/support/glb_fixture.dart';
 
 void main() {
+  testWidgets(
+    'context-only classification saves reopens and clears all seven resource kinds',
+    (tester) async {
+      final host = await UwUResourceHost.open(tester);
+      host.navigation.library.query = 'Arbre';
+      final input = File('${host.fixture.directory.path}/context-source.glb');
+      await tester.runAsync(() => input.writeAsBytes(triangleGlb()));
+      final imported = (await tester.runAsync(
+        () => host.fixture.resources.importModel(
+          sourcePath: input.path,
+          name: 'Modèle contexte',
+        ),
+      ))!;
+      final acceptance = host.navigation.accept(imported);
+      await pumpIo(tester);
+      await acceptance;
+      final original = host.navigation.workspace.project!;
+      final project = original.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: const [
+            ProjectSmartTileMaterial(
+              id: 'path',
+              name: 'Chemin',
+              connectionGroupId: 'path',
+            ),
+          ],
+          presets: [
+            const ProjectSmartTilePreset(
+              id: 'path-context',
+              name: 'Chemin de contexte',
+              usage: SmartTileUsage.path,
+              topology: SmartTileTopology.uniform,
+              templateHint: SmartTileTemplateHint.simple,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'path',
+              allowedMaterialIds: ['path'],
+            ),
+          ],
+        ),
+        environmentPresets: [
+          EnvironmentPreset(
+            id: 'garden-context',
+            name: 'Jardin de contexte',
+            templateId: 'manual',
+            sortOrder: 0,
+            palette: [EnvironmentPaletteItem(elementId: 'arbre', weight: 1)],
+            defaultParams: EnvironmentGenerationParams.standard(),
+          ),
+        ],
+        borderCatalog: ProjectBorderCatalog(
+          formatVersion: ProjectBorderCatalog.formatVersionV2,
+          records: [
+            BorderBlueprintRecord(
+              id: 'border-context',
+              draft: BorderBlueprintDraft(
+                baseRevision: 0,
+                definition: BorderBlueprintDraftDefinition(
+                  name: 'Bordure de contexte',
+                  previewSeed: BorderSignedInt64.zero,
+                  template: BorderBlueprintTemplate.connectedLine,
+                  primitives: const [],
+                  defaults: BorderGenerationParams(
+                    irregularityPermille: 0,
+                    detailDensityPermille: 0,
+                    variationPermille: 0,
+                    maxOverlapPx: 0,
+                    gapTolerancePx: 0,
+                    depthRows: 1,
+                  ),
+                  sortOrder: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      ProjectValidator.validate(project);
+      await tester.runAsync(
+        () =>
+            File('${host.fixture.directory.path}/project.json')
+                .writeAsString(jsonEncode(project.toJson())),
+      );
+      await tester.runAsync(
+        () => host.fixture.port.loadProject(host.fixture.session),
+      );
+      host.fixture.controller.project = project;
+      host.navigation.changed();
+      await pumpIo(tester);
+      final mapsBefore = {
+        for (final entry in host.fixture.controller.documents.entries)
+          entry.key: entry.value.current,
+      };
+      final items = resourceCatalog(project);
+      for (final kind in [
+        'element',
+        'smartTilePreset',
+        'tileset',
+        'model3d',
+        'borderBlueprint',
+        'environmentPreset',
+        'character',
+      ]) {
+        final item = items.firstWhere((item) => item.canonicalKind == kind);
+        for (final label in [
+          'Intérieur',
+          'Extérieur',
+          'Les deux',
+          'Non renseigné',
+        ]) {
+          final pending = classifyResource(
+            tester.element(find.byType(Scaffold).first),
+            host.navigation,
+            item,
+          );
+          await pumpIo(tester);
+          await host.choose('resource-classify-context', label);
+          await host.tap('resource-management-save');
+          expect(
+            find.byKey(const ValueKey('resource-management-error')),
+            findsNothing,
+            reason: '$kind $label',
+          );
+          await pending;
+          final reopened = await host.reopen();
+          final expected = switch (label) {
+            'Intérieur' => ResourcePlacementContext.interior,
+            'Extérieur' => ResourcePlacementContext.exterior,
+            'Les deux' => ResourcePlacementContext.both,
+            _ => null,
+          };
+          final entry = reopened.resourceLibraryCatalog.entryFor(kind, item.id);
+          expect(entry?.placementContext, expected, reason: '$kind $label');
+          expect(resourceCatalogContextLabel(reopened, item), label);
+          expect(entry?.familyId, isNull);
+          expect(entry?.mapId, isNull);
+          expect(
+            entry?.role ?? ResourceLibraryRole.standard,
+            ResourceLibraryRole.standard,
+          );
+          expect(find.byType(ResourceManagementDialog), findsNothing);
+        }
+      }
+      for (final entry in host.fixture.controller.documents.entries) {
+        expect(entry.value.current, mapsBefore[entry.key]);
+      }
+      expect((await host.reopen()).resourceLibraryCatalog.entries, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'component classification persists and library hides it until requested',
     (tester) async {

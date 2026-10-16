@@ -44,6 +44,212 @@ ProjectManifest _project() => workspaceProject.copyWith(
 );
 
 void main() {
+  test('placement context matrix distinguishes both from unspecified', () {
+    final project = workspaceProject.copyWith(
+      elements: [
+        for (final id in ['interior', 'exterior', 'both', 'unspecified'])
+          workspaceElement.copyWith(id: id),
+      ],
+      tilesets: [],
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          for (final value in ResourcePlacementContext.values)
+            ResourceLibraryEntry(
+              resourceKind: 'element',
+              resourceId: value.name,
+              placementContext: value,
+            ),
+        ],
+      ),
+    );
+    final expected = {
+      ResourceCatalogContext.all: [
+        'interior',
+        'exterior',
+        'both',
+        'unspecified',
+      ],
+      ResourceCatalogContext.interior: ['interior', 'both'],
+      ResourceCatalogContext.exterior: ['exterior', 'both'],
+      ResourceCatalogContext.unspecified: ['unspecified'],
+    };
+    for (final entry in expected.entries) {
+      final filters = ResourceCatalogFilterState(context: entry.key);
+      expect(
+        filterResourceCatalog(
+          project,
+          resourceCatalog(project),
+          filters,
+        ).map((item) => item.id),
+        entry.value,
+      );
+      expect(
+        ResourceFamilyTree(
+          project,
+          resourceCatalog(project),
+          context: entry.key,
+        ).total,
+        entry.value.length,
+      );
+      expect(filters.copy().context, entry.key);
+      final copy = ResourceCatalogFilterState()..copyFrom(filters);
+      expect(copy.context, entry.key);
+      copy.reset();
+      expect(copy.context, ResourceCatalogContext.all);
+      final state = ResourceLibraryState()..filters.context = entry.key;
+      state.reveal(resourceCatalog(project).first);
+      expect(state.filters.context, ResourceCatalogContext.all);
+    }
+  });
+
+  test(
+    'context intersects family query scope component and dimension eligibility',
+    () {
+      final base = _project();
+      final project = base.copyWith(
+        resourceLibraryCatalog: ResourceLibraryCatalog(
+          families: base.resourceLibraryCatalog.families,
+          entries: [
+            for (final entry in base.resourceLibraryCatalog.entries)
+              ResourceLibraryEntry(
+                resourceKind: entry.resourceKind,
+                resourceId: entry.resourceId,
+                familyId: entry.familyId,
+                mapId: entry.mapId,
+                placementContext: entry.resourceId == 'map-b'
+                    ? ResourcePlacementContext.exterior
+                    : ResourcePlacementContext.both,
+                role: entry.resourceId == 'map-a'
+                    ? ResourceLibraryRole.component
+                    : ResourceLibraryRole.standard,
+              ),
+          ],
+        ),
+      );
+      final filters = ResourceCatalogFilterState(
+        context: ResourceCatalogContext.interior,
+        familyId: 'trees',
+        query: 'canopée',
+        scope: ResourceCatalogScope.project,
+        usage: ResourceCatalogUsage.place,
+      );
+      expect(
+        filterResourceCatalog(
+          project,
+          resourceCatalog(project),
+          filters,
+        ).single.id,
+        'shared',
+      );
+      filters.query = '';
+      filters.scope = ResourceCatalogScope.map;
+      expect(
+        filterResourceCatalog(project, resourceCatalog(project), filters),
+        isEmpty,
+      );
+      filters.showComponents = true;
+      expect(
+        filterResourceCatalog(
+          project,
+          resourceCatalog(project),
+          filters,
+          forMapPicker: true,
+          activeMapId: 'a',
+        ).single.id,
+        'map-a',
+      );
+      expect(
+        filterResourceCatalog(
+          project.copyWith(
+            settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+          ),
+          resourceCatalog(project),
+          filters,
+          forMapPicker: true,
+          activeMapId: 'a',
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    'context hides a brush without disarming it or inferring from map role',
+    () {
+      final project = workspaceProject.copyWith(
+        resourceLibraryCatalog: ResourceLibraryCatalog(
+          entries: [
+            ResourceLibraryEntry(
+              resourceKind: 'element',
+              resourceId: workspaceElement.id,
+              placementContext: ResourcePlacementContext.interior,
+            ),
+          ],
+        ),
+      );
+      final view = MapWorkspaceViewState()
+        ..brush = workspaceElement
+        ..tool = StudioMapTool.place;
+      addTearDown(view.dispose);
+      expect(view.resourceFilters.context, ResourceCatalogContext.all);
+      view.resourceFilters.context = ResourceCatalogContext.exterior;
+      expect(view.paletteResources(project, 'a'), isEmpty);
+      view.reconcileResources(project, mapId: 'a', map: workspaceMap('a'));
+      expect(view.brush?.id, workspaceElement.id);
+      expect(view.tool, StudioMapTool.place);
+      expect(view.resourceFilters.context, ResourceCatalogContext.exterior);
+      expect(
+        project.resourceLibraryCatalog.availableForMap(
+          'element',
+          workspaceElement.id,
+          'a',
+        ),
+        isTrue,
+      );
+      view.resourceFilters.context = ResourceCatalogContext.all;
+      expect(
+        view.paletteResources(project, 'a').single.id,
+        workspaceElement.id,
+      );
+    },
+  );
+
+  test('map role and indoor metadata never infer a context selection', () {
+    for (final role in MapRole.values) {
+      for (final indoor in [false, true]) {
+        final project = workspaceProject.copyWith(
+          maps: [
+            for (final map in workspaceProject.maps) map.copyWith(role: role),
+          ],
+        );
+        final view = MapWorkspaceViewState();
+        view.reconcileResources(
+          project,
+          mapId: 'a',
+          map: workspaceMap('a')
+              .copyWith(mapMetadata: MapMetadata(isIndoor: indoor)),
+        );
+        expect(
+          view.resourceFilters.context,
+          ResourceCatalogContext.all,
+          reason: '$role $indoor',
+        );
+        expect(view.paletteResources(project, 'a').map((item) => item.id), [
+          workspaceElement.id,
+        ]);
+        view.resourceFilters.context = ResourceCatalogContext.interior;
+        view.reconcileResources(
+          project,
+          mapId: 'b',
+          map: workspaceMap('b')
+              .copyWith(mapMetadata: MapMetadata(isIndoor: !indoor)),
+        );
+        expect(view.resourceFilters.context, ResourceCatalogContext.interior);
+        view.dispose();
+      }
+    }
+  });
+
   test(
     '3D decor palette hides components while semantic sources stay available',
     () {

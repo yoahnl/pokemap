@@ -88,8 +88,8 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
   final ValueChanged<ResourceKind>? onManageContainers;
-  final Widget? environmentLibrary;
-  final Widget? modelLibrary;
+  final Widget Function(List<ResourceItem> items)? environmentLibrary;
+  final Widget Function(List<ResourceItem> items)? modelLibrary;
   final VoidCallback? onImportModel;
   final VoidCallback? onCreateEnvironment;
   final VoidCallback? onManageFamilies;

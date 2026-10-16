@@ -24,11 +24,20 @@ class ResourceFamilyTree {
     String? activeMapId,
     bool forMapPicker = false,
     bool showComponents = false,
+    ResourceCatalogContext context = ResourceCatalogContext.all,
+    ResourceCatalogFilterState? filters,
   }) {
+    final treeFilters =
+        filters?.copy() ??
+        ResourceCatalogFilterState(
+          showComponents: showComponents,
+          context: context,
+        );
+    treeFilters.familyId = '';
     final available = filterResourceCatalog(
       project,
       items,
-      ResourceCatalogFilterState(showComponents: showComponents),
+      treeFilters,
       activeMapId: activeMapId,
       forMapPicker: forMapPicker,
     );

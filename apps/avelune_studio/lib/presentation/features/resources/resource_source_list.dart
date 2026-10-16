@@ -62,7 +62,7 @@ class _ResourceSourceListState extends State<ResourceSourceList> {
       widget.items,
       activeMapId: widget.activeMapId,
       forMapPicker: widget.forMapPicker,
-      showComponents: filters.showComponents,
+      filters: filters,
     );
     final label =
         tree.nodes
@@ -108,7 +108,7 @@ class _ResourceSourceListState extends State<ResourceSourceList> {
             ),
             ResourceFilterButton(
               filters: filters,
-              forMapPicker: true,
+              forMapPicker: widget.forMapPicker,
               onChanged: () => setState(() {}),
               countResults: (draft, _) => visible(draft).length,
             ),
@@ -118,7 +118,7 @@ class _ResourceSourceListState extends State<ResourceSourceList> {
         ResourceFilterTags(
           filters: filters,
           familyLabel: label,
-          forMapPicker: true,
+          forMapPicker: widget.forMapPicker,
           onChanged: () => setState(() {}),
         ),
         const SizedBox(height: 8),

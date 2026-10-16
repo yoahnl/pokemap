@@ -4,7 +4,6 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
 import 'resource_preview.dart';
@@ -13,6 +12,7 @@ class EnvironmentLibrary extends StatefulWidget {
   const EnvironmentLibrary({
     super.key,
     required this.project,
+    required this.items,
     required this.visuals,
     required this.onEdit,
     required this.onDuplicate,
@@ -21,6 +21,7 @@ class EnvironmentLibrary extends StatefulWidget {
     this.canDraw = true,
   });
   final ProjectManifest project;
+  final List<ResourceItem> items;
   final MapWorkspaceVisuals visuals;
   final ValueChanged<EnvironmentPreset> onEdit, onDuplicate, onRemove, onDraw;
   final bool canDraw;
@@ -30,36 +31,17 @@ class EnvironmentLibrary extends StatefulWidget {
 }
 
 class _EnvironmentLibraryState extends State<EnvironmentLibrary> {
-  final search = TextEditingController();
   String? selectedId;
 
   @override
-  void dispose() {
-    search.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final presets =
-        widget.project.environmentPresets
-            .where(
-              (preset) =>
-                  preset.name.toLowerCase().contains(search.text.toLowerCase()),
-            )
-            .toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+    final presets = widget.items.map((item) => item.environment!).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          StudioSearchField(
-            controller: search,
-            hint: 'Rechercher un environnement',
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 12),
           const Text(
             'Préparez la palette ici. Dessinez sa zone sur Carte, puis examinez l’aperçu avant de répartir les décors.',
           ),
@@ -91,7 +73,7 @@ class _EnvironmentLibraryState extends State<EnvironmentLibrary> {
                             key: ValueKey('environment-${preset.id}'),
                             label: preset.name,
                             subtitle:
-                                '${preset.palette.length} décor(s) · densité ${(preset.defaultParams.density * 100).round()} %',
+                                '${preset.palette.length} décor(s) · densité ${(preset.defaultParams.density * 100).round()} % · ${resourceCatalogContextLabel(widget.project, resource)}',
                             leading: resourcePreview(
                               resource,
                               widget.project,

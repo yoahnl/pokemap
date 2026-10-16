@@ -7,6 +7,8 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../resources/resource_catalog.dart';
+import '../resources/resource_filter_button.dart';
 import 'map_workspace_view_state.dart';
 
 class MapBorderToolPanel extends StatelessWidget {
@@ -254,21 +256,38 @@ class MapBorderToolPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final models = MapBorderEditingCommands.publishedLines(project)
-        .where(
-          (model) => project.resourceLibraryCatalog.availableForMap(
-            'borderBlueprint',
-            model.id,
-            document.current.id,
-          ),
-        )
-        .toList();
+    final eligible = MapBorderEditingCommands.publishedLines(project);
+    final eligibleIds = eligible.map((model) => model.id).toSet();
+    final models = filterResourceCatalog(
+      project,
+      resourceCatalog(
+        project,
+      ).where((item) => item.border != null && eligibleIds.contains(item.id)),
+      view.resourceFilters,
+      activeMapId: document.current.id,
+      forMapPicker: true,
+    ).map((item) => item.border!).toList();
+    Widget contextFilters() => ResourceFilterButton(
+      filters: view.resourceFilters,
+      activeMapName: document.current.name,
+      forMapPicker: true,
+      onChanged: onChanged,
+      countResults: (draft, _) => filterResourceCatalog(
+        project,
+        resourceCatalog(
+          project,
+        ).where((item) => item.border != null && eligibleIds.contains(item.id)),
+        draft,
+        activeMapId: document.current.id,
+        forMapPicker: true,
+      ).length,
+    );
     final selected = models.any((item) => item.id == view.borderBlueprintId)
         ? view.borderBlueprintId
         : null;
     final straightOnly =
-        models
-            .where((item) => item.id == selected)
+        eligible
+            .where((item) => item.id == view.borderBlueprintId)
             .firstOrNull
             ?.latestPublished
             ?.definition
@@ -306,6 +325,7 @@ class MapBorderToolPanel extends StatelessWidget {
           ),
         ),
       ),
+      contextFilters(),
       if (!spatial || draft == null) ...[
         Text(
           view.borderEditingMode == BorderStrokeEditingMode.erase
@@ -393,9 +413,10 @@ class MapBorderToolPanel extends StatelessWidget {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Text(
-                        'Aucun modèle de bordure linéaire n’est publié dans ce projet.',
-                      ),
+                      contextFilters(),
+                      Text(eligible.isEmpty
+                        ? 'Aucun modèle de bordure linéaire n’est publié dans ce projet.'
+                        : 'Aucune bordure ne correspond aux filtres.'),
                       StudioButton(
                         label: 'Créer un modèle',
                         icon: Icons.add,

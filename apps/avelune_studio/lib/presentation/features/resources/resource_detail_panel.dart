@@ -94,6 +94,7 @@ class ResourceDetailPanel extends StatelessWidget {
                   children: [
                     StudioBadge(entry.typeLabel),
                     StudioBadge(resourceCatalogScopeLabel(project, entry)),
+                    StudioBadge(resourceCatalogContextLabel(project, entry)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -101,7 +102,7 @@ class ResourceDetailPanel extends StatelessWidget {
                 if (onClassify != null)
                   StudioButton(
                     key: const ValueKey('resource-classify'),
-                    label: 'Modifier la famille et la disponibilité',
+                    label: 'Ranger la ressource',
                     icon: Icons.folder_outlined,
                     secondary: true,
                     onPressed: () => onClassify!(entry),
@@ -210,6 +211,7 @@ class ResourceDetailPanel extends StatelessWidget {
     final rows = <(String, String)>[
       ('Famille', resourceCatalogFamilyLabel(project, entry)),
       ('Portée', resourceCatalogScopeLabel(project, entry)),
+      ('Contexte d’usage', resourceCatalogContextLabel(project, entry)),
       if (entry.border != null) ('Aperçu', 'Une pièce de la bordure'),
       if (entry.environment != null) ('Aperçu', 'Un décor de la palette'),
       if (tileset != null) ('Source', tileset.name),

@@ -6,6 +6,8 @@ import 'package:avelune_studio/presentation/features/characters/character_worksp
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -19,6 +21,214 @@ Future<void> _choose(WidgetTester tester, String key, String label) async {
 }
 
 void main() {
+  testWidgets('context filter exposes an explicit usage context', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ResourceFilterButton(
+            filters: ResourceCatalogFilterState(),
+            onChanged: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('resource-filter-context')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'context draft counts apply cancel reset tag and keyboard in a small window',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(680, 560));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final project = workspaceProject.copyWith(
+        tilesets: [],
+        elements: [
+          workspaceElement.copyWith(id: 'inside'),
+          workspaceElement.copyWith(id: 'outside'),
+        ],
+        resourceLibraryCatalog: ResourceLibraryCatalog(
+          entries: [
+            ResourceLibraryEntry(
+              resourceKind: 'element',
+              resourceId: 'inside',
+              placementContext: ResourcePlacementContext.interior,
+            ),
+            ResourceLibraryEntry(
+              resourceKind: 'element',
+              resourceId: 'outside',
+              placementContext: ResourcePlacementContext.exterior,
+            ),
+          ],
+        ),
+      );
+      final filters = ResourceCatalogFilterState();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.5)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, rebuild) => Column(
+                children: [
+                  ResourceFilterButton(
+                    filters: filters,
+                    onChanged: () => rebuild(() {}),
+                    countResults: (draft, _) => filterResourceCatalog(
+                      project,
+                      resourceCatalog(project),
+                      draft,
+                    ).length,
+                  ),
+                  ResourceFilterTags(
+                    filters: filters,
+                    onChanged: () => rebuild(() {}),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      Future<void> open() async {
+        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+        await tester.pumpAndSettle();
+      }
+
+      void draft(String value) => tester
+          .widget<StudioSelect>(
+            find.byKey(const ValueKey('resource-filter-context')),
+          )
+          .onChanged!(value);
+      String count() => tester
+          .widget<Text>(
+            find.byKey(const ValueKey('resource-filter-result-count')),
+          )
+          .data!;
+      await open();
+      expect(
+        MediaQuery.textScalerOf(
+          tester.element(find.byKey(const ValueKey('resource-filter-context'))),
+        ).scale(10),
+        15,
+      );
+      expect(count(), '2 résultats');
+      draft('interior');
+      await tester.pump();
+      expect(count(), '1 résultat');
+      expect(filters.context, ResourceCatalogContext.all);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(filters.context, ResourceCatalogContext.all);
+      await open();
+      draft('exterior');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('resource-filter-cancel')));
+      await tester.pumpAndSettle();
+      expect(filters.context, ResourceCatalogContext.all);
+      await open();
+      draft('unspecified');
+      await tester.pump();
+      expect(count(), '0 résultats');
+      await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+      await tester.pumpAndSettle();
+      expect(filters.context, ResourceCatalogContext.unspecified);
+      expect(find.text('Filtres (1)'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('resource-filter-tag-context')),
+        findsOneWidget,
+      );
+      await open();
+      await tester.tap(find.byKey(const ValueKey('resource-filter-reset')));
+      await tester.pump();
+      expect(count(), '2 résultats');
+      expect(filters.context, ResourceCatalogContext.unspecified);
+      await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+      await tester.pumpAndSettle();
+      expect(filters.context, ResourceCatalogContext.all);
+      await open();
+      draft('interior');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('Retirer le filtre Contexte : Intérieur')),
+      );
+      await tester.pumpAndSettle();
+      expect(filters.context, ResourceCatalogContext.all);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('context can be chosen and applied with keyboard traversal', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(680, 560));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final filters = ResourceCatalogFilterState();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, rebuild) => ResourceFilterButton(
+              filters: filters,
+              forMapPicker: true,
+              onChanged: () => rebuild(() {}),
+            ),
+          ),
+        ),
+      ),
+    );
+    Future<void> key(LogicalKeyboardKey value) async {
+      await tester.sendKeyEvent(value);
+      await tester.pumpAndSettle();
+    }
+
+    await key(LogicalKeyboardKey.tab);
+    await key(LogicalKeyboardKey.enter);
+    expect(
+      find.byKey(const ValueKey('resource-filter-context')),
+      findsOneWidget,
+    );
+    await key(LogicalKeyboardKey.tab);
+    await key(LogicalKeyboardKey.tab);
+    await key(LogicalKeyboardKey.enter);
+    await key(LogicalKeyboardKey.arrowDown);
+    await key(LogicalKeyboardKey.enter);
+    expect(
+      tester
+          .widget<StudioSelect>(
+            find.byKey(const ValueKey('resource-filter-context')),
+          )
+          .value,
+      'interior',
+    );
+    expect(filters.context, ResourceCatalogContext.all);
+    for (var i = 0; i < 5; i++) {
+      await key(LogicalKeyboardKey.tab);
+    }
+    await key(LogicalKeyboardKey.enter);
+    expect(find.byKey(const ValueKey('resource-filter-context')), findsNothing);
+    expect(filters.context, ResourceCatalogContext.interior);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('components draft counts apply cancel reset and removable tag', (
     tester,
   ) async {

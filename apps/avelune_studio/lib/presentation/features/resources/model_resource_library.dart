@@ -13,6 +13,7 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_navigation.dart';
+import 'resource_catalog.dart';
 import 'model_animation_controls.dart';
 import 'model_collision_controls.dart';
 
@@ -84,7 +85,12 @@ Future<void> replaceStudioModelSource(
 }
 
 class ModelResourceLibrary extends StatefulWidget {
-  const ModelResourceLibrary({super.key, required this.navigation});
+  const ModelResourceLibrary({
+    super.key,
+    required this.navigation,
+    required this.items,
+  });
+  final List<ResourceItem> items;
   final ResourceNavigation navigation;
 
   @override
@@ -189,12 +195,18 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
         'L’import 3D est indisponible dans cette session.',
       );
     }
-    final models = n.workspace.project!.models3d;
+    final models = widget.items.map((item) => item.model3d!).toList();
     final preferred = selectedId ?? n.library.selectedId;
     var selected = models.where((m) => m.id == preferred).firstOrNull;
     if (selected == null && models.isNotEmpty) {
       selected = models.first;
       select(selected);
+    }
+    if (selected != null && selectedId != selected.id) select(selected);
+    if (models.isEmpty && n.workspace.project!.models3d.isNotEmpty) {
+      return const Center(
+        child: StudioNotice('Aucun modèle ne correspond aux filtres.'),
+      );
     }
     if (models.isEmpty) {
       return const Center(
@@ -217,16 +229,19 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
         final list = ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            for (final item in models)
+            for (final resource in widget.items)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: StudioChoice(
-                  label: item.name,
+                  key: ValueKey('model-resource-${resource.model3d!.id}'),
+                  label: resource.model3d!.name,
                   subtitle:
-                      '${item.inspection.triangleCount} triangles · ${item.inspection.animations.length} animations',
+                      '${resource.model3d!.inspection.triangleCount} triangles · ${resource.model3d!.inspection.animations.length} animations · ${resourceCatalogContextLabel(n.workspace.project!, resource)}',
                   leading: const Icon(Icons.view_in_ar_outlined),
-                  selected: item.id == model.id,
-                  onTap: n.busy ? null : () => setState(() => select(item)),
+                  selected: resource.model3d!.id == model.id,
+                  onTap: n.busy
+                      ? null
+                      : () => setState(() => select(resource.model3d!)),
                 ),
               ),
           ],

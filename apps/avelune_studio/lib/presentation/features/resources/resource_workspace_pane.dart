@@ -140,7 +140,8 @@ class ResourceWorkspacePane extends StatelessWidget {
             ),
           Expanded(
             child: ResourceLibraryScreen(
-              modelLibrary: ModelResourceLibrary(navigation: n),
+              modelLibrary: (items) =>
+                  ModelResourceLibrary(navigation: n, items: items),
               onImportModel: n.busy ? null : () => importStudioModel(n),
               project: project,
               openMaps: n.workspace.documents.values
@@ -184,7 +185,8 @@ class ResourceWorkspacePane extends StatelessWidget {
               onCharacters: n.openCharacters,
               onBack: onBack,
               onCreateEnvironment: n.openEnvironment,
-              environmentLibrary: EnvironmentLibrary(
+              environmentLibrary: (items) => EnvironmentLibrary(
+                items: items,
                 project: project,
                 visuals: visuals,
                 onEdit: n.openEnvironment,

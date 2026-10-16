@@ -12,7 +12,9 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
         item.element != null || item.model3d != null,
       ResourceLibraryFamily.terrains => item.terrain != null,
       ResourceLibraryFamily.images => item.tileset != null,
-      _ => true,
+      ResourceLibraryFamily.borders => item.border != null,
+      ResourceLibraryFamily.environments => item.environment != null,
+      ResourceLibraryFamily.models3d => item.model3d != null,
     };
     List<ResourceItem> matchingResources(
       ResourceCatalogFilterState filters,
@@ -30,7 +32,6 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
           .where(
             (item) =>
                 atelierIncludes(item) &&
-                item.kind == state.kind &&
                 (category.isEmpty ||
                     (category == uncategorizedResourceCategory
                         ? item.category.isEmpty
@@ -106,11 +107,58 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                   ),
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ResourceCatalogToolbar(
+                    search: search,
+                    compact: !regular || bounds.maxHeight < 550,
+                    state: state,
+                    count: filtered.length,
+                    onSearch: (value) => change(() => state.query = value),
+                    onSort: (value) => change(() => state.sort = value),
+                    onGrid: (value) => change(() => state.grid = value),
+                    filters: ResourceFilterButton(
+                      filters: state.filters,
+                      activeMapName: widget.targetMapName,
+                      categoryTree: regular && state.atelierVisible
+                          ? categoriesTree
+                          : null,
+                      category: state.category,
+                      onCategoryChanged: regular && state.atelierVisible
+                          ? (value) => state.category = value
+                          : null,
+                      onChanged: () => change(() {}),
+                      countResults: (filters, category) =>
+                          matchingResources(filters, category).length,
+                    ),
+                  ),
+                  if (state.filters.familyId.isNotEmpty ||
+                      state.filters.showComponents ||
+                      state.filters.context != ResourceCatalogContext.all ||
+                      state.filters.scope != ResourceCatalogScope.all ||
+                      state.filters.usage != ResourceCatalogUsage.all ||
+                      categoryName != null) ...[
+                    const SizedBox(height: 8),
+                    ResourceFilterTags(
+                      filters: state.filters,
+                      familyLabel: familyName,
+                      categoryLabel: categoryName,
+                      onClearCategory: () => state.category = '',
+                      onChanged: () => change(() {}),
+                    ),
+                  ],
+                ],
+              ),
+            ),
             if (state.atelierVisible &&
                 state.family == ResourceLibraryFamily.borders)
               Expanded(
                 child: ResourceBorderDraftBar(
-                  records: widget.project.borderCatalog.records,
+                  project: widget.project,
+                  records: filtered.map((item) => item.border!).toList(),
                   onResume: widget.onResumeBorder,
                   onManage: widget.onManageBorder,
                   library: true,
@@ -120,61 +168,15 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                 state.family == ResourceLibraryFamily.environments)
               Expanded(
                 child:
-                    widget.environmentLibrary ??
+                    widget.environmentLibrary?.call(filtered) ??
                     const Center(child: Text('Aucun environnement préparé.')),
               ),
             if (state.atelierVisible &&
                 state.family == ResourceLibraryFamily.models3d)
               Expanded(
                 child:
-                    widget.modelLibrary ??
+                    widget.modelLibrary?.call(filtered) ??
                     const Center(child: Text('Bibliothèque 3D indisponible.')),
-              ),
-            if (regular)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ResourceCatalogToolbar(
-                      search: search,
-                      compact: bounds.maxHeight < 550,
-                      state: state,
-                      count: filtered.length,
-                      onSearch: (value) => change(() => state.query = value),
-                      onSort: (value) => change(() => state.sort = value),
-                      onGrid: (value) => change(() => state.grid = value),
-                      filters: ResourceFilterButton(
-                        filters: state.filters,
-                        activeMapName: widget.targetMapName,
-                        categoryTree: state.atelierVisible
-                            ? categoriesTree
-                            : null,
-                        category: state.category,
-                        onCategoryChanged: state.atelierVisible
-                            ? (value) => state.category = value
-                            : null,
-                        onChanged: () => change(() {}),
-                        countResults: (filters, category) =>
-                            matchingResources(filters, category).length,
-                      ),
-                    ),
-                    if (state.filters.familyId.isNotEmpty ||
-                        state.filters.showComponents ||
-                        state.filters.scope != ResourceCatalogScope.all ||
-                        state.filters.usage != ResourceCatalogUsage.all ||
-                        categoryName != null) ...[
-                      const SizedBox(height: 8),
-                      ResourceFilterTags(
-                        filters: state.filters,
-                        familyLabel: familyName,
-                        categoryLabel: categoryName,
-                        onClearCategory: () => state.category = '',
-                        onChanged: () => change(() {}),
-                      ),
-                    ],
-                  ],
-                ),
               ),
             if (regular &&
                 state.atelierVisible &&

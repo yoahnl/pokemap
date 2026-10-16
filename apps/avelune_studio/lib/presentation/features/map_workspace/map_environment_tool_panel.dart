@@ -7,6 +7,8 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_workspace_view_state.dart';
+import '../resources/resource_catalog.dart';
+import '../resources/resource_filter_button.dart';
 
 class MapEnvironmentToolPanel extends StatelessWidget {
   const MapEnvironmentToolPanel({
@@ -218,39 +220,71 @@ Future<EnvironmentPreset?> chooseEnvironmentPreset(
   BuildContext context,
   ProjectManifest project, {
   String? mapId,
-}) => showDialog<EnvironmentPreset>(
-  context: context,
-  builder: (context) => AlertDialog(
-    title: const Text('Choisir un environnement'),
-    content: SizedBox(
-      width: 420,
-      height: 280,
-      child: ListView(
-        children: [
-          for (final preset in project.environmentPresets)
-            if (mapId == null ||
-                project.resourceLibraryCatalog.availableForMap(
-                  'environmentPreset',
-                  preset.id,
-                  mapId,
-                ))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: StudioButton(
-                  label: preset.name,
-                  secondary: true,
-                  onPressed: () => Navigator.pop(context, preset),
+}) {
+  final filters = ResourceCatalogFilterState();
+  final candidates = resourceCatalog(project)
+      .where((item) => item.environment != null)
+      .toList();
+  List<ResourceItem> visible(ResourceCatalogFilterState state) =>
+      filterResourceCatalog(
+        project,
+        candidates,
+        state,
+        activeMapId: mapId,
+        forMapPicker: mapId != null,
+      );
+  return showDialog<EnvironmentPreset>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, refresh) => AlertDialog(
+        title: const Text('Choisir un environnement'),
+        content: SizedBox(
+          width: 420,
+          height: 380,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ResourceFilterButton(
+                filters: filters,
+                forMapPicker: mapId != null,
+                onChanged: () => refresh(() {}),
+                countResults: (draft, _) => visible(draft).length,
+              ),
+              const SizedBox(height: 8),
+              ResourceFilterTags(
+                filters: filters,
+                forMapPicker: mapId != null,
+                onChanged: () => refresh(() {}),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final item in visible(filters))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: StudioButton(
+                          key: ValueKey('environment-preset-${item.id}'),
+                          label: item.name,
+                          secondary: true,
+                          onPressed: () =>
+                              Navigator.pop(context, item.environment),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ],
+          ),
+        ),
+        actions: [
+          StudioButton(
+            label: 'Annuler',
+            secondary: true,
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
       ),
     ),
-    actions: [
-      StudioButton(
-        label: 'Annuler',
-        secondary: true,
-        onPressed: () => Navigator.pop(context),
-      ),
-    ],
-  ),
-);
+  );
+}

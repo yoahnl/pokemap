@@ -56,7 +56,7 @@ class ResourceCatalogView extends StatelessWidget {
   );
 
   String metadata(ResourceItem item) {
-    return '${resourceCatalogFamilyLabel(project, item)} · ${resourceCatalogScopeLabel(project, item)}';
+    return '${resourceCatalogFamilyLabel(project, item)} · ${resourceCatalogScopeLabel(project, item)} · ${resourceCatalogContextLabel(project, item)}';
   }
 
   @override

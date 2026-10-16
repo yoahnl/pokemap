@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock_filters.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_tile_palette.dart';
@@ -17,6 +18,75 @@ import '../support/spatial_narrative_fixture.dart';
 
 void main() {
   for (final dock in [false, true]) {
+    testWidgets(
+      '${dock ? 'dock' : 'full palette'} context controls filter cards and retain a masked brush',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final base = _project();
+        final project = base.copyWith(
+          resourceLibraryCatalog: ResourceLibraryCatalog(
+            families: base.resourceLibraryCatalog.families,
+            entries: [
+              for (final entry in base.resourceLibraryCatalog.entries)
+                ResourceLibraryEntry(
+                  resourceKind: entry.resourceKind,
+                  resourceId: entry.resourceId,
+                  familyId: entry.familyId,
+                  mapId: entry.mapId,
+                  placementContext: entry.resourceId == 'house'
+                      ? ResourcePlacementContext.exterior
+                      : ResourcePlacementContext.interior,
+                ),
+            ],
+          ),
+        );
+        final view = MapWorkspaceViewState()
+          ..brush = project.elements.firstWhere((item) => item.id == 'a-tree')
+          ..tool = StudioMapTool.place;
+        final search = TextEditingController();
+        addTearDown(view.dispose);
+        addTearDown(search.dispose);
+        await tester.pumpWidget(
+          _palette(dock, project, _document(workspaceMap('a')), view, search),
+        );
+        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+        await tester.pumpAndSettle();
+        tester
+            .widget<StudioSelect>(
+              find.byKey(const ValueKey('resource-filter-context')),
+            )
+            .onChanged!('exterior');
+        await tester.pump();
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('resource-filter-result-count')),
+              )
+              .data,
+          '1 résultat',
+        );
+        await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('decor-a-tree')), findsNothing);
+        expect(find.byKey(const ValueKey('decor-house')), findsOneWidget);
+        expect(view.brush?.id, 'a-tree');
+        expect(view.tool, StudioMapTool.place);
+        expect(
+          find.byKey(const ValueKey('resource-filter-tag-context')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('Retirer le filtre Contexte : Extérieur')),
+        );
+        await tester.pumpAndSettle();
+        expect(view.resourceFilters.context, ResourceCatalogContext.all);
+        expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
+        expect(view.brush?.id, 'a-tree');
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     testWidgets(
       '${dock ? 'dock' : 'full palette'} exposes family and scope filters',
       (tester) async {
@@ -142,6 +212,15 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
         await tester.pumpAndSettle();
         expect(view.resourceFilters.scope, ResourceCatalogScope.map);
+        expect(
+          tester
+              .widget<MapWorkspacePaletteDockFilters>(
+                find.byType(MapWorkspacePaletteDockFilters).first,
+              )
+              .tree
+              .total,
+          1,
+        );
         if (!dock) expect(changes, 0);
         expect(find.byKey(const ValueKey('decor-shared-tree')), findsNothing);
         expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
@@ -215,6 +294,15 @@ void main() {
           ),
         );
         expect(find.byKey(const ValueKey('character-guide')), findsNothing);
+        expect(
+          tester
+              .widget<MapWorkspacePaletteDockFilters>(
+                find.byType(MapWorkspacePaletteDockFilters).first,
+              )
+              .tree
+              .total,
+          0,
+        );
         await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
         await tester.pumpAndSettle();
         expect(

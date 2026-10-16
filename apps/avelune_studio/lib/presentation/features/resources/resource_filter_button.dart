@@ -56,6 +56,7 @@ class ResourceFilterButton extends StatelessWidget {
         (filters.scope == ResourceCatalogScope.all ? 0 : 1) +
         (!forMapPicker && filters.usage != ResourceCatalogUsage.all ? 1 : 0) +
         (filters.showComponents ? 1 : 0) +
+        (filters.context == ResourceCatalogContext.all ? 0 : 1) +
         (categoryTree != null && category.isNotEmpty ? 1 : 0);
     return StudioButton(
       key: const ValueKey('resource-filter-button'),
@@ -80,6 +81,21 @@ class ResourceFilterButton extends StatelessWidget {
                     child: StudioPanel(
                       compact: true,
                       children: [
+                        StudioSelect(
+                          key: const ValueKey('resource-filter-context'),
+                          label: 'Contexte d’usage',
+                          value: draft.context.name,
+                          options: {
+                            for (final value in ResourceCatalogContext.values)
+                              value.name: value.label,
+                          },
+                          onChanged: (value) {
+                            draft.context = ResourceCatalogContext.values
+                                .byName(value);
+                            refresh();
+                          },
+                        ),
+                        const SizedBox(height: 16),
                         StudioSelect(
                           key: const ValueKey('resource-filter-scope'),
                           label: 'Disponibilité',
@@ -181,6 +197,7 @@ class ResourceFilterButton extends StatelessWidget {
                             label: 'Réinitialiser',
                             secondary: true,
                             onPressed: () {
+                              draft.context = ResourceCatalogContext.all;
                               draft.scope = ResourceCatalogScope.all;
                               draft.usage = ResourceCatalogUsage.all;
                               draft.showComponents = false;
@@ -198,6 +215,7 @@ class ResourceFilterButton extends StatelessWidget {
                             key: const ValueKey('resource-filter-apply'),
                             label: 'Appliquer',
                             onPressed: () {
+                              filters.context = draft.context;
                               filters.scope = draft.scope;
                               filters.usage = draft.usage;
                               filters.showComponents = draft.showComponents;
@@ -243,6 +261,15 @@ class ResourceFilterTags extends StatelessWidget {
     spacing: 8,
     runSpacing: 8,
     children: [
+      if (filters.context != ResourceCatalogContext.all)
+        StudioFilterTag(
+          key: const ValueKey('resource-filter-tag-context'),
+          label: 'Contexte : ${filters.context.label}',
+          onRemove: () {
+            filters.context = ResourceCatalogContext.all;
+            onChanged();
+          },
+        ),
       if (filters.showComponents)
         StudioFilterTag(
           key: const ValueKey('resource-filter-tag-components'),

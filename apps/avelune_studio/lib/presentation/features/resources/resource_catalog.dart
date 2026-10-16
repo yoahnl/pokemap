@@ -23,6 +23,25 @@ enum ResourceSort { nameAscending, nameDescending }
 
 enum ResourceCatalogScope { all, project, map }
 
+enum ResourceCatalogContext { all, interior, exterior, unspecified }
+
+extension ResourceCatalogContextLabels on ResourceCatalogContext {
+  String get label => switch (this) {
+    ResourceCatalogContext.all => 'Tous',
+    ResourceCatalogContext.interior => 'Intérieur',
+    ResourceCatalogContext.exterior => 'Extérieur',
+    ResourceCatalogContext.unspecified => 'Non renseigné',
+  };
+}
+
+String resourcePlacementContextLabel(ResourcePlacementContext? value) =>
+    switch (value) {
+      ResourcePlacementContext.interior => 'Intérieur',
+      ResourcePlacementContext.exterior => 'Extérieur',
+      ResourcePlacementContext.both => 'Les deux',
+      null => 'Non renseigné',
+    };
+
 enum ResourceCatalogUsage { all, place, paint, trace, scatter }
 
 const unclassifiedResourceFamily = '__unclassified__';
@@ -44,12 +63,14 @@ class ResourceCatalogFilterState {
     this.familyId = '',
     this.scope = ResourceCatalogScope.all,
     this.usage = ResourceCatalogUsage.all,
+    this.context = ResourceCatalogContext.all,
     this.query = '',
     this.showComponents = false,
   });
   String familyId;
   ResourceCatalogScope scope;
   ResourceCatalogUsage usage;
+  ResourceCatalogContext context;
   String query;
   bool showComponents;
 
@@ -57,6 +78,7 @@ class ResourceCatalogFilterState {
     familyId: familyId,
     scope: scope,
     usage: usage,
+    context: context,
     query: query,
     showComponents: showComponents,
   );
@@ -65,6 +87,7 @@ class ResourceCatalogFilterState {
     familyId = value.familyId;
     scope = value.scope;
     usage = value.usage;
+    context = value.context;
     query = value.query;
     showComponents = value.showComponents;
   }
@@ -73,6 +96,7 @@ class ResourceCatalogFilterState {
     familyId = '';
     scope = ResourceCatalogScope.all;
     usage = ResourceCatalogUsage.all;
+    context = ResourceCatalogContext.all;
     query = '';
     showComponents = false;
   }
@@ -276,6 +300,7 @@ class ResourceLibraryState {
     if (!matchesCategory(item)) category = '';
     filters.familyId = '';
     filters.scope = ResourceCatalogScope.all;
+    filters.context = ResourceCatalogContext.all;
     filters.usage = ResourceCatalogUsage.all;
     select(item);
     revealPending = true;
@@ -360,6 +385,18 @@ List<ResourceItem> filterResourceCatalog(
   final query = filters.query.trim().toLowerCase();
   return items.where((item) {
     final entry = item.metadata(manifest);
+    final placementContext = entry?.placementContext;
+    final matchesContext = switch (filters.context) {
+      ResourceCatalogContext.all => true,
+      ResourceCatalogContext.interior =>
+        placementContext == ResourcePlacementContext.interior ||
+            placementContext == ResourcePlacementContext.both,
+      ResourceCatalogContext.exterior =>
+        placementContext == ResourcePlacementContext.exterior ||
+            placementContext == ResourcePlacementContext.both,
+      ResourceCatalogContext.unspecified => placementContext == null,
+    };
+    if (!matchesContext) return false;
     if (!filters.showComponents &&
         entry?.role == ResourceLibraryRole.component) {
       return false;
@@ -392,6 +429,11 @@ List<ResourceItem> filterResourceCatalog(
         '${item.name} ${item.tags.join(' ')}'.toLowerCase().contains(query);
   }).toList();
 }
+
+String resourceCatalogContextLabel(
+  ProjectManifest project,
+  ResourceItem item,
+) => resourcePlacementContextLabel(item.metadata(project)?.placementContext);
 
 String resourceCatalogFamilyLabel(ProjectManifest project, ResourceItem item) {
   final id = item.metadata(project)?.familyId;

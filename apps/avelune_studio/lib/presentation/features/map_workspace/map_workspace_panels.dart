@@ -245,7 +245,9 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
       resources,
       activeMapId: map.id,
       forMapPicker: true,
-      showComponents: view.resourceFilters.showComponents,
+      filters: kind == 'Personnages'
+          ? (view.resourceFilters.copy()..query = view.characterQuery)
+          : view.resourceFilters,
     );
     void filtersChanged() {
       setState(() {});

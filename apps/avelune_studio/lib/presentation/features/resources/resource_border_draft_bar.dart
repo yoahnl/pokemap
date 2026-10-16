@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
+import 'resource_catalog.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../map_workspace/workspace_compact_panel.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
 
 enum BorderResourceAction { usages, deleteDraft, deprecate, reactivate }
 
@@ -14,12 +15,14 @@ class ResourceBorderDraftBar extends StatefulWidget {
   const ResourceBorderDraftBar({
     super.key,
     required this.records,
+    required this.project,
     required this.onResume,
     this.onManage,
     this.compact = false,
     this.library = false,
   });
   final List<BorderBlueprintRecord> records;
+  final ProjectManifest project;
   final ValueChanged<BorderBlueprintRecord> onResume;
   final void Function(BorderBlueprintRecord, BorderResourceAction)? onManage;
   final bool compact;
@@ -31,15 +34,8 @@ class ResourceBorderDraftBar extends StatefulWidget {
 
 class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
   _BorderView _view = _BorderView.drafts;
-  final _search = TextEditingController();
-  String _query = '';
 
   List<BorderBlueprintRecord> get _visible => widget.records.where((record) {
-    if (!record.draft.definition.name.toLowerCase().contains(
-      _query.toLowerCase(),
-    )) {
-      return false;
-    }
     return switch (_view) {
       _BorderView.drafts => true,
       _BorderView.published =>
@@ -78,6 +74,7 @@ class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
                 children: [
                   Expanded(
                     child: StudioButton(
+                      key: ValueKey('border-resource-${record.id}'),
                       label: record.latestPublished == null
                           ? 'Reprendre « ${record.draft.definition.name} »'
                           : 'Modifier « ${record.draft.definition.name} »',
@@ -104,8 +101,8 @@ class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
               const SizedBox(height: 4),
               Text(
                 record.latestPublished == null
-                    ? 'Préparation jamais publiée'
-                    : 'Brouillon et publication r${record.latestPublished!.revision}${record.isDeprecated ? ' · Dépréciée' : ''}',
+                    ? 'Préparation jamais publiée · ${resourcePlacementContextLabel(widget.project.resourceLibraryCatalog.entryFor('borderBlueprint', record.id)?.placementContext)}'
+                    : 'Brouillon et publication r${record.latestPublished!.revision}${record.isDeprecated ? ' · Dépréciée' : ''} · ${resourcePlacementContextLabel(widget.project.resourceLibraryCatalog.entryFor('borderBlueprint', record.id)?.placementContext)}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -175,24 +172,12 @@ class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
   }
 
   @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
     child: widget.library
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              StudioSearchField(
-                controller: _search,
-                hint: 'Rechercher une bordure',
-                onChanged: (value) => setState(() => _query = value),
-              ),
-              const SizedBox(height: 12),
               _tabs((view) => setState(() => _view = view)),
               const SizedBox(height: 12),
               const Text(

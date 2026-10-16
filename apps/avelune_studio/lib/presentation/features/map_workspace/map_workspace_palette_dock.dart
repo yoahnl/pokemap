@@ -69,7 +69,10 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
       items,
       activeMapId: map.id,
       forMapPicker: true,
-      showComponents: widget.view.resourceFilters.showComponents,
+      filters: kind == 'Personnages'
+          ? (widget.view.resourceFilters.copy()
+              ..query = widget.view.characterQuery)
+          : widget.view.resourceFilters,
     );
     final visible = widget.view.paletteResources(widget.project, map.id);
     final preferredHeight = _height ?? (widget.compact ? 184.0 : 270.0);

@@ -5,6 +5,7 @@ import 'package:avelune_studio/presentation/features/resources/resource_catalog.
 import 'package:avelune_studio/presentation/features/resources/resource_family_tree_view.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_family_tree.dart';
 import 'package:flutter/material.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -97,6 +98,19 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(search.text, isEmpty);
     expect(searches, 4);
+    await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+    await tester.pumpAndSettle();
+    tester
+        .widget<StudioSelect>(
+          find.byKey(const ValueKey('resource-filter-context')),
+        )
+        .onChanged!('interior');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+    await tester.pumpAndSettle();
+    expect(filters.context, ResourceCatalogContext.interior);
+    expect(filters.familyId, 'trees');
+    expect(searches, 5);
   });
 
   testWidgets('the map dock filters real cards and clears a hidden search', (

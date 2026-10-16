@@ -59,6 +59,7 @@ Future<void> classifyResource(
   final catalog = project.resourceLibraryCatalog;
   final entry = catalog.entryFor(item.canonicalKind, item.id);
   var familyId = entry?.familyId;
+  var placementContext = entry?.placementContext;
   var mapId = entry?.mapId;
   var role = entry?.role ?? ResourceLibraryRole.standard;
   try {
@@ -70,6 +71,7 @@ Future<void> classifyResource(
         title: 'Ranger « ${item.name} »',
         submitLabel: 'Enregistrer',
         dirty: () =>
+            placementContext != entry?.placementContext ||
             familyId != entry?.familyId ||
             mapId != entry?.mapId ||
             role != (entry?.role ?? ResourceLibraryRole.standard),
@@ -81,10 +83,30 @@ Future<void> classifyResource(
           'familyId': familyId,
           'mapId': mapId,
           'role': role.name,
+          'placementContext': placementContext?.name,
         }, expectedSnapshotRevision: revision),
         fields: (refresh, busy) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            StudioSelect(
+              key: const ValueKey('resource-classify-context'),
+              label: 'Contexte d’usage',
+              value: placementContext?.name ?? '',
+              options: {
+                '': resourcePlacementContextLabel(null),
+                for (final value in ResourcePlacementContext.values)
+                  value.name: resourcePlacementContextLabel(value),
+              },
+              onChanged: busy
+                  ? null
+                  : (value) {
+                      placementContext = value.isEmpty
+                          ? null
+                          : ResourcePlacementContext.values.byName(value);
+                      refresh();
+                    },
+            ),
+            const SizedBox(height: 16),
             StudioSelect(
               key: const ValueKey('resource-classify-role'),
               label: 'Présentation dans la bibliothèque',

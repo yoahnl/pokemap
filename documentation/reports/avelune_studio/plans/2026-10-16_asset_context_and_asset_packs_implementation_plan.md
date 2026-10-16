@@ -643,7 +643,7 @@ node --import tsx --test test/resource_library_stdio.test.ts
 
 **Créer :** test/presentation/resource_context_specialized_libraries_test.dart.
 
-- [ ] Écrire la matrice de filtrage ci-dessous dans les tests de catalogue.
+- [x] Écrire la matrice de filtrage ci-dessous dans les tests de catalogue.
 
 | Contexte de ressource | Tous | Intérieur | Extérieur | Non renseigné |
 |---|---|---|---|---|
@@ -652,13 +652,13 @@ node --import tsx --test test/resource_library_stdio.test.ts
 | exterior | Oui | Non | Oui | Non |
 | both | Oui | Oui | Oui | Non |
 
-- [ ] Vérifier l'intersection avec recherche, famille descendante, composants, portée et dimension.
-- [ ] Ajouter le sélecteur d'édition et le filtre en réutilisant les primitives Studio ; tester le défaut Tous et l'absence d'inférence depuis la carte.
-- [ ] Tester chaque transition Apply/Cancel/Reset/suppression du tag/reveal ; un filtre annulé ne modifie pas l'état courant.
-- [ ] Ajouter un test positif pour chacune des trois bibliothèques spécialisées et les deux sélecteurs secondaires.
-- [ ] Vérifier qu'un filtre cache la carte de ressource sans retirer le pinceau déjà choisi et sans toucher aux instances.
-- [ ] Tester petit écran, grands textes et navigation clavier.
-- [ ] Exécuter :
+- [x] Vérifier l'intersection avec recherche, famille descendante, composants, portée et dimension.
+- [x] Ajouter le sélecteur d'édition et le filtre en réutilisant les primitives Studio ; tester le défaut Tous et l'absence d'inférence depuis la carte.
+- [x] Tester chaque transition Apply/Cancel/Reset/suppression du tag/reveal ; un filtre annulé ne modifie pas l'état courant.
+- [x] Ajouter un test positif pour chacune des trois bibliothèques spécialisées et les deux sélecteurs secondaires.
+- [x] Vérifier qu'un filtre cache la carte de ressource sans retirer le pinceau déjà choisi et sans toucher aux instances.
+- [x] Tester petit écran, grands textes et navigation clavier.
+- [x] Exécuter :
 
 ~~~bash
 cd apps/avelune_studio
@@ -1028,6 +1028,8 @@ Le harness définit son résultat JSON : commit, statut worktree, politique de p
 
 ### P13 — Construire puis qualifier les cinq collections
 
+**Différé par décision explicite de Yoahn pendant l'exécution, le 16 octobre 2026 : « pour le moment, on ne va pas créer de galeries d'assets ».** L'exécution actuelle porte sur le système de classement et de transfert, lots P01–P12 puis revue P14. Les tâches de préparation de contenu ci-dessous restent une proposition future, sans collecte, conversion ni constitution des collections pendant ce chantier.
+
 La création de contenu reste hors des tests du mécanisme. Le système peut être validé avec des fixtures originales sans prétendre que les cinq packs Pokémon sont complets.
 
 - [ ] Produire un inventaire par collection : sources locales réellement disponibles, formats, dimensions et provenance.
@@ -1167,8 +1169,8 @@ L'état initial d'exécution est main, 00c3112c0754ee54553584d38f7e44598c3077c3,
 | Lot | État d'exécution | Preuve / limite |
 |---|---|---|
 | P01 | TO REVIEW | 9 tests core, 54 authoring et 1 MCP réussis ; revues conformité et qualité favorables ; limites globales détaillées ci-dessous |
-| P02 | TODO | Dépend de P01 |
-| P03 | TODO | Références de sols de bordures, matériaux et frames inter-tilesets ajoutées après audit |
+| P02 | TO REVIEW | 52 tests Studio et analyse réussis ; 7 tests spécialisés relancés après correction ; parcours natif classement/filtrage/réouverture vérifié |
+| P03 | DOING | DTOs stricts et traces en cours ; sous-catalogue, graphe et intégration à compléter avant toute livraison du lot |
 | P04 | TODO | Inspection et stage privé |
 | P05 | TODO | Payloads, historique et snapshot bornés |
 | P06 | TODO | Journal bulk et budgets restreints |
@@ -1178,8 +1180,8 @@ L'état initial d'exécution est main, 00c3112c0754ee54553584d38f7e44598c3077c3,
 | P10 | TODO | Import Studio |
 | P11 | TODO | Export Studio et aller-retour |
 | P12 | TODO | Certification locale et preuves natives |
-| P13 | TODO | Inventaire des sources en cours ; corpus BW2 distingué de BW |
-| P14 | TODO | Revue finale du système et des collections |
+| P13 | Différé par Yoahn | Constitution des collections exclue de l'exécution actuelle ; système P01–P12 et revue P14 conservés |
+| P14 | TODO | Revue finale du système ; collections P13 différées |
 
 ### Preuves d'exécution du lot P01
 
@@ -1214,3 +1216,48 @@ Inventaire ciblé en lecture seule ; aucun import, extraction ou modification de
 | BW 3D | Aucun corpus distinct identifié ; stock NB2 confirmé séparément | Source BW à localiser ; aucune substitution BW2 implicite |
 
 Le projet /Users/karim/Desktop/pokeMap Project/pokemon_nb2 déclare « Pokémon Noir et Blanc 2 — entraînement », 9227 modèles logiques et 9227 GLB directs. Le premier GLB contrôlé possède le header glTF2 et la taille déclarée26124 égale aux octets réels. Les quatre comptages RSE/FRLG et NB2 ont été reproduits par root. Les copies sous .pokemap et les rendus de travail ne sont pas additionnés. Le corpus de704 ZIP sous Downloads/pokemon-black2-white2-models-sans-pokemon et ses sources Nitro désignent explicitement BW2. Ce constat ne qualifie ni leurs collisions, ni leurs contextes, ni leur redistribution.
+
+À la suite de cette question de sources, Yoahn a explicitement reporté la création des galeries d'assets. Cet inventaire reste une observation préalable en lecture seule ; il ne crée pas de dépendance au contenu pour livrer le système. Aucun travail de préparation de collection ne continue dans l'exécution actuelle.
+
+### Preuves d'exécution du lot P02
+
+Périmètre : classement et filtres Studio, sans contrainte de placement. L'audit initial a confirmé les trois ateliers spécialisés et les deux sélecteurs secondaires à raccorder. Les filtres restent indépendants de MapRole et MapMetadata.isIndoor. L'état de pinceau existant est déjà neutre : map_workspace_view_state.dart et map_workspace_palette_dock_filters.dart ne nécessitent pas de modification produit ; les tests prouvent cette propriété.
+
+Inventaire des 18 fichiers produit, tous sous apps/avelune_studio/lib/presentation/features :
+
+| Fichier | Zone modifiée et effet |
+|---|---|
+| resources/resource_catalog.dart | ResourceCatalogContext, copy/copyFrom/reset/reveal et prédicat commun ; both appartient aux deux filtres, null au filtre Non renseigné |
+| resources/resource_library_bindings.dart | classifyResource, sélecteur Contexte d'usage, état dirty et paramètre nullable de resource.classify |
+| resources/resource_filter_button.dart | Brouillon du filtre, compteur, Apply/Cancel/Reset et tag amovible |
+| resources/resource_catalog_view.dart | Libellé de contexte des cartes/lignes |
+| resources/resource_detail_panel.dart | Badge et métadonnée de contexte |
+| resources/resource_family_tree.dart | Comptage à partir de la copie des filtres actifs, seule la famille est neutralisée |
+| resources/resource_library_layout.dart | Filtrage avant construction des ateliers, outils conservés quand la sélection est vide |
+| resources/resource_library_screen.dart | Builders recevant les ressources filtrées pour modèles et environnements |
+| resources/model_resource_library.dart | Lignes filtrées, sélection cohérente, libellé direct depuis ResourceItem sans recherche quadratique |
+| resources/environment_library.dart | Utilisation des EnvironmentPreset déjà filtrés |
+| resources/resource_border_draft_bar.dart | Comptage et lignes issus des bordures filtrées |
+| resources/resource_source_list.dart | Transmission des filtres actifs à l'arbre de familles |
+| resources/environment_decor_picker.dart | Réutilisation des filtres communs du choix de décor |
+| resources/resource_workspace_pane.dart | Transmission des résultats aux deux builders spécialisés |
+| map_workspace/map_border_tool_panel.dart | Contrôle de contexte dans le choix secondaire, pinceau conservé |
+| map_workspace/map_environment_tool_panel.dart | Contrôle commun de contexte et arbre cohérent |
+| map_workspace/map_workspace_palette_dock.dart | Transmission des filtres complets de la palette et de characterQuery |
+| map_workspace/map_workspace_panels.dart | Transmission des filtres à l'arbre de familles de la palette |
+
+Tests modifiés sous apps/avelune_studio/test : presentation/resource_family_catalog_test.dart (matrice et intersections), presentation/resource_family_widgets_test.dart (transitions, compteurs, petit écran, texte agrandi et vrais événements clavier), presentation/map_workspace_palette_dock_filters_test.dart (filtre de palette), presentation/map_workspace_resource_families_test.dart (indépendance carte/contexte et pinceau), resource_io/resource_library_host_test.dart (28 cycles formulaire canonique puis réouverture sur disque, sept kinds × trois valeurs et effacement). Nouveau fichier : presentation/resource_context_specialized_libraries_test.dart, sept tests positifs/négatifs des ateliers, liste source et deux sélecteurs secondaires.
+
+Commandes et résultats :
+
+- Depuis apps/avelune_studio, python3 /tmp/avelune-assets-owned-run.py -- flutter test --no-pub test/presentation/resource_family_catalog_test.dart test/presentation/resource_family_widgets_test.dart test/resource_io/resource_library_host_test.dart test/presentation/map_workspace_palette_dock_filters_test.dart test/presentation/map_workspace_resource_families_test.dart test/presentation/resource_context_specialized_libraries_test.dart → 01:01 +52: All tests passed!, exit0. PID runner202, sept descendants observés, aucun reliquat possédé ni douteux.
+- Après correction du balayage de liste3D : python3 /tmp/avelune-assets-owned-run.py -- flutter test --no-pub test/presentation/resource_context_specialized_libraries_test.dart → 00:03 +7: All tests passed!, exit0. PID runner19263, 21 descendants observés, aucun reliquat possédé ni douteux.
+- flutter analyze --no-pub → No issues found! (ran in10.1s), exit0 après le dernier changement produit.
+- Build natif : flutter run -t dev/marionette_main.dart -d macos --debug --no-pub, avec MARIONETTE_PROJECT_PATH pointant vers le projet de test possédé et MARIONETTE_CAPTURE_ROOT vers une racine déjà autorisée par le harness existant → Built build/macos/Build/Products/Debug/Avelune Studio.app, backend Metal Impeller actif. Aucun enregistrement lancé dans cette racine de captures ; le harness et ses modifications étrangères ne sont pas modifiés.
+- Parcours natif dans une fenêtre1000×720 : Ranger un arbre en both et une caisse en interior, sauvegarder, vérifier les cinq ressources puis Intérieur2, Extérieur1, Non renseigné3 et retrait du tag5. Les captures et l'arbre visible confirment les libellés. hot_restart réexécute main, rouvre le même chemin canonique et conserve les deux classements. Les deux JSON de cartes et le PNG gardent leur SHA256 initial.
+- Reçu local de cette passe : /Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/asset-context-qa-ybhzojg9/native-context-receipt.json. Ce projet original est jetable ; aucun contenu Pokémon de collection n'a été constitué.
+- Les deux processus flutter run ont été quittés, puis leurs PIDs et descendants enregistrés ont été revérifiés : aucun processus possédé restant. Marionette est déconnecté.
+
+Revue conformité : favorable après correction des compteurs d'arbres et du test de grand texte/clavier. Revue qualité : favorable après suppression du singleWhere par ligne dans la liste3D ; aucun finding restant dans les 24 fichiers P02 relus. Les relecteurs ont vérifié le diff sans revendiquer une nouvelle exécution Flutter. La passe Tests de l'implémenteur fournit les52 tests ; la passe Build/Validation root ajoute le build et le parcours natifs.
+
+Critique et limites : la fixture native contient cinq ressources originales et prouve le parcours visuel pour les décors ; les sept kinds sont couverts par les28 cycles du host et ses formulaires réels, dont un vrai GLB. Aucun aperçu GPU3D réel n'a été certifié par cette fixture. Les défauts globaux P01 déjà signalés ne sont pas masqués et aucune certification d'import massif P12 n'est revendiquée. P02 est proposé TO REVIEW ; les lots P03–P12 et P14 restent à livrer. La revue s'appuie sur le diff Git des24 fichiers, sans recopier leurs sources.

@@ -48,7 +48,7 @@ class _EnvironmentDecorPickerState extends State<_EnvironmentDecorPicker> {
       candidates,
       activeMapId: widget.activeMapId,
       forMapPicker: true,
-      showComponents: filters.showComponents,
+      filters: filters,
     );
     final familyLabel =
         tree.nodes
