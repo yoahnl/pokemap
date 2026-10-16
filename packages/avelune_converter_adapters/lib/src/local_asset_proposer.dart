@@ -601,8 +601,10 @@ final class LocalAssetProposer {
           },
           'sourceImages': sourceImages.map((source) => source.toJson()).toList(),
         };
-    final globalHash = canonicalHashOf(recordOf(ordered, diagnostics),
-        limits: inputs.limits.jsonLimits);
+    final globalHash = maxCandidatesPerMap == null
+        ? canonicalHashOf(recordOf(ordered, diagnostics),
+            limits: inputs.limits.jsonLimits)
+        : null;
     final results = <int, LocalAssetProposalSet>{};
     final mapIds = maxCandidatesPerMap == null ? [0] : inputs.maps.keys;
     for (final mapId in mapIds) {
@@ -629,9 +631,8 @@ final class LocalAssetProposer {
           sourceSnapshotHash: inputs.source.snapshot.canonicalHash,
           normalizedSourceHash: inputs.source.canonicalHash,
           literalCompositionHash: inputs.literal.compositionHash,
-          canonicalHash: maxCandidatesPerMap == null
-              ? globalHash
-              : canonicalHashOf(recordOf(selected, selectedDiagnostics),
+          canonicalHash: globalHash ??
+              canonicalHashOf(recordOf(selected, selectedDiagnostics),
                   limits: inputs.limits.jsonLimits));
     }
     cancellation?.check();

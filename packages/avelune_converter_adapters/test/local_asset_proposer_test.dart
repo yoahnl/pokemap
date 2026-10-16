@@ -131,6 +131,20 @@ Future<LiteralTileFixture> _mapFileLookupFixture() =>
       ]),
     ]);
 
+int _textCodeUnits(Object? value) {
+  if (value is String) return value.length;
+  if (value is List) {
+    return value.fold<int>(0, (sum, child) => sum + _textCodeUnits(child));
+  }
+  if (value is Map) {
+    return value.entries.fold<int>(
+        0,
+        (sum, entry) =>
+            sum + (entry.key as String).length + _textCodeUnits(entry.value));
+  }
+  return 0;
+}
+
 void main() {
   test('batch placement validation preserves every candidate claim and mode',
       () async {
@@ -426,20 +440,116 @@ void main() {
         throwsA(_failure('asset.proposal.quota')));
   });
 
-  test('map segments enforce global JSON admission before partition', () async {
+  test('JSON node admission bounds each returned global or per-map document', () async {
     final fixture = await _mapFileLookupFixture();
     final literal = await _usedTileLiteral(fixture);
     const limits = LocalAssetProposalLimits(
         jsonLimits: ContractLimits(maxNodes: 200));
     await expectLater(_usedTiles(fixture, literal, limits: limits),
         throwsA(_failure('json.quota')));
+    final segments = await const LocalAssetProposer().proposeByMap(
+        source: fixture.source, files: fixture.files, literal: literal,
+        limits: limits);
+    expect(segments.keys, [1, 8]);
+    for (final segment in segments.values) {
+      expect(canonicalHashOf(segment.toJson(), limits: limits.jsonLimits),
+          segment.canonicalHash);
+    }
+    final larger = await _usedTileFixture(mapWidth: 8, mapHeight: 1);
+    final largerLiteral = await _usedTileLiteral(larger);
     await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: larger.source, files: larger.files,
+            literal: largerLiteral, limits: limits),
+        throwsA(_failure('json.quota')));
+  });
+
+  group('JSON text admission per returned proposal document', () {
+    late LiteralTileFixture fixture;
+    late LiteralTileComposition literal;
+    late Map<int, LocalAssetProposalSet> baseline;
+    late LocalAssetProposalSet aggregate;
+    late int mapBudget;
+
+    Future<Map<int, LocalAssetProposalSet>> segmented(
+            LocalAssetProposalLimits limits) =>
         const LocalAssetProposer().proposeByMap(
             source: fixture.source,
             files: fixture.files,
             literal: literal,
-            limits: limits),
-        throwsA(_failure('json.quota')));
+            limits: limits);
+
+    Future<LocalAssetProposalSet> combined(LocalAssetProposalLimits limits) =>
+        const LocalAssetProposer().propose(
+            source: fixture.source,
+            files: fixture.files,
+            literal: literal,
+            limits: limits,
+            strategy: LocalAssetProposalStrategy.usedStaticTiles);
+
+    LocalAssetProposalLimits limited(int textBudget) => LocalAssetProposalLimits(
+        jsonLimits: ContractLimits(maxTextCodeUnits: textBudget));
+
+    Matcher textQuota() => isA<ContractError>()
+        .having((error) => error.code, 'code', 'json.textQuota');
+
+    setUpAll(() async {
+      fixture = await LiteralTileFixture.create(
+          namespace: 'segmented-json-budget',
+          maps: [
+            for (final id in [1, 8])
+              LiteralFixtureMap(id: id, width: 64, height: 1, layers: [
+                List.filled(64, 384),
+                List.filled(64, 0),
+                List.filled(64, 0)
+              ]),
+          ]);
+      literal = await const LiteralTileComposer().compose(
+          source: fixture.source,
+          files: fixture.files,
+          selectedSourceMapIds: const [1, 8],
+          projectName: 'Segmented proposal JSON budget',
+          parentPath: '/private/tmp/segmented-json-budget',
+          folderName: 'never-written');
+      expect(literal.canWrite, isTrue);
+      baseline = await segmented(const LocalAssetProposalLimits());
+      aggregate = await combined(const LocalAssetProposalLimits());
+      mapBudget = baseline.values
+          .map((set) => _textCodeUnits(set.toJson()))
+          .reduce((left, right) => left > right ? left : right);
+      expect(_textCodeUnits(aggregate.toJson()), greaterThan(mapBudget));
+      expect(
+          baseline.values
+              .every((set) => _textCodeUnits(set.toJson()) <= mapBudget),
+          isTrue);
+    });
+
+    test(
+        'per-map records fit their text budget even when the unused combined record does not',
+        () async {
+      final actual = await segmented(limited(mapBudget));
+      expect(actual.keys, [1, 8]);
+      for (final id in actual.keys) {
+        expect(actual[id]!.toJson(), baseline[id]!.toJson());
+        expect(actual[id]!.canonicalHash, baseline[id]!.canonicalHash);
+        expect(actual[id]!.placementClaims.values.single, hasLength(64));
+      }
+    });
+
+    test('the aggregate proposal API retains its own combined text quota refusal',
+        () async {
+      await expectLater(combined(limited(mapBudget)), throwsA(textQuota()));
+      final repeated = await combined(const LocalAssetProposalLimits());
+      expect(repeated.toJson(), aggregate.toJson());
+      expect(repeated.canonicalHash, aggregate.canonicalHash);
+    });
+
+    test(
+        'a single per-map record above its text budget still refuses without a partial result',
+        () async {
+      await expectLater(segmented(limited(mapBudget - 1)), throwsA(textQuota()));
+    });
+
   });
 
   test('map file lookup preserves every locator and claim across two maps',
