@@ -32,3 +32,5 @@ export 'src/game_package_spatial_project_validator.dart';
 export 'src/resource_pack_manifest_codec.dart';
 export 'src/resource_pack_security_policy.dart';
 export 'src/resource_pack_inspector.dart';
+
+export 'src/resource_pack_builder.dart';

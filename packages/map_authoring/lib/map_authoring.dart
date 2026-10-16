@@ -219,3 +219,6 @@ export 'src/api/authoring_result_projection.dart'
         AuthoringResultProjectionPort,
         AuthoringProjectionChunk,
         AuthoringProjectionException;
+
+export 'src/domains/maps/canonical_border_ground_composer.dart';
+export 'src/domains/assets/resource_pack_projection.dart';
