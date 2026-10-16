@@ -1151,97 +1151,101 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       key: _sessionSurfaceKey,
       fit: StackFit.expand,
       children: <Widget>[
-        RuntimePlayerSurfaceRouter(
-          showPlayerOverlay: !widget.companionMenusAttached ||
-              (snapshot.phase != RuntimePlayerPhase.paused &&
-                  snapshot.phase != RuntimePlayerPhase.saving),
-          beforePauseAction: widget.beforePauseAction,
-          pauseFocusController: _pauseFocusController,
-          snapshot: snapshot,
-          titlePresentation: widget.titlePresentation,
-          loadingLogo: widget.loadingLogo,
-          loadingWordmark: widget.loadingWordmark,
-          activeInputSource: _activeInputSource,
-          hardwareGamepadEnabled: !widget.controllerInputEnabled,
-          pauseMenuLabels: widget.pauseMenuLabels,
-          pausePresentation: widget.pausePresentation,
-          pauseRootActionsOnly: widget.pauseRootActionsOnly,
-          gameSceneBuilder: widget.gameSceneBuilder,
-          onShowDiagnostics: widget.onShowDiagnostics,
-          gameplayTouchMenuEnabled:
-              acceptsOverworldTouch && !widget.companionMenusAttached,
-          gameplayTouchMenuKey: _touchMenuKey,
-          gameplayAction: _overworldAction(),
-          touchControlsOpacity: touchControlsOpacity,
-          onPreferencesChanged: (preferences) async {
-            final unavailableMessage = context.playerL10n.actionUnavailable;
-            final result =
-                await widget.controller.dispatch(RuntimePlayerCommand(
-              action: RuntimePlayerAction.updatePreferences,
-              snapshotRevision: _latestSnapshot.revision,
-              payload: preferences,
-            ));
-            if (result.status != RuntimePlayerCommandStatus.accepted) {
-              throw RuntimePlayerOptionsFailure(
-                  result.safeMessage ?? unavailableMessage);
-            }
-          },
-          onPauseCommand: (command) async {
-            final unavailableMessage = context.playerL10n.actionUnavailable;
-            final result = await _dispatchCommand(
-              command.kind ==
-                          RuntimePlayerPauseCommandKind.reorderPartyMember ||
-                      command.kind == RuntimePlayerPauseCommandKind.setPartyLead
-                  ? RuntimePlayerAction.reorderParty
-                  : RuntimePlayerAction.useBagItem,
-              snapshot,
-              payload: command,
-            );
-            if ((snapshot.pauseSection == RuntimePlayerPauseSection.party ||
-                    snapshot.pauseSection == RuntimePlayerPauseSection.bag) &&
-                (result.status == RuntimePlayerCommandStatus.unavailable ||
-                    result.status == RuntimePlayerCommandStatus.stale ||
-                    result.status == RuntimePlayerCommandStatus.failed)) {
-              throw RuntimePlayerPartyCommandFailure(
-                  result.safeMessage ?? unavailableMessage);
-            }
-          },
-          partyNavigation: _partyNavigation,
-          bagNavigation: _bagNavigation,
-          pokedexNavigation: _pokedexNavigation,
-          onFavoriteChanged: widget.controller
-                  is! RuntimePlayerBagFavoritesController
-              ? null
-              : (itemId, favorite) async {
-                  final unavailableMessage =
-                      context.playerL10n.actionUnavailable;
-                  final result = await (widget.controller
-                          as RuntimePlayerBagFavoritesController)
-                      .setBagItemFavorite(
-                          itemId: itemId,
-                          favorite: favorite,
-                          snapshotRevision: snapshot.revision);
-                  if (result.status != RuntimePlayerCommandStatus.accepted) {
-                    throw RuntimePlayerPartyCommandFailure(
-                        result.safeMessage ?? unavailableMessage);
-                  }
-                },
-          controlProfile: _controlProfile,
-          onControlProfileChanged: widget.onControlProfileChanged,
-          controllerFamily: _controllerFamily,
-          onPreSessionResult: (result) => unawaited(
-            _dispatchCommand(
-              RuntimePlayerAction.resolvePreSessionInteraction,
-              snapshot,
-              payload: result,
+        ExcludeFocus(
+          excluding: snapshot.worldService?.request.kind ==
+              RuntimeWorldServiceKind.regionalMap,
+          child: RuntimePlayerSurfaceRouter(
+            showPlayerOverlay: !widget.companionMenusAttached ||
+                (snapshot.phase != RuntimePlayerPhase.paused &&
+                    snapshot.phase != RuntimePlayerPhase.saving),
+            beforePauseAction: widget.beforePauseAction,
+            pauseFocusController: _pauseFocusController,
+            snapshot: snapshot,
+            titlePresentation: widget.titlePresentation,
+            loadingLogo: widget.loadingLogo,
+            loadingWordmark: widget.loadingWordmark,
+            activeInputSource: _activeInputSource,
+            hardwareGamepadEnabled: !widget.controllerInputEnabled,
+            pauseMenuLabels: widget.pauseMenuLabels,
+            pausePresentation: widget.pausePresentation,
+            pauseRootActionsOnly: widget.pauseRootActionsOnly,
+            gameSceneBuilder: widget.gameSceneBuilder,
+            onShowDiagnostics: widget.onShowDiagnostics,
+            gameplayTouchMenuEnabled:
+                acceptsOverworldTouch && !widget.companionMenusAttached,
+            gameplayTouchMenuKey: _touchMenuKey,
+            gameplayAction: _overworldAction(),
+            touchControlsOpacity: touchControlsOpacity,
+            onPreferencesChanged: (preferences) async {
+              final unavailableMessage = context.playerL10n.actionUnavailable;
+              final result =
+                  await widget.controller.dispatch(RuntimePlayerCommand(
+                action: RuntimePlayerAction.updatePreferences,
+                snapshotRevision: _latestSnapshot.revision,
+                payload: preferences,
+              ));
+              if (result.status != RuntimePlayerCommandStatus.accepted) {
+                throw RuntimePlayerOptionsFailure(
+                    result.safeMessage ?? unavailableMessage);
+              }
+            },
+            onPauseCommand: (command) async {
+              final unavailableMessage = context.playerL10n.actionUnavailable;
+              final result = await _dispatchCommand(
+                command.kind ==
+                            RuntimePlayerPauseCommandKind.reorderPartyMember ||
+                        command.kind == RuntimePlayerPauseCommandKind.setPartyLead
+                    ? RuntimePlayerAction.reorderParty
+                    : RuntimePlayerAction.useBagItem,
+                snapshot,
+                payload: command,
+              );
+              if ((snapshot.pauseSection == RuntimePlayerPauseSection.party ||
+                      snapshot.pauseSection == RuntimePlayerPauseSection.bag) &&
+                  (result.status == RuntimePlayerCommandStatus.unavailable ||
+                      result.status == RuntimePlayerCommandStatus.stale ||
+                      result.status == RuntimePlayerCommandStatus.failed)) {
+                throw RuntimePlayerPartyCommandFailure(
+                    result.safeMessage ?? unavailableMessage);
+              }
+            },
+            partyNavigation: _partyNavigation,
+            bagNavigation: _bagNavigation,
+            pokedexNavigation: _pokedexNavigation,
+            onFavoriteChanged: widget.controller
+                    is! RuntimePlayerBagFavoritesController
+                ? null
+                : (itemId, favorite) async {
+                    final unavailableMessage =
+                        context.playerL10n.actionUnavailable;
+                    final result = await (widget.controller
+                            as RuntimePlayerBagFavoritesController)
+                        .setBagItemFavorite(
+                            itemId: itemId,
+                            favorite: favorite,
+                            snapshotRevision: snapshot.revision);
+                    if (result.status != RuntimePlayerCommandStatus.accepted) {
+                      throw RuntimePlayerPartyCommandFailure(
+                          result.safeMessage ?? unavailableMessage);
+                    }
+                  },
+            controlProfile: _controlProfile,
+            onControlProfileChanged: widget.onControlProfileChanged,
+            controllerFamily: _controllerFamily,
+            onPreSessionResult: (result) => unawaited(
+              _dispatchCommand(
+                RuntimePlayerAction.resolvePreSessionInteraction,
+                snapshot,
+                payload: result,
+              ),
             ),
-          ),
-          showPreSessionInteraction: widget.presentationFrame?.value == null,
-          onAction: (action) => _dispatchSurfaceAction(action, snapshot),
-          onReturnToTitle: (saveBeforeExit) => _dispatchCommand(
-            RuntimePlayerAction.returnToTitle,
-            _latestSnapshot,
-            payload: RuntimePlayerExitRequest(saveBeforeExit: saveBeforeExit),
+            showPreSessionInteraction: widget.presentationFrame?.value == null,
+            onAction: (action) => _dispatchSurfaceAction(action, snapshot),
+            onReturnToTitle: (saveBeforeExit) => _dispatchCommand(
+              RuntimePlayerAction.returnToTitle,
+              _latestSnapshot,
+              payload: RuntimePlayerExitRequest(saveBeforeExit: saveBeforeExit),
+            ),
           ),
         ),
         if (widget.presentationFrame case final presentation?)
