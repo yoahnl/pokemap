@@ -22,6 +22,7 @@ import 'source_event_study_composer.dart';
 import 'source_event_arrival_validation.dart';
 import 'source_catalog_study_composer.dart';
 import 'source_catalog_projection.dart';
+import 'native_source_event_atlas_admission.dart';
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -1312,22 +1313,28 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
                 entry.parameters['tileWidth'] == 1 &&
                 entry.parameters['tileHeight'] == 1) ??
             false;
+        final sourceEventAtlas = matchesRegeneratedSourceEventAtlasImport(
+            mutation: mutation,
+            artifact: artifact,
+            regeneratedEvents: semantics.verified ? semantics.events?.draft : null,
+            jsonLimits: limits.jsonLimits);
         if (id.length > 64 ||
             !RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(id) ||
             tilesets.keys.any((key) => key.toLowerCase() == id.toLowerCase()) ||
             artifact == null ||
             artifact.reference.mediaType != 'image/png' ||
             (cellWidth != 32 || cellHeight != 32) &&
-                !(feedbackIcon && cellWidth == 1 && cellHeight == 1) ||
+                !(feedbackIcon && cellWidth == 1 && cellHeight == 1) &&
+                !sourceEventAtlas ||
             !_targetIds(mutation.targetEntityIds, {id, 'image_$id'})) {
           throw const NativeWriteException('native.tileset.invalid',
-              'A unique native atlas, its asset identity and explicit 32px grid are required');
+              'A unique native atlas, its asset identity and an admitted grid are required');
         }
         final size = dimensions[handle]!;
         if (size.$1 % (cellWidth as int) != 0 ||
             size.$2 % (cellHeight as int) != 0) {
           throw const NativeWriteException('native.tileset.geometry',
-              'Atlas image must contain complete 32px cells');
+              'Atlas image must contain complete native cells');
         }
         tilesets[id] = artifact;
         usedArtifacts.add(handle);
