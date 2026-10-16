@@ -9181,7 +9181,7 @@ class EditorNotifier extends _$EditorNotifier
 
   Future<bool> _adoptCanonicalSmartTileSnapshot({
     required String projectRootPath,
-    required String expectedSnapshotRevision,
+    required String? expectedSnapshotRevision,
     required String mapId,
     required String layerId,
     required String statusMessage,
@@ -9191,8 +9191,10 @@ class EditorNotifier extends _$EditorNotifier
     late final ProjectManifest manifest;
     late final MapData? map;
     late final String? mapRevision;
-    if (projection?.snapshotRevision == expectedSnapshotRevision) {
-      snapshotRevision = projection!.snapshotRevision;
+    if (expectedSnapshotRevision != null &&
+        projection != null &&
+        projection.snapshotRevision == expectedSnapshotRevision) {
+      snapshotRevision = projection.snapshotRevision;
       manifest = projection.manifest;
       map = projection.mapById(mapId);
       mapRevision = projection.resourceRevision('map:$mapId');
@@ -9205,7 +9207,8 @@ class EditorNotifier extends _$EditorNotifier
       map = canonical.mapById(mapId);
       mapRevision = canonical.resourceRevision('map:$mapId');
     }
-    if (snapshotRevision != expectedSnapshotRevision) {
+    if (expectedSnapshotRevision != null &&
+        snapshotRevision != expectedSnapshotRevision) {
       throw const EditorAuthoringMutationFailure(
         code: 'smart_tile.cell.snapshot_stale',
         message: 'Le snapshot canonique du geste Smart Tile est obsolète.',
@@ -10363,7 +10366,8 @@ class EditorNotifier extends _$EditorNotifier
         }
       }
       final after = await queries.open(projectRootPath);
-      if (after.snapshotRevision != applied.snapshotRevision) {
+      if (applied.snapshotRevision != null &&
+          after.snapshotRevision != applied.snapshotRevision) {
         throw const EditorAuthoringMutationFailure(
           code: 'smart_tile.layer.snapshot_stale',
           message: 'Le snapshot canonique du nouveau calque est obsolète.',

@@ -13,12 +13,11 @@ String computeAuthoringBytesFingerprint(
   List<int> bytes, {
   required String logicalName,
 }) {
-  return computeNarrativeProjectFingerprint([
-    NarrativeProjectFingerprintEntry(
-      relativePath: logicalName,
-      bytes: bytes,
-    ),
-  ]);
+  return (NarrativeProjectFingerprintBuilder()
+        ..startEntry(relativePath: logicalName, byteLength: bytes.length)
+        ..addBytes(bytes)
+        ..endEntry())
+      .close();
 }
 
 /// Encodes contract-safe JSON with recursively sorted object keys.

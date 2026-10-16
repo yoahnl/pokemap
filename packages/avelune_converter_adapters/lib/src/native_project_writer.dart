@@ -698,7 +698,7 @@ final class NativeProjectWriter {
             applied.receipt.beforeRevision == null ||
             applied.receipt.afterRevision == null ||
             applied.receipt.beforeRevision == applied.receipt.afterRevision ||
-            applied.snapshotRevision == before.revision) {
+            (applied.snapshotRevision != null && applied.snapshotRevision == before.revision)) {
           throw NativeWriteException(
               'native.mutation.receipt',
               'Native mutation ${mutation.actionId} has inconsistent receipt '
@@ -709,7 +709,7 @@ final class NativeProjectWriter {
                   'afterSnapshot=${applied.snapshotRevision})');
         }
         final observed = await session.snapshots.load(session.project);
-        if (observed.revision != applied.snapshotRevision) {
+        if (applied.snapshotRevision != null && observed.revision != applied.snapshotRevision) {
           throw const NativeWriteException('native.mutation.revision',
               'Applied native revision differs from the reloaded snapshot');
         }
@@ -783,7 +783,11 @@ final class NativeProjectWriter {
         _checkCancelled(cancellation);
         final assetId = 'image_${entry.key}';
         final artifact = entry.value;
-        final bytes = snapshot.resourceBytes('assetLogical:$assetId');
+        final bytes = await snapshot.readResourceBytes('assetLogical:$assetId');
+        if (bytes == null) {
+          throw const NativeWriteException('native.verify.image',
+              'Native logical image is unavailable');
+        }
         final hash = Sha256Hash(sha256.convert(bytes).toString());
         if (bytes.length != artifact.bytes.length ||
             hash != artifact.rawSha256) {

@@ -16,6 +16,7 @@ import '../../application/services/editor_performance_telemetry.dart';
 final class EditorProjectFileReader
     implements
         ProjectFileReader,
+        ProjectResourceStreamReader,
         ProjectResourceIdentityReader,
         ProjectSnapshotCacheIdentityReader,
         ProjectDirectoryReader,
@@ -33,6 +34,34 @@ final class EditorProjectFileReader
       EditorPerformanceCounterName.filesystemMetadata,
     );
     return _delegate.canonicalizeDirectory(path);
+  }
+
+  @override
+  bool get supportsStreamingResources =>
+      _delegate is ProjectSnapshotCacheIdentityReader &&
+      _delegate is ProjectResourceStreamReader &&
+      (_delegate as ProjectResourceStreamReader).supportsStreamingResources;
+
+  @override
+  Stream<List<int>> openRead({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemRead,
+    );
+    final delegate = _delegate;
+    if (delegate is! ProjectResourceStreamReader ||
+        !(delegate as ProjectResourceStreamReader).supportsStreamingResources) {
+      throw const WorkspaceAccessException(
+        'workspace.streaming_unavailable',
+        'The project reader cannot stream resources.',
+      );
+    }
+    return (delegate as ProjectResourceStreamReader).openRead(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
   }
 
   @override

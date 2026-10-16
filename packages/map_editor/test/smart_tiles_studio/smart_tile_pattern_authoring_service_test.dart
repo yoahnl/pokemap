@@ -3,41 +3,51 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_pattern_authoring_service.dart';
 
 void main() {
-  test('upserts through the canonical action and reloads exact snapshot',
-      () async {
-    final gateway = _PatternGateway();
-    final service = SmartTilePatternAuthoringService(gateway: gateway);
+  test(
+    'upserts through the canonical action and reloads exact snapshot',
+    () async {
+      final gateway = _PatternGateway();
+      final service = SmartTilePatternAuthoringService(gateway: gateway);
 
-    final result = await service.upsert(
-      projectRootPath: '/project',
-      pattern: _pattern,
-    );
+      final result = await service.upsert(
+        projectRootPath: '/project',
+        pattern: _pattern,
+      );
 
-    expect(gateway.actionId, 'smart_tile.pattern.upsert');
-    expect(gateway.parameters, <String, Object?>{
-      'pattern': _pattern.toJson(),
-    });
-    expect(gateway.expectedRevision, 'revision-1');
-    expect(
-      gateway.idempotencyKey,
-      matches(RegExp(r'^smart-tile-pattern-[0-9a-f]{64}$')),
-      reason:
-          'The canonical gateway also derives a durable filesystem operation '
-          'id from this value, so the sha256: wire prefix must not leak here.',
-    );
-    expect(result.pattern, _pattern);
-    expect(result.manifest.smartTileCatalog.patterns, <Object>[_pattern]);
-  });
+      expect(gateway.actionId, 'smart_tile.pattern.upsert');
+      expect(gateway.parameters, <String, Object?>{
+        'pattern': _pattern.toJson(),
+      });
+      expect(gateway.expectedRevision, 'revision-1');
+      expect(
+        gateway.idempotencyKey,
+        matches(RegExp(r'^smart-tile-pattern-[0-9a-f]{64}$')),
+        reason:
+            'The canonical gateway also derives a durable filesystem operation '
+            'id from this value, so the sha256: wire prefix must not leak here.',
+      );
+      expect(result.pattern, _pattern);
+      expect(result.manifest.smartTileCatalog.patterns, <Object>[_pattern]);
+    },
+  );
+
+  test(
+    'adopts a fresh canonical snapshot after committed apply returned no revision',
+    () async {
+      final gateway = _PatternGateway(unknownAfterApply: true);
+      final result = await SmartTilePatternAuthoringService(
+        gateway: gateway,
+      ).upsert(projectRootPath: '/project', pattern: _pattern);
+      expect(result.pattern, _pattern);
+    },
+  );
 
   test('rejects a stale snapshot after canonical apply', () async {
     final gateway = _PatternGateway(staleAfterApply: true);
     final service = SmartTilePatternAuthoringService(gateway: gateway);
 
     expect(
-      () => service.upsert(
-        projectRootPath: '/project',
-        pattern: _pattern,
-      ),
+      () => service.upsert(projectRootPath: '/project', pattern: _pattern),
       throwsA(
         isA<SmartTilePatternAuthoringServiceException>().having(
           (error) => error.code,
@@ -50,9 +60,13 @@ void main() {
 }
 
 final class _PatternGateway implements SmartTilePatternAuthoringGateway {
-  _PatternGateway({this.staleAfterApply = false});
+  _PatternGateway({
+    this.staleAfterApply = false,
+    this.unknownAfterApply = false,
+  });
 
   final bool staleAfterApply;
+  final bool unknownAfterApply;
   var _applied = false;
   String? actionId;
   Map<String, Object?>? parameters;
@@ -60,7 +74,7 @@ final class _PatternGateway implements SmartTilePatternAuthoringGateway {
   String? idempotencyKey;
 
   @override
-  Future<String> apply({
+  Future<String?> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -72,7 +86,7 @@ final class _PatternGateway implements SmartTilePatternAuthoringGateway {
     this.expectedRevision = expectedRevision;
     this.idempotencyKey = idempotencyKey;
     _applied = true;
-    return 'revision-2';
+    return unknownAfterApply ? null : 'revision-2';
   }
 
   @override
@@ -109,11 +123,7 @@ const _pattern = ProjectSmartTilePattern(
       parts: <SmartTileVisualPart>[
         SmartTileVisualPart(
           source: SmartTileVisualSource.frame(
-            frame: SmartTileFrameRef(
-              atlasId: 'atlas',
-              column: 0,
-              row: 0,
-            ),
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
           ),
         ),
       ],

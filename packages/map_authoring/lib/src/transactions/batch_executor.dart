@@ -2,6 +2,7 @@ import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
+import 'authoring_payload.dart';
 
 final class AuthoringBatchException implements Exception {
   const AuthoringBatchException(this.code, this.message);
@@ -85,17 +86,14 @@ bool _sameChange(
       left.storageKey == right.storageKey &&
       left.beforeRevision == right.beforeRevision &&
       left.afterRevision == right.afterRevision &&
-      _sameBytes(left.beforeBytes, right.beforeBytes) &&
-      _sameBytes(left.afterBytes, right.afterBytes);
+      _samePayload(left.beforePayload, right.beforePayload) &&
+      _samePayload(left.afterPayload, right.afterPayload);
 }
 
-bool _sameBytes(List<int>? left, List<int>? right) {
-  if (identical(left, right)) return true;
-  if (left == null || right == null || left.length != right.length) {
-    return false;
-  }
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
+bool _samePayload(AuthoringPayload? left, AuthoringPayload? right) =>
+    identical(left, right) ||
+    (left != null &&
+        right != null &&
+        left.byteLength == right.byteLength &&
+        left.rawSha256 == right.rawSha256 &&
+        left.resourceRevision == right.resourceRevision);

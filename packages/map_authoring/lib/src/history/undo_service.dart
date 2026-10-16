@@ -126,14 +126,13 @@ final class AuthoringUndoService {
     );
     _authorizePlanning(actor, projectId, action, request);
     final entry = await _requireUndoable(projectId, entryId);
-    final changeSet = await _reverseChangeSet(entry);
     return _prepare(
       actor: actor,
       projectId: projectId,
       action: action,
       request: request,
       snapshot: snapshot,
-      changeSet: changeSet,
+      buildChanges: (snapshot) => _reverseChangeSet(entry, snapshot),
     );
   }
 
@@ -180,14 +179,13 @@ final class AuthoringUndoService {
       expectedHeadEntryId: latest.entryId,
     );
     final entry = await _requireUndoable(projectId, entryId);
-    final changeSet = await _forwardChangeSet(entry);
     return _prepare(
       actor: actor,
       projectId: projectId,
       action: action,
       request: request,
       snapshot: snapshot,
-      changeSet: changeSet,
+      buildChanges: (snapshot) => _forwardChangeSet(entry, snapshot),
       precondition: () => _requireHistoryHead(
         projectId: projectId,
         entryId: latest.entryId,
@@ -251,6 +249,7 @@ final class AuthoringUndoService {
 
   Future<AuthoringChangeSet> _reverseChangeSet(
     AuthoringHistoryEntry entry,
+    ProjectSnapshot snapshot,
   ) async {
     final changes = <AuthoringResourceChange>[];
     for (final retained in entry.changes) {
@@ -266,6 +265,7 @@ final class AuthoringUndoService {
         await _buildChange(
           entry,
           retained,
+          snapshot: snapshot,
           expectedCurrentRevision: retained.afterRevision,
           targetRevision: retained.beforeRevision,
           targetBlobId: retained.beforeBlobId,
@@ -280,6 +280,7 @@ final class AuthoringUndoService {
 
   Future<AuthoringChangeSet> _forwardChangeSet(
     AuthoringHistoryEntry entry,
+    ProjectSnapshot snapshot,
   ) async {
     final changes = <AuthoringResourceChange>[];
     for (final retained in entry.changes) {
@@ -295,6 +296,7 @@ final class AuthoringUndoService {
         await _buildChange(
           entry,
           retained,
+          snapshot: snapshot,
           expectedCurrentRevision: retained.beforeRevision,
           targetRevision: retained.afterRevision,
           targetBlobId: retained.afterBlobId,
@@ -310,12 +312,17 @@ final class AuthoringUndoService {
   Future<AuthoringResourceChange> _buildChange(
     AuthoringHistoryEntry entry,
     AuthoringHistoryResourceChange retained, {
+    required ProjectSnapshot snapshot,
     required String? expectedCurrentRevision,
     required String? targetRevision,
     required String? targetBlobId,
   }) async {
-    final current = await _gateway.readResource(retained.storageKey);
-    final target = targetBlobId == null ? null : await _blobs.get(targetBlobId);
+    final current = snapshot
+        .ownPayload(await _gateway.captureResourcePayload(retained.storageKey));
+    final target = targetBlobId == null
+        ? null
+        : snapshot.ownPayload(await _blobs.capturePayload(targetBlobId,
+            storageKey: retained.storageKey));
     if (targetBlobId != null && target == null) {
       await _history.markNonUndoable(
         projectId: entry.projectId,
@@ -328,11 +335,11 @@ final class AuthoringUndoService {
       );
     }
     try {
-      return AuthoringResourceChange(
+      return AuthoringResourceChange.withPayloads(
         resource: _resourceWithoutRevision(retained.resource),
         storageKey: retained.storageKey,
-        beforeBytes: current,
-        afterBytes: target,
+        beforePayload: current,
+        afterPayload: target,
         beforeRevision: expectedCurrentRevision,
         afterRevision: targetRevision,
       );
@@ -350,14 +357,15 @@ final class AuthoringUndoService {
     required AuthoringActionDescriptor action,
     required AuthoringRequest request,
     required ProjectSnapshot snapshot,
-    required AuthoringChangeSet changeSet,
+    required Future<AuthoringChangeSet> Function(ProjectSnapshot snapshot)
+        buildChanges,
     AuthoringTransactionPrecondition? precondition,
   }) async {
     final plan = await _planner.plan(
       request: request,
       snapshot: snapshot,
-      build: (_) => AuthoringMutationDraft(
-        changeSet: changeSet,
+      build: (context) async => AuthoringMutationDraft(
+        changeSet: await buildChanges(context.snapshot),
         preview: const {'historyForwardTransaction': true},
       ),
     );

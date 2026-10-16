@@ -21,7 +21,7 @@ final class SmartTileSourceApplyResult {
     required this.receiptId,
   });
 
-  final String revision;
+  final String? revision;
   final String receiptId;
 }
 
@@ -49,8 +49,8 @@ final class CanonicalSmartTileSourceAssetGateway
   const CanonicalSmartTileSourceAssetGateway({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -137,8 +137,8 @@ final class SmartTileSourceAssetImportService {
   const SmartTileSourceAssetImportService({
     required SmartTileSourceAssetGateway gateway,
     required SmartTileAtlasImageLoader imageLoader,
-  })  : _gateway = gateway,
-        _imageLoader = imageLoader;
+  }) : _gateway = gateway,
+       _imageLoader = imageLoader;
 
   final SmartTileSourceAssetGateway _gateway;
   final SmartTileAtlasImageLoader _imageLoader;
@@ -204,14 +204,15 @@ final class SmartTileSourceAssetImportService {
     final tilesetApply = await _gateway.apply(
       projectRootPath: projectRootPath,
       actionId: 'tileset.upsert',
-      parameters: <String, Object?>{
-        'tileset': canonicalTilesetDraft.toJson(),
-      },
-      expectedRevision: assetApply.revision,
+      parameters: <String, Object?>{'tileset': canonicalTilesetDraft.toJson()},
+      expectedRevision:
+          assetApply.revision ??
+          (await _gateway.load(projectRootPath: projectRootPath)).revision,
       idempotencyKey: 'smart-tile-source-tileset-${staged.hexDigest}',
     );
     final canonical = await _gateway.load(projectRootPath: projectRootPath);
-    if (canonical.revision != tilesetApply.revision) {
+    if (tilesetApply.revision != null &&
+        canonical.revision != tilesetApply.revision) {
       throw const SmartTileSourceImportException(
         'smart_tile.import_snapshot_stale',
         'Le snapshot canonique de l’image importée est obsolète.',

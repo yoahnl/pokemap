@@ -127,8 +127,8 @@ void main() {
     await File('${fixture.root.path}/$path').writeAsBytes(authored);
     await expectLater(
         fixture.plan([fixture.entries()[1]]),
-        throwsA(isA<AssetActionException>().having((error) => error.code,
-            'code', 'pokemon.media.logical_asset_changed')));
+        throwsA(isA<ProjectSnapshotException>().having(
+            (error) => error.code, 'code', 'project.asset_source_mismatch')));
     expect(await File('${fixture.root.path}/$path').readAsBytes(), authored);
     expect(await fixture.media(), before);
   });

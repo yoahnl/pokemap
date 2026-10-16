@@ -22,10 +22,10 @@ sealed class SmartTilePublicationTarget {
   }) = SmartTileMapPublicationTarget;
 
   SmartTilePublicationTargetKind get kind => switch (this) {
-        SmartTileLibraryPublicationTarget() =>
-          SmartTilePublicationTargetKind.library,
-        SmartTileMapPublicationTarget() => SmartTilePublicationTargetKind.map,
-      };
+    SmartTileLibraryPublicationTarget() =>
+      SmartTilePublicationTargetKind.library,
+    SmartTileMapPublicationTarget() => SmartTilePublicationTargetKind.map,
+  };
 }
 
 final class SmartTileLibraryPublicationTarget
@@ -92,7 +92,7 @@ abstract interface class SmartTilePublicationGateway {
     required String idempotencyKey,
   });
 
-  Future<String> apply({
+  Future<String?> apply({
     required SmartTilePublicationCanonicalPlan plan,
     required String operationId,
   });
@@ -103,8 +103,8 @@ final class CanonicalSmartTilePublicationGateway
   const CanonicalSmartTilePublicationGateway({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -149,7 +149,7 @@ final class CanonicalSmartTilePublicationGateway
   }
 
   @override
-  Future<String> apply({
+  Future<String?> apply({
     required SmartTilePublicationCanonicalPlan plan,
     required String operationId,
   }) async {
@@ -157,10 +157,7 @@ final class CanonicalSmartTilePublicationGateway
     if (token is! EditorAuthoringMutationPlan) {
       throw StateError('The canonical publication plan token is invalid.');
     }
-    final result = await _mutations.apply(
-      token,
-      operationId: operationId,
-    );
+    final result = await _mutations.apply(token, operationId: operationId);
     return result.snapshotRevision;
   }
 }
@@ -183,9 +180,9 @@ final class SmartTilePublicationPlan {
   String get planId => canonical.planId;
 
   String? get layerId => switch (target) {
-        SmartTileMapPublicationTarget(:final layerId) => layerId,
-        SmartTileLibraryPublicationTarget() => null,
-      };
+    SmartTileMapPublicationTarget(:final layerId) => layerId,
+    SmartTileLibraryPublicationTarget() => null,
+  };
 
   Map<String, Object?> get preview {
     final value = canonical.receipt.extensions['preview'];
@@ -246,9 +243,9 @@ final class SmartTilePublicationException implements Exception {
 /// draft, plans against one revision, applies that exact plan, then reloads the
 /// authoritative snapshot for editor adoption.
 final class SmartTilePublicationService {
-  const SmartTilePublicationService(
-      {required SmartTilePublicationGateway gateway})
-      : _gateway = gateway;
+  const SmartTilePublicationService({
+    required SmartTilePublicationGateway gateway,
+  }) : _gateway = gateway;
 
   final SmartTilePublicationGateway _gateway;
 
@@ -287,12 +284,11 @@ final class SmartTilePublicationService {
       );
     }
     final parameters = <String, Object?>{'draftId': draftId};
-    if (target
-        case SmartTileMapPublicationTarget(
-          :final mapId,
-          :final layerId,
-          :final layerName,
-        )) {
+    if (target case SmartTileMapPublicationTarget(
+      :final mapId,
+      :final layerId,
+      :final layerName,
+    )) {
       parameters['layer'] = <String, Object?>{
         'mapId': mapId,
         'layerId': _nonBlank(layerId, 'layerId'),
@@ -328,7 +324,8 @@ final class SmartTilePublicationService {
       operationId: '${plan.canonical.planId}-apply',
     );
     final snapshot = await _gateway.load(projectRootPath: projectRootPath);
-    if (snapshot.snapshotRevision != appliedRevision) {
+    if (appliedRevision != null &&
+        snapshot.snapshotRevision != appliedRevision) {
       throw const SmartTilePublicationException(
         'smart_tile.publish.snapshot_stale',
         'Le snapshot canonique chargé après publication est obsolète.',
@@ -336,11 +333,10 @@ final class SmartTilePublicationService {
     }
     MapData? map;
     String? mapRevision;
-    if (plan.target
-        case SmartTileMapPublicationTarget(
-          :final mapId,
-          :final layerId,
-        )) {
+    if (plan.target case SmartTileMapPublicationTarget(
+      :final mapId,
+      :final layerId,
+    )) {
       map = snapshot.mapById(mapId);
       if (map == null || !map.layers.any((layer) => layer.id == layerId)) {
         throw const SmartTilePublicationException(
@@ -406,8 +402,9 @@ final class SmartTilePublicationService {
       preset: duplicate,
       snapshot: snapshot,
     );
-    if (!canonical.manifest.smartTileCatalog.presets
-        .any((candidate) => candidate.id == duplicate.id)) {
+    if (!canonical.manifest.smartTileCatalog.presets.any(
+      (candidate) => candidate.id == duplicate.id,
+    )) {
       throw const SmartTilePublicationException(
         'smart_tile.publish.duplicate_missing_after_apply',
         'La copie est absente du snapshot canonique après publication.',
@@ -445,7 +442,8 @@ final class SmartTilePublicationService {
       operationId: 'smart-tile-preset-publish-$fingerprint',
     );
     final canonical = await _gateway.load(projectRootPath: projectRootPath);
-    if (canonical.snapshotRevision != appliedRevision) {
+    if (appliedRevision != null &&
+        canonical.snapshotRevision != appliedRevision) {
       throw const SmartTilePublicationException(
         'smart_tile.publish.snapshot_stale',
         'Le snapshot canonique chargé après publication est obsolète.',
@@ -490,24 +488,17 @@ String _publicationIdentity({
   required String revision,
   required SmartTilePublicationTarget target,
 }) {
-  final digest = computeAuthoringJsonFingerprint(
-    <String, Object?>{
-      'draftId': draftId,
-      'revision': revision,
-      'target': switch (target) {
-        SmartTileLibraryPublicationTarget() => const <String, Object?>{
-            'kind': 'library'
-          },
-        SmartTileMapPublicationTarget(:final mapId, :final layerId) =>
-          <String, Object?>{
-            'kind': 'map',
-            'mapId': mapId,
-            'layerId': layerId,
-          },
+  final digest = computeAuthoringJsonFingerprint(<String, Object?>{
+    'draftId': draftId,
+    'revision': revision,
+    'target': switch (target) {
+      SmartTileLibraryPublicationTarget() => const <String, Object?>{
+        'kind': 'library',
       },
+      SmartTileMapPublicationTarget(:final mapId, :final layerId) =>
+        <String, Object?>{'kind': 'map', 'mapId': mapId, 'layerId': layerId},
     },
-    logicalName: 'smart-tile-publication-identity.json',
-  );
+  }, logicalName: 'smart-tile-publication-identity.json');
   return 'smart-tile-publish-${digest.substring('sha256:'.length, 39)}';
 }
 

@@ -57,3 +57,5 @@ export 'src/workspace/workspace_handle_store.dart'
     show ProjectHandle, WorkspaceHandle, WorkspaceHandleException;
 
 export 'src/ports/file_backed_payload_store.dart';
+
+export 'src/transactions/authoring_payload.dart';

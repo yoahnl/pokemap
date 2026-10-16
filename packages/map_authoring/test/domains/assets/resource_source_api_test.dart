@@ -244,8 +244,8 @@ void main() {
         await fixture.snapshots.load(ProjectHandle(fixture.project));
     expect(snapshot.findResourceBytes('assetLogical:asset'), isNull);
     expect(
-        snapshot
-            .findResourceBytes(assetBlobResourceIdentity(source.old.digest)),
+        await snapshot
+            .readResourceBytes(assetBlobResourceIdentity(source.old.digest)),
         source.oldBytes);
     final candidate =
         await fixture.mutations.artifacts.put(sourcePng(red: 255));
@@ -266,11 +266,13 @@ void main() {
         .writeAsBytes(sourcePng(red: 90));
     final candidate =
         await fixture.mutations.artifacts.put(sourcePng(red: 255));
-    final result = await fixture.plan('tileset.source.replace',
-        {'tilesetId': 'sheet', 'artifactHandle': candidate.reference.handle});
-    expect(result.status, AuthoringResultStatus.failure);
-    expect(result.error!.details['domainCode'],
-        'tileset.source_bytes_unavailable');
+    await expectLater(
+        fixture.plan('tileset.source.replace', {
+          'tilesetId': 'sheet',
+          'artifactHandle': candidate.reference.handle
+        }),
+        throwsA(isA<ProjectSnapshotException>().having(
+            (error) => error.code, 'code', 'project.asset_source_mismatch')));
     expect(await File('${fixture.root.path}/${source.path}').readAsBytes(),
         sourcePng(red: 90));
   });
@@ -288,7 +290,8 @@ void main() {
         isNull);
     final mutation =
         await fixture.snapshots.load(ProjectHandle(fixture.project));
-    expect(mutation.findResourceBytes('assetLogical:asset'), source.oldBytes);
+    expect(await mutation.readResourceBytes('assetLogical:asset'),
+        source.oldBytes);
     expect(mutation.resourceStorageKeys['assetLogical:asset'], source.path);
   });
 }

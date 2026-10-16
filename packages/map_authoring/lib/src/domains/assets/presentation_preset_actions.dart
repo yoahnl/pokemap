@@ -135,7 +135,7 @@ final class PresentationPresetActions {
       );
     }
     _ensurePresetAbsent(context.snapshot.manifest, id);
-    final pack = _buildExportPack(
+    final pack = await _buildExportPack(
       context.snapshot,
       id: id,
       label: label,
@@ -270,7 +270,7 @@ final class PresentationPresetActions {
   }
 }
 
-ProjectPresentationPresetPack _buildExportPack(
+Future<ProjectPresentationPresetPack> _buildExportPack(
   ProjectSnapshot snapshot, {
   required String id,
   required String label,
@@ -279,7 +279,7 @@ ProjectPresentationPresetPack _buildExportPack(
   required ProjectPresentationPresetScope scope,
   required List<String> replacedSections,
   required Map<String, String> licensePaths,
-}) {
+}) async {
   final catalog = _catalog(snapshot);
   final files = <String, Uint8List>{};
   final assets = <PresentationPresetAsset>[];
@@ -307,8 +307,8 @@ ProjectPresentationPresetPack _buildExportPack(
         'Preset licenses must be managed UTF-8 text assets.',
       );
     }
-    final assetBytes = _blobBytes(snapshot, asset.artifact);
-    final licenseBytes = _blobBytes(snapshot, license.artifact);
+    final assetBytes = await _blobBytes(snapshot, asset.artifact);
+    final licenseBytes = await _blobBytes(snapshot, license.artifact);
     final assetSha256 = presentationPresetFileSha256(assetBytes);
     final licenseSha256 = presentationPresetFileSha256(licenseBytes);
     final assetArchivePath =
@@ -605,8 +605,9 @@ AssetCatalog _catalog(ProjectSnapshot snapshot) {
   }
 }
 
-List<int> _blobBytes(ProjectSnapshot snapshot, ContentArtifactRef artifact) {
-  final bytes = snapshot.findResourceBytes(
+Future<List<int>> _blobBytes(
+    ProjectSnapshot snapshot, ContentArtifactRef artifact) async {
+  final bytes = await snapshot.readResourceBytes(
     assetBlobResourceIdentity(artifact.digest),
   );
   if (bytes == null) {

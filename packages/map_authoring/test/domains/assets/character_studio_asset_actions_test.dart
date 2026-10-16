@@ -156,7 +156,7 @@ void main() {
       expect(draft.preview['bindingKind'], 'animationClip');
       expect(draft.preview['orphanedBlobDeleted'], isTrue);
       expect(
-        draft.changeSet.changes.where((change) => change.afterBytes == null),
+        draft.changeSet.changes.where((change) => change.afterPayload == null),
         hasLength(1),
       );
       final animation =
@@ -397,9 +397,9 @@ void main() {
       expect(draft.preview['orphanedBlobDeleted'], isTrue);
       expect(draft.changeSet.changes, hasLength(4));
       final deleted = draft.changeSet.changes.singleWhere(
-        (change) => change.afterBytes == null,
+        (change) => change.afterPayload == null,
       );
-      expect(deleted.beforeBytes, oldBytes);
+      expect(await deleted.beforePayload!.readBytes(), oldBytes);
     });
 
     test('replacement preserves a previous blob shared by another asset',
@@ -445,7 +445,8 @@ void main() {
       expect(draft.preview['orphanedBlobDeleted'], isFalse);
       expect(draft.changeSet.changes, hasLength(3));
       expect(
-          draft.changeSet.changes.every((change) => change.afterBytes != null),
+          draft.changeSet.changes
+              .every((change) => change.afterPayload != null),
           isTrue);
     });
 

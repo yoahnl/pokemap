@@ -31,6 +31,7 @@ export 'src/ports/project_file_reader.dart'
         ProjectFileReader,
         ProjectResourceIdentity,
         ProjectResourceIdentityReader,
+        ProjectResourceStreamReader,
         ProjectResourceProbe,
         ProjectResourceProbeReader,
         ProjectResourceProbeStatus,
@@ -66,3 +67,5 @@ export 'src/workspace/workspace_handle_store.dart' show WorkspaceHandleStore;
 export 'src/workspace/workspace_policy.dart' show WorkspacePolicy;
 
 export 'src/infrastructure/local_resource_pack_store.dart';
+
+export 'src/transactions/local_authoring_payload.dart';

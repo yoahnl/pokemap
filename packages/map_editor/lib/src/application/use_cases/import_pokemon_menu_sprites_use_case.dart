@@ -259,8 +259,16 @@ final class ImportPokemonMenuSpritesUseCase {
         plan,
         operationId: _identity('apply'),
       );
-      revision = result.snapshotRevision;
       applied += (plan.preview['added'] as List).length;
+      final nextRevision = result.snapshotRevision;
+      if (nextRevision == null) {
+        throw const EditorAuthoringMutationFailure(
+          code: 'snapshot.refresh_unavailable',
+          message:
+              'Le dernier lot a été importé. Relisez le projet avant de poursuivre sans rejouer ce lot.',
+        );
+      }
+      revision = nextRevision;
     }
     return applied;
   }

@@ -31,8 +31,7 @@ final class DartSmartTileDraftDebounceScheduler
   SmartTileDraftDebounceTimer schedule(
     Duration delay,
     void Function() callback,
-  ) =>
-      _DartSmartTileDraftDebounceTimer(Timer(delay, callback));
+  ) => _DartSmartTileDraftDebounceTimer(Timer(delay, callback));
 }
 
 final class _DartSmartTileDraftDebounceTimer
@@ -49,11 +48,9 @@ final class _DartSmartTileDraftDebounceTimer
 }
 
 final class SmartTileDraftPersistenceApplyResult {
-  const SmartTileDraftPersistenceApplyResult({
-    required this.snapshotRevision,
-  });
+  const SmartTileDraftPersistenceApplyResult({required this.snapshotRevision});
 
-  final String snapshotRevision;
+  final String? snapshotRevision;
 }
 
 final class SmartTileDraftCanonicalSnapshot {
@@ -89,8 +86,8 @@ final class CanonicalSmartTileDraftPersistenceGateway
   const CanonicalSmartTileDraftPersistenceGateway({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -111,10 +108,7 @@ final class CanonicalSmartTileDraftPersistenceGateway
       requestId: idempotencyKey,
       expectedRevision: expectedRevision,
     );
-    final applied = await _mutations.apply(
-      plan,
-      operationId: operationId,
-    );
+    final applied = await _mutations.apply(plan, operationId: operationId);
     return SmartTileDraftPersistenceApplyResult(
       snapshotRevision: applied.snapshotRevision,
     );
@@ -137,12 +131,10 @@ final class CanonicalSmartTileDraftPersistenceGateway
   }
 }
 
-typedef SmartTileDraftPersistenceListener = void Function(
-  SmartTileDraftPersistenceState state,
-);
-typedef SmartTileDraftCanonicalSnapshotListener = void Function(
-  SmartTileDraftCanonicalSnapshot snapshot,
-);
+typedef SmartTileDraftPersistenceListener =
+    void Function(SmartTileDraftPersistenceState state);
+typedef SmartTileDraftCanonicalSnapshotListener =
+    void Function(SmartTileDraftCanonicalSnapshot snapshot);
 
 /// Serial, latest-wins autosave for one durable Studio draft.
 ///
@@ -161,26 +153,26 @@ final class SmartTileDraftPersistenceCoordinator {
     SmartTileDraftPersistenceListener? onStateChanged,
     SmartTileDraftCanonicalSnapshotListener? onCanonicalSnapshot,
     bool initiallySaved = false,
-  })  : _draft = initialDraft,
-        _gateway = gateway,
-        _scheduler = scheduler,
-        _debounce = debounce,
-        _onStateChanged = onStateChanged,
-        _onCanonicalSnapshot = onCanonicalSnapshot,
-        _savedFingerprint = initiallySaved
-            ? smartTileDraftCanonicalFingerprint(initialDraft)
-            : null,
-        _state = SmartTileDraftPersistenceState(
-          phase: initiallySaved
-              ? SmartTileDraftPersistencePhase.saved
-              : SmartTileDraftPersistencePhase.localOnly,
-          generation: 0,
-          persistedGeneration: 0,
-          snapshotRevision: initialSnapshotRevision,
-          fingerprint: initiallySaved
-              ? smartTileDraftCanonicalFingerprint(initialDraft)
-              : null,
-        ) {
+  }) : _draft = initialDraft,
+       _gateway = gateway,
+       _scheduler = scheduler,
+       _debounce = debounce,
+       _onStateChanged = onStateChanged,
+       _onCanonicalSnapshot = onCanonicalSnapshot,
+       _savedFingerprint = initiallySaved
+           ? smartTileDraftCanonicalFingerprint(initialDraft)
+           : null,
+       _state = SmartTileDraftPersistenceState(
+         phase: initiallySaved
+             ? SmartTileDraftPersistencePhase.saved
+             : SmartTileDraftPersistencePhase.localOnly,
+         generation: 0,
+         persistedGeneration: 0,
+         snapshotRevision: initialSnapshotRevision,
+         fingerprint: initiallySaved
+             ? smartTileDraftCanonicalFingerprint(initialDraft)
+             : null,
+       ) {
     if (debounce <= Duration.zero) {
       throw ArgumentError.value(debounce, 'debounce', 'must be positive');
     }
@@ -288,7 +280,8 @@ final class SmartTileDraftPersistenceCoordinator {
       );
       return;
     }
-    final blocked = _state.phase == SmartTileDraftPersistencePhase.conflict ||
+    final blocked =
+        _state.phase == SmartTileDraftPersistencePhase.conflict ||
         _state.phase == SmartTileDraftPersistencePhase.failed;
     _emit(
       _state.copyWith(
@@ -373,7 +366,7 @@ final class SmartTileDraftPersistenceCoordinator {
           ),
         );
         try {
-          final applied = await _gateway.upsert(
+          await _gateway.upsert(
             projectRootPath: projectRootPath,
             draft: draft,
             expectedRevision: expectedRevision,
@@ -396,8 +389,9 @@ final class SmartTileDraftPersistenceCoordinator {
           _onCanonicalSnapshot?.call(canonical);
           if (_state.generation == generation) {
             _draft = canonicalDraft;
-            _savedFingerprint =
-                smartTileDraftCanonicalFingerprint(canonicalDraft);
+            _savedFingerprint = smartTileDraftCanonicalFingerprint(
+              canonicalDraft,
+            );
             _emit(
               _state.copyWith(
                 phase: SmartTileDraftPersistencePhase.saved,
@@ -412,7 +406,7 @@ final class SmartTileDraftPersistenceCoordinator {
               _state.copyWith(
                 phase: SmartTileDraftPersistencePhase.dirty,
                 persistedGeneration: generation,
-                snapshotRevision: applied.snapshotRevision,
+                snapshotRevision: canonical.snapshotRevision,
                 fingerprint: smartTileDraftCanonicalFingerprint(_draft),
                 clearError: true,
               ),
@@ -457,10 +451,9 @@ final class SmartTileDraftPersistenceCoordinator {
 
 String smartTileDraftCanonicalFingerprint(
   ProjectSmartTileAuthoringDraft draft,
-) =>
-    sha256
-        .convert(utf8.encode(canonicalAuthoringJson(draft.toJson())))
-        .toString();
+) => sha256
+    .convert(utf8.encode(canonicalAuthoringJson(draft.toJson())))
+    .toString();
 
 bool _isRevisionConflict(String code) =>
     code.contains('conflict') ||

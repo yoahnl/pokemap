@@ -1,76 +1,67 @@
-import 'dart:typed_data';
-
 import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../support/authoring_fingerprint.dart';
+import 'authoring_payload.dart';
 
-/// Frozen before/after payloads for one opaque resource mutation.
-///
-/// [storageKey] is an internal project-relative capability used by the future
-/// transaction gateway. It is deliberately omitted from public JSON so a
-/// resource reference never becomes a filesystem API.
 final class AuthoringResourceChange {
   AuthoringResourceChange({
-    required this.resource,
+    required AuthoringResourceRef resource,
     required String storageKey,
     required Iterable<int>? beforeBytes,
     required Iterable<int>? afterBytes,
     String? beforeRevision,
     String? afterRevision,
-  })  : storageKey = _safeStorageKey(storageKey),
-        beforeBytes = _freezeOptionalBytes(beforeBytes, 'beforeBytes'),
-        afterBytes = _freezeOptionalBytes(afterBytes, 'afterBytes') {
-    if (this.beforeBytes == null && this.afterBytes == null) {
-      throw ArgumentError.value(
-        null,
-        'beforeBytes/afterBytes',
-        'at least one resource image must exist',
-      );
+  }) : this.withPayloads(
+          resource: resource,
+          storageKey: storageKey,
+          beforePayload: beforeBytes == null
+              ? null
+              : AuthoringPayload.inline(beforeBytes, storageKey: storageKey),
+          afterPayload: afterBytes == null
+              ? null
+              : AuthoringPayload.inline(afterBytes, storageKey: storageKey),
+          beforeRevision: beforeRevision,
+          afterRevision: afterRevision,
+        );
+
+  AuthoringResourceChange.withPayloads({
+    required this.resource,
+    required String storageKey,
+    required this.beforePayload,
+    required this.afterPayload,
+    String? beforeRevision,
+    String? afterRevision,
+  }) : storageKey = _safeStorageKey(storageKey) {
+    if (beforePayload == null && afterPayload == null) {
+      throw ArgumentError('At least one resource image must exist.');
     }
-    if (this.beforeBytes != null &&
-        this.afterBytes != null &&
-        _bytesEqual(this.beforeBytes!, this.afterBytes!)) {
-      throw ArgumentError.value(
-        afterBytes,
-        'afterBytes',
-        'must differ from beforeBytes',
-      );
+    for (final payload in [beforePayload, afterPayload]) {
+      if (payload != null && payload.storageKey != this.storageKey) {
+        throw ArgumentError(
+            'A payload must be framed for the changed resource.');
+      }
     }
-    final computedBefore = this.beforeBytes == null
-        ? null
-        : computeAuthoringBytesFingerprint(
-            this.beforeBytes!,
-            logicalName: this.storageKey,
-          );
-    final computedAfter = this.afterBytes == null
-        ? null
-        : computeAuthoringBytesFingerprint(
-            this.afterBytes!,
-            logicalName: this.storageKey,
-          );
+    if (beforePayload != null &&
+        afterPayload != null &&
+        beforePayload!.resourceRevision == afterPayload!.resourceRevision) {
+      throw ArgumentError.value(
+          afterPayload, 'afterBytes', 'must differ from beforeBytes');
+    }
     this.beforeRevision = _verifiedOptionalRevision(
-      beforeRevision,
-      computedBefore,
-      'beforeRevision',
-    );
+        beforeRevision, beforePayload?.resourceRevision, 'beforeRevision');
     this.afterRevision = _verifiedOptionalRevision(
-      afterRevision,
-      computedAfter,
-      'afterRevision',
-    );
+        afterRevision, afterPayload?.resourceRevision, 'afterRevision');
     if (resource.revision != null && resource.revision != this.beforeRevision) {
-      throw ArgumentError.value(
-        resource.revision,
-        'resource.revision',
-        'must match the frozen before revision',
-      );
+      throw ArgumentError('The resource revision must match its before image.');
     }
   }
 
   final AuthoringResourceRef resource;
   final String storageKey;
-  final List<int>? beforeBytes;
-  final List<int>? afterBytes;
+  final AuthoringPayload? beforePayload;
+  final AuthoringPayload? afterPayload;
+  List<int>? get beforeBytes => beforePayload?.inlineBytes;
+  List<int>? get afterBytes => afterPayload?.inlineBytes;
   late final String? beforeRevision;
   late final String? afterRevision;
 
@@ -78,8 +69,8 @@ final class AuthoringResourceChange {
         'resource': resource.toJson(),
         'beforeRevision': beforeRevision,
         'afterRevision': afterRevision,
-        'beforeByteLength': beforeBytes?.length,
-        'afterByteLength': afterBytes?.length,
+        'beforeByteLength': beforePayload?.byteLength,
+        'afterByteLength': afterPayload?.byteLength,
       };
 }
 
@@ -152,6 +143,13 @@ final class AuthoringChangeSet {
   late final List<AuthoringResourceRef> affectedResources;
   late final String projectedRevision;
 
+  Future<void> releasePayloads() => releaseAuthoringPayloads([
+        for (final change in changes) ...[
+          change.beforePayload,
+          change.afterPayload
+        ],
+      ]);
+
   Map<String, Object?> toJson() => {
         'changes': [for (final change in changes) change.toJson()],
         'diff': diff.toJson(),
@@ -196,20 +194,6 @@ String _safeStorageKey(String value) {
   return normalized;
 }
 
-List<int>? _freezeOptionalBytes(Iterable<int>? values, String field) {
-  if (values == null) return null;
-  final source = values is List<int> ? values : values.toList(growable: false);
-  final bytes = Uint8List(source.length);
-  for (var index = 0; index < source.length; index++) {
-    final value = source[index];
-    if (value < 0 || value > 255) {
-      throw ArgumentError.value(values, field, 'must contain bytes');
-    }
-    bytes[index] = value;
-  }
-  return bytes.asUnmodifiableView();
-}
-
 String? _verifiedOptionalRevision(
   String? supplied,
   String? computed,
@@ -237,11 +221,3 @@ String _resourceKey(AuthoringResourceRef resource) =>
 
 bool _setsEqual(Set<String> left, Set<String> right) =>
     left.length == right.length && left.containsAll(right);
-
-bool _bytesEqual(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}

@@ -113,6 +113,12 @@ abstract interface class ProjectResourceProbeReader {
   });
 }
 
+abstract interface class ProjectResourceStreamReader {
+  bool get supportsStreamingResources;
+  Stream<List<int>> openRead(
+      {required String projectRoot, required String relativePath});
+}
+
 /// The complete filesystem capability available to the Authoring Read API.
 ///
 /// Deliberately no mutation method is exposed by this port.
@@ -129,6 +135,7 @@ abstract interface class ProjectFileReader {
 final class LocalProjectFileReader
     implements
         ProjectFileReader,
+        ProjectResourceStreamReader,
         ProjectResourceIdentityReader,
         ProjectSnapshotCacheIdentityReader,
         ProjectDirectoryReader,
@@ -281,6 +288,43 @@ final class LocalProjectFileReader
         'workspace.directory_unavailable',
         'The requested workspace root is unavailable.',
       );
+    }
+  }
+
+  @override
+  bool get supportsStreamingResources => true;
+
+  @override
+  Stream<List<int>> openRead(
+      {required String projectRoot, required String relativePath}) async* {
+    final root = _requirePath(projectRoot, field: 'projectRoot');
+    final segments = _projectRelativeSegments(relativePath);
+    final lexicalTarget = [root, ...segments].join(Platform.pathSeparator);
+    try {
+      final resolved = await File(lexicalTarget).resolveSymbolicLinks();
+      if (!workspacePathIsWithin(root: root, candidate: resolved)) {
+        throw const WorkspaceAccessException('workspace.path_outside_project',
+            'The requested resource resolves outside the project.');
+      }
+      final file = File(resolved);
+      final before = await file.stat();
+      if (before.type != FileSystemEntityType.file) {
+        throw const WorkspaceAccessException('workspace.file_required',
+            'The requested resource is not a regular file.');
+      }
+      yield* file.openRead();
+      final after = await file.stat();
+      if (await File(lexicalTarget).resolveSymbolicLinks() != resolved ||
+          before.size != after.size ||
+          before.modified != after.modified ||
+          before.changed != after.changed) {
+        throw const WorkspaceAccessException(
+            'workspace.path_changed_during_read',
+            'The requested resource changed during reading.');
+      }
+    } on FileSystemException {
+      throw const WorkspaceAccessException('workspace.file_unavailable',
+          'The requested resource is unavailable.');
     }
   }
 

@@ -6,6 +6,123 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final mode in ['apply', 'undo', 'recover', 'jsonl']) {
+    test('committed $mode preserves its receipt when snapshot refresh fails',
+        () async {
+      final root = await Directory.systemTemp.createTemp('committed-refresh-');
+      addTearDown(() => root.delete(recursive: true));
+      final manifest = ProjectManifest(
+          name: 'Refresh',
+          version: ProjectVersion.v8,
+          maps: const [],
+          tilesets: const []);
+      await File('${root.path}/project.json')
+          .writeAsString(jsonEncode(manifest.toJson()));
+      const reader = LocalProjectFileReader();
+      final canonicalRoot = await root.resolveSymbolicLinks();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [root.path], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      var unavailable = false;
+      var crash = mode == 'recover';
+      var failAfterCommit = mode != 'undo';
+      final registered = handles.registerProject(
+          projectName: 'Refresh',
+          initialFingerprint: 'fixture',
+          readBytes: (path) {
+            if (unavailable) {
+              throw const WorkspaceAccessException('workspace.file_unavailable',
+                  'Unavailable fixture resource.');
+            }
+            return reader.readBytes(
+                projectRoot: canonicalRoot, relativePath: path);
+          });
+      addTearDown(() => handles.closeWorkspace(registered.workspaceHandle));
+      final loader = ProjectSnapshotLoader(handles: handles);
+      final api = LocalMapAuthoringMutationApi(
+          policy: policy,
+          snapshotLoader: loader,
+          faultInjector: (context) {
+            if (crash &&
+                context.checkpoint ==
+                    AuthoringTransactionCheckpoint.afterJournalPrepared) {
+              crash = false;
+              throw const AuthoringTransactionSimulatedCrash();
+            }
+            if (failAfterCommit &&
+                context.checkpoint ==
+                    AuthoringTransactionCheckpoint.afterJournalCommitted) {
+              unavailable = true;
+            }
+          });
+      await api.attachProject(
+          projectRootPath: root.path,
+          workspaceHandle: registered.workspaceHandle,
+          projectHandle: registered.projectHandle);
+      final snapshot = await loader.load(registered.projectHandle);
+      final plan = await api.planMutation(
+          registered.projectHandle,
+          AuthoringRequest(
+              requestId: 'create-refresh',
+              actionId: 'map.create',
+              actionVersion: 1,
+              workspaceHandle: registered.workspaceHandle.value,
+              parameters: const {'mapId': 'created', 'width': 2, 'height': 2},
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'refresh-create'));
+      AuthoringMutationResult? result;
+      if (mode == 'recover') {
+        await expectLater(
+            api.applyMutation(registered.projectHandle,
+                planId: plan.planId, operationId: 'refresh-operation'),
+            throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+        unavailable = true;
+        result = await api.recoverMutation(registered.projectHandle,
+            operationId: 'refresh-operation');
+      } else if (mode == 'jsonl') {
+        final worker = JsonlWorker(
+            api: AuthoringReadApi(
+                openService: ProjectOpenService(
+                    policy: policy, fileReader: reader, handles: handles),
+                snapshotLoader: loader),
+            mutations: api);
+        final wire = await _request(worker, 'apply', args: {
+          'projectHandle': registered.projectHandle.value,
+          'planId': plan.planId,
+          'operationId': 'refresh-operation'
+        });
+        expect(wire.status, AuthoringResultStatus.success);
+        expect((wire.data['receipt'] as Map)['status'], 'applied');
+        expect(wire.data['snapshotRevision'], isNull);
+        expect((wire.data['diagnostic'] as Map)['code'],
+            'snapshot.refresh_unavailable');
+        expect(wire.toJson().toString(), isNot(contains(root.path)));
+      } else {
+        result = await api.applyMutation(registered.projectHandle,
+            planId: plan.planId, operationId: 'refresh-operation');
+        if (mode == 'undo') {
+          failAfterCommit = true;
+          result = await api.undoMutation(registered.projectHandle,
+              entryId: result.receipt.receiptId,
+              idempotencyKey: 'refresh-undo');
+        }
+      }
+      if (result != null) {
+        expect(result.snapshotRevision, isNull);
+        expect(result.diagnostic!.code, 'snapshot.refresh_unavailable');
+        expect(result.toJson().toString(), isNot(contains(root.path)));
+      }
+      unavailable = false;
+      expect(
+          (await api.listMutationHistory(registered.projectHandle, limit: 10))
+              .entries,
+          hasLength(mode == 'undo' ? 2 : 1));
+      expect(await File('${root.path}/maps/created.json').exists(),
+          mode != 'undo');
+      await api.detachWorkspace(registered.workspaceHandle);
+    });
+  }
+
   test('typed mutation facade owns contracts before wire serialization',
       () async {
     final root = await Directory.systemTemp.createTemp('typed-mutation-');

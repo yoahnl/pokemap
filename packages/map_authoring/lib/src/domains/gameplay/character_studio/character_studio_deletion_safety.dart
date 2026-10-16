@@ -39,7 +39,7 @@ void _requireDeletionInventory(ProjectSnapshot snapshot) {
   for (final entry in snapshot.manifest.maps) {
     final identity = 'map:${entry.id}';
     if (!snapshot.maps.any((map) => map.id == entry.id) ||
-        snapshot.findResourceBytes(identity) == null ||
+        !snapshot.hasResource(identity) ||
         snapshot.resourceFingerprints[identity] == null ||
         snapshot.resourceStorageKeys[identity] == null) {
       throw CharacterStudioActionException(
@@ -154,9 +154,8 @@ List<Map<String, Object?>> _characterReplacementProblems(
             .toList() ??
         [];
     if (records.isEmpty ||
-        context.snapshot.findResourceBytes(
-                assetBlobResourceIdentity(records.first.artifact.digest)) ==
-            null) {
+        !context.snapshot.hasResource(
+            assetBlobResourceIdentity(records.first.artifact.digest))) {
       problems.add({
         'code': 'portrait_asset_unavailable',
         'message':
@@ -190,9 +189,8 @@ List<Map<String, Object?>> _characterReplacementProblems(
               .toList() ??
           [];
       if (records.isEmpty ||
-          context.snapshot.findResourceBytes(
-                  assetBlobResourceIdentity(records.first.artifact.digest)) ==
-              null) {
+          !context.snapshot.hasResource(
+              assetBlobResourceIdentity(records.first.artifact.digest))) {
         problems.add({
           'code': 'custom_animation_asset_unavailable',
           'message':

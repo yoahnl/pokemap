@@ -59,11 +59,11 @@ final class AuthoringPlanStore {
     _plans[plan.planId] = plan;
   }
 
-  AuthoringPlan resolve(
+  Future<AuthoringPlan> resolve(
     String planId, {
     required String currentProjectRevision,
-  }) {
-    final plan = resolveActive(planId);
+  }) async {
+    final plan = await resolveActive(planId);
     if (currentProjectRevision != plan.baseRevision) {
       throw AuthoringPlanException(
         code: 'plan.stale',
@@ -80,7 +80,7 @@ final class AuthoringPlanStore {
   ///
   /// A completed retry must be allowed to return its original receipt even
   /// though the successful write necessarily changed the project revision.
-  AuthoringPlan resolveActive(String planId) {
+  Future<AuthoringPlan> resolveActive(String planId) async {
     final plan = _plans[planId];
     if (plan == null) {
       throw AuthoringPlanException(
@@ -90,6 +90,7 @@ final class AuthoringPlanStore {
       );
     }
     if (!now.isBefore(plan.expiresAt)) {
+      await discard(planId);
       throw AuthoringPlanException(
         code: 'plan.expired',
         message: 'The requested authoring plan has expired.',
@@ -101,7 +102,40 @@ final class AuthoringPlanStore {
     return plan;
   }
 
-  bool discard(String planId) => _plans.remove(planId) != null;
+  Future<bool> discard(String planId) async {
+    final plan = _plans.remove(planId);
+    if (plan == null) return false;
+    await plan.releaseAppliedPayload();
+    return true;
+  }
+
+  Future<void> collectExpired() async {
+    final ids = _plans.values
+        .where((plan) => !now.isBefore(plan.expiresAt))
+        .map((plan) => plan.planId)
+        .toList();
+    final results = await Future.wait([
+      for (final id in ids)
+        discard(id).then<Object?>((_) => null, onError: (Object error) => error)
+    ]);
+    for (final result in results) {
+      if (result != null) throw result;
+    }
+  }
+
+  Future<void> dispose() async {
+    final plans = _plans.values.toList();
+    _plans.clear();
+    final results = await Future.wait([
+      for (final plan in plans)
+        plan
+            .releaseAppliedPayload()
+            .then<Object?>((_) => null, onError: (Object error) => error)
+    ]);
+    for (final result in results) {
+      if (result != null) throw result;
+    }
+  }
 }
 
 DateTime _systemClock() => DateTime.now().toUtc();

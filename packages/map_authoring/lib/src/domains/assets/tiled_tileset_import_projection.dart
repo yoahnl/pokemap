@@ -142,11 +142,11 @@ final class TiledTilesetImportProjector {
       ),
     ];
 
-    final existingBlob = snapshot.findResourceBytes(
+    final existingBlob = snapshot.hasResource(
       assetBlobResourceIdentity(asset.artifact.digest),
     );
     if (!assetProjection.deduplicated) {
-      if (existingBlob != null) {
+      if (existingBlob) {
         throw AssetActionException(
           'asset.orphan_blob_conflict',
           'An unowned blob already occupies the imported artifact digest.',
@@ -174,7 +174,7 @@ final class TiledTilesetImportProjector {
         ),
       );
     } else {
-      _validateDeduplicatedBlob(asset, imageBytes, existingBlob);
+      _validateDeduplicatedBlob(asset, imageBytes, snapshot);
     }
 
     final projectResource = AuthoringResourceRef(
@@ -242,10 +242,10 @@ final class TiledTilesetImportProjector {
     );
   }
 
-  AuthoringMutationDraft deleteWangBundle({
+  Future<AuthoringMutationDraft> deleteWangBundle({
     required ProjectSnapshot snapshot,
     required String importId,
-  }) {
+  }) async {
     final normalizedImportId = importId.trim();
     if (normalizedImportId.isEmpty || normalizedImportId != importId) {
       throw VisualLibraryException(
@@ -363,10 +363,12 @@ final class TiledTilesetImportProjector {
     final deletesBlob = !remainingAssets.any(
       (item) => item.artifact.digest == asset.artifact.digest,
     );
-    final blobBytes = snapshot.findResourceBytes(
-      assetBlobResourceIdentity(asset.artifact.digest),
-    );
-    if (deletesBlob && blobBytes == null) {
+    final blobPayload =
+        snapshot.hasResource(assetBlobResourceIdentity(asset.artifact.digest))
+            ? await snapshot.captureResourcePayload(
+                assetBlobResourceIdentity(asset.artifact.digest))
+            : null;
+    if (deletesBlob && blobPayload == null) {
       throw AssetActionException(
         'asset.rollback_blob_required',
         'Deleting the last bundle asset requires its exact blob pre-image.',
@@ -406,17 +408,15 @@ final class TiledTilesetImportProjector {
         afterBytes: _encodeAssetCatalog(projectedAssets),
       ),
       if (deletesBlob)
-        AuthoringResourceChange(
-          resource: AuthoringResourceRef(
-            kind: 'assetBlob',
-            id: asset.artifact.digest,
-            revision: snapshot.resourceFingerprints[
-                assetBlobResourceIdentity(asset.artifact.digest)],
-          ),
-          storageKey: assetBlobStorageKey(asset.artifact),
-          beforeBytes: blobBytes,
-          afterBytes: null,
-        ),
+        AuthoringResourceChange.withPayloads(
+            resource: AuthoringResourceRef(
+                kind: 'assetBlob',
+                id: asset.artifact.digest,
+                revision: snapshot.resourceFingerprints[
+                    assetBlobResourceIdentity(asset.artifact.digest)]),
+            storageKey: assetBlobStorageKey(asset.artifact),
+            beforePayload: blobPayload,
+            afterPayload: null),
       AuthoringResourceChange(
         resource: projectResource,
         storageKey: 'project.json',
@@ -599,14 +599,14 @@ final class TiledTilesetImportProjector {
       final asset = assetsById[page.assetId]!;
       final bytes = pageBytes[page.id]!;
       if (!emittedDigests.add(asset.artifact.digest)) continue;
-      final existingBlob = snapshot.findResourceBytes(
+      final existingBlob = snapshot.hasResource(
         assetBlobResourceIdentity(asset.artifact.digest),
       );
       if (existingDigests.contains(asset.artifact.digest)) {
-        _validateDeduplicatedBlob(asset, bytes, existingBlob);
+        _validateDeduplicatedBlob(asset, bytes, snapshot);
         continue;
       }
-      if (existingBlob != null) {
+      if (existingBlob) {
         throw AssetActionException(
           'asset.orphan_blob_conflict',
           'An unowned blob already occupies an imported page digest.',
@@ -754,36 +754,19 @@ List<int> _encodeProjectWithSmartTileCatalog(
 }
 
 void _validateDeduplicatedBlob(
-  AssetRecord asset,
-  List<int> imageBytes,
-  List<int>? existingBlob,
-) {
-  if (existingBlob == null) {
-    throw AssetActionException(
-      'asset.deduplicated_blob_missing',
-      'The deduplicated artifact blob is unavailable.',
-      details: <String, Object?>{'digest': asset.artifact.digest},
-    );
+    AssetRecord asset, List<int> imageBytes, ProjectSnapshot snapshot) {
+  final identity = assetBlobResourceIdentity(asset.artifact.digest);
+  if (!snapshot.hasResource(identity)) {
+    throw AssetActionException('asset.deduplicated_blob_missing',
+        'The deduplicated artifact blob is unavailable.',
+        details: {'digest': asset.artifact.digest});
   }
-  final actual = ContentArtifactRef.fromBytes(
-    existingBlob,
-    mediaType: asset.artifact.mediaType,
-  );
-  if (actual.digest != asset.artifact.digest ||
-      actual.byteLength != asset.artifact.byteLength ||
-      !_sameBytes(existingBlob, imageBytes)) {
-    throw AssetActionException(
-      'asset.deduplicated_blob_mismatch',
-      'The deduplicated artifact blob does not match the staged image.',
-      details: <String, Object?>{'digest': asset.artifact.digest},
-    );
+  if (!snapshot.resourceMatchesArtifact(identity, asset.artifact) ||
+      ContentArtifactRef.fromBytes(imageBytes,
+              mediaType: asset.artifact.mediaType) !=
+          asset.artifact) {
+    throw AssetActionException('asset.deduplicated_blob_mismatch',
+        'The deduplicated artifact blob does not match the staged image.',
+        details: {'digest': asset.artifact.digest});
   }
-}
-
-bool _sameBytes(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index += 1) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
 }

@@ -574,16 +574,8 @@ bool _hasExactStoredAssets(
   for (final assetId in assetIds) {
     final asset = catalog.find(assetId);
     if (asset == null) return false;
-    final bytes = snapshot.findResourceBytes(
-      assetBlobResourceIdentity(asset.artifact.digest),
-    );
-    if (bytes == null) return false;
-    final exact = ContentArtifactRef.fromBytes(
-      bytes,
-      mediaType: asset.artifact.mediaType,
-    );
-    if (exact.digest != asset.artifact.digest ||
-        exact.byteLength != asset.artifact.byteLength) {
+    if (!snapshot.resourceMatchesArtifact(
+        assetBlobResourceIdentity(asset.artifact.digest), asset.artifact)) {
       return false;
     }
   }
@@ -638,14 +630,21 @@ AuthoringMutationDraft _projectTransaction({
   for (final asset in importedAssets) {
     final bytes = bytesByAssetId[asset.id]!;
     if (!emittedDigests.add(asset.artifact.digest)) continue;
-    final existing = snapshot.findResourceBytes(
-      assetBlobResourceIdentity(asset.artifact.digest),
-    );
+    final existing =
+        snapshot.hasResource(assetBlobResourceIdentity(asset.artifact.digest));
     if (existingDigests.contains(asset.artifact.digest)) {
-      _requireExactBlob(asset, bytes, existing);
+      if (!snapshot.resourceMatchesArtifact(
+              assetBlobResourceIdentity(asset.artifact.digest),
+              asset.artifact) ||
+          ContentArtifactRef.fromBytes(bytes,
+                  mediaType: asset.artifact.mediaType) !=
+              asset.artifact) {
+        throw AssetActionException('asset.deduplicated_blob_mismatch',
+            'The retained blob does not match the staged image.');
+      }
       continue;
     }
-    if (existing != null) {
+    if (existing) {
       throw AssetActionException(
         'asset.orphan_blob_conflict',
         'An unowned blob already occupies an imported TMX digest.',
@@ -804,32 +803,6 @@ void _validateProjectedState({
         'validationType': error.runtimeType.toString(),
         'validationMessage': error.toString(),
       },
-    );
-  }
-}
-
-void _requireExactBlob(
-  AssetRecord asset,
-  List<int> expected,
-  List<int>? existing,
-) {
-  if (existing == null || !_sameBytes(existing, expected)) {
-    throw AssetActionException(
-      'asset.deduplicated_blob_mismatch',
-      'A deduplicated TMX artifact does not match its stored blob.',
-      details: <String, Object?>{'digest': asset.artifact.digest},
-    );
-  }
-  final exact = ContentArtifactRef.fromBytes(
-    existing,
-    mediaType: asset.artifact.mediaType,
-  );
-  if (exact.digest != asset.artifact.digest ||
-      exact.byteLength != asset.artifact.byteLength) {
-    throw AssetActionException(
-      'asset.deduplicated_blob_mismatch',
-      'A deduplicated TMX artifact does not match its catalog identity.',
-      details: <String, Object?>{'digest': asset.artifact.digest},
     );
   }
 }
@@ -1109,14 +1082,6 @@ List<ProjectRegularAtlasTileAnimation> _regularAtlasAnimations(
             ],
           ),
     ];
-
-bool _sameBytes(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
 
 const Set<String> _windowsReservedMapIds = <String>{
   'con',

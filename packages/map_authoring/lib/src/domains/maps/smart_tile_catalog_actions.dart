@@ -152,6 +152,35 @@ final class SmartTileCatalogActions {
     ]..sort((left, right) => left.id.compareTo(right.id)),
   );
 
+  Future<AuthoringMutationDraft> buildWithResources(AuthoringPlanningContext planning) async {
+    final snapshot = planning.snapshot;
+    if (snapshot.storedResources.isEmpty && snapshot.payloadResources.isEmpty) return build(planning);
+    final atlases = <ProjectSmartTileAtlas>[];
+    final parameters = planning.request.parameters;
+    if (planning.request.actionId == 'smart_tile.atlas.upsert' && parameters['atlas'] is Map) {
+      atlases.add(ProjectSmartTileAtlas.fromJson(Map<String, dynamic>.from(parameters['atlas'] as Map)));
+    } else if (planning.request.actionId == 'smart_tile.preset.publish' && parameters['draftId'] is String) {
+      final draft = snapshot.manifest.smartTileCatalog.drafts.where((draft) => draft.id == parameters['draftId']).firstOrNull;
+      if (draft != null) atlases.addAll(draft.atlases);
+    }
+    if (atlases.isEmpty) return build(planning);
+    final catalogBytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
+    if (catalogBytes == null) return build(planning);
+    final assets = AssetCatalog.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(catalogBytes)) as Map));
+    final selected = <String, List<int>>{};
+    final assetIds = readTilesetAtlases(snapshot.manifest);
+    for (final atlas in atlases) {
+      final tileset = snapshot.manifest.tilesets.where((entry) => entry.id == atlas.tilesetId).firstOrNull;
+      final asset = assets.find(assetIds[atlas.tilesetId]?.assetId ?? '') ?? assets.records.where((record) => record.logicalPath == tileset?.relativePath).firstOrNull;
+      if (asset == null) continue;
+      final identity = assetBlobResourceIdentity(asset.artifact.digest);
+      final bytes = selected[identity] ?? await snapshot.readResourceBytes(identity);
+      if (bytes != null) selected[identity] = bytes;
+    }
+    return build(AuthoringPlanningContext(snapshot: snapshot.withInlineResources(selected),
+        request: planning.request, planId: planning.planId, seed: planning.seed));
+  }
+
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     if (planning.request.actionVersion != 1) {
       throw semanticFailure(

@@ -225,13 +225,17 @@ AuthoringMutationDraft _project(
     ),
   ];
 
-  final existingBlob = snapshot.findResourceBytes(
+  final existingBlob = snapshot.hasResource(
     assetBlobResourceIdentity(artifact.digest),
   );
   if (assetProjection.deduplicated) {
-    _requireDeduplicatedBlob(artifact, bytes, existingBlob);
+    if (!snapshot.resourceMatchesArtifact(
+        assetBlobResourceIdentity(artifact.digest), artifact)) {
+      throw AssetActionException('asset.deduplicated_blob_mismatch',
+          'The retained blob does not match the staged media.');
+    }
   } else {
-    if (existingBlob != null) {
+    if (existingBlob) {
       throw AssetActionException(
         'asset.orphan_blob_conflict',
         'An unowned blob already occupies the imported artifact digest.',
@@ -352,41 +356,6 @@ List<int> _encodeAssetCatalog(AssetCatalog catalog) => List<int>.unmodifiable(
       utf8.encode(
           '${const JsonEncoder.withIndent('  ').convert(catalog.toJson())}\n'),
     );
-
-void _requireDeduplicatedBlob(
-  ContentArtifactRef artifact,
-  List<int> bytes,
-  List<int>? existingBlob,
-) {
-  if (existingBlob == null) {
-    throw AssetActionException(
-      'asset.deduplicated_blob_missing',
-      'The deduplicated artifact blob is unavailable.',
-      details: <String, Object?>{'digest': artifact.digest},
-    );
-  }
-  final actual = ContentArtifactRef.fromBytes(
-    existingBlob,
-    mediaType: artifact.mediaType,
-  );
-  if (actual.digest != artifact.digest ||
-      actual.byteLength != artifact.byteLength ||
-      !_sameBytes(existingBlob, bytes)) {
-    throw AssetActionException(
-      'asset.deduplicated_blob_mismatch',
-      'The deduplicated artifact blob does not match the staged media.',
-      details: <String, Object?>{'digest': artifact.digest},
-    );
-  }
-}
-
-bool _sameBytes(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
 
 final class _PresentationMediaImportParameters {
   _PresentationMediaImportParameters(Map<String, Object?> values)

@@ -7,6 +7,7 @@ import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
 import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
+import 'authoring_payload.dart';
 
 final class AuthoringPlan {
   AuthoringPlan({
@@ -18,10 +19,12 @@ final class AuthoringPlan {
     required DateTime createdAt,
     required DateTime expiresAt,
     required AuthoringChangeSet changeSet,
+    AuthoringPayloadOwner? payloadOwner,
     Map<String, Object?> preview = const {},
     Map<String, Object?> referenceImpact = const {},
     Iterable<AuthoringArtifactRef> artifacts = const [],
-  })  : _request = request,
+  })  : _payloadOwner = payloadOwner ?? AuthoringPayloadOwner(),
+        _request = request,
         _changeSet = changeSet,
         projectedRevision = changeSet.projectedRevision,
         authorizationRequestBytes =
@@ -39,6 +42,11 @@ final class AuthoringPlan {
           field: 'referenceImpact',
         ),
         artifacts = _sortedArtifacts(artifacts) {
+    for (final change in changeSet.changes) {
+      for (final payload in [change.beforePayload, change.afterPayload]) {
+        if (payload != null) _payloadOwner.own(payload);
+      }
+    }
     if (!this.expiresAt.isAfter(this.createdAt)) {
       throw ArgumentError.value(
         expiresAt,
@@ -48,6 +56,18 @@ final class AuthoringPlan {
     }
     if (seed < 0) {
       throw ArgumentError.value(seed, 'seed', 'must not be negative');
+    }
+  }
+
+  final AuthoringPayloadOwner _payloadOwner;
+  var _payloadCleanupFailed = false;
+  bool get payloadCleanupFailed => _payloadCleanupFailed;
+  Future<void> releasePayloads() async {
+    try {
+      await _payloadOwner.release();
+    } on Object {
+      _payloadCleanupFailed = true;
+      rethrow;
     }
   }
 
@@ -79,7 +99,8 @@ final class AuthoringPlan {
           ? 'no_changes'
           : null;
 
-  void releaseAppliedPayload() {
+  Future<void> releaseAppliedPayload() {
+    final release = releasePayloads();
     if (_request.parameters.isNotEmpty) {
       _request = AuthoringRequest(
         requestId: _request.requestId,
@@ -93,6 +114,7 @@ final class AuthoringPlan {
       );
     }
     _changeSet = null;
+    return release;
   }
 
   AuthoringReceipt toPlannedReceipt() {

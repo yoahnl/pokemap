@@ -131,11 +131,13 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
       if (records.length != 1) {
         throw const ResourceFailure('La source de cette planche est ambiguë.');
       }
-      beforeBytes = Uint8List.fromList(
-        snapshot.resourceBytes(
-          assetBlobResourceIdentity(records.single.artifact.digest),
-        ),
+      final originalBytes = await snapshot.readResourceBytes(
+        assetBlobResourceIdentity(records.single.artifact.digest),
       );
+      if (originalBytes == null) {
+        throw const ResourceFailure('La source de cette planche est indisponible.');
+      }
+      beforeBytes = Uint8List.fromList(originalBytes);
     }
     final id = adapter._identity('resource_preview');
     final planned = await api.planMutation(

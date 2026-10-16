@@ -172,8 +172,10 @@ final class CharacterStudioAssetActions {
     ];
     if (orphanedBlobDeleted) {
       final identity = assetBlobResourceIdentity(before.artifact.digest);
-      final oldBytes = context.snapshot.findResourceBytes(identity);
-      if (oldBytes == null) {
+      final oldPayload = context.snapshot.hasResource(identity)
+          ? await context.snapshot.captureResourcePayload(identity)
+          : null;
+      if (oldPayload == null) {
         throw CharacterStudioAssetException(
           'character_studio.asset.rollback_blob_required',
           'Replacing the last blob reference requires its exact pre-image.',
@@ -186,12 +188,11 @@ final class CharacterStudioAssetActions {
         revision: context.snapshot.resourceFingerprints[identity],
       );
       changes.add(
-        AuthoringResourceChange(
-          resource: resource,
-          storageKey: assetBlobStorageKey(before.artifact),
-          beforeBytes: oldBytes,
-          afterBytes: null,
-        ),
+        AuthoringResourceChange.withPayloads(
+            resource: resource,
+            storageKey: assetBlobStorageKey(before.artifact),
+            beforePayload: oldPayload,
+            afterPayload: null),
       );
       diff.add(
         AuthoringDiffEntry(

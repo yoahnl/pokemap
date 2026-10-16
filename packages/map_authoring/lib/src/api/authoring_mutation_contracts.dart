@@ -122,22 +122,34 @@ final class AuthoringMutationConfirmationResult {
       });
 }
 
+final class AuthoringSnapshotRefreshDiagnostic {
+  const AuthoringSnapshotRefreshDiagnostic();
+  String get code => 'snapshot.refresh_unavailable';
+  String get message =>
+      'The mutation is committed. Reload the project before continuing; do not replay the mutation.';
+  Map<String, Object?> toJson() => {'code': code, 'message': message};
+}
+
 final class AuthoringMutationResult {
-  const AuthoringMutationResult({
-    required this.receipt,
-    required this.snapshotRevision,
-  });
+  AuthoringMutationResult(
+      {required this.receipt,
+      required this.snapshotRevision,
+      this.diagnostic}) {
+    if ((snapshotRevision == null) != (diagnostic != null)) {
+      throw ArgumentError(
+          'An unknown snapshot revision requires a refresh diagnostic.');
+    }
+  }
 
   final AuthoringReceipt receipt;
-  final String snapshotRevision;
+  final String? snapshotRevision;
+  final AuthoringSnapshotRefreshDiagnostic? diagnostic;
 
-  Map<String, Object?> toJson() => freezeContractJsonObject(
-        {
-          'receipt': receipt.toJson(),
-          'snapshotRevision': snapshotRevision,
-        },
-        field: 'mutationReceipt',
-      );
+  Map<String, Object?> toJson() => freezeContractJsonObject({
+        'receipt': receipt.toJson(),
+        'snapshotRevision': snapshotRevision,
+        if (diagnostic != null) 'diagnostic': diagnostic!.toJson(),
+      }, field: 'mutationReceipt');
 }
 
 final class AuthoringMutationHistoryResult {

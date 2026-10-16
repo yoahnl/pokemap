@@ -194,8 +194,8 @@ final class MapMutationDispatcher {
             descriptor: descriptor,
             build: const ResourceLibraryActions().build),
       for (final descriptor in MovingPlatformActions.descriptors)
-        MapMutationActionRegistration(descriptor: descriptor,
-            build: const MovingPlatformActions().build),
+        MapMutationActionRegistration(
+            descriptor: descriptor, build: const MovingPlatformActions().build),
       for (final descriptor in SpatialMapActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const SpatialMapActions().build),
@@ -217,7 +217,7 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: descriptor.id == 'smart_tile.preset.draft.import'
               ? SmartTileCatalogActions(artifactStore: artifacts).importDraft
-              : smartTileCatalog.build,
+              : smartTileCatalog.buildWithResources,
         ),
       for (final descriptor in SmartTileLayerActions.descriptors)
         MapMutationActionRegistration(
@@ -307,8 +307,9 @@ final class MapMutationDispatcher {
       for (final descriptor in DialogueAudioMediaActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
-          build: DialogueAudioMediaActions(artifactStore: artifacts,
-            probe: presentationMediaProbe).build,
+          build: DialogueAudioMediaActions(
+                  artifactStore: artifacts, probe: presentationMediaProbe)
+              .build,
         ),
       for (final descriptor
           in PresentationMediaConfigurationActions.descriptors)

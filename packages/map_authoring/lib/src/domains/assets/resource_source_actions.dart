@@ -159,8 +159,8 @@ final class ResourceSourceActions {
   }
 }
 
-AuthoringMutationDraft removeResourceSource(
-    AuthoringPlanningContext context, ProjectTilesetEntry tileset) {
+Future<AuthoringMutationDraft> removeResourceSource(
+    AuthoringPlanningContext context, ProjectTilesetEntry tileset) async {
   requireResourceSourceUnused(context.snapshot, tileset);
   final value = context.request.parameters['removeSource'];
   if (value != null && value is! bool) {
@@ -184,7 +184,7 @@ AuthoringMutationDraft removeResourceSource(
     try {
       final catalog = readResourceAssetCatalog(context.snapshot);
       final asset = requireResourceSourceAsset(tileset, catalog);
-      requireResourceSourceBytes(context.snapshot, asset);
+      requireResourceSourceIdentity(context.snapshot, asset);
       requireResourceAssetUnused(context.snapshot, next, asset);
       sourceRemovalSupported = true;
     } on VisualLibraryException catch (error) {
@@ -205,7 +205,9 @@ AuthoringMutationDraft removeResourceSource(
   }
   final catalog = readResourceAssetCatalog(context.snapshot);
   final asset = requireResourceSourceAsset(tileset, catalog);
-  final sourceBytes = requireResourceSourceBytes(context.snapshot, asset);
+  final sourceIdentity = requireResourceSourceIdentity(context.snapshot, asset);
+  final sourcePayload =
+      await context.snapshot.captureResourcePayload(sourceIdentity);
   requireResourceAssetUnused(context.snapshot, next, asset);
   final resource = AuthoringResourceRef(
       kind: 'assetCatalog',
@@ -227,11 +229,11 @@ AuthoringMutationDraft removeResourceSource(
   final extraDiff = <AuthoringDiffEntry>[];
   if (asset.logicalPath != assetBlobStorageKey(asset.artifact)) {
     final fileResource = AuthoringResourceRef(kind: 'asset', id: asset.id);
-    changes.add(AuthoringResourceChange(
+    changes.add(AuthoringResourceChange.withPayloads(
         resource: fileResource,
         storageKey: asset.logicalPath,
-        beforeBytes: sourceBytes,
-        afterBytes: null));
+        beforePayload: sourcePayload,
+        afterPayload: null));
     extraDiff.add(AuthoringDiffEntry(
         operation: AuthoringDiffOperation.remove,
         resource: fileResource,

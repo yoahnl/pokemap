@@ -725,7 +725,7 @@ final class _TiledMapImportSetup {
       expect(packedAsset.id, startsWith('road-image-'));
       expect(packedAsset.logicalPath, endsWith('.png'));
       expect(
-        snapshot.findResourceBytes(
+        await snapshot.readResourceBytes(
           assetBlobResourceIdentity(packedAsset.artifact.digest),
         ),
         isNotNull,
@@ -740,7 +740,8 @@ final class _TiledMapImportSetup {
         'assets/tilesets/road.png',
       );
       expect(
-        snapshot.findResourceBytes(assetBlobResourceIdentity(artifact.digest)),
+        await snapshot
+            .readResourceBytes(assetBlobResourceIdentity(artifact.digest)),
         _pngBytes,
       );
     }

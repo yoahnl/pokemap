@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 
 import 'workspace_handle_store.dart';
+import '../transactions/authoring_payload.dart';
+import '../contracts/artifact_ref.dart';
 
 const String itemCatalogResourceIdentity = 'itemCatalog';
 
@@ -51,6 +53,24 @@ final class ProjectSnapshotLoadDiagnostic {
       };
 }
 
+final class ProjectStoredResource {
+  const ProjectStoredResource(
+      {required this.byteLength,
+      required this.rawSha256,
+      required this.resourceRevision,
+      this.contentDigest});
+  final int byteLength;
+  final String rawSha256;
+  final String resourceRevision;
+  final String? contentDigest;
+}
+
+typedef ProjectSnapshotPayloadReader = Future<AuthoringPayload> Function(
+    ProjectHandle projectHandle,
+    String storageKey,
+    ProjectStoredResource descriptor,
+    AuthoringPayload? source);
+
 /// Immutable, path-free view of one coherently read PokeMap project revision.
 final class ProjectSnapshot {
   ProjectSnapshot({
@@ -65,8 +85,14 @@ final class ProjectSnapshot {
     Map<String, List<int>> resourceBytes = const {},
     Map<String, ProjectResourceBytes> ownedResourceBytes = const {},
     Map<String, String> resourceStorageKeys = const {},
+    Map<String, ProjectStoredResource> storedResources = const {},
+    Map<String, AuthoringPayload> payloadResources = const {},
+    this.resourcePayloadReader,
+    this.payloadOwner,
     Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
-  })  : itemCatalog = itemCatalog?.normalized(),
+  })  : storedResources = Map.unmodifiable(storedResources),
+        payloadResources = Map.unmodifiable(payloadResources),
+        itemCatalog = itemCatalog?.normalized(),
         maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
@@ -139,6 +165,27 @@ final class ProjectSnapshot {
         );
       }
     }
+    for (final entry in this.storedResources.entries) {
+      final descriptor = entry.value;
+      if (this.resourceFingerprints[entry.key] != descriptor.resourceRevision ||
+          !this.resourceStorageKeys.containsKey(entry.key) ||
+          _resourceBytes.containsKey(entry.key) ||
+          this.payloadResources.containsKey(entry.key) ||
+          descriptor.byteLength < 0 ||
+          !RegExp(r'^[0-9a-f]{64}$').hasMatch(descriptor.rawSha256)) {
+        throw ArgumentError(
+            'Stored resources must have disjoint verified descriptors.');
+      }
+    }
+    for (final entry in this.payloadResources.entries) {
+      if (this.resourceFingerprints[entry.key] !=
+              entry.value.resourceRevision ||
+          this.resourceStorageKeys[entry.key] != entry.value.storageKey ||
+          _resourceBytes.containsKey(entry.key)) {
+        throw ArgumentError(
+            'Projected payload resources must match their resource identity.');
+      }
+    }
     _mapsById = Map.unmodifiable({
       for (final map in this.maps) map.id: map,
     });
@@ -147,7 +194,10 @@ final class ProjectSnapshot {
   ProjectSnapshot._rebound({
     required this.projectHandle,
     required ProjectSnapshot source,
-  })  : revision = source.revision,
+    AuthoringPayloadOwner? payloadOwner,
+    required this.resourcePayloadReader,
+  })  : payloadOwner = payloadOwner ?? source.payloadOwner,
+        revision = source.revision,
         manifest = source.manifest,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         itemCatalog = source.itemCatalog,
@@ -156,6 +206,8 @@ final class ProjectSnapshot {
         resourceFingerprints = source.resourceFingerprints,
         resourceStorageKeys = source.resourceStorageKeys,
         loadDiagnostics = source.loadDiagnostics,
+        storedResources = source.storedResources,
+        payloadResources = source.payloadResources,
         _resourceBytes = source._resourceBytes {
     _mapsById = source._mapsById;
   }
@@ -167,7 +219,8 @@ final class ProjectSnapshot {
     required List<MapData> maps,
     required Map<String, String> resourceFingerprints,
     required Map<String, List<int>> resourceBytes,
-  })  : projectHandle = source.projectHandle,
+  })  : payloadOwner = source.payloadOwner,
+        projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
@@ -177,6 +230,9 @@ final class ProjectSnapshot {
         resourceFingerprints = Map.unmodifiable(resourceFingerprints),
         resourceStorageKeys = source.resourceStorageKeys,
         loadDiagnostics = source.loadDiagnostics,
+        storedResources = source.storedResources,
+        payloadResources = source.payloadResources,
+        resourcePayloadReader = source.resourcePayloadReader,
         _resourceBytes = Map.unmodifiable(resourceBytes) {
     _mapsById = Map.unmodifiable({for (final map in this.maps) map.id: map});
   }
@@ -192,14 +248,120 @@ final class ProjectSnapshot {
   final Map<String, String> resourceStorageKeys;
   final List<ProjectSnapshotLoadDiagnostic> loadDiagnostics;
   final Map<String, List<int>> _resourceBytes;
+  final Map<String, ProjectStoredResource> storedResources;
+  final Map<String, AuthoringPayload> payloadResources;
+  final ProjectSnapshotPayloadReader? resourcePayloadReader;
+  final AuthoringPayloadOwner? payloadOwner;
+  T ownPayload<T extends AuthoringPayload?>(T payload) {
+    if (payload != null) payloadOwner?.own(payload);
+    return payload;
+  }
+
+  ProjectSnapshot withPayloadOwner(AuthoringPayloadOwner owner) =>
+      ProjectSnapshot._rebound(
+          projectHandle: projectHandle,
+          source: this,
+          payloadOwner: owner,
+          resourcePayloadReader: resourcePayloadReader);
+  Map<String, List<int>> get inlineResourceBytes => _resourceBytes;
+  bool hasResource(String identity) =>
+      resourceFingerprints.containsKey(identity);
+
+  bool resourceMatchesArtifact(String identity, ContentArtifactRef artifact) {
+    final descriptor = storedResources[identity];
+    if (descriptor != null) {
+      return descriptor.byteLength == artifact.byteLength &&
+          descriptor.contentDigest == artifact.digest;
+    }
+    final payload = payloadResources[identity];
+    if (payload != null) {
+      return payload.byteLength == artifact.byteLength &&
+          payload.contentDigest == artifact.digest;
+    }
+    final bytes = _resourceBytes[identity];
+    return bytes != null &&
+        ContentArtifactRef.fromBytes(bytes, mediaType: artifact.mediaType) ==
+            artifact;
+  }
+
+  Future<AuthoringPayload> captureResourcePayload(String identity) async {
+    final payload = payloadResources[identity];
+    if (payload != null) {
+      final reader = resourcePayloadReader;
+      if (reader == null) {
+        throw StateError(
+            'Projected stored resources require an authorized payload reader.');
+      }
+      return ownPayload(await reader(
+          projectHandle,
+          payload.storageKey,
+          ProjectStoredResource(
+              byteLength: payload.byteLength,
+              rawSha256: payload.rawSha256,
+              resourceRevision: payload.resourceRevision,
+              contentDigest: payload.contentDigest),
+          payload));
+    }
+    final descriptor = storedResources[identity];
+    if (descriptor != null) {
+      final reader = resourcePayloadReader;
+      final key = resourceStorageKeys[identity];
+      if (reader != null && key != null) {
+        return ownPayload(await reader(projectHandle, key, descriptor, null));
+      }
+    }
+    final bytes = resourceBytes(identity);
+    return AuthoringPayload.inline(bytes,
+        storageKey: resourceStorageKeys[identity]!);
+  }
+
+  Future<List<int>?> readResourceBytes(String identity) async {
+    if (!hasResource(identity)) return null;
+    final inline = _resourceBytes[identity];
+    if (inline != null) return inline;
+    final payload = await captureResourcePayload(identity);
+    try {
+      return await payload.readBytes();
+    } finally {
+      await payload.release();
+    }
+  }
+
   late final Map<String, MapData> _mapsById;
 
   MapData? mapById(String id) => _mapsById[id];
 
   /// Reuses immutable project data while binding it to a renewed opaque handle.
-  ProjectSnapshot rebind(ProjectHandle handle) => handle == projectHandle
-      ? this
-      : ProjectSnapshot._rebound(projectHandle: handle, source: this);
+  ProjectSnapshot rebind(ProjectHandle handle,
+          {ProjectSnapshotPayloadReader? resourcePayloadReader}) =>
+      ProjectSnapshot._rebound(
+          projectHandle: handle,
+          source: this,
+          resourcePayloadReader: resourcePayloadReader);
+
+  ProjectSnapshot withInlineResources(Map<String, List<int>> resources) =>
+      ProjectSnapshot(
+          projectHandle: projectHandle,
+          revision: revision,
+          manifest: manifest,
+          pokemonInventoryComplete: pokemonInventoryComplete,
+          itemCatalog: itemCatalog,
+          additionalItemReferences: additionalItemReferences,
+          maps: maps,
+          resourceFingerprints: resourceFingerprints,
+          resourceStorageKeys: resourceStorageKeys,
+          resourceBytes: {..._resourceBytes, ...resources},
+          storedResources: {
+            for (final entry in storedResources.entries)
+              if (!resources.containsKey(entry.key)) entry.key: entry.value
+          },
+          payloadResources: {
+            for (final entry in payloadResources.entries)
+              if (!resources.containsKey(entry.key)) entry.key: entry.value
+          },
+          resourcePayloadReader: resourcePayloadReader,
+          payloadOwner: payloadOwner,
+          loadDiagnostics: loadDiagnostics);
 
   int get resourceByteLength => _resourceBytes.values.fold<int>(
         0,
@@ -274,7 +436,7 @@ final class ProjectSnapshot {
   /// mutation planners can freeze the real disk bytes used by compare-and-swap
   /// instead of manufacturing authority from a re-encoded model.
   List<int> resourceBytes(String identity) {
-    final bytes = _resourceBytes[identity];
+    final bytes = findResourceBytes(identity);
     if (bytes == null) {
       throw const ProjectSnapshotException(
         'project.resource_bytes_unavailable',
@@ -286,8 +448,13 @@ final class ProjectSnapshot {
 
   /// Optional exact pre-image for supplemental project resources.
   List<int>? findResourceBytes(String identity) {
-    final bytes = _resourceBytes[identity];
-    return bytes;
+    if (storedResources.containsKey(identity) ||
+        payloadResources.containsKey(identity)) {
+      throw const ProjectSnapshotException(
+          'project.resource_inline_unavailable',
+          'The resource is stored and requires an explicit asynchronous read.');
+    }
+    return _resourceBytes[identity];
   }
 }
 

@@ -43,20 +43,16 @@ AssetRecord requireResourceSourceAsset(
   return asset;
 }
 
-List<int> requireResourceSourceBytes(
+String requireResourceSourceIdentity(
     ProjectSnapshot snapshot, AssetRecord asset) {
-  final bytes = snapshot.findResourceBytes(
-      asset.logicalPath == assetBlobStorageKey(asset.artifact)
-          ? assetBlobResourceIdentity(asset.artifact.digest)
-          : 'assetLogical:${asset.id}');
-  if (bytes == null ||
-      ContentArtifactRef.fromBytes(bytes,
-              mediaType: asset.artifact.mediaType) !=
-          asset.artifact) {
+  final identity = asset.logicalPath == assetBlobStorageKey(asset.artifact)
+      ? assetBlobResourceIdentity(asset.artifact.digest)
+      : 'assetLogical:${asset.id}';
+  if (!snapshot.resourceMatchesArtifact(identity, asset.artifact)) {
     throw VisualLibraryException('tileset.source_bytes_unavailable',
         'The actual runtime image is missing or differs from its registered asset.');
   }
-  return bytes;
+  return identity;
 }
 
 void requireResourceSourceCoverage(ProjectSnapshot snapshot) {
@@ -156,7 +152,7 @@ void validateResourceSourcePng(
         'The candidate exceeds supported atlas dimensions or decoded pixel limits.');
   }
   final source = tileset.source as ProjectRegularAtlasTilesetSource;
-  requireResourceSourceBytes(snapshot, asset);
+  requireResourceSourceIdentity(snapshot, asset);
   if (width != source.pixelWidth || height != source.pixelHeight) {
     throw VisualLibraryException('tileset.candidate_geometry',
         'Replacement must preserve the exact atlas pixel dimensions and slicing.');

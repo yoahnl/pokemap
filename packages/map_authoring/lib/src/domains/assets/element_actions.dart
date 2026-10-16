@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
-import '../../contracts/artifact_ref.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../references/resource_usage_projection.dart';

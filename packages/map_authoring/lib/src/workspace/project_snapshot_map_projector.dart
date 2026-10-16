@@ -27,8 +27,8 @@ final class ProjectSnapshotMapProjector {
     for (final change in changes) {
       if ((change.resource.kind != 'map' &&
               change.resource.kind != 'project') ||
-          change.beforeBytes == null ||
-          change.afterBytes == null) {
+          change.beforePayload?.isInline != true ||
+          change.afterPayload?.isInline != true) {
         return null;
       }
       final identity = change.resource.kind == 'project'

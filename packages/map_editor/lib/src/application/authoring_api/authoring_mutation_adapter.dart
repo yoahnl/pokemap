@@ -46,10 +46,12 @@ final class EditorAuthoringMutationResult {
     required this.snapshotRevision,
     this.resourceRevision,
     this.projection,
+    this.diagnostic,
   });
 
   final AuthoringReceipt receipt;
-  final String snapshotRevision;
+  final String? snapshotRevision;
+  final AuthoringSnapshotRefreshDiagnostic? diagnostic;
   final String? resourceRevision;
   final EditorAuthoringMutationProjection? projection;
 }
@@ -279,14 +281,23 @@ final class AuthoringMutationAdapter
         final result = EditorAuthoringMutationResult(
           receipt: response.receipt,
           snapshotRevision: response.snapshotRevision,
+          diagnostic: response.diagnostic,
         );
         _lastAppliedReceipt = result.receipt;
-        _invalidateSpeciesSnapshotIfTouched(
-          session.canonicalRoot,
-          result.receipt,
-        );
-        await _queries.invalidate(session.canonicalRoot);
-        return result;
+        try {
+          _invalidateSpeciesSnapshotIfTouched(
+            session.canonicalRoot,
+            result.receipt,
+          );
+          await _queries.invalidate(session.canonicalRoot);
+          return result;
+        } on Object {
+          return EditorAuthoringMutationResult(
+            receipt: result.receipt,
+            snapshotRevision: null,
+            diagnostic: const AuthoringSnapshotRefreshDiagnostic(),
+          );
+        }
       });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
@@ -307,14 +318,23 @@ final class AuthoringMutationAdapter
         final result = EditorAuthoringMutationResult(
           receipt: response.receipt,
           snapshotRevision: response.snapshotRevision,
+          diagnostic: response.diagnostic,
         );
         _lastAppliedReceipt = result.receipt;
-        _invalidateSpeciesSnapshotIfTouched(
-          session.canonicalRoot,
-          result.receipt,
-        );
-        await _queries.invalidate(session.canonicalRoot);
-        return result;
+        try {
+          _invalidateSpeciesSnapshotIfTouched(
+            session.canonicalRoot,
+            result.receipt,
+          );
+          await _queries.invalidate(session.canonicalRoot);
+          return result;
+        } on Object {
+          return EditorAuthoringMutationResult(
+            receipt: result.receipt,
+            snapshotRevision: null,
+            diagnostic: const AuthoringSnapshotRefreshDiagnostic(),
+          );
+        }
       });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
@@ -367,21 +387,45 @@ final class AuthoringMutationAdapter
       operationId: operationId,
       confirmationToken: confirmationToken,
     );
-    final snapshot = await session.snapshot(
-      cacheValidation: ProjectSnapshotCacheValidation.session,
-    );
-    final result = EditorAuthoringMutationResult(
+    _lastAppliedReceipt = response.receipt;
+    var revision = response.snapshotRevision;
+    var diagnostic = response.diagnostic;
+    EditorAuthoringMutationProjection? projection;
+    try {
+      if (revision != null) {
+        final snapshot = await session.snapshot(
+          cacheValidation: ProjectSnapshotCacheValidation.session,
+        );
+        if (snapshot.revision == revision) {
+          projection = EditorAuthoringMutationProjection._(snapshot);
+        } else {
+          revision = null;
+          diagnostic = const AuthoringSnapshotRefreshDiagnostic();
+        }
+      }
+      _profileRecorder?.recordCacheCounters(_snapshotCache);
+    } on Object {
+      revision = null;
+      projection = null;
+      diagnostic = const AuthoringSnapshotRefreshDiagnostic();
+    }
+    try {
+      _invalidateSpeciesSnapshotIfTouched(
+        session.canonicalRoot,
+        response.receipt,
+      );
+      await _queries.invalidate(session.canonicalRoot);
+    } on Object {
+      revision = null;
+      projection = null;
+      diagnostic = const AuthoringSnapshotRefreshDiagnostic();
+    }
+    return EditorAuthoringMutationResult(
       receipt: response.receipt,
-      snapshotRevision: response.snapshotRevision,
-      projection: snapshot.revision == response.snapshotRevision
-          ? EditorAuthoringMutationProjection._(snapshot)
-          : null,
+      snapshotRevision: revision,
+      diagnostic: diagnostic,
+      projection: projection,
     );
-    _lastAppliedReceipt = result.receipt;
-    _profileRecorder?.recordCacheCounters(_snapshotCache);
-    _invalidateSpeciesSnapshotIfTouched(session.canonicalRoot, result.receipt);
-    await _queries.invalidate(session.canonicalRoot);
-    return result;
   }
 
   void _invalidateSpeciesSnapshotIfTouched(
@@ -437,16 +481,21 @@ final class AuthoringMutationAdapter
           mutationPlan,
           operationId: key,
         );
-        final after = await session.snapshot(
-          cacheValidation: ProjectSnapshotCacheValidation.session,
-        );
-        final mapRevision = narrativeEventBytesFingerprint(
-          after.resourceBytes(identity),
-        );
+        final revision = applied.snapshotRevision;
+        if (revision == null) return applied;
+        final mapRevision = applied.projection?.resourceRevision(identity);
+        if (mapRevision == null) {
+          return EditorAuthoringMutationResult(
+            receipt: applied.receipt,
+            snapshotRevision: null,
+            diagnostic: const AuthoringSnapshotRefreshDiagnostic(),
+          );
+        }
         return EditorAuthoringMutationResult(
           receipt: applied.receipt,
-          snapshotRevision: after.revision,
+          snapshotRevision: revision,
           resourceRevision: mapRevision,
+          projection: applied.projection,
         );
       });
     } on EditorConflictException {

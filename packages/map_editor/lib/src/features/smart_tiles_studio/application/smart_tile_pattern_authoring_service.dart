@@ -19,7 +19,7 @@ abstract interface class SmartTilePatternAuthoringGateway {
     required String projectRootPath,
   });
 
-  Future<String> apply({
+  Future<String?> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -33,8 +33,8 @@ final class CanonicalSmartTilePatternAuthoringGateway
   const CanonicalSmartTilePatternAuthoringGateway({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -51,7 +51,7 @@ final class CanonicalSmartTilePatternAuthoringGateway
   }
 
   @override
-  Future<String> apply({
+  Future<String?> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -107,13 +107,10 @@ final class SmartTilePatternAuthoringService {
     required ProjectSmartTilePattern pattern,
   }) async {
     final initial = await _gateway.load(projectRootPath: projectRootPath);
-    final fingerprint = computeAuthoringJsonFingerprint(
-      <String, Object?>{
-        'revision': initial.revision,
-        'pattern': pattern.toJson(),
-      },
-      logicalName: 'smart-tile-pattern-identity.json',
-    );
+    final fingerprint = computeAuthoringJsonFingerprint(<String, Object?>{
+      'revision': initial.revision,
+      'pattern': pattern.toJson(),
+    }, logicalName: 'smart-tile-pattern-identity.json');
     // Fingerprints are wire values (`sha256:<hex>`), while durable operation
     // identifiers are filesystem-safe opaque tokens. Keep the digest but not
     // its protocol prefix so the real canonical gateway can persist it.
@@ -126,7 +123,7 @@ final class SmartTilePatternAuthoringService {
       idempotencyKey: identity,
     );
     final canonical = await _gateway.load(projectRootPath: projectRootPath);
-    if (canonical.revision != appliedRevision) {
+    if (appliedRevision != null && canonical.revision != appliedRevision) {
       throw const SmartTilePatternAuthoringServiceException(
         'smart_tile.pattern.snapshot_stale',
         'Le snapshot canonique du motif est obsolète.',

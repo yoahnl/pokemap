@@ -1,3 +1,4 @@
+import 'local_authoring_payload.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,13 +7,15 @@ import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import '../support/authoring_performance_observer.dart';
 import 'transaction_journal.dart';
+import 'authoring_payload.dart';
 
 /// Project-local filesystem adapter with atomic-per-file replacement.
 ///
 /// Multi-file atomicity is deliberately not claimed. The journal and retained
 /// staged payloads make the ordered sequence recoverable after any completed
 /// filesystem call.
-final class LocalTransactionFileGateway implements TransactionFileGateway {
+final class LocalTransactionFileGateway
+    implements TransactionFileGateway, StreamingTransactionFileGateway {
   LocalTransactionFileGateway._(
     this._projectRoot,
     this._performanceObserver,
@@ -115,82 +118,82 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
   }
 
   @override
-  Future<String?> readResourceRevision(String storageKey) async {
-    final bytes = await readResource(storageKey);
-    return bytes == null
-        ? null
-        : computeAuthoringBytesFingerprint(
-            bytes,
-            logicalName: storageKey,
-          );
-  }
+  Future<String?> readResourceRevision(String storageKey) => _guardIo(() async {
+        final file = await _resourceFile(storageKey, createParents: false);
+        if (!await file.exists()) return null;
+        return (await _inspectFile(file, storageKey)).resourceRevision;
+      });
 
   @override
-  Future<void> stagePayload({
-    required String operationId,
-    required String storageKey,
-    required TransactionPayloadKind kind,
-    required List<int>? bytes,
-  }) {
-    _performanceObserver?.incrementCounter(
-      AuthoringPerformanceCounterName.filesystemWrite,
-    );
-    return _guardIo(() async {
-      final payload = TransactionStagedPayload(
-        storageKey: storageKey,
-        bytes: bytes,
-      );
-      final paths = await _payloadPaths(
-        operationId,
-        storageKey,
-        kind,
-        createOperation: true,
-      );
-      if (await paths.descriptor.exists()) {
-        final existing = await readStagedPayload(
+  Future<AuthoringPayload?> captureResourcePayload(String storageKey) =>
+      _guardIo(() async {
+        final file = await _resourceFile(storageKey, createParents: false);
+        if (!await file.exists()) return null;
+        final before = await _inspectFile(file, storageKey);
+        return captureAuthoringPayload(
+            storageKey: storageKey,
+            chunks: file.openRead(),
+            byteLength: before.byteLength,
+            resourceRevision: before.resourceRevision);
+      });
+
+  @override
+  Future<void> stagePayload(
+          {required String operationId,
+          required String storageKey,
+          required TransactionPayloadKind kind,
+          required List<int>? bytes}) =>
+      stageAuthoringPayload(
           operationId: operationId,
           storageKey: storageKey,
           kind: kind,
-        );
-        if (existing.revision != payload.revision ||
-            !_optionalBytesEqual(existing.bytes, payload.bytes)) {
-          throw const TransactionFileGatewayException(
-            'transaction.stage_conflict',
-            'A different payload is already staged for this transaction.',
-          );
-        }
-        return;
-      }
+          payload: bytes == null
+              ? null
+              : AuthoringPayload.inline(bytes, storageKey: storageKey));
 
-      if (payload.bytes == null) {
-        await _deleteIfExists(paths.payload);
-      } else {
+  @override
+  Future<void> stageAuthoringPayload(
+          {required String operationId,
+          required String storageKey,
+          required TransactionPayloadKind kind,
+          required AuthoringPayload? payload}) =>
+      _guardIo(() async {
+        if (payload != null && payload.storageKey != storageKey) {
+          throw const TransactionFileGatewayException(
+              'transaction.stage_conflict',
+              'The payload belongs to another resource.');
+        }
+        final paths = await _payloadPaths(operationId, storageKey, kind,
+            createOperation: true);
+        if (await paths.descriptor.exists()) {
+          final existing = await readStagedPayload(
+              operationId: operationId, storageKey: storageKey, kind: kind);
+          if (existing.revision != payload?.resourceRevision ||
+              existing.payload?.byteLength != payload?.byteLength) {
+            throw const TransactionFileGatewayException(
+                'transaction.stage_conflict',
+                'A different payload is already staged for this transaction.');
+          }
+          return;
+        }
+        if (payload == null) {
+          await _deleteIfExists(paths.payload);
+        } else {
+          await _writePayloadAtomic(paths.payload, payload,
+              suffix: '${kind.name}.payload');
+        }
         await _writeAtomic(
-          paths.payload,
-          payload.bytes!,
-          suffix: '${kind.name}.payload',
-        );
-      }
-      _performanceObserver?.incrementCounter(
-        AuthoringPerformanceCounterName.jsonEncode,
-      );
-      final descriptor = utf8.encode(jsonEncode({
-        'schemaVersion': 1,
-        'storageKey': storageKey,
-        'kind': kind.name,
-        'present': payload.bytes != null,
-        'revision': payload.revision,
-        'byteLength': payload.bytes?.length,
-      }));
-      // The descriptor is the durable "stage complete" marker and is always
-      // promoted after the optional payload has been flushed.
-      await _writeAtomic(
-        paths.descriptor,
-        descriptor,
-        suffix: '${kind.name}.descriptor',
-      );
-    });
-  }
+            paths.descriptor,
+            utf8.encode(jsonEncode({
+              'schemaVersion': 1,
+              'storageKey': storageKey,
+              'kind': kind.name,
+              'present': payload != null,
+              'revision': payload?.resourceRevision,
+              'byteLength': payload?.byteLength,
+            })),
+            suffix: '${kind.name}.descriptor');
+      });
 
   @override
   Future<TransactionStagedPayload> readStagedPayload({
@@ -243,16 +246,25 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
             (rawLength != null && rawLength is! int)) {
           throw const FormatException();
         }
-        final bytes = present ? await paths.payload.readAsBytes() : null;
-        final payload = TransactionStagedPayload(
-          storageKey: storageKey,
-          bytes: bytes,
-        );
-        if (payload.revision != rawRevision ||
-            payload.bytes?.length != rawLength ||
-            (!present && await paths.payload.exists())) {
+        if ((present && (rawRevision == null || rawLength == null)) ||
+            (!present &&
+                (rawRevision != null ||
+                    rawLength != null ||
+                    await paths.payload.exists()))) {
           throw const FormatException();
         }
+        AuthoringPayload? source;
+        if (present) {
+          final observed = await _inspectFile(paths.payload, storageKey);
+          source = await AuthoringPayload.verifiedSource(
+              storageKey: storageKey,
+              byteLength: rawLength as int,
+              rawSha256: observed.rawSha256,
+              resourceRevision: rawRevision as String,
+              openRead: paths.payload.openRead);
+        }
+        final payload = TransactionStagedPayload.withPayload(
+            storageKey: storageKey, payload: source);
         return payload;
       } on TransactionFileGatewayException {
         rethrow;
@@ -289,29 +301,21 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
         kind: kind,
       );
       final target = await _resourceFile(storageKey, createParents: true);
-      if (staged.bytes == null) {
+      if (staged.payload == null) {
         await _deleteIfExists(target);
       } else {
         final token = _resourceToken(storageKey);
         final temporary = File('${target.path}.pokemap-$operationId-$token');
         await _deleteIfExists(temporary);
-        final writer = await temporary.open(mode: FileMode.write);
-        try {
-          await writer.writeFrom(staged.bytes!);
-          await writer.flush();
-        } finally {
-          await writer.close();
-        }
-        final temporaryRevision = computeAuthoringBytesFingerprint(
-          await temporary.readAsBytes(),
-          logicalName: storageKey,
-        );
+        await _writePayloadAtomic(temporary, staged.payload!,
+            suffix: 'promote');
+        final temporaryRevision =
+            (await _inspectFile(temporary, storageKey)).resourceRevision;
         if (temporaryRevision != staged.revision) {
           await _deleteIfExists(temporary);
           throw const TransactionFileGatewayException(
-            'transaction.stage_corrupt',
-            'The verified promotion payload changed before replacement.',
-          );
+              'transaction.stage_corrupt',
+              'The verified promotion payload changed before replacement.');
         }
         await temporary.rename(target.path);
       }
@@ -528,6 +532,55 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
     );
   }
 
+  Future<AuthoringPayloadInspection> _inspectFile(
+      File file, String storageKey) async {
+    final before = await file.stat();
+    if (await FileSystemEntity.type(file.path, followLinks: false) !=
+            FileSystemEntityType.file ||
+        before.type != FileSystemEntityType.file) {
+      throw const TransactionFileGatewayException(
+          'transaction.resource_not_regular',
+          'The resource is not a regular file.');
+    }
+    final observed = await inspectAuthoringPayload(file.openRead(),
+        storageKey: storageKey, byteLength: before.size);
+    final after = await file.stat();
+    if (before.size != after.size ||
+        before.modified != after.modified ||
+        before.changed != after.changed) {
+      throw const TransactionFileGatewayException(
+          'transaction.resource_changed_during_read',
+          'The resource changed during verification.');
+    }
+    return observed;
+  }
+
+  Future<void> _writePayloadAtomic(File target, AuthoringPayload payload,
+      {required String suffix}) async {
+    final temporary = File('${target.path}.$suffix.tmp');
+    await _deleteIfExists(temporary);
+    try {
+      final writer = await temporary.open(mode: FileMode.write);
+      try {
+        await for (final chunk in payload.openRead()) {
+          await writer.writeFrom(chunk);
+        }
+        await writer.flush();
+      } finally {
+        await writer.close();
+      }
+      if ((await _inspectFile(temporary, payload.storageKey))
+              .resourceRevision !=
+          payload.resourceRevision) {
+        throw const TransactionFileGatewayException('transaction.stage_corrupt',
+            'The staged payload failed content verification.');
+      }
+      await temporary.rename(target.path);
+    } finally {
+      await _deleteIfExists(temporary);
+    }
+  }
+
   Future<void> _writeAtomic(
     File target,
     List<int> bytes, {
@@ -593,18 +646,8 @@ Future<void> _deleteIfExists(File file) async {
   if (await file.exists()) await file.delete();
 }
 
-bool _optionalBytesEqual(List<int>? left, List<int>? right) {
-  if (left == null || right == null) return left == null && right == null;
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
-
 final class _PayloadPaths {
   const _PayloadPaths({required this.descriptor, required this.payload});
-
   final File descriptor;
   final File payload;
 }

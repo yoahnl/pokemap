@@ -1,7 +1,8 @@
+import '../transactions/local_authoring_payload.dart';
 import 'dart:async';
 import 'dart:io';
 
-import '../support/authoring_fingerprint.dart';
+import '../transactions/authoring_payload.dart';
 
 final class AuthoringContentBlobStoreException implements Exception {
   const AuthoringContentBlobStoreException(this.code, this.message);
@@ -28,7 +29,7 @@ final class AuthoringContentBlobRef {
 abstract interface class AuthoringContentBlobStore {
   Future<AuthoringContentBlobRef> put(Iterable<int> bytes);
 
-  Future<List<int>?> get(String id);
+  Future<AuthoringPayload?> get(String id);
 
   Future<bool> contains(String id);
 
@@ -37,8 +38,36 @@ abstract interface class AuthoringContentBlobStore {
   Future<int> prune({required Set<String> retainIds});
 }
 
+abstract interface class StreamingAuthoringContentBlobStore {
+  Future<AuthoringContentBlobRef> putPayload(AuthoringPayload payload);
+  Future<AuthoringPayload?> capturePayload(String id,
+      {required String storageKey});
+}
+
+extension AuthoringPayloadBlobStore on AuthoringContentBlobStore {
+  Future<AuthoringContentBlobRef> putPayload(AuthoringPayload payload) {
+    final store = this;
+    if (store is StreamingAuthoringContentBlobStore) {
+      return (store as StreamingAuthoringContentBlobStore).putPayload(payload);
+    }
+    return put(payload.inlineBytes);
+  }
+
+  Future<AuthoringPayload?> capturePayload(String id,
+      {required String storageKey}) async {
+    final store = this;
+    if (store is StreamingAuthoringContentBlobStore) {
+      return (store as StreamingAuthoringContentBlobStore)
+          .capturePayload(id, storageKey: storageKey);
+    }
+    throw const AuthoringContentBlobStoreException('history.streaming_required',
+        'The history store cannot restore a bounded payload.');
+  }
+}
+
 /// Content-addressed retained payloads shared by history entries.
-final class FileAuthoringContentBlobStore implements AuthoringContentBlobStore {
+final class FileAuthoringContentBlobStore
+    implements AuthoringContentBlobStore, StreamingAuthoringContentBlobStore {
   FileAuthoringContentBlobStore._(this._projectRoot);
 
   static Future<FileAuthoringContentBlobStore> open({
@@ -70,68 +99,93 @@ final class FileAuthoringContentBlobStore implements AuthoringContentBlobStore {
   static final Map<String, Future<void>> _inProcessLocks = {};
 
   @override
-  Future<AuthoringContentBlobRef> put(Iterable<int> values) {
-    final bytes = values.toList(growable: false);
-    if (bytes.any((value) => value < 0 || value > 255)) {
-      throw ArgumentError.value(values, 'bytes', 'must contain bytes');
-    }
-    final id = _contentId(bytes);
-    return _guard(() async {
-      return _withLock(() async {
-        final file = await _blobFile(id);
-        if (await file.exists()) {
-          final existing = await file.readAsBytes();
-          if (_contentId(existing) != id || !_bytesEqual(existing, bytes)) {
-            throw const AuthoringContentBlobStoreException(
-              'history.blob_corrupt',
-              'A retained history blob failed verification.',
-            );
+  Future<AuthoringContentBlobRef> put(Iterable<int> values) => putPayload(
+      AuthoringPayload.inline(values, storageKey: 'authoring-history-blob'));
+
+  @override
+  Future<AuthoringContentBlobRef> putPayload(AuthoringPayload payload) =>
+      _guard(() async {
+        final inspection = await inspectAuthoringPayload(payload.openRead(),
+            storageKey: 'authoring-history-blob',
+            byteLength: payload.byteLength);
+        final id = inspection.resourceRevision;
+        return _withLock(() async {
+          final file = await _blobFile(id);
+          if (await file.exists()) {
+            await _verifyBlob(file, id);
+            return AuthoringContentBlobRef(
+                id: id, byteLength: payload.byteLength);
           }
-          return AuthoringContentBlobRef(id: id, byteLength: bytes.length);
-        }
-        final temporary = File('${file.path}.tmp');
-        if (await temporary.exists()) await temporary.delete();
-        final writer = await temporary.open(mode: FileMode.write);
-        try {
-          await writer.writeFrom(bytes);
-          await writer.flush();
-        } finally {
-          await writer.close();
-        }
-        if (_contentId(await temporary.readAsBytes()) != id) {
-          await temporary.delete();
-          throw const AuthoringContentBlobStoreException(
-            'history.blob_corrupt',
-            'A retained history blob failed verification.',
-          );
-        }
-        await temporary.rename(file.path);
-        return AuthoringContentBlobRef(id: id, byteLength: bytes.length);
+          final temporary = File('${file.path}.tmp');
+          try {
+            final writer = await temporary.open(mode: FileMode.write);
+            try {
+              await for (final chunk in payload.openRead()) {
+                await writer.writeFrom(chunk);
+              }
+              await writer.flush();
+            } finally {
+              await writer.close();
+            }
+            await _verifyBlob(temporary, id);
+            await temporary.rename(file.path);
+          } finally {
+            if (await temporary.exists()) await temporary.delete();
+          }
+          return AuthoringContentBlobRef(
+              id: id, byteLength: payload.byteLength);
+        });
       });
-    });
-  }
 
   @override
-  Future<List<int>?> get(String id) {
-    final safeId = _blobId(id);
-    return _guard(() async {
-      return _withLock(() async {
-        final file = await _blobFile(safeId);
+  Future<AuthoringPayload?> get(String id) => _guard(() => _withLock(() async {
+        final file = await _blobFile(_blobId(id));
         if (!await file.exists()) return null;
-        final bytes = await file.readAsBytes();
-        if (_contentId(bytes) != safeId) {
-          throw const AuthoringContentBlobStoreException(
-            'history.blob_corrupt',
-            'A retained history blob failed verification.',
-          );
-        }
-        return List<int>.unmodifiable(bytes);
-      });
-    });
-  }
+        final observed = await _verifyBlob(file, id);
+        return AuthoringPayload.verifiedSource(
+            storageKey: 'authoring-history-blob',
+            byteLength: observed.byteLength,
+            rawSha256: observed.rawSha256,
+            resourceRevision: id,
+            openRead: file.openRead);
+      }));
 
   @override
-  Future<bool> contains(String id) async => await get(id) != null;
+  Future<AuthoringPayload?> capturePayload(String id,
+          {required String storageKey}) =>
+      _guard(() => _withLock(() async {
+            final file = await _blobFile(_blobId(id));
+            if (!await file.exists()) return null;
+            final observed = await _verifyBlob(file, id);
+            return captureAuthoringPayload(
+                storageKey: storageKey,
+                chunks: file.openRead(),
+                byteLength: observed.byteLength);
+          }));
+
+  @override
+  Future<bool> contains(String id) => _guard(() => _withLock(() async {
+        final file = await _blobFile(_blobId(id));
+        if (!await file.exists()) return false;
+        await _verifyBlob(file, id);
+        return true;
+      }));
+
+  Future<AuthoringPayloadInspection> _verifyBlob(File file, String id) async {
+    final before = await file.stat();
+    final observed = await inspectAuthoringPayload(file.openRead(),
+        storageKey: 'authoring-history-blob', byteLength: before.size);
+    final after = await file.stat();
+    if (observed.resourceRevision != id ||
+        before.type != FileSystemEntityType.file ||
+        before.size != after.size ||
+        before.modified != after.modified ||
+        before.changed != after.changed) {
+      throw const AuthoringContentBlobStoreException('history.blob_corrupt',
+          'A retained history blob failed verification.');
+    }
+    return observed;
+  }
 
   @override
   Future<List<String>> listIds() {
@@ -261,24 +315,11 @@ final class FileAuthoringContentBlobStore implements AuthoringContentBlobStore {
   }
 }
 
-String _contentId(List<int> bytes) => computeAuthoringBytesFingerprint(
-      bytes,
-      logicalName: 'authoring-history-blob',
-    );
-
 String _blobId(String value) {
   if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(value)) {
     throw ArgumentError.value(value, 'id', 'must be a SHA-256 blob identity');
   }
   return value;
-}
-
-bool _bytesEqual(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
 }
 
 String _join(String first, String second) =>

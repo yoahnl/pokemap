@@ -6,6 +6,7 @@ import '../ports/project_file_reader.dart';
 
 typedef WorkspaceClock = DateTime Function();
 typedef WorkspaceTokenFactory = String Function(String prefix);
+typedef ProjectResourceStream = Stream<List<int>> Function(String relativePath);
 typedef ProjectResourceReader = Future<List<int>> Function(String relativePath);
 
 final class WorkspaceHandle {
@@ -93,11 +94,13 @@ final class ProjectWorkspaceAccess {
     required this.initialFingerprint,
     required this.expiresAt,
     required ProjectResourceReader readBytes,
+    ProjectResourceStream? openRead,
     ProjectResourceIdentityLookup? readIdentity,
     ProjectDirectoryLister? listFiles,
     ProjectResourceProbeLookup? probeResource,
     required this.canReuseSnapshots,
   })  : _readBytes = readBytes,
+        _openRead = openRead,
         _readIdentity = readIdentity,
         _listFiles = listFiles,
         _probeResource = probeResource;
@@ -108,6 +111,16 @@ final class ProjectWorkspaceAccess {
   final DateTime expiresAt;
   final bool canReuseSnapshots;
   final ProjectResourceReader _readBytes;
+  final ProjectResourceStream? _openRead;
+  bool get canStreamResources => _openRead != null;
+  Stream<List<int>> openRead(String relativePath) {
+    final reader = _openRead;
+    if (reader == null) {
+      throw StateError('Streaming project reads are unavailable.');
+    }
+    return reader(relativePath);
+  }
+
   final ProjectResourceIdentityLookup? _readIdentity;
   final ProjectDirectoryLister? _listFiles;
   final ProjectResourceProbeLookup? _probeResource;
@@ -185,6 +198,7 @@ final class WorkspaceHandleStore {
     required String projectName,
     required String initialFingerprint,
     required ProjectResourceReader readBytes,
+    ProjectResourceStream? openRead,
     ProjectResourceIdentityLookup? readIdentity,
     ProjectDirectoryLister? listFiles,
     ProjectResourceProbeLookup? probeResource,
@@ -205,6 +219,7 @@ final class WorkspaceHandleStore {
       initialFingerprint: initialFingerprint,
       expiresAt: expiresAt,
       readBytes: readBytes,
+      openRead: openRead,
       readIdentity: readIdentity,
       listFiles: listFiles,
       probeResource: probeResource,
@@ -225,6 +240,9 @@ final class WorkspaceHandleStore {
       initialFingerprint: stored.initialFingerprint,
       expiresAt: stored.expiresAt,
       readBytes: (relativePath) => _readForHandle(handle, relativePath),
+      openRead: stored.openRead == null
+          ? null
+          : (relativePath) => _streamForHandle(handle, relativePath),
       readIdentity: stored.readIdentity == null
           ? null
           : (relativePath) => _readIdentityForHandle(handle, relativePath),
@@ -282,6 +300,16 @@ final class WorkspaceHandleStore {
     }
     stored.expiresAt = now.add(ttl);
     return stored;
+  }
+
+  Stream<List<int>> _streamForHandle(
+      ProjectHandle handle, String relativePath) async* {
+    final stored = _requireActive(handle);
+    await for (final chunk in stored.openRead!(relativePath)) {
+      _requireActive(handle);
+      yield chunk;
+    }
+    _requireActive(handle);
   }
 
   Future<List<int>> _readForHandle(
@@ -358,6 +386,7 @@ final class _StoredProjectAccess {
     required this.initialFingerprint,
     required this.expiresAt,
     required this.readBytes,
+    this.openRead,
     this.readIdentity,
     this.listFiles,
     this.probeResource,
@@ -369,6 +398,7 @@ final class _StoredProjectAccess {
   final String initialFingerprint;
   DateTime expiresAt;
   final ProjectResourceReader readBytes;
+  final ProjectResourceStream? openRead;
   final ProjectResourceIdentityLookup? readIdentity;
   final ProjectDirectoryLister? listFiles;
   final ProjectResourceProbeLookup? probeResource;

@@ -12,6 +12,8 @@ import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
+import '../../transactions/authoring_payload.dart';
+import '../../transactions/local_authoring_payload.dart';
 import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'asset_store.dart';
@@ -42,6 +44,7 @@ final class AssetActionResult {
     this.after,
     this.deletedBlob = false,
     List<int>? rollbackBlobBytes,
+    this.rollbackBlobPayload,
     this.deduplicated = false,
   }) : rollbackBlobBytes = rollbackBlobBytes == null
             ? null
@@ -53,6 +56,7 @@ final class AssetActionResult {
   final AssetRecord? after;
   final bool deletedBlob;
   final List<int>? rollbackBlobBytes;
+  final AuthoringPayload? rollbackBlobPayload;
   final bool deduplicated;
 
   Map<String, Object?> toJson() => {
@@ -60,7 +64,8 @@ final class AssetActionResult {
         if (before != null) 'before': before!.toJson(),
         if (after != null) 'after': after!.toJson(),
         'deletedBlob': deletedBlob,
-        'rollbackByteLength': rollbackBlobBytes?.length,
+        'rollbackByteLength':
+            rollbackBlobPayload?.byteLength ?? rollbackBlobBytes?.length,
         'deduplicated': deduplicated,
       };
 }
@@ -482,9 +487,11 @@ final class AssetActions {
         result = delete(
           state.catalog,
           assetId: current.id,
-          blobBytes: context.snapshot.findResourceBytes(
-            assetBlobResourceIdentity(current.artifact.digest),
-          ),
+          blobPayload: context.snapshot.hasResource(
+                  assetBlobResourceIdentity(current.artifact.digest))
+              ? await context.snapshot.captureResourcePayload(
+                  assetBlobResourceIdentity(current.artifact.digest))
+              : null,
           acknowledgedUsages: parameters.strings('acknowledgedUsages'),
         );
       default:
@@ -549,12 +556,15 @@ final class AssetActions {
           path: '/records/${entry.assetId}',
           before: before.toJson(),
           after: after.toJson()));
-      _addLogicalAssetChange(
+      await _addLogicalAssetChange(
+          snapshot: snapshot,
           changes: changes,
           diff: diff,
           record: after,
-          beforeBytes: snapshot
-              .resourceBytes(assetBlobResourceIdentity(before.artifact.digest)),
+          beforePayload: await snapshot.captureResourcePayload(snapshot
+              .resourceStorageKeys.entries
+              .firstWhere((entry) => entry.value == before.logicalPath)
+              .key),
           afterBytes: entry.bytes,
           beforeArtifact: before.artifact,
           afterArtifact: entry.artifact,
@@ -571,11 +581,15 @@ final class AssetActions {
               .any((record) => record.artifact.digest == artifact.digest)) {
         continue;
       }
-      final existing = snapshot
-              .findResourceBytes(assetBlobResourceIdentity(artifact.digest)) ??
-          await retainedBlobReader?.call(snapshot, artifact);
-      if (existing != null) {
-        if (!_sameBytes(existing, entry.bytes)) {
+      final present =
+          snapshot.hasResource(assetBlobResourceIdentity(artifact.digest));
+      final existing =
+          present ? null : await retainedBlobReader?.call(snapshot, artifact);
+      if (present || existing != null) {
+        if (present
+            ? !snapshot.resourceMatchesArtifact(
+                assetBlobResourceIdentity(artifact.digest), artifact)
+            : !_sameBytes(existing!, entry.bytes)) {
           throw AssetActionException('asset.retained_blob_mismatch',
               'The retained content-addressed blob does not match the inspected candidate.');
         }
@@ -670,6 +684,7 @@ final class AssetActions {
     AssetCatalog catalog, {
     required String assetId,
     List<int>? blobBytes,
+    AuthoringPayload? blobPayload,
     Iterable<String> acknowledgedUsages = const [],
   }) {
     final before = catalog.require(assetId);
@@ -687,7 +702,7 @@ final class AssetActions {
     final deletesBlob = !remaining.any(
       (record) => record.artifact.digest == before.artifact.digest,
     );
-    if (deletesBlob && blobBytes == null) {
+    if (deletesBlob && blobBytes == null && blobPayload == null) {
       throw AssetActionException(
         'asset.rollback_blob_required',
         'Deleting the last reference requires the exact blob pre-image.',
@@ -708,12 +723,19 @@ final class AssetActions {
         );
       }
     }
+    if (blobPayload != null &&
+        (blobPayload.contentDigest != before.artifact.digest ||
+            blobPayload.byteLength != before.artifact.byteLength)) {
+      throw AssetActionException('asset.rollback_blob_mismatch',
+          'The rollback payload differs from its catalog artifact.');
+    }
     return AssetActionResult(
       operation: 'delete',
       catalog: AssetCatalog(records: remaining),
       before: before,
       deletedBlob: deletesBlob,
       rollbackBlobBytes: deletesBlob ? blobBytes : null,
+      rollbackBlobPayload: deletesBlob ? blobPayload : null,
     );
   }
 }
@@ -733,11 +755,11 @@ Set<String> _requiredTilesetFolderIds(
   return required;
 }
 
-AuthoringMutationDraft _mapGraphicsResetDraft(
+Future<AuthoringMutationDraft> _mapGraphicsResetDraft(
   ProjectSnapshot snapshot,
   _AssetCatalogState state,
   MapGraphicsResetProjection projection,
-) {
+) async {
   try {
     ProjectValidator.validate(projection.manifest);
     for (final map in projection.maps) {
@@ -857,10 +879,12 @@ AuthoringMutationDraft _mapGraphicsResetDraft(
         !deletedDigests.add(artifact.digest)) {
       continue;
     }
-    final bytes = snapshot.findResourceBytes(
-      assetBlobResourceIdentity(artifact.digest),
-    );
-    if (bytes == null) {
+    final payload = snapshot
+            .hasResource(assetBlobResourceIdentity(artifact.digest))
+        ? await snapshot
+            .captureResourcePayload(assetBlobResourceIdentity(artifact.digest))
+        : null;
+    if (payload == null) {
       throw AssetActionException(
         'asset.rollback_blob_required',
         'Removing a map graphic requires its exact rollback blob.',
@@ -874,12 +898,11 @@ AuthoringMutationDraft _mapGraphicsResetDraft(
           .resourceFingerprints[assetBlobResourceIdentity(artifact.digest)],
     );
     changes.add(
-      AuthoringResourceChange(
-        resource: resource,
-        storageKey: assetBlobStorageKey(artifact),
-        beforeBytes: bytes,
-        afterBytes: null,
-      ),
+      AuthoringResourceChange.withPayloads(
+          resource: resource,
+          storageKey: assetBlobStorageKey(artifact),
+          beforePayload: payload,
+          afterPayload: null),
     );
     diff.add(
       AuthoringDiffEntry(
@@ -989,14 +1012,20 @@ Future<AuthoringMutationDraft> _draft(
   );
   final beforeRecord = result.before;
   final afterRecord = result.after;
-  final beforeLogicalBytes = beforeRecord == null
+  final beforeIdentity = beforeRecord == null
       ? null
-      : snapshot.findResourceBytes(
-          assetBlobResourceIdentity(beforeRecord.artifact.digest),
-        );
+      : snapshot.resourceStorageKeys.entries
+          .where((entry) => entry.value == beforeRecord.logicalPath)
+          .firstOrNull
+          ?.key;
+  final beforeLogicalPayload =
+      beforeIdentity == null || !snapshot.hasResource(beforeIdentity)
+          ? null
+          : await snapshot.captureResourcePayload(beforeIdentity);
   switch (result.operation) {
     case 'import':
-      _addLogicalAssetChange(
+      await _addLogicalAssetChange(
+        snapshot: snapshot,
         changes: changes,
         diff: diff,
         record: afterRecord!,
@@ -1007,45 +1036,49 @@ Future<AuthoringMutationDraft> _draft(
         operation: AuthoringDiffOperation.add,
       );
     case 'replace':
-      _addLogicalAssetChange(
+      await _addLogicalAssetChange(
+        snapshot: snapshot,
         changes: changes,
         diff: diff,
         record: afterRecord!,
-        beforeBytes: beforeLogicalBytes,
+        beforePayload: beforeLogicalPayload,
         afterBytes: addedBytes!,
         beforeArtifact: beforeRecord!.artifact,
         afterArtifact: afterRecord.artifact,
         operation: AuthoringDiffOperation.replace,
       );
     case 'move':
-      _addLogicalAssetChange(
+      await _addLogicalAssetChange(
+        snapshot: snapshot,
         changes: changes,
         diff: diff,
         record: beforeRecord!,
         resourceId: '${beforeRecord.id}:source',
-        beforeBytes: beforeLogicalBytes,
+        beforePayload: beforeLogicalPayload,
         afterBytes: null,
         beforeArtifact: beforeRecord.artifact,
         afterArtifact: null,
         operation: AuthoringDiffOperation.remove,
       );
-      _addLogicalAssetChange(
+      await _addLogicalAssetChange(
+        snapshot: snapshot,
         changes: changes,
         diff: diff,
         record: afterRecord!,
         resourceId: '${afterRecord.id}:target',
         beforeBytes: null,
-        afterBytes: beforeLogicalBytes,
+        afterPayload: beforeLogicalPayload,
         beforeArtifact: null,
         afterArtifact: afterRecord.artifact,
         operation: AuthoringDiffOperation.add,
       );
     case 'delete':
-      _addLogicalAssetChange(
+      await _addLogicalAssetChange(
+        snapshot: snapshot,
         changes: changes,
         diff: diff,
         record: beforeRecord!,
-        beforeBytes: beforeLogicalBytes,
+        beforePayload: beforeLogicalPayload,
         afterBytes: null,
         beforeArtifact: beforeRecord.artifact,
         afterArtifact: null,
@@ -1057,14 +1090,20 @@ Future<AuthoringMutationDraft> _draft(
         (record) => record.artifact.digest == addedArtifact.digest,
       )) {
     final bytes = addedBytes!;
-    final existing = snapshot.findResourceBytes(
-            assetBlobResourceIdentity(addedArtifact.digest)) ??
-        await retainedBlobReader?.call(snapshot, addedArtifact);
-    if (existing != null && !_sameBytes(existing, bytes)) {
+    final present =
+        snapshot.hasResource(assetBlobResourceIdentity(addedArtifact.digest));
+    final existing = present
+        ? null
+        : await retainedBlobReader?.call(snapshot, addedArtifact);
+    if ((present &&
+            !snapshot.resourceMatchesArtifact(
+                assetBlobResourceIdentity(addedArtifact.digest),
+                addedArtifact)) ||
+        (existing != null && !_sameBytes(existing, bytes))) {
       throw AssetActionException('asset.retained_blob_mismatch',
           'The retained content-addressed blob does not match the inspected candidate.');
     }
-    if (existing != null) {
+    if (present || existing != null) {
       retainedBlobDigests.add(addedArtifact.digest);
     } else {
       final blobRef = AuthoringResourceRef(
@@ -1098,12 +1137,15 @@ Future<AuthoringMutationDraft> _draft(
           .resourceFingerprints[assetBlobResourceIdentity(artifact.digest)],
     );
     changes.add(
-      AuthoringResourceChange(
-        resource: blobRef,
-        storageKey: assetBlobStorageKey(artifact),
-        beforeBytes: result.rollbackBlobBytes,
-        afterBytes: null,
-      ),
+      AuthoringResourceChange.withPayloads(
+          resource: blobRef,
+          storageKey: assetBlobStorageKey(artifact),
+          beforePayload: result.rollbackBlobPayload ??
+              (result.rollbackBlobBytes == null
+                  ? null
+                  : AuthoringPayload.inline(result.rollbackBlobBytes!,
+                      storageKey: assetBlobStorageKey(artifact))),
+          afterPayload: null),
     );
     diff.add(
       AuthoringDiffEntry(
@@ -1142,30 +1184,40 @@ Future<AuthoringMutationDraft> _draft(
   );
 }
 
-void _addLogicalAssetChange({
+Future<void> _addLogicalAssetChange({
+  required ProjectSnapshot snapshot,
   required List<AuthoringResourceChange> changes,
   required List<AuthoringDiffEntry> diff,
   required AssetRecord record,
-  required List<int>? beforeBytes,
-  required List<int>? afterBytes,
+  List<int>? beforeBytes,
+  List<int>? afterBytes,
+  AuthoringPayload? beforePayload,
+  AuthoringPayload? afterPayload,
   required ContentArtifactRef? beforeArtifact,
   required ContentArtifactRef? afterArtifact,
   required AuthoringDiffOperation operation,
   String? resourceId,
-}) {
+}) async {
   if (record.logicalPath == assetBlobStorageKey(record.artifact)) return;
   final resource = AuthoringResourceRef(
     kind: 'asset',
     id: resourceId ?? record.id,
   );
-  changes.add(
-    AuthoringResourceChange(
+  Future<AuthoringPayload?> image(
+      AuthoringPayload? payload, List<int>? bytes) async {
+    if (payload != null) {
+      return snapshot.ownPayload(
+          await reframeAuthoringPayload(payload, record.logicalPath));
+    }
+    if (bytes == null) return null;
+    return AuthoringPayload.inline(bytes, storageKey: record.logicalPath);
+  }
+
+  changes.add(AuthoringResourceChange.withPayloads(
       resource: resource,
       storageKey: record.logicalPath,
-      beforeBytes: beforeBytes,
-      afterBytes: afterBytes,
-    ),
-  );
+      beforePayload: await image(beforePayload, beforeBytes),
+      afterPayload: await image(afterPayload, afterBytes)));
   diff.add(
     AuthoringDiffEntry(
       operation: operation,

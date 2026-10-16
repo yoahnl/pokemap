@@ -1,3 +1,4 @@
+import '../transactions/local_authoring_payload.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
@@ -12,6 +13,7 @@ import '../domains/gameplay/pokemon_catalog_coherence_loader.dart';
 import '../domains/assets/project_media_store.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../transactions/change_set.dart';
+import '../transactions/authoring_payload.dart';
 import 'project_snapshot.dart';
 import 'project_snapshot_cache.dart';
 import 'project_snapshot_fingerprint_cache.dart';
@@ -288,7 +290,7 @@ final class ProjectSnapshotLoader {
     final revision = NarrativeProjectFingerprintBuilder();
     for (final resource in resources) {
       final fingerprint = await _decodeExecutor.fingerprintResource(
-        resource.bytes.typedBytes,
+        resource.bytes!.typedBytes,
         relativePath: resource.relativePath,
       );
       fingerprints[resource.identity] = fingerprint;
@@ -306,13 +308,75 @@ final class ProjectSnapshotLoader {
       maps: const [],
       resourceFingerprints: fingerprints,
       ownedResourceBytes: {
-        for (final resource in resources) resource.identity: resource.bytes,
+        for (final resource in resources) resource.identity: resource.bytes!,
       },
       resourceStorageKeys: {
         for (final resource in resources)
           resource.identity: resource.relativePath,
       },
     );
+  }
+
+  Future<AuthoringPayload> _captureSnapshotResource(
+      ProjectHandle projectHandle,
+      String storageKey,
+      ProjectStoredResource descriptor,
+      AuthoringPayload? source) async {
+    final access = _handles.resolveProject(projectHandle);
+    final payload = await captureAuthoringPayload(
+        storageKey: storageKey,
+        chunks: source?.openRead() ?? access.openRead(storageKey),
+        byteLength: descriptor.byteLength,
+        resourceRevision: descriptor.resourceRevision);
+    try {
+      _handles.requireActiveProject(projectHandle);
+      if (payload.rawSha256 != descriptor.rawSha256) {
+        throw const ProjectSnapshotException('project.resource_changed',
+            'The resource differs from its snapshot descriptor.');
+      }
+      return payload;
+    } on Object {
+      await payload.release();
+      rethrow;
+    }
+  }
+
+  void invalidate(ProjectHandle projectHandle) {
+    _snapshotCache?.invalidateHandle(projectHandle);
+    _resourceUsageSnapshotCache.invalidateHandle(projectHandle);
+  }
+
+  Future<_LoadedProjectResource?> _readStoredResource(
+      ProjectWorkspaceAccess access, String path, String identity,
+      {ContentArtifactRef? artifact}) async {
+    final before = await access.readResourceIdentity(path);
+    if (before == null) return null;
+    final observed = await inspectAuthoringPayload(access.openRead(path),
+        storageKey: path, byteLength: before.byteLength);
+    if (artifact != null &&
+        (observed.contentDigest != artifact.digest ||
+            observed.byteLength != artifact.byteLength)) {
+      throw ProjectSnapshotException(
+          identity.startsWith('assetBlob:')
+              ? 'project.asset_blob_mismatch'
+              : artifact.mediaType == 'model/gltf-binary'
+                  ? 'project.model3d_source_mismatch'
+                  : 'project.asset_source_mismatch',
+          'A stored resource differs from its inspected content.');
+    }
+    final after = await access.readResourceIdentity(path);
+    if (before != after) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot',
+          'A resource changed while its descriptor was loading.');
+    }
+    return _LoadedProjectResource(
+        relativePath: path,
+        identity: identity,
+        stored: ProjectStoredResource(
+            byteLength: observed.byteLength,
+            rawSha256: observed.rawSha256,
+            resourceRevision: observed.resourceRevision,
+            contentDigest: observed.contentDigest));
   }
 
   Future<List<int>?> readRetainedAssetBlob(
@@ -350,16 +414,18 @@ final class ProjectSnapshotLoader {
     ProjectHandle projectHandle, {
     required String baseRevision,
     required Iterable<AuthoringResourceChange> changes,
-  }) {
+  }) async {
     final cache = _snapshotCache;
-    if (cache == null) return Future.value();
+    if (cache == null) return null;
     final access = _handles.resolveProject(projectHandle);
-    return cache.adoptAppliedChanges(
+    final snapshot = await cache.adoptAppliedChanges(
       access,
       projectHandle,
       baseRevision: baseRevision,
       changes: changes,
     );
+    return snapshot?.rebind(projectHandle,
+        resourcePayloadReader: _captureSnapshotResource);
   }
 
   Future<ProjectSnapshot> load(
@@ -401,7 +467,8 @@ final class ProjectSnapshotLoader {
           ),
         );
       }
-      return cached;
+      return cached.rebind(projectHandle,
+          resourcePayloadReader: _captureSnapshotResource);
     }
     final manifestReadTimer = profiler?.startStage();
     final manifestBytes = await access.readResourceBytes('project.json');
@@ -788,24 +855,36 @@ final class ProjectSnapshotLoader {
             tileset.source is ProjectRegularAtlasTilesetSource &&
             (tileset.source as ProjectRegularAtlasTilesetSource).assetId ==
                 record.id);
-        if (managedTilesetSource &&
-            record.logicalPath == assetBlobStorageKey(record.artifact)) {
+        if (record.logicalPath == assetBlobStorageKey(record.artifact)) {
           continue;
         }
         final managedModelSource = manifest.models3d.any((model) =>
             model.sourceAssetId == record.id &&
             model.relativePath == record.logicalPath);
-        if (!managedTilesetSource &&
-            !managedModelSource &&
-            !record.logicalPath.startsWith('assets/pokemon/menu/')) {
-          continue;
-        }
         final path = validateProjectRelativePath(record.logicalPath).join('/');
         if (!occupiedPaths.add(path)) {
           throw const ProjectSnapshotException(
             'project.resource_path_conflict',
             'A Pokemon menu asset conflicts with another project resource.',
           );
+        }
+        if (access.canStreamResources) {
+          final identity = managedTilesetSource || managedModelSource
+              ? 'assetLogical:${record.id}'
+              : 'asset:${record.id}';
+          final loaded = await _readStoredResource(access, path, identity,
+              artifact: record.artifact);
+          if (loaded == null) {
+            absentResourcePaths.add(path);
+            if (managedModelSource) {
+              throw const ProjectSnapshotException(
+                  'project.model3d_source_missing',
+                  'A model source is missing from the project.');
+            }
+          } else {
+            resources.add(loaded);
+          }
+          continue;
         }
         final bytes = await readOptional(path);
         if (bytes == null) {
@@ -815,15 +894,17 @@ final class ProjectSnapshotLoader {
                 'A model source is missing from the project.');
           }
         } else {
+          final actual = ContentArtifactRef.fromBytes(bytes.bytes,
+              mediaType: record.artifact.mediaType);
+          if (actual.digest != record.artifact.digest ||
+              actual.byteLength != record.artifact.byteLength) {
+            throw ProjectSnapshotException(
+                managedModelSource
+                    ? 'project.model3d_source_mismatch'
+                    : 'project.asset_source_mismatch',
+                'A resource source no longer matches its inspected asset.');
+          }
           if (managedModelSource) {
-            final actual = ContentArtifactRef.fromBytes(bytes.bytes,
-                mediaType: record.artifact.mediaType);
-            if (actual.digest != record.artifact.digest ||
-                actual.byteLength != record.artifact.byteLength) {
-              throw const ProjectSnapshotException(
-                  'project.model3d_source_mismatch',
-                  'A model source no longer matches its inspected asset.');
-            }
             modelSourceArtifacts['assetLogical:${record.id}'] = record.artifact;
           }
           resources.add(_LoadedProjectResource(
@@ -848,6 +929,19 @@ final class ProjectSnapshotLoader {
         }
         final storageKey = assetBlobStorageKey(artifact);
         final assetBlobReadTimer = profiler?.startStage();
+        if (access.canStreamResources) {
+          final loaded = await _readStoredResource(
+              access, storageKey, assetBlobResourceIdentity(artifact.digest),
+              artifact: artifact);
+          if (loaded == null) {
+            throw const ProjectSnapshotException('project.asset_blob_missing',
+                'An asset catalog entry points to a missing blob.');
+          }
+          resources.add(loaded);
+          profiler?.recordInitialRead(assetBlobReadTimer!);
+          profiler?.recordAssetBlobVerification();
+          continue;
+        }
         final bytes = await _readRequiredAssetBlob(access, storageKey);
         final blobIdentity = !identityCachingEnabled
             ? null
@@ -986,9 +1080,10 @@ final class ProjectSnapshotLoader {
       final identity = identities[resource.relativePath];
       final reused =
           identity == null ? null : cache?.resourceFingerprint(identity);
-      final fingerprint = reused ??
+      final fingerprint = resource.stored?.resourceRevision ??
+          reused ??
           await _decodeExecutor.fingerprintResource(
-            resource.bytes.typedBytes,
+            resource.bytes!.typedBytes,
             relativePath: resource.relativePath,
           );
       if (reused == null && identity != null) {
@@ -1033,10 +1128,16 @@ final class ProjectSnapshotLoader {
       resourceFingerprints: resourceFingerprints,
       ownedResourceBytes: {
         for (final resource in resources)
-          resource.identity:
-              modelBlobBytes[modelSourceArtifacts[resource.identity]] ??
-                  resource.bytes,
+          if (resource.bytes != null)
+            resource.identity:
+                modelBlobBytes[modelSourceArtifacts[resource.identity]] ??
+                    resource.bytes!,
       },
+      storedResources: {
+        for (final resource in resources)
+          if (resource.stored != null) resource.identity: resource.stored!
+      },
+      resourcePayloadReader: _captureSnapshotResource,
       resourceStorageKeys: {
         for (final resource in resources)
           resource.identity: resource.relativePath,
@@ -1067,7 +1168,7 @@ final class ProjectSnapshotLoader {
           resourceCount: resources.length,
           resourceBytes: resources.fold<int>(
             0,
-            (total, resource) => total + resource.bytes.typedBytes.length,
+            (total, resource) => total + resource.byteLength,
           ),
           cacheIdentityReads:
               (snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
@@ -1090,10 +1191,22 @@ final class ProjectSnapshotLoader {
         if (index >= resources.length) return;
         nextIndex = index + 1;
         final resource = resources[index];
-        matches[index] = await access.matchesResourceBytes(
-          resource.relativePath,
-          resource.bytes.typedBytes,
-        );
+        if (resource.stored case final descriptor?) {
+          try {
+            final observed = await inspectAuthoringPayload(
+                access.openRead(resource.relativePath),
+                storageKey: resource.relativePath,
+                byteLength: descriptor.byteLength);
+            matches[index] =
+                observed.resourceRevision == descriptor.resourceRevision &&
+                    observed.rawSha256 == descriptor.rawSha256;
+          } on Object {
+            matches[index] = false;
+          }
+        } else {
+          matches[index] = await access.matchesResourceBytes(
+              resource.relativePath, resource.bytes!.typedBytes);
+        }
       }
     }
 
@@ -1300,12 +1413,15 @@ final class _LoadedProjectResource {
   const _LoadedProjectResource({
     required this.relativePath,
     required this.identity,
-    required this.bytes,
+    this.bytes,
+    this.stored,
   });
 
   final String relativePath;
   final String identity;
-  final ProjectResourceBytes bytes;
+  final ProjectResourceBytes? bytes;
+  final ProjectStoredResource? stored;
+  int get byteLength => stored?.byteLength ?? bytes!.typedBytes.length;
 }
 
 final class _ProjectSnapshotLoadProfiler {

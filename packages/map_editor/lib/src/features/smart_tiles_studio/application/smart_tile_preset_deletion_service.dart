@@ -27,7 +27,7 @@ abstract interface class SmartTilePresetDeletionGateway {
     required String idempotencyKey,
   });
 
-  Future<String> confirmAndApply({
+  Future<String?> confirmAndApply({
     required SmartTilePresetDeletionCanonicalPlan plan,
     required String operationId,
   });
@@ -38,8 +38,8 @@ final class CanonicalSmartTilePresetDeletionGateway
   const CanonicalSmartTilePresetDeletionGateway({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -82,7 +82,7 @@ final class CanonicalSmartTilePresetDeletionGateway
   }
 
   @override
-  Future<String> confirmAndApply({
+  Future<String?> confirmAndApply({
     required SmartTilePresetDeletionCanonicalPlan plan,
     required String operationId,
   }) async {
@@ -160,14 +160,16 @@ final class SmartTilePresetDeletionService {
       operationId: operationId,
     );
     final canonical = await _gateway.load(projectRootPath: projectRootPath);
-    if (canonical.snapshotRevision != appliedRevision) {
+    if (appliedRevision != null &&
+        canonical.snapshotRevision != appliedRevision) {
       throw const SmartTilePresetDeletionException(
         'smart_tile.preset.delete.snapshot_stale',
         'Le snapshot canonique chargé après suppression est obsolète.',
       );
     }
-    if (canonical.manifest.smartTileCatalog.presets
-        .any((preset) => preset.id == presetId)) {
+    if (canonical.manifest.smartTileCatalog.presets.any(
+      (preset) => preset.id == presetId,
+    )) {
       throw const SmartTilePresetDeletionException(
         'smart_tile.preset.delete.still_present',
         'Le Smart Tile est toujours présent après la suppression canonique.',

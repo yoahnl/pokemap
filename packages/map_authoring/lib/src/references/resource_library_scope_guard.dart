@@ -6,6 +6,7 @@ import '../contracts/authoring_diff.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
 import '../transactions/change_set.dart';
+import '../transactions/authoring_payload.dart';
 import '../workspace/project_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
 import '../domains/assets/tileset_actions.dart';
@@ -150,15 +151,16 @@ AuthoringMutationDraft guardResourceLibraryMutation(
   var project = draft.projectedProject ?? original.manifest;
   final maps = {for (final map in original.maps) map.id: map};
   final replacements = <String, List<int>>{};
+  final storedReplacements = <String, AuthoringPayload>{};
   final deletedReferenceDocuments = <String>{};
   final referenceStorageKeys = <String, String>{};
   for (final change in draft.changeSet.changes) {
-    if (change.resource.kind == 'project' && change.afterBytes != null) {
+    if (change.resource.kind == 'project' && change.afterPayload != null) {
       project = draft.projectedProject ??
           ProjectManifest.fromJson(Map<String, dynamic>.from(
               jsonDecode(utf8.decode(change.afterBytes!)) as Map));
     } else if (change.resource.kind == 'map') {
-      if (change.afterBytes == null) {
+      if (change.afterPayload == null) {
         if (original.manifest.resourceLibraryCatalog.entries
             .any((entry) => entry.mapId == change.resource.id)) {
           throw VisualLibraryException(
@@ -172,15 +174,22 @@ AuthoringMutationDraft guardResourceLibraryMutation(
             jsonDecode(utf8.decode(change.afterBytes!)) as Map));
       }
     }
-    final identity = switch (change.resource.kind) {
-      'project' => 'project',
-      'dialogue' => 'dialogueSource:${change.resource.id}',
-      _ => '${change.resource.kind}:${change.resource.id}',
-    };
-    if (change.afterBytes == null) {
+    final identity = original.resourceStorageKeys.entries
+            .where((entry) => entry.value == change.storageKey)
+            .firstOrNull
+            ?.key ??
+        switch (change.resource.kind) {
+          'project' => 'project',
+          'dialogue' => 'dialogueSource:${change.resource.id}',
+          _ => '${change.resource.kind}:${change.resource.id}',
+        };
+    if (change.afterPayload == null) {
       deletedReferenceDocuments.add(identity);
-    } else {
+    } else if (change.afterPayload!.isInline) {
       replacements[identity] = change.afterBytes!;
+      referenceStorageKeys[identity] = change.storageKey;
+    } else {
+      storedReplacements[identity] = change.afterPayload!;
       referenceStorageKeys[identity] = change.storageKey;
     }
   }
@@ -270,6 +279,8 @@ AuthoringMutationDraft guardResourceLibraryMutation(
       for (final entry in replacements.entries)
         entry.key: computeAuthoringBytesFingerprint(entry.value,
             logicalName: referenceStorageKeys[entry.key]!),
+      for (final entry in storedReplacements.entries)
+        entry.key: entry.value.resourceRevision,
     },
     itemCatalog: original.itemCatalog,
     additionalItemReferences: original.additionalItemReferences,
@@ -280,6 +291,21 @@ AuthoringMutationDraft guardResourceLibraryMutation(
       ...referenceStorageKeys,
     },
     loadDiagnostics: original.loadDiagnostics,
+    storedResources: {
+      for (final entry in original.storedResources.entries)
+        if (!deletedReferenceDocuments.contains(entry.key) &&
+            !referenceStorageKeys.containsKey(entry.key))
+          entry.key: entry.value
+    },
+    payloadResources: {
+      for (final entry in original.payloadResources.entries)
+        if (!deletedReferenceDocuments.contains(entry.key) &&
+            !referenceStorageKeys.containsKey(entry.key))
+          entry.key: entry.value,
+      ...storedReplacements
+    },
+    resourcePayloadReader: original.resourcePayloadReader,
+    payloadOwner: original.payloadOwner,
     resourceBytes: {
       for (final id in {
         ...original.resourceFingerprints.keys,

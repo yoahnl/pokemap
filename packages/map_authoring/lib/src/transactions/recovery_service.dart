@@ -512,11 +512,11 @@ final class AuthoringRecoveryService {
         kind: TransactionPayloadKind.after,
       );
       changes.add(
-        AuthoringResourceChange(
+        AuthoringResourceChange.withPayloads(
           resource: entry.resource,
           storageKey: entry.storageKey,
-          beforeBytes: before.bytes,
-          afterBytes: after.bytes,
+          beforePayload: before.payload,
+          afterPayload: after.payload,
           beforeRevision: entry.beforeRevision,
           afterRevision: entry.afterRevision,
         ),

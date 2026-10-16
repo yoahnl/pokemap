@@ -75,18 +75,14 @@ void _requireElementDuplicateSources(
     }
     final record =
         catalog.records.where((entry) => entry.id == atlas.assetId).firstOrNull;
-    final bytes = record == null
+    final identity = record == null
         ? null
-        : snapshot.findResourceBytes(
-            record.logicalPath == assetBlobStorageKey(record.artifact)
-                ? assetBlobResourceIdentity(record.artifact.digest)
-                : 'assetLogical:${record.id}');
+        : record.logicalPath == assetBlobStorageKey(record.artifact)
+            ? assetBlobResourceIdentity(record.artifact.digest)
+            : 'assetLogical:${record.id}';
     if (record == null ||
         record.logicalPath != tileset.relativePath ||
-        bytes == null ||
-        ContentArtifactRef.fromBytes(bytes,
-                mediaType: record.artifact.mediaType) !=
-            record.artifact) {
+        !snapshot.resourceMatchesArtifact(identity!, record.artifact)) {
       throw VisualLibraryException('element.source_unavailable',
           'A frame source is missing, changed or cannot be certified.',
           details: {'tilesetId': id, 'assetId': atlas.assetId});

@@ -1,4 +1,4 @@
-import '../support/authoring_fingerprint.dart';
+import '../transactions/authoring_payload.dart';
 import '../transactions/transaction_journal.dart';
 
 enum TransactionPayloadKind { before, after }
@@ -14,26 +14,63 @@ final class TransactionFileGatewayException implements Exception {
 }
 
 final class TransactionStagedPayload {
-  TransactionStagedPayload({
-    required this.storageKey,
-    required Iterable<int>? bytes,
-  }) : bytes = bytes == null
+  TransactionStagedPayload(
+      {required this.storageKey, required Iterable<int>? bytes})
+      : payload = bytes == null
             ? null
-            : List<int>.unmodifiable(bytes.toList(growable: false)) {
-    if (this.bytes?.any((value) => value < 0 || value > 255) ?? false) {
-      throw ArgumentError.value(bytes, 'bytes', 'must contain bytes');
+            : AuthoringPayload.inline(bytes, storageKey: storageKey);
+
+  TransactionStagedPayload.withPayload(
+      {required this.storageKey, required this.payload});
+  final String storageKey;
+  final AuthoringPayload? payload;
+  List<int>? get bytes => payload?.inlineBytes;
+  String? get revision => payload?.resourceRevision;
+}
+
+abstract interface class StreamingTransactionFileGateway {
+  Future<AuthoringPayload?> captureResourcePayload(String storageKey);
+  Future<void> stageAuthoringPayload({
+    required String operationId,
+    required String storageKey,
+    required TransactionPayloadKind kind,
+    required AuthoringPayload? payload,
+  });
+}
+
+extension TransactionPayloadGateway on TransactionFileGateway {
+  Future<AuthoringPayload?> captureResourcePayload(String storageKey) async {
+    final gateway = this;
+    if (gateway is StreamingTransactionFileGateway) {
+      return (gateway as StreamingTransactionFileGateway)
+          .captureResourcePayload(storageKey);
     }
-    revision = this.bytes == null
-        ? null
-        : computeAuthoringBytesFingerprint(
-            this.bytes!,
-            logicalName: storageKey,
-          );
+    throw const TransactionFileGatewayException(
+        'transaction.streaming_required',
+        'The transaction gateway cannot capture a bounded payload.');
   }
 
-  final String storageKey;
-  final List<int>? bytes;
-  late final String? revision;
+  Future<void> stageAuthoringPayload({
+    required String operationId,
+    required String storageKey,
+    required TransactionPayloadKind kind,
+    required AuthoringPayload? payload,
+  }) async {
+    final gateway = this;
+    if (gateway is StreamingTransactionFileGateway) {
+      await (gateway as StreamingTransactionFileGateway).stageAuthoringPayload(
+          operationId: operationId,
+          storageKey: storageKey,
+          kind: kind,
+          payload: payload);
+      return;
+    }
+    await stagePayload(
+        operationId: operationId,
+        storageKey: storageKey,
+        kind: kind,
+        bytes: payload?.inlineBytes);
+  }
 }
 
 /// Project-local storage capabilities required by the write state machine.

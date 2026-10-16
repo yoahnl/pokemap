@@ -12,9 +12,10 @@ ProjectSnapshot projectPresentationPublicationSnapshot(
   required Iterable<AuthoringResourceChange> changes,
 }) {
   final bytes = <String, List<int>>{
-    for (final id in source.resourceFingerprints.keys)
-      if (source.findResourceBytes(id) case final value?) id: value,
+    ...source.inlineResourceBytes,
   };
+  final stored = Map<String, ProjectStoredResource>.of(source.storedResources);
+  final payloads = Map.of(source.payloadResources);
   final paths = Map<String, String>.of(source.resourceStorageKeys);
   final fingerprints = Map<String, String>.of(source.resourceFingerprints);
   for (final change in changes) {
@@ -30,13 +31,22 @@ ProjectSnapshot projectPresentationPublicationSnapshot(
           _ =>
             throw StateError('Unsupported Presentation publication resource.'),
         };
-    final after = change.afterBytes;
+    final after = change.afterPayload;
     if (after == null) {
       bytes.remove(id);
+      stored.remove(id);
+      payloads.remove(id);
       paths.remove(id);
       fingerprints.remove(id);
     } else {
-      bytes[id] = after;
+      stored.remove(id);
+      if (after.isInline) {
+        bytes[id] = after.inlineBytes;
+        payloads.remove(id);
+      } else {
+        bytes.remove(id);
+        payloads[id] = after;
+      }
       paths[id] = change.storageKey;
       fingerprints[id] = change.afterRevision!;
     }
@@ -50,6 +60,10 @@ ProjectSnapshot projectPresentationPublicationSnapshot(
     resourceFingerprints: fingerprints,
     resourceBytes: bytes,
     resourceStorageKeys: paths,
+    storedResources: stored,
+    payloadResources: payloads,
+    resourcePayloadReader: source.resourcePayloadReader,
+    payloadOwner: source.payloadOwner,
   );
 }
 
@@ -61,14 +75,14 @@ List<AuthoringResourceChange> mergePresentationPublicationChanges(
     final before = merged[change.storageKey];
     merged[change.storageKey] = before == null
         ? change
-        : AuthoringResourceChange(
+        : AuthoringResourceChange.withPayloads(
             resource: AuthoringResourceRef(
                 kind: change.resource.kind,
                 id: change.resource.id,
                 revision: before.beforeRevision),
             storageKey: change.storageKey,
-            beforeBytes: before.beforeBytes,
-            afterBytes: change.afterBytes,
+            beforePayload: before.beforePayload,
+            afterPayload: change.afterPayload,
           );
   }
   return merged.values.toList();

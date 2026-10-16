@@ -7271,3 +7271,87 @@ test("recovery requires an exact confirmation and preserves permission errors", 
     await server.close();
   }
 });
+
+test("MCP preserves committed receipts when snapshot refresh is unavailable", async () => {
+  const calls: { command: string; args: JsonRecord }[] = [];
+  const receipt = {
+    receiptId: "receipt-committed-refresh-unavailable",
+    actionId: "element.rename",
+    actionVersion: 1,
+    status: "applied",
+    afterRevision: `sha256:${"a".repeat(64)}`,
+  };
+  const diagnostic = {
+    code: "snapshot.refresh_unavailable",
+    message:
+      "The mutation is committed. Reload the project before continuing; do not replay the mutation.",
+  };
+  const data = { receipt, snapshotRevision: null, diagnostic };
+  const authoring: AuthoringGateway = {
+    async request(command, args = {}) {
+      calls.push({ command, args });
+      return { requestId: "refresh-unavailable", data, artifacts: [], receipt };
+    },
+    async close() {},
+  };
+  const server = createPokeMapMcpServer({
+    authoring,
+    artifacts: new MemoryArtifactReader(),
+  });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "pokemap-committed-refresh-test", version: "1.0.0" });
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  try {
+    const requests = [
+      {
+        tool: "pokemap_apply",
+        command: "apply",
+        args: {
+          operation: "apply",
+          projectHandle: "project-test",
+          planId: "plan-test",
+          operationId: "operation-test",
+        },
+      },
+      {
+        tool: "pokemap_history",
+        command: "undo",
+        args: {
+          operation: "undo",
+          projectHandle: "project-test",
+          entryId: "entry-test",
+          idempotencyKey: "undo-test",
+        },
+      },
+      {
+        tool: "pokemap_recovery",
+        command: "recover",
+        args: {
+          projectHandle: "project-test",
+          operationId: "operation-test",
+          confirmation: "RECOVER operation-test",
+        },
+      },
+    ];
+    for (const request of requests) {
+      const result = await client.callTool({
+        name: request.tool,
+        arguments: request.args,
+      });
+      assert.equal(result.isError, undefined);
+      const envelope = record(result.structuredContent);
+      assert.equal(envelope.ok, true);
+      assert.deepEqual(envelope.data, data);
+      assert.equal(calls.length, requests.indexOf(request) + 1);
+      assert.equal(calls.at(-1)?.command, request.command);
+      const serialized = JSON.stringify(result.content);
+      assert.ok(serialized.includes("snapshot.refresh_unavailable"));
+      assert.ok(serialized.includes(receipt.receiptId));
+    }
+    assert.deepEqual(calls.map((call) => call.command), ["apply", "undo", "recover"]);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});

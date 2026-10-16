@@ -136,7 +136,8 @@ final class CanonicalSmartTileLayerPresetChangeGateway
       operationId: '${plan.planId}-apply',
     );
     final session = await _queries.open(plan.projectRootPath);
-    if (session.snapshotRevision != applied.snapshotRevision) {
+    if (applied.snapshotRevision != null &&
+        session.snapshotRevision != applied.snapshotRevision) {
       throw const EditorAuthoringMutationFailure(
         code: 'smart_tile.layer_preset_snapshot_stale',
         message: 'Le snapshot canonique relu après le changement est obsolète.',

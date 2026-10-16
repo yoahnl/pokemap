@@ -108,7 +108,8 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
   Future<bool> _flushSessionForCanonicalMapConnectionMutation() async {
     if (state.isProjectDirty && !await saveProjectManifest()) {
       state = state.copyWith(
-        errorMessage: 'Le projet doit être enregistré avant de modifier une '
+        errorMessage:
+            'Le projet doit être enregistré avant de modifier une '
             'connexion entre maps.',
       );
       return false;
@@ -118,7 +119,8 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
     if (outcome == ActiveMapSaveOutcome.saved) return true;
     if (state.errorMessage == null) {
       state = state.copyWith(
-        errorMessage: 'La map doit être enregistrée avant de modifier une '
+        errorMessage:
+            'La map doit être enregistrée avant de modifier une '
             'connexion.',
       );
     }
@@ -169,7 +171,8 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
       confirmationToken: confirmationToken,
     );
     final after = await queries.open(projectRootPath);
-    if (after.snapshotRevision != applied.snapshotRevision) {
+    if (applied.snapshotRevision != null &&
+        after.snapshotRevision != applied.snapshotRevision) {
       throw const EditorAuthoringMutationFailure(
         code: 'connection.snapshot_stale',
         message: 'Le snapshot canonique des connexions est obsolète.',
@@ -211,13 +214,14 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
       document: MapDocumentLoadResult(
         map: map,
         activeMapPath: activeMapPath,
-        selectedTilesetEditorId:
-            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
+        selectedTilesetEditorId: _editorMapSessionCoordinator
+            .resolveSelectedTilesetIdForMap(map),
       ),
       statusMessage: statusMessage,
     );
     state = state.copyWith(
-      activeLayerId: preferredLayerId != null &&
+      activeLayerId:
+          preferredLayerId != null &&
               map.layers.any((layer) => layer.id == preferredLayerId)
           ? preferredLayerId
           : state.activeLayerId,

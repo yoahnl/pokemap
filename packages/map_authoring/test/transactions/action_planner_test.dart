@@ -90,11 +90,11 @@ void main() {
           return _draft(context);
         },
       );
-      final first = store.resolve(
+      final first = await store.resolve(
         planned.planId,
         currentProjectRevision: snapshot.revision,
       );
-      final second = store.resolve(
+      final second = await store.resolve(
         planned.planId,
         currentProjectRevision: snapshot.revision,
       );
@@ -165,7 +165,7 @@ void main() {
       final payloadFingerprint = plan.idempotencyPayloadFingerprint;
       final projectedRevision = plan.projectedRevision;
 
-      plan.releaseAppliedPayload();
+      await plan.releaseAppliedPayload();
 
       expect(plan.request.parameters, isEmpty);
       expect(plan.request.requestId, request.requestId);

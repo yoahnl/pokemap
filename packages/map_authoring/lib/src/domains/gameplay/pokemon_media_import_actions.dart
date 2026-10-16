@@ -269,7 +269,7 @@ final class PokemonMediaImportActions {
         List<int>? logicalBytes;
         for (final stored in snapshot.resourceStorageKeys.entries) {
           if (stored.value == logicalPath) {
-            logicalBytes = snapshot.findResourceBytes(stored.key);
+            logicalBytes = await snapshot.readResourceBytes(stored.key);
             break;
           }
         }
@@ -325,20 +325,18 @@ final class PokemonMediaImportActions {
             after: record.toJson()));
       }
       final blobPath = assetBlobStorageKey(artifact);
-      final existingBlob = snapshot
-          .findResourceBytes(assetBlobResourceIdentity(artifact.digest));
-      if (existingBlob == null && !changes.containsKey(blobPath)) {
+      final existingBlob =
+          snapshot.hasResource(assetBlobResourceIdentity(artifact.digest));
+      if (!existingBlob && !changes.containsKey(blobPath)) {
         changes[blobPath] = AuthoringResourceChange(
             resource:
                 AuthoringResourceRef(kind: 'assetBlob', id: artifact.digest),
             storageKey: blobPath,
             beforeBytes: null,
             afterBytes: bytes);
-      } else if (existingBlob != null &&
-          ContentArtifactRef.fromBytes(existingBlob,
-                      mediaType: artifact.mediaType)
-                  .digest !=
-              artifact.digest) {
+      } else if (existingBlob &&
+          !snapshot.resourceMatchesArtifact(
+              assetBlobResourceIdentity(artifact.digest), artifact)) {
         throw const FormatException('Existing Pokemon media blob is corrupt.');
       }
       variant[entry.role.name] = logicalPath;
@@ -380,12 +378,12 @@ final class PokemonMediaImportActions {
           entry.resource.kind == change.resource.kind &&
           entry.resource.id == change.resource.id)) {
         diffs.add(AuthoringDiffEntry(
-          operation: change.beforeBytes == null
+          operation: change.beforePayload == null
               ? AuthoringDiffOperation.add
               : AuthoringDiffOperation.replace,
           resource: change.resource,
           path: '/',
-          after: {'byteLength': change.afterBytes!.length},
+          after: {'byteLength': change.afterPayload!.byteLength},
         ));
       }
     }

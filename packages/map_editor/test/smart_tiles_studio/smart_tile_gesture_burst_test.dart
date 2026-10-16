@@ -1,4 +1,9 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
+import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +48,19 @@ void main() {
 
     expect(h.painted(), <GridPos>[const GridPos(x: 1, y: 1)]);
     expect(h.notifier.state.errorMessage, isNull);
+  });
+
+  test('unknown apply revision and absent projection reload canonically without a null assertion', () async {
+    final h = await _Harness.create(failLocalProjection: true);
+    addTearDown(h.dispose);
+    expect(h.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(), hasLength(1));
+    h.paint(const GridPos(x: 1, y: 1));
+    await h.settle();
+    expect(h.painted(), <GridPos>[const GridPos(x: 1, y: 1)]);
+    expect(h.notifier.state.errorMessage, isNull);
+    final mutations = h.container.read(authoringMutationAdapterProvider);
+    expect(mutations.lastAppliedReceipt!.status, AuthoringReceiptStatus.applied);
+    expect(h.container.read(authoringQueryAdapterProvider).diagnostics.liveSessions, 1);
   });
 
   test('canonical adoption reuses the mutation session projection', () async {
@@ -156,9 +174,8 @@ void main() {
 final class _Harness {
   _Harness._(this.root, this.container, this.notifier);
 
-  static Future<_Harness> create() async {
+  static Future<_Harness> create({bool failLocalProjection = false}) async {
     final root = await Directory.systemTemp.createTemp('pokemap_gesture_burst_');
-    final container = ProviderContainer();
     final manifest = _manifest();
     const map = MapData(
       id: 'map',
@@ -174,6 +191,15 @@ final class _Harness {
     await FileMapRepository()
         .saveMap(map, mapPath, projectDialogueContext: manifest);
 
+    final queries = AuthoringQueryAdapter(fileReader: const EditorProjectFileReader());
+    final reader = _LayerPostCommitReloadFailureReader(mapPath);
+    final mutations = AuthoringMutationAdapter(fileReader: reader, queries: queries, projectRoots: reader);
+    final container = ProviderContainer(overrides: [
+      if (failLocalProjection) ...[
+        authoringQueryAdapterProvider.overrideWith((ref) { ref.onDispose(queries.closeAll); return queries; }),
+        authoringMutationAdapterProvider.overrideWith((ref) { ref.onDispose(mutations.closeAll); return mutations; }),
+      ],
+    ]);
     final notifier = container.read(editorNotifierProvider.notifier);
     notifier.state = EditorState(projectRootPath: root.path, project: manifest);
     await notifier.loadMap('maps/map.json');
@@ -251,6 +277,34 @@ final class _Harness {
   Future<void> dispose() async {
     container.dispose();
     if (await root.exists()) await root.delete(recursive: true);
+  }
+}
+
+final class _LayerPostCommitReloadFailureReader implements ProjectFileReader, EditorProjectRootLocator {
+  _LayerPostCommitReloadFailureReader(this.mapPath);
+  static const _delegate = EditorProjectFileReader();
+  final String mapPath;
+  var projectReadsAfterLayer = 0;
+  String? lastMap;
+  @override
+  Future<String> canonicalizeDirectory(String path) => _delegate.canonicalizeDirectory(path);
+  @override
+  Future<String> locateForResource(String resourcePath) => _delegate.locateForResource(resourcePath);
+  @override
+  Future<List<int>> readBytes({required String projectRoot, required String relativePath}) async {
+    final map = await File(mapPath).readAsString();
+    final json = jsonDecode(map) as Map;
+    if (relativePath == 'project.json' && (json['layers'] as List).isNotEmpty) {
+      if (lastMap != map) {
+        lastMap = map;
+        projectReadsAfterLayer = 0;
+      }
+      projectReadsAfterLayer++;
+      if (projectReadsAfterLayer == 3) {
+        throw const WorkspaceAccessException('workspace.file_unavailable', 'The local fixture projection cannot reload.');
+      }
+    }
+    return _delegate.readBytes(projectRoot: projectRoot, relativePath: relativePath);
   }
 }
 

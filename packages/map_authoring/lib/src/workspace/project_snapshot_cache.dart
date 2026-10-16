@@ -3,6 +3,7 @@ import 'dart:collection';
 import '../ports/project_file_reader.dart';
 import '../transactions/change_set.dart';
 import 'project_snapshot.dart';
+import '../transactions/authoring_payload.dart';
 import 'project_snapshot_map_projector.dart';
 import 'workspace_handle_store.dart';
 
@@ -163,7 +164,10 @@ final class ProjectSnapshotCache {
     required Map<String, ProjectResourceIdentity> identities,
     Iterable<String> absentResourcePaths = const [],
   }) {
-    if (snapshot.loadDiagnostics.isNotEmpty || identities.isEmpty) {
+    if (snapshot.loadDiagnostics.isNotEmpty ||
+        identities.isEmpty ||
+        snapshot.payloadOwner != null ||
+        snapshot.payloadResources.isNotEmpty) {
       return ProjectSnapshotCacheAdmission.incompleteSnapshot;
     }
     final expectedPaths = snapshot.resourceStorageKeys.values.toSet();
@@ -198,7 +202,7 @@ final class ProjectSnapshotCache {
     final sessionRevision = (_nextSessionRevisions[scope] ?? 0) + 1;
     _nextSessionRevisions[scope] = sessionRevision;
     final entry = _ProjectSnapshotCacheEntry(
-      snapshot: snapshot,
+      snapshot: snapshot.rebind(snapshot.projectHandle),
       identities: Map.unmodifiable(Map.of(identities)),
       contentAddressedPaths: _contentAddressedPathsOf(snapshot),
       absentResourcePaths: Set.unmodifiable(absentResourcePaths.toSet()),
@@ -241,7 +245,8 @@ final class ProjectSnapshotCache {
       entry.identities,
     );
     for (final change in frozenChanges) {
-      final afterBytes = change.afterBytes;
+      final afterBytes =
+          change.afterPayload?.isInline == true ? change.afterBytes : null;
       if (afterBytes == null) {
         invalidateScope(scope);
         return _rejectAdoption();
@@ -299,6 +304,11 @@ final class ProjectSnapshotCache {
   Null _rejectAdoption() {
     adoptionRejections += 1;
     return null;
+  }
+
+  void invalidateHandle(ProjectHandle handle) {
+    final scope = _scopesByHandle[handle];
+    if (scope != null) invalidateScope(scope);
   }
 
   void invalidateScope(String scope) {
@@ -375,7 +385,28 @@ final class ProjectSnapshotCache {
       }
     }
     for (final expected in entry.identities.entries) {
-      if (entry.contentAddressedPaths.contains(expected.key)) continue;
+      final lazyEntry = entry.snapshot.resourceStorageKeys.entries
+          .where((e) => e.value == expected.key)
+          .firstOrNull;
+      final descriptor = lazyEntry == null
+          ? null
+          : entry.snapshot.storedResources[lazyEntry.key];
+      if (descriptor != null) {
+        try {
+          final observed = await inspectAuthoringPayload(
+              access.openRead(expected.key),
+              storageKey: expected.key,
+              byteLength: descriptor.byteLength);
+          if (observed.resourceRevision != descriptor.resourceRevision ||
+              observed.rawSha256 != descriptor.rawSha256) {
+            return false;
+          }
+        } on Object {
+          return false;
+        }
+      } else if (entry.contentAddressedPaths.contains(expected.key)) {
+        continue;
+      }
       final observed = await _readIdentity(access, expected.key);
       if (observed != expected.value) return false;
     }
@@ -403,7 +434,7 @@ final class ProjectSnapshotCache {
   ProjectSnapshot snapshot,
 ) {
   final assetBuffers = HashSet<List<int>>.identity();
-  for (final identity in snapshot.resourceStorageKeys.keys) {
+  for (final identity in snapshot.inlineResourceBytes.keys) {
     if (identity.startsWith('assetBlob:')) {
       assetBuffers.add(snapshot.resourceBytes(identity));
     }
@@ -411,7 +442,7 @@ final class ProjectSnapshotCache {
   final accountedBuffers = HashSet<List<int>>.identity();
   var authoringBytes = 0;
   var assetBlobBytes = 0;
-  for (final identity in snapshot.resourceStorageKeys.keys) {
+  for (final identity in snapshot.inlineResourceBytes.keys) {
     final bytes = snapshot.resourceBytes(identity);
     if (!accountedBuffers.add(bytes)) continue;
     if (assetBuffers.contains(bytes)) {

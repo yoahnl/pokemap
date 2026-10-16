@@ -199,7 +199,7 @@ void main() {
       final second = await store.put(List<int>.from(bytes));
       expect(second.id, first.id);
       expect(await store.listIds(), [first.id]);
-      expect(await store.get(first.id), bytes);
+      expect(await (await store.get(first.id))!.readBytes(), bytes);
 
       expect(await store.prune(retainIds: const {}), 1);
       expect(await store.get(first.id), isNull);

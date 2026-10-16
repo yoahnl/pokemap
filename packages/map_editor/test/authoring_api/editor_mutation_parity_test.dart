@@ -21,6 +21,59 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('AuthoringMutationAdapter', () {
+    for (final method in ['apply', 'saveMap']) {
+      test(
+        '$method keeps an applied receipt when the local projection reload fails after canonical success',
+        () async {
+          final fixture = await _MutationFixture.create();
+          addTearDown(fixture.dispose);
+          final reader = _PostCommitReloadFailureReader(fixture.mapPath);
+          final queries = AuthoringQueryAdapter(fileReader: reader);
+          final mutations = AuthoringMutationAdapter(
+            fileReader: reader,
+            queries: queries,
+            projectRoots: reader,
+          );
+          addTearDown(queries.closeAll);
+          addTearDown(mutations.closeAll);
+          late EditorAuthoringMutationResult result;
+          final changed = fixture.map.copyWith(name: 'Local reload fault');
+          if (method == 'saveMap') {
+            final before = await FileMapRepository().loadMapDocument(
+              fixture.mapPath,
+            );
+            result = await mutations.saveMap(
+              changed,
+              fixture.mapPath,
+              expectedMapRevision: before.revision,
+            );
+          } else {
+            final plan = await mutations.plan(
+              fixture.root.path,
+              actionId: 'map.save',
+              parameters: {'map': changed.toJson()},
+              idempotencyKey: 'local-reload-fault',
+            );
+            result = await mutations.apply(
+              plan,
+              operationId: 'local-reload-fault',
+            );
+          }
+          expect(reader.postCommitProjectReads, 3);
+          expect(result.receipt.status, AuthoringReceiptStatus.applied);
+          expect(mutations.lastAppliedReceipt, same(result.receipt));
+          expect(result.snapshotRevision, isNull);
+          expect(result.projection, isNull);
+          expect(result.diagnostic!.code, 'snapshot.refresh_unavailable');
+          expect(
+            (jsonDecode(await File(fixture.mapPath).readAsString())
+                as Map)['name'],
+            'Local reload fault',
+          );
+        },
+      );
+    }
+
     test('editor connection intents consume all five catalogued actions', () {
       final service = MapConnectionEditingService(
         resolveMapConnectionTargetUseCase: ResolveMapConnectionTargetUseCase(),
@@ -1932,6 +1985,41 @@ Map<String, Object?> _stableReceipt(AuthoringReceipt receipt) => {
       {'kind': resource.kind, 'id': resource.id},
   ],
 };
+
+final class _PostCommitReloadFailureReader
+    implements ProjectFileReader, EditorProjectRootLocator {
+  _PostCommitReloadFailureReader(this.mapPath);
+  static const _delegate = EditorProjectFileReader();
+  final String mapPath;
+  var postCommitProjectReads = 0;
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _delegate.canonicalizeDirectory(path);
+  @override
+  Future<String> locateForResource(String resourcePath) =>
+      _delegate.locateForResource(resourcePath);
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    final current = jsonDecode(await File(mapPath).readAsString()) as Map;
+    if (relativePath == 'project.json' &&
+        current['name'] == 'Local reload fault') {
+      postCommitProjectReads++;
+      if (postCommitProjectReads >= 3) {
+        throw const WorkspaceAccessException(
+          'workspace.file_unavailable',
+          'The local fixture projection cannot reload.',
+        );
+      }
+    }
+    return _delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+}
 
 final class _BlockingProjectReader
     implements ProjectFileReader, EditorProjectRootLocator {

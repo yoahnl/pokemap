@@ -49,9 +49,7 @@ void main() {
             presetId: 'grass',
             usage: SmartTileUsage.terrain,
             materialPalette: <String>['', 'grass'],
-            field: SmartTileField.cell(
-              semanticCells: <int>[1, 1, 1, 1],
-            ),
+            field: SmartTileField.cell(semanticCells: <int>[1, 1, 1, 1]),
           ),
         ],
       );
@@ -93,8 +91,10 @@ void main() {
           'name': 'Herbe',
         },
       });
-      expect(plan.affectedResources.map((resource) => resource.kind),
-          containsAll(<String>['project', 'map']));
+      expect(
+        plan.affectedResources.map((resource) => resource.kind),
+        containsAll(<String>['project', 'map']),
+      );
       expect(result.manifest.smartTileCatalog.drafts, isEmpty);
       expect(result.map, afterMap);
       expect(result.mapRevision, 'map-revision-2');
@@ -170,10 +170,7 @@ void main() {
       expect(
         SmartTilePublicationService.suggestLayerId(
           presetId: 'grass',
-          existingLayerIds: const <String>[
-            'grass_layer',
-            'grass_layer_2',
-          ],
+          existingLayerIds: const <String>['grass_layer', 'grass_layer_2'],
         ),
         'grass_layer_3',
       );
@@ -198,6 +195,22 @@ void main() {
       expect(gateway.expectedRevision, 'revision-1');
       expect(gateway.appliedOperationId, isNotNull);
     });
+
+    test(
+      'publication adopts its fresh snapshot after committed apply returned no revision',
+      () async {
+        final gateway = _FakeGateway(
+          before: _snapshot(),
+          unknownAfterApply: true,
+        );
+        final result = await SmartTilePublicationService(
+          gateway: gateway,
+        ).publishPreset(projectRootPath: '/project', preset: _preset());
+        expect(result.snapshotRevision, gateway.after.snapshotRevision);
+        expect(gateway.applied, isTrue);
+        expect(gateway.planCount, 1);
+      },
+    );
 
     test('publishPreset lie sa clé d\'idempotence à la révision', () async {
       // Revenir à une table déjà appliquée est le geste normal quand on
@@ -224,50 +237,52 @@ void main() {
       expect(gateway.lastIdempotencyKey, isNot(first));
     });
 
-    test('duplicatePreset publie une copie complète avec un id unique',
-        () async {
-      final source = _preset();
-      final existingCopy = source.copyWith(
-        id: 'grass_copy',
-        name: 'Grass — copie',
-      );
-      final duplicate = source.copyWith(
-        id: 'grass_copy_2',
-        name: 'Grass — copie 2',
-      );
-      final gateway = _FakeGateway(
-        before: _snapshot(
-          manifest: _publishedManifest(
-            presets: <ProjectSmartTilePreset>[source, existingCopy],
+    test(
+      'duplicatePreset publie une copie complète avec un id unique',
+      () async {
+        final source = _preset();
+        final existingCopy = source.copyWith(
+          id: 'grass_copy',
+          name: 'Grass — copie',
+        );
+        final duplicate = source.copyWith(
+          id: 'grass_copy_2',
+          name: 'Grass — copie 2',
+        );
+        final gateway = _FakeGateway(
+          before: _snapshot(
+            manifest: _publishedManifest(
+              presets: <ProjectSmartTilePreset>[source, existingCopy],
+            ),
           ),
-        ),
-        after: _snapshot(
-          revision: 'revision-2',
-          manifest: _publishedManifest(
-            presets: <ProjectSmartTilePreset>[
-              source,
-              existingCopy,
-              duplicate,
-            ],
+          after: _snapshot(
+            revision: 'revision-2',
+            manifest: _publishedManifest(
+              presets: <ProjectSmartTilePreset>[
+                source,
+                existingCopy,
+                duplicate,
+              ],
+            ),
           ),
-        ),
-      );
-      final service = SmartTilePublicationService(gateway: gateway);
+        );
+        final service = SmartTilePublicationService(gateway: gateway);
 
-      final result = await service.duplicatePreset(
-        projectRootPath: '/project',
-        preset: source,
-      );
+        final result = await service.duplicatePreset(
+          projectRootPath: '/project',
+          preset: source,
+        );
 
-      expect(result.preset, duplicate);
-      expect(result.snapshot.manifest, gateway.after.manifest);
-      final payload =
-          gateway.plannedParameters!['preset']! as Map<String, Object?>;
-      expect(payload['id'], 'grass_copy_2');
-      expect(payload['name'], 'Grass — copie 2');
-      expect(payload['usage'], source.toJson()['usage']);
-      expect(payload['defaultMaterialId'], 'grass');
-    });
+        expect(result.preset, duplicate);
+        expect(result.snapshot.manifest, gateway.after.manifest);
+        final payload =
+            gateway.plannedParameters!['preset']! as Map<String, Object?>;
+        expect(payload['id'], 'grass_copy_2');
+        expect(payload['name'], 'Grass — copie 2');
+        expect(payload['usage'], source.toJson()['usage']);
+        expect(payload['defaultMaterialId'], 'grass');
+      },
+    );
   });
 }
 
@@ -276,15 +291,15 @@ final class _FakeGateway implements SmartTilePublicationGateway {
     required this.before,
     SmartTilePublicationCanonicalSnapshot? after,
     this.includeMapDiff = false,
-  }) : after = after ??
-            _snapshot(
-              revision: 'revision-2',
-              manifest: _publishedManifest(),
-            );
+    this.unknownAfterApply = false,
+  }) : after =
+           after ??
+           _snapshot(revision: 'revision-2', manifest: _publishedManifest());
 
   final SmartTilePublicationCanonicalSnapshot before;
   final SmartTilePublicationCanonicalSnapshot after;
   final bool includeMapDiff;
+  final bool unknownAfterApply;
   bool didFlush = false;
   bool applied = false;
   int planCount = 0;
@@ -298,8 +313,7 @@ final class _FakeGateway implements SmartTilePublicationGateway {
   @override
   Future<SmartTilePublicationCanonicalSnapshot> load({
     required String projectRootPath,
-  }) async =>
-      applied ? after : before;
+  }) async => applied ? after : before;
 
   @override
   Future<SmartTilePublicationCanonicalPlan> plan({
@@ -352,13 +366,13 @@ final class _FakeGateway implements SmartTilePublicationGateway {
   }
 
   @override
-  Future<String> apply({
+  Future<String?> apply({
     required SmartTilePublicationCanonicalPlan plan,
     required String operationId,
   }) async {
     applied = true;
     appliedOperationId = operationId;
-    return after.snapshotRevision;
+    return unknownAfterApply ? null : after.snapshotRevision;
   }
 }
 
@@ -367,23 +381,22 @@ SmartTilePublicationCanonicalSnapshot _snapshot({
   ProjectManifest? manifest,
   List<MapData> maps = const <MapData>[],
   Map<String, String> mapRevisions = const <String, String>{},
-}) =>
-    SmartTilePublicationCanonicalSnapshot(
-      snapshotRevision: revision,
-      manifest: manifest ?? _draftManifest(),
-      maps: maps,
-      mapRevisions: mapRevisions,
-    );
+}) => SmartTilePublicationCanonicalSnapshot(
+  snapshotRevision: revision,
+  manifest: manifest ?? _draftManifest(),
+  maps: maps,
+  mapRevisions: mapRevisions,
+);
 
 ProjectManifest _draftManifest() => ProjectManifest(
-      name: 'Publication test',
-      version: ProjectVersion.v8,
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[],
-      smartTileCatalog: ProjectSmartTileCatalog(
-        drafts: <ProjectSmartTileAuthoringDraft>[_draft()],
-      ),
-    );
+  name: 'Publication test',
+  version: ProjectVersion.v8,
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[],
+  smartTileCatalog: ProjectSmartTileCatalog(
+    drafts: <ProjectSmartTileAuthoringDraft>[_draft()],
+  ),
+);
 
 ProjectManifest _publishedManifest({List<ProjectSmartTilePreset>? presets}) =>
     ProjectManifest(
@@ -397,31 +410,31 @@ ProjectManifest _publishedManifest({List<ProjectSmartTilePreset>? presets}) =>
     );
 
 ProjectSmartTileAuthoringDraft _draft() => const ProjectSmartTileAuthoringDraft(
-      id: 'draft-grass',
-      targetPresetId: 'grass',
-      name: 'Grass',
-      usage: SmartTileUsage.terrain,
-      lastStage: SmartTileAuthoringStage.publish,
-    );
+  id: 'draft-grass',
+  targetPresetId: 'grass',
+  name: 'Grass',
+  usage: SmartTileUsage.terrain,
+  lastStage: SmartTileAuthoringStage.publish,
+);
 
 ProjectSmartTilePreset _preset() => const ProjectSmartTilePreset(
-      id: 'grass',
-      name: 'Grass',
-      usage: SmartTileUsage.terrain,
-      topology: SmartTileTopology.uniform,
-      status: SmartTilePresetStatus.published,
-      coveragePolicy: SmartTileCoveragePolicy.sparse,
-      coverageProfile: SmartTileCoverageProfile(
-        mode: SmartTileCoverageMode.template,
-      ),
-      transformPolicy: SmartTileTransformPolicy(),
-      defaultMaterialId: 'grass',
-      allowedMaterialIds: <String>['grass'],
-    );
+  id: 'grass',
+  name: 'Grass',
+  usage: SmartTileUsage.terrain,
+  topology: SmartTileTopology.uniform,
+  status: SmartTilePresetStatus.published,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  coverageProfile: SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.template,
+  ),
+  transformPolicy: SmartTileTransformPolicy(),
+  defaultMaterialId: 'grass',
+  allowedMaterialIds: <String>['grass'],
+);
 
 SmartTileDiagnostic _warning() => const SmartTileDiagnostic(
-      code: 'smart_tile.test.warning',
-      severity: SmartTileDiagnosticSeverity.warning,
-      path: r'$.rules',
-      message: 'Warning',
-    );
+  code: 'smart_tile.test.warning',
+  severity: SmartTileDiagnosticSeverity.warning,
+  path: r'$.rules',
+  message: 'Warning',
+);

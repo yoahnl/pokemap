@@ -89,7 +89,7 @@ void main() {
       );
     });
 
-    test('an unchanged asset blob is verified once, not on every load',
+    test('each strong load revalidates immutable blobs and logical aliases',
         () async {
       final root = await Directory.systemTemp.createTemp('snapshot-blobs-');
       addTearDown(() => root.delete(recursive: true));
@@ -158,19 +158,24 @@ void main() {
       await harness.loader.load(opened.projectHandle);
       expect(profiles.single.assetBlobVerifications, 1);
 
-      // A mutation rewrites one map; the blob store did not move.
       await mapFile.writeAsString(await mapFile.readAsString(), flush: true);
       await harness.loader.load(opened.projectHandle);
 
       expect(profiles, hasLength(2));
       expect(
         profiles.last.assetBlobVerifications,
-        0,
-        reason: 'the blob identity was already certified this session',
+        1,
+        reason: 'every strong load must verify the content-addressed blob',
       );
+      final corrupt = List<int>.of(_blobBytes)..[0] ^= 1;
+      await blobFile.writeAsBytes(corrupt, flush: true);
+      await expectLater(
+          harness.loader.load(opened.projectHandle),
+          throwsA(isA<ProjectSnapshotException>().having(
+              (error) => error.code, 'code', 'project.asset_blob_mismatch')));
     });
 
-    test('a canonical cache hit does not re-stat immutable asset blobs',
+    test('canonical cache hits revalidate every CAS blob and logical alias',
         () async {
       final root = await Directory.systemTemp.createTemp('snapshot-stats-');
       addTearDown(() => root.delete(recursive: true));
@@ -231,6 +236,8 @@ void main() {
         final blobFile = File('${root.path}/${assetBlobStorageKey(artifact)}');
         await blobFile.parent.create(recursive: true);
         await blobFile.writeAsBytes(<int>[..._blobBytes, index], flush: true);
+        await File('${root.path}/assets/blob-$index.png')
+            .writeAsBytes(<int>[..._blobBytes, index], flush: true);
       }
 
       final cache = ProjectSnapshotCache();
@@ -261,6 +268,8 @@ void main() {
         final blobFile = File('${root.path}/${assetBlobStorageKey(artifact)}');
         await blobFile.parent.create(recursive: true);
         await blobFile.writeAsBytes(<int>[..._blobBytes, index], flush: true);
+        await File('${root.path}/assets/blob-$index.png')
+            .writeAsBytes(<int>[..._blobBytes, index], flush: true);
       }
       await catalogFile.writeAsString(
         jsonEncode(
@@ -282,8 +291,9 @@ void main() {
       final beforeExpandedHit = cache.identityReads;
       final expandedHit = await harness.loader.load(opened.projectHandle);
       expect(expandedHit.revision, expanded.revision);
-      expect(cache.identityReads - beforeExpandedHit, statsForHit,
-          reason: 'stat count must not scale with the blob store');
+      expect(cache.identityReads - beforeExpandedHit,
+          statsForHit + (expandedArtifacts.length - artifacts.length) * 4,
+          reason: 'each extra CAS path and logical alias is observed twice');
       expect(cache.canonicalHits, 2);
 
       await File('${root.path}/maps/map.json').writeAsString(
@@ -300,6 +310,12 @@ void main() {
       final afterEdit = await harness.loader.load(opened.projectHandle);
       expect(afterEdit.mapById('map')!.name, 'Renamed');
       expect(cache.canonicalHits, 2, reason: 'the edit must miss the cache');
+      final changedAlias = File('${root.path}/assets/blob-0.png');
+      await changedAlias.writeAsBytes(<int>[..._blobBytes, 255], flush: true);
+      await expectLater(
+          harness.loader.load(opened.projectHandle),
+          throwsA(isA<ProjectSnapshotException>().having(
+              (error) => error.code, 'code', 'project.asset_source_mismatch')));
     });
 
     test('the revision follows resource content, not resource identity',

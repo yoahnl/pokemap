@@ -409,7 +409,8 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
         message: 'La map active est absente du snapshot canonique.',
       );
     }
-    if (after.snapshotRevision != applied.snapshotRevision &&
+    if (applied.snapshotRevision != null &&
+        after.snapshotRevision != applied.snapshotRevision &&
         !appliedInstances.every(map.placedElements.contains)) {
       throw const EditorAuthoringMutationFailure(
         code: 'placed_element.snapshot_stale',

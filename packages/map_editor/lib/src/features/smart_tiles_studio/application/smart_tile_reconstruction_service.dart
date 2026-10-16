@@ -19,12 +19,12 @@ final class SmartTileReconstructionRequest {
   final String targetLayerName;
 
   Map<String, Object?> toActionParameters() => <String, Object?>{
-        'mapId': mapId,
-        'sourceLayerId': sourceLayerId,
-        'presetId': presetId,
-        'targetLayerId': targetLayerId,
-        'name': targetLayerName,
-      };
+    'mapId': mapId,
+    'sourceLayerId': sourceLayerId,
+    'presetId': presetId,
+    'targetLayerId': targetLayerId,
+    'name': targetLayerName,
+  };
 }
 
 final class SmartTileReconstructionCanonicalSnapshot {
@@ -74,7 +74,7 @@ abstract interface class SmartTileReconstructionGateway {
     required String idempotencyKey,
   });
 
-  Future<String> confirmAndApply({
+  Future<String?> confirmAndApply({
     required SmartTileReconstructionCanonicalPlan plan,
     required String operationId,
   });
@@ -85,8 +85,8 @@ final class CanonicalSmartTileReconstructionGateway
   const CanonicalSmartTileReconstructionGateway({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -131,7 +131,7 @@ final class CanonicalSmartTileReconstructionGateway
   }
 
   @override
-  Future<String> confirmAndApply({
+  Future<String?> confirmAndApply({
     required SmartTileReconstructionCanonicalPlan plan,
     required String operationId,
   }) async {
@@ -222,7 +222,8 @@ final class SmartTileReconstructionServiceException implements Exception {
   final String message;
 
   @override
-  String toString() => 'SmartTileReconstructionServiceException($code): '
+  String toString() =>
+      'SmartTileReconstructionServiceException($code): '
       '$message';
 }
 
@@ -274,12 +275,10 @@ final class SmartTileReconstructionService {
         'Choisissez un preset Smart Tile publié.',
       );
     }
-    final identityDigest = narrativeEventCanonicalSha256(
-      <String, Object?>{
-        'revision': snapshot.snapshotRevision,
-        'parameters': request.toActionParameters(),
-      },
-    );
+    final identityDigest = narrativeEventCanonicalSha256(<String, Object?>{
+      'revision': snapshot.snapshotRevision,
+      'parameters': request.toActionParameters(),
+    });
     final identity =
         'smart-tile-reconstruct-${identityDigest.substring(0, 32)}';
     final canonical = await _gateway.plan(
@@ -318,7 +317,8 @@ final class SmartTileReconstructionService {
       operationId: '${plan.canonical.planId}-apply',
     );
     final snapshot = await _gateway.load(projectRootPath: projectRootPath);
-    if (snapshot.snapshotRevision != appliedRevision) {
+    if (appliedRevision != null &&
+        snapshot.snapshotRevision != appliedRevision) {
       throw const SmartTileReconstructionServiceException(
         'smart_tile.reconstruction.snapshot_stale',
         'Le snapshot canonique rechargé est obsolète.',

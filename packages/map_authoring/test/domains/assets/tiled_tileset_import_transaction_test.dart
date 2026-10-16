@@ -84,7 +84,7 @@ void main() {
       expect(catalog.records, hasLength(1));
       expect(catalog.records.single.id, 'props-page-0000');
       expect(
-        reopened.findResourceBytes(
+        await reopened.readResourceBytes(
           assetBlobResourceIdentity(catalog.records.single.artifact.digest),
         ),
         isNotNull,

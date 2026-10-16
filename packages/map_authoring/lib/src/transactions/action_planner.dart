@@ -1,3 +1,4 @@
+import 'local_authoring_payload.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -6,6 +7,8 @@ import '../support/authoring_fingerprint.dart';
 import '../workspace/project_snapshot.dart';
 import 'authoring_plan.dart';
 import 'plan_store.dart';
+import 'change_set.dart';
+import 'authoring_payload.dart';
 
 typedef AuthoringPlanTokenFactory = String Function(String prefix);
 typedef AuthoringPlanSeedFactory = int Function();
@@ -79,6 +82,7 @@ final class AuthoringActionPlanner {
     required AuthoringMutationBuilder build,
     ProjectedStateValidator? validateProjectedState,
   }) async {
+    await _store.collectExpired();
     final expectedRevision = request.expectedRevision;
     if (expectedRevision == null) {
       throw AuthoringPlanException(
@@ -106,29 +110,67 @@ final class AuthoringActionPlanner {
       throw ArgumentError.value(seed, 'seedFactory', 'must not be negative');
     }
     final createdAt = _store.now;
+    final owner = AuthoringPayloadOwner();
     final context = AuthoringPlanningContext(
-      snapshot: snapshot,
-      request: request,
-      planId: planId,
-      seed: seed,
-    );
-    final draft = await build(context);
-    validateProjectedState?.call(snapshot, draft);
-    final plan = AuthoringPlan(
-      planId: planId,
-      receiptId: receiptId,
-      request: request,
-      baseRevision: snapshot.revision,
-      seed: seed,
-      createdAt: createdAt,
-      expiresAt: createdAt.add(_store.ttl),
-      changeSet: draft.changeSet,
-      preview: draft.preview,
-      referenceImpact: draft.referenceImpact,
-      artifacts: draft.artifacts,
-    );
-    _store.save(plan);
-    return plan;
+        snapshot: snapshot.withPayloadOwner(owner),
+        request: request,
+        planId: planId,
+        seed: seed);
+    try {
+      final draft = await build(context);
+      for (final change in draft.changeSet.changes) {
+        for (final payload in [change.beforePayload, change.afterPayload]) {
+          if (payload != null && !payload.isInline) owner.own(payload);
+        }
+      }
+      validateProjectedState?.call(snapshot, draft);
+      final frozen = await _freezePayloads(draft.changeSet, owner);
+      final plan = AuthoringPlan(
+          planId: planId,
+          receiptId: receiptId,
+          request: request,
+          baseRevision: snapshot.revision,
+          seed: seed,
+          createdAt: createdAt,
+          expiresAt: createdAt.add(_store.ttl),
+          changeSet: frozen,
+          payloadOwner: owner,
+          preview: draft.preview,
+          referenceImpact: draft.referenceImpact,
+          artifacts: draft.artifacts);
+      _store.save(plan);
+      return plan;
+    } on Object {
+      await owner.release();
+      rethrow;
+    }
+  }
+
+  Future<AuthoringChangeSet> _freezePayloads(
+      AuthoringChangeSet changes, AuthoringPayloadOwner owner) async {
+    if (changes.changes.isEmpty) return changes;
+    final frozen = <AuthoringResourceChange>[];
+    for (final change in changes.changes) {
+      Future<AuthoringPayload?> freeze(AuthoringPayload? payload) async {
+        if (payload == null ||
+            !payload.isInline ||
+            change.storageKey.endsWith('.json')) {
+          return payload;
+        }
+        return owner.own(await captureAuthoringPayload(
+            storageKey: change.storageKey,
+            chunks: payload.openRead(),
+            byteLength: payload.byteLength,
+            resourceRevision: payload.resourceRevision));
+      }
+
+      frozen.add(AuthoringResourceChange.withPayloads(
+          resource: change.resource,
+          storageKey: change.storageKey,
+          beforePayload: await freeze(change.beforePayload),
+          afterPayload: await freeze(change.afterPayload)));
+    }
+    return AuthoringChangeSet(changes: frozen, diff: changes.diff);
   }
 
   String _nextUniquePlanId() {

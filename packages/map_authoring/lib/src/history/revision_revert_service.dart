@@ -99,12 +99,11 @@ final class AuthoringRevisionRevertService {
       );
     }
     final target = await _requireTarget(projectId, targetEntryId);
-    final changeSet = await _buildRevertChangeSet(target);
     final plan = await _planner.plan(
       request: request,
       snapshot: snapshot,
-      build: (_) => AuthoringMutationDraft(
-        changeSet: changeSet,
+      build: (context) async => AuthoringMutationDraft(
+        changeSet: await _buildRevertChangeSet(target, context.snapshot),
         preview: const {'historyForwardTransaction': true},
       ),
     );
@@ -200,6 +199,7 @@ final class AuthoringRevisionRevertService {
 
   Future<AuthoringChangeSet> _buildRevertChangeSet(
     AuthoringHistoryEntry target,
+    ProjectSnapshot snapshot,
   ) async {
     final changes = <AuthoringResourceChange>[];
     final diff = <AuthoringDiffEntry>[];
@@ -207,10 +207,13 @@ final class AuthoringRevisionRevertService {
       final currentRevision =
           await _gateway.readResourceRevision(retained.storageKey);
       if (currentRevision == retained.afterRevision) continue;
-      final current = await _gateway.readResource(retained.storageKey);
+      final current = snapshot.ownPayload(
+          await _gateway.captureResourcePayload(retained.storageKey));
       final targetBytes = retained.afterBlobId == null
           ? null
-          : await _blobs.get(retained.afterBlobId!);
+          : snapshot.ownPayload(await _blobs.capturePayload(
+              retained.afterBlobId!,
+              storageKey: retained.storageKey));
       if (retained.afterBlobId != null && targetBytes == null) {
         await _history.markNonUndoable(
           projectId: target.projectId,
@@ -229,11 +232,11 @@ final class AuthoringRevisionRevertService {
       );
       try {
         changes.add(
-          AuthoringResourceChange(
+          AuthoringResourceChange.withPayloads(
             resource: resource,
             storageKey: retained.storageKey,
-            beforeBytes: current,
-            afterBytes: targetBytes,
+            beforePayload: current,
+            afterPayload: targetBytes,
             beforeRevision: currentRevision,
             afterRevision: retained.afterRevision,
           ),

@@ -15,7 +15,6 @@ import '../history/undo_service.dart';
 import '../parity/full_authoring_parity.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/artifact_store.dart';
-import '../ports/project_file_reader.dart';
 import '../security/audit_log.dart';
 import '../security/authoring_permission.dart';
 import '../security/authorization_policy.dart';
@@ -212,7 +211,7 @@ final class LocalMapAuthoringMutationApi
   Future<bool> detachWorkspace(WorkspaceHandle workspaceHandle) async {
     final projectHandle = _projectsByWorkspace.remove(workspaceHandle);
     if (projectHandle == null) return false;
-    _sessions.remove(projectHandle);
+    await _sessions.remove(projectHandle)?._plans.dispose();
     return true;
   }
 
@@ -395,17 +394,14 @@ final class LocalMapAuthoringMutationApi
     String canonicalRoot,
     ProjectSnapshot snapshot,
   ) async {
-    const reader = LocalProjectFileReader();
+    final gateway =
+        await LocalTransactionFileGateway.open(projectRoot: canonicalRoot);
     for (final entry in snapshot.resourceStorageKeys.entries) {
-      final bytes = await reader.readBytes(
-        projectRoot: canonicalRoot,
-        relativePath: entry.value,
-      );
-      if (!_bytesEqual(bytes, snapshot.resourceBytes(entry.key))) {
+      if (await gateway.readResourceRevision(entry.value) !=
+          snapshot.resourceFingerprints[entry.key]) {
         throw const WorkspaceHandleException(
-          'workspace.mutation_binding_mismatch',
-          'The mutation root does not match the opened project handle.',
-        );
+            'workspace.mutation_binding_mismatch',
+            'The mutation root does not match the opened project handle.');
       }
     }
   }
@@ -647,9 +643,9 @@ final class _LocalMapAuthoringSession {
   ) async {
     final snapshot = await _loadSnapshot(
       cacheValidation: ProjectSnapshotCacheValidation.session,
-      repairRequest: _plans.resolveActive(planId).request,
+      repairRequest: (await _plans.resolveActive(planId)).request,
     );
-    final plan = _plans.resolve(
+    final plan = await _plans.resolve(
       _safeIdentity(planId, 'planId'),
       currentProjectRevision: snapshot.revision,
     );
@@ -676,7 +672,7 @@ final class _LocalMapAuthoringSession {
   }) async {
     final safePlanId = _safeIdentity(planId, 'planId');
     final safeOperationId = _safeIdentity(operationId, 'operationId');
-    final plan = _plans.resolveActive(safePlanId);
+    final plan = await _plans.resolveActive(safePlanId);
     _requireApplicablePlan(plan);
     _requireWorkspace(plan.request.workspaceHandle);
     final key = plan.request.idempotencyKey;
@@ -695,6 +691,7 @@ final class _LocalMapAuthoringSession {
     );
     late final AuthoringReceipt receipt;
     ProjectSnapshot? projected;
+    var refreshUnavailable = false;
     try {
       receipt = await _executor.apply(
         actor: _actor,
@@ -715,22 +712,35 @@ final class _LocalMapAuthoringSession {
             : AuthoringConfirmationToken.fromWireValue(confirmationToken),
         precondition: _lockedResourcePrecondition(plan, precondition),
       );
-      projected = receipt.status == AuthoringReceiptStatus.applied &&
-              changes != null &&
-              receipt.extensions['planId'] == plan.planId
-          ? await _snapshotLoader.adoptAppliedChanges(
-              projectHandle,
-              baseRevision: plan.baseRevision,
-              changes: changes,
-            )
-          : null;
+      refreshUnavailable = plan.payloadCleanupFailed;
+      try {
+        projected = !refreshUnavailable &&
+                receipt.status == AuthoringReceiptStatus.applied &&
+                changes != null &&
+                receipt.extensions['planId'] == plan.planId
+            ? await _snapshotLoader.adoptAppliedChanges(
+                projectHandle,
+                baseRevision: plan.baseRevision,
+                changes: changes,
+              )
+            : null;
+      } on Object {
+        refreshUnavailable = true;
+        _snapshotLoader.invalidate(projectHandle);
+      }
       if (receipt.status == AuthoringReceiptStatus.applied) {
-        plan.releaseAppliedPayload();
+        try {
+          await plan.releaseAppliedPayload();
+        } on Object {
+          refreshUnavailable = true;
+          _snapshotLoader.invalidate(projectHandle);
+        }
       }
     } finally {
       span?.finish();
     }
-    return _mutationResult(receipt, snapshot: projected);
+    return _mutationResult(receipt,
+        snapshot: projected, refreshUnavailable: refreshUnavailable);
   }
 
   Future<AuthoringMutationResult> undoMutation({
@@ -747,7 +757,14 @@ final class _LocalMapAuthoringSession {
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
     final receipt = await _undoService.apply(prepared);
-    return _mutationResult(receipt);
+    var refreshUnavailable = prepared.plan.payloadCleanupFailed;
+    try {
+      await prepared.plan.releaseAppliedPayload();
+    } on Object {
+      refreshUnavailable = true;
+      _snapshotLoader.invalidate(projectHandle);
+    }
+    return _mutationResult(receipt, refreshUnavailable: refreshUnavailable);
   }
 
   Future<AuthoringMutationResult> recoverMutation(String operationId) async {
@@ -763,12 +780,21 @@ final class _LocalMapAuthoringSession {
   Future<AuthoringMutationResult> _mutationResult(
     AuthoringReceipt receipt, {
     ProjectSnapshot? snapshot,
+    bool refreshUnavailable = false,
   }) async {
-    final resolvedSnapshot = snapshot ?? await _loadSnapshot();
+    if (!refreshUnavailable) {
+      try {
+        final resolvedSnapshot = snapshot ?? await _loadSnapshot();
+        return AuthoringMutationResult(
+            receipt: receipt, snapshotRevision: resolvedSnapshot.revision);
+      } on Object {
+        _snapshotLoader.invalidate(projectHandle);
+      }
+    }
     return AuthoringMutationResult(
-      receipt: receipt,
-      snapshotRevision: resolvedSnapshot.revision,
-    );
+        receipt: receipt,
+        snapshotRevision: null,
+        diagnostic: const AuthoringSnapshotRefreshDiagnostic());
   }
 
   void _requireWorkspace(String value) {
@@ -928,14 +954,6 @@ String _secureIdentity(String prefix) {
 }
 
 String _joinAll(List<String> segments) => segments.join(Platform.pathSeparator);
-
-bool _bytesEqual(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
 
 DateTime _systemClock() => DateTime.now().toUtc();
 

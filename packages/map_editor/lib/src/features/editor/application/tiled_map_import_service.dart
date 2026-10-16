@@ -156,8 +156,8 @@ final class TiledMapImportService {
   const TiledMapImportService({
     required AuthoringMutationAdapter mutations,
     required AuthoringQueryAdapter queries,
-  })  : _mutations = mutations,
-        _queries = queries;
+  }) : _mutations = mutations,
+       _queries = queries;
 
   final AuthoringMutationAdapter _mutations;
   final AuthoringQueryAdapter _queries;
@@ -171,10 +171,7 @@ final class TiledMapImportService {
       tmxPath,
       sourceRootPath: sourceRootPath,
     );
-    return inspectSource(
-      projectRootPath: projectRootPath,
-      source: source,
-    );
+    return inspectSource(projectRootPath: projectRootPath, source: source);
   }
 
   Future<TiledMapImportInspection> inspectSource({
@@ -272,14 +269,16 @@ final class TiledMapImportService {
   }
 
   Future<TiledMapImportResult> apply(
-      TiledMapImportInspection inspection) async {
+    TiledMapImportInspection inspection,
+  ) async {
     try {
       final applied = await _mutations.apply(
         inspection.plan,
         operationId: inspection.operationId,
       );
       final canonical = await _queries.open(inspection.plan.projectRootPath);
-      if (canonical.snapshotRevision != applied.snapshotRevision) {
+      if (applied.snapshotRevision != null &&
+          canonical.snapshotRevision != applied.snapshotRevision) {
         throw const TiledMapImportServiceException(
           'map.tiled.snapshot_stale',
           'Le snapshot canonique après import TMX est obsolète.',
@@ -296,7 +295,7 @@ final class TiledMapImportService {
         manifest: canonical.manifest,
         map: map,
         receiptId: applied.receipt.receiptId,
-        snapshotRevision: applied.snapshotRevision,
+        snapshotRevision: canonical.snapshotRevision,
       );
     } on EditorAuthoringMutationFailure catch (error) {
       throw TiledMapImportServiceException(error.code, error.message);
@@ -464,11 +463,8 @@ Future<String> _requireFileWithinSourceRoot(
 }
 
 String _resolveDependency(String ownerPath, String source) => p.normalize(
-      p.join(
-        p.dirname(ownerPath),
-        source.replaceAll('/', p.separator),
-      ),
-    );
+  p.join(p.dirname(ownerPath), source.replaceAll('/', p.separator)),
+);
 
 Iterable<TiledMapLayer> _flattenLayers(Iterable<TiledMapLayer> layers) sync* {
   for (final layer in layers) {
@@ -483,8 +479,9 @@ Iterable<TiledMapImportLayerChoice> _layerChoices(
   bool parentVisible = true,
 }) sync* {
   for (final layer in layers) {
-    final name =
-        layer.name.trim().isEmpty ? 'Calque ${layer.id}' : layer.name.trim();
+    final name = layer.name.trim().isEmpty
+        ? 'Calque ${layer.id}'
+        : layer.name.trim();
     final path = <String>[...parentPath, name];
     final sourceVisible = parentVisible && layer.visible;
     switch (layer) {

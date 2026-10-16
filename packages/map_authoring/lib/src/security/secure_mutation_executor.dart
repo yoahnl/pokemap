@@ -92,7 +92,7 @@ final class SecureAuthoringMutationExecutor {
             planId: plan.planId,
             diffFingerprint: binding.diffFingerprint,
             destructive: plan.changeSet.changes.any(
-              (change) => change.beforeBytes != null,
+              (change) => change.beforePayload != null,
             ),
             confirmationToken: confirmationToken,
             additionalPermissions: action.requiredPermissions

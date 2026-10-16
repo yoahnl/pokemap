@@ -310,10 +310,11 @@ final class Model3dActions {
         pokemonInventoryComplete: context.snapshot.pokemonInventoryComplete,
         maps: context.snapshot.maps,
         resourceFingerprints: context.snapshot.resourceFingerprints,
-        resourceBytes: {
-          for (final identity in context.snapshot.resourceFingerprints.keys)
-            identity: context.snapshot.resourceBytes(identity)
-        },
+        resourceBytes: context.snapshot.inlineResourceBytes,
+        storedResources: context.snapshot.storedResources,
+        payloadResources: context.snapshot.payloadResources,
+        resourcePayloadReader: context.snapshot.resourcePayloadReader,
+        payloadOwner: context.snapshot.payloadOwner,
         resourceStorageKeys: context.snapshot.resourceStorageKeys);
     final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
             context.snapshot.resourceBytes(assetCatalogResourceIdentity)))
@@ -413,10 +414,11 @@ final class Model3dActions {
           pokemonInventoryComplete: context.snapshot.pokemonInventoryComplete,
           maps: context.snapshot.maps,
           resourceFingerprints: context.snapshot.resourceFingerprints,
-          resourceBytes: {
-            for (final identity in context.snapshot.resourceFingerprints.keys)
-              identity: context.snapshot.resourceBytes(identity)
-          },
+          resourceBytes: context.snapshot.inlineResourceBytes,
+          storedResources: context.snapshot.storedResources,
+          payloadResources: context.snapshot.payloadResources,
+          resourcePayloadReader: context.snapshot.resourcePayloadReader,
+          payloadOwner: context.snapshot.payloadOwner,
           resourceStorageKeys: context.snapshot.resourceStorageKeys);
       final assetDraft = await _asset(context, projected, 'asset.replace',
           {'assetId': current.sourceAssetId, 'artifactHandle': handle});
@@ -676,14 +678,14 @@ final class Model3dActions {
       });
       final payloads = {
         for (final change in assetDraft.changeSet.changes)
-          change.storageKey: change.afterBytes
+          change.storageKey: change.afterPayload
       };
       final inspections = <String, Model3dInspection>{};
       final models = <ProjectModel3dEntry>[];
       var actualByteLength = 0;
       for (final entry in entries) {
         final path = 'assets/models3d/${entry.id}.glb';
-        final bytes = payloads[path]!;
+        final bytes = await payloads[path]!.readBytes();
         final artifact = artifacts[entry.handle]!;
         actualByteLength += bytes.length;
         if (actualByteLength > maximumTotalByteLength) {

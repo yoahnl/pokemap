@@ -7,6 +7,7 @@ import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import 'authoring_plan.dart';
+import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'plan_store.dart';
 import 'revision_set.dart';
@@ -112,7 +113,7 @@ final class JournaledAuthoringTransaction {
       }
       await precondition?.call();
 
-      final plan = _plans.resolve(
+      final plan = await _plans.resolve(
         planId,
         currentProjectRevision: currentProjectRevision,
       );
@@ -189,17 +190,17 @@ final class JournaledAuthoringTransaction {
       );
 
       for (final change in plan.changeSet.changes) {
-        await _gateway.stagePayload(
+        await _gateway.stageAuthoringPayload(
           operationId: operationId,
           storageKey: change.storageKey,
           kind: TransactionPayloadKind.before,
-          bytes: change.beforeBytes,
+          payload: change.beforePayload,
         );
-        await _gateway.stagePayload(
+        await _gateway.stageAuthoringPayload(
           operationId: operationId,
           storageKey: change.storageKey,
           kind: TransactionPayloadKind.after,
-          bytes: change.afterBytes,
+          payload: change.afterPayload,
         );
         await _requireStagedRevision(
           operationId: operationId,
@@ -305,15 +306,44 @@ final class JournaledAuthoringTransaction {
               planId: plan.planId,
               operationId: operationId,
               receipt: intendedReceipt,
-              changes: plan.changeSet.changes,
+              changes:
+                  await _stagedChanges(operationId, plan.changeSet.changes),
             ),
           );
           return intendedReceipt;
         },
       );
       await _deleteTransactionBestEffort(operationId);
+      try {
+        await plan.releasePayloads();
+      } on Object {
+        return receipt;
+      }
       return receipt;
     });
+  }
+
+  Future<List<AuthoringResourceChange>> _stagedChanges(
+      String operationId, List<AuthoringResourceChange> changes) async {
+    final staged = <AuthoringResourceChange>[];
+    for (final change in changes) {
+      final before = await _gateway.readStagedPayload(
+          operationId: operationId,
+          storageKey: change.storageKey,
+          kind: TransactionPayloadKind.before);
+      final after = await _gateway.readStagedPayload(
+          operationId: operationId,
+          storageKey: change.storageKey,
+          kind: TransactionPayloadKind.after);
+      staged.add(AuthoringResourceChange.withPayloads(
+          resource: change.resource,
+          storageKey: change.storageKey,
+          beforePayload: before.payload,
+          afterPayload: after.payload,
+          beforeRevision: change.beforeRevision,
+          afterRevision: change.afterRevision));
+    }
+    return staged;
   }
 
   Future<void> _deleteTransactionBestEffort(String operationId) async {

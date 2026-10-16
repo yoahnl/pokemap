@@ -79,6 +79,11 @@ final class ProjectOpenService {
         projectRoot: canonicalRoot,
         relativePath: relativePath,
       ),
+      openRead: reader is ProjectResourceStreamReader &&
+              (reader as ProjectResourceStreamReader).supportsStreamingResources
+          ? (relativePath) => (reader as ProjectResourceStreamReader)
+              .openRead(projectRoot: canonicalRoot, relativePath: relativePath)
+          : null,
       // Only readers that can report identity cheaply enable snapshot reuse.
       readIdentity: reader is ProjectResourceIdentityReader
           ? (relativePath) =>

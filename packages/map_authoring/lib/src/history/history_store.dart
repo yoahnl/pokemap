@@ -71,12 +71,12 @@ final class AuthoringHistoryRecorder
   Future<void> record(AuthoringCommittedMutation mutation) async {
     final retained = <AuthoringHistoryResourceChange>[];
     for (final change in mutation.changes) {
-      final before = change.beforeBytes == null
+      final before = change.beforePayload == null
           ? null
-          : await _blobs.put(change.beforeBytes!);
-      final after = change.afterBytes == null
+          : await _blobs.putPayload(change.beforePayload!);
+      final after = change.afterPayload == null
           ? null
-          : await _blobs.put(change.afterBytes!);
+          : await _blobs.putPayload(change.afterPayload!);
       retained.add(
         AuthoringHistoryResourceChange(
           resource: change.resource,

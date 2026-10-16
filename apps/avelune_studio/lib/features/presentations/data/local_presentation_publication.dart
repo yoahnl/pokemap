@@ -194,13 +194,12 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
         }
       }
       final after = await connection.read();
+      final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: session.directoryPath,
+      );
       for (final change in changes) {
-        final actual = await const LocalProjectFileReader().readBytes(
-          projectRoot: session.directoryPath,
-          relativePath: change.storageKey,
-        );
-        if (narrativeEventBytesFingerprint(actual) !=
-            narrativeEventBytesFingerprint(change.afterBytes!)) {
+        final actual = await gateway.readResourceRevision(change.storageKey);
+        if (actual != change.afterRevision) {
           throw const PresentationFailure(
             'Le reçu ne correspond pas au contenu publié.',
           );
