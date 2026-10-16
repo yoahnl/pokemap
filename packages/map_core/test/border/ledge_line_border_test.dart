@@ -17,7 +17,7 @@ void main() {
   });
 
   test('catalog V7 is supported without changing the layer format', () {
-    expect(ProjectBorderCatalog.latestSupportedFormatVersion, 7);
+    expect(ProjectBorderCatalog.latestSupportedFormatVersion, 10);
     expect(ProjectBorderCatalog(formatVersion: 7).formatVersion, 7);
     expect(BorderLayerContent.latestSupportedFormatVersion, 4);
   });

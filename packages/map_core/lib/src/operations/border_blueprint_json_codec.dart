@@ -1,4 +1,6 @@
 import '../models/border_blueprint.dart';
+import '../models/border_ground_footprint.dart';
+import '../models/border_ground_surface.dart';
 import '../models/border_jump_behavior.dart';
 import '../models/border_signed_int64.dart';
 import '../models/border_value_objects.dart';
@@ -468,7 +470,11 @@ Map<String, Object?> _encodeDraftDefinition(
     if (categoryId != null) 'categoryId': categoryId,
     'sortOrder': value.sortOrder,
     if (value.jumpBehavior != null)
-      'jumpBehavior': _encodeJumpBehavior(value.jumpBehavior!, path, formatVersion),
+      'jumpBehavior': _encodeJumpBehavior(
+        value.jumpBehavior!,
+        path,
+        formatVersion,
+      ),
   };
 }
 
@@ -571,7 +577,11 @@ Map<String, Object?> _encodePublishedDefinition(
     if (categoryId != null) 'categoryId': categoryId,
     'sortOrder': value.sortOrder,
     if (value.jumpBehavior != null)
-      'jumpBehavior': _encodeJumpBehavior(value.jumpBehavior!, path, formatVersion),
+      'jumpBehavior': _encodeJumpBehavior(
+        value.jumpBehavior!,
+        path,
+        formatVersion,
+      ),
   };
 }
 
@@ -767,6 +777,8 @@ Map<String, Object?> _encodeDraftPrimitive(
       animationLoop: value.animationLoop,
       animationSpeed: value.animationSpeed,
       blocksMovement: value.blocksMovement,
+      groundFootprints: value.groundFootprints,
+      groundSurfaces: value.groundSurfaces,
     );
   }
   _validatePrimitiveIdentityAndWeight(
@@ -836,6 +848,8 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
               )
             : true,
         animationSpeed: _decodeSpatialAnimationSpeed(value, path),
+        groundFootprints: _decodeGroundFootprints(value, path, formatVersion),
+        groundSurfaces: _decodeGroundSurfaces(value, path, formatVersion),
         blocksMovement: value.containsKey('blocksMovement')
             ? borderJsonRequireBool(
                 value['blocksMovement'],
@@ -917,6 +931,8 @@ Map<String, Object?> _encodePublishedPrimitive(
       animationLoop: value.animationLoop,
       animationSpeed: value.animationSpeed,
       blocksMovement: value.blocksMovement,
+      groundFootprints: value.groundFootprints,
+      groundSurfaces: value.groundSurfaces,
     );
   }
   _validatePrimitiveIdentityAndWeight(
@@ -991,6 +1007,8 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
               )
             : true,
         animationSpeed: _decodeSpatialAnimationSpeed(value, path),
+        groundFootprints: _decodeGroundFootprints(value, path, formatVersion),
+        groundSurfaces: _decodeGroundSurfaces(value, path, formatVersion),
         blocksMovement: value.containsKey('blocksMovement')
             ? borderJsonRequireBool(
                 value['blocksMovement'],
@@ -1073,10 +1091,30 @@ Map<String, Object?> _encodeSpatialPrimitive({
   required bool animationLoop,
   required double animationSpeed,
   required bool blocksMovement,
+  required List<BorderGroundFootprint> groundFootprints,
+  required List<BorderGroundSurface> groundSurfaces,
 }) {
   if (formatVersion < 5) {
     throw FormatException(
       '$path: spatial primitives require catalog format version 5',
+    );
+  }
+  if (groundFootprints.isNotEmpty && formatVersion < 8) {
+    throw FormatException(
+      '$path.groundFootprints: requires catalog format version 8',
+    );
+  }
+  if (groundSurfaces.isNotEmpty && formatVersion < 9) {
+    throw FormatException(
+      '$path.groundSurfaces: requires catalog format version 9',
+    );
+  }
+  if (formatVersion < 10 &&
+      groundSurfaces.any(
+        (surface) => surface.gradientX != 0 || surface.gradientZ != 0,
+      )) {
+    throw FormatException(
+      '$path.groundSurfaces: inclined surfaces require catalog format version 10',
     );
   }
   return <String, Object?>{
@@ -1092,6 +1130,33 @@ Map<String, Object?> _encodeSpatialPrimitive({
     'animationLoop': animationLoop,
     'animationSpeed': animationSpeed,
     'blocksMovement': blocksMovement,
+    if (groundSurfaces.isNotEmpty)
+      'groundSurfaces': [
+        for (final surface in groundSurfaces)
+          {
+            'sourceSmartTilePresetId': surface.sourceSmartTilePresetId,
+            'materialId': surface.materialId,
+            'height': surface.height,
+            if (surface.gradientX != 0 || surface.gradientZ != 0) ...{
+              'gradientX': surface.gradientX,
+              'gradientZ': surface.gradientZ,
+            },
+            'footprints': [
+              for (final footprint in surface.footprints)
+                [
+                  for (final point in footprint.points)
+                    {'x': point.x, 'z': point.z},
+                ],
+            ],
+          },
+      ],
+    if (groundFootprints.isNotEmpty)
+      'groundFootprints': [
+        for (final footprint in groundFootprints)
+          [
+            for (final point in footprint.points) {'x': point.x, 'z': point.z},
+          ],
+      ],
   };
 }
 
@@ -1117,8 +1182,132 @@ void _validateSpatialPrimitiveJson(
       'animationLoop',
       'animationSpeed',
       'blocksMovement',
+      'groundFootprints',
+      'groundSurfaces',
     },
   );
+}
+
+List<BorderGroundFootprint> _decodeGroundFootprints(
+  BorderJsonObject value,
+  String path,
+  int formatVersion,
+) {
+  if (!value.containsKey('groundFootprints')) return const [];
+  if (formatVersion < 8) {
+    throw FormatException(
+      '$path.groundFootprints: requires catalog format version 8',
+    );
+  }
+  return _decodeGroundPolygons(
+    value['groundFootprints'],
+    '$path.groundFootprints',
+  );
+}
+
+List<BorderGroundFootprint> _decodeGroundPolygons(Object? raw, String path) {
+  if (raw is! List || raw.length > 8) {
+    throw FormatException('$path: expected at most 8 polygons');
+  }
+  return [
+    for (var index = 0; index < raw.length; index++)
+      borderJsonConstructAtPath('$path[$index]', () {
+        final points = raw[index];
+        if (points is! List) {
+          throw FormatException('$path[$index]: expected vertices');
+        }
+        return BorderGroundFootprint(
+          points: [
+            for (final item in points)
+              (() {
+                final point = borderJsonRequireObject(item, '$path[$index]');
+                borderJsonRequireExactKeys(
+                  point,
+                  path: '$path[$index]',
+                  requiredKeys: const {'x', 'z'},
+                );
+                final x = point['x'], z = point['z'];
+                if (x is! num || z is! num) {
+                  throw FormatException(
+                    '$path[$index]: expected numeric coordinates',
+                  );
+                }
+                return BorderGroundPoint(x: x.toDouble(), z: z.toDouble());
+              })(),
+          ],
+        );
+      }),
+  ];
+}
+
+List<BorderGroundSurface> _decodeGroundSurfaces(
+  BorderJsonObject value,
+  String path,
+  int formatVersion,
+) {
+  if (!value.containsKey('groundSurfaces')) return const [];
+  final surfacePath = '$path.groundSurfaces';
+  if (formatVersion < 9) {
+    throw FormatException('$surfacePath: requires catalog format version 9');
+  }
+  final raw = value['groundSurfaces'];
+  if (raw is! List || raw.length > 8) {
+    throw FormatException('$surfacePath: expected at most 8 ground surfaces');
+  }
+  return [
+    for (var index = 0; index < raw.length; index++)
+      borderJsonConstructAtPath('$surfacePath[$index]', () {
+        final itemPath = '$surfacePath[$index]';
+        final item = borderJsonRequireObject(raw[index], itemPath);
+        borderJsonRequireExactKeys(
+          item,
+          path: itemPath,
+          requiredKeys: const {
+            'sourceSmartTilePresetId',
+            'materialId',
+            'height',
+            'footprints',
+          },
+          optionalKeys: const {'gradientX', 'gradientZ'},
+        );
+        final hasGradient =
+            item.containsKey('gradientX') || item.containsKey('gradientZ');
+        final gradientX = hasGradient ? item['gradientX'] : 0;
+        final gradientZ = hasGradient ? item['gradientZ'] : 0;
+        if (hasGradient && formatVersion < 10) {
+          throw FormatException(
+            '$itemPath: inclined surfaces require catalog format version 10',
+          );
+        }
+        if (gradientX is! num ||
+            !gradientX.isFinite ||
+            gradientZ is! num ||
+            !gradientZ.isFinite) {
+          throw FormatException('$itemPath: expected two finite gradients');
+        }
+        final height = item['height'];
+        if (height is! num || !height.isFinite) {
+          throw FormatException('$itemPath.height: expected a finite number');
+        }
+        return BorderGroundSurface(
+          sourceSmartTilePresetId: borderJsonRequireString(
+            item['sourceSmartTilePresetId'],
+            '$itemPath.sourceSmartTilePresetId',
+          ),
+          materialId: borderJsonRequireString(
+            item['materialId'],
+            '$itemPath.materialId',
+          ),
+          height: height.toDouble(),
+          gradientX: gradientX.toDouble(),
+          gradientZ: gradientZ.toDouble(),
+          footprints: _decodeGroundPolygons(
+            item['footprints'],
+            '$itemPath.footprints',
+          ),
+        );
+      }),
+  ];
 }
 
 BorderCornerTurn? _decodeCornerTurn(BorderJsonObject value, String path) {
@@ -1600,7 +1789,7 @@ bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
 };
 
 void _requireBlueprintFormatVersion(int value, String path) {
-  if (value < 1 || value > 7) {
+  if (value < 1 || value > 10) {
     throw FormatException('$path: unsupported Border blueprint format version');
   }
 }
@@ -1655,22 +1844,33 @@ BorderGroundVariantRole _decodeBorderGroundRole(String value, String path) =>
     };
 
 Map<String, Object?> _encodeJumpBehavior(
-  BorderJumpBehavior behavior, String path, int formatVersion,
+  BorderJumpBehavior behavior,
+  String path,
+  int formatVersion,
 ) {
   if (formatVersion < 6) {
-    throw FormatException('$path.jumpBehavior: requires Border format version 6');
+    throw FormatException(
+      '$path.jumpBehavior: requires Border format version 6',
+    );
   }
   return behavior.toJson();
 }
 
 BorderJumpBehavior? _decodeJumpBehavior(
-  BorderJsonObject value, String path, int formatVersion,
+  BorderJsonObject value,
+  String path,
+  int formatVersion,
 ) {
   if (!value.containsKey('jumpBehavior')) {
     return null;
   }
   if (formatVersion < 6) {
-    throw FormatException('$path.jumpBehavior: requires Border format version 6');
+    throw FormatException(
+      '$path.jumpBehavior: requires Border format version 6',
+    );
   }
-  return BorderJumpBehavior.fromJson(value['jumpBehavior'], path: '$path.jumpBehavior');
+  return BorderJumpBehavior.fromJson(
+    value['jumpBehavior'],
+    path: '$path.jumpBehavior',
+  );
 }

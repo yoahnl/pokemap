@@ -4,9 +4,7 @@ import 'package:test/test.dart';
 void main() {
   test('V3 appends the stone-chain template and grid-edge alignment', () {
     expect(
-      borderBlueprintTemplateV1WireName(
-        BorderBlueprintTemplate.stoneChainLine,
-      ),
+      borderBlueprintTemplateV1WireName(BorderBlueprintTemplate.stoneChainLine),
       'stoneChainLine',
     );
     expect(
@@ -19,27 +17,25 @@ void main() {
 
   test('V4 appends primitive orientation only to the catalog format', () {
     expect(
-      borderPrimitiveOrientationV1WireName(
-        BorderPrimitiveOrientation.west,
-      ),
+      borderPrimitiveOrientationV1WireName(BorderPrimitiveOrientation.west),
       'west',
     );
     expect(ProjectBorderCatalog.formatVersionV4, 4);
     expect(
       ProjectBorderCatalog.latestSupportedFormatVersion,
-      ProjectBorderCatalog.formatVersionV7,
+      ProjectBorderCatalog.formatVersionV10,
     );
     expect(BorderLayerContent.latestSupportedFormatVersion, 4);
   });
 
-  test('catalog accepts 1 through 7 and rejects 0 and 8', () {
-    for (final version in <int>[1, 2, 3, 4, 5, 6, 7]) {
+  test('catalog accepts 1 through 10 and rejects 0 and 11', () {
+    for (final version in <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
       expect(
         () => ProjectBorderCatalog(formatVersion: version),
         returnsNormally,
       );
     }
-    for (final version in <int>[0, 8]) {
+    for (final version in <int>[0, 11]) {
       expect(
         () => ProjectBorderCatalog(formatVersion: version),
         throwsA(isA<ValidationException>()),
@@ -49,10 +45,7 @@ void main() {
 
   test('layer content remains limited to versions 1 through 4', () {
     for (final version in <int>[1, 2, 3, 4]) {
-      expect(
-        () => BorderLayerContent(formatVersion: version),
-        returnsNormally,
-      );
+      expect(() => BorderLayerContent(formatVersion: version), returnsNormally);
       expect(
         decodeBorderLayerContentJson(<String, Object?>{
           'formatVersion': version,

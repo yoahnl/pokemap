@@ -74,11 +74,7 @@ ProjectBorderCatalog decodeProjectBorderCatalogJson(
   String path = r'$',
 }) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _catalogKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _catalogKeys);
 
   final formatVersionPath = borderJsonPropertyPath(path, 'formatVersion');
   final formatVersion = borderJsonRequireInt(
@@ -144,11 +140,15 @@ void _requireSupportedVersion(int value, String path) {
   if (value != ProjectBorderCatalog.formatVersionV1 &&
       value != ProjectBorderCatalog.formatVersionV2 &&
       value != ProjectBorderCatalog.formatVersionV3 &&
-      value != ProjectBorderCatalog.formatVersionV4 && value != ProjectBorderCatalog.formatVersionV5 &&
+      value != ProjectBorderCatalog.formatVersionV4 &&
+      value != ProjectBorderCatalog.formatVersionV5 &&
       value != ProjectBorderCatalog.formatVersionV6 &&
-      value != ProjectBorderCatalog.formatVersionV7) {
+      value != ProjectBorderCatalog.formatVersionV7 &&
+      value != ProjectBorderCatalog.formatVersionV8 &&
+      value != ProjectBorderCatalog.formatVersionV9 &&
+      value != ProjectBorderCatalog.formatVersionV10) {
     throw FormatException(
-      '$path: expected ProjectBorderCatalog format version between 1 and 7',
+      '$path: expected ProjectBorderCatalog format version between 1 and 10',
     );
   }
 }

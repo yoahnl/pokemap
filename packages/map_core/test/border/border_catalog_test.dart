@@ -4,11 +4,13 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectBorderCatalog', () {
     test('distinguishes the V1 default from the latest supported version', () {
-      expect(ProjectBorderCatalog().formatVersion,
-          ProjectBorderCatalog.formatVersionV1);
+      expect(
+        ProjectBorderCatalog().formatVersion,
+        ProjectBorderCatalog.formatVersionV1,
+      );
       expect(
         ProjectBorderCatalog.latestSupportedFormatVersion,
-        ProjectBorderCatalog.formatVersionV7,
+        ProjectBorderCatalog.formatVersionV10,
       );
       expect(
         ProjectBorderCatalog.currentFormatVersion,
@@ -63,52 +65,56 @@ void main() {
     });
 
     test(
-        'accepts V2 through V7 and rejects unknown versions and duplicate identities',
-        () {
-      for (final version in <int>[
-        ProjectBorderCatalog.formatVersionV2,
-        ProjectBorderCatalog.formatVersionV3,
-        ProjectBorderCatalog.formatVersionV4,
-        ProjectBorderCatalog.formatVersionV5,
-        ProjectBorderCatalog.formatVersionV6,
-        ProjectBorderCatalog.formatVersionV7,
-      ]) {
+      'accepts V2 through V10 and rejects unknown versions and duplicate identities',
+      () {
+        for (final version in <int>[
+          ProjectBorderCatalog.formatVersionV2,
+          ProjectBorderCatalog.formatVersionV3,
+          ProjectBorderCatalog.formatVersionV4,
+          ProjectBorderCatalog.formatVersionV5,
+          ProjectBorderCatalog.formatVersionV6,
+          ProjectBorderCatalog.formatVersionV7,
+          ProjectBorderCatalog.formatVersionV8,
+          ProjectBorderCatalog.formatVersionV9,
+          ProjectBorderCatalog.formatVersionV10,
+        ]) {
+          expect(
+            ProjectBorderCatalog(formatVersion: version).formatVersion,
+            version,
+          );
+        }
+        for (final version in <int>[0, 11]) {
+          expect(
+            () => ProjectBorderCatalog(formatVersion: version),
+            throwsA(isA<ValidationException>()),
+          );
+        }
         expect(
-          ProjectBorderCatalog(formatVersion: version).formatVersion,
-          version,
+          () => ProjectBorderCatalog(
+            records: <BorderBlueprintRecord>[_record('same'), _record('same')],
+          ),
+          throwsA(
+            isA<ValidationException>().having(
+              (error) => error.message,
+              'message',
+              contains('same'),
+            ),
+          ),
         );
-      }
-      for (final version in <int>[0, 8]) {
         expect(
-          () => ProjectBorderCatalog(formatVersion: version),
-          throwsA(isA<ValidationException>()),
+          () => ProjectBorderCatalog(
+            visualSnapshots: <BorderVisualSnapshot>[_snapshot(), _snapshot()],
+          ),
+          throwsA(
+            isA<ValidationException>().having(
+              (error) => error.message,
+              'message',
+              contains(_snapshotId),
+            ),
+          ),
         );
-      }
-      expect(
-        () => ProjectBorderCatalog(
-          records: <BorderBlueprintRecord>[_record('same'), _record('same')],
-        ),
-        throwsA(
-          isA<ValidationException>().having(
-            (error) => error.message,
-            'message',
-            contains('same'),
-          ),
-        ),
-      );
-      expect(
-        () => ProjectBorderCatalog(
-          visualSnapshots: <BorderVisualSnapshot>[_snapshot(), _snapshot()],
-        ),
-        throwsA(
-          isA<ValidationException>().having(
-            (error) => error.message,
-            'message',
-            contains(_snapshotId),
-          ),
-        ),
-      );
-    });
+      },
+    );
   });
 }
 
@@ -123,20 +129,20 @@ BorderBlueprintRecord _record(String id) {
       baseRevision: 0,
       definition:
           BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>(
-        name: 'Border $id',
-        previewSeed: BorderSignedInt64.zero,
-        template: BorderBlueprintTemplate.organicEdge,
-        primitives: const <BorderPrimitiveDraft>[],
-        defaults: BorderGenerationParams(
-          irregularityPermille: 0,
-          detailDensityPermille: 0,
-          variationPermille: 0,
-          maxOverlapPx: 0,
-          gapTolerancePx: 0,
-          depthRows: 1,
-        ),
-        sortOrder: 0,
-      ),
+            name: 'Border $id',
+            previewSeed: BorderSignedInt64.zero,
+            template: BorderBlueprintTemplate.organicEdge,
+            primitives: const <BorderPrimitiveDraft>[],
+            defaults: BorderGenerationParams(
+              irregularityPermille: 0,
+              detailDensityPermille: 0,
+              variationPermille: 0,
+              maxOverlapPx: 0,
+              gapTolerancePx: 0,
+              depthRows: 1,
+            ),
+            sortOrder: 0,
+          ),
     ),
   );
 }

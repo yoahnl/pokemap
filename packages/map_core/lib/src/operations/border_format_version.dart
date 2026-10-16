@@ -12,7 +12,10 @@ bool borderFeatureRequiresFormatV2(BorderFeature feature) =>
     feature.paramsOverride?.allowAutoRotation == false;
 
 int minimumBorderLayerFormatVersionForFeature(BorderFeature feature) {
-  if (feature.spatialOffsetWorld != null || feature.materialization?.targetsSpatialScene == true || feature.overrides.any((override) => override.lockedInstanceId != null)) return BorderLayerContent.formatVersionV4;
+  if (feature.spatialOffsetWorld != null ||
+      feature.materialization?.targetsSpatialScene == true ||
+      feature.overrides.any((override) => override.lockedInstanceId != null))
+    return BorderLayerContent.formatVersionV4;
   if (feature.geometry case final BorderStrokeGeometry geometry
       when geometry.alignment == BorderStrokeAlignment.gridEdges) {
     return BorderLayerContent.formatVersionV3;
@@ -43,8 +46,9 @@ bool borderBlueprintRecordRequiresFormatV2(BorderBlueprintRecord record) {
   final draft = record.draft.definition;
   if (draft.template == BorderBlueprintTemplate.connectedLine ||
       !draft.defaults.allowAutoRotation ||
-      draft.primitives
-          .any((primitive) => _isConnectedLineRole(primitive.role))) {
+      draft.primitives.any(
+        (primitive) => _isConnectedLineRole(primitive.role),
+      )) {
     return true;
   }
 
@@ -52,8 +56,9 @@ bool borderBlueprintRecordRequiresFormatV2(BorderBlueprintRecord record) {
   return published != null &&
       (published.template == BorderBlueprintTemplate.connectedLine ||
           !published.defaults.allowAutoRotation ||
-          published.primitives
-              .any((primitive) => _isConnectedLineRole(primitive.role)));
+          published.primitives.any(
+            (primitive) => _isConnectedLineRole(primitive.role),
+          ));
 }
 
 int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
@@ -62,6 +67,26 @@ int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
     record.draft.definition,
     if (record.latestPublished != null) record.latestPublished!.definition,
   ]) {
+    if (definition.primitives.any(
+      (primitive) => primitive.groundFootprints.isNotEmpty,
+    )) {
+      if (result < ProjectBorderCatalog.formatVersionV8) {
+        result = ProjectBorderCatalog.formatVersionV8;
+      }
+    }
+    if (definition.primitives.any(
+          (primitive) => primitive.groundSurfaces.isNotEmpty,
+        ) &&
+        result < ProjectBorderCatalog.formatVersionV9) {
+      result = ProjectBorderCatalog.formatVersionV9;
+    }
+    if (definition.primitives.any(
+      (primitive) => primitive.groundSurfaces.any(
+        (surface) => surface.gradientX != 0 || surface.gradientZ != 0,
+      ),
+    )) {
+      result = ProjectBorderCatalog.formatVersionV10;
+    }
     if (definition.jumpBehavior != null &&
         result < ProjectBorderCatalog.formatVersionV6) {
       result = ProjectBorderCatalog.formatVersionV6;

@@ -40,28 +40,32 @@ void main() {
           _record(id: 'second', publishedSnapshotId: firstSnapshot.id),
           _record(id: 'first', publishedSnapshotId: secondSnapshot.id),
         ],
-        visualSnapshots: <BorderVisualSnapshot>[
-          secondSnapshot,
-          firstSnapshot,
-        ],
+        visualSnapshots: <BorderVisualSnapshot>[secondSnapshot, firstSnapshot],
       );
 
       final encoded = encodeProjectBorderCatalogJson(catalog);
 
-      expect(encoded.keys,
-          <String>['formatVersion', 'records', 'visualSnapshots']);
+      expect(encoded.keys, <String>[
+        'formatVersion',
+        'records',
+        'visualSnapshots',
+      ]);
       expect(
-        (encoded['records']! as List<Object?>)
-            .map((value) => (value! as Map<String, Object?>)['id']),
+        (encoded['records']! as List<Object?>).map(
+          (value) => (value! as Map<String, Object?>)['id'],
+        ),
         <String>['second', 'first'],
       );
       expect(
-        (encoded['visualSnapshots']! as List<Object?>)
-            .map((value) => (value! as Map<String, Object?>)['id']),
+        (encoded['visualSnapshots']! as List<Object?>).map(
+          (value) => (value! as Map<String, Object?>)['id'],
+        ),
         <String>[secondSnapshot.id, firstSnapshot.id],
       );
-      final encodedFrames = (((encoded['visualSnapshots']! as List<Object?>)[1]!
-          as Map<String, Object?>)['frames']!) as List<Object?>;
+      final encodedFrames =
+          (((encoded['visualSnapshots']! as List<Object?>)[1]!
+                  as Map<String, Object?>)['frames']!)
+              as List<Object?>;
       expect(
         encodedFrames.map(
           (value) => (value! as Map<String, Object?>)['relativeAssetPath'],
@@ -115,8 +119,8 @@ void main() {
       }
     });
 
-    test('accepts V1 through V7 and rejects unsupported strict versions', () {
-      for (final formatVersion in <int>[1, 2, 3, 4, 5, 6, 7]) {
+    test('accepts V1 through V10 and rejects unsupported strict versions', () {
+      for (final formatVersion in <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
         final encoded = _emptyJson()..['formatVersion'] = formatVersion;
         final decoded = decodeProjectBorderCatalogJson(encoded);
 
@@ -124,14 +128,7 @@ void main() {
         expect(encodeProjectBorderCatalogJson(decoded), encoded);
       }
 
-      for (final invalidVersion in <Object?>[
-        null,
-        true,
-        1.0,
-        '1',
-        0,
-        8,
-      ]) {
+      for (final invalidVersion in <Object?>[null, true, 1.0, '1', 0, 11]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(
           () => decodeProjectBorderCatalogJson(invalid),
@@ -162,13 +159,17 @@ void main() {
         );
 
         final encoded = encodeProjectBorderCatalogJson(catalog);
-        final record = (encoded['records']! as List<Object?>).single!
-            as Map<String, Object?>;
-        final draft = ((record['draft']! as Map<String, Object?>)['definition']!
-            as Map<String, Object?>)['primitives']! as List<Object?>;
+        final record =
+            (encoded['records']! as List<Object?>).single!
+                as Map<String, Object?>;
+        final draft =
+            ((record['draft']! as Map<String, Object?>)['definition']!
+                    as Map<String, Object?>)['primitives']!
+                as List<Object?>;
         final published =
             ((record['latestPublished']! as Map<String, Object?>)['definition']!
-                as Map<String, Object?>)['primitives']! as List<Object?>;
+                    as Map<String, Object?>)['primitives']!
+                as List<Object?>;
 
         expect(
           draft.single! as Map<String, Object?>,
@@ -199,13 +200,17 @@ void main() {
       );
 
       final encoded = encodeProjectBorderCatalogJson(catalog);
-      final record = (encoded['records']! as List<Object?>).single!
-          as Map<String, Object?>;
-      final draft = ((record['draft']! as Map<String, Object?>)['definition']!
-          as Map<String, Object?>)['primitives']! as List<Object?>;
+      final record =
+          (encoded['records']! as List<Object?>).single!
+              as Map<String, Object?>;
+      final draft =
+          ((record['draft']! as Map<String, Object?>)['definition']!
+                  as Map<String, Object?>)['primitives']!
+              as List<Object?>;
       final published =
           ((record['latestPublished']! as Map<String, Object?>)['definition']!
-              as Map<String, Object?>)['primitives']! as List<Object?>;
+                  as Map<String, Object?>)['primitives']!
+              as List<Object?>;
       expect(
         (draft.single! as Map<String, Object?>)['authoredOrientation'],
         'west',
@@ -229,9 +234,11 @@ void main() {
 
       final encoded = encodeProjectBorderCatalogJson(catalog);
       expect(encoded['formatVersion'], 2);
-      final definition = ((((encoded['records']! as List<Object?>).single!
-              as Map<String, Object?>)['draft']!
-          as Map<String, Object?>)['definition']! as Map<String, Object?>);
+      final definition =
+          ((((encoded['records']! as List<Object?>).single!
+                      as Map<String, Object?>)['draft']!
+                  as Map<String, Object?>)['definition']!
+              as Map<String, Object?>);
       expect(definition['template'], 'connectedLine');
       expect(decodeProjectBorderCatalogJson(encoded), catalog);
 
@@ -268,9 +275,7 @@ void main() {
     test('keeps record and snapshot id namespaces independent', () {
       final snapshot = _snapshot(fingerprint: _snapshotFingerprintA);
       final catalog = ProjectBorderCatalog(
-        records: <BorderBlueprintRecord>[
-          _record(id: snapshot.id),
-        ],
+        records: <BorderBlueprintRecord>[_record(id: snapshot.id)],
         visualSnapshots: <BorderVisualSnapshot>[snapshot],
       );
 
@@ -307,9 +312,7 @@ void main() {
 
     test('validates nested metrics and RLE at the complete encode path', () {
       final catalog = ProjectBorderCatalog(
-        records: <BorderBlueprintRecord>[
-          _record(occupancyMaskRle: 'not-rle'),
-        ],
+        records: <BorderBlueprintRecord>[_record(occupancyMaskRle: 'not-rle')],
       );
 
       expect(
@@ -321,19 +324,23 @@ void main() {
       );
     });
 
-    test('accepts dangling published snapshot references without resolving',
-        () {
-      final catalog = ProjectBorderCatalog(
-        records: <BorderBlueprintRecord>[
-          _record(publishedSnapshotId: 'snapshot-not-in-this-catalog'),
-        ],
-      );
+    test(
+      'accepts dangling published snapshot references without resolving',
+      () {
+        final catalog = ProjectBorderCatalog(
+          records: <BorderBlueprintRecord>[
+            _record(publishedSnapshotId: 'snapshot-not-in-this-catalog'),
+          ],
+        );
 
-      expect(
-        decodeProjectBorderCatalogJson(encodeProjectBorderCatalogJson(catalog)),
-        catalog,
-      );
-    });
+        expect(
+          decodeProjectBorderCatalogJson(
+            encodeProjectBorderCatalogJson(catalog),
+          ),
+          catalog,
+        );
+      },
+    );
 
     test('honors custom paths and never mutates deeply nested input', () {
       final input = encodeProjectBorderCatalogJson(
@@ -352,9 +359,7 @@ void main() {
       expect(input, before);
       final duplicate = _deepCopy(input);
       final records = duplicate['records']! as List<Object?>;
-      records.add(
-        _deepCopy(records.single! as Map<String, Object?>),
-      );
+      records.add(_deepCopy(records.single! as Map<String, Object?>));
       expect(
         () => decodeProjectBorderCatalogJson(duplicate, path: path),
         _formatAt(r'$.project.borderCatalog.records[1].id'),
@@ -365,8 +370,9 @@ void main() {
       final snapshot = encodeBorderVisualSnapshotJson(
         _snapshot(fingerprint: _snapshotFingerprintA),
       );
-      final frame = (snapshot['frames']! as List<Object?>).single!
-          as Map<String, Object?>;
+      final frame =
+          (snapshot['frames']! as List<Object?>).single!
+              as Map<String, Object?>;
       frame.remove('durationMs');
       final record = encodeBorderBlueprintRecordJson(_record());
       record['latestPublished'] = null;
@@ -380,12 +386,15 @@ void main() {
         decodeProjectBorderCatalogJson(input),
       );
 
-      final canonicalRecord = (canonical['records']! as List<Object?>).single!
-          as Map<String, Object?>;
-      final canonicalSnapshot = (canonical['visualSnapshots']! as List<Object?>)
-          .single! as Map<String, Object?>;
-      final canonicalFrame = (canonicalSnapshot['frames']! as List<Object?>)
-          .single! as Map<String, Object?>;
+      final canonicalRecord =
+          (canonical['records']! as List<Object?>).single!
+              as Map<String, Object?>;
+      final canonicalSnapshot =
+          (canonical['visualSnapshots']! as List<Object?>).single!
+              as Map<String, Object?>;
+      final canonicalFrame =
+          (canonicalSnapshot['frames']! as List<Object?>).single!
+              as Map<String, Object?>;
       expect(canonicalRecord.containsKey('latestPublished'), isFalse);
       expect(canonicalFrame['durationMs'], 100);
     });
@@ -393,10 +402,10 @@ void main() {
 }
 
 Map<String, Object?> _emptyJson() => <String, Object?>{
-      'formatVersion': 1,
-      'records': <Object?>[],
-      'visualSnapshots': <Object?>[],
-    };
+  'formatVersion': 1,
+  'records': <Object?>[],
+  'visualSnapshots': <Object?>[],
+};
 
 BorderBlueprintRecord _record({
   String id = 'coast',
@@ -482,32 +491,30 @@ BorderBlueprintRecord _record({
 BorderVisualSnapshot _snapshot({
   required String fingerprint,
   List<BorderVisualFrameSnapshot>? frames,
-}) =>
-    BorderVisualSnapshot(
-      id: 'border-snapshot-sha256:$fingerprint',
-      contentFingerprint: fingerprint,
-      frames: frames ?? <BorderVisualFrameSnapshot>[_frame('only.png')],
-    );
+}) => BorderVisualSnapshot(
+  id: 'border-snapshot-sha256:$fingerprint',
+  contentFingerprint: fingerprint,
+  frames: frames ?? <BorderVisualFrameSnapshot>[_frame('only.png')],
+);
 
 BorderVisualFrameSnapshot _frame(
   String name, {
   int durationMs = 100,
   int? transparentColorArgb,
-}) =>
-    BorderVisualFrameSnapshot(
-      relativeAssetPath: 'assets/borders/snapshots/$name',
-      sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 16, height: 12),
-      durationMs: durationMs,
-      transparentColorArgb: transparentColorArgb,
-    );
+}) => BorderVisualFrameSnapshot(
+  relativeAssetPath: 'assets/borders/snapshots/$name',
+  sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 16, height: 12),
+  durationMs: durationMs,
+  transparentColorArgb: transparentColorArgb,
+);
 
 Map<String, Object?> _deepCopy(Map<String, Object?> value) =>
     jsonDecode(jsonEncode(value))! as Map<String, Object?>;
 
 Matcher _formatAt(String path) => throwsA(
-      isA<FormatException>().having(
-        (error) => error.message.toString(),
-        'message',
-        contains(path),
-      ),
-    );
+  isA<FormatException>().having(
+    (error) => error.message.toString(),
+    'message',
+    contains(path),
+  ),
+);

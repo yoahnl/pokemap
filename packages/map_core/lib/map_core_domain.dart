@@ -145,6 +145,8 @@ export 'src/models/border_value_objects.dart';
 export 'src/models/border_signed_int64.dart';
 export 'src/models/border_visual_snapshot.dart';
 export 'src/models/border_blueprint.dart';
+export 'src/models/border_ground_footprint.dart';
+export 'src/models/border_ground_surface.dart';
 export 'src/models/border_jump_behavior.dart';
 export 'src/models/border_catalog.dart';
 export 'src/models/border_geometry.dart';

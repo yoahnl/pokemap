@@ -2,6 +2,8 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
 import 'border_signed_int64.dart';
+import 'border_ground_footprint.dart';
+import 'border_ground_surface.dart';
 import 'border_value_objects.dart';
 import 'border_jump_behavior.dart';
 import 'border_visual_snapshot.dart';
@@ -82,9 +84,19 @@ final class BorderPrimitiveDraft {
     this.animationLoop = true,
     this.animationSpeed = 1,
     this.blocksMovement = true,
+    List<BorderGroundFootprint> groundFootprints = const [],
+    List<BorderGroundSurface> groundSurfaces = const [],
     required this.transforms,
     BorderPrimitiveAssetMetrics? currentMetrics,
-  }) : _anchorPx = anchorPx,
+  }) : groundFootprints = validatedBorderGroundFootprints(
+         groundFootprints,
+         sourceModelId,
+       ),
+       groundSurfaces = validatedBorderGroundSurfaces(
+         groundSurfaces,
+         sourceModelId,
+       ),
+       _anchorPx = anchorPx,
        _currentMetrics = currentMetrics {
     _requireNonEmpty(id, 'BorderPrimitiveDraft.id');
     if (cornerTurn != null &&
@@ -127,6 +139,8 @@ final class BorderPrimitiveDraft {
   final bool animationLoop;
   final double animationSpeed;
   final bool blocksMovement;
+  final List<BorderGroundFootprint> groundFootprints;
+  final List<BorderGroundSurface> groundSurfaces;
   final BorderTransformPolicy transforms;
   final BorderPrimitiveAssetMetrics? _currentMetrics;
   bool get isSpatial => sourceModelId != null;
@@ -160,6 +174,8 @@ final class BorderPrimitiveDraft {
           animationLoop == other.animationLoop &&
           animationSpeed == other.animationSpeed &&
           blocksMovement == other.blocksMovement &&
+          _listsEqual(groundFootprints, other.groundFootprints) &&
+          _listsEqual(groundSurfaces, other.groundSurfaces) &&
           transforms == other.transforms &&
           _currentMetrics == other._currentMetrics;
 
@@ -178,6 +194,8 @@ final class BorderPrimitiveDraft {
     animationLoop,
     animationSpeed,
     blocksMovement,
+    Object.hashAll(groundFootprints),
+    Object.hashAll(groundSurfaces),
     transforms,
     _currentMetrics,
   );
@@ -201,9 +219,19 @@ final class BorderPublishedPrimitive {
     this.animationLoop = true,
     this.animationSpeed = 1,
     this.blocksMovement = true,
+    List<BorderGroundFootprint> groundFootprints = const [],
+    List<BorderGroundSurface> groundSurfaces = const [],
     required this.transforms,
     BorderPrimitiveAssetMetrics? publishedMetrics,
-  }) : _anchorPx = anchorPx,
+  }) : groundFootprints = validatedBorderGroundFootprints(
+         groundFootprints,
+         sourceModelId,
+       ),
+       groundSurfaces = validatedBorderGroundSurfaces(
+         groundSurfaces,
+         sourceModelId,
+       ),
+       _anchorPx = anchorPx,
        _publishedMetrics = publishedMetrics,
        _visualSnapshotId = visualSnapshotId {
     _requireNonEmpty(id, 'BorderPublishedPrimitive.id');
@@ -248,6 +276,8 @@ final class BorderPublishedPrimitive {
   final bool animationLoop;
   final double animationSpeed;
   final bool blocksMovement;
+  final List<BorderGroundFootprint> groundFootprints;
+  final List<BorderGroundSurface> groundSurfaces;
   final BorderTransformPolicy transforms;
   final BorderPrimitiveAssetMetrics? _publishedMetrics;
   bool get isSpatial => sourceModelId != null;
@@ -287,6 +317,8 @@ final class BorderPublishedPrimitive {
           animationLoop == other.animationLoop &&
           animationSpeed == other.animationSpeed &&
           blocksMovement == other.blocksMovement &&
+          _listsEqual(groundFootprints, other.groundFootprints) &&
+          _listsEqual(groundSurfaces, other.groundSurfaces) &&
           transforms == other.transforms &&
           _publishedMetrics == other._publishedMetrics;
 
@@ -306,6 +338,8 @@ final class BorderPublishedPrimitive {
     animationLoop,
     animationSpeed,
     blocksMovement,
+    Object.hashAll(groundFootprints),
+    Object.hashAll(groundSurfaces),
     transforms,
     _publishedMetrics,
   );
@@ -418,6 +452,18 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
         (kinds.contains(BorderVisualKind.model3d) && ground != null)) {
       throw const ValidationException(
         'A Border blueprint must use one visual dimension, without sprite ground in 3D',
+      );
+    }
+    if (_primitives.any(
+          (primitive) => switch (primitive) {
+            BorderPrimitiveDraft() => primitive.groundFootprints.isNotEmpty,
+            BorderPublishedPrimitive() => primitive.groundFootprints.isNotEmpty,
+            _ => false,
+          },
+        ) &&
+        !replacesGround) {
+      throw const ValidationException(
+        'Ground footprints require ground replacement',
       );
     }
     if (straightOnly &&
