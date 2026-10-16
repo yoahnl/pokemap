@@ -15,13 +15,32 @@ void main() {
         'destinationMapId',
         'warpId',
         'arrivalFacing',
-        'transition'
+        'transition',
+        'presentation'
       ],
       'arrivalFacingValues': ['north', 'south', 'east', 'west'],
       'absentArrivalFacing': 'preserveCurrentDirection',
       'transitionValues': ['mapDefault', 'none'],
       'defaultTransition': 'mapDefault',
       'arrivalReference': 'warpOwnedByDestinationMap',
+    'presentation': {
+      'projectDimension': 'twoD',
+      'parameters': ['mode', 'illustrationElementId', 'fadeOutMs', 'transferDelayMs',
+        'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'],
+      'modes': ['fade', 'illustrated', 'caveEntrance', 'caveExit'],
+      'illustrationModes': ['illustrated', 'caveEntrance'],
+      'positiveDurationFields': ['fadeOutMs', 'revealMs', 'illustrationFadeMs'],
+      'illustrationReference': 'uniqueStaticNativeElement',
+      'durationMsRange': [0, 10000],
+      'transferDelayMinimum': 'fadeOutMs',
+      'transferDelayMeaning': 'fadeStartToTransferOrCavePrelude',
+      'illustratedReveal': 'worldAndImageConcurrentAfterHold',
+      'caveReveal': 'remainingToneAfterTransfer',
+      'caveBands': 15,
+      'caveDurationsMs': [400, 400, 100],
+      'persistent': false,
+    },
+
     });
   });
 

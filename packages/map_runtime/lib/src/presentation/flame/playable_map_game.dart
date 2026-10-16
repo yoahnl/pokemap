@@ -111,6 +111,7 @@ import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
 import '../../application/world_rules/runtime_world_rule_projection_hook.dart';
+import '../../application/warp_presentation_controller.dart';
 import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
@@ -158,10 +159,13 @@ import 'static_placed_element_occlusion_patch_resolution.dart';
 import 'smart_tile_actor_occlusion_component.dart';
 import 'smart_tile_animation_activation_controller.dart';
 import 'warp_transition_overlay_component.dart';
+import 'warp_presentation_overlay_component.dart';
+import 'warp_presentation_renderer.dart';
 
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
+part 'playable_map_game_warp_presentation.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
@@ -4202,6 +4206,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    final warpPresentation = _warpTransitionOverlay;
+    if (warpPresentation is WarpPresentationOverlayComponent) {
+      warpPresentation.close();
+      _warpTransitionOverlay = null;
+    }
     _disposeNpcFixedRoutes();
     for (final pending in _sceneActorRouteWaits) {
       pending.completer.completeError(
@@ -11182,14 +11191,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GameState Function() currentGameState,
   }) async {
     if (command is! SceneWarpInteractiveCommand) return 'blocked';
+    if (_flowPhase != _RuntimeFlowPhase.overworld || _isRemoved) return 'blocked';
     if (!isLoaded) {
       _notifySceneCommand('Warp indisponible avant le chargement de la map.');
       return 'blocked';
     }
+    Future<void> Function()? restorePresentation;
     try {
       final destination = await _loadRuntimeMapBundleCached(
         command.destinationMapId,
       );
+      if (_isRemoved) return 'blocked';
       MapWarp? arrival;
       for (final warp in destination.map.warps) {
         if (warp.id == command.warpId) {
@@ -11202,6 +11214,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'Warp ${command.warpId} introuvable sur '
           '${command.destinationMapId}.',
         );
+        return 'blocked';
+      }
+
+      final presentationRenderer = command.presentation == null
+          ? null
+          : await _prepareSceneWarpPresentation(command, destination);
+      if (_isRemoved || _flowPhase != _RuntimeFlowPhase.overworld) {
         return 'blocked';
       }
 
@@ -11222,36 +11241,55 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final workingSession = _activeNarrativeSceneWorkingSession;
       final previousDeferredActivation = workingSession?.deferredMapActivation;
-      workingSession?.registerCompensation(() async {
-        if (_isRemoved) return;
-        workingSession.gameState = checkpoint.gameState;
-        workingSession.deferredMapActivation = previousDeferredActivation;
+      var restored = false;
+      Future<void> restoreSource() async {
+        if (_isRemoved || restored) return;
+        if (command.presentation != null) {
+          _setFlowPhase(_RuntimeFlowPhase.mapTransition);
+        }
+        if (workingSession != null) {
+          workingSession.gameState = checkpoint.gameState;
+          workingSession.deferredMapActivation = previousDeferredActivation;
+        }
         if (!await _restoreRuntimeSpatialSnapshot(
           checkpoint,
           commitNarrativeState: false,
         )) {
           throw StateError('The Scene Warp source could not be restored.');
         }
-      });
+        restored = true;
+      }
+      workingSession?.registerCompensation(restoreSource);
+      if (command.presentation != null) restorePresentation = restoreSource;
       _applyNarrativeGameState(currentGameState());
       final expectedFacing = command.arrivalFacing?.asDirection ?? _world.player.facing;
-      final transitioned = await _handleWarp(
-        TriggeredWarp(
-          warpId: command.warpId,
-          targetMapId: command.destinationMapId,
-          targetPos: arrival.pos,
-          triggerMode: arrival.triggerMode,
-        ),
-        allowMapActivationWork: true,
-        arrivalFacing: command.arrivalFacing,
-        skipVisualTransition: command.transition == SceneWarpTransition.none,
-        arrivalCollisionOwnerEntityId: command.arrivalCollisionOwnerEntityId,
+      final targetWarp = TriggeredWarp(
+        warpId: command.warpId,
+        targetMapId: command.destinationMapId,
+        targetPos: arrival.pos,
+        triggerMode: arrival.triggerMode,
       );
+      final transitioned = presentationRenderer == null
+          ? await _handleWarp(
+              targetWarp,
+              allowMapActivationWork: true,
+              arrivalFacing: command.arrivalFacing,
+              skipVisualTransition: command.transition == SceneWarpTransition.none,
+              arrivalCollisionOwnerEntityId: command.arrivalCollisionOwnerEntityId,
+            )
+          : await _executePresentedSceneWarp(
+              command,
+              targetWarp,
+              presentationRenderer,
+            );
       final completed = transitioned &&
           _activeMapId == command.destinationMapId &&
           _world.player.pos == arrival.pos &&
           _world.player.facing == expectedFacing;
-      if (!completed) return 'blocked';
+      if (!completed) {
+        await restorePresentation?.call();
+        return 'blocked';
+      }
       final session = _activeNarrativeSceneWorkingSession;
       if (session != null) session.gameState = _gameState;
       return 'completed';
@@ -11261,7 +11299,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'map=${command.destinationMapId} warp=${command.warpId} '
         'error=$error\n$stackTrace',
       );
-      _notifySceneCommand('Warp impossible.');
+      await restorePresentation?.call();
+      if (!_isRemoved) {
+        _notifySceneCommand('Warp impossible.');
+      }
       return 'blocked';
     }
   }
@@ -14669,8 +14710,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     bool skipVisualTransition = false,
     EntityFacing? arrivalFacing,
     String? arrivalCollisionOwnerEntityId,
+    _SceneWarpPresentationOwner? presentationOwner,
   }) async {
-    if (_flowPhase != _RuntimeFlowPhase.overworld ||
+    final presentedTransfer = presentationOwner != null;
+    if ((presentedTransfer
+            ? !skipVisualTransition || !_ownsSceneWarpTransfer(presentationOwner)
+            : _flowPhase != _RuntimeFlowPhase.overworld) ||
         (!allowMapActivationWork && _blocksOverworldForMapActivationWork)) {
       debugPrint(
         '[warp] ignored: flow=${_flowPhase.name} '
@@ -14694,7 +14739,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     var swapCompleted = false;
     var transitionCompleted = false;
     try {
-      _clearTransientUiState();
+      _clearTransientUiState(preservedWarpOwner: presentationOwner);
       if (!skipVisualTransition) {
         overlay = WarpTransitionOverlayComponent(
           viewportSize: camera.viewport.size,
@@ -14794,6 +14839,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
         );
       }
+      if (presentationOwner != null &&
+          !_ownsSceneWarpTransfer(presentationOwner)) {
+        throw StateError('The Warp presentation no longer owns the transfer.');
+      }
       _replaceLogicalMapInstances(nextInstances);
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
@@ -14807,6 +14856,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           originCellY: 0,
         ),
       );
+      if (presentationOwner != null &&
+          !_ownsSceneWarpTransfer(presentationOwner)) {
+        throw StateError('The Warp presentation was cancelled while mounting.');
+      }
       _bundle = newBundle;
       _world = newWorld;
       _activeMapId = newBundle.map.id;
@@ -14853,8 +14906,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       transitionCompleted = true;
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
-      _showNotification('La téléportation a échoué.');
-      if (!swapCompleted) {
+      if (!_isRemoved) _showNotification('La téléportation a échoué.');
+      if (!swapCompleted && (!presentedTransfer || !_isRemoved)) {
         _replaceLogicalMapInstances(sourceInstances);
         await _recoverFromWarpFailure(
           sourceBundle: sourceBundle,
@@ -14866,11 +14919,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         await overlay.fadeIn(duration: const Duration(milliseconds: 140));
       }
     } finally {
-      _warpTransitionOverlay?.close();
-      _warpTransitionOverlay = null;
-      _setFlowPhase(_RuntimeFlowPhase.overworld);
+      overlay?.close();
+      if (identical(_warpTransitionOverlay, overlay)) {
+        _warpTransitionOverlay = null;
+      }
+      if (!presentedTransfer) _setFlowPhase(_RuntimeFlowPhase.overworld);
       debugPrint(
-        '[warp] gameplay unlocked map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
+        '[warp] transfer cleanup flow=${_flowPhase.name} map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
       final pendingLeaderWarpHandoff = _pendingScenarioLeaderWarpHandoff;
       if (pendingLeaderWarpHandoff != null) {
@@ -14911,7 +14966,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           );
         }
       }
-      if (swapCompleted) {
+      if (swapCompleted && presentationOwner != null) {
+        presentationOwner.activation = activation;
+      } else if (swapCompleted) {
         final session = _activeNarrativeSceneWorkingSession;
         if (session != null && session.defersMapActivation) {
           session.deferredMapActivation = activation;
@@ -15325,7 +15382,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeScriptRuntimeSourceId = null;
   }
 
-  void _clearTransientUiState() {
+  void _clearTransientUiState({_SceneWarpPresentationOwner? preservedWarpOwner}) {
     _cancelPendingDirectedJump();
     _preservingConnectionInput = false;
     _cinematicRuntimeController.cancel(
@@ -15371,8 +15428,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // de l'UI transitoire.
     _activeBattleContext = null;
     _psdkBattleSession = null;
-    _warpTransitionOverlay?.removeFromParent();
-    _warpTransitionOverlay = null;
+    if (preservedWarpOwner == null ||
+        !_ownsSceneWarpTransfer(preservedWarpOwner)) {
+      final overlay = _warpTransitionOverlay;
+      if (overlay is WarpPresentationOverlayComponent) {
+        overlay.close();
+      } else {
+        overlay?.removeFromParent();
+      }
+      _warpTransitionOverlay = null;
+    }
     _clearPressedMovementControls();
   }
 

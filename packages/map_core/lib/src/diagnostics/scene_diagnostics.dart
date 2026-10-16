@@ -1,3 +1,4 @@
+import '../operations/scene_warp_presentation_visual.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -64,6 +65,7 @@ enum SceneDiagnosticCode {
   commandUnsupportedDimension,
   commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
+  commandInvalidWarpPresentation,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -1294,6 +1296,24 @@ void _diagnoseActionConsequenceAgainstProject(
           suggestedFixLabel: 'Choisir un effet sonore disponible sans boucle.',
         ),
       );
+    }
+  }
+  if (interactiveCommand is SceneWarpInteractiveCommand && interactiveCommand.presentation != null) {
+    final map = mapsById[interactiveCommand.destinationMapId];
+    try {
+      resolveSceneWarpPresentationVisual(interactiveCommand.presentation!, project);
+      if (map != null && (map.id != interactiveCommand.destinationMapId ||
+          map.spatialScene != null || map.version == ProjectVersion.v9)) {
+        throw const FormatException('Warp presentation destination must be 2D.');
+      }
+    } catch (_) {
+      diagnostics.add(SceneDiagnostic(
+        code: SceneDiagnosticCode.commandInvalidWarpPresentation,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La transition doit référencer une illustration native statique valide sur une carte 2D.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir une illustration disponible et une carte 2D.',
+      ));
     }
   }
   if (interactiveCommand is SceneWarpInteractiveCommand &&

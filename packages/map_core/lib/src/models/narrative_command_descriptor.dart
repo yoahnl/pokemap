@@ -34,6 +34,8 @@ enum NarrativeCommandParameterKind {
   npc,
   warp,
   warpTransition,
+  warpPresentationMode,
+  visualElementReference,
   shop,
   badge,
   fieldAbility,

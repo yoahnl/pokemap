@@ -658,3 +658,7 @@ export 'src/spatial/spatial_battle_view.dart';
 export 'src/spatial/spatial_entity_visual_plan.dart';
 export 'src/spatial/spatial_gameplay_events.dart';
 export 'src/player/overworld_sfx_player.dart';
+
+export 'src/application/warp_presentation_controller.dart';
+export 'src/presentation/flame/warp_presentation_renderer.dart';
+export 'src/presentation/flame/warp_presentation_overlay_component.dart';

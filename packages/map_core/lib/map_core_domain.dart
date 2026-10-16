@@ -399,3 +399,6 @@ export 'src/operations/narrative_trigger_bump_source_reference.dart';
 export 'src/operations/narrative_entity_autorun_source_reference.dart';
 
 export 'src/models/pokedex_species_range.dart';
+
+export 'src/models/scene_warp_presentation.dart';
+export 'src/operations/scene_warp_presentation_visual.dart';

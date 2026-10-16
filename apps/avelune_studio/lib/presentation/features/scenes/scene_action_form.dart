@@ -117,7 +117,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
       return;
     }
     for (final parameter in _command!.parameters) {
-      final value = data[parameter.id];
+      final presentation = data['presentation'];
+      final value = _commandId == NarrativeCommandIds.warp && presentation is Map
+          ? parameter.id == 'presentationMode' ? presentation['mode']
+              : data[parameter.id] ?? presentation[parameter.id]
+          : data[parameter.id];
       if (value is String || value is num || value is bool) {
         _values[parameter.id] = '$value';
       }
@@ -209,16 +213,54 @@ class _SceneActionFormState extends State<SceneActionForm> {
         return false;
       }
     }
-    if (command.id == NarrativeCommandIds.wait ||
+    if (command.id == NarrativeCommandIds.warp ||
+        command.id == NarrativeCommandIds.wait ||
         command.id == NarrativeCommandIds.worldTone ||
         command.id == NarrativeCommandIds.playSoundEffect) {
       try {
-        _buildPayload();
+        final payload = _buildPayload();
+        if (payload is SceneActionPayload) {
+          final command = payload.interactiveCommand;
+          if (command is SceneWarpInteractiveCommand && command.presentation != null &&
+              diagnoseInteractiveCommand(command: command, project: widget.project).isNotEmpty) {
+            return false;
+          }
+        }
       } catch (_) {
         return false;
       }
     }
     return true;
+  }
+
+  static const _warpPresentationFields = {'presentationMode', 'illustrationElementId',
+    'fadeOutMs', 'transferDelayMs', 'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'};
+
+  bool _warpFieldVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_commandId != NarrativeCommandIds.warp) return true;
+    final mode = _values['presentationMode'];
+    final active = mode != null && mode.isNotEmpty;
+    if (parameter.id == 'transition') return !active;
+    if (!_warpPresentationFields.contains(parameter.id)) return true;
+    if (widget.project.settings.dimension != ProjectDimension.twoD) return false;
+    if (parameter.id == 'presentationMode') return true;
+    if (!active) return false;
+    if (const {'illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs'}.contains(parameter.id)) {
+      return mode == 'illustrated' || mode == 'caveEntrance';
+    }
+    return true;
+  }
+
+  Map<String, String> _warpIllustrations() {
+    final result = <String, String>{};
+    for (final element in widget.project.elements) {
+      try {
+        resolveSceneWarpPresentationVisual(SceneWarpPresentation(
+          mode: SceneWarpPresentationMode.illustrated, illustrationElementId: element.id), widget.project);
+        result[element.id] = element.name;
+      } catch (_) {}
+    }
+    return result;
   }
 
   Map<String, String> _soundMediaOptions() {
@@ -274,6 +316,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
               'west': 'Ouest',
             }
           : const {},
+    NarrativeCommandParameterKind.warpPresentationMode => const {
+      '': 'Transition habituelle', 'fade': 'Fondu noir',
+      'illustrated': 'Illustration du lieu', 'caveEntrance': 'Entrée de grotte', 'caveExit': 'Sortie de grotte',
+    },
+    NarrativeCommandParameterKind.visualElementReference => _warpIllustrations(),
     NarrativeCommandParameterKind.warpTransition => const {
       'mapDefault': 'Transition de la carte',
       'none': 'Sans transition',
@@ -358,7 +405,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       if (!_isActorCommand(_commandId)) ...[
         for (final parameter
             in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
-          Padding(
+          if (_warpFieldVisible(parameter)) Padding(
             padding: const EdgeInsets.only(top: 12),
             child: _field(parameter),
           ),
@@ -388,6 +435,14 @@ class _SceneActionFormState extends State<SceneActionForm> {
     void changed(String value) => setState(() {
       _values[parameter.id] = value;
       _error = null;
+      if (_commandId == NarrativeCommandIds.warp && parameter.id == 'presentationMode') {
+        if (value != 'illustrated' && value != 'caveEntrance') {
+          for (final key in ['illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs']) { _values.remove(key); }
+        }
+        if (value.isEmpty) {
+          for (final key in ['fadeOutMs', 'transferDelayMs', 'revealMs']) { _values.remove(key); }
+        }
+      }
       if (parameter.id == 'destinationMapId' &&
           _commandId == NarrativeCommandIds.warp) {
         _values.remove('warpId');
@@ -400,6 +455,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
         _values.remove('animationIndex');
       }
     });
+    if (parameter.kind == NarrativeCommandParameterKind.warpPresentationMode) {
+      return StudioSelect(label: parameter.label, value: _values[parameter.id] ?? '',
+        options: _options(parameter.kind), onChanged: changed);
+    }
     if (_commandId == NarrativeCommandIds.warp &&
         parameter.id == 'arrivalFacing') {
       return StudioSelect(

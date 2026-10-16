@@ -1,3 +1,4 @@
+import '../operations/scene_warp_presentation_visual.dart';
 import '../models/project_manifest.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/rail_journey.dart';
@@ -62,6 +63,16 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
       return [NarrativeCommandDiagnostic(
         code: NarrativeCommandDiagnosticCode.unknownDestinationMap,
         message: 'La carte ${command.mapId} doit être connue et unique.',
+      )];
+    }
+  }
+  if (command is SceneWarpInteractiveCommand && command.presentation != null) {
+    try {
+      resolveSceneWarpPresentationVisual(command.presentation!, project);
+    } catch (_) {
+      return const [NarrativeCommandDiagnostic(
+        code: NarrativeCommandDiagnosticCode.unsupportedCommand,
+        message: 'La transition doit référencer une illustration native statique dans un projet 2D.',
       )];
     }
   }

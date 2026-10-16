@@ -5,6 +5,7 @@ import 'rail_journey.dart';
 import 'moving_platform.dart';
 import 'enums.dart';
 import 'scene_actor_route.dart';
+import 'scene_warp_presentation.dart';
 
 enum SceneInteractiveCommandKind {
   giveItem,
@@ -52,6 +53,7 @@ abstract base class SceneInteractiveCommand {
     EntityFacing? arrivalFacing,
     SceneWarpTransition transition,
     String? arrivalCollisionOwnerEntityId,
+    SceneWarpPresentation? presentation,
   }) = SceneWarpInteractiveCommand;
 
   factory SceneInteractiveCommand.wait({required int durationMs}) =
@@ -147,7 +149,12 @@ abstract base class SceneInteractiveCommand {
             : throw const FormatException('Item quantity must be an integer.'),
       ),
       SceneInteractiveCommandKind.warp => SceneWarpInteractiveCommand(
-        destinationMapId: _required(json, 'destinationMapId'),
+        presentation: json.containsKey('presentation')
+            ? json['presentation'] is Map<String, dynamic>
+                ? SceneWarpPresentation.fromJson(json['presentation'] as Map<String, dynamic>)
+                : throw const FormatException('Warp presentation must be an object.')
+            : null,
+        destinationMapId: _warpDestinationMapId(json),
         warpId: _required(json, 'warpId'),
         arrivalFacing: _optionalEnum(
           json,
@@ -766,6 +773,7 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
     required String warpId,
     this.arrivalFacing,
     this.transition = SceneWarpTransition.mapDefault,
+    this.presentation,
     String? arrivalCollisionOwnerEntityId,
   }) : destinationMapId = _normalize(destinationMapId, 'destinationMapId'),
        warpId = _normalize(warpId, 'warpId'),
@@ -777,6 +785,7 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
   final String warpId;
   final EntityFacing? arrivalFacing;
   final SceneWarpTransition transition;
+  final SceneWarpPresentation? presentation;
   final String? arrivalCollisionOwnerEntityId;
 
   @override
@@ -792,6 +801,7 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
     'warpId': warpId,
     if (arrivalFacing != null) 'arrivalFacing': arrivalFacing!.name,
     'transition': transition.name,
+    if (presentation != null) 'presentation': presentation!.toJson(),
     if (arrivalCollisionOwnerEntityId != null)
       'arrivalCollisionOwnerEntityId': arrivalCollisionOwnerEntityId,
   };
@@ -803,13 +813,23 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
       other.warpId == warpId &&
       other.arrivalFacing == arrivalFacing &&
       other.transition == transition &&
+      other.presentation == presentation &&
       other.arrivalCollisionOwnerEntityId == arrivalCollisionOwnerEntityId;
 
   @override
   int get hashCode =>
-      Object.hash(destinationMapId, warpId, arrivalFacing, transition,
+      Object.hash(destinationMapId, warpId, arrivalFacing, transition, presentation,
     arrivalCollisionOwnerEntityId,
   );
+}
+
+String _warpDestinationMapId(Map<String, dynamic> json) {
+  const fields = {'kind', 'destinationMapId', 'warpId', 'arrivalFacing',
+    'transition', 'arrivalCollisionOwnerEntityId', 'presentation'};
+  if (json.keys.any((key) => !fields.contains(key))) {
+    throw const FormatException('Unknown warp command field.');
+  }
+  return _required(json, 'destinationMapId');
 }
 
 String _arrivalCollisionOwner(Object? value) {

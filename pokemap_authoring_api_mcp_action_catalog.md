@@ -1833,6 +1833,22 @@ scene.reachability
 scene.preview
 ```
 
+La commande `scene.interactive_command.set` accepte une présentation optionnelle
+sur le Warp existant. `presentation` est un objet fermé dont `mode` vaut `fade`,
+`illustrated`, `caveEntrance` ou `caveExit`. Les modes illustrés exigent un
+`illustrationElementId` pointant vers un élément natif statique unique ; aucun
+chemin de fichier libre ne fait partie du contrat. Cette présentation est limitée
+aux projets et destinations 2D.
+
+Les durées sont des millisecondes entières bornées de 0 à 10000 ; les fondus et la
+révélation doivent être strictement positifs, et `transferDelayMs` doit être au
+moins égal à `fadeOutMs`. Le délai part du début du fondu et précède le transfert, ou le début des bandes
+pour une grotte. Le monde
+et l’image se révèlent en parallèle après le maintien d’une illustration normale.
+Les variantes de grotte utilisent quinze bandes et une récupération de teinte.
+Les références d’illustration participent à `resource.usages` et au chargement des
+atlas ; les formulaires guidés utilisent le même constructeur canonique.
+
 ### 16.3 Catalogue canonique de commandes Scene
 
 Ces 23 commandes existent déjà dans le catalogue canonique et doivent devenir

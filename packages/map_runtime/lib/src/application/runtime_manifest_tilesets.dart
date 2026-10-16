@@ -169,6 +169,14 @@ Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   for (final scene in manifest.scenes) {
     for (final node in scene.graph.nodes) {
       final payload = node.payload;
+      if (payload is SceneActionPayload) {
+        final command = payload.interactiveCommand;
+        if (command is SceneWarpInteractiveCommand &&
+            command.presentation?.illustrationElementId != null) {
+          final visual = resolveSceneWarpPresentationVisual(command.presentation!, manifest)!;
+          ids.add(visual.tilesetId);
+        }
+      }
       if (payload is! SceneYarnDialoguePayload) continue;
       for (final policy in payload.linePolicies) {
         for (final icon

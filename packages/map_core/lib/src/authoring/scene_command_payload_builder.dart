@@ -1,3 +1,4 @@
+import '../models/scene_warp_presentation.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
@@ -125,20 +126,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
           ),
         ),
       ),
-    NarrativeCommandIds.warp => SceneActionPayload.interactive(
-      SceneInteractiveCommand.warp(
-        destinationMapId: parameters['destinationMapId']!,
-        warpId: parameters['warpId']!,
-        arrivalFacing: switch (parameters['arrivalFacing']) {
-          null || '' => null,
-          final direction => EntityFacing.values.byName(direction),
-        },
-        transition: switch (parameters['transition']) {
-          null || '' => SceneWarpTransition.mapDefault,
-          final transition => SceneWarpTransition.values.byName(transition),
-        },
-      ),
-    ),
+    NarrativeCommandIds.warp => _buildWarpPayload(parameters),
     NarrativeCommandIds.waitForActorRoutes => _buildWaitForActorRoutesPayload(parameters),
     NarrativeCommandIds.wait => _buildWaitPayload(parameters),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),

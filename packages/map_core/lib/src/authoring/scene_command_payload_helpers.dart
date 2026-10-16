@@ -142,3 +142,53 @@ FieldAbility _fieldAbilityFromId(String id) {
     'Unknown canonical field ability.',
   );
 }
+
+SceneActionPayload _buildWarpPayload(Map<String, String> parameters) {
+  const fields = {'destinationMapId', 'warpId', 'arrivalFacing', 'transition',
+    'presentationMode', 'illustrationElementId', 'fadeOutMs', 'transferDelayMs',
+    'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'};
+  if (parameters.keys.any((key) => !fields.contains(key))) {
+    throw const FormatException('Unknown warp parameter.');
+  }
+  final mode = parameters['presentationMode'];
+  SceneWarpPresentation? presentation;
+  const presentationFields = {'illustrationElementId', 'fadeOutMs',
+    'transferDelayMs', 'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'};
+  if (mode == null || mode.isEmpty) {
+    if (presentationFields.any((key) => parameters[key]?.isNotEmpty == true)) {
+      throw const FormatException('Warp presentation options require a mode.');
+    }
+  } else {
+    final modeValue = SceneWarpPresentationMode.values
+        .where((value) => value.name == mode).firstOrNull;
+    if (modeValue == null) throw const FormatException('Unknown warp presentation mode.');
+    int? duration(String key) {
+      final raw = parameters[key];
+      if (raw == null || raw.isEmpty) return null;
+      final value = int.tryParse(raw);
+      if (value == null) throw FormatException('$key must be integer milliseconds.');
+      return value;
+    }
+    final rawId = parameters['illustrationElementId'];
+    presentation = SceneWarpPresentation(mode: modeValue,
+      illustrationElementId: rawId == null || rawId.isEmpty ? null : rawId,
+      fadeOutMs: duration('fadeOutMs') ?? 300,
+      transferDelayMs: duration('transferDelayMs') ?? 400,
+      revealMs: duration('revealMs') ?? 300,
+      illustrationHoldMs: duration('illustrationHoldMs'),
+      illustrationFadeMs: duration('illustrationFadeMs'));
+  }
+  return SceneActionPayload.interactive(SceneInteractiveCommand.warp(
+    destinationMapId: parameters['destinationMapId']!,
+    warpId: parameters['warpId']!,
+    arrivalFacing: switch (parameters['arrivalFacing']) {
+      null || '' => null,
+      final direction => EntityFacing.values.byName(direction),
+    },
+    transition: switch (parameters['transition']) {
+      null || '' => SceneWarpTransition.mapDefault,
+      final transition => SceneWarpTransition.values.byName(transition),
+    },
+    presentation: presentation,
+  ));
+}

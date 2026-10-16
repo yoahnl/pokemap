@@ -28,6 +28,7 @@ const _referenceFields = {
   'tileset': {'tilesetId', 'sourceTilesetIds', 'tilesetIds'},
   'element': {
     'elementId',
+    'illustrationElementId',
     'sourceElementId',
     'visualElementId',
     'capElementId',

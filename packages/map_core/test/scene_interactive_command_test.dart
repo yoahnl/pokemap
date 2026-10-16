@@ -77,6 +77,13 @@ void main() {
       'warpId',
       'arrivalFacing',
       'transition',
+      'presentationMode',
+      'illustrationElementId',
+      'fadeOutMs',
+      'transferDelayMs',
+      'revealMs',
+      'illustrationHoldMs',
+      'illustrationFadeMs',
     ]);
     final facing = parameters.singleWhere((p) => p.id == 'arrivalFacing');
     final transition = parameters.singleWhere((p) => p.id == 'transition');

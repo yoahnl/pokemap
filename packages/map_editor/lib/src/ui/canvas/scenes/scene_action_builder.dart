@@ -166,9 +166,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     _values.clear();
     for (final parameter in command.parameters) {
       final existing = widget.initialPayload?.interactiveCommand;
-      final storedValue = _is2DPresentationCommand(command.id) &&
-              existing?.kind.name == command.id
-          ? existing!.toJson()[parameter.id]
+      final data = existing?.toJson() ?? const <String, dynamic>{};
+      final presentation = data['presentation'];
+      final storedValue = existing?.kind.name == command.id &&
+          (_is2DPresentationCommand(command.id) || command.id == NarrativeCommandIds.warp)
+          ? command.id == NarrativeCommandIds.warp && presentation is Map
+              ? parameter.id == 'presentationMode' ? presentation['mode']
+                  : data[parameter.id] ?? presentation[parameter.id]
+              : data[parameter.id]
           : null;
       final initial = widget.initialParameters[parameter.id] ??
           (storedValue is String || storedValue is num ? '$storedValue' : null);
@@ -178,11 +183,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
+              (command.id == NarrativeCommandIds.warp && !parameter.required ? '' :
               ((command.id == NarrativeCommandIds.worldTone ||
                        command.id == NarrativeCommandIds.wait) &&
                       parameter.id == 'durationMs'
                   ? '0'
-                  : '1');
+                  : '1'));
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
         case NarrativeCommandParameterKind.number:
@@ -202,7 +208,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           if (initial != null &&
               (initial.trim().isNotEmpty || strictWarpOption && initial.isNotEmpty)) {
             _values[parameter.id] = strictWarpOption ? initial : initial.trim();
-          } else if (options.isNotEmpty) {
+          } else if (options.isNotEmpty && parameter.kind != NarrativeCommandParameterKind.visualElementReference) {
             _values[parameter.id] = options.first.id;
           }
       }
@@ -305,6 +311,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ];
 
   bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.warp && parameter.id == 'illustrationElementId') {
+      return _values['presentationMode'] == 'illustrated' || _values['presentationMode'] == 'caveEntrance';
+    }
     if (_command.id == NarrativeCommandIds.railJourney) {
       final operation = _values['operation'];
       if (parameter.id == 'direction') {
@@ -336,6 +345,21 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.warp) {
+      final mode = _values['presentationMode'];
+      final active = mode != null && mode.isNotEmpty;
+      if (parameter.id == 'transition') return !active;
+      if (const {'presentationMode', 'illustrationElementId', 'fadeOutMs', 'transferDelayMs',
+          'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'}.contains(parameter.id)) {
+        if (widget.project?.settings.dimension != ProjectDimension.twoD) return false;
+        if (parameter.id == 'presentationMode') return true;
+        if (!active) return false;
+        if (const {'illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs'}.contains(parameter.id)) {
+          return mode == 'illustrated' || mode == 'caveEntrance';
+        }
+        return true;
+      }
+    }
     if (_command.id == NarrativeCommandIds.railJourney) {
       final operation = _values['operation'];
       if (parameter.id == 'direction') {
@@ -436,6 +460,16 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
   }
 
+  bool get _validWarpPresentation {
+    if (_command.id != NarrativeCommandIds.warp) return true;
+    try {
+      final payload = buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values) as SceneActionPayload;
+      final command = payload.interactiveCommand! as SceneWarpInteractiveCommand;
+      if (command.presentation == null) return true;
+      return widget.project != null && diagnoseInteractiveCommand(command: command, project: widget.project!).isEmpty;
+    } catch (_) { return false; }
+  }
+
   bool get _canSubmit =>
       _command.capabilities.editor ==
           NarrativeCommandCapabilityStatus.supported &&
@@ -444,7 +478,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           widget.project?.settings.dimension == ProjectDimension.twoD) &&
       (_command.id != NarrativeCommandIds.warp ||
           !_warpReferenceLoading && _warpReferenceError == null) &&
-      _missingParameters.isEmpty;
+      _missingParameters.isEmpty && _validWarpPresentation;
 
   @override
   Widget build(BuildContext context) {
@@ -684,6 +718,19 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           if (option.parentId == speciesId) option,
       ];
     }
+    if (kind == NarrativeCommandParameterKind.visualElementReference) {
+      final project = widget.project;
+      if (project == null) return const [];
+      final options = <SceneActionPickerOption>[];
+      for (final element in project.elements) {
+        try {
+          resolveSceneWarpPresentationVisual(SceneWarpPresentation(mode: SceneWarpPresentationMode.illustrated,
+            illustrationElementId: element.id), project);
+          options.add(SceneActionPickerOption(id: element.id, label: element.name));
+        } catch (_) {}
+      }
+      return options;
+    }
     return switch (kind) {
       NarrativeCommandParameterKind.completionOutcome => const [
         SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
@@ -722,6 +769,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         const SceneActionPickerOption(id: 'north', label: 'Nord'),
         const SceneActionPickerOption(id: 'east', label: 'Est'),
         const SceneActionPickerOption(id: 'west', label: 'Ouest'),
+      ],
+      NarrativeCommandParameterKind.warpPresentationMode => const [
+        SceneActionPickerOption(id: '', label: 'Transition habituelle'),
+        SceneActionPickerOption(id: 'fade', label: 'Fondu noir'),
+        SceneActionPickerOption(id: 'illustrated', label: 'Illustration du lieu'),
+        SceneActionPickerOption(id: 'caveEntrance', label: 'Entrée de grotte'),
+        SceneActionPickerOption(id: 'caveExit', label: 'Sortie de grotte'),
       ],
       NarrativeCommandParameterKind.warpTransition => const [
         SceneActionPickerOption(
@@ -785,6 +839,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   ) {
     setState(() {
       _values[parameter.id] = value;
+      if (_command.id == NarrativeCommandIds.warp && parameter.id == 'presentationMode') {
+        if (value != 'illustrated' && value != 'caveEntrance') {
+          for (final key in ['illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs']) {
+            _values.remove(key); _textControllers[key]?.text = '';
+          }
+        }
+        if (value.isEmpty) {
+          for (final key in ['fadeOutMs', 'transferDelayMs', 'revealMs']) {
+            _values.remove(key); _textControllers[key]?.text = '';
+          }
+        }
+      }
       _applyOptionParameters(parameter.kind, value);
       if (_command.id == NarrativeCommandIds.warp &&
           parameter.id == 'destinationMapId') {
