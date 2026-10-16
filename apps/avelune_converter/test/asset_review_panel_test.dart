@@ -38,6 +38,7 @@ void main() {
     String? initialName,
     AssetCategory? initialCategory,
     bool approved = false,
+    NativeWriteLimits limits = const NativeWriteLimits(),
   }) async {
     session = AssetReviewSession.create(
       sessionId: ConverterId('source-preview-session'),
@@ -78,7 +79,7 @@ void main() {
           body: StatefulBuilder(
             builder: (context, setState) => ConverterAssetReviewPanel(
               artifacts: artifacts ?? [NativeArtifact(bytes: fixture.pngBytes)],
-              limits: const NativeWriteLimits(),
+              limits: limits,
               sourceFilePaths: {
                 proposal.sources.single.fileId: OriginalAssetFixture.imagePath,
               },
@@ -211,6 +212,50 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('aggregate image budget changes reload source preview cache', (
+    tester,
+  ) async {
+    final proposal = fixture.treeCandidate();
+    await pump(
+      tester,
+      proposal: proposal,
+      initialCategory: AssetCategory.nature,
+      limits: const NativeWriteLimits(
+        maxImagePixels: 65536,
+        maxTotalImagePixels: 65536,
+      ),
+    );
+    expect(tester.widget<StudioButton>(approve()).onPressed, isNotNull);
+    await pump(
+      tester,
+      proposal: proposal,
+      initialCategory: AssetCategory.nature,
+      limits: const NativeWriteLimits(
+        maxImagePixels: 65536,
+        maxTotalImagePixels: 65535,
+      ),
+    );
+    expect(
+      find.text(
+        'L’aperçu source est indisponible. L’approbation de ces objets est bloquée.',
+      ),
+      findsOneWidget,
+    );
+    expect(tester.widget<StudioButton>(approve()).onPressed, isNull);
+    await pump(
+      tester,
+      proposal: proposal,
+      initialCategory: AssetCategory.nature,
+      limits: const NativeWriteLimits(
+        maxImagePixels: 65536,
+        maxTotalImagePixels: 65536,
+      ),
+    );
+    expect(tester.widget<StudioButton>(approve()).onPressed, isNotNull);
+    expect(changes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('missing original pixels block approval with visible feedback', (
     tester,

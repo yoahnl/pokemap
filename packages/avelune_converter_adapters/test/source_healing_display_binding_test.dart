@@ -275,12 +275,13 @@ void main() {
     for (final limit in [
       const NativeWriteLimits(maxArtifacts: 1),
       const NativeWriteLimits(maxMutations: 8),
-      const NativeWriteLimits(maxImagePixels: 98303),
+      const NativeWriteLimits(maxTotalImagePixels: 98303),
+      const NativeWriteLimits(maxImagePixels: 49151),
       const NativeWriteLimits(maxTotalArtifactBytes: 3898),
       const NativeWriteLimits(maxArtifactBytes: 2190)
     ]) {
       test(
-          'native resource limits refuse before source image reads ${limit.maxArtifacts}/${limit.maxMutations}/${limit.maxImagePixels}/${limit.maxTotalArtifactBytes}/${limit.maxArtifactBytes}',
+          'native resource limits refuse before source image reads ${limit.maxArtifacts}/${limit.maxMutations}/${limit.maxImagePixels}/${limit.maxTotalImagePixels}/${limit.maxTotalArtifactBytes}/${limit.maxArtifactBytes}',
           () async {
         final files = _SourceFiles(source, root!);
         await expectLater(
@@ -294,6 +295,13 @@ void main() {
         expect(files.reads, isEmpty);
       });
     }
+    test('split image budget admits both healing sheets at the exact individual limit', () async {
+      final files = _SourceFiles(source, root!);
+      final result = await const SourceHealingDisplayBindingResolver().read(
+        source: source, analysis: analysis, files: files,
+        limits: const NativeWriteLimits(maxImagePixels: 49152, maxTotalImagePixels: 98304));
+      expect(result!.artifacts, hasLength(2));
+    });
     for (final path in [
       'Graphics/Characters/OBJ_FRLG_Healing1.png',
       'Graphics/Characters/OBJ_FRLG_Healing2.png'

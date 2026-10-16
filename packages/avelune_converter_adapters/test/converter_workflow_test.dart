@@ -15,6 +15,30 @@ import 'support/original_autotile_fixture.dart';
 import 'support/source_map_music_fixture.dart';
 
 void main() {
+  test('catalogue image budget keeps PNG cap and declares an exact aggregate quota', () {
+    for (final count in [1, 2, 5, 8]) {
+      final limits = sourceCatalogStudyWriteLimitsFor(count);
+      final settings = ConverterStudySettings(
+        projectName: 'Bounded image study',
+        parentPath: '/private/tmp/bounded-image-study',
+        folderName: 'study',
+        selectedSourceMapIds: [1],
+        writeLimits: limits,
+        profileAcknowledgement: SourceStudyAcknowledgement(
+          sourceSnapshotHash: Sha256Hash('0' * 64),
+          profileEvidenceHash: Sha256Hash('1' * 64),
+          humanConfirmed: true,
+          reason: 'Explicit bounded image budget',
+        ),
+      );
+      final json = settings.toJson();
+      expect(json['version'], 4);
+      final write = json['writeLimits'] as Map;
+      expect(write['maxImagePixels'], 16777216);
+      expect(write['maxTotalImagePixels'], 33554432);
+    }
+  });
+
   test(
       'catalogue study budget retains 512 for one map and admits 1024 for multiple maps',
       () {
@@ -458,6 +482,85 @@ void main() {
       await harness.close();
     }
   }, skip: !Platform.isMacOS);
+
+  test('split image budget rejects retained pixels without a library before approval', () async {
+    final harness = await _ledgeWorkflowHarness(jumpScriptsPath!);
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [98]));
+      final initial = await harness.workflow.prepareStudy();
+      expect(initial.assetLibrary, isNull);
+      final draft = initial.nativeDraft!;
+      int pixels(NativeArtifact artifact) {
+        final size = const NativePngValidator().headerDimensions(artifact.bytes);
+        return size.$1 * size.$2;
+      }
+      final pngByHandle = {
+        for (final artifact in draft.artifacts)
+          if (artifact.reference.mediaType == 'image/png') artifact.handle: artifact,
+      };
+      final retained = [...draft.artifacts, ...draft.sourceArtifacts]
+          .where((artifact) => artifact.reference.mediaType == 'image/png')
+          .fold<int>(0, (sum, artifact) => sum + pixels(artifact));
+      final imports = draft.mutations.where((mutation) =>
+          mutation.actionId == 'tileset.import_image' || mutation.actionId == 'asset.import')
+          .fold<int>(0, (sum, mutation) => sum + (pngByHandle[mutation.parameters['artifactHandle']] == null
+              ? 0 : pixels(pngByHandle[mutation.parameters['artifactHandle']]!)));
+      expect(retained - 1, greaterThanOrEqualTo(imports));
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [98],
+        writeLimits: NativeWriteLimits(maxTotalImagePixels: retained - 1)));
+      await expectLater(harness.workflow.prepareStudy(), _throwsWorkflow('native.quota.image'));
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.workflow.state.approval, isNull);
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  }, skip: jumpScriptsPath == null || !Platform.isMacOS);
+
+  test('split image budget includes derived Border PNGs before staging', () async {
+    final harness = await _ledgeWorkflowHarness(jumpScriptsPath!);
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [98]));
+      final initial = await harness.workflow.prepareStudy();
+      final draft = initial.nativeDraft!;
+      final pngByHandle = {
+        for (final artifact in draft.artifacts)
+          if (artifact.reference.mediaType == 'image/png') artifact.handle: artifact,
+      };
+      int pixels(NativeArtifact artifact) {
+        final size = const NativePngValidator().headerDimensions(artifact.bytes);
+        return size.$1 * size.$2;
+      }
+      final retained = [...draft.artifacts, ...draft.sourceArtifacts]
+          .where((artifact) => artifact.reference.mediaType == 'image/png')
+          .fold<int>(0, (sum, artifact) => sum + pixels(artifact));
+      final imports = draft.mutations.where((mutation) =>
+          mutation.actionId == 'tileset.import_image' || mutation.actionId == 'asset.import')
+          .fold<int>(0, (sum, mutation) => sum + (pngByHandle[mutation.parameters['artifactHandle']] == null
+              ? 0 : pixels(pngByHandle[mutation.parameters['artifactHandle']]!)));
+      final limit = retained > imports ? retained : imports;
+      expect(retained, greaterThan(0));
+      expect(draft.mutations.any((mutation) => mutation.actionId == 'border_layer.materialize_apply'), isTrue);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [98],
+        writeLimits: NativeWriteLimits(maxTotalImagePixels: limit)));
+      final bounded = await harness.workflow.prepareStudy();
+      expect(bounded.assetLibrary, isNull);
+      expect(bounded.canApprove, isTrue);
+      await expectLater(harness.workflow.writeApproved(harness.approve(bounded)),
+        _throwsWorkflow('native.border.quota'));
+      expect(harness.nativeStages, isEmpty);
+      expect(await Directory(harness.destination).exists(), isFalse);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  }, skip: jumpScriptsPath == null || !Platform.isMacOS);
 
   test('AC15 workflow preserves caller mutation budget before staging Borders',
       () async {

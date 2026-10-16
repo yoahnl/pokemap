@@ -231,6 +231,7 @@ void main() {
             writeLimits: const NativeWriteLimits(
               maxArtifacts: 48,
               maxMutations: 64,
+              maxTotalImagePixels: 33554432,
             ),
             profileAcknowledgement: SourceStudyAcknowledgement(
               sourceSnapshotHash: snapshot.canonicalHash,
@@ -282,6 +283,14 @@ void main() {
       expect(restored!.state.prepared!.settings.writeLimits.maxArtifacts, 48);
       expect(restored!.state.prepared!.settings.writeLimits.maxMutations, 64);
       expect(
+        restored!.state.prepared!.settings.writeLimits.maxTotalImagePixels,
+        33554432,
+      );
+      expect(
+        restored!.state.prepared!.settings.writeLimits.maxImagePixels,
+        16777216,
+      );
+      expect(
         restored!.state.prepared!.settings.normalizationLimits.maxMaps,
         16,
       );
@@ -293,6 +302,8 @@ void main() {
       final saved = (await tester.runAsync(store.list))!.single;
       expect(saved.resumeSettings.writeLimits.maxArtifacts, 48);
       expect(saved.resumeSettings.writeLimits.maxMutations, 64);
+      expect(saved.resumeSettings.writeLimits.maxTotalImagePixels, 33554432);
+      expect(saved.resumeSettings.writeLimits.maxImagePixels, 16777216);
       expect(saved.resumeSettings.normalizationLimits.maxMaps, 16);
       expect(restored!.state.approval, isNull);
       expect(restored!.state.result, isNull);
@@ -612,7 +623,7 @@ void main() {
         expect(find.text('Session enregistrée'), findsOneWidget);
         final stored = (await tester.runAsync(store.list))!.single;
         final document = stored.toJson();
-        expect(document['version'], 3);
+        expect(document['version'], 4);
         final reviewSet = document['reviewSet']! as Map;
         expect((reviewSet['segments']! as List), hasLength(2));
         await tester.pumpWidget(const SizedBox());

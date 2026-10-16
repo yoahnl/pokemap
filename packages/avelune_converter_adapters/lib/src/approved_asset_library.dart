@@ -167,7 +167,8 @@ final class ApprovedAssetLibraryComposer {
     void chargePixels(int width, int height) {
       if (height <= 0 ||
           width <= 0 ||
-          width > (limits.maxImagePixels - pixelBudget) ~/ height) {
+          width > limits.maxImagePixels ~/ height ||
+          width > (limits.maxTotalImagePixels - pixelBudget) ~/ height) {
         throw const ApprovedAssetLibraryFailure('library.quota.pixels',
             'Source and output pixels exceed the aggregate budget');
       }
@@ -337,7 +338,7 @@ final class ApprovedAssetLibraryComposer {
         }
         byteBudget += outputBound;
       }
-      if (pixelBudget > limits.maxImagePixels) {
+      if (pixelBudget > limits.maxTotalImagePixels) {
         throw const ApprovedAssetLibraryFailure('library.quota.pixels',
             'Source and output pixels exceed the budget');
       }

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
-import 'package:avelune_converter_adapters/src/source_external_warp_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
@@ -219,7 +218,8 @@ void main() {
     for (final limits in [
       const NativeWriteLimits(maxArtifacts: 1),
       const NativeWriteLimits(maxMutations: 4),
-      const NativeWriteLimits(maxImagePixels: 393215),
+      const NativeWriteLimits(maxTotalImagePixels: 393215),
+      const NativeWriteLimits(maxImagePixels: 196607),
       const NativeWriteLimits(maxArtifactBytes: 9000),
       const NativeWriteLimits(maxTotalArtifactBytes: 20048),
     ].indexed) {
@@ -232,6 +232,12 @@ void main() {
         expect(files.reads, isEmpty);
       });
     }
+    test('split image budget admits both illustrations at the exact individual limit', () async {
+      final files = _WitnessFiles(source, originalFiles);
+      final result = await resolve(files, limits: const NativeWriteLimits(
+        maxImagePixels: 196608, maxTotalImagePixels: 393216));
+      expect(result!.artifacts, hasLength(2));
+    });
     for (final name in ['dpic_powerplant', 'dpic_rocktunnel']) {
       test('rejects stale bytes for $name without changing the source',
           () async {

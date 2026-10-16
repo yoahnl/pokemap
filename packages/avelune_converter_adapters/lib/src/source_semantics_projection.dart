@@ -570,7 +570,7 @@ final class _ProjectionRun {
       final size =
           const NativePngValidator().validate(artifact.bytes, limits: limits);
       imagePixels += size.$1 * size.$2;
-      if (imagePixels > limits.maxImagePixels) {
+      if (imagePixels > limits.maxTotalImagePixels) {
         throw const NativeWriteException('semantics.quota.pixels',
             'Projection image pixels exceed their budget');
       }
@@ -616,11 +616,13 @@ final class _ProjectionRun {
               definition.layout.frameHeightTiles *
                   32 *
                   ((definition.sourceFrames.length + 7) ~/ 8));
-      imagePixels += 256 * height;
-      if (imagePixels > limits.maxImagePixels) {
+      final outputPixels = 256 * height;
+      if (outputPixels > limits.maxImagePixels ||
+          outputPixels > limits.maxTotalImagePixels - imagePixels) {
         throw const NativeWriteException('semantics.quota.pixels',
             'Padded occlusion atlas exceeds its pixel budget');
       }
+      imagePixels += outputPixels;
       final format = group.any(
               (definition) => definition.raster.format == image.Format.uint16)
           ? image.Format.uint16

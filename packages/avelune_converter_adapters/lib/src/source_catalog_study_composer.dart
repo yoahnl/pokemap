@@ -12,6 +12,7 @@ import 'source_semantic_study_composer.dart';
 const sourceCatalogStudyWriteLimits = NativeWriteLimits(
   maxArtifacts: 512,
   maxMutations: 1024,
+  maxTotalImagePixels: 33554432,
   jsonLimits: ContractLimits(maxTextCodeUnits: 8388608),
 );
 
@@ -27,6 +28,7 @@ NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
     maxTotalDraftJsonBytes:
         sourceCatalogStudyWriteLimits.maxTotalDraftJsonBytes,
     maxImagePixels: sourceCatalogStudyWriteLimits.maxImagePixels,
+    maxTotalImagePixels: sourceCatalogStudyWriteLimits.maxTotalImagePixels,
     maxMapCells: sourceCatalogStudyWriteLimits.maxMapCells,
     jsonLimits: sourceCatalogStudyWriteLimits.jsonLimits,
   );

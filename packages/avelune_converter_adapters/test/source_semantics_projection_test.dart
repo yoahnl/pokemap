@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:avelune_converter_adapters/src/source_semantics_projection.dart';
+import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/literal_tile_composer.dart';
 import 'package:avelune_converter_adapters/src/source_player_character_import.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -12,6 +13,30 @@ import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
 
 void main() {
+  for (final priority in [1, 2]) {
+    test('split image budget bounds each occlusion image before allocation priority $priority', () async {
+      final fixture = await LiteralTileFixture.create(maps: [
+        LiteralFixtureMap(id: 1, width: 5, height: 5, layers: [
+          List.filled(25, 391),
+          [for (var index = 0; index < 25; index++) index == 12 ? 384 : 0],
+          List.filled(25, 0),
+        ]),
+      ], tilesets: [LiteralFixtureTileset(id: 1, priorities: {384: priority})]);
+      final base = await const LiteralTileComposer().compose(source: fixture.source, files: fixture.files,
+        selectedSourceMapIds: [1], projectName: 'Bounded occlusion', parentPath: '/private/tmp', folderName: 'bounded-occlusion');
+      final future = const SourceSemanticsProjector().project(source: fixture.source, base: base,
+        player: _playerForFixture(fixture), files: fixture.files,
+        limits: const NativeWriteLimits(maxImagePixels: 16384, maxTotalImagePixels: 50000));
+      if (priority == 1) {
+        expect((await future).artifacts, isNotEmpty);
+      } else {
+        await expectLater(future, throwsA(isA<NativeWriteException>().having(
+          (error) => error.code, 'code', 'semantics.quota.pixels')));
+      }
+    });
+  }
+
+
   group('Source occlusion layout', () {
     test('preserves exact tall-player depth and original pixel position', () {
       final layout = SourceOcclusionLayout.resolve(

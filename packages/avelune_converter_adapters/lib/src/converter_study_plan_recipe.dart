@@ -80,7 +80,7 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 4) {
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 5) {
         throw _invalid();
       }
       final source = _object(json['sourceSelection']);
@@ -91,7 +91,7 @@ final class ConverterStudyPlanRecipe {
       final normalization = _object(settings['normalizationLimits']);
       final write = _object(settings['writeLimits']);
       final contract = _object(write['jsonLimits']);
-      if (settings['version'] != 3) throw _invalid();
+      if (settings['version'] != 4) throw _invalid();
       final writeLimits = NativeWriteLimits(
           maxArtifacts: _int(write['maxArtifacts']),
           maxMutations: _int(write['maxMutations']),
@@ -99,6 +99,7 @@ final class ConverterStudyPlanRecipe {
           maxTotalArtifactBytes: _int(write['maxTotalArtifactBytes']),
           maxTotalDraftJsonBytes: _int(write['maxTotalDraftJsonBytes']),
           maxImagePixels: _int(write['maxImagePixels']),
+          maxTotalImagePixels: _int(write['maxTotalImagePixels']),
           maxMapCells: _int(write['maxMapCells']),
           jsonLimits: ContractLimits(
               maxDepth: _int(contract['maxDepth']),
@@ -234,7 +235,7 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 4,
+        'version': 5,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {

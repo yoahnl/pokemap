@@ -219,7 +219,7 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 3,
+        'version': 4,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
@@ -1857,6 +1857,7 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits limits) => {
       'maxTotalArtifactBytes': limits.maxTotalArtifactBytes,
       'maxTotalDraftJsonBytes': limits.maxTotalDraftJsonBytes,
       'maxImagePixels': limits.maxImagePixels,
+      'maxTotalImagePixels': limits.maxTotalImagePixels,
       'maxMapCells': limits.maxMapCells,
       'jsonLimits': {
         'maxDepth': limits.jsonLimits.maxDepth,
@@ -2051,7 +2052,11 @@ Sha256Hash _reviewProposalGenerationHash(
 NativeProjectDraft? _mergeAssetLibrary(
     NativeProjectDraft? literal, ApprovedAssetLibraryComposition? library,
     {required NativeWriteLimits limits}) {
-  if (literal == null || library == null) return literal;
+  if (literal == null) return null;
+  if (library == null) {
+    literal.validateResourceBudget(limits: limits);
+    return literal;
+  }
   if (!library.canExport) return null;
   final draft = NativeProjectDraft(
       source: literal.source,

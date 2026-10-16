@@ -547,9 +547,49 @@ void main() {
     await harness.expectSourceUnchanged();
   });
 
+  test(
+      'aggregate image budget rejects literal baseline before approval',
+      () async {
+    await expectLater(
+        harness.prepare(
+            limits: const NativeWriteLimits(
+                maxImagePixels: 65536, maxTotalImagePixels: 65535)),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((error) => error.code, 'code', 'literal.quota.image')));
+    expect(harness.workflow.state.prepared, isNull);
+    expect(harness.workflow.state.approval, isNull);
+    expect(harness.stages, isEmpty);
+    expect(await harness.output.list().toList(), isEmpty);
+    await harness.expectSourceUnchanged();
+  });
+
+  test('aggregate image budget permits combined retained images at exact total',
+      () async {
+    const limits =
+        NativeWriteLimits(maxImagePixels: 65536, maxTotalImagePixels: 137216);
+    final initial = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, limits: limits);
+    final session = harness.groupMap(harness.seed(initial), 1);
+    final tree = session.activeCandidates
+        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
+    final prepared = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects,
+        limits: limits,
+        session: harness.decide(session, tree));
+    expect(prepared.canApprove, isTrue);
+    expect(prepared.nativeDraft!.sourceArtifacts, isNotEmpty);
+    expect(prepared.settings.writeLimits.maxImagePixels, 65536);
+    expect(prepared.settings.writeLimits.maxTotalImagePixels, 137216);
+    expect(() => prepared.nativeDraft!.validateResourceBudget(limits: limits),
+        returnsNormally);
+    expect(harness.stages, isEmpty);
+    expect(await harness.output.list().toList(), isEmpty);
+    await harness.expectSourceUnchanged();
+  });
+
   test('combined literal and witness pixels are refused before approval',
       () async {
-    const limits = NativeWriteLimits(maxImagePixels: 71680);
+    const limits = NativeWriteLimits(maxTotalImagePixels: 71680);
     final prepared = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects, limits: limits);
     final session = harness.groupMap(harness.seed(prepared), 1);

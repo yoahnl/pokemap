@@ -698,7 +698,7 @@ final class _LiteralCompositionRun {
         continue;
       }
       pixels += size.$1 * size.$2;
-      if (pixels > limits.maxImagePixels) {
+      if (pixels > limits.maxTotalImagePixels) {
         throw const NativeWriteException('literal.quota.image',
             'Aggregate logical source image pixel budget exceeded');
       }
@@ -794,7 +794,7 @@ final class _LiteralCompositionRun {
         .fold<int>(0, (sum, artifact) => sum + artifact.bytes.length);
     for (final slot in slots) {
       cancellation?.check();
-      final remainingPixels = limits.maxImagePixels - pixels;
+      final remainingPixels = limits.maxTotalImagePixels - pixels;
       final remainingBytes = limits.maxTotalArtifactBytes - logicalBytes;
       if (remainingPixels <= 0 ||
           remainingBytes <= 0 ||
@@ -814,7 +814,10 @@ final class _LiteralCompositionRun {
                 maxMutations: limits.maxMutations,
                 maxArtifactBytes: limits.maxArtifactBytes,
                 maxTotalArtifactBytes: remainingBytes,
-                maxImagePixels: remainingPixels,
+                maxImagePixels: limits.maxImagePixels < remainingPixels
+                    ? limits.maxImagePixels
+                    : remainingPixels,
+                maxTotalImagePixels: remainingPixels,
                 maxMapCells: limits.maxMapCells,
                 jsonLimits: limits.jsonLimits),
             cancellation: cancellation);
@@ -824,7 +827,7 @@ final class _LiteralCompositionRun {
             .singleWhere((entry) => entry.fileId == composition.sourceFileId);
         logicalBytes +=
             sourceEntry.byteLength + composition.artifact.bytes.length;
-        if (pixels > limits.maxImagePixels ||
+        if (pixels > limits.maxTotalImagePixels ||
             logicalBytes > limits.maxTotalArtifactBytes) {
           throw const NativeWriteException('literal.quota.autotiles',
               'Aggregate source and generated atlas budget exceeded');

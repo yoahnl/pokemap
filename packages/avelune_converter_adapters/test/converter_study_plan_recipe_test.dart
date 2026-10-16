@@ -133,6 +133,28 @@ void main() {
     };
   }
 
+  Map<String, Object?> changedImageTotal(Object? value,
+      {bool remove = false, int? version}) {
+    final body =
+        jsonDecode(connectionRecipe(2).encode()) as Map<String, dynamic>;
+    body.remove('canonicalHash');
+    if (version != null) body['version'] = version;
+    final settings = body['settings'] as Map<String, dynamic>;
+    final write = settings['writeLimits'] as Map<String, dynamic>;
+    if (remove) {
+      write.remove('maxTotalImagePixels');
+    } else {
+      write['maxTotalImagePixels'] = value;
+    }
+    body['settingsHash'] = canonicalHashOf(settings).value;
+    return {
+      ...body,
+      'canonicalHash':
+          canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+              .value
+    };
+  }
+
   ConverterStudyPlanRecipe pairRecipe(ConverterAssetReviewSet reviewSet) {
     final settings = ConverterStudySettings(
         projectName: 'Original segmented recipe',
@@ -174,7 +196,7 @@ void main() {
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 3);
+    expect((recipe.toJson()['settings'] as Map)['version'], 4);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -297,6 +319,67 @@ void main() {
     expect(await output.list().toList(), isEmpty);
   }, skip: !Platform.isMacOS);
 
+  test('aggregate image budget recipe preserves explicit boundaries and hashes',
+      () {
+    for (final total in [1, 16777216, 33554432]) {
+      final recipe = connectionRecipe(2,
+          writeLimits: NativeWriteLimits(maxTotalImagePixels: total));
+      final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+      expect(decoded.settings.writeLimits.maxTotalImagePixels, total);
+      expect(decoded.settings.writeLimits.maxImagePixels, 16777216);
+      expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
+      expect(decoded.canonicalHash, recipe.canonicalHash);
+      expect((recipe.toJson()['settings'] as Map)['version'], 4);
+    }
+    final low = connectionRecipe(2,
+        writeLimits: const NativeWriteLimits(maxTotalImagePixels: 16777216));
+    final high = connectionRecipe(2,
+        writeLimits: const NativeWriteLimits(maxTotalImagePixels: 33554432));
+    expect(low.settings.canonicalHash, isNot(high.settings.canonicalHash));
+    expect(low.canonicalHash, isNot(high.canonicalHash));
+  });
+
+  test('aggregate image budget recipe refuses missing required total', () {
+    expect(
+        () => ConverterStudyPlanRecipe.fromJson(
+            changedImageTotal(null, remove: true)),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+  });
+
+  test('aggregate image budget recipe refuses resigned prior version 4', () {
+    expect(
+        () => ConverterStudyPlanRecipe.fromJson(
+            changedImageTotal(16777216, version: 4)),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+  });
+
+  for (final value in [null, true, 0, -1, 33554433, 2.5, '2']) {
+    test('aggregate image budget recipe refuses resigned invalid total $value',
+        () {
+      expect(
+          () => ConverterStudyPlanRecipe.fromJson(changedImageTotal(value)),
+          throwsA(isA<ConverterWorkflowFailure>().having(
+              (error) => error.code, 'code', 'workflow.recipe.invalid')));
+    });
+  }
+
+  test('aggregate image budget survives fresh restore without approval',
+      () async {
+    final prepared = await prepare(
+        writeLimits: const NativeWriteLimits(maxTotalImagePixels: 33554432));
+    final recipe = ConverterStudyPlanRecipe.decode(
+        original.exportStudyPlanRecipe().encode());
+    final fresh = await restored.restoreStudyPlanRecipe(recipe);
+    expect(restored.state.settings!.writeLimits.maxTotalImagePixels, 33554432);
+    expect(fresh.settings.writeLimits.maxImagePixels, 16777216);
+    expect(fresh.preparationHash, prepared.preparationHash);
+    expect(fresh.nativeDraft!.canonicalHash, recipe.nativeDraftHash);
+    expect(restored.state.approval, isNull);
+    expect(await output.list().toList(), isEmpty);
+  }, skip: !Platform.isMacOS);
+
   test('draft JSON budget recipe roundtrip preserves the exact custom limit',
       () {
     for (final budget in [1, 67108864, 268435456]) {
@@ -328,8 +411,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('image binding recipe emits breaking version 4', () {
-    expect(connectionRecipe(2).toJson()['version'], 4);
+  test('aggregate image budget recipe emits breaking version 5', () {
+    expect(connectionRecipe(2).toJson()['version'], 5);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

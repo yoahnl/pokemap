@@ -74,6 +74,7 @@ class _ConverterAssetReviewPanelState extends State<ConverterAssetReviewPanel> {
             .toList()
           ..sort(),
     'maxPixels': panel.limits.maxImagePixels,
+    'maxTotalPixels': panel.limits.maxTotalImagePixels,
     'maxArtifactBytes': panel.limits.maxArtifactBytes,
   }).value;
 
@@ -280,7 +281,7 @@ class _ConverterAssetReviewPanelState extends State<ConverterAssetReviewPanel> {
           limits: widget.limits,
         );
         pixels += dimensions.$1 * dimensions.$2;
-        if (pixels > widget.limits.maxImagePixels ||
+        if (pixels > widget.limits.maxTotalImagePixels ||
             dimensions.$1 != entry.value.pixelWidth ||
             dimensions.$2 != entry.value.pixelHeight) {
           throw const FormatException(

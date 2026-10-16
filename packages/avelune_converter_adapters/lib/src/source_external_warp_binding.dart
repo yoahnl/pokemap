@@ -162,7 +162,8 @@ final class SourceExternalWarpBindingResolver {
     final mutationCount = names.isEmpty ? 0 : names.length * 2 + 1;
     if (names.length > limits.maxArtifacts ||
         mutationCount > limits.maxMutations ||
-        names.length * 512 * 384 > limits.maxImagePixels) {
+        (names.isNotEmpty && 512 * 384 > limits.maxImagePixels) ||
+        names.length * 512 * 384 > limits.maxTotalImagePixels) {
       throw const NativeWriteException('events.external_warp.quota',
           'Transition artwork exceeds the native resource budget.');
     }

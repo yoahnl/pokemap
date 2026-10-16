@@ -365,7 +365,8 @@ final class LiteralAutotileComposer {
     }
     final frameCount = width ~/ frameWidth;
     final outputPixels = frameCount * 256 * 192;
-    if (outputPixels > limits.maxImagePixels - width * height) {
+    if (outputPixels > limits.maxImagePixels ||
+        outputPixels > limits.maxTotalImagePixels - width * height) {
       throw LiteralAutotileFailure('autotile.quota.pixels',
           'Source and generated autotile pixels exceed the aggregate budget',
           locator: reference.locator);

@@ -193,13 +193,82 @@ void main() {
     expect(await file.readAsString(), old);
   });
 
-  test('image binding store emits breaking version 3', () {
+  test('aggregate image budget store emits breaking version 4', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 3);
+    expect(stored.toJson()['version'], 4);
   });
+
+  test('aggregate image budget resume survives exact disk reopen', () async {
+    final custom = LocalReviewResumeSettings(
+        sourceRootPath: source.path,
+        destinationParentPath: destination.path,
+        projectName: settings.projectName,
+        folderName: settings.folderName,
+        writeLimits: const NativeWriteLimits(maxTotalImagePixels: 33554432));
+    final created = await store().create(
+        reviewSet: _reviewSet(_session(), writeLimits: custom.writeLimits),
+        resumeSettings: custom);
+    final loaded = (await store().load(created.reviewSet.sessionId))!;
+    expect(loaded.resumeSettings.writeLimits.maxTotalImagePixels, 33554432);
+    expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
+    expect(loaded.resumeSettings.toJson(), custom.toJson());
+    expect(loaded.canonicalHash, created.canonicalHash);
+    expect(loaded.toJson()['version'], 4);
+  });
+
+  test('aggregate image budget resume boundaries alter envelope hashes', () {
+    StoredReviewSession envelope(int total) => StoredReviewSession(
+        reviewSet: _reviewSet(_session()),
+        storedRevision: 1,
+        resumeSettings: LocalReviewResumeSettings(
+            sourceRootPath: source.path,
+            destinationParentPath: destination.path,
+            projectName: settings.projectName,
+            folderName: settings.folderName,
+            writeLimits: NativeWriteLimits(maxTotalImagePixels: total)));
+    for (final total in [1, 16777216, 33554432]) {
+      final row = envelope(total);
+      expect(
+          LocalReviewResumeSettings.fromJson(row.resumeSettings.toJson())
+              .writeLimits
+              .maxTotalImagePixels,
+          total);
+    }
+    expect(envelope(16777216).canonicalHash,
+        isNot(envelope(33554432).canonicalHash));
+  });
+
+  test('aggregate image budget resume refuses missing required total', () {
+    expect(
+        () => LocalReviewResumeSettings.fromJson(changedResumeBudget(
+            'writeLimits', 'maxTotalImagePixels', null,
+            remove: true)),
+        _error('session.store.document'));
+  });
+
+  test('aggregate image budget store rejects prior version without rewriting',
+      () async {
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
+    final file = await _sessionFile(root);
+    final prior = jsonEncode({...created.toJson(), 'version': 3});
+    await file.writeAsString(prior);
+    await expectLater(store().load(created.reviewSet.sessionId),
+        _error('session.store.document'));
+    expect(await file.readAsString(), prior);
+  });
+
+  for (final total in [null, true, 0, -1, 33554433, 2.5, '2']) {
+    test('aggregate image budget resume refuses invalid total $total', () {
+      expect(
+          () => LocalReviewResumeSettings.fromJson(
+              changedResumeBudget('writeLimits', 'maxTotalImagePixels', total)),
+          _error('session.store.document'));
+    });
+  }
 
   test('draft JSON budget resume survives exact disk reopen', () async {
     final custom = LocalReviewResumeSettings(

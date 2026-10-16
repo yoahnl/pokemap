@@ -31,6 +31,7 @@ final class NativeWriteLimits {
     this.maxTotalArtifactBytes = 67108864,
     this.maxTotalDraftJsonBytes = 67108864,
     this.maxImagePixels = 16777216,
+    this.maxTotalImagePixels = 16777216,
     this.maxMapCells = 1048576,
     this.jsonLimits = const ContractLimits(),
   });
@@ -41,6 +42,7 @@ final class NativeWriteLimits {
   final int maxTotalArtifactBytes;
   final int maxTotalDraftJsonBytes;
   final int maxImagePixels;
+  final int maxTotalImagePixels;
   final int maxMapCells;
   final ContractLimits jsonLimits;
 
@@ -54,6 +56,7 @@ final class NativeWriteLimits {
       (maxTotalArtifactBytes, 268435456),
       (maxTotalDraftJsonBytes, 268435456),
       (maxImagePixels, 16777216),
+      (maxTotalImagePixels, 33554432),
       (maxMapCells, 4194304),
       (jsonLimits.maxDepth, 64),
       (jsonLimits.maxNodes, 4000000),
@@ -1017,7 +1020,7 @@ final class _PreparedNativeDraft {
     if (artifact.reference.mediaType == 'image/png') {
       final size = _pngHeaderDimensions(artifact.bytes, limits);
       totalPixels += size.$1 * size.$2;
-      if (totalPixels > limits.maxImagePixels) {
+      if (totalPixels > limits.maxTotalImagePixels) {
         throw const NativeWriteException('native.quota.image',
             'Aggregate retained image pixel budget exceeded');
       }
@@ -1055,7 +1058,7 @@ final class _PreparedNativeDraft {
       throw const NativeWriteException('native.quota.artifact',
           'Aggregate logical import byte budget exceeded');
     }
-    if (importPixels > limits.maxImagePixels) {
+    if (importPixels > limits.maxTotalImagePixels) {
       throw const NativeWriteException('native.quota.image',
           'Aggregate logical image import pixel budget exceeded');
     }
@@ -2052,7 +2055,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   if (retained.length + borderSnapshots.length > limits.maxArtifacts ||
       retained.fold<int>(0, (sum, a) => sum + a.bytes.length) + derivedBytes > limits.maxTotalArtifactBytes ||
-      retainedPixels + derivedPixels > limits.maxImagePixels) {
+      retainedPixels + derivedPixels > limits.maxTotalImagePixels) {
     throw const NativeWriteException('native.border.quota', 'Derived canonical Border snapshots require their explicit cumulative artifact budget');
   }
   ProjectValidator.validate(manifest, maps: maps.values);

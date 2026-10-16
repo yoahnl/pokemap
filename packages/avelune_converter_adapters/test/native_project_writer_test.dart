@@ -153,13 +153,18 @@ void main() {
           compositionEvidence: fixture.draft.compositionEvidence,
           limits: limits);
 
-  test('native writing reuses certified snapshots and verifies with a cold session', () async {
+  test(
+      'native writing reuses certified snapshots and verifies with a cold session',
+      () async {
     final profiles = <ProjectSnapshotLoadProfile>[];
     final approval = approveNativeFixtureDraft(fixture.draft);
     int? coldStart;
-    final receipt = await NativeProjectWriter(snapshotProfileSink: profiles.add,
+    final receipt = await NativeProjectWriter(
+        snapshotProfileSink: profiles.add,
         checkpoint: (stage, _, __) {
-          if (stage == NativeWriteStage.afterMutations) coldStart = profiles.length;
+          if (stage == NativeWriteStage.afterMutations) {
+            coldStart = profiles.length;
+          }
         }).write(approval.plan, approval.context, fixture.draft);
     expect(receipt.verified, isTrue);
     expect(profiles.where((profile) => profile.cacheHit), isNotEmpty);
@@ -168,17 +173,27 @@ void main() {
     await sourceUnchanged();
   });
 
-  test('source checkpoint import actions cannot bootstrap a fresh project', () async {
+  test('source checkpoint import actions cannot bootstrap a fresh project',
+      () async {
     final draft = fixture.draft;
-    final changed = NativeProjectDraft(source: draft.source,
-        projectName: draft.projectName, parentPath: draft.parentPath,
-        folderName: draft.folderName, mapIds: draft.mapIds,
-        artifacts: draft.artifacts, sourceArtifacts: draft.sourceArtifacts,
+    final changed = NativeProjectDraft(
+        source: draft.source,
+        projectName: draft.projectName,
+        parentPath: draft.parentPath,
+        folderName: draft.folderName,
+        mapIds: draft.mapIds,
+        artifacts: draft.artifacts,
+        sourceArtifacts: draft.sourceArtifacts,
         compositionEvidence: draft.compositionEvidence,
-        mutations: [...draft.mutations, NativeMutation(
-          operationId: ConverterId('unsupported-source-checkpoint'), actionId: 'game_save.load',
-          sourceEntityIds: draft.mutations.first.sourceEntityIds,
-          targetEntityIds: draft.mutations.first.targetEntityIds, parameters: {})]);
+        mutations: [
+          ...draft.mutations,
+          NativeMutation(
+              operationId: ConverterId('unsupported-source-checkpoint'),
+              actionId: 'game_save.load',
+              sourceEntityIds: draft.mutations.first.sourceEntityIds,
+              targetEntityIds: draft.mutations.first.targetEntityIds,
+              parameters: {})
+        ]);
     await refuseBeforeStage(changed);
   });
 
@@ -465,7 +480,7 @@ void main() {
     final (_, _, draft, approval) = await assetLibraryFixture();
     await refuseBeforeStage(draft,
         approval: approval,
-        limits: const NativeWriteLimits(maxImagePixels: 90000));
+        limits: const NativeWriteLimits(maxTotalImagePixels: 90000));
     await refuseBeforeStage(draft,
         approval: approval,
         limits: NativeWriteLimits(
@@ -1306,6 +1321,79 @@ void main() {
         artifacts: [...fixture.draft.artifacts, extra]));
   });
 
+  test('aggregate image budget charges active and witness before staging',
+      () async {
+    final (_, _, draft, approval) =
+        await assetLibraryFixture(mode: AssetOutputMode.sharedAtlas);
+    expect(
+        draft.artifacts
+            .where((a) => a.reference.mediaType == 'image/png')
+            .single
+            .rawSha256,
+        draft.sourceArtifacts.single.rawSha256);
+    await refuseBeforeStage(draft,
+        approval: approval,
+        limits: const NativeWriteLimits(
+            maxImagePixels: 65536, maxTotalImagePixels: 131071),
+        failureMatcher: isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.image'));
+  });
+
+  test('aggregate image budget exact total publishes and reopens both roles',
+      () async {
+    final (_, _, draft, approval) =
+        await assetLibraryFixture(mode: AssetOutputMode.sharedAtlas);
+    final receipt = await const NativeProjectWriter().write(
+        approval.plan, approval.context, draft,
+        limits: const NativeWriteLimits(
+            maxImagePixels: 65536, maxTotalImagePixels: 131072));
+    final reopened = await _NativeProject.open(receipt.projectPath);
+    try {
+      final snapshot = await reopened.load();
+      expect(snapshot.loadDiagnostics, isEmpty);
+      expect(receipt.verified, isTrue);
+      expect(snapshot.manifest.elements, isNotEmpty);
+    } finally {
+      await reopened.close();
+    }
+    await sourceUnchanged();
+  });
+
+  test('aggregate image budget keeps single PNG geometry bounded', () async {
+    await refuseBeforeStage(fixture.draft,
+        limits: const NativeWriteLimits(
+            maxImagePixels: 2047, maxTotalImagePixels: 33554432),
+        failureMatcher: isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.image'));
+  });
+
+  test('aggregate image budget charges the same image imported twice',
+      () async {
+    final firstImport = fixture.draft.mutations.first;
+    final secondImport = copyNativeFixtureMutation(firstImport,
+        operationId: ConverterId('fixture-total-pixels-second-import'),
+        targetEntityIds: [
+          ConverterId('fixture_second'),
+          ConverterId('image_fixture_second')
+        ],
+        parameters: {
+          ...firstImport.parameters,
+          'tilesetId': 'fixture_second'
+        });
+    final draft = copyNativeFixtureDraft(fixture.draft, mutations: [
+      firstImport,
+      secondImport,
+      ...fixture.draft.mutations.skip(1)
+    ]);
+    await refuseBeforeStage(draft,
+        limits: const NativeWriteLimits(
+            maxImagePixels: 2048, maxTotalImagePixels: 4095),
+        failureMatcher: isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.image')
+            .having((error) => error.message, 'message',
+                contains('logical image import')));
+  });
+
   test('aggregate pixel quota precedes decoding of a malformed second PNG',
       () async {
     final malformed = NativeArtifact(
@@ -1344,7 +1432,8 @@ void main() {
     await expectLater(
         NativeProjectWriter(creation: creation).write(
             approval.plan, approval.context, draft,
-            limits: const NativeWriteLimits(maxImagePixels: 2048)),
+            limits: const NativeWriteLimits(
+                maxImagePixels: 2048, maxTotalImagePixels: 2048)),
         throwsA(isA<NativeWriteException>()
             .having((error) => error.code, 'code', 'native.quota.image')));
     expect(creation.requests, isEmpty);
@@ -1420,6 +1509,7 @@ void main() {
     const NativeWriteLimits(maxArtifactBytes: 8),
     const NativeWriteLimits(maxTotalArtifactBytes: 8),
     const NativeWriteLimits(maxImagePixels: 2047),
+    const NativeWriteLimits(maxTotalImagePixels: 2047),
     const NativeWriteLimits(maxMapCells: 8),
   ]) {
     test(
@@ -1428,6 +1518,7 @@ void main() {
           limit.maxArtifactBytes,
           limit.maxTotalArtifactBytes,
           limit.maxImagePixels,
+          limit.maxTotalImagePixels,
           limit.maxMapCells
         ]}', () async {
       await refuseBeforeStage(fixture.draft, limits: limit);

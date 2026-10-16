@@ -161,7 +161,8 @@ final class SourceHealingDisplayBindingResolver {
     }
     if (limits.maxArtifacts < 2 ||
         limits.maxMutations < 9 ||
-        limits.maxImagePixels < 2 * 256 * 192) {
+        limits.maxImagePixels < 256 * 192 ||
+        limits.maxTotalImagePixels < 2 * 256 * 192) {
       throw const NativeWriteException('events.healing_display.quota',
           'Healing display native assets exceed the configured budget.');
     }

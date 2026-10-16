@@ -16,6 +16,16 @@ import 'support/original_asset_fixture.dart';
 import 'support/literal_tile_fixture.dart';
 
 void main() {
+  test('split image budget admits source and output under separate image and total caps', () async {
+    final fixture = await OriginalAssetFixture.create();
+    final result = await _compose(fixture, [_approved(fixture.treeCandidate())],
+      limits: const NativeWriteLimits(maxImagePixels: 65536, maxTotalImagePixels: 71680));
+    expect(result.canExport, isTrue);
+    expect(result.sourceArtifacts, hasLength(1));
+    expect(result.artifacts.where((artifact) => artifact.reference.mediaType == 'image/png'), hasLength(1));
+  });
+
+
   test('approved cardinal terrain publishes an exact native paintable preset',
       () async {
     final fixture =
@@ -330,7 +340,7 @@ void main() {
             ],
             outputMode: AssetOutputMode.sharedAtlas,
             files: files,
-            limits: const NativeWriteLimits(maxImagePixels: 65536)),
+            limits: const NativeWriteLimits(maxTotalImagePixels: 65536)),
         throwsA(isA<ApprovedAssetLibraryFailure>()
             .having((f) => f.code, 'code', 'library.quota.pixels')));
     expect(files.readCount, 0);
@@ -609,7 +619,7 @@ void main() {
               approvedCandidateHashes: kind == 'entries' ? {} : null,
               decisions: kind == 'entries' ? _decisions(fixture, []) : null,
               limits: kind == 'pixels'
-                  ? const NativeWriteLimits(maxImagePixels: 65536)
+                  ? const NativeWriteLimits(maxTotalImagePixels: 65536)
                   : kind == 'output'
                       ? NativeWriteLimits(
                           maxArtifactBytes: fixture.pngBytes.length + 1)

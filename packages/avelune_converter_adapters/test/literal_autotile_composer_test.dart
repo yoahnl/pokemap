@@ -87,6 +87,28 @@ void main() {
         throwsA(isA<LiteralAutotileFailure>().having(
             (value) => value.code, 'code', 'autotile.profile.snapshot')));
   }, skip: !Platform.isMacOS);
+  test('split image budget admits a bounded autotile PNG below its separate total', () async {
+    final fixture = OriginalAutotileFixture.simple();
+    final source = await _Source.open(fixture.pngBytes);
+    addTearDown(source.close);
+    final result = await _compose(source, limits: const NativeWriteLimits(
+      maxImagePixels: 147456,
+      maxTotalImagePixels: 150528,
+    ));
+    expect(result.pixelWidth * result.pixelHeight, 147456);
+    expect(result.sourcePixelWidth * result.sourcePixelHeight, 3072);
+  }, skip: !Platform.isMacOS);
+
+  test('split image budget refuses a generated PNG above the individual cap', () async {
+    final source = await _Source.open(OriginalAutotileFixture.simple().pngBytes);
+    addTearDown(source.close);
+    await expectLater(_compose(source, limits: const NativeWriteLimits(
+      maxImagePixels: 147455,
+      maxTotalImagePixels: 150528,
+    )), throwsA(isA<LiteralAutotileFailure>().having(
+      (value) => value.code, 'code', 'autotile.quota.pixels')));
+  }, skip: !Platform.isMacOS);
+
   test('AUTO-04 generated plus source pixels checked before allocation',
       () async {
     final fixture = OriginalAutotileFixture.simple();
@@ -94,7 +116,7 @@ void main() {
     addTearDown(source.close);
     await expectLater(
         _compose(source,
-            limits: const NativeWriteLimits(maxImagePixels: 147456)),
+            limits: const NativeWriteLimits(maxTotalImagePixels: 147456)),
         throwsA(isA<LiteralAutotileFailure>()
             .having((value) => value.code, 'code', 'autotile.quota.pixels')));
   }, skip: !Platform.isMacOS);

@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/original_autotile_fixture.dart';
 import 'support/native_writer_fixture.dart';
 
 Future<LiteralTileComposition> _compose(LiteralTileFixture fixture,
@@ -123,6 +124,34 @@ List<int> _paintOriginalAtlasPixel(MapData map, image.Image atlas, int cell,
 }
 
 void main() {
+  test('split image budget admits two logical atlases below the separate total', () async {
+    final fixture = await LiteralTileFixture.create(
+      maps: [LiteralFixtureMap(id: 1), LiteralFixtureMap(id: 8, tilesetId: 2)],
+      tilesets: [LiteralFixtureTileset(id: 1), LiteralFixtureTileset(id: 2, png: literalFixtureAtlas(alternate: true))],
+    );
+    final result = await _compose(fixture, selected: [1, 8], limits: const NativeWriteLimits(
+      maxImagePixels: 16384, maxTotalImagePixels: 32768));
+    expect(result.canWrite, isTrue);
+    expect(result.nativeMaps, hasLength(2));
+  });
+
+  test('split image budget forwards separate remaining autotile and image caps', () async {
+    final fixture = await LiteralTileFixture.create(
+      maps: [LiteralFixtureMap(id: 1, layers: [[48, 384, 391], [0, 0, 0], [0, 0, 0]])],
+      tilesets: [LiteralFixtureTileset(id: 1, autotileNames: ['OriginalWater'])],
+      autotilePngs: {'OriginalWater': OriginalAutotileFixture.simple().pngBytes},
+    );
+    final result = await const LiteralTileComposer().compose(
+      source: fixture.source, files: fixture.files, selectedSourceMapIds: [1],
+      projectName: 'Bounded autotile', parentPath: '/private/tmp', folderName: 'bounded-autotile',
+      allowFirstFrameAutotiles: true,
+      limits: const NativeWriteLimits(maxImagePixels: 147456, maxTotalImagePixels: 166912),
+    );
+    expect(result.canWrite, isTrue, reason: result.diagnostics.map((entry) => entry.code).join(','));
+    expect(result.draft!.artifacts.where((artifact) => artifact.reference.mediaType == 'image/png'), hasLength(2));
+  });
+
+
   test(
       'real macOS scanner raster inventory composes through snapshot-bound source reads',
       () async {

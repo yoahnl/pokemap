@@ -1032,6 +1032,7 @@ void main() {
           maxTotalArtifactBytes: limits.maxTotalArtifactBytes,
           maxTotalDraftJsonBytes: limits.maxTotalDraftJsonBytes,
           maxImagePixels: limits.maxImagePixels,
+          maxTotalImagePixels: limits.maxTotalImagePixels,
           maxMapCells: limits.maxMapCells,
           jsonLimits: const ContractLimits());
       await expectLater(
