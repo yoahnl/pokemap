@@ -45,6 +45,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onEnvironments,
     this.onBorders,
     required this.onMap,
+    this.onRegionalMap,
     required this.onExport,
     required this.onPokemon,
     required this.onOpenElement,
@@ -83,7 +84,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<String>? onSearch;
   final Widget? resourceContent;
-  final VoidCallback? onStory, onHome, onEnvironments, onBorders;
+  final VoidCallback? onStory, onHome, onEnvironments, onBorders, onRegionalMap;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final ValueChanged<MapRect>? onZoneDrawn;
@@ -256,6 +257,8 @@ class MapWorkspaceLayout extends StatelessWidget {
               onHome?.call();
             case 'map':
               onMap();
+            case 'regionalMap':
+              onRegionalMap?.call();
             case 'resources':
               onResources();
             case 'story':

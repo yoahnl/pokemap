@@ -44,9 +44,11 @@ class RuntimePlayerRegionMap extends StatefulWidget {
     this.controlProfile,
     this.hardwareGamepadEnabled = true,
     this.imageProvider,
+    this.onPointSelected,
   });
 
   final RuntimePlayerPauseDetailSnapshot detail;
+  final ValueChanged<String?>? onPointSelected;
   final RuntimePlayerRegionMapNavigation? navigation;
   final PlayerControlProfile? controlProfile;
   final bool hardwareGamepadEnabled;
@@ -223,6 +225,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
       _overlap = [];
       if (point.isLocated) _navigation.center = Offset(point.u!, point.v!);
     });
+    widget.onPointSelected?.call(point.id);
     if (revealRow) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -249,6 +252,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
       _showInfo = false;
       _overlap = [];
     });
+    widget.onPointSelected?.call(_navigation.selectedPointId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (_listScroll.hasClients) _listScroll.jumpTo(0);

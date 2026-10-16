@@ -34,6 +34,8 @@ void main() {
     expect(region.label, 'Le train de 17h42');
     expect(region.points.first.label, 'Hanazuki');
     expect(region.points.first.status, RuntimePlayerMapPointStatus.current);
+    expect(region.points.first.destination, ProjectRegionDestination(mapId: 'village', spawnId: 'arrival'));
+    expect(region.points.last.destination, isNull);
     expect((region.points.first.u, region.points.first.v), (.25, .5));
     expect(region.points.map((point) => point.id), ['town', 'unknown']);
     final unknown = region.points.last;
@@ -131,7 +133,7 @@ ProjectRegionalMapCatalog _catalog({String? imagePath}) =>
             u: .25,
             v: .5,
             mapIds: const ['pension', 'village', 'station'],
-            description: 'Le départ.'),
+            description: 'Le départ.', destination: ProjectRegionDestination(mapId: 'village', spawnId: 'arrival')),
         ProjectRegionPointOfInterest(
             id: 'unknown',
             regionId: 'train',

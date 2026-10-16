@@ -33,6 +33,7 @@ class StudioPrimaryNavigation extends StatelessWidget {
     final items = [
       ('Accueil', Icons.home_outlined, 'home'),
       ('Carte', Icons.map_outlined, 'map'),
+      ('Carte régionale', Icons.public, 'regionalMap'),
       ('Ressources', Icons.grid_view_outlined, 'resources'),
       ('Histoire', Icons.menu_book_outlined, 'story'),
       ('Pokémon', Icons.catching_pokemon_outlined, 'pokemon'),

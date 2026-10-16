@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../features/regional_map/data/local_regional_map_adapter.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import '../platform/files/native_project_creation_picker.dart';
 
@@ -135,6 +136,8 @@ class StudioBootstrap extends StatelessWidget {
         return port;
       }),
       gameExportPickerProvider.overrideWithValue(pickNativeGameExportFile),
+      regionalMapPortProvider.overrideWith((ref, session) => LocalRegionalMapAdapter(
+        session: session, mapAdapter: ref.watch(mapWorkspacePortProvider(session)) as LocalMapWorkspaceAdapter)),
       narrativePortProvider.overrideWith(
         (ref, session) => LocalNarrativeAdapter(
           session: session,

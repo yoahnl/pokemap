@@ -493,33 +493,39 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   Future<PlayerServiceRuntimeResult> openRegionalMap({
     required OpenRegionalMapService request,
     required RuntimePlayerPauseDetailSnapshot detail,
+    Future<({FlyActionTicket? ticket, FlyBlockReason? reason})> Function(
+      String pointId,
+    )?
+    prepareFly,
+    Future<bool> Function(FlyActionTicket ticket)? applyFly,
   }) async {
     if (_disposed) {
-      return PlayerServiceRuntimeResult.failed(StateError('The player-service controller is disposed.'));
+      return PlayerServiceRuntimeResult.failed(
+        StateError('The player-service controller is disposed.'),
+      );
     }
     if (_active) return const PlayerServiceRuntimeResult.busy();
     final reason = _worldRequestUnavailableReason(request, _currentGameState());
     if (reason != null) return PlayerServiceRuntimeResult.unavailable(reason);
     if (detail.section != RuntimePlayerPauseSection.map ||
         (detail.regionalMap?.regions.isEmpty ?? true)) {
-      return const PlayerServiceRuntimeResult.unavailable('Aucune carte régionale n’est disponible.');
+      return const PlayerServiceRuntimeResult.unavailable(
+        'Aucune carte régionale n’est disponible.',
+      );
     }
-    final session = _ContextualRegionalMapSession();
+    final session = _ContextualRegionalMapSession(
+      request: request,
+      detail: detail,
+      prepareFly: prepareFly,
+      applyFly: applyFly,
+    );
     _regionalMapSession = session;
     _active = true;
     var inputLocked = false;
     try {
       _setInputLocked(true);
       inputLocked = true;
-      _publishWorldService(RuntimeWorldServiceSnapshot(
-          revision: ++_regionalMapRevision,
-          request: request,
-          stage: RuntimeWorldServiceStage.active,
-          content: RuntimeRegionalMapServiceContent(detail: detail),
-          actions: const [
-            RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.close),
-            RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.cancel),
-          ]));
+      _publishRegionalMap(session);
       return await session.result.future;
     } catch (error) {
       return PlayerServiceRuntimeResult.failed(error);
@@ -531,6 +537,172 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
   }
 
+  void _publishRegionalMap(_ContextualRegionalMapSession session) {
+    _publishWorldService(
+      RuntimeWorldServiceSnapshot(
+        revision: ++_regionalMapRevision,
+        request: session.request,
+        stage: session.applying
+            ? RuntimeWorldServiceStage.applying
+            : RuntimeWorldServiceStage.active,
+        content: RuntimeRegionalMapServiceContent(
+          detail: session.detail,
+          selectedPointId: session.ticket?.evaluation.pointId,
+          message: session.message,
+          applying: session.applying,
+        ),
+        actions: [
+          if (!session.applying) ...[
+            const RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.close,
+            ),
+            const RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.cancel,
+            ),
+            if (session.prepareFly != null && session.applyFly != null)
+              const RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.select,
+              ),
+            if (session.ticket != null)
+              const RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.confirm,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _flyUnavailableMessage(FlyBlockReason? reason) => switch (reason) {
+    FlyBlockReason.indoor =>
+      'Vol est indisponible à l’intérieur et dans les grottes.',
+    FlyBlockReason.notVisited => 'Visitez ce lieu avant de pouvoir y voler.',
+    FlyBlockReason.missingMove =>
+      'Un Pokémon en état de combattre doit connaître Vol.',
+    FlyBlockReason.locked =>
+      'Vol n’est pas encore débloqué dans votre progression.',
+    FlyBlockReason.unsupportedMap =>
+      'Vol est disponible uniquement sur les cartes 2D natives.',
+    FlyBlockReason.invalidSpawn =>
+      'Le point d’arrivée de ce lieu est indisponible.',
+    FlyBlockReason.invalidDestination ||
+    null => 'Cette destination est indisponible pour Vol.',
+  };
+
+  Future<RuntimeWorldServiceCommandResult> _dispatchRegionalMap(
+    _ContextualRegionalMapSession session,
+    RuntimeWorldServiceCommand command,
+  ) async {
+    if (session.result.isCompleted || session.applying) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+      );
+    }
+    if (command.action == RuntimeWorldServiceAction.select) {
+      final id = command.targetId;
+      final point = session.detail.regionalMap!.regions
+          .expand((region) => region.points)
+          .where((point) => point.id == id)
+          .firstOrNull;
+      if (id != null && point == null) {
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+        );
+      }
+      session.ticket = null;
+      session.message = null;
+      _publishRegionalMap(session);
+      if (id == null) {
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.accepted,
+        );
+      }
+      final revision = _worldServiceSnapshot!.revision;
+      FlyActionTicket? ticket;
+      FlyBlockReason? reason;
+      try {
+        final preparation = await session.prepareFly!(id);
+        ticket = preparation.ticket;
+        reason = preparation.reason;
+      } on Object {
+        session.message = 'Cette destination est indisponible pour Vol.';
+      }
+      if (_disposed ||
+          !identical(_regionalMapSession, session) ||
+          session.result.isCompleted ||
+          _worldServiceSnapshot?.revision != revision) {
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.stale,
+        );
+      }
+      session.ticket = ticket;
+      session.message = ticket == null
+          ? _flyUnavailableMessage(reason)
+          : 'Voler vers ${point!.label} ?';
+      _publishRegionalMap(session);
+      return RuntimeWorldServiceCommandResult(
+        status: ticket == null
+            ? RuntimeWorldServiceCommandStatus.unavailable
+            : RuntimeWorldServiceCommandStatus.accepted,
+        safeMessage: ticket == null ? session.message : null,
+      );
+    }
+    if (command.action == RuntimeWorldServiceAction.cancel &&
+        session.ticket != null) {
+      session.ticket = null;
+      session.message = null;
+      _publishRegionalMap(session);
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.accepted,
+      );
+    }
+    if (command.action == RuntimeWorldServiceAction.confirm &&
+        session.ticket != null) {
+      final ticket = session.ticket!;
+      session.ticket = null;
+      session.applying = true;
+      _publishRegionalMap(session);
+      var applied = false;
+      var failed = false;
+      try {
+        applied = await session.applyFly!(ticket);
+      } on Object {
+        failed = true;
+      }
+      if (_disposed ||
+          !identical(_regionalMapSession, session) ||
+          session.result.isCompleted) {
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.cancelled,
+        );
+      }
+      if (applied) {
+        session.result.complete(
+          PlayerServiceRuntimeResult.completed(_currentGameState()),
+        );
+      } else {
+        session.applying = false;
+        session.message = failed
+            ? 'Le transfert a échoué et sa restauration ne peut pas être confirmée. Relancez la partie.'
+            : 'Le Vol a été annulé. La partie a été conservée.';
+        _publishRegionalMap(session);
+      }
+      return RuntimeWorldServiceCommandResult(
+        status: applied
+            ? RuntimeWorldServiceCommandStatus.accepted
+            : RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: applied ? null : session.message,
+      );
+    }
+    session.result.complete(
+      command.action == RuntimeWorldServiceAction.cancel
+          ? const PlayerServiceRuntimeResult.cancelled()
+          : PlayerServiceRuntimeResult.completed(_currentGameState()),
+    );
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
   Future<PlayerServiceRuntimeResult> openPc({
     OpenPcService? request,
   }) {
@@ -1361,15 +1533,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final pc = _pcSession;
     if (pc != null) return _dispatchPc(pc, command);
     final regionalMap = _regionalMapSession;
-    if (regionalMap != null) {
-      if (regionalMap.result.isCompleted) {
-        return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.stale);
-      }
-      regionalMap.result.complete(command.action == RuntimeWorldServiceAction.cancel
-          ? const PlayerServiceRuntimeResult.cancelled()
-          : PlayerServiceRuntimeResult.completed(_currentGameState()));
-      return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.accepted);
-    }
+    if (regionalMap != null) return _dispatchRegionalMap(regionalMap, command);
     final trade = _partyTradeSession;
     if (trade != null) return _dispatchPartyTrade(trade, command);
     final text = _textSession;
@@ -2468,6 +2632,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
 }
 
 final class _ContextualRegionalMapSession {
+  _ContextualRegionalMapSession({required this.request, required this.detail, this.prepareFly, this.applyFly});
+  final OpenRegionalMapService request;
+  final RuntimePlayerPauseDetailSnapshot detail;
+  final Future<({FlyActionTicket? ticket, FlyBlockReason? reason})> Function(String pointId)? prepareFly;
+  final Future<bool> Function(FlyActionTicket ticket)? applyFly;
+  FlyActionTicket? ticket;
+  String? message;
+  bool applying = false;
   final result = Completer<PlayerServiceRuntimeResult>();
 }
 

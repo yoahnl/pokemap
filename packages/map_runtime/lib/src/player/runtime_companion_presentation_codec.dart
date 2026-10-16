@@ -443,6 +443,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         'u': value.u,
         'v': value.v,
         'description': value.description,
+        'destination': value.destination?.toJson(),
         'thumbnailFilePath':
             value.thumbnailFilePath,
       };
@@ -457,6 +458,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         v: data['v'] == null ? null : (data['v'] as num).toDouble(),
         description:
             data['description'] == null ? null : data['description'] as String,
+        destination: data['destination'] == null ? null : ProjectRegionDestination.fromJson(_map(data['destination'])),
         thumbnailFilePath: data['thumbnailFilePath'] == null
             ? null
             : data['thumbnailFilePath'] as String,

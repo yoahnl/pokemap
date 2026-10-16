@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
 import '../../theme/studio_tokens.dart';
 
 class StudioHomeTools extends StatelessWidget {
@@ -65,6 +66,8 @@ class StudioHomeTools extends StatelessWidget {
     ];
     return StudioPanel(
       title: 'Vos outils de création',
+      actions: [StudioButton(key: const ValueKey('home-tool-regionalMap'), label: 'Carte régionale',
+        icon: Icons.public, secondary: true, onPressed: busy ? null : () => onDestination('regionalMap'))],
       compact: true,
       children: [
         Text(

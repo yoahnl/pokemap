@@ -94,6 +94,8 @@ class LocalNarrativeCatalogTransaction {
       if (changes.isNotEmpty) {
         final confirmation =
             const {
+              'regionalMap.region.delete',
+              'regionalMap.poi.delete',
               'storyline.delete',
               'event_v2.delete',
               'cinematic.delete',

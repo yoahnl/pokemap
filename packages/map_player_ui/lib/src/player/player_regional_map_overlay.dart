@@ -74,6 +74,18 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: PlayerSpacing.sm),
+                    if (content is RuntimeRegionalMapServiceContent && content.message != null) ...[
+                      Text(content.message!, textAlign: TextAlign.center),
+                      if (content.selectedPointId != null)
+                        PlayerActionButton(
+                          key: const ValueKey('regional-map-fly-confirm'),
+                          label: 'Voler', icon: Icons.flight,
+                          onPressed: snapshot.isActionEnabled(RuntimeWorldServiceAction.confirm)
+                            ? () => _emit(RuntimeWorldServiceAction.confirm) : null,
+                        ),
+                      if (content.applying) const LinearProgressIndicator(),
+                      const SizedBox(height: PlayerSpacing.sm),
+                    ],
                     Expanded(
                       child: PlayerMenuThemeScope(
                         role: ProjectPresentationSurfaceRole.map,
@@ -86,6 +98,9 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
                               )
                             : RuntimePlayerRegionMap(
                                 detail: detail,
+                                onPointSelected: snapshot.isActionEnabled(RuntimeWorldServiceAction.select)
+                                  ? (id) => onCommand(RuntimeWorldServiceCommand(action: RuntimeWorldServiceAction.select,
+                                      snapshotRevision: snapshot.revision, targetId: id)) : null,
                                 controlProfile: controlProfile,
                                 hardwareGamepadEnabled: hardwareGamepadEnabled,
                               ),

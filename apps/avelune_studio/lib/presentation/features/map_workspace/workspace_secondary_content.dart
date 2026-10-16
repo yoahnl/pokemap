@@ -33,6 +33,7 @@ import 'map_workspace_visuals.dart';
 
 enum WorkspaceSpace {
   map,
+  regionalMap,
   resources,
   story,
   pokemon,

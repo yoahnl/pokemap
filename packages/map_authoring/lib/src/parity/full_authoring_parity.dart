@@ -778,7 +778,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_regional_map_flow_test.dart',
       AuthoringTransport.cli: 'test/tooling/jsonl_regional_map_flow_test.dart',
       AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/regional_map_authoring_test.dart',
+          '../../apps/avelune_studio/test/infrastructure/local_regional_map_adapter_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/regional_map_server.test.ts',
     };

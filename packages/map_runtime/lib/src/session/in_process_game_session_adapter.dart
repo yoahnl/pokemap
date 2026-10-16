@@ -50,6 +50,7 @@ final class InProcessGameSessionAdapter
         RuntimePlayerCompanionMenuPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort,
+        RuntimeRegionalMapPort,
         RuntimeOverworldInteractionPort {
   InProcessGameSessionAdapter({
     required InProcessGameSessionRuntimeFactory runtimeFactory,
@@ -156,6 +157,11 @@ final class InProcessGameSessionAdapter
   @override
   Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
       _worldServiceSnapshots.stream;
+
+  @override
+  Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap() => _runtime is RuntimeRegionalMapPort
+      ? (_runtime as RuntimeRegionalMapPort).openPlayerRegionalMap()
+      : Future.value(null);
 
   @override
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(

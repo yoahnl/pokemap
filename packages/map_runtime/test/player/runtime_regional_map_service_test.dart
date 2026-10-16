@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 void main() {
   const initial = GameState(
@@ -23,6 +24,51 @@ void main() {
                     v: .2)
               ])
           ]));
+
+  test('selection requires fresh confirmation and cancellation leaves state untouched', () async {
+    var state = initial;
+    var transfers = 0;
+    final map = MapData(id: 'center', name: 'Center', size: const GridSize(width: 20, height: 20));
+    final ticket = FlyActionTicket(
+      evaluation: const CanUseFly(pointId: 'route10', partyIndex: 0,
+        arrival: FlyArrival(mapId: 'route10', entityId: 'spawn', position: GridPos(x: 3, y: 4), facing: EntityFacing.west)),
+      gameState: state, sourceMap: map, targetMap: map,
+      catalog: ProjectRegionalMapCatalog(), issuedAtStateRevision: 1);
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (_) async => fail('Fly uses the normal explicit save flow.'),
+      setInputLocked: (_) {}, loadRecoveryCaps: (_) async => throw StateError('No healing'),
+    );
+    addTearDown(controller.dispose);
+    final open = controller.openRegionalMap(
+      request: const OpenRegionalMapService(interactionId: 'player.map'), detail: detail(),
+      prepareFly: (id) async => (ticket: id == 'route10' ? ticket : null, reason: FlyBlockReason.notVisited),
+      applyFly: (_) async {
+        transfers++;
+        state = state.copyWith(currentMapId: 'route10', playerPosition: const GridPos(x: 3, y: 4),
+          playerFacing: EntityFacing.west, playerMovementMode: MovementMode.walk);
+        return true;
+      });
+    Future<RuntimeWorldServiceCommandResult> command(RuntimeWorldServiceAction action, {String? id, int? revision}) =>
+      controller.dispatchWorldService(RuntimeWorldServiceCommand(action: action,
+        targetId: id, snapshotRevision: revision ?? controller.worldServiceSnapshot!.revision));
+    expect((await command(RuntimeWorldServiceAction.select, id: 'missing')).status, RuntimeWorldServiceCommandStatus.unavailable);
+    expect((await command(RuntimeWorldServiceAction.select, id: 'route10')).status, RuntimeWorldServiceCommandStatus.accepted);
+    final firstConfirmation = controller.worldServiceSnapshot!.revision;
+    expect((controller.worldServiceSnapshot!.content as RuntimeRegionalMapServiceContent).selectedPointId, 'route10');
+    expect((await command(RuntimeWorldServiceAction.cancel)).status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(transfers, 0);
+    expect(state, initial);
+    expect((await command(RuntimeWorldServiceAction.confirm, revision: firstConfirmation)).status, RuntimeWorldServiceCommandStatus.stale);
+    await command(RuntimeWorldServiceAction.select, id: 'route10');
+    final confirmation = controller.worldServiceSnapshot!.revision;
+    expect((await command(RuntimeWorldServiceAction.confirm)).status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(transfers, 1);
+    expect(state.currentMapId, 'route10');
+    expect((await open).status, PlayerServiceRuntimeStatus.completed);
+    expect((await controller.dispatchWorldService(RuntimeWorldServiceCommand(action: RuntimeWorldServiceAction.confirm,
+      snapshotRevision: confirmation))).status, isNot(RuntimeWorldServiceCommandStatus.accepted));
+  });
 
   test('awaits map close without save, healing, travel or game-state mutation',
       () async {

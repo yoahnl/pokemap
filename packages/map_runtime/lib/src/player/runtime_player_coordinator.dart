@@ -379,6 +379,10 @@ final class RuntimePlayerCoordinator {
             'La surface joueur a changé avant l’arrivée de cette action.',
       );
     }
+    if (_snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap) {
+      return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.unavailable,
+        safeMessage: 'Fermez la carte régionale avant de reprendre une action du menu.');
+    }
     if (!_snapshot.isActionEnabled(command.action)) {
       return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
@@ -622,13 +626,22 @@ final class RuntimePlayerCoordinator {
           status: RuntimePlayerCommandStatus.accepted,
         );
       case RuntimePlayerAction.openMap:
-        _publishPause(
-          RuntimePlayerPauseSection.map,
-          logicalSelectionId: 'pause.map',
-        );
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.accepted,
-        );
+        final mapSessionId = _sessions.snapshot.descriptor?.sessionId;
+        final opening = await _sessions.openPlayerRegionalMap();
+        if (opening != null) {
+          unawaited(opening.completed.then((closing) => _serialize(() async {
+            if (_disposed || !_canPublishPauseData(mapSessionId)) return;
+            if (closing == RuntimeRegionalMapClosing.travelled) {
+              await _sessions.resume();
+              _publishPlaying();
+            } else {
+              _publishPause(RuntimePlayerPauseSection.root);
+            }
+          })));
+          return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
+        }
+        _publishPause(RuntimePlayerPauseSection.map, logicalSelectionId: 'pause.map');
+        return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
       case RuntimePlayerAction.openProfile:
         _publishPause(
           RuntimePlayerPauseSection.profile,

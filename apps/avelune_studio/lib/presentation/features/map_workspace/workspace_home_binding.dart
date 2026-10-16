@@ -85,6 +85,8 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
       case 'createMap':
         _openMap();
         unawaited(_createMap());
+      case 'regionalMap':
+        _show(WorkspaceSpace.regionalMap);
       case 'resources':
         _openResources();
       case 'terrains':

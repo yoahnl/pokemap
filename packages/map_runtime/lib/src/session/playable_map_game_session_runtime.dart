@@ -52,6 +52,7 @@ final class PlayableMapGameSessionRuntime
         RuntimePlayerCompanionMenuPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort,
+        RuntimeRegionalMapPort,
         RuntimeOverworldInteractionPort {
   /// Loaders partagés pour la vie de la session : les caps de soin/Sac
   /// relisaient sinon les fichiers espèces/attaques à chaque ouverture.
@@ -154,6 +155,12 @@ final class PlayableMapGameSessionRuntime
       _interactionsEnabled &&
       !_completionEmitted &&
       (_game?.dispatchOverworldInteraction(request) ?? false);
+
+  @override
+  Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap() async {
+    if (_disposed || _completionEmitted) return null;
+    return _requireGame().openPlayerRegionalMap();
+  }
 
   @override
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(

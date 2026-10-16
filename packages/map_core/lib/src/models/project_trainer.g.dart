@@ -146,6 +146,7 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.rockSmash: 'rock_smash',
   FieldAbility.waterfall: 'waterfall',
   FieldAbility.dive: 'dive',
+  FieldAbility.fly: 'fly',
 };
 
 const _$ProjectTrainerTemplateKindEnumMap = {

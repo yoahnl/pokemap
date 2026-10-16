@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../../../features/regional_map/application/regional_map_controller.dart';
+import '../../../features/regional_map/domain/regional_map_port.dart';
+import '../regional_map/regional_map_page.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
@@ -114,6 +117,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.pokemonPngPicker,
     this.imagePicker,
     this.narrativePort,
+    this.regionalMapPort,
     this.scenePort,
     this.storyPort,
     this.eventPort,
@@ -136,6 +140,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final PokemonCombatPort? pokemonCombatPort;
   final Future<String?> Function()? pokemonJsonPicker, pokemonPngPicker;
   final NarrativePort? narrativePort;
+  final RegionalMapPort? regionalMapPort;
   final ScenePort? scenePort;
   final StoryPort? storyPort;
   final EventPort? eventPort;
@@ -167,6 +172,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   ResourceNavigation? _resources;
   PokemonWorkspaceController? _pokemon;
   NarrativeWorkspaceController? _narrative;
+  RegionalMapController? _regionalMap;
   SceneWorkspaceController? _scenes;
   StoryWorkspaceController? _stories;
   EventWorkspaceController? _events;
@@ -231,6 +237,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       dialogues: () => _dialogues,
       cinematics: () => _cinematics,
       presentations: () => _presentations,
+      regionalMap: () => _regionalMap,
       world: () => _world,
       worldInputsValid: () => _worldView.invalidFields.isEmpty,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,

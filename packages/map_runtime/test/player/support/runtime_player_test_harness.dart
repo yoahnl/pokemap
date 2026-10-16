@@ -13,6 +13,7 @@ final class RuntimePlayerTestHarness {
     GameSessionSavePolicy savePolicy = const GameSessionSavePolicy(),
     RuntimePlayerLoadSlot? defaultSaveSlot,
     Set<ProjectPauseActionId>? defaultVisiblePauseActions,
+    Set<String> grantedCapabilities = const {'battle.v1'},
     ProjectNewGameConfig? newGameConfig,
     List<SceneAsset> scenes = const <SceneAsset>[],
     PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
@@ -20,6 +21,7 @@ final class RuntimePlayerTestHarness {
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
           defaultVisiblePauseActions: defaultVisiblePauseActions,
+          grantedCapabilities: grantedCapabilities,
         ),
         preferences = MemoryPlayerPreferencesGateway(),
         exit = MemoryRuntimeExternalExit() {
@@ -90,10 +92,12 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
     this.descriptorGate,
     this.descriptorError,
     Set<ProjectPauseActionId>? defaultVisiblePauseActions,
+    this.grantedCapabilities = const {'battle.v1'},
   }) : defaultVisiblePauseActions = Set<ProjectPauseActionId>.unmodifiable(
           defaultVisiblePauseActions ?? ProjectPauseActionId.values,
         );
 
+  final Set<String> grantedCapabilities;
   final Future<void>? descriptorGate;
   final Object? descriptorError;
   @override
@@ -143,7 +147,7 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
       installedVersionHandle: 'installed-runtime-player-test',
       saveReadHandle: saveReadHandle,
       runtimeApiVersion: '1.0.0',
-      grantedCapabilities: const <String>{'battle.v1'},
+      grantedCapabilities: grantedCapabilities,
       locale: 'fr',
       accessibility: const GameSessionAccessibilityOptions(),
       initialGameState: initialGameState,
@@ -365,8 +369,14 @@ final class FakeRuntimeSessionAdapter
         RuntimePlayerPauseDataPort,
         RuntimePlayerCompanionMenuPort,
         RuntimePlayerPauseCommandPort,
-        RuntimeWorldServicePort {
+        RuntimeWorldServicePort,
+        RuntimeRegionalMapPort {
   FakeRuntimeSessionAdapter(this.sessionId);
+
+  Future<RuntimeRegionalMapOpening?> Function()? regionalMapOpener;
+  Future<RuntimeWorldServiceCommandResult> Function(RuntimeWorldServiceCommand command)? worldServiceDispatcher;
+  @override
+  Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap() => regionalMapOpener?.call() ?? Future.value(null);
 
   final String sessionId;
   final calls = <String>[];
@@ -486,6 +496,7 @@ final class FakeRuntimeSessionAdapter
     RuntimeWorldServiceCommand command,
   ) async {
     worldServiceCommands.add(command);
+    if (worldServiceDispatcher case final dispatch?) return dispatch(command);
     return const RuntimeWorldServiceCommandResult(
       status: RuntimeWorldServiceCommandStatus.accepted,
     );

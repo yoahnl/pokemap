@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 enum RuntimePlayerMapPointStatus { current, discovered, unknown }
 
 final class RuntimePlayerRegionMapSnapshot {
@@ -33,6 +35,7 @@ final class RuntimePlayerMapPointSnapshot {
     this.v,
     this.description,
     this.thumbnailFilePath,
+    this.destination,
   });
 
   final String id;
@@ -42,6 +45,7 @@ final class RuntimePlayerMapPointSnapshot {
   final double? v;
   final String? description;
   final String? thumbnailFilePath;
+  final ProjectRegionDestination? destination;
 
   bool get isLocated =>
       u != null &&

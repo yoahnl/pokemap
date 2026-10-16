@@ -60,6 +60,10 @@ extension _WorkspaceCloseActions on WorkspaceActions {
       }
     }
     if (!await controller.saveAll() || !_validateWorldInputs()) return false;
+    if (regionalMap?.call() case final owner? when owner.dirty) {
+      await owner.load();
+      if (owner.error != null || !await owner.saveAll()) return false;
+    }
     if (hasPendingChanges) {
       controller.error =
           'Des documents ont encore changé pendant l’enregistrement. '

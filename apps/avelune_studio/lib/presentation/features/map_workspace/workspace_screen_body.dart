@@ -133,6 +133,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onEnvironments: _openEnvironments,
                           onBorders: _openBorders,
                           onMap: _openMap,
+                          onRegionalMap: () => _show(WorkspaceSpace.regionalMap),
                           onExport: _openGameExport,
                           onPokemon: () {
                             _show(WorkspaceSpace.pokemon);
@@ -153,7 +154,9 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onOpenElement: (element) => _openResources(element),
                           onEditElement: (element) =>
                               _openResources(element, true),
-                          resourceContent: _space == WorkspaceSpace.gameExport
+                          resourceContent: _space == WorkspaceSpace.regionalMap && _regionalMap != null
+                              ? RegionalMapPage(controller: _regionalMap!)
+                              : _space == WorkspaceSpace.gameExport
                               ? _gameExportPage()
                               : _space == WorkspaceSpace.pokemon
                               ? PokemonWorkspacePage(

@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  flyDestinationValidationTests();
   test(
     'regional values preserve equality and hashes across independent decoding',
     () {
@@ -413,3 +414,26 @@ ProjectRegionPointOfInterest point({double u = 0.25}) =>
       v: 0.75,
       mapIds: const ['town'],
     );
+
+
+void flyDestinationValidationTests() {
+  test('Fly destinations require a unique explicit native 2D spawn inside the map', () {
+    const spawn = MapEntity(id: 'arrival', kind: MapEntityKind.spawn, pos: GridPos(x: 2, y: 2),
+      spawn: MapEntitySpawnData(spawnKey: 'gate'));
+    const map = MapData(id: 'town', name: 'Town', size: GridSize(width: 5, height: 5), entities: [spawn]);
+    List<ProjectRegionalMapDiagnostic> validate(MapData target, String? spawnId) => validateProjectRegionalMap(
+      catalog: ProjectRegionalMapCatalog(regions: [ProjectRegionDefinition(id: 'r', label: 'R')],
+        pointsOfInterest: [ProjectRegionPointOfInterest(id: 'town', regionId: 'r', label: 'Town', u: .5, v: .5,
+          mapIds: ['town'], destination: ProjectRegionDestination(mapId: 'town', spawnId: spawnId))]),
+      projectMapIds: ['town'], maps: [target]);
+    expect(validate(map, 'arrival'), isEmpty);
+    expect(validate(map, 'gate'), isEmpty);
+    expect(validate(map, null).single.code, 'regional_map.destination_spawn_missing');
+    expect(validate(map.copyWith(entities: [spawn, spawn.copyWith(id: 'other', spawn: const MapEntitySpawnData(spawnKey: 'arrival'))]), 'arrival').single.code,
+      'regional_map.destination_spawn_ambiguous');
+    expect(validate(map.copyWith(entities: [spawn.copyWith(pos: const GridPos(x: 5, y: 2))]), 'arrival').single.code,
+      'regional_map.destination_spawn_outside_map');
+    expect(validate(map.copyWith(version: ProjectVersion.v9), 'arrival').single.code,
+      'regional_map.destination_map_unsupported');
+  });
+}

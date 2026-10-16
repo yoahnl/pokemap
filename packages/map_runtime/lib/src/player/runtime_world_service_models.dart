@@ -87,9 +87,12 @@ final class OpenRegionalMapService extends RuntimeWorldServiceRequest {
 }
 
 final class RuntimeRegionalMapServiceContent {
-  const RuntimeRegionalMapServiceContent({required this.detail});
+  const RuntimeRegionalMapServiceContent({required this.detail, this.selectedPointId, this.message, this.applying = false});
 
   final RuntimePlayerPauseDetailSnapshot detail;
+  final String? selectedPointId;
+  final String? message;
+  final bool applying;
 }
 
 final class OpenPartyTradeService extends RuntimeWorldServiceRequest {
@@ -552,4 +555,16 @@ abstract interface class RuntimeWorldServicePort {
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
     RuntimeWorldServiceCommand command,
   );
+}
+
+
+enum RuntimeRegionalMapClosing { closed, cancelled, travelled, failed }
+
+final class RuntimeRegionalMapOpening {
+  const RuntimeRegionalMapOpening(this.completed);
+  final Future<RuntimeRegionalMapClosing> completed;
+}
+
+abstract interface class RuntimeRegionalMapPort {
+  Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap();
 }

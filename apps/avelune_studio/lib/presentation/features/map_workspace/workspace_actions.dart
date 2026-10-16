@@ -1,3 +1,4 @@
+import '../../../features/regional_map/application/regional_map_controller.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ class WorkspaceActions {
     this.dialogues,
     this.cinematics,
     this.presentations,
+    this.regionalMap,
     this.world,
     this.worldInputsValid,
     this.publishedCinematicContext,
@@ -49,6 +51,7 @@ class WorkspaceActions {
   final DialogueWorkspaceController? Function()? dialogues;
   final CinematicWorkspaceController? Function()? cinematics;
   final PresentationWorkspaceController? Function()? presentations;
+  final RegionalMapController? Function()? regionalMap;
   final WorldWorkspaceController? Function()? world;
   final bool Function()? worldInputsValid;
   final bool Function()? publishedCinematicContext;
@@ -61,6 +64,7 @@ class WorkspaceActions {
       dialogues?.call()?.busy == true ||
       cinematics?.call()?.busy == true ||
       presentations?.call()?.busy == true ||
+      regionalMap?.call()?.busy == true ||
       events?.call()?.busy == true ||
       scenes?.call()?.busy == true ||
       resources()?.busy == true ||
@@ -77,6 +81,7 @@ class WorkspaceActions {
       dialogues?.call()?.dirty == true ||
       cinematics?.call()?.dirty == true ||
       presentations?.call()?.dirty == true ||
+      regionalMap?.call()?.dirty == true ||
       events?.call()?.dirty == true ||
       scenes?.call()?.dirty == true ||
       world?.call()?.hasRuleDraft == true ||
@@ -95,6 +100,7 @@ class WorkspaceActions {
       dialogues?.call()?.error,
       cinematics?.call()?.error,
       presentations?.call()?.error,
+      regionalMap?.call()?.error,
       world?.call()?.error,
     ];
     for (final failure in failures) {
@@ -107,10 +113,33 @@ class WorkspaceActions {
   /// own mechanisms. It publishes nothing.
   Future<bool> flushEditors() async =>
       _flushDialogueEdit() &&
+      _validateRegionalInputs() &&
       await _flushEventEdits() &&
       _validateWorldInputs();
 
+  bool _validateRegionalInputs() {
+    final owner = regionalMap?.call();
+    if (owner == null || !owner.dirty) return true;
+    final problem = owner.validate(
+      maps: {
+        ...?owner.source?.maps,
+        for (final document in controller.documents.values)
+          document.current.id: document.current,
+      },
+      checkMapDrafts: false,
+    );
+    if (problem == null) return true;
+    owner.error = problem;
+    changed();
+    return false;
+  }
+
   Future<void> test() async {
+    if (regionalMap?.call()?.dirty == true) {
+      regionalMap!.call()!.error = 'Enregistrez la carte régionale avant de tester le jeu.';
+      changed();
+      return;
+    }
     if (presentations?.call()?.flushEdits?.call() == false) return;
     if (presentations?.call()?.dirty == true) {
       presentations!.call()!.error =

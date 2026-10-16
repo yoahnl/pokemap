@@ -27,7 +27,12 @@ test("MENU-I packaged MCP authors and queries regional map semantics", { timeout
   const projectRoot = join(temporaryRoot, "project");
   await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
   const manifest = record(JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")));
-  const mapId = String(record((manifest.maps as unknown[])[0]).id);
+  const mapEntry = record((manifest.maps as unknown[])[0]);
+  const mapId = String(mapEntry.id);
+  const targetMap = record(JSON.parse(await readFile(join(projectRoot, String(mapEntry.relativePath)), "utf8")));
+  const spawn = (targetMap.entities as JsonRecord[]).find((entity) => entity.kind === "spawn");
+  assert.ok(spawn);
+  const destination = { mapId, spawnId: String(spawn.id) };
   const transport = new StdioClientTransport({ command: process.execPath, args: [resolve(process.cwd(), "dist/src/index.js"), "--root", projectRoot], cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "pokemap-regional-map-test", version: "1.0.0" });
   try {
@@ -49,11 +54,12 @@ test("MENU-I packaged MCP authors and queries regional map semantics", { timeout
       assert.equal(record(applied.receipt).status, "applied");
     }
     await apply("regionalMap.region.upsert", { region: { id: "r", label: "Region" } });
-    await apply("regionalMap.poi.upsert", { poi: { id: "town", regionId: "r", label: "Town", labels: { fr: "Ville" }, u: 0.25, v: 0.75, mapIds: [mapId], discovery: "onMapVisit", visibility: "always" } });
+    await apply("regionalMap.poi.upsert", { poi: { id: "town", regionId: "r", label: "Town", labels: { fr: "Ville" }, u: 0.25, v: 0.75, mapIds: [mapId], discovery: "onMapVisit", visibility: "always", destination } });
     const query = await data(client, "pokemap_query", { projectHandle, resourceKind: "regionalMapPoi", operation: "get", ids: ["town"], view: "detail" });
     const point = record((query.items as unknown[])[0]);
     assert.equal(point.u, 0.25);
     assert.deepEqual(point.mapIds, [mapId]);
+    assert.deepEqual(point.destination, destination);
     assert.equal(record(point.labels).fr, "Ville");
     const validation = await data(client, "pokemap_validate", { projectHandle });
     const diagnostics = record(validation.references).diagnostics as JsonRecord[];

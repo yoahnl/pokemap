@@ -226,4 +226,5 @@ String _fieldAbilityRewardLabel(FieldAbility ability) => switch (ability) {
       FieldAbility.rockSmash => 'Éclate-Roc',
       FieldAbility.waterfall => 'Cascade',
       FieldAbility.dive => 'Plongée',
+      FieldAbility.fly => 'Vol',
     };

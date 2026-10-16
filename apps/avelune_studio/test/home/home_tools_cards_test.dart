@@ -45,6 +45,8 @@ void main() {
         expect(heights.toSet(), hasLength(1));
         await tester.tap(cards.first);
         expect(destinations, ['map']);
+        await tester.tap(find.byKey(const ValueKey('home-tool-regionalMap')));
+        expect(destinations, ['map', 'regionalMap']);
         expect(tester.takeException(), isNull);
       },
     );

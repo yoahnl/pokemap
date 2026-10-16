@@ -92,6 +92,7 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
         _space != WorkspaceSpace.pokemon &&
         _pokemon?.combat?.snapshot != null;
     _enterSpace(space);
+    if (space == WorkspaceSpace.regionalMap) unawaited(_regionalMap?.load());
     if (refreshCommerce) {
       unawaited(_pokemon!.commerce!.load(refresh: true));
     }

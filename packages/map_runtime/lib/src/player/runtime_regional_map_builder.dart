@@ -66,6 +66,7 @@ final class RuntimeRegionalMapBuilder {
                 u: point.u,
                 v: point.v,
                 description: point.description,
+                destination: point.destination,
                 thumbnailFilePath: await _resolveImage(
                     point.thumbnailPath, projectRootDirectory, assets),
               ),

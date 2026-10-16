@@ -365,6 +365,8 @@ enum MovementMode {
 
 /// Capacité de terrain débloquable par la progression du joueur.
 enum FieldAbility {
+  @JsonValue('fly')
+  fly,
   @JsonValue('surf')
   surf,
   @JsonValue('cut')
@@ -382,6 +384,7 @@ enum FieldAbility {
 
   /// Identifiant canonique de la capacité, utilisé comme move ID dans [PlayerPokemon.knownMoveIds].
   String get moveId => switch (this) {
+        FieldAbility.fly => 'fly',
         FieldAbility.surf => 'surf',
         FieldAbility.cut => 'cut',
         FieldAbility.strength => 'strength',

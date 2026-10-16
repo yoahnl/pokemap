@@ -106,6 +106,7 @@ MovementMode fieldActionMovementMode(FieldAbility ability) {
     FieldAbility.surf => MovementMode.surf,
     // Les capacités DEFERRED n'installent aucun mode : elles ne peuvent pas
     // être appliquées, `evaluateFieldAction` les refuse en amont.
+    FieldAbility.fly ||
     FieldAbility.cut ||
     FieldAbility.strength ||
     FieldAbility.flash ||

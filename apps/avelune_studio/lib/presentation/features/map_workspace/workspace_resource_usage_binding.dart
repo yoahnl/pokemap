@@ -8,6 +8,7 @@ extension _WorkspaceResourceUsageBinding on _MapWorkspaceScreenState {
     if (_dialogues?.dirty == true) 'Dialogues',
     if (_cinematics?.dirty == true) 'Cinématiques',
     if (_presentations?.dirty == true) 'Présentations',
+    if (_regionalMap?.dirty == true) 'Carte régionale',
     if (_pokemon?.hasPendingChanges == true) 'Pokémon',
   ];
 

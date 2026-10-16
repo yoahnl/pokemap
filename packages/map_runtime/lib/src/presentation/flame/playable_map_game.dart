@@ -293,6 +293,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.afterNarrativeAuthorityPreparation,
     @visibleForTesting this.beforeBattleHandoffPreparation,
     @visibleForTesting this.beforeLoadCommitCompletion,
+    @visibleForTesting this.beforeMapMount,
     @visibleForTesting this.afterInitialTilesetImagesLoaded,
     GameCompletionRequestEmitter? gameCompletionEmitter,
     this.defeatRecoveryCheckpointEmitter,
@@ -532,6 +533,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Future<void> Function()? beforeBattleHandoffPreparation;
   @visibleForTesting
   final Future<void> Function()? beforeLoadCommitCompletion;
+  @visibleForTesting
+  final Future<void> Function(String mapId)? beforeMapMount;
   @visibleForTesting
   final Future<void> Function()? afterInitialTilesetImagesLoaded;
   @visibleForTesting
@@ -917,6 +920,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _cinematicRuntimeController.isPlaying;
 
   bool get _hasCheckpointUnsafeRuntimeWorkForSave =>
+      _flyTransferInFlight ||
       _hasCheckpointUnsafeRuntimeWork ||
       _pendingWarp != null ||
       _pendingConnection != null ||
@@ -2051,6 +2055,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   /// Compteur de mutations de l'état de jeu, source du jeton de fraîcheur.
   int _gameStateRevision = 0;
+  bool _flyTransferInFlight = false;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -2575,6 +2580,241 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return _bundle.map;
   }
 
+  Future<({FlyActionTicket? ticket, FlyBlockReason? reason})> _preparePlayerFly(
+    String pointId,
+  ) async {
+    if (!isLoaded || _isRemoved || _flowPhase != _RuntimeFlowPhase.overworld) {
+      return (ticket: null, reason: FlyBlockReason.invalidDestination);
+    }
+    final catalog = _bundle.manifest.regionalMap;
+    final point = catalog?.pointsOfInterest
+        .where((point) => point.id == pointId)
+        .firstOrNull;
+    final destination = point?.destination;
+    if (catalog == null ||
+        destination == null ||
+        _bundle.manifest.maps
+                .where((map) => map.id == destination.mapId)
+                .length !=
+            1) {
+      return (ticket: null, reason: FlyBlockReason.invalidDestination);
+    }
+    final state = playerServiceGameStateSnapshot;
+    final source = _bundle.map;
+    final revision = _gameStateRevision;
+    final target = await _loadRuntimeMapBundleCached(destination.mapId);
+    if (_isRemoved ||
+        revision != _gameStateRevision ||
+        state != playerServiceGameStateSnapshot ||
+        source != _bundle.map ||
+        catalog != _bundle.manifest.regionalMap) {
+      return (ticket: null, reason: FlyBlockReason.invalidDestination);
+    }
+    final evaluation = evaluateFlyAttempt(
+      sourceMap: source,
+      sourceRole:
+          _bundle.manifest.maps
+              .where((map) => map.id == source.id)
+              .firstOrNull
+              ?.role ??
+          MapRole.exterior,
+      targetMap: target.map,
+      gameState: state,
+      catalog: catalog,
+      pointId: pointId,
+    );
+    return evaluation is CanUseFly
+        ? (
+            ticket: FlyActionTicket(
+              evaluation: evaluation,
+              gameState: state,
+              sourceMap: source,
+              targetMap: target.map,
+              catalog: catalog,
+              issuedAtStateRevision: revision,
+            ),
+            reason: null,
+          )
+        : (ticket: null, reason: (evaluation as FlyUnavailable).reason);
+  }
+
+  Future<bool> _applyPlayerFly(FlyActionTicket ticket) async {
+    var mountedDestination = false;
+    late _RuntimeSpatialSnapshot source;
+    bool current([MapInstanceWorldState? instances]) {
+      if (instances != null) mountedDestination = true;
+      final catalog = _bundle.manifest.regionalMap;
+      if (_isRemoved || catalog == null || _activeMapId != ticket.sourceMap.id) {
+        return false;
+      }
+      final state = playerServiceGameStateSnapshot;
+      if (instances != null) {
+        source = _RuntimeSpatialSnapshot(
+          gameState: state.copyWith(
+            mapInstanceWorldState: source.gameState.mapInstanceWorldState,
+            playerPosition: _world.player.pos,
+            playerPixelPosition: PixelOffset(
+              x: _world.player.playerPositionPx.leftPx,
+              y: _world.player.playerPositionPx.topPx,
+            ),
+            playerFacing: _world.player.facing.asFacing,
+            playerMovementMode: _world.player.movementMode,
+          ),
+          bundle: source.bundle,
+          authoredBundle: source.authoredBundle,
+          world: _world,
+          activeMapId: source.activeMapId,
+          previousMapId: source.previousMapId,
+          flowPhase: source.flowPhase,
+          currentMapActivationId: source.currentMapActivationId,
+          completedMapActivationDispatchCount:
+              source.completedMapActivationDispatchCount,
+          lastCompletedMapActivation: source.lastCompletedMapActivation,
+        );
+      }
+      final checkedState = instances == null
+          ? state
+          : state.copyWith(
+              mapInstanceWorldState: ticket.gameState.mapInstanceWorldState,
+            );
+      return commitFlyAction(
+        ticket: ticket,
+        sourceMap: _bundle.map,
+        sourceRole:
+            _bundle.manifest.maps
+                .where((map) => map.id == _activeMapId)
+                .firstOrNull
+                ?.role ??
+            MapRole.exterior,
+        targetMap: _runtimeBundleByMapId[ticket.targetMap.id]?.map,
+        gameState: checkedState,
+        catalog: catalog,
+        currentStateRevision: _gameStateRevision,
+      ) is FlyReady;
+    }
+
+    if (_flyTransferInFlight || !current()) return false;
+    source = _RuntimeSpatialSnapshot(
+      gameState: playerServiceGameStateSnapshot,
+      bundle: _bundle,
+      authoredBundle: _runtimeBundleByMapId[_activeMapId] ?? _bundle,
+      world: _world,
+      activeMapId: _activeMapId,
+      previousMapId: _previousMapId,
+      flowPhase: _flowPhase,
+      currentMapActivationId: _currentMapActivationId,
+      completedMapActivationDispatchCount: _completedMapActivationDispatchCount,
+      lastCompletedMapActivation: _lastCompletedMapActivation,
+    );
+    final workingSession = _activeNarrativeSceneWorkingSession;
+    final previousDeferredActivation = workingSession?.deferredMapActivation;
+    var restored = false;
+    Future<void> restoreSource() async {
+      if (_isRemoved || restored) return;
+      if (workingSession != null) {
+        workingSession.gameState = source.gameState;
+        workingSession.deferredMapActivation = previousDeferredActivation;
+      }
+      if (!await _restoreRuntimeSpatialSnapshot(
+        source,
+        commitNarrativeState: workingSession == null,
+      )) {
+        throw StateError('The Fly source could not be restored.');
+      }
+      restored = true;
+    }
+
+    if (workingSession != null) _applyNarrativeGameState(source.gameState);
+    final wasPaused = isPaused;
+    _flyTransferInFlight = true;
+    if (wasPaused) resumeEngine();
+    var completed = false;
+    try {
+      completed = await _handleWarp(
+        TriggeredWarp(
+          triggerMode: MapWarpTriggerMode.onBump,
+          warpId: 'fly.${ticket.evaluation.pointId}',
+          targetMapId: ticket.evaluation.arrival.mapId,
+          targetPos: ticket.evaluation.arrival.position,
+        ),
+        arrivalFacing: ticket.evaluation.arrival.facing,
+        arrivalMovementMode: MovementMode.walk,
+        allowMapActivationWork: workingSession != null,
+        transferGuard: current,
+      );
+      if (completed && workingSession != null) {
+        workingSession.gameState = _gameState;
+        workingSession.registerCompensation(restoreSource);
+      }
+      return completed;
+    } on Object {
+      return false;
+    } finally {
+      try {
+        if (!completed &&
+            !_isRemoved &&
+            (mountedDestination ||
+                _activeMapId != source.activeMapId ||
+                !_loadedMapsById.containsKey(source.activeMapId))) {
+          await restoreSource();
+        }
+      } finally {
+        if (!completed && wasPaused && !_isRemoved) pauseEngine();
+        _flyTransferInFlight = false;
+      }
+    }
+  }
+
+  Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap() =>
+      _openRegionalMapService(
+        const OpenRegionalMapService(interactionId: 'player.map'),
+      );
+
+  Future<RuntimeRegionalMapOpening?> _openRegionalMapService(
+    OpenRegionalMapService request,
+  ) async {
+    final controller = _playerServiceRuntimeController;
+    if (controller == null || !isLoaded || _isRemoved || controller.isActive) {
+      return null;
+    }
+    final source = _bundle;
+    final detail = await const RuntimeRegionalMapBuilder().build(
+      gameState: playerServiceGameStateSnapshot,
+      projectRootDirectory: source.projectRootDirectory,
+      locale: runtimeLocale,
+      catalog: source.manifest.regionalMap,
+      projectMaps: source.manifest.maps,
+    );
+    if (_isRemoved || !identical(source, _bundle) || controller.isActive) {
+      return null;
+    }
+    var travelled = false;
+    final result = controller.openRegionalMap(
+      request: request,
+      detail: detail,
+      prepareFly: source.manifest.regionalMap == null
+          ? null
+          : _preparePlayerFly,
+      applyFly: (ticket) async => travelled = await _applyPlayerFly(ticket),
+    );
+    if (controller.worldServiceSnapshot == null) {
+      await result;
+      return null;
+    }
+    return RuntimeRegionalMapOpening(
+      result.then(
+        (result) => travelled
+            ? RuntimeRegionalMapClosing.travelled
+            : switch (result.status) {
+                PlayerServiceRuntimeStatus.completed =>
+                  RuntimeRegionalMapClosing.closed,
+                PlayerServiceRuntimeStatus.cancelled =>
+                  RuntimeRegionalMapClosing.cancelled,
+                _ => RuntimeRegionalMapClosing.failed,
+              },
+      ),
+    );
+  }
   RuntimeHealingDisplaySnapshot? _activeHealingDisplaySnapshot() {
     final snapshot = _playerServiceRuntimeController?.worldServiceSnapshot;
     if (snapshot?.stage != RuntimeWorldServiceStage.applying) return null;
@@ -11873,27 +12113,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           await controller.openPartyTrade(request: request),
         );
       case OpenRegionalMapService():
-        if (_bundle.manifest.regionalMap == null) {
-          _notifySceneCommand('Carte régionale indisponible dans ce projet.');
-          return 'cancelled';
-        }
-        final regionalBundle = _bundle;
-        final regionalScene = _activeNarrativeSceneWorkingSession;
-        final regionalActivation = _nextMapActivationSerial;
-        final detail = await const RuntimeRegionalMapBuilder().build(
-            gameState: playerServiceGameStateSnapshot,
-            projectRootDirectory: regionalBundle.projectRootDirectory,
-            locale: runtimeLocale,
-            catalog: regionalBundle.manifest.regionalMap,
-            projectMaps: regionalBundle.manifest.maps);
-        if (_isRemoved ||
-            regionalActivation != _nextMapActivationSerial ||
-            !identical(regionalBundle, _bundle) ||
-            !identical(regionalScene, _activeNarrativeSceneWorkingSession) ||
-            !identical(controller, _playerServiceRuntimeController)) {
-          return 'cancelled';
-        }
-        return _scenePortForPlayerService(await controller.openRegionalMap(request: request, detail: detail));
+        final opening = await _openRegionalMapService(request);
+        if (opening == null) return 'cancelled';
+        return switch (await opening.completed) {
+          RuntimeRegionalMapClosing.closed || RuntimeRegionalMapClosing.travelled => 'completed',
+          RuntimeRegionalMapClosing.cancelled || RuntimeRegionalMapClosing.failed => 'cancelled',
+        };
     }
   }
 
@@ -14866,6 +15091,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     bool allowMapActivationWork = false,
     bool skipVisualTransition = false,
     EntityFacing? arrivalFacing,
+    MovementMode? arrivalMovementMode,
+    bool Function(MapInstanceWorldState? nextInstances)? transferGuard,
     String? arrivalCollisionOwnerEntityId,
     _SceneWarpPresentationOwner? presentationOwner,
   }) async {
@@ -14895,6 +15122,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     WarpTransitionOverlayComponent? overlay;
     var swapCompleted = false;
     var transitionCompleted = false;
+    MapInstanceWorldState? guardedInstances;
     try {
       _clearTransientUiState(preservedWarpOwner: presentationOwner);
       if (!skipVisualTransition) {
@@ -14972,7 +15200,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           map: newBundle.map,
           playerPos: warp.targetPos,
           playerFacing: arrivalFacing?.asDirection ?? sourceFacing,
-          playerMovementMode: sourceWorld.player.movementMode,
+          playerMovementMode: arrivalMovementMode ?? sourceWorld.player.movementMode,
           project: newBundle.manifest,
           tileWidth: newBundle.manifest.settings.tileWidth,
           tileHeight: newBundle.manifest.settings.tileHeight,
@@ -14982,7 +15210,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ),
         ),
       );
-      final arrivalAllowed = arrivalCollisionOwnerEntityId == null
+      final arrivalAllowed = arrivalCollisionOwnerEntityId == null && arrivalMovementMode == null
           ? !newWorld.worldStaticObstaclesCollidePlayerCollisionRect() &&
                 (!newWorld.isWaterCell(warp.targetPos.x, warp.targetPos.y) ||
                     newWorld.player.movementMode == MovementMode.surf)
@@ -15000,6 +15228,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           !_ownsSceneWarpTransfer(presentationOwner)) {
         throw StateError('The Warp presentation no longer owns the transfer.');
       }
+      if (transferGuard != null && !transferGuard(null)) return false;
+      guardedInstances = nextInstances;
       _replaceLogicalMapInstances(nextInstances);
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
@@ -15016,6 +15246,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (presentationOwner != null &&
           !_ownsSceneWarpTransfer(presentationOwner)) {
         throw StateError('The Warp presentation was cancelled while mounting.');
+      }
+      if (transferGuard != null && !transferGuard(nextInstances)) {
+        throw StateError('The Fly state changed while mounting.');
       }
       _bundle = newBundle;
       _world = newWorld;
@@ -15064,7 +15297,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
       if (!_isRemoved) _showNotification('La téléportation a échoué.');
-      if (!swapCompleted && (!presentedTransfer || !_isRemoved)) {
+      if (transferGuard == null &&
+          !swapCompleted &&
+          (!presentedTransfer || !_isRemoved)) {
         _replaceLogicalMapInstances(sourceInstances);
         await _recoverFromWarpFailure(
           sourceBundle: sourceBundle,
@@ -15132,8 +15367,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         } else {
           _installMapActivation(activation);
           _resetTriggerEnterOccupancy();
-          await _dispatchCompletedMapActivation(activation);
+          final dispatch = await _dispatchCompletedMapActivation(activation);
+          if (transferGuard != null && (dispatch is MapEnterProductionDispatchFailed ||
+              dispatch is MapEnterProductionDispatchAuthorityBlocked || dispatch is MapEnterProductionDispatchStale)) {
+            throw StateError('The Fly destination activation failed.');
+          }
         }
+      }
+      if (!swapCompleted && guardedInstances != null) {
+        transferGuard?.call(guardedInstances);
       }
       if (_activeMapId == sourceMapId &&
           _world.player.pos.x == sourcePos.x &&
@@ -15819,6 +16061,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellX,
     required int originCellY,
   }) async {
+    await beforeMapMount?.call(bundle.map.id);
     final preparedBundle = await prepareBorderRuntimeBundle(
       _projectMovingPlatformBundle(
         bundle,

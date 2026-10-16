@@ -60,20 +60,30 @@ List<ProjectRegionalMapDiagnostic> validateProjectRegionalMap({
       );
       continue;
     }
+    if (destination.spawnId == null) {
+      add('regional_map.destination_spawn_missing', '$path.destination.spawnId',
+        'Choose an explicit arrival spawn.');
+      continue;
+    }
     final map = loadedMaps[destination.mapId];
-    if (map != null &&
-        destination.spawnId != null &&
-        !map.entities.any(
-          (entity) =>
-              entity.kind == MapEntityKind.spawn &&
-              (entity.id == destination.spawnId ||
-                  entity.spawn?.spawnKey == destination.spawnId),
-        )) {
-      add(
-        'regional_map.destination_spawn_missing',
-        '$path.destination.spawnId',
-        'Choose an existing destination spawn.',
-      );
+    if (map == null) continue;
+    if (map.version != ProjectVersion.v8 || map.spatialScene != null) {
+      add('regional_map.destination_map_unsupported', '$path.destination.mapId',
+        'Choose a native 2D destination map.');
+      continue;
+    }
+    final spawns = map.entities.where((entity) => entity.kind == MapEntityKind.spawn &&
+      entity.spawn != null && (entity.id == destination.spawnId || entity.spawn!.spawnKey == destination.spawnId)).toList();
+    if (spawns.isEmpty) {
+      add('regional_map.destination_spawn_missing', '$path.destination.spawnId',
+        'Choose an existing destination spawn.');
+    } else if (spawns.length != 1) {
+      add('regional_map.destination_spawn_ambiguous', '$path.destination.spawnId',
+        'Choose a unique destination spawn.');
+    } else if (spawns.single.pos.x < 0 || spawns.single.pos.y < 0 ||
+        spawns.single.pos.x >= map.size.width || spawns.single.pos.y >= map.size.height) {
+      add('regional_map.destination_spawn_outside_map', '$path.destination.spawnId',
+        'Place the destination spawn inside its map.');
     }
   }
   return List.unmodifiable(diagnostics);

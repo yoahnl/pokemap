@@ -176,6 +176,7 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     _events?.dispose();
     _dialogues?.dispose();
     _presentations?.dispose();
+    _regionalMap?.dispose();
     _world?.dispose();
     _worldView.dispose();
     _verification?.dispose();
@@ -217,6 +218,14 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
       _initializeDialogues();
       _initializeCinematics();
       _initializePresentations();
+      if (widget.regionalMapPort case final port?) {
+        _regionalMap = RegionalMapController(port, changed: _changed,
+          mapDraftProblem: (ids) => _controller.documents.values.any((document) =>
+            document.dirty && ids.contains(document.current.id))
+            ? 'Enregistrez les cartes liées avant de publier la carte régionale.' : null,
+          projectChanged: _controller.acceptResources);
+        unawaited(_regionalMap!.load());
+      }
       _initializeWorld();
       _initializeVerification();
       _changed();

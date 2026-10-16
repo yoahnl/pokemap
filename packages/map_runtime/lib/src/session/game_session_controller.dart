@@ -21,6 +21,7 @@ final class GameSessionController
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort,
+        RuntimeRegionalMapPort,
         RuntimeOverworldInteractionPort {
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
@@ -128,6 +129,11 @@ final class GameSessionController
       _snapshot.state == GameSessionState.running &&
       (_overworldInteractionPort?.dispatchOverworldInteraction(request) ??
           false);
+
+  @override
+  Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap() => _adapter is RuntimeRegionalMapPort
+      ? (_adapter as RuntimeRegionalMapPort).openPlayerRegionalMap()
+      : Future.value(null);
 
   @override
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(

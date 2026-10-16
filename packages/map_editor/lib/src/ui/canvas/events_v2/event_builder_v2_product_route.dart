@@ -2208,6 +2208,7 @@ String _fieldAbilityLabel(FieldAbility ability) => switch (ability) {
   FieldAbility.rockSmash => 'Éclate-Roc',
   FieldAbility.waterfall => 'Cascade',
   FieldAbility.dive => 'Plongée',
+  FieldAbility.fly => 'Vol',
 };
 
 Map<String, NarrativeTemplatePhysicalSourceKind> _templatePhysicalSourceKinds(

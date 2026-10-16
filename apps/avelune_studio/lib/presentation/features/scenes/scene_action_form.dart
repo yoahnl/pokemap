@@ -335,6 +335,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       for (final badge in widget.project.badges) badge.id: badge.label,
     },
     NarrativeCommandParameterKind.fieldAbility => const {
+      'fly': 'Vol',
       'surf': 'Surf',
       'cut': 'Coupe',
       'strength': 'Force',

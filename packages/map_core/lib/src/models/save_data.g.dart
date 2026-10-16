@@ -208,6 +208,7 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.rockSmash: 'rock_smash',
   FieldAbility.waterfall: 'waterfall',
   FieldAbility.dive: 'dive',
+  FieldAbility.fly: 'fly',
 };
 
 _TrainerProfile _$TrainerProfileFromJson(Map<String, dynamic> json) =>

@@ -76,7 +76,8 @@ void main() {
         label: 'Town',
         u: 0.2,
         v: 0.8,
-        mapIds: const ['town']);
+        mapIds: const ['town'],
+        destination: ProjectRegionDestination(mapId: 'town', spawnId: 'arrival'));
     await apply('regionalMap.region.upsert', {'region': region.toJson()});
     await apply('regionalMap.poi.upsert', {'poi': point.toJson()}, jsonl: true);
     final queried = await setup.request('query', args: {
@@ -90,6 +91,7 @@ void main() {
     });
     expect(queried.status, AuthoringResultStatus.success);
     expect((queried.data['items'] as List).single['mapIds'], ['town']);
+    expect((queried.data['items'] as List).single['destination'], {'mapId': 'town', 'spawnId': 'arrival'});
     final validation =
         await setup.readApi.validateProject(opened.projectHandle);
     expect(
@@ -378,5 +380,6 @@ const _maps = [
       version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       size: GridSize(width: 3, height: 3),
-      layers: [])
+      layers: [], entities: [MapEntity(id: 'arrival', kind: MapEntityKind.spawn, pos: GridPos(x: 1, y: 1),
+        blocksMovement: false, spawn: MapEntitySpawnData())])
 ];
