@@ -35,6 +35,10 @@ ProjectItemEffectDefinition _$ProjectItemEffectDefinitionFromJson(
           return ProjectItemRepelEffectDefinition.fromJson(
             json
           );
+                case 'bicycle':
+          return ProjectItemBicycleEffectDefinition.fromJson(
+            json
+          );
                 case 'escape_rope':
           return ProjectItemEscapeRopeEffectDefinition.fromJson(
             json
@@ -101,7 +105,7 @@ extension ProjectItemEffectDefinitionPatterns on ProjectItemEffectDefinition {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
@@ -109,7 +113,8 @@ return healHp(_that);case ProjectItemCureStatusEffectDefinition() when cureStatu
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
+return repel(_that);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return bicycle(_that);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope(_that);case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that);case _:
   return orElse();
@@ -129,7 +134,7 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
@@ -137,7 +142,8 @@ return healHp(_that);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that);case ProjectItemReviveEffectDefinition():
 return revive(_that);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that);case ProjectItemRepelEffectDefinition():
-return repel(_that);case ProjectItemEscapeRopeEffectDefinition():
+return repel(_that);case ProjectItemBicycleEffectDefinition():
+return bicycle(_that);case ProjectItemEscapeRopeEffectDefinition():
 return escapeRope(_that);case ProjectItemSemanticActionEffectDefinition():
 return semanticAction(_that);case _:
   throw StateError('Unexpected subclass');
@@ -156,7 +162,7 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
@@ -164,7 +170,8 @@ return healHp(_that);case ProjectItemCureStatusEffectDefinition() when cureStatu
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
+return repel(_that);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return bicycle(_that);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope(_that);case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that);case _:
   return null;
@@ -183,14 +190,15 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that.steps);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
+return repel(_that.steps);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return bicycle();case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope();case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that.actionId);case _:
   return orElse();
@@ -210,14 +218,15 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
 return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition():
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition():
-return repel(_that.steps);case ProjectItemEscapeRopeEffectDefinition():
+return repel(_that.steps);case ProjectItemBicycleEffectDefinition():
+return bicycle();case ProjectItemEscapeRopeEffectDefinition():
 return escapeRope();case ProjectItemSemanticActionEffectDefinition():
 return semanticAction(_that.actionId);case _:
   throw StateError('Unexpected subclass');
@@ -236,14 +245,15 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that.steps);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
+return repel(_that.steps);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return bicycle();case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope();case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that.actionId);case _:
   return null;
@@ -631,6 +641,45 @@ as int,
 
 
 }
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class ProjectItemBicycleEffectDefinition extends ProjectItemEffectDefinition {
+  const ProjectItemBicycleEffectDefinition({final  String? $type}): $type = $type ?? 'bicycle',super._();
+  factory ProjectItemBicycleEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemBicycleEffectDefinitionFromJson(json);
+
+
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemBicycleEffectDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemBicycleEffectDefinition);
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'ProjectItemEffectDefinition.bicycle()';
+}
+
+
+}
+
+
+
 
 /// @nodoc
 

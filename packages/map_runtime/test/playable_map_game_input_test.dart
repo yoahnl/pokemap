@@ -2781,6 +2781,26 @@ void main() {
       await _pumpUntil(game, () => game.debugLastFieldActionCommit != null);
     }
 
+    test('confirmed Surf replaces bicycle and walking resumes on land without remount', () async {
+      final game = await loadSurfGame();
+      addTearDown(game.onRemove);
+      game.setPlayerMovementMode(MovementMode.bicycle);
+      final anchor = game.gameStateSnapshot.escapeReturnPoint;
+      final repel = game.gameStateSnapshot.repelState;
+      await promptSurf(game);
+      expect(game.playerMovementMode, MovementMode.bicycle);
+      await answerDialogue(game);
+      await awaitCommitDecision(game);
+      expect(game.debugLastFieldActionCommit, isA<FieldActionApplied>());
+      expect(game.playerMovementMode, MovementMode.surf);
+      await _runSingleMove(game, RuntimeInputControl.right);
+      expect(game.playerMovementMode, MovementMode.surf);
+      await _runSingleMove(game, RuntimeInputControl.right);
+      expect(game.playerMovementMode, MovementMode.walk);
+      expect(game.gameStateSnapshot.escapeReturnPoint, anchor);
+      expect(game.gameStateSnapshot.repelState, repel);
+    });
+
     test('bumping into water issues a dated ticket and locks the world',
         () async {
       // Le critère « lock », et il s'est révélé DÉJÀ tenu — par le dialogue de

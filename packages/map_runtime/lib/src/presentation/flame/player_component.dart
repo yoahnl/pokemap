@@ -19,6 +19,7 @@ import 'overworld_actor_component.dart';
 class PlayerComponent extends PositionComponent with HasVisibility {
   static const double kDefaultStepSeconds = 0.25;
   static const double kRunStepSeconds = 0.125;
+  static const double kBicycleStepSeconds = 4 / 60;
 
   PlayerComponent({
     required this.bundle,
@@ -47,17 +48,27 @@ class PlayerComponent extends PositionComponent with HasVisibility {
 
   late final bool hasRunningAnimation = _hasRunningAnimation();
 
-  bool _hasRunningAnimation() {
+  late final bool hasBicycleAnimations =
+      _hasAnimation(CharacterAnimationState.bicycleIdle) &&
+      _hasAnimation(CharacterAnimationState.bicycle);
+
+  bool _hasRunningAnimation() => _hasAnimation(CharacterAnimationState.run);
+
+  bool _hasAnimation(CharacterAnimationState state) {
     final character = characterEntry;
     if (character == null) return false;
     final resolver = CharacterAnimationSourceResolver();
     final availableImageIds = tileImages.keys.toSet();
     return EntityFacing.values.every((direction) {
       final animations = character.animations.where((animation) =>
-          animation.state == CharacterAnimationState.run &&
+          animation.state == state &&
           animation.direction == direction);
       if (animations.isEmpty) return false;
       final animation = animations.last;
+      if ((state == CharacterAnimationState.bicycle || state == CharacterAnimationState.bicycleIdle) &&
+          (animation.sourceAssetId?.trim().isEmpty ?? true)) {
+        return false;
+      }
       return animation.frames.isNotEmpty &&
           animation.frames.every((frame) {
             final source = resolver.resolveFrame(
@@ -75,6 +86,16 @@ class PlayerComponent extends PositionComponent with HasVisibility {
           });
     });
   }
+
+  CharacterAnimationState get _idleAnimation =>
+      _state.movementMode == MovementMode.bicycle
+          ? CharacterAnimationState.bicycleIdle
+          : CharacterAnimationState.idle;
+
+  CharacterAnimationState get _movingAnimation =>
+      _state.movementMode == MovementMode.bicycle
+          ? CharacterAnimationState.bicycle
+          : CharacterAnimationState.walk;
 
   GameplayPlayerState _state;
   Vector2 _mapOrigin;
@@ -158,7 +179,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
     _jumpLiftPx = 0;
     _stepDurationSeconds = plan.durationMs / 1000;
     _moveRemaining = _stepDurationSeconds;
-    _stepAnimationState = CharacterAnimationState.walk;
+    _stepAnimationState = _movingAnimation;
     size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: state));
     _moveFrom = _computeWorldTopLeft(
       mapOrigin: _mapOrigin,
@@ -174,7 +195,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
     _layoutActor();
     _actor?.setMotion(
       EntityFacing.values.byName(state.facing.name),
-      CharacterAnimationState.walk,
+      _movingAnimation,
     );
   }
 
@@ -200,7 +221,10 @@ class PlayerComponent extends PositionComponent with HasVisibility {
 
   void setCinematicMotion(EntityFacing facing, CharacterAnimationState motion) {
     _state = _state.copyWith(facing: Direction.values.byName(facing.name));
-    _actor?.setMotion(facing, motion);
+    final resolved = _state.movementMode == MovementMode.bicycle
+        ? motion == CharacterAnimationState.idle ? _idleAnimation : _movingAnimation
+        : motion;
+    _actor?.setMotion(facing, resolved);
   }
 
   Vector2 get cinematicVisualFocusPoint {
@@ -250,6 +274,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
 
   void restoreBaseAnimation(EntityFacing facing) {
     _actor?.restoreBase(facing);
+    _actor?.setMotion(facing, _idleAnimation);
   }
 
   void _layoutActor() {
@@ -289,6 +314,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
         facing: EntityFacing.values.byName(_state.facing.name),
       );
       _actor = actor;
+      actor.setMotion(EntityFacing.values.byName(_state.facing.name), _idleAnimation);
       _layoutActor();
       add(actor);
     }
@@ -325,10 +351,10 @@ class PlayerComponent extends PositionComponent with HasVisibility {
         _jumpPlan = null;
         _jumpLiftPx = 0;
         _layoutActor();
-        _stepAnimationState = CharacterAnimationState.walk;
+        _stepAnimationState = _movingAnimation;
         _actor?.setMotion(
           EntityFacing.values.byName(_state.facing.name),
-          CharacterAnimationState.idle,
+          _idleAnimation,
         );
         completion?.call();
       }
@@ -393,7 +419,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
       _moveTo = null;
       _moveRemaining = 0.0;
       _snapToStatePosition();
-      _actor?.setMotion(facing, CharacterAnimationState.idle);
+      _actor?.setMotion(facing, _idleAnimation);
     } else {
       // Ne pas forcer idle pendant l’interpolation d’un pas (sinon tout appel
       // à syncState — ex. changement de mode — écrase l’anim marche).

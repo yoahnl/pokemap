@@ -18,9 +18,13 @@ Future<void> importCharacterAnimation(
   if (!await prepareCharacterImport(context, navigation)) return;
   final image = await picker();
   if (image == null || !context.mounted) return;
-  if (image.width % 3 != 0 || image.height <= 0) {
+  final bicycle = state == CharacterAnimationState.bicycle ||
+      state == CharacterAnimationState.bicycleIdle;
+  if (bicycle ? image.width <= 0 || image.height <= 0 || image.width % 4 != 0 || image.height % 4 != 0
+      : image.width % 3 != 0 || image.height <= 0) {
     navigation.setImportError(
-      'La largeur de l’image doit être divisible par trois pour créer des poses égales.',
+      bicycle ? 'Le vélo demande une planche de quatre poses et quatre directions, sans marge.'
+          : 'La largeur de l’image doit être divisible par trois pour créer des poses égales.',
     );
     return;
   }
@@ -43,10 +47,12 @@ Future<void> importCharacterAnimation(
             ),
             const SizedBox(height: 12),
             Text(
-              'Trois poses · ${image.width ~/ 3} × ${image.height} px chacune',
+              bicycle ? 'Quatre poses · ${image.width ~/ 4} × ${image.height ~/ 4} px · Bas, gauche, droite, haut'
+                  : 'Trois poses · ${image.width ~/ 3} × ${image.height} px chacune',
             ),
-            const Text(
-              'L’image complète est découpée en trois bandes verticales. '
+            Text(
+              bicycle ? 'La rangée de la direction choisie sera importée. Les autres animations restent intactes.'
+                  : 'L’image complète est découpée en trois bandes verticales. '
               'Elle remplacera la source de la direction choisie. '
               'Les autres directions et leurs images restent intactes.',
             ),
@@ -81,8 +87,8 @@ Future<void> importCharacterAnimation(
         characterId: characterId,
         state: state,
         direction: direction,
-        poseWidth: image.width ~/ 3,
-        poseHeight: image.height,
+        poseWidth: image.width ~/ (bicycle ? 4 : 3),
+        poseHeight: bicycle ? image.height ~/ 4 : image.height,
       ),
     );
     if (!navigation.workspace.isDisposed) await navigation.accept(receipt);

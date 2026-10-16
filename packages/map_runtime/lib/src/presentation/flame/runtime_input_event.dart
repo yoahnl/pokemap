@@ -16,6 +16,7 @@ enum RuntimeInputControl {
   left,
   right,
   sprint,
+  bicycle,
   primary,
   secondary,
   menu,

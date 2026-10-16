@@ -29,7 +29,10 @@ class CharacterStudioDedicatedOnlyPanel extends StatelessWidget {
     compact: true,
     children: [
       Text(
-        hasAtlas
+        controller.animationState == CharacterAnimationState.bicycle ||
+            controller.animationState == CharacterAnimationState.bicycleIdle
+            ? 'Le vélo demande huit animations dédiées : repos et déplacement dans quatre directions. Importez une planche de quatre poses sur quatre directions.'
+            : hasAtlas
             ? 'La planche de ce personnage ne peut pas être lue. Ses animations existantes sont conservées.'
             : 'Ce personnage utilise des images dédiées. Choisissez le mouvement et la direction à modifier.',
       ),
@@ -41,6 +44,14 @@ class CharacterStudioDedicatedOnlyPanel extends StatelessWidget {
           DropdownButton<CharacterAnimationState>(
             value: controller.animationState,
             items: const [
+              DropdownMenuItem(
+                value: CharacterAnimationState.bicycleIdle,
+                child: Text('Vélo au repos'),
+              ),
+              DropdownMenuItem(
+                value: CharacterAnimationState.bicycle,
+                child: Text('Vélo'),
+              ),
               DropdownMenuItem(
                 value: CharacterAnimationState.walk,
                 child: Text('Marche'),

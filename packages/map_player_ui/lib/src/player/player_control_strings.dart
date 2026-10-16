@@ -36,6 +36,7 @@ final class PlayerControlStrings {
           _isFrench ? 'Action principale' : 'Primary action',
         RuntimeInputControl.secondary =>
           _isFrench ? 'Action secondaire' : 'Secondary action',
+        RuntimeInputControl.bicycle => _isFrench ? 'Vélo' : 'Bicycle',
         RuntimeInputControl.menu => 'Menu',
       };
 }

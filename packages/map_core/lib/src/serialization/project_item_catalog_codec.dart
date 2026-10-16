@@ -246,7 +246,7 @@ void _validateUse(
     'cure_status' => const {'kind', 'mode', 'statusIds'},
     'revive' => const {'kind', 'rateNumerator', 'rateDenominator'},
     'repel' => const {'kind', 'steps'},
-    'escape_rope' => const {'kind'},
+    'escape_rope' || 'bicycle' => const {'kind'},
     'semantic_action' => const {'kind', 'actionId'},
     _ => null,
   };

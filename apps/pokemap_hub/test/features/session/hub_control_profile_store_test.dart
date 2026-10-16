@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -14,6 +15,21 @@ void main() {
 
   tearDown(() async {
     if (await root.exists()) await root.delete(recursive: true);
+  });
+
+  test('bicycle rebind persists on disk and incomplete pre-1 profiles reset', () async {
+    final store = HubControlProfileStore(supportRoot: root);
+    final profile = PlayerControlProfile.standard.rebind(device: PlayerControlDevice.keyboard,
+      control: RuntimeInputControl.bicycle, inputId: 'keyQ').profile;
+    await store.save(profile);
+    final cold = HubControlProfileStore(supportRoot: root);
+    expect((await cold.load()).bindingFor(PlayerControlDevice.keyboard, RuntimeInputControl.bicycle), 'keyQ');
+    final incomplete = profile.toJson();
+    for (final device in ['keyboard', 'gamepad', 'touch']) {
+      (incomplete[device] as Map).remove('bicycle');
+    }
+    await File('${root.path}/control-profile.json').writeAsString(jsonEncode(incomplete));
+    expect(await cold.load(), PlayerControlProfile.standard);
   });
 
   test('persists a valid profile and restores defaults after corrupt data',

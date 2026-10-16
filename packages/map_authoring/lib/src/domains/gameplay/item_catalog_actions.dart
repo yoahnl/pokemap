@@ -467,7 +467,12 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
         : AuthoringRiskLevel.medium,
     resourceKinds: const <String>['itemCatalog', 'itemDefinition'],
     capabilityIds: const <String>['authoring.gameplay.items'],
-    extensions: id == 'item.set_held_effect'
+    extensions: id == 'item.set_overworld_effect'
+        ? {
+            'effectKinds': ['heal_hp', 'cure_status', 'revive', 'restore_pp', 'repel', 'escape_rope', 'bicycle'],
+            'bicycle': {'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item', 'runtime': '2d'},
+          }
+        : id == 'item.set_held_effect'
         ? {
             'heldEffectIds':
                 itemSystemV1CapabilityTruth.supportedHeldEffectIds.toList()

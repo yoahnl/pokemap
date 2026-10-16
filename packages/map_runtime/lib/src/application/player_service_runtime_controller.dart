@@ -238,6 +238,30 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   String? Function()? _pauseMutationUnavailableReason;
   Future<bool> Function(ProjectItemDefinition, GameState)? _escapeRopeConsumer;
 
+  Future<bool> Function(ProjectItemDefinition, GameState)? _bicycleConsumer;
+
+  void setBicycleConsumer(
+    Future<bool> Function(ProjectItemDefinition, GameState) consumer,
+  ) {
+    _bicycleConsumer = consumer;
+  }
+
+  Future<RuntimePlayerPauseCommandResult> useBicycleShortcut() async {
+    final catalog = await _resolveItemCatalog();
+    final state = _currentGameState();
+    final item = catalog.catalog.entries.where((item) =>
+        isBicycleItem(item) &&
+        state.bag.entries.any((entry) => entry.itemId == item.id && entry.quantity > 0))
+        .firstOrNull;
+    if (item == null) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Vous ne possédez pas de vélo utilisable.');
+    }
+    return useBagItemOutsideBattle(
+      RuntimePlayerPauseCommand.useBagItem(itemTargetId: item.id));
+  }
+
   void setEscapeRopeConsumer(
     Future<bool> Function(ProjectItemDefinition, GameState) consumer,
   ) {
@@ -276,6 +300,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   var _textRevision = -1;
 
   bool get isActive => _active;
+  bool get supportsBicycle => _bicycleConsumer != null;
   bool get supportsEscapeRope => _escapeRopeConsumer != null;
 
   @override
@@ -964,6 +989,35 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         status: RuntimePlayerPauseCommandStatus.unavailable,
         safeMessage: 'La définition de cet objet est absente ou invalide.',
       );
+    }
+    if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
+        definition.uses.any((use) => use.effect is ProjectItemBicycleEffectDefinition)) {
+      final consumer = _bicycleConsumer;
+      if (consumer == null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Le vélo est disponible uniquement dans un runtime 2D compatible.');
+      }
+      if (_currentGameState() != state || _pauseMutationRefusal() != null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Le vélo n’est pas disponible pour le moment.');
+      }
+      _setInputLocked(true);
+      try {
+        final applied = await consumer(definition, state);
+        return RuntimePlayerPauseCommandResult(
+          status: applied ? RuntimePlayerPauseCommandStatus.accepted
+              : RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: applied ? 'Changement de déplacement sauvegardé.'
+              : 'Le vélo est indisponible ici, ses animations sont incomplètes ou la sauvegarde a échoué.');
+      } on Object {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: 'Le changement de déplacement n’a pas pu être sauvegardé.');
+      } finally {
+        _setInputLocked(false);
+      }
     }
     if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
         definition.uses.any(

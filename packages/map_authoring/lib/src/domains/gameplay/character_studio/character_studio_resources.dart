@@ -203,6 +203,14 @@ final class CharacterStudioResourceProjector {
 
 const List<Map<String, Object?>> _systemAnimationDefinitions = [
   <String, Object?>{
+    'id': 'bicycle_idle', 'displayName': 'Vélo au repos',
+    'mode': 'directional', 'sortOrder': 3, 'system': true, 'state': 'bicycle_idle',
+  },
+  <String, Object?>{
+    'id': 'bicycle', 'displayName': 'Vélo',
+    'mode': 'directional', 'sortOrder': 4, 'system': true, 'state': 'bicycle',
+  },
+  <String, Object?>{
     'id': 'base',
     'displayName': 'Base',
     'mode': 'directional',
@@ -264,6 +272,8 @@ Map<String, Object?> _coverage(
     'walkDefined': systemCount(CharacterAnimationState.walk),
     'walkRequired': EntityFacing.values.length,
     'runDefined': systemCount(CharacterAnimationState.run),
+    'bicycleIdleDefined': systemCount(CharacterAnimationState.bicycleIdle),
+    'bicycleDefined': systemCount(CharacterAnimationState.bicycle),
     'runRequired': EntityFacing.values.length,
     'customDefined': customDefined,
     'customRequired': customDefinitions.length,

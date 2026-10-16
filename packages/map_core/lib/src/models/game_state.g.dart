@@ -226,6 +226,7 @@ const _$EntityFacingEnumMap = {
 };
 
 const _$MovementModeEnumMap = {
+  MovementMode.bicycle: 'bicycle',
   MovementMode.dive: 'dive',
   MovementMode.walk: 'walk',
   MovementMode.surf: 'surf',

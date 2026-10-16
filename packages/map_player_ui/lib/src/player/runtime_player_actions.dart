@@ -197,6 +197,7 @@ class RuntimePlayerActions extends StatelessWidget {
         if (context != null) Actions.invoke(context, const ActivateIntent());
       case PlayerInputAction.back:
         onBack();
+      case PlayerInputAction.bicycle:
       case PlayerInputAction.sprint:
         break;
       case PlayerInputAction.menu:

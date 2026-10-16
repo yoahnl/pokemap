@@ -30,7 +30,7 @@ class MapCatalogueProperties extends StatelessWidget {
       if (onEscapeSettings != null) ...[
         const SizedBox(height: 8),
         StudioButton(
-          label: 'Corde Sortie…',
+          label: 'Déplacements et sortie…',
           secondary: true,
           icon: Icons.exit_to_app,
           onPressed: onEscapeSettings,

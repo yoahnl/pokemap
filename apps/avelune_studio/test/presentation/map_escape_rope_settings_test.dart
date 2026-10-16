@@ -52,7 +52,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Montagne').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(StudioToggleRow));
+    await tester.tap(find.byType(StudioToggleRow).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(StudioToggleRow).last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
@@ -60,6 +62,7 @@ void main() {
       'mapId': 'map',
       'escapeRopeDungeonId': 'dungeon',
       'allowEscapeRope': false,
+      'allowBicycle': false,
     });
   });
 }

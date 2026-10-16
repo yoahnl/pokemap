@@ -413,6 +413,70 @@ test("MCP describes queries and mutates canonical items", async () => {
   }
 });
 
+test("MCP bicycle contracts expose restriction, reusable effect and eight directional clips", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-bicycle-"));
+  await writeFixture(root);
+  const manifestPath = join(root, "project.json");
+  const manifest = record(JSON.parse(await readFile(manifestPath, "utf8")));
+  manifest.tilesets = [{ id: "hero-sheet", name: "Hero", relativePath: "hero.png" }];
+  manifest.characters = [{ id: "hero", name: "Hero", tilesetId: "hero-sheet" }];
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const authoring = new LocalAuthoringClient({ allowedRoots: [root], authoringPackageRoot,
+    requestTimeoutMs: 60_000, workerTimeoutMs: 30_000 });
+  const server = createPokeMapMcpServer({ authoring, artifacts: new MemoryArtifactReader() });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "pokemap-bicycle-test", version: "1.0.0" });
+  await server.connect(serverTransport); await client.connect(clientTransport);
+  try {
+    const description = await toolData(client, "pokemap_describe");
+    const actions = description.mutationActions as JsonRecord[];
+    const map = actions.find((action) => action.id === "map.update_metadata")!;
+    assert.ok(record(record(record(map.extensions).inputSchema).properties).allowBicycle);
+    const item = actions.find((action) => action.id === "item.set_overworld_effect")!;
+    assert.ok((record(item.extensions).effectKinds as string[]).includes("bicycle"));
+    const clip = actions.find((action) => action.id === "characterStudio.animationClip.upsert")!;
+    assert.ok((record(clip.extensions).systemStates as string[]).includes("bicycle_idle"));
+    const opened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const projectHandle = String(opened.projectHandle);
+    let sequence = 0;
+    async function mutate(actionId: string, parameters: JsonRecord): Promise<void> {
+      const snapshot = await toolData(client, "pokemap_validate", { projectHandle });
+      sequence++;
+      const plan = await toolData(client, "pokemap_plan", { projectHandle, request: {
+        requestId: `bicycle-${sequence}`, actionId, actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle, parameters,
+        expectedRevision: snapshot.snapshotRevision, idempotencyKey: `bicycle-${sequence}`,
+      } });
+      await toolData(client, "pokemap_apply", { operation: "apply", projectHandle, planId: plan.planId,
+        operationId: `bicycle-${sequence}` });
+    }
+    await mutate("item.create", { definition: { id: "custom-cycle", displayName: "Vélo",
+      pocketId: "key-items", tags: ["key-item"] } });
+    await mutate("item.set_overworld_effect", { itemId: "custom-cycle", use: {
+      contexts: ["overworld"], target: "world", consumption: "never", effect: { kind: "bicycle" },
+    } });
+    await mutate("map.update_metadata", { mapId: "lab", allowBicycle: false });
+    for (const state of ["bicycle_idle", "bicycle"]) {
+      for (const direction of ["south", "west", "east", "north"]) {
+        await mutate("characterStudio.animationClip.upsert", { characterId: "hero", kind: "system",
+          state, direction, sourceAssetId: "cycle", frames: [{
+            source: { x: 0, y: 0, width: 32, height: 32 }, durationMs: 100,
+          }] });
+      }
+    }
+    const catalog = record(JSON.parse(await readFile(join(root, "data/pokemon/catalogs/items.json"), "utf8")));
+    const bicycle = (catalog.entries as JsonRecord[]).find((entry) => entry.id === "custom-cycle")!;
+    assert.equal(record((bicycle.uses as JsonRecord[])[0]).consumption, "never");
+    const authoredMap = record(JSON.parse(await readFile(join(root, "maps/lab.json"), "utf8")));
+    assert.equal(record(authoredMap.mapMetadata).allowBicycle, false);
+    const after = record(JSON.parse(await readFile(manifestPath, "utf8")));
+    assert.equal(((after.characters as JsonRecord[])[0]!.animations as JsonRecord[]).length, 8);
+  } finally {
+    await client.close(); await server.close(); await authoring.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 async function writeFixture(root: string): Promise<void> {
   await writeFile(
     join(root, "project.json"),

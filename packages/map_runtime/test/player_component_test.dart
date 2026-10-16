@@ -4,12 +4,49 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
+import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayerComponent visual convention', () {
+    test('bicycle uses dedicated clips in eight slots and keeps phase through adjacent steps', () async {
+      final character = ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'hero',
+        animations: [for (final state in [CharacterAnimationState.bicycleIdle, CharacterAnimationState.bicycle])
+          for (final direction in EntityFacing.values) CharacterAnimation(state: state,
+            direction: direction, sourceAssetId: 'cycle', frames: [
+              for (var i = 0; i < 4; i++) CharacterAnimationFrame(
+                source: TilesetSourceRect(x: i * 32, y: 0, width: 32, height: 32), durationMs: 100)])]);
+      final initial = _stateAt(const GridPos(x: 0, y: 0)).copyWith(movementMode: MovementMode.bicycle);
+      final component = PlayerComponent(bundle: _bundle(), state: initial, characterEntry: character,
+        tileImages: {characterAnimationRuntimeImageId('cycle'): _emptyImage()}, mapOrigin: Vector2.zero());
+      await component.onLoad();
+      expect(component.hasBicycleAnimations, isTrue);
+      for (var step = 1; step <= 2; step++) {
+        component.startStep(_stateAt(GridPos(x: step, y: 0)).copyWith(movementMode: MovementMode.bicycle),
+          durationSeconds: PlayerComponent.kBicycleStepSeconds, animationState: CharacterAnimationState.bicycle);
+        component.update(PlayerComponent.kBicycleStepSeconds);
+      }
+      expect(component.debugAnimationSource?.imageId, characterAnimationRuntimeImageId('cycle'));
+      final actor = OverworldActorComponent(character: character,
+        tileImages: {characterAnimationRuntimeImageId('cycle'): _emptyImage()},
+        tileWidth: 16, tileHeight: 16, cellWidth: 16, cellHeight: 16,
+        facing: EntityFacing.south);
+      for (var step = 0; step < 2; step++) {
+        actor.setMotion(EntityFacing.south, CharacterAnimationState.bicycle);
+        actor.update(PlayerComponent.kBicycleStepSeconds);
+        actor.setMotion(EntityFacing.south, CharacterAnimationState.bicycleIdle);
+      }
+      expect(actor.debugAnimationSource?.sourceRect.left, 32);
+      final incomplete = PlayerComponent(bundle: _bundle(), state: initial,
+        characterEntry: character.copyWith(animations: character.animations.skip(1).toList()),
+        tileImages: {characterAnimationRuntimeImageId('cycle'): _emptyImage()}, mapOrigin: Vector2.zero());
+      expect(incomplete.hasBicycleAnimations, isFalse);
+      final noSources = PlayerComponent(bundle: _bundle(), state: initial,
+        characterEntry: character, tileImages: {}, mapOrigin: Vector2.zero());
+      expect(noSources.hasBicycleAnimations, isFalse);
+    });
     test('player actor offset is not applied twice', () async {
       final component = PlayerComponent(
         bundle: _bundle(),

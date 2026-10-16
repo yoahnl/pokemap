@@ -272,6 +272,8 @@ String _directionLabel(EntityFacing? direction) => switch (direction) {
 };
 
 String _animationLabel(CharacterAnimationState? state) => switch (state) {
+  CharacterAnimationState.bicycleIdle => 'Le vélo au repos',
+  CharacterAnimationState.bicycle => 'Le vélo',
   CharacterAnimationState.walk => 'La marche',
   CharacterAnimationState.run => 'La course',
   CharacterAnimationState.idle => 'L’animation de base',

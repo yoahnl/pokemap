@@ -25,6 +25,28 @@ void main() {
       );
     });
 
+    for (final state in ['bicycle_idle', 'bicycle']) {
+      for (final direction in EntityFacing.values) {
+        test('authors dedicated bicycle slot $state/${direction.name}', () {
+          final draft = const CharacterStudioAnimationClipActions().build(
+            _context(snapshot: _snapshot(),
+              actionId: 'characterStudio.animationClip.upsert', parameters: {
+                'characterId': 'elia', 'kind': 'system', 'state': state,
+                'direction': direction.name, 'sourceAssetId': 'cycle',
+                'frames': [for (var index = 0; index < 4; index++) {
+                  'source': {'x': index * 32, 'y': 0, 'width': 32, 'height': 32},
+                  'durationMs': 100,
+                }],
+              }));
+          final clip = _character(draft).animations.last;
+          expect(clip.toJson()['state'], state);
+          expect(clip.direction, direction);
+          expect(clip.sourceAssetId, 'cycle');
+          expect(clip.frames, hasLength(4));
+        });
+      }
+    }
+
     test('upserts one system slot without replacing its frames', () {
       final draft = const CharacterStudioAnimationClipActions().build(
         _context(

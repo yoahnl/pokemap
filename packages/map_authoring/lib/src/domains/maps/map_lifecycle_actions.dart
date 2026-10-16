@@ -150,6 +150,9 @@ AuthoringActionDescriptor _descriptor(
               'required': ['isIndoor'],
             },
             {
+              'required': ['allowBicycle'],
+            },
+            {
               'required': ['allowEscapeRope'],
             },
             {
@@ -175,6 +178,7 @@ AuthoringActionDescriptor _descriptor(
             },
             'isIndoor': {'type': 'boolean'},
             'allowEscapeRope': {'type': 'boolean'},
+            'allowBicycle': {'type': 'boolean'},
             'escapeRopeDungeonId': {
               'type': ['string', 'null'],
               'referenceKind': 'map_group',

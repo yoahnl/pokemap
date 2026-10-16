@@ -87,6 +87,32 @@ void main() {
       expect(actionIds, _durableItemActionIds);
     });
 
+    test('reusable bicycle roundtrips through API and JSONL capability action', () async {
+      for (final jsonl in [false, true]) {
+        final harness = await _ItemTransportHarness.create('bicycle-$jsonl');
+        addTearDown(harness.dispose);
+        final create = _ItemMutationScenario('item.create', {
+          'definition': const ProjectItemDefinition(id: 'cycle', displayName: 'Vélo',
+            pocketId: 'key-items', tags: {'key-item'}).toJson(),
+        });
+        if (jsonl) { await harness.executeJsonl(create); }
+        else { await harness.executeDirect(create); }
+        final scenario = _ItemMutationScenario('item.set_overworld_effect', {
+          'itemId': 'cycle', 'use': const ProjectItemUseDefinition(
+            contexts: {ProjectItemUseContext.overworld}, target: ProjectItemTargetKind.world,
+            consumption: ProjectItemConsumptionPolicy.never,
+            effect: ProjectItemEffectDefinition.bicycle()).toJson(),
+        });
+        final result = jsonl ? await harness.executeJsonl(scenario)
+            : await harness.executeDirect(scenario);
+        final item = ProjectItemCatalog.fromJson(result.catalog).entries
+            .singleWhere((item) => item.id == 'cycle');
+        expect(item.uses.single.effect, const ProjectItemEffectDefinition.bicycle());
+        expect(item.uses.single.consumption, ProjectItemConsumptionPolicy.never);
+        expect(item.tags, contains('key-item'));
+      }
+    });
+
     test('Corde Sortie typed world effect roundtrips through API and JSONL',
         () async {
       final scenario = _ItemMutationScenario('item.set_overworld_effect', {

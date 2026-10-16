@@ -538,6 +538,7 @@ class _PlayerSceneInteractionSurfaceState
         }
       case PlayerInputAction.back:
         _cancel();
+      case PlayerInputAction.bicycle:
       case PlayerInputAction.sprint:
       case PlayerInputAction.menu:
         break;

@@ -224,7 +224,7 @@ final class CharacterStudioController extends ChangeNotifier {
           {
             'characterId': draft.saved.id,
             'kind': 'system',
-            'state': key.$1.name,
+            'state': key.$1 == CharacterAnimationState.bicycleIdle ? 'bicycle_idle' : key.$1.name,
             'direction': key.$2.name,
             if (frames.isNotEmpty) 'sourceAssetId': draft.sourceAssetIdFor(key),
             if (frames.isNotEmpty)

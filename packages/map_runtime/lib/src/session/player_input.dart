@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../presentation/flame/runtime_input_event.dart';
 
-enum PlayerInputAction { up, down, left, right, sprint, confirm, back, menu }
+enum PlayerInputAction { up, down, left, right, sprint, bicycle, confirm, back, menu }
 
 enum PlayerInputSource { keyboard, mouse, touch, controller }
 
@@ -61,6 +61,7 @@ PlayerInputCommand playerInputCommandFromRuntimeEvent(
     RuntimeInputControl.down => PlayerInputAction.down,
     RuntimeInputControl.left => PlayerInputAction.left,
     RuntimeInputControl.right => PlayerInputAction.right,
+    RuntimeInputControl.bicycle => PlayerInputAction.bicycle,
     RuntimeInputControl.sprint => PlayerInputAction.sprint,
     RuntimeInputControl.primary => PlayerInputAction.confirm,
     RuntimeInputControl.secondary => PlayerInputAction.back,
@@ -105,7 +106,7 @@ final class PlayerInputRouter {
     final surface = _surface();
     if (surface == PlayerInputSurface.blocked) return true;
 
-    if (command.action == PlayerInputAction.sprint &&
+    if ((command.action == PlayerInputAction.sprint || command.action == PlayerInputAction.bicycle) &&
         surface != PlayerInputSurface.gameplay) {
       return true;
     }
@@ -139,6 +140,7 @@ final class PlayerInputRouter {
       PlayerInputAction.down => RuntimeInputControl.down,
       PlayerInputAction.left => RuntimeInputControl.left,
       PlayerInputAction.right => RuntimeInputControl.right,
+      PlayerInputAction.bicycle => RuntimeInputControl.bicycle,
       PlayerInputAction.sprint => RuntimeInputControl.sprint,
       PlayerInputAction.confirm => RuntimeInputControl.primary,
       PlayerInputAction.back => RuntimeInputControl.secondary,

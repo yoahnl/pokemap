@@ -961,6 +961,7 @@ Map<String, Object?> _mapSummary(MapData map) => {
   'entityCount': map.entities.length,
   'warpCount': map.warps.length,
   'allowEscapeRope': map.mapMetadata.allowEscapeRope,
+  'allowBicycle': map.mapMetadata.allowBicycle,
   'escapeRopeDungeonId': map.mapMetadata.escapeRopeDungeonId,
 };
 

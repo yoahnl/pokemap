@@ -1,10 +1,12 @@
 part of 'playable_map_game.dart';
 
 extension _PlayableMapRepel on PlayableMapGame {
-  Future<bool> _saveRepelExpirationCheckpoint() async {
+  Future<bool> _saveOverworldPlayerServiceCheckpoint() async {
     if (_hasCheckpointUnsafeRuntimeWorkForSave) return false;
     _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-    await overworldCheckpointWriter!(_gameState);
+    final writer = overworldCheckpointWriter;
+    if (writer == null) return _saveGameUseCase.execute(_gameState);
+    await writer(_gameState);
     return true;
   }
 

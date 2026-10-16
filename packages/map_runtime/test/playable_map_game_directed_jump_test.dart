@@ -8,6 +8,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 const _a = GridPos(x: 2, y: 1);
 const _b = GridPos(x: 2, y: 2);
@@ -126,6 +127,7 @@ RuntimeMapBundle _bundle(
   List<ProjectElementEntry> elements = const [],
   ProjectManifest? manifest,
   String root = '/tmp/jump-consumer',
+  bool bicycle = false,
 }) {
   final fixture = _nativeFixture();
   final base =
@@ -156,7 +158,15 @@ RuntimeMapBundle _bundle(
       tilesets: fixture.project.tilesets,
       elementCategories: fixture.project.elementCategories,
       elements: [...fixture.project.elements, ...elements],
-      characters: const [
+      settings: bicycle ? base.settings.copyWith(defaultPlayerCharacterId: 'bike-player') : base.settings,
+      characters: [
+        if (bicycle) ProjectCharacterEntry(id: 'bike-player', name: 'Cycliste',
+          tilesetId: 'original-atlas', animations: [
+            for (final state in [CharacterAnimationState.bicycleIdle, CharacterAnimationState.bicycle])
+              for (final direction in EntityFacing.values) CharacterAnimation(state: state, direction: direction,
+                sourceAssetId: 'cycle', frames: [const CharacterAnimationFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100)]),
+          ]),
         ProjectCharacterEntry(
           id: 'leader-character',
           name: 'Leader',
@@ -169,6 +179,7 @@ RuntimeMapBundle _bundle(
     map: map,
     projectRootDirectory: root,
     tilesetAbsolutePathsById: const {},
+    characterAnimationAbsolutePathsByAssetId: bicycle ? {'cycle': '$root/cycle.png'} : {},
   );
 }
 
@@ -216,6 +227,7 @@ final class _Game extends PlayableMapGame {
     super.beforeNarrativeAuthorityPreparation,
     super.overworldSfxPlayer,
     PixelOffset? pixelPosition,
+    bool bicycle = false,
   }) : super(
          projectFilePath: '${bundle.projectRootDirectory}/project.json',
          initialMapActivationReason: pixelPosition == null
@@ -227,6 +239,8 @@ final class _Game extends PlayableMapGame {
            playerPosition: _a,
            playerPixelPosition: pixelPosition,
            playerFacing: EntityFacing.south,
+           playerMovementMode: bicycle ? MovementMode.bicycle : MovementMode.walk,
+           repelState: bicycle ? RepelState.active(itemId: 'repel', steps: 8) : const RepelState.empty(),
          ),
        );
 
@@ -275,19 +289,25 @@ Future<_Game> _load({
   Future<void> Function(NarrativeEventOccurrence)? beforeAuthority,
   PixelOffset? pixelPosition,
   OverworldSfxPlayer? overworldSfxPlayer,
+  bool bicycle = false,
 }) async {
   final root = await Directory.systemTemp.createTemp(
     'border-jump-runtime-original-',
   );
   addTearDown(() => root.delete(recursive: true));
   await _writeBorderFrames(root);
+  if (bicycle) {
+    await File('${root.path}/cycle.png').writeAsBytes(image.encodePng(image.Image(width: 128, height: 128)));
+  }
   final game = _Game(
     bundle: _bundle(
       map ?? _map(),
       elements: elements,
       manifest: manifest,
       root: root.path,
+      bicycle: bicycle,
     ),
+    bicycle: bicycle,
     saveRepository: repository ?? _Repository(),
     beforeNarrativeAuthorityPreparation: beforeAuthority,
     pixelPosition: pixelPosition,
@@ -340,6 +360,28 @@ Future<void> _pump(_Game game, bool Function() done) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('bicycle uses native ledge path without extra EX00 or Repel steps', () async {
+    final game = await _load(bicycle: true);
+    addTearDown(game.onRemove);
+    expect(game.playerMovementMode, MovementMode.bicycle);
+    final player = game.world.children.whereType<PlayerComponent>().single;
+    _jump(game);
+    expect(game.debugPlayerGridPosition, _c);
+    expect(player.debugStepAnimationState, CharacterAnimationState.bicycle);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 8);
+    expect(game.lastCommittedMovement, isNull);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.down));
+    game.update(.5);
+    expect(game.debugIsPlayerStepping, isFalse);
+    expect(game.inputAuthoritySnapshot.context, RuntimeInputContext.overworld);
+    expect(player.debugAnimationSource?.imageId, characterAnimationRuntimeImageId('cycle'));
+    expect(game.lastCommittedMovement, isNull);
+    expect(game.playerMovementMode, MovementMode.bicycle);
+    game.update(.2);
+    expect(game.debugPlayerGridPosition, _c);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 8);
+  });
 
   test(
     'jump sound starts once on admission and never on blocked movement',

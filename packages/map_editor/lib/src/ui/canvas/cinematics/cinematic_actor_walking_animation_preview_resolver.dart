@@ -561,9 +561,9 @@ CinematicActorWalkingAnimationPreviewKind _kindFor(
   CharacterAnimationState state,
 ) {
   return switch (state) {
-    CharacterAnimationState.idle =>
+    CharacterAnimationState.bicycleIdle || CharacterAnimationState.idle =>
       CinematicActorWalkingAnimationPreviewKind.idle,
-    CharacterAnimationState.walk =>
+    CharacterAnimationState.bicycle || CharacterAnimationState.walk =>
       CinematicActorWalkingAnimationPreviewKind.walk,
     CharacterAnimationState.run =>
       CinematicActorWalkingAnimationPreviewKind.run,

@@ -35,6 +35,7 @@ final class RuntimePlayerPauseDataBuilder {
     bool mapEnabled = false,
     bool supportsRepel = false,
     bool supportsEscapeRope = false,
+    bool supportsBicycle = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ProjectRegionalMapCatalog? regionalMap,
     ItemCatalogSnapshot? itemCatalog,
@@ -155,6 +156,7 @@ final class RuntimePlayerPauseDataBuilder {
           itemCatalog: resolvedItemCatalog,
           supportsRepel: supportsRepel,
           supportsEscapeRope: supportsEscapeRope,
+          supportsBicycle: supportsBicycle,
         ),
         if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
@@ -467,6 +469,7 @@ final class RuntimePlayerPauseDataBuilder {
     required bool isFrench,
     required bool supportsRepel,
     required bool supportsEscapeRope,
+    required bool supportsBicycle,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
@@ -504,7 +507,7 @@ final class RuntimePlayerPauseDataBuilder {
         itemId: entry.itemId,
         context: ProjectItemUseContext.overworld,
       );
-      if (isKeyItem) {
+      if (isKeyItem && effect is! ProjectItemBicycleEffectDefinition) {
         usability = ItemUsabilityState.passive;
       } else if (isMoveMachine || isEvolutionItem) {
         usability =
@@ -528,12 +531,15 @@ final class RuntimePlayerPauseDataBuilder {
       final repelUnsupported =
           effect is ProjectItemRepelEffectDefinition && !supportsRepel;
       final escapeRopeUnsupported = effect is ProjectItemEscapeRopeEffectDefinition && !supportsEscapeRope;
-      if (repelUnsupported || escapeRopeUnsupported) {
+      final bicycleUnsupported = effect is ProjectItemBicycleEffectDefinition && !supportsBicycle;
+      if (repelUnsupported || escapeRopeUnsupported || bicycleUnsupported) {
         usability = ItemUsabilityState.unsupportedCapability;
       } else if (repelAlreadyActive) {
         usability = ItemUsabilityState.unavailableInContext;
       }
-      final unavailableReason = escapeRopeUnsupported
+      final unavailableReason = bicycleUnsupported
+          ? (isFrench ? 'Le vélo est disponible uniquement dans un runtime 2D compatible.' : 'Bicycle is only available in a compatible 2D runtime.')
+          : escapeRopeUnsupported
           ? (isFrench ? 'La Corde Sortie est disponible uniquement dans un runtime 2D compatible.' : 'Escape Rope is only available in a compatible 2D runtime.')
           : repelUnsupported
           ? (isFrench

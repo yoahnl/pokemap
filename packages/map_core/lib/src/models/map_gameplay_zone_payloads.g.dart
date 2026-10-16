@@ -67,6 +67,7 @@ Map<String, dynamic> _$MovementZonePayloadToJson(
 };
 
 const _$MovementModeEnumMap = {
+  MovementMode.bicycle: 'bicycle',
   MovementMode.dive: 'dive',
   MovementMode.walk: 'walk',
   MovementMode.surf: 'surf',

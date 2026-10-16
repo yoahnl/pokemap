@@ -201,6 +201,8 @@ void _addOptionalSystemAnimationDiagnostics({
   for (final state in const <CharacterAnimationState>[
     CharacterAnimationState.walk,
     CharacterAnimationState.run,
+    CharacterAnimationState.bicycleIdle,
+    CharacterAnimationState.bicycle,
   ]) {
     final hasAny = character.animations.any(
       (animation) => animation.state == state && animation.frames.isNotEmpty,

@@ -49,7 +49,8 @@ EscapeReturnPoint? escapeReturnPointAfterTransfer({
       sourceMap.spatialScene != null ||
       targetMap.version != ProjectVersion.v8 ||
       targetMap.spatialScene != null ||
-      sourceState.playerMovementMode != MovementMode.walk) {
+      (sourceState.playerMovementMode != MovementMode.walk &&
+          sourceState.playerMovementMode != MovementMode.bicycle)) {
     return null;
   }
   return EscapeReturnPoint(

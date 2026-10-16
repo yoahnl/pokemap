@@ -213,6 +213,11 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     //   avec des pas rapides.
     final previousFacing = _facing;
     final previousState = _animState;
+    final togglesBicycleIdle =
+        (previousState == CharacterAnimationState.bicycleIdle &&
+            animState == CharacterAnimationState.bicycle) ||
+        (previousState == CharacterAnimationState.bicycle &&
+            animState == CharacterAnimationState.bicycleIdle);
     final togglesMovementIdle =
         (previousState == CharacterAnimationState.idle &&
                 (animState == CharacterAnimationState.walk ||
@@ -221,7 +226,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
                     previousState == CharacterAnimationState.run) &&
                 animState == CharacterAnimationState.idle);
     final preserveAnimationPhase =
-        previousFacing == facing && togglesMovementIdle;
+        previousFacing == facing && (togglesMovementIdle || togglesBicycleIdle);
 
     _facing = facing;
     _animState = animState;
@@ -441,6 +446,9 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       if (a.direction == _facing) {
         if (a.state == _animState) exactFacing = a;
         switch (a.state) {
+          case CharacterAnimationState.bicycleIdle:
+          case CharacterAnimationState.bicycle:
+            break;
           case CharacterAnimationState.idle:
             idleFacing = a;
             break;
@@ -459,6 +467,9 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
           case CharacterAnimationState.run:
             runAny ??= a;
             break;
+          case CharacterAnimationState.bicycleIdle:
+          case CharacterAnimationState.bicycle:
+            break;
           case CharacterAnimationState.idle:
             idleAny ??= a;
             break;
@@ -468,6 +479,11 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
 
     if (_hasRenderableFrames(exactFacing)) {
       return exactFacing;
+    }
+
+    if (_animState == CharacterAnimationState.bicycle ||
+        _animState == CharacterAnimationState.bicycleIdle) {
+      return null;
     }
 
     final wantsMotion = _animState == CharacterAnimationState.walk ||

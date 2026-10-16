@@ -77,7 +77,8 @@ class _CharacterStudioAnimationPanelState
 
   Widget _buildContent(BuildContext context) {
     final source = _atlas;
-    if (source == null) {
+    if (source == null || widget.controller.animationState == CharacterAnimationState.bicycle ||
+        widget.controller.animationState == CharacterAnimationState.bicycleIdle) {
       final hasAtlas = widget.project.tilesets.any(
         (entry) => entry.id == widget.character.tilesetId,
       );
@@ -121,6 +122,14 @@ class _CharacterStudioAnimationPanelState
           DropdownButton<CharacterAnimationState>(
             value: state,
             items: const [
+              DropdownMenuItem(
+                value: CharacterAnimationState.bicycleIdle,
+                child: Text('Vélo au repos'),
+              ),
+              DropdownMenuItem(
+                value: CharacterAnimationState.bicycle,
+                child: Text('Vélo'),
+              ),
               DropdownMenuItem(
                 value: CharacterAnimationState.walk,
                 child: Text('Marche'),

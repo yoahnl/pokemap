@@ -1322,6 +1322,7 @@ class _GameplayZonePropertiesPanelState
       MovementMode.surf => 'Surf',
       MovementMode.fly => 'Fly',
       MovementMode.cut => 'Cut',
+      MovementMode.bicycle => 'Bicycle',
       MovementMode.strength => 'Strength',
       MovementMode.rockSmash => 'Rock Smash',
       MovementMode.dive => 'Dive',

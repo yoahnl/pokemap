@@ -443,6 +443,7 @@ final class PlayableMapGameSessionRuntime
     final details = await const RuntimePlayerPauseDataBuilder().build(
       supportsRepel: true,
       supportsEscapeRope: _playerServices?.supportsEscapeRope ?? false,
+      supportsBicycle: _playerServices?.supportsBicycle ?? false,
       gameState: gameState,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,

@@ -170,6 +170,7 @@ import 'warp_presentation_renderer.dart';
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_repel.dart';
+part 'playable_map_game_bicycle.dart';
 part 'playable_map_game_escape_rope.dart';
 part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
@@ -2071,6 +2072,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   int _gameStateRevision = 0;
   bool _flyTransferInFlight = false;
   bool _escapeRopeTransferInFlight = false;
+  bool _bicycleToggleInFlight = false;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -2846,6 +2848,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     PlayerServiceRuntimeController controller,
   ) {
     controller.setPauseMutationGuard(() {
+      if (_bicycleToggleInFlight) return 'Le changement de déplacement doit se terminer.';
       if (_activeNarrativeSceneWorkingSession != null) {
         return 'Terminez la scène en cours avant de modifier le sac.';
       }
@@ -2855,6 +2858,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return null;
     });
     controller.setEscapeRopeConsumer(_usePlayerEscapeRope);
+    controller.setBicycleConsumer(_usePlayerBicycle);
     _playerServiceRuntimeController = controller;
   }
 
@@ -2957,38 +2961,54 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               current.bag != expectedState.bag) {
             throw StateError('The player service confirmation is stale.');
           }
-          previousState = _captureGameStateFromWorld(baseState: current);
+          previousState = _captureGameStateFromWorld(baseState: current)
+              .copyWith(escapeReturnPoint: expectedState.escapeReturnPoint);
           final merged = previousState.copyWith(
             repelState: nextState.repelState,
             bag: nextState.bag,
+            playerMovementMode: nextState.playerMovementMode,
           );
           return NarrativeEventStateTransaction.commit(merged, merged);
         }
         return NarrativeEventStateTransaction.commit(nextState, nextState);
       });
       _applyNarrativeGameState(committedState);
-      final saving = expectedState != null &&
-              overworldCheckpointWriter != null
-          ? _saveRepelExpirationCheckpoint()
+      if (isLoaded) {
+        _world = _world.withPlayer(_world.player.copyWith(
+          movementMode: committedState.playerMovementMode));
+        _player.syncState(_world.player);
+      }
+      final saving = expectedState != null
+          ? _saveOverworldPlayerServiceCheckpoint()
           : saveGame();
       ownedRevision = _gameStateRevision;
       final saved = await saving;
       if (!saved) {
         throw StateError('Player service state could not be saved.');
       }
+      if (expectedState != null && (_isRemoved || _gameStateRevision != ownedRevision)) {
+        throw StateError('The player service checkpoint is stale.');
+      }
     } catch (error) {
       if (committedState != null &&
           (expectedState == null ||
               (_gameStateRevision == ownedRevision &&
                   identical(_gameState.repelState, committedState.repelState) &&
-                  _gameState.bag == committedState.bag))) {
+                  _gameState.bag == committedState.bag &&
+                  _gameState.playerMovementMode == committedState.playerMovementMode))) {
         final owned = committedState;
         final restored = await _narrativeStateTransactions.transact<GameState?>(
           (current) {
             if (expectedState != null &&
                 (!identical(current.repelState, owned.repelState) ||
-                    current.bag != owned.bag)) {
+                    current.bag != owned.bag ||
+                    current.playerMovementMode != owned.playerMovementMode)) {
               return NarrativeEventStateTransaction.rollback(null);
+            }
+            if (isLoaded) {
+              _world = _world.withPlayer(_world.player.copyWith(
+                movementMode: previousState.playerMovementMode));
+              _player.syncState(_world.player);
             }
             final rollback = expectedState == null
                 ? previousState
@@ -2996,6 +3016,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                     baseState: current.copyWith(
                       repelState: previousState.repelState,
                       bag: previousState.bag,
+                      playerMovementMode: previousState.playerMovementMode,
                     ),
                   );
             return NarrativeEventStateTransaction.commit(rollback, rollback);
@@ -3081,6 +3102,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     };
     final sprintAllowed = isLoaded &&
         _playerSupportsRunning &&
+        playerMovementMode != MovementMode.bicycle &&
         _externalInputLocks.isEmpty &&
         context == RuntimeInputContext.overworld;
     if (!sprintAllowed) _sprintPressed = false;
@@ -4717,7 +4739,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
-          playerMovementMode: _gameState.playerMovementMode,
+          playerMovementMode: bicycleArrivalMode(_bundle.map, _gameState.playerMovementMode),
           project: _bundle.manifest,
           tileWidth: _bundle.manifest.settings.tileWidth,
           tileHeight: _bundle.manifest.settings.tileHeight,
@@ -4738,7 +4760,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
-          playerMovementMode: _gameState.playerMovementMode,
+          playerMovementMode: bicycleArrivalMode(_bundle.map, _gameState.playerMovementMode),
           project: _bundle.manifest,
           tileWidth: _bundle.manifest.settings.tileWidth,
           tileHeight: _bundle.manifest.settings.tileHeight,
@@ -4792,6 +4814,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (initialMapActivationReason == MapActivationReason.saveRestore) {
         _world = _restorePlayerPixelPosition(_world, _gameState);
       }
+      if (movementTerrainBlockReasonAt(map: _bundle.map,
+          x: _world.player.pos.x, y: _world.player.pos.y,
+          mode: _world.player.movementMode) != null) {
+        throw StateError('The player arrival is incompatible with the map terrain.');
+      }
       debugPrint(
         '[runtime_game] tileset image load ok count=${images.length} map=${_bundle.map.id}',
       );
@@ -4815,6 +4842,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileImages: images,
         mapOrigin: _originPixelsOf(rootMap),
       );
+      if (_world.player.movementMode == MovementMode.bicycle && !_player.hasBicycleAnimations) {
+        throw StateError('The saved bicycle animations are incomplete.');
+      }
       _playerRetainedImages = images.values;
       _playerSupportsRunning = _player.hasRunningAnimation;
       world.add(_player);
@@ -4888,7 +4918,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool handleRuntimeInputEvent(RuntimeInputEvent event) {
     final control = event.control;
 
-    if (_pendingDirectedJump != null) {
+    if (_bicycleToggleInFlight || _pendingDirectedJump != null) {
       _clearPressedMovementControls();
       _sprintPressed = false;
       return true;
@@ -4919,6 +4949,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
     final inputAuthority = inputAuthoritySnapshot;
+
+    if (control == RuntimeInputControl.bicycle) {
+      if (event.isPress && !event.isRepeat &&
+          inputAuthority.context == RuntimeInputContext.overworld &&
+          !_player.isStepping && !_hasCheckpointUnsafeRuntimeWorkForSave) {
+        final controller = _playerServiceRuntimeController;
+        if (controller != null) {
+          unawaited(controller.useBicycleShortcut().then((result) {
+            if (!_isRemoved) {
+              _showNotification(result.safeMessage);
+            }
+          }));
+        }
+      }
+      return true;
+    }
 
     if (control == RuntimeInputControl.sprint) {
       _sprintPressed = inputAuthority.sprintAllowed && event.isPress;
@@ -5150,7 +5196,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
 
-    if (_pendingDirectedJump != null) {
+    if (_bicycleToggleInFlight || _pendingDirectedJump != null) {
       _clearPressedMovementControls();
       return;
     }
@@ -5203,6 +5249,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final narrativeDispatchLocked = _blocksOverworldForNarrativeDispatch;
     final checkpointLocked = _narrativeActivityGate.checkpointInProgress;
     final blocksNewOverworldLaunch =
+        _bicycleToggleInFlight ||
         mapActivationWorkLocked ||
         narrativeDispatchLocked ||
         checkpointLocked ||
@@ -5397,6 +5444,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return Direction.west;
       case RuntimeInputControl.right:
         return Direction.east;
+      case RuntimeInputControl.bicycle:
       case RuntimeInputControl.sprint:
       case RuntimeInputControl.primary:
       case RuntimeInputControl.secondary:
@@ -5638,9 +5686,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         result is PlacedElementInteracted)) {
       _publishCommittedMovement(
         CommittedMovement(
-          kind: _world.player.movementMode == MovementMode.surf
-              ? CommittedMovementKind.surf
-              : CommittedMovementKind.walk,
+          kind: switch (_world.player.movementMode) {
+            MovementMode.surf => CommittedMovementKind.surf,
+            MovementMode.bicycle => CommittedMovementKind.bicycle,
+            _ => CommittedMovementKind.walk,
+          },
           fromCell: previousPlayerPos,
           toCell: _world.player.pos,
         ),
@@ -5712,12 +5762,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (animatePlayer) {
         _player.startStep(
           _world.player,
-          durationSeconds: _sprintPressed
-              ? PlayerComponent.kRunStepSeconds
-              : PlayerComponent.kDefaultStepSeconds,
-          animationState: _sprintPressed
-              ? CharacterAnimationState.run
-              : CharacterAnimationState.walk,
+          durationSeconds: _playerStepSeconds,
+          animationState: _playerStepAnimation,
         );
       }
       _checkStepEncounter(repelActiveForStep: repelActiveForStep);
@@ -5737,7 +5783,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (animatePlayer && result.warp.triggerMode == MapWarpTriggerMode.onEnter) {
         _player.startStep(
           _world.player,
-          durationSeconds: PlayerComponent.kDefaultStepSeconds,
+          durationSeconds: _playerStepSeconds,
+          animationState: _playerStepAnimation,
         );
       } else {
         _player.syncState(_world.player, snapToGrid: true);
@@ -5778,7 +5825,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (animatePlayer && isMovementTrigger) {
         _player.startStep(
           _world.player,
-          durationSeconds: PlayerComponent.kDefaultStepSeconds,
+          durationSeconds: _playerStepSeconds,
+          animationState: _playerStepAnimation,
         );
       } else {
         _player.syncState(_world.player);
@@ -14707,7 +14755,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// Retourne `true` si la sauvegarde a réussi.
   Future<bool> saveGame() async {
-    if (_hasCheckpointUnsafeRuntimeWorkForSave) {
+    if (_bicycleToggleInFlight || _hasCheckpointUnsafeRuntimeWorkForSave) {
       _logCheckpointInterlock('save');
       return false;
     }
@@ -14743,7 +14791,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Si le commit, le remontage ou le `mapEnter` final échoue, le snapshot
   /// runtime précédent est remonté et la sauvegarde fautive reste intacte.
   Future<bool> loadGame() async {
-    if (_isRemoved) return false;
+    if (_isRemoved || _bicycleToggleInFlight) return false;
     if (_hasCheckpointUnsafeRuntimeWork) {
       _logCheckpointInterlock('load');
       return false;
@@ -14871,7 +14919,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: newBundle.manifest,
         playerPos: loadedState.playerPosition,
         playerFacing: loadedState.playerFacing.asDirection,
-        playerMovementMode: loadedState.playerMovementMode,
+        playerMovementMode: bicycleArrivalMode(newBundle.map, loadedState.playerMovementMode),
         tileWidth: newBundle.manifest.settings.tileWidth,
         tileHeight: newBundle.manifest.settings.tileHeight,
         npcMapPresencePredicate: _npcPresencePredicateFor(
@@ -14886,7 +14934,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
       preparedWorld = _restorePlayerPixelPosition(preparedWorld, loadedState);
-      if (preparedWorld.worldStaticObstaclesCollidePlayerCollisionRect()) {
+      if (preparedWorld.player.movementMode == MovementMode.bicycle && !_player.hasBicycleAnimations) {
+        throw StateError('The saved bicycle animations are incomplete.');
+      }
+      if (!isSceneWarpArrivalAllowed(world: preparedWorld, project: newBundle.manifest)) {
         throw StateError(
           'Saved player position ${loadedState.playerPosition} is blocked '
           'on ${newBundle.map.id}.',
@@ -15308,7 +15359,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           map: newBundle.map,
           playerPos: warp.targetPos,
           playerFacing: arrivalFacing?.asDirection ?? sourceFacing,
-          playerMovementMode: arrivalMovementMode ?? sourceWorld.player.movementMode,
+          playerMovementMode: bicycleArrivalMode(newBundle.map,
+              arrivalMovementMode ?? sourceWorld.player.movementMode),
           project: newBundle.manifest,
           tileWidth: newBundle.manifest.settings.tileWidth,
           tileHeight: newBundle.manifest.settings.tileHeight,
@@ -15764,7 +15816,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: targetBundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
-        playerMovementMode: _world.player.movementMode,
+        playerMovementMode: bicycleArrivalMode(targetBundle.map, _world.player.movementMode),
         project: target.bundle.manifest,
         tileWidth: target.bundle.manifest.settings.tileWidth,
         tileHeight: target.bundle.manifest.settings.tileHeight,
@@ -15828,12 +15880,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.startVisualStepFromWorldTopLeft(
         _world.player,
         fromWorldTopLeft: entryStartTopLeft,
-        durationSeconds: _sprintPressed
-            ? PlayerComponent.kRunStepSeconds
-            : PlayerComponent.kDefaultStepSeconds,
-        animationState: _sprintPressed
-            ? CharacterAnimationState.run
-            : CharacterAnimationState.walk,
+        durationSeconds: _playerStepSeconds,
+        animationState: _playerStepAnimation,
       );
       final continuityCameraWorldTopLeft = Vector2(
         entryStartTopLeft.x - sourcePlayerScreenTopLeft.x,

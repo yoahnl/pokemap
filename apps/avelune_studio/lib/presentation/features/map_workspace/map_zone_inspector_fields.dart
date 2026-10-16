@@ -356,6 +356,7 @@ String movementModeLabel(MovementMode mode) => switch (mode) {
   MovementMode.dive => 'Sous l’eau (Plongée)',
   MovementMode.fly => 'En vol',
   MovementMode.cut => 'Après avoir coupé',
+  MovementMode.bicycle => 'À vélo',
   MovementMode.strength => 'Avec la force',
   MovementMode.rockSmash => 'Après avoir brisé',
 };

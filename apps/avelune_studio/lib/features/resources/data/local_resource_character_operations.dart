@@ -24,18 +24,28 @@ Future<ResourceMutationReceipt> _importCharacterAnimation(
         'kind': 'animationClip',
         'slotKind': 'system',
         'characterId': request.characterId,
-        'state': request.state.name,
+        'state': request.state == CharacterAnimationState.bicycleIdle
+            ? 'bicycle_idle' : request.state.name,
         'direction': request.direction.name,
         'frames': <Object?>[
-          for (var index = 0; index < 3; index++)
+          for (var index = 0; index < (request.state == CharacterAnimationState.bicycle ||
+              request.state == CharacterAnimationState.bicycleIdle ? 4 : 3); index++)
             <String, Object?>{
               'source': <String, int>{
                 'x': index * request.poseWidth,
-                'y': 0,
+                'y': request.state == CharacterAnimationState.bicycle ||
+                    request.state == CharacterAnimationState.bicycleIdle
+                    ? switch (request.direction) {
+                      EntityFacing.south => 0,
+                      EntityFacing.west => request.poseHeight,
+                      EntityFacing.east => request.poseHeight * 2,
+                      EntityFacing.north => request.poseHeight * 3,
+                    } : 0,
                 'width': request.poseWidth,
                 'height': request.poseHeight,
               },
-              'durationMs': 150,
+              'durationMs': request.state == CharacterAnimationState.bicycle ||
+                  request.state == CharacterAnimationState.bicycleIdle ? 100 : 150,
             },
         ],
       },

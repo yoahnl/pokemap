@@ -1021,6 +1021,8 @@ Map<String, dynamic> _$CharacterAnimationToJson(_CharacterAnimation instance) =>
     };
 
 const _$CharacterAnimationStateEnumMap = {
+  CharacterAnimationState.bicycleIdle: 'bicycle_idle',
+  CharacterAnimationState.bicycle: 'bicycle',
   CharacterAnimationState.idle: 'idle',
   CharacterAnimationState.walk: 'walk',
   CharacterAnimationState.run: 'run',

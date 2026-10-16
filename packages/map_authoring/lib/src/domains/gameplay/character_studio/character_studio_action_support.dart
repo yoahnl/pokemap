@@ -56,7 +56,11 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
     requiredPermissions: const <AuthoringPermission>[
       AuthoringPermission.projectWrite,
     ],
-    extensions: {if (inputSchema != null) 'inputSchema': inputSchema},
+    extensions: {
+      if (inputSchema != null) 'inputSchema': inputSchema,
+      if (id.startsWith('characterStudio.animation'))
+        'systemStates': ['base', 'walk', 'run', 'bicycle_idle', 'bicycle'],
+    },
     guarantees: const <AuthoringGuarantee>[
       AuthoringGuarantee.dryRun,
       AuthoringGuarantee.idempotent,

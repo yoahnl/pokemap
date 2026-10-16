@@ -17,6 +17,7 @@ _MapMetadata _$MapMetadataFromJson(Map<String, dynamic> json) => _MapMetadata(
       $enumDecodeNullable(_$MapWeatherEnumMap, json['weather']) ??
       MapWeather.none,
   isIndoor: json['isIndoor'] as bool? ?? false,
+  allowBicycle: json['allowBicycle'] as bool? ?? true,
   allowEscapeRope: json['allowEscapeRope'] as bool? ?? true,
   escapeRopeDungeonId: json['escapeRopeDungeonId'] as String?,
   defaultSpawnId: json['defaultSpawnId'] as String?,
@@ -34,6 +35,7 @@ Map<String, dynamic> _$MapMetadataToJson(_MapMetadata instance) =>
       'battleMusicPath': instance.battleMusicPath,
       'weather': _$MapWeatherEnumMap[instance.weather]!,
       'isIndoor': instance.isIndoor,
+      'allowBicycle': instance.allowBicycle,
       'allowEscapeRope': instance.allowEscapeRope,
       'escapeRopeDungeonId': instance.escapeRopeDungeonId,
       'defaultSpawnId': instance.defaultSpawnId,

@@ -16,6 +16,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
     'role',
     'isIndoor',
     'allowEscapeRope',
+    'allowBicycle',
     'escapeRopeDungeonId',
   });
   final mapId = parameters.string('mapId');
@@ -24,8 +25,14 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
   final hasRole = values.containsKey('role');
   final hasIndoor = values.containsKey('isIndoor');
   final hasEscapeAllowed = values.containsKey('allowEscapeRope');
+  final hasBicycle = values.containsKey('allowBicycle');
+  final rawBicycle = values['allowBicycle'];
+  if (hasBicycle && rawBicycle is! bool) {
+    throw MapAuthoringException(code: 'map.bicycle_invalid',
+      message: 'The bicycle setting must be a boolean.');
+  }
   final hasDungeon = values.containsKey('escapeRopeDungeonId');
-  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasDungeon) {
+  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasBicycle && !hasDungeon) {
     throw MapAuthoringException(
         code: 'map.metadata_empty',
         message: 'At least one map metadata field is required.');
@@ -111,6 +118,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       details: {'role': role.name, 'isIndoor': isIndoor},
     );
   }
+  final allowBicycle = hasBicycle ? rawBicycle! as bool : before.mapMetadata.allowBicycle;
   final allowEscapeRope = hasEscapeAllowed
       ? rawEscapeAllowed! as bool
       : before.mapMetadata.allowEscapeRope;
@@ -122,6 +130,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
   if (!nameChanged &&
       entry.role == role &&
       before.mapMetadata.isIndoor == isIndoor &&
+      before.mapMetadata.allowBicycle == allowBicycle &&
       before.mapMetadata.allowEscapeRope == allowEscapeRope &&
       before.mapMetadata.escapeRopeDungeonId == dungeonId) {
     throw MapAuthoringException(
@@ -133,6 +142,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
     mapMetadata: before.mapMetadata.copyWith(
       isIndoor: isIndoor,
       allowEscapeRope: allowEscapeRope,
+      allowBicycle: allowBicycle,
       escapeRopeDungeonId: dungeonId,
     ),
   );
@@ -202,6 +212,11 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
             before: entry.role.name,
             after: role.name,
           ),
+        if (before.mapMetadata.allowBicycle != allowBicycle)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace, resource: map,
+            path: '/mapMetadata/allowBicycle',
+            before: before.mapMetadata.allowBicycle, after: allowBicycle),
         if (before.mapMetadata.allowEscapeRope != allowEscapeRope)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.replace,
@@ -235,6 +250,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       'role': role.name,
       'isIndoor': isIndoor,
       'allowEscapeRope': allowEscapeRope,
+      'allowBicycle': allowBicycle,
       'escapeRopeDungeonId': dungeonId,
       'storageGuarantee': 'recoverable'
     },

@@ -137,6 +137,7 @@ void main() {
     expect(persisted.sourceAssetId, clip.sourceAssetId);
     expect(persisted.frames.first.durationMs, 300);
     EntityFacing? requestedDirection;
+    CharacterAnimationState? requestedState;
     Navigator.of(tester.element(find.byType(ResourceWorkspacePane))).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
@@ -145,7 +146,9 @@ void main() {
             draft: navigation.characters.selectedDraft!,
             controller: navigation.characters,
             visuals: fixture.visuals!,
-            onImport: (_, direction) => requestedDirection = direction,
+            onImport: (state, direction) {
+              requestedState = state; requestedDirection = direction;
+            },
           ),
         ),
       ),
@@ -155,8 +158,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Haut').last);
     await tester.pump();
+    await tester.tap(find.byType(DropdownButton<CharacterAnimationState>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vélo').last);
+    await tester.pump();
     await tester.tap(find.text('Importer une animation dédiée'));
     expect(requestedDirection, EntityFacing.north);
+    expect(requestedState, CharacterAnimationState.bicycle);
     await tester.pumpWidget(const SizedBox());
     await pumpIo(tester);
   });

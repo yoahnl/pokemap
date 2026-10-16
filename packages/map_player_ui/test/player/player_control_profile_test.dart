@@ -7,6 +7,18 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('bicycle binding rebinds, rejects conflicts and persists in profile JSON', () {
+    final standard = PlayerControlProfile.standard;
+    expect(standard.bindingFor(PlayerControlDevice.keyboard, RuntimeInputControl.bicycle), 'keyB');
+    final rebound = standard.rebind(device: PlayerControlDevice.keyboard,
+      control: RuntimeInputControl.bicycle, inputId: 'keyQ');
+    expect(rebound.hasConflict, isFalse);
+    final restored = PlayerControlProfile.fromJson(rebound.profile.toJson());
+    expect(restored.bindingFor(PlayerControlDevice.keyboard, RuntimeInputControl.bicycle), 'keyQ');
+    expect(standard.rebind(device: PlayerControlDevice.keyboard,
+      control: RuntimeInputControl.bicycle, inputId: 'keyE').hasConflict, isTrue);
+  });
+
   test('synthesized presses are ignored while releases can clear held input', () {
     final profile = PlayerControlProfile.standard;
     expect(

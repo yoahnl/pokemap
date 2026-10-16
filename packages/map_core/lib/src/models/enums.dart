@@ -355,6 +355,8 @@ enum HazardKind {
 
 /// Mode de déplacement requis ou appliqué dans une zone gameplay.
 enum MovementMode {
+  @JsonValue('bicycle')
+  bicycle,
   @JsonValue('dive')
   dive,
   @JsonValue('walk')
@@ -424,6 +426,10 @@ enum EncounterKind {
 }
 
 enum CharacterAnimationState {
+  @JsonValue('bicycle_idle')
+  bicycleIdle,
+  @JsonValue('bicycle')
+  bicycle,
   @JsonValue('idle')
   idle,
   @JsonValue('walk')

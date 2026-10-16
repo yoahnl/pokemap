@@ -31,6 +31,102 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
+  for (final diskFailure in [false, true]) {
+    testWidgets('bicycle durable Hub checkpoint and cold factory resume: $diskFailure', (tester) async {
+      await tester.runAsync(() async {
+        final beforeAt = DateTime.utc(2026, 10, 16);
+        final state = GameState(saveId: '123e4567-e89b-42d3-a456-426614174020',
+          currentMapId: 'outside', playerPosition: const GridPos(x: 3, y: 3),
+          playerFacing: EntityFacing.east,
+          repelState: RepelState.active(itemId: 'repel', steps: 8),
+          escapeReturnPoint: const EscapeReturnPoint(dungeonId: 'dungeon', mapId: 'outside',
+            position: GridPos(x: 2, y: 2), facing: EntityFacing.west),
+          bag: const Bag(entries: [BagEntry(itemId: 'custom_cycle', quantity: 1),
+            BagEntry(itemId: 'repel', quantity: 2), BagEntry(itemId: 'rope', quantity: 2)]));
+        final initial = const GameStateSaveEnvelopeMapper().create(
+          identity: launch.identity, profileId: 'player-1', slotId: 'slot-1', saveId: state.saveId,
+          createdAt: beforeAt, updatedAt: beforeAt, status: SaveStatus.active,
+          playTimeSeconds: 30, gameState: state);
+        await saves.writeVerified(initial);
+        saves = HubSaveStore(supportRoot: root, identity: launch.identity,
+          faultHook: (stage) async {
+            if (diskFailure && stage == SaveWriteStage.afterTemporaryVerified) {
+              throw const FileSystemException('disk full');
+            }
+          });
+        final manifest = ProjectManifest(name: 'Bicycle', tilesets: [],
+          settings: const ProjectSettings(defaultPlayerCharacterId: 'hero'),
+          maps: [const ProjectMapEntry(id: 'outside', name: 'Outside', relativePath: 'outside.json')],
+          pokemon: const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            catalogFiles: {'items': 'items.json'}),
+          characters: [ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'hero',
+            animations: [for (final animation in [CharacterAnimationState.bicycleIdle, CharacterAnimationState.bicycle])
+              for (final direction in EntityFacing.values) CharacterAnimation(
+                state: animation, direction: direction, sourceAssetId: 'cycle',
+                frames: [for (var i = 0; i < 4; i++) CharacterAnimationFrame(
+                  source: TilesetSourceRect(x: i * 32, y: 0, width: 32, height: 32), durationMs: 100)])])]);
+        const map = MapData(id: 'outside', name: 'Outside', size: GridSize(width: 8, height: 8));
+        const catalog = ProjectItemCatalog(schemaVersion: 1, entries: [
+          ProjectItemDefinition(id: 'custom_cycle', displayName: 'Vélo', pocketId: 'key-items', tags: {'key-item'},
+            uses: [ProjectItemUseDefinition(contexts: {ProjectItemUseContext.overworld},
+              target: ProjectItemTargetKind.world, consumption: ProjectItemConsumptionPolicy.never,
+              effect: ProjectItemEffectDefinition.bicycle())]),
+        ]);
+        final projectRoot = Directory('${root.path}/version/project');
+        final pixels = img.encodePng(img.Image(width: 128, height: 128));
+        for (final directory in [root, projectRoot]) {
+          await File('${directory.path}/project.json').writeAsString(jsonEncode(manifest.toJson()));
+          await File('${directory.path}/outside.json').writeAsString(jsonEncode(map.toJson()));
+          await File('${directory.path}/items.json').writeAsString(jsonEncode(catalog.toJson()));
+          await File('${directory.path}/cycle.png').writeAsBytes(pixels);
+        }
+        late PlayableMapGame game;
+        final factory = HubInProcessSessionFactory(launch: launch, saves: saves,
+          commitCheckpoint: HubPlayerSaveGateway(store: saves).commit,
+          now: () => beforeAt.add(const Duration(minutes: 1)),
+          preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: RuntimeMapBundle(manifest: manifest, map: map,
+              projectRootDirectory: projectRoot.path, tilesetAbsolutePathsById: const {},
+              characterAnimationAbsolutePathsByAssetId: {'cycle': '${projectRoot.path}/cycle.png'})),
+          mountGame: (mounted) async {
+            game = mounted;
+            await tester.pumpWidget(Directionality(textDirection: TextDirection.ltr,
+              child: GameWidget(game: game)));
+            await tester.state<GameWidgetState<PlayableMapGame>>(
+              find.byType(GameWidget<PlayableMapGame>)).loaderFuture;
+          }, unmountGame: (_) async {});
+        final descriptor = _descriptor(launch, save: initial);
+        final adapter = factory.call(descriptor);
+        await adapter.prepare(descriptor); await adapter.start();
+        await _pumpRepelGameUntil(game, () => !game.debugIsMapActivationDispatchInFlight);
+        final before = game.playerServiceGameStateSnapshot;
+        var finished = false;
+        final use = (adapter as RuntimePlayerPauseCommandPort).dispatchPauseCommand(
+          const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'custom_cycle'))
+            .whenComplete(() => finished = true);
+        await _pumpRepelGameUntil(game, () => finished);
+        final result = await use;
+        final stored = (await saves.read(initial.address)).envelope!;
+        final persisted = const GameStateSaveEnvelopeMapper().restore(stored);
+        expect(result.status == RuntimePlayerPauseCommandStatus.accepted, !diskFailure);
+        expect(persisted.playerMovementMode, diskFailure ? MovementMode.walk : MovementMode.bicycle);
+        expect(persisted.bag, state.bag);
+        expect(persisted.repelState, state.repelState);
+        expect(persisted.escapeReturnPoint, state.escapeReturnPoint);
+        if (diskFailure) { expect(game.playerServiceGameStateSnapshot, before); }
+        await adapter.dispose();
+        final coldDescriptor = _descriptor(launch, save: stored);
+        final cold = factory.call(coldDescriptor);
+        await cold.prepare(coldDescriptor); await cold.start();
+        expect(game.playerMovementMode, persisted.playerMovementMode);
+        expect(game.gameStateSnapshot.bag, persisted.bag);
+        expect(game.gameStateSnapshot.repelState, persisted.repelState);
+        expect(game.gameStateSnapshot.escapeReturnPoint, persisted.escapeReturnPoint);
+        await cold.dispose();
+      });
+    });
+  }
+
   for (final faultStage in [
     null,
     SaveWriteStage.afterTemporaryVerified,

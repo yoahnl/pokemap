@@ -66,6 +66,7 @@ abstract class MapMetadata with _$MapMetadata {
     String? battleMusicPath,
     @Default(MapWeather.none) MapWeather weather,
     @Default(false) bool isIndoor,
+    @Default(true) bool allowBicycle,
     @Default(true) bool allowEscapeRope,
     String? escapeRopeDungeonId,
     String? defaultSpawnId,

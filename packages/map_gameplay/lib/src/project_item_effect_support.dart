@@ -10,6 +10,7 @@ ProjectItemEffectRuntimeSupport projectItemEffectRuntimeSupport(
   ProjectItemReviveEffectDefinition() ||
   ProjectItemRestorePpEffectDefinition() ||
   ProjectItemRepelEffectDefinition() ||
+  ProjectItemBicycleEffectDefinition() ||
   ProjectItemEscapeRopeEffectDefinition() =>
     ProjectItemEffectRuntimeSupport.supported,
   _ => ProjectItemEffectRuntimeSupport.unsupported,

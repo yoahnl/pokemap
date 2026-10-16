@@ -60,6 +60,7 @@ final class PlayerControlProfile {
       RuntimeInputControl.left: 'arrowLeft',
       RuntimeInputControl.right: 'arrowRight',
       RuntimeInputControl.sprint: 'shiftLeft',
+      RuntimeInputControl.bicycle: 'keyB',
       RuntimeInputControl.primary: 'keyE',
       RuntimeInputControl.secondary: 'escape',
       RuntimeInputControl.menu: 'keyM',
@@ -70,6 +71,7 @@ final class PlayerControlProfile {
       RuntimeInputControl.left: 'dpadLeft',
       RuntimeInputControl.right: 'dpadRight',
       RuntimeInputControl.sprint: 'y',
+      RuntimeInputControl.bicycle: 'back',
       RuntimeInputControl.primary: 'a',
       RuntimeInputControl.secondary: 'b',
       RuntimeInputControl.menu: 'start',
@@ -80,6 +82,7 @@ final class PlayerControlProfile {
       RuntimeInputControl.left: 'joystickLeft',
       RuntimeInputControl.right: 'joystickRight',
       RuntimeInputControl.sprint: 'sprintButton',
+      RuntimeInputControl.bicycle: 'bicycleButton',
       RuntimeInputControl.primary: 'primaryButton',
       RuntimeInputControl.secondary: 'secondaryButton',
       RuntimeInputControl.menu: 'menuButton',
@@ -291,6 +294,7 @@ const Map<String, LogicalKeyboardKey> playerKeyboardInputs =
   'keyQ': LogicalKeyboardKey.keyQ,
   'keyZ': LogicalKeyboardKey.keyZ,
   'keyX': LogicalKeyboardKey.keyX,
+  'keyB': LogicalKeyboardKey.keyB,
   'space': LogicalKeyboardKey.space,
   'enter': LogicalKeyboardKey.enter,
   'escape': LogicalKeyboardKey.escape,
@@ -321,6 +325,7 @@ const List<String> playerTouchInputs = <String>[
   'secondaryButton',
   'menuButton',
   'sprintButton',
+  'bicycleButton',
 ];
 
 const Map<String, String> _glyphs = <String, String>{
@@ -336,6 +341,7 @@ const Map<String, String> _glyphs = <String, String>{
   'keyQ': 'Q',
   'keyZ': 'Z',
   'keyX': 'X',
+  'keyB': 'B',
   'space': 'Space',
   'enter': 'Enter',
   'escape': 'Esc',
@@ -360,6 +366,7 @@ const Map<String, String> _glyphs = <String, String>{
   'secondaryButton': 'B',
   'menuButton': '☰',
   'sprintButton': 'R',
+  'bicycleButton': 'Vélo',
 };
 
 String? _keyboardInputId(LogicalKeyboardKey key) {
