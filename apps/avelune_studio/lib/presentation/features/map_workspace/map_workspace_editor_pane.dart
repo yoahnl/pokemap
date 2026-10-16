@@ -93,6 +93,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                           children: [
                             if (widget.showToolStrip)
                               MapWorkspaceToolStrip(
+                                elements: widget.project.elements,
                                 spatial:
                                     widget.document.current.spatialScene !=
                                     null,

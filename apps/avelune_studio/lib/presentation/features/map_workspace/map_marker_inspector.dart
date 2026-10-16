@@ -59,14 +59,22 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     final sign = entity.sign;
     final blocked = _deletionProblem;
     final healingDisplay = entity.healingDisplay;
-    final canConfigureHealingDisplay = entity.kind == MapEntityKind.custom &&
-        !entity.blocksMovement && entity.size.width == 1 && entity.size.height == 1 &&
-        entity.npc == null && entity.sign == null && entity.item == null && entity.spawn == null &&
-        entity.fieldObstacle == null && entity.editorVisual == null && !healingDisplayHasCollisionOverride(entity) &&
-        widget.document.current.spatialScene == null && widget.document.current.version != ProjectVersion.v9 &&
+    final canConfigureHealingDisplay =
+        entity.kind == MapEntityKind.custom &&
+        !entity.blocksMovement &&
+        entity.size.width == 1 &&
+        entity.size.height == 1 &&
+        entity.npc == null &&
+        entity.sign == null &&
+        entity.item == null &&
+        entity.spawn == null &&
+        entity.fieldObstacle == null &&
+        entity.editorVisual == null &&
+        !healingDisplayHasCollisionOverride(entity) &&
+        widget.document.current.spatialScene == null &&
+        widget.document.current.version != ProjectVersion.v9 &&
         widget.project.settings.dimension == ProjectDimension.twoD;
-    final cutTree = entity.fieldObstacle?.kind == FieldObstacleKind.cutTree;
-    final canConfigureCut =
+    final canConfigureFieldObstacle =
         entity.kind == MapEntityKind.custom &&
         entity.blocksMovement &&
         entity.size.width == 1 &&
@@ -91,8 +99,12 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
         Text(
           spawn != null
               ? 'Point d’apparition'
-              : cutTree
-              ? 'Arbre à couper'
+              : entity.fieldObstacle != null
+              ? switch (entity.fieldObstacle!.kind) {
+                  FieldObstacleKind.cutTree => 'Arbre à couper',
+                  FieldObstacleKind.strengthBoulder => 'Rocher à pousser',
+                  FieldObstacleKind.rockSmashRock => 'Rocher à briser',
+                }
               : healingDisplay != null
               ? 'Boules de soin'
               : 'Panneau',
@@ -218,28 +230,55 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
         ],
         if (canConfigureHealingDisplay) ...[
           const SizedBox(height: 12),
-          HealingDisplayControls(key:ValueKey('healing-display-${entity.id}'),
-            entity:entity,project:widget.project,elementPreview:widget.elementPreview,
-            onChanged:(display)=>_change(()=>_commands.setHealingDisplay(entity.id,display))),
+          HealingDisplayControls(
+            key: ValueKey('healing-display-${entity.id}'),
+            entity: entity,
+            project: widget.project,
+            elementPreview: widget.elementPreview,
+            onChanged: (display) =>
+                _change(() => _commands.setHealingDisplay(entity.id, display)),
+          ),
         ],
-        if (canConfigureCut) ...[
+        if (canConfigureFieldObstacle) ...[
           const SizedBox(height: 12),
-          StudioChoice(
-            key: const ValueKey('field-obstacle-cut-tree'),
-            label: 'Arbre à couper',
-            subtitle:
-                'Requiert Coupe débloquée et un Pokémon apte à l’utiliser.',
-            selected: cutTree,
-            onTap: () => _change(
-              () => _commands.setFieldObstacle(
-                entity.id,
-                cutTree ? null : const MapEntityFieldObstacleData(),
+          for (final kind in FieldObstacleKind.values)
+            StudioChoice(
+              key: ValueKey(switch (kind) {
+                FieldObstacleKind.cutTree => 'field-obstacle-cut-tree',
+                FieldObstacleKind.strengthBoulder =>
+                  'field-obstacle-strength-boulder',
+                FieldObstacleKind.rockSmashRock =>
+                  'field-obstacle-rock-smash-rock',
+              }),
+              label: switch (kind) {
+                FieldObstacleKind.cutTree => 'Arbre à couper',
+                FieldObstacleKind.strengthBoulder => 'Rocher à pousser',
+                FieldObstacleKind.rockSmashRock => 'Rocher à briser',
+              },
+              subtitle: switch (kind) {
+                FieldObstacleKind.cutTree =>
+                  'Requiert Coupe débloquée et un Pokémon apte à l’utiliser.',
+                FieldObstacleKind.strengthBoulder =>
+                  'Requiert Force débloquée et un Pokémon apte à l’utiliser.',
+                FieldObstacleKind.rockSmashRock => 'Requiert Éclate-Roc débloquée et un Pokémon apte à l’utiliser.',
+              },
+              selected: entity.fieldObstacle?.kind == kind,
+              onTap: () => _change(
+                () => _commands.setFieldObstacle(
+                  entity.id,
+                  entity.fieldObstacle?.kind == kind
+                      ? null
+                      : MapEntityFieldObstacleData(kind: kind),
+                ),
               ),
             ),
-          ),
-          if (cutTree) ...[
+          if (entity.fieldObstacle != null) ...[
             const SizedBox(height: 6),
-            const Text('Réapparition : à la réinitialisation de la carte.'),
+            Text(
+              entity.fieldObstacle?.kind == FieldObstacleKind.strengthBoulder
+                  ? 'Position et activation de Force : réinitialisées avec la carte.'
+                  : 'Réapparition : à la réinitialisation de la carte.',
+            ),
           ],
         ],
         const SizedBox(height: 16),
@@ -256,8 +295,10 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               ? 'Suppression bloquée par l’histoire'
               : spawn != null
               ? 'Supprimer ce départ'
-              : cutTree
-              ? 'Supprimer cet arbre'
+              : entity.fieldObstacle != null
+              ? entity.fieldObstacle!.kind == FieldObstacleKind.cutTree
+                    ? 'Supprimer cet arbre'
+                    : 'Supprimer ce rocher'
               : healingDisplay != null
               ? 'Supprimer cet affichage de soin'
               : 'Supprimer le panneau',

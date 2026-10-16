@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_encounter_mode_picker.dart';
+import 'map_field_obstacle_placement_controls.dart';
 import 'map_workspace_tool_strip_selection.dart';
 import 'map_workspace_view_state.dart';
 part 'map_workspace_tool_strip_actions.dart';
@@ -19,6 +21,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
     required this.onUndo,
     required this.onRedo,
     this.spatial = false,
+    this.elements = const [],
   });
 
   final MapWorkspaceViewState view;
@@ -27,6 +30,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
   final VoidCallback onResources;
   final bool storyAvailable;
   final bool spatial;
+  final List<ProjectElementEntry> elements;
   final bool paletteVisible;
   final VoidCallback? onUndo, onRedo;
 
@@ -111,6 +115,9 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           ('Placer un personnage', Icons.person_add_alt),
           ('Placer le départ du joueur', Icons.flag_outlined),
           ('Placer un panneau', Icons.signpost_outlined),
+          ('Placer un arbre à couper', Icons.park_outlined),
+          ('Placer un rocher à pousser', Icons.landscape_outlined),
+          ('Placer un rocher à briser', Icons.landscape_outlined),
           ('Passages', Icons.meeting_room_outlined),
           ('Connexions', Icons.compare_arrows),
           ('Dessiner une zone de jeu', Icons.grass_outlined),
@@ -254,6 +261,14 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                 ...history,
               ],
             ),
+          if (view.tool == StudioMapTool.fieldObstacle && !spatial) ...[
+            const SizedBox(height: 8),
+            MapFieldObstaclePlacementControls(
+              view: view,
+              elements: elements,
+              onChanged: onChanged,
+            ),
+          ],
           if (zonesVisible) ...[
             const SizedBox(height: 4),
             Row(

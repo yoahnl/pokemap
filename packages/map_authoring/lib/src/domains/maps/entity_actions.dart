@@ -95,7 +95,7 @@ final class EntityActions {
         'semanticIds': true,
         'rawTilesetRequired': false,
         'fieldObstacle': {
-          'kinds': ['cutTree'],
+          'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock'],
           'resetPolicies': ['mapInstance'],
           'entityKind': 'custom',
           'blocksMovement': true,

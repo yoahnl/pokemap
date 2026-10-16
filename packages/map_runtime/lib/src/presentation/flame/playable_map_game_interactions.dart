@@ -7,7 +7,7 @@ final class _ResolvedOverworldInteraction {
     this.entity,
     this.eventId,
     this.sceneId,
-    this.isIntrinsicCutObstacle = false,
+    this.isIntrinsicFieldObstacle = false,
   });
 
   final RuntimeOverworldInteractionAction action;
@@ -15,7 +15,7 @@ final class _ResolvedOverworldInteraction {
   final MapEntity? entity;
   final String? eventId;
   final String? sceneId;
-  final bool isIntrinsicCutObstacle;
+  final bool isIntrinsicFieldObstacle;
 }
 
 extension _PlayableMapInteractions on PlayableMapGame {
@@ -36,9 +36,11 @@ extension _PlayableMapInteractions on PlayableMapGame {
             !_activeScriptController!.isTerminated)) {
       return false;
     }
-    return !_inputLocks.snapshot.activeTokens.any((token) =>
-        !_derivedInputLocks.containsKey(token.owner) &&
-        token.surface != RuntimeInputSurface.world);
+    return !_inputLocks.snapshot.activeTokens.any(
+      (token) =>
+          !_derivedInputLocks.containsKey(token.owner) &&
+          token.surface != RuntimeInputSurface.world,
+    );
   }
 
   RuntimeOverworldInteractionSnapshot _readOverworldInteractionSnapshot() {
@@ -89,7 +91,8 @@ extension _PlayableMapInteractions on PlayableMapGame {
   }
 
   NarrativeEventDispatchAuthorityPreparation? _readInteractionAuthority(
-      NarrativeEventOccurrence occurrence) {
+    NarrativeEventOccurrence occurrence,
+  ) {
     final project = _bundle.manifest;
     final registry = project.eventRegistry;
     if (registry == null ||
@@ -128,8 +131,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       NpcInteracted(:final entity) ||
       SignInteracted(:final entity) ||
       ItemInteracted(:final entity) ||
-      EntityInteracted(:final entity) =>
-        entity,
+      EntityInteracted(:final entity) => entity,
       _ => null,
     };
     if (!includeHidden &&
@@ -140,13 +142,16 @@ extension _PlayableMapInteractions on PlayableMapGame {
     if (!includeHidden && placed != null && placed.element.opacity <= 0) {
       return null;
     }
-    final placedCooldownReady = placed == null ||
+    final placedCooldownReady =
+        placed == null ||
         _placedBehaviorCooldownGate.remainingMs(
-                key: _buildPlacedBehaviorCooldownKey(
-                    element: placed.element,
-                    behavior: placed.behavior,
-                    trigger: placed.trigger),
-                nowMs: _runtimeClockMs) <=
+              key: _buildPlacedBehaviorCooldownKey(
+                element: placed.element,
+                behavior: placed.behavior,
+                trigger: placed.trigger,
+              ),
+              nowMs: _runtimeClockMs,
+            ) <=
             0;
     final key = (
       _bundle.manifest,
@@ -162,14 +167,19 @@ extension _PlayableMapInteractions on PlayableMapGame {
       placedCooldownReady,
       _placedElementWarpTraversalController.isActive,
       _cachedNarrativeRuntimeSnapshot,
-      includeHidden
+      includeHidden,
     );
     if (_interactionResolutionKey == key) return _cachedInteractionResolution;
     _interactionResolutionKey = key;
-    final placedAvailable = placed == null ||
+    final placedAvailable =
+        placed == null ||
         (placedCooldownReady && _canExecuteInteractionBehavior(placed));
     _cachedInteractionResolution = _selectOverworldInteraction(
-        result, entity, placedAvailable, includeHidden);
+      result,
+      entity,
+      placedAvailable,
+      includeHidden,
+    );
     return _cachedInteractionResolution;
   }
 
@@ -182,15 +192,20 @@ extension _PlayableMapInteractions on PlayableMapGame {
     var verb = RuntimeOverworldInteractionVerb.interact;
     String? eventId;
     String? sceneId;
-    var isIntrinsicCutObstacle = false;
+    var isIntrinsicFieldObstacle = false;
     late String actionId;
     late String targetId;
     late GridPos cell;
     late RuntimeOverworldInteractionTargetKind kind;
     if (entity != null && entity.kind != MapEntityKind.spawn) {
-      final preparation = _readInteractionAuthority(NarrativeEventOccurrence(
-        source: NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id),
-      ));
+      final preparation = _readInteractionAuthority(
+        NarrativeEventOccurrence(
+          source: NarrativeEventSourceRef.entityInteract(
+            _activeMapId,
+            entity.id,
+          ),
+        ),
+      );
       if (preparation is! NarrativeEventDispatchAuthorityReady) return null;
       final decision = preparation.plan(gameState: _gameState);
       if (decision is NarrativeEventDispatchHandled) {
@@ -198,44 +213,60 @@ extension _PlayableMapInteractions on PlayableMapGame {
         sceneId = decision.sceneId;
         actionId = jsonEncode(['eventV2', eventId, sceneId]);
       } else if (decision is NarrativeEventDispatchNoMatch &&
-          entity.fieldObstacle?.kind == FieldObstacleKind.cutTree &&
-          !_hasIntrinsicCutObstacleOwner(entity)) {
-        final evaluation = evaluateCutObstacleAttempt(
-            map: _world.map, gameState: _gameState, entityId: entity.id);
-        if (evaluation case CutObstacleUnavailable(:final reason)
-            when reason != CutObstacleBlockReason.missingMove &&
-                reason != CutObstacleBlockReason.locked) {
+          entity.fieldObstacle != null &&
+          !_hasIntrinsicFieldObstacleOwner(entity)) {
+        final evaluation = evaluateFieldObstacleAttempt(
+          map: _world.map,
+          gameState: _gameState,
+          entityId: entity.id,
+        );
+        if (evaluation case FieldObstacleUnavailable(:final reason)
+            when reason != FieldObstacleBlockReason.missingMove &&
+                reason != FieldObstacleBlockReason.locked) {
           return null;
         }
-        final instance = _gameState.mapInstanceWorldState.instanceRef(_activeMapId)!;
-        isIntrinsicCutObstacle = true;
-        actionId = jsonEncode(['fieldObstacle', entity.id,
-            entity.fieldObstacle!.toJson(), instance.instanceId]);
+        final instance = _gameState.mapInstanceWorldState.instanceRef(
+          _activeMapId,
+        )!;
+        isIntrinsicFieldObstacle = true;
+        actionId = jsonEncode([
+          'fieldObstacle',
+          entity.id,
+          entity.fieldObstacle!.toJson(),
+          instance.instanceId,
+        ]);
       } else if (decision is NarrativeEventDispatchNoMatch &&
           decision.legacyFallbackAllowed) {
         final source = _scenarioRuntime.selectSource(
           scenarios: _bundle.manifest.scenarios,
           sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
-              mapId: _activeMapId, entityId: entity.id),
+            mapId: _activeMapId,
+            entityId: entity.id,
+          ),
           gameState: _gameState,
           shouldSkipScenario: _shouldSkipLocalScenarioForCompletedStep,
         );
         if (source != null) {
-          actionId = jsonEncode(
-              ['scenario', source.scenario.id, source.sourceNode.id]);
+          actionId = jsonEncode([
+            'scenario',
+            source.scenario.id,
+            source.sourceNode.id,
+          ]);
         } else {
           final native = _nativeEntityInteraction(entity);
           actionId = native.$1;
           verb = native.$2;
-          if (PlayableMapGame._tileEventMayAnswer(result,
-              scenarioHandled: false)) {
+          if (PlayableMapGame._tileEventMayAnswer(
+            result,
+            scenarioHandled: false,
+          )) {
             final selected = _selectInteractionMapEvent();
             if (selected != null) {
               actionId = jsonEncode([
                 actionId,
                 selected.$1.id,
                 selected.$2.pageIndex,
-                selected.$2.page.toJson()
+                selected.$2.page.toJson(),
               ]);
               verb = RuntimeOverworldInteractionVerb.interact;
             }
@@ -247,8 +278,9 @@ extension _PlayableMapInteractions on PlayableMapGame {
       kind = RuntimeOverworldInteractionTargetKind.entity;
       targetId = entity.id;
       cell = GridPos(
-          x: _world.player.pos.x + _world.player.facing.dx,
-          y: _world.player.pos.y + _world.player.facing.dy);
+        x: _world.player.pos.x + _world.player.facing.dx,
+        y: _world.player.pos.y + _world.player.facing.dy,
+      );
     } else if (result is PlacedElementInteracted) {
       if (!placedAvailable) return null;
       kind = RuntimeOverworldInteractionTargetKind.placedElement;
@@ -269,8 +301,11 @@ extension _PlayableMapInteractions on PlayableMapGame {
       kind = RuntimeOverworldInteractionTargetKind.mapEvent;
       targetId = selected.$1.id;
       cell = GridPos(x: selected.$1.position.x, y: selected.$1.position.y);
-      actionId = jsonEncode(
-          ['mapEvent', selected.$2.pageIndex, selected.$2.page.toJson()]);
+      actionId = jsonEncode([
+        'mapEvent',
+        selected.$2.pageIndex,
+        selected.$2.page.toJson(),
+      ]);
       if (selected.$2.page.sceneTarget == null &&
           selected.$2.page.script == null &&
           (selected.$2.page.message?.trim().isNotEmpty ?? false)) {
@@ -279,14 +314,18 @@ extension _PlayableMapInteractions on PlayableMapGame {
     }
     final settings = _bundle.manifest.settings;
     var bounds = PixelRect(
-        leftPx: cell.x * settings.tileWidth,
-        topPx: cell.y * settings.tileHeight,
-        widthPx: settings.tileWidth,
-        heightPx: settings.tileHeight);
+      leftPx: cell.x * settings.tileWidth,
+      topPx: cell.y * settings.tileHeight,
+      widthPx: settings.tileWidth,
+      heightPx: settings.tileHeight,
+    );
     if (kind == RuntimeOverworldInteractionTargetKind.entity &&
         entity?.item?.visibility != MapEntityItemVisibility.hidden) {
-      bounds = resolveEntityCollisionRectPx(entity!,
-          tileWidthPx: settings.tileWidth, tileHeightPx: settings.tileHeight);
+      bounds = resolveEntityCollisionRectPx(
+        entity!,
+        tileWidthPx: settings.tileWidth,
+        tileHeightPx: settings.tileHeight,
+      );
     } else if (result is PlacedElementInteracted) {
       final projectElement = _bundle.manifest.elements
           .where((entry) => entry.id == result.element.elementId)
@@ -295,35 +334,40 @@ extension _PlayableMapInteractions on PlayableMapGame {
         bounds = resolveMapPlacedElementGeometry(
           instance: result.element,
           element: projectElement,
-          tileSize:
-              PixelSize(width: settings.tileWidth, height: settings.tileHeight),
+          tileSize: PixelSize(
+            width: settings.tileWidth,
+            height: settings.tileHeight,
+          ),
         ).logicalRect;
       }
     }
     return _ResolvedOverworldInteraction(
       action: RuntimeOverworldInteractionAction(
         request: RuntimeOverworldInteractionRequest(
-            sessionId: _interactionSessionId,
-            mapActivationId: _currentMapActivationId!,
-            mapId: _activeMapId,
-            targetKind: kind,
-            targetId: targetId,
-            actionId: narrativeEventCanonicalSha256(actionId)),
+          sessionId: _interactionSessionId,
+          mapActivationId: _currentMapActivationId!,
+          mapId: _activeMapId,
+          targetKind: kind,
+          targetId: targetId,
+          actionId: narrativeEventCanonicalSha256(actionId),
+        ),
         verb: verb,
         targetCell: cell,
         targetBounds: bounds,
       ),
       result: result,
-      entity:
-          kind == RuntimeOverworldInteractionTargetKind.entity ? entity : null,
+      entity: kind == RuntimeOverworldInteractionTargetKind.entity
+          ? entity
+          : null,
       eventId: eventId,
       sceneId: sceneId,
-      isIntrinsicCutObstacle: isIntrinsicCutObstacle,
+      isIntrinsicFieldObstacle: isIntrinsicFieldObstacle,
     );
   }
 
   (String, RuntimeOverworldInteractionVerb) _nativeEntityInteraction(
-      MapEntity entity) {
+    MapEntity entity,
+  ) {
     DialogueRef? dialogue;
     var verb = RuntimeOverworldInteractionVerb.interact;
     if (entity.kind == MapEntityKind.npc) {
@@ -333,20 +377,20 @@ extension _PlayableMapInteractions on PlayableMapGame {
           .firstOrNull;
       if (trainer != null) {
         final plan = resolveRuntimeTrainerInteractionPlan(
-            trainer: trainer,
-            npc: entity.npc!,
-            isDefeated:
-                _storyBranching.isTrainerDefeated(_gameState, trainer.id));
+          trainer: trainer,
+          npc: entity.npc!,
+          isDefeated: _storyBranching.isTrainerDefeated(_gameState, trainer.id),
+        );
         return (
           jsonEncode([
             'trainer',
             trainer.id,
             plan.disposition.name,
-            plan.dialogue?.toJson()
+            plan.dialogue?.toJson(),
           ]),
           plan.disposition == RuntimeTrainerInteractionDisposition.dialogueOnly
               ? RuntimeOverworldInteractionVerb.talk
-              : RuntimeOverworldInteractionVerb.interact
+              : RuntimeOverworldInteractionVerb.interact,
         );
       }
       if (dialogue != null) verb = RuntimeOverworldInteractionVerb.talk;
@@ -364,24 +408,36 @@ extension _PlayableMapInteractions on PlayableMapGame {
       _interactionEventsByCell.clear();
       for (final event in map.events) {
         _interactionEventsByCell.putIfAbsent(
-            GridPos(x: event.position.x, y: event.position.y), () => event);
+          GridPos(x: event.position.x, y: event.position.y),
+          () => event,
+        );
       }
     }
     final facing = _world.player.facing;
-    final event = _interactionEventsByCell[GridPos(
-        x: _world.player.pos.x + facing.dx,
-        y: _world.player.pos.y + facing.dy)];
+    final event =
+        _interactionEventsByCell[GridPos(
+          x: _world.player.pos.x + facing.dx,
+          y: _world.player.pos.y + facing.dy,
+        )];
     if (event == null) return null;
-    final factContext =
-        ScriptEvaluationContext(narrativeFactResolver: _narrativeFactResolver);
-    final activePage = _storyBranching.pageResolver.resolve(event, _gameState,
-        contextForPage: (page) =>
-            hasEventBuilderPageProvenance(page) ? factContext : null);
+    final factContext = ScriptEvaluationContext(
+      narrativeFactResolver: _narrativeFactResolver,
+    );
+    final activePage = _storyBranching.pageResolver.resolve(
+      event,
+      _gameState,
+      contextForPage: (page) =>
+          hasEventBuilderPageProvenance(page) ? factContext : null,
+    );
     if (activePage == null) return null;
-    final projection =
-        _resolveWorldRuleProjectionForMap(map.id, _bundle.manifest);
-    if (!(projection?.canTriggerMapEvent(event,
-            defaultEnabled: !activePage.page.isDisabled) ??
+    final projection = _resolveWorldRuleProjectionForMap(
+      map.id,
+      _bundle.manifest,
+    );
+    if (!(projection?.canTriggerMapEvent(
+          event,
+          defaultEnabled: !activePage.page.isDisabled,
+        ) ??
         !activePage.page.isDisabled)) {
       return null;
     }
@@ -392,11 +448,13 @@ extension _PlayableMapInteractions on PlayableMapGame {
     final behavior = result.behavior;
     if (!behavior.enabled ||
         _placedBehaviorCooldownGate.remainingMs(
-                key: _buildPlacedBehaviorCooldownKey(
-                    element: result.element,
-                    behavior: behavior,
-                    trigger: result.trigger),
-                nowMs: _runtimeClockMs) >
+              key: _buildPlacedBehaviorCooldownKey(
+                element: result.element,
+                behavior: behavior,
+                trigger: result.trigger,
+              ),
+              nowMs: _runtimeClockMs,
+            ) >
             0) {
       return false;
     }
@@ -411,9 +469,11 @@ extension _PlayableMapInteractions on PlayableMapGame {
                 _resolvePlacedElementAnimationEnabled(result.element.id),
       MapPlacedElementEffectType.playAnimationOnce ||
       MapPlacedElementEffectType.traverseWarp =>
-        _bundle.manifest.elements.any((element) =>
-                element.id == result.element.elementId &&
-                element.frames.length >= 2) &&
+        _bundle.manifest.elements.any(
+              (element) =>
+                  element.id == result.element.elementId &&
+                  element.frames.length >= 2,
+            ) &&
             (effect.type != MapPlacedElementEffectType.traverseWarp ||
                 (!_placedElementWarpTraversalController.isActive &&
                     effect.targetPos != null &&
@@ -427,88 +487,225 @@ extension _PlayableMapInteractions on PlayableMapGame {
       _runLegacyInteractionFallback(interaction.result);
       return;
     }
-    if (interaction.isIntrinsicCutObstacle) {
+    if (interaction.isIntrinsicFieldObstacle) {
       if (_resolveOverworldInteraction(includeHidden: true)?.action.request !=
           interaction.action.request) {
         return;
       }
-      final prepared = prepareCutObstacleInteraction(map: _world.map,
-          gameState: _gameState, stateRevision: _gameStateRevision, entityId: entity.id);
+      final prepared = prepareFieldObstacleInteraction(
+        map: _world.map,
+        gameState: _gameState,
+        stateRevision: _gameStateRevision,
+        entityId: entity.id,
+      );
       if (prepared == null) return;
-      _openDialogue(prepared.session,
-          onDialogueFinished: (outcome) => _completeIntrinsicCutObstacle(prepared, outcome));
+      _openDialogue(
+        prepared.session,
+        onDialogueFinished: (outcome) =>
+            _completeIntrinsicFieldObstacle(prepared, outcome),
+      );
       return;
     }
     if (entity.kind == MapEntityKind.npc) _faceNpcTowardPlayer(entity.id);
     _runDetachedNarrativeTask(
-        operation: 'entityInteract',
-        task: () => _dispatchNarrativeEntityInteraction(
-              interaction.result,
-              entity,
-              interactionGuard: NarrativeSpatialInteractionGuard(
-                eventId: interaction.eventId,
-                sceneId: interaction.sceneId,
-                isApplicable: () =>
-                    _resolveOverworldInteraction(
-                            includeHidden: true, duringDispatch: true)
-                        ?.action
-                        .request ==
-                    interaction.action.request,
-              ),
-            ));
-  }
-  bool _hasIntrinsicCutObstacleOwner(MapEntity entity) {
-    final source = NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id);
-    final registry = _bundle.manifest.eventRegistry;
-    if (registry?.records.any((record) => record.definitionOrNull?.source == source) == true ||
-        registry?.legacyClaims.any((claim) => claim.source == source) == true ||
-        _bundle.map.events.any((event) => event.position.x == entity.pos.x &&
-            event.position.y == entity.pos.y)) {
-      return true;
-    }
-    return _bundle.manifest.scenarios.any((scenario) => scenario.nodes.any((node) =>
-        node.type == ScenarioNodeType.reference &&
-        node.payload.actionKind?.trim() == kScenarioSourceEntityInteract &&
-        node.binding.entityId?.trim() == entity.id &&
-        ((node.binding.mapId?.trim().isEmpty ?? true) ||
-            node.binding.mapId?.trim() == _activeMapId)));
+      operation: 'entityInteract',
+      task: () => _dispatchNarrativeEntityInteraction(
+        interaction.result,
+        entity,
+        interactionGuard: NarrativeSpatialInteractionGuard(
+          eventId: interaction.eventId,
+          sceneId: interaction.sceneId,
+          isApplicable: () =>
+              _resolveOverworldInteraction(
+                includeHidden: true,
+                duringDispatch: true,
+              )?.action.request ==
+              interaction.action.request,
+        ),
+      ),
+    );
   }
 
-  void _completeIntrinsicCutObstacle(RuntimeCutObstacleInteraction interaction,
-      String? outcomeId) {
-    final decision = interaction.complete(outcomeId: outcomeId,
-        map: _world.map, gameState: _gameState,
-        currentStateRevision: _gameStateRevision);
-    if (decision is CutObstacleRefused) {
+  bool _hasIntrinsicFieldObstacleOwner(MapEntity entity) {
+    final source = NarrativeEventSourceRef.entityInteract(
+      _activeMapId,
+      entity.id,
+    );
+    final registry = _bundle.manifest.eventRegistry;
+    if (registry?.records.any(
+              (record) => record.definitionOrNull?.source == source,
+            ) ==
+            true ||
+        registry?.legacyClaims.any((claim) => claim.source == source) == true ||
+        _bundle.map.events.any(
+          (event) =>
+              event.position.x == entity.pos.x &&
+              event.position.y == entity.pos.y,
+        )) {
+      return true;
+    }
+    return _bundle.manifest.scenarios.any(
+      (scenario) => scenario.nodes.any(
+        (node) =>
+            node.type == ScenarioNodeType.reference &&
+            node.payload.actionKind?.trim() == kScenarioSourceEntityInteract &&
+            node.binding.entityId?.trim() == entity.id &&
+            ((node.binding.mapId?.trim().isEmpty ?? true) ||
+                node.binding.mapId?.trim() == _activeMapId),
+      ),
+    );
+  }
+
+  void _completeIntrinsicFieldObstacle(
+    RuntimeFieldObstacleInteraction interaction,
+    String? outcomeId,
+  ) {
+    final decision = interaction.complete(
+      outcomeId: outcomeId,
+      map: _world.map,
+      gameState: _gameState,
+      currentStateRevision: _gameStateRevision,
+      authoringMap: (_runtimeBundleByMapId[_activeMapId] ?? _bundle).map,
+      project: _bundle.manifest,
+      collisionWorld: _world,
+    );
+    if (decision is FieldObstacleRefused) {
       _showNotification('Cette action n’est plus disponible.');
       return;
     }
-    if (decision is! CutObstacleApplied) return;
-    final instance = decision.gameState.mapInstanceWorldState.instanceRef(_activeMapId)!;
-    final map = applyFieldObstacleWorldStateToMap(map: _world.map,
-        instances: decision.gameState.mapInstanceWorldState, instance: instance);
-    final nextWorld = GameplayWorldState.initial(map: map,
-        movingPlatformWorldState: decision.gameState.movingPlatformWorldState,
-        project: _bundle.manifest, playerPos: _world.player.pos,
-        playerFacing: _world.player.facing, playerMovementMode: _world.player.movementMode,
-        tileWidth: _bundle.manifest.settings.tileWidth,
-        tileHeight: _bundle.manifest.settings.tileHeight,
-        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
-        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(_bundle.manifest))
-        .withPlayer(_world.player);
-    final loaded = _loadedMapsById[_activeMapId];
-    loaded?.backgroundLayers.applyFieldObstacleProjection(
-        instances: decision.gameState.mapInstanceWorldState, instance: instance);
-    loaded?.foregroundLayers.applyFieldObstacleProjection(
-        instances: decision.gameState.mapInstanceWorldState, instance: instance);
-    _replaceLogicalMapInstances(decision.gameState.mapInstanceWorldState);
-    _world = nextWorld;
-    _bundle = _bundle.copyWith(map: map);
-    if (loaded != null) loaded.bundle = _bundle;
-    _syncGameStateFromWorld();
-    unawaited(_overworldSfxPlayer.playCut());
-    _showNotification('Votre Pokémon utilise Coupe !');
+    if (decision is! FieldObstacleApplied) return;
+    _applyIntrinsicFieldObstacleState(decision.gameState);
+    final ability = interaction.ticket!.fieldAction.ability;
+    if (ability == FieldAbility.cut) unawaited(_overworldSfxPlayer.playCut());
+    _showNotification(switch (ability) {
+      FieldAbility.cut => 'Votre Pokémon utilise Coupe !',
+      FieldAbility.strength => 'Force est active sur cette carte. Avancez vers un rocher pour le pousser.',
+      FieldAbility.rockSmash => 'Votre Pokémon utilise Éclate-Roc !',
+      _ => throw StateError('Unsupported field obstacle ability.'),
+    });
     _publishOverworldInteractions();
   }
 
+  void _applyIntrinsicFieldObstacleState(GameState state) {
+    final projected = _projectMovingPlatformBundle(
+      _bundle.copyWith(map: _world.map),
+      state,
+    );
+    final nextWorld = GameplayWorldState.initial(
+      map: projected.map,
+      movingPlatformWorldState: state.movingPlatformWorldState,
+      project: projected.manifest,
+      playerPos: _world.player.pos,
+      playerFacing: _world.player.facing,
+      playerMovementMode: _world.player.movementMode,
+      tileWidth: projected.manifest.settings.tileWidth,
+      tileHeight: projected.manifest.settings.tileHeight,
+      npcMapPresencePredicate: _world.npcMapPresencePredicate,
+      mapEntityPresencePredicate: _world.mapEntityPresencePredicate,
+    ).withPlayer(_world.player);
+    _replaceLogicalMapInstances(state.mapInstanceWorldState);
+    _world = nextWorld;
+    _bundle = projected;
+    final loaded = _loadedMapsById[_activeMapId];
+    if (loaded != null) loaded.bundle = _bundle;
+    final instance = state.mapInstanceWorldState.instanceRef(_activeMapId)!;
+    loaded?.backgroundLayers.applyFieldObstacleProjection(
+      instances: state.mapInstanceWorldState,
+      runtimeMap: projected.map,
+      movingPlatformWorldState: state.movingPlatformWorldState,
+      instance: instance,
+    );
+    loaded?.foregroundLayers.applyFieldObstacleProjection(
+      instances: state.mapInstanceWorldState,
+      runtimeMap: projected.map,
+      movingPlatformWorldState: state.movingPlatformWorldState,
+      instance: instance,
+    );
+    _syncGameStateFromWorld();
+  }
+
+  bool _tryPushStrengthObstacle(Direction direction) {
+    final instance = _gameState.mapInstanceWorldState.instanceRef(_activeMapId);
+    if (instance == null ||
+        !_gameState.mapInstanceWorldState.isStrengthActive(instance) ||
+        !_canResolveOverworldInteraction()) {
+      return false;
+    }
+    final front = GridPos(
+      x: _world.player.pos.x + direction.dx,
+      y: _world.player.pos.y + direction.dy,
+    );
+    final targets = _world.map.entities
+        .where(
+          (entity) =>
+              entity.pos == front &&
+              entity.fieldObstacle?.kind == FieldObstacleKind.strengthBoulder,
+        )
+        .toList();
+    if (targets.length != 1 ||
+        _world.entityAt(front.x, front.y)?.id != targets.single.id ||
+        _hasIntrinsicFieldObstacleOwner(targets.single)) {
+      return false;
+    }
+    final bumpSource = NarrativeEventSourceRef.entityBump(
+      _activeMapId,
+      targets.single.id,
+    );
+    final registry = _bundle.manifest.eventRegistry;
+    if (registry?.records.any(
+              (record) => record.definitionOrNull?.source == bumpSource,
+            ) ==
+            true ||
+        registry?.legacyClaims.any((claim) => claim.source == bumpSource) ==
+            true) {
+      return false;
+    }
+    _world = _world.withPlayer(_world.player.copyWith(facing: direction));
+    _syncGameStateFromWorld();
+    final ticket = FieldObstacleTicket(
+      fieldAction: FieldActionTicket(
+        ability: FieldAbility.strength,
+        targetCell: front,
+        issuedAtStateRevision: _gameStateRevision,
+      ),
+      instance: instance,
+      entityId: targets.single.id,
+      playerPosition: _gameState.playerPosition,
+      playerPixelPosition: _gameState.playerPixelPosition,
+      playerFacing: _gameState.playerFacing,
+    );
+    final decision = commitStrengthPush(
+      ticket: ticket,
+      world: _world,
+      gameState: _gameState,
+      currentStateRevision: _gameStateRevision,
+      authoringMap: (_runtimeBundleByMapId[_activeMapId] ?? _bundle).map,
+      project: _bundle.manifest,
+      characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
+          .map((reservation) => reservation.contactRect)
+          .whereType<PixelRect>(),
+    );
+    if (decision is! StrengthPushApplied) {
+      _player.syncState(_world.player);
+      return true;
+    }
+    final from = _world.player.pos;
+    _world = decision.movement.world;
+    _applyIntrinsicFieldObstacleState(decision.gameState);
+    final loaded = _loadedMapsById[_activeMapId];
+    final duration = _sprintPressed
+        ? PlayerComponent.kRunStepSeconds
+        : PlayerComponent.kDefaultStepSeconds;
+    for (final layers in [loaded?.backgroundLayers, loaded?.foregroundLayers]) {
+      layers?.animateFieldObstaclePush(
+        entityId: decision.entityId,
+        from: front,
+        to: GridPos(x: front.x + direction.dx, y: front.y + direction.dy),
+        durationSeconds: duration,
+      );
+    }
+    _handleGameplayMovementResult(decision.movement, previousPlayerPos: from);
+    _publishOverworldInteractions();
+    return true;
+  }
 }

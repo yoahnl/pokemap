@@ -2,7 +2,9 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 import 'package:meta/meta.dart' show immutable;
 
-const currentMapInstanceWorldStateSchemaVersion = 2;
+import 'geometry.dart';
+
+const currentMapInstanceWorldStateSchemaVersion = 3;
 const _collectionEquality = DeepCollectionEquality();
 
 Object? readMapInstanceWorldStateJson(Map<dynamic, dynamic> json, String key) {
@@ -38,7 +40,18 @@ final class MapInstanceRuntimeState {
     required String instanceId,
     Map<String, Map<String, bool>> eventBooleans = const {},
     Set<String> clearedFieldObstacleIds = const {},
+    Map<String, GridPos> fieldObstaclePositions = const {},
+    Map<String, GridPos> npcPositions = const {},
+    this.strengthActive = false,
   }) : instanceId = _identity(instanceId, 'instanceId'),
+       fieldObstaclePositions = Map.unmodifiable({
+         for (final entry in fieldObstaclePositions.entries)
+           _identity(entry.key, 'fieldObstacleId'): _position(entry.value),
+       }),
+       npcPositions = Map.unmodifiable({
+         for (final entry in npcPositions.entries)
+           _identity(entry.key, 'npcId'): _position(entry.value),
+       }),
        clearedFieldObstacleIds = Set.unmodifiable(
          clearedFieldObstacleIds.map((id) => _identity(id, 'fieldObstacleId')),
        ),
@@ -53,9 +66,27 @@ final class MapInstanceRuntimeState {
   final String instanceId;
   final Map<String, Map<String, bool>> eventBooleans;
   final Set<String> clearedFieldObstacleIds;
+  final Map<String, GridPos> fieldObstaclePositions;
+  final Map<String, GridPos> npcPositions;
+  final bool strengthActive;
 
   factory MapInstanceRuntimeState.fromJson(Map<String, dynamic> json) {
-    _keys(json, {'instanceId', 'eventBooleans', 'clearedFieldObstacleIds'});
+    _keys(json, {
+      'instanceId',
+      'eventBooleans',
+      'clearedFieldObstacleIds',
+      'fieldObstaclePositions',
+      'npcPositions',
+      'strengthActive',
+    });
+    final positions = _readPositions(
+      json['fieldObstaclePositions'],
+      'fieldObstaclePositions',
+    );
+    final npcPositions = _readPositions(json['npcPositions'], 'npcPositions');
+    if (json['strengthActive'] is! bool) {
+      throw const FormatException('strengthActive must be a boolean.');
+    }
     final cleared = json['clearedFieldObstacleIds'];
     if (cleared is! List ||
         cleared.any((id) => id is! String) ||
@@ -84,6 +115,9 @@ final class MapInstanceRuntimeState {
       return MapInstanceRuntimeState(
         instanceId: _string(json['instanceId'], 'instanceId'),
         eventBooleans: booleans,
+        fieldObstaclePositions: positions,
+        npcPositions: npcPositions,
+        strengthActive: json['strengthActive'] as bool,
         clearedFieldObstacleIds: cleared.cast<String>().toSet(),
       );
     } on ArgumentError catch (error) {
@@ -96,6 +130,15 @@ final class MapInstanceRuntimeState {
     return {
       'instanceId': instanceId,
       'clearedFieldObstacleIds': clearedFieldObstacleIds.toList()..sort(),
+      'fieldObstaclePositions': {
+        for (final id in fieldObstaclePositions.keys.toList()..sort())
+          id: fieldObstaclePositions[id]!.toJson(),
+      },
+      'npcPositions': {
+        for (final id in npcPositions.keys.toList()..sort())
+          id: npcPositions[id]!.toJson(),
+      },
+      'strengthActive': strengthActive,
       'eventBooleans': {
         for (final eventId in eventIds)
           eventId: {
@@ -111,6 +154,12 @@ final class MapInstanceRuntimeState {
       identical(this, other) ||
       other is MapInstanceRuntimeState &&
           other.instanceId == instanceId &&
+          other.strengthActive == strengthActive &&
+          _collectionEquality.equals(other.npcPositions, npcPositions) &&
+          _collectionEquality.equals(
+            other.fieldObstaclePositions,
+            fieldObstaclePositions,
+          ) &&
           _collectionEquality.equals(other.eventBooleans, eventBooleans) &&
           _collectionEquality.equals(
             other.clearedFieldObstacleIds,
@@ -120,6 +169,9 @@ final class MapInstanceRuntimeState {
   @override
   int get hashCode => Object.hash(
     instanceId,
+    strengthActive,
+    _collectionEquality.hash(fieldObstaclePositions),
+    _collectionEquality.hash(npcPositions),
     _collectionEquality.hash(eventBooleans),
     _collectionEquality.hash(clearedFieldObstacleIds),
   );
@@ -199,6 +251,9 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          npcPositions: instance.npcPositions,
+          fieldObstaclePositions: instance.fieldObstaclePositions,
+          strengthActive: instance.strengthActive,
           clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
           eventBooleans: {
             ...instance.eventBooleans,
@@ -226,11 +281,91 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          npcPositions: instance.npcPositions,
+          fieldObstaclePositions: instance.fieldObstaclePositions,
+          strengthActive: instance.strengthActive,
           eventBooleans: instance.eventBooleans,
           clearedFieldObstacleIds: {
             ...instance.clearedFieldObstacleIds,
             entityId,
           },
+        ),
+      },
+    );
+  }
+
+  GridPos? fieldObstaclePosition(MapInstanceRef scope, String entityId) =>
+      _currentInstance(scope).fieldObstaclePositions[_identity(
+        entityId,
+        'fieldObstacleId',
+      )];
+
+  bool isStrengthActive(MapInstanceRef scope) =>
+      _currentInstance(scope).strengthActive;
+
+  MapInstanceWorldState activateStrength(MapInstanceRef scope) {
+    final instance = _currentInstance(scope);
+    if (instance.strengthActive) return this;
+    return MapInstanceWorldState(
+      instancesByMapId: {
+        ...instancesByMapId,
+        scope.mapId: MapInstanceRuntimeState(
+          instanceId: instance.instanceId,
+          npcPositions: instance.npcPositions,
+          eventBooleans: instance.eventBooleans,
+          clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
+          fieldObstaclePositions: instance.fieldObstaclePositions,
+          strengthActive: true,
+        ),
+      },
+    );
+  }
+
+  MapInstanceWorldState moveFieldObstacle(
+    MapInstanceRef scope,
+    String entityId,
+    GridPos position,
+  ) {
+    final instance = _currentInstance(scope);
+    _identity(entityId, 'fieldObstacleId');
+    _position(position);
+    if (instance.fieldObstaclePositions[entityId] == position) return this;
+    return MapInstanceWorldState(
+      instancesByMapId: {
+        ...instancesByMapId,
+        scope.mapId: MapInstanceRuntimeState(
+          instanceId: instance.instanceId,
+          npcPositions: instance.npcPositions,
+          eventBooleans: instance.eventBooleans,
+          clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
+          fieldObstaclePositions: {
+            ...instance.fieldObstaclePositions,
+            entityId: position,
+          },
+          strengthActive: instance.strengthActive,
+        ),
+      },
+    );
+  }
+
+  MapInstanceWorldState setNpcPositions(
+    MapInstanceRef scope,
+    Map<String, GridPos> positions,
+  ) {
+    final instance = _currentInstance(scope);
+    if (_collectionEquality.equals(instance.npcPositions, positions)) {
+      return this;
+    }
+    return MapInstanceWorldState(
+      instancesByMapId: {
+        ...instancesByMapId,
+        scope.mapId: MapInstanceRuntimeState(
+          instanceId: instance.instanceId,
+          npcPositions: positions,
+          fieldObstaclePositions: instance.fieldObstaclePositions,
+          clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
+          strengthActive: instance.strengthActive,
+          eventBooleans: instance.eventBooleans,
         ),
       },
     );
@@ -289,4 +424,31 @@ void _keys(Map<String, dynamic> json, Set<String> expected) {
   if (json.length != expected.length || !json.keys.every(expected.contains)) {
     throw FormatException('Expected exactly ${expected.join(', ')}.');
   }
+}
+
+GridPos _position(GridPos value) {
+  if (value.x < 0 || value.y < 0) {
+    throw ArgumentError.value(
+      value,
+      'fieldObstaclePosition',
+      'must be nonnegative',
+    );
+  }
+  return value;
+}
+
+Map<String, GridPos> _readPositions(Object? raw, String field) {
+  final positions = <String, GridPos>{};
+  for (final entry in _object(raw, field).entries) {
+    final value = _object(entry.value, '$field.${entry.key}');
+    _keys(value, {'x', 'y'});
+    if (value['x'] is! int ||
+        value['y'] is! int ||
+        (value['x'] as int) < 0 ||
+        (value['y'] as int) < 0) {
+      throw FormatException('$field requires nonnegative integer coordinates.');
+    }
+    positions[entry.key] = GridPos(x: value['x'] as int, y: value['y'] as int);
+  }
+  return positions;
 }

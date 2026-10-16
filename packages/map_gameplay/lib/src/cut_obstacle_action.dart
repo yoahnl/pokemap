@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'field_action.dart';
 import 'field_ability_gate.dart';
 import 'direction.dart';
+import 'gameplay_world_state.dart';
 
 enum CutObstacleBlockReason {
   invalidTarget,
@@ -168,7 +169,13 @@ CutObstacleCommit commitCutObstacleAction(
 MapData applyFieldObstacleWorldStateToMap(
     {required MapData map,
     required MapInstanceWorldState instances,
-    required MapInstanceRef instance}) {
+    required MapInstanceRef instance,
+    MapData? authoringMap,
+    MovingPlatformWorldState movingPlatformWorldState =
+        const MovingPlatformWorldState.empty(),
+    ProjectManifest? project,
+    NpcMapPresencePredicate? npcMapPresencePredicate,
+    MapEntityPresencePredicate? mapEntityPresencePredicate}) {
   if (map.id != instance.mapId || instances.instanceRef(map.id) != instance) {
     throw StateError(
         'The field obstacle projection requires the current map instance.');
@@ -177,12 +184,122 @@ MapData applyFieldObstacleWorldStateToMap(
       map.entities.any((entity) => entity.fieldObstacle != null)) {
     throw StateError('Field obstacles require a two-dimensional map.');
   }
-  final entities = map.entities
-      .where((entity) =>
-          entity.fieldObstacle == null ||
-          !instances.isFieldObstacleCleared(instance, entity.id))
-      .toList();
-  return entities.length == map.entities.length
-      ? map
-      : map.copyWith(entities: entities);
+  final source = authoringMap ?? map;
+  if (source.id != map.id ||
+      source.size != map.size ||
+      source.version != map.version) {
+    throw StateError(
+        'Field obstacle projection requires matching authored map geometry.');
+  }
+  final saved = instances.instancesByMapId[map.id]!;
+  if (saved.npcPositions.isNotEmpty &&
+      ((map.spatialScene != null || map.version == ProjectVersion.v9) ||
+          !source.entities.any((entity) => entity.fieldObstacle != null))) {
+    throw StateError('Saved NPC positions require a 2D field obstacle map.');
+  }
+  MapEntity entityFor(String id) {
+    final matches = source.entities.where((entity) => entity.id == id).toList();
+    if (matches.length != 1 || matches.single.fieldObstacle == null) {
+      throw StateError('Saved field obstacle $id is absent or ambiguous.');
+    }
+    final entity = matches.single;
+    if (entity.kind != MapEntityKind.custom ||
+        !entity.blocksMovement ||
+        entity.size.width != 1 ||
+        entity.size.height != 1 ||
+        entity.npc != null ||
+        entity.sign != null ||
+        entity.item != null ||
+        entity.spawn != null ||
+        entity.healingDisplay != null) {
+      throw StateError('Saved field obstacle $id has an incompatible shape.');
+    }
+    return entity;
+  }
+
+  for (final id in saved.clearedFieldObstacleIds) {
+    if (entityFor(id).fieldObstacle!.kind ==
+            FieldObstacleKind.strengthBoulder ||
+        saved.fieldObstaclePositions.containsKey(id)) {
+      throw StateError('A Strength boulder cannot be cleared.');
+    }
+  }
+  for (final entry in saved.fieldObstaclePositions.entries) {
+    if (entityFor(entry.key).fieldObstacle!.kind !=
+            FieldObstacleKind.strengthBoulder ||
+        entry.value.x < 0 ||
+        entry.value.y < 0 ||
+        entry.value.x >= map.size.width ||
+        entry.value.y >= map.size.height) {
+      throw StateError(
+          'Saved boulder ${entry.key} has an incompatible position.');
+    }
+  }
+  for (final entry in saved.npcPositions.entries) {
+    final matches =
+        source.entities.where((entity) => entity.id == entry.key).toList();
+    if (matches.length != 1 ||
+        matches.single.kind != MapEntityKind.npc ||
+        matches.single.npc == null ||
+        entry.value.x < 0 ||
+        entry.value.y < 0 ||
+        entry.value.x + matches.single.size.width > map.size.width ||
+        entry.value.y + matches.single.size.height > map.size.height) {
+      throw StateError(
+          'Saved NPC ${entry.key} has an incompatible identity or position.');
+    }
+  }
+  final candidates = authoringMap == null
+      ? map.entities
+      : [
+          ...map.entities.where((entity) => entity.fieldObstacle == null),
+          ...source.entities.where((entity) => entity.fieldObstacle != null),
+        ];
+  final authoredNpcPositions = {
+    for (final entity in source.entities)
+      if (entity.kind == MapEntityKind.npc) entity.id: entity.pos
+  };
+  final entities = [
+    for (final entity in candidates)
+      if (!saved.clearedFieldObstacleIds.contains(entity.id))
+        saved.fieldObstaclePositions.containsKey(entity.id)
+            ? entity.copyWith(pos: saved.fieldObstaclePositions[entity.id]!)
+            : entity.kind == MapEntityKind.npc &&
+                    authoredNpcPositions.containsKey(entity.id)
+                ? entity.copyWith(
+                    pos: saved.npcPositions[entity.id] ??
+                        authoredNpcPositions[entity.id]!)
+                : entity,
+  ];
+  final projected = map.copyWith(entities: entities);
+  for (final id in {
+    ...saved.fieldObstaclePositions.keys,
+    ...saved.npcPositions.keys
+  }) {
+    final entity = entities.singleWhere((entity) => entity.id == id);
+    if (entity.kind == MapEntityKind.npc &&
+        (!(npcMapPresencePredicate?.call(map.id, entity) ?? true) ||
+            !(mapEntityPresencePredicate?.call(map.id, entity) ?? true))) {
+      continue;
+    }
+    final world = GameplayWorldState.initial(
+      map: projected.copyWith(
+          entities: entities.where((entity) => entity.id != id).toList()),
+      playerPos: const GridPos(x: 0, y: 0),
+      movingPlatformWorldState: movingPlatformWorldState,
+      project: project,
+      tileWidth: project?.settings.tileWidth ?? 16,
+      tileHeight: project?.settings.tileHeight ?? 16,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
+    );
+    final rect = resolveEntityCollisionRectPx(entity,
+        tileWidthPx: world.tileWidthPx, tileHeightPx: world.tileHeightPx);
+    if (world.isWaterCell(entity.pos.x, entity.pos.y) ||
+        world.worldStaticObstaclesCollidePixelRect(rect)) {
+      throw StateError(
+          'Saved entity $id overlaps an occupied or impassable cell.');
+    }
+  }
+  return projected == map ? map : projected;
 }

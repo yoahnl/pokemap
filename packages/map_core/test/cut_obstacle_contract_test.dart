@@ -11,6 +11,108 @@ Map<String, dynamic> _entityJson() => {
 };
 
 void main() {
+  test(
+    'instance NPC positions remain typed and survive every obstacle and event setter',
+    () {
+      var state = MapInstanceWorldState(
+        instancesByMapId: {'route': MapInstanceRuntimeState(instanceId: 'r1')},
+      );
+      final scope = state.instanceRef('route')!;
+      state = state
+          .setNpcPositions(scope, const {'walker': GridPos(x: 4, y: 2)})
+          .activateStrength(scope)
+          .moveFieldObstacle(scope, 'rock', const GridPos(x: 3, y: 1))
+          .clearFieldObstacle(scope, 'tree')
+          .setEventBoolean(scope, 'door', 'A', true);
+      final restored = MapInstanceWorldState.fromJson(state.toJson());
+      expect(restored, state);
+      expect(restored.instancesByMapId['route']!.npcPositions, {
+        'walker': const GridPos(x: 4, y: 2),
+      });
+      expect(
+        () => restored.instancesByMapId['route']!.npcPositions.clear(),
+        throwsUnsupportedError,
+      );
+    },
+  );
+
+  for (final entry in const {
+    'cutTree': FieldAbility.cut,
+    'strengthBoulder': FieldAbility.strength,
+    'rockSmashRock': FieldAbility.rockSmash,
+  }.entries) {
+    test('native obstacle wire supports ${entry.key}', () {
+      final obstacle = MapEntityFieldObstacleData.fromJson({
+        'kind': entry.key,
+        'resetPolicy': 'mapInstance',
+      });
+      expect(obstacle.ability, entry.value);
+      expect(obstacle.toJson()['kind'], entry.key);
+    });
+  }
+  test('old schema2 state is rejected explicitly', () {
+    expect(
+      () => MapInstanceWorldState.fromJson({
+        'schemaVersion': 2,
+        'instancesByMapId': {},
+      }),
+      throwsFormatException,
+    );
+  });
+
+  for (final position in [
+    null,
+    true,
+    [],
+    {'x': 1},
+    {'x': 1.0, 'y': 1},
+    {'x': -1, 'y': 0},
+    {'x': 1, 'y': 1, 'z': 0},
+  ]) {
+    test('typed position wire refuses malformed $position', () {
+      expect(
+        () => MapInstanceWorldState.fromJson({
+          'schemaVersion': 3,
+          'instancesByMapId': {
+            'route': {
+              'instanceId': 'r1',
+              'clearedFieldObstacleIds': [],
+              'eventBooleans': {},
+              'npcPositions': {},
+              'strengthActive': true,
+              'fieldObstaclePositions': {'rock': position},
+            },
+          },
+        }),
+        throwsFormatException,
+      );
+    });
+  }
+  test(
+    'typed obstacle positions are immutable and reject negative coordinates',
+    () {
+      final positions = {'rock': const GridPos(x: 3, y: 1)};
+      final instance = MapInstanceRuntimeState(
+        instanceId: 'r1',
+        fieldObstaclePositions: positions,
+      );
+      positions.clear();
+      expect(instance.fieldObstaclePositions, {
+        'rock': const GridPos(x: 3, y: 1),
+      });
+      expect(
+        () => instance.fieldObstaclePositions.clear(),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => MapInstanceRuntimeState(
+          instanceId: 'r1',
+          fieldObstaclePositions: const {'rock': GridPos(x: -1, y: 1)},
+        ),
+        throwsArgumentError,
+      );
+    },
+  );
   test('typed Cut obstacle survives the native entity wire format', () {
     final json = _entityJson();
     expect(
@@ -25,7 +127,7 @@ void main() {
         {
           ..._entityJson(),
           'fieldObstacle': {
-            'kind': 'strengthBoulder',
+            'kind': 'unknownObstacle',
             'resetPolicy': 'mapInstance',
           },
         },
@@ -57,10 +159,10 @@ void main() {
     },
   );
   test(
-    'instance state v2 persists cleared obstacles alongside event booleans',
+    'instance state v3 persists cleared obstacles alongside event booleans',
     () {
       final json = <String, dynamic>{
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'instancesByMapId': {
           'route': {
             'instanceId': 'route-1',
@@ -68,6 +170,11 @@ void main() {
               'door': {'A': true},
             },
             'clearedFieldObstacleIds': ['tree'],
+            'fieldObstaclePositions': {
+              'boulder': {'x': 3, 'y': 1},
+            },
+            'npcPositions': {},
+            'strengthActive': true,
           },
         },
       };
@@ -138,15 +245,18 @@ void main() {
     [' padded'],
     [''],
   ]) {
-    test('instance v2 rejects malformed cleared obstacle identities $raw', () {
+    test('instance v3 rejects malformed cleared obstacle identities $raw', () {
       expect(
         () => MapInstanceWorldState.fromJson({
-          'schemaVersion': 2,
+          'schemaVersion': 3,
           'instancesByMapId': {
             'route': {
               'instanceId': 'route-1',
               'eventBooleans': {},
               'clearedFieldObstacleIds': raw,
+              'fieldObstaclePositions': {},
+              'npcPositions': {},
+              'strengthActive': false,
             },
           },
         }),

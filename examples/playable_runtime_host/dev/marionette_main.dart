@@ -56,6 +56,11 @@ Future<void> main() async {
         'textScale': current?.textScale,
         'mapId': state?.currentMapId,
         'position': state?.playerPosition.toJson(),
+        'pixelPosition': state?.playerPixelPosition?.toJson(),
+        'movementMode': state?.playerMovementMode.name,
+        'progression': state?.progression.toJson(),
+        'mapInstances': state?.mapInstanceWorldState.toJson(),
+        'dialogue': current?.dialoguePresentationListenable.value?.fullText,
         'facing': state?.playerFacing.name,
         'metadata': state?.metadata,
         'battle': battle == null
@@ -79,6 +84,8 @@ Future<void> main() async {
                 'speciesId': p.speciesId,
                 'level': p.level,
                 'hp': p.currentHp,
+                'knownMoveIds': p.knownMoveIds,
+                'currentPpByMoveId': p.currentPpByMoveId,
               },
             )
             .toList(),

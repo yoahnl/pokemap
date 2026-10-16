@@ -10,6 +10,7 @@ import 'map_workspace_view_state.dart';
   StudioMapTool.character => ('Placer un personnage', Icons.person_add_alt),
   StudioMapTool.spawn => ('Placer le départ du joueur', Icons.flag_outlined),
   StudioMapTool.sign => ('Placer un panneau', Icons.signpost_outlined),
+  StudioMapTool.fieldObstacle => ('Obstacle de terrain', Icons.landscape_outlined),
   _ => null,
 };
 
@@ -32,6 +33,8 @@ String mapToolHelp(StudioMapTool tool) => switch (tool) {
   StudioMapTool.spawn =>
     'Cliquez la case où le joueur apparaît au début du jeu.',
   StudioMapTool.sign => 'Cliquez la case du panneau, puis écrivez son texte.',
+  StudioMapTool.fieldObstacle =>
+    'Choisissez la capacité et le visuel de l’obstacle, puis cliquez sur sa case.',
   StudioMapTool.zone =>
     'Tracez une zone sur la carte pour lui associer une interaction.',
   StudioMapTool.gameplayZone =>

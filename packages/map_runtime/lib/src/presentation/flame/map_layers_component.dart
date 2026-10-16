@@ -161,14 +161,39 @@ class MapLayersComponent extends PositionComponent {
   void applyFieldObstacleProjection({
     required MapInstanceWorldState instances,
     required MapInstanceRef instance,
+    required MapData runtimeMap,
+    required MovingPlatformWorldState movingPlatformWorldState,
   }) {
-    final authored = bundle.map.copyWith(entities: [
-      ...bundle.map.entities.where((entity) => entity.fieldObstacle == null),
+    if (runtimeMap.id != bundle.map.id || runtimeMap.size != bundle.map.size || runtimeMap.version != bundle.map.version) {
+      throw StateError('Field obstacle rendering requires the matching runtime map.');
+    }
+    final authored = runtimeMap.copyWith(entities: [
+      ...runtimeMap.entities.where((entity) => entity.fieldObstacle == null),
       ..._fieldObstacleAuthoringEntities,
     ]);
     final projected = applyFieldObstacleWorldStateToMap(
-        map: authored, instances: instances, instance: instance);
+        map: authored, instances: instances, instance: instance, movingPlatformWorldState: movingPlatformWorldState, project: bundle.manifest,
+        npcMapPresencePredicate: npcMapPresencePredicate, mapEntityPresencePredicate: mapEntityPresencePredicate);
     _entitySpatialIndex = _buildEntitySpatialIndex(bundle.copyWith(map: projected));
+  }
+
+  final _fieldObstacleMotions = <String, ({GridPos from, GridPos to, double startedAt, double duration})>{};
+
+  void animateFieldObstaclePush({required String entityId, required GridPos from,
+    required GridPos to, required double durationSeconds}) {
+    if (durationSeconds <= 0 || !durationSeconds.isFinite ||
+        (from.x - to.x).abs() + (from.y - to.y).abs() != 1) {
+      throw ArgumentError('Field obstacle animation requires a finite one-cell step.');
+    }
+    _fieldObstacleMotions[entityId] = (from: from, to: to, startedAt: _animElapsed, duration: durationSeconds);
+  }
+
+  Offset _fieldObstacleRenderOffset(MapEntity entity) {
+    final motion = _fieldObstacleMotions[entity.id];
+    if (motion == null) return Offset.zero;
+    final remaining = 1 - ((_animElapsed - motion.startedAt) / motion.duration).clamp(0.0, 1.0);
+    return Offset((motion.from.x - motion.to.x) * bundle.cellWidth * remaining,
+        (motion.from.y - motion.to.y) * bundle.cellHeight * remaining);
   }
 
   final RuntimeMapBundle bundle;
@@ -547,6 +572,7 @@ class MapLayersComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
+    _fieldObstacleMotions.removeWhere((_, motion) => _animElapsed - motion.startedAt >= motion.duration);
     _activeOneShotByInstanceId.removeWhere((_, oneShot) {
       return resolvePlacedElementAnimationOneShotFrame(
         frameDurationsMs: oneShot.frameDurationsMs,
@@ -851,7 +877,7 @@ class MapLayersComponent extends PositionComponent {
     final th = bundle.manifest.settings.tileHeight;
     final elapsedMs = (_animElapsed * 1000).toInt();
     final visibleRect = _visibleLocalRect;
-    final entityCandidates = _entitySpatialIndex.query(visibleRect);
+    final entityCandidates = _entitySpatialIndex.query(_fieldObstacleMotions.isEmpty ? visibleRect : visibleRect?.inflate(math.max(cw, ch)));
     _activeRenderCounter?.entityCandidateVisits += entityCandidates.length;
     for (final entity in entityCandidates) {
       if (!shouldRenderMapEntityVisual(entity)) {
@@ -873,10 +899,11 @@ class MapLayersComponent extends PositionComponent {
       )) {
         continue;
       }
+      final motionOffset = _fieldObstacleRenderOffset(entity);
       // Viewport culling pour les entités.
       if (visibleRect != null) {
-        final eLeft = entity.pos.x * cw;
-        final eTop = entity.pos.y * ch;
+        final eLeft = entity.pos.x * cw + motionOffset.dx;
+        final eTop = entity.pos.y * ch + motionOffset.dy;
         final eRight = eLeft + entity.size.width * cw;
         final eBottom = eTop + entity.size.height * ch;
         if (eRight < visibleRect.left ||
@@ -918,8 +945,8 @@ class MapLayersComponent extends PositionComponent {
         continue;
       }
       final bounds = Rect.fromLTWH(
-        entity.pos.x * cw,
-        entity.pos.y * ch,
+        entity.pos.x * cw + motionOffset.dx,
+        entity.pos.y * ch + motionOffset.dy,
         entity.size.width * cw,
         entity.size.height * ch,
       );

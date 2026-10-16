@@ -325,8 +325,7 @@ void main() {
     final state = _ready();
     final scope = state.mapInstanceWorldState.instanceRef('route')!;
     final instances = state.mapInstanceWorldState
-        .clearFieldObstacle(scope, 'tree')
-        .clearFieldObstacle(scope, 'marker');
+        .clearFieldObstacle(scope, 'tree');
     final authored = _map().copyWith(entities: [
       ..._map().entities,
       const MapEntity(

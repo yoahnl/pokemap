@@ -14,7 +14,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP discovers Cut and persists set, clear, undo and reopen with stale guards", { timeout: 120_000 }, async () => {
+test("live MCP discovers all three native field obstacles and persists set, clear, undo and reopen with stale guards", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "cut-obstacle-mcp-"));
   const mapFile = join(root, "maps/route.json");
   const projectFile = join(root, "project.json");
@@ -77,7 +77,7 @@ test("live MCP discovers Cut and persists set, clear, undo and reopen with stale
     const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === "entity.set_field_obstacle");
     assert.ok(action);
     assert.deepEqual(record(record(action.extensions).fieldObstacle), {
-      kinds: ["cutTree"], resetPolicies: ["mapInstance"], entityKind: "custom", blocksMovement: true,
+      kinds: ["cutTree", "strengthBoulder", "rockSmashRock"], resetPolicies: ["mapInstance"], entityKind: "custom", blocksMovement: true,
       footprint: { width: 1, height: 1 }, mapMode: "2d", visual: "existingProjectElement", clearValue: null,
       parameters: ["mapId", "entityId", "fieldObstacle"],
     });
@@ -110,6 +110,26 @@ test("live MCP discovers Cut and persists set, clear, undo and reopen with stale
       resourceKind: "map", operation: "get", ids: ["route"], view: "detail" });
     assert.ok(JSON.stringify(reopened).includes('"fieldObstacle":{"kind":"cutTree","resetPolicy":"mapInstance"}'));
     assert.deepEqual(await readFile(projectFile), projectBefore);
+    for (const kind of ["strengthBoulder", "rockSmashRock"]) {
+      const obstacle = { kind, resetPolicy: "mapInstance" };
+      const next = await plan({ mapId: "route", entityId: "tree", fieldObstacle: obstacle });
+      await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: next.planId, operationId: `set-${kind}` });
+      assert.deepEqual((await savedTree()).fieldObstacle, obstacle);
+      const bad = await plan({ mapId: "route", entityId: "tree", fieldObstacle: { ...obstacle, encounterTableId: "unsupported" } }, true);
+      assert.equal(bad.domainCode, "entity.field_obstacle_invalid");
+      const nextClear = await plan({ mapId: "route", entityId: "tree", fieldObstacle: null });
+      await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: nextClear.planId, operationId: `clear-${kind}` });
+      assert.equal(Object.hasOwn(await savedTree(), "fieldObstacle"), false);
+      const nextHistory = await call("pokemap_history", { operation: "list", projectHandle: workspace.projectHandle, limit: 1 });
+      const lastEntry = (nextHistory.entries as JsonRecord[])[0]!;
+      await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle, entryId: lastEntry.entryId, idempotencyKey: `undo-clear-${kind}` });
+      await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+      workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+      const readAgain = await call("pokemap_query", { projectHandle: workspace.projectHandle, resourceKind: "map", operation: "get", ids: ["route"], view: "detail" });
+      assert.ok(JSON.stringify(readAgain).includes(`"fieldObstacle":{"kind":"${kind}","resetPolicy":"mapInstance"}`));
+      assert.deepEqual((await savedTree()).fieldObstacle, obstacle);
+      assert.deepEqual(await readFile(projectFile), projectBefore);
+    }
     const receiptPath = process.env.POKEMAP_TEST_CATALOG_RECEIPT;
     if (receiptPath) await writeFile(receiptPath, JSON.stringify({ action, live: true,
       transport: "MCP stdio", packageRoot: process.cwd(),

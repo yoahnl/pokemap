@@ -68,7 +68,7 @@ import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_committed_movement.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
-import '../../application/cut_obstacle_interaction.dart';
+import '../../application/field_obstacle_interaction.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
@@ -3542,10 +3542,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _gameState = _captureGameStateFromWorld(mapIdOverride: mapIdOverride);
   }
 
+  bool _usesInstanceNpcPositions(String mapId) => _world.map.id == mapId &&
+      (_runtimeBundleByMapId[mapId] ?? _bundle).map.entities.any((entity) => entity.fieldObstacle != null);
+
+  MapInstanceWorldState _captureInstanceNpcPositions(MapInstanceWorldState state, String mapId) {
+    final instance = state.instanceRef(mapId);
+    if (instance == null || !_usesInstanceNpcPositions(mapId)) {
+      return state;
+    }
+    final authored = (_runtimeBundleByMapId[mapId] ?? _bundle).map;
+    final initial = {for (final entity in authored.entities) entity.id: entity.pos};
+    return state.setNpcPositions(instance, {
+      for (final entity in _world.map.entities)
+        if (entity.kind == MapEntityKind.npc && entity.npc != null && initial[entity.id] != entity.pos) entity.id: entity.pos,
+    });
+  }
+
   GameState _captureGameStateFromWorld({String? mapIdOverride}) {
     final mapId = mapIdOverride ?? _activeMapId;
     return _gameState.copyWith(
       currentMapId: mapId,
+      mapInstanceWorldState: _captureInstanceNpcPositions(_gameState.mapInstanceWorldState, mapId),
       movingPlatformWorldState: initializeMovingPlatformWorldState(
         map: _world.map, worldState: _gameState.movingPlatformWorldState,
       ),
@@ -4307,7 +4324,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _bundle = await prepareBorderRuntimeBundle(_bundle);
       if (_isRemoved) return;
       _runtimeBundleByMapId[_bundle.map.id] = _bundle;
-      await _validateMovingPlatformSave(_bundle, _gameState);
+      await _validateRetainedWorldSave(_bundle, _gameState);
       _gameState = _gameState.copyWith(
         movingPlatformWorldState: initializeMovingPlatformWorldState(
           map: _bundle.map,
@@ -5136,6 +5153,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.syncState(_world.player);
       return;
     }
+    if (intent is MoveIntent && _tryPushStrengthObstacle(intent.direction)) return;
     final attemptedDirection = intent is MoveIntent ? intent.direction : null;
     final attemptedX = attemptedDirection == null
         ? null
@@ -11554,17 +11572,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _world.player.pos == transition.destinationPosition;
   }
 
-  Future<void> _validateMovingPlatformSave(
+  Future<void> _validateRetainedWorldSave(
     RuntimeMapBundle activeBundle,
     GameState state,
   ) async {
     final maps = <String, MapData>{activeBundle.map.id: activeBundle.map};
-    for (final mapId in state.movingPlatformWorldState.platformsByMap.keys) {
+    for (final mapId in {
+      ...state.movingPlatformWorldState.platformsByMap.keys,
+      ...state.mapInstanceWorldState.instancesByMapId.keys,
+    }) {
       if (!activeBundle.manifest.maps.any((entry) => entry.id == mapId)) {
-        throw StateError('Saved moving platform references an unknown map.');
+        throw StateError('Saved world state references an unknown map.');
       }
-      if (!maps.containsKey(mapId))
+      if (!maps.containsKey(mapId)) {
         maps[mapId] = (await _loadRuntimeMapBundleCached(mapId)).map;
+      }
+    }
+    for (final entry in state.mapInstanceWorldState.instancesByMapId.entries) {
+      maps[entry.key] = applyFieldObstacleWorldStateToMap(
+        map: maps[entry.key]!, instances: state.mapInstanceWorldState,
+        movingPlatformWorldState: state.movingPlatformWorldState,
+        instance: state.mapInstanceWorldState.instanceRef(entry.key)!, project: activeBundle.manifest,
+        npcMapPresencePredicate: _npcPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
+        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
+      );
     }
     validateGameplayMovingPlatformWorldState(
       project: activeBundle.manifest,
@@ -11597,8 +11628,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (instance != null) {
       map = applyFieldObstacleWorldStateToMap(
         map: map,
+        authoringMap: authored ?? bundle.map,
         instances: state.mapInstanceWorldState,
+        movingPlatformWorldState: state.movingPlatformWorldState,
         instance: instance,
+        project: bundle.manifest,
+        npcMapPresencePredicate: _npcPresencePredicateFor(bundle.manifest, gameStateOverride: state),
+        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(bundle.manifest, gameStateOverride: state),
       );
     }
     return bundle.copyWith(
@@ -11992,6 +12028,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     session.gameState = session.gameState.copyWith(
       currentMapId: _activeMapId,
+      mapInstanceWorldState: _captureInstanceNpcPositions(session.gameState.mapInstanceWorldState, _activeMapId),
       playerPosition: _world.player.pos,
       playerPixelPosition: PixelOffset(
         x: _world.player.playerPositionPx.leftPx,
@@ -12162,6 +12199,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         restoredActor.setMotion(originalFacing, CharacterAnimationState.idle);
       }
+      if (originalSessionState == null && restoredActor is OverworldActorComponent && _usesInstanceNpcPositions(_activeMapId)) {
+        _syncGameStateFromWorld();
+      }
       if (originalSessionState != null) {
         session.gameState = originalSessionState;
         _applyNarrativeGameState(originalSessionState);
@@ -12296,6 +12336,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                 _world = _world.withEntityPosition(target.entityId!, plan.to);
                 if (target.entityId != 'player') {
                   _runtimeNpcPositions[target.entityId!] = plan.to;
+                  if (_usesInstanceNpcPositions(_activeMapId)) {
+                    _syncSceneActorPlayerState(session);
+                  }
                   _scriptedEntityMovementController?.syncTrackedEntityPosition(
                     target.entityId!,
                     plan.to,
@@ -14473,7 +14516,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     BorderRuntimeAssetBundle newBorderAssets;
     GameplayWorldState preparedWorld;
     try {
-      await _validateMovingPlatformSave(newBundle, loadedState);
+      await _validateRetainedWorldSave(newBundle, loadedState);
       newImages = await _loadTilesetImagesCached(
         newBundle.runtimeImageAbsolutePathsById,
         manifest: newBundle.manifest,
@@ -15364,9 +15407,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final targetInstance = nextInstances.instanceRef(targetBundle.map.id);
       if (targetInstance != null) {
         target.backgroundLayers.applyFieldObstacleProjection(
-            instances: nextInstances, instance: targetInstance);
+            instances: nextInstances, instance: targetInstance, runtimeMap: targetBundle.map,
+            movingPlatformWorldState: transitionState.movingPlatformWorldState);
         target.foregroundLayers.applyFieldObstacleProjection(
-            instances: nextInstances, instance: targetInstance);
+            instances: nextInstances, instance: targetInstance, runtimeMap: targetBundle.map,
+            movingPlatformWorldState: transitionState.movingPlatformWorldState);
       }
       _replaceLogicalMapInstances(nextInstances);
       target.bundle = targetBundle;
@@ -15375,9 +15420,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _previousMapId = _activeMapId;
       _activeMapId = target.bundle.map.id;
       _syncRuntimeMusic();
+      final targetOriginPx = _originPixelsOf(target);
+      for (final entity in targetBundle.map.entities) {
+        if (entity.kind != MapEntityKind.npc) continue;
+        target.npcActorByEntityId[entity.id]?.configureGridPlacement(
+          pos: entity.pos,
+          footprint: entity.size,
+          mapOrigin: targetOriginPx,
+          snapToGrid: true,
+        );
+      }
       _resetScriptedNpcMovementController();
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-      final targetOriginPx = _originPixelsOf(target);
       final entryStartCell = _connectionEntryStartCell(
         targetPos: targetPos,
         direction: connection.direction,
@@ -17000,6 +17054,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runtimeNpcPositions[entityId] = position;
     _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
     _world = _world.withEntityPosition(entityId, position);
+    if (_usesInstanceNpcPositions(_activeMapId)) {
+      _syncGameStateFromWorld();
+    }
   }
 
   bool _isCellReservedByScriptedNpc(

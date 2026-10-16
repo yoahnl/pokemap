@@ -2,7 +2,7 @@ import 'package:meta/meta.dart';
 
 import 'enums.dart';
 
-enum FieldObstacleKind { cutTree }
+enum FieldObstacleKind { cutTree, strengthBoulder, rockSmashRock }
 
 enum FieldObstacleResetPolicy { mapInstance }
 
@@ -17,16 +17,22 @@ final class MapEntityFieldObstacleData {
   final FieldObstacleResetPolicy resetPolicy;
   FieldAbility get ability => switch (kind) {
     FieldObstacleKind.cutTree => FieldAbility.cut,
+    FieldObstacleKind.strengthBoulder => FieldAbility.strength,
+    FieldObstacleKind.rockSmashRock => FieldAbility.rockSmash,
   };
 
   factory MapEntityFieldObstacleData.fromJson(Map<String, dynamic> json) {
     if (json.length != 2 ||
         !json.keys.every(const {'kind', 'resetPolicy'}.contains) ||
-        json['kind'] != 'cutTree' ||
+        !FieldObstacleKind.values.any((kind) => kind.name == json['kind']) ||
         json['resetPolicy'] != 'mapInstance') {
       throw const FormatException('Unsupported field obstacle contract.');
     }
-    return const MapEntityFieldObstacleData();
+    return MapEntityFieldObstacleData(
+      kind: FieldObstacleKind.values.singleWhere(
+        (kind) => kind.name == json['kind'],
+      ),
+    );
   }
 
   Map<String, dynamic> toJson() => {

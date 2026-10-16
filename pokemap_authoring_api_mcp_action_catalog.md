@@ -1472,14 +1472,16 @@ entity.validate
 
 `entity.set_field_obstacle` (v1) définit ou retire un obstacle typé sur un
 objet existant. Les paramètres obligatoires sont `mapId`, `entityId` et
-`fieldObstacle`. Le payload accepté contient uniquement `kind: cutTree` et
-`resetPolicy: mapInstance` ; `null` explicite retire ce payload, tandis qu’un
+`fieldObstacle`. Le payload accepté contient uniquement `kind` (`cutTree`,
+`strengthBoulder` ou `rockSmashRock`) et `resetPolicy: mapInstance` ;
+`null` explicite retire ce payload, tandis qu’un
 champ omis est refusé. L’objet doit être `custom`, bloquant, d’une case, sur une
 carte 2D et posséder un visuel du catalogue du projet. Les champs inconnus et
 les objets incompatibles sont refusés sans écriture. Position, visuel et autres
 propriétés sont conservés ; planification, contrôle de révision et annulation
-suivent le contrat canonique. Cette capacité post-bêta ne débloque pas Coupe
-pour le joueur et ne change pas le périmètre bêta signé de Surf.
+suivent le contrat canonique. Les rencontres Éclate-Roc ne sont pas prises en
+charge et leur configuration est refusée. Cette capacité post-bêta ne débloque
+aucune CS pour le joueur et ne change pas le périmètre bêta signé de Surf.
 
 `entity.set_healing_display` (v1) définit ou retire les six variantes natives
 associées à la taille de l’équipe pendant un soin. Les paramètres obligatoires

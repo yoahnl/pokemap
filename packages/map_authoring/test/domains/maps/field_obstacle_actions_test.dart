@@ -55,12 +55,21 @@ Matcher _failure(String code) => throwsA(
     isA<MapAuthoringException>().having((error) => error.code, 'code', code));
 
 void main() {
+  for (final kind in FieldObstacleKind.values) {
+    test('semantic field obstacle action supports ${kind.name}', () {
+      final after = _result(_build(_map(),
+          _parameters({'kind': kind.name, 'resetPolicy': 'mapInstance'})));
+      expect(after.entities.single.fieldObstacle,
+          MapEntityFieldObstacleData(kind: kind));
+    });
+  }
+
   test('Cut action exposes its closed payload and explicit clear contract', () {
     final action = AuthoringMutationDispatcher.canonical()
         .descriptors
         .singleWhere((action) => action.id == 'entity.set_field_obstacle');
     expect(action.extensions['fieldObstacle'], {
-      'kinds': ['cutTree'],
+      'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock'],
       'resetPolicies': ['mapInstance'],
       'entityKind': 'custom',
       'blocksMovement': true,

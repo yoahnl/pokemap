@@ -55,6 +55,8 @@ class MapWorkspacePaletteColumn extends StatelessWidget {
             ),
             child: SingleChildScrollView(
               child: MapCreationTools(
+                spatial: document.current.spatialScene != null ||
+                    project.settings.dimension != ProjectDimension.twoD,
                 view: view,
                 onChanged: () {
                   onToolChanged();

@@ -37,6 +37,7 @@ enum StudioMapTool {
   connection,
   spawn,
   sign,
+  fieldObstacle,
   zone,
   gameplayZone,
   encounterPaint,
@@ -60,6 +61,7 @@ class MapWorkspaceViewState {
   int spatialTerrainLevel = 1;
   SpatialRampEditingPreview? rampPreview;
   ProjectElementEntry? brush;
+  FieldObstacleKind fieldObstacleKind = FieldObstacleKind.cutTree;
   ProjectModel3dEntry? model3d;
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;
@@ -70,6 +72,12 @@ class MapWorkspaceViewState {
   ProjectCharacterEntry? character;
   ProjectMapEntry? warpDestination;
   MapWarpTriggerMode warpPlacementMode = MapWarpTriggerMode.onEnter;
+
+  void prepareFieldObstaclePlacement(FieldObstacleKind kind) {
+    fieldObstacleKind = kind;
+    paletteTab = 'Décors';
+    tool = StudioMapTool.fieldObstacle;
+  }
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
   ({MapBorderDrawingDraft draft, String message})? borderDraftFailure;

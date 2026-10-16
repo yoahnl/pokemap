@@ -76,6 +76,35 @@ class MapEntityEditingCommands {
     return entity;
   }
 
+  MapEntity placeFieldObstacle({
+    required GridPos position,
+    required String elementId,
+    required FieldObstacleKind kind,
+  }) {
+    final entity = MapEntity(
+      id: _id(MapEntityKind.custom),
+      name: switch (kind) {
+        FieldObstacleKind.cutTree => 'Arbre à couper',
+        FieldObstacleKind.strengthBoulder => 'Rocher à pousser',
+        FieldObstacleKind.rockSmashRock => 'Rocher à briser',
+      },
+      kind: MapEntityKind.custom,
+      pos: position,
+      blocksMovement: true,
+      editorVisual: MapEntityEditorVisual(elementId: elementId),
+    );
+    const actions = EntityActions();
+    final placed = actions.create(document.current, entity);
+    final configured = actions.setFieldObstacle(
+      placed,
+      project: project,
+      entityId: entity.id,
+      fieldObstacle: MapEntityFieldObstacleData(kind: kind),
+    );
+    document.commit(configured);
+    return configured.entities.singleWhere((item) => item.id == entity.id);
+  }
+
   void move(String id, GridPos position) => document.commit(
     moveEntityOnMap(document.current, entityId: id, pos: position),
   );

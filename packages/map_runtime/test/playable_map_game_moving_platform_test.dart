@@ -14,6 +14,69 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
+    'save restore composes moved boulders before validating moved platforms',
+    (tester) async {
+      await tester.runAsync(() async {
+        final fixture = MovingPlatformFixture();
+        final authored = fixture.map.copyWith(
+          layers: [MovingPlatformFixture.terrain('magma', blockedIndex: 99)],
+          entities: const [
+            MapEntity(
+              id: 'rock',
+              kind: MapEntityKind.custom,
+              pos: GridPos(x: 4, y: 2),
+              fieldObstacle: MapEntityFieldObstacleData(
+                kind: FieldObstacleKind.strengthBoulder,
+              ),
+            ),
+          ],
+        );
+        final platforms = fixture.state.withPlatform(
+          mapId: 'gym',
+          platformId: 'bridge',
+          pose: MovingPlatformPose(leftPx: 128, topPx: 64, quarterTurns: 0),
+        );
+        final instances = MapInstanceWorldState(
+          instancesByMapId: {
+            'gym': MapInstanceRuntimeState(
+              instanceId: 'gym-1',
+              strengthActive: true,
+              fieldObstaclePositions: const {'rock': GridPos(x: 3, y: 2)},
+            ),
+          },
+        );
+        final state = GameState(
+          saveId: 'composed',
+          currentMapId: 'gym',
+          playerPosition: const GridPos(x: 5, y: 2),
+          movingPlatformWorldState: platforms,
+          mapInstanceWorldState: instances,
+        );
+        final repository = _MemorySave(GameState.fromJson(state.toJson()));
+        final game = await _game(
+          tester,
+          _bundle(fixture, _scene()).copyWith(map: authored),
+          state,
+          repository: repository,
+        );
+        expect(game.debugMapEntityPosition('rock'), const GridPos(x: 3, y: 2));
+        expect(game.gameStateSnapshot.movingPlatformWorldState, platforms);
+        expect(await game.saveGame(), isTrue);
+        expect(await game.loadGame(), isTrue);
+        expect(game.debugMapEntityPosition('rock'), const GridPos(x: 3, y: 2));
+        expect(game.gameStateSnapshot.movingPlatformWorldState, platforms);
+        final fresh = await _game(
+          tester,
+          _bundle(fixture, _scene()).copyWith(map: authored),
+          GameState.fromJson(repository.state!.toJson()),
+        );
+        expect(fresh.debugMapEntityPosition('rock'), const GridPos(x: 3, y: 2));
+        expect(authored.entities.single.pos, const GridPos(x: 4, y: 2));
+      });
+    },
+  );
+
+  testWidgets(
     'mounted Player carries the rider, rotates and restores exact saved pixels',
     (tester) async {
       await tester.runAsync(() async {
@@ -180,7 +243,7 @@ void main() {
         final before = game.gameStateSnapshot;
         final position = game.debugPlayerWorldTopLeft;
         expect(await game.loadGame(), isFalse);
-      expect(repository.loadCount, 1);
+        expect(repository.loadCount, 1);
         expect(game.gameStateSnapshot, before);
         expect(game.debugPlayerWorldTopLeft, position);
         expect(repository.state, invalid);
@@ -238,9 +301,9 @@ Future<PlayableMapGame> _game(
       child: GameWidget(game: game),
     ),
   );
+  addTearDown(game.onRemove);
   await game.loaded;
   await tester.pump();
-  addTearDown(game.onRemove);
   for (var i = 0; i < 1000 && game.debugIsMapActivationDispatchInFlight; i++) {
     game.update(0);
     await Future<void>.delayed(const Duration(milliseconds: 2));
@@ -371,7 +434,11 @@ final class _MemorySave implements GameSaveRepository {
   }
 
   @override
-  Future<GameState?> load() async { loadCount++; return state; }
+  Future<GameState?> load() async {
+    loadCount++;
+    return state;
+  }
+
   @override
   Future<bool> exists() async => state != null;
   @override

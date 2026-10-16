@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_encounter_mode_picker.dart';
 import 'map_workspace_view_state.dart';
@@ -9,10 +10,12 @@ class MapCreationTools extends StatelessWidget {
     required this.view,
     required this.onChanged,
     required this.storyAvailable,
+    this.spatial = false,
   });
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
   final bool storyAvailable;
+  final bool spatial;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +97,23 @@ class MapCreationTools extends StatelessWidget {
                 selected: view.tool == StudioMapTool.sign,
                 onPressed: () => activate(StudioMapTool.sign),
               ),
+              for (final kind in FieldObstacleKind.values)
+                StudioTool(
+                  label: switch (kind) {
+                    FieldObstacleKind.cutTree => 'Placer un arbre à couper',
+                    FieldObstacleKind.strengthBoulder => 'Placer un rocher à pousser',
+                    FieldObstacleKind.rockSmashRock => 'Placer un rocher à briser',
+                  },
+                  icon: kind == FieldObstacleKind.cutTree
+                      ? Icons.park_outlined
+                      : Icons.landscape_outlined,
+                  selected: view.tool == StudioMapTool.fieldObstacle &&
+                      view.fieldObstacleKind == kind,
+                  onPressed: spatial ? null : () {
+                    view.prepareFieldObstaclePlacement(kind);
+                    onChanged();
+                  },
+                ),
               StudioTool(
                 label: 'Placer un passage',
                 icon: Icons.meeting_room_outlined,

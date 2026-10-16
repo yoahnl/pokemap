@@ -1,6 +1,7 @@
 library map_gameplay;
 
 export 'src/cut_obstacle_action.dart';
+export 'src/field_obstacle_action.dart';
 
 export 'src/actor_route_executor.dart';
 export 'src/actor_route_motion.dart';

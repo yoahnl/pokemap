@@ -91,6 +91,21 @@ class MapCharacterGesture {
         view.tool == StudioMapTool.gameplayZone) {
       return MapCharacterGesture._(document, project, view, origin, null, true);
     }
+    if (view.tool == StudioMapTool.fieldObstacle) {
+      final brush = view.brush;
+      if (brush == null) {
+        document.error = 'Choisissez le visuel de cet obstacle dans la barre d’outils.';
+        return holding(null);
+      }
+      final entity = MapEntityEditingCommands(document, project)
+          .placeFieldObstacle(
+            position: origin,
+            elementId: brush.id,
+            kind: view.fieldObstacleKind,
+          );
+      view.select(document, MapSelectionFamily.marker, entity.id);
+      return holding(null);
+    }
     final placed = switch (view.tool) {
       StudioMapTool.spawn => MapEntityKind.spawn,
       StudioMapTool.sign => MapEntityKind.sign,

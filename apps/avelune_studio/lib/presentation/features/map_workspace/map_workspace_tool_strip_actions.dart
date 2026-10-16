@@ -66,6 +66,12 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
         view.tool = StudioMapTool.spawn;
       case 'Placer un panneau':
         view.tool = StudioMapTool.sign;
+      case 'Placer un arbre à couper':
+        view.prepareFieldObstaclePlacement(FieldObstacleKind.cutTree);
+      case 'Placer un rocher à pousser':
+        view.prepareFieldObstaclePlacement(FieldObstacleKind.strengthBoulder);
+      case 'Placer un rocher à briser':
+        view.prepareFieldObstaclePlacement(FieldObstacleKind.rockSmashRock);
       case 'Passages':
         view.prepareWarpPlacement();
       case 'Connexions':

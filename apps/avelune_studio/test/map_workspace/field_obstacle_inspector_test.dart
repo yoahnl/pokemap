@@ -22,64 +22,74 @@ const _tree = MapEntity(
 const _control = ValueKey('field-obstacle-cut-tree');
 
 void main() {
-  testWidgets(
-    'Studio selects a custom object and toggles typed Cut with undo and redo',
-    (tester) async {
-      final original = workspaceMap('a').copyWith(entities: [_tree]);
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: original, revision: 'base', mapId: 'a'),
-      );
-      final h = MapSelectionHarness(document, workspaceProject);
-      addTearDown(h.dispose);
-      await h.pump(tester);
-      await h.use(tester, StudioMapTool.select);
-      await h.tapCell(tester, 2, 2);
-      expect(find.byKey(_control), findsOneWidget);
-      expect(
-        tester.widget<StudioChoice>(find.byKey(_control)).selected,
-        isFalse,
-      );
-      await tester.tap(find.byKey(_control));
-      await tester.pumpAndSettle();
-      expect(
-        document.current.entities.single.fieldObstacle,
-        const MapEntityFieldObstacleData(),
-      );
-      expect(
-        document.current.entities.single.fieldObstacle!.resetPolicy,
-        FieldObstacleResetPolicy.mapInstance,
-      );
-      expect(find.text('Arbre à couper'), findsWidgets);
-      expect(
-        find.text('Réapparition : à la réinitialisation de la carte.'),
-        findsOneWidget,
-      );
-      expect(
-        document.current.entities.single.copyWith(fieldObstacle: null),
-        _tree,
-      );
-      document.restore(redo: false);
-      h.redraw();
-      await tester.pumpAndSettle();
-      expect(document.current, original);
-      expect(
-        tester.widget<StudioChoice>(find.byKey(_control)).selected,
-        isFalse,
-      );
-      document.restore(redo: true);
-      h.redraw();
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<StudioChoice>(find.byKey(_control)).selected,
-        isTrue,
-      );
-      await tester.tap(find.byKey(_control));
-      await tester.pumpAndSettle();
-      expect(document.current, original);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
+  for (final kind in FieldObstacleKind.values) {
+    final control = ValueKey(switch (kind) {
+      FieldObstacleKind.cutTree => 'field-obstacle-cut-tree',
+      FieldObstacleKind.strengthBoulder => 'field-obstacle-strength-boulder',
+      FieldObstacleKind.rockSmashRock => 'field-obstacle-rock-smash-rock',
+    });
+    testWidgets(
+      'Studio selects a custom object and toggles ${kind.name} with undo and redo',
+      (tester) async {
+        final original = workspaceMap('a').copyWith(entities: [_tree]);
+        final document = EditableMapDocument(
+          MapWorkspaceDocument(map: original, revision: 'base', mapId: 'a'),
+        );
+        final h = MapSelectionHarness(document, workspaceProject);
+        addTearDown(h.dispose);
+        await h.pump(tester);
+        await h.use(tester, StudioMapTool.select);
+        await h.tapCell(tester, 2, 2);
+        expect(find.byKey(control), findsOneWidget);
+        expect(
+          tester.widget<StudioChoice>(find.byKey(control)).selected,
+          isFalse,
+        );
+        await tester.tap(find.byKey(control));
+        await tester.pumpAndSettle();
+        expect(
+          document.current.entities.single.fieldObstacle,
+          MapEntityFieldObstacleData(kind: kind),
+        );
+        expect(
+          document.current.entities.single.fieldObstacle!.resetPolicy,
+          FieldObstacleResetPolicy.mapInstance,
+        );
+        expect(find.text('Arbre à couper'), findsWidgets);
+        expect(
+          find.text(
+            kind == FieldObstacleKind.strengthBoulder
+                ? 'Position et activation de Force : réinitialisées avec la carte.'
+                : 'Réapparition : à la réinitialisation de la carte.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          document.current.entities.single.copyWith(fieldObstacle: null),
+          _tree,
+        );
+        document.restore(redo: false);
+        h.redraw();
+        await tester.pumpAndSettle();
+        expect(document.current, original);
+        expect(
+          tester.widget<StudioChoice>(find.byKey(control)).selected,
+          isFalse,
+        );
+        document.restore(redo: true);
+        h.redraw();
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<StudioChoice>(find.byKey(control)).selected,
+          isTrue,
+        );
+        await tester.tap(find.byKey(control));
+        await tester.pumpAndSettle();
+        expect(document.current, original);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   for (final mode in [
     'wide',
     'nonblocking',
