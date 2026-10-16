@@ -84,6 +84,7 @@ final class AuthoringRecoveryService {
       if (record.status == AuthoringIdempotencyStatus.completed) {
         return record.receipt!;
       }
+      await _requireBulkOrigin(journal);
       await _requireStages(journal);
       if (journal.status == AuthoringTransactionStatus.compensated) {
         return _mutate(
@@ -207,6 +208,7 @@ final class AuthoringRecoveryService {
           'A completed transaction must be undone as a new transaction.',
         );
       }
+      await _requireBulkOrigin(journal);
       await _requireStages(journal);
       final states = await _states(journal);
       _requireOnlyBeforeOrAfter(states);
@@ -444,6 +446,19 @@ final class AuthoringRecoveryService {
     }
   }
 
+  Future<void> _requireBulkOrigin(AuthoringTransactionJournal journal) async {
+    final capability = journal.bulkCapability;
+    if (capability == null || capability.originEntryId == null) return;
+    final hook = _commitHook;
+    if (hook is! AuthoringBulkHistoryRecoveryGuard) {
+      throw const AuthoringRecoveryException('recovery.bulk_origin_unavailable',
+          'Bulk history recovery requires its canonical history store.');
+    }
+    await (hook as AuthoringBulkHistoryRecoveryGuard)
+        .requireBulkHistoryRecoveryAllowed(
+            capability: capability, intendedReceipt: journal.intendedReceipt);
+  }
+
   Future<void> _requireStages(AuthoringTransactionJournal journal) async {
     if (!await _stagesValid(journal)) {
       throw const AuthoringRecoveryException(
@@ -458,6 +473,10 @@ final class AuthoringRecoveryService {
     int index,
     AuthoringTransactionJournalEntry replacement,
   ) async {
+    if (journal.checkpointProfile ==
+        AuthoringTransactionCheckpointProfile.phaseOnly) {
+      return journal;
+    }
     final updated = journal.copyWith(
       updatedAt: _clock().toUtc(),
       entries: [
@@ -532,6 +551,7 @@ final class AuthoringRecoveryService {
           // before idempotency completion remains byte-for-byte idempotent.
           receipt: journal.intendedReceipt,
           changes: changes,
+          bulkCapability: journal.bulkCapability,
         ),
       ),
     );

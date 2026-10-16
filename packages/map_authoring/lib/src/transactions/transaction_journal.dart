@@ -4,6 +4,9 @@ import '../ports/idempotency_store.dart';
 import '../ports/project_file_reader.dart';
 import '../support/authoring_fingerprint.dart';
 import 'revision_set.dart';
+import '../security/resource_pack_bulk_capability.dart';
+
+enum AuthoringTransactionCheckpointProfile { perResource, phaseOnly }
 
 enum AuthoringTransactionStatus {
   preparing,
@@ -118,6 +121,7 @@ final class AuthoringTransactionJournal {
     required Iterable<AuthoringTransactionJournalEntry> entries,
     required this.intendedReceipt,
     this.finalReceipt,
+    this.bulkCapability,
   })  : operationId = _safeIdentity(operationId, 'operationId'),
         planId = _safeIdentity(planId, 'planId'),
         createdAt = createdAt.toUtc(),
@@ -125,6 +129,26 @@ final class AuthoringTransactionJournal {
         entries = _sortedEntries(entries) {
     if (this.entries.isEmpty) {
       throw ArgumentError.value(entries, 'entries', 'must not be empty');
+    }
+    final capability = bulkCapability;
+    if (capability != null) {
+      capability.requireBinding(
+          actorId: scope.actorId,
+          projectId: scope.projectId,
+          planId: this.planId,
+          operationId: this.operationId,
+          actionId: scope.actionId,
+          actionVersion: scope.actionVersion,
+          diff: intendedReceipt.diff,
+          actualInventory: [
+            for (final entry in this.entries)
+              ResourcePackBulkInventoryEntry(
+                  resource: entry.resource,
+                  storageKey: entry.storageKey,
+                  beforeRevision: entry.beforeRevision,
+                  afterRevision: entry.afterRevision,
+                  role: capability.roleFor(entry.storageKey))
+          ]);
     }
     final resources = <String>{};
     final storageKeys = <String>{};
@@ -227,9 +251,11 @@ final class AuthoringTransactionJournal {
       'entries',
       'intendedReceipt',
       'finalReceipt',
+      'checkpointProfile',
+      'bulkCapability',
     };
     if (json.keys.any((key) => !keys.contains(key)) ||
-        json['schemaVersion'] != 1) {
+        json['schemaVersion'] != 2) {
       throw const FormatException('Invalid transaction journal schema.');
     }
     final rawScope = json['scope'];
@@ -251,7 +277,16 @@ final class AuthoringTransactionJournal {
       orElse: () => throw const FormatException('Unknown transaction status.'),
     );
     try {
+      final capability = json['bulkCapability'] == null
+          ? null
+          : ResourcePackBulkCapability.fromJournalJson(
+              Map<String, dynamic>.from(json['bulkCapability'] as Map));
+      final expectedProfile = capability == null ? 'perResource' : 'phaseOnly';
+      if (json['checkpointProfile'] != expectedProfile) {
+        throw const FormatException('Invalid checkpoint profile.');
+      }
       return AuthoringTransactionJournal(
+        bulkCapability: capability,
         operationId: _requiredString(json['operationId'], 'operationId'),
         planId: _requiredString(json['planId'], 'planId'),
         scope: AuthoringIdempotencyScope.fromJson(
@@ -277,6 +312,8 @@ final class AuthoringTransactionJournal {
                 Map<String, dynamic>.from(rawFinal),
               ),
       );
+    } on TypeError {
+      throw const FormatException('Invalid transaction journal objects.');
     } on ArgumentError catch (error) {
       throw FormatException(error.message.toString());
     }
@@ -291,6 +328,11 @@ final class AuthoringTransactionJournal {
   final List<AuthoringTransactionJournalEntry> entries;
   final AuthoringReceipt intendedReceipt;
   final AuthoringReceipt? finalReceipt;
+  final ResourcePackBulkCapability? bulkCapability;
+  AuthoringTransactionCheckpointProfile get checkpointProfile =>
+      bulkCapability == null
+          ? AuthoringTransactionCheckpointProfile.perResource
+          : AuthoringTransactionCheckpointProfile.phaseOnly;
 
   AuthoringTransactionJournal copyWith({
     AuthoringTransactionStatus? status,
@@ -307,6 +349,7 @@ final class AuthoringTransactionJournal {
       updatedAt: updatedAt ?? this.updatedAt,
       entries: entries ?? this.entries,
       intendedReceipt: intendedReceipt,
+      bulkCapability: bulkCapability,
       finalReceipt: identical(finalReceipt, _unchangedReceipt)
           ? this.finalReceipt
           : finalReceipt as AuthoringReceipt?,
@@ -314,7 +357,9 @@ final class AuthoringTransactionJournal {
   }
 
   Map<String, Object?> toJson() => {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
+        'checkpointProfile': checkpointProfile.name,
+        if (bulkCapability != null) 'bulkCapability': bulkCapability!.toJson(),
         'operationId': operationId,
         'planId': planId,
         'scope': scope.toJson(),

@@ -818,16 +818,16 @@ dart analyze
 - packages/map_authoring/test/security/resource_pack_bulk_authorization_test.dart
 - packages/map_authoring/test/api/resource_pack_compact_result_test.dart
 
-- [ ] Ajouter un mode de checkpoint interne phaseOnly ; le client ne choisit pas ce mode dans les paramètres.
-- [ ] Conserver l'intention complète et le reçu complet ; progression séparée et bornée.
-- [ ] Injecter un crash avant/après promotion d'un fichier mais avant checkpoint ; recovery reconnaît before/after et ne duplique pas les changements.
-- [ ] Tester les compteurs de journal pour100/1000/10000 changements sur apply, resume et compensate ; aucune boucle de réécriture complète par fichier, y compris _checkpointEntry lors de recovery.
-- [ ] Ajouter la politique bulk d'action/version ; vérifier n≤20000 sorties logiques, blobs≤n, métadonnées≤2 et touched≤2n+2≤40002 ; le quota ZIP reste indépendant.
-- [ ] Tester l'absence d'exemption pour toute action ordinaire, faux champ client, faux actionId et fausse origine d'historique.
-- [ ] Appliquer le même budget uniquement aux undo/redo/revert d'un import certifié ; historique ordinaire toujours limité normalement. Tester import>500changements → undo → redo → reconstruction du service → recovery.
-- [ ] Projeter plan/résultat/reçu vers des résumés et références paginées ; garder la vérité interne intégrale. AuthoringMutationHistoryResult.toJson et une page d'une seule entrée bulk sont soumis au même plafond. Les codecs AuthoringReceipt/journal et le hash des tokens de confirmation continuent à vérifier le diff intégral, jamais une projection compacte.
-- [ ] Tester que chaque réponse de page reste≤256Kio et que la reconstruction des pages et des payloadRefs retrouve exactement le diff interne, sans répétition/perte. Une entrée dont before/after est un catalogue32Mio est projetée en descriptor payloadRef/rawSha256/resourceRevision/byteLength, jamais inline. Le contenu reste téléchargeable par chunks autorisés ; aucun curseur vide infini quand une seule ligne dépasse le quota.
-- [ ] Exécuter :
+- [x] Ajouter un mode de checkpoint interne phaseOnly ; le client ne choisit pas ce mode dans les paramètres.
+- [x] Conserver l'intention complète et le reçu complet ; progression séparée et bornée.
+- [x] Injecter un crash avant/après promotion d'un fichier mais avant checkpoint ; recovery reconnaît before/after et ne duplique pas les changements.
+- [x] Tester les compteurs de journal pour100/1000/10000 changements sur apply, resume et compensate ; aucune boucle de réécriture complète par fichier, y compris _checkpointEntry lors de recovery.
+- [x] Ajouter la politique bulk d'action/version ; vérifier n≤20000 sorties logiques, blobs≤n, métadonnées≤2 et touched≤2n+2≤40002 ; le quota ZIP reste indépendant.
+- [x] Tester l'absence d'exemption pour toute action ordinaire, faux champ client, faux actionId et fausse origine d'historique.
+- [x] Appliquer le même budget uniquement aux undo/redo/revert d'un import certifié ; historique ordinaire toujours limité normalement. Tester import>500changements → undo → redo → reconstruction du service → recovery.
+- [x] Projeter plan/résultat/reçu vers des résumés et références paginées ; garder la vérité interne intégrale. AuthoringMutationHistoryResult.toJson et une page d'une seule entrée bulk sont soumis au même plafond. Les codecs AuthoringReceipt/journal et le hash des tokens de confirmation continuent à vérifier le diff intégral, jamais une projection compacte.
+- [x] Tester que chaque réponse de page reste≤256Kio et que la reconstruction des pages et des payloadRefs retrouve exactement le diff interne, sans répétition/perte. Une entrée dont before/after est un catalogue32Mio est projetée en descriptor payloadRef/rawSha256/resourceRevision/byteLength, jamais inline. Le contenu reste téléchargeable par chunks autorisés ; aucun curseur vide infini quand une seule ligne dépasse le quota.
+- [x] Exécuter :
 
 ~~~bash
 cd packages/map_authoring
@@ -838,6 +838,10 @@ dart analyze
 **Gate :** import et annulation historique volumineux restent autorisés dans leur portée vérifiée ; aucune action étrangère ne gagne un budget supérieur.
 
 **Audit préparatoire P06 :** les réécritures quadratiques sont présentes dans journaled_transaction et dans _checkpointEntry de recovery, même lorsqu'une révision est déjà after/before. Les deux chemins doivent utiliser le profil phaseOnly sans reconstruire toutes les entrées à chaque fichier. La provenance bulk est un contrat interne dédié, lié au projet, plan/opération, action/version, inventaire final et hash intégral ; elle n'est jamais déduite de request.extensions, de receipt.actionId ou d'un reçu client. P08 émet la capacité seulement après préparation canonique gelée ; P06 définit et teste ce contrat interne. Après reconstruction, journal strict et historique canonique hash-chain font foi, puis le certificat est revalidé contre leurs données. La menace couverte est l'usurpation par client API ; aucun HMAC, keystore ni protection contre la réécriture directe des fichiers privés par un attaquant filesystem n'est ajouté. Les payloadRefs/projections bornées relèvent du port canonique P06, leurs verbes/jobs de transport de P09.
+
+**Arbitrages pendant P06 :** la projection est préparée de façon asynchrone avant la sérialisation synchrone des DTO. Elle appartient à la session et au projet, sans dépendre des leases du plan déjà libéré. Un échec de projection après reçu durable conserve le statut appliqué, les identités et le résumé borné avec un diagnostic distinct de `snapshot.refresh_unavailable` ; il ne transforme pas le commit en exception ambiguë. Le journal et l'historique passent explicitement au schéma privé2, sans lecteur de compatibilité pré-1.0. L'autre chantier terrain a été informé de cette transition et de la limite des workers figés.
+
+Le contrat P04 `withSource` vérifie tout le stage à chaque ouverture : lire256 blocs d'un payload32Mio aurait relu8Gio. P06 conserve ce contrat et représente ses gros payloads de projection par des segments possédés de128Kio au plus, dans le même store P04. Le descripteur public garde le SHA brut, la révision et la taille du JSON intégral ; sa table de segments reste privée et opaque. Une lecture publique touche au plus deux segments, avec leurs vérifications existantes ; rollback et fermeture libèrent toutes leurs leases. Le test de reconstruction32Mio conserve son délai standard et mesure les octets lus au lieu de masquer le coût par un timeout relevé. Cette décision n'est pas encore une preuve d'implémentation ni une qualification de volume P12.
 
 ### P07 — Export canonique déterministe
 
@@ -1060,6 +1064,12 @@ Le harness définit son résultat JSON : commit, statut worktree, politique de p
 
 **Gate :** reçus techniques, revue visible Studio et preuve Player sont séparés et tous présents. Aucun chiffre de RAM/FPS/durée garanti avant mesure.
 
+**Audit préparatoire P12/P14 :** passe indépendante en lecture seule favorable au découpage, sans preuve d'import avantP07–P11. Séparer les campagnes10000ressources,20000entrées ZIP et volume utile voisin de500Mio : les plafonds JSON/manifeste/supports peuvent limiter leur combinaison. `--archive-bytes` désigne une limite ; le reçu sépare valeur demandée, plafond, taille réellement produite et contrainte limitante, sans padding ZIP. Avec payload524288000, manifeste4194304,20000entrées et chemins77octets au plus, même la borne supérieure large `524288000 + 4194304 + 20000 * (76 + 2 * 77) + 22 = 533082326` reste inférieure à536870912. Le test existant à512Mio passe la seule garde taille avant rejet ZIP ; il ne prouve pas une archive valide de cette taille.
+
+Instrumenter la copie et le hash préalables de `LocalResourcePackStore` en plus des lectures de l'inspecteur ; un décorateur `TransactionFileGateway` doit conserver aussi `StreamingTransactionFileGateway`. Distinguer longueur maximale d'une lecture et octets simultanément possédés, candidats PNG/GLB et catalogue JSON. Mesurer le RSS par processus neuf ou échantillonnage externe ; `ProcessInfo.maxRss` n'est pas un pic propre à une phase. Réutiliser les helpers de benchmark et les journeys natifs existants, sans détourner `ProductCertificationReceipt` réservé aux sorties de jeu ni créer un framework de mesure.
+
+La fixture de classementP02 contient des brouillons : elle ne suffit pas pour l'usageP12. Préparer deux petites scènes originales couvrant ensemble les sept kinds, atlas partagé, publication/édition, portrait/animation personnalisés et modèle texturé animé. Pour l'autonomie, supprimer archive et stages, exporter/installer le jeu, supprimer le projet auteur puis lancer la version installée ; prouver séparément que la trace d'installation n'est pas requise. Le builder `.avelunegame` actuel matérialise encore ses payloads et son archive : les garanties de flux de l'export pack ne lui sont pas attribuées. Aucune suite lente, app, campagne de volume ou preuve GPU/Player n'a été exécutée par cet audit.
+
 ### P13 — Construire puis qualifier les cinq collections
 
 **Différé par décision explicite de Yoahn pendant l'exécution, le 16 octobre 2026 : « pour le moment, on ne va pas créer de galeries d'assets ».** L'exécution actuelle porte sur le système de classement et de transfert, lots P01–P12 puis revue P14. Les tâches de préparation de contenu ci-dessous restent une proposition future, sans collecte, conversion ni constitution des collections pendant ce chantier.
@@ -1206,8 +1216,8 @@ L'état initial d'exécution est main, 00c3112c0754ee54553584d38f7e44598c3077c3,
 | P02 | TO REVIEW | Commit 420f2b9e3 ; 52 tests Studio, analyse et parcours natif réussis ; 7 tests spécialisés relancés après correction |
 | P03 | TO REVIEW | Commit625b94f4f, quinze fichiers ;47 tests ciblés,408 tests avec SmartTile/1skip en copie isolée, deux revues favorables ; prérequis natifs committés séparément |
 | P04 | TO REVIEW | Commit280e24c64 ; deux revues favorables ;351 tests distribution/35 authoring partagés,350 distribution/36 authoring dans la copie isolée sansP05 ; analyses/builds vérifiés |
-| P05 | TO REVIEW | Deux revues V2 favorables ;140 tests authoring isolés sans hunks étrangers,2 tests API éditeur isolés, MCP réel2/2 ; commit séparé préparé, limites de suite globale consignées |
-| P06 | TODO | Journal bulk et budgets restreints |
+| P05 | TO REVIEW | Commit97cb46796 ; deux revues V2 favorables ;140 tests authoring isolés sans hunks étrangers,2 tests API éditeur isolés, MCP réel2/2 ; limites de suite globale consignées |
+| P06 | TO REVIEW | Candidat V3 conforme et qualité approuvée ;128 tests isolés, analyse/AOT et MCP2/2 ; commit ciblé autorisé en préparation |
 | P07 | TODO | Export portable |
 | P08 | TODO | Installation additive |
 | P09 | TODO | Jobs et transports |
@@ -1531,3 +1541,91 @@ MCP : depuis tools/pokemap_mcp, `npm run check` et `npm run build` →exit0. Le 
 Suite authoring complète finale : `04:07 +1889 -46` avant corrections V2, puis `dart test` V2 →1899passés/37échecs. Comparaison par nom unique avec la baseline1855/40 :36cas identiques,4cas baseline disparus,1nouveau cas `JSONL batch plans exclude existing models and unrelated large presets`. Ce cas échoue à apply et émet aussi une erreur de teardown en suite complète ; il passe seul, puis en3et5copies parallèles, sans modification de délai. Le corps de sa réponse failure n’a pas été conservé par l’assertion et n’a pas été reproduit dans les diagnostics temporaires : cause indéterminée, aucun timeout attribué sans preuve. Logs /tmp/avelune-p05-authoring-full-final-v2.log et /tmp/avelune-p05-full-comparison-v2.json. Le lot n’annonce donc ni vert global ni absence de régression sous toute charge.
 
 Tous les runs possédés sont suivis par PID/descendants et clos sans résidu confirmé ni terminaison d’un processus étranger. Diff-check ciblé et garde Markdown verts, aucun nouveau document. Dernier état avant staging :main/280e24c64, index vide,371entrées dirty concurrentes ; ne pas attribuer ce total à P05. Staging prévu depuis le candidat79fichiers qualifié, jamais depuis tous les fichiers modifiés du checkout. Auto-critique : mémoire bornée étayée par les chemins de flux/descriptors et tests, sans mesure RSS ni promesse de durée ; l’échec modèle sous suite complète reste ouvert comme limite connue. P06 garde le journal bulk/autorisation/projections compactes, P07–P11 le produit de transfert, P12 les preuves volume/native/Player, P13 les galeries différées.
+
+
+### Commit P05 et démarrage P06
+
+P05 est committé en97cb467960f3d1fd8b6413dc6199df799742bab6, parent280e24c64 :79fichiers techniques et ce plan, inventaire exact et hashes d’index vérifiés avant commit, mêmes80chemins vérifiés après. Reçu /tmp/p05-commit-receipt.json ; index vide et299entrées dirty concurrentes préservées, aucun push/rebase. Le ticket Notion agrégé reste DOING, P05 proposé TO REVIEW avec la réserve du test batch3D et les limites de baseline explicites.
+
+P06 démarre après les deux revues favorables P05 avec un seul implémenteur. Sauvegarde préalable de695sources authoring/MCP/plan et état Git dans /tmp/avelune-p06-before.json, HEAD97cb46796, index vide. L’audit et les décisions phaseOnly/provenance interne/limites de sortie/projections sont transmis ; aucune galerie ni extension du backlog bêta. Les nouvelles surfaces spatiales du chantier voisin restent hors périmètre P06.
+
+### Qualification P06 — Journal bulk, sécurité et réponses compactes
+
+P06 V3 est implémenté et qualifié ; conformité et qualité approuvées après correction des deux dépassements de réponses et du revert limité aux blobs. Le lot est proposé TO REVIEW, en attente du commit ciblé autorisé ; le ticket agrégé reste DOING. L'audit initial a identifié les réécritures complètes dans apply et recovery, y compris pour les ressources déjà after/before ; la baseline ciblée donne54tests passés. État initial sauvegardé : main/97cb46796, index vide,303entrées dirty étrangères ou préexistantes. Aucun changement des sources P04, du gateway étranger de retry ctime, de core/render/NB2, des dépendances ou de la CI.
+
+Inventaire technique complet :19fichiers, dont16sources et3tests. Les zones et leur rôle sont les suivants ; tous les chemins sont relatifs au dépôt.
+
+| Fichier | Zones et résultat |
+|---|---|
+| packages/map_authoring/lib/map_authoring.dart | Exports des types du port de projection canonique |
+| packages/map_authoring/lib/map_authoring_api.dart | Même surface disponible aux consommateurs API |
+| packages/map_authoring/lib/src/api/authoring_mutation_contracts.dart | Plan/result/history : projection publique distincte du DTO intégral, mesure réelle et fallbacks bornés |
+| packages/map_authoring/lib/src/api/local_map_authoring_mutation_api.dart | Préparation asynchrone, lectures autorisées, reprojection canonique, propriétaire de session et fermeture |
+| packages/map_authoring/lib/src/api/authoring_result_projection.dart | Nouveau port/store : pages, segments JSON possédés, chunks, SHA/révision, nettoyage et replis d'indisponibilité |
+| packages/map_authoring/lib/src/history/authoring_history.dart | Schéma privé2 strict, certificat distinct et garde de reprise historique |
+| packages/map_authoring/lib/src/history/history_store.dart | Recorder du certificat, résolution canonique et vérification inverse/forward/subset |
+| packages/map_authoring/lib/src/history/undo_service.dart | Raccord des undo/redo au certificat d'origine vérifié |
+| packages/map_authoring/lib/src/history/revision_revert_service.dart | Certificat du seul sous-ensemble physique réellement restauré |
+| packages/map_authoring/lib/src/security/authorization_policy.dart | Budget bulk lié au contexte ; permissions et limites ordinaires conservées |
+| packages/map_authoring/lib/src/security/secure_mutation_executor.dart | Vérification du plan réel avant autorisation, transmission de la capacité interne |
+| packages/map_authoring/lib/src/security/resource_pack_bulk_capability.dart | Nouveau certificat d'inventaire ordonné, rôles/comptages, binding intégral et décodage strict |
+| packages/map_authoring/lib/src/transactions/authoring_plan.dart | Binding interne unique, distinct des paramètres client |
+| packages/map_authoring/lib/src/transactions/transaction_journal.dart | Schéma2, profil phaseOnly dérivé et validation du certificat/intention/reçu |
+| packages/map_authoring/lib/src/transactions/journaled_transaction.dart | Checkpoints par phase pour bulk, checkpoints ordinaires conservés |
+| packages/map_authoring/lib/src/transactions/recovery_service.dart | Suppression des copies/écritures par fichier bulk, observations before/after et garde canonique |
+| packages/map_authoring/test/transactions/bulk_transaction_checkpoint_test.dart | Compteurs100/1000/10000, crash avant/après promotion, troisième hash et codecs stricts |
+| packages/map_authoring/test/security/resource_pack_bulk_authorization_test.dart | Usurpations, limites, fichiers licences/Border, import501→undo→redo→reconstruction→recovery et revert partiel |
+| packages/map_authoring/test/api/resource_pack_compact_result_test.dart | Fidélité JSON, pages/chunks, catalogue32Mio, isolation/lifecycle/faults et champs client géants |
+
+Patch V2 `/tmp/avelune-p06-owned-v2.patch`, SHA256 `6764bfdbb4cb7393bd870d88399e2290f749cdd80f0c8f42c4e589ae64467446` ; manifeste `/tmp/avelune-p06-frozen-v2.json`. Exactement trois fichiers diffèrent de V1 : contracts API, projection et test compact. Les19hashes live et figés correspondent ; le candidat isolé `/tmp/p06-commit-candidate-v2.json` reproduit exactement ces19fichiers sur HEAD97cb, sans hunk étranger. `local_transaction_file_gateway.dart` et `transaction_staging_metadata_test.dart` restent explicitement exclus.
+
+Décisions réalisées : n compte les fichiers logiques natifs publiés, licences et sorties Border incluses, pas les définitions regroupées dans project.json. n≤20000, CAS≤n, deux métadonnées exactes et touched≤2n+2≤40002 ; plafonds catalogue/ZIP distincts. La capacité est interne, liée au contexte et au diff intégral ; aucune exemption issue de JSON client. Les limites1Mio/500/60parminute restent normales ; le comportement unmetered de l'acteur local préexistant reste conservé. Les undo/redo/revert dérivent du store canonique ; après reconstruction, la recovery revalide cette origine. Journal et historique schema2 rejettent explicitement le v1, sans migration pré1.0.
+
+Les compteurs indépendants finaux V3 de la copie isolée confirment le coût de journal par phase :
+
+| Fichiers | Apply : écritures / octets | Resume : écritures / octets | Compensate : écritures / octets |
+|---:|---:|---:|---:|
+|100|5 /346141|6 /411453|6 /411462|
+|1000|5 /3409756|6 /4052871|6 /4052880|
+|10000|5 /34243771|6 /40700889|6 /40700898|
+
+Le RED initial interrompait la version précédente après13écritures complètes. Le flux bulk conserve l'intention et le reçu complets ; les fichiers réels, les checks CAS et les phases gouvernent la reprise. La progression n'est pas une preuve de commit. Les segments de projection restent possédés par la session, indépendants du plan libéré : téléchargement aligné du JSON32Mio =32Mio vérifiés, lecture non alignée =au plus2segments, sans modifier `withSource` P04. Les réponses préparées sont reconstructibles ; les DTO bruts sans port annoncent explicitement l'indisponibilité plutôt que des références fictives.
+
+La conformité V1 avait reproduit deux défauts réels :100entrées d'historique avec requestId3k produisaient365013octets ; un requestId300k produisait300787octets même dans le fallback après commit. Six nouveaux tests RED reproduisent ces classes de défaut. V2 remesure l'ensemble, projette les champs volumineux en payloadRef si le store fonctionne et fournit un descripteur unavailable borné sinon. Les deux probes originaux inchangés donnent72230octets pour l'historique,1009pour le reçu préparé,861pour le DTO et596pour le résumé. Le probe avec store fermé donne861octets, applied, receiptId/planId/operationId intacts et aucun payloadRef fictif. Un premier probe du reviewer avait inversé l'ordre de fermeture ; son défaut de harness est corrigé séparément. Aucun changement d'AuthoringRequest, du reçu canonique ou du hash de confirmation.
+
+Vérifications techniques exécutées, toutes avec suivi des PID et descendants possédés :
+
+| Passe | Commande et résultat exact |
+|---|---|
+| Implémentation V1 | Groupe13suites : `00:36 +118: All tests passed!`, exit0 ; log `/tmp/avelune-p06-focused-final.log` |
+| Conformité indépendante V1 | Six suites P06/autorisation/idempotence/undo : `00:41 +71: All tests passed!`, exit0 ; deux findings bornes reproduits hors dépôt |
+| Qualification isolée du socle | Mêmes13suites sur HEAD+P06 : `00:55 +118: All tests passed!`, exit0 ; `/tmp/p06-qualified-focused-v1.log` |
+| Projection V2 et JSONL isolés | `dart test test/api/resource_pack_compact_result_test.dart test/tooling/jsonl_mutation_worker_test.dart` → `00:09 +20: All tests passed!`, exit0 ; `/tmp/p06-qualified-projection-consumers-v2.log` |
+| Gardes ordinaires isolées V2 | `dart test test/security/output_redaction_test.dart test/security/audit_log_test.dart test/transactions/action_planner_test.dart test/transactions/stale_plan_test.dart test/transactions/revision_conflict_test.dart` → `00:01 +28: All tests passed!`, exit0 ; `/tmp/p06-qualified-ordinary-guards-v2.log` |
+| Parité sur sources complètes | `dart test test/parity/full_authoring_parity_test.dart` → `00:22 +20: All tests passed!`, exit0 ; `/tmp/p06-qualified-parity-v1-complete-source.log` |
+| Conformité indépendante V2 | Compact result : `00:10 +13: All tests passed!`, exit0 ; oracles originaux et store fermé GREEN ; verdict CONFORME |
+| Analyse isolée V2 | `dart analyze` → `No issues found!`, exit0 ; `/tmp/p06-qualified-analyze-v2.log` |
+| Build isolé V2 | `dart compile exe bin/pokemap_authoring.dart -o /tmp/p06-qualified-authoring-v2` → `Generated`, exit0 ; `/tmp/p06-qualified-build-v2.log` |
+| Adaptateur MCP isolé | `npm run check` et `npm run build` →exit0 ; `/tmp/p06-mcp-check-v1.log`, `/tmp/p06-mcp-build-v1.log` |
+| Stdio MCP réel | Deux fichiers originaux resource_library_stdio/model3d_source_replace :2passés/0échec en4.67s, classifications/query/apply/reopen/undo réels ; `/tmp/p06-mcp-live-v2.log` |
+
+Commande du groupe13suites, depuis packages/map_authoring : `dart test test/transactions/bulk_transaction_checkpoint_test.dart test/security/resource_pack_bulk_authorization_test.dart test/api/resource_pack_compact_result_test.dart test/security/authorization_policy_test.dart test/transactions/idempotency_contract_test.dart test/transactions/crash_boundary_test.dart test/transactions/recovery_idempotence_test.dart test/history/undo_redo_contract_test.dart test/history/file_backed_history_test.dart test/transactions/file_backed_payload_test.dart test/workspace/lazy_asset_snapshot_test.dart test/transactions/retained_dependency_window_test.dart test/history/history_retention_test.dart`. V2 ne modifie que les trois fichiers API/projection/test ; les parcours de journal10000 ne sont pas répétés sans motif. Les entêtes JSON des logs gardent chaque PID et commande exacte ; aucun résidu possédé et aucun processus étranger terminé.
+
+Les premiers essais de la copie isolée manquaient du helper de benchmark puis de sources editor/runtime utilisées comme preuves de parité :30diagnostics de chemin et deux assertions de parité ont échoué. Les fichiers HEAD manquants ont été ajoutés, sans changer le code P06 ni absorber du working tree. Analyse finale sans diagnostic et20cas de parité passent. Le test de parité ciblé passe aussi sur HEAD pur, puis les19hashes du candidat ont été restaurés et vérifiés. Aucun de ces échecs de préparation du probe n'est attribué à P06.
+
+Le MCP de test exécute l'AOT isolé V2 SHA256 `79147bc63cb288c375420b1857b7201dd55001b302f97191a0c7d5c21e13d858` via un shim dart limité au processus enfant ; tests et deadlines inchangés. Catalogue effectivement lu :416actions/60kinds sur le code committé, distinct du catalogue418du checkout partagé P05 qui contenait des actions étrangères. Aucun registre/action P06 n'est ajouté à ce lot. Métadonnées `/tmp/p06-mcp-aot-probe.json`. Les verbes/jobs de pages et payloadRefs relèvent de P09, l'UI de P10 ; ils restent N/A ici et le transfert produit n'est pas annoncé utilisable.
+
+Auto-critique et limites : pas de vert global monorepo ni nouvelle suite complète, les réserves P05 restent ouvertes. Aucune mesure RSS, certification512Mio, build desktop ou preuve Player revendiquée ; ces gates restent P12. Le coût des JSON structurés est distinct de celui des binaires. Les références de projection sont éphémères ; après reconstruction, une nouvelle projection part du reçu canonique. Les données privées v1 d'un projet réel nécessitent une sauvegarde cohérente et une décision de propriétaire avant abandon de l'ancien historique ; aucune mutation de MAIN n'a été réalisée pour P06. Statut avant staging : main/97cb46796, index vide,333entrées concurrentes préservées ; commit envisagé uniquement sur les19sources qualifiées et ce plan, sans push/rebase.
+
+Revue qualité V2 : six suites indépendantes donnent `00:37 +77: All tests passed!`, exit0, sans résidu possédé. Le probe `/tmp/p06-quality-revert-blob-subset.dart` prouve néanmoins qu'un import canonique valide1fichier logique+1blob, suivi d'un revert du seul blob, est accepté comme sous-ensemble exact mais refusé par `certifyHistory` : la garde blobs≤logical est réappliquée au seul sous-ensemble0logique/1blob. Correction demandée : séparer compteurs effectifs et plafond autorisé hérité de l'origine canonique ; préserver les quotas import et les bornes absolues, vérifier aussi l'origine du plafond après reconstruction/recovery. Les inventaires partiels doivent rester exacts, sans fichier logique fictif. Le commit reste suspendu à cette correction et à ses relectures, sans nouvelle demande d'autorisation humaine.
+
+
+Qualification finale V3 : le finding qualité V2 est fermé. Le certificat schema2 distingue `logicalOutputLimit`, exact sur les sorties réelles de l'import puis hérité de l'origine canonique, et les compteurs effectifs de l'inventaire. Un revert de501blobs conserve0logique/501blobs/touched501 avec limite501. Le garde recovery compare explicitement le plafond du journal au certificat de l'origine avant toute promotion, puis vérifie l'inverse/forward/subset. Le probe disque original inchangé passe `certified` et `SERVICE_CERTIFIED`. Les cas de plafond/provenance altérés refusent sans promotion. Aucun quota d'import ni limite ordinaire n'est relevé.
+
+Le delta V3 depuis V2 contient quatre fichiers : certificat bulk, history_store, test d'autorisation et helper streaming du gateway de test bulk. Manifeste `/tmp/avelune-p06-frozen-v3.json`, patch `/tmp/avelune-p06-owned-v3.patch`, SHA256 `3dcb8950b87332c041a89ee9322e8c06b9c65fe453f1499ba70394d2c9744895`. Le candidat isolé `/tmp/p06-commit-candidate-v3.json` vérifie les19hashes exacts. Le RED du sous-ensemble1/501blobs et le probe disque sont conservés dans `/tmp/avelune-p06-v3-red-subset.log` et `/tmp/avelune-p06-v3-red-oracle-subset.log`.
+
+Validation finale du socle et du nouveau certificat : même commande13suites sur la copie HEAD+seulP06V3 → `01:16 +128: All tests passed!`, exit0, `/tmp/p06-qualified-focused-v3.log`. Cela rafraîchit aussi les octets de journal du tableau ci-dessus après ajout du champ sérialisé. `dart analyze` → `No issues found!`, exit0, `/tmp/p06-qualified-analyze-v3.log`. `dart compile exe bin/pokemap_authoring.dart -o /tmp/p06-qualified-authoring-v3` → `Generated`, exit0, `/tmp/p06-qualified-build-v3.log`. Conformité indépendante :6cas ciblés passés en21s, probe fichier inchangé GREEN, verdict CONFORME. Qualité indépendante :6cas ciblés passés en12s, même probe GREEN, verdict APPROUVÉE. Chaque passe retrouve19/19hashes avant/après et termine sans résidu possédé. Les gardes/projections V2 inchangées gardent leurs preuves20tests API/JSONL et28gardes ordinaires.
+
+MCP final V3 : mêmes deux tests stdio originaux sur le binaire isolé V3,2passés/0échec en6.20s ; `/tmp/p06-mcp-live-v3.log`, métadonnées `/tmp/p06-mcp-aot-probe-v3.json`. SHA256 AOT `7e690792ca7511e4bca0b052a9c4a04b9e1271e0f73558c711a679a6e9e48442` ; catalogue416actions/60kinds effectivement relu, aucune deadline changée. npmcheck/build restent ceux des sources TypeScript inchangées. Aucune session MCP attachée d'un autre chantier n'est prétendue rechargée.
+
+Auto-critique finale V3 : les trois findings reproduits sont corrigés et vérifiés, sans abandon du diff durable ni faux compteur. La séparation comptage effectif/plafond historique ajoute un champ interne nécessaire, pas une nouvelle abstraction. Les limites P05, les transports/jobs P09, l'UI P10 et les preuves de volume/native/Player P12 restent explicitement ouvertes. P13 reste différé. Les19sources techniques et ce plan sont les20chemins autorisés au staging, depuis le candidat qualifié ; le working tree partagé et l'index sont revérifiés juste avant commit.

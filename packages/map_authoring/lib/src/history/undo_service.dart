@@ -369,6 +369,13 @@ final class AuthoringUndoService {
         preview: const {'historyForwardTransaction': true},
       ),
     );
+    final operationId = _validatedToken('operation_');
+    await bindCanonicalBulkHistoryPlan(
+        history: _history,
+        plan: plan,
+        actorId: actor.actorId,
+        projectId: projectId,
+        operationId: operationId);
     return AuthoringPreparedHistoryMutation(
       actor: actor,
       projectId: projectId,
@@ -382,7 +389,7 @@ final class AuthoringUndoService {
         actionVersion: action.version,
         key: request.idempotencyKey!,
       ),
-      operationId: _validatedToken('operation_'),
+      operationId: operationId,
       precondition: precondition,
     );
   }

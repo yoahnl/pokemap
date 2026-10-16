@@ -118,6 +118,10 @@ final class JournaledAuthoringTransaction {
         currentProjectRevision: currentProjectRevision,
       );
       _requireRequestMatchesPlan(request, plan);
+      plan.bulkCapability?.requirePlan(plan,
+          actorId: scope.actorId,
+          projectId: scope.projectId,
+          operationId: operationId);
       final expected = AuthoringRevisionSet.beforeChangeSet(plan.changeSet);
       final current = await _currentRevisions(plan);
       expected.requireMatches(current);
@@ -178,6 +182,7 @@ final class JournaledAuthoringTransaction {
             ),
         ],
         intendedReceipt: intendedReceipt,
+        bulkCapability: plan.bulkCapability,
       );
 
       // The journal exists before idempotency reservation. A process stop can
@@ -273,15 +278,18 @@ final class JournaledAuthoringTransaction {
               storageKey: entry.storageKey,
               promotionIndex: index,
             );
-            journal = journal.copyWith(
-              updatedAt: _clock().toUtc(),
-              entries: _replaceEntry(
-                journal.entries,
-                index,
-                entry.copyWith(promoted: true),
-              ),
-            );
-            await _gateway.writeJournal(journal);
+            if (journal.checkpointProfile ==
+                AuthoringTransactionCheckpointProfile.perResource) {
+              journal = journal.copyWith(
+                updatedAt: _clock().toUtc(),
+                entries: _replaceEntry(
+                  journal.entries,
+                  index,
+                  entry.copyWith(promoted: true),
+                ),
+              );
+              await _gateway.writeJournal(journal);
+            }
             await _checkpoint(
               AuthoringTransactionCheckpoint.afterResourceJournaled,
               operationId,
@@ -306,6 +314,7 @@ final class JournaledAuthoringTransaction {
               planId: plan.planId,
               operationId: operationId,
               receipt: intendedReceipt,
+              bulkCapability: journal.bulkCapability,
               changes:
                   await _stagedChanges(operationId, plan.changeSet.changes),
             ),

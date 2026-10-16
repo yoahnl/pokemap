@@ -1,4 +1,9 @@
 import '../contracts/authoring_receipt.dart';
+import '../contracts/authoring_diff.dart';
+import '../contracts/resource_ref.dart';
+import '../security/resource_pack_bulk_capability.dart';
+import '../transactions/authoring_plan.dart';
+import '../support/authoring_fingerprint.dart';
 import '../ports/idempotency_store.dart';
 import 'authoring_history.dart';
 import 'content_blob_store.dart';
@@ -57,7 +62,8 @@ abstract interface class AuthoringHistoryStore {
 final class AuthoringHistoryRecorder
     implements
         AuthoringTransactionCommitHook,
-        AuthoringTransactionRecoveryGuard {
+        AuthoringTransactionRecoveryGuard,
+        AuthoringBulkHistoryRecoveryGuard {
   const AuthoringHistoryRecorder({
     required AuthoringHistoryStore store,
     required AuthoringContentBlobStore blobs,
@@ -103,8 +109,31 @@ final class AuthoringHistoryRecorder
         receipt: mutation.receipt,
         committedAt: DateTime.parse(mutation.receipt.createdAtUtc).toUtc(),
         changes: retained,
+        bulkCapability: mutation.bulkCapability,
       ),
     );
+  }
+
+  @override
+  Future<void> requireBulkHistoryRecoveryAllowed(
+      {required ResourcePackBulkCapability capability,
+      required AuthoringReceipt intendedReceipt}) async {
+    final originId = capability.originEntryId;
+    if (originId == null) return;
+    final origin =
+        await _store.get(projectId: capability.projectId, entryId: originId);
+    if (origin == null ||
+        origin.bulkCapability == null ||
+        capability.logicalOutputLimit !=
+            origin.bulkCapability!.logicalOutputLimit) {
+      throw const AuthoringHistoryException('history.bulk_origin_invalid',
+          'The canonical bulk origin is unavailable.');
+    }
+    verifyBulkHistoryMutation(
+        origin: origin,
+        actionId: capability.actionId,
+        inventory: capability.inventory,
+        diff: intendedReceipt.diff);
   }
 
   @override
@@ -129,3 +158,124 @@ final class AuthoringHistoryRecorder
     }
   }
 }
+
+Future<void> bindCanonicalBulkHistoryPlan(
+    {required AuthoringHistoryStore history,
+    required AuthoringPlan plan,
+    required String actorId,
+    required String projectId,
+    required String operationId}) async {
+  final context =
+      AuthoringHistoryContext.fromExtensions(plan.request.extensions);
+  if (context.targetEntryId == null) return;
+  final origin =
+      await history.get(projectId: projectId, entryId: context.targetEntryId!);
+  final certificate = origin?.bulkCapability;
+  if (origin == null || certificate == null) return;
+  final inventory = [
+    for (final change in plan.changeSet.changes)
+      ResourcePackBulkInventoryEntry.fromChange(change,
+          role: certificate.roleFor(change.storageKey))
+  ];
+  verifyBulkHistoryMutation(
+      origin: origin,
+      actionId: plan.request.actionId,
+      inventory: inventory,
+      diff: plan.changeSet.diff);
+  plan.bindBulkCapability(ResourcePackBulkAuthority.certifyHistory(
+      plan: plan,
+      actorId: actorId,
+      projectId: projectId,
+      operationId: operationId,
+      originEntryId: origin.entryId,
+      origin: certificate,
+      verifiedInventory: inventory));
+}
+
+void verifyBulkHistoryMutation(
+    {required AuthoringHistoryEntry origin,
+    required String actionId,
+    required Iterable<ResourcePackBulkInventoryEntry> inventory,
+    required AuthoringDiff diff}) {
+  final certificate = origin.bulkCapability;
+  final actual = inventory.toList();
+  if (certificate == null ||
+      !const {'history.undo', 'history.redo', 'history.revert'}
+          .contains(actionId)) {
+    throw const AuthoringHistoryException('history.bulk_origin_invalid',
+        'The bulk history origin is not certified.');
+  }
+  final byStorage = {
+    for (final change in origin.changes) change.storageKey: change
+  };
+  final seen = <String>{};
+  for (final item in actual) {
+    final source = byStorage[item.storageKey];
+    if (source == null ||
+        !seen.add(item.storageKey) ||
+        item.resource.kind != source.resource.kind ||
+        item.resource.id != source.resource.id ||
+        item.role != certificate.roleFor(item.storageKey) ||
+        (actionId == 'history.undo'
+            ? item.beforeRevision != source.afterRevision ||
+                item.afterRevision != source.beforeRevision
+            : item.afterRevision != source.afterRevision ||
+                (actionId == 'history.redo' &&
+                    item.beforeRevision != source.beforeRevision))) {
+      throw const AuthoringHistoryException('history.bulk_origin_invalid',
+          'The history mutation differs from its canonical origin.');
+    }
+  }
+  if (actionId != 'history.revert' && actual.length != origin.changes.length) {
+    throw const AuthoringHistoryException('history.bulk_origin_invalid',
+        'The history mutation omits canonical resources.');
+  }
+  final expectedDiff = actionId == 'history.undo'
+      ? invertAuthoringHistoryDiff(origin.receipt.diff)
+      : actionId == 'history.redo'
+          ? origin.receipt.diff
+          : AuthoringDiff([
+              for (final item in actual)
+                revisionHistoryDiff(item.resource,
+                    beforeRevision: item.beforeRevision,
+                    afterRevision: item.afterRevision)
+            ]);
+  if (canonicalAuthoringJson(expectedDiff.toJson()) !=
+      canonicalAuthoringJson(diff.toJson())) {
+    throw const AuthoringHistoryException('history.bulk_origin_invalid',
+        'The history diff differs from its canonical origin.');
+  }
+}
+
+AuthoringDiff invertAuthoringHistoryDiff(AuthoringDiff diff) => AuthoringDiff([
+      for (final item in diff.entries)
+        AuthoringDiffEntry.fromJson({
+          ...item.toJson(),
+          'operation': switch (item.operation) {
+            AuthoringDiffOperation.add => 'remove',
+            AuthoringDiffOperation.remove => 'add',
+            AuthoringDiffOperation.link => 'unlink',
+            AuthoringDiffOperation.unlink => 'link',
+            AuthoringDiffOperation.replace => 'replace',
+            AuthoringDiffOperation.move => 'move',
+          },
+          if (item.hasAfter) 'before': item.after,
+          if (item.hasBefore) 'after': item.before,
+        }..removeWhere((key, value) =>
+            (key == 'before' && !item.hasAfter) ||
+            (key == 'after' && !item.hasBefore)))
+    ]);
+
+AuthoringDiffEntry revisionHistoryDiff(AuthoringResourceRef resource,
+        {required String? beforeRevision, required String? afterRevision}) =>
+    AuthoringDiffEntry.fromJson({
+      'operation': beforeRevision == null
+          ? 'add'
+          : afterRevision == null
+              ? 'remove'
+              : 'replace',
+      'resource': resource.toJson(),
+      'path': r'$',
+      if (beforeRevision != null) 'before': beforeRevision,
+      if (afterRevision != null) 'after': afterRevision
+    });

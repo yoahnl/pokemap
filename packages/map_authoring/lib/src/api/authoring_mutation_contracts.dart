@@ -6,6 +6,7 @@ import '../history/authoring_history.dart';
 import '../history/history_store.dart';
 import '../parity/full_authoring_parity.dart';
 import '../transactions/authoring_plan.dart';
+import 'authoring_result_projection.dart';
 
 final class AuthoringMutationCommandDescriptor {
   const AuthoringMutationCommandDescriptor({
@@ -80,8 +81,10 @@ final class AuthoringMutationPlanResult {
     required this.plan,
     required this.snapshotRevision,
     required this.receipt,
+    this.publicProjection,
   });
 
+  final Map<String, Object?>? publicProjection;
   final AuthoringPlan plan;
   final String snapshotRevision;
   final AuthoringReceipt receipt;
@@ -90,18 +93,28 @@ final class AuthoringMutationPlanResult {
   bool get applicable => plan.applicable;
   String? get nonApplicableReason => plan.nonApplicableReason;
 
-  Map<String, Object?> toJson() => freezeContractJsonObject(
-        {
-          'planId': planId,
-          'applicable': applicable,
-          if (nonApplicableReason case final reason?)
-            'nonApplicableReason': reason,
-          'snapshotRevision': snapshotRevision,
-          'plan': plan.toJson(),
-          'receipt': receipt.toJson(),
-        },
-        field: 'mutationPlan',
-      );
+  Map<String, Object?> toJson() {
+    if (publicProjection != null && authoringProjectionFits(publicProjection)) {
+      return freezeContractJsonObject(publicProjection!, field: 'mutationPlan');
+    }
+    final full = <String, Object?>{
+      'planId': planId,
+      'applicable': applicable,
+      if (nonApplicableReason != null)
+        'nonApplicableReason': nonApplicableReason,
+      'snapshotRevision': snapshotRevision,
+      'plan': plan.toJson(),
+      'receipt': receipt.toJson()
+    };
+    return freezeContractJsonObject(
+        authoringProjectionFits(full)
+            ? full
+            : compactUnavailablePlanResult(
+                plan: plan,
+                receipt: receipt,
+                snapshotRevision: snapshotRevision),
+        field: 'mutationPlan');
+  }
 }
 
 final class AuthoringMutationConfirmationResult {
@@ -134,7 +147,8 @@ final class AuthoringMutationResult {
   AuthoringMutationResult(
       {required this.receipt,
       required this.snapshotRevision,
-      this.diagnostic}) {
+      this.diagnostic,
+      this.publicProjection}) {
     if ((snapshotRevision == null) != (diagnostic != null)) {
       throw ArgumentError(
           'An unknown snapshot revision requires a refresh diagnostic.');
@@ -144,27 +158,52 @@ final class AuthoringMutationResult {
   final AuthoringReceipt receipt;
   final String? snapshotRevision;
   final AuthoringSnapshotRefreshDiagnostic? diagnostic;
+  final Map<String, Object?>? publicProjection;
 
-  Map<String, Object?> toJson() => freezeContractJsonObject({
-        'receipt': receipt.toJson(),
-        'snapshotRevision': snapshotRevision,
-        if (diagnostic != null) 'diagnostic': diagnostic!.toJson(),
-      }, field: 'mutationReceipt');
+  Map<String, Object?> toJson() {
+    if (publicProjection != null && authoringProjectionFits(publicProjection)) {
+      return freezeContractJsonObject(publicProjection!,
+          field: 'mutationReceipt');
+    }
+    final full = <String, Object?>{
+      'receipt': receipt.toJson(),
+      'snapshotRevision': snapshotRevision,
+      if (diagnostic != null) 'diagnostic': diagnostic!.toJson()
+    };
+    return freezeContractJsonObject(
+        authoringProjectionFits(full)
+            ? full
+            : compactUnavailableMutationResult(
+                receipt: receipt,
+                snapshotRevision: snapshotRevision,
+                diagnostic: diagnostic?.toJson()),
+        field: 'mutationReceipt');
+  }
 }
 
 final class AuthoringMutationHistoryResult {
-  const AuthoringMutationHistoryResult(this.page);
+  const AuthoringMutationHistoryResult(this.page, {this.publicProjection});
+
+  final Map<String, Object?>? publicProjection;
 
   final AuthoringHistoryPage page;
 
   List<AuthoringHistoryEntry> get entries => page.entries;
   AuthoringHistoryCursor? get nextCursor => page.nextCursor;
 
-  Map<String, Object?> toJson() => freezeContractJsonObject(
-        {
-          'entries': [for (final entry in entries) entry.toJson()],
-          if (nextCursor case final next?) 'nextCursor': next.wireValue,
-        },
-        field: 'mutationHistory',
-      );
+  Map<String, Object?> toJson() {
+    if (publicProjection != null && authoringProjectionFits(publicProjection)) {
+      return freezeContractJsonObject(publicProjection!,
+          field: 'mutationHistory');
+    }
+    final full = <String, Object?>{
+      'entries': [for (final entry in entries) entry.toJson()],
+      if (nextCursor != null) 'nextCursor': nextCursor!.wireValue
+    };
+    return freezeContractJsonObject(
+        authoringProjectionFits(full)
+            ? full
+            : compactUnavailableHistoryResult(page),
+        field: 'mutationHistory');
+  }
 }

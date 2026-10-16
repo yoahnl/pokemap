@@ -59,3 +59,9 @@ export 'src/workspace/workspace_handle_store.dart'
 export 'src/ports/file_backed_payload_store.dart';
 
 export 'src/transactions/authoring_payload.dart';
+
+export 'src/api/authoring_result_projection.dart'
+    show
+        AuthoringResultProjectionPort,
+        AuthoringProjectionChunk,
+        AuthoringProjectionException;

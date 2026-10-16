@@ -38,6 +38,9 @@ import '../workspace/workspace_handle_store.dart';
 import '../workspace/workspace_policy.dart';
 import 'authoring_mutation_contracts.dart';
 import 'authoring_mutation_api.dart';
+import 'authoring_result_projection.dart';
+import '../infrastructure/local_resource_pack_store.dart';
+import '../ports/file_backed_payload_store.dart';
 
 /// Filesystem composition root for secure map mutation sessions.
 ///
@@ -48,7 +51,8 @@ final class LocalMapAuthoringMutationApi
         AuthoringMutationApiPort,
         AuthoringArtifactStagingPort,
         AuthoringMutationServicePort,
-        AuthoringArtifactStagingServicePort {
+        AuthoringArtifactStagingServicePort,
+        AuthoringResultProjectionPort {
   LocalMapAuthoringMutationApi({
     required WorkspacePolicy policy,
     required ProjectSnapshotLoader snapshotLoader,
@@ -211,7 +215,7 @@ final class LocalMapAuthoringMutationApi
   Future<bool> detachWorkspace(WorkspaceHandle workspaceHandle) async {
     final projectHandle = _projectsByWorkspace.remove(workspaceHandle);
     if (projectHandle == null) return false;
-    await _sessions.remove(projectHandle)?._plans.dispose();
+    await _sessions.remove(projectHandle)?.dispose();
     return true;
   }
 
@@ -348,6 +352,44 @@ final class LocalMapAuthoringMutationApi
   }) async =>
       (await recoverMutation(projectHandle, operationId: operationId)).toJson();
 
+  @override
+  Future<Map<String, Object?>> reprojectMutationReceipt(
+      ProjectHandle projectHandle,
+      {required String receiptId}) async {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    final entry = await session._history
+        .get(projectId: session.projectId, entryId: receiptId);
+    if (entry == null) {
+      throw const AuthoringProjectionException('projection.receipt_unavailable',
+          'The canonical mutation receipt is unavailable.');
+    }
+    return (await session._mutationResult(entry.receipt)).toJson();
+  }
+
+  @override
+  Future<Map<String, Object?>> readMutationDiffPage(ProjectHandle projectHandle,
+      {required String diffRef,
+      String? cursor,
+      int limit = authoringProjectionMaxRows}) {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    return session._projections
+        .readDiffPage(diffRef: diffRef, cursor: cursor, limit: limit);
+  }
+
+  @override
+  Future<AuthoringProjectionChunk> readMutationPayloadChunk(
+      ProjectHandle projectHandle,
+      {required String payloadRef,
+      required int offset,
+      int byteLength = authoringProjectionMaxChunkBytes}) {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    return session._projections.readPayloadChunk(
+        payloadRef: payloadRef, offset: offset, byteLength: byteLength);
+  }
+
   _LocalMapAuthoringSession _session(ProjectHandle projectHandle) {
     final session = _sessions[projectHandle];
     if (session == null) {
@@ -424,6 +466,8 @@ final class _LocalMapAuthoringSession {
     required AuthoringHistoryStore history,
     required SecureAuthoringRecoveryExecutor recoveryExecutor,
     required AuthoringPerformanceObserver? performanceObserver,
+    required AuthoringResultProjectionStore projections,
+    required LocalResourcePackStore projectionPayloadStore,
   })  : _snapshotLoader = snapshotLoader,
         _dispatcher = dispatcher,
         _actor = actor,
@@ -435,7 +479,9 @@ final class _LocalMapAuthoringSession {
         _undoService = undoService,
         _history = history,
         _recoveryExecutor = recoveryExecutor,
-        _performanceObserver = performanceObserver;
+        _performanceObserver = performanceObserver,
+        _projections = projections,
+        _projectionPayloadStore = projectionPayloadStore;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
@@ -531,7 +577,18 @@ final class _LocalMapAuthoringSession {
       clock: clock,
       auditIdFactory: () => _secureIdentity('audit_'),
     );
+    final projectionPayloadStore = LocalResourcePackStore(
+        cacheDirectory:
+            '${Directory.systemTemp.path}${Platform.pathSeparator}pokemap-authoring-projections',
+        allowedSourceRoots: const [],
+        clock: clock);
+    final projections = AuthoringResultProjectionStore(
+        store: projectionPayloadStore,
+        scope: FileBackedPayloadScope(
+            sessionId: workspaceHandle.value, projectId: projectId));
     return _LocalMapAuthoringSession._(
+      projections: projections,
+      projectionPayloadStore: projectionPayloadStore,
       projectId: projectId,
       workspaceHandle: workspaceHandle,
       projectHandle: projectHandle,
@@ -548,6 +605,31 @@ final class _LocalMapAuthoringSession {
       recoveryExecutor: recoveryExecutor,
       performanceObserver: performanceObserver,
     );
+  }
+
+  final AuthoringResultProjectionStore _projections;
+  final LocalResourcePackStore _projectionPayloadStore;
+
+  Future<void> dispose() async {
+    try {
+      await _plans.dispose();
+    } finally {
+      try {
+        await _projections.dispose();
+      } finally {
+        await _projectionPayloadStore.close();
+      }
+    }
+  }
+
+  void requireProjectionRead() {
+    _snapshotLoader.requireActiveProject(projectHandle);
+    if (!_actor.allows(AuthoringPermissionScope.projectRead)) {
+      throw const AuthoringAuthorizationException(
+          code: 'authorization.permission_denied',
+          message:
+              'Reading mutation projections requires project.read permission.');
+    }
   }
 
   final String projectId;
@@ -576,7 +658,8 @@ final class _LocalMapAuthoringSession {
       cursor:
           cursor == null ? null : AuthoringHistoryCursor.fromWireValue(cursor),
     );
-    return AuthoringMutationHistoryResult(page);
+    return AuthoringMutationHistoryResult(page,
+        publicProjection: await _projections.prepareHistory(page));
   }
 
   Future<AuthoringMutationPlanResult> planMutation(
@@ -631,11 +714,19 @@ final class _LocalMapAuthoringSession {
     } finally {
       span?.finish();
     }
-    return AuthoringMutationPlanResult(
-      plan: plan,
-      snapshotRevision: snapshot.revision,
-      receipt: plan.toPlannedReceipt(),
-    );
+    final receipt = plan.toPlannedReceipt();
+    try {
+      final projection = await _projections.preparePlan(
+          plan: plan, receipt: receipt, snapshotRevision: snapshot.revision);
+      return AuthoringMutationPlanResult(
+          plan: plan,
+          snapshotRevision: snapshot.revision,
+          receipt: receipt,
+          publicProjection: projection);
+    } on Object {
+      await _plans.discard(plan.planId);
+      rethrow;
+    }
   }
 
   Future<AuthoringMutationConfirmationResult> confirmMutation(
@@ -782,19 +873,28 @@ final class _LocalMapAuthoringSession {
     ProjectSnapshot? snapshot,
     bool refreshUnavailable = false,
   }) async {
+    String? snapshotRevision;
+    AuthoringSnapshotRefreshDiagnostic? diagnostic;
     if (!refreshUnavailable) {
       try {
         final resolvedSnapshot = snapshot ?? await _loadSnapshot();
-        return AuthoringMutationResult(
-            receipt: receipt, snapshotRevision: resolvedSnapshot.revision);
+        snapshotRevision = resolvedSnapshot.revision;
       } on Object {
         _snapshotLoader.invalidate(projectHandle);
       }
     }
+    if (snapshotRevision == null) {
+      diagnostic = const AuthoringSnapshotRefreshDiagnostic();
+    }
+    final projection = await _projections.prepareCommittedMutation(
+        receipt: receipt,
+        snapshotRevision: snapshotRevision,
+        diagnostic: diagnostic?.toJson());
     return AuthoringMutationResult(
         receipt: receipt,
-        snapshotRevision: null,
-        diagnostic: const AuthoringSnapshotRefreshDiagnostic());
+        snapshotRevision: snapshotRevision,
+        diagnostic: diagnostic,
+        publicProjection: projection);
   }
 
   void _requireWorkspace(String value) {

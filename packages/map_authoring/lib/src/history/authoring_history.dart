@@ -3,6 +3,7 @@ import '../contracts/resource_ref.dart';
 import '../ports/idempotency_store.dart';
 import '../security/authoring_permission.dart';
 import '../transactions/change_set.dart';
+import '../security/resource_pack_bulk_capability.dart';
 
 final class AuthoringHistoryException implements Exception {
   const AuthoringHistoryException(this.code, this.message);
@@ -190,6 +191,7 @@ final class AuthoringHistoryEntry {
     required DateTime committedAt,
     required Iterable<AuthoringHistoryResourceChange> changes,
     String? nonUndoableReason,
+    this.bulkCapability,
   })  : entryId = safeAuthoringSecurityIdentifier(entryId, 'entryId'),
         projectId = safeAuthoringSecurityIdentifier(projectId, 'projectId'),
         actorId = safeAuthoringSecurityIdentifier(actorId, 'actorId'),
@@ -224,6 +226,30 @@ final class AuthoringHistoryEntry {
         receiptContext.targetEntryId != this.targetEntryId) {
       throw ArgumentError('History context must match its frozen receipt.');
     }
+    final capability = bulkCapability;
+    if (capability != null) {
+      capability.requireBinding(
+          actorId: this.actorId,
+          projectId: this.projectId,
+          planId: this.planId,
+          operationId: this.operationId,
+          actionId: receipt.actionId,
+          actionVersion: receipt.actionVersion,
+          diff: receipt.diff,
+          actualInventory: [
+            for (final change in this.changes)
+              ResourcePackBulkInventoryEntry(
+                  resource: change.resource,
+                  storageKey: change.storageKey,
+                  beforeRevision: change.beforeRevision,
+                  afterRevision: change.afterRevision,
+                  role: capability.roleFor(change.storageKey))
+          ]);
+      if (capability.originEntryId != this.targetEntryId) {
+        throw ArgumentError(
+            'The bulk history origin must match its canonical target.');
+      }
+    }
     final receiptResources = {
       for (final resource in receipt.affectedResources)
         '${resource.kind}\u0000${resource.id}',
@@ -252,8 +278,9 @@ final class AuthoringHistoryEntry {
       'committedAtUtc',
       'changes',
       'nonUndoableReason',
+      'bulkCapability',
     };
-    if (json['schemaVersion'] != 1 ||
+    if (json['schemaVersion'] != 2 ||
         json.keys.any((key) => !keys.contains(key)) ||
         json['receipt'] is! Map ||
         json['changes'] is! List) {
@@ -261,6 +288,10 @@ final class AuthoringHistoryEntry {
     }
     try {
       return AuthoringHistoryEntry(
+        bulkCapability: json['bulkCapability'] == null
+            ? null
+            : ResourcePackBulkCapability.fromJournalJson(
+                Map<String, dynamic>.from(json['bulkCapability'] as Map)),
         entryId: _requiredString(json['entryId']),
         projectId: _requiredString(json['projectId']),
         actorId: _requiredString(json['actorId']),
@@ -282,6 +313,8 @@ final class AuthoringHistoryEntry {
         }),
         nonUndoableReason: _optionalString(json['nonUndoableReason']),
       );
+    } on TypeError {
+      throw const FormatException('Invalid history entry objects.');
     } on ArgumentError catch (error) {
       throw FormatException(error.message.toString());
     }
@@ -298,6 +331,7 @@ final class AuthoringHistoryEntry {
   final DateTime committedAt;
   final List<AuthoringHistoryResourceChange> changes;
   final String? nonUndoableReason;
+  final ResourcePackBulkCapability? bulkCapability;
 
   AuthoringHistoryEntry markNonUndoable(String reason) {
     return AuthoringHistoryEntry(
@@ -311,12 +345,14 @@ final class AuthoringHistoryEntry {
       receipt: receipt,
       committedAt: committedAt,
       changes: changes,
+      bulkCapability: bulkCapability,
       nonUndoableReason: nonUndoableReason ?? reason,
     );
   }
 
   Map<String, Object?> toJson() => {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
+        if (bulkCapability != null) 'bulkCapability': bulkCapability!.toJson(),
         'entryId': entryId,
         'projectId': projectId,
         'actorId': actorId,
@@ -337,6 +373,7 @@ final class AuthoringCommittedMutation {
     required String planId,
     required String operationId,
     required this.receipt,
+    this.bulkCapability,
     required Iterable<AuthoringResourceChange> changes,
   })  : planId = safeAuthoringSecurityIdentifier(planId, 'planId'),
         operationId = safeAuthoringSecurityIdentifier(
@@ -355,6 +392,7 @@ final class AuthoringCommittedMutation {
   final String operationId;
   final AuthoringReceipt receipt;
   final List<AuthoringResourceChange> changes;
+  final ResourcePackBulkCapability? bulkCapability;
 }
 
 abstract interface class AuthoringTransactionCommitHook {
@@ -438,3 +476,9 @@ DateTime _requiredDate(Object? value) {
 }
 
 final RegExp _fingerprintPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
+
+abstract interface class AuthoringBulkHistoryRecoveryGuard {
+  Future<void> requireBulkHistoryRecoveryAllowed(
+      {required ResourcePackBulkCapability capability,
+      required AuthoringReceipt intendedReceipt});
+}

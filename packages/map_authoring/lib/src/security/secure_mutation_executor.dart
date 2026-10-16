@@ -74,6 +74,17 @@ final class SecureAuthoringMutationExecutor {
           ),
         );
       } else {
+        try {
+          plan.bulkCapability?.requirePlan(plan,
+              actorId: actor.actorId,
+              projectId: projectId,
+              operationId: operationId);
+        } on ArgumentError {
+          throw const AuthoringAuthorizationException(
+              code: 'authorization.bulk_context_mismatch',
+              message:
+                  'The internal bulk capability differs from the frozen plan.');
+        }
         final binding = AuthoringConfirmationBinding.forPlan(
           actorId: actor.actorId,
           projectId: projectId,
@@ -90,6 +101,8 @@ final class SecureAuthoringMutationExecutor {
             requestBytes: plan.authorizationRequestBytes,
             touchedResources: plan.changeSet.changes.length,
             planId: plan.planId,
+            operationId: operationId,
+            bulkCapability: plan.bulkCapability,
             diffFingerprint: binding.diffFingerprint,
             destructive: plan.changeSet.changes.any(
               (change) => change.beforePayload != null,

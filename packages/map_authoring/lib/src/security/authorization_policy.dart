@@ -1,6 +1,7 @@
 import '../contracts/action_descriptor.dart';
 import 'authoring_permission.dart';
 import 'confirmation_token.dart';
+import 'resource_pack_bulk_capability.dart';
 
 final class AuthoringAuthorizationException implements Exception {
   const AuthoringAuthorizationException({
@@ -52,6 +53,8 @@ final class AuthoringAuthorizationRequest {
     String? diffFingerprint,
     this.destructive = false,
     this.confirmationToken,
+    this.bulkCapability,
+    this.operationId,
     Iterable<AuthoringPermissionScope> additionalPermissions = const [],
   })  : projectId = safeAuthoringSecurityIdentifier(projectId, 'projectId'),
         actionId = safeAuthoringSecurityIdentifier(actionId, 'actionId'),
@@ -86,6 +89,8 @@ final class AuthoringAuthorizationRequest {
   final String? diffFingerprint;
   final bool destructive;
   final AuthoringConfirmationToken? confirmationToken;
+  final ResourcePackBulkCapability? bulkCapability;
+  final String? operationId;
   final List<AuthoringPermissionScope> additionalPermissions;
 }
 
@@ -155,7 +160,24 @@ final class AuthoringAuthorizationPolicy {
         message: 'The authoring request exceeds its byte limit.',
       );
     }
-    if (request.touchedResources > limits.maxTouchedResources) {
+    final bulk = request.bulkCapability;
+    if (bulk != null &&
+        (bulk.actorId != request.actor.actorId ||
+            bulk.projectId != request.projectId ||
+            bulk.planId != request.planId ||
+            bulk.operationId != request.operationId ||
+            bulk.actionId != request.actionId ||
+            bulk.actionVersion != request.actionVersion ||
+            bulk.diffFingerprint != request.diffFingerprint ||
+            bulk.inventory.length != request.touchedResources)) {
+      throw const AuthoringAuthorizationException(
+          code: 'authorization.bulk_context_mismatch',
+          message:
+              'The internal bulk capability does not match the authorization context.');
+    }
+    final touchedLimit =
+        bulk == null ? limits.maxTouchedResources : bulk.inventory.length;
+    if (request.touchedResources > touchedLimit) {
       throw const AuthoringAuthorizationException(
         code: 'authorization.too_many_resources',
         message: 'The mutation touches too many resources.',

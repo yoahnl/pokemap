@@ -7,6 +7,7 @@ import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
 import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
+import '../security/resource_pack_bulk_capability.dart';
 import 'authoring_payload.dart';
 
 final class AuthoringPlan {
@@ -57,6 +58,19 @@ final class AuthoringPlan {
     if (seed < 0) {
       throw ArgumentError.value(seed, 'seed', 'must not be negative');
     }
+  }
+
+  ResourcePackBulkCapability? _bulkCapability;
+  ResourcePackBulkCapability? get bulkCapability => _bulkCapability;
+  void bindBulkCapability(ResourcePackBulkCapability capability) {
+    if (_bulkCapability != null) {
+      throw StateError('The plan already has a bulk capability.');
+    }
+    capability.requirePlan(this,
+        actorId: capability.actorId,
+        projectId: capability.projectId,
+        operationId: capability.operationId);
+    _bulkCapability = capability;
   }
 
   final AuthoringPayloadOwner _payloadOwner;
