@@ -65,6 +65,7 @@ import '../../application/runtime_battle_reward_resolver.dart';
 import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
+import '../../application/runtime_committed_movement.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
 import '../../application/cut_obstacle_interaction.dart';
@@ -276,6 +277,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeTilesetImageSingleFlightCache? initialTilesetImageCache,
     NarrativeEventRuntimeSnapshot? initialNarrativeSnapshot,
     this.onInitialLoadProgress,
+    this.onCommittedMovement,
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
     @visibleForTesting math.Random? encounterRandom,
@@ -465,6 +467,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   final String projectFilePath;
+  final RuntimeCommittedMovementSink? onCommittedMovement;
+  int _committedMovementRevision = 0;
+  RuntimeCommittedMovement? _lastCommittedMovement;
+  bool _isPublishingCommittedMovement = false;
+  bool _reportedCommittedMovementSinkFailure = false;
+
+  RuntimeCommittedMovement? get lastCommittedMovement => _lastCommittedMovement;
   final void Function(PlayableMapGameInitialLoadStage stage)?
       onInitialLoadProgress;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
@@ -2479,6 +2488,41 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool get isSurfing => playerMovementMode == MovementMode.surf;
+
+  Future<bool> movePlayerByForcedStep({
+    required EntityFacing direction,
+    required String expectedMapActivationId,
+    int durationMs = 250,
+  }) async {
+    if (durationMs < 1 ||
+        durationMs > 60000 ||
+        !isLoaded ||
+        _isPublishingCommittedMovement ||
+        expectedMapActivationId != _currentMapActivationId ||
+        !_canResolveOverworldInteraction() ||
+        _hasCheckpointUnsafeRuntimeWorkForSave) {
+      return false;
+    }
+    try {
+      final result = await _executeSceneActorRouteCommand(
+        SceneInteractiveCommand.actorRoute(
+          target: SceneActorTarget.player(mapId: _activeMapId),
+          steps: [
+            SceneActorRouteStep.move(
+              direction: direction,
+              durationMs: durationMs,
+            ),
+          ],
+        ),
+        session: null,
+        playbackId: _nextNarrativeRuntimeId('forced-player-step'),
+      );
+      return result == 'completed';
+    } on Object catch (error) {
+      debugPrint('[movement] forced player step interrupted: $error');
+      return false;
+    }
+  }
 
   bool get isBattleUiActive =>
       _flowPhase == _RuntimeFlowPhase.battle ||
@@ -5247,6 +5291,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     int? attemptedY,
     bool attemptedOutOfBounds = false,
   }) {
+    if (result is Moved ||
+        result is WarpTriggered ||
+        result is PlacedElementInteracted) {
+      _publishCommittedMovement(
+        CommittedMovement(
+          kind: _world.player.movementMode == MovementMode.surf
+              ? CommittedMovementKind.surf
+              : CommittedMovementKind.walk,
+          fromCell: previousPlayerPos,
+          toCell: _world.player.pos,
+        ),
+      );
+    }
     if (result is Blocked) {
       if (result.reason == GameplayMovementBlockReason.waterRequiresSurf &&
           attemptedX != null &&
@@ -5395,6 +5452,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'Queued ${result.trigger.name}/${result.behavior.triggerScope.name} · ${result.behavior.effect.type.name} · ${result.element.id}#$behaviorId',
       );
       return;
+    }
+  }
+
+  void _publishCommittedMovement(CommittedMovement movement) {
+    final activationId = _currentMapActivationId;
+    if (_isRemoved || activationId == null) return;
+    if (const CommittedMovementStepPolicy(
+          forcedMovement: ForcedMovementStepPolicy.include,
+        ).unitsFor(movement) !=
+        1) {
+      return;
+    }
+    final committed = RuntimeCommittedMovement(
+      mapId: _activeMapId,
+      mapActivationId: activationId,
+      revision: ++_committedMovementRevision,
+      movement: movement,
+    );
+    _lastCommittedMovement = committed;
+    _isPublishingCommittedMovement = true;
+    try {
+      onCommittedMovement?.call(committed);
+    } on Object catch (error) {
+      if (!_reportedCommittedMovementSinkFailure) {
+        _reportedCommittedMovementSinkFailure = true;
+        debugPrint('[movement] committed movement sink failed: $error');
+      }
+    } finally {
+      _isPublishingCommittedMovement = false;
     }
   }
 
@@ -12183,6 +12269,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   plan.to,
                 );
                 _syncSceneActorPlayerState(session);
+                if (session == null) {
+                  _publishCommittedMovement(
+                    CommittedMovement(
+                      kind: CommittedMovementKind.forced,
+                      fromCell: plan.from,
+                      toCell: plan.to,
+                    ),
+                  );
+                }
               } else if (actor is OverworldActorComponent) {
                 if (!actor.startGridStep(
                   to: plan.to,

@@ -45,6 +45,43 @@ CutObstacleTicket _ticket(GameState state,
         playerFacing: state.playerFacing);
 
 void main() {
+  test('Cut selects the first usable member and preserves zero PP at commit',
+      () {
+    final ready = _ready();
+    final cutter = ready.party.members.single;
+    final state = ready.copyWith(
+        party: PlayerParty(members: [
+      cutter.copyWith(currentHp: 0),
+      cutter.copyWith(knownMoveIds: ['tackle']),
+      cutter.copyWith(currentPpByMoveId: {'cut': 0}),
+      cutter,
+    ]));
+    final before = state.toJson();
+    final evaluation = evaluateCutObstacleAttempt(
+        map: _map(), gameState: state, entityId: 'tree');
+
+    expect(evaluation, isA<CanPromptCutObstacle>());
+    expect((evaluation as CanPromptCutObstacle).partyIndex, 2);
+    final result = commitCutObstacleAction(
+        ticket: _ticket(state),
+        map: _map(),
+        gameState: state,
+        currentStateRevision: 4,
+        confirmedEntityId: 'tree') as CutObstacleApplied;
+    expect(result.gameState.party, state.party);
+    expect(state.toJson(), before);
+  });
+
+  test('Cut keeps missing move ahead of a missing unlock', () {
+    final state = _ready().copyWith(
+        party: const PlayerParty(), progression: const PlayerProgression());
+    final evaluation = evaluateCutObstacleAttempt(
+        map: _map(), gameState: state, entityId: 'tree');
+
+    expect((evaluation as CutObstacleUnavailable).reason,
+        CutObstacleBlockReason.missingMove);
+  });
+
   test('a typed Cut obstacle blocks without untyped collision properties', () {
     final map = _map();
     final state = _ready();

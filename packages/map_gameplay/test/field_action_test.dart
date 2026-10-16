@@ -59,6 +59,49 @@ FieldActionCommit _commit({
 }
 
 void main() {
+  test('Surf keeps named target and party verdicts before progression', () {
+    final state = _surfReadyState().copyWith(
+      party: const PlayerParty(),
+      progression: const PlayerProgression(),
+    );
+    expect(
+      evaluateFieldAction(
+          ability: FieldAbility.surf, gameState: state, isTargetWater: false),
+      isA<NotWater>(),
+    );
+    expect(
+      evaluateFieldAction(
+          ability: FieldAbility.surf,
+          gameState: state.copyWith(playerMovementMode: MovementMode.surf),
+          isTargetWater: true),
+      isA<AlreadySurfing>(),
+    );
+    expect(
+      evaluateFieldAction(
+          ability: FieldAbility.surf, gameState: state, isTargetWater: true),
+      isA<MissingSurfCapablePokemon>(),
+    );
+  });
+
+  test('Surf evaluation and commit accept zero PP without spending any PP', () {
+    final state = _surfReadyState().copyWith(
+      party: PlayerParty(members: [
+        _surfReadyState().party.members.single.copyWith(
+          currentPpByMoveId: {'surf': 0, 'ice_beam': 7},
+        ),
+      ]),
+    );
+    final before = state.toJson();
+
+    expect(
+      evaluateFieldAction(
+          ability: FieldAbility.surf, gameState: state, isTargetWater: true),
+      isA<CanPromptSurf>(),
+    );
+    expect(_commit(gameState: state), isA<FieldActionApplied>());
+    expect(state.toJson(), before);
+  });
+
   group('BETA-SYS-002 the field action contract signs only Surf', () {
     test('Surf is signed and the deferred abilities are named, not silent', () {
       // FG-121 à FG-128 sont DEFERRED. Une capacité non signée doit rendre un

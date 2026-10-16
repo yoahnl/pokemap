@@ -1,5 +1,9 @@
 import 'package:map_core/map_core.dart';
 
+import 'field_ability_gate.dart';
+
+export 'field_ability_gate.dart' show partyHasUsableFieldMove;
+
 /// Contrat commun des actions terrain : évaluer, confirmer, muter.
 ///
 /// BETA-SYS-002. Surf existait sous forme dédiée et fonctionnait, mais chaque
@@ -71,7 +75,14 @@ FieldActionEvaluation evaluateFieldAction({
   required GameState gameState,
   required bool isTargetWater,
 }) {
-  if (!betaSignedFieldAbilities.contains(ability)) {
+  final gate = evaluateFieldAbilityGate(
+    ability: ability,
+    supportedAbilities: betaSignedFieldAbilities,
+    unlockedFieldAbilities:
+        gameState.progression.unlockedFieldAbilities.toSet(),
+    party: gameState.party,
+  );
+  if (gate.status == FieldAbilityGateStatus.unsupported) {
     return FieldActionUnsupported(ability);
   }
   if (!isTargetWater) {
@@ -80,10 +91,10 @@ FieldActionEvaluation evaluateFieldAction({
   if (gameState.playerMovementMode == fieldActionMovementMode(ability)) {
     return const AlreadySurfing();
   }
-  if (!partyHasUsableFieldMove(gameState.party, ability)) {
+  if (gate.status == FieldAbilityGateStatus.missingMove) {
     return const MissingSurfCapablePokemon();
   }
-  if (!gameState.progression.unlockedFieldAbilities.contains(ability)) {
+  if (gate.status == FieldAbilityGateStatus.locked) {
     return const SurfNotUnlocked();
   }
   return const CanPromptSurf();
@@ -103,13 +114,6 @@ MovementMode fieldActionMovementMode(FieldAbility ability) {
     FieldAbility.dive =>
       MovementMode.walk,
   };
-}
-
-/// Vérifie si au moins un Pokémon de l'équipe connaît [ability]
-/// et est en état de l'utiliser (non K.O.).
-bool partyHasUsableFieldMove(PlayerParty party, FieldAbility ability) {
-  return party.members.any((pokemon) =>
-      !pokemon.isFainted && pokemon.knownMoveIds.contains(ability.moveId));
 }
 
 /// Autorisation délivrée quand le joueur est invité à confirmer une action.

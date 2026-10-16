@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'field_action.dart';
+import 'field_ability_gate.dart';
 import 'direction.dart';
 
 enum CutObstacleBlockReason {
@@ -113,16 +114,22 @@ CutObstacleEvaluation evaluateCutObstacleAttempt(
       .isFieldObstacleCleared(instance, entityId)) {
     return const CutObstacleUnavailable(CutObstacleBlockReason.alreadyCleared);
   }
-  if (!partyHasUsableFieldMove(gameState.party, FieldAbility.cut)) {
-    return const CutObstacleUnavailable(CutObstacleBlockReason.missingMove);
-  }
-  if (!gameState.progression.unlockedFieldAbilities
-      .contains(FieldAbility.cut)) {
-    return const CutObstacleUnavailable(CutObstacleBlockReason.locked);
-  }
-  return CanPromptCutObstacle(gameState.party.members.indexWhere((pokemon) =>
-      !pokemon.isFainted &&
-      pokemon.knownMoveIds.contains(FieldAbility.cut.moveId)));
+  final gate = evaluateFieldAbilityGate(
+    ability: FieldAbility.cut,
+    supportedAbilities: const {FieldAbility.cut},
+    unlockedFieldAbilities:
+        gameState.progression.unlockedFieldAbilities.toSet(),
+    party: gameState.party,
+  );
+  return switch (gate.status) {
+    FieldAbilityGateStatus.unsupported =>
+      throw StateError('The Cut obstacle action requires Cut support.'),
+    FieldAbilityGateStatus.missingMove =>
+      const CutObstacleUnavailable(CutObstacleBlockReason.missingMove),
+    FieldAbilityGateStatus.locked =>
+      const CutObstacleUnavailable(CutObstacleBlockReason.locked),
+    FieldAbilityGateStatus.usable => CanPromptCutObstacle(gate.partyIndex!),
+  };
 }
 
 CutObstacleCommit commitCutObstacleAction(

@@ -1,5 +1,7 @@
 library;
 
+export 'src/application/runtime_committed_movement.dart';
+
 export 'src/player/runtime_companion_presentation_codec.dart';
 
 export 'package:map_core/map_core.dart'

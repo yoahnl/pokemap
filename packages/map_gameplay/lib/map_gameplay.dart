@@ -137,6 +137,12 @@ export 'src/gameplay_connection.dart' show resolveConnectedMapTargetPos;
 export 'src/gameplay_hazard.dart' show GameplayHazardEffect;
 export 'src/gameplay_movement_effect.dart'
     show GameplayMovementEffect, GameplayMovementEffectKind;
+export 'src/committed_movement.dart'
+    show
+        CommittedMovementKind,
+        CommittedMovement,
+        ForcedMovementStepPolicy,
+        CommittedMovementStepPolicy;
 export 'src/grid_pathfinder.dart'
     show GridCellPassability, GridPathfindingResult, GridPathfinder;
 export 'src/gameplay_step.dart'
@@ -196,6 +202,12 @@ export 'src/field_action.dart'
         resolveMovementModeAfterStep,
         optimisticPreviewMovementMode,
         partyHasUsableFieldMove;
+
+export 'src/field_ability_gate.dart'
+    show
+        FieldAbilityGateStatus,
+        FieldAbilityGateResult,
+        evaluateFieldAbilityGate;
 
 // Line of Sight detection
 export 'src/los_detection.dart' show checkLineOfSight;
