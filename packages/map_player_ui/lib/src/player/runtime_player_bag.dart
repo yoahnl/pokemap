@@ -780,6 +780,8 @@ class _BagTargetDialogState extends State<_BagTargetDialog> {
   bool _submitted = false;
   String _text(String fr, String en) =>
       Localizations.localeOf(context).languageCode == 'fr' ? fr : en;
+  bool get _isWorld =>
+      widget.action.targetKind == RuntimePlayerBagUseTargetKind.world;
   bool get _needsMove =>
       widget.action.targetKind == RuntimePlayerBagUseTargetKind.partyMove ||
       widget.action.targetKind ==
@@ -815,7 +817,9 @@ class _BagTargetDialogState extends State<_BagTargetDialog> {
           ModalRoute.of(context)?.isCurrent == false) {
         return;
       }
-      final node = _target == null
+      final node = _isWorld
+          ? _confirmFocus
+          : _target == null
           ? (_firstEligibleTargetId == null ? _backFocus : _targetFocus)
           : _confirm
               ? _confirmFocus
@@ -872,7 +876,30 @@ class _BagTargetDialogState extends State<_BagTargetDialog> {
                             '${PlayerBagStrings.of(context).use} ${widget.entry.title}',
                             style: context.playerMenuTheme.subtitle),
                         const SizedBox(height: 16),
-                        if (_target == null) ...[
+                        if (_isWorld) ...[
+                          Text(
+                            _text('Utiliser cet objet ?', 'Use this item?'),
+                            style: context.playerMenuTheme.label,
+                          ),
+                          const SizedBox(height: 16),
+                          PlayerActionButton(
+                            key: const ValueKey('bag-use-confirm'),
+                            focusNode: _confirmFocus,
+                            label: _text('Confirmer', 'Confirm'),
+                            icon: Icons.check,
+                            onPressed: _submitted
+                                ? null
+                                : () {
+                                    if (_submitted) return;
+                                    setState(() => _submitted = true);
+                                    Navigator.of(context).pop(
+                                      RuntimePlayerPauseCommand.useBagItem(
+                                        itemTargetId: widget.action.itemTargetId,
+                                      ),
+                                    );
+                                  },
+                          ),
+                        ] else if (_target == null) ...[
                           if (widget.targets.isEmpty)
                             Text(_text('Votre équipe est vide.',
                                 'Your party is empty.')),

@@ -35,6 +35,32 @@ void main() {
       expect(actionIds, _durableItemActionIds);
     });
 
+    test('Repousse world effect roundtrips through API and JSONL', () async {
+      final scenario = _ItemMutationScenario('item.set_overworld_effect', {
+        'itemId': 'potion',
+        'use': const ProjectItemUseDefinition(
+          contexts: {ProjectItemUseContext.overworld},
+          target: ProjectItemTargetKind.world,
+          consumption: ProjectItemConsumptionPolicy.onApplied,
+          effect: ProjectItemEffectDefinition.repel(steps: 250),
+        ).toJson(),
+      });
+      for (final jsonl in [false, true]) {
+        final harness = await _ItemTransportHarness.create('repel-$jsonl');
+        addTearDown(harness.dispose);
+        final result = jsonl
+            ? await harness.executeJsonl(scenario)
+            : await harness.executeDirect(scenario);
+        final use = ProjectItemCatalog.fromJson(result.catalog)
+            .entries
+            .singleWhere((item) => item.id == 'potion')
+            .uses
+            .single;
+        expect(use.target, ProjectItemTargetKind.world);
+        expect(use.effect, const ProjectItemEffectDefinition.repel(steps: 250));
+      }
+    });
+
     test('native evolution prevention is authored through API and JSONL',
         () async {
       const scenario = _ItemMutationScenario('item.set_held_effect', {

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart';
@@ -8,6 +11,510 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'Repousse ABA prompt: old Yes cannot renew an equal-valued new expiration',
+    () async {
+      final repository = _RepelSaveRepository();
+      final game = _MovementGame(
+        bundle: await _repelBundle(),
+        saveRepository: repository,
+        saveData: saveDataFromGameState(
+          GameState(
+            saveId: 'repel',
+            currentMapId: 'route',
+            repelState: RepelState.active(itemId: 'repel', steps: 1).advance(1),
+            bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+          ),
+        ),
+      );
+      await _load(game);
+      game.setDialogueTextSpeed(RuntimeDialogueTextSpeed.instant);
+      await _pumpUntil(
+        game,
+        () => game.dialoguePresentationListenable.value != null,
+      );
+      await _repelChoices(game);
+      final expected = game.gameStateSnapshot;
+      final replacement = GameState.fromJson(expected.toJson());
+      expect(replacement, expected);
+      expect(identical(replacement.repelState, expected.repelState), isFalse);
+      final replacementCommit = game.commitAndSavePlayerServiceState(
+        replacement,
+        expectedState: expected,
+      );
+      final snapshot = game.dialoguePresentationListenable.value!;
+      expect(
+        game.dispatchDialoguePresentationCommand(
+          DialogueSelectChoiceCommand(
+            snapshotRevision: snapshot.revision,
+            choiceIndex: 0,
+          ),
+        ),
+        isTrue,
+      );
+      await replacementCommit;
+      await _pumpUntil(
+        game,
+        () =>
+            game.dialoguePresentationListenable.value == null &&
+            game.inputAuthoritySnapshot.acceptsOverworldInput,
+      );
+      expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+      expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+      expect(
+        identical(game.gameStateSnapshot.repelState, replacement.repelState),
+        isTrue,
+      );
+      expect(repository.saved!.repelState.remainingSteps, 0);
+      expect(repository.saved!.bag.entries.single.quantity, 2);
+      expect(repository.attempts, 1);
+      expect(
+        game.runtimeNotificationListenable.value?.text,
+        isNot(contains('de nouveau active')),
+      );
+    },
+  );
+
+  test('Repousse ABA: an equal-valued replacement invalidates an old renewal confirmation', () async {
+    final repository = _RepelSaveRepository();
+    final game = _MovementGame(
+      bundle: _bundle(),
+      saveRepository: repository,
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 1).advance(1),
+          bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+        ),
+      ),
+    );
+    await _load(game);
+    expect(await game.saveGame(), isTrue);
+    final expected = game.gameStateSnapshot;
+    final replacement = GameState.fromJson(expected.toJson());
+    await game.commitAndSavePlayerServiceState(replacement);
+    expect(game.gameStateSnapshot, expected);
+    expect(
+      identical(game.gameStateSnapshot.repelState, expected.repelState),
+      isFalse,
+    );
+    final renewed = expected.copyWith(
+      repelState: RepelState.active(itemId: 'repel', steps: 7),
+      bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 1)]),
+    );
+    await expectLater(
+      game.commitAndSavePlayerServiceState(renewed, expectedState: expected),
+      throwsStateError,
+    );
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+    expect(
+      identical(game.gameStateSnapshot.repelState, replacement.repelState),
+      isTrue,
+    );
+    expect(repository.saved!.repelState.remainingSteps, 0);
+    expect(repository.saved!.bag.entries.single.quantity, 2);
+    expect(repository.attempts, 2);
+  });
+
+  test('Repousse confirmation accepts a copied GameState retaining its expiration identity', () async {
+    final repository = _RepelSaveRepository();
+    final game = _MovementGame(
+      bundle: _bundle(),
+      saveRepository: repository,
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 1).advance(1),
+          bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+        ),
+      ),
+    );
+    await _load(game);
+    expect(await game.saveGame(), isTrue);
+    final expected = game.gameStateSnapshot;
+    final copied = expected.copyWith();
+    expect(identical(copied, expected), isFalse);
+    expect(identical(copied.repelState, expected.repelState), isTrue);
+    await game.commitAndSavePlayerServiceState(copied);
+    final renewed = expected.copyWith(
+      repelState: RepelState.active(itemId: 'repel', steps: 7),
+      bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 1)]),
+    );
+    await game.commitAndSavePlayerServiceState(
+      renewed,
+      expectedState: expected,
+    );
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 7);
+    expect(game.gameStateSnapshot.bag.entries.single.quantity, 1);
+    expect(repository.saved!.repelState.remainingSteps, 7);
+    expect(repository.attempts, 3);
+  });
+
+  test('Repousse consumes committed movement only and expires once at safe control', () async {
+    final game = _MovementGame(
+      bundle: _bundle(),
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 2),
+        ),
+      ),
+    );
+    await _load(game);
+    await _move(game, RuntimeInputControl.left);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 2);
+    await _move(game, RuntimeInputControl.right);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 1);
+    for (var tick = 0; tick < 5; tick++) { game.update(.016); }
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 1);
+    await _move(game, RuntimeInputControl.right);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+    await _pumpUntil(
+      game,
+      () => game.dialoguePresentationListenable.value != null,
+    );
+    expect(game.dialoguePresentationListenable.value, isNotNull);
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+  });
+
+  test('Repousse protects its final step then permits the next lower-level candidate', () async {
+    final bundle = _bundle();
+    final game = _MovementGame(
+      bundle: bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+          encounterTables: const [
+            ProjectEncounterTable(
+              id: 'grass',
+              name: 'Grass',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 1,
+              entries: [
+                ProjectEncounterEntry(
+                  speciesId: 'pikachu',
+                  minLevel: 2,
+                  maxLevel: 2,
+                  weight: 1,
+                ),
+              ],
+            ),
+          ],
+        ),
+        map: bundle.map.copyWith(
+          gameplayZones: const [
+            MapGameplayZone(
+              id: 'grass',
+              name: 'Grass',
+              kind: GameplayZoneKind.encounter,
+              area: MapRect(
+                pos: GridPos(x: 0, y: 0),
+                size: GridSize(width: 8, height: 8),
+              ),
+              encounter: EncounterZonePayload(
+                encounterTableId: 'grass',
+                encounterKind: EncounterKind.walk,
+              ),
+            ),
+          ],
+        ),
+      ),
+      saveRepository: _RepelSaveRepository(),
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 1),
+          party: const PlayerParty(
+            members: [
+              PlayerPokemon(
+                speciesId: 'pikachu',
+                natureId: 'hardy',
+                abilityId: 'static',
+                level: 30,
+                currentHp: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await _load(game);
+    game.setDialogueTextSpeed(RuntimeDialogueTextSpeed.instant);
+    await _move(game, RuntimeInputControl.right);
+    expect(game.debugPendingBattleRequest, isNull);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+    await _pumpUntil(
+      game,
+      () => game.dialoguePresentationListenable.value != null,
+    );
+    final snapshot = game.dialoguePresentationListenable.value!;
+    game.dispatchDialoguePresentationCommand(
+      DialogueAdvanceCommand(snapshotRevision: snapshot.revision),
+    );
+    await _pumpUntil(
+      game,
+      () =>
+          game.dialoguePresentationListenable.value == null &&
+          game.inputAuthoritySnapshot.acceptsOverworldInput,
+    );
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.right),
+    );
+    game.update(.016);
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.release(RuntimeInputControl.right),
+    );
+    expect(game.debugPendingBattleRequest, isNotNull);
+  });
+
+  test('Repousse counts Surf and forced commits once and leaves idle frames untouched', () async {
+    final game = _MovementGame(
+      bundle: _bundle(),
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 6),
+        ),
+      ),
+    );
+    await _load(game);
+    game.debugSetPlayerStateForTest(
+      position: const GridPos(x: 0, y: 0),
+      facing: Direction.east,
+      movementMode: MovementMode.surf,
+    );
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 6);
+    await _move(game, RuntimeInputControl.right);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 5);
+    bool? moved;
+    final movement = game
+        .movePlayerByForcedStep(
+          direction: EntityFacing.east,
+          expectedMapActivationId:
+              game.overworldInteractionSnapshot.mapActivationId,
+        )
+        .then((value) => moved = value);
+    await _pumpUntil(game, () => moved != null);
+    await movement;
+    expect(moved, isTrue);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 4);
+    for (var tick = 0; tick < 20; tick++) { game.update(.016); }
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 4);
+  });
+
+  test('Repousse expiration takes safe control before another held movement begins', () async {
+    final game = _MovementGame(bundle: _bundle(), saveRepository: _RepelSaveRepository(),
+      saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: 'route', repelState: RepelState.active(itemId: 'repel', steps: 1))));
+    await _load(game);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    await _pumpUntil(game, () => game.dialoguePresentationListenable.value != null || game.debugPlayerGridPosition.x > 1);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 0));
+    expect(game.dialoguePresentationListenable.value, isNotNull);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+  });
+
+  test('pending Repousse expiration waits until a pause modal releases control' , () async {
+    late final _MovementGame game;
+    game = _MovementGame(bundle: _bundle(), saveRepository: _RepelSaveRepository(),
+      saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: 'route', repelState: RepelState.active(itemId: 'repel', steps: 1))),
+      onCommittedMovement: (_) => game.setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: true));
+    await _load(game);
+    await _move(game, RuntimeInputControl.right);
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    for (var frame = 0; frame < 20; frame++) { game.update(.016); }
+    expect(game.dialoguePresentationListenable.value, isNull);
+    game.setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: false);
+    await _pumpUntil(game, () => game.dialoguePresentationListenable.value != null);
+  });
+
+  test('an expired pending Repousse cold restores without activating or consuming again', () async {
+    final game = _MovementGame(
+      bundle: await _repelBundle(),
+      saveRepository: _RepelSaveRepository(),
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 1).advance(1),
+          bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+        ),
+      ),
+    );
+    await _load(game);
+    await _pumpUntil(
+      game,
+      () => game.dialoguePresentationListenable.value != null,
+    );
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+  });
+
+  test(
+    'a stale renewal transaction cannot overwrite a newer saved state',
+    () async {
+      final repository = _RepelSaveRepository();
+      final game = _MovementGame(
+        bundle: _bundle(),
+        saveRepository: repository,
+        saveData: saveDataFromGameState(
+          const GameState(saveId: 'repel', currentMapId: 'route'),
+        ),
+      );
+      await _load(game);
+      expect(await game.saveGame(), isTrue);
+      final expected = game.gameStateSnapshot;
+      final renewed = expected.copyWith(
+        repelState: RepelState.active(itemId: 'repel', steps: 7),
+      );
+      final stale = expected.copyWith(
+        repelState: RepelState.active(itemId: 'repel', steps: 99),
+      );
+      final accepted = game.commitAndSavePlayerServiceState(
+        renewed,
+        expectedState: expected,
+      );
+      final refused = game.commitAndSavePlayerServiceState(
+        stale,
+        expectedState: expected,
+      );
+      await expectLater(refused, throwsStateError);
+      await accepted;
+      expect(game.gameStateSnapshot.repelState.remainingSteps, 7);
+      expect(repository.saved!.repelState.remainingSteps, 7);
+    },
+  );
+
+  for (final renewal in ['yes', 'no', 'cancel', 'missing', 'saveFailure']) {
+    test(
+      'Repousse expiry $renewal has one saved outcome and no duplicate consumption',
+      () async {
+        final bundle = await _repelBundle();
+        final repository = _RepelSaveRepository(fail: renewal == 'saveFailure');
+        final game = _MovementGame(
+          bundle: bundle,
+          saveRepository: repository,
+          saveData: saveDataFromGameState(
+            GameState(
+              saveId: 'repel',
+              currentMapId: 'route',
+              repelState: RepelState.active(itemId: 'repel', steps: 1),
+              bag: const Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+            ),
+          ),
+        );
+        await _load(game);
+        game.setDialogueTextSpeed(RuntimeDialogueTextSpeed.instant);
+        await _move(game, RuntimeInputControl.right);
+        await _pumpUntil(
+          game,
+          () => game.dialoguePresentationListenable.value != null,
+        );
+        await _repelChoices(game);
+        if (renewal == 'missing') {
+          await game.commitAndSavePlayerServiceState(
+            game.gameStateSnapshot.copyWith(bag: const Bag()),
+          );
+        }
+        if (renewal == 'cancel') {
+          game.handleRuntimeInputEvent(
+            const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+          );
+          game.handleRuntimeInputEvent(
+            const RuntimeInputEvent.release(RuntimeInputControl.secondary),
+          );
+        } else {
+          final snapshot = game.dialoguePresentationListenable.value!;
+          final index = renewal == 'no' ? 1 : 0;
+          final command = DialogueSelectChoiceCommand(
+            snapshotRevision: snapshot.revision,
+            choiceIndex: index,
+          );
+          expect(game.dispatchDialoguePresentationCommand(command), isTrue);
+          expect(game.dispatchDialoguePresentationCommand(command), isFalse);
+        }
+        await _pumpUntil(
+          game,
+          () =>
+              game.dialoguePresentationListenable.value == null &&
+              game.inputAuthoritySnapshot.context ==
+                  RuntimeInputContext.overworld,
+        );
+        final state = game.gameStateSnapshot;
+        if (renewal == 'saveFailure') {
+          expect(game.runtimeNotificationListenable.value!.text, contains('n’a pas pu être sauvegardée'));
+          expect(state.repelState.expirationPending, isTrue);
+        }
+        expect(state.repelState.remainingSteps, renewal == 'yes' ? 3 : 0);
+        if (renewal == 'missing') {
+          expect(state.bag.entries, isEmpty);
+        } else {
+          expect(state.bag.entries.single.quantity, renewal == 'yes' ? 1 : 2);
+        }
+        expect(state.playerPosition, const GridPos(x: 1, y: 0));
+        for (var tick = 0; tick < 20; tick++) {
+          game.update(.016);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(game.dialoguePresentationListenable.value, isNull);
+        expect(repository.attempts, renewal == 'missing' ? 2 : 1);
+        if (renewal != 'saveFailure') {
+          expect(repository.saved!.repelState, state.repelState);
+          expect(repository.saved!.bag, state.bag);
+        }
+      },
+    );
+  }
+
+  test('Repousse expiration waits for external modal authority and survives cold restore', () async {
+    final bundle = await _repelBundle();
+    final repository = _RepelSaveRepository();
+    final game = _MovementGame(
+      bundle: bundle,
+      saveRepository: repository,
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: 'route',
+          repelState: RepelState.active(itemId: 'repel', steps: 2),
+        ),
+      ),
+    );
+    await _load(game);
+    await _move(game, RuntimeInputControl.right);
+    expect(await game.saveGame(), isTrue);
+    final saved = repository.saved!;
+    expect(saved.repelState.remainingSteps, 1);
+    final restored = _MovementGame(
+      bundle: bundle,
+      saveRepository: repository,
+      saveData: saveDataFromGameState(saved),
+    );
+    await _load(restored);
+    expect(restored.gameStateSnapshot.repelState.remainingSteps, 1);
+    restored.setExternalInputLock(
+      RuntimeExternalInputLock.pauseMenu,
+      locked: true,
+    );
+    for (var tick = 0; tick < 20; tick++) { restored.update(.016); }
+    expect(restored.gameStateSnapshot.repelState.remainingSteps, 1);
+    expect(restored.dialoguePresentationListenable.value, isNull);
+    restored.setExternalInputLock(
+      RuntimeExternalInputLock.pauseMenu,
+      locked: false,
+    );
+    await _move(restored, RuntimeInputControl.right);
+    await _pumpUntil(
+      restored,
+      () => restored.dialoguePresentationListenable.value != null,
+    );
+    expect(restored.gameStateSnapshot.repelState.remainingSteps, 0);
+  });
 
   test(
     'normal input publishes one committed cell after world commit',
@@ -303,7 +810,8 @@ void main() {
           required projectFilePath,
           required mapId,
         }) async => target,
-        onCommittedMovement: movements.add,
+        saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: 'route', repelState: RepelState.active(itemId: 'repel', steps: 6))),
+      onCommittedMovement: movements.add,
       );
       await _load(game);
       await _move(game, RuntimeInputControl.right);
@@ -315,6 +823,7 @@ void main() {
       );
       expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 3, y: 3));
       expect(movements, hasLength(1));
+      expect(game.gameStateSnapshot.repelState.remainingSteps, 5);
       expect(movements.single.mapId, 'route');
       expect(movements.single.movement.kind, CommittedMovementKind.walk);
       expect(movements.single.movement.toCell, const GridPos(x: 1, y: 0));
@@ -341,6 +850,7 @@ void main() {
         required projectFilePath,
         required mapId,
       }) async => target,
+      saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: 'route', repelState: RepelState.active(itemId: 'repel', steps: 6))),
       onCommittedMovement: movements.add,
     );
     await _load(game);
@@ -349,6 +859,7 @@ void main() {
       game,
       () => game.gameStateSnapshot.currentMapId == 'target',
     );
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 6);
     expect(movements, isEmpty);
     expect(game.lastCommittedMovement, isNull);
   });
@@ -540,8 +1051,11 @@ void main() {
           movedBeforeRollback =
               game.debugPlayerGridPosition == const GridPos(x: 1, y: 0);
           expect(movements, isEmpty);
+          expect(game.gameStateSnapshot.repelState.remainingSteps, 6);
+          expect(game.playerServiceGameStateSnapshot.repelState.remainingSteps, 5);
           throw StateError('failed dialogue');
         },
+        saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: 'route', repelState: RepelState.active(itemId: 'repel', steps: 6))),
         onCommittedMovement: movements.add,
       );
       await _load(game);
@@ -568,6 +1082,7 @@ void main() {
       expect(result, isNot(isA<NarrativeSceneExecutionCompleted>()));
       expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 0, y: 0));
       expect(movements, isEmpty);
+      expect(game.gameStateSnapshot.repelState.remainingSteps, 6);
       expect(game.lastCommittedMovement, isNull);
     },
   );
@@ -579,9 +1094,35 @@ class _MovementGame extends PlayableMapGame {
     super.onCommittedMovement,
     super.runtimeMapBundleLoader,
     super.saveData,
+    super.saveRepository,
     super.dialogueSessionLoader,
     super.initialMapActivationReason,
-  }) : super(projectFilePath: '/tmp/committed-movement/project.json');
+  }) : super(
+         runtimePlayerPokemonProgressionCatalogLoader:
+             ({
+               required gameState,
+               required projectRootDirectory,
+               required pokemonConfig,
+             }) async => const RuntimePlayerPokemonProgressionCatalogs(
+               speciesById: {
+                 'pikachu': PlayerPokemonHydrationSpecies(
+                   id: 'pikachu',
+                   baseStats: PokemonBaseStats(
+                     hp: 35,
+                     attack: 55,
+                     defense: 40,
+                     specialAttack: 50,
+                     specialDefense: 50,
+                     speed: 90,
+                   ),
+                   primaryAbilityId: 'static',
+                   abilityIds: ['static'],
+                   growthRateId: 'medium_fast',
+                 ),
+               },
+               maxPpByMoveId: {},
+             ),
+         projectFilePath: '/tmp/committed-movement/project.json');
 
   @override
   bool get isLoaded => true;
@@ -648,6 +1189,76 @@ SceneAsset _compensatedScene() => SceneAsset(
     ],
   ),
 );
+
+Future<void> _repelChoices(PlayableMapGame game) async {
+  for (var attempt = 0; attempt < 8; attempt++) {
+    final snapshot = game.dialoguePresentationListenable.value!;
+    if (snapshot.mode == DialoguePresentationMode.choices) return;
+    game.dispatchDialoguePresentationCommand(
+      DialogueAdvanceCommand(snapshotRevision: snapshot.revision),
+    );
+    game.update(.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Repousse renewal choices were not presented.');
+}
+
+Future<RuntimeMapBundle> _repelBundle() async {
+  final root = await Directory.systemTemp.createTemp('repel-runtime-');
+  addTearDown(() => root.delete(recursive: true));
+  await File('${root.path}/items.json').writeAsString(
+    jsonEncode(
+      const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: [
+          ProjectItemDefinition(
+            id: 'repel',
+            displayName: 'Repousse',
+            pocketId: 'items',
+            uses: [
+              ProjectItemUseDefinition(
+                contexts: {ProjectItemUseContext.overworld},
+                target: ProjectItemTargetKind.world,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.repel(steps: 3),
+              ),
+            ],
+          ),
+        ],
+      ).toJson(),
+    ),
+  );
+  final bundle = _bundle();
+  return bundle.copyWith(
+    projectRootDirectory: root.path,
+    manifest: bundle.manifest.copyWith(
+      pokemon: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        catalogFiles: {'items': 'items.json'},
+      ),
+    ),
+  );
+}
+
+class _RepelSaveRepository implements GameSaveRepository {
+  _RepelSaveRepository({this.fail = false});
+  final bool fail;
+  int attempts = 0;
+  GameState? saved;
+  @override
+  Future<void> save(GameState state) async {
+    attempts++;
+    if (fail) throw const GameSaveException('disk full');
+    saved = gameStateFromStrictSaveJson(strictGameStateSaveJson(state));
+  }
+
+  @override
+  Future<GameState?> load() async => saved;
+  @override
+  Future<bool> exists() async => saved != null;
+  @override
+  Future<void> delete() async => saved = null;
+}
 
 RuntimeMapBundle _bundle() => RuntimeMapBundle(
   manifest: const ProjectManifest(

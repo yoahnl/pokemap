@@ -140,6 +140,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     _game = game;
     _playerBundle = bundle;
     _playerServices = PlayerServiceRuntimeController.contextual(
+      supportsRepel: true,
       currentGameState: () => game.playerServiceGameStateSnapshot,
       commitAndSave: game.commitAndSavePlayerServiceState,
       setInputLocked: (locked) => game.setExternalInputLock(

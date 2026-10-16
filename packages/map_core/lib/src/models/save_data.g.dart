@@ -201,6 +201,7 @@ Map<String, dynamic> _$PlayerProgressionToJson(_PlayerProgression instance) =>
     };
 
 const _$FieldAbilityEnumMap = {
+  FieldAbility.fly: 'fly',
   FieldAbility.surf: 'surf',
   FieldAbility.cut: 'cut',
   FieldAbility.strength: 'strength',
@@ -208,7 +209,6 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.rockSmash: 'rock_smash',
   FieldAbility.waterfall: 'waterfall',
   FieldAbility.dive: 'dive',
-  FieldAbility.fly: 'fly',
 };
 
 _TrainerProfile _$TrainerProfileFromJson(Map<String, dynamic> json) =>
@@ -319,6 +319,9 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
   bag: json['bag'] == null
       ? const Bag()
       : Bag.fromJson(json['bag'] as Map<String, dynamic>),
+  repelState: json['repelState'] == null
+      ? const RepelState.empty()
+      : RepelState.fromJson(json['repelState'] as Map<String, dynamic>),
   progression: json['progression'] == null
       ? const PlayerProgression()
       : PlayerProgression.fromJson(json['progression'] as Map<String, dynamic>),
@@ -379,6 +382,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'pokemonStorage': instance.pokemonStorage.toJson(),
   'trainerProfile': instance.trainerProfile.toJson(),
   'bag': instance.bag.toJson(),
+  'repelState': instance.repelState.toJson(),
   'progression': instance.progression.toJson(),
   'railJourneyProgress': instance.railJourneyProgress.toJson(),
   'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),

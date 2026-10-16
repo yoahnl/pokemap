@@ -90,6 +90,8 @@ final class HubInProcessSessionFactory {
               return file.path;
             },
             initialSave: () => _loadInitialSave(preparedDescriptor),
+            commitCheckpoint: commitCheckpoint ??
+                HubSessionCheckpointCommitter(store: saves).commit,
             mountGame: mountGame,
             unmountGame: unmountGame,
             preloadedInitialMap: preloadedInitialMap,

@@ -149,11 +149,11 @@ void main() {
     });
 
     test('unsupported and protected key item uses are atomic', () {
-      final unsupported = _state(itemId: 'unsupported-repel');
+      final unsupported = _state(itemId: 'unsupported-action');
       final protected = _state(itemId: 'protected-tonic');
 
       _expectAtomicFailure(
-        service.use(_request(unsupported, 'unsupported-repel')),
+        service.use(_request(unsupported, 'unsupported-action')),
         unsupported,
         PlayerItemUseFailure.unsupportedCapability,
       );
@@ -180,7 +180,7 @@ void main() {
       ProjectItemCatalog(
         schemaVersion: 1,
         entries: <ProjectItemDefinition>[
-          snapshot.definitionFor('unsupported-repel')!,
+          snapshot.definitionFor('unsupported-action')!,
         ],
       ),
       capabilityTruth: itemSystemV1CapabilityTruth,
@@ -188,7 +188,7 @@ void main() {
 
     expect(report.hasBlockingDiagnostics, isTrue);
     expect(
-      report.assessmentFor('unsupported-repel')?.readiness,
+      report.assessmentFor('unsupported-action')?.readiness,
       ItemCapabilityReadiness.unsupported,
     );
     expect(
@@ -331,8 +331,8 @@ ProjectItemCatalog _catalog() {
         ],
       ),
       ProjectItemDefinition(
-        id: 'unsupported-repel',
-        displayName: 'Unsupported Repel',
+        id: 'unsupported-action',
+        displayName: 'Unsupported Action',
         pocketId: 'items',
         uses: <ProjectItemUseDefinition>[
           ProjectItemUseDefinition(
@@ -341,7 +341,8 @@ ProjectItemCatalog _catalog() {
             },
             target: ProjectItemTargetKind.partyMember,
             consumption: ProjectItemConsumptionPolicy.onApplied,
-            effect: ProjectItemEffectDefinition.repel(steps: 100),
+            effect: ProjectItemEffectDefinition.semanticAction(
+                actionId: 'unsupported'),
           ),
         ],
       ),

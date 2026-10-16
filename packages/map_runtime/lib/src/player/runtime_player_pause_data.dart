@@ -140,6 +140,7 @@ final class RuntimePlayerPokedexEntrySnapshot {
 }
 
 enum RuntimePlayerBagUseTargetKind {
+  world,
   partyMember,
   partyMove,
   partyMoveReplacement,
@@ -357,7 +358,7 @@ final class RuntimePlayerPauseDetailSnapshot {
 final class RuntimePlayerPauseCommand {
   const RuntimePlayerPauseCommand.useBagItem({
     required this.itemTargetId,
-    required this.partyTargetId,
+    this.partyTargetId = '',
     this.moveTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.useBagItem,
         secondPartyTargetId = null;

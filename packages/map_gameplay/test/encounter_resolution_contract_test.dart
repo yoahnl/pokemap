@@ -5,6 +5,73 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('Repousse candidate filtering', () {
+    for (final kind in EncounterKind.values) {
+      test('$kind uses the first party level without rerolling or changing RNG',
+          () {
+        final project = _project().copyWith(encounterTables: [
+          _project().encounterTables.first.copyWith(encounterKind: kind),
+        ]);
+        final zone = _zone(id: 'repel', tableId: 'alpha').copyWith(
+          encounter: EncounterZonePayload(
+              encounterTableId: 'alpha', encounterKind: kind),
+        );
+        final world = _world([zone]);
+        final plainRandom = Random(42);
+        final repelRandom = Random(42);
+        final plain = checkEncounterAtPlayerPosition(
+            world: world,
+            project: project,
+            encounterKind: kind,
+            random: plainRandom);
+        final state = GameState(
+            saveId: 'repel',
+            repelState: RepelState.active(itemId: 'repel', steps: 1),
+            party: const PlayerParty(members: [
+              PlayerPokemon(
+                  speciesId: 'lead',
+                  natureId: 'hardy',
+                  abilityId: 'unknown',
+                  level: 100,
+                  currentHp: 0)
+            ]));
+        final filtered = checkEncounterAtPlayerPosition(
+            world: world,
+            project: project,
+            encounterKind: kind,
+            gameState: state,
+            random: repelRandom);
+        expect(filtered.triggered,
+            kind != EncounterKind.walk && kind != EncounterKind.surf);
+        expect(repelRandom.nextInt(1000000), plainRandom.nextInt(1000000));
+        if (filtered.triggered) {
+          expect(filtered.encounter!.toJson(), plain.encounter!.toJson());
+        }
+        for (final leadLevel in [
+          plain.encounter!.level,
+          plain.encounter!.level - 1
+        ]) {
+          final allowed = checkEncounterAtPlayerPosition(
+              world: world,
+              project: project,
+              encounterKind: kind,
+              gameState: state.copyWith(
+                  party: PlayerParty(members: [
+                state.party.members.single.copyWith(level: leadLevel),
+              ])),
+              random: Random(42));
+          expect(allowed.triggered, isTrue);
+        }
+        final empty = checkEncounterAtPlayerPosition(
+            world: world,
+            project: project,
+            encounterKind: kind,
+            gameState: state.copyWith(party: const PlayerParty()),
+            random: Random(42));
+        expect(empty.triggered, isTrue);
+      });
+    }
+  });
   group('BETA-ENC-001 runtime encounter resolution', () {
     test('returns a typed ambiguity instead of using zone list order', () {
       final project = _project();

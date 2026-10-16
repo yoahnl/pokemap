@@ -100,6 +100,10 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
       effect: ProjectItemEffectCapability.restorePp,
     ),
     ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.repel,
+    ),
+    ItemUseCapability(
       context: ProjectItemUseContext.battle,
       effect: ProjectItemEffectCapability.healHp,
     ),

@@ -7,6 +7,21 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('world bag command crosses transport without a Pokemon target', () {
+    final command = RuntimeCompanionPresentationCodec.decodePlayerCommand({
+      'action': RuntimePlayerAction.useBagItem.name,
+      'snapshotRevision': 1,
+      'payload': {
+        'kind': 'pause',
+        'command': 'useBagItem',
+        'itemTargetId': 'repel',
+      },
+    });
+    final pause = command.payload! as RuntimePlayerPauseCommand;
+    expect(pause.itemTargetId, 'repel');
+    expect(pause.partyTargetId, isEmpty);
+  });
+
   test('companion menu retains canonical actions and nested party data', () {
     final party = RuntimePokemonSummarySnapshot(
       targetId: 'pokemon.one',

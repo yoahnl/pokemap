@@ -754,6 +754,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         rethrow;
       }
       final playerServices = PlayerServiceRuntimeController(
+        supportsRepel: true,
         currentGameState: () => nextGame.playerServiceGameStateSnapshot,
         host: _RuntimePlayerServiceOverlayHost(
           contextBuilder: () => context,

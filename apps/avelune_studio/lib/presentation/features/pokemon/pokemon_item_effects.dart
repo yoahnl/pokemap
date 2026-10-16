@@ -56,6 +56,7 @@ class PokemonItemEffects extends StatelessWidget {
       );
 
   ProjectItemEffectDefinition _effect(String kind) => switch (kind) {
+    'repel' => const ProjectItemEffectDefinition.repel(steps: 100),
     'cure' => const ProjectItemEffectDefinition.cureStatus(
       mode: ProjectItemStatusCureMode.all,
     ),
@@ -78,6 +79,7 @@ class PokemonItemEffects extends StatelessWidget {
     ProjectItemCureStatusEffectDefinition() => 'cure',
     ProjectItemReviveEffectDefinition() => 'revive',
     ProjectItemRestorePpEffectDefinition() => 'pp',
+    ProjectItemRepelEffectDefinition() => 'repel',
     _ => 'imported',
   };
 
@@ -130,7 +132,8 @@ class PokemonItemEffects extends StatelessWidget {
     final kind = use == null ? null : _kind(use.effect);
     final supported =
         kind != 'imported' &&
-        (context != ProjectItemUseContext.battle || kind != 'pp');
+        (context != ProjectItemUseContext.battle ||
+            (kind != 'pp' && kind != 'repel'));
     return PokemonSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,12 +171,16 @@ class PokemonItemEffects extends StatelessWidget {
                   'revive': 'Réanimer',
                   if (context == ProjectItemUseContext.overworld)
                     'pp': 'Restaurer les PP',
+                  if (context == ProjectItemUseContext.overworld)
+                    'repel': 'Repousse',
                 },
                 onChanged: (value) => _set(
                   context,
                   use.copyWith(
                     effect: _effect(value),
-                    target: value == 'pp'
+                    target: value == 'repel'
+                        ? ProjectItemTargetKind.world
+                        : value == 'pp'
                         ? ProjectItemTargetKind.partyMove
                         : ProjectItemTargetKind.partyMember,
                   ),
@@ -240,6 +247,26 @@ class PokemonItemEffects extends StatelessWidget {
                     },
                   ),
               ],
+              if (use.effect case ProjectItemRepelEffectDefinition(
+                :final steps,
+              ))
+                PokemonCommerceIntegerField(
+                  key: ValueKey(
+                    'item-repel-steps-${commerce.item!.id}-${commerce.formVersion}',
+                  ),
+                  commerce: commerce,
+                  fieldId: 'item-effect-${commerce.item!.id}-${context.name}',
+                  label: 'Nombre de pas',
+                  value: steps,
+                  minimum: 1,
+                  optional: false,
+                  onChanged: (value) => _set(
+                    context,
+                    use.copyWith(
+                      effect: ProjectItemEffectDefinition.repel(steps: value!),
+                    ),
+                  ),
+                ),
               StudioToggleRow(
                 label: 'Consommer après application',
                 value:

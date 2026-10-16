@@ -11,8 +11,8 @@ final class PlayerItemUseRequest {
     required this.state,
     required this.itemId,
     required this.context,
-    required this.partyIndex,
-    required this.maxHp,
+    this.partyIndex = -1,
+    this.maxHp = 0,
     this.moveId,
     this.maxPpByMoveId = const <String, int>{},
   });
@@ -38,7 +38,7 @@ final class PlayerItemUseService {
 
   PlayerItemUseResult use(PlayerItemUseRequest request) {
     final itemId = request.itemId.trim();
-    if (itemId.isEmpty || request.maxHp <= 0) {
+    if (itemId.isEmpty) {
       return PlayerItemUseResult.failed(
         request.state,
         PlayerItemUseFailure.invalidRequest,
@@ -64,6 +64,54 @@ final class PlayerItemUseService {
     }
 
     final use = capability.use!;
+    if (use.effect is ProjectItemRepelEffectDefinition && use.target != ProjectItemTargetKind.world) {
+      return PlayerItemUseResult.failed(request.state, PlayerItemUseFailure.wrongTarget);
+    }
+    if (use.target == ProjectItemTargetKind.world &&
+        use.effect is ProjectItemRepelEffectDefinition) {
+      if (request.context != ProjectItemUseContext.overworld) {
+        return PlayerItemUseResult.failed(
+            request.state, PlayerItemUseFailure.unavailableInContext);
+      }
+      if (request.state.repelState.isActive) {
+        return PlayerItemUseResult.failed(
+            request.state, PlayerItemUseFailure.noEffect);
+      }
+      if (_bagOperations.quantityOf(request.state.bag, itemId) < 1) {
+        return PlayerItemUseResult.failed(
+            request.state, PlayerItemUseFailure.insufficientQuantity);
+      }
+      final effect = use.effect as ProjectItemRepelEffectDefinition;
+      if (effect.steps <= 0) {
+        return PlayerItemUseResult.failed(
+            request.state, PlayerItemUseFailure.invalidRequest);
+      }
+      final application = request.state.copyWith(
+        repelState: RepelState.active(itemId: itemId, steps: effect.steps),
+      );
+      if (use.consumption != ProjectItemConsumptionPolicy.onApplied) {
+        return PlayerItemUseResult.success(state: application);
+      }
+      final consumption = _bagOperations.consume(BagConsumeRequest(
+        bag: request.state.bag,
+        itemId: itemId,
+        quantity: 1,
+        itemTags: capability.item!.tags,
+        reason: ItemConsumptionReason.appliedEffect,
+      ));
+      if (!consumption.isSuccess) {
+        return PlayerItemUseResult.failed(
+            request.state, _mapBagFailure(consumption.failure!));
+      }
+      return PlayerItemUseResult.success(
+        state: application.copyWith(bag: consumption.bag),
+        consumptionReceipt: consumption.consumptionReceipt,
+      );
+    }
+    if (request.maxHp <= 0) {
+      return PlayerItemUseResult.failed(
+          request.state, PlayerItemUseFailure.invalidRequest);
+    }
     if (use.target != ProjectItemTargetKind.partyMember &&
         use.target != ProjectItemTargetKind.partyMove) {
       return PlayerItemUseResult.failed(

@@ -169,6 +169,7 @@ import 'warp_presentation_renderer.dart';
 
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
+part 'playable_map_game_repel.dart';
 part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
@@ -301,6 +302,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.afterInitialTilesetImagesLoaded,
     GameCompletionRequestEmitter? gameCompletionEmitter,
     this.defeatRecoveryCheckpointEmitter,
+    this.repelExpirationCheckpointWriter,
     @visibleForTesting this.defeatRecoveryCapsLoader,
     @visibleForTesting this.railJourneyDoorAnimation,
     @visibleForTesting this.railJourneySpatialTransition,
@@ -476,6 +478,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final String projectFilePath;
   final RuntimeCommittedMovementSink? onCommittedMovement;
   int _committedMovementRevision = 0;
+  bool _repelPromptInFlight = false;
+  RepelState? _repelPresentedExpiration;
   bool _waterfallTraversalActive = false;
   bool _diveTransferInFlight = false;
   RuntimeCommittedMovement? _lastCommittedMovement;
@@ -548,6 +552,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   final VoidCallback? beforePostBattleStateCommit;
   final DefeatRecoveryCheckpointEmitter? defeatRecoveryCheckpointEmitter;
+  final Future<void> Function(GameState)? repelExpirationCheckpointWriter;
   @visibleForTesting
   final PlayerServiceRecoveryCapsLoader? defeatRecoveryCapsLoader;
   @visibleForTesting
@@ -2919,7 +2924,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// A failed save restores the previous in-memory transaction snapshot so a
   /// closed Shop, PC or healing overlay never leaves a half-committed session.
-  Future<void> commitAndSavePlayerServiceState(GameState nextState) async {
+  Future<void> commitAndSavePlayerServiceState(
+    GameState nextState, {
+    GameState? expectedState,
+  }) async {
     final activeScene = _activeNarrativeSceneWorkingSession;
     if (activeScene != null) {
       // The Scene owns the current atomic state transaction. Persisting here
@@ -2929,22 +2937,68 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       activeScene.gameState = nextState;
       return;
     }
-    final previousState = await _narrativeStateTransactions.read();
+    var previousState =
+        expectedState ?? await _narrativeStateTransactions.read();
+    GameState? committedState;
+    int? ownedRevision;
     try {
-      final committedState =
-          await _narrativeStateTransactions.transact<GameState>((_) {
+      committedState = await _narrativeStateTransactions.transact<GameState>((
+        current,
+      ) {
+        if (expectedState != null) {
+          if (_isRemoved ||
+              _gameState != expectedState ||
+              !identical(_gameState.repelState, expectedState.repelState) ||
+              !identical(current.repelState, expectedState.repelState) ||
+              current.bag != expectedState.bag) {
+            throw StateError('The player service confirmation is stale.');
+          }
+          previousState = _captureGameStateFromWorld(baseState: current);
+          final merged = previousState.copyWith(
+            repelState: nextState.repelState,
+            bag: nextState.bag,
+          );
+          return NarrativeEventStateTransaction.commit(merged, merged);
+        }
         return NarrativeEventStateTransaction.commit(nextState, nextState);
       });
       _applyNarrativeGameState(committedState);
-      final saved = await saveGame();
+      final saving = expectedState != null &&
+              repelExpirationCheckpointWriter != null
+          ? _saveRepelExpirationCheckpoint()
+          : saveGame();
+      ownedRevision = _gameStateRevision;
+      final saved = await saving;
       if (!saved) {
         throw StateError('Player service state could not be saved.');
       }
     } catch (error) {
-      await _narrativeStateTransactions.transact<void>((_) {
-        return NarrativeEventStateTransaction.commit(previousState, null);
-      });
-      _applyNarrativeGameState(previousState);
+      if (committedState != null &&
+          (expectedState == null ||
+              (_gameStateRevision == ownedRevision &&
+                  identical(_gameState.repelState, committedState.repelState) &&
+                  _gameState.bag == committedState.bag))) {
+        final owned = committedState;
+        final restored = await _narrativeStateTransactions.transact<GameState?>(
+          (current) {
+            if (expectedState != null &&
+                (!identical(current.repelState, owned.repelState) ||
+                    current.bag != owned.bag)) {
+              return NarrativeEventStateTransaction.rollback(null);
+            }
+            final rollback = expectedState == null
+                ? previousState
+                : _captureGameStateFromWorld(
+                    baseState: current.copyWith(
+                      repelState: previousState.repelState,
+                      bag: previousState.bag,
+                    ),
+                  );
+            return NarrativeEventStateTransaction.commit(rollback, rollback);
+          },
+        );
+        if (restored != null) _applyNarrativeGameState(restored);
+      }
       rethrow;
     }
   }
@@ -3808,13 +3862,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     });
   }
 
-  GameState _captureGameStateFromWorld({String? mapIdOverride}) {
+  GameState _captureGameStateFromWorld({
+    String? mapIdOverride,
+    GameState? baseState,
+  }) {
     final mapId = mapIdOverride ?? _activeMapId;
-    return _gameState.copyWith(
+    final state = baseState ?? _gameState;
+    return state.copyWith(
       currentMapId: mapId,
-      mapInstanceWorldState: _captureInstanceNpcPositions(_gameState.mapInstanceWorldState, mapId),
+      mapInstanceWorldState: _captureInstanceNpcPositions(
+        state.mapInstanceWorldState,
+        mapId,
+      ),
       movingPlatformWorldState: initializeMovingPlatformWorldState(
-        map: _world.map, worldState: _gameState.movingPlatformWorldState,
+        map: _world.map,
+        worldState: state.movingPlatformWorldState,
       ),
       playerPosition: _world.player.pos,
       playerPixelPosition: PixelOffset(
@@ -5039,8 +5101,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void update(double dt) {
     super.update(dt);
     try {
+      _maybePromptRepelExpiration();
       _updateRuntime(dt);
       _updateNpcFixedRoutes(dt);
+      _maybePromptRepelExpiration();
     } finally {
       _refreshLogicalMapInstances();
       _publishInputAuthoritySnapshot();
@@ -5564,6 +5628,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     int? attemptedY,
     bool attemptedOutOfBounds = false,
   }) {
+    final repelActiveForStep = _gameState.repelState.isActive;
     if (publishMovement && (result is Moved ||
         result is WarpTriggered ||
         result is PlacedElementInteracted)) {
@@ -5651,7 +5716,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               : CharacterAnimationState.walk,
         );
       }
-      _checkStepEncounter();
+      _checkStepEncounter(repelActiveForStep: repelActiveForStep);
       _checkTrainerLineOfSight(); // Check LoS only when player position changes
       _dispatchScenarioTriggerEnterFromMovement(
         previousPos: previousPlayerPos,
@@ -5744,6 +5809,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       movement: movement,
     );
     _lastCommittedMovement = committed;
+    _advanceRepelForCommittedMovement(movement);
     _isPublishingCommittedMovement = true;
     try {
       onCommittedMovement?.call(committed);
@@ -5757,7 +5823,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _checkStepEncounter() {
+  void _checkStepEncounter({required bool repelActiveForStep}) {
     final encounterKind = _world.player.movementMode == MovementMode.surf
         ? EncounterKind.surf
         : EncounterKind.walk;
@@ -5783,6 +5849,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       encounterKind: encounterKind,
       gameState: _gameState,
       random: _encounterRandom,
+      repelActiveForStep: repelActiveForStep,
     );
     _logEncounterCheck(check);
     if (!check.triggered) {
@@ -8700,6 +8767,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint(
           '[encounter] source=${check.sourceId ?? 'unknown'} table=${check.tableId ?? 'unknown'} has no valid entries',
         );
+        return;
+      case GameplayEncounterCheckStatus.repelled:
+        debugPrint('[encounter] candidate blocked by Repousse');
         return;
       case GameplayEncounterCheckStatus.rollFailed:
         debugPrint(
@@ -12563,13 +12633,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   plan.to,
                 );
                 _syncSceneActorPlayerState(session);
+                final movement = CommittedMovement(
+                  kind: CommittedMovementKind.forced,
+                  fromCell: plan.from,
+                  toCell: plan.to,
+                );
                 if (session == null) {
-                  _publishCommittedMovement(
-                    CommittedMovement(
-                      kind: CommittedMovementKind.forced,
-                      fromCell: plan.from,
-                      toCell: plan.to,
-                    ),
+                  _publishCommittedMovement(movement);
+                } else {
+                  final units = const CommittedMovementStepPolicy(
+                    forcedMovement: ForcedMovementStepPolicy.include,
+                  ).unitsFor(movement);
+                  session.gameState = session.gameState.copyWith(
+                    repelState: session.gameState.repelState.advance(units),
                   );
                 }
               } else if (actor is OverworldActorComponent) {

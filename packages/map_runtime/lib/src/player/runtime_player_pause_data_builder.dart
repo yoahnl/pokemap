@@ -33,6 +33,7 @@ final class RuntimePlayerPauseDataBuilder {
     required String locale,
     String? uiLocale,
     bool mapEnabled = false,
+    bool supportsRepel = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ProjectRegionalMapCatalog? regionalMap,
     ItemCatalogSnapshot? itemCatalog,
@@ -151,6 +152,7 @@ final class RuntimePlayerPauseDataBuilder {
           evolutionItemIds: evolutionItemIds,
           moveMachines: moveMachines,
           itemCatalog: resolvedItemCatalog,
+          supportsRepel: supportsRepel,
         ),
         if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
@@ -461,6 +463,7 @@ final class RuntimePlayerPauseDataBuilder {
   RuntimePlayerPauseDetailSnapshot _buildBag(
     GameState gameState, {
     required bool isFrench,
+    required bool supportsRepel,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
@@ -487,11 +490,13 @@ final class RuntimePlayerPauseDataBuilder {
       final isKeyItem = definition?.tags.contains('key-item') ?? false;
       final isEvolutionItem = evolutionItemIds.contains(entry.itemId);
       final isMoveMachine = moveMachines.itemIds.contains(entry.itemId);
-      final targetKind = isMoveMachine
+      final targetKind = capability.use?.target == ProjectItemTargetKind.world
+          ? RuntimePlayerBagUseTargetKind.world
+          : isMoveMachine
           ? RuntimePlayerBagUseTargetKind.partyMoveReplacement
           : effect is ProjectItemRestorePpEffectDefinition
-              ? RuntimePlayerBagUseTargetKind.partyMove
-              : RuntimePlayerBagUseTargetKind.partyMember;
+          ? RuntimePlayerBagUseTargetKind.partyMove
+          : RuntimePlayerBagUseTargetKind.partyMember;
       var usability = resolver.classifyUse(
         itemId: entry.itemId,
         context: ProjectItemUseContext.overworld,
@@ -499,26 +504,45 @@ final class RuntimePlayerPauseDataBuilder {
       if (isKeyItem) {
         usability = ItemUsabilityState.passive;
       } else if (isMoveMachine || isEvolutionItem) {
-        usability = !isMoveMachine ||
-                moveMachines.compatibleItemIds.contains(entry.itemId)
+        usability =
+            !isMoveMachine || moveMachines.compatibleItemIds.contains(entry.itemId)
             ? ItemUsabilityState.usable
             : ItemUsabilityState.unavailableInContext;
-      } else if (capability.isAvailable &&
-          !_isSupportedOverworldEffect(effect)) {
+      } else if (capability.isAvailable && !_isSupportedOverworldEffect(effect)) {
         usability = ItemUsabilityState.unsupportedCapability;
       } else if (capability.isAvailable &&
           effect is ProjectItemRestorePpEffectDefinition &&
           !targets.any((target) => target.moves.isNotEmpty)) {
         usability = ItemUsabilityState.unavailableInContext;
-      } else if (capability.isAvailable && targets.isEmpty) {
+      } else if (capability.isAvailable &&
+          targets.isEmpty &&
+          targetKind != RuntimePlayerBagUseTargetKind.world) {
         usability = ItemUsabilityState.unavailableInContext;
       }
-      final unavailableReason = _bagUnavailableReason(
-        usability,
-        isFrench: isFrench,
-        isKeyItem: isKeyItem,
-        isMoveMachine: isMoveMachine,
-      );
+      final repelAlreadyActive =
+          effect is ProjectItemRepelEffectDefinition &&
+          gameState.repelState.isActive;
+      final repelUnsupported =
+          effect is ProjectItemRepelEffectDefinition && !supportsRepel;
+      if (repelUnsupported) {
+        usability = ItemUsabilityState.unsupportedCapability;
+      } else if (repelAlreadyActive) {
+        usability = ItemUsabilityState.unavailableInContext;
+      }
+      final unavailableReason = repelUnsupported
+          ? (isFrench
+                ? 'La Repousse n’est pas disponible dans ce mode de jeu.'
+                : 'Repel is not available in this game mode.')
+          : repelAlreadyActive
+          ? (isFrench
+                ? 'Une Repousse est déjà active.'
+                : 'A Repel is already active.')
+          : _bagUnavailableReason(
+              usability,
+              isFrench: isFrench,
+              isKeyItem: isKeyItem,
+              isMoveMachine: isMoveMachine,
+            );
       return RuntimePlayerDetailEntrySnapshot(
         id: 'bag.${entry.itemId}',
         title: definition?.displayName ?? _humanize(entry.itemId),
@@ -581,10 +605,9 @@ final class RuntimePlayerPauseDataBuilder {
   }
 
   bool _isSupportedOverworldEffect(ProjectItemEffectDefinition? effect) {
-    return effect is ProjectItemHealHpEffectDefinition ||
-        effect is ProjectItemCureStatusEffectDefinition ||
-        effect is ProjectItemReviveEffectDefinition ||
-        effect is ProjectItemRestorePpEffectDefinition;
+    return effect != null &&
+        projectItemEffectRuntimeSupport(effect) ==
+            ProjectItemEffectRuntimeSupport.supported;
   }
 
   String? _bagUnavailableReason(

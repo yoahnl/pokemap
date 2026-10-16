@@ -714,6 +714,7 @@ final class _StandaloneInProcessSessionRuntime
       Map<String, dynamic>.from(checkpoint.state),
     );
     return const RuntimePlayerPauseDataBuilder().build(
+      supportsRepel: true,
       gameState: state,
       projectRootDirectory: File(projectFilePath).parent.path,
       pokemonConfig: manifest.pokemon,

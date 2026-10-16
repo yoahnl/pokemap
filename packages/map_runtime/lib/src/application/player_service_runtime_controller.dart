@@ -178,6 +178,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimeItemCatalogLoader itemCatalogLoader =
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
+    this.supportsRepel = false,
   })  : _locale = locale,
         _currentGameState = currentGameState,
         _host = host,
@@ -213,6 +214,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimeItemCatalogLoader itemCatalogLoader =
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
+    this.supportsRepel = false,
   })  : _locale = locale,
         _currentGameState = currentGameState,
         _host = null,
@@ -248,9 +250,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final RuntimeMoveMachineLoader _moveMachineLoader;
   final RuntimePokemonSpeciesLoader _pokemonSpeciesLoader;
   final String _locale;
+  final bool supportsRepel;
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   bool _active = false;
+  bool _pauseBagMutationBusy = false;
   bool _disposed = false;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   _ContextualShopSession? _shopSession;
@@ -902,6 +906,23 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   Future<RuntimePlayerPauseCommandResult> useBagItemOutsideBattle(
     RuntimePlayerPauseCommand command,
   ) async {
+    if (_pauseBagMutationBusy) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Le sac est occupé pour le moment.',
+      );
+    }
+    _pauseBagMutationBusy = true;
+    try {
+      return await _useBagItemOutsideBattle(command);
+    } finally {
+      _pauseBagMutationBusy = false;
+    }
+  }
+
+  Future<RuntimePlayerPauseCommandResult> _useBagItemOutsideBattle(
+    RuntimePlayerPauseCommand command,
+  ) async {
     if (_disposed || _active) {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
@@ -912,13 +933,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (refusal != null) return refusal;
     final state = _currentGameState();
     final partyIndex = _partyIndexFromTarget(state, command.partyTargetId);
-    if (partyIndex == null) {
-      return const RuntimePlayerPauseCommandResult(
-        status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cette cible n’est plus disponible.',
-      );
-    }
-    if (command.kind == RuntimePlayerPauseCommandKind.unequipHeldItem) {
+    if (command.kind == RuntimePlayerPauseCommandKind.unequipHeldItem &&
+        partyIndex != null) {
       final individualId = state.party.members[partyIndex].individualId;
       return _applyHeldItemTransfer(
         individualId.isEmpty
@@ -938,6 +954,55 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
         safeMessage: 'La définition de cet objet est absente ou invalide.',
+      );
+    }
+    if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
+        definition.uses.any(
+          (use) =>
+              use.contexts.contains(ProjectItemUseContext.overworld) &&
+              use.target == ProjectItemTargetKind.world &&
+              use.effect is ProjectItemRepelEffectDefinition,
+        )) {
+      if (!supportsRepel) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'La Repousse n’est pas disponible dans ce mode de jeu.',
+        );
+      }
+      try {
+        final current = _currentGameState();
+        final result = PlayerItemUseService(snapshot: itemCatalog).use(
+          PlayerItemUseRequest(
+            state: current,
+            itemId: definition.id,
+            context: ProjectItemUseContext.overworld,
+          ),
+        );
+        if (!result.isSuccess) {
+          return RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: result.failure == PlayerItemUseFailure.noEffect
+                ? 'Une Repousse est déjà active.'
+                : _bagItemFailureMessage(result.failure!),
+          );
+        }
+        final refusal = await _commitPauseMutation(result.state);
+        if (refusal != null) return refusal;
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.accepted,
+          safeMessage: 'La Repousse est active. Progression sauvegardée.',
+        );
+      } catch (_) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: 'La Repousse n’a pas pu être utilisée ni sauvegardée.',
+        );
+      }
+    }
+    if (partyIndex == null || _currentGameState() != state) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cette cible n’est plus disponible.',
       );
     }
     if (command.kind == RuntimePlayerPauseCommandKind.equipHeldItem) {

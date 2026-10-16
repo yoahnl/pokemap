@@ -18,6 +18,64 @@ ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
 }
 
 void main() {
+  test('Repousse bag action targets world even without a party and refuses an active effect', () async {
+    final root = await Directory.systemTemp.createTemp('repel-bag-projection-');
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = _catalogWith(const [
+      ProjectItemDefinition(
+        id: 'repel',
+        displayName: 'Repousse',
+        pocketId: 'items',
+        uses: [
+          ProjectItemUseDefinition(
+            contexts: {ProjectItemUseContext.overworld},
+            target: ProjectItemTargetKind.world,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.repel(steps: 100),
+          ),
+        ],
+      ),
+    ]);
+    final initial = const GameState(
+      saveId: 'repel',
+      bag: Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+    );
+    for (final active in [false, true]) {
+      final details = await const RuntimePlayerPauseDataBuilder().build(
+        gameState: active
+            ? initial.copyWith(
+                repelState: RepelState.active(itemId: 'repel', steps: 1),
+              )
+            : initial,
+        projectRootDirectory: root.path,
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
+        locale: 'fr',
+        supportsRepel: true,
+        itemCatalog: catalog,
+      );
+      final action =
+          details[RuntimePlayerPauseSection.bag]!.entries.single.bagAction!;
+      expect(action.targetKind, RuntimePlayerBagUseTargetKind.world);
+      expect(action.isEnabled, !active);
+      if (active) expect(action.unavailableReason, contains('déjà active'));
+    }
+    final unsupported = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: initial,
+      projectRootDirectory: root.path,
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
+      locale: 'fr',
+      itemCatalog: catalog,
+    );
+    final action =
+        unsupported[RuntimePlayerPauseSection.bag]!.entries.single.bagAction!;
+    expect(action.isEnabled, isFalse);
+    expect(action.unavailableReason, contains('mode de jeu'));
+  });
+
   test('builds party bag and Pokedex details from the live game state',
       () async {
     final projectRoot = await Directory.systemTemp.createTemp(

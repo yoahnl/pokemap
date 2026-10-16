@@ -193,6 +193,32 @@ void main() {
       );
     });
 
+    test('authors the Repousse world capability as runtime ready', () {
+      final fixture = _fixture();
+      final draft = const ItemCatalogActions().build(fixture.context(
+        actionId: 'item.set_overworld_effect',
+        parameters: {
+          'itemId': 'thread-charm',
+          'use': const ProjectItemUseDefinition(
+            contexts: {ProjectItemUseContext.overworld},
+            target: ProjectItemTargetKind.world,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.repel(steps: 250),
+          ).toJson()
+        },
+      ));
+      final catalog = decodeProjectItemCatalog(
+          jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!)));
+      expect(catalog.entries.single.uses.single.effect,
+          const ProjectItemEffectDefinition.repel(steps: 250));
+      expect(
+          validateProjectItemCatalog(catalog,
+                  capabilityTruth: itemSystemV1CapabilityTruth)
+              .assessmentFor('thread-charm')!
+              .readiness,
+          ItemCapabilityReadiness.runtimeReady);
+    });
+
     test('rejects capabilities that the runtime cannot execute', () {
       final fixture = _fixture();
       final scenarios = <(String, Map<String, Object?>)>[
@@ -206,7 +232,8 @@ void main() {
               },
               target: ProjectItemTargetKind.world,
               consumption: ProjectItemConsumptionPolicy.onApplied,
-              effect: ProjectItemEffectDefinition.repel(steps: 100),
+              effect: ProjectItemEffectDefinition.semanticAction(
+                  actionId: 'unsupported'),
             ).toJson(),
           },
         ),
@@ -288,7 +315,7 @@ void main() {
         before,
       );
       final diagnostics = _blockingDiagnostics(before);
-      expect(diagnostics, hasLength(2));
+      expect(diagnostics, hasLength(3));
       expect(_blockingDiagnostics(after), diagnostics);
     });
 
@@ -394,15 +421,15 @@ _ItemFixture _captureFixture() => _fixture(entries: const [
         heldEffectId: 'quick_claw',
       ),
       ProjectItemDefinition(
-        id: 'repel',
-        displayName: 'Repel',
+        id: 'unsupported-action',
+        displayName: 'Unsupported Action',
         pocketId: 'items',
         uses: [
           ProjectItemUseDefinition(
             contexts: {ProjectItemUseContext.overworld},
             target: ProjectItemTargetKind.world,
             consumption: ProjectItemConsumptionPolicy.onApplied,
-            effect: ProjectItemEffectDefinition.repel(steps: 100),
+            effect: ProjectItemEffectDefinition.semanticAction(actionId: 'unsupported'),
           )
         ],
       ),

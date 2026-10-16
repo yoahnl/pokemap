@@ -79,6 +79,7 @@ export 'src/operations/new_game_entrypoint_migration.dart';
 export 'src/operations/new_game_seed_commit.dart';
 export 'src/models/save_data.dart';
 export 'src/models/game_state.dart';
+export 'src/models/repel_state.dart';
 export 'src/models/pokemon_move.dart';
 export 'src/models/pokemon_move_accuracy.dart';
 export 'src/models/pokemon_move_effect.dart';

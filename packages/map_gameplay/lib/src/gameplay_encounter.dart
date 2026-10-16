@@ -34,6 +34,7 @@ enum GameplayEncounterCheckStatus {
   invalidEncounterRate,
   emptyEncounterTable,
   rollFailed,
+  repelled,
   triggered,
 }
 
@@ -154,6 +155,7 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   required ProjectManifest project,
   required EncounterKind encounterKind,
   GameState? gameState,
+  bool? repelActiveForStep,
   ScriptEvaluationContext? conditionContext,
   Random? random,
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
@@ -277,6 +279,21 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   final selected = _pickWeightedEncounterEntry(entries, rng);
   final levelRange = selected.maxLevel - selected.minLevel + 1;
   final level = selected.minLevel + rng.nextInt(levelRange);
+  if ((repelActiveForStep ?? gameState?.repelState.isActive ?? false) &&
+      (encounterKind == EncounterKind.walk ||
+          encounterKind == EncounterKind.surf) &&
+      gameState != null &&
+      gameState.party.members.isNotEmpty &&
+      level < gameState.party.members.first.level) {
+    return GameplayEncounterCheckResult(
+      status: GameplayEncounterCheckStatus.repelled,
+      sourceId: source.id,
+      sourceKind: source.kind,
+      tableId: table.id,
+      encounterKind: encounterKind,
+      roll: roll,
+    );
+  }
   final encounter = GameplayEncounter(
     mapId: world.map.id,
     sourceId: source.id,

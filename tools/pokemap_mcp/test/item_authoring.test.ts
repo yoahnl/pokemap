@@ -62,9 +62,9 @@ const itemMutationScenarios = [
       itemId: "potion",
       use: {
         contexts: ["overworld"],
-        target: "party_member",
+        target: "world",
         consumption: "on_applied",
-        effect: { kind: "heal_hp", mode: "flat", amount: 20 },
+        effect: { kind: "repel", steps: 250 },
       },
     },
   },

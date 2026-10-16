@@ -190,7 +190,34 @@ void main() {
     }
   }
 
-  for (final kind in RuntimePlayerBagUseTargetKind.values) {
+  testWidgets(
+    'world item confirms without choosing a Pokemon and cancel consumes nothing',
+    (tester) async {
+      final commands = <RuntimePlayerPauseCommand>[];
+      await _pump(
+        tester,
+        _detail([_item('repel', kind: RuntimePlayerBagUseTargetKind.world)]),
+        onCommand: (command) async => commands.add(command),
+      );
+      await _tap(tester, 'runtime-player-bag-use-repel');
+      expect(
+        find.byKey(const ValueKey('runtime-player-bag-target-pokemon.a')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('bag-use-confirm')), findsOneWidget);
+      await _tap(tester, 'runtime-player-bag-target-close');
+      expect(commands, isEmpty);
+      await _tap(tester, 'runtime-player-bag-use-repel');
+      await _tap(tester, 'bag-use-confirm');
+      expect(commands, hasLength(1));
+      expect(commands.single.itemTargetId, 'repel');
+      expect(commands.single.partyTargetId, isEmpty);
+    },
+  );
+
+  for (final kind in RuntimePlayerBagUseTargetKind.values.where(
+    (kind) => kind != RuntimePlayerBagUseTargetKind.world,
+  )) {
     for (final count
         in kind == RuntimePlayerBagUseTargetKind.partyMoveReplacement
             ? [2, 4]

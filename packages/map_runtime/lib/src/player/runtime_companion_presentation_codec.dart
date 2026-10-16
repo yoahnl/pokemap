@@ -151,7 +151,7 @@ abstract final class RuntimeCompanionPresentationCodec {
             RuntimePlayerPauseCommandKind.useBagItem =>
               RuntimePlayerPauseCommand.useBagItem(
                   itemTargetId: value['itemTargetId'] as String,
-                  partyTargetId: value['partyTargetId'] as String,
+                  partyTargetId: value['partyTargetId'] as String? ?? '',
                   moveTargetId: value['moveTargetId'] as String?),
             RuntimePlayerPauseCommandKind.equipHeldItem =>
               RuntimePlayerPauseCommand.equipHeldItem(

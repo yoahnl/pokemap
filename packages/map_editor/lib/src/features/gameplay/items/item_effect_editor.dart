@@ -305,7 +305,12 @@ final class _UseEditor extends StatelessWidget {
                 PokeMapDropdownItem<String>(value: option.$1, label: option.$2),
             ],
             onChanged: (value) => onChanged(
-              use.copyWith(effect: _decodeEffect(value)).normalized(),
+              use.copyWith(effect: _decodeEffect(value),
+                    target:
+                        _decodeEffect(value) is ProjectItemRepelEffectDefinition
+                        ? ProjectItemTargetKind.world
+                        : use.target,
+                  ).normalized(),
             ),
           ),
           if (projectItemEffectUnsupportedReason(use.effect)
@@ -462,6 +467,10 @@ List<(String, String)> _effectOptions(
             rateDenominator: 2,
           ),
           'Ranime avec la moitié des PV',
+        ),
+        (
+          const ProjectItemEffectDefinition.repel(steps: 100),
+          'Repousse pendant 100 pas',
         ),
         (
           const ProjectItemEffectDefinition.restorePp(

@@ -13,6 +13,7 @@ import 'spatial_world_state.dart';
 import 'moving_platform.dart';
 import 'map_instance_world_state.dart';
 import 'rail_journey.dart';
+import 'repel_state.dart';
 
 part 'save_data.freezed.dart';
 part 'save_data.g.dart';
@@ -836,6 +837,7 @@ abstract class SaveData with _$SaveData {
     @Default(PokemonStorage()) PokemonStorage pokemonStorage,
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,
+    @Default(RepelState.empty()) RepelState repelState,
     @Default(PlayerProgression()) PlayerProgression progression,
     @Default(RailJourneyProgress()) RailJourneyProgress railJourneyProgress,
     @JsonKey(readValue: readNarrativeFactRuntimeStateJson)

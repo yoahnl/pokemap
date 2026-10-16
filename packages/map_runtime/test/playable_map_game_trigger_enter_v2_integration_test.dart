@@ -13,6 +13,136 @@ import 'package:map_runtime/src/presentation/flame/playable_map_game.dart'
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('Repousse expiration survives an arriving Event V2 Scene and waits until it ends', () async {
+    const mapId = 'repel_event_map';
+    const factId = 'fact.repel.arrived';
+    const sceneId = 'repel_arrival_scene';
+    final game = await _loadGame(
+      _bundle(
+        mapId: mapId,
+        triggers: const [
+          MapTrigger(
+            id: 'arrival',
+            name: 'Arrival',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 1, y: 1),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+        ],
+        factIds: const [factId],
+        dialogueIds: const ['arrival'],
+        records: [
+          _record(
+            id: 'evt_019abcde-3000-7000-8000-000000000099',
+            name: 'Repel arrival',
+            source: NarrativeEventSourceRef.triggerEnter(mapId, 'arrival'),
+            sceneId: sceneId,
+          ),
+        ],
+        scenes: [
+          _dialogueFactScene(
+            sceneId: sceneId,
+            factId: factId,
+            dialogueId: 'arrival',
+          ),
+        ],
+      ),
+      saveData: saveDataFromGameState(
+        GameState(
+          saveId: 'repel',
+          currentMapId: mapId,
+          playerPosition: const GridPos(x: 0, y: 1),
+          repelState: RepelState.active(itemId: 'repel', steps: 1),
+        ),
+      ),
+      dialogueSessionLoader: (_) async => _singleLineDialogueSession(),
+    );
+    addTearDown(game.onRemove);
+    game.setDialogueTextSpeed(RuntimeDialogueTextSpeed.instant);
+    await _runSingleMove(game, RuntimeInputControl.right);
+    await _pumpUntil(
+      game,
+      () => game.dialoguePresentationListenable.value != null,
+    );
+    expect(game.dialoguePresentationListenable.value!.nodeTitle, 'Start');
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    await _pumpFrames(game, 5);
+    expect(game.dialoguePresentationListenable.value!.nodeTitle, 'Start');
+    for (
+      var i = 0;
+      i < 3 && game.dialoguePresentationListenable.value?.nodeTitle == 'Start';
+      i++
+    ) {
+      final snapshot = game.dialoguePresentationListenable.value!;
+      game.dispatchDialoguePresentationCommand(
+        DialogueAdvanceCommand(snapshotRevision: snapshot.revision),
+      );
+      await _pumpFrames(game, 2);
+    }
+    await _pumpUntil(game, () => _factValue(game, factId) == true);
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    await _pumpUntil(
+      game,
+      () =>
+          game.dialoguePresentationListenable.value?.nodeTitle ==
+          'repel_expired',
+    );
+    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+  });
+
+  test('a successful forced Scene publishes its Repousse decrement only with the Scene commit', () async {
+    const mapId = 'repel_forced_scene';
+    const factId = 'fact.repel.forced';
+    const sceneId = 'repel_forced';
+    final base = _dialogueFactScene(sceneId: sceneId, factId: factId, dialogueId: 'after-route');
+    final scene = SceneAsset(id: sceneId, name: sceneId, graph: SceneGraph(startNodeId: 'start', nodes: [
+      ...base.graph.nodes,
+      SceneNode(id: 'route', kind: SceneNodeKind.action, payload: SceneActionPayload(interactiveCommand:
+        SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: mapId), steps: [
+          SceneActorRouteStep.move(direction: EntityFacing.east, durationMs: 100),
+        ]))),
+    ], edges: [
+      ...base.graph.edges.where((edge) => edge.fromNodeId != 'start'),
+      SceneEdge(id: 'start-route', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'route', kind: SceneEdgeKind.defaultFlow),
+      SceneEdge(id: 'route-dialogue', fromNodeId: 'route', fromPortId: 'completed', toNodeId: 'dialogue', kind: SceneEdgeKind.actionCompleted),
+      SceneEdge(id: 'route-blocked', fromNodeId: 'route', fromPortId: 'blocked', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+    ]));
+    final movements = <RuntimeCommittedMovement>[];
+    late final _TestPlayableMapGame game;
+    game = await _loadGame(_bundle(mapId: mapId,
+      triggers: const [MapTrigger(id: 'arrival', name: 'Arrival', type: TriggerType.event,
+        area: MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 1, height: 1)))],
+      records: [_record(id: 'evt_019abcde-3000-7000-8000-000000000098', name: 'Repel forced route', source: NarrativeEventSourceRef.triggerEnter(mapId, 'arrival'), sceneId: sceneId)],
+      factIds: const [factId], dialogueIds: const ['after-route'], scenes: [scene]),
+      saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: mapId, playerPosition: const GridPos(x: 0, y: 1),
+        repelState: RepelState.active(itemId: 'repel', steps: 2))),
+      onCommittedMovement: movements.add,
+      dialogueSessionLoader: (_) async {
+        expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 1));
+        expect(game.gameStateSnapshot.repelState.remainingSteps, 1);
+        expect(game.playerServiceGameStateSnapshot.repelState.remainingSteps, 0);
+        expect(game.playerServiceGameStateSnapshot.repelState.expirationPending, isTrue);
+        expect(movements, hasLength(1));
+        return _singleLineDialogueSession();
+      });
+    addTearDown(game.onRemove);
+    game.setDialogueTextSpeed(RuntimeDialogueTextSpeed.instant);
+    await _runSingleMove(game, RuntimeInputControl.right);
+    await _pumpUntil(game, () => game.dialoguePresentationListenable.value?.nodeTitle == 'Start');
+    final dialogue = game.dialoguePresentationListenable.value!;
+    game.dispatchDialoguePresentationCommand(DialogueAdvanceCommand(snapshotRevision: dialogue.revision));
+    await _pumpUntil(game, () => _factValue(game, factId) == true);
+    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 2, y: 1));
+    expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+    expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    expect(movements, hasLength(1));
+    await _pumpUntil(game, () => game.dialoguePresentationListenable.value?.nodeTitle == 'repel_expired');
+  });
+
   group('NS-EVENT-V2-21 PlayableMapGame triggerEnter integration', () {
     test('routes event and custom trigger fronts through Event V2', () async {
       const mapId = 'trigger_enter_positive_map';
@@ -1223,6 +1353,8 @@ Future<_TestPlayableMapGame> _loadGame(
   RuntimeDialogueSessionLoader? dialogueSessionLoader,
   NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
   GameSaveRepository? saveRepository,
+  SaveData? saveData,
+  void Function(RuntimeCommittedMovement)? onCommittedMovement,
   Future<void> Function(NarrativeEventOccurrence occurrence)?
       beforeNarrativeAuthorityPreparation,
 }) async {
@@ -1232,6 +1364,8 @@ Future<_TestPlayableMapGame> _loadGame(
     dialogueSessionLoader: dialogueSessionLoader,
     narrativeRuntimeActivityGate: narrativeRuntimeActivityGate,
     saveRepository: saveRepository,
+    saveData: saveData,
+    onCommittedMovement: onCommittedMovement,
     beforeNarrativeAuthorityPreparation: beforeNarrativeAuthorityPreparation,
   );
   game.onGameResize(Vector2(640, 480));
@@ -1302,6 +1436,8 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     super.dialogueSessionLoader,
     super.narrativeRuntimeActivityGate,
     super.saveRepository,
+    super.saveData,
+    super.onCommittedMovement,
     super.beforeNarrativeAuthorityPreparation,
   });
 

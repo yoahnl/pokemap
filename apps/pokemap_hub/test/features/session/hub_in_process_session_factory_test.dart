@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
+
+import 'package:flame/components.dart';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -25,6 +28,245 @@ void main() {
   tearDown(() async {
     if (await root.exists()) await root.delete(recursive: true);
   });
+
+  for (final outcome in [
+    'renew',
+    'decline',
+    'noItem',
+    'writeFailureRenew',
+    'writeFailureDecline',
+  ]) {
+    test(
+      'Repousse expiration $outcome persists the real installed slot atomically',
+      () async {
+        final beforeAt = DateTime.utc(2026, 10, 16);
+        final afterAt = beforeAt.add(const Duration(minutes: 1));
+        final state = GameState(
+          saveId: '123e4567-e89b-42d3-a456-426614174020',
+          currentMapId: 'map-start',
+          repelState: RepelState.active(itemId: 'repel', steps: 1),
+          bag: outcome == 'noItem'
+              ? const Bag()
+              : const Bag(entries: [BagEntry(itemId: 'repel', quantity: 1)]),
+        );
+        final initial = const GameStateSaveEnvelopeMapper().create(
+          identity: launch.identity,
+          profileId: 'player-1',
+          slotId: 'slot-1',
+          saveId: state.saveId,
+          createdAt: beforeAt,
+          updatedAt: beforeAt,
+          status: SaveStatus.active,
+          playTimeSeconds: 30,
+          gameState: state,
+        );
+        await saves.writeVerified(initial);
+        final primary = File(
+          '${root.path}/saves/${launch.identity.gameId}/player-1/slot-1/save.json',
+        );
+        final previousBytes = await primary.readAsBytes();
+        var writeAttempts = 0;
+        saves = HubSaveStore(
+          supportRoot: root,
+          identity: launch.identity,
+          faultHook: (stage) async {
+            if (stage == SaveWriteStage.afterTemporaryVerified) {
+              writeAttempts++;
+              if (outcome.startsWith('writeFailure')) {
+                throw const FileSystemException('disk full');
+              }
+            }
+          },
+        );
+        final catalog = ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: const [
+            ProjectItemDefinition(
+              id: 'repel',
+              displayName: 'Repousse',
+              pocketId: 'items',
+              uses: [
+                ProjectItemUseDefinition(
+                  contexts: {ProjectItemUseContext.overworld},
+                  target: ProjectItemTargetKind.world,
+                  consumption: ProjectItemConsumptionPolicy.onApplied,
+                  effect: ProjectItemEffectDefinition.repel(steps: 3),
+                ),
+              ],
+            ),
+          ],
+        );
+        await File('${root.path}/items.json')
+            .writeAsString(jsonEncode(catalog.toJson()));
+        final bundle = RuntimeMapBundle(
+          manifest: ProjectManifest(
+            name: 'Repel',
+            tilesets: const [],
+            maps: const [
+              ProjectMapEntry(
+                id: 'map-start',
+                name: 'Start',
+                relativePath: 'map.json',
+              ),
+            ],
+            pokemon: const ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+              catalogFiles: {'items': 'items.json'},
+            ),
+          ),
+          map: const MapData(
+            id: 'map-start',
+            name: 'Start',
+            size: GridSize(width: 8, height: 8),
+            layers: [],
+          ),
+          projectRootDirectory: root.path,
+          tilesetAbsolutePathsById: const {},
+        );
+        late PlayableMapGame game;
+        final factory = HubInProcessSessionFactory(
+          launch: launch,
+          saves: saves,
+          commitCheckpoint: outcome == 'renew' || outcome == 'writeFailureRenew'
+              ? HubPlayerSaveGateway(store: saves).commit
+              : null,
+          now: () => afterAt,
+          preloadedInitialMap: ({
+            required projectFilePath,
+            required descriptor,
+            required initialSave,
+          }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+          mountGame: (mounted) async {
+            game = mounted;
+            game.onGameResize(Vector2(640, 480));
+            await game.load();
+          },
+          unmountGame: (_) async {},
+        );
+        final descriptor = _descriptor(launch, save: initial);
+        final adapter = factory.call(descriptor);
+        await adapter.prepare(descriptor);
+        await adapter.start();
+        await _pumpRepelGameUntil(
+          game,
+          () => !game.debugIsMapActivationDispatchInFlight,
+        );
+        game.setDialogueTextSpeed(RuntimeDialogueTextSpeed.instant);
+        expect(
+          adapter.handleInput(
+            const RuntimeInputEvent.press(RuntimeInputControl.right),
+          ),
+          isTrue,
+        );
+        game.update(.016);
+        adapter.handleInput(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        );
+        await _pumpRepelGameUntil(
+          game,
+          () => game.dialoguePresentationListenable.value != null,
+        );
+        expect(writeAttempts, 0);
+        if (outcome == 'noItem') {
+          expect(
+            game.dialoguePresentationListenable.value!.mode,
+            DialoguePresentationMode.line,
+          );
+          game.dispatchDialoguePresentationCommand(
+            DialogueAdvanceCommand(
+              snapshotRevision:
+                  game.dialoguePresentationListenable.value!.revision,
+            ),
+          );
+        } else {
+          for (
+            var line = 0;
+            line < 4 &&
+                game.dialoguePresentationListenable.value!.mode !=
+                    DialoguePresentationMode.choices;
+            line++
+          ) {
+            game.dispatchDialoguePresentationCommand(
+              DialogueAdvanceCommand(
+                snapshotRevision:
+                    game.dialoguePresentationListenable.value!.revision,
+              ),
+            );
+            game.update(.016);
+            await Future<void>.delayed(Duration.zero);
+          }
+          expect(
+            game.dialoguePresentationListenable.value!.mode,
+            DialoguePresentationMode.choices,
+          );
+          expect(writeAttempts, 0);
+          game.dispatchDialoguePresentationCommand(
+            DialogueSelectChoiceCommand(
+              snapshotRevision:
+                  game.dialoguePresentationListenable.value!.revision,
+              choiceIndex:
+                  outcome == 'decline' || outcome == 'writeFailureDecline'
+                  ? 1
+                  : 0,
+            ),
+          );
+        }
+        await _pumpRepelGameUntil(
+          game,
+          () =>
+              game.dialoguePresentationListenable.value == null &&
+              game.inputAuthoritySnapshot.acceptsOverworldInput,
+        );
+        final stored = (await saves.read(initial.address)).envelope!;
+        final persisted = const GameStateSaveEnvelopeMapper().restore(stored);
+        expect(writeAttempts, 1);
+        if (outcome.startsWith('writeFailure')) {
+          expect(await primary.readAsBytes(), previousBytes);
+          expect(stored.checksum, initial.checksum);
+          expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+          expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
+          expect(game.gameStateSnapshot.bag.entries.single.quantity, 1);
+          expect(
+            game.runtimeNotificationListenable.value!.text,
+            contains('n’a pas pu être sauvegardée'),
+          );
+        } else {
+          expect(stored.updatedAt, afterAt);
+          expect(stored.checksum, isNot(initial.checksum));
+          expect(
+            persisted.repelState.remainingSteps,
+            outcome == 'renew' ? 3 : 0,
+          );
+          expect(persisted.repelState.expirationPending, isFalse);
+          expect(
+            persisted.bag.entries,
+            outcome == 'renew' || outcome == 'noItem' ? isEmpty : hasLength(1),
+          );
+          expect(persisted.playerPosition, const GridPos(x: 1, y: 0));
+          expect(game.gameStateSnapshot.repelState, persisted.repelState);
+          expect(game.gameStateSnapshot.bag, persisted.bag);
+        }
+        await adapter.dispose();
+        final cold = factory.call(_descriptor(launch, save: stored));
+        await cold.prepare(_descriptor(launch, save: stored));
+        await cold.start();
+        expect(game.gameStateSnapshot.repelState, persisted.repelState);
+        expect(game.gameStateSnapshot.bag, persisted.bag);
+        if (outcome == 'noItem') {
+          await _pumpRepelGameUntil(
+            game,
+            () => !game.debugIsMapActivationDispatchInFlight,
+          );
+          for (var frame = 0; frame < 5; frame++) {
+            game.update(.016);
+          }
+          expect(game.dialoguePresentationListenable.value, isNull);
+          expect(writeAttempts, 1);
+        }
+        await cold.dispose();
+      },
+    );
+  }
 
   test(
     'builds a single-use adapter only for the verified launch handle',
@@ -213,6 +455,15 @@ void main() {
       mountSpatialSession: (_) async {}, unmountSpatialSession: (_) async {});
     expect(() => factory.call(_descriptor(launch)), throwsStateError);
   });
+}
+
+Future<void> _pumpRepelGameUntil(PlayableMapGame game, bool Function() done) async {
+  for (var frame = 0; frame < 500; frame++) {
+    if (done()) return;
+    game.update(.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('The Repousse session did not settle.');
 }
 
 GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch,

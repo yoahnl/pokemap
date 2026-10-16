@@ -166,6 +166,7 @@ final class SelbrumeEvaluationDriver
       },
     );
     final playerServiceController = PlayerServiceRuntimeController(
+      supportsRepel: true,
       currentGameState: () => game.playerServiceGameStateSnapshot,
       host: playerServices,
       commitAndSave: game.commitAndSavePlayerServiceState,

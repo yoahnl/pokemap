@@ -130,7 +130,7 @@ void main() {
       );
       expect(
         report.assessmentFor('repel')?.readiness,
-        ItemCapabilityReadiness.unsupported,
+        ItemCapabilityReadiness.runtimeReady,
       );
       expect(
         report.diagnostics
@@ -140,7 +140,7 @@ void main() {
                   ProjectItemCatalogDiagnosticCode.unsupportedCapability,
             )
             .length,
-        2,
+        1,
       );
     });
 

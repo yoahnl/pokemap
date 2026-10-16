@@ -68,6 +68,7 @@ final class PlayableMapGameSessionRuntime
     required PlayableMapGameMount mountGame,
     required PlayableMapGameUnmount unmountGame,
     SessionPreloadedInitialMapLoader? preloadedInitialMap,
+    GameSessionCheckpointCommitter? commitCheckpoint,
     this.audioMixer,
     this.presentationCinematicPlayer,
     DateTime Function()? now,
@@ -76,6 +77,7 @@ final class PlayableMapGameSessionRuntime
         _mountGame = mountGame,
         _unmountGame = unmountGame,
         _preloadedInitialMap = preloadedInitialMap,
+        _commitCheckpoint = commitCheckpoint,
         _now = now ?? DateTime.now;
 
   final GameSessionDescriptor descriptor;
@@ -84,6 +86,7 @@ final class PlayableMapGameSessionRuntime
   final PlayableMapGameMount _mountGame;
   final PlayableMapGameUnmount _unmountGame;
   final SessionPreloadedInitialMapLoader? _preloadedInitialMap;
+  final GameSessionCheckpointCommitter? _commitCheckpoint;
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final DateTime Function() _now;
@@ -294,6 +297,21 @@ final class PlayableMapGameSessionRuntime
         saveData: saveData,
         initialGameState: descriptor.initialGameState,
         saveRepository: memorySaves,
+        repelExpirationCheckpointWriter: _commitCheckpoint == null
+            ? null
+            : (state) async {
+                _ensureNotDisposed();
+                if (!identical(_game, game) || state.saveId != _saveId) {
+                  throw StateError('The Repousse checkpoint session is stale.');
+                }
+                await _commitCheckpoint(GameSessionCheckpointCommit(
+                  descriptor: descriptor.publicContext,
+                  checkpoint: _checkpointFromState(state),
+                  status: SaveStatus.active,
+                  trigger: GameSessionCheckpointTrigger.pauseMutation,
+                ));
+                await memorySaves.save(state);
+              },
         gameCompletionEmitter: emitCompletion,
         defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
         runtimeLocale: descriptor.locale,
@@ -332,6 +350,7 @@ final class PlayableMapGameSessionRuntime
       game.applyPlayerPreferences(preferences);
     }
     final playerServices = PlayerServiceRuntimeController.contextual(
+      supportsRepel: true,
       healingDisplayMapReader: game.playerServiceHealingDisplayMap,
       currentGameState: () => game.playerServiceGameStateSnapshot,
       commitAndSave: game.commitAndSavePlayerServiceState,
@@ -420,6 +439,7 @@ final class PlayableMapGameSessionRuntime
     final gameState =
         companion ? game.companionGameStateSnapshot : game.gameStateSnapshot;
     final details = await const RuntimePlayerPauseDataBuilder().build(
+      supportsRepel: true,
       gameState: gameState,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
@@ -487,9 +507,13 @@ final class PlayableMapGameSessionRuntime
     final game = _requireGame();
     final saveId = _saveId!;
     final state = game.gameStateSnapshot.copyWith(saveId: saveId);
+    return _checkpointFromState(state);
+  }
+
+  GameSessionCheckpoint _checkpointFromState(GameState state) {
     final updatedAt = _now().toUtc();
     return GameSessionCheckpoint(
-      saveId: saveId,
+      saveId: state.saveId,
       createdAt: _createdAt!,
       updatedAt: updatedAt,
       playTimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,

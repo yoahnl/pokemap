@@ -17,6 +17,113 @@ ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
 }
 
 void main() {
+  test(
+    'a session without a Repousse consumer refuses use without committing or consuming',
+    () async {
+      final state = const GameState(
+        saveId: 'repel-unsupported-session',
+        bag: Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+      );
+      var commits = 0;
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (_) async => commits++,
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async =>
+            throw StateError('world must not load Pokemon caps'),
+        itemCatalog: _catalogWith(const [
+          ProjectItemDefinition(
+            id: 'repel',
+            displayName: 'Repousse',
+            pocketId: 'items',
+            uses: [
+              ProjectItemUseDefinition(
+                contexts: {ProjectItemUseContext.overworld},
+                target: ProjectItemTargetKind.world,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.repel(steps: 100),
+              ),
+            ],
+          ),
+        ]),
+      );
+      addTearDown(controller.dispose);
+      final result = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'repel'),
+      );
+      expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+      expect(result.safeMessage, contains('mode de jeu'));
+      expect(commits, 0);
+      expect(state.bag.entries.single.quantity, 2);
+      expect(state.repelState.isActive, isFalse);
+    },
+  );
+
+  for (final saveFails in [false, true]) {
+    test(
+      'world Repousse saves atomically without a party, failure=$saveFails',
+      () async {
+        var state = const GameState(
+          saveId: 'repel',
+          bag: Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+        );
+        var commits = 0;
+        final controller = PlayerServiceRuntimeController.contextual(
+          supportsRepel: true,
+          currentGameState: () => state,
+          commitAndSave: (next) async {
+            commits++;
+            if (saveFails) throw StateError('disk full');
+            state = next;
+          },
+          setInputLocked: (_) {},
+          loadRecoveryCaps: (_) async =>
+              throw StateError('world must not load Pokemon caps'),
+          itemCatalog: _catalogWith(const [
+            ProjectItemDefinition(
+              id: 'repel',
+              displayName: 'Repousse',
+              pocketId: 'items',
+              uses: [
+                ProjectItemUseDefinition(
+                  contexts: {ProjectItemUseContext.overworld},
+                  target: ProjectItemTargetKind.world,
+                  consumption: ProjectItemConsumptionPolicy.onApplied,
+                  effect: ProjectItemEffectDefinition.repel(steps: 100),
+                ),
+              ],
+            ),
+          ]),
+        );
+        addTearDown(controller.dispose);
+        const command = RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'repel',
+          partyTargetId: '',
+        );
+        final first = controller.useBagItemOutsideBattle(command);
+        final duplicate = await controller.useBagItemOutsideBattle(command);
+        final result = await first;
+        expect(duplicate.status, RuntimePlayerPauseCommandStatus.unavailable);
+        expect(commits, 1);
+        expect(
+          result.status,
+          saveFails
+              ? RuntimePlayerPauseCommandStatus.failed
+              : RuntimePlayerPauseCommandStatus.accepted,
+        );
+        expect(state.repelState.remainingSteps, saveFails ? 0 : 100);
+        expect(state.bag.entries.single.quantity, saveFails ? 2 : 1);
+        if (!saveFails) {
+          expect(
+            (await controller.useBagItemOutsideBattle(command)).status,
+            RuntimePlayerPauseCommandStatus.unavailable,
+          );
+          expect(commits, 1);
+        }
+      },
+    );
+  }
+
   test('pause bag item use commits one effect and consumes exactly one item',
       () async {
     var state = const GameState(

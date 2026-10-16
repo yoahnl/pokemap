@@ -2,19 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/gameplay/items/item_effect_editor.dart';
-import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_gameplay/map_gameplay.dart';
-
-/// Effets non exécutables dans l'Item Studio — BETA-ITM-007.
-///
-/// Le critère « unsupported effect UI » du ticket, et il portait sur un vrai
-/// risque produit : `repel` et `semanticAction` sont AUTHORABLES mais le runtime
-/// les refuse avec `PlayerItemUseFailure.unsupportedCapability`. Un auteur
-/// pouvait donc fabriquer une Repousse, la livrer, et ne le découvrir qu'au
-/// premier playtest.
-///
-/// L'éditeur n'avait aucun test. Ces cas sont les premiers, et ils vérifient la
-/// seule chose qui compte ici : l'éditeur dit la même chose que le moteur.
 
 ProjectItemDefinition _itemWithEffect(ProjectItemEffectDefinition effect) {
   return ProjectItemDefinition(
@@ -55,7 +43,7 @@ const Key _notice = Key('item-effect-overworld-unsupported-notice');
 
 void main() {
   group('BETA-ITM-007 the Item Studio warns about unrunnable effects', () {
-    testWidgets('a Repel effect is called out as outside the beta', (
+    testWidgets('a Repel effect is executable and carries no warning', (
       tester,
     ) async {
       await _pumpEditor(
@@ -63,12 +51,7 @@ void main() {
         const ProjectItemEffectDefinition.repel(steps: 100),
       );
 
-      expect(find.byKey(_notice), findsOneWidget);
-      final callout = tester.widget<PokeMapDiagnosticCallout>(
-        find.byKey(_notice),
-      );
-      expect(callout.severity, PokeMapDiagnosticSeverity.warning);
-      expect(callout.message, contains('sans effet en jeu'));
+      expect(find.byKey(_notice), findsNothing);
     });
 
     testWidgets('a semantic action effect is called out too', (tester) async {
@@ -103,7 +86,9 @@ void main() {
       // Le bandeau ne suffit pas : la liste est ce qu'on lit en choisissant.
       await _pumpEditor(
         tester,
-        const ProjectItemEffectDefinition.repel(steps: 100),
+        const ProjectItemEffectDefinition.semanticAction(
+          actionId: 'unsupported',
+        ),
       );
 
       expect(find.textContaining('hors périmètre bêta'), findsWidgets);
