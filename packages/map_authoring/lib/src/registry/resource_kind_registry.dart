@@ -142,7 +142,27 @@ final class AuthoringResourceKindRegistry {
             version: 1,
             displayName: kind,
             summary:
-                'Shared resource library classification, typed identity and map availability'),
+                'Shared resource library classification, typed identity and map availability',
+            extensions: {
+              if (kind == 'resourceLibraryCatalog' ||
+                  kind == 'resourceLibraryEntry') ...{
+                'catalogFormatVersion':
+                    ResourceLibraryCatalog.currentFormatVersion,
+                'placementContext': {
+                  'type': ['string', 'null'],
+                  'enum': [
+                    ...ResourcePlacementContext.values
+                        .map((context) => context.name),
+                    null,
+                  ],
+                  'catalogAbsentOrNull': 'unspecified',
+                  'classificationOmitted': 'preserve',
+                  'classificationNull': 'clear',
+                  'affectsMapAvailability': false,
+                  'affectsPlacement': false,
+                },
+              },
+            }),
       AuthoringResourceKindDescriptor(
         id: 'project',
         version: 1,

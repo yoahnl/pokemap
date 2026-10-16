@@ -10,6 +10,72 @@ import '../domains/maps/map_catalog_fixture.dart' show catalogMap;
 
 void main() {
   for (final direct in [true, false]) {
+    for (final action in ['resource.classify', 'resource.classify_batch']) {
+      test(
+          '$action context-only lifecycle through ${direct ? 'direct API' : 'JSONL'}',
+          () async {
+        final fixture =
+            await ResourceInformationFixture.create(smartInformationFixture());
+        addTearDown(fixture.dispose);
+        Map<String, Object?> parameters(Map<String, Object?> entry) =>
+            action == 'resource.classify'
+                ? entry
+                : {
+                    'entries': [entry]
+                  };
+        for (final context in ['interior', 'exterior', 'both']) {
+          await _mutate(
+              fixture,
+              direct,
+              action,
+              parameters({
+                'resourceKind': 'element',
+                'resourceId': 'decor',
+                'placementContext': context,
+              }));
+          expect(
+              (await fixture.read())
+                  .resourceLibraryCatalog
+                  .entries
+                  .single
+                  .toJson(),
+              {
+                'resourceKind': 'element',
+                'resourceId': 'decor',
+                'placementContext': context,
+              });
+          await _mutate(
+              fixture,
+              direct,
+              action,
+              parameters({
+                'resourceKind': 'element',
+                'resourceId': 'decor',
+                'familyId': 'trees',
+              }));
+          expect(
+              (await fixture.read())
+                  .resourceLibraryCatalog
+                  .entries
+                  .single
+                  .placementContext
+                  ?.name,
+              context);
+          await _mutate(
+              fixture,
+              direct,
+              action,
+              parameters({
+                'resourceKind': 'element',
+                'resourceId': 'decor',
+                'familyId': null,
+                'placementContext': null,
+              }));
+          expect(
+              (await fixture.read()).resourceLibraryCatalog.entries, isEmpty);
+        }
+      });
+    }
     test(
         'role-only changes preserve family and map through ${direct ? 'direct API' : 'JSONL'}',
         () async {
@@ -30,6 +96,7 @@ void main() {
             resourceId: 'decor',
             familyId: 'trees',
             mapId: 'a',
+            placementContext: ResourcePlacementContext.interior,
           )
         ]),
       );
@@ -52,6 +119,7 @@ void main() {
             'resourceId': 'decor',
             'familyId': 'trees',
             'mapId': 'a',
+            'placementContext': 'interior',
           });
       final source = jsonDecode(await file.readAsString()) as Map;
       await _expectUnrelatedPayload(file, project.toJson());
@@ -88,6 +156,7 @@ void main() {
                   'resourceId': 'decor',
                   'familyId': 'trees',
                   'role': 'component',
+                  'placementContext': 'both',
                 },
                 {
                   'resourceKind': 'smartTilePreset',
@@ -137,6 +206,11 @@ void main() {
       expect(manifest.resourceLibraryCatalog.entries, hasLength(2));
       expect(manifest.resourceLibraryCatalog.entryFor('element', 'decor')!.role,
           ResourceLibraryRole.component);
+      expect(
+          manifest.resourceLibraryCatalog
+              .entryFor('element', 'decor')!
+              .placementContext,
+          ResourcePlacementContext.both);
       await _expectUnrelatedPayload(file, raw);
       expect((jsonDecode(await file.readAsString()) as Map)['smartTileCatalog'],
           raw['smartTileCatalog']);
@@ -163,6 +237,10 @@ void main() {
               .cast<Map>()
               .singleWhere((item) => item['resourceKind'] == 'element')['role'],
           'component');
+      expect(
+          (query.data['items'] as List).cast<Map>().singleWhere(
+              (item) => item['resourceKind'] == 'element')['placementContext'],
+          'both');
       final entry = (history['entries'] as List).single as Map;
       await fixture.mutations.undo(
           ProjectHandle(reopened.data['projectHandle'] as String),
@@ -282,12 +360,21 @@ void main() {
       {'resourceKind': 'model3d', 'resourceId': 'decor', 'familyId': 'trees'},
       {'resourceKind': 'element', 'resourceId': 'decor', 'mapId': 'missing'},
       {'resourceKind': 'element', 'resourceId': 'decor', 'familyId': 'missing'},
+      {
+        'resourceKind': 'element',
+        'resourceId': 'decor',
+        'placementContext': 'unknown'
+      },
+      {'resourceKind': 'element', 'resourceId': 'decor', 'placementContext': 1},
     ]) {
       expect((await fixture.plan('resource.classify', parameters)).status,
           AuthoringResultStatus.failure);
     }
-    final planned = await fixture
-        .plan('resource.family.create', {'familyId': 'stale', 'name': 'Stale'});
+    final planned = await fixture.plan('resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'placementContext': 'interior',
+    });
     expect(planned.status, AuthoringResultStatus.success);
     await fixture.mutate(
         'resource.family.create', {'familyId': 'fresh', 'name': 'Fresh'});
@@ -310,13 +397,19 @@ void main() {
       {'resourceKind': 'tileset', 'resourceId': 'missing'},
       {'resourceKind': 'tileset', 'resourceId': 'sheet', 'familyId': 'missing'},
       {'resourceKind': 'tileset', 'resourceId': 'sheet', 'mapId': 'missing'},
+      {
+        'resourceKind': 'tileset',
+        'resourceId': 'sheet',
+        'placementContext': 'unknown'
+      },
+      {'resourceKind': 'tileset', 'resourceId': 'sheet', 'placementContext': 1},
     ]) {
       final refused = await fixture.plan('resource.classify_batch', {
         'entries': [
           {
             'resourceKind': 'element',
             'resourceId': 'decor',
-            'familyId': 'trees'
+            'placementContext': 'interior'
           },
           invalid,
         ]
@@ -330,7 +423,11 @@ void main() {
     }
     final planned = await fixture.plan('resource.classify_batch', {
       'entries': [
-        {'resourceKind': 'element', 'resourceId': 'decor', 'familyId': 'trees'},
+        {
+          'resourceKind': 'element',
+          'resourceId': 'decor',
+          'placementContext': 'both'
+        },
         {'resourceKind': 'tileset', 'resourceId': 'sheet', 'familyId': 'props'},
       ]
     });
@@ -401,7 +498,7 @@ void main() {
     await fixture.mutate('resource.classify', {
       'resourceKind': 'element',
       'resourceId': 'decor',
-      'familyId': 'trees'
+      'placementContext': 'interior'
     });
     final history = await fixture.mutations
         .history(ProjectHandle(fixture.project), limit: 1);

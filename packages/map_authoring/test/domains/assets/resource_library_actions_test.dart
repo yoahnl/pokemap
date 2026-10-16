@@ -11,6 +11,184 @@ import 'element_definition_fixture.dart'
     show elementSnapshot, retainedElementBorder;
 
 void main() {
+  for (final action in ['resource.classify', 'resource.classify_batch']) {
+    Map<String, Object?> parameters(Map<String, Object?> entry) =>
+        action == 'resource.classify'
+            ? entry
+            : {
+                'entries': [entry]
+              };
+
+    test(
+        '$action persists context-only entries and supports clear and omission',
+        () async {
+      var project = informationFixture();
+      for (final context in ResourcePlacementContext.values) {
+        project = await _apply(
+            project,
+            action,
+            parameters({
+              'resourceKind': 'element',
+              'resourceId': 'decor',
+              'placementContext': context.name,
+            }));
+        final entry = project.resourceLibraryCatalog.entries.single;
+        expect(entry.placementContext, context);
+        expect(entry.familyId, isNull);
+        expect(entry.mapId, isNull);
+        expect(entry.role, ResourceLibraryRole.standard);
+        project = await _apply(
+            project,
+            action,
+            parameters({
+              'resourceKind': 'element',
+              'resourceId': 'decor',
+              'familyId': 'trees',
+              'role': 'component',
+            }));
+        expect(project.resourceLibraryCatalog.entries.single.placementContext,
+            context);
+        final query = const ProjectQueryService().query(
+          librarySnapshot([], project: project),
+          AuthoringQueryRequest(
+              resourceKind: 'resourceLibraryEntry',
+              operation: AuthoringQueryOperation.get,
+              ids: ['element:decor'],
+              view: AuthoringQueryView.detail),
+        );
+        expect(query.items.single['placementContext'], context.name);
+        project = await _apply(
+            project,
+            action,
+            parameters({
+              'resourceKind': 'element',
+              'resourceId': 'decor',
+              'placementContext': null,
+            }));
+        expect(project.resourceLibraryCatalog.entries.single.placementContext,
+            isNull);
+        expect(project.resourceLibraryCatalog.entries.single.familyId, 'trees');
+        expect(project.resourceLibraryCatalog.entries.single.role,
+            ResourceLibraryRole.component);
+        project = await _apply(
+            project,
+            action,
+            parameters({
+              'resourceKind': 'element',
+              'resourceId': 'decor',
+              'familyId': null,
+              'role': 'standard',
+            }));
+        expect(project.resourceLibraryCatalog.isEmpty, isTrue);
+      }
+      project = await _apply(
+          project,
+          action,
+          parameters({
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'placementContext': 'interior',
+          }));
+      project = await _apply(
+          project,
+          action,
+          parameters({
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'placementContext': null,
+          }));
+      expect(project.resourceLibraryCatalog.isEmpty, isTrue);
+      final noOp = await MapMutationDispatcher.canonical().build(catalogContext(
+        librarySnapshot([], project: project),
+        action,
+        parameters({
+          'resourceKind': 'element',
+          'resourceId': 'decor',
+        }),
+      ));
+      expect(noOp.changeSet.changes, isEmpty);
+    });
+
+    test('$action rejects invalid placement contexts before writing', () async {
+      final project = informationFixture();
+      for (final value in ['unknown', '', ' interior ', 1, false, [], {}]) {
+        await expectLater(
+            () => _apply(
+                project,
+                action,
+                parameters({
+                  'resourceKind': 'element',
+                  'resourceId': 'decor',
+                  'placementContext': value,
+                })),
+            throwsA(isA<VisualLibraryException>()),
+            reason: '$value');
+        expect(project.resourceLibraryCatalog.isEmpty, isTrue);
+      }
+    });
+  }
+
+  test(
+      'placement context stays independent for typed resources with the same raw id',
+      () async {
+    final source = informationFixture();
+    final project = await _apply(
+        source.copyWith(tilesets: [
+          ...source.tilesets,
+          source.tilesets.single.copyWith(id: 'decor'),
+        ]),
+        'resource.classify_batch',
+        {
+          'entries': [
+            {
+              'resourceKind': 'element',
+              'resourceId': 'decor',
+              'placementContext': 'interior'
+            },
+            {
+              'resourceKind': 'tileset',
+              'resourceId': 'decor',
+              'placementContext': 'exterior'
+            },
+          ],
+        });
+    expect(
+        project.resourceLibraryCatalog
+            .entryFor('element', 'decor')!
+            .placementContext,
+        ResourcePlacementContext.interior);
+    expect(
+        project.resourceLibraryCatalog
+            .entryFor('tileset', 'decor')!
+            .placementContext,
+        ResourcePlacementContext.exterior);
+  });
+
+  test(
+      'placement context does not restrict canonical placement on exterior maps',
+      () async {
+    final maps = [catalogMap('a')];
+    final project = await _apply(
+        _withMaps(informationFixture(), maps), 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'placementContext': 'interior',
+    });
+    expect(project.maps.single.role, MapRole.exterior);
+    expect(
+        project.resourceLibraryCatalog.availableForMap('element', 'decor', 'a'),
+        isTrue);
+    final draft = await MapMutationDispatcher.canonical().build(catalogContext(
+      librarySnapshot(maps, project: project),
+      'placed_element.place',
+      {
+        'mapId': 'a',
+        'instance': _placed().toJson(),
+      },
+    ));
+    expect(draft.changeSet.changes, isNotEmpty);
+  });
+
   test('role-only classification persists and omission preserves all metadata',
       () async {
     var project = await _apply(informationFixture(), 'resource.classify', {
@@ -696,7 +874,8 @@ void main() {
           resourceKind: 'element',
           resourceId: 'decor',
           familyId: 'trees',
-          role: ResourceLibraryRole.component)
+          role: ResourceLibraryRole.component,
+          placementContext: ResourcePlacementContext.both)
     ]));
     final duplicated = await _apply(project, 'element.duplicate', {
       'sourceElementId': 'decor',
@@ -709,6 +888,11 @@ void main() {
         'trees');
     expect(duplicated.resourceLibraryCatalog.entryFor('element', 'copy')?.role,
         ResourceLibraryRole.component);
+    expect(
+        duplicated.resourceLibraryCatalog
+            .entryFor('element', 'copy')
+            ?.placementContext,
+        ResourcePlacementContext.both);
     final deleted =
         await _apply(project, 'element.delete', {'elementId': 'decor'});
     expect(deleted.resourceLibraryCatalog.entries, isEmpty);

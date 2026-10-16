@@ -53,6 +53,15 @@ test("resource families and map scope persist through real MCP transactions", as
     assert.equal(entriesSchema.maxItems, 100);
     assert.equal(record(entriesSchema.items).additionalProperties, false);
     assert.deepEqual(record(record(record(entriesSchema.items).properties).role).enum, ["standard", "component"]);
+    for (const schema of [record(record(actions.get("resource.classify")!.extensions).inputSchema), record(entriesSchema.items)]) {
+      const context = record(record(schema.properties).placementContext);
+      assert.deepEqual(context.type, ["string", "null"]);
+      assert.deepEqual(context.enum, ["interior", "exterior", "both", null]);
+      assert.match(String(context.description), /omitted preserves/);
+      assert.match(String(context.description), /null clears/);
+    }
+    const entryKind = (described.resourceKinds as JsonRecord[]).find((entry) => entry.id === "resourceLibraryEntry")!;
+    assert.deepEqual(record(record(entryKind.extensions).placementContext).enum, ["interior", "exterior", "both", null]);
     const resourceKinds = new Set((described.resourceKinds as JsonRecord[]).map((entry) => entry.id));
     for (const id of ["resourceLibraryCatalog", "resourceFamily", "resourceLibraryEntry"]) {
       assert.ok(resourceKinds.has(id), id);
@@ -70,6 +79,10 @@ test("resource families and map scope persist through real MCP transactions", as
       } }, failure);
       assert.deepEqual(await readFile(manifestPath), before);
       if (failure) return;
+      if (record(plan.plan).nonApplicableReason === "no_changes") {
+        assert.equal(plan.applicable, false);
+        return;
+      }
       let confirmationToken: unknown;
       if (actions.get(actionId)?.riskLevel === "high") {
         confirmationToken = (await call("pokemap_apply", { operation: "confirm",
@@ -82,10 +95,28 @@ test("resource families and map scope persist through real MCP transactions", as
       const repeated = await call("pokemap_apply", args);
       assert.equal(record(applied.receipt).receiptId, record(repeated.receipt).receiptId);
     }
+    for (const action of ["resource.classify", "resource.classify_batch"]) {
+      const parameters = (placementContext: unknown, omitted = false) => {
+        const entry = { resourceKind: "element", resourceId: "decor", ...(omitted ? {} : { placementContext }) };
+        return action === "resource.classify" ? entry : { entries: [entry] };
+      };
+      for (const placementContext of ["interior", "exterior", "both"]) {
+        await mutate(action, parameters(placementContext));
+        await mutate(action, parameters(undefined, true));
+        let saved = record(JSON.parse(await readFile(manifestPath, "utf8")));
+        assert.deepEqual(record(saved.resourceLibraryCatalog).entries, [{ resourceKind: "element", resourceId: "decor", placementContext }]);
+        await mutate(action, parameters(null));
+        saved = record(JSON.parse(await readFile(manifestPath, "utf8")));
+        assert.equal(saved.resourceLibraryCatalog, undefined);
+      }
+      for (const invalid of ["unknown", "", " interior ", 1, false, [], {}]) {
+        await mutate(action, parameters(invalid), true);
+      }
+    }
     await mutate("resource.family.create", { familyId: "forest", name: "Forêt A", parentId: "trees" });
     await mutate("resource.family.create", { familyId: "forest-detail", name: "Petits arbres", parentId: "forest" });
     await mutate("resource.family.update", { familyId: "forest", name: "Forêt locale", parentId: "forest-detail" }, true);
-    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a", role: "component" });
+    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a", role: "component", placementContext: "interior" });
     await mutate("resource.classify", { resourceKind: "smartTilePreset", resourceId: "ground", familyId: "ground", mapId: null });
     await mutate("resource.classify_batch", { entries: [
       { resourceKind: "element", resourceId: "decor", familyId: "forest-detail" },
@@ -95,6 +126,10 @@ test("resource families and map scope persist through real MCP transactions", as
     await mutate("resource.classify_batch", { entries: [
       { resourceKind: "element", resourceId: "decor", familyId: "trees" },
       { resourceKind: "tileset", resourceId: "missing", familyId: "props" },
+    ] }, true);
+    await mutate("resource.classify_batch", { entries: [
+      { resourceKind: "element", resourceId: "decor", placementContext: "both" },
+      { resourceKind: "tileset", resourceId: "sheet", placementContext: "unknown" },
     ] }, true);
     await mutate("resource.classify_batch", { entries: [] }, true);
     await mutate("resource.classify_batch", { entries: [
@@ -117,8 +152,9 @@ test("resource families and map scope persist through real MCP transactions", as
     assert.ok(JSON.stringify(catalog).includes("forest-detail"));
     const after = record(JSON.parse(await readFile(manifestPath, "utf8")));
     const entries = record(after.resourceLibraryCatalog).entries as JsonRecord[];
+    assert.equal(record(after.resourceLibraryCatalog).formatVersion, 2);
     assert.deepEqual(entries.find((entry) => entry.resourceKind === "element"), {
-      resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a", role: "component",
+      resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a", role: "component", placementContext: "interior",
     });
     assert.deepEqual(entries.find((entry) => entry.resourceKind === "tileset"), {
       resourceKind: "tileset", resourceId: "sheet", familyId: "props",

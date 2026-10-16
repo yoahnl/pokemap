@@ -2,6 +2,93 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('context-only entry roundtrips independently from scope', () {
+    final entry = ResourceLibraryEntry(
+      resourceKind: 'element',
+      resourceId: 'chair',
+      placementContext: ResourcePlacementContext.interior,
+    );
+    final catalog = ResourceLibraryCatalog(entries: [entry]);
+    expect(ResourceLibraryCatalog.fromJson(catalog.toJson()), catalog);
+    expect(catalog.availableForMap('element', 'chair', 'outside'), isTrue);
+  });
+
+  test(
+    'placement context values participate in strict codec equality and hash',
+    () {
+      final entries = [
+        for (final context in ResourcePlacementContext.values)
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'chair',
+            placementContext: context,
+          ),
+      ];
+      for (final entry in entries) {
+        final decoded = ResourceLibraryEntry.fromJson(entry.toJson());
+        expect(decoded, entry);
+        expect(decoded.hashCode, entry.hashCode);
+        expect(
+          entry.toJson()['placementContext'],
+          entry.placementContext!.name,
+        );
+      }
+      expect(entries.toSet(), hasLength(3));
+      final unspecified = ResourceLibraryEntry(
+        resourceKind: 'element',
+        resourceId: 'chair',
+      );
+      expect(unspecified.toJson().containsKey('placementContext'), isFalse);
+      expect(ResourceLibraryEntry.fromJson(unspecified.toJson()), unspecified);
+      expect(
+        ResourceLibraryEntry.fromJson({
+          ...unspecified.toJson(),
+          'placementContext': null,
+        }),
+        unspecified,
+      );
+      for (final value in ['unknown', '', ' interior ', 1, false, [], {}]) {
+        expect(
+          () => ResourceLibraryEntry.fromJson({
+            ...unspecified.toJson(),
+            'placementContext': value,
+          }),
+          throwsFormatException,
+          reason: '$value',
+        );
+        expect(
+          () => ResourceLibraryCatalog.fromJson({
+            'formatVersion': 2,
+            'families': [],
+            'entries': [
+              {...unspecified.toJson(), 'placementContext': value},
+            ],
+          }),
+          throwsFormatException,
+          reason: '$value',
+        );
+      }
+    },
+  );
+
+  test('catalog v2 rejects v1 explicitly without migrating entries', () {
+    expect(const ResourceLibraryCatalog.empty().toJson()['formatVersion'], 2);
+    expect(
+      () => ResourceLibraryCatalog.fromJson({
+        'formatVersion': 1,
+        'families': [],
+        'entries': [],
+      }),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('expected 2'),
+        ),
+      ),
+    );
+  });
+
   test(
     'component role is explicit persisted and independent from map scope',
     () {
@@ -27,7 +114,7 @@ void main() {
       for (final role in [null, 'unknown', 2]) {
         expect(
           () => ResourceLibraryCatalog.fromJson({
-            'formatVersion': 1,
+            'formatVersion': 2,
             'families': [],
             'entries': [
               {...standard.toJson(), 'role': role},
@@ -117,10 +204,10 @@ void main() {
 
   test('strict persistence rejects unknown fields and unsupported format', () {
     for (final json in [
-      {'formatVersion': 2, 'families': [], 'entries': []},
-      {'formatVersion': 1, 'families': [], 'entries': [], 'unknown': true},
+      {'formatVersion': 3, 'families': [], 'entries': []},
+      {'formatVersion': 2, 'families': [], 'entries': [], 'unknown': true},
       {
-        'formatVersion': 1,
+        'formatVersion': 2,
         'families': [
           {'id': 'a', 'name': 'A', 'extra': 1},
         ],

@@ -206,7 +206,8 @@ AuthoringMutationDraft guardResourceLibraryMutation(
           resourceId: newId,
           familyId: source.familyId,
           mapId: source.mapId,
-          role: source.role));
+          role: source.role,
+          placementContext: source.placementContext));
     }
   }
   if (staleEntries.isNotEmpty || inheritedEntries.isNotEmpty) {

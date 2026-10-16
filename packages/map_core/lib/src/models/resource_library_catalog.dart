@@ -38,6 +38,8 @@ final class ResourceFamily {
 
 enum ResourceLibraryRole { standard, component }
 
+enum ResourcePlacementContext { interior, exterior, both }
+
 final class ResourceLibraryEntry {
   ResourceLibraryEntry({
     required String resourceKind,
@@ -45,6 +47,7 @@ final class ResourceLibraryEntry {
     String? familyId,
     String? mapId,
     this.role = ResourceLibraryRole.standard,
+    this.placementContext,
   }) : resourceKind = _identifier(resourceKind, 'entry.resourceKind'),
        resourceId = _identifier(resourceId, 'entry.resourceId'),
        familyId = _optionalIdentifier(familyId, 'entry.familyId'),
@@ -65,6 +68,7 @@ final class ResourceLibraryEntry {
       'familyId',
       'mapId',
       'role',
+      'placementContext',
     });
     return ResourceLibraryEntry(
       resourceKind: _string(json['resourceKind'], 'entry.resourceKind'),
@@ -76,6 +80,15 @@ final class ResourceLibraryEntry {
               _string(json['role'], 'entry.role'),
             )
           : ResourceLibraryRole.standard,
+      placementContext: switch (json['placementContext']) {
+        null => null,
+        'interior' => ResourcePlacementContext.interior,
+        'exterior' => ResourcePlacementContext.exterior,
+        'both' => ResourcePlacementContext.both,
+        _ => throw const FormatException(
+          'entry.placementContext: expected interior, exterior, both or null',
+        ),
+      },
     );
   }
 
@@ -84,6 +97,7 @@ final class ResourceLibraryEntry {
   final String? familyId;
   final String? mapId;
   final ResourceLibraryRole role;
+  final ResourcePlacementContext? placementContext;
   String get identity => '$resourceKind:$resourceId';
 
   Map<String, Object?> toJson() => {
@@ -92,6 +106,7 @@ final class ResourceLibraryEntry {
     if (familyId != null) 'familyId': familyId,
     if (mapId != null) 'mapId': mapId,
     if (role != ResourceLibraryRole.standard) 'role': role.name,
+    if (placementContext != null) 'placementContext': placementContext!.name,
   };
 
   @override
@@ -101,11 +116,18 @@ final class ResourceLibraryEntry {
       resourceId == other.resourceId &&
       familyId == other.familyId &&
       mapId == other.mapId &&
-      role == other.role;
+      role == other.role &&
+      placementContext == other.placementContext;
 
   @override
-  int get hashCode =>
-      Object.hash(resourceKind, resourceId, familyId, mapId, role);
+  int get hashCode => Object.hash(
+    resourceKind,
+    resourceId,
+    familyId,
+    mapId,
+    role,
+    placementContext,
+  );
 }
 
 final class ResourceLibraryCatalog {
@@ -169,7 +191,7 @@ final class ResourceLibraryCatalog {
     _keys(json, const {'formatVersion', 'families', 'entries'});
     if (json['formatVersion'] != currentFormatVersion) {
       throw const FormatException(
-        'resourceLibraryCatalog.formatVersion: expected 1',
+        'resourceLibraryCatalog.formatVersion: expected 2',
       );
     }
     try {
@@ -182,7 +204,7 @@ final class ResourceLibraryCatalog {
     }
   }
 
-  static const currentFormatVersion = 1;
+  static const currentFormatVersion = 2;
   static const resourceKinds = <String>{
     'element',
     'model3d',

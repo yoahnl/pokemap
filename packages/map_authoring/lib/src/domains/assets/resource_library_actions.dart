@@ -33,6 +33,15 @@ final class ResourceLibraryActions {
         'type': 'string',
         'enum': ResourceLibraryRole.values.map((role) => role.name).toList()
       },
+      'placementContext': {
+        'type': ['string', 'null'],
+        'enum': [
+          ...ResourcePlacementContext.values.map((context) => context.name),
+          null,
+        ],
+        'description':
+            'Optional authoring classification: omitted preserves the previous value; null clears it. Does not restrict map availability or placement.',
+      },
     },
   };
 
@@ -190,8 +199,14 @@ final class ResourceLibraryActions {
 ResourceLibraryCatalog _classify(ProjectManifest project,
     ResourceLibraryCatalog catalog, Map<String, Object?> values) {
   final parameters = VisualLibraryParameters(values);
-  parameters
-      .allow(const {'resourceKind', 'resourceId', 'familyId', 'mapId', 'role'});
+  parameters.allow(const {
+    'resourceKind',
+    'resourceId',
+    'familyId',
+    'mapId',
+    'role',
+    'placementContext',
+  });
   final kind = parameters.string('resourceKind');
   final id = parameters.string('resourceId');
   if (!resourceLibraryResourceExists(project, kind, id)) {
@@ -211,13 +226,20 @@ ResourceLibraryCatalog _classify(ProjectManifest project,
     role: values.containsKey('role')
         ? ResourceLibraryRole.values.byName(parameters.string('role'))
         : previous?.role ?? ResourceLibraryRole.standard,
+    placementContext: values.containsKey('placementContext')
+        ? values['placementContext'] == null
+            ? null
+            : ResourcePlacementContext.values
+                .byName(parameters.string('placementContext'))
+        : previous?.placementContext,
   );
   return ResourceLibraryCatalog(families: catalog.families, entries: [
     for (final existing in catalog.entries)
       if (existing.identity != entry.identity) existing,
     if (entry.familyId != null ||
         entry.mapId != null ||
-        entry.role != ResourceLibraryRole.standard)
+        entry.role != ResourceLibraryRole.standard ||
+        entry.placementContext != null)
       entry,
   ]);
 }

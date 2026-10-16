@@ -120,10 +120,14 @@ void main() {
           resourceKind: 'element',
           resourceId: 'decor',
           familyId: 'forest-a',
-          mapId: 'a')
+          mapId: 'a',
+          placementContext: ResourcePlacementContext.interior)
     ]);
     final project = _withMaps(
         informationFixture().copyWith(resourceLibraryCatalog: catalog), maps);
+    expect(project.maps.first.role, MapRole.exterior);
+    expect(catalog.availableForMap('element', 'decor', 'a'), isTrue);
+    expect(catalog.availableForMap('element', 'decor', 'b'), isFalse);
     final root = await _writeSource(project, maps);
     final projection = await const RuntimeProjectProjectionBuilder()
         .build(projectRoot: root, profile: _profile);
@@ -136,6 +140,47 @@ void main() {
         jsonDecode(
             utf8.decode(projection.payloadFiles['project/maps/a.json']!)),
         maps.first.toJson());
+  });
+
+  test('export retains context-only metadata while allowing either map role',
+      () async {
+    final maps = [
+      for (final id in ['a', 'b'])
+        catalogMap(id).copyWith(placedElements: const [
+          MapPlacedElement(
+              id: 'placed',
+              layerId: 'base',
+              elementId: 'decor',
+              pos: GridPos(x: 1, y: 1)),
+        ])
+    ];
+    final catalog = ResourceLibraryCatalog(entries: [
+      ResourceLibraryEntry(
+          resourceKind: 'element',
+          resourceId: 'decor',
+          placementContext: ResourcePlacementContext.interior),
+    ]);
+    final source = _withMaps(
+        informationFixture().copyWith(resourceLibraryCatalog: catalog), maps);
+    final project = source.copyWith(maps: [
+      source.maps.first,
+      source.maps.last.copyWith(role: MapRole.interior),
+    ]);
+    final root = await _writeSource(project, maps);
+    final projection = await const RuntimeProjectProjectionBuilder()
+        .build(projectRoot: root, profile: _profile);
+    expect(projection.project.resourceLibraryCatalog, catalog);
+    final exported = ProjectManifest.fromJson(jsonDecode(
+            utf8.decode(projection.payloadFiles['project/project.json']!))
+        as Map<String, dynamic>);
+    expect(exported.resourceLibraryCatalog, catalog);
+    for (final map in maps) {
+      expect(catalog.availableForMap('element', 'decor', map.id), isTrue);
+      expect(
+          jsonDecode(utf8
+              .decode(projection.payloadFiles['project/maps/${map.id}.json']!)),
+          map.toJson());
+    }
   });
 
   test('export scopes character references through compiled dialogue ownership',

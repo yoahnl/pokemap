@@ -1214,14 +1214,17 @@ resource.classify_batch
 si `parentId` est absent et retour à la racine s'il vaut `null`.
 `resource.family.delete` reçoit `{familyId}` et refuse les familles prédéfinies,
 les familles ayant des enfants et celles contenant des ressources classées.
-`resource.classify` reçoit `{resourceKind, resourceId, familyId?, mapId?}`.
+`resource.classify` reçoit `{resourceKind, resourceId, familyId?, mapId?, role?,
+placementContext?}`. `role` accepte `standard` et `component` ; son omission
+conserve le rôle existant.
 Un champ absent conserve la valeur ; `null` retire la famille ou rétablit la
 disponibilité projet. Les identités typées acceptées sont `element`, `model3d`,
 `smartTilePreset`, `tileset`, `borderBlueprint`, `environmentPreset` et
 `character`. Une identité, une famille ou une carte inconnue refuse le plan.
 
 `resource.classify_batch` reçoit `{entries: [{resourceKind, resourceId,
-familyId?, mapId?}]}` avec 1 à 100 entrées et sans doublon d'identité typée.
+familyId?, mapId?, role?, placementContext?}]}` avec 1 à 100 entrées et sans
+doublon d'identité typée.
 Chaque entrée conserve la sémantique absent/null de `resource.classify`.
 Les usages directs et indirects des portées locales sont validés sur le
 catalogue final par la garde partagée ; aucun état intermédiaire n'est sauvegardé.
@@ -1229,6 +1232,21 @@ Le lot produit une seule transaction revisionnée et un seul historique
 annulable. Une entrée invalide refuse l'ensemble sans écrire. Ce raccourci
 de classement en masse est exposé à l'API, au JSONL et au MCP ; l'interface
 Studio conserve son classement individuel sans nouvel outil de lot.
+
+`placementContext` accepte `interior`, `exterior`, `both` ou `null` dans les
+deux actions. Son omission conserve le contexte existant ; `null` l'efface.
+Dans le catalogue, un champ absent ou `null` signifie « non renseigné », sans
+inférence depuis la famille, la dimension ou la carte. Une entrée portant
+uniquement un contexte est conservée ; modifier sa famille, sa portée ou son
+rôle préserve le contexte omis. La duplication d'un décor hérite de ces
+métadonnées. Ce classement descriptif ne restreint ni la disponibilité sur une
+carte ni le placement : seule la portée `mapId` conserve ce rôle.
+
+Le catalogue persiste au `formatVersion: 2` et refuse explicitement la version
+1, sans migration. Les lecteurs utilisant `ProjectManifest` — API, JSONL,
+Studio, export et Player — doivent être reconstruits avec ce codec commun.
+Les deux actions restent en version 1 : leur nouveau champ est optionnel et
+leurs schémas découvrables décrivent les valeurs, la conservation et le clear.
 
 Les trois lectures via `pokemap_query` sont `resourceLibraryCatalog` (id
 `resource-library`, catalogue et familles effectives), `resourceFamily`
