@@ -23,6 +23,7 @@ class MapDecorInspectorTabs extends StatefulWidget {
     required this.onEditResource,
     required this.width,
     this.onRenameMap,
+    this.onEscapeSettings,
     this.onEventSource,
   });
 
@@ -34,6 +35,7 @@ class MapDecorInspectorTabs extends StatefulWidget {
   final ValueChanged<ProjectElementEntry> onOpenResource, onEditResource;
   final double width;
   final VoidCallback? onRenameMap;
+  final VoidCallback? onEscapeSettings;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
 
   @override
@@ -97,6 +99,7 @@ class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
                   onOpenResource: widget.onOpenResource,
                   onEditResource: widget.onEditResource,
                   onRenameMap: widget.onRenameMap,
+                  onEscapeSettings: widget.onEscapeSettings,
                   onEventSource: widget.onEventSource,
                   width: widget.width,
                   tool: widget.view.tool,

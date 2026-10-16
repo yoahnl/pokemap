@@ -89,7 +89,8 @@ final class ItemCatalogActions {
     if (validation.hasBlockingDiagnostics && !changesOnlyCaptureSprite) {
       throw ItemCatalogAuthoringException(
         'item.catalog_invalid',
-        'The mutation would create an item catalog that the runtime cannot execute.',
+        'The mutation would create an item catalog that the runtime cannot execute. '
+            '${validation.diagnostics.firstWhere((diagnostic) => diagnostic.isBlocking).message}',
         details: <String, Object?>{
           'diagnostics': <Object?>[
             for (final diagnostic in validation.diagnostics)

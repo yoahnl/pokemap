@@ -5,6 +5,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'map_catalogue_creation_dialog.dart';
 import 'map_catalogue_form_dialog.dart';
+import 'map_escape_rope_settings.dart';
 
 ValueChanged<String> mapLibraryOpenAction(
   ProjectManifest project,
@@ -28,6 +29,37 @@ VoidCallback? mapCatalogueRenameAction(
   return entry == null || controller.catalogPort == null
       ? null
       : () => renameWorkspaceMap(context, controller, entry);
+}
+
+VoidCallback? mapCatalogueEscapeRopeAction(
+  BuildContext context,
+  MapWorkspaceController controller,
+) {
+  final document = controller.active;
+  final project = controller.project;
+  if (document == null || project == null || controller.catalogPort == null) {
+    return null;
+  }
+  return () => _withCatalogueDialog(
+    controller,
+    () => showEscapeRopeMapSettings(
+      context,
+      map: document.current,
+      project: project,
+      save: (values) async {
+        if (document.dirty && !await controller.save(document)) {
+          return 'La carte doit être enregistrée avant de modifier ses paramètres.';
+        }
+        final result = await controller.mutateCatalog(
+          'map.update_metadata',
+          values,
+        );
+        return result.integrated
+            ? null
+            : result.error ?? 'Les paramètres n’ont pas pu être enregistrés.';
+      },
+    ),
+  );
 }
 
 Future<void> createWorkspaceMap(

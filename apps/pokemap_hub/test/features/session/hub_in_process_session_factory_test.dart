@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
 
-import 'package:flame/components.dart';
+import 'package:flame/game.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -10,7 +11,8 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
-import 'package:flutter_test/flutter_test.dart' show TestWidgetsFlutterBinding;
+import 'package:flutter_test/flutter_test.dart'
+    show TestWidgetsFlutterBinding, testWidgets, find;
 import 'package:image/image.dart' as img;
 
 void main() {
@@ -28,6 +30,227 @@ void main() {
   tearDown(() async {
     if (await root.exists()) await root.delete(recursive: true);
   });
+
+  for (final faultStage in [
+    null,
+    SaveWriteStage.afterTemporaryVerified,
+    SaveWriteStage.afterCurrentPromoted,
+    SaveWriteStage.afterCurrentConfirmed,
+  ]) {
+    final writeFails = faultStage == SaveWriteStage.afterTemporaryVerified;
+    testWidgets(
+      'Corde Sortie persists real Hub slot and cold resume atomically: $faultStage',
+      (tester) async {
+        await tester.runAsync(() async {
+          final beforeAt = DateTime.utc(2026, 10, 16);
+          final afterAt = beforeAt.add(const Duration(minutes: 1));
+          const state = GameState(
+            saveId: '123e4567-e89b-42d3-a456-426614174020',
+            currentMapId: 'cave',
+            playerPosition: GridPos(x: 2, y: 2),
+            escapeReturnPoint: EscapeReturnPoint(
+              dungeonId: 'dungeon',
+              mapId: 'outside',
+              position: GridPos(x: 3, y: 3),
+              facing: EntityFacing.west,
+            ),
+            bag: Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]),
+          );
+          final initial = const GameStateSaveEnvelopeMapper().create(
+            identity: launch.identity,
+            profileId: 'player-1',
+            slotId: 'slot-1',
+            saveId: state.saveId,
+            createdAt: beforeAt,
+            updatedAt: beforeAt,
+            status: SaveStatus.active,
+            playTimeSeconds: 30,
+            gameState: state,
+          );
+          await saves.writeVerified(initial);
+          final primary = File(
+            '${root.path}/saves/${launch.identity.gameId}/player-1/slot-1/save.json',
+          );
+          final previousBytes = await primary.readAsBytes();
+          var attempts = 0;
+          saves = HubSaveStore(
+            supportRoot: root,
+            identity: launch.identity,
+            faultHook: (stage) async {
+              if (stage == SaveWriteStage.afterTemporaryVerified) {
+                attempts++;
+              }
+              if (stage == faultStage) {
+                throw const FileSystemException('disk full');
+              }
+            },
+          );
+          const catalog = ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'rope',
+                displayName: 'Corde Sortie',
+                pocketId: 'items',
+                uses: [
+                  ProjectItemUseDefinition(
+                    contexts: {ProjectItemUseContext.overworld},
+                    target: ProjectItemTargetKind.world,
+                    consumption: ProjectItemConsumptionPolicy.onApplied,
+                    effect: ProjectItemEffectDefinition.escapeRope(),
+                  ),
+                ],
+              ),
+            ],
+          );
+          const manifest = ProjectManifest(
+            name: 'Rope',
+            tilesets: [],
+            groups: [
+              ProjectMapGroup(
+                id: 'dungeon',
+                name: 'Grotte',
+                type: MapGroupType.dungeon,
+              ),
+            ],
+            maps: [
+              ProjectMapEntry(
+                id: 'cave',
+                name: 'Cave',
+                relativePath: 'cave.json',
+              ),
+              ProjectMapEntry(
+                id: 'outside',
+                name: 'Outside',
+                relativePath: 'outside.json',
+              ),
+            ],
+            pokemon: ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+              catalogFiles: {'items': 'items.json'},
+            ),
+          );
+          const cave = MapData(
+            id: 'cave',
+            name: 'Cave',
+            size: GridSize(width: 8, height: 8),
+            mapMetadata: MapMetadata(escapeRopeDungeonId: 'dungeon'),
+          );
+          const outside = MapData(
+            id: 'outside',
+            name: 'Outside',
+            size: GridSize(width: 8, height: 8),
+          );
+          final projectRoot = Directory('${root.path}/version/project');
+          for (final directory in [root, projectRoot]) {
+            await File('${directory.path}/project.json')
+                .writeAsString(jsonEncode(manifest.toJson()));
+            await File('${directory.path}/cave.json')
+                .writeAsString(jsonEncode(cave.toJson()));
+            await File('${directory.path}/outside.json')
+                .writeAsString(jsonEncode(outside.toJson()));
+            await File('${directory.path}/items.json')
+                .writeAsString(jsonEncode(catalog.toJson()));
+          }
+          late PlayableMapGame game;
+          final factory = HubInProcessSessionFactory(
+            launch: launch,
+            saves: saves,
+            commitCheckpoint: HubPlayerSaveGateway(store: saves).commit,
+            now: () => afterAt,
+            preloadedInitialMap:
+                ({
+                  required projectFilePath,
+                  required descriptor,
+                  required initialSave,
+                }) async {
+                  final restored = initialSave == null
+                      ? state
+                      : const GameStateSaveEnvelopeMapper().restore(
+                          initialSave,
+                        );
+                  return RuntimeInitialMapPreloadResult(
+                    bundle: RuntimeMapBundle(
+                      manifest: manifest,
+                      map: restored.currentMapId == 'outside' ? outside : cave,
+                      projectRootDirectory: projectRoot.path,
+                      tilesetAbsolutePathsById: const {},
+                    ),
+                  );
+                },
+            mountGame: (mounted) async {
+              game = mounted;
+              await tester.pumpWidget(
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: GameWidget(game: game),
+                ),
+              );
+              await tester
+                  .state<GameWidgetState<PlayableMapGame>>(
+                    find.byType(GameWidget<PlayableMapGame>),
+                  )
+                  .loaderFuture;
+            },
+            unmountGame: (_) async {},
+          );
+          final descriptor = _descriptor(launch, save: initial);
+          final adapter = factory.call(descriptor);
+          await adapter.prepare(descriptor);
+          await adapter.start();
+          await _pumpRepelGameUntil(
+            game,
+            () => !game.debugIsMapActivationDispatchInFlight,
+          );
+          final before = game.playerServiceGameStateSnapshot;
+          expect(before.escapeReturnPoint, state.escapeReturnPoint);
+          var done = false;
+          final used = (adapter as RuntimePlayerPauseCommandPort)
+              .dispatchPauseCommand(
+                const RuntimePlayerPauseCommand.useBagItem(
+                  itemTargetId: 'rope',
+                ),
+              )
+              .whenComplete(() => done = true);
+          await _pumpRepelGameUntil(game, () => done);
+          final result = await used;
+          final stored = (await saves.read(initial.address)).envelope!;
+          final persisted = const GameStateSaveEnvelopeMapper().restore(stored);
+          expect(attempts, 1);
+          if (writeFails) {
+            expect(
+              result.status,
+              isNot(RuntimePlayerPauseCommandStatus.accepted),
+            );
+            expect(await primary.readAsBytes(), previousBytes);
+            expect(stored.checksum, initial.checksum);
+            expect(game.playerServiceGameStateSnapshot, before);
+          } else {
+            expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+            expect(stored.checksum, isNot(initial.checksum));
+            expect(stored.updatedAt, afterAt);
+            expect(persisted.currentMapId, 'outside');
+            expect(persisted.playerPosition, const GridPos(x: 3, y: 3));
+            expect(persisted.playerFacing, EntityFacing.west);
+            expect(persisted.bag.entries.single.quantity, 1);
+            expect(persisted.escapeReturnPoint, isNull);
+          }
+          await adapter.dispose();
+          final coldDescriptor = _descriptor(launch, save: stored);
+          final cold = factory.call(coldDescriptor);
+          await cold.prepare(coldDescriptor);
+          await cold.start();
+          expect(game.gameStateSnapshot.currentMapId, persisted.currentMapId);
+          expect(game.gameStateSnapshot.bag, persisted.bag);
+          expect(
+            game.gameStateSnapshot.escapeReturnPoint,
+            persisted.escapeReturnPoint,
+          );
+          await cold.dispose();
+        });
+      },
+    );
+  }
 
   for (final outcome in [
     'renew',
@@ -306,11 +529,10 @@ void main() {
   );
 
   test('forwards one exact preloaded bundle into the Hub session', () async {
-    final projectFile =
-        File(
-          '../../packages/map_runtime/test/fixtures/'
-          'p3_scenario_runtime_golden_path/project.json',
-        ).absolute;
+    final projectFile = File(
+      '../../packages/map_runtime/test/fixtures/'
+      'p3_scenario_runtime_golden_path/project.json',
+    ).absolute;
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: projectFile.path,
       mapId: 'p3_test_map',
@@ -336,16 +558,17 @@ void main() {
     final factory = HubInProcessSessionFactory(
       launch: launch,
       saves: saves,
-      preloadedInitialMap: ({
-        required projectFilePath,
-        required descriptor,
-        required initialSave,
-      }) async {
-        preloadReads++;
-        expect(descriptor.launchMode, GameSessionLaunchMode.continueGame);
-        expect(initialSave?.saveId, save.saveId);
-        return RuntimeInitialMapPreloadResult(bundle: bundle);
-      },
+      preloadedInitialMap:
+          ({
+            required projectFilePath,
+            required descriptor,
+            required initialSave,
+          }) async {
+            preloadReads++;
+            expect(descriptor.launchMode, GameSessionLaunchMode.continueGame);
+            expect(initialSave?.saveId, save.saveId);
+            return RuntimeInitialMapPreloadResult(bundle: bundle);
+          },
       mountGame: (_) async => mountCount++,
       unmountGame: (_) async {},
     );
@@ -373,91 +596,182 @@ void main() {
     await adapter.dispose();
   });
 
-  test('routes map3d to one stateful session and restores its scoped save', () async {
-    launch = await _context(root, spatial: true);
-    saves = HubSaveStore(supportRoot: root, identity: launch.identity);
-    final imagePath = '${root.path}/hero.png';
-    await File(imagePath).writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
-    final character = ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'unused',
-      animations: [for (final direction in EntityFacing.values)
-        CharacterAnimation(state: CharacterAnimationState.walk, direction: direction,
-          sourceAssetId: 'hero', frames: const [CharacterAnimationFrame(
-            source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100)])]);
-    final bundle = RuntimeMapBundle(manifest: ProjectManifest(version: ProjectVersion.v9, name: 'Spatial',
-      settings: ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile(), defaultPlayerCharacterId: 'hero'),
-      newGame: const ProjectNewGameConfig(enabled: true, startMapId: 'field'),
-      maps: const [ProjectMapEntry(id: 'field', name: 'Field', relativePath: 'field.json')],
-      tilesets: const [], characters: [character]),
-      map: MapData(version: ProjectVersion.v9, id: 'field', name: 'Field', layers: const [],
-        size: const GridSize(width: 8, height: 8), spatialScene: MapSpatialScene(width: 8, depth: 8,
-          navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4)))),
-      projectRootDirectory: root.path, tilesetAbsolutePathsById: const {},
-      characterAnimationAbsolutePathsByAssetId: {'hero': imagePath});
-    SpatialExplorationGameSessionRuntime? mounted;
-    var unmounts = 0;
-    final factory = HubInProcessSessionFactory(launch: launch, saves: saves,
-      dimension: ProjectDimension.threeD,
-      mountGame: (_) async => fail('A spatial project must not mount 2D'),
-      unmountGame: (_) async => fail('A spatial project must not unmount 2D'),
-      mountSpatialSession: (runtime) async => mounted = runtime,
-      unmountSpatialSession: (runtime) async { expect(runtime, same(mounted)); unmounts++; },
-      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle));
-    final descriptor = _descriptor(launch);
-    final adapter = factory.call(descriptor);
-    await adapter.prepare(descriptor);
-    await adapter.start();
-    expect(mounted!.session!.bundle, same(bundle));
-    adapter.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
-    mounted!.session!.frame(.05);
-    expect(mounted!.session!.movement.z, lessThan(4));
-    final menu = await (adapter as RuntimePlayerCompanionMenuPort).readCompanionMenuData();
-    expect(menu.pauseMenuState.isActionVisible(ProjectPauseActionId.save,
-        projectDefaultVisibility: true), isTrue);
-    final checkpoint = (await adapter.captureCheckpoint())!;
-    final savedState = gameStateFromStrictSaveJson(
-        Map<String, dynamic>.from(checkpoint.state));
-    final savedPosition = savedState.playerSpatialPosition!;
-    final envelope = const GameStateSaveEnvelopeMapper().create(
-        identity: launch.identity, profileId: descriptor.profileId,
-        slotId: descriptor.slotId, saveId: checkpoint.saveId,
-        createdAt: checkpoint.createdAt, updatedAt: checkpoint.updatedAt,
-        status: SaveStatus.active, playTimeSeconds: checkpoint.playTimeSeconds,
-        gameState: savedState);
-    await saves.write(envelope);
-    await adapter.dispose();
-    expect(unmounts, 1);
-    final continuedDescriptor = _descriptor(launch, save: envelope);
-    final continued = factory.call(continuedDescriptor);
-    await continued.prepare(continuedDescriptor);
-    await continued.start();
-    expect(mounted!.session!.movement.x, savedPosition.x);
-    expect(mounted!.session!.movement.z, savedPosition.z);
-    await continued.dispose();
-    expect(unmounts, 2);
-
-    final stale = factory.call(continuedDescriptor);
-    await stale.prepare(continuedDescriptor);
-    await saves.write(const GameStateSaveEnvelopeMapper().create(
-        identity: launch.identity, profileId: descriptor.profileId,
-        slotId: descriptor.slotId, saveId: checkpoint.saveId,
+  test(
+    'routes map3d to one stateful session and restores its scoped save',
+    () async {
+      launch = await _context(root, spatial: true);
+      saves = HubSaveStore(supportRoot: root, identity: launch.identity);
+      final imagePath = '${root.path}/hero.png';
+      await File(imagePath)
+          .writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+      final character = ProjectCharacterEntry(
+        id: 'hero',
+        name: 'Hero',
+        tilesetId: 'unused',
+        animations: [
+          for (final direction in EntityFacing.values)
+            CharacterAnimation(
+              state: CharacterAnimationState.walk,
+              direction: direction,
+              sourceAssetId: 'hero',
+              frames: const [
+                CharacterAnimationFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32),
+                  durationMs: 100,
+                ),
+              ],
+            ),
+        ],
+      );
+      final bundle = RuntimeMapBundle(
+        manifest: ProjectManifest(
+          version: ProjectVersion.v9,
+          name: 'Spatial',
+          settings: ProjectSettings(
+            dimension: ProjectDimension.threeD,
+            spatialCamera: SpatialCameraProfile(),
+            defaultPlayerCharacterId: 'hero',
+          ),
+          newGame: const ProjectNewGameConfig(
+            enabled: true,
+            startMapId: 'field',
+          ),
+          maps: const [
+            ProjectMapEntry(
+              id: 'field',
+              name: 'Field',
+              relativePath: 'field.json',
+            ),
+          ],
+          tilesets: const [],
+          characters: [character],
+        ),
+        map: MapData(
+          version: ProjectVersion.v9,
+          id: 'field',
+          name: 'Field',
+          layers: const [],
+          size: const GridSize(width: 8, height: 8),
+          spatialScene: MapSpatialScene(
+            width: 8,
+            depth: 8,
+            navigation: SpatialNavigationProfile(
+              spawn: SpatialSpawn(x: 4, z: 4),
+            ),
+          ),
+        ),
+        projectRootDirectory: root.path,
+        tilesetAbsolutePathsById: const {},
+        characterAnimationAbsolutePathsByAssetId: {'hero': imagePath},
+      );
+      SpatialExplorationGameSessionRuntime? mounted;
+      var unmounts = 0;
+      final factory = HubInProcessSessionFactory(
+        launch: launch,
+        saves: saves,
+        dimension: ProjectDimension.threeD,
+        mountGame: (_) async => fail('A spatial project must not mount 2D'),
+        unmountGame: (_) async => fail('A spatial project must not unmount 2D'),
+        mountSpatialSession: (runtime) async => mounted = runtime,
+        unmountSpatialSession: (runtime) async {
+          expect(runtime, same(mounted));
+          unmounts++;
+        },
+        preloadedInitialMap: ({
+          required projectFilePath,
+          required descriptor,
+          required initialSave,
+        }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      );
+      final descriptor = _descriptor(launch);
+      final adapter = factory.call(descriptor);
+      await adapter.prepare(descriptor);
+      await adapter.start();
+      expect(mounted!.session!.bundle, same(bundle));
+      adapter.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.up),
+      );
+      mounted!.session!.frame(.05);
+      expect(mounted!.session!.movement.z, lessThan(4));
+      final menu = await (adapter as RuntimePlayerCompanionMenuPort)
+          .readCompanionMenuData();
+      expect(
+        menu.pauseMenuState.isActionVisible(
+          ProjectPauseActionId.save,
+          projectDefaultVisibility: true,
+        ),
+        isTrue,
+      );
+      final checkpoint = (await adapter.captureCheckpoint())!;
+      final savedState = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state),
+      );
+      final savedPosition = savedState.playerSpatialPosition!;
+      final envelope = const GameStateSaveEnvelopeMapper().create(
+        identity: launch.identity,
+        profileId: descriptor.profileId,
+        slotId: descriptor.slotId,
+        saveId: checkpoint.saveId,
         createdAt: checkpoint.createdAt,
-        updatedAt: checkpoint.updatedAt.add(const Duration(minutes: 1)),
-        status: SaveStatus.active, playTimeSeconds: checkpoint.playTimeSeconds,
-        gameState: savedState));
-    await expectLater(stale.start(), throwsStateError);
-    await stale.dispose();
-    expect(unmounts, 2);
-  });
+        updatedAt: checkpoint.updatedAt,
+        status: SaveStatus.active,
+        playTimeSeconds: checkpoint.playTimeSeconds,
+        gameState: savedState,
+      );
+      await saves.write(envelope);
+      await adapter.dispose();
+      expect(unmounts, 1);
+      final continuedDescriptor = _descriptor(launch, save: envelope);
+      final continued = factory.call(continuedDescriptor);
+      await continued.prepare(continuedDescriptor);
+      await continued.start();
+      expect(mounted!.session!.movement.x, savedPosition.x);
+      expect(mounted!.session!.movement.z, savedPosition.z);
+      await continued.dispose();
+      expect(unmounts, 2);
 
-  test('rejects dimension and capability mismatch before constructing a graph', () {
-    final factory = HubInProcessSessionFactory(launch: launch, saves: saves,
-      dimension: ProjectDimension.threeD, mountGame: (_) async {}, unmountGame: (_) async {},
-      mountSpatialSession: (_) async {}, unmountSpatialSession: (_) async {});
-    expect(() => factory.call(_descriptor(launch)), throwsStateError);
-  });
+      final stale = factory.call(continuedDescriptor);
+      await stale.prepare(continuedDescriptor);
+      await saves.write(
+        const GameStateSaveEnvelopeMapper().create(
+          identity: launch.identity,
+          profileId: descriptor.profileId,
+          slotId: descriptor.slotId,
+          saveId: checkpoint.saveId,
+          createdAt: checkpoint.createdAt,
+          updatedAt: checkpoint.updatedAt.add(const Duration(minutes: 1)),
+          status: SaveStatus.active,
+          playTimeSeconds: checkpoint.playTimeSeconds,
+          gameState: savedState,
+        ),
+      );
+      await expectLater(stale.start(), throwsStateError);
+      await stale.dispose();
+      expect(unmounts, 2);
+    },
+  );
+
+  test(
+    'rejects dimension and capability mismatch before constructing a graph',
+    () {
+      final factory = HubInProcessSessionFactory(
+        launch: launch,
+        saves: saves,
+        dimension: ProjectDimension.threeD,
+        mountGame: (_) async {},
+        unmountGame: (_) async {},
+        mountSpatialSession: (_) async {},
+        unmountSpatialSession: (_) async {},
+      );
+      expect(() => factory.call(_descriptor(launch)), throwsStateError);
+    },
+  );
 }
 
-Future<void> _pumpRepelGameUntil(PlayableMapGame game, bool Function() done) async {
+Future<void> _pumpRepelGameUntil(
+  PlayableMapGame game,
+  bool Function() done,
+) async {
   for (var frame = 0; frame < 500; frame++) {
     if (done()) return;
     game.update(.016);
@@ -466,40 +780,44 @@ Future<void> _pumpRepelGameUntil(PlayableMapGame game, bool Function() done) asy
   fail('The Repousse session did not settle.');
 }
 
-GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch,
-    {SaveEnvelope? save}) =>
-    GameSessionDescriptor(
-      sessionId: 'session-1',
-      sessionToken: 'secret',
-      identity: launch.identity,
-      profileId: 'player-1',
-      slotId: 'slot-1',
-      launchMode: save == null ? GameSessionLaunchMode.newGame :
-          GameSessionLaunchMode.continueGame,
-      saveReadHandle: save == null ? null : hubSaveReadHandle(save),
-      installedVersionHandle: launch.installedVersionHandle,
-      runtimeApiVersion: launch.runtimeApiVersion,
-      grantedCapabilities: launch.grantedCapabilities,
-      locale: 'fr-FR',
-      accessibility: const GameSessionAccessibilityOptions(),
-      initialGameState: save != null ? null :
-          launch.grantedCapabilities.contains('map3d@1') ? GameState(
-              saveId: '123e4567-e89b-42d3-a456-426614174020',
-              currentMapId: 'field',
-              playerPosition: const GridPos(x: 4, y: 4),
-              playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 4)) :
-          const GameState(
-        saveId: 'slot-1',
-        currentMapId: 'map-start',
-      ),
-    );
+GameSessionDescriptor _descriptor(
+  InstalledGameLaunchContext launch, {
+  SaveEnvelope? save,
+}) => GameSessionDescriptor(
+  sessionId: 'session-1',
+  sessionToken: 'secret',
+  identity: launch.identity,
+  profileId: 'player-1',
+  slotId: 'slot-1',
+  launchMode: save == null
+      ? GameSessionLaunchMode.newGame
+      : GameSessionLaunchMode.continueGame,
+  saveReadHandle: save == null ? null : hubSaveReadHandle(save),
+  installedVersionHandle: launch.installedVersionHandle,
+  runtimeApiVersion: launch.runtimeApiVersion,
+  grantedCapabilities: launch.grantedCapabilities,
+  locale: 'fr-FR',
+  accessibility: const GameSessionAccessibilityOptions(),
+  initialGameState: save != null
+      ? null
+      : launch.grantedCapabilities.contains('map3d@1')
+      ? GameState(
+          saveId: '123e4567-e89b-42d3-a456-426614174020',
+          currentMapId: 'field',
+          playerPosition: const GridPos(x: 4, y: 4),
+          playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 4),
+        )
+      : const GameState(saveId: 'slot-1', currentMapId: 'map-start'),
+);
 
-Future<InstalledGameLaunchContext> _context(Directory root, {bool spatial = false}) async {
+Future<InstalledGameLaunchContext> _context(
+  Directory root, {
+  bool spatial = false,
+}) async {
   final version = Directory(p.join(root.path, 'version'));
   await Directory(p.join(version.path, 'project')).create(recursive: true);
-  await File(
-    p.join(version.path, 'project', 'project.json'),
-  ).writeAsString('{}');
+  await File(p.join(version.path, 'project', 'project.json'))
+      .writeAsString('{}');
   final manifest = GamePackageManifest(
     packageFormat: 1,
     gameId: 'org.example.adventure',

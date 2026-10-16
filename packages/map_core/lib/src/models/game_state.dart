@@ -11,6 +11,7 @@ import 'moving_platform.dart';
 import 'map_instance_world_state.dart';
 import 'rail_journey.dart';
 import 'repel_state.dart';
+import 'escape_return_point.dart';
 import 'save_data.dart';
 
 part 'game_state.freezed.dart';
@@ -105,6 +106,7 @@ abstract class GameState with _$GameState {
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,
     @Default(RepelState.empty()) RepelState repelState,
+    EscapeReturnPoint? escapeReturnPoint,
 
     /// Progression narrative et capacités.
     @Default(PlayerProgression()) PlayerProgression progression,

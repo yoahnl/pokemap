@@ -141,13 +141,19 @@ AuthoringActionDescriptor _descriptor(
           'required': ['mapId'],
           'anyOf': [
             {
-              'required': ['name']
+              'required': ['name'],
             },
             {
-              'required': ['role']
+              'required': ['role'],
             },
             {
-              'required': ['isIndoor']
+              'required': ['isIndoor'],
+            },
+            {
+              'required': ['allowEscapeRope'],
+            },
+            {
+              'required': ['escapeRopeDungeonId'],
             },
           ],
           'properties': {
@@ -168,6 +174,12 @@ AuthoringActionDescriptor _descriptor(
               ],
             },
             'isIndoor': {'type': 'boolean'},
+            'allowEscapeRope': {'type': 'boolean'},
+            'escapeRopeDungeonId': {
+              'type': ['string', 'null'],
+              'referenceKind': 'map_group',
+              'selection': 'explicit',
+            },
           },
           'normalizedTitleMaximumLength': 160,
           'indoorRoleCoherence': {

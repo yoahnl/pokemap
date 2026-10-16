@@ -894,8 +894,13 @@ map.render
 map.render_region
 ```
 
-`map.update_metadata` v1 est opérationnelle : paramètres `mapId` et `name`,
-titre normalisé sur les deux documents dans une transaction récupérable.
+`map.update_metadata` v1 est opérationnelle : `mapId` et les champs optionnels
+`name`, `role`, `isIndoor`, `allowEscapeRope`, `escapeRopeDungeonId`.
+Le donjon est un identifiant de groupe existant choisi explicitement (ou `null`) ;
+le rangement de la bibliothèque ne déduit aucune appartenance de gameplay.
+La Corde Sortie utilise un effet typé `escape_rope`, cible `world`, contexte
+`overworld`, consommation `onApplied`, authorable via `item.set_overworld_effect`.
+Le titre est normalisé sur les deux documents dans une transaction récupérable.
 L'identité, le chemin et les références restent inchangés. Le nom identique
 dans le manifeste et la carte refuse un plan avec `map.no_change`, sans écriture.
 Ce contrat ne réutilise pas `map.rename`, qui change l'identité.

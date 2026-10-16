@@ -95,6 +95,14 @@ Map<String, dynamic> _$ProjectItemRepelEffectDefinitionToJson(
   ProjectItemRepelEffectDefinition instance,
 ) => <String, dynamic>{'steps': instance.steps, 'kind': instance.$type};
 
+ProjectItemEscapeRopeEffectDefinition
+_$ProjectItemEscapeRopeEffectDefinitionFromJson(Map<String, dynamic> json) =>
+    ProjectItemEscapeRopeEffectDefinition($type: json['kind'] as String?);
+
+Map<String, dynamic> _$ProjectItemEscapeRopeEffectDefinitionToJson(
+  ProjectItemEscapeRopeEffectDefinition instance,
+) => <String, dynamic>{'kind': instance.$type};
+
 ProjectItemSemanticActionEffectDefinition
 _$ProjectItemSemanticActionEffectDefinitionFromJson(
   Map<String, dynamic> json,

@@ -167,6 +167,7 @@ class MapWorkspaceLayout extends StatelessWidget {
             refresh();
           },
           onRenameMap: mapCatalogueRenameAction(context, controller),
+          onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller),
           onOpenElement: (element) {
             close?.call();
             onOpenElement(element);

@@ -3,9 +3,15 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 
 class MapCatalogueProperties extends StatelessWidget {
-  const MapCatalogueProperties({super.key, required this.map, this.onRename});
+  const MapCatalogueProperties({
+    super.key,
+    required this.map,
+    this.onRename,
+    this.onEscapeSettings,
+  });
   final MapData map;
   final VoidCallback? onRename;
+  final VoidCallback? onEscapeSettings;
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -19,6 +25,15 @@ class MapCatalogueProperties extends StatelessWidget {
           secondary: true,
           icon: Icons.edit_outlined,
           onPressed: onRename,
+        ),
+      ],
+      if (onEscapeSettings != null) ...[
+        const SizedBox(height: 8),
+        StudioButton(
+          label: 'Corde Sortie…',
+          secondary: true,
+          icon: Icons.exit_to_app,
+          onPressed: onEscapeSettings,
         ),
       ],
       const SizedBox(height: 20),

@@ -33,6 +33,7 @@ test("MCP updates map title and indoor role without changing identity or path", 
   await writeFile(join(root, "documents/unusual.json"), JSON.stringify(map));
   await writeFile(join(root, "project.json"), JSON.stringify({
     name: "Map title fixture", version: "v8", tilesets: [], pokemon: canonicalPokemonConfig(),
+    groups: [{ id: "cave", name: "Grotte", type: "dungeon" }],
     maps: [{ id: "town", name: "Town", relativePath: "documents/unusual.json" }],
   }));
   const authoring = new LocalAuthoringClient({
@@ -52,7 +53,7 @@ test("MCP updates map title and indoor role without changing identity or path", 
     const schema = (descriptor?.extensions as JsonRecord).inputSchema as JsonRecord;
     assert.deepEqual(schema.required, ["mapId"]);
     assert.deepEqual(schema.anyOf, [
-      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] },
+      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] }, { required: ["allowEscapeRope"] }, { required: ["escapeRopeDungeonId"] },
     ]);
     const properties = schema.properties as JsonRecord;
     assert.equal((properties.isIndoor as JsonRecord).type, "boolean");
@@ -113,6 +114,20 @@ test("MCP updates map title and indoor role without changing identity or path", 
     assert.equal(conflict.isError, true);
     assert.match(JSON.stringify(conflict.structuredContent), /map.metadata_inconsistent/);
     assert.deepEqual(JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8")), indoorMap);
+    assert.deepEqual(JSON.parse(await readFile(join(root, "project.json"), "utf8")), indoorManifest);
+    const escapeRevision = await data(client, "pokemap_validate", { projectHandle });
+    const escape = await data(client, "pokemap_plan", { projectHandle,
+      request: { requestId: "rope", actionId: "map.update_metadata", actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: { mapId: "town", escapeRopeDungeonId: "cave", allowEscapeRope: false },
+        expectedRevision: escapeRevision.snapshotRevision, idempotencyKey: "rope" },
+    });
+    await data(client, "pokemap_apply", { operation: "apply", projectHandle,
+      planId: escape.planId, operationId: "rope" });
+    const escapeMap = JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8"));
+    assert.equal(escapeMap.mapMetadata.escapeRopeDungeonId, "cave");
+    assert.equal(escapeMap.mapMetadata.allowEscapeRope, false);
+    assert.deepEqual(escapeMap.warps, indoorMap.warps);
     assert.deepEqual(JSON.parse(await readFile(join(root, "project.json"), "utf8")), indoorManifest);
     await data(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {

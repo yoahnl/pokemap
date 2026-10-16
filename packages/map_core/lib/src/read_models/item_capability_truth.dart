@@ -8,6 +8,7 @@ enum ProjectItemEffectCapability {
   revive,
   restorePp,
   repel,
+  escapeRope,
   semanticAction,
 }
 
@@ -104,6 +105,10 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
       effect: ProjectItemEffectCapability.repel,
     ),
     ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.escapeRope,
+    ),
+    ItemUseCapability(
       context: ProjectItemUseContext.battle,
       effect: ProjectItemEffectCapability.healHp,
     ),
@@ -144,6 +149,8 @@ ProjectItemEffectCapability projectItemEffectCapabilityOf(
     ProjectItemRestorePpEffectDefinition() =>
       ProjectItemEffectCapability.restorePp,
     ProjectItemRepelEffectDefinition() => ProjectItemEffectCapability.repel,
+    ProjectItemEscapeRopeEffectDefinition() =>
+      ProjectItemEffectCapability.escapeRope,
     ProjectItemSemanticActionEffectDefinition() =>
       ProjectItemEffectCapability.semanticAction,
     _ => throw StateError('Unknown project item effect definition'),

@@ -213,6 +213,12 @@ ProjectItemCatalogValidationReport validateProjectItemCatalog(
           itemId: itemId,
         );
       }
+      if (use.effect is ProjectItemEscapeRopeEffectDefinition && item.tags.contains('key-item')) {
+        addDiagnostic(ProjectItemCatalogDiagnosticCode.invalidDefinition,
+          ProjectItemCatalogDiagnosticSeverity.error,
+          'La Corde Sortie est consommable et ne peut pas être un objet clé (key-item).',
+          '$itemPath.tags',entryIndex:index,itemId:itemId);
+      }
       _validateEffect(
         use,
         capabilityTruth,
@@ -416,7 +422,8 @@ void _validateEffect(
       use.target == ProjectItemTargetKind.partyMember,
     ProjectItemRestorePpEffectDefinition() =>
       use.target == ProjectItemTargetKind.partyMove,
-    ProjectItemRepelEffectDefinition() =>
+    ProjectItemRepelEffectDefinition() ||
+    ProjectItemEscapeRopeEffectDefinition() =>
       use.target == ProjectItemTargetKind.world,
     ProjectItemSemanticActionEffectDefinition() =>
       use.target == ProjectItemTargetKind.world ||
@@ -482,6 +489,19 @@ void _validateEffect(
           ProjectItemCatalogDiagnosticSeverity.error,
           'Repel steps must be strictly positive',
           '$path.effect.steps',
+          entryIndex: entryIndex,
+          itemId: itemId,
+        );
+      }
+    case ProjectItemEscapeRopeEffectDefinition():
+      if (use.contexts.length != 1 ||
+          !use.contexts.contains(ProjectItemUseContext.overworld) ||
+          use.consumption != ProjectItemConsumptionPolicy.onApplied) {
+        addDiagnostic(
+          ProjectItemCatalogDiagnosticCode.invalidDefinition,
+          ProjectItemCatalogDiagnosticSeverity.error,
+          'Escape Rope requires overworld use and consumption after success',
+          path,
           entryIndex: entryIndex,
           itemId: itemId,
         );

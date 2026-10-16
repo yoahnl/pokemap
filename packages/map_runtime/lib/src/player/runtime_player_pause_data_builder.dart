@@ -34,6 +34,7 @@ final class RuntimePlayerPauseDataBuilder {
     String? uiLocale,
     bool mapEnabled = false,
     bool supportsRepel = false,
+    bool supportsEscapeRope = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ProjectRegionalMapCatalog? regionalMap,
     ItemCatalogSnapshot? itemCatalog,
@@ -153,6 +154,7 @@ final class RuntimePlayerPauseDataBuilder {
           moveMachines: moveMachines,
           itemCatalog: resolvedItemCatalog,
           supportsRepel: supportsRepel,
+          supportsEscapeRope: supportsEscapeRope,
         ),
         if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
@@ -464,6 +466,7 @@ final class RuntimePlayerPauseDataBuilder {
     GameState gameState, {
     required bool isFrench,
     required bool supportsRepel,
+    required bool supportsEscapeRope,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
@@ -524,12 +527,15 @@ final class RuntimePlayerPauseDataBuilder {
           gameState.repelState.isActive;
       final repelUnsupported =
           effect is ProjectItemRepelEffectDefinition && !supportsRepel;
-      if (repelUnsupported) {
+      final escapeRopeUnsupported = effect is ProjectItemEscapeRopeEffectDefinition && !supportsEscapeRope;
+      if (repelUnsupported || escapeRopeUnsupported) {
         usability = ItemUsabilityState.unsupportedCapability;
       } else if (repelAlreadyActive) {
         usability = ItemUsabilityState.unavailableInContext;
       }
-      final unavailableReason = repelUnsupported
+      final unavailableReason = escapeRopeUnsupported
+          ? (isFrench ? 'La Corde Sortie est disponible uniquement dans un runtime 2D compatible.' : 'Escape Rope is only available in a compatible 2D runtime.')
+          : repelUnsupported
           ? (isFrench
                 ? 'La Repousse n’est pas disponible dans ce mode de jeu.'
                 : 'Repel is not available in this game mode.')

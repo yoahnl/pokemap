@@ -121,6 +121,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
   repelState: json['repelState'] == null
       ? const RepelState.empty()
       : RepelState.fromJson(json['repelState'] as Map<String, dynamic>),
+  escapeReturnPoint: json['escapeReturnPoint'] == null
+      ? null
+      : EscapeReturnPoint.fromJson(
+          json['escapeReturnPoint'] as Map<String, dynamic>,
+        ),
   progression: json['progression'] == null
       ? const PlayerProgression()
       : PlayerProgression.fromJson(json['progression'] as Map<String, dynamic>),
@@ -195,6 +200,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'trainerProfile': instance.trainerProfile.toJson(),
       'bag': instance.bag.toJson(),
       'repelState': instance.repelState.toJson(),
+      'escapeReturnPoint': instance.escapeReturnPoint?.toJson(),
       'progression': instance.progression.toJson(),
       'railJourneyProgress': instance.railJourneyProgress.toJson(),
       'scriptVariables': instance.scriptVariables.toJson(),

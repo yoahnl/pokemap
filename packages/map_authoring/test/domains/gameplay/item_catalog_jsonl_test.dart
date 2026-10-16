@@ -7,6 +7,58 @@ import 'package:test/test.dart';
 
 void main() {
   group('item mutation transport parity', () {
+    test(
+        'Corde Sortie key-item is refused through API and JSONL with a readable reason',
+        () async {
+      final scenario = _ItemMutationScenario('item.create', {
+        'definition': const ProjectItemDefinition(
+            id: 'rope-key',
+            displayName: 'Corde Sortie',
+            pocketId: 'items',
+            tags: {
+              'key-item'
+            },
+            uses: [
+              ProjectItemUseDefinition(
+                  contexts: {ProjectItemUseContext.overworld},
+                  target: ProjectItemTargetKind.world,
+                  consumption: ProjectItemConsumptionPolicy.onApplied,
+                  effect: ProjectItemEffectDefinition.escapeRope())
+            ]).toJson()
+      });
+      final direct = await _ItemTransportHarness.create('rope-key-direct');
+      addTearDown(direct.dispose);
+      final before = await direct.catalogJson();
+      await expectLater(
+          () => direct.executeDirect(scenario),
+          throwsA(isA<ItemCatalogAuthoringException>().having(
+              (error) => error.message, 'message', contains('objet clé'))));
+      expect(await direct.catalogJson(), before);
+      final wire = await _ItemTransportHarness.create('rope-key-wire');
+      addTearDown(wire.dispose);
+      final opened = await _request(wire.worker, 'open',
+          args: {'projectRoot': wire.root.path});
+      final projectHandle = opened.data['projectHandle'] as String;
+      final definitions = await _query(wire.worker,
+          projectHandle: projectHandle,
+          request: AuthoringQueryRequest(
+              resourceKind: 'itemDefinition',
+              operation: AuthoringQueryOperation.list,
+              view: AuthoringQueryView.detail));
+      final plan = await _request(wire.worker, 'plan', args: {
+        'projectHandle': projectHandle,
+        'request': scenario
+            .request(
+                workspaceHandle: opened.data['workspaceHandle'] as String,
+                revision: definitions.data['snapshotRevision'] as String,
+                transport: 'jsonl')
+            .toJson()
+      });
+      expect(plan.status, AuthoringResultStatus.failure);
+      expect(jsonEncode(plan.toJson()), contains('objet clé'));
+      expect(await wire.catalogJson(), before);
+    });
+
     test('describes the four resources and nine durable actions', () async {
       final harness = await _ItemTransportHarness.create('describe');
       addTearDown(harness.dispose);
@@ -33,6 +85,34 @@ void main() {
         }),
       );
       expect(actionIds, _durableItemActionIds);
+    });
+
+    test('Corde Sortie typed world effect roundtrips through API and JSONL',
+        () async {
+      final scenario = _ItemMutationScenario('item.set_overworld_effect', {
+        'itemId': 'potion',
+        'use': const ProjectItemUseDefinition(
+                contexts: {ProjectItemUseContext.overworld},
+                target: ProjectItemTargetKind.world,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.escapeRope())
+            .toJson(),
+      });
+      for (final jsonl in [false, true]) {
+        final harness = await _ItemTransportHarness.create('rope-$jsonl');
+        addTearDown(harness.dispose);
+        final result = jsonl
+            ? await harness.executeJsonl(scenario)
+            : await harness.executeDirect(scenario);
+        final use = ProjectItemCatalog.fromJson(result.catalog)
+            .entries
+            .singleWhere((item) => item.id == 'potion')
+            .uses
+            .single;
+        expect(use.target, ProjectItemTargetKind.world);
+        expect(use.consumption, ProjectItemConsumptionPolicy.onApplied);
+        expect(use.effect, const ProjectItemEffectDefinition.escapeRope());
+      }
     });
 
     test('Repousse world effect roundtrips through API and JSONL', () async {
@@ -733,7 +813,8 @@ final class _ItemTransportHarness {
     final history = (await mutations.listMutationHistory(
       opened.projectHandle,
       limit: 10,
-    )).toJson();
+    ))
+        .toJson();
     final entry = Map<String, Object?>.from(
       (history['entries']! as List).last as Map,
     );

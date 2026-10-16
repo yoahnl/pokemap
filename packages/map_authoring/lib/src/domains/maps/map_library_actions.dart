@@ -36,6 +36,19 @@ final class MapLibraryActions {
           : null,
       assignments: fields.objects('assignments'),
     );
+    final groupIds = next.groups.map((group) => group.id).toSet();
+    final removedGroupIds = context.snapshot.manifest.groups.map((group) => group.id).where((id) => !groupIds.contains(id)).toSet();
+    if (removedGroupIds.isNotEmpty) {
+      for (final entry in context.snapshot.manifest.maps) {
+        final map = context.snapshot.mapById(entry.id);
+        if (map == null) {
+          _reject('map_document_missing_for_group_removal');
+        }
+        if (removedGroupIds.contains(map.mapMetadata.escapeRopeDungeonId)) {
+          _reject('group_in_use_by_escape_rope');
+        }
+      }
+    }
     return buildVisualManifestDraft(
       context.snapshot,
       next,

@@ -4,7 +4,7 @@ extension _PlayableMapRepel on PlayableMapGame {
   Future<bool> _saveRepelExpirationCheckpoint() async {
     if (_hasCheckpointUnsafeRuntimeWorkForSave) return false;
     _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-    await repelExpirationCheckpointWriter!(_gameState);
+    await overworldCheckpointWriter!(_gameState);
     return true;
   }
 

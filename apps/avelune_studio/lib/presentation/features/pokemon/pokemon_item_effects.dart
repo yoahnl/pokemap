@@ -57,6 +57,7 @@ class PokemonItemEffects extends StatelessWidget {
 
   ProjectItemEffectDefinition _effect(String kind) => switch (kind) {
     'repel' => const ProjectItemEffectDefinition.repel(steps: 100),
+    'escape_rope' => const ProjectItemEffectDefinition.escapeRope(),
     'cure' => const ProjectItemEffectDefinition.cureStatus(
       mode: ProjectItemStatusCureMode.all,
     ),
@@ -80,6 +81,7 @@ class PokemonItemEffects extends StatelessWidget {
     ProjectItemReviveEffectDefinition() => 'revive',
     ProjectItemRestorePpEffectDefinition() => 'pp',
     ProjectItemRepelEffectDefinition() => 'repel',
+    ProjectItemEscapeRopeEffectDefinition() => 'escape_rope',
     _ => 'imported',
   };
 
@@ -133,7 +135,7 @@ class PokemonItemEffects extends StatelessWidget {
     final supported =
         kind != 'imported' &&
         (context != ProjectItemUseContext.battle ||
-            (kind != 'pp' && kind != 'repel'));
+            (kind != 'pp' && kind != 'repel' && kind != 'escape_rope'));
     return PokemonSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,12 +175,17 @@ class PokemonItemEffects extends StatelessWidget {
                     'pp': 'Restaurer les PP',
                   if (context == ProjectItemUseContext.overworld)
                     'repel': 'Repousse',
+                  if (context == ProjectItemUseContext.overworld)
+                    'escape_rope': 'Corde Sortie',
                 },
                 onChanged: (value) => _set(
                   context,
                   use.copyWith(
                     effect: _effect(value),
-                    target: value == 'repel'
+                    consumption: value == 'escape_rope'
+                        ? ProjectItemConsumptionPolicy.onApplied
+                        : use.consumption,
+                    target: value == 'repel' || value == 'escape_rope'
                         ? ProjectItemTargetKind.world
                         : value == 'pp'
                         ? ProjectItemTargetKind.partyMove
@@ -271,14 +278,16 @@ class PokemonItemEffects extends StatelessWidget {
                 label: 'Consommer après application',
                 value:
                     use.consumption == ProjectItemConsumptionPolicy.onApplied,
-                onChanged: (value) => _set(
-                  context,
-                  use.copyWith(
-                    consumption: value
-                        ? ProjectItemConsumptionPolicy.onApplied
-                        : ProjectItemConsumptionPolicy.never,
-                  ),
-                ),
+                onChanged: kind == 'escape_rope'
+                    ? null
+                    : (value) => _set(
+                        context,
+                        use.copyWith(
+                          consumption: value
+                              ? ProjectItemConsumptionPolicy.onApplied
+                              : ProjectItemConsumptionPolicy.never,
+                        ),
+                      ),
               ),
             ],
           ],

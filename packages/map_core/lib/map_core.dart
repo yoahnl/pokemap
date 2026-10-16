@@ -1,5 +1,6 @@
 export 'src/models/map_entity_field_obstacle.dart';
 export 'map_core_domain.dart';
+export 'src/models/escape_return_point.dart';
 export 'src/models/map_instance_world_state.dart';
 export 'src/models/map_instance_retention_policy.dart';
 export 'src/operations/scene_actor_reference.dart';

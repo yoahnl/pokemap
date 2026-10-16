@@ -33,6 +33,7 @@ class MapWorkspaceInspector extends StatefulWidget {
     this.onOpenResource,
     this.onEditResource,
     this.onRenameMap,
+    this.onEscapeSettings,
     this.onEventSource,
     this.width = 300,
     this.tool = StudioMapTool.select,
@@ -45,6 +46,7 @@ class MapWorkspaceInspector extends StatefulWidget {
   final VoidCallback onChanged;
   final ValueChanged<ProjectElementEntry>? onOpenResource, onEditResource;
   final VoidCallback? onRenameMap;
+  final VoidCallback? onEscapeSettings;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final double width;
   final StudioMapTool tool;
@@ -330,6 +332,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   MapCatalogueProperties(
                     map: document.current,
                     onRename: widget.onRenameMap,
+                    onEscapeSettings: widget.onEscapeSettings,
                   ),
                   Text(mapToolHelp(widget.tool)),
                 ],

@@ -17,6 +17,62 @@ import '../support/m3_story_fixture.dart';
 import '../support/map_host_fixture.dart';
 
 void main() {
+  testWidgets('Corde Sortie authors a typed consumable world effect', (
+    tester,
+  ) async {
+    final host = await MapHostFixture.open(tester, prepareSource: _seed);
+    await host.go('Pokémon');
+    await tester.tap(find.text('Objets').first);
+    await pumpIo(tester);
+    await tester.tap(find.byKey(const ValueKey('item-potion')));
+    await pumpIo(tester);
+    await tester.tap(find.text('Effets').last);
+    await pumpIo(tester);
+    await tester.tap(find.text('Soigner les PV').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Corde Sortie'), findsOneWidget);
+    await tester.tap(find.text('Corde Sortie'));
+    await pumpIo(tester);
+    final commerce = tester
+        .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
+        .controller!
+        .commerce!;
+    final use = commerce.item!.uses.firstWhere(
+      (use) => use.contexts.contains(ProjectItemUseContext.overworld),
+    );
+    expect(use.target, ProjectItemTargetKind.world);
+    expect(use.consumption, ProjectItemConsumptionPolicy.onApplied);
+    expect(use.effect, const ProjectItemEffectDefinition.escapeRope());
+    await tester.tap(find.text('Enregistrer').last);
+    await pumpIo(tester);
+    expect(commerce.error, isNull);
+    expect(commerce.dirty, isFalse);
+    final reopened = (await tester.runAsync(() async {
+      final maps = LocalMapWorkspaceAdapter();
+      await maps.loadProject(host.source.session);
+      return LocalPokemonCommerceAdapter(
+        session: host.source.session,
+        mapAdapter: maps,
+      ).load();
+    }))!;
+    expect(
+      reopened.catalog!.entries
+          .firstWhere((item) => item.id == 'potion')
+          .uses
+          .firstWhere(
+            (use) => use.contexts.contains(ProjectItemUseContext.overworld),
+          )
+          .effect,
+      const ProjectItemEffectDefinition.escapeRope(),
+    );
+    commerce.editItem((item) => item.copyWith(tags: {'key-item'}));
+    await pumpIo(tester);
+    await tester.tap(find.text('Enregistrer').last);
+    await pumpIo(tester);
+    expect(commerce.dirty, isTrue);
+    expect(commerce.error, contains('objet clé'));
+  });
+
   testWidgets(
     'Repousse authors world target and editable positive step count',
     (tester) async {
@@ -45,10 +101,20 @@ void main() {
         PokemonCommerceIntegerField,
         'Nombre de pas',
       );
-      await tester.enterText(find.descendant(of: field, matching: find.byType(TextField)), '0');
+      await tester.enterText(
+        find.descendant(of: field, matching: find.byType(TextField)),
+        '0',
+      );
       await tester.pump();
       expect(commerce.fieldErrors, isNotEmpty);
-      expect(commerce.item!.uses.firstWhere((use) => use.contexts.contains(ProjectItemUseContext.overworld)).effect, const ProjectItemEffectDefinition.repel(steps: 100));
+      expect(
+        commerce.item!.uses
+            .firstWhere(
+              (use) => use.contexts.contains(ProjectItemUseContext.overworld),
+            )
+            .effect,
+        const ProjectItemEffectDefinition.repel(steps: 100),
+      );
       await tester.enterText(
         find.descendant(of: field, matching: find.byType(TextField)),
         '250',
@@ -220,9 +286,9 @@ void main() {
     expect(find.textContaining('changé sur le disque'), findsWidgets);
     expect(find.text('Brouillon local'), findsWidgets);
     final text = (await tester.runAsync(
-      () async => File(
-        '${host.source.directory.path}/data/pokemon/catalogs/items.json',
-      ).readAsString(),
+      () async =>
+          File('${host.source.directory.path}/data/pokemon/catalogs/items.json')
+              .readAsString(),
     ))!;
     expect(text, contains('Modification externe'));
     expect(text, isNot(contains('Brouillon local')));

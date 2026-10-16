@@ -18,6 +18,7 @@ _MapMetadata _$MapMetadataFromJson(Map<String, dynamic> json) => _MapMetadata(
       MapWeather.none,
   isIndoor: json['isIndoor'] as bool? ?? false,
   allowEscapeRope: json['allowEscapeRope'] as bool? ?? true,
+  escapeRopeDungeonId: json['escapeRopeDungeonId'] as String?,
   defaultSpawnId: json['defaultSpawnId'] as String?,
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
@@ -34,6 +35,7 @@ Map<String, dynamic> _$MapMetadataToJson(_MapMetadata instance) =>
       'weather': _$MapWeatherEnumMap[instance.weather]!,
       'isIndoor': instance.isIndoor,
       'allowEscapeRope': instance.allowEscapeRope,
+      'escapeRopeDungeonId': instance.escapeRopeDungeonId,
       'defaultSpawnId': instance.defaultSpawnId,
       'tags': instance.tags,
     };

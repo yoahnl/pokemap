@@ -297,12 +297,14 @@ final class PlayableMapGameSessionRuntime
         saveData: saveData,
         initialGameState: descriptor.initialGameState,
         saveRepository: memorySaves,
-        repelExpirationCheckpointWriter: _commitCheckpoint == null
+        overworldCheckpointWriter: _commitCheckpoint == null
             ? null
             : (state) async {
                 _ensureNotDisposed();
                 if (!identical(_game, game) || state.saveId != _saveId) {
-                  throw StateError('The Repousse checkpoint session is stale.');
+                  throw StateError(
+                    'The overworld checkpoint session is stale.',
+                  );
                 }
                 await _commitCheckpoint(GameSessionCheckpointCommit(
                   descriptor: descriptor.publicContext,
@@ -440,6 +442,7 @@ final class PlayableMapGameSessionRuntime
         companion ? game.companionGameStateSnapshot : game.gameStateSnapshot;
     final details = await const RuntimePlayerPauseDataBuilder().build(
       supportsRepel: true,
+      supportsEscapeRope: _playerServices?.supportsEscapeRope ?? false,
       gameState: gameState,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,

@@ -67,6 +67,7 @@ abstract class MapMetadata with _$MapMetadata {
     @Default(MapWeather.none) MapWeather weather,
     @Default(false) bool isIndoor,
     @Default(true) bool allowEscapeRope,
+    String? escapeRopeDungeonId,
     String? defaultSpawnId,
     @Default([]) List<String> tags,
   }) = _MapMetadata;

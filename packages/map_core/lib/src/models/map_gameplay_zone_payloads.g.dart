@@ -215,6 +215,13 @@ Map<String, dynamic> _$WaterfallZonePayloadToJson(
   'requiresSurf': instance.requiresSurf,
 };
 
+const _$MapConnectionDirectionEnumMap = {
+  MapConnectionDirection.north: 'north',
+  MapConnectionDirection.south: 'south',
+  MapConnectionDirection.east: 'east',
+  MapConnectionDirection.west: 'west',
+};
+
 _DiveZonePayload _$DiveZonePayloadFromJson(Map<String, dynamic> json) {
   $checkKeys(json, allowedKeys: const ['role', 'arrivalSpawnId', 'link']);
   return _DiveZonePayload(

@@ -236,6 +236,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final PlayerServiceOverlayHost? _host;
   final PlayerServiceStateTransaction _commitAndSave;
   String? Function()? _pauseMutationUnavailableReason;
+  Future<bool> Function(ProjectItemDefinition, GameState)? _escapeRopeConsumer;
+
+  void setEscapeRopeConsumer(
+    Future<bool> Function(ProjectItemDefinition, GameState) consumer,
+  ) {
+    _escapeRopeConsumer = consumer;
+  }
+
   final PlayerServiceInputLockSetter _setInputLocked;
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
   final PlayerServiceHealingDisplayMapReader? _healingDisplayMapReader;
@@ -268,6 +276,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   var _textRevision = -1;
 
   bool get isActive => _active;
+  bool get supportsEscapeRope => _escapeRopeConsumer != null;
 
   @override
   RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
@@ -955,6 +964,44 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         status: RuntimePlayerPauseCommandStatus.unavailable,
         safeMessage: 'La définition de cet objet est absente ou invalide.',
       );
+    }
+    if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
+        definition.uses.any(
+          (use) =>
+              use.contexts.contains(ProjectItemUseContext.overworld) &&
+              use.effect is ProjectItemEscapeRopeEffectDefinition,
+        )) {
+      final consumer = _escapeRopeConsumer;
+      if (consumer == null) {
+        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'La Corde Sortie est disponible uniquement dans un runtime 2D compatible.');
+      }
+      if (_currentGameState() != state ||
+          _pauseMutationRefusal() != null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'La Corde Sortie n’est pas disponible pour le moment.',
+        );
+      }
+      _setInputLocked(true);
+      try {
+        final applied = await consumer(definition, state);
+        return RuntimePlayerPauseCommandResult(
+          status: applied
+              ? RuntimePlayerPauseCommandStatus.accepted
+              : RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: applied
+              ? 'Vous êtes de retour à l’entrée. Progression sauvegardée.'
+              : 'La sortie est inconnue, interdite ou bloquée. La Corde Sortie est conservée.',
+        );
+      } on Object {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: 'Le retour n’a pas pu être effectué ni sauvegardé.',
+        );
+      } finally {
+        _setInputLocked(false);
+      }
     }
     if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
         definition.uses.any(

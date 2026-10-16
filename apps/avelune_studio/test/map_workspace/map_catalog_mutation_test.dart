@@ -20,6 +20,144 @@ void main() {
   tearDown(() => fixture.dispose());
 
   test(
+    'Corde metadata publication integrates history and survives cold reopen',
+    () async {
+      final controller = fixture.controller;
+      final organized = await controller.mutateCatalog(
+        'map.library.reorganize',
+        {
+          'groups': [
+            const ProjectMapGroup(
+              id: 'dungeon',
+              name: 'Donjon',
+              type: MapGroupType.dungeon,
+            ).toJson(),
+          ],
+          'assignments': <Object?>[],
+        },
+      );
+      expect(organized.integrated, isTrue, reason: organized.error);
+      final target = controller.active!;
+      final entity = target.current.entities.first;
+      MapEntityEditingCommands(
+        target,
+        controller.project!,
+      ).move(entity.id, const GridPos(x: 3, y: 3));
+      expect(await controller.save(target), isTrue);
+      final historyCount = target.undoCount;
+      await controller.activate(controller.project!.maps.last);
+      final neighbour = controller.active!;
+      neighbour.commit(neighbour.current.copyWith(properties: {'draft': true}));
+      final neighbourDraft = neighbour.current;
+      final result = await controller.mutateCatalog('map.update_metadata', {
+        'mapId': target.base.mapId,
+        'name': 'Grotte des essais',
+        'escapeRopeDungeonId': 'dungeon',
+        'allowEscapeRope': false,
+      });
+      expect(result.published, isTrue, reason: result.error);
+      expect(result.integrated, isTrue, reason: result.error);
+      expect(controller.pendingCatalogReceipt, isNull);
+      expect(controller.error, isNull);
+      expect(target.current.mapMetadata.escapeRopeDungeonId, 'dungeon');
+      expect(target.current.mapMetadata.allowEscapeRope, isFalse);
+      expect(target.current.name, 'Grotte des essais');
+      expect(target.current, target.saved);
+      expect(target.saved, target.base.map);
+      expect(target.undoCount, historyCount);
+      expect(neighbour.current, same(neighbourDraft));
+      expect(neighbour.dirty, isTrue);
+      await controller.activate(controller.project!.maps.first);
+      controller.restore(redo: false);
+      expect(target.current.entities.first.pos, entity.pos);
+      expect(target.current.mapMetadata, target.saved.mapMetadata);
+      expect(target.current.name, 'Grotte des essais');
+      controller.restore(redo: true);
+      expect(target.current.entities.first.pos, const GridPos(x: 3, y: 3));
+      expect(target.current.mapMetadata, target.saved.mapMetadata);
+      expect(target.current.name, 'Grotte des essais');
+      expect(await controller.save(target), isTrue);
+      final reopened = MapWorkspaceController(
+        fixture.session,
+        LocalMapWorkspaceAdapter(),
+      );
+      addTearDown(reopened.dispose);
+      await reopened.initialize();
+      expect(reopened.error, isNull);
+      expect(reopened.active!.current, target.saved);
+      expect(
+        reopened.active!.current.mapMetadata.escapeRopeDungeonId,
+        'dungeon',
+      );
+      expect(reopened.active!.current.mapMetadata.allowEscapeRope, isFalse);
+    },
+  );
+
+  test(
+    'Corde metadata publication refuses a dirty target before writing',
+    () async {
+      final document = fixture.controller.active!;
+      document.commit(document.current.copyWith(properties: {'dirty': true}));
+      final files = [
+        File(p.join(fixture.root.path, 'project.json')),
+        File(
+          p.join(
+            fixture.root.path,
+            fixture.controller.project!.maps.first.relativePath,
+          ),
+        ),
+      ];
+      final before = [for (final file in files) await file.readAsBytes()];
+      final draft = document.current;
+      final result = await fixture.controller.mutateCatalog(
+        'map.update_metadata',
+        {
+          'mapId': document.base.mapId,
+          'escapeRopeDungeonId': 'dungeon',
+          'allowEscapeRope': false,
+        },
+      );
+      expect(result.published, isFalse);
+      expect(fixture.catalog.mutations, 0);
+      expect(document.current, same(draft));
+      expect(document.dirty, isTrue);
+      for (var index = 0; index < files.length; index++) {
+        expect(await files[index].readAsBytes(), before[index]);
+      }
+    },
+  );
+
+  test(
+    'catalogue metadata acceptance refuses other map content and keeps history',
+    () async {
+      final document = fixture.controller.active!;
+      final original = document.current;
+      document.commit(original.copyWith(properties: {'draft': true}));
+      document.commit(original);
+      final historyCount = document.undoCount;
+      final forged = MapWorkspaceDocument(
+        map: document.saved.copyWith(
+          name: 'Published name',
+          mapMetadata: document.saved.mapMetadata.copyWith(
+            allowEscapeRope: false,
+          ),
+          properties: {'unrelated': true},
+        ),
+        revision: 'forged',
+        mapId: document.base.mapId,
+      );
+      expect(
+        () => document.acceptCatalogMetadata(forged),
+        throwsA(isA<MapWorkspaceFailure>()),
+      );
+      expect(document.current, original);
+      expect(document.saved, original);
+      expect(document.undoCount, historyCount);
+      expect(document.canUndo, isTrue);
+    },
+  );
+
+  test(
     'regional catalogue survives native rename reconcile and cold reopen',
     () async {
       final controller = await _regionalController(fixture);
@@ -165,57 +303,53 @@ void main() {
     },
   );
 
-  test(
-    'title mutation preserves identity, dirty neighbour and prior geometry history',
-    () async {
-      final controller = fixture.controller;
-      final target = controller.active!;
-      final originalPath = controller.project!.maps.first.relativePath;
-      final entity = target.current.entities.first;
-      MapEntityEditingCommands(
-        target,
-        controller.project!,
-      ).move(entity.id, const GridPos(x: 3, y: 3));
-      expect(await controller.save(target), isTrue);
-      await controller.activate(controller.project!.maps.last);
-      final neighbour = controller.active!;
-      neighbour.commit(
-        neighbour.current.copyWith(properties: {'brouillon': true}),
-      );
-      final neighbourMap = neighbour.current;
-      final result = await controller.mutateCatalog('map.update_metadata', {
-        'mapId': target.base.mapId,
-        'name': 'Étang des essais',
-      });
-      expect(result.integrated, isTrue, reason: result.error);
-      expect(controller.project!.maps.first.relativePath, originalPath);
-      expect(target.current.id, 'jardin');
-      expect(target.current.name, 'Étang des essais');
-      expect(neighbour.current, same(neighbourMap));
-      expect(neighbour.dirty, isTrue);
-      await controller.activate(controller.project!.maps.first);
-      controller.restore(redo: false);
-      expect(target.current.name, 'Étang des essais');
-      expect(target.current.entities.first.pos, entity.pos);
-      controller.restore(redo: true);
-      expect(target.current.name, 'Étang des essais');
-      expect(target.current.entities.first.pos, const GridPos(x: 3, y: 3));
-      expect(await controller.save(target), isTrue);
-      final disk = MapData.fromJson(
-        jsonDecode(
-          await File(p.join(fixture.root.path, originalPath)).readAsString(),
-        ),
-      );
-      expect(disk.name, controller.project!.maps.first.name);
-    },
-  );
+  test('title mutation preserves identity, dirty neighbour and prior geometry history', () async {
+    final controller = fixture.controller;
+    final target = controller.active!;
+    final originalPath = controller.project!.maps.first.relativePath;
+    final entity = target.current.entities.first;
+    MapEntityEditingCommands(
+      target,
+      controller.project!,
+    ).move(entity.id, const GridPos(x: 3, y: 3));
+    expect(await controller.save(target), isTrue);
+    await controller.activate(controller.project!.maps.last);
+    final neighbour = controller.active!;
+    neighbour.commit(
+      neighbour.current.copyWith(properties: {'brouillon': true}),
+    );
+    final neighbourMap = neighbour.current;
+    final result = await controller.mutateCatalog('map.update_metadata', {
+      'mapId': target.base.mapId,
+      'name': 'Étang des essais',
+    });
+    expect(result.integrated, isTrue, reason: result.error);
+    expect(controller.project!.maps.first.relativePath, originalPath);
+    expect(target.current.id, 'jardin');
+    expect(target.current.name, 'Étang des essais');
+    expect(neighbour.current, same(neighbourMap));
+    expect(neighbour.dirty, isTrue);
+    await controller.activate(controller.project!.maps.first);
+    controller.restore(redo: false);
+    expect(target.current.name, 'Étang des essais');
+    expect(target.current.entities.first.pos, entity.pos);
+    controller.restore(redo: true);
+    expect(target.current.name, 'Étang des essais');
+    expect(target.current.entities.first.pos, const GridPos(x: 3, y: 3));
+    expect(await controller.save(target), isTrue);
+    final disk = MapData.fromJson(
+      jsonDecode(
+        await File(p.join(fixture.root.path, originalPath)).readAsString(),
+      ),
+    );
+    expect(disk.name, controller.project!.maps.first.name);
+  });
 
   test('dirty target is refused without publishing other drafts', () async {
     final document = fixture.controller.active!;
     document.commit(document.current.copyWith(properties: {'dirty': true}));
-    final bytes = await File(
-      p.join(fixture.root.path, 'project.json'),
-    ).readAsBytes();
+    final bytes = await File(p.join(fixture.root.path, 'project.json'))
+        .readAsBytes();
     final result = await fixture.controller.mutateCatalog(
       'map.update_metadata',
       {'mapId': 'jardin', 'name': 'Refus'},
@@ -231,9 +365,8 @@ void main() {
 
   test('same normalized title performs no publication', () async {
     final document = fixture.controller.active!;
-    final bytes = await File(
-      p.join(fixture.root.path, 'project.json'),
-    ).readAsBytes();
+    final bytes = await File(p.join(fixture.root.path, 'project.json'))
+        .readAsBytes();
     final revision = document.base.revision;
     final result = await fixture.controller.mutateCatalog(
       'map.update_metadata',
@@ -296,6 +429,7 @@ void main() {
     expect(document.current, isNot(changed));
   });
 }
+
 Future<MapWorkspaceController> _regionalController(
   MapCatalogFixture fixture,
 ) async {

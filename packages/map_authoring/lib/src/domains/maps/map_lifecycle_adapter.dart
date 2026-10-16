@@ -954,13 +954,15 @@ String _mapName(String value) {
 }
 
 Map<String, Object?> _mapSummary(MapData map) => {
-      'id': map.id,
-      'name': map.name,
-      'size': _sizeJson(map.size),
-      'layerCount': map.layers.length,
-      'entityCount': map.entities.length,
-      'warpCount': map.warps.length,
-    };
+  'id': map.id,
+  'name': map.name,
+  'size': _sizeJson(map.size),
+  'layerCount': map.layers.length,
+  'entityCount': map.entities.length,
+  'warpCount': map.warps.length,
+  'allowEscapeRope': map.mapMetadata.allowEscapeRope,
+  'escapeRopeDungeonId': map.mapMetadata.escapeRopeDungeonId,
+};
 
 Map<String, Object?> _entrySummary(ProjectMapEntry entry) => {
       'id': entry.id,

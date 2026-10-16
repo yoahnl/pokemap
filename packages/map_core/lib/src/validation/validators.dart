@@ -2580,6 +2580,11 @@ class MapValidator {
   /// [projectDialogueContext] : si fourni, les [DialogueRef] sans chemin legacy doivent pointer vers [ProjectManifest.dialogues].
   static void validate(MapData map, {ProjectManifest? projectDialogueContext}) {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
+    final dungeonId = map.mapMetadata.escapeRopeDungeonId;
+    if (dungeonId != null && (dungeonId.trim().isEmpty || dungeonId != dungeonId.trim() ||
+        (projectDialogueContext != null && !projectDialogueContext.groups.any((group) => group.id == dungeonId)))) {
+      throw const ValidationException('The Escape Rope dungeon must reference an existing group.');
+    }
     if (projectDialogueContext != null &&
         (map.spatialScene != null) !=
             (projectDialogueContext.settings.dimension ==

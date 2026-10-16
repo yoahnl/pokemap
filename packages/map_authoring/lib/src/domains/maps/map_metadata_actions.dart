@@ -10,13 +10,22 @@ import 'map_lifecycle_adapter.dart';
 
 AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
   final parameters = VisualLibraryParameters(context.request.parameters);
-  parameters.allow(const {'mapId', 'name', 'role', 'isIndoor'});
+  parameters.allow(const {
+    'mapId',
+    'name',
+    'role',
+    'isIndoor',
+    'allowEscapeRope',
+    'escapeRopeDungeonId',
+  });
   final mapId = parameters.string('mapId');
   final values = context.request.parameters;
   final hasName = values.containsKey('name');
   final hasRole = values.containsKey('role');
   final hasIndoor = values.containsKey('isIndoor');
-  if (!hasName && !hasRole && !hasIndoor) {
+  final hasEscapeAllowed = values.containsKey('allowEscapeRope');
+  final hasDungeon = values.containsKey('escapeRopeDungeonId');
+  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasDungeon) {
     throw MapAuthoringException(
         code: 'map.metadata_empty',
         message: 'At least one map metadata field is required.');
@@ -46,9 +55,31 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
         code: 'map.indoor_invalid',
         message: 'The indoor map setting must be a boolean.');
   }
+  final rawEscapeAllowed = values['allowEscapeRope'];
+  final rawDungeon = values['escapeRopeDungeonId'];
+  if ((hasEscapeAllowed && rawEscapeAllowed is! bool) ||
+      (hasDungeon &&
+          rawDungeon != null &&
+          (rawDungeon is! String ||
+              rawDungeon.trim().isEmpty ||
+              rawDungeon != rawDungeon.trim()))) {
+    throw MapAuthoringException(
+      code: 'map.escape_rope_invalid',
+      message: 'Escape Rope requires a boolean and an explicit canonical dungeon ID or null.',
+    );
+  }
   final snapshot = context.snapshot;
-  final entry =
-      snapshot.manifest.maps.where((map) => map.id == mapId).firstOrNull;
+  if (hasDungeon &&
+      rawDungeon != null &&
+      !snapshot.manifest.groups.any((group) => group.id == rawDungeon)) {
+    throw MapAuthoringException(
+      code: 'map.escape_rope_dungeon_missing',
+      message: 'Select an existing dungeon group.',
+    );
+  }
+  final entry = snapshot.manifest.maps
+      .where((map) => map.id == mapId)
+      .firstOrNull;
   if (entry == null) {
     throw MapAuthoringException(
         code: 'map.not_found', message: 'The requested map does not exist.');
@@ -75,30 +106,45 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       ((role == MapRole.interior && !isIndoor) ||
           (role == MapRole.exterior && isIndoor))) {
     throw MapAuthoringException(
-        code: 'map.metadata_inconsistent',
-        message:
-            'Interior and exterior map roles must match the indoor setting.',
-        details: {'role': role.name, 'isIndoor': isIndoor});
+      code: 'map.metadata_inconsistent',
+      message: 'Interior and exterior map roles must match the indoor setting.',
+      details: {'role': role.name, 'isIndoor': isIndoor},
+    );
   }
+  final allowEscapeRope = hasEscapeAllowed
+      ? rawEscapeAllowed! as bool
+      : before.mapMetadata.allowEscapeRope;
+  final dungeonId = hasDungeon
+      ? rawDungeon as String?
+      : before.mapMetadata.escapeRopeDungeonId;
   final nameChanged =
       name != null && (entry.name.trim() != name || before.name.trim() != name);
   if (!nameChanged &&
       entry.role == role &&
-      before.mapMetadata.isIndoor == isIndoor) {
+      before.mapMetadata.isIndoor == isIndoor &&
+      before.mapMetadata.allowEscapeRope == allowEscapeRope &&
+      before.mapMetadata.escapeRopeDungeonId == dungeonId) {
     throw MapAuthoringException(
         code: 'map.no_change',
         message: 'The requested metadata changes nothing.');
   }
   final updated = before.copyWith(
-      name: name ?? before.name,
-      mapMetadata: before.mapMetadata.copyWith(isIndoor: isIndoor));
-  final manifest = snapshot.manifest.copyWith(maps: [
-    for (final candidate in snapshot.manifest.maps)
-      if (candidate.id == mapId)
-        candidate.copyWith(name: name ?? candidate.name, role: role)
-      else
-        candidate,
-  ]);
+    name: name ?? before.name,
+    mapMetadata: before.mapMetadata.copyWith(
+      isIndoor: isIndoor,
+      allowEscapeRope: allowEscapeRope,
+      escapeRopeDungeonId: dungeonId,
+    ),
+  );
+  final manifest = snapshot.manifest.copyWith(
+    maps: [
+      for (final candidate in snapshot.manifest.maps)
+        if (candidate.id == mapId)
+          candidate.copyWith(name: name ?? candidate.name, role: role)
+        else
+          candidate,
+    ],
+  );
   ProjectValidator.validate(manifest);
   MapValidator.validate(updated, projectDialogueContext: manifest);
   final map = AuthoringResourceRef(
@@ -110,61 +156,86 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       id: 'project',
       revision: snapshot.resourceFingerprints['project']);
   final mapChanged =
-      before.name != updated.name || before.mapMetadata.isIndoor != isIndoor;
+      before.name != updated.name || before.mapMetadata != updated.mapMetadata;
   final projectChanged =
       entry.name != (name ?? entry.name) || entry.role != role;
   return AuthoringMutationDraft(
     changeSet: AuthoringChangeSet(
-        changes: [
-          if (mapChanged)
-            AuthoringResourceChange(
-                resource: map,
-                storageKey: entry.relativePath,
-                beforeBytes: snapshot.resourceBytes('map:$mapId'),
-                afterBytes: encodeMapAuthoringDocument(updated)),
-          if (projectChanged)
-            AuthoringResourceChange(
-                resource: project,
-                storageKey: 'project.json',
-                beforeBytes: snapshot.resourceBytes('project'),
-                afterBytes: encodeProjectAuthoringDocument(snapshot, manifest)),
-        ],
-        diff: AuthoringDiff([
-          if (before.name != updated.name)
-            AuthoringDiffEntry(
-                operation: AuthoringDiffOperation.replace,
-                resource: map,
-                path: '/name',
-                before: before.name,
-                after: updated.name),
-          if (entry.name != (name ?? entry.name))
-            AuthoringDiffEntry(
-                operation: AuthoringDiffOperation.replace,
-                resource: project,
-                path: '/maps/$mapId/name',
-                before: entry.name,
-                after: name),
-          if (entry.role != role)
-            AuthoringDiffEntry(
-                operation: AuthoringDiffOperation.replace,
-                resource: project,
-                path: '/maps/$mapId/role',
-                before: entry.role.name,
-                after: role.name),
-          if (before.mapMetadata.isIndoor != isIndoor)
-            AuthoringDiffEntry(
-                operation: AuthoringDiffOperation.replace,
-                resource: map,
-                path: '/mapMetadata/isIndoor',
-                before: before.mapMetadata.isIndoor,
-                after: isIndoor),
-        ])),
+      changes: [
+        if (mapChanged)
+          AuthoringResourceChange(
+            resource: map,
+            storageKey: entry.relativePath,
+            beforeBytes: snapshot.resourceBytes('map:$mapId'),
+            afterBytes: encodeMapAuthoringDocument(updated),
+          ),
+        if (projectChanged)
+          AuthoringResourceChange(
+            resource: project,
+            storageKey: 'project.json',
+            beforeBytes: snapshot.resourceBytes('project'),
+            afterBytes: encodeProjectAuthoringDocument(snapshot, manifest),
+          ),
+      ],
+      diff: AuthoringDiff([
+        if (before.name != updated.name)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: map,
+            path: '/name',
+            before: before.name,
+            after: updated.name,
+          ),
+        if (entry.name != (name ?? entry.name))
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: project,
+            path: '/maps/$mapId/name',
+            before: entry.name,
+            after: name,
+          ),
+        if (entry.role != role)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: project,
+            path: '/maps/$mapId/role',
+            before: entry.role.name,
+            after: role.name,
+          ),
+        if (before.mapMetadata.allowEscapeRope != allowEscapeRope)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: map,
+            path: '/mapMetadata/allowEscapeRope',
+            before: before.mapMetadata.allowEscapeRope,
+            after: allowEscapeRope,
+          ),
+        if (before.mapMetadata.escapeRopeDungeonId != dungeonId)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: map,
+            path: '/mapMetadata/escapeRopeDungeonId',
+            before: before.mapMetadata.escapeRopeDungeonId,
+            after: dungeonId,
+          ),
+        if (before.mapMetadata.isIndoor != isIndoor)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: map,
+            path: '/mapMetadata/isIndoor',
+            before: before.mapMetadata.isIndoor,
+            after: isIndoor,
+          ),
+      ]),
+    ),
     preview: {
       'operation': 'update_metadata',
       'mapId': mapId,
       'name': updated.name,
       'role': role.name,
       'isIndoor': isIndoor,
+      'allowEscapeRope': allowEscapeRope,
+      'escapeRopeDungeonId': dungeonId,
       'storageGuarantee': 'recoverable'
     },
     referenceImpact: const {'identityUnchanged': true, 'pathUnchanged': true},

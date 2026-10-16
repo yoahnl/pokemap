@@ -18,6 +18,7 @@ class EditableMapDocument {
   List<MapHistoryEntry> _undo = [];
   List<MapHistoryEntry> _redo = [];
   String? _catalogName;
+  MapMetadata? _catalogMetadata;
 
   bool get dirty => current != saved;
   bool get canUndo => _undo.isNotEmpty;
@@ -53,9 +54,14 @@ class EditableMapDocument {
           );
     if (result == null) return;
     final catalogName = _catalogName;
-    final restored = catalogName == null
-        ? result.restoredSnapshot.map
-        : result.restoredSnapshot.map.copyWith(name: catalogName);
+    final catalogMetadata = _catalogMetadata;
+    final snapshot = result.restoredSnapshot.map;
+    final restored = catalogName == null && catalogMetadata == null
+        ? snapshot
+        : snapshot.copyWith(
+            name: catalogName ?? snapshot.name,
+            mapMetadata: catalogMetadata ?? snapshot.mapMetadata,
+          );
     if (canRestore != null && !canRestore(restored)) return;
     current = restored;
     _undo = result.undoStack;
@@ -74,14 +80,22 @@ class EditableMapDocument {
   }
 
   void acceptCatalogMetadata(MapWorkspaceDocument updated) {
-    if (updated.map.copyWith(name: saved.name) != saved) {
+    if (updated.map.copyWith(
+          name: saved.name,
+          mapMetadata: saved.mapMetadata,
+        ) !=
+        saved) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,
         'La carte publiée contient d’autres modifications. Votre historique reste conservé.',
       );
     }
     _catalogName = updated.map.name;
-    current = current.copyWith(name: updated.map.name);
+    _catalogMetadata = updated.map.mapMetadata;
+    current = current.copyWith(
+      name: updated.map.name,
+      mapMetadata: updated.map.mapMetadata,
+    );
     saved = updated.map;
     base = updated;
   }
@@ -97,6 +111,7 @@ class EditableMapDocument {
     saved = updated.map;
     base = updated;
     _catalogName = updated.map.name;
+    _catalogMetadata = updated.map.mapMetadata;
     _undo = [];
     _redo = [];
     stackPosition = null;
@@ -121,6 +136,7 @@ class EditableMapDocument {
     saved = current;
     base = updated;
     _catalogName = updated.map.name;
+    _catalogMetadata = updated.map.mapMetadata;
     _repairSelection();
   }
 

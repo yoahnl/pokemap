@@ -170,6 +170,7 @@ import 'warp_presentation_renderer.dart';
 part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_repel.dart';
+part 'playable_map_game_escape_rope.dart';
 part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
@@ -302,7 +303,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.afterInitialTilesetImagesLoaded,
     GameCompletionRequestEmitter? gameCompletionEmitter,
     this.defeatRecoveryCheckpointEmitter,
-    this.repelExpirationCheckpointWriter,
+    this.overworldCheckpointWriter,
     @visibleForTesting this.defeatRecoveryCapsLoader,
     @visibleForTesting this.railJourneyDoorAnimation,
     @visibleForTesting this.railJourneySpatialTransition,
@@ -552,7 +553,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   final VoidCallback? beforePostBattleStateCommit;
   final DefeatRecoveryCheckpointEmitter? defeatRecoveryCheckpointEmitter;
-  final Future<void> Function(GameState)? repelExpirationCheckpointWriter;
+  final Future<void> Function(GameState)? overworldCheckpointWriter;
   @visibleForTesting
   final PlayerServiceRecoveryCapsLoader? defeatRecoveryCapsLoader;
   @visibleForTesting
@@ -933,6 +934,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool get _hasCheckpointUnsafeRuntimeWorkForSave =>
       _diveTransferInFlight ||
       _flyTransferInFlight ||
+      _escapeRopeTransferInFlight ||
       _hasCheckpointUnsafeRuntimeWork ||
       _pendingWarp != null ||
       _pendingConnection != null ||
@@ -2068,6 +2070,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Compteur de mutations de l'état de jeu, source du jeton de fraîcheur.
   int _gameStateRevision = 0;
   bool _flyTransferInFlight = false;
+  bool _escapeRopeTransferInFlight = false;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -2851,6 +2854,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       return null;
     });
+    controller.setEscapeRopeConsumer(_usePlayerEscapeRope);
     _playerServiceRuntimeController = controller;
   }
 
@@ -2964,7 +2968,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       });
       _applyNarrativeGameState(committedState);
       final saving = expectedState != null &&
-              repelExpirationCheckpointWriter != null
+              overworldCheckpointWriter != null
           ? _saveRepelExpirationCheckpoint()
           : saveGame();
       ownedRevision = _gameStateRevision;
@@ -14982,11 +14986,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<bool> _restoreRuntimeSpatialSnapshot(
     _RuntimeSpatialSnapshot source, {
     required bool commitNarrativeState,
+    bool Function()? restorationGuard,
   }) async {
     try {
+      if (restorationGuard?.call() == false) return false;
       _gameState = source.gameState;
       if (commitNarrativeState) {
         await _narrativeStateTransactions.transact<void>((_) {
+        if (restorationGuard?.call() == false) return NarrativeEventStateTransaction.rollback(null);
         return NarrativeEventStateTransaction.commit(source.gameState, null);
       });
       }
@@ -14999,6 +15006,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         manifest: sourceBundle.manifest,
       );
       final sourceBorderAssets = await _loadBorderRuntimeAssets(sourceBundle);
+      if (restorationGuard?.call() == false) return false;
 
       _unmountAllLoadedMaps();
       _bundle = sourceBundle;
@@ -15018,6 +15026,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         originCellX: 0,
         originCellY: 0,
       );
+      if (restorationGuard?.call() == false) return false;
       sourceBundle = root.bundle;
       _bundle = sourceBundle;
       _resetScriptedNpcMovementController();
@@ -15043,6 +15052,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     } catch (error, stackTrace) {
       debugPrint('[load] rollback failed: $error\n$stackTrace');
+      if (restorationGuard?.call() == false) return false;
       _gameState = source.gameState;
       _bundle = source.bundle;
       _world = source.world;
@@ -15189,6 +15199,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     bool Function(MapInstanceWorldState? nextInstances)? transferGuard,
     bool Function(MapActivation activation)? destinationTransferGuard,
     String? arrivalCollisionOwnerEntityId,
+    bool revalidateArrivalAfterMount = false,
     _SceneWarpPresentationOwner? presentationOwner,
   }) async {
     final presentedTransfer = presentationOwner != null;
@@ -15214,6 +15225,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final sourceActivationId = _currentMapActivationId;
     final sourcePos = _world.player.pos;
     final sourceFacing = _world.player.facing;
+    final escapeSourceState = playerServiceGameStateSnapshot;
     final sourceInstances = _battleRuntimeGameState.mapInstanceWorldState;
     WarpTransitionOverlayComponent? overlay;
     var swapCompleted = false;
@@ -15342,6 +15354,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (transferGuard != null && !transferGuard(nextInstances)) {
         throw StateError('The Fly state changed while mounting.');
       }
+      if (revalidateArrivalAfterMount && !isSceneWarpArrivalAllowed(
+        world: newWorld, project: newBundle.manifest,
+      )) {
+        throw StateError('The transfer arrival became obstructed while mounting.');
+      }
       _bundle = newBundle;
       _world = newWorld;
       _activeMapId = newBundle.map.id;
@@ -15392,6 +15409,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[perf][warp] total=${warpStopwatch.elapsedMilliseconds}ms');
       debugPrint('[warp] transition completed');
       transitionCompleted = true;
+      _recordEscapeReturnPointAfterTransfer(sourceBundle.map, escapeSourceState);
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
       if (!_isRemoved) _showNotification('La téléportation a échoué.');
@@ -15670,6 +15688,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       return;
     }
+    final escapeSourceMap = _bundle.map;
+    final escapeSourceState = playerServiceGameStateSnapshot;
     _preservingConnectionInput = true;
     _setFlowPhase(_RuntimeFlowPhase.mapTransition);
     final activation = _createMapActivation(
@@ -15844,6 +15864,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[perf][connection] total=${connectionStopwatch.elapsedMilliseconds}ms',
       );
+      _recordEscapeReturnPointAfterTransfer(escapeSourceMap, escapeSourceState);
       transitionCompleted = true;
     } catch (e, st) {
       debugPrint('[connection] transition failed: $e\n$st');

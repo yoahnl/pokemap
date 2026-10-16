@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
 
 /// Exécuteur du travail CPU pur du committer (canonicalisation + SHA-256).
 typedef HubCheckpointWorkerRunner = Future<T> Function<T>(T Function() work);
@@ -83,6 +84,7 @@ final class HubSessionCheckpointCommitter {
     } on HubSessionCheckpointException {
       rethrow;
     } catch (error) {
+      if (await _isCurrentGenerationCommitted(envelope)) return;
       throw HubSessionCheckpointException(
         HubSessionCheckpointErrorCode.writeFailed,
         'The checkpoint could not be committed atomically.',
@@ -118,6 +120,22 @@ final class HubSessionCheckpointCommitter {
         state: checkpoint.state,
       ),
     );
+  }
+
+  Future<bool> _isCurrentGenerationCommitted(SaveEnvelope proposed) async {
+    try {
+      final read = await store.read(proposed.address);
+      final current = read.envelope;
+      if (read.status != SaveSlotReadStatus.valid ||
+          read.source != SaveSlotSource.current ||
+          current == null) {
+        return false;
+      }
+      _verifyConfirmed(current, proposed);
+      return true;
+    } on Object {
+      return false;
+    }
   }
 
   static void _verifyConfirmed(SaveEnvelope confirmed, SaveEnvelope envelope) {

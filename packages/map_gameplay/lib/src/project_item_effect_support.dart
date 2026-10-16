@@ -4,16 +4,16 @@ enum ProjectItemEffectRuntimeSupport { supported, unsupported }
 
 ProjectItemEffectRuntimeSupport projectItemEffectRuntimeSupport(
   ProjectItemEffectDefinition effect,
-) =>
-    switch (effect) {
-      ProjectItemHealHpEffectDefinition() ||
-      ProjectItemCureStatusEffectDefinition() ||
-      ProjectItemReviveEffectDefinition() ||
-      ProjectItemRestorePpEffectDefinition() ||
-      ProjectItemRepelEffectDefinition() =>
-        ProjectItemEffectRuntimeSupport.supported,
-      _ => ProjectItemEffectRuntimeSupport.unsupported,
-    };
+) => switch (effect) {
+  ProjectItemHealHpEffectDefinition() ||
+  ProjectItemCureStatusEffectDefinition() ||
+  ProjectItemReviveEffectDefinition() ||
+  ProjectItemRestorePpEffectDefinition() ||
+  ProjectItemRepelEffectDefinition() ||
+  ProjectItemEscapeRopeEffectDefinition() =>
+    ProjectItemEffectRuntimeSupport.supported,
+  _ => ProjectItemEffectRuntimeSupport.unsupported,
+};
 
 String? projectItemEffectUnsupportedReason(
   ProjectItemEffectDefinition effect,

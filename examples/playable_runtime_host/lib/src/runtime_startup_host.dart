@@ -715,6 +715,7 @@ final class _StandaloneInProcessSessionRuntime
     );
     return const RuntimePlayerPauseDataBuilder().build(
       supportsRepel: true,
+      supportsEscapeRope: manifest.settings.dimension == ProjectDimension.twoD,
       gameState: state,
       projectRootDirectory: File(projectFilePath).parent.path,
       pokemonConfig: manifest.pokemon,

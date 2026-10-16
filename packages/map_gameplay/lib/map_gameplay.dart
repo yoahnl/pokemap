@@ -3,6 +3,7 @@ library map_gameplay;
 export 'src/movement_terrain_policy.dart';
 
 export 'src/fly_action.dart';
+export 'src/escape_rope_action.dart';
 export 'src/dive_action.dart';
 export 'src/cut_obstacle_action.dart';
 export 'src/field_obstacle_action.dart';

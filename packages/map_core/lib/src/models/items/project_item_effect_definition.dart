@@ -40,6 +40,10 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
       ProjectItemRepelEffectDefinition;
 
   @JsonSerializable(explicitToJson: true)
+  const factory ProjectItemEffectDefinition.escapeRope() =
+      ProjectItemEscapeRopeEffectDefinition;
+
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectItemEffectDefinition.semanticAction({
     required String actionId,
   }) = ProjectItemSemanticActionEffectDefinition;
@@ -97,6 +101,7 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
         }
         return effect;
       },
+      escapeRope: (effect) => effect,
       semanticAction: (effect) {
         final actionId = effect.actionId.trim();
         if (actionId.isEmpty) {

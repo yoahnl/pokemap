@@ -17,47 +17,82 @@ ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
 }
 
 void main() {
-  test(
-    'a session without a Repousse consumer refuses use without committing or consuming',
-    () async {
-      final state = const GameState(
-        saveId: 'repel-unsupported-session',
-        bag: Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
-      );
-      var commits = 0;
-      final controller = PlayerServiceRuntimeController.contextual(
-        currentGameState: () => state,
-        commitAndSave: (_) async => commits++,
-        setInputLocked: (_) {},
-        loadRecoveryCaps: (_) async =>
-            throw StateError('world must not load Pokemon caps'),
-        itemCatalog: _catalogWith(const [
-          ProjectItemDefinition(
-            id: 'repel',
-            displayName: 'Repousse',
-            pocketId: 'items',
-            uses: [
-              ProjectItemUseDefinition(
-                contexts: {ProjectItemUseContext.overworld},
-                target: ProjectItemTargetKind.world,
-                consumption: ProjectItemConsumptionPolicy.onApplied,
-                effect: ProjectItemEffectDefinition.repel(steps: 100),
-              ),
-            ],
-          ),
-        ]),
-      );
-      addTearDown(controller.dispose);
-      final result = await controller.useBagItemOutsideBattle(
-        const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'repel'),
-      );
-      expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
-      expect(result.safeMessage, contains('mode de jeu'));
-      expect(commits, 0);
-      expect(state.bag.entries.single.quantity, 2);
-      expect(state.repelState.isActive, isFalse);
-    },
-  );
+  test('Corde Sortie without an installed consumer refuses with a 2D reason and no mutation', () async {
+    const state = GameState(
+      saveId: 'rope-unsupported',
+      bag: Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]),
+    );
+    var commits = 0;
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (_) async => commits++,
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async =>
+          throw StateError('world does not need Pokemon caps'),
+      itemCatalog: _catalogWith(const [
+        ProjectItemDefinition(
+          id: 'rope',
+          displayName: 'Corde Sortie',
+          pocketId: 'items',
+          uses: [
+            ProjectItemUseDefinition(
+              contexts: {ProjectItemUseContext.overworld},
+              target: ProjectItemTargetKind.world,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: ProjectItemEffectDefinition.escapeRope(),
+            ),
+          ],
+        ),
+      ]),
+    );
+    addTearDown(controller.dispose);
+    final result = await controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'),
+    );
+    expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(result.safeMessage, contains('2D'));
+    expect(commits, 0);
+    expect(state.bag.entries.single.quantity, 2);
+  });
+
+  test('a session without a Repousse consumer refuses use without committing or consuming', () async {
+    final state = const GameState(
+      saveId: 'repel-unsupported-session',
+      bag: Bag(entries: [BagEntry(itemId: 'repel', quantity: 2)]),
+    );
+    var commits = 0;
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (_) async => commits++,
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async =>
+          throw StateError('world must not load Pokemon caps'),
+      itemCatalog: _catalogWith(const [
+        ProjectItemDefinition(
+          id: 'repel',
+          displayName: 'Repousse',
+          pocketId: 'items',
+          uses: [
+            ProjectItemUseDefinition(
+              contexts: {ProjectItemUseContext.overworld},
+              target: ProjectItemTargetKind.world,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: ProjectItemEffectDefinition.repel(steps: 100),
+            ),
+          ],
+        ),
+      ]),
+    );
+    addTearDown(controller.dispose);
+    final result = await controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'repel'),
+    );
+    expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(result.safeMessage, contains('mode de jeu'));
+    expect(commits, 0);
+    expect(state.bag.entries.single.quantity, 2);
+    expect(state.repelState.isActive, isFalse);
+  });
 
   for (final saveFails in [false, true]) {
     test(
@@ -124,102 +159,99 @@ void main() {
     );
   }
 
-  test('pause bag item use commits one effect and consumes exactly one item',
-      () async {
-    var state = const GameState(
-      saveId: 'bag-use',
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          PlayerPokemon(
-            speciesId: 'lead',
-            natureId: 'hardy',
-            abilityId: 'steadfast',
-            currentHp: 5,
-          ),
-        ],
-      ),
-      bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(
-            itemId: 'potion',
-            quantity: 2,
-          ),
-          BagEntry(
-            itemId: 'harbor-pass',
-            quantity: 1,
-          ),
-        ],
-      ),
-    );
-    final commits = <GameState>[];
-    final controller = PlayerServiceRuntimeController.contextual(
-      currentGameState: () => state,
-      commitAndSave: (next) async {
-        commits.add(next);
-        state = next;
-      },
-      setInputLocked: (_) {},
-      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
-        maxHpByPartyIndex: <int, int>{0: 30},
-      ),
-      itemCatalog: _catalogWith(
-        const <ProjectItemDefinition>[
+  test(
+    'pause bag item use commits one effect and consumes exactly one item',
+    () async {
+      var state = const GameState(
+        saveId: 'bag-use',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'lead',
+              natureId: 'hardy',
+              abilityId: 'steadfast',
+              currentHp: 5,
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', quantity: 2),
+            BagEntry(itemId: 'harbor-pass', quantity: 1),
+          ],
+        ),
+      );
+      final commits = <GameState>[];
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          commits.add(next);
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 30},
+        ),
+        itemCatalog: _catalogWith(const <ProjectItemDefinition>[
           ProjectItemDefinition(
             id: 'harbor-pass',
             displayName: 'Harbor Pass',
             pocketId: 'key-items',
             tags: <String>{'key-item', 'passive'},
           ),
-        ],
-      ),
-    );
-    addTearDown(controller.dispose);
+        ]),
+      );
+      addTearDown(controller.dispose);
 
-    final used = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'potion',
-        partyTargetId: 'party.0',
-      ),
-    );
+      final used = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'potion',
+          partyTargetId: 'party.0',
+        ),
+      );
 
-    expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
-    expect(commits, hasLength(1));
-    expect(state.party.members.single.currentHp, 25);
-    expect(
-      state.bag.entries
-          .firstWhere((entry) => entry.itemId == 'potion')
-          .quantity,
-      1,
-    );
+      expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(commits, hasLength(1));
+      expect(state.party.members.single.currentHp, 25);
+      expect(
+        state.bag.entries
+            .firstWhere((entry) => entry.itemId == 'potion')
+            .quantity,
+        1,
+      );
 
-    final refused = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'harbor-pass',
-        partyTargetId: 'party.0',
-      ),
-    );
+      final refused = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'harbor-pass',
+          partyTargetId: 'party.0',
+        ),
+      );
 
-    expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
-    expect(commits, hasLength(1));
-    expect(
-      state.bag.entries
-          .firstWhere((entry) => entry.itemId == 'harbor-pass')
-          .quantity,
-      1,
-    );
-  });
+      expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
+      expect(commits, hasLength(1));
+      expect(
+        state.bag.entries
+            .firstWhere((entry) => entry.itemId == 'harbor-pass')
+            .quantity,
+        1,
+      );
+    },
+  );
 
   test('pause bag refuses a scene that becomes active before commit', () async {
     var state = const GameState(
       saveId: 'bag-scene-interlock',
-      party: PlayerParty(members: [
-        PlayerPokemon(
+      party: PlayerParty(
+        members: [
+          PlayerPokemon(
             speciesId: 'lead',
             individualId: 'lead',
             natureId: 'hardy',
             abilityId: 'steadfast',
-            currentHp: 11),
-      ]),
+            currentHp: 11,
+          ),
+        ],
+      ),
       bag: Bag(entries: [BagEntry(itemId: 'potion', quantity: 3)]),
     );
     final original = state;
@@ -236,23 +268,30 @@ void main() {
       loadRecoveryCaps: (_) async {
         if (activateSceneDuringCaps) sceneActive = true;
         return const RuntimePlayerServiceRecoveryCaps(
-            maxHpByPartyIndex: {0: 34});
+          maxHpByPartyIndex: {0: 34},
+        );
       },
       itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     );
-    controller.setPauseMutationGuard(() => sceneActive
-        ? 'Terminez la scène en cours avant de modifier le sac.'
-        : null);
+    controller.setPauseMutationGuard(
+      () => sceneActive
+          ? 'Terminez la scène en cours avant de modifier le sac.'
+          : null,
+    );
     addTearDown(controller.dispose);
     const command = RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'potion', partyTargetId: 'pokemon.lead');
+      itemTargetId: 'potion',
+      partyTargetId: 'pokemon.lead',
+    );
     final refused = await controller.useBagItemOutsideBattle(command);
     expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
     expect(refused.safeMessage, contains('scène'));
     expect(commits, 0);
     expect(state, same(original));
-    expect((await controller.useBagItemOutsideBattle(command)).status,
-        RuntimePlayerPauseCommandStatus.unavailable);
+    expect(
+      (await controller.useBagItemOutsideBattle(command)).status,
+      RuntimePlayerPauseCommandStatus.unavailable,
+    );
     sceneActive = false;
     activateSceneDuringCaps = false;
     final accepted = await controller.useBagItemOutsideBattle(command);
@@ -262,165 +301,171 @@ void main() {
     expect(state.bag.entries.single.quantity, 2);
   });
 
-  test('replaying the same bag command heals again or refuses, never doubles',
-      () async {
-    // BETA-ITM-004 « fermeture/rebuild ne rejoue pas la commande » : un
-    // double dispatch (double-clic, rebuild de dialogue) est soit un
-    // DEUXIÈME soin légitime sur une cible encore blessée — consommant un
-    // DEUXIÈME objet, jamais le même — soit un refus sans effet quand la
-    // cible est au maximum. Aucun chemin ne consomme sans soigner.
-    var state = const GameState(
-      saveId: 'bag-replay',
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          PlayerPokemon(
-            speciesId: 'lead',
-            natureId: 'hardy',
-            abilityId: 'steadfast',
-            currentHp: 5,
-          ),
-        ],
-      ),
-      bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(itemId: 'potion', quantity: 3),
-        ],
-      ),
-    );
-    final commits = <GameState>[];
-    final controller = PlayerServiceRuntimeController.contextual(
-      currentGameState: () => state,
-      commitAndSave: (next) async {
-        commits.add(next);
-        state = next;
-      },
-      setInputLocked: (_) {},
-      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
-        maxHpByPartyIndex: <int, int>{0: 30},
-      ),
-      itemCatalog: _catalogWith(const <ProjectItemDefinition>[]),
-    );
-    addTearDown(controller.dispose);
+  test(
+    'replaying the same bag command heals again or refuses, never doubles',
+    () async {
+      // BETA-ITM-004 « fermeture/rebuild ne rejoue pas la commande » : un
+      // double dispatch (double-clic, rebuild de dialogue) est soit un
+      // DEUXIÈME soin légitime sur une cible encore blessée — consommant un
+      // DEUXIÈME objet, jamais le même — soit un refus sans effet quand la
+      // cible est au maximum. Aucun chemin ne consomme sans soigner.
+      var state = const GameState(
+        saveId: 'bag-replay',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'lead',
+              natureId: 'hardy',
+              abilityId: 'steadfast',
+              currentHp: 5,
+            ),
+          ],
+        ),
+        bag: Bag(entries: <BagEntry>[BagEntry(itemId: 'potion', quantity: 3)]),
+      );
+      final commits = <GameState>[];
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          commits.add(next);
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 30},
+        ),
+        itemCatalog: _catalogWith(const <ProjectItemDefinition>[]),
+      );
+      addTearDown(controller.dispose);
 
-    const command = RuntimePlayerPauseCommand.useBagItem(
-      itemTargetId: 'potion',
-      partyTargetId: 'party.0',
-    );
-
-    final first = await controller.useBagItemOutsideBattle(command);
-    expect(first.status, RuntimePlayerPauseCommandStatus.accepted);
-    expect(state.party.members.single.currentHp, 25);
-
-    final second = await controller.useBagItemOutsideBattle(command);
-    expect(second.status, RuntimePlayerPauseCommandStatus.accepted);
-    expect(state.party.members.single.currentHp, 30,
-        reason: 'the second heal caps at max HP');
-    expect(commits, hasLength(2));
-    expect(state.bag.entries.single.quantity, 1,
-        reason: 'each accepted heal consumes exactly one potion');
-
-    final third = await controller.useBagItemOutsideBattle(command);
-    expect(third.status, RuntimePlayerPauseCommandStatus.unavailable,
-        reason: 'a full-HP target refuses the heal');
-    expect(commits, hasLength(2));
-    expect(state.bag.entries.single.quantity, 1,
-        reason: 'a refused replay never consumes');
-  });
-
-  test('pause bag command resolves its individual after a party reorder',
-      () async {
-    var state = const GameState(
-      saveId: 'bag-stable-target',
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          PlayerPokemon(
-            individualId: 'pkm_other',
-            speciesId: 'other',
-            natureId: 'hardy',
-            abilityId: 'steadfast',
-            currentHp: 20,
-          ),
-          PlayerPokemon(
-            individualId: 'pkm_target',
-            speciesId: 'target',
-            natureId: 'hardy',
-            abilityId: 'steadfast',
-            currentHp: 5,
-          ),
-        ],
-      ),
-      bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(itemId: 'potion', quantity: 1),
-        ],
-      ),
-    );
-    const staleTargetId = 'pokemon.pkm_target';
-    state = state.copyWith(
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          state.party.members[1],
-          state.party.members[0],
-        ],
-      ),
-    );
-    final controller = PlayerServiceRuntimeController.contextual(
-      currentGameState: () => state,
-      commitAndSave: (next) async => state = next,
-      setInputLocked: (_) {},
-      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
-        maxHpByPartyIndex: <int, int>{0: 30, 1: 30},
-      ),
-      itemCatalog: _catalogWith(const <ProjectItemDefinition>[]),
-    );
-    addTearDown(controller.dispose);
-
-    final used = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
+      const command = RuntimePlayerPauseCommand.useBagItem(
         itemTargetId: 'potion',
-        partyTargetId: staleTargetId,
-      ),
-    );
+        partyTargetId: 'party.0',
+      );
 
-    expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
-    expect(state.party.members[0].individualId, 'pkm_target');
-    expect(state.party.members[0].currentHp, 25);
-    expect(state.party.members[1].currentHp, 20);
-  });
+      final first = await controller.useBagItemOutsideBattle(command);
+      expect(first.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(state.party.members.single.currentHp, 25);
 
-  test('pause bag uses a custom pocket item through its authored capability',
-      () async {
-    var state = const GameState(
-      saveId: 'custom-pocket-use',
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          PlayerPokemon(
-            speciesId: 'lead',
-            natureId: 'hardy',
-            abilityId: 'steadfast',
-            currentHp: 5,
-          ),
-        ],
-      ),
-      bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(itemId: 'field-tonic', quantity: 1),
-        ],
-      ),
-    );
-    final commits = <GameState>[];
-    final controller = PlayerServiceRuntimeController.contextual(
-      currentGameState: () => state,
-      commitAndSave: (next) async {
-        commits.add(next);
-        state = next;
-      },
-      setInputLocked: (_) {},
-      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
-        maxHpByPartyIndex: <int, int>{0: 30},
-      ),
-      itemCatalog: _catalogWith(
-        const <ProjectItemDefinition>[
+      final second = await controller.useBagItemOutsideBattle(command);
+      expect(second.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(
+        state.party.members.single.currentHp,
+        30,
+        reason: 'the second heal caps at max HP',
+      );
+      expect(commits, hasLength(2));
+      expect(
+        state.bag.entries.single.quantity,
+        1,
+        reason: 'each accepted heal consumes exactly one potion',
+      );
+
+      final third = await controller.useBagItemOutsideBattle(command);
+      expect(
+        third.status,
+        RuntimePlayerPauseCommandStatus.unavailable,
+        reason: 'a full-HP target refuses the heal',
+      );
+      expect(commits, hasLength(2));
+      expect(
+        state.bag.entries.single.quantity,
+        1,
+        reason: 'a refused replay never consumes',
+      );
+    },
+  );
+
+  test(
+    'pause bag command resolves its individual after a party reorder',
+    () async {
+      var state = const GameState(
+        saveId: 'bag-stable-target',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              individualId: 'pkm_other',
+              speciesId: 'other',
+              natureId: 'hardy',
+              abilityId: 'steadfast',
+              currentHp: 20,
+            ),
+            PlayerPokemon(
+              individualId: 'pkm_target',
+              speciesId: 'target',
+              natureId: 'hardy',
+              abilityId: 'steadfast',
+              currentHp: 5,
+            ),
+          ],
+        ),
+        bag: Bag(entries: <BagEntry>[BagEntry(itemId: 'potion', quantity: 1)]),
+      );
+      const staleTargetId = 'pokemon.pkm_target';
+      state = state.copyWith(
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            state.party.members[1],
+            state.party.members[0],
+          ],
+        ),
+      );
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async => state = next,
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 30, 1: 30},
+        ),
+        itemCatalog: _catalogWith(const <ProjectItemDefinition>[]),
+      );
+      addTearDown(controller.dispose);
+
+      final used = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'potion',
+          partyTargetId: staleTargetId,
+        ),
+      );
+
+      expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(state.party.members[0].individualId, 'pkm_target');
+      expect(state.party.members[0].currentHp, 25);
+      expect(state.party.members[1].currentHp, 20);
+    },
+  );
+
+  test(
+    'pause bag uses a custom pocket item through its authored capability',
+    () async {
+      var state = const GameState(
+        saveId: 'custom-pocket-use',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'lead',
+              natureId: 'hardy',
+              abilityId: 'steadfast',
+              currentHp: 5,
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[BagEntry(itemId: 'field-tonic', quantity: 1)],
+        ),
+      );
+      final commits = <GameState>[];
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          commits.add(next);
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 30},
+        ),
+        itemCatalog: _catalogWith(const <ProjectItemDefinition>[
           ProjectItemDefinition(
             id: 'field-tonic',
             displayName: 'Field Tonic',
@@ -439,156 +484,146 @@ void main() {
               ),
             ],
           ),
-        ],
-      ),
-    );
-    addTearDown(controller.dispose);
+        ]),
+      );
+      addTearDown(controller.dispose);
 
-    final refused = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'field-tonic',
-        partyTargetId: 'party.9',
-      ),
-    );
+      final refused = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'field-tonic',
+          partyTargetId: 'party.9',
+        ),
+      );
 
-    expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
-    expect(commits, isEmpty);
-    expect(state.bag.entries.single.quantity, 1);
+      expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
+      expect(commits, isEmpty);
+      expect(state.bag.entries.single.quantity, 1);
 
-    final used = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'field-tonic',
-        partyTargetId: 'party.0',
-      ),
-    );
+      final used = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'field-tonic',
+          partyTargetId: 'party.0',
+        ),
+      );
 
-    expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
-    expect(commits, hasLength(1));
-    expect(state.party.members.single.currentHp, 22);
-    expect(state.bag.entries, isEmpty);
-  });
+      expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(commits, hasLength(1));
+      expect(state.party.members.single.currentHp, 22);
+      expect(state.bag.entries, isEmpty);
+    },
+  );
 
-  test('pause bag does not consume an item when it would have no effect',
-      () async {
-    const state = GameState(
-      saveId: 'bag-no-effect',
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          PlayerPokemon(
-            speciesId: 'lead',
-            natureId: 'hardy',
-            abilityId: 'steadfast',
-            currentHp: 30,
-          ),
-        ],
-      ),
-      bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(
-            itemId: 'potion',
-            quantity: 1,
-          ),
-        ],
-      ),
-    );
-    final controller = PlayerServiceRuntimeController.contextual(
-      currentGameState: () => state,
-      commitAndSave: (_) async => fail('No mutation should be committed.'),
-      setInputLocked: (_) {},
-      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
-        maxHpByPartyIndex: <int, int>{0: 30},
-      ),
-      itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
-    );
-    addTearDown(controller.dispose);
+  test(
+    'pause bag does not consume an item when it would have no effect',
+    () async {
+      const state = GameState(
+        saveId: 'bag-no-effect',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'lead',
+              natureId: 'hardy',
+              abilityId: 'steadfast',
+              currentHp: 30,
+            ),
+          ],
+        ),
+        bag: Bag(entries: <BagEntry>[BagEntry(itemId: 'potion', quantity: 1)]),
+      );
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (_) async => fail('No mutation should be committed.'),
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 30},
+        ),
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+      );
+      addTearDown(controller.dispose);
 
-    final result = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'potion',
-        partyTargetId: 'party.0',
-      ),
-    );
+      final result = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'potion',
+          partyTargetId: 'party.0',
+        ),
+      );
 
-    expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
-    expect(result.safeMessage, contains('aucun effet'));
-    expect(state.bag.entries.single.quantity, 1);
-  });
+      expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+      expect(result.safeMessage, contains('aucun effet'));
+      expect(state.bag.entries.single.quantity, 1);
+    },
+  );
 
-  test('pause bag applies an authored item evolution and saves atomically',
-      () async {
-    final root = await Directory.systemTemp.createTemp(
-      'runtime-pause-item-evolution-',
-    );
-    addTearDown(() => root.delete(recursive: true));
-    await _writeEvolutionFixture(root);
-    var state = const GameState(
-      saveId: 'bag-evolution',
-      party: PlayerParty(
-        members: <PlayerPokemon>[
-          PlayerPokemon(
-            speciesId: 'sproutle',
-            natureId: 'hardy',
-            abilityId: 'overgrow',
-            level: 20,
-            currentHp: 20,
-            nickname: 'Pousse',
-            friendship: 180,
-          ),
-        ],
-      ),
-      bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(
-            itemId: 'leaf-stone',
-            quantity: 1,
-          ),
-        ],
-      ),
-    );
-    final commits = <GameState>[];
-    final controller = PlayerServiceRuntimeController.contextual(
-      currentGameState: () => state,
-      commitAndSave: (next) async {
-        commits.add(next);
-        state = next;
-      },
-      setInputLocked: (_) {},
-      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
-        maxHpByPartyIndex: <int, int>{0: 20},
-      ),
-      projectRootDirectory: root.path,
-      pokemonConfig: const ProjectPokemonConfig(
-        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-        evolutionsDir: 'custom/evolutions',
-        speciesDir: 'custom/species',
-      ),
-      itemCatalog: _catalogWith(
-        const <ProjectItemDefinition>[
+  test(
+    'pause bag applies an authored item evolution and saves atomically',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime-pause-item-evolution-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      await _writeEvolutionFixture(root);
+      var state = const GameState(
+        saveId: 'bag-evolution',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              level: 20,
+              currentHp: 20,
+              nickname: 'Pousse',
+              friendship: 180,
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[BagEntry(itemId: 'leaf-stone', quantity: 1)],
+        ),
+      );
+      final commits = <GameState>[];
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          commits.add(next);
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 20},
+        ),
+        projectRootDirectory: root.path,
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          evolutionsDir: 'custom/evolutions',
+          speciesDir: 'custom/species',
+        ),
+        itemCatalog: _catalogWith(const <ProjectItemDefinition>[
           ProjectItemDefinition(
             id: 'leaf-stone',
             displayName: 'Leaf Stone',
             pocketId: 'evolution-items',
             tags: <String>{'evolution'},
           ),
-        ],
-      ),
-    );
-    addTearDown(controller.dispose);
+        ]),
+      );
+      addTearDown(controller.dispose);
 
-    final result = await controller.useBagItemOutsideBattle(
-      const RuntimePlayerPauseCommand.useBagItem(
-        itemTargetId: 'leaf-stone',
-        partyTargetId: 'party.0',
-      ),
-    );
+      final result = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'leaf-stone',
+          partyTargetId: 'party.0',
+        ),
+      );
 
-    expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
-    expect(commits, hasLength(1));
-    expect(state.party.members.single.speciesId, 'bloomon');
-    expect(state.party.members.single.nickname, 'Pousse');
-    expect(state.party.members.single.friendship, 180);
-    expect(state.bag.entries, isEmpty);
-  });
+      expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(commits, hasLength(1));
+      expect(state.party.members.single.speciesId, 'bloomon');
+      expect(state.party.members.single.nickname, 'Pousse');
+      expect(state.party.members.single.friendship, 180);
+      expect(state.bag.entries, isEmpty);
+    },
+  );
 
   test('passive custom item is not guessed to be an evolution item', () async {
     final root = await Directory.systemTemp.createTemp(
@@ -608,9 +643,7 @@ void main() {
         ],
       ),
       bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(itemId: 'lucky-charm', quantity: 1),
-        ],
+        entries: <BagEntry>[BagEntry(itemId: 'lucky-charm', quantity: 1)],
       ),
     );
     final controller = PlayerServiceRuntimeController.contextual(
@@ -625,15 +658,13 @@ void main() {
         ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         evolutionsDir: 'custom/evolutions',
       ),
-      itemCatalog: _catalogWith(
-        const <ProjectItemDefinition>[
-          ProjectItemDefinition(
-            id: 'lucky-charm',
-            displayName: 'Lucky Charm',
-            pocketId: 'charms',
-          ),
-        ],
-      ),
+      itemCatalog: _catalogWith(const <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'lucky-charm',
+          displayName: 'Lucky Charm',
+          pocketId: 'charms',
+        ),
+      ]),
     );
     addTearDown(controller.dispose);
 
@@ -680,12 +711,7 @@ void main() {
         ],
       ),
       bag: Bag(
-        entries: <BagEntry>[
-          BagEntry(
-            itemId: 'tm-protect',
-            quantity: 1,
-          ),
-        ],
+        entries: <BagEntry>[BagEntry(itemId: 'tm-protect', quantity: 1)],
       ),
     );
     final commits = <GameState>[];
@@ -701,20 +727,18 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: _machineConfig,
-      itemCatalog: _catalogWith(
-        const <ProjectItemDefinition>[
-          ProjectItemDefinition(
-            id: 'tm-protect',
-            displayName: 'TM Protect',
-            pocketId: 'machines',
-            machine: ProjectMoveMachineItemDefinition(
-              moveId: 'protect',
-              kind: ProjectMoveMachineKind.tm,
-              consumable: true,
-            ),
+      itemCatalog: _catalogWith(const <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'tm-protect',
+          displayName: 'TM Protect',
+          pocketId: 'machines',
+          machine: ProjectMoveMachineItemDefinition(
+            moveId: 'protect',
+            kind: ProjectMoveMachineKind.tm,
+            consumable: true,
           ),
-        ],
-      ),
+        ),
+      ]),
     );
     addTearDown(controller.dispose);
 
@@ -728,18 +752,21 @@ void main() {
 
     expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
     expect(commits, hasLength(1));
-    expect(
-      state.party.members.single.knownMoveIds,
-      <String>['tackle', 'protect', 'vine-whip', 'sleep-powder'],
-    );
+    expect(state.party.members.single.knownMoveIds, <String>[
+      'tackle',
+      'protect',
+      'vine-whip',
+      'sleep-powder',
+    ]);
     expect(state.party.members.single.currentPpByMoveId!['protect'], 10);
     expect(state.bag.entries, isEmpty);
   });
 }
 
 Future<void> _writeEvolutionFixture(Directory root) async {
-  final evolutionFile =
-      File(p.join(root.path, 'custom', 'evolutions', 'sproutle.json'));
+  final evolutionFile = File(
+    p.join(root.path, 'custom', 'evolutions', 'sproutle.json'),
+  );
   await evolutionFile.parent.create(recursive: true);
   await evolutionFile.writeAsString(
     jsonEncode(<String, Object?>{
@@ -754,8 +781,9 @@ Future<void> _writeEvolutionFixture(Directory root) async {
       ],
     }),
   );
-  final speciesFile =
-      File(p.join(root.path, 'custom', 'species', 'bloomon.json'));
+  final speciesFile = File(
+    p.join(root.path, 'custom', 'species', 'bloomon.json'),
+  );
   await speciesFile.parent.create(recursive: true);
   await speciesFile.writeAsString(
     jsonEncode(<String, Object?>{
