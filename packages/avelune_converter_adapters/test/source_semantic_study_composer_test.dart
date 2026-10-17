@@ -104,6 +104,225 @@ void main() {
   });
 
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
+  test('player authoring finishes before native atlas imports', () async {
+    final scripts = await File(scriptsPath!).readAsBytes();
+    expect(literalFixtureHash(scripts).value,
+        SourceSemanticProfile.kantoScriptsArchiveSha256);
+    final atlas = image.Image(width: 256, height: 64, numChannels: 4);
+    for (var y = 0; y < 32; y++) {
+      for (var x = 0; x < 32; x++) {
+        atlas.setPixelRgba(x, y, 31, 41, 59, 255);
+      }
+    }
+    for (var part = 0; part < 3; part++) {
+      for (var y = 48; y < 64; y++) {
+        for (var x = 32 * part; x < 32 * (part + 1); x++) {
+          atlas.setPixelRgba(x, y, 73 + part * 20, x, y, 255);
+        }
+      }
+    }
+    final middle = List<int>.filled(25, 0)
+      ..[11] = 392
+      ..[12] = 393
+      ..[13] = 394;
+    final fixture =
+        await LiteralTileFixture.create(scriptsBytes: scripts, extraFiles: {
+      'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'
+          'RunCharset = OriginalRun\nCycleCharset = OriginalCycle\n'),
+      'Graphics/Characters/OriginalPlayer.png':
+          image.encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+      'Graphics/Characters/OriginalRun.png': image.encodePng(
+          image.Image(width: 128, height: 192, numChannels: 4)
+            ..setPixelRgba(0, 0, 1, 2, 3, 255)),
+      'Graphics/Characters/OriginalCycle.png': image.encodePng(
+          image.Image(width: 192, height: 192, numChannels: 4)
+            ..setPixelRgba(0, 0, 4, 5, 6, 255)),
+    }, maps: [
+      LiteralFixtureMap(id: 154, width: 1, height: 1, layers: [
+        [384],
+        [0],
+        [0]
+      ]),
+      LiteralFixtureMap(
+          id: 98,
+          width: 5,
+          height: 5,
+          layers: [List.filled(25, 384), middle, List.filled(25, 0)])
+    ], tilesets: [
+      LiteralFixtureTileset(
+          id: 1,
+          png: image.encodePng(atlas),
+          passages: {392: 7, 393: 7, 394: 7},
+          terrainTags: {392: 1, 393: 1, 394: 1})
+    ]);
+    final output = await Directory.systemTemp.createTemp('ac12-player-order-');
+    try {
+      final base = await const LiteralTileComposer().compose(
+          source: fixture.source,
+          files: fixture.files,
+          selectedSourceMapIds: [98, 154],
+          projectName: 'Original player order',
+          parentPath: output.path,
+          folderName: 'original-player-order');
+      final draft = (await const SourceSemanticStudyComposer()
+          .compose(source: fixture.source, base: base, files: fixture.files))!;
+      final playerMutations = draft.mutations
+          .where((mutation) =>
+              mutation.operationId.value.startsWith('ac12-player-'))
+          .toList();
+      expect(playerMutations.map((mutation) => mutation.actionId), [
+        ...List.filled(3, 'tileset.import_image'),
+        'characterStudio.character.create',
+        ...List.filled(20, 'characterStudio.animationClip.upsert'),
+        'characterStudio.character.setDefault'
+      ]);
+      final nativeImports = base.draft!.mutations
+          .where((mutation) => !mutation.actionId.startsWith('map.'))
+          .toList();
+      final nativeImportIds =
+          nativeImports.map((mutation) => mutation.operationId).toSet();
+      expect(
+          draft.mutations
+              .where(
+                  (mutation) => nativeImportIds.contains(mutation.operationId))
+              .map((mutation) => mutation.toJson(0)),
+          nativeImports.map((mutation) => mutation.toJson(0)));
+      expect(draft.mapIds, base.draft!.mapIds);
+      expect(
+          draft.mutations
+              .where((mutation) => mutation.actionId == 'map.create')
+              .map((mutation) => mutation.toJson(0)),
+          base.draft!.mutations
+              .where((mutation) => mutation.actionId == 'map.create')
+              .map((mutation) => mutation.toJson(0)));
+      final semantic = draft.compositionEvidence['sourceSemantics'] as Map;
+      expect(semantic['directedJumps']['importedJumpCount'], 3);
+      final sheets = semantic['player']['animationSheets'] as List;
+      final playerAssetIds =
+          sheets.map((sheet) => 'image_${sheet['tilesetId']}').toList()..sort();
+      final firstClip = draft.mutations.indexWhere((mutation) =>
+          mutation.actionId == 'characterStudio.animationClip.upsert');
+      var mutationIndex = 0;
+      List<String>? firstClipAssetIds;
+      final approval = approveNativeFixtureDraft(draft);
+      final receipt = await NativeProjectWriter(
+          checkpoint: (stage, stagingRoot, projectPath) async {
+        if (stage != NativeWriteStage.afterMutation ||
+            mutationIndex++ != firstClip) {
+          return;
+        }
+        const reader = LocalProjectFileReader();
+        final handles = WorkspaceHandleStore();
+        final policy = await WorkspacePolicy.create(
+            allowedRootPaths: [stagingRoot!], fileReader: reader);
+        final opener = ProjectOpenService(
+            policy: policy, fileReader: reader, handles: handles);
+        final opened = await opener.openProject(projectPath!);
+        try {
+          final native = await ProjectSnapshotLoader(handles: handles).load(
+              opened.projectHandle,
+              policy: ProjectSnapshotLoadPolicy.strict);
+          expect(native.loadDiagnostics, isEmpty);
+          final catalog = AssetCatalog.fromJson(jsonDecode(utf8
+                  .decode(native.resourceBytes(assetCatalogResourceIdentity)))
+              as Map<String, dynamic>);
+          firstClipAssetIds =
+              catalog.records.map((record) => record.id).toList();
+        } finally {
+          opener.closeWorkspace(opened.workspaceHandle);
+        }
+      }).write(approval.plan, approval.context, draft);
+      expect(receipt.verified, isTrue);
+      expect(receipt.published, isFalse);
+      const reader = LocalProjectFileReader();
+      final handles = WorkspaceHandleStore();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(receipt.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.loadDiagnostics, isEmpty);
+        expect(native.manifest.characters.single.sortOrder, 0);
+        expect(native.manifest.characters.single.animations, hasLength(20));
+        expect(native.manifest.settings.defaultPlayerCharacterId,
+            native.manifest.characters.single.id);
+        expect(
+            native.manifest.borderCatalog.records.single.latestPublished!
+                .definition.primitives,
+            hasLength(3));
+        final ledgeMap =
+            native.maps.singleWhere((map) => map.id == draft.mapIds[98]);
+        final placements = ledgeMap.layers
+            .whereType<BorderLayer>()
+            .single
+            .content
+            .features
+            .single
+            .materialization!
+            .placements;
+        expect(placements, hasLength(3));
+        expect(placements.map((placement) => placement.topLeftWorldPx), [
+          const BorderPixelPos(x: 32, y: 64),
+          const BorderPixelPos(x: 64, y: 64),
+          const BorderPixelPos(x: 96, y: 64),
+        ]);
+        final unchangedDraftHash = canonicalHashOf({
+          'mapIds': {
+            for (final entry in draft.mapIds.entries)
+              entry.key.toString(): entry.value
+          },
+          'artifacts': [
+            for (final artifact in [
+              ...draft.artifacts,
+              ...draft.sourceArtifacts
+            ])
+              {
+                'handle': artifact.handle,
+                'rawSha256': artifact.rawSha256.value,
+                'byteLength': artifact.bytes.length
+              }
+          ],
+          'playerMutations': [
+            for (final mutation in playerMutations) mutation.toJson(0)
+          ],
+          'remainingMutations': [
+            for (final mutation in draft.mutations)
+              if (!playerMutations.contains(mutation)) mutation.toJson(0)
+          ],
+          'compositionEvidence': draft.compositionEvidence
+        }).value;
+        final nativeHash = canonicalHashOf(jsonDecode(jsonEncode({
+          'manifest': native.manifest.toJson(),
+          'maps': native.maps.map((map) => map.toJson()).toList(),
+          'resources': native.resourceFingerprints,
+          'mapHashes':
+              receipt.mapHashes.map((id, hash) => MapEntry(id, hash.value)),
+          'assetHashes':
+              receipt.assetHashes.map((id, hash) => MapEntry(id, hash.value))
+        }))).value;
+        expect(unchangedDraftHash,
+            '61047dbffbbb7883ae62f333d2777368b824b8d5d63e20cc148e170240eb0b13',
+            reason: 'Mutation contents, internal order, artifacts and evidence '
+                'match the atlas-first fixture');
+        expect(nativeHash,
+            '73f63dd7546ecc7893f94d75a10c6bc0f2b09fe8ca3284b9ec9ca060ca7a6d89',
+            reason: 'Strictly reopened native resources match the atlas-first '
+                'fixture');
+        expect(draft.mutations, hasLength(46));
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      expect(firstClipAssetIds, playerAssetIds);
+      expect(draft.mutations.take(playerMutations.length), playerMutations);
+    } finally {
+      await output.delete(recursive: true);
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
+
   test('qualified native output is automatic and refuses coherent tampering',
       () async {
     final scripts = await File(scriptsPath!).readAsBytes();

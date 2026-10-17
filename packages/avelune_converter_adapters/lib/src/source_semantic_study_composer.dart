@@ -178,9 +178,9 @@ final class SourceSemanticStudyComposer {
         artifacts: artifacts,
         sourceArtifacts: witnesses,
         mutations: [
+          ...playerMutations,
           ...original.mutations
               .where((entry) => !entry.actionId.startsWith('map.')),
-          ...playerMutations,
           ...projection.mutations
               .where((entry) => !entry.actionId.startsWith('map.')),
           ...jumps.resourceMutations,
