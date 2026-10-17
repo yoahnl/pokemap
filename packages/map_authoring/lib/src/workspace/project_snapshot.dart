@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:map_core/map_core.dart';
 
 import 'workspace_handle_store.dart';
@@ -478,7 +480,8 @@ Map<String, List<int>> _freezeResourceBytes({
               'values must be bytes',
             );
           }
-          return MapEntry(entry.key, List<int>.unmodifiable(entry.value));
+          return MapEntry(
+              entry.key, Uint8List.fromList(entry.value).asUnmodifiableView());
         })
       // Owned bytes are views over a Uint8List: the range holds by type, and
       // walking 78 MB element by element to reprove it dominated snapshot
