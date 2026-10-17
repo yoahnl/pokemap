@@ -355,6 +355,8 @@ String _generationInputFingerprint(
                     'depth': map.spatialScene!.depth,
                     'heightLevels': map.spatialScene!.heightLevels,
                     'levelHeight': map.spatialScene!.levelHeight,
+                    if (map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty)
+                      'terrainSurfaces': map.spatialScene!.terrainSurfaces.toJson(),
                     'ramps': map.spatialScene!.navigation.ramps
                         .map((ramp) => ramp.toJson())
                         .toList(),

@@ -145,6 +145,50 @@ void main() {
       await _pumpUntil(game, () => !game.debugHasPendingSceneBattle);
     });
 
+    test('a patrolling trainer completes its approach before resuming patrol',
+        () async {
+      final game = await _loadGame(_patrollingBundle(_bundle()));
+      addTearDown(game.onRemove);
+      await _stepRight(game);
+      await _pumpUntil(game, () => game.debugPendingBattleRequest != null,
+          maxTicks: 900);
+      expect(_trainerPos(game), const GridPos(x: 2, y: 1));
+      expect(
+        game.debugInputLockSnapshot.isOwnedBy(
+          RuntimeInputLockOwner.trainerEncounter,
+        ),
+        isFalse,
+      );
+    });
+
+    test('a patrolling trainer remains beside the player during its dialogue',
+        () async {
+      final releaseBattle = Completer<void>();
+      final game = await _loadGame(
+        _patrollingBundle(_narrativeBundle(withDialogue: true)),
+        beforeBattleHandoffPreparation: () => releaseBattle.future,
+      );
+      addTearDown(() {
+        if (!releaseBattle.isCompleted) releaseBattle.complete();
+        game.onRemove();
+      });
+      await _stepRight(game);
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue',
+          maxTicks: 900);
+      expect(_trainerPos(game), const GridPos(x: 2, y: 1));
+      await _pumpFrames(game, 180);
+      expect(_trainerPos(game), const GridPos(x: 2, y: 1));
+      expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      );
+      await _pumpUntil(game, () => game.debugHasPendingSceneBattle,
+          maxTicks: 900);
+      expect(_trainerPos(game), const GridPos(x: 2, y: 1));
+      releaseBattle.complete();
+      await _pumpUntil(game, () => !game.debugHasPendingSceneBattle);
+    });
+
     test('an ineligible authored Event never falls back to a direct battle',
         () async {
       final game = await _loadGame(_narrativeBundle(enabled: false));
@@ -312,6 +356,29 @@ Dresseur: Tu as croisé mon regard. Je te défie !
     map: base.map,
     projectRootDirectory: projectRoot,
     tilesetAbsolutePathsById: base.tilesetAbsolutePathsById,
+  );
+}
+
+RuntimeMapBundle _patrollingBundle(RuntimeMapBundle bundle) {
+  return bundle.copyWith(
+    map: bundle.map.copyWith(
+      entities: [
+        for (final entity in bundle.map.entities)
+          if (entity.id == _entityId)
+            entity.copyWith(
+              npc: entity.npc!.copyWith(
+                movement: const MapEntityNpcMovementConfig(
+                  mode: MapEntityNpcMovementMode.patrol,
+                  waypoints: [GridPos(x: 4, y: 1), GridPos(x: 2, y: 1)],
+                  stepDurationMs: 400,
+                  pauseDurationMs: 0,
+                ),
+              ),
+            )
+          else
+            entity,
+      ],
+    ),
   );
 }
 

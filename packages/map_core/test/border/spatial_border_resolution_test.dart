@@ -3,6 +3,10 @@ import 'dart:math' as math;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/spatial_border_ground_surface_fixture.dart';
+export '../support/spatial_border_ground_surface_fixture.dart'
+    show spatialBorderFixture, borderSpatialTransforms;
+
 void main() {
   test('inverted repeated shore units preserve all 36 source poses', () {
     final cases = [
@@ -1694,151 +1698,6 @@ SpatialBorderResolutionResult resolve(ProjectManifest project, MapData map) =>
       overrides: original.overrides,
       keepOutRegions: original.keepOutRegions,
     ),
-  );
-  return (project: project, map: map);
-}
-
-BorderTransformPolicy borderSpatialTransforms() => BorderTransformPolicy(
-  allowFlipX: false,
-  allowedQuarterTurns: const [0, 1, 2, 3],
-);
-
-({ProjectManifest project, MapData map}) spatialBorderFixture({
-  Model3dVector3? anchor,
-  bool straightOnly = false,
-  bool includeCorner = true,
-}) {
-  final defaults = BorderGenerationParams(
-    irregularityPermille: 0,
-    detailDensityPermille: 0,
-    variationPermille: 1000,
-    maxOverlapPx: 0,
-    gapTolerancePx: 0,
-    depthRows: 1,
-  );
-  final roles = [
-    BorderPrimitiveRole.lineCap,
-    BorderPrimitiveRole.lineStraight,
-    if (includeCorner) BorderPrimitiveRole.lineCorner,
-  ];
-  final draft = BorderBlueprintDraftDefinition(
-    name: 'Fence',
-    previewSeed: BorderSignedInt64.fromInt(17),
-    template: BorderBlueprintTemplate.connectedLine,
-    straightOnly: straightOnly,
-    primitives: [
-      for (final role in roles)
-        BorderPrimitiveDraft(
-          id: role.name,
-          sourceModelId: 'unit',
-          role: role,
-          weight: 1,
-          transforms: borderSpatialTransforms(),
-          anchorWorld: anchor,
-        ),
-    ],
-    defaults: defaults,
-    sortOrder: 0,
-  );
-  final published = BorderBlueprintPublishedDefinition(
-    name: draft.name,
-    previewSeed: draft.previewSeed,
-    template: draft.template,
-    straightOnly: draft.straightOnly,
-    primitives: [
-      for (final primitive in draft.primitives)
-        BorderPublishedPrimitive(
-          id: primitive.id,
-          sourceModelId: 'unit',
-          role: primitive.role,
-          weight: primitive.weight,
-          transforms: primitive.transforms,
-          anchorWorld: anchor,
-        ),
-    ],
-    defaults: defaults,
-    sortOrder: 0,
-  );
-  final model = ProjectModel3dEntry(
-    id: 'unit',
-    name: 'Unit fence',
-    sourceAssetId: 'unit-source',
-    relativePath: 'assets/models3d/unit.glb',
-    inspection: Model3dInspection(
-      bounds: Model3dBounds(
-        min: Model3dVector3(x: -.2, y: 0, z: -.2),
-        max: Model3dVector3(x: .2, y: 1, z: .2),
-      ),
-      meshCount: 1,
-      triangleCount: 1,
-    ),
-  );
-  final project = ProjectManifest(
-    name: 'Native fence',
-    version: ProjectVersion.v9,
-    maps: const [
-      ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
-    ],
-    tilesets: const [],
-    models3d: [model],
-    settings: ProjectSettings(
-      dimension: ProjectDimension.threeD,
-      spatialCamera: SpatialCameraProfile(),
-    ),
-    borderCatalog: ProjectBorderCatalog(
-      formatVersion: 5,
-      records: [
-        BorderBlueprintRecord(
-          id: 'fence',
-          draft: BorderBlueprintDraft(baseRevision: 1, definition: draft),
-          latestPublished: BorderBlueprintRevision(
-            revision: 1,
-            definition: published,
-          ),
-        ),
-      ],
-    ),
-  );
-  final feature = BorderFeature(
-    id: 'fence',
-    name: 'Fence',
-    blueprintId: 'fence',
-    seed: BorderSignedInt64.fromInt(17),
-    geometry: BorderStrokeGeometry(
-      strokes: [
-        BorderStroke(
-          id: 'line',
-          points: const [
-            GridPos(x: 1, y: 1),
-            GridPos(x: 2, y: 1),
-            GridPos(x: 3, y: 1),
-            GridPos(x: 3, y: 2),
-            GridPos(x: 3, y: 3),
-          ],
-          closed: false,
-        ),
-      ],
-    ),
-    overrides: const [],
-    keepOutRegions: const [],
-  );
-  final map = MapData(
-    version: ProjectVersion.v9,
-    id: 'map',
-    name: 'Map',
-    size: const GridSize(width: 6, height: 6),
-    spatialScene: MapSpatialScene(
-      width: 6,
-      depth: 6,
-      heightLevels: List.filled(36, 1),
-    ),
-    layers: [
-      MapLayer.border(
-        id: 'border',
-        name: 'Fence',
-        content: BorderLayerContent(features: [feature]),
-      ),
-    ],
   );
   return (project: project, map: map);
 }

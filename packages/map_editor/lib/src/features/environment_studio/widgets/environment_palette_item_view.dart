@@ -27,6 +27,8 @@ class EnvironmentPaletteItemView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final elementId = item.elementId;
+    if (elementId == null) return const SizedBox.shrink();
     final label = EditorChrome.primaryLabel(context);
     final fill = EditorChrome.chipFill(context);
     final border = CupertinoColors.separator.resolveFrom(context);
@@ -34,7 +36,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
 
     return DecoratedBox(
       key: isIncompatibleTileset
-          ? Key('environment-studio-palette-incompatible-${item.elementId}')
+          ? Key('environment-studio-palette-incompatible-$elementId')
           : null,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
@@ -56,14 +58,14 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                           manifest: manifest!,
                           projectRootPath: projectRootPath,
                           element: element,
-                          elementId: item.elementId,
+                          elementId: elementId,
                           resolveTilesetPathById: resolveTilesetPathById,
                           size: 30,
                           previewKey: Key(
-                            'environment-selected-palette-preview-${item.elementId}',
+                            'environment-selected-palette-preview-$elementId',
                           ),
                           fallbackKey: Key(
-                            'environment-selected-palette-preview-fallback-${item.elementId}',
+                            'environment-selected-palette-preview-fallback-$elementId',
                           ),
                         ),
                   const SizedBox(width: 8),
@@ -72,9 +74,9 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          item.elementId,
+                          elementId,
                           key: Key(
-                            'environment-studio-palette-item-${item.elementId}',
+                            'environment-studio-palette-item-$elementId',
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -87,7 +89,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          item.elementId,
+                          elementId,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -107,7 +109,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
               child: _miniChip(
                 context,
                 label: 'Poids ${item.weight}',
-                key: Key('environment-studio-palette-weight-${item.elementId}'),
+                key: Key('environment-studio-palette-weight-$elementId'),
               ),
             ),
             SizedBox(
@@ -115,7 +117,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
               child: Text(
                 _collisionLabel(item.collisionMode),
                 key: Key(
-                  'environment-studio-palette-collision-${item.elementId}',
+                  'environment-studio-palette-collision-$elementId',
                 ),
                 style: TextStyle(
                   color: subtleColor,
@@ -145,7 +147,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                         context,
                         label: t,
                         key: Key(
-                          'environment-studio-palette-tag-${item.elementId}-$t',
+                          'environment-studio-palette-tag-$elementId-$t',
                         ),
                       ),
                 ],

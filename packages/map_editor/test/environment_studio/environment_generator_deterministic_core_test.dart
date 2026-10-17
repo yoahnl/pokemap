@@ -72,6 +72,56 @@ void main() {
   });
 
   group('GenerateEnvironmentAreaPlacementsUseCase', () {
+    test('génère le preset 2D sans modifier les presets 3D du projet', () {
+      final ctx = _fullScenario(mapW: 2, mapH: 2, activeAll: true,
+        params: _params(density: 1, edgeDensity: 1, variation: 0));
+      final original = ctx.manifest.environmentPresets.single;
+      final model = EnvironmentPaletteItem(modelId: 'model-only', weight: 100);
+      final spatial = EnvironmentPreset(id: 'spatial', name: 'Spatial',
+        templateId: original.templateId, sortOrder: 0, palette: [model], defaultParams: original.defaultParams);
+      final manifest = ctx.manifest.copyWith(environmentPresets: [spatial, original]);
+      final result = GenerateEnvironmentAreaPlacementsUseCase().execute(ctx.map,
+        manifest: manifest, environmentLayerId: 'env', areaId: 'area1');
+      expect(result.hasErrors, isFalse);
+      expect(result.placements, hasLength(4));
+      expect(result.placements.map((item) => item.elementId).toSet(), {'e1'});
+      expect(manifest.environmentPresets.first.palette.single, same(model));
+    });
+
+    test(
+      'refuse la génération 2D si la palette ne contient que des modèles',
+      () {
+        final ctx = _fullScenario(mapW: 1, mapH: 1, activeAll: true);
+        final original = ctx.manifest.environmentPresets.single;
+        final manifest = ctx.manifest.copyWith(
+          environmentPresets: [
+            EnvironmentPreset(
+              id: original.id,
+              name: original.name,
+              templateId: original.templateId,
+              sortOrder: original.sortOrder,
+              palette: [EnvironmentPaletteItem(modelId: 'e1', weight: 1)],
+              defaultParams: original.defaultParams,
+            ),
+          ],
+        );
+        final result = GenerateEnvironmentAreaPlacementsUseCase().execute(
+          ctx.map,
+          manifest: manifest,
+          environmentLayerId: 'env',
+          areaId: 'area1',
+        );
+        expect(result.placements, isEmpty);
+        expect(result.hasErrors, isTrue);
+        expect(
+          result.issuesForKind(
+            EnvironmentGenerationIssueKind.emptyPresetPalette,
+          ),
+          isNotEmpty,
+        );
+      },
+    );
+
     test('déterminisme : deux exécutions identiques', () {
       final ctx = _fullScenario(
         mapW: 3,

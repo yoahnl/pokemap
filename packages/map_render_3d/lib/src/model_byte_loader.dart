@@ -13,6 +13,29 @@ import 'glb_renderer_layout.dart';
 final class ModelByteLoader {
   static int _sequence = 0;
 
+  static Future<bool> preloadCached(
+    Map<String, Future<Model>> cache,
+    Map<String, Future<Uint8List> Function()> sources, {
+    bool Function()? isCurrent,
+  }) async {
+    final entries = sources.entries.iterator;
+    var failed = false;
+    Future<void> loadNext() async {
+      while (!failed && (isCurrent?.call() ?? true) && entries.moveNext()) {
+        final entry = entries.current;
+        try {
+          await loadCached(cache, entry.key, entry.value);
+        } on Object {
+          failed = true;
+          rethrow;
+        }
+      }
+    }
+
+    await Future.wait([for (var index = 0; index < 4; index++) loadNext()]);
+    return isCurrent?.call() ?? true;
+  }
+
   static Future<Model> loadCached(
     Map<String, Future<Model>> cache,
     String key,

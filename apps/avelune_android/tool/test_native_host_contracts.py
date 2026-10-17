@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from publish_play import PACKAGE as PLAY_PACKAGE
+from read_app_version import read_app_version
 from verify_release_bundle import PACKAGE as RELEASE_PACKAGE
 
 
@@ -15,6 +16,32 @@ def source(path):
 
 
 class NativeHostContractsTest(unittest.TestCase):
+    def test_native_app_versions_share_one_configuration_without_local_defaults(self):
+        self.assertRegex(
+            read_app_version(REPOSITORY / "apps/avelune_version.xcconfig"),
+            r"^[0-9]+\.[0-9]+\.[0-9]+$",
+        )
+        project = source("apps/Avelune iOS/project.yml")
+        self.assertNotIn("MARKETING_VERSION:", project)
+        for configuration in ("Debug", "Release"):
+            self.assertRegex(project, rf"(?m)^  {configuration}: ../avelune_version\.xcconfig$")
+        xcode_project = source("apps/Avelune iOS/AveluneiOS.xcodeproj/project.pbxproj")
+        self.assertNotRegex(xcode_project, r"\bMARKETING_VERSION\s*=")
+        references = re.findall(r"baseConfigurationReference = ([A-F0-9]{24})", xcode_project)
+        self.assertEqual(len(references), 2)
+        self.assertEqual(len(set(references)), 1)
+        reference = re.search(
+            rf"{references[0]}[^\n]* = \{{([^}}]*)\}};", xcode_project, re.DOTALL
+        )
+        self.assertIsNotNone(reference)
+        self.assertRegex(reference.group(1), r"path = (?:\.\./)?avelune_version\.xcconfig;")
+        gradle = source("apps/avelune_android/app/build.gradle.kts")
+        self.assertIn('file("../avelune_version.xcconfig")', gradle)
+        self.assertRegex(gradle, r"(?m)^\s+versionName = aveluneVersionName$")
+        workflow = source(".github/workflows/avelune_android_release.yml")
+        self.assertIn("python3 apps/avelune_android/tool/read_app_version.py", workflow)
+        self.assertNotRegex(workflow, r"(?m)^\s+AVELUNE_VERSION_NAME:")
+
     def test_swiftui_host_preserves_the_configurable_app_store_identity(self):
         project = source("apps/Avelune iOS/project.yml")
         xcode_project = source("apps/Avelune iOS/AveluneiOS.xcodeproj/project.pbxproj")
@@ -113,6 +140,7 @@ class NativeHostContractsTest(unittest.TestCase):
                 self.assertIn("apps/pokemap_hub/lib/**", section)
                 self.assertIn("apps/Avelune iOS/**", section)
                 self.assertIn("apps/avelune_android/**", section)
+                self.assertIn("apps/avelune_version.xcconfig", section)
         self.assertIsNone(
             re.search(r"(?m)^\s+-\s*['\"]?apps/pokemap_hub/\*\*['\"]?\s*$", workflow),
             "Quick checks must watch the embedded library without selecting the retired Hub app",

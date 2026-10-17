@@ -111,6 +111,16 @@ void main() {
   });
 
   group('EnvironmentPresetDraft', () {
+    test('refuse un preset 3D dans le brouillon 2D sans modifier sa palette', () {
+      final model = EnvironmentPaletteItem(modelId: 'tree-model', weight: 7,
+        cellOffsetWorld: Model3dVector3(x: 1, y: 2, z: 3), tags: {'canopy'});
+      final preset = EnvironmentPreset(id: 'spatial', name: 'Spatial',
+        templateId: 'forest', sortOrder: 0, palette: [model],
+        defaultParams: EnvironmentGenerationParams.standard());
+      expect(() => EnvironmentPresetDraft.fromPreset(preset), throwsArgumentError);
+      expect(preset.palette.single, same(model));
+    });
+
     test('empty crée un brouillon formulaire', () {
       final d = EnvironmentPresetDraft.empty();
       expect(d.id, '');

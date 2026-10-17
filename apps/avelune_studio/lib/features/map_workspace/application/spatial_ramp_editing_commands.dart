@@ -71,6 +71,8 @@ String spatialRampEditingFailureMessage(Object failure) {
   if (failure is StateError) return failure.message.toString();
   if (failure is FormatException) {
     return switch (failure.message) {
+      'A ramp surface must reference an existing model instance.' => 'Le décor associé à la pente n’existe plus. Choisissez un autre décor ou le terrain peint.',
+      'A ramp surface must allow movement.' => 'Le décor associé bloque le passage. Désactivez sa collision avant de l’utiliser comme escalier.',
       'A ramp must contact its low and high terrain levels.' => 'Les deux extrémités de la pente doivent toucher les sols aux niveaux bas et haut choisis.',
       'Navigation rectangles must not overlap.' =>
         'La pente ne peut pas chevaucher une autre pente ou une zone bloquée.',

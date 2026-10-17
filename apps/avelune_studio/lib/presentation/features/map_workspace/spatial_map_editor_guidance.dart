@@ -1,6 +1,30 @@
 part of 'spatial_map_editor.dart';
 
 extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
+  List<SpatialCellOverlay> terrainSurfaceSelectionOverlays(ColorScheme colors) {
+    if (widget.view.tool != StudioMapTool.terrain ||
+        widget.view.spatialTerrainMode != SpatialTerrainMode.relief ||
+        !widget.view.spatialContinuousTerrain) return const [];
+    final preview = widget.view.terrainSurfacePreview;
+    final scene = preview?.validFor(widget.document.current) == true
+        ? preview!.result.spatialScene! : widget.document.current.spatialScene!;
+    final surface = scene.terrainSurfaces.surfaces.where((surface) => surface.id == widget.view.spatialSurfaceId).firstOrNull;
+    if (surface == null) return const [];
+    final bounds = surface.bounds;
+    final left = bounds.left.floor().clamp(0, scene.width - 1);
+    final right = (bounds.right.ceil() - 1).clamp(left, scene.width - 1);
+    final top = bounds.top.floor().clamp(0, scene.depth - 1);
+    final bottom = (bounds.bottom.ceil() - 1).clamp(top, scene.depth - 1);
+    final cells = <(int, int)>{
+      for (var x = left; x <= right; x++) ...[(x, top), (x, bottom)],
+      for (var z = top; z <= bottom; z++) ...[(left, z), (right, z)],
+    };
+    return [for (final cell in cells) SpatialCellOverlay(
+      id: 'terrain-surface-selection:${cell.$1}:${cell.$2}', cell: cell,
+      kind: SpatialCellOverlayKind.preview, color: colors.secondary,
+    )];
+  }
+
   String get cameraHelp =>
       'Clic droit + glisser : déplacer la vue · Maj : placement précis · Maj + flèches : tourner la vue · Échap : annuler';
 
@@ -51,6 +75,12 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
     }
     final stroke = reliefStroke;
     if (widget.view.spatialTerrainMode == SpatialTerrainMode.relief) {
+      if (widget.view.spatialContinuousTerrain) {
+        if (selectingTerrainSurface) return 'Surface continue · Cliquez sur le terrain à modifier. $cameraHelp';
+        if (erase) return 'Surface continue · Glissez pour supprimer entièrement les surfaces touchées. $cameraHelp';
+        final area = stroke == null ? '' : ' · ${(stroke.origin.x - stroke.end.x).abs() + 1} × ${(stroke.origin.y - stroke.end.y).abs() + 1} cases';
+        return '${stroke?.error ?? 'Surface continue · $cell$area · ${widget.view.spatialSurfaceLowLevel} → ${widget.view.spatialSurfaceHighLevel} blocs'}\nGlissez pour dessiner ; relâchez pour appliquer. $cameraHelp';
+      }
       final level = erase ? 0 : widget.view.spatialTerrainLevel;
       final from = hit == null
           ? null
@@ -120,6 +150,7 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
     }
     final relief =
         widget.view.spatialTerrainMode == SpatialTerrainMode.relief &&
+        !widget.view.spatialContinuousTerrain &&
         (widget.view.tool == StudioMapTool.terrain ||
             widget.view.tool == StudioMapTool.erase);
     final targetHeight =

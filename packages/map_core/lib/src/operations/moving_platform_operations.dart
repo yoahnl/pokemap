@@ -51,6 +51,7 @@ void validateMovingPlatformDefinitions({
     throw const FormatException('Moving platforms require a 2D pixel map.');
   }
   final visualIds = <String>{};
+  final terrainOwners = <String, MovingPlatformDefinition>{};
   initializeMovingPlatformWorldState(
     map: map,
     worldState: const MovingPlatformWorldState.empty(),
@@ -74,11 +75,43 @@ void validateMovingPlatformDefinitions({
     for (final layerId in platform.terrainLayerIds) {
       final layers = map.layers.where((layer) => layer.id == layerId).toList();
       if (layers.length != 1 ||
-          layers.single is! TileLayer ||
-          (layers.single as TileLayer).purpose != MapLayerPurpose.visual) {
+          !switch (layers.single) {
+            TileLayer(:final purpose) => purpose == MapLayerPurpose.visual,
+            SmartTileLayer() => true,
+            _ => false,
+          }) {
         throw const FormatException(
-          'Platform support can only nominate visual tile terrain layers.',
+          'Platform support requires visual tile or Smart Tile terrain layers.',
         );
+      }
+      final cells = platform.terrainCellsByLayer[layerId];
+      if (cells != null && layers.single is! SmartTileLayer) {
+        throw const FormatException(
+          'Explicit terrain cells require a Smart Tile layer.',
+        );
+      }
+      final owner = terrainOwners[layerId];
+      if (owner != null) {
+        final other = owner.terrainCellsByLayer[layerId];
+        if ((cells == null) != (other == null) ||
+            cells != null &&
+                (owner.lattice != platform.lattice ||
+                    cells.length != other!.length ||
+                    !cells.toSet().containsAll(other))) {
+          throw const FormatException(
+            'Platforms must agree on shared terrain collision geometry.',
+          );
+        }
+      }
+      terrainOwners[layerId] = platform;
+      for (final cell in cells ?? const <GridPos>[]) {
+        final rect = movingPlatformTerrainCellRect(platform: platform, cell: cell);
+        if (rect.leftPx < 0 ||
+            rect.topPx < 0 ||
+            rect.leftPx + rect.widthPx > map.size.width * tileSize.width ||
+            rect.topPx + rect.heightPx > map.size.height * tileSize.height) {
+          throw const FormatException('Platform terrain cells exceed the map.');
+        }
       }
     }
     for (final variant in platform.variants) {
@@ -297,11 +330,32 @@ PixelRect movingPlatformCellRect({
   required MovingPlatformDefinition platform,
   required MovingPlatformPose pose,
   required GridPos cell,
-}) {
-  final lattice = platform.lattice;
+}) => _movingPlatformLatticeRect(
+  platform.lattice,
+  pose.leftPx,
+  pose.topPx,
+  cell,
+);
+
+PixelRect movingPlatformTerrainCellRect({
+  required MovingPlatformDefinition platform,
+  required GridPos cell,
+}) => _movingPlatformLatticeRect(
+  platform.lattice,
+  platform.lattice.originLeftPx,
+  platform.lattice.originTopPx,
+  cell,
+);
+
+PixelRect _movingPlatformLatticeRect(
+  MovingPlatformLattice lattice,
+  double leftPx,
+  double topPx,
+  GridPos cell,
+) {
   final left =
-      pose.leftPx + lattice.cellOffsetLeftPx + cell.x * lattice.widthPx;
-  final top = pose.topPx + lattice.cellOffsetTopPx + cell.y * lattice.heightPx;
+      leftPx + lattice.cellOffsetLeftPx + cell.x * lattice.widthPx;
+  final top = topPx + lattice.cellOffsetTopPx + cell.y * lattice.heightPx;
   return PixelRect(
     leftPx: left.round(),
     topPx: top.round(),

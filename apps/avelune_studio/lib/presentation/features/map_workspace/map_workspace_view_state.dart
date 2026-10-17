@@ -13,6 +13,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_border_edi
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_ramp_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
 
 enum MapSelectionFamily { decor, character, marker, warp, zone, trigger }
 
@@ -60,6 +61,22 @@ class MapWorkspaceViewState {
   SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
   int spatialTerrainLevel = 1;
   SpatialRampEditingPreview? rampPreview;
+  bool spatialContinuousTerrain = false;
+  bool spatialSurfaceSelect = false;
+  bool spatialSurfaceReanchorInstances = true;
+  String spatialSurfaceLowLevel = '0';
+  String spatialSurfaceHighLevel = '1';
+  SpatialRampDirection spatialSurfaceDirection = SpatialRampDirection.north;
+  String? spatialSurfaceId;
+  SpatialTerrainSurfaceEditingPreview? terrainSurfacePreview;
+  (bool, String, String, SpatialRampDirection, bool)
+  get terrainSurfaceOptions => (
+    spatialContinuousTerrain,
+    spatialSurfaceLowLevel,
+    spatialSurfaceHighLevel,
+    spatialSurfaceDirection,
+    spatialSurfaceReanchorInstances,
+  );
   ProjectElementEntry? brush;
   FieldObstacleKind fieldObstacleKind = FieldObstacleKind.cutTree;
   ProjectModel3dEntry? model3d;
@@ -78,6 +95,7 @@ class MapWorkspaceViewState {
     paletteTab = 'Décors';
     tool = StudioMapTool.fieldObstacle;
   }
+
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
   ({MapBorderDrawingDraft draft, String message})? borderDraftFailure;
@@ -121,13 +139,16 @@ class MapWorkspaceViewState {
   void repairBorderSelection(MapData map) {
     final selected = borderFeature;
     if (selected == null) return;
-    final layer = map.layers.whereType<BorderLayer>()
-        .where((layer) => layer.id == selected.layerId && layer.isVisible).firstOrNull;
+    final layer = map.layers
+        .whereType<BorderLayer>()
+        .where((layer) => layer.id == selected.layerId && layer.isVisible)
+        .firstOrNull;
     if (layer?.content.featureById(selected.featureId) != null) return;
     borderFeature = null;
     borderPreview = null;
     borderEditingMode = BorderStrokeEditingMode.draw;
   }
+
   MapEnvironmentSession? environment;
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
@@ -348,6 +369,9 @@ class MapWorkspaceViewState {
       borderDraftFailure = null;
       borderPreview = null;
       borderFeature = null;
+      spatialSurfaceId = null;
+      terrainSurfacePreview = null;
+      spatialSurfaceSelect = false;
     }
     _resourceMapId = activeMapId;
     if (model3d != null) {

@@ -35,6 +35,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   List<SpatialSceneNeighbor> neighbors = const [];
   int neighborGeneration = 0;
   Object? neighborError;
+  String? renderedFramesMapId;
+  Map<String, SpatialActorVisual> renderedFrames = const {};
   void release() {
     keys.clear();
     if (widget.keyboardInputEnabled) widget.session.movement.releaseInput();
@@ -136,27 +138,43 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   }
 
   Map<String, SpatialActorVisual> frames(
-      double dt, Offset renderedOrigin, Set<String> renderedMaps) {
+    double dt,
+    Offset renderedOrigin,
+    Set<String> renderedMaps,
+    String renderedMapId,
+  ) {
     final frames = widget.session.frames(dt, mapIds: renderedMaps);
+    if (widget.session.bundle.map.id != renderedMapId &&
+        widget.session.connectionEntry == null) {
+      return renderedFramesMapId == renderedMapId ? renderedFrames : const {};
+    }
     final translation = sceneOffset - renderedOrigin;
-    if (translation == Offset.zero) return frames;
-    return {
-      for (final entry in frames.entries)
-        entry.key: SpatialActorVisual(
-            x: entry.value.x + translation.dx,
-            y: entry.value.y,
-            z: entry.value.z + translation.dy,
-            texture: entry.value.texture,
-            width: entry.value.width,
-            height: entry.value.height,
-            frame: entry.value.frame),
-    };
+    renderedFramesMapId = renderedMapId;
+    renderedFrames = Map.unmodifiable(
+      translation == Offset.zero
+          ? frames
+          : {
+              for (final entry in frames.entries)
+                entry.key: SpatialActorVisual(
+                  x: entry.value.x + translation.dx,
+                  y: entry.value.y,
+                  z: entry.value.z + translation.dy,
+                  texture: entry.value.texture,
+                  width: entry.value.width,
+                  height: entry.value.height,
+                  frame: entry.value.frame,
+                ),
+            },
+    );
+    return renderedFrames;
   }
 
   @override
   void didUpdateWidget(SpatialExplorationView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.session == widget.session) return;
+    renderedFramesMapId = null;
+    renderedFrames = const {};
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
     keys.clear();
@@ -266,6 +284,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final renderedOrigin = sceneOffset;
+    final renderedMapId = widget.session.bundle.map.id;
     final renderedMaps = {
       widget.session.bundle.map.id,
       for (final neighbor in neighbors) neighbor.map.id,
@@ -300,11 +319,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                       onReady: widget.onReady,
                       onVisibleMapsChanged: widget.session.setVisibleMaps,
                       actorFrames: (dt) =>
-                          frames(dt, renderedOrigin, renderedMaps),
-                      modelRuntimeState: (mapId, instanceId) => widget
-                          .session.worldStateProvider
-                          ?.call()
-                          .modelState(mapId, instanceId),
+                          frames(dt, renderedOrigin, renderedMaps, renderedMapId),
+                      modelRuntimeState: widget.session.modelRuntimeState,
                       presentationPaused: () =>
                           widget.session.presentationPaused,
                       cameraPose: () {

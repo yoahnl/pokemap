@@ -23,11 +23,17 @@ final class WorldCollisionStorage {
     required Map<(int, int), Uint32List> borderAggregateWordsByChunk,
     required this.supportableTerrainCellsByLayer,
     required this.supportRectsByLayer,
+    required Map<String, Map<int, List<PixelRect>>> supportableTerrainRectsByCell,
   })  : _tileCollisionCells = tileCollisionCells,
         _placedElementCollisionCells = placedElementCollisionCells,
         _pixelMaskWordsByChunk = pixelMaskWordsByChunk,
         _borderMaskWordsByChunk = borderMaskWordsByChunk,
-        _borderAggregateWordsByChunk = borderAggregateWordsByChunk;
+        _borderAggregateWordsByChunk = borderAggregateWordsByChunk,
+        _supportableTerrainRectsByCell = supportableTerrainRectsByCell,
+        _supportableTerrainLayerIds = List.unmodifiable({
+          ...supportableTerrainCellsByLayer.keys,
+          ...supportableTerrainRectsByCell.keys,
+        });
 
   final int widthCells;
   final int heightCells;
@@ -41,6 +47,8 @@ final class WorldCollisionStorage {
   final Map<(int, int), Uint32List> _borderAggregateWordsByChunk;
   final Map<String, List<bool>> supportableTerrainCellsByLayer;
   final Map<String, List<PixelRect>> supportRectsByLayer;
+  final Map<String, Map<int, List<PixelRect>>> _supportableTerrainRectsByCell;
+  final List<String> _supportableTerrainLayerIds;
 
   int get widthPx => widthCells * tileWidthPx;
   int get heightPx => heightCells * tileHeightPx;
@@ -52,10 +60,31 @@ final class WorldCollisionStorage {
   int get allocatedPixelMaskWordCount =>
       allocatedPixelMaskChunkCount * WorldCollisionStorageBuilder.chunkSize;
 
+  WorldCollisionStorage withSupportRectsByLayer(
+    Map<String, List<PixelRect>> rectangles,
+  ) => WorldCollisionStorage._(
+    widthCells: widthCells,
+    heightCells: heightCells,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+    tileCollisionCells: _tileCollisionCells,
+    placedElementCollisionCells: _placedElementCollisionCells,
+    pixelMaskWordsByChunk: _pixelMaskWordsByChunk,
+    borderMaskWordsByChunk: _borderMaskWordsByChunk,
+    borderAggregateWordsByChunk: _borderAggregateWordsByChunk,
+    supportableTerrainCellsByLayer: supportableTerrainCellsByLayer,
+    supportableTerrainRectsByCell: _supportableTerrainRectsByCell,
+    supportRectsByLayer: Map.unmodifiable({
+      for (final entry in rectangles.entries)
+        entry.key: List<PixelRect>.unmodifiable(entry.value),
+    }),
+  );
+
   bool collidesPixelRect(
     PixelRect rect, {
     required bool Function(int cellIndex) isDynamicCellBlocked,
     BorderCollisionExclusion? borderExclusion,
+    Set<String> ignoredSupportableTerrainLayerIds = const {},
   }) {
     if (borderExclusion != null) {
       _validateBorderExclusionArea(borderExclusion.area);
@@ -69,6 +98,7 @@ final class WorldCollisionStorage {
           y,
           isDynamicCellBlocked: isDynamicCellBlocked,
           borderExclusion: borderExclusion,
+          ignoredSupportableTerrainLayerIds: ignoredSupportableTerrainLayerIds,
         )) {
           return true;
         }
@@ -97,6 +127,7 @@ final class WorldCollisionStorage {
     int y, {
     required bool Function(int cellIndex) isDynamicCellBlocked,
     BorderCollisionExclusion? borderExclusion,
+    Set<String> ignoredSupportableTerrainLayerIds = const {},
   }) {
     if (x < 0 || y < 0 || x >= widthPx || y >= heightPx) {
       return true;
@@ -110,9 +141,14 @@ final class WorldCollisionStorage {
       return true;
     }
 
-    for (final entry in supportableTerrainCellsByLayer.entries) {
-      if (_valueAt(entry.value, cellIndex) &&
-          !(supportRectsByLayer[entry.key]?.any((rect) =>
+    for (final layerId in _supportableTerrainLayerIds) {
+      if (!ignoredSupportableTerrainLayerIds.contains(layerId) &&
+          (_valueAt(supportableTerrainCellsByLayer[layerId] ?? const [], cellIndex) ||
+              (_supportableTerrainRectsByCell[layerId]?[cellIndex]?.any(
+                    (rect) => x >= rect.leftPx && x < rect.leftPx + rect.widthPx &&
+                        y >= rect.topPx && y < rect.topPx + rect.heightPx,
+                  ) ?? false)) &&
+          !(supportRectsByLayer[layerId]?.any((rect) =>
               x >= rect.leftPx && x < rect.leftPx + rect.widthPx &&
               y >= rect.topPx && y < rect.topPx + rect.heightPx) ?? false)) {
         return true;
@@ -173,6 +209,7 @@ final class WorldCollisionStorageBuilder {
     required this.placedElementCollisionCells,
     this.supportableTerrainCellsByLayer = const {},
     this.supportRectsByLayer = const {},
+    this.supportableTerrainRectsByLayer = const {},
   })  : tileWidthPx = tileWidthPx <= 0 ? 16 : tileWidthPx,
         tileHeightPx = tileHeightPx <= 0 ? 16 : tileHeightPx;
 
@@ -186,6 +223,7 @@ final class WorldCollisionStorageBuilder {
   final List<bool> placedElementCollisionCells;
   final Map<String, List<bool>> supportableTerrainCellsByLayer;
   final Map<String, List<PixelRect>> supportRectsByLayer;
+  final Map<String, List<PixelRect>> supportableTerrainRectsByLayer;
   final Map<(int, int), Uint32List> _pixelMaskWordsByChunk =
       <(int, int), Uint32List>{};
   final Map<(int, int), Map<BorderCollisionOwner, Uint32List>>
@@ -300,6 +338,28 @@ final class WorldCollisionStorageBuilder {
   }
 
   WorldCollisionStorage build() {
+    final terrainRectCells = <String, Map<int, List<PixelRect>>>{};
+    for (final entry in supportableTerrainRectsByLayer.entries) {
+      final cells = <int, List<PixelRect>>{};
+      for (final rect in entry.value) {
+        if (rect.widthPx <= 0 || rect.heightPx <= 0) continue;
+        final left = (rect.leftPx ~/ tileWidthPx).clamp(0, widthCells - 1);
+        final right = ((rect.leftPx + rect.widthPx - 1) ~/ tileWidthPx)
+            .clamp(0, widthCells - 1);
+        final top = (rect.topPx ~/ tileHeightPx).clamp(0, heightCells - 1);
+        final bottom = ((rect.topPx + rect.heightPx - 1) ~/ tileHeightPx)
+            .clamp(0, heightCells - 1);
+        for (var y = top; y <= bottom; y++) {
+          for (var x = left; x <= right; x++) {
+            cells.putIfAbsent(y * widthCells + x, () => []).add(rect);
+          }
+        }
+      }
+      terrainRectCells[entry.key] = Map.unmodifiable({
+        for (final cell in cells.entries)
+          cell.key: List<PixelRect>.unmodifiable(cell.value),
+      });
+    }
     final borderAggregate = <(int, int), Uint32List>{};
     for (final chunk in _borderMaskWordsByChunk.entries) {
       final union = Uint32List(chunkSize);
@@ -324,6 +384,7 @@ final class WorldCollisionStorageBuilder {
         for (final entry in supportRectsByLayer.entries)
           entry.key: List<PixelRect>.unmodifiable(entry.value),
       }),
+      supportableTerrainRectsByCell: Map.unmodifiable(terrainRectCells),
       placedElementCollisionCells:
           List<bool>.unmodifiable(placedElementCollisionCells),
       // Copy the mutable construction chunks so a discarded builder can never

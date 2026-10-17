@@ -26,6 +26,7 @@ Map<String, dynamic> _$BadgeDefinitionToJson(_BadgeDefinition instance) =>
     };
 
 const _$FieldAbilityEnumMap = {
+  FieldAbility.fly: 'fly',
   FieldAbility.surf: 'surf',
   FieldAbility.cut: 'cut',
   FieldAbility.strength: 'strength',
@@ -33,5 +34,4 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.rockSmash: 'rock_smash',
   FieldAbility.waterfall: 'waterfall',
   FieldAbility.dive: 'dive',
-  FieldAbility.fly: 'fly',
 };

@@ -745,17 +745,15 @@ final class BorderActions {
       case 'border_layer.feature_move':
         final featureId = parameters.string('featureId');
         final feature = _feature(_borderLayer(context.map, layerId), featureId);
-        updated = updateBorderFeatureGeometry(
-          context.map,
-          layerId: layerId,
-          featureId: featureId,
-          geometry: _translateGeometry(
-            feature.geometry,
-            dx: parameters.integer('dx'),
-            dy: parameters.integer('dy'),
-            mapSize: context.map.size,
-          ),
-        );
+        final dx = parameters.integer('dx');
+        final dy = parameters.integer('dy');
+        final geometry = _translateGeometry(feature.geometry,
+            dx: dx, dy: dy, mapSize: context.map.size);
+        updated = context.map.spatialScene == null
+            ? updateBorderFeatureGeometry(context.map,
+                layerId: layerId, featureId: featureId, geometry: geometry)
+            : moveSpatialBorderFeature(context.map, manifest: context.manifest,
+                layerId: layerId, featureId: featureId, geometry: geometry, dx: dx, dz: dy);
       case 'border_layer.feature_reorder':
         updated = reorderBorderFeature(
           context.map,
@@ -1428,8 +1426,16 @@ BorderFeatureGeometry _translateGeometry(
             'Moving the Border feature would leave map bounds.',
           );
         }
+        final lineage = resolveBorderStrokeLineageIdentityV1(stroke);
+        final id = lineage.preserveTraversal
+            ? buildBorderPreservedStrokeIdV1(
+                authoredStrokeId: lineage.authoredStrokeId,
+                sourceEdgeOffset: lineage.sourceEdgeOffset,
+                wrapLength: lineage.wrapLength,
+                orderedPoints: points)
+            : stroke.id;
         strokes.add(
-          BorderStroke(id: stroke.id, points: points, closed: stroke.closed),
+          BorderStroke(id: id, points: points, closed: stroke.closed),
         );
       }
       return BorderStrokeGeometry(

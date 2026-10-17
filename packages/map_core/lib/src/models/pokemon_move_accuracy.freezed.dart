@@ -23,7 +23,7 @@ PokemonMoveAccuracy _$PokemonMoveAccuracyFromJson(
           return PokemonMoveAccuracyAlwaysHits.fromJson(
             json
           );
-
+        
           default:
             throw CheckedFromJsonException(
   json,
@@ -32,7 +32,7 @@ PokemonMoveAccuracy _$PokemonMoveAccuracyFromJson(
   'Invalid union type "${json['kind']}"!'
 );
         }
-
+      
 }
 
 /// @nodoc

@@ -300,7 +300,10 @@ final class SpatialExplorationGameSessionRuntime
       _lastCell = cell;
       final map = _session!.bundle.map;
       if (previous != null &&
-          (map.triggers.isNotEmpty || map.gameplayZones.isNotEmpty)) {
+          (map.triggers.isNotEmpty ||
+              map.gameplayZones.isNotEmpty ||
+              map.layers.whereType<SmartTileLayer>().any(
+                  (layer) => layer.isVisible && layer.encounterBehavior != null))) {
         unawaited(_runGameplay(() => gameplay.playerEnteredCell(
             previousPosition: previous, currentPosition: cell)));
       }
@@ -323,14 +326,19 @@ final class SpatialExplorationGameSessionRuntime
       NarrativeEventRuntimeSnapshot? narrativeSnapshot}) async {
     final project = bundle.manifest;
     final maps = <String, MapData>{bundle.map.id: bundle.map};
-    for (final entry in project.maps) {
-      if (!maps.containsKey(entry.id)) {
-        final loaded = await loadMapDataFromFile(
-            p.join(bundle.projectRootDirectory, entry.relativePath),
-            projectDialogueContext: project);
-        _ensureLoadActive(generation);
-        maps[entry.id] = loaded;
-      }
+    final entries = project.maps
+        .where((entry) => !maps.containsKey(entry.id))
+        .toList(growable: false);
+    final loadedMaps = await loadMapDataFiles(
+      [
+        for (final entry in entries)
+          p.join(bundle.projectRootDirectory, entry.relativePath),
+      ],
+      projectDialogueContext: project,
+    );
+    _ensureLoadActive(generation);
+    for (var index = 0; index < entries.length; index++) {
+      maps[entries[index].id] = loadedMaps[index];
     }
     validateSpatialWorldState(
         state: gameStateSnapshot.spatialWorldState,

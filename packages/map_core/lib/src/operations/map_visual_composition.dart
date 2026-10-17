@@ -233,12 +233,14 @@ MapVisualCompositionPlan _buildAuthoredPlan(
   final tileLayers = ordered.whereType<TileLayer>().toList(growable: false);
   final steps = <MapVisualCompositionStep>[
     for (final layer in ordered)
-      if (layer is! CollisionLayer) _authoredLayerStep(layer),
-    for (final layer in tileLayers)
-      MapVisualCompositionStep(
-        MapVisualCompositionStepKind.placedElements,
-        layer: layer,
-      ),
+      if (layer is! CollisionLayer) ...[
+        _authoredLayerStep(layer),
+        if (layer is TileLayer)
+          MapVisualCompositionStep(
+            MapVisualCompositionStepKind.placedElements,
+            layer: layer,
+          ),
+      ],
     const MapVisualCompositionStep(
       MapVisualCompositionStepKind.backgroundEntities,
     ),

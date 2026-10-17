@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 import 'movement_terrain_policy.dart';
+import 'moving_platform_gameplay.dart';
 
 import 'collision/pixel_movement_resolver.dart';
 import 'collision/border_collision_geometry.dart';
@@ -376,11 +377,23 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
 
   final dx = direction.dx * step;
   final dy = direction.dy * step;
+  final platformControl = resolveMovingPlatformControlEntry(
+    world: facingWorld,
+    destination: PixelPosition(
+      leftPx: facingWorld.player.playerPositionPx.leftPx + dx,
+      topPx: facingWorld.player.playerPositionPx.topPx + dy,
+    ),
+  );
+  final destination = platformControl?.playerPositionPx;
 
   final resolvedTopLeft = PixelMovementResolverV1.resolveSeparateAxis(
     spriteTopLeftPx: facingWorld.player.playerPositionPx,
-    deltaXPx: dx,
-    deltaYPx: dy,
+    deltaXPx: destination == null
+        ? dx
+        : destination.leftPx - facingWorld.player.playerPositionPx.leftPx,
+    deltaYPx: destination == null
+        ? dy
+        : destination.topPx - facingWorld.player.playerPositionPx.topPx,
     spriteWidthPx: facingWorld.player.playerSpriteWidthPx,
     spriteHeightPx: facingWorld.player.playerSpriteHeightPx,
     worldStaticObstaclesCollidePixelRect: (rect) {
@@ -475,11 +488,15 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
     ),
   );
   return resolveGameplayArrival(movedWorld,
-      previousPos: facingWorld.player.pos, direction: direction);
+      previousPos: facingWorld.player.pos,
+      direction: direction,
+      platformControl: platformControl);
 }
 
 GameplayStepResult resolveGameplayArrival(GameplayWorldState world,
-    {required GridPos previousPos, required Direction direction}) {
+    {required GridPos previousPos,
+    required Direction direction,
+    MovingPlatformControlActivation? platformControl}) {
   final movedWorld = world;
   final targetPos = movedWorld.player.pos;
 
@@ -518,6 +535,7 @@ GameplayStepResult resolveGameplayArrival(GameplayWorldState world,
   return Moved(
     movedWorld,
     hazardEffect: _resolveHazardEffectAt(movedWorld, targetPos),
+    platformControl: platformControl,
   );
 }
 
@@ -766,6 +784,19 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
       actionBehavior.element,
       actionBehavior.behavior,
       MapPlacedElementTriggerType.onAction,
+    );
+  }
+
+  final contact = resolvePlayerEntityBumpContact(
+    world,
+    facing,
+    attemptedPixelsPerStep:
+        facing.dx == 0 ? world.tileHeightPx : world.tileWidthPx,
+  );
+  if (contact != null) {
+    return NpcInteracted(
+      world,
+      world.map.entities.singleWhere((entity) => entity.id == contact.entityId),
     );
   }
 

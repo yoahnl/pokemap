@@ -40,7 +40,7 @@ void main() {
       heightLevels: [1, 1, 1, 1, 6, 1, 1, 1, 1],
       generateCliffs: false,
     );
-    final replacement = (
+    final replacement = SpatialBorderGroundReplacement(
       left: .5,
       top: 1.0,
       right: 1.5,

@@ -74,6 +74,219 @@ void main() {
       );
     }
 
+    test(
+      'editor imports a reusable pattern batch through canonical plan/apply',
+      () async {
+        final fixture = await _MutationFixture.createSmartTiles();
+        addTearDown(fixture.dispose);
+        final project = fixture.project.copyWith(
+          version: ProjectVersion.v9,
+          settings: fixture.project.settings.copyWith(
+            dimension: ProjectDimension.threeD,
+            spatialCamera: SpatialCameraProfile(),
+          ),
+          smartTileCatalog: ProjectSmartTileCatalog(
+            atlases: fixture.project.smartTileCatalog.atlases,
+          ),
+        );
+        final map = MapData(
+          id: fixture.map.id,
+          name: fixture.map.name,
+          version: ProjectVersion.v9,
+          size: fixture.map.size,
+          spatialScene: MapSpatialScene(
+            width: 3,
+            depth: 3,
+            heightLevels: List.filled(9, 0),
+          ),
+        );
+        await FileProjectRepository().saveProject(
+          project,
+          p.join(fixture.root.path, 'project.json'),
+        );
+        await FileMapRepository().saveMap(
+          map,
+          fixture.mapPath,
+          projectDialogueContext: project,
+        );
+        final mapBefore = await File(fixture.mapPath).readAsBytes();
+        final patterns = [
+          for (var index = 0; index < 217; index++)
+            ProjectSmartTilePattern(
+              id: 'unit-$index',
+              name: 'Ground unit $index',
+              usage: SmartTileUsage.terrain,
+              width: 1,
+              height: 1,
+              cells: const [
+                SmartTilePatternCell(
+                  x: 0,
+                  y: 0,
+                  parts: [
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(
+                        frame: SmartTileFrameRef(
+                          atlasId: 'atlas',
+                          column: 0,
+                          row: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ).toJson(),
+        ];
+        final plan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'smart_tile.pattern.upsert_batch',
+          parameters: {'patterns': patterns},
+          idempotencyKey: 'editor-patterns',
+        );
+        final applied = await fixture.mutations.apply(
+          plan,
+          operationId: 'editor-patterns',
+        );
+        expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+        expect(applied.receipt.actionId, 'smart_tile.pattern.upsert_batch');
+        final saved = await FileProjectRepository().loadProject(
+          p.join(fixture.root.path, 'project.json'),
+        );
+        expect(saved.smartTileCatalog.patterns, hasLength(217));
+        expect(await File(fixture.mapPath).readAsBytes(), mapBefore);
+        expect(
+          AuthoringFullParityCatalog.canonical()
+              .requireMutationAction('smart_tile.pattern.upsert_batch')
+              .adapterCapableTransports,
+          contains(AuthoringTransport.editor),
+        );
+        Future<void> mutate(
+          String actionId,
+          Map<String, Object?> parameters,
+        ) async {
+          final next = await fixture.mutations.plan(
+            fixture.root.path,
+            actionId: actionId,
+            parameters: parameters,
+            idempotencyKey: 'editor-$actionId',
+          );
+          final receipt = await fixture.mutations.apply(
+            next,
+            operationId: 'editor-$actionId',
+          );
+          expect(receipt.receipt.status, AuthoringReceiptStatus.applied);
+        }
+
+        await mutate('smart_tile.material.upsert', {
+          'material': const ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Grass',
+            connectionGroupId: 'ground',
+          ).toJson(),
+        });
+        await mutate('smart_tile.preset.publish', {
+          'preset': ProjectSmartTilePreset(
+            id: 'ground',
+            name: 'Ground',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            templateHint: SmartTileTemplateHint.simple,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: const SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: const SmartTileTransformPolicy(),
+            defaultMaterialId: 'grass',
+            allowedMaterialIds: const ['grass'],
+            rules: [
+              SmartTileRule(
+                id: 'base',
+                centerMatch: const SmartTileSlotMatch.material('grass'),
+                signature: const SmartTileSignature(),
+                candidates: const [
+                  SmartTileCandidate(
+                    id: 'base',
+                    parts: [
+                      SmartTileVisualPart(
+                        source: SmartTileVisualSource.frame(
+                          frame: SmartTileFrameRef(
+                            atlasId: 'atlas',
+                            column: 0,
+                            row: 0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ).toJson(),
+        });
+        await mutate('smart_tile.layer.create', {
+          'mapId': map.id,
+          'layerId': 'ground',
+          'name': 'Ground',
+          'presetId': 'ground',
+        });
+        final projectBeforePainting = await File(
+          p.join(fixture.root.path, 'project.json'),
+        ).readAsBytes();
+        await mutate('smart_tile.pattern.paint_batch', {
+          'mapId': map.id,
+          'layerId': 'ground',
+          'strokes': [
+            for (var index = 0; index < 217; index++)
+              {
+                'patternId': 'unit-$index',
+                'strokeId': 'stroke-$index',
+                'materialId': 'grass',
+                'selection': {
+                  'kind': 'stamp',
+                  'anchor': {'x': index % 3, 'y': (index ~/ 3) % 3},
+                },
+              },
+          ],
+        });
+        final paintingProject = await FileProjectRepository().loadProject(
+          p.join(fixture.root.path, 'project.json'),
+        );
+        final painted = await FileMapRepository().loadMap(fixture.mapPath);
+        MapValidator.validate(painted, projectDialogueContext: paintingProject);
+        expect(
+          (painted.layers.single as SmartTileLayer).patternStrokes,
+          hasLength(217),
+        );
+        expect(painted.spatialScene, map.spatialScene);
+        expect(
+          smartTileSemanticCells(painted.layers.single as SmartTileLayer),
+          List.filled(9, 1),
+        );
+        expect(
+          await File(p.join(fixture.root.path, 'project.json')).readAsBytes(),
+          projectBeforePainting,
+        );
+        expect(
+          AuthoringFullParityCatalog.canonical()
+              .requireMutationAction('smart_tile.pattern.paint_batch')
+              .adapterCapableTransports,
+          contains(AuthoringTransport.editor),
+        );
+        await mutate('smart_tile.pattern.erase', {
+          'mapId': map.id,
+          'layerId': 'ground',
+          'clearMaterial': true,
+          'cells': [
+            {'x': 1, 'y': 1},
+          ],
+        });
+        final erased = await FileMapRepository().loadMap(fixture.mapPath);
+        expect(smartTileSemanticCells(erased.layers.single as SmartTileLayer), [
+          for (var i = 0; i < 9; i++) i == 4 ? 0 : 1,
+        ]);
+      },
+    );
+
     test('editor connection intents consume all five catalogued actions', () {
       final service = MapConnectionEditingService(
         resolveMapConnectionTargetUseCase: ResolveMapConnectionTargetUseCase(),

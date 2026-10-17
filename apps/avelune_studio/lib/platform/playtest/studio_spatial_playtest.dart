@@ -61,6 +61,7 @@ final class StudioSpatialPlaytest {
           : await loadRuntimeMapBundle(
               projectFilePath: projectFilePath,
               mapId: project.newGame.startMapId,
+              preloadedManifest: project,
             );
       var draft = NewGameDraft.start(
         draftId: '$launchId-draft',
@@ -147,6 +148,7 @@ final class StudioSpatialPlaytest {
             mapId: const GameStateSaveEnvelopeMapper()
                 .restore(initialSave)
                 .currentMapId,
+            preloadedManifest: project,
           );
     final runtime = SpatialExplorationGameSessionRuntime(
       descriptor: GameSessionDescriptor(
@@ -165,6 +167,7 @@ final class StudioSpatialPlaytest {
           SpatialGameplayCapabilities.storyCapabilityId,
           'map3d.animation@1',
           'map3d.terrain-appearance@1',
+          SpatialTerrainSurfaceSet.capabilityId,
         },
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions(),

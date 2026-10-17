@@ -586,6 +586,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   int _movementContinuityEpoch = 0;
   TriggeredWarp? _pendingWarp;
   _PendingDirectedJump? _pendingDirectedJump;
+  ({MovingPlatformControlActivation activation, String mapId, String? mapActivationId})? _pendingMovingPlatformControl;
+  bool _movingPlatformControlRunning = false;
   final PlacedElementWarpTraversalController
       _placedElementWarpTraversalController =
       PlacedElementWarpTraversalController();
@@ -922,6 +924,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _sceneWorldWaitCount > 0 ||
       _sceneActorRouteTargets.isNotEmpty ||
       _pendingDirectedJump != null ||
+      _pendingMovingPlatformControl != null ||
       _flowPhase == _RuntimeFlowPhase.mapTransition ||
       _flowPhase == _RuntimeFlowPhase.battleTransition ||
       _flowPhase == _RuntimeFlowPhase.battle ||
@@ -5237,6 +5240,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
 
+    if (_pendingMovingPlatformControl != null) {
+      _clearPressedMovementControls();
+      if (!_player.isStepping && !_movingPlatformControlRunning) {
+        unawaited(_executeMovingPlatformControl());
+      }
+      return;
+    }
+
     if (_bicycleToggleInFlight || _pendingDirectedJump != null) {
       _clearPressedMovementControls();
       return;
@@ -5413,7 +5424,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // - pas d'exécution pendant dialogue/battle transition;
     // - base propre pour un futur "wait movement" en cutscene.
     if (!blocksNewOverworldLaunch) {
-      _scriptedEntityMovementController?.update(dt);
+      if (_pendingTrainerSpot == null) {
+        _scriptedEntityMovementController?.update(dt);
+      } else {
+        _scriptedEntityMovementController?.updateForcedMoves(dt);
+      }
       _processPendingSceneNpcMoves();
       _processPendingScenarioNpcWarpEntries();
       _processPendingScenarioMoveContinuations();
@@ -5806,6 +5821,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           durationSeconds: _playerStepSeconds,
           animationState: _playerStepAnimation,
         );
+      }
+      final control = result.platformControl;
+      if (control != null) {
+        _pendingMovingPlatformControl = (
+          activation: control,
+          mapId: _activeMapId,
+          mapActivationId: _currentMapActivationId,
+        );
+        _clearPressedMovementControls();
+        _publishInputAuthoritySnapshot();
+        return;
       }
       _checkStepEncounter(repelActiveForStep: repelActiveForStep);
       _checkTrainerLineOfSight(); // Check LoS only when player position changes
@@ -7541,7 +7567,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _suppressOverworldInputForScriptedPlayerMovement() {
-    if (_pendingDirectedJump != null) {
+    if (_pendingDirectedJump != null || _pendingMovingPlatformControl != null) {
       return true;
     }
     final status = scriptedNpcMovementStatus('player');
@@ -12157,6 +12183,84 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncCameraToPlayer();
   }
 
+  Future<void> _presentMovingPlatformMove(
+    MovingPlatformMoveResult result, {
+    required String mapId,
+    required String? mapActivationId,
+  }) async {
+    for (final frame in result.frames) {
+      if (_isRemoved ||
+          _activeMapId != mapId ||
+          _currentMapActivationId != mapActivationId) {
+        throw StateError('Platform movement was interrupted.');
+      }
+      _applyMovingPlatformFrame(frame.world);
+      await Future<void>.delayed(const Duration(milliseconds: 8));
+    }
+    if (_isRemoved ||
+        _activeMapId != mapId ||
+        _currentMapActivationId != mapActivationId) {
+      throw StateError('Platform movement was interrupted.');
+    }
+    _applyMovingPlatformFrame(result.finalWorld);
+  }
+
+  Future<void> _executeMovingPlatformControl() async {
+    final pending = _pendingMovingPlatformControl;
+    if (pending == null || _movingPlatformControlRunning) {
+      return;
+    }
+    _movingPlatformControlRunning = true;
+    final originalWorld = _world;
+    final originalState = _gameState;
+    try {
+      if (_isRemoved ||
+          _activeMapId != pending.mapId ||
+          _currentMapActivationId != pending.mapActivationId) {
+        return;
+      }
+      final activation = pending.activation;
+      if (_world.player.playerPositionPx.leftPx !=
+              activation.playerPositionPx.leftPx ||
+          _world.player.playerPositionPx.topPx !=
+              activation.playerPositionPx.topPx) {
+        throw StateError('Platform control arrival changed before activation.');
+      }
+      final result = moveGameplayPlatform(
+        world: _world,
+        project: _bundle.manifest,
+        worldState: _gameState.movingPlatformWorldState,
+        platformId: activation.platformId,
+        motion: activation.motion,
+      );
+      await _presentMovingPlatformMove(
+        result,
+        mapId: pending.mapId,
+        mapActivationId: pending.mapActivationId,
+      );
+      _gameState = _gameState.copyWith(
+        movingPlatformWorldState: result.finalWorldState,
+      );
+      _syncGameStateFromWorld();
+    } catch (error, stackTrace) {
+      if (!_isRemoved &&
+          _activeMapId == pending.mapId &&
+          _currentMapActivationId == pending.mapActivationId) {
+        _gameState = originalState;
+        _applyMovingPlatformFrame(originalWorld);
+        _showNotification('La plate-forme ne peut pas être déplacée.');
+      }
+      debugPrint('[platform] control failed: $error\n$stackTrace');
+    } finally {
+      if (_pendingMovingPlatformControl == pending) {
+        _pendingMovingPlatformControl = null;
+      }
+      _movingPlatformControlRunning = false;
+      _clearPressedMovementControls();
+      _publishInputAuthoritySnapshot();
+    }
+  }
+
   Future<String> _executeSceneMovePlatformCommand(
     SceneInteractiveCommand command, {
     required GameState Function() currentGameState,
@@ -12187,14 +12291,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _publishInputAuthoritySnapshot();
     var committed = false;
     try {
-      for (final frame in result.frames) {
-        if (_isRemoved || _activeMapId != command.mapId) {
-          throw StateError('Platform movement was interrupted.');
-        }
-        _applyMovingPlatformFrame(frame.world);
-        await Future<void>.delayed(const Duration(milliseconds: 8));
-      }
-      _applyMovingPlatformFrame(result.finalWorld);
+      await _presentMovingPlatformMove(result, mapId: command.mapId,
+        mapActivationId: _currentMapActivationId);
       if (result.outcome == MovingPlatformMoveOutcome.moved) {
         session.registerCompensation(() async {
           session.gameState = originalState;

@@ -657,16 +657,15 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                                   projectRootPath: widget.projectRootPath,
                                   resolveTilesetPathById:
                                       widget.resolveTilesetPathById,
-                                  onEditAsDraft: widget
-                                              .onEnvironmentPresetSaved ==
-                                          null
+                                  onEditAsDraft: selected.isSpatial ||
+                                          widget.onEnvironmentPresetSaved == null
                                       ? null
                                       : () =>
                                           _openEditDraftFromPreset(selected),
-                                  onEditPalette:
-                                      widget.onEnvironmentPresetSaved == null
-                                          ? null
-                                          : () => _openPaletteDraft(selected),
+                                  onEditPalette: selected.isSpatial ||
+                                          widget.onEnvironmentPresetSaved == null
+                                      ? null
+                                      : () => _openPaletteDraft(selected),
                                 ),
                         ),
                 ),
@@ -1115,15 +1114,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
 List<EnvironmentPaletteItemDraft> _paletteDraftFromPreset(
   EnvironmentPreset preset,
 ) {
-  return List<EnvironmentPaletteItemDraft>.unmodifiable([
-    for (final item in preset.palette)
-      EnvironmentPaletteItemDraft(
-        elementId: item.elementId,
-        weight: item.weight,
-        collisionMode: item.collisionMode,
-        tags: item.tags,
-      ),
-  ]);
+  return EnvironmentPresetDraft.fromPreset(preset).palette;
 }
 
 List<EnvironmentPaletteItem> _paletteItemsFromDraft(

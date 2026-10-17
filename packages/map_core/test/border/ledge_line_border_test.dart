@@ -470,6 +470,126 @@ void main() {
   );
 
   test(
+    'declared visual gap stays bounded without changing native placement',
+    () {
+      for (final gap in [7, 8, 32]) {
+        final fixture = _Fixture(
+          primitives: [
+            _gappedPrimitive('south', BorderPrimitiveOrientation.south),
+          ],
+          parameters: _parameters(gap: gap),
+        );
+        final gallery = resolveBorderCanonicalGallery(
+          blueprintId: 'ledge',
+          blueprintRevision: fixture.request.blueprintRevision!,
+          visualSnapshots: fixture.request.visualSnapshots,
+          tileSizePx: fixture.request.tileSizePx,
+        );
+        final ready = assessBorderPublicationReadiness(
+          blueprintId: 'ledge',
+          definition: fixture.definition,
+          resolverVersion: borderResolverVersion,
+          project: _project(fixture),
+          visualSnapshots: fixture.request.visualSnapshots,
+          snapshotIntegrity: _integrity(fixture),
+          canonicalGalleryReport: gallery.report,
+        );
+        expect(ready.canPublish, gap == 8, reason: 'gap=$gap');
+        final resolved = resolveLedgeLineBorder(fixture.request);
+        expect(resolved.canApply, gap < 32);
+        if (gap == 8) {
+          final placement = resolved.materialization!.placements.single;
+          expect(
+            placement.transform,
+            BorderSpriteTransform(quarterTurns: 0, flipX: false),
+          );
+          expect(
+            placement.topLeftWorldPx,
+            BorderPixelPos(
+              x: placement.anchorCell.x * 32,
+              y: placement.anchorCell.y * 32,
+            ),
+          );
+          expect(
+            assessBorderMaterializationFreshness(
+              fixture.request,
+              materialization: resolved.materialization!,
+              snapshotIntegrity: _integrity(fixture),
+            ).state,
+            BorderMaterializationState.fresh,
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'declared gap rejects hidden variants and incompatible variant seams',
+    () {
+      for (final primitives in [
+        [
+          _primitive('a', BorderPrimitiveOrientation.south),
+          _gappedPrimitive('b', BorderPrimitiveOrientation.south),
+        ],
+        [
+          _primitive('a', BorderPrimitiveOrientation.south),
+          _gappedPrimitive(
+            'b',
+            BorderPrimitiveOrientation.south,
+            gapStart: 0,
+            gapEnd: 8,
+          ),
+          _gappedPrimitive(
+            'c',
+            BorderPrimitiveOrientation.south,
+            gapStart: 24,
+            gapEnd: 32,
+          ),
+        ],
+      ]) {
+        final fixture = _Fixture(
+          primitives: primitives,
+          parameters: _parameters(
+            variation: 0,
+            gap: primitives.length == 2 ? 7 : 8,
+          ),
+        );
+        final gallery = resolveBorderCanonicalGallery(
+          blueprintId: 'ledge',
+          blueprintRevision: fixture.request.blueprintRevision!,
+          visualSnapshots: fixture.request.visualSnapshots,
+          tileSizePx: fixture.request.tileSizePx,
+        );
+        expect(gallery.allCasesResolved, isTrue);
+        expect(
+          gallery.cases.every(
+            (sample) => sample.resolverResult.materialization!.placements.every(
+              (placement) => placement.primitiveId == 'a',
+            ),
+          ),
+          isTrue,
+        );
+        final ready = assessBorderPublicationReadiness(
+          blueprintId: 'ledge',
+          definition: fixture.definition,
+          resolverVersion: borderResolverVersion,
+          project: _project(fixture),
+          visualSnapshots: fixture.request.visualSnapshots,
+          snapshotIntegrity: _integrity(fixture),
+          canonicalGalleryReport: gallery.report,
+        );
+        expect(ready.canPublish, isFalse);
+        expect(
+          ready.diagnosticReport.diagnostics.map(
+            (diagnostic) => diagnostic.code,
+          ),
+          contains('border.publication.ledge_variant_coverage_incomplete'),
+        );
+      }
+    },
+  );
+
+  test(
     'publication checks tangent occupancy of every admissible variant independent of RNG',
     () {
       for (final orientation in BorderPrimitiveOrientation.values.where(
@@ -1182,12 +1302,13 @@ BorderGenerationParams _parameters({
   int irregularity = 0,
   bool autoRotation = false,
   int variation = 1000,
+  int gap = 0,
 }) => BorderGenerationParams(
   irregularityPermille: irregularity,
   detailDensityPermille: 0,
   variationPermille: variation,
   maxOverlapPx: 0,
-  gapTolerancePx: 0,
+  gapTolerancePx: gap,
   depthRows: depthRows,
   allowAutoRotation: autoRotation,
 );
@@ -1416,8 +1537,10 @@ String _pixelFingerprint(
 
 BorderPublishedPrimitive _gappedPrimitive(
   String id,
-  BorderPrimitiveOrientation orientation,
-) {
+  BorderPrimitiveOrientation orientation, {
+  int gapStart = 12,
+  int gapEnd = 20,
+}) {
   final original = _primitive(id, orientation);
   final rgba = _pixels(id, orientation, const GridSize(width: 32, height: 32));
   for (var y = 0; y < 32; y++) {
@@ -1427,7 +1550,7 @@ BorderPublishedPrimitive _gappedPrimitive(
               orientation == BorderPrimitiveOrientation.south
           ? x
           : y;
-      if (tangent >= 12 && tangent < 20) {
+      if (tangent >= gapStart && tangent < gapEnd) {
         rgba[(y * 32 + x) * 4 + 3] = 0;
       }
     }

@@ -35,12 +35,12 @@ RuntimeTrainerInteractionPlan resolveRuntimeTrainerInteractionPlan({
   required bool isDefeated,
 }) {
   if (isDefeated) {
-    final dialogue = _trainerDialogueRef(
-          trainer.victoryDialogueId,
-        ) ??
-        npc.defeatDialogueRef;
     final rematchAllowed =
         trainer.rematchPolicy == ProjectTrainerRematchPolicy.allowed;
+    final victoryDialogue = _trainerDialogueRef(trainer.victoryDialogueId);
+    final dialogue = rematchAllowed
+        ? victoryDialogue ?? npc.defeatDialogueRef
+        : npc.defeatDialogueRef ?? victoryDialogue;
     if (rematchAllowed) {
       return RuntimeTrainerInteractionPlan(
         disposition: dialogue == null

@@ -29,6 +29,7 @@ import 'spatial_cell_overlay.dart';
 import 'spatial_scene_neighbor.dart';
 import 'spatial_scene_components.dart';
 import 'spatial_model_placement_preview.dart';
+import 'spatial_runtime_model_index.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -629,6 +630,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   >
   modelComponents = {};
   Map<(String, String), _SceneModelComponent> animationModels = {};
+  SpatialRuntimeModelIndex runtimeModelIndex = SpatialRuntimeModelIndex(const {});
   bool sceneReady = false, closed = false;
   final actorSelections = <String, List<MeshComponent>>{};
   int generation = 0;
@@ -716,6 +718,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final nextChunks = <String, _SceneChunk>{};
     final nextGrounds = <_SceneGround>[];
     final nextAnimationModels = <(String, String), _SceneModelComponent>{};
+    final nextRuntimeScenes = <String, Iterable<SpatialModelInstance>>{};
     final nextModelComponents =
         <
           String,
@@ -756,6 +759,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
         }
         final loader = placement.loader;
         final mapId = map?.id ?? '__scene__';
+        nextRuntimeScenes[mapId] = scene.instances;
         final signature = (
           map,
           scene,
@@ -814,7 +818,15 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             }
             if (ticket != generation || closed) return false;
           }
-          final ground = _SceneGround(plan, textures, placement.offset);
+          final ground = _SceneGround(
+            plan,
+            textures,
+            placement.offset,
+            mapId: mapId,
+            ground: snapshot.ground,
+            edge: snapshot.edge,
+            selectedCell: placement.active ? snapshot.selectedCell : null,
+          );
           sceneGround = ground;
           ground.resolve((groundElapsed * 1000).round());
           nextGrounds.add(ground);
@@ -825,7 +837,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           snapshot.ground,
           snapshot.edge,
           selectedCell: placement.active ? snapshot.selectedCell : null,
-          paintedCells: groundPlan?.paintedCells,
+          includeGround: groundPlan == null,
           replacedGroundCells: groundPlan?.groundReplacementCells ?? const {},
           borderGroundReplacements:
               groundPlan?.borderGroundReplacements ?? const {},
@@ -844,11 +856,25 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             ),
           );
         }
+        final modelSources = <String, Future<Uint8List> Function()>{};
         for (final instance in scene.instances) {
           final definition = definitions[instance.modelId];
           if (definition == null) {
             throw StateError('Modèle absent : ${instance.modelId}');
           }
+          modelSources.putIfAbsent(
+            definition.sourceAssetId,
+            () => () => snapshot.loadModel(definition.id),
+          );
+        }
+        final modelsReady = await ModelByteLoader.preloadCached(
+          cache,
+          modelSources,
+          isCurrent: () => ticket == generation && !closed,
+        );
+        if (!modelsReady || ticket != generation || closed) return false;
+        for (final instance in scene.instances) {
+          final definition = definitions[instance.modelId]!;
           final model = await ModelByteLoader.loadCached(
             cache,
             definition.sourceAssetId,
@@ -963,6 +989,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           }
           modelComponents = nextModelComponents;
           animationModels = nextAnimationModels;
+          runtimeModelIndex = SpatialRuntimeModelIndex(nextRuntimeScenes);
           renderedConfiguration = configuration;
           actorVisual = null;
           cellOverlayComponents = nextCellOverlays;
@@ -1133,7 +1160,13 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       for (final ground in grounds.where((ground) => ground.plan.animated)) {
         final previous = ground.components;
         if (ground.resolve((groundElapsed * 1000).round())) {
-          sceneComponents.replaceSubset(previous, ground.components);
+          final retained = ground.components.toSet();
+          final previousSet = previous.toSet();
+          sceneComponents.replaceSubset(
+            previous.where((component) => !retained.contains(component)),
+            ground.components.where((component) => !previousSet.contains(component)),
+            groupKey: ground.mapId,
+          );
         }
       }
     }
@@ -1147,16 +1180,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     for (final entry in animationModels.entries) {
       final state = provider(entry.key.$1, entry.key.$2);
       final component = entry.value;
-      final map = entry.key.$1 == visibleConfiguration.groundMap?.id
-          ? visibleConfiguration.groundMap
-          : visibleConfiguration.neighbors
-                .where((neighbor) => neighbor.map.id == entry.key.$1)
-                .firstOrNull
-                ?.map;
-      final instance = (map?.spatialScene ?? visibleConfiguration.scene)
-          .instances
-          .where((value) => value.id == entry.key.$2)
-          .firstOrNull;
+      final instance = runtimeModelIndex.instance(entry.key.$1, entry.key.$2);
       if (instance == null) continue;
       component.bindRuntimeState(
         state,
@@ -1496,6 +1520,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     cache.clear();
     modelComponents.clear();
     animationModels.clear();
+    runtimeModelIndex = SpatialRuntimeModelIndex(const {});
     groundTextureCache.clear();
     grounds.clear();
     sceneChunks.clear();
@@ -1540,38 +1565,74 @@ final class _SceneChunk {
 }
 
 final class _SceneGround {
-  _SceneGround(this.plan, this.textures, this.offset);
+  _SceneGround(
+    this.plan,
+    this.textures,
+    this.offset, {
+    required this.mapId,
+    required this.ground,
+    required this.edge,
+    required this.selectedCell,
+  });
 
   final SpatialGroundPlan plan;
   final Map<String, Texture> textures;
   final Offset offset;
+  final String mapId;
+  final Color ground, edge;
+  final (int, int)? selectedCell;
   List<SpatialGroundVisual> visuals = [];
   List<MeshComponent> components = [];
+  List<MeshComponent> underlays = [];
   bool initialized = false;
 
   bool resolve(int elapsedMs) {
     final next = plan.resolve(elapsedMs);
     var changed = !initialized || next.length != visuals.length;
-    for (var index = 0; !changed && index < next.length; index++) {
+    var geometryChanged = changed;
+    for (var index = 0; !geometryChanged && index < next.length; index++) {
       final before = visuals[index].visual, after = next[index].visual;
-      changed =
-          before.sourceRect != after.sourceRect ||
-          before.tilesetId != after.tilesetId ||
+      geometryChanged =
           before.transform != after.transform ||
-          before.geometry.visualBounds != after.geometry.visualBounds;
+          before.geometry.visualBounds != after.geometry.visualBounds ||
+          before.spatialHeightOffset != after.spatialHeightOffset ||
+          before.spatialClip != after.spatialClip;
+      changed = changed || geometryChanged ||
+          before.sourceRect != after.sourceRect ||
+          before.tilesetId != after.tilesetId;
     }
     if (!changed) return false;
     initialized = true;
     visuals = next;
+    if (geometryChanged) {
+      final painted = plan.paintedCellsFor(visuals);
+      underlays = [
+        for (final mesh in terrainMeshes(
+          plan.scene!,
+          ground,
+          edge,
+          selectedCell: selectedCell,
+          paintedCells: painted,
+          replacedGroundCells: plan.groundReplacementCells,
+          borderGroundReplacements: plan.borderGroundReplacements,
+          bridgeCells: plan.bridgeCells,
+          underlaySupports: painted == null ? null : plan.underlaySupportsFor(visuals),
+          includeCliffs: false,
+        ))
+          MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
+      ];
+    }
     components = [
       for (final mesh in spatialGroundMeshes(
         visuals,
         textures,
         scene: plan.scene,
         excludedCellsFor: plan.excludedCellsFor,
+        flatSurfaceFor: plan.flatSurfaceFor,
         groundReplacements: plan.borderGroundReplacements,
       ))
         MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
+      ...underlays,
     ];
     return true;
   }
@@ -1597,9 +1658,12 @@ Iterable<Mesh> terrainMeshes(
   Color edge, {
   (int, int)? selectedCell,
   Set<(int, int)>? paintedCells,
+  SpatialGroundUnderlayIndex? underlaySupports,
   Set<(int, int)> replacedGroundCells = const {},
   SpatialBorderGroundReplacementIndex borderGroundReplacements = const {},
   Set<(int, int)> bridgeCells = const {},
+  bool includeGround = true,
+  bool includeCliffs = true,
   ({Texture texture, SmartTileSourceRect sourceRect})? cliffTexture,
 }) sync* {
   final groups =
@@ -1645,7 +1709,10 @@ Iterable<Mesh> terrainMeshes(
   for (final face in spatialTerrainFaces(
     scene,
     groundReplacements: borderGroundReplacements,
-  )) {
+  ).expand((face) => underlaySupports == null
+      ? [face]
+      : spatialTerrainUnderlayFaces(face, underlaySupports))) {
+    if (face.isTop ? !includeGround : !includeCliffs) continue;
     if (face.isTop && replacedGroundCells.contains(face.cell)) continue;
     if (!face.isTop && bridgeCells.contains(face.cell)) continue;
     if (face.isTop &&

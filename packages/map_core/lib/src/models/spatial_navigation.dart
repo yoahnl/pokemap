@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
 const maximumSpatialTerrainLevel = 64;
+const _unsetRampSurface = Object();
 
 enum SpatialRampDirection { north, south, east, west }
 
@@ -84,6 +85,7 @@ final class SpatialRamp extends SpatialBlockedArea {
     required this.lowLevel,
     required this.highLevel,
     required this.direction,
+    this.surfaceInstanceId,
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
         lowLevel < 0 ||
@@ -91,10 +93,15 @@ final class SpatialRamp extends SpatialBlockedArea {
         highLevel <= lowLevel) {
       throw const FormatException('Invalid spatial ramp levels or identity.');
     }
+    if (surfaceInstanceId != null &&
+        !RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(surfaceInstanceId!)) {
+      throw const FormatException('Invalid spatial ramp surface identity.');
+    }
   }
   final String id;
   final int lowLevel, highLevel;
   final SpatialRampDirection direction;
+  final String? surfaceInstanceId;
   double levelAt(double px, double pz) {
     final progress = switch (direction) {
       SpatialRampDirection.north => 1 - (pz - z) / depth,
@@ -113,6 +120,7 @@ final class SpatialRamp extends SpatialBlockedArea {
     int? lowLevel,
     int? highLevel,
     SpatialRampDirection? direction,
+    Object? surfaceInstanceId = _unsetRampSurface,
   }) => SpatialRamp(
     id: id,
     x: x ?? this.x,
@@ -122,6 +130,9 @@ final class SpatialRamp extends SpatialBlockedArea {
     lowLevel: lowLevel ?? this.lowLevel,
     highLevel: highLevel ?? this.highLevel,
     direction: direction ?? this.direction,
+    surfaceInstanceId: identical(surfaceInstanceId, _unsetRampSurface)
+        ? this.surfaceInstanceId
+        : surfaceInstanceId as String?,
   );
   factory SpatialRamp.fromJson(Map<String, dynamic> json) => SpatialRamp(
     id: json['id'] as String,
@@ -132,6 +143,7 @@ final class SpatialRamp extends SpatialBlockedArea {
     lowLevel: json['lowLevel'] as int,
     highLevel: json['highLevel'] as int,
     direction: SpatialRampDirection.values.byName(json['direction'] as String),
+    surfaceInstanceId: json['surfaceInstanceId'] as String?,
   );
   @override
   Map<String, dynamic> toJson() => {
@@ -140,6 +152,7 @@ final class SpatialRamp extends SpatialBlockedArea {
     'lowLevel': lowLevel,
     'highLevel': highLevel,
     'direction': direction.name,
+    if (surfaceInstanceId != null) 'surfaceInstanceId': surfaceInstanceId,
   };
   @override
   bool operator ==(Object other) =>
@@ -148,10 +161,17 @@ final class SpatialRamp extends SpatialBlockedArea {
       id == other.id &&
       lowLevel == other.lowLevel &&
       highLevel == other.highLevel &&
-      direction == other.direction;
+      direction == other.direction &&
+      surfaceInstanceId == other.surfaceInstanceId;
   @override
-  int get hashCode =>
-      Object.hash(super.hashCode, id, lowLevel, highLevel, direction);
+  int get hashCode => Object.hash(
+    super.hashCode,
+    id,
+    lowLevel,
+    highLevel,
+    direction,
+    surfaceInstanceId,
+  );
 }
 
 final class SpatialNavigationProfile {

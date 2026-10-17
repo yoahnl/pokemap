@@ -29,11 +29,36 @@ AuthoringActionDescriptor _descriptor(
         'catalogFormatVersion': ProjectSmartTileCatalog.currentFormatVersion,
         'projectWidePreflight': true,
         if (id == 'smart_tile.pattern.upsert' ||
+            id == 'smart_tile.pattern.upsert_batch' ||
             id == 'smart_tile.preset.draft.upsert' ||
             id == 'smart_tile.preset.publish') ...{
           'model3dOffsetSpace': 'cell_local_before_quarter_turns',
           'model3dTerrainSample': 'final_anchor',
           'model3dGroundReplacement': 'source_cell_below_or_equal_layer',
+          'rasterSpatialClip': {
+            'field': 'parts[].spatialClip',
+            'minimumCatalogFormatVersion': 6,
+            'units': 'normalized_visual_quad',
+            'coordinates': ['left', 'top', 'right', 'bottom'],
+            'sourceKinds': ['frame', 'animation'],
+            'channel': 'ground',
+            'preservesTextureDensity': true,
+            'preservesNavigation': true,
+          },
+          'rasterSpatialHeight': {
+            'field': 'parts[].spatialHeightOffset',
+            'minimumCatalogFormatVersion': 5,
+            'units': 'world',
+            'relativeTo': 'resolvedNativeGround',
+            'terrainSamplingField': 'parts[].spatialFollowTerrain',
+            'terrainSamplingDefault': true,
+            'terrainSamplingMinimumCatalogFormatVersion': 7,
+            'whenTerrainSamplingDisabled': 'constantWorldHeight',
+            'sourceKinds': ['frame', 'animation'],
+            'channel': 'ground',
+            'default': 0,
+            'preservesNavigation': true,
+          },
           'model3dVisualSourceSchema': {
             'type': 'object',
             'additionalProperties': false,
@@ -80,6 +105,38 @@ AuthoringActionDescriptor _descriptor(
               },
             },
             'required': ['materials'],
+          },
+        },
+        if (id == 'smart_tile.pattern.upsert_batch') ...{
+          'maximumPatternCount':
+              SmartTileCatalogActions.maximumPatternBatchCount,
+          'maximumPatternCellCount':
+              SmartTileCatalogActions.maximumPatternBatchCellCount,
+          'batchAtomicity': 'all_or_nothing',
+          'undoBoundary': 'batch',
+          'duplicatePatternIds': 'reject',
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['patterns'],
+            'properties': {
+              'patterns': {
+                'type': 'array',
+                'minItems': 1,
+                'maxItems': SmartTileCatalogActions.maximumPatternBatchCount,
+                'items': {
+                  'type': 'object',
+                  'required': [
+                    'id',
+                    'name',
+                    'usage',
+                    'width',
+                    'height',
+                    'cells'
+                  ],
+                },
+              },
+            },
           },
         },
         if (id == 'smart_tile.preset.delete' ||

@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
 import 'project_model3d.dart';
 import 'spatial_navigation.dart';
 import 'smart_tile.dart';
+import 'spatial_terrain_surface.dart';
 
 enum ProjectDimension { twoD, threeD }
 
@@ -182,6 +183,7 @@ final class MapSpatialScene {
     Iterable<SpatialModelInstance> instances = const [],
     SpatialCameraProfile? camera,
     SpatialNavigationProfile? navigation,
+    this.terrainSurfaces = const SpatialTerrainSurfaceSet.empty(),
   }) : heightLevels = List.unmodifiable(heightLevels ?? _flat(width, depth)),
        instances = List.unmodifiable(instances),
        camera = camera ?? SpatialCameraProfile(),
@@ -210,7 +212,30 @@ final class MapSpatialScene {
         ].any((r) => r.x + r.width > width || r.z + r.depth > depth)) {
       throw const FormatException('Navigation must be inside the spatial map.');
     }
+    if (terrainSurfaces.surfaces.any(
+      (surface) => !surface.fits(width, depth),
+    )) {
+      throw const FormatException(
+        'Continuous terrain surfaces must remain inside the spatial map.',
+      );
+    }
     _validateRampContacts();
+    final instancesById = {
+      for (final instance in this.instances) instance.id: instance,
+    };
+    for (final ramp in this.navigation.ramps) {
+      final surfaceId = ramp.surfaceInstanceId;
+      if (surfaceId == null) continue;
+      final surface = instancesById[surfaceId];
+      if (surface == null) {
+        throw const FormatException(
+          'A ramp surface must reference an existing model instance.',
+        );
+      }
+      if (surface.blocksMovement) {
+        throw const FormatException('A ramp surface must allow movement.');
+      }
+    }
     for (final instance in this.instances) {
       if (instance.position.x < 0 ||
           instance.position.z < 0 ||
@@ -228,14 +253,39 @@ final class MapSpatialScene {
   final List<SpatialModelInstance> instances;
   final SpatialCameraProfile camera;
   final SpatialNavigationProfile navigation;
+  final SpatialTerrainSurfaceSet terrainSurfaces;
+  late final double maximumWorldHeight = _maximumWorldHeight();
+
+  double _maximumWorldHeight() {
+    var maximum = 0.0;
+    for (final level in heightLevels) {
+      final height = level * levelHeight;
+      if (height > maximum) maximum = height;
+    }
+    for (final ramp in navigation.ramps) {
+      final height = ramp.highLevel * levelHeight;
+      if (height > maximum) maximum = height;
+    }
+    for (final surface in terrainSurfaces.surfaces) {
+      for (final footprint in surface.footprints) {
+        for (final point in footprint.points) {
+          final height =
+              surface.height +
+              surface.gradientX * point.x +
+              surface.gradientZ * point.z;
+          if (height > maximum) maximum = height;
+        }
+      }
+    }
+    return maximum;
+  }
+
   double worldHeightAt(double x, double z) {
     for (final ramp in navigation.ramps) {
       if (ramp.contains(x, z)) return ramp.levelAt(x, z) * levelHeight;
     }
-    return heightAt(
-      x.floor().clamp(0, width - 1),
-      z.floor().clamp(0, depth - 1),
-    );
+    return terrainSurfaces.heightAt(x, z) ??
+        heightAt(x.floor().clamp(0, width - 1), z.floor().clamp(0, depth - 1));
   }
 
   double heightAt(int x, int z) => heightLevels[z * width + x] * levelHeight;
@@ -284,6 +334,7 @@ final class MapSpatialScene {
     SpatialNavigationProfile? navigation,
     Object? cliffFrame = _unsetCliffFrame,
     bool? generateCliffs,
+    SpatialTerrainSurfaceSet? terrainSurfaces,
   }) => MapSpatialScene(
     width: width,
     depth: depth,
@@ -296,6 +347,7 @@ final class MapSpatialScene {
     instances: instances ?? this.instances,
     camera: camera ?? this.camera,
     navigation: navigation ?? this.navigation,
+    terrainSurfaces: terrainSurfaces ?? this.terrainSurfaces,
   );
   @override
   bool operator ==(Object other) =>
@@ -308,6 +360,7 @@ final class MapSpatialScene {
           other.generateCliffs == generateCliffs &&
           other.camera == camera &&
           other.navigation == navigation &&
+          other.terrainSurfaces == terrainSurfaces &&
           const DeepCollectionEquality().equals(
             other.heightLevels,
             heightLevels,
@@ -322,18 +375,41 @@ final class MapSpatialScene {
     generateCliffs,
     camera,
     navigation,
+    terrainSurfaces,
     const DeepCollectionEquality().hash(heightLevels),
     const DeepCollectionEquality().hash(instances),
   );
 
   factory MapSpatialScene.fromJson(Map<String, dynamic> json) {
-    if (json['schemaVersion'] != 1) {
+    final version = json['schemaVersion'];
+    if (version is! int || (version != 1 && version != 2)) {
       throw const FormatException('Unsupported spatial scene version.');
+    }
+    if (version == 1 && json.containsKey('terrainSurfaces')) {
+      throw const FormatException(
+        'Continuous terrain requires spatial scene version 2.',
+      );
+    }
+    if (version == 2 && json['terrainSurfaces'] is! Map) {
+      throw const FormatException(
+        'Spatial scene version 2 requires continuous terrain surfaces.',
+      );
+    }
+    final terrainSurfaces = version == 2
+        ? SpatialTerrainSurfaceSet.fromJson(
+            Map<String, dynamic>.from(json['terrainSurfaces'] as Map),
+          )
+        : const SpatialTerrainSurfaceSet.empty();
+    if (version == 2 && terrainSurfaces.surfaces.isEmpty) {
+      throw const FormatException(
+        'Spatial scene version 2 requires at least one continuous surface.',
+      );
     }
     return MapSpatialScene(
       width: json['width'] as int,
       depth: json['depth'] as int,
       heightLevels: (json['heightLevels'] as List).cast<int>(),
+      terrainSurfaces: terrainSurfaces,
       levelHeight: (json['levelHeight'] as num).toDouble(),
       generateCliffs: json['generateCliffs'] as bool? ?? true,
       cliffFrame: json['cliffFrame'] == null
@@ -356,10 +432,12 @@ final class MapSpatialScene {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': 1,
+    'schemaVersion': terrainSurfaces.surfaces.isEmpty ? 1 : 2,
     'width': width,
     'depth': depth,
     'heightLevels': heightLevels,
+    if (terrainSurfaces.surfaces.isNotEmpty)
+      'terrainSurfaces': terrainSurfaces.toJson(),
     'levelHeight': levelHeight,
     if (cliffFrame != null) 'cliffFrame': cliffFrame!.toJson(),
     if (!generateCliffs) 'generateCliffs': false,

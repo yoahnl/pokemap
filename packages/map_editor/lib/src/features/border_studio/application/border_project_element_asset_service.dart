@@ -162,11 +162,18 @@ final class BorderProjectElementAssetService {
     BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
     required BorderPrimitiveDraft primitive,
   }) {
+    final sourceElementId = primitive.sourceElementId;
+    if (sourceElementId == null) {
+      throw const BorderProjectElementAssetException(
+        code: BorderProjectElementAssetErrorCode.missingElement,
+        userMessage: 'Un modèle 3D ne peut pas être analysé comme un élément 2D.',
+      );
+    }
     return prepare(
       manifest: manifest,
       projectRootPath: projectRootPath,
       template: template,
-      sourceElementId: primitive.sourceElementId,
+      sourceElementId: sourceElementId,
       primitiveId: primitive.id,
       role: primitive.role,
       authoredOrientation: primitive.authoredOrientation,

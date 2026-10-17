@@ -82,7 +82,7 @@ abstract class MovementZonePayload with _$MovementZonePayload {
 /// plus tard comment la transformer en `GameplayMovementEffect`.
 @freezed
 abstract class MovementEffectZonePayload with _$MovementEffectZonePayload {
-  @JsonSerializable(explicitToJson: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory MovementEffectZonePayload({
     @Default(MovementEffectZoneKind.slide) MovementEffectZoneKind effectKind,
 
@@ -91,10 +91,59 @@ abstract class MovementEffectZonePayload with _$MovementEffectZonePayload {
     /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
     /// pour garder un JSON stable, mais elle n'est pas consommée.
     @Default(1) int movementCost,
+    @JsonKey(includeIfNull: false) DirectedJumpZonePayload? directedJump,
   }) = _MovementEffectZonePayload;
 
   factory MovementEffectZonePayload.fromJson(Map<String, dynamic> json) =>
-      _$MovementEffectZonePayloadFromJson(json);
+      _movementEffectZonePayloadFromJson(json);
+}
+
+@freezed
+abstract class DirectedJumpZonePayload with _$DirectedJumpZonePayload {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory DirectedJumpZonePayload({
+    required MapConnectionDirection direction,
+    @Default(2) int distanceCells,
+    @Default(500) int durationMs,
+    @Default(24) int peakHeightPx,
+  }) = _DirectedJumpZonePayload;
+
+  factory DirectedJumpZonePayload.fromJson(Map<String, dynamic> json) =>
+      _directedJumpZonePayloadFromJson(json);
+}
+
+MovementEffectZonePayload _movementEffectZonePayloadFromJson(
+  Map<String, dynamic> json,
+) {
+  final payload = _$MovementEffectZonePayloadFromJson(json);
+  if ((payload.effectKind == MovementEffectZoneKind.directedJump) !=
+      (payload.directedJump != null)) {
+    throw const FormatException('Directed jump requires its exclusive payload');
+  }
+  return payload;
+}
+
+DirectedJumpZonePayload _directedJumpZonePayloadFromJson(
+  Map<String, dynamic> json,
+) {
+  if (json['distanceCells'] is! int ||
+      json['durationMs'] is! int ||
+      json['peakHeightPx'] is! int) {
+    throw const FormatException(
+      'Directed jump requires integer geometry and timing',
+    );
+  }
+  final value = _$DirectedJumpZonePayloadFromJson(json);
+  if (value.distanceCells != 2 ||
+      value.durationMs < 1 ||
+      value.durationMs > 60000 ||
+      value.peakHeightPx < 1 ||
+      value.peakHeightPx > 1024) {
+    throw const FormatException(
+      'Directed jump geometry or timing is outside bounds',
+    );
+  }
+  return value;
 }
 
 /// Payload d'une zone [GameplayZoneKind.hazard].

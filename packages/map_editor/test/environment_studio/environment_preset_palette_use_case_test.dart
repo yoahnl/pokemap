@@ -6,6 +6,19 @@ void main() {
   group('UpdateEnvironmentPresetPaletteUseCase', () {
     const useCase = UpdateEnvironmentPresetPaletteUseCase();
 
+    test('refuse de convertir un preset 3D en palette 2D', () {
+      final project = _project();
+      final source = project.environmentPresets.first;
+      final model = EnvironmentPaletteItem(modelId: 'tree-model', weight: 9);
+      final manifest = project.copyWith(environmentPresets: [EnvironmentPreset(
+        id: source.id, name: source.name, templateId: source.templateId,
+        sortOrder: source.sortOrder, palette: [model], defaultParams: source.defaultParams,
+      )]);
+      expect(() => useCase(manifest: manifest, presetId: source.id,
+        palette: [EnvironmentPaletteItem(elementId: 'grass_b', weight: 3)]), throwsArgumentError);
+      expect(manifest.environmentPresets.single.palette.single, same(model));
+    });
+
     test('update palette modifie uniquement le preset ciblé', () {
       final project = _project();
       final updated = useCase(

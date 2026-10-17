@@ -48,30 +48,44 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
     for (final rule in preset.rules)
       for (final candidate in rule.candidates) candidate.id,
   };
-  final orphanCandidateIds = layer.candidateWeights.keys
-      .where((id) => !knownCandidateIds.contains(id))
-      .toList(growable: false)
-    ..sort();
+  final orphanCandidateIds =
+      layer.candidateWeights.keys
+          .where((id) => !knownCandidateIds.contains(id))
+          .toList(growable: false)
+        ..sort();
   if (orphanCandidateIds.isNotEmpty) {
     diagnostics.add(
       SmartTileDiagnostic(
         code: 'smart_tiles.layer.candidate_weight_orphan',
         severity: SmartTileDiagnosticSeverity.warning,
-        path: r'$.layers.' '${layer.id}.candidateWeights',
+        path:
+            r'$.layers.'
+            '${layer.id}.candidateWeights',
         presetId: preset.id,
-        message: 'Le calque "${layer.id}" règle la densité de variantes '
+        message:
+            'Le calque "${layer.id}" règle la densité de variantes '
             'absentes de son preset : ${orphanCandidateIds.join(', ')}. '
             'Ces réglages sont ignorés.',
       ),
     );
   }
 
+  final resolver = PreparedSmartTileResolver(
+    preset: preset,
+    materials: materialList,
+    mapId: map.id,
+    layerId: layer.id,
+    layerSeed: layer.layerSeed,
+    candidateWeights: layer.candidateWeights,
+  );
+
   for (var y = 0; y < map.size.height; y += 1) {
     for (var x = 0; x < map.size.width; x += 1) {
       final cellIndex = y * map.size.width + x;
       final paletteIndex = semanticCells[cellIndex];
-      final materialId =
-          paletteIndex == 0 ? null : layer.materialPalette[paletteIndex];
+      final materialId = paletteIndex == 0
+          ? null
+          : layer.materialPalette[paletteIndex];
       final material = materialId == null ? null : materialById[materialId];
 
       if (materialId == null) {
@@ -85,7 +99,8 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
               preset: preset,
               x: x,
               y: y,
-              message: 'Complete Smart Tile layer "${layer.id}" has an '
+              message:
+                  'Complete Smart Tile layer "${layer.id}" has an '
                   'unassigned cell at ($x, $y).',
             ),
           );
@@ -101,17 +116,7 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
         x: x,
         y: y,
       );
-      final resolution = resolveSmartTile(
-        preset: preset,
-        materials: materialList,
-        context: context,
-        x: x,
-        y: y,
-        mapId: map.id,
-        layerId: layer.id,
-        layerSeed: layer.layerSeed,
-        candidateWeights: layer.candidateWeights,
-      );
+      final resolution = resolver.resolve(context: context, x: x, y: y);
 
       if (resolution.status == SmartTileResolutionStatus.noIntent) {
         continue;
@@ -129,7 +134,8 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
             preset: preset,
             x: x,
             y: y,
-            message: 'Smart Tile cell ($x, $y) resolves only through '
+            message:
+                'Smart Tile cell ($x, $y) resolves only through '
                 'fallback rule "${resolution.ruleId}".',
           ),
         );
@@ -145,7 +151,8 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
           preset: preset,
           x: x,
           y: y,
-          message: 'Smart Tile cell ($x, $y) is unresolved '
+          message:
+              'Smart Tile cell ($x, $y) is unresolved '
               '(${resolution.status.name}): ${resolution.message}',
         ),
       );
@@ -168,12 +175,12 @@ SmartTileDiagnostic _cellDiagnostic({
   required int x,
   required int y,
   required String message,
-}) =>
-    SmartTileDiagnostic(
-      code: code,
-      severity: SmartTileDiagnosticSeverity.error,
-      path: r'$.maps['
-          '"${map.id}"].layers["${layer.id}"].cells[$x,$y]',
-      message: message,
-      presetId: preset.id,
-    );
+}) => SmartTileDiagnostic(
+  code: code,
+  severity: SmartTileDiagnosticSeverity.error,
+  path:
+      r'$.maps['
+      '"${map.id}"].layers["${layer.id}"].cells[$x,$y]',
+  message: message,
+  presetId: preset.id,
+);

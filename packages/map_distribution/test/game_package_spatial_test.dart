@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:archive/archive.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -8,6 +9,74 @@ import 'support/glb_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('continuous terrain packages require an explicit runtime capability', () {
+    final files = spatialPayload();
+    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
+    final surface = SpatialTerrainSurface(id: 'hill', x: 1, z: 1, height: 2, gradientX: .25,
+      footprints: [BorderGroundFootprint(points: [
+        BorderGroundPoint(x: 0, z: 0), BorderGroundPoint(x: 1, z: 0),
+        BorderGroundPoint(x: 1, z: 1), BorderGroundPoint(x: 0, z: 1),
+      ])]);
+    final updated = const SpatialMapOperations().upsertTerrainSurfaces(map, [surface]);
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(updated.toJson()));
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(), payloadFiles: files),
+      throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'message', contains('map3d.terrain-surfaces@1'))));
+    final built = const GamePackageBuilder().build(
+      manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.terrain-surfaces@1']), payloadFiles: files);
+    final inspected = const GamePackageInspector().inspect(built.packageBytes);
+    expect(inspected.manifest.compatibility.requiredCapabilities, contains('map3d.terrain-surfaces@1'));
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final saved = MapData.fromJson(jsonDecode(utf8.decode(archive.findFile('project/maps/map.json')!.content)) as Map<String, dynamic>);
+    expect(saved.spatialScene!.worldHeightAt(1.5, 1.5), 2.125);
+  });
+
+  test('native animated paths require and retain the animation capability', () {
+    final files = spatialPayload(modelBytes: animatedGlb());
+    final project = ProjectManifest.fromJson(jsonDecode(
+        utf8.decode(files['project/project.json']!)) as Map<String, dynamic>);
+    final updatedProject = project.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(materials: const [
+      ProjectSmartTileMaterial(id: 'grass', name: 'Grass', connectionGroupId: 'grass')
+    ], presets: const [
+      ProjectSmartTilePreset(id: 'grass', name: 'Grass',
+          usage: SmartTileUsage.path, topology: SmartTileTopology.uniform,
+          templateHint: SmartTileTemplateHint.simple,
+          coveragePolicy: SmartTileCoveragePolicy.sparse,
+          coverageProfile: SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+          transformPolicy: SmartTileTransformPolicy(),
+          defaultMaterialId: 'grass', allowedMaterialIds: ['grass'],
+          rules: [SmartTileRule(id: 'grass',
+              centerMatch: SmartTileSlotMatch.material('grass'),
+              candidates: [SmartTileCandidate(id: 'grass', parts: [
+                SmartTileVisualPart(source: SmartTileVisualSource.model3d(
+                    modelId: 'model', animationIndex: 0))
+              ])])])
+    ]));
+    final map = MapData.fromJson(jsonDecode(
+        utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
+    final updatedMap = map.copyWith(layers: [
+      SmartTileLayer(id: 'grass', name: 'Grass', presetId: 'grass',
+          usage: SmartTileUsage.path,
+          animationActivation: SmartTileAnimationActivation.onEnter,
+          materialPalette: const ['', 'grass'],
+          field: SmartTileField.cell(semanticCells: [
+            for (var i = 0; i < 64; i++) i == 9 ? 1 : 0
+          ]))
+    ]);
+    files['project/project.json'] = utf8.encode(jsonEncode(updatedProject.toJson()));
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(updatedMap.toJson()));
+    expect(() => const GamePackageBuilder().build(
+        manifest: spatialManifest(), payloadFiles: files),
+        throwsA(isA<GamePackageFormatException>().having(
+            (error) => error.message, 'message', contains('map3d.animation@1'))));
+    final built = const GamePackageBuilder().build(
+        manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.animation@1']),
+        payloadFiles: files);
+    final inspected = const GamePackageInspector().inspect(built.packageBytes);
+    expect(inspected.manifest.compatibility.requiredCapabilities,
+        contains('map3d.animation@1'));
+  });
+
   test('requires the terrain appearance capability for custom cliff meshes', () {
     final files = spatialPayload();
     final map = MapData.fromJson(jsonDecode(

@@ -2281,7 +2281,7 @@ as List<ProjectTilesetCollisionObject>,
 @override
 @pragma('vm:prefer-inline')
 $ProjectTilesetPixelRectCopyWith<$Res> get sourceRect {
-
+  
   return $ProjectTilesetPixelRectCopyWith<$Res>(_self.sourceRect, (value) {
     return _then(_self.copyWith(sourceRect: value));
   });
@@ -2522,7 +2522,7 @@ as List<ProjectTilesetCollisionObject>,
 @override
 @pragma('vm:prefer-inline')
 $ProjectTilesetPixelRectCopyWith<$Res> get sourceRect {
-
+  
   return $ProjectTilesetPixelRectCopyWith<$Res>(_self.sourceRect, (value) {
     return _then(_self.copyWith(sourceRect: value));
   });

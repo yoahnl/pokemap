@@ -6,8 +6,136 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../assets/resource_information_fixture.dart';
+import '../../support/glb_fixture.dart';
 
 void main() {
+  test(
+      'ramp model surfaces share direct and JSONL validation save reopen clear and undo',
+      () async {
+    for (final direct in [false, true]) {
+      var manifest = ProjectManifest(
+        name: 'Escalier',
+        maps: const [],
+        tilesets: const [],
+        version: ProjectVersion.v9,
+        settings: ProjectSettings(
+            dimension: ProjectDimension.threeD,
+            spatialCamera: SpatialCameraProfile()),
+      );
+      final host = await _surfaceFixture(manifest);
+      addTearDown(host.dispose);
+      final modelFile = File('${host.root.path}/stair.glb');
+      await modelFile.writeAsBytes(triangleGlb());
+      final staged =
+          await host.command('stage_artifact', {'sourcePath': modelFile.path});
+      expect(staged.status, AuthoringResultStatus.success);
+      await host.mutate('model3d.import', {
+        'modelId': 'stair-model',
+        'name': 'Escalier',
+        'artifactHandle': staged.data['artifactHandle']
+      });
+      manifest = await host.read();
+      final original = _sourceMap();
+      final source = original.copyWith(
+          spatialScene: original.spatialScene!.copyWith(instances: [
+        SpatialModelInstance(
+            id: 'stairs',
+            modelId: 'stair-model',
+            position: Model3dVector3(x: 57.5, y: .75, z: 14),
+            blocksMovement: false),
+      ]));
+      final file = File('${host.root.path}/maps/map.json');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(source.toJson()));
+      await File('${host.root.path}/project.json')
+          .writeAsString(jsonEncode(manifest.copyWith(maps: [
+        const ProjectMapEntry(
+            id: 'map', name: 'Escalier', relativePath: 'maps/map.json'),
+      ]).toJson()));
+      final before = await file.readAsBytes();
+      final navigation = source.spatialScene!.navigation.toJson();
+      (navigation['ramps'] as List).single['surfaceInstanceId'] = 'stairs';
+      final parameters = <String, Object?>{
+        'mapId': 'map',
+        'navigation': navigation
+      };
+      if (direct) {
+        final snapshot = await host.snapshots.load(ProjectHandle(host.project));
+        final plan = await host.mutations.plan(
+            ProjectHandle(host.project),
+            AuthoringRequest(
+              requestId: 'surface',
+              actionId: 'map3d.navigation.configure',
+              actionVersion: 1,
+              workspaceHandle: host.workspace,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'surface',
+              parameters: parameters,
+            ));
+        expect(await file.readAsBytes(), before);
+        await host.mutations.apply(ProjectHandle(host.project),
+            planId: plan['planId'] as String, operationId: 'surface');
+      } else {
+        final plan = await host.plan('map3d.navigation.configure', parameters);
+        expect(plan.status, AuthoringResultStatus.success,
+            reason: plan.toJson().toString());
+        expect(await file.readAsBytes(), before);
+        expect((await host.apply(plan)).status, AuthoringResultStatus.success);
+      }
+      final stored = MapData.fromJson(jsonDecode(await file.readAsString()));
+      expect(
+          stored.spatialScene!.navigation.ramps.single
+              .toJson()['surfaceInstanceId'],
+          'stairs');
+      expect(stored.spatialScene!.instances, source.spatialScene!.instances);
+      final invalid =
+          jsonDecode(jsonEncode(navigation)) as Map<String, dynamic>;
+      (invalid['ramps'] as List).single['surfaceInstanceId'] = 'missing';
+      final invalidPlan = await host.plan('map3d.navigation.configure',
+          {'mapId': 'map', 'navigation': invalid});
+      expect(invalidPlan.status, AuthoringResultStatus.failure);
+      expect(
+          invalidPlan.error!.details['domainCode'], 'map3d.parameters_invalid');
+      final deletePlan = await host.plan(
+          'map3d.instance.delete', {'mapId': 'map', 'instanceId': 'stairs'});
+      expect(deletePlan.status, AuthoringResultStatus.failure);
+      final linkedBytes = await file.readAsBytes();
+      final cleared = stored.spatialScene!.navigation.toJson();
+      (cleared['ramps'] as List).single['surfaceInstanceId'] = null;
+      final clearPlan = await host.plan('map3d.navigation.configure',
+          {'mapId': 'map', 'navigation': cleared});
+      expect(clearPlan.status, AuthoringResultStatus.success,
+          reason: clearPlan.toJson().toString());
+      expect(
+          (await host.apply(clearPlan)).status, AuthoringResultStatus.success);
+      expect(MapData.fromJson(jsonDecode(await file.readAsString())), source);
+      final history =
+          await host.mutations.history(ProjectHandle(host.project), limit: 1);
+      await host.mutations.undo(ProjectHandle(host.project),
+          entryId: (history['entries'] as List).single['entryId'] as String,
+          idempotencyKey: 'undo-clear');
+      expect(await file.readAsBytes(), linkedBytes);
+      await host.command('close', {'projectHandle': host.project});
+      final opened =
+          await host.command('open', {'projectRoot': host.root.path});
+      expect(opened.status, AuthoringResultStatus.success);
+      final reopened = await host.snapshots
+          .load(ProjectHandle(opened.data['projectHandle'] as String));
+      expect(reopened.maps.single, stored);
+      await host
+          .command('close', {'projectHandle': opened.data['projectHandle']});
+    }
+    final action = MapMutationDispatcher.canonical()
+        .descriptors
+        .singleWhere((d) => d.id == 'map3d.navigation.configure');
+    final properties = action.extensions['inputSchema'] as Map;
+    final rampProperties = ((((properties['properties'] as Map)['navigation']
+        as Map)['properties'] as Map)['ramps'] as Map)['items'] as Map;
+    expect(
+        (rampProperties['properties'] as Map).containsKey('surfaceInstanceId'),
+        isTrue);
+  });
+
   test(
       'precise existing ramp editing uses the same direct and JSONL contract with query reopen and undo',
       () async {
@@ -117,6 +245,44 @@ void main() {
     expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
     expect(descriptor.guarantees, contains(AuthoringGuarantee.dryRun));
   });
+}
+
+Future<ResourceInformationFixture> _surfaceFixture(
+    ProjectManifest manifest) async {
+  final root = await Directory.systemTemp.createTemp('ramp-surface-authoring-');
+  await File('${root.path}/project.json')
+      .writeAsString(jsonEncode(manifest.toJson()));
+  const reader = LocalProjectFileReader();
+  final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root.path], fileReader: reader);
+  final handles = WorkspaceHandleStore();
+  final snapshots = ProjectSnapshotLoader(handles: handles);
+  final opener =
+      ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
+  final mutations = LocalMapAuthoringMutationApi(
+    policy: policy,
+    snapshotLoader: snapshots,
+    artifactStore: LocalArtifactStore(
+        allowedSourceRoots: [root.path], maximumArtifactBytes: 1048576),
+  );
+  final worker = JsonlWorker(
+      api: AuthoringReadApi(openService: opener, snapshotLoader: snapshots),
+      mutations: mutations);
+  final opened =
+      AuthoringResult.fromJson(jsonDecode(await worker.processLine(jsonEncode({
+    'id': 'open',
+    'command': 'open',
+    'args': {'projectRoot': root.path}
+  }))));
+  expect(opened.status, AuthoringResultStatus.success,
+      reason: opened.toJson().toString());
+  return ResourceInformationFixture(
+      root,
+      snapshots,
+      worker,
+      opened.data['projectHandle'] as String,
+      opened.data['workspaceHandle'] as String,
+      mutations);
 }
 
 MapData _sourceMap() {

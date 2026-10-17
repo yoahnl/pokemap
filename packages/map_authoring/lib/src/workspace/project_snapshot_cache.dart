@@ -384,13 +384,18 @@ final class ProjectSnapshotCache {
         if (observed.join('\n') != expected.join('\n')) return false;
       }
     }
-    for (final expected in entry.identities.entries) {
-      final lazyEntry = entry.snapshot.resourceStorageKeys.entries
-          .where((e) => e.value == expected.key)
-          .firstOrNull;
-      final descriptor = lazyEntry == null
-          ? null
-          : entry.snapshot.storedResources[lazyEntry.key];
+    final resourceIdentitiesByStorageKey = <String, String>{};
+    for (final resource in entry.snapshot.resourceStorageKeys.entries) {
+      resourceIdentitiesByStorageKey.putIfAbsent(
+        resource.value,
+        () => resource.key,
+      );
+    }
+    Future<bool> matchesResource(
+      MapEntry<String, ProjectResourceIdentity> expected,
+    ) async {
+      final resourceIdentity = resourceIdentitiesByStorageKey[expected.key];
+      final descriptor = entry.snapshot.storedResources[resourceIdentity];
       if (descriptor != null) {
         try {
           final observed = await inspectAuthoringPayload(
@@ -405,11 +410,23 @@ final class ProjectSnapshotCache {
           return false;
         }
       } else if (entry.contentAddressedPaths.contains(expected.key)) {
-        continue;
+        return true;
       }
       final observed = await _readIdentity(access, expected.key);
-      if (observed != expected.value) return false;
+      return observed == expected.value;
     }
+
+    final resources = entry.identities.entries.iterator;
+    var matched = true;
+    Future<void> matchNext() async {
+      while (matched && resources.moveNext()) {
+        final expected = resources.current;
+        if (!await matchesResource(expected)) matched = false;
+      }
+    }
+
+    await Future.wait([for (var worker = 0; worker < 8; worker++) matchNext()]);
+    if (!matched) return false;
     for (final relativePath in entry.absentResourcePaths) {
       if (await _readIdentity(access, relativePath) != null) return false;
     }

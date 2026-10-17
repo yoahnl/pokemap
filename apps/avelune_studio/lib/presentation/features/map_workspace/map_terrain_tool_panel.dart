@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
+import '../../../features/terrains/application/terrain_brush.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../resources/resource_catalog.dart';
@@ -26,6 +27,29 @@ class MapTerrainToolPanel extends StatelessWidget {
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
 
+  void _changePathLayer(
+    ProjectSmartTilePreset preset,
+    MapData Function(MapData map, SmartTileLayer layer) change,
+  ) {
+    if (document.saving) return;
+    try {
+      final prepared = prepareTerrainStrokeLayer(
+        map: document.current,
+        manifest: project,
+        preset: preset,
+      );
+      if (prepared == null) return;
+      final next = change(prepared.map, prepared.layer);
+      MapValidator.validate(next, projectDialogueContext: project);
+      document.commit(next);
+    } on ValidationException catch (error) {
+      document.error = error.message;
+    } on StateError catch (error) {
+      document.error = error.message;
+    }
+    onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
     final preset = view.terrain;
@@ -39,6 +63,13 @@ class MapTerrainToolPanel extends StatelessWidget {
     final selectedPattern = patterns
         .where((pattern) => pattern.id == view.terrainPatternId)
         .firstOrNull;
+    final layer = document.current.layers
+        .whereType<SmartTileLayer>()
+        .where((layer) => layer.isVisible && layer.presetId == preset?.id)
+        .firstOrNull;
+    final encounterTables = project.encounterTables.where(
+      (table) => table.encounterKind == EncounterKind.walk,
+    );
     final materials = {
       for (final material in project.smartTileCatalog.materials)
         if (preset?.allowedMaterialIds.contains(material.id) == true)
@@ -73,7 +104,8 @@ class MapTerrainToolPanel extends StatelessWidget {
                 },
               ),
           if (document.current.spatialScene != null &&
-              view.spatialTerrainMode == SpatialTerrainMode.relief)
+              view.spatialTerrainMode == SpatialTerrainMode.relief &&
+              !view.spatialContinuousTerrain)
             SizedBox(
               width: 160,
               child: StudioSelect(
@@ -126,6 +158,8 @@ class MapTerrainToolPanel extends StatelessWidget {
                 ? null
                 : () {
                     view.tool = StudioMapTool.terrain;
+                    view.spatialSurfaceSelect = false;
+                    view.terrainSurfacePreview = null;
                     onChanged();
                   },
           ),
@@ -232,6 +266,116 @@ class MapTerrainToolPanel extends StatelessWidget {
               onChanged();
             },
           ),
+          if (preset?.usage == SmartTileUsage.path &&
+              (document.current.spatialScene == null ||
+                  view.spatialTerrainMode == SpatialTerrainMode.ground)) ...[
+            SizedBox(
+              width: 180,
+              child: StudioSelect(
+                key: const ValueKey('path-animation-activation'),
+                label: 'Déclenchement',
+                value:
+                    layer?.animationActivation ==
+                        SmartTileAnimationActivation.onEnter
+                    ? 'on_enter'
+                    : 'always',
+                options: const {
+                  'always': 'En continu',
+                  'on_enter': 'Au passage',
+                },
+                onChanged: document.saving
+                    ? null
+                    : (value) {
+                        final activation = value == 'on_enter'
+                            ? SmartTileAnimationActivation.onEnter
+                            : SmartTileAnimationActivation.always;
+                        if (activation ==
+                            (layer?.animationActivation ??
+                                SmartTileAnimationActivation.always)) {
+                          return;
+                        }
+                        _changePathLayer(
+                          preset!,
+                          (map, target) => setSmartTileLayerAnimationActivation(
+                            map,
+                            layerId: target.id,
+                            activation: activation,
+                          ),
+                        );
+                      },
+              ),
+            ),
+            SizedBox(
+              width: 220,
+              child: StudioSelect(
+                key: const ValueKey('path-encounter-table'),
+                label: 'Zone de chasse',
+                value:
+                    layer?.encounterBehavior?.encounter.encounterTableId ?? '',
+                options: {
+                  '': 'Aucune',
+                  for (final table in encounterTables) table.id: table.name,
+                },
+                onChanged: document.saving || encounterTables.isEmpty
+                    ? null
+                    : (value) {
+                        if (value ==
+                            (layer
+                                    ?.encounterBehavior
+                                    ?.encounter
+                                    .encounterTableId ??
+                                '')) {
+                          return;
+                        }
+                        _changePathLayer(preset!, (map, target) {
+                          if (value.isEmpty) {
+                            return setSmartTileLayerEncounterBehavior(
+                              map,
+                              manifest: project,
+                              layerId: target.id,
+                              behavior: null,
+                            );
+                          }
+                          if (!encounterTables.any(
+                            (table) => table.id == value,
+                          )) {
+                            throw StateError(
+                              'Cette table de rencontres n’est plus disponible.',
+                            );
+                          }
+                          final previous = target.encounterBehavior;
+                          final behavior = previous == null
+                              ? SmartTileEncounterBehavior(
+                                  materialId:
+                                      preset.allowedMaterialIds.contains(
+                                        view.terrainMaterialId,
+                                      )
+                                      ? view.terrainMaterialId!
+                                      : preset.defaultMaterialId,
+                                  encounter: EncounterZonePayload(
+                                    encounterTableId: value,
+                                    encounterKind: EncounterKind.walk,
+                                  ),
+                                )
+                              : previous.copyWith(
+                                  encounter: previous.encounter.copyWith(
+                                    encounterTableId: value,
+                                    encounterKind: EncounterKind.walk,
+                                  ),
+                                );
+                          return setSmartTileLayerEncounterBehavior(
+                            map,
+                            manifest: project,
+                            layerId: target.id,
+                            behavior: behavior,
+                          );
+                        });
+                      },
+              ),
+            ),
+            if (encounterTables.isEmpty)
+              const Text('Créez une table dans Pokémon → Rencontres sauvages.'),
+          ],
         ],
       ),
     );

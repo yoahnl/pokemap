@@ -683,6 +683,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/border_spatial_stdio.test.ts',
     };
   }
+  if (actionId.startsWith('map3d.terrain.surface.')) {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/spatial_terrain_surface_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/spatial_terrain_surface_actions_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/spatial_terrain_surface_editor_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/spatial_terrain_surface_stdio.test.ts',
+    };
+  }
   if (actionId == 'map3d.instance.upsert_batch') {
     return const {
       AuthoringTransport.directApi:
@@ -1687,6 +1699,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['pokemon.ruleset.'],
     'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['pokemon.documents.delete'],
+    'test/domains/gameplay/pokemon_documents_delete_test.dart',
   ),
   _ContractEvidenceRule(
     ['pokemon.'],

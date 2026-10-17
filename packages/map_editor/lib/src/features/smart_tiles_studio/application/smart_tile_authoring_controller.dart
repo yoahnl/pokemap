@@ -662,6 +662,9 @@ final class SmartTileAuthoringController {
         offsetUnit: previous.offsetUnit,
         offsetX: previous.offsetX,
         offsetY: previous.offsetY,
+        spatialHeightOffset: previous.spatialHeightOffset,
+        spatialFollowTerrain: previous.spatialFollowTerrain,
+        spatialClip: previous.spatialClip,
         footprintWidth:
             followsPreviousCrop ? columnSpan : previous.footprintWidth,
         footprintHeight:
@@ -926,6 +929,9 @@ final class SmartTileAuthoringController {
         offsetUnit: previous.offsetUnit,
         offsetX: previous.offsetX,
         offsetY: previous.offsetY,
+        spatialHeightOffset: previous.spatialHeightOffset,
+        spatialFollowTerrain: previous.spatialFollowTerrain,
+        spatialClip: previous.spatialClip,
         footprintWidth:
             followsPreviousCrop ? columnSpan : previous.footprintWidth,
         footprintHeight:
@@ -1199,6 +1205,9 @@ final class SmartTileAuthoringController {
           offsetUnit: firstPart?.offsetUnit ?? SmartTileOffsetUnit.pixel,
           offsetX: firstPart?.offsetX ?? 0,
           offsetY: firstPart?.offsetY ?? 0,
+          spatialHeightOffset: firstPart?.spatialHeightOffset ?? 0,
+          spatialFollowTerrain: firstPart?.spatialFollowTerrain ?? true,
+          spatialClip: firstPart?.spatialClip,
           footprintWidth: firstPart?.footprintWidth ?? 1,
           footprintHeight: firstPart?.footprintHeight ?? 1,
           anchorX: firstPart?.anchorX ?? 0,

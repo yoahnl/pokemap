@@ -167,6 +167,8 @@ class TerrainDraftController {
     double offsetY = 0,
     double? offsetZ,
     int quarterTurns = 0,
+    int? animationIndex,
+    bool changeAnimation = false,
   }) {
     final owner = manifest.resourceLibraryCatalog
         .entryFor('smartTilePreset', draft.targetPresetId)
@@ -179,6 +181,11 @@ class TerrainDraftController {
         (offsetZ != null && !offsetZ.isFinite) ||
         quarterTurns < 0 ||
         quarterTurns > 3 ||
+        (changeAnimation &&
+            animationIndex != null &&
+            !model.inspection.animations.any(
+              (clip) => clip.index == animationIndex,
+            )) ||
         !manifest.models3d.any((entry) => entry.id == model.id) ||
         !manifest.resourceLibraryCatalog.availableForMap(
           'model3d',
@@ -189,7 +196,7 @@ class TerrainDraftController {
     }
     final previous = partFor(selectedRule);
     final previousSource = previous?.source;
-    final source =
+    final baseSource =
         previousSource is SmartTileModel3dSource &&
             previousSource.modelId == model.id
         ? previousSource.copyWith(
@@ -205,6 +212,11 @@ class TerrainDraftController {
             offsetY: offsetY,
             offsetZ: offsetZ ?? 0,
           );
+    final source = changeAnimation
+        ? (baseSource as SmartTileModel3dSource).copyWith(
+            animationIndex: animationIndex,
+          )
+        : baseSource;
     final transform = SmartTileSpriteTransform(quarterTurns: quarterTurns);
     final part = previous == null
         ? SmartTileVisualPart(source: source, transform: transform)

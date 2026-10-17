@@ -86,7 +86,11 @@ test("live MCP native Borders preserve editable strokes, live models and ownersh
     for (const id of ["border.blueprint.draft.upsert", "border.blueprint.publish"]) {
       assert.deepEqual(record(actions.find(value => value.id === id)!.extensions).spatialGroundContact,
         { enabledBy: "replacesGround", offsetField: "groundBaseOffset", offsetMaximum: 0,
-          offsetUnits: "model", appliesTo: "nativeGroundOnly", preservesModelGeometry: true });
+          offsetUnits: "model", appliesTo: "nativeGroundOnly", preservesModelGeometry: true,
+          footprintsField: "primitives[].groundFootprints", footprintsMinimumCatalogVersion: 8,
+          footprintsCoordinates: "modelXZ", footprintsShape: "unionOfStrictlyConvexPolygons",
+          footprintsMaximumPolygons: 8, footprintsVerticesPerPolygon: [3, 16],
+          footprintsPreserveNavigation: true });
       assert.deepEqual(record(actions.find(value => value.id === id)!.extensions).spatialGroundMask,
         { enabledBy: "masksGroundCells", geometry: "cellCenteredStroke", scope: "allNativeGroundLayers",
           units: "logicalCell", independentOfMeshBounds: true, preservesNavigation: true });
@@ -514,7 +518,7 @@ test("live MCP native Border contracts preserve explicit playback, collision and
     for (const field of ["animationIndex", "animationLoop", "animationSpeed", "blocksMovement"]) {
       assert.ok(String(upsert.summary).includes(field), field);
     }
-    assert.equal(record(upsert.extensions).catalogFormatVersion, 7);
+    assert.equal(record(upsert.extensions).catalogFormatVersion, 8);
     assert.ok(String(publish.summary).includes("null animationIndex does not start a clip"));
     const request = { name: "Native playback", folderName: "playback", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };

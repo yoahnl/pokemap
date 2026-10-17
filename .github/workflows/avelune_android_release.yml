@@ -19,7 +19,6 @@ jobs:
     timeout-minutes: 60
     environment: pokemap-release
     env:
-      AVELUNE_VERSION_NAME: '1.0.1'
       AVELUNE_UPLOAD_CERTIFICATE_SHA256: F626B11F98F9F438FB8419A6D6F772D5D19809BE425E9E1F4E1676241600FDE2
       AVELUNE_REQUIRE_RELEASE_SIGNING: 'true'
       AVELUNE_KEYSTORE_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_PASSWORD }}
@@ -27,6 +26,11 @@ jobs:
       AVELUNE_KEY_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Read the shared iOS and Android app version
+        shell: bash
+        run: |
+          version_name="$(python3 apps/avelune_android/tool/read_app_version.py)"
+          echo "AVELUNE_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
         with:
           packages: platform-tools

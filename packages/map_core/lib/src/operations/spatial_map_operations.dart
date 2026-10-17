@@ -1,7 +1,9 @@
 import '../models/enums.dart';
+import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/spatial_navigation.dart';
+import '../models/spatial_terrain_surface.dart';
 import '../models/project_model3d.dart';
 import '../models/smart_tile.dart';
 
@@ -17,6 +19,71 @@ final class SpatialCellLevel {
 final class SpatialMapOperations {
   const SpatialMapOperations();
 
+  MapData upsertTerrainSurfaces(
+    MapData map,
+    List<SpatialTerrainSurface> surfaces, {
+    bool reanchorInstances = true,
+  }) {
+    final scene = _scene(map);
+    _surfaceIds(surfaces.map((surface) => surface.id).toList());
+    final replacements = {for (final surface in surfaces) surface.id: surface};
+    final existingIds = scene.terrainSurfaces.surfaces
+        .map((surface) => surface.id)
+        .toSet();
+    final after = scene.copyWith(
+      terrainSurfaces: SpatialTerrainSurfaceSet(
+        surfaces: [
+          for (final surface in scene.terrainSurfaces.surfaces)
+            replacements[surface.id] ?? surface,
+          for (final surface in surfaces)
+            if (!existingIds.contains(surface.id)) surface,
+        ],
+      ),
+    );
+    return map.copyWith(
+      spatialScene: reanchorInstances ? _reanchor(scene, after) : after,
+    );
+  }
+
+  MapData deleteTerrainSurfaces(
+    MapData map,
+    List<String> surfaceIds, {
+    bool reanchorInstances = true,
+  }) {
+    final scene = _scene(map);
+    _surfaceIds(surfaceIds);
+    final ids = surfaceIds.toSet();
+    final existing = scene.terrainSurfaces.surfaces
+        .map((surface) => surface.id)
+        .toSet();
+    if (!existing.containsAll(ids)) {
+      throw const FormatException(
+        'A continuous terrain surface does not exist.',
+      );
+    }
+    final after = scene.copyWith(
+      terrainSurfaces: SpatialTerrainSurfaceSet(
+        surfaces: scene.terrainSurfaces.surfaces.where(
+          (surface) => !ids.contains(surface.id),
+        ),
+      ),
+    );
+    return map.copyWith(
+      spatialScene: reanchorInstances ? _reanchor(scene, after) : after,
+    );
+  }
+
+  void _surfaceIds(List<String> ids) {
+    if (ids.isEmpty ||
+        ids.length > maximumSpatialTerrainSurfaces ||
+        ids.toSet().length != ids.length ||
+        ids.any((id) => !RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id))) {
+      throw const FormatException(
+        'Terrain batches require 1 to 128 distinct surface identities.',
+      );
+    }
+  }
+
   MapData setLevels(MapData map, List<SpatialCellLevel> cells) {
     final scene = _scene(map);
     final levels = scene.heightLevels.toList();
@@ -29,6 +96,18 @@ final class SpatialMapOperations {
           cell.level > MapSpatialScene.maximumTerrainLevel) {
         throw const FormatException(
           'Spatial cells must be inside the map with levels from 0 to 64.',
+        );
+      }
+      final covered = scene.terrainSurfaces
+          .candidatesAtCell(cell.x, cell.z)
+          .where((surface) => surface.overlapsCell(cell.x, cell.z))
+          .map((surface) => surface.id)
+          .toList();
+      if (covered.isNotEmpty) {
+        throw ValidationException(
+          'This cell belongs to a continuous terrain surface. Edit that surface instead of its underlying grid.',
+          code: 'spatial.terrain.surface_grid_conflict',
+          details: {'surfaceIds': covered, 'x': cell.x, 'z': cell.z},
         );
       }
       levels[cell.z * scene.width + cell.x] = cell.level;
@@ -117,7 +196,9 @@ final class SpatialMapOperations {
 
   void _requireAuthoredInstance(String id) {
     if (id.startsWith('smt_')) {
-      throw const FormatException('Smart Tile models must be edited through their painted layer.');
+      throw const FormatException(
+        'Smart Tile models must be edited through their painted layer.',
+      );
     }
   }
 }

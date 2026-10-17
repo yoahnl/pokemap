@@ -16,11 +16,13 @@ class SpatialRampEditor extends StatefulWidget {
     required this.document,
     required this.view,
     required this.onChanged,
+    this.project,
   });
 
   final EditableMapDocument document;
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
+  final ProjectManifest? project;
 
   @override
   State<SpatialRampEditor> createState() => _SpatialRampEditorState();
@@ -33,6 +35,7 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
   String _x = '', _y = '', _width = '', _depth = '';
   int _lowLevel = 0, _highLevel = 1;
   SpatialRampDirection _direction = SpatialRampDirection.north;
+  String? _surfaceInstanceId;
   String? _error;
   String? _notice;
 
@@ -81,6 +84,7 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
       _lowLevel = ramp.lowLevel;
       _highLevel = ramp.highLevel;
       _direction = ramp.direction;
+      _surfaceInstanceId = ramp.surfaceInstanceId;
     }
     _error = null;
     _notice = null;
@@ -120,6 +124,7 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
           lowLevel: _lowLevel,
           highLevel: _highLevel,
           direction: _direction,
+          surfaceInstanceId: _surfaceInstanceId,
         ),
       );
       _ownPreview = preview;
@@ -154,6 +159,31 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
     final map = widget.document.current;
     final scene = map.spatialScene;
     final ramps = scene?.navigation.ramps ?? const <SpatialRamp>[];
+    final ownedInstances = <String>{};
+    for (final layer in map.layers) {
+      if (layer is EnvironmentLayer) {
+        for (final area in layer.content.areas) {
+          ownedInstances.addAll(area.generatedPlacementIds);
+        }
+      } else if (layer is BorderLayer) {
+        for (final feature in layer.content.features) {
+          ownedInstances.addAll(feature.generatedPlacementIds);
+        }
+      }
+    }
+    final surfaces = (scene?.instances ?? const <SpatialModelInstance>[])
+        .where(
+          (instance) =>
+              !instance.blocksMovement &&
+              !instance.id.startsWith('smt_') &&
+              !ownedInstances.contains(instance.id),
+        )
+        .toList();
+    final modelNames = {
+      for (final model
+          in widget.project?.models3d ?? const <ProjectModel3dEntry>[])
+        model.id: model.name,
+    };
     final enabled = !widget.document.saving && _ramp != null;
     final preview = widget.view.rampPreview;
     final validPreview = preview != null && preview.validFor(map);
@@ -252,6 +282,27 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
                         _direction = SpatialRampDirection.values.byName(value),
                   )
                 : null,
+          ),
+          const SizedBox(height: 12),
+          StudioSelect(
+            key: const ValueKey('spatial-ramp-surface'),
+            label: 'Apparence de la pente',
+            value: _surfaceInstanceId ?? '',
+            options: {
+              '': 'Terrain peint',
+              for (var index = 0; index < surfaces.length; index++)
+                surfaces[index].id:
+                    '${modelNames[surfaces[index].modelId] ?? 'Décor ${index + 1}'} · X ${surfaces[index].position.x}, Y ${surfaces[index].position.z}',
+            },
+            onChanged: enabled
+                ? (value) => _edit(
+                    () => _surfaceInstanceId = value.isEmpty ? null : value,
+                  )
+                : null,
+          ),
+          const SizedBox(height: 8),
+          const StudioNotice(
+            'Choisissez un escalier déjà placé pour afficher ses marches à la place du terrain. Son emprise doit couvrir la pente ; il doit laisser passer le personnage.',
           ),
           const SizedBox(height: 12),
           Wrap(

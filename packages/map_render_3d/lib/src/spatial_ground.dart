@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -122,6 +123,7 @@ final class SpatialGroundPlan {
         }
       }
     }
+    _addBorderSurfaces(map, project);
     this.bridgeCells = Set.unmodifiable(bridgeCells);
     final covered = <(int, int)>{...borderMaskCells};
     for (var index = _layerIds.length - 1; index >= 0; index--) {
@@ -136,6 +138,16 @@ final class SpatialGroundPlan {
   late final Set<(int, int)> groundReplacementCells;
   ({String tilesetId, SmartTileSourceRect sourceRect})? cliff;
   final _plans = <SmartTileLayerVisualPlan>[];
+  final _flatPlans =
+      <
+        ({
+          SmartTileLayerVisualPlan plan,
+          Map<(int, int), SpatialFlatGroundSurface> surfaces,
+          double opacity,
+        })
+      >[];
+  final _flatVisualSurfaces =
+      <SmartTileLayerVisual, SpatialFlatGroundSurface>{};
   final _opacities = <double>[];
   final _layerIds = <String>[];
   final _layerExclusions = <Set<(int, int)>>[];
@@ -143,30 +155,203 @@ final class SpatialGroundPlan {
   final imageIds = <String>{};
   bool animated = false;
   List<SpatialGroundVisual>? _static;
-  late final Set<(int, int)>? paintedCells = scene == null || _plans.isEmpty
+  late final Set<(int, int)>? paintedCells = paintedCellsFor(resolve(0));
+
+  Set<(int, int)>? paintedCellsFor(List<SpatialGroundVisual> visuals) =>
+      scene == null || _plans.isEmpty
       ? null
       : Set.unmodifiable({
-          for (final part in resolve(0))
-            for (
-              var z = part.visual.geometry.visualBounds.top.floor();
-              z < part.visual.geometry.visualBounds.bottom.ceil();
-              z++
-            )
+          for (final part in visuals)
+            if (!_flatVisualSurfaces.containsKey(part.visual) &&
+                part.visual.spatialFollowTerrain)
               for (
-                var x = part.visual.geometry.visualBounds.left.floor();
-                x < part.visual.geometry.visualBounds.right.ceil();
-                x++
+                var z = part.visual.geometry.visualBounds.top.floor();
+                z < part.visual.geometry.visualBounds.bottom.ceil();
+                z++
               )
-                if (x >= 0 &&
-                    z >= 0 &&
-                    x < scene!.width &&
-                    z < scene!.depth &&
-                    !excludedCellsFor(part.visual).contains((x, z)))
-                  (x, z),
+                for (
+                  var x = part.visual.geometry.visualBounds.left.floor();
+                  x < part.visual.geometry.visualBounds.right.ceil();
+                  x++
+                )
+                  if (x >= 0 &&
+                      z >= 0 &&
+                      x < scene!.width &&
+                      z < scene!.depth &&
+                      !excludedCellsFor(part.visual).contains((x, z)))
+                    (x, z),
         });
+
+  SpatialGroundUnderlayIndex underlaySupportsFor(
+    List<SpatialGroundVisual> visuals,
+  ) {
+    final result = <(int, int), List<SpatialGroundUnderlay>>{};
+    if (scene == null) return result;
+    for (final item in visuals) {
+      final visual = item.visual;
+      if (_flatVisualSurfaces.containsKey(visual) ||
+          !visual.spatialFollowTerrain)
+        continue;
+      final offset = visual.spatialHeightOffset;
+      final vertices = spatialGroundVertices(
+        visual.geometry,
+        spatialClip: visual.spatialClip,
+        scene: scene,
+        excludedCells: excludedCellsFor(visual),
+        groundReplacements: borderGroundReplacements,
+      );
+      for (var start = 0; start < vertices.length; start += 4) {
+        var x = 0.0, z = 0.0;
+        final points = <BorderGroundPoint>[];
+        for (var corner = start; corner < start + 4; corner++) {
+          final position = vertices[corner].position;
+          x += position.x;
+          z += position.z;
+          final point = BorderGroundPoint(x: position.x, z: position.z);
+          if (points.isEmpty || points.last != point) points.add(point);
+        }
+        if (points.length > 1 && points.first == points.last)
+          points.removeLast();
+        final cell = ((x / 4).floor(), (z / 4).floor());
+        result.putIfAbsent(cell, () => []).add((
+          footprint: List.unmodifiable(points),
+          heightOffset: offset,
+        ));
+      }
+    }
+    return Map<(int, int), List<SpatialGroundUnderlay>>.unmodifiable({
+      for (final entry in result.entries)
+        entry.key: List<SpatialGroundUnderlay>.unmodifiable(entry.value),
+    });
+  }
 
   Set<(int, int)> excludedCellsFor(SmartTileLayerVisual visual) =>
       _visualExclusions[visual] ?? const {};
+
+  SpatialFlatGroundSurface? flatSurfaceFor(SmartTileLayerVisual visual) =>
+      _flatVisualSurfaces[visual];
+
+  void _addBorderSurfaces(MapData map, ProjectManifest project) {
+    if (scene == null) return;
+    final planes =
+        <
+          (String, double, double, double),
+          List<
+            ({
+              String preset,
+              String material,
+              double opacity,
+              List<BorderGroundFootprint> footprints,
+            })
+          >
+        >{};
+    for (final surface in resolveSpatialBorderGroundSurfaces(
+      manifest: project,
+      map: map,
+    )) {
+      final groups = planes.putIfAbsent((
+        surface.layerId,
+        surface.height,
+        surface.gradientX,
+        surface.gradientZ,
+      ), () => []);
+      if (groups.isEmpty ||
+          groups.last.preset != surface.sourceSmartTilePresetId ||
+          groups.last.material != surface.materialId ||
+          groups.last.opacity != surface.opacity) {
+        groups.add((
+          preset: surface.sourceSmartTilePresetId,
+          material: surface.materialId,
+          opacity: surface.opacity,
+          footprints: <BorderGroundFootprint>[],
+        ));
+      }
+      groups.last.footprints.addAll(surface.footprints);
+    }
+    for (final entry in [
+      for (final plane in planes.entries)
+        for (final group in plane.value)
+          MapEntry((
+            group.preset,
+            group.material,
+            plane.key.$2,
+            group.opacity,
+            plane.key.$3,
+            plane.key.$4,
+          ), group.footprints),
+    ]) {
+      final key = entry.key;
+      final indexed = <(int, int), List<BorderGroundFootprint>>{};
+      for (final footprint in entry.value) {
+        final left = footprint.points
+            .map((p) => p.x)
+            .reduce(math.min)
+            .floor()
+            .clamp(0, scene!.width);
+        final right = footprint.points
+            .map((p) => p.x)
+            .reduce(math.max)
+            .ceil()
+            .clamp(0, scene!.width);
+        final top = footprint.points
+            .map((p) => p.z)
+            .reduce(math.min)
+            .floor()
+            .clamp(0, scene!.depth);
+        final bottom = footprint.points
+            .map((p) => p.z)
+            .reduce(math.max)
+            .ceil()
+            .clamp(0, scene!.depth);
+        for (var z = top; z < bottom; z++) {
+          for (var x = left; x < right; x++) {
+            indexed.putIfAbsent((x, z), () => []).add(footprint);
+          }
+        }
+      }
+      if (indexed.isEmpty) continue;
+      final cells = List<int>.filled(map.size.width * map.size.height, 0);
+      for (final cell in indexed.keys)
+        cells[cell.$2 * map.size.width + cell.$1] = 1;
+      final layer = MapLayer.smartTile(
+        id: '_border-ground-${_flatPlans.length}',
+        name: 'Border ground',
+        presetId: key.$1,
+        usage: SmartTileUsage.terrain,
+        materialPalette: ['', key.$2],
+        field: SmartTileField.cell(semanticCells: cells),
+      ) as SmartTileLayer;
+      _flatPlans.add((
+        plan: buildSmartTileLayerVisualPlan(
+          map: map,
+          layer: layer,
+          catalog: project.smartTileCatalog,
+          pass: SmartTileVisualPass.background,
+          sourceCellWidth: project.settings.tileWidth.toDouble(),
+          sourceCellHeight: project.settings.tileHeight.toDouble(),
+        ),
+        surfaces: {
+          for (final item in indexed.entries)
+            item.key: SpatialFlatGroundSurface(
+              height: key.$3,
+              gradientX: key.$5,
+              gradientZ: key.$6,
+              footprints: item.value,
+            ),
+        },
+        opacity: key.$4,
+      ));
+      final preset = project.smartTileCatalog.presets.singleWhere(
+        (p) => p.id == key.$1,
+      );
+      for (final rule in preset.rules) {
+        for (final candidate in rule.candidates) {
+          for (final part in candidate.parts)
+            _addSource(part.source, project.smartTileCatalog);
+        }
+      }
+    }
+  }
 
   void _addSource(
     SmartTileVisualSource source,
@@ -203,7 +388,28 @@ final class SpatialGroundPlan {
   List<SpatialGroundVisual> resolve(int elapsedMs) {
     if (!animated && _static != null) return _static!;
     _visualExclusions.clear();
+    _flatVisualSurfaces.clear();
     final result = <SpatialGroundVisual>[];
+    for (var index = 0; index < _flatPlans.length; index++) {
+      final group = _flatPlans[index];
+      final visuals = group.plan.resolveBatch(elapsedMs: elapsedMs).visuals;
+      final ranks = _groundPaintRanks(visuals);
+      final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
+      for (var part = 0; part < visuals.length; part++) {
+        final visual = visuals[part];
+        final surface = group.surfaces[(visual.cellX, visual.cellY)];
+        if (surface == null) continue;
+        _flatVisualSurfaces[visual] = surface;
+        result.add((
+          visual: visual,
+          height:
+              .0001 *
+              (index + 1 + ranks[part] / (maximum + 1)) /
+              (_flatPlans.length + 1),
+          opacity: group.opacity,
+        ));
+      }
+    }
     for (var index = 0; index < _plans.length; index++) {
       final visuals = _plans[index].resolveBatch(elapsedMs: elapsedMs).visuals;
       final ranks = _groundPaintRanks(visuals);
@@ -256,12 +462,18 @@ List<int> _groundPaintRanks(List<SmartTileLayerVisual> visuals) {
 List<Vertex> spatialGroundVertices(
   SmartTileSpriteGeometry geometry, {
   double height = 0,
+  bool followTerrain = true,
+  SmartTileSpatialClip? spatialClip,
+  SpatialFlatGroundSurface? flatSurface,
   MapSpatialScene? scene,
   Set<(int, int)> excludedCells = const {},
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) => _spatialGroundVertices(
   geometry,
   height: height,
+  followTerrain: followTerrain,
+  spatialClip: spatialClip,
+  flatSurface: flatSurface,
   scene: scene,
   excludedCells: excludedCells,
   groundReplacements: groundReplacements,
@@ -270,6 +482,9 @@ List<Vertex> spatialGroundVertices(
 List<Vertex> _spatialGroundVertices(
   SmartTileSpriteGeometry geometry, {
   double height = 0,
+  bool followTerrain = true,
+  SmartTileSpatialClip? spatialClip,
+  SpatialFlatGroundSurface? flatSurface,
   MapSpatialScene? scene,
   ({SmartTileSourceRect sourceRect, Texture texture})? atlasFrame,
   Set<(int, int)> excludedCells = const {},
@@ -310,7 +525,12 @@ List<Vertex> _spatialGroundVertices(
         texCoord: scene == null ? textureUv(uvs[index]) : uvs[index],
       ),
   ];
-  if (scene == null) return original;
+  if (scene == null) {
+    if (spatialClip != null || !followTerrain) {
+      throw StateError('Spatial raster ground requires a spatial scene');
+    }
+    return original;
+  }
   final origin = original[0].position;
   final u = original[3].position - origin;
   final v = original[1].position - origin;
@@ -323,16 +543,69 @@ List<Vertex> _spatialGroundVertices(
     );
   }
 
+  Vector3 pointAt(double x, double z) => Vector3(
+    origin.x + u.x * x + v.x * z,
+    origin.y,
+    origin.z + u.z * x + v.z * z,
+  );
+  var clipLeft = geometry.visualBounds.left;
+  var clipTop = geometry.visualBounds.top;
+  var clipRight = geometry.visualBounds.right;
+  var clipBottom = geometry.visualBounds.bottom;
+  final clip = spatialClip;
+  if (clip != null) {
+    final visible = [
+      pointAt(clip.left, clip.top),
+      pointAt(clip.left, clip.bottom),
+      pointAt(clip.right, clip.bottom),
+      pointAt(clip.right, clip.top),
+    ];
+    clipLeft = visible.map((point) => point.x).reduce((a, b) => a < b ? a : b);
+    clipTop = visible.map((point) => point.z).reduce((a, b) => a < b ? a : b);
+    clipRight = visible.map((point) => point.x).reduce((a, b) => a > b ? a : b);
+    clipBottom = visible
+        .map((point) => point.z)
+        .reduce((a, b) => a > b ? a : b);
+  }
+
+  final plane =
+      flatSurface ??
+      (followTerrain
+          ? null
+          : SpatialFlatGroundSurface(
+              height: 0,
+              footprints: [
+                BorderGroundFootprint(
+                  points: [
+                    BorderGroundPoint(x: clipLeft, z: clipTop),
+                    BorderGroundPoint(x: clipRight, z: clipTop),
+                    BorderGroundPoint(x: clipRight, z: clipBottom),
+                    BorderGroundPoint(x: clipLeft, z: clipBottom),
+                  ],
+                ),
+              ],
+            ));
   return [
-    for (final patch in spatialSurfacePatches(
-      scene,
-      left: geometry.visualBounds.left,
-      top: geometry.visualBounds.top,
-      right: geometry.visualBounds.right,
-      bottom: geometry.visualBounds.bottom,
-      groundReplacements: groundReplacements,
-    ))
-      if (!excludedCells.contains(patch.cell))
+    for (final patch
+        in plane == null
+            ? spatialSurfacePatches(
+                scene,
+                left: clipLeft,
+                top: clipTop,
+                right: clipRight,
+                bottom: clipBottom,
+                groundReplacements: groundReplacements,
+              )
+            : spatialFlatGroundPatches(
+                scene,
+                surface: plane,
+                left: clipLeft,
+                top: clipTop,
+                right: clipRight,
+                bottom: clipBottom,
+              ))
+      if (!excludedCells.contains(patch.cell) &&
+          patch.ramp?.surfaceInstanceId == null)
         for (final point in patch.corners)
           Vertex(
             position: point + Vector3(0, height, 0),
@@ -346,6 +619,8 @@ Iterable<Mesh> spatialGroundMeshes(
   Map<String, Texture> textures, {
   MapSpatialScene? scene,
   Set<(int, int)> Function(SmartTileLayerVisual visual)? excludedCellsFor,
+  SpatialFlatGroundSurface? Function(SmartTileLayerVisual visual)?
+  flatSurfaceFor,
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
   var mesh = Mesh();
@@ -386,12 +661,15 @@ Iterable<Mesh> spatialGroundMeshes(
     if (key != previous) {
       flushSurface();
       previous = key;
-      material = SpatialPixelMaterial(texture)
+      material = SpatialPixelMaterial(texture, groundDepthOnly: scene != null)
         ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
     }
     final quads = _spatialGroundVertices(
       visual.geometry,
-      height: item.height,
+      height: scene == null ? item.height : visual.spatialHeightOffset,
+      followTerrain: visual.spatialFollowTerrain,
+      spatialClip: visual.spatialClip,
+      flatSurface: flatSurfaceFor?.call(visual),
       scene: scene,
       atlasFrame: (sourceRect: rect, texture: texture),
       excludedCells: excludedCellsFor?.call(visual) ?? const {},
@@ -400,7 +678,11 @@ Iterable<Mesh> spatialGroundMeshes(
     for (var offset = 0; offset < quads.length; offset += 4) {
       final base = vertices.length;
       for (var corner = offset; corner < offset + 4; corner++) {
-        vertices.add(quads[corner]);
+        vertices.add(
+          scene == null
+              ? quads[corner]
+              : quads[corner].copyWith(normal: Vector3(0, item.height, 0)),
+        );
       }
       indices.addAll([
         for (final index
@@ -416,7 +698,7 @@ Iterable<Mesh> spatialGroundMeshes(
         mesh = Mesh();
         vertexCount = 0;
         previous = key;
-        material = SpatialPixelMaterial(texture)
+        material = SpatialPixelMaterial(texture, groundDepthOnly: scene != null)
           ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
       }
     }

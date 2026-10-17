@@ -53,11 +53,7 @@ SpatialSurfaceHit? pickSpatialSurface(
 ) {
   var nearest = double.infinity;
   SpatialSurfaceHit? selected;
-  var maximumLevel = scene.heightLevels.reduce(math.max);
-  for (final ramp in scene.navigation.ramps) {
-    maximumLevel = math.max(maximumLevel, ramp.highLevel);
-  }
-  final maximumHeight = maximumLevel * scene.levelHeight;
+  final maximumHeight = scene.maximumWorldHeight;
   for (var z = 0; z < scene.depth; z++) {
     for (var x = 0; x < scene.width; x++) {
       var enter = 0.0, leave = nearest;
@@ -84,6 +80,7 @@ SpatialSurfaceHit? pickSpatialSurface(
         right: x + 1.0,
         bottom: z + 1.0,
         repeatWalls: false,
+        includeModelledRampSurfaces: true,
       )) {
         for (var i = 1; i < face.positions.length - 1; i++) {
           final distance = _rayTriangle(

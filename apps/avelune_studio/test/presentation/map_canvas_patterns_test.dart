@@ -28,6 +28,56 @@ import '../terrain_creation_test.dart'
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  for (final spatial in [true, false]) {
+    test('reactive path motifs synchronize material and erase: spatial $spatial', () {
+      final fixture = _fixture(spatial: spatial);
+      final preset = fixture.preset.copyWith(usage: SmartTileUsage.path);
+      final pattern = fixture.pattern.copyWith(usage: SmartTileUsage.path);
+      final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: fixture.project.smartTileCatalog.atlases,
+          materials: fixture.project.smartTileCatalog.materials,
+          presets: [preset], patterns: [pattern]));
+      final original = fixture.map.layers.whereType<SmartTileLayer>().single;
+      final source = fixture.map.copyWith(layers: [original.copyWith(
+          usage: SmartTileUsage.path,
+          animationActivation: SmartTileAnimationActivation.onEnter,
+          patternStrokes: [])]);
+      final document = EditableMapDocument(MapWorkspaceDocument(
+          map: source, mapId: source.id, revision: 'r0'));
+      final view = MapWorkspaceViewState()
+        ..prepareTerrainPainting(preset)
+        ..selectTerrainPattern(pattern)
+        ..terrainPatternMode = SmartTilePatternSelectionKind.stamp
+        ..tool = StudioMapTool.terrain;
+      addTearDown(view.dispose);
+      final stroke = MapCanvasStroke.start(map: source,
+          project: project, view: view,
+          commands: MapEditingCommands(document, project),
+          origin: const GridPos(x: 2, y: 3))!;
+      final painted = stroke.commit();
+      final paintedLayer = painted.layers.whereType<SmartTileLayer>().single;
+      expect(smartTileSemanticCells(paintedLayer)[26], 1);
+      expect(smartTileSemanticCells(paintedLayer)[27], 1);
+      expect(smartTileSemanticCells(paintedLayer).where((value) => value != 0), hasLength(2));
+      expect(smartTileSemanticCells(source.layers.single as SmartTileLayer)[26], 0);
+      document.commit(painted);
+      view.tool = StudioMapTool.erase;
+      final erase = MapCanvasStroke.start(map: painted,
+          project: project, view: view,
+          commands: MapEditingCommands(document, project),
+          origin: const GridPos(x: 2, y: 3))!;
+      final erased = erase.commit();
+      final erasedLayer = erased.layers.whereType<SmartTileLayer>().single;
+      expect(smartTileSemanticCells(erasedLayer)[26], 0);
+      expect(smartTileSemanticCells(erasedLayer)[27], 1);
+      expect(erasedLayer.patternStrokes.single.cells, [const GridPos(x: 3, y: 3)]);
+      document.commit(erased);
+      document.restore(redo: false);
+      expect(document.current, painted);
+      expect(painted.spatialScene, source.spatialScene);
+    });
+  }
+
   test('selected small 3D stamp erases from its empty centre with exact preview, commit and Undo', () {
     final fixture = _atomicStampFixture();
     final source = fixture.map;

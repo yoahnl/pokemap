@@ -257,6 +257,70 @@ void main() {
     expect(host.battles, hasLength(1));
   });
 
+  for (final coverage in ['painted', 'erased', 'hidden']) {
+    test('native grass path encounters follow $coverage material coverage',
+        () async {
+      final size = _map().size;
+      var layer = applySmartTileMaterialGesture(
+          SmartTileLayer(
+              id: 'grass-path',
+              name: 'Grass',
+              presetId: 'grass-preset',
+              usage: SmartTileUsage.path,
+              materialPalette: const ['', 'grass-material'],
+              field: SmartTileField.cell(
+                  semanticCells: List.filled(size.width * size.height, 0)),
+              encounterBehavior: const SmartTileEncounterBehavior(
+                  materialId: 'grass-material',
+                  encounter: EncounterZonePayload(
+                      encounterTableId: 'grass-table',
+                      encounterKind: EncounterKind.walk))),
+          mapSize: size,
+          cells: const [GridPos(x: 3, y: 2)],
+          materialId: 'grass-material');
+      if (coverage == 'erased') {
+        layer = applySmartTileMaterialGesture(layer,
+            mapSize: size,
+            cells: const [GridPos(x: 3, y: 2)],
+            materialId: null);
+      } else if (coverage == 'hidden') {
+        layer = layer.copyWith(isVisible: false);
+      }
+      final map = _map().copyWith(layers: [layer]);
+      final project = _project(map).copyWith(encounterTables: const [
+        ProjectEncounterTable(
+            id: 'grass-table',
+            name: 'Grass',
+            encounterKind: EncounterKind.walk,
+            chancePerStep: 1,
+            entries: [
+              ProjectEncounterEntry(
+                  speciesId: 'zubat', minLevel: 5, maxLevel: 5)
+            ])
+      ]);
+      final host = await _Host.create(project, map);
+      await host.events.activateMap(_activation('grass-path'));
+      expect(host.battles, isEmpty);
+      host.moveTo(3.5, 2.5);
+      await host.events.playerEnteredCell(
+          previousPosition: const GridPos(x: 2, y: 2),
+          currentPosition: const GridPos(x: 3, y: 2));
+      expect(host.battles, hasLength(coverage == 'painted' ? 1 : 0));
+      if (coverage == 'painted') {
+        expect(host.battles.single.encounterSourceKind,
+            EncounterSourceKind.smartTileLayer);
+        expect(host.battles.single.encounterSourceId,
+            'smart_tile_layer:grass-path');
+      }
+      host.moveTo(4.5, 2.5);
+      await host.events.playerEnteredCell(
+          previousPosition: const GridPos(x: 3, y: 2),
+          currentPosition: const GridPos(x: 4, y: 2));
+      expect(host.battles, hasLength(coverage == 'painted' ? 1 : 0));
+      host.events.dispose();
+    });
+  }
+
   test('event trigger fires on entry, then waits for a real reentry', () async {
     final map = _map(triggers: const [
       MapTrigger(

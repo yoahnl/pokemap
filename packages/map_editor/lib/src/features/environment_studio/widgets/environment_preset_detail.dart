@@ -42,7 +42,8 @@ class EnvironmentPresetDetail extends StatelessWidget {
     final diag = report.diagnosticsForPreset(p.id);
     final tilesetCompatibility = buildEnvironmentPresetTilesetCompatibility(
       paletteElementIds: [
-        for (final item in p.palette) item.elementId,
+        for (final item in p.palette)
+          if (item.elementId case final String elementId) elementId,
       ],
       projectElements: projectElements,
     );
@@ -595,7 +596,13 @@ class EnvironmentPresetDetail extends StatelessWidget {
           },
         ),
         const SizedBox(height: 10),
-        if (palette.isEmpty)
+        if (preset.isSpatial)
+          Text(
+            'Ce preset utilise des modèles 3D. Sa palette ne peut pas être modifiée dans cet éditeur 2D.',
+            key: const Key('environment-studio-spatial-palette-message'),
+            style: TextStyle(color: subtleColor, fontSize: 13),
+          )
+        else if (palette.isEmpty)
           Text(
             'Palette vide.',
             key: const Key('environment-studio-palette-empty'),
@@ -634,7 +641,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
     );
   }
 
-  ProjectElementEntry? _projectElement(String id) {
+  ProjectElementEntry? _projectElement(String? id) {
     for (final element in projectElements) {
       if (element.id == id) {
         return element;

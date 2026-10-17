@@ -224,7 +224,6 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
             document.dirty && ids.contains(document.current.id))
             ? 'Enregistrez les cartes liées avant de publier la carte régionale.' : null,
           projectChanged: _controller.acceptResources);
-        unawaited(_regionalMap!.load());
       }
       _initializeWorld();
       _initializeVerification();

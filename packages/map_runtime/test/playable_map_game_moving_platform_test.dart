@@ -13,6 +13,66 @@ import '../../map_gameplay/test/support/moving_platform_fixture.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final (motion, blocked) in [
+    (MovingPlatformMotion.forward, false),
+    (MovingPlatformMotion.rotateClockwise, false),
+    (MovingPlatformMotion.forward, true),
+  ]) {
+    testWidgets('walking activates ${motion.name}, blocked=$blocked, without carry or reload loops', (tester) async {
+      await tester.runAsync(() async {
+        final fixture = MovingPlatformFixture();
+        final definition = MovingPlatformDefinition.fromJson({
+          ...fixture.definition.toJson(),
+          'controls': [{'id': 'button', 'cell': {'x': 0, 'y': 0}, 'motion': motion.name}],
+        });
+        final map = fixture.map.copyWith(
+          movingPlatforms: [definition],
+          layers: [MovingPlatformFixture.terrain('magma', blockedIndex: 99)],
+          entities: [
+            if (blocked) const MapEntity(id: 'wall', kind: MapEntityKind.npc,
+              pos: GridPos(x: 3, y: 2), npc: MapEntityNpcData()),
+          ],
+        );
+        final repository = _MemorySave(null);
+        final bundle = _bundle(fixture, _scene()).copyWith(map: map);
+        final game = await _game(tester, bundle, GameState(saveId: 'automatic',
+          currentMapId: 'gym', playerPosition: const GridPos(x: 1, y: 2),
+          movingPlatformWorldState: fixture.state), repository: repository);
+        expect(game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right)), isTrue);
+        game.update(0);
+        expect(game.debugIsPlayerStepping, isTrue);
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+        expect(await game.saveGame(), isFalse);
+        expect(await game.loadGame(), isFalse);
+        expect(game.gameStateSnapshot.movingPlatformWorldState, fixture.state);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+        game.update(1);
+        expect(await game.saveGame(), isFalse);
+        for (var tick = 0; tick < 1000 && !game.inputAuthoritySnapshot.acceptsOverworldInput; tick++) {
+          game.update(.016);
+          await Future<void>.delayed(const Duration(milliseconds: 2));
+        }
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+        final pose = game.gameStateSnapshot.movingPlatformWorldState.platform('gym', 'bridge')!;
+        expect(pose.leftPx, !blocked && motion == MovingPlatformMotion.forward ? 96 : 64);
+        expect(pose.quarterTurns, motion == MovingPlatformMotion.rotateClockwise ? 1 : 0);
+        expect(await game.saveGame(), isTrue);
+        final saved = repository.state!;
+        game.update(1);
+        expect(game.gameStateSnapshot.movingPlatformWorldState, saved.movingPlatformWorldState);
+        expect(await game.loadGame(), isTrue);
+        game.update(1);
+        expect(game.gameStateSnapshot.movingPlatformWorldState, saved.movingPlatformWorldState);
+        expect(game.gameStateSnapshot.playerPixelPosition, saved.playerPixelPosition);
+        final restored = await _game(tester, bundle,
+          gameStateFromStrictSaveJson(strictGameStateSaveJson(saved)));
+        restored.update(1);
+        expect(restored.gameStateSnapshot.movingPlatformWorldState, saved.movingPlatformWorldState);
+        expect(restored.gameStateSnapshot.playerPixelPosition, saved.playerPixelPosition);
+      });
+    });
+  }
+
   testWidgets(
     'save restore composes moved boulders before validating moved platforms',
     (tester) async {
@@ -76,11 +136,12 @@ void main() {
     },
   );
 
+  for (final (smartTerrain, preciseTerrain) in [(false, false), (true, false), (true, true)]) {
   testWidgets(
-    'mounted Player carries the rider, rotates and restores exact saved pixels',
+    '${preciseTerrain ? 'Precise terrain' : smartTerrain ? 'Smart Tile' : 'Tile'} mounted Player carries the rider, rotates and restores exact saved pixels',
     (tester) async {
       await tester.runAsync(() async {
-        final fixture = MovingPlatformFixture();
+        final fixture = MovingPlatformFixture(smartTerrain: smartTerrain, preciseTerrain: preciseTerrain);
         final bundle = _bundle(fixture, _scene());
         final diagnostics = diagnoseSceneAgainstProject(
           bundle.manifest.scenes.first,
@@ -174,6 +235,8 @@ void main() {
       });
     },
   );
+
+  }
 
   testWidgets(
     'a later Scene failure rolls platform visuals and rider back together',

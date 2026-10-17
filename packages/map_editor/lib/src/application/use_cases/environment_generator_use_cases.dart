@@ -501,7 +501,10 @@ class GenerateEnvironmentAreaPlacementsUseCase {
       return EnvironmentGenerationResult(placements: const [], issues: issues);
     }
 
-    if (preset.palette.isEmpty) {
+    final palette = preset.palette
+        .where((item) => item.elementId != null)
+        .toList(growable: false);
+    if (palette.isEmpty) {
       issues.add(
         EnvironmentGenerationIssue(
           severity: EnvironmentGenerationIssueSeverity.error,
@@ -518,7 +521,7 @@ class GenerateEnvironmentAreaPlacementsUseCase {
     final elementById = <String, ProjectElementEntry>{
       for (final e in manifest.elements) e.id: e,
     };
-    for (final item in preset.palette) {
+    for (final item in palette) {
       final element = elementById[item.elementId];
       if (element == null) {
         issues.add(
@@ -693,7 +696,7 @@ class GenerateEnvironmentAreaPlacementsUseCase {
           usage: 'palette-roll',
         );
         final item = _pickPaletteItem(
-          palette: preset.palette,
+          palette: palette,
           rng: palRng,
         );
         if (item == null) {
@@ -727,13 +730,13 @@ class GenerateEnvironmentAreaPlacementsUseCase {
               areaId: area.id,
               x: x,
               y: y,
-              elementId: item.elementId,
+              elementId: element.id,
             ),
             environmentLayerId: envLayer.id,
             areaId: area.id,
             presetId: preset.id,
             targetLayerId: targetId,
-            elementId: item.elementId,
+            elementId: element.id,
             pos: pos,
             collisionMode: item.collisionMode,
             tags: item.tags,

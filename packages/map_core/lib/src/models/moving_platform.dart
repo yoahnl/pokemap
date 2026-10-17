@@ -5,6 +5,63 @@ import 'geometry.dart';
 
 enum MovingPlatformMotion { forward, backward, rotateClockwise }
 
+final class MovingPlatformControl {
+  MovingPlatformControl({
+    required this.id,
+    required this.cell,
+    required this.motion,
+  }) {
+    _identity(id);
+    _cells([cell], 1, requireNonempty: true);
+    if (motion == MovingPlatformMotion.rotateClockwise &&
+        cell != const GridPos(x: 0, y: 0)) {
+      throw const FormatException('A rotation control must be at the pivot.');
+    }
+  }
+
+  final String id;
+  final GridPos cell;
+  final MovingPlatformMotion motion;
+
+  GridPos cellForQuarterTurns(int quarterTurns) => switch (quarterTurns) {
+    0 => cell,
+    1 => GridPos(x: -cell.y, y: cell.x),
+    2 => GridPos(x: -cell.x, y: -cell.y),
+    3 => GridPos(x: cell.y, y: -cell.x),
+    _ => throw const FormatException('Invalid control orientation.'),
+  };
+
+  factory MovingPlatformControl.fromJson(Map<String, dynamic> json) {
+    _keys(json, {'id', 'cell', 'motion'});
+    final motion = MovingPlatformMotion.values
+        .where((motion) => motion.name == json['motion'])
+        .firstOrNull;
+    if (motion == null) {
+      throw const FormatException('Invalid platform control motion.');
+    }
+    return MovingPlatformControl(
+      id: _identity(json['id']),
+      cell: _point(json['cell']),
+      motion: motion,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'cell': cell.toJson(),
+    'motion': motion.name,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is MovingPlatformControl &&
+      other.id == id &&
+      other.cell == cell &&
+      other.motion == motion;
+  @override
+  int get hashCode => Object.hash(id, cell, motion);
+}
+
 final class MovingPlatformPose {
   MovingPlatformPose({
     required num leftPx,
@@ -253,8 +310,15 @@ final class MovingPlatformDefinition {
     required List<MovingPlatformVariant> variants,
     required Set<String> terrainLayerIds,
     required List<GridPos> travelCells,
+    Map<String, List<GridPos>> terrainCellsByLayer = const {},
+    List<MovingPlatformControl> controls = const [],
   }) : variants = List.unmodifiable(variants),
+       controls = List.unmodifiable(controls),
        terrainLayerIds = Set.unmodifiable(terrainLayerIds),
+       terrainCellsByLayer = Map.unmodifiable({
+         for (final entry in terrainCellsByLayer.entries)
+           entry.key: List<GridPos>.unmodifiable(entry.value),
+       }),
        travelCells = List.unmodifiable(travelCells) {
     _identity(id);
     _identity(placedElementId);
@@ -268,6 +332,37 @@ final class MovingPlatformDefinition {
       _identity(value);
     }
     _cells(this.travelCells, 65536, requireNonempty: true);
+    var terrainCellCount = 0;
+    for (final entry in this.terrainCellsByLayer.entries) {
+      if (!this.terrainLayerIds.contains(entry.key)) {
+        throw const FormatException('Terrain cells require a nominated layer.');
+      }
+      _cells(entry.value, 65536, requireNonempty: false);
+      terrainCellCount += entry.value.length;
+    }
+    if (terrainCellCount > 65536) {
+      throw const FormatException('Platform terrain cells exceed the budget.');
+    }
+    if (this.controls.length > 64 ||
+        this.controls.map((control) => control.id).toSet().length !=
+            this.controls.length ||
+        this.controls.map((control) => control.cell).toSet().length !=
+            this.controls.length) {
+      throw const FormatException(
+        'Platform controls must be unique and bounded.',
+      );
+    }
+    for (final control in this.controls) {
+      for (var rotation = 0; rotation < 4; rotation++) {
+        if (!this.variants[rotation].supportCells.contains(
+          control.cellForQuarterTurns(rotation),
+        )) {
+          throw const FormatException(
+            'A platform control must stay on its support.',
+          );
+        }
+      }
+    }
   }
 
   final String id, placedElementId;
@@ -276,7 +371,9 @@ final class MovingPlatformDefinition {
   final int translationDistanceCells;
   final List<MovingPlatformVariant> variants;
   final Set<String> terrainLayerIds;
+  final Map<String, List<GridPos>> terrainCellsByLayer;
   final List<GridPos> travelCells;
+  final List<MovingPlatformControl> controls;
 
   factory MovingPlatformDefinition.fromJson(Map<String, dynamic> json) {
     _keys(json, {
@@ -288,6 +385,8 @@ final class MovingPlatformDefinition {
       'variants',
       'terrainLayerIds',
       'travelCells',
+      if (json.containsKey('terrainCellsByLayer')) 'terrainCellsByLayer',
+      if (json.containsKey('controls')) 'controls',
     });
     final variants = json['variants'];
     final layers = json['terrainLayerIds'];
@@ -309,6 +408,21 @@ final class MovingPlatformDefinition {
           .toList(),
       terrainLayerIds: layers.map(_identity).toSet(),
       travelCells: _points(json['travelCells']),
+      terrainCellsByLayer: json.containsKey('terrainCellsByLayer')
+          ? _object(json['terrainCellsByLayer'])
+                .map((key, value) => MapEntry(key, _points(value)))
+          : const {},
+      controls: json.containsKey('controls')
+          ? switch (json['controls']) {
+              List values =>
+                values
+                    .map(
+                      (value) => MovingPlatformControl.fromJson(_object(value)),
+                    )
+                    .toList(),
+              _ => throw const FormatException('Expected platform controls.'),
+            }
+          : const [],
     );
   }
 
@@ -321,6 +435,13 @@ final class MovingPlatformDefinition {
     'variants': variants.map((value) => value.toJson()).toList(),
     'terrainLayerIds': terrainLayerIds.toList()..sort(),
     'travelCells': travelCells.map((value) => value.toJson()).toList(),
+    if (controls.isNotEmpty)
+      'controls': controls.map((control) => control.toJson()).toList(),
+    if (terrainCellsByLayer.isNotEmpty)
+      'terrainCellsByLayer': {
+        for (final id in terrainCellsByLayer.keys.toList()..sort())
+          id: terrainCellsByLayer[id]!.map((cell) => cell.toJson()).toList(),
+      },
   };
 
   @override
@@ -331,12 +452,17 @@ final class MovingPlatformDefinition {
       other.initialPose == initialPose &&
       other.lattice == lattice &&
       other.translationDistanceCells == translationDistanceCells &&
+      const DeepCollectionEquality().equals(other.controls, controls) &&
       const DeepCollectionEquality().equals(other.variants, variants) &&
       const DeepCollectionEquality().equals(
         other.terrainLayerIds,
         terrainLayerIds,
       ) &&
-      const DeepCollectionEquality().equals(other.travelCells, travelCells);
+      const DeepCollectionEquality().equals(other.travelCells, travelCells) &&
+      const DeepCollectionEquality().equals(
+        other.terrainCellsByLayer,
+        terrainCellsByLayer,
+      );
   @override
   int get hashCode => Object.hash(
     id,
@@ -344,9 +470,11 @@ final class MovingPlatformDefinition {
     initialPose,
     lattice,
     translationDistanceCells,
+    const DeepCollectionEquality().hash(controls),
     const DeepCollectionEquality().hash(variants),
     const DeepCollectionEquality().hash(terrainLayerIds),
     const DeepCollectionEquality().hash(travelCells),
+    const DeepCollectionEquality().hash(terrainCellsByLayer),
   );
 }
 

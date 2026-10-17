@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/Avelune iOS/**"
       - "apps/avelune_android/**"
+      - "apps/avelune_version.xcconfig"
       - "apps/pokemap_hub/lib/**"
       - "apps/avelune_studio/**"
       - "packages/**"
@@ -17,6 +18,7 @@ on:
     paths:
       - "apps/Avelune iOS/**"
       - "apps/avelune_android/**"
+      - "apps/avelune_version.xcconfig"
       - "apps/pokemap_hub/lib/**"
       - "apps/avelune_studio/**"
       - "packages/**"

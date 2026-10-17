@@ -2,6 +2,53 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('animated native paths require model animation export capability', () {
+    final project = ProjectManifest(
+      name: 'Grass',
+      maps: const [],
+      tilesets: const [],
+      smartTileCatalog: _catalog(),
+    );
+    final map = _map();
+    expect(
+      SpatialGameplayCapabilities.requiresModelAnimation(project),
+      isFalse,
+    );
+    expect(
+      SpatialGameplayCapabilities.requiresModelAnimation(project, maps: [map]),
+      isTrue,
+    );
+    final layer = map.layers.single as SmartTileLayer;
+    for (final replacement in [
+      layer.copyWith(isVisible: false),
+      layer.copyWith(opacity: 0),
+      layer.copyWith(
+        field: const SmartTileField.cell(semanticCells: [0, 0, 0, 0]),
+      ),
+    ]) {
+      expect(
+        SpatialGameplayCapabilities.requiresModelAnimation(
+          project,
+          maps: [
+            map.copyWith(layers: [replacement]),
+          ],
+        ),
+        isFalse,
+      );
+    }
+    final plain = project.copyWith(
+      smartTileCatalog: _withPart(
+        const SmartTileVisualPart(
+          source: SmartTileVisualSource.model3d(modelId: 'tall-grass'),
+        ),
+      ),
+    );
+    expect(
+      SpatialGameplayCapabilities.requiresModelAnimation(plain, maps: [map]),
+      isFalse,
+    );
+  });
+
   test('ground replacement is an explicit model source declaration', () {
     final source = SmartTileVisualSource.fromJson({
       'kind': 'model3d',
@@ -38,6 +85,16 @@ void main() {
       projection.instances,
       resolveSpatialSmartTileInstances(map: map, catalog: catalog),
     );
+    expect(projection.cellOrigins, {
+      projection.instances[0].id: (
+        layerId: 'grass',
+        cell: const GridPos(x: 0, y: 0),
+      ),
+      projection.instances[1].id: (
+        layerId: 'grass',
+        cell: const GridPos(x: 1, y: 1),
+      ),
+    });
     expect(
       resolveSpatialSmartTileModelProjection(
         map: map,
@@ -59,6 +116,7 @@ void main() {
       );
       expect(changed.groundReplacements, isEmpty);
       expect(changed.instances, isEmpty);
+      expect(changed.cellOrigins, isEmpty);
     }
   });
 

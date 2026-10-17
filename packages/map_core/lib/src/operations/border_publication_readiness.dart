@@ -59,33 +59,31 @@ enum BorderCanonicalCoverageComponent {
 
 String borderCanonicalGalleryCaseV1WireName(
   BorderCanonicalGalleryCase galleryCase,
-) =>
-    switch (galleryCase) {
-      BorderCanonicalGalleryCase.longEdge => 'longEdge',
-      BorderCanonicalGalleryCase.gentleCurve => 'gentleCurve',
-      BorderCanonicalGalleryCase.sharpConvexCorner => 'sharpConvexCorner',
-      BorderCanonicalGalleryCase.sharpConcaveCorner => 'sharpConcaveCorner',
-      BorderCanonicalGalleryCase.hole => 'hole',
-      BorderCanonicalGalleryCase.smallIsland => 'smallIsland',
-      BorderCanonicalGalleryCase.sharpCorner => 'sharpCorner',
-      BorderCanonicalGalleryCase.endpoint => 'endpoint',
-      BorderCanonicalGalleryCase.opening => 'opening',
-      BorderCanonicalGalleryCase.sBend => 'sBend',
-      BorderCanonicalGalleryCase.closedLoop => 'closedLoop',
-    };
+) => switch (galleryCase) {
+  BorderCanonicalGalleryCase.longEdge => 'longEdge',
+  BorderCanonicalGalleryCase.gentleCurve => 'gentleCurve',
+  BorderCanonicalGalleryCase.sharpConvexCorner => 'sharpConvexCorner',
+  BorderCanonicalGalleryCase.sharpConcaveCorner => 'sharpConcaveCorner',
+  BorderCanonicalGalleryCase.hole => 'hole',
+  BorderCanonicalGalleryCase.smallIsland => 'smallIsland',
+  BorderCanonicalGalleryCase.sharpCorner => 'sharpCorner',
+  BorderCanonicalGalleryCase.endpoint => 'endpoint',
+  BorderCanonicalGalleryCase.opening => 'opening',
+  BorderCanonicalGalleryCase.sBend => 'sBend',
+  BorderCanonicalGalleryCase.closedLoop => 'closedLoop',
+};
 
 String borderCanonicalCoverageComponentV1WireName(
   BorderCanonicalCoverageComponent component,
-) =>
-    switch (component) {
-      BorderCanonicalCoverageComponent.primary => 'primary',
-      BorderCanonicalCoverageComponent.outerLoop => 'outerLoop',
-      BorderCanonicalCoverageComponent.innerLoop => 'innerLoop',
-      BorderCanonicalCoverageComponent.leadingStroke => 'leadingStroke',
-      BorderCanonicalCoverageComponent.trailingStroke => 'trailingStroke',
-      BorderCanonicalCoverageComponent.lip => 'lip',
-      BorderCanonicalCoverageComponent.face => 'face',
-    };
+) => switch (component) {
+  BorderCanonicalCoverageComponent.primary => 'primary',
+  BorderCanonicalCoverageComponent.outerLoop => 'outerLoop',
+  BorderCanonicalCoverageComponent.innerLoop => 'innerLoop',
+  BorderCanonicalCoverageComponent.leadingStroke => 'leadingStroke',
+  BorderCanonicalCoverageComponent.trailingStroke => 'trailingStroke',
+  BorderCanonicalCoverageComponent.lip => 'lip',
+  BorderCanonicalCoverageComponent.face => 'face',
+};
 
 /// Two-tier stone-chain proof measured independently for one line side.
 @immutable
@@ -100,17 +98,17 @@ final class BorderPublicationStoneChainEvidence {
     required this.lipConnectedComponentCount,
     required this.faceConnectedComponentCount,
     required this.combinedConnectedComponentCount,
-  })  : assert(lipPlacementCount >= 0),
-        assert(facePlacementCount >= 0),
-        assert(minimumCrossRowInterlockPixels >= 0),
-        assert(minimumVisibleFaceDepthPx >= 0),
-        assert(medianVisibleFaceDepthPx >= minimumVisibleFaceDepthPx),
-        assert(
-          alignedJointRatioPermille >= 0 && alignedJointRatioPermille <= 1000,
-        ),
-        assert(lipConnectedComponentCount >= 0),
-        assert(faceConnectedComponentCount >= 0),
-        assert(combinedConnectedComponentCount >= 0);
+  }) : assert(lipPlacementCount >= 0),
+       assert(facePlacementCount >= 0),
+       assert(minimumCrossRowInterlockPixels >= 0),
+       assert(minimumVisibleFaceDepthPx >= 0),
+       assert(medianVisibleFaceDepthPx >= minimumVisibleFaceDepthPx),
+       assert(
+         alignedJointRatioPermille >= 0 && alignedJointRatioPermille <= 1000,
+       ),
+       assert(lipConnectedComponentCount >= 0),
+       assert(faceConnectedComponentCount >= 0),
+       assert(combinedConnectedComponentCount >= 0);
 
   final int lipPlacementCount;
   final int facePlacementCount;
@@ -140,16 +138,16 @@ final class BorderPublicationStoneChainEvidence {
 
   @override
   int get hashCode => Object.hash(
-        lipPlacementCount,
-        facePlacementCount,
-        minimumCrossRowInterlockPixels,
-        minimumVisibleFaceDepthPx,
-        medianVisibleFaceDepthPx,
-        alignedJointRatioPermille,
-        lipConnectedComponentCount,
-        faceConnectedComponentCount,
-        combinedConnectedComponentCount,
-      );
+    lipPlacementCount,
+    facePlacementCount,
+    minimumCrossRowInterlockPixels,
+    minimumVisibleFaceDepthPx,
+    medianVisibleFaceDepthPx,
+    alignedJointRatioPermille,
+    lipConnectedComponentCount,
+    faceConnectedComponentCount,
+    combinedConnectedComponentCount,
+  );
 }
 
 /// Scalar coverage evidence produced by one canonical-gallery contour.
@@ -191,14 +189,13 @@ final class BorderPublicationCoverageCheck {
   factory BorderPublicationCoverageCheck.fromLoopAssessment({
     required BorderCanonicalCoverageComponent component,
     required BorderLoopCoverageAssessment assessment,
-  }) =>
-      BorderPublicationCoverageCheck(
-        component: component,
-        longestContiguousGapPx: assessment.longestContiguousGapPx,
-        maximumPairwiseOverlapPx: assessment.maximumPairwiseOverlapPx,
-        gapTolerancePx: assessment.gapTolerancePx,
-        maxOverlapPx: assessment.maxOverlapPx,
-      );
+  }) => BorderPublicationCoverageCheck(
+    component: component,
+    longestContiguousGapPx: assessment.longestContiguousGapPx,
+    maximumPairwiseOverlapPx: assessment.maximumPairwiseOverlapPx,
+    gapTolerancePx: assessment.gapTolerancePx,
+    maxOverlapPx: assessment.maxOverlapPx,
+  );
 
   final BorderCanonicalCoverageComponent component;
   final int longestContiguousGapPx;
@@ -222,12 +219,12 @@ final class BorderPublicationCoverageCheck {
 
   @override
   int get hashCode => Object.hash(
-        component,
-        longestContiguousGapPx,
-        maximumPairwiseOverlapPx,
-        gapTolerancePx,
-        maxOverlapPx,
-      );
+    component,
+    longestContiguousGapPx,
+    maximumPairwiseOverlapPx,
+    gapTolerancePx,
+    maxOverlapPx,
+  );
 }
 
 /// One ordered structural sequence from a canonical-gallery pass.
@@ -283,12 +280,12 @@ final class BorderPublicationStructuralRun {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        role,
-        quarterTurns,
-        passIndex,
-        Object.hashAll(_primitiveIds),
-      );
+    id,
+    role,
+    quarterTurns,
+    passIndex,
+    Object.hashAll(_primitiveIds),
+  );
 }
 
 /// Pure evidence from one neutral canonical-gallery sample.
@@ -300,11 +297,11 @@ final class BorderPublicationGallerySample {
     required List<BorderPublicationStructuralRun> structuralRuns,
     this.primaryStoneChainEvidence,
     this.invertedStoneChainEvidence,
-  })  : _coverageChecks =
-            List<BorderPublicationCoverageCheck>.unmodifiable(coverageChecks,
+  }) : _coverageChecks = List<BorderPublicationCoverageCheck>.unmodifiable(
+         coverageChecks,
        ),
-        _structuralRuns =
-            List<BorderPublicationStructuralRun>.unmodifiable(structuralRuns,
+       _structuralRuns = List<BorderPublicationStructuralRun>.unmodifiable(
+         structuralRuns,
        ) {
     final coverageComponents = <BorderCanonicalCoverageComponent>{};
     for (final check in _coverageChecks) {
@@ -349,12 +346,12 @@ final class BorderPublicationGallerySample {
 
   @override
   int get hashCode => Object.hash(
-        galleryCase,
-        Object.hashAll(_coverageChecks),
-        Object.hashAll(_structuralRuns),
-        primaryStoneChainEvidence,
-        invertedStoneChainEvidence,
-      );
+    galleryCase,
+    Object.hashAll(_coverageChecks),
+    Object.hashAll(_structuralRuns),
+    primaryStoneChainEvidence,
+    invertedStoneChainEvidence,
+  );
 }
 
 /// Candidate-bound evidence generated from the neutral canonical gallery.
@@ -410,11 +407,11 @@ final class BorderPublicationGalleryReport {
 
   @override
   int get hashCode => Object.hash(
-        resolverVersion,
-        canonicalGalleryVersion,
-        candidateFingerprint,
-        Object.hashAll(_samples),
-      );
+    resolverVersion,
+    canonicalGalleryVersion,
+    candidateFingerprint,
+    Object.hashAll(_samples),
+  );
 }
 
 /// Computes the exact candidate identity a canonical-gallery report attests.
@@ -435,17 +432,14 @@ String computeBorderPublicationCandidateFingerprint({
     );
   }
   _requirePortableInteger(resolverVersion, 'resolverVersion');
-  _requirePortableInteger(
-    canonicalGalleryVersion,
-    'canonicalGalleryVersion');
+  _requirePortableInteger(canonicalGalleryVersion, 'canonicalGalleryVersion');
   return 'sha256:${narrativeEventCanonicalSha256(_publicationCandidateProjection(blueprintId, definition, resolverVersion: resolverVersion, canonicalGalleryVersion: canonicalGalleryVersion))}';
 }
 
 /// Deterministic publication gate for one candidate blueprint definition.
 @immutable
 final class BorderPublicationReadinessResult {
-  const BorderPublicationReadinessResult._({
-    required this.diagnosticReport});
+  const BorderPublicationReadinessResult._({required this.diagnosticReport});
 
   final BorderDiagnosticsReport diagnosticReport;
 
@@ -495,15 +489,8 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
   _diagnoseTemplatePrimitiveRoles(blueprintId, definition, diagnostics);
   _diagnoseTemplateGround(blueprintId, definition, diagnostics);
   _diagnoseTemplateGenerationParams(blueprintId, definition, diagnostics);
-  _diagnoseProjectReferences(
-    blueprintId,
-    definition,
-    project,
-    diagnostics);
-  _diagnoseRequiredRolesAndOrientations(
-    blueprintId,
-    definition,
-    diagnostics);
+  _diagnoseProjectReferences(blueprintId, definition, project, diagnostics);
+  _diagnoseRequiredRolesAndOrientations(blueprintId, definition, diagnostics);
   _diagnosePrimitiveMetrics(blueprintId, definition, diagnostics);
   _diagnoseSnapshotReferences(
     blueprintId,
@@ -512,11 +499,7 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
     snapshotIntegrity,
     diagnostics,
   );
-  _diagnoseGroundCompleteness(
-    blueprintId,
-    definition,
-    project,
-    diagnostics);
+  _diagnoseGroundCompleteness(blueprintId, definition, project, diagnostics);
   _diagnoseCanonicalGallery(
     blueprintId,
     definition,
@@ -540,17 +523,18 @@ void _diagnoseTemplatePrimitiveRoles(
   );
   for (final primitive in definition.primitives) {
     if (allowedRoles.contains(primitive.role)) continue;
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.role_not_supported_by_template',
-      scope: BorderDiagnosticScope.primitive,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'primitiveId': primitive.id,
-        'role': borderPrimitiveRoleV1WireName(primitive.role),
-        'template': _templateV1WireName(definition.template),
-      },
-      action: 'border.action.remove_incompatible_role',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.role_not_supported_by_template',
+        scope: BorderDiagnosticScope.primitive,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'primitiveId': primitive.id,
+          'role': borderPrimitiveRoleV1WireName(primitive.role),
+          'template': _templateV1WireName(definition.template),
+        },
+        action: 'border.action.remove_incompatible_role',
+      ),
     );
   }
 }
@@ -574,15 +558,16 @@ void _diagnoseTemplateGround(
     case BorderBlueprintTemplate.connectedLine:
     case BorderBlueprintTemplate.stoneChainLine:
     case BorderBlueprintTemplate.ledgeLine:
-      diagnostics.add(_diagnostic(
-        code: 'border.publication.linear_ground_not_supported',
-        scope: BorderDiagnosticScope.blueprint,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{
-          'template': _templateV1WireName(definition.template),
-        },
-        action: 'border.action.remove_ground_from_linear_blueprint',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.linear_ground_not_supported',
+          scope: BorderDiagnosticScope.blueprint,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{
+            'template': _templateV1WireName(definition.template),
+          },
+          action: 'border.action.remove_ground_from_linear_blueprint',
+        ),
       );
   }
 }
@@ -644,7 +629,13 @@ void _diagnoseTemplateGenerationParams(
         parameters.irregularityPermille != 0 ||
         parameters.detailDensityPermille != 0 ||
         parameters.allowAutoRotation ||
-        parameters.gapTolerancePx != 0 ||
+        definition.primitives.any(
+          (primitive) =>
+              parameters.gapTolerancePx >=
+                  primitive.publishedMetrics.pixelSize.width ||
+              parameters.gapTolerancePx >=
+                  primitive.publishedMetrics.pixelSize.height,
+        ) ||
         parameters.maxOverlapPx != 0) {
       diagnostics.add(
         _diagnostic(
@@ -715,36 +706,38 @@ void _diagnoseProjectReferences(
   };
   for (final primitive in definition.primitives) {
     if (elementIds.contains(primitive.sourceElementId)) continue;
-    diagnostics.add(_diagnostic(
-      code: 'border.blueprint.source_element_missing',
-      scope: BorderDiagnosticScope.primitive,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'primitiveId': primitive.id,
-        'sourceElementId': primitive.sourceElementId,
-      },
-      action: 'border.action.select_existing_source_element',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.blueprint.source_element_missing',
+        scope: BorderDiagnosticScope.primitive,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'primitiveId': primitive.id,
+          'sourceElementId': primitive.sourceElementId,
+        },
+        action: 'border.action.select_existing_source_element',
+      ),
     );
   }
   final ground = definition.ground;
   final smartTilePreset = ground == null
       ? null
       : project.smartTileCatalog.presets
-          .where((preset) => preset.id == ground.sourceSmartTilePresetId)
-          .firstOrNull;
+            .where((preset) => preset.id == ground.sourceSmartTilePresetId)
+            .firstOrNull;
   if (ground != null &&
       (smartTilePreset == null ||
           smartTilePreset.status != SmartTilePresetStatus.published)) {
-    diagnostics.add(_diagnostic(
-      code: 'border.blueprint.source_smart_tile_preset_missing',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
-      },
-      action: 'border.action.select_published_smart_tile_preset',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.blueprint.source_smart_tile_preset_missing',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
+        },
+        action: 'border.action.select_published_smart_tile_preset',
+      ),
     );
   }
 }
@@ -758,13 +751,14 @@ void _diagnoseDuplicatePrimitiveIds(
   final reported = <String>{};
   for (final primitive in definition.primitives) {
     if (!seen.add(primitive.id) && reported.add(primitive.id)) {
-      diagnostics.add(_diagnostic(
-        code: 'border.blueprint.duplicate_primitive_id',
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'primitiveId': primitive.id},
-        action: 'border.action.assign_unique_primitive_ids',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.blueprint.duplicate_primitive_id',
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'primitiveId': primitive.id},
+          action: 'border.action.assign_unique_primitive_ids',
+        ),
       );
     }
   }
@@ -817,18 +811,19 @@ void _diagnoseRequiredRolesAndOrientations(
           .where((primitive) => _structuralRoles.contains(primitive.role))
           .toList(growable: false);
       if (eligible.isEmpty) {
-        diagnostics.add(_diagnostic(
-          code: 'border.publication.required_role_missing',
-          scope: BorderDiagnosticScope.blueprint,
-          blueprintId: blueprintId,
-          parameters: <String, Object?>{
-            'roles': <String>[
-              for (final role in _structuralRoles)
-                borderPrimitiveRoleV1WireName(role),
-            ],
-          },
-          action: 'border.action.add_required_structural_primitive',
-        ),
+        diagnostics.add(
+          _diagnostic(
+            code: 'border.publication.required_role_missing',
+            scope: BorderDiagnosticScope.blueprint,
+            blueprintId: blueprintId,
+            parameters: <String, Object?>{
+              'roles': <String>[
+                for (final role in _structuralRoles)
+                  borderPrimitiveRoleV1WireName(role),
+              ],
+            },
+            action: 'border.action.add_required_structural_primitive',
+          ),
         );
       } else {
         _diagnoseOrientationGroup(
@@ -837,9 +832,9 @@ void _diagnoseRequiredRolesAndOrientations(
           primitives: eligible,
           requiredQuarterTurns:
               definition.template == BorderBlueprintTemplate.masonryLine &&
-                      !definition.defaults.allowAutoRotation
-                  ? const <int>[0]
-                  : _requiredQuarterTurns,
+                  !definition.defaults.allowAutoRotation
+              ? const <int>[0]
+              : _requiredQuarterTurns,
           requireFlipX:
               definition.template == BorderBlueprintTemplate.masonryLine,
           diagnostics: diagnostics,
@@ -854,15 +849,16 @@ void _diagnoseRequiredRolesAndOrientations(
             .where((primitive) => primitive.role == role)
             .toList(growable: false);
         if (eligible.isEmpty) {
-          diagnostics.add(_diagnostic(
-            code: 'border.publication.required_role_missing',
-            scope: BorderDiagnosticScope.blueprint,
-            blueprintId: blueprintId,
-            parameters: <String, Object?>{
-              'roles': <String>[borderPrimitiveRoleV1WireName(role)],
-            },
-            action: 'border.action.add_required_line_primitive',
-          ),
+          diagnostics.add(
+            _diagnostic(
+              code: 'border.publication.required_role_missing',
+              scope: BorderDiagnosticScope.blueprint,
+              blueprintId: blueprintId,
+              parameters: <String, Object?>{
+                'roles': <String>[borderPrimitiveRoleV1WireName(role)],
+              },
+              action: 'border.action.add_required_line_primitive',
+            ),
           );
         } else {
           _diagnoseOrientationGroup(
@@ -884,45 +880,47 @@ void _diagnoseRequiredRolesAndOrientations(
             .where((primitive) => primitive.role == role)
             .toList(growable: false);
         if (eligible.isEmpty) {
-          diagnostics.add(_diagnostic(
-            code: 'border.publication.required_role_missing',
-            scope: BorderDiagnosticScope.blueprint,
-            blueprintId: blueprintId,
-            parameters: <String, Object?>{
-              'roles': <String>[borderPrimitiveRoleV1WireName(role)],
-            },
-            action: 'border.action.add_required_connected_line_primitive',
-          ),
+          diagnostics.add(
+            _diagnostic(
+              code: 'border.publication.required_role_missing',
+              scope: BorderDiagnosticScope.blueprint,
+              blueprintId: blueprintId,
+              parameters: <String, Object?>{
+                'roles': <String>[borderPrimitiveRoleV1WireName(role)],
+              },
+              action: 'border.action.add_required_connected_line_primitive',
+            ),
           );
           continue;
         }
         final quarterTurns = !definition.defaults.allowAutoRotation
             ? const <int>[0]
             : role == BorderPrimitiveRole.lineStraight
-                ? const <int>[0, 1]
-                : _requiredQuarterTurns;
+            ? const <int>[0, 1]
+            : _requiredQuarterTurns;
         for (final quarterTurn in quarterTurns) {
           for (final flipX in const <bool>[false, true]) {
             if (eligible.any(
               (primitive) =>
-                  primitive.transforms.allowedQuarterTurns
-                      .contains(quarterTurn,
+                  primitive.transforms.allowedQuarterTurns.contains(
+                    quarterTurn,
                   ) &&
                   (!flipX || primitive.transforms.allowFlipX),
             )) {
               continue;
             }
-            diagnostics.add(_diagnostic(
-              code: 'border.publication.connected_line_transform_unavailable',
-              scope: BorderDiagnosticScope.blueprint,
-              blueprintId: blueprintId,
-              parameters: <String, Object?>{
-                'role': borderPrimitiveRoleV1WireName(role),
-                'quarterTurns': quarterTurn,
-                'flipX': flipX,
-              },
-              action: 'border.action.allow_required_connected_line_transform',
-            ),
+            diagnostics.add(
+              _diagnostic(
+                code: 'border.publication.connected_line_transform_unavailable',
+                scope: BorderDiagnosticScope.blueprint,
+                blueprintId: blueprintId,
+                parameters: <String, Object?>{
+                  'role': borderPrimitiveRoleV1WireName(role),
+                  'quarterTurns': quarterTurn,
+                  'flipX': flipX,
+                },
+                action: 'border.action.allow_required_connected_line_transform',
+              ),
             );
           }
         }
@@ -1078,9 +1076,9 @@ void _diagnoseTwoTierStoneChainRolesAndOrientations({
 
   for (final roleEntry
       in <(BorderPrimitiveRole, List<BorderPublishedPrimitive>)>[
-    (BorderPrimitiveRole.structureLarge, lip),
-    if (face.isNotEmpty) (BorderPrimitiveRole.structureMedium, face),
-  ]) {
+        (BorderPrimitiveRole.structureLarge, lip),
+        if (face.isNotEmpty) (BorderPrimitiveRole.structureMedium, face),
+      ]) {
     final missing = <String>[];
     for (final desired in const <BorderPrimitiveOrientation>[
       BorderPrimitiveOrientation.north,
@@ -1141,8 +1139,8 @@ int _stoneChainOrientationRank(BorderPrimitiveOrientation orientation) =>
       BorderPrimitiveOrientation.south => 2,
       BorderPrimitiveOrientation.west => 3,
       BorderPrimitiveOrientation.legacyAxis => throw const ValidationException(
-          'Legacy stone-chain orientation has no cardinal rank',
-        ),
+        'Legacy stone-chain orientation has no cardinal rank',
+      ),
     };
 
 void _diagnoseOrientationGroup({
@@ -1159,11 +1157,12 @@ void _diagnoseOrientationGroup({
           primitive.transforms.allowedQuarterTurns.contains(quarterTurns),
     );
     if (!normalAvailable) {
-      diagnostics.add(_missingOrientationDiagnostic(
-        blueprintId: blueprintId,
-        groupName: groupName,
-        quarterTurns: quarterTurns,
-      ),
+      diagnostics.add(
+        _missingOrientationDiagnostic(
+          blueprintId: blueprintId,
+          groupName: groupName,
+          quarterTurns: quarterTurns,
+        ),
       );
       continue;
     }
@@ -1173,12 +1172,13 @@ void _diagnoseOrientationGroup({
               primitive.transforms.allowedQuarterTurns.contains(quarterTurns) &&
               primitive.transforms.allowFlipX,
         )) {
-      diagnostics.add(_missingOrientationDiagnostic(
-        blueprintId: blueprintId,
-        groupName: groupName,
-        quarterTurns: quarterTurns,
-        flipX: true,
-      ),
+      diagnostics.add(
+        _missingOrientationDiagnostic(
+          blueprintId: blueprintId,
+          groupName: groupName,
+          quarterTurns: quarterTurns,
+          flipX: true,
+        ),
       );
     }
   }
@@ -1189,21 +1189,20 @@ BorderDiagnostic _missingOrientationDiagnostic({
   required String groupName,
   required int quarterTurns,
   bool flipX = false,
-}) =>
-    _diagnostic(
-      code: 'border.publication.orientation_missing',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'orientation': borderCardinalDirectionV1WireName(
-          _directionForQuarterTurns(quarterTurns),
-        ),
-        'quarterTurns': quarterTurns,
-        'roleGroup': groupName,
-        if (flipX) 'flipX': true,
-      },
-      action: 'border.action.add_or_authorize_required_orientation',
-    );
+}) => _diagnostic(
+  code: 'border.publication.orientation_missing',
+  scope: BorderDiagnosticScope.blueprint,
+  blueprintId: blueprintId,
+  parameters: <String, Object?>{
+    'orientation': borderCardinalDirectionV1WireName(
+      _directionForQuarterTurns(quarterTurns),
+    ),
+    'quarterTurns': quarterTurns,
+    'roleGroup': groupName,
+    if (flipX) 'flipX': true,
+  },
+  action: 'border.action.add_or_authorize_required_orientation',
+);
 
 BorderCardinalDirection _directionForQuarterTurns(int quarterTurns) =>
     switch (quarterTurns) {
@@ -1212,8 +1211,8 @@ BorderCardinalDirection _directionForQuarterTurns(int quarterTurns) =>
       2 => BorderCardinalDirection.west,
       3 => BorderCardinalDirection.north,
       _ => throw const ValidationException(
-          'Publication orientation quarterTurns must be 0..3',
-        ),
+        'Publication orientation quarterTurns must be 0..3',
+      ),
     };
 
 void _diagnosePrimitiveMetrics(
@@ -1221,17 +1220,23 @@ void _diagnosePrimitiveMetrics(
   BorderBlueprintPublishedDefinition definition,
   List<BorderDiagnostic> diagnostics,
 ) {
+  final tangentGaps =
+      <
+        BorderPrimitiveOrientation,
+        List<({String id, int leading, int trailing, int interior})>
+      >{};
   for (final primitive in definition.primitives) {
     final metrics = primitive.publishedMetrics;
     if (!_insideAsset(primitive.anchorPx, metrics) ||
         !_insideAsset(metrics.defaultAnchorPx, metrics)) {
-      diagnostics.add(_diagnostic(
-        code: 'border.blueprint.anchor_outside_asset',
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'primitiveId': primitive.id},
-        action: 'border.action.place_anchor_inside_asset',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.blueprint.anchor_outside_asset',
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'primitiveId': primitive.id},
+          action: 'border.action.place_anchor_inside_asset',
+        ),
       );
     }
 
@@ -1248,13 +1253,14 @@ void _diagnosePrimitiveMetrics(
         path: r'$.publishedMetrics.occupancyMaskRle',
       );
     } on FormatException {
-      diagnostics.add(_diagnostic(
-        code: 'border.blueprint.occupancy_mask_invalid',
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'primitiveId': primitive.id},
-        action: 'border.action.reanalyze_asset_occupancy',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.blueprint.occupancy_mask_invalid',
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'primitiveId': primitive.id},
+          action: 'border.action.reanalyze_asset_occupancy',
+        ),
       );
     }
     if (hasStructuralOccupancy == true &&
@@ -1271,31 +1277,62 @@ void _diagnosePrimitiveMetrics(
       final tangentLength = horizontalTangent
           ? metrics.pixelSize.width
           : metrics.pixelSize.height;
-      if (intervals.length != 1 ||
-          intervals.single.startPx != 0 ||
-          intervals.single.endPx != tangentLength) {
-        diagnostics.add(
-          _diagnostic(
-            code: 'border.publication.ledge_variant_coverage_incomplete',
-            scope: BorderDiagnosticScope.primitive,
-            blueprintId: blueprintId,
-            parameters: {
-              'primitiveId': primitive.id,
-              'orientation': primitive.authoredOrientation.name,
-            },
-            action: 'border.action.choose_complete_native_ledge_module',
-          ),
-        );
+      var interior = 0;
+      for (var index = 1; index < intervals.length; index++) {
+        final gap = intervals[index].startPx - intervals[index - 1].endPx;
+        if (gap > interior) interior = gap;
       }
+      tangentGaps.putIfAbsent(primitive.authoredOrientation, () => []).add((
+        id: primitive.id,
+        leading: intervals.isEmpty ? tangentLength : intervals.first.startPx,
+        trailing: intervals.isEmpty
+            ? tangentLength
+            : tangentLength - intervals.last.endPx,
+        interior: interior,
+      ));
     }
     if (hasStructuralOccupancy == false) {
-      diagnostics.add(_diagnostic(
-        code: 'border.blueprint.occupancy_mask_empty',
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'primitiveId': primitive.id},
-        action: 'border.action.choose_nonempty_asset',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.blueprint.occupancy_mask_empty',
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'primitiveId': primitive.id},
+          action: 'border.action.choose_nonempty_asset',
+        ),
+      );
+    }
+  }
+  for (final group in tangentGaps.entries) {
+    final maximumLeading = group.value.fold<int>(
+      0,
+      (maximum, value) => maximum > value.leading ? maximum : value.leading,
+    );
+    final maximumTrailing = group.value.fold<int>(
+      0,
+      (maximum, value) => maximum > value.trailing ? maximum : value.trailing,
+    );
+    for (final primitive in group.value) {
+      final before = maximumTrailing + primitive.leading;
+      final after = primitive.trailing + maximumLeading;
+      final boundary = before > after ? before : after;
+      final maximumGap = boundary > primitive.interior
+          ? boundary
+          : primitive.interior;
+      if (maximumGap <= definition.defaults.gapTolerancePx) continue;
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.ledge_variant_coverage_incomplete',
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: {
+            'primitiveId': primitive.id,
+            'orientation': group.key.name,
+            'maximumGapPx': maximumGap,
+            'gapTolerancePx': definition.defaults.gapTolerancePx,
+          },
+          action: 'border.action.choose_complete_native_ledge_module',
+        ),
       );
     }
   }
@@ -1316,21 +1353,22 @@ void _diagnoseSnapshotReferences(
       ifAbsent: () => 1,
     );
   }
-  final duplicateSnapshotIds = snapshotIdCounts.entries
-      .where((entry) => entry.value > 1)
-      .map((entry) => entry.key)
-      .toList(growable: false)
-    ..sort(compareNarrativeEventUtf16);
+  final duplicateSnapshotIds =
+      snapshotIdCounts.entries
+          .where((entry) => entry.value > 1)
+          .map((entry) => entry.key)
+          .toList(growable: false)
+        ..sort(compareNarrativeEventUtf16);
   final duplicateSnapshotIdSet = duplicateSnapshotIds.toSet();
   if (duplicateSnapshotIds.isNotEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.duplicate_visual_snapshot_id',
-      scope: BorderDiagnosticScope.visualSnapshot,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'snapshotIds': duplicateSnapshotIds},
-      action: 'border.action.remove_duplicate_visual_snapshots',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.duplicate_visual_snapshot_id',
+        scope: BorderDiagnosticScope.visualSnapshot,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{'snapshotIds': duplicateSnapshotIds},
+        action: 'border.action.remove_duplicate_visual_snapshots',
+      ),
     );
   }
   final snapshotsById = <String, BorderVisualSnapshot>{};
@@ -1343,19 +1381,19 @@ void _diagnoseSnapshotReferences(
     for (final primitive in definition.primitives) primitive.visualSnapshotId,
     if (definition.ground case final ground?)
       ...ground.visualSnapshotIdsByRole.values,
-  }.toList(growable: false)
-    ..sort(compareNarrativeEventUtf16);
+  }.toList(growable: false)..sort(compareNarrativeEventUtf16);
   for (final snapshotId in referencedIds) {
     if (duplicateSnapshotIdSet.contains(snapshotId)) continue;
     final snapshot = snapshotsById[snapshotId];
     if (snapshot == null) {
-      diagnostics.add(_diagnostic(
-        code: 'border.blueprint.visual_snapshot_missing',
-        scope: BorderDiagnosticScope.visualSnapshot,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'snapshotId': snapshotId},
-        action: 'border.action.restore_or_republish_snapshot',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.blueprint.visual_snapshot_missing',
+          scope: BorderDiagnosticScope.visualSnapshot,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'snapshotId': snapshotId},
+          action: 'border.action.restore_or_republish_snapshot',
+        ),
       );
       continue;
     }
@@ -1363,13 +1401,14 @@ void _diagnoseSnapshotReferences(
     if (integrity == null ||
         integrity.snapshotId != snapshotId ||
         !integrity.isValid) {
-      diagnostics.add(_diagnostic(
-        code: 'border.blueprint.visual_snapshot_invalid',
-        scope: BorderDiagnosticScope.visualSnapshot,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'snapshotId': snapshotId},
-        action: 'border.action.restore_or_republish_snapshot',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.blueprint.visual_snapshot_invalid',
+          scope: BorderDiagnosticScope.visualSnapshot,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'snapshotId': snapshotId},
+          action: 'border.action.restore_or_republish_snapshot',
+        ),
       );
     }
   }
@@ -1382,20 +1421,21 @@ void _diagnoseSnapshotReferences(
     final metricsSize = primitive.publishedMetrics.pixelSize;
     if (frameSize.width != metricsSize.width ||
         frameSize.height != metricsSize.height) {
-      diagnostics.add(_diagnostic(
-        code: 'border.publication.snapshot_metrics_mismatch',
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{
-          'primitiveId': primitive.id,
-          'snapshotId': primitive.visualSnapshotId,
-          'metricsWidth': metricsSize.width,
-          'metricsHeight': metricsSize.height,
-          'snapshotWidth': frameSize.width,
-          'snapshotHeight': frameSize.height,
-        },
-        action: 'border.action.reanalyze_and_snapshot_asset',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.snapshot_metrics_mismatch',
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{
+            'primitiveId': primitive.id,
+            'snapshotId': primitive.visualSnapshotId,
+            'metricsWidth': metricsSize.width,
+            'metricsHeight': metricsSize.height,
+            'snapshotWidth': frameSize.width,
+            'snapshotHeight': frameSize.height,
+          },
+          action: 'border.action.reanalyze_and_snapshot_asset',
+        ),
       );
     }
   }
@@ -1415,13 +1455,14 @@ void _diagnoseGroundCompleteness(
         _borderGroundRoleV1WireName(role),
   ];
   if (missing.isNotEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.ground_smart_tile_roles_incomplete',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{'roles': missing},
-      action: 'border.action.resolve_all_smart_tile_role_snapshots',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.ground_smart_tile_roles_incomplete',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{'roles': missing},
+        action: 'border.action.resolve_all_smart_tile_role_snapshots',
+      ),
     );
   }
 }
@@ -1435,18 +1476,19 @@ void _diagnoseCanonicalGallery(
 ) {
   if (report.resolverVersion != resolverVersion ||
       report.canonicalGalleryVersion != borderCanonicalGalleryVersion) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.canonical_gallery_version_mismatch',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'expectedResolverVersion': resolverVersion,
-        'galleryResolverVersion': report.resolverVersion,
-        'expectedCanonicalGalleryVersion': borderCanonicalGalleryVersion,
-        'galleryCanonicalGalleryVersion': report.canonicalGalleryVersion,
-      },
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.canonical_gallery_version_mismatch',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'expectedResolverVersion': resolverVersion,
+          'galleryResolverVersion': report.resolverVersion,
+          'expectedCanonicalGalleryVersion': borderCanonicalGalleryVersion,
+          'galleryCanonicalGalleryVersion': report.canonicalGalleryVersion,
+        },
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
   }
   final expectedFingerprint = computeBorderPublicationCandidateFingerprint(
@@ -1455,34 +1497,36 @@ void _diagnoseCanonicalGallery(
     resolverVersion: resolverVersion,
   );
   if (report.candidateFingerprint != expectedFingerprint) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.canonical_gallery_stale',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'candidateFingerprint': expectedFingerprint,
-        'galleryCandidateFingerprint': report.candidateFingerprint,
-      },
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.canonical_gallery_stale',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'candidateFingerprint': expectedFingerprint,
+          'galleryCandidateFingerprint': report.candidateFingerprint,
+        },
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
   }
 
   if (report.samples.isEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.canonical_gallery_missing',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      action: 'border.action.generate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.canonical_gallery_missing',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        action: 'border.action.generate_canonical_gallery',
+      ),
     );
     return;
   }
   final samples = List<BorderPublicationGallerySample>.of(report.samples)
     ..sort(
-      (left, right) => _galleryCaseRank(left.galleryCase,
-      ).compareTo(
-        _galleryCaseRank(right.galleryCase)),
+      (left, right) => _galleryCaseRank(
+        left.galleryCase,
+      ).compareTo(_galleryCaseRank(right.galleryCase)),
     );
   final expectedCases = borderCanonicalGalleryCasesForTemplate(
     definition.template,
@@ -1502,13 +1546,14 @@ void _diagnoseCanonicalGallery(
         borderCanonicalGalleryCaseV1WireName(galleryCase),
   ];
   if (duplicateCases.isNotEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.canonical_gallery_case_duplicate',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{'cases': duplicateCases},
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.canonical_gallery_case_duplicate',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{'cases': duplicateCases},
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
   }
   final missingCases = <String>[
@@ -1523,36 +1568,38 @@ void _diagnoseCanonicalGallery(
         borderCanonicalGalleryCaseV1WireName(galleryCase),
   ];
   if (missingCases.isNotEmpty || unexpectedCases.isNotEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.canonical_gallery_incomplete',
-      scope: BorderDiagnosticScope.blueprint,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'missingCases': missingCases,
-        'unexpectedCases': unexpectedCases,
-      },
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.canonical_gallery_incomplete',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'missingCases': missingCases,
+          'unexpectedCases': unexpectedCases,
+        },
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
   }
 
   for (final sample in samples) {
     final sampleId = borderCanonicalGalleryCaseV1WireName(sample.galleryCase);
     if (!expectedCaseSet.contains(sample.galleryCase)) continue;
-    final coverage = List<BorderPublicationCoverageCheck>.of(
-      sample.coverageChecks)..sort(
-        (left, right) => _coverageComponentRank(left.component,
-          ).compareTo(
-          _coverageComponentRank(right.component)),
-      );
+    final coverage =
+        List<BorderPublicationCoverageCheck>.of(sample.coverageChecks)..sort(
+          (left, right) => _coverageComponentRank(
+            left.component,
+          ).compareTo(_coverageComponentRank(right.component)),
+        );
     if (coverage.isEmpty) {
-      diagnostics.add(_diagnostic(
-        code: 'border.publication.canonical_sample_coverage_missing',
-        scope: BorderDiagnosticScope.blueprint,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{'sampleId': sampleId},
-        action: 'border.action.regenerate_canonical_sample',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.canonical_sample_coverage_missing',
+          scope: BorderDiagnosticScope.blueprint,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{'sampleId': sampleId},
+          action: 'border.action.regenerate_canonical_sample',
+        ),
       );
     }
     final expectedCoverage = borderCanonicalCoverageComponentsForCase(
@@ -1576,86 +1623,90 @@ void _diagnoseCanonicalGallery(
           borderCanonicalCoverageComponentV1WireName(component),
     ];
     if (missingCoverage.isNotEmpty || unexpectedCoverage.isNotEmpty) {
-      diagnostics.add(_diagnostic(
-        code: 'border.publication.canonical_sample_coverage_incomplete',
-        scope: BorderDiagnosticScope.blueprint,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{
-          'sampleId': sampleId,
-          'missingComponents': missingCoverage,
-          'unexpectedComponents': unexpectedCoverage,
-        },
-        action: 'border.action.regenerate_canonical_sample',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.canonical_sample_coverage_incomplete',
+          scope: BorderDiagnosticScope.blueprint,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{
+            'sampleId': sampleId,
+            'missingComponents': missingCoverage,
+            'unexpectedComponents': unexpectedCoverage,
+          },
+          action: 'border.action.regenerate_canonical_sample',
+        ),
       );
     }
     for (final check in coverage) {
-      final coverageComponent =
-          borderCanonicalCoverageComponentV1WireName(check.component,
+      final coverageComponent = borderCanonicalCoverageComponentV1WireName(
+        check.component,
       );
       final expectedGapTolerance = definition.defaults.gapTolerancePx;
       final expectedMaxOverlap = definition.defaults.maxOverlapPx;
       if (check.gapTolerancePx != expectedGapTolerance ||
           check.maxOverlapPx != expectedMaxOverlap) {
-        diagnostics.add(_diagnostic(
-          code: 'border.publication.canonical_coverage_parameters_mismatch',
-          scope: BorderDiagnosticScope.blueprint,
-          blueprintId: blueprintId,
-          parameters: <String, Object?>{
-            'sampleId': sampleId,
-            'coverageComponent': coverageComponent,
-            'assessedGapTolerancePx': check.gapTolerancePx,
-            'expectedGapTolerancePx': expectedGapTolerance,
-            'assessedMaxOverlapPx': check.maxOverlapPx,
-            'expectedMaxOverlapPx': expectedMaxOverlap,
-          },
-          action: 'border.action.regenerate_canonical_gallery',
-        ),
+        diagnostics.add(
+          _diagnostic(
+            code: 'border.publication.canonical_coverage_parameters_mismatch',
+            scope: BorderDiagnosticScope.blueprint,
+            blueprintId: blueprintId,
+            parameters: <String, Object?>{
+              'sampleId': sampleId,
+              'coverageComponent': coverageComponent,
+              'assessedGapTolerancePx': check.gapTolerancePx,
+              'expectedGapTolerancePx': expectedGapTolerance,
+              'assessedMaxOverlapPx': check.maxOverlapPx,
+              'expectedMaxOverlapPx': expectedMaxOverlap,
+            },
+            action: 'border.action.regenerate_canonical_gallery',
+          ),
         );
       }
       if (check.longestContiguousGapPx > expectedGapTolerance) {
         final connectedLineDisconnected =
             definition.template == BorderBlueprintTemplate.connectedLine &&
             sample.galleryCase == BorderCanonicalGalleryCase.sBend;
-        diagnostics.add(_diagnostic(
-          code: connectedLineDisconnected
+        diagnostics.add(
+          _diagnostic(
+            code: connectedLineDisconnected
                 ? 'border.publication.connected_line_disconnected'
                 : 'border.publication.coverage_gap_exceeded',
-          severity: connectedLineDisconnected
+            severity: connectedLineDisconnected
                 ? BorderDiagnosticSeverity.error
-                :
-              definition.template == BorderBlueprintTemplate.connectedLine &&
+                : definition.template ==
+                          BorderBlueprintTemplate.connectedLine &&
                       !definition.defaults.allowAutoRotation
-                  ? BorderDiagnosticSeverity.warning
-                  : BorderDiagnosticSeverity.error,
-          scope: BorderDiagnosticScope.blueprint,
-          blueprintId: blueprintId,
-          parameters: <String, Object?>{
-            'sampleId': sampleId,
-            'coverageComponent': coverageComponent,
-            'longestContiguousGapPx': check.longestContiguousGapPx,
-            'gapTolerancePx': expectedGapTolerance,
-          },
-          action: connectedLineDisconnected
+                ? BorderDiagnosticSeverity.warning
+                : BorderDiagnosticSeverity.error,
+            scope: BorderDiagnosticScope.blueprint,
+            blueprintId: blueprintId,
+            parameters: <String, Object?>{
+              'sampleId': sampleId,
+              'coverageComponent': coverageComponent,
+              'longestContiguousGapPx': check.longestContiguousGapPx,
+              'gapTolerancePx': expectedGapTolerance,
+            },
+            action: connectedLineDisconnected
                 ? 'border.action.realign_connected_line_anchors'
                 : 'border.action.fix_canonical_coverage_gap',
-        ),
+          ),
         );
       }
       if (check.maximumPairwiseOverlapPx > expectedMaxOverlap) {
-        diagnostics.add(_diagnostic(
-          code: 'border.publication.coverage_overlap_exceeded',
-          severity: BorderDiagnosticSeverity.warning,
-          scope: BorderDiagnosticScope.blueprint,
-          blueprintId: blueprintId,
-          parameters: <String, Object?>{
-            'sampleId': sampleId,
-            'coverageComponent': coverageComponent,
-            'maximumPairwiseOverlapPx': check.maximumPairwiseOverlapPx,
-            'maxOverlapPx': expectedMaxOverlap,
-          },
-          action: 'border.action.review_canonical_overlap',
-        ),
+        diagnostics.add(
+          _diagnostic(
+            code: 'border.publication.coverage_overlap_exceeded',
+            severity: BorderDiagnosticSeverity.warning,
+            scope: BorderDiagnosticScope.blueprint,
+            blueprintId: blueprintId,
+            parameters: <String, Object?>{
+              'sampleId': sampleId,
+              'coverageComponent': coverageComponent,
+              'maximumPairwiseOverlapPx': check.maximumPairwiseOverlapPx,
+              'maxOverlapPx': expectedMaxOverlap,
+            },
+            action: 'border.action.review_canonical_overlap',
+          ),
         );
       }
     }
@@ -1781,24 +1832,23 @@ void _diagnoseStructuralRun({
   required BorderBlueprintPublishedDefinition definition,
   required List<BorderDiagnostic> diagnostics,
 }) {
-  final expectedPassIndex = _structuralPassIndex(
-    definition.template,
-    run.role);
+  final expectedPassIndex = _structuralPassIndex(definition.template, run.role);
   if (expectedPassIndex == null || run.passIndex != expectedPassIndex) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.gallery_run_contract_invalid',
-      scope: BorderDiagnosticScope.primitive,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'sampleId': sampleId,
-        'runId': run.id,
-        'role': borderPrimitiveRoleV1WireName(run.role),
-        'quarterTurns': run.quarterTurns,
-        'passIndex': run.passIndex,
-        'expectedPassIndex': expectedPassIndex,
-      },
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.gallery_run_contract_invalid',
+        scope: BorderDiagnosticScope.primitive,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'sampleId': sampleId,
+          'runId': run.id,
+          'role': borderPrimitiveRoleV1WireName(run.role),
+          'quarterTurns': run.quarterTurns,
+          'passIndex': run.passIndex,
+          'expectedPassIndex': expectedPassIndex,
+        },
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
     return;
   }
@@ -1809,38 +1859,41 @@ void _diagnoseStructuralRun({
         primitive.id,
   };
   if (runEligiblePrimitiveIds.isEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.gallery_run_eligibility_empty',
-      scope: BorderDiagnosticScope.primitive,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'sampleId': sampleId,
-        'runId': run.id,
-        'role': borderPrimitiveRoleV1WireName(run.role),
-        'quarterTurns': run.quarterTurns,
-      },
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.gallery_run_eligibility_empty',
+        scope: BorderDiagnosticScope.primitive,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'sampleId': sampleId,
+          'runId': run.id,
+          'role': borderPrimitiveRoleV1WireName(run.role),
+          'quarterTurns': run.quarterTurns,
+        },
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
     return;
   }
-  final unknown = run.primitiveIds
-      .where((id) => !runEligiblePrimitiveIds.contains(id))
-      .toSet()
-      .toList(growable: false)
-    ..sort(compareNarrativeEventUtf16);
+  final unknown =
+      run.primitiveIds
+          .where((id) => !runEligiblePrimitiveIds.contains(id))
+          .toSet()
+          .toList(growable: false)
+        ..sort(compareNarrativeEventUtf16);
   if (unknown.isNotEmpty) {
-    diagnostics.add(_diagnostic(
-      code: 'border.publication.gallery_primitive_unknown',
-      scope: BorderDiagnosticScope.primitive,
-      blueprintId: blueprintId,
-      parameters: <String, Object?>{
-        'sampleId': sampleId,
-        'runId': run.id,
-        'primitiveIds': unknown,
-      },
-      action: 'border.action.regenerate_canonical_gallery',
-    ),
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.gallery_primitive_unknown',
+        scope: BorderDiagnosticScope.primitive,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'sampleId': sampleId,
+          'runId': run.id,
+          'primitiveIds': unknown,
+        },
+        action: 'border.action.regenerate_canonical_gallery',
+      ),
     );
     return;
   }
@@ -1848,20 +1901,21 @@ void _diagnoseStructuralRun({
   if (runEligiblePrimitiveIds.length >= 2) {
     final repeatStart = _firstRepeatedRunStart(run.primitiveIds, 4);
     if (repeatStart != null) {
-      diagnostics.add(_diagnostic(
-        code: 'border.publication.repetition_run',
-        severity: BorderDiagnosticSeverity.warning,
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{
-          'sampleId': sampleId,
-          'runId': run.id,
-          'startIndex': repeatStart,
-          'length': 4,
-          'primitiveId': run.primitiveIds[repeatStart],
-        },
-        action: 'border.action.review_structural_repetition',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.repetition_run',
+          severity: BorderDiagnosticSeverity.warning,
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{
+            'sampleId': sampleId,
+            'runId': run.id,
+            'startIndex': repeatStart,
+            'length': 4,
+            'primitiveId': run.primitiveIds[repeatStart],
+          },
+          action: 'border.action.review_structural_repetition',
+        ),
       );
     }
   }
@@ -1872,20 +1926,21 @@ void _diagnoseStructuralRun({
       minimumDistinct: 3,
     );
     if (lowVarietyStart != null) {
-      diagnostics.add(_diagnostic(
-        code: 'border.publication.repetition_variety',
-        severity: BorderDiagnosticSeverity.warning,
-        scope: BorderDiagnosticScope.primitive,
-        blueprintId: blueprintId,
-        parameters: <String, Object?>{
-          'sampleId': sampleId,
-          'runId': run.id,
-          'startIndex': lowVarietyStart,
-          'windowLength': 12,
-          'minimumDistinct': 3,
-        },
-        action: 'border.action.review_structural_variety',
-      ),
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.repetition_variety',
+          severity: BorderDiagnosticSeverity.warning,
+          scope: BorderDiagnosticScope.primitive,
+          blueprintId: blueprintId,
+          parameters: <String, Object?>{
+            'sampleId': sampleId,
+            'runId': run.id,
+            'startIndex': lowVarietyStart,
+            'windowLength': 12,
+            'minimumDistinct': 3,
+          },
+          action: 'border.action.review_structural_variety',
+        ),
       );
     }
   }
@@ -1916,9 +1971,7 @@ int? _firstLowVarietyWindowStart(
   return null;
 }
 
-bool _insideAsset(
-  BorderPixelPos point,
-  BorderPrimitiveAssetMetrics metrics) =>
+bool _insideAsset(BorderPixelPos point, BorderPrimitiveAssetMetrics metrics) =>
     point.x >= 0 &&
     point.y >= 0 &&
     point.x < metrics.pixelSize.width &&
@@ -1957,22 +2010,21 @@ List<BorderCanonicalGalleryCase> borderCanonicalGalleryCasesForTemplate(
     BorderCanonicalGalleryCase.endpoint,
     BorderCanonicalGalleryCase.opening,
     BorderCanonicalGalleryCase.sBend,
-        ],
-      BorderBlueprintTemplate.stoneChainLine =>
-        const <BorderCanonicalGalleryCase>[
-          BorderCanonicalGalleryCase.longEdge,
-          BorderCanonicalGalleryCase.sharpCorner,
-          BorderCanonicalGalleryCase.endpoint,
-          BorderCanonicalGalleryCase.sBend,
-          BorderCanonicalGalleryCase.closedLoop,
-        ],
-    };
+  ],
+  BorderBlueprintTemplate.stoneChainLine => const <BorderCanonicalGalleryCase>[
+    BorderCanonicalGalleryCase.longEdge,
+    BorderCanonicalGalleryCase.sharpCorner,
+    BorderCanonicalGalleryCase.endpoint,
+    BorderCanonicalGalleryCase.sBend,
+    BorderCanonicalGalleryCase.closedLoop,
+  ],
+};
 
 /// Returns the exact immutable coverage components required for one sample.
 ///
 /// [galleryCase] must belong to the canonical set for [template].
 List<BorderCanonicalCoverageComponent>
-    borderCanonicalCoverageComponentsForCase({
+borderCanonicalCoverageComponentsForCase({
   required BorderBlueprintTemplate template,
   required BorderCanonicalGalleryCase galleryCase,
   int? depthRows,
@@ -1990,17 +2042,17 @@ List<BorderCanonicalCoverageComponent>
   }
   return switch (galleryCase) {
     BorderCanonicalGalleryCase.hole => const <BorderCanonicalCoverageComponent>[
-        BorderCanonicalCoverageComponent.outerLoop,
-        BorderCanonicalCoverageComponent.innerLoop,
-      ],
+      BorderCanonicalCoverageComponent.outerLoop,
+      BorderCanonicalCoverageComponent.innerLoop,
+    ],
     BorderCanonicalGalleryCase.opening =>
       const <BorderCanonicalCoverageComponent>[
         BorderCanonicalCoverageComponent.leadingStroke,
         BorderCanonicalCoverageComponent.trailingStroke,
       ],
     _ => const <BorderCanonicalCoverageComponent>[
-        BorderCanonicalCoverageComponent.primary,
-      ],
+      BorderCanonicalCoverageComponent.primary,
+    ],
   };
 }
 
@@ -2033,49 +2085,45 @@ int _coverageComponentRank(BorderCanonicalCoverageComponent component) =>
 int? _structuralPassIndex(
   BorderBlueprintTemplate template,
   BorderPrimitiveRole role,
-) =>
-    switch ((template, role)) {
-      (
-        BorderBlueprintTemplate.organicEdge ||
-            BorderBlueprintTemplate.masonryLine,
-        BorderPrimitiveRole.structureLarge,
-      ) =>
-        0,
-      (
-        BorderBlueprintTemplate.organicEdge ||
-            BorderBlueprintTemplate.masonryLine,
-        BorderPrimitiveRole.structureMedium,
-      ) =>
-        1,
-      (
-        BorderBlueprintTemplate.organicEdge ||
-            BorderBlueprintTemplate.masonryLine,
-        BorderPrimitiveRole.filler,
-      ) =>
-        2,
-      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
-      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
-      (
-        BorderBlueprintTemplate.connectedLine,
+) => switch ((template, role)) {
+  (
+    BorderBlueprintTemplate.organicEdge || BorderBlueprintTemplate.masonryLine,
+    BorderPrimitiveRole.structureLarge,
+  ) =>
+    0,
+  (
+    BorderBlueprintTemplate.organicEdge || BorderBlueprintTemplate.masonryLine,
+    BorderPrimitiveRole.structureMedium,
+  ) =>
+    1,
+  (
+    BorderBlueprintTemplate.organicEdge || BorderBlueprintTemplate.masonryLine,
+    BorderPrimitiveRole.filler,
+  ) =>
+    2,
+  (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
+  (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
+  (
+    BorderBlueprintTemplate.connectedLine,
+    BorderPrimitiveRole.lineCap ||
+        BorderPrimitiveRole.lineStraight ||
+        BorderPrimitiveRole.lineCorner,
+  ) =>
+    0,
+  (
+    BorderBlueprintTemplate.stoneChainLine,
+    BorderPrimitiveRole.structureLarge ||
         BorderPrimitiveRole.lineCap ||
-            BorderPrimitiveRole.lineStraight ||
-            BorderPrimitiveRole.lineCorner,
-      ) =>
-        0,
-      (
-        BorderBlueprintTemplate.stoneChainLine,
-        BorderPrimitiveRole.structureLarge ||
-            BorderPrimitiveRole.lineCap ||
-            BorderPrimitiveRole.lineCorner,
-      ) =>
-        0,
-      (
-        BorderBlueprintTemplate.stoneChainLine,
-        BorderPrimitiveRole.structureMedium || BorderPrimitiveRole.filler,
-      ) =>
-        1,
-      _ => null,
-    };
+        BorderPrimitiveRole.lineCorner,
+  ) =>
+    0,
+  (
+    BorderBlueprintTemplate.stoneChainLine,
+    BorderPrimitiveRole.structureMedium || BorderPrimitiveRole.filler,
+  ) =>
+    1,
+  _ => null,
+};
 
 Object _publicationCandidateProjection(
   String blueprintId,
@@ -2083,15 +2131,16 @@ Object _publicationCandidateProjection(
   required int resolverVersion,
   required int canonicalGalleryVersion,
 }) {
-  final primitives = <Map<String, Object?>>[
-    for (final primitive in definition.primitives)
-      _publishedPrimitiveProjection(primitive),
-  ]..sort(
-      (left, right) => compareNarrativeEventUtf16(
-        canonicalizeNarrativeEventJson(left),
-        canonicalizeNarrativeEventJson(right),
-      ),
-    );
+  final primitives =
+      <Map<String, Object?>>[
+        for (final primitive in definition.primitives)
+          _publishedPrimitiveProjection(primitive),
+      ]..sort(
+        (left, right) => compareNarrativeEventUtf16(
+          canonicalizeNarrativeEventJson(left),
+          canonicalizeNarrativeEventJson(right),
+        ),
+      );
   final ground = definition.ground;
   return <String, Object?>{
     'contract': 'border-publication-candidate-v1',
@@ -2112,10 +2161,10 @@ Object _publicationCandidateProjection(
     if (definition.groundBaseOffset != 0)
       'groundBaseOffset': definition.groundBaseOffset.toString(),
     'defaults': <String, Object?>{
-      'irregularityPermille':
-          definition.defaults.irregularityPermille.toString(),
-      'detailDensityPermille':
-          definition.defaults.detailDensityPermille.toString(),
+      'irregularityPermille': definition.defaults.irregularityPermille
+          .toString(),
+      'detailDensityPermille': definition.defaults.detailDensityPermille
+          .toString(),
       'variationPermille': definition.defaults.variationPermille.toString(),
       'maxOverlapPx': definition.defaults.maxOverlapPx.toString(),
       'gapTolerancePx': definition.defaults.gapTolerancePx.toString(),
@@ -2146,9 +2195,30 @@ Map<String, Object?> _publishedPrimitiveProjection(
       'sourceModelId': primitive.sourceModelId,
       'anchorWorld': primitive.anchorWorld?.toJson(),
       'role': borderPrimitiveRoleV1WireName(primitive.role),
-      if (primitive.cornerTurn != null) 'cornerTurn': primitive.cornerTurn!.name,
+      if (primitive.cornerTurn != null)
+        'cornerTurn': primitive.cornerTurn!.name,
       'authoredOrientation': primitive.authoredOrientation.name,
       'weight': primitive.weight.toString(),
+      if (primitive.groundSurfaces.isNotEmpty)
+        'groundSurfaces': [
+          for (final surface in primitive.groundSurfaces)
+            {
+              'sourceSmartTilePresetId': surface.sourceSmartTilePresetId,
+              'materialId': surface.materialId,
+              'height': surface.height,
+              if (surface.gradientX != 0 || surface.gradientZ != 0) ...{
+                'gradientX': surface.gradientX,
+                'gradientZ': surface.gradientZ,
+              },
+              'footprints': [
+                for (final footprint in surface.footprints)
+                  [
+                    for (final point in footprint.points)
+                      {'x': point.x, 'z': point.z},
+                  ],
+              ],
+            },
+        ],
       'transforms': <String, Object?>{
         'allowFlipX': primitive.transforms.allowFlipX,
         'allowedQuarterTurns': primitive.transforms.allowedQuarterTurns,
@@ -2205,7 +2275,8 @@ String _templateV1WireName(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.ledgeLine => 'ledgeLine',
     };
 
-String _borderGroundRoleV1WireName(BorderGroundVariantRole role) => switch (role) {
+String _borderGroundRoleV1WireName(BorderGroundVariantRole role) =>
+    switch (role) {
       BorderGroundVariantRole.isolated => 'isolated',
       BorderGroundVariantRole.endNorth => 'endNorth',
       BorderGroundVariantRole.endEast => 'endEast',
@@ -2235,16 +2306,15 @@ BorderDiagnostic _diagnostic({
   required String blueprintId,
   Map<String, Object?> parameters = const <String, Object?>{},
   required String action,
-}) =>
-    BorderDiagnostic(
-      code: code,
-      severity: severity,
-      phase: BorderDiagnosticPhase.publication,
-      scope: scope,
-      blueprintId: blueprintId,
-      parameters: parameters,
-      suggestedAction: action,
-    );
+}) => BorderDiagnostic(
+  code: code,
+  severity: severity,
+  phase: BorderDiagnosticPhase.publication,
+  scope: scope,
+  blueprintId: blueprintId,
+  parameters: parameters,
+  suggestedAction: action,
+);
 
 void _requireStableId(String value, String field) {
   if (value.trim().isEmpty || value != value.trim()) {
@@ -2255,7 +2325,7 @@ void _requireStableId(String value, String field) {
 void _requirePortableInteger(int value, String field) {
   if (BigInt.from(value).abs() > _maximumPortableJsonInteger) {
     throw ValidationException(
-        '$field must fit the portable JSON integer range',
+      '$field must fit the portable JSON integer range',
     );
   }
 }

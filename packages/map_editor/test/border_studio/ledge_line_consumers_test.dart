@@ -133,6 +133,40 @@ void main() {
     },
   );
 
+  testWidgets('ledge visual spacing is explicit and survives variety changes', (
+    tester,
+  ) async {
+    final outputs = <BorderGenerationParams>[];
+    await _pump(
+      tester,
+      BorderRulesStep(state: _state(), onRulesChanged: outputs.add),
+    );
+    final slider = tester.widget<PokeMapGuidedSlider>(
+      find.byKey(const ValueKey<String>('border-studio-ledge-gap-control')),
+    );
+    expect(slider.max, 31);
+    slider.onChanged(8);
+    expect(outputs.single.gapTolerancePx, 8);
+    expect(outputs.single.maxOverlapPx, 0);
+    expect(outputs.single.depthRows, 1);
+    expect(outputs.single.allowAutoRotation, isFalse);
+    final source = _state();
+    final definition = source.workingDraft!.blueprint.definition;
+    final updated = _state(gap: outputs.single.gapTolerancePx);
+    await _pump(
+      tester,
+      BorderRulesStep(state: updated, onRulesChanged: outputs.add),
+    );
+    tester
+        .widget<PokeMapButton>(
+          find.byKey(const ValueKey<String>('border-studio-profile-wild')),
+        )
+        .onPressed!();
+    expect(outputs.last.gapTolerancePx, 8);
+    expect(outputs.last.variationPermille, 1000);
+    expect(definition.defaults.gapTolerancePx, 0);
+  });
+
   testWidgets(
     'ledge assets expose native cardinal orientations without rotation or historical mode',
     (tester) async {
@@ -185,7 +219,7 @@ Future<void> _pump(WidgetTester tester, Widget child) => tester.pumpWidget(
   ),
 );
 
-BorderStudioDraftState _state() => BorderStudioDraftState(
+BorderStudioDraftState _state({int gap = 0}) => BorderStudioDraftState(
   selectedBlueprintId: 'ledge',
   workingDraft: BorderStudioDraft(
     id: 'ledge',
@@ -221,7 +255,7 @@ BorderStudioDraftState _state() => BorderStudioDraftState(
           detailDensityPermille: 0,
           variationPermille: 0,
           maxOverlapPx: 0,
-          gapTolerancePx: 0,
+          gapTolerancePx: gap,
           depthRows: 1,
           allowAutoRotation: false,
         ),

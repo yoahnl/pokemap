@@ -9105,6 +9105,16 @@ class EditorNotifier extends _$EditorNotifier
     final parameters = <String, Object?>{
       'mapId': map.id,
       'layerId': layer.id,
+      if (layer.usage == SmartTileUsage.path &&
+          (layer.encounterBehavior != null ||
+              layer.animationActivation == SmartTileAnimationActivation.onEnter))
+        if (erase)
+          'clearMaterial': true
+        else
+          'materialId': layer.encounterBehavior?.materialId ??
+              project.smartTileCatalog.presets
+                  .firstWhere((preset) => preset.id == layer.presetId)
+                  .defaultMaterialId,
       if (erase)
         'selection': _smartTileGestureSelectionParameters(eraseSelection)
       else ...<String, Object?>{
@@ -11253,7 +11263,7 @@ class EditorNotifier extends _$EditorNotifier
       );
       ref
           .read(environmentGeneratedPlacementAddElementProvider.notifier)
-          .select(selection.item.elementId);
+          .select(selection.element.id);
       state = state.copyWith(
         activeLayerId: selection.tileLayerId,
         selectedEnvironmentAreaId: selection.areaId,
@@ -11276,7 +11286,7 @@ class EditorNotifier extends _$EditorNotifier
       );
       ref
           .read(environmentGeneratedPlacementAddElementProvider.notifier)
-          .select(selection.item.elementId);
+          .select(selection.element.id);
       state = state.copyWith(
         activeLayerId: selection.tileLayerId,
         selectedEnvironmentAreaId: selection.areaId,
@@ -11324,7 +11334,7 @@ class EditorNotifier extends _$EditorNotifier
             manifest: selection.project,
             tileLayerId: selection.tileLayerId,
             areaId: selection.areaId,
-            elementId: selection.item.elementId,
+            elementId: selection.element.id,
             pos: pos,
           );
       _applyMapMutation(
@@ -14056,9 +14066,11 @@ class EditorNotifier extends _$EditorNotifier
     EnvironmentPaletteItem? item;
     ProjectElementEntry? element;
     for (final candidate in preset.palette) {
+      final candidateElementId = candidate.elementId;
+      if (candidateElementId == null) continue;
       final candidateElement = _projectElementById(
         project,
-        candidate.elementId,
+        candidateElementId,
       );
       if (candidateElement == null) continue;
       item = candidate;
@@ -14089,7 +14101,7 @@ class EditorNotifier extends _$EditorNotifier
     final placedId = _generatedEnvironmentPlacementId(
       areaId: area.id,
       pos: pos,
-      elementId: item.elementId,
+      elementId: element.id,
     );
     if (area.generatedPlacementIds.contains(placedId) ||
         map.placedElements.any((placed) => placed.id == placedId)) {
@@ -14103,7 +14115,7 @@ class EditorNotifier extends _$EditorNotifier
     final placed = MapPlacedElement(
       id: placedId,
       layerId: targetLayer.id,
-      elementId: item.elementId,
+      elementId: element.id,
       pos: pos,
       applyCollision: _applyCollisionFromEnvironmentMode(item.collisionMode),
       properties: const {
@@ -14412,7 +14424,7 @@ class EditorNotifier extends _$EditorNotifier
     if (selectedId != null && selectedId.isNotEmpty) {
       for (final item in preset.palette) {
         if (item.elementId != selectedId) continue;
-        final element = _projectElementById(project, item.elementId);
+        final element = _projectElementById(project, selectedId);
         if (element == null) {
           throw const EditorValidationException(
             'Élément introuvable dans le projet.',
@@ -14439,7 +14451,9 @@ class EditorNotifier extends _$EditorNotifier
     final available =
         <({EnvironmentPaletteItem item, ProjectElementEntry element})>[];
     for (final item in preset.palette) {
-      final element = _projectElementById(project, item.elementId);
+      final elementId = item.elementId;
+      if (elementId == null) continue;
+      final element = _projectElementById(project, elementId);
       if (element == null) continue;
       available.add((item: item, element: element));
     }

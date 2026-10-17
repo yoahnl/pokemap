@@ -13,9 +13,10 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP publishes and reopens a native cardinal ledgeLine", async () => {
+for (const gap of [0, 8]) {
+test(`live MCP publishes and reopens a native cardinal ledgeLine with visual gap ${gap}`, async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-native-ledge-mcp-"));
-  const pixels = Buffer.from(
+  const pixels = gap === 8 ? Buffer.from("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAQUlEQVR4nO3OQREAEBRAQWbkkEkcEcSRSREaGBfzL/sKvC0puAIAAAAAAAAQDuit7p+DMVe+An7OXwIAAAAAAAA4pk0EgaM32K8AAAAASUVORK5CYII=", "base64") : Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAI0lEQVR4nO3WAREAAAQEMPp39k4OW4rVJCkA4LP2AQB47SqwWugL866rJOcAAAAASUVORK5CYII=",
     "base64",
   );
@@ -55,6 +56,8 @@ test("live MCP publishes and reopens a native cardinal ledgeLine", async () => {
       assert.equal(extension.modulesPerUnitEdge, 1);
       assert.equal(extension.automaticRotation, false);
       assert.equal(extension.jumpSideChangesVisuals, false);
+      assert.equal(record(extension.visualGapTolerance).changesCollision, false);
+      assert.equal(record(extension.visualGapTolerance).coverage, "allAdmissibleVariantPairs");
     }
     let opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let projectHandle = String(opened.projectHandle);
@@ -79,10 +82,10 @@ test("live MCP publishes and reopens a native cardinal ledgeLine", async () => {
     const definition = { name: "Rebord sud", template: "ledgeLine", previewSeed: "0", sortOrder: 0,
       jumpBehavior: jump,
       defaults: { irregularityPermille: 0, detailDensityPermille: 0, variationPermille: 0,
-        maxOverlapPx: 0, gapTolerancePx: 0, depthRows: 1, allowAutoRotation: false },
+        maxOverlapPx: 0, gapTolerancePx: gap, depthRows: 1, allowAutoRotation: false },
       primitives: [{ id: "south", sourceElementId: "south", role: "structureLarge",
         authoredOrientation: "south", weight: 1, anchorPx: { x: 16, y: 31 },
-        transforms: { allowFlipX: false, allowedQuarterTurns: [0] }, currentMetrics: {
+        transforms: { allowFlipX: false, allowedQuarterTurns: [0] }, currentMetrics: gap === 8 ? {"assetFingerprint":"sha256:6d78db2bdfb59fbc13a29c27c6ac8f92423ca4a3d10119ede26baa281d217477","pixelSize":{"width":32,"height":32},"opaqueBounds":{"x":0,"y":16,"width":24,"height":16},"defaultAnchorPx":{"x":16,"y":31},"occupancyMaskRle":"border-rle-v1:1024:0:512,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8,24,8"} : {
           assetFingerprint: "sha256:27ecefe268d655e171154896955798d616479367b6344d61f7f0c4cf9df49ea0",
           pixelSize: { width: 32, height: 32 }, opaqueBounds: { x: 0, y: 0, width: 32, height: 32 },
           defaultAnchorPx: { x: 16, y: 31 }, occupancyMaskRle: "border-rle-v1:1024:1:1,511,32,479,1",
@@ -110,6 +113,7 @@ test("live MCP publishes and reopens a native cardinal ledgeLine", async () => {
     for (const branch of ["draft", "latestPublished"]) {
       const saved = record(record(blueprint[branch]).definition);
       assert.equal(saved.template, "ledgeLine");
+      assert.equal(record(saved.defaults).gapTolerancePx, gap);
       assert.deepEqual(saved.jumpBehavior, jump);
       const primitive = (saved.primitives as JsonRecord[])[0];
       assert.equal(primitive!.authoredOrientation, "south");
@@ -124,3 +128,5 @@ test("live MCP publishes and reopens a native cardinal ledgeLine", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+}

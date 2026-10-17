@@ -122,8 +122,12 @@ void addPlacedElementVisualTilesetIds(
   final elementById = <String, ProjectElementEntry>{
     for (final element in manifest.elements) element.id: element,
   };
-  for (final placed in map.placedElements) {
-    final elementId = placed.elementId.trim();
+  final elementIds = {
+    for (final placed in map.placedElements) placed.elementId.trim(),
+    for (final platform in map.movingPlatforms)
+      for (final variant in platform.variants) variant.elementId.trim(),
+  };
+  for (final elementId in elementIds) {
     if (elementId.isEmpty) continue;
     final element = elementById[elementId];
     if (element == null || element.frames.isEmpty) continue;

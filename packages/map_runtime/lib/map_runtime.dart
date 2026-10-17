@@ -293,6 +293,7 @@ export 'src/application/load_runtime_map_bundle.dart'
         RuntimeMapBundleLoadStage,
         loadRuntimeMapBundle,
         loadProjectManifestFromFile,
+        loadMapDataFiles,
         loadMapDataFromFile;
 export 'src/application/authoring_preview/runtime_authoring_asset_map_capture_service.dart'
     show

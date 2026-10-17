@@ -337,6 +337,8 @@ enum MovementEffectZoneKind {
   slide,
   @JsonValue('movementCost')
   movementCost,
+  @JsonValue('directedJump')
+  directedJump,
 }
 
 /// Sous-type de danger environnemental pour [GameplayZoneKind.hazard].

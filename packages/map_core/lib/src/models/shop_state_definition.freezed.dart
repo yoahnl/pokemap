@@ -84,7 +84,7 @@ as List<ShopEntryDefinition>,
 @override
 @pragma('vm:prefer-inline')
 $ScriptConditionCopyWith<$Res> get activation {
-
+  
   return $ScriptConditionCopyWith<$Res>(_self.activation, (value) {
     return _then(_self.copyWith(activation: value));
   });
@@ -315,7 +315,7 @@ as List<ShopEntryDefinition>,
 @override
 @pragma('vm:prefer-inline')
 $ScriptConditionCopyWith<$Res> get activation {
-
+  
   return $ScriptConditionCopyWith<$Res>(_self.activation, (value) {
     return _then(_self.copyWith(activation: value));
   });

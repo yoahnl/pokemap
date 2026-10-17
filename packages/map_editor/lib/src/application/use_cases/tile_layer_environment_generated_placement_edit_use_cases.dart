@@ -94,12 +94,12 @@ class AddTileLayerEnvironmentGeneratedPlacementAtUseCase {
       map,
       area: target.area,
       pos: pos,
-      elementId: paletteItem.elementId,
+      elementId: element.id,
     );
     final placed = MapPlacedElement(
       id: placedId,
       layerId: target.tileLayer.id,
-      elementId: paletteItem.elementId,
+      elementId: element.id,
       pos: pos,
       applyCollision: _applyCollisionFromEnvironmentMode(
         paletteItem.collisionMode,

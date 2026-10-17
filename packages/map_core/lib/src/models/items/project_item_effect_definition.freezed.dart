@@ -51,7 +51,7 @@ ProjectItemEffectDefinition _$ProjectItemEffectDefinitionFromJson(
           return ProjectItemSemanticActionEffectDefinition.fromJson(
             json
           );
-
+        
           default:
             throw CheckedFromJsonException(
   json,
@@ -60,7 +60,7 @@ ProjectItemEffectDefinition _$ProjectItemEffectDefinitionFromJson(
   'Invalid union type "${json['kind']}"!'
 );
         }
-
+      
 }
 
 /// @nodoc

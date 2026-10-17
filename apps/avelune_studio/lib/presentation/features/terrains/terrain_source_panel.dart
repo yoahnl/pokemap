@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../features/terrains/application/terrain_draft_controller.dart';
 import '../../../features/terrains/domain/terrain_connections.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/atlas_selection_view.dart';
 import 'terrain_scratch_view.dart';
@@ -44,6 +45,9 @@ class TerrainSourcePanel extends StatelessWidget {
       final part = model.partFor(model.selectedRule);
       final source = part?.source;
       final selected = source is SmartTileModel3dSource ? source.modelId : null;
+      final selectedModel = model.manifest.models3d
+          .where((entry) => entry.id == selected)
+          .firstOrNull;
       return StudioPanel(
         title: 'Ressource source',
         compact: true,
@@ -93,6 +97,38 @@ class TerrainSourcePanel extends StatelessWidget {
           ),
           if (source is SmartTileModel3dSource && part != null) ...[
             const SizedBox(height: 12),
+            if (selectedModel != null) ...[
+              StudioSelect(
+                key: const ValueKey('terrain-model-animation'),
+                label: 'Animation de la pièce',
+                value: source.animationIndex?.toString() ?? '',
+                options: {
+                  '': 'Aucune',
+                  for (final clip in selectedModel.inspection.animations)
+                    '${clip.index}': clip.name,
+                },
+                onChanged: selectedModel.inspection.animations.isEmpty
+                    ? null
+                    : (value) {
+                        model.assignModel(
+                          selectedModel,
+                          scale: source.scale,
+                          offsetX: source.offsetX,
+                          offsetY: source.offsetY,
+                          offsetZ: source.offsetZ,
+                          quarterTurns: part.transform.quarterTurns,
+                          animationIndex: value.isEmpty
+                              ? null
+                              : int.parse(value),
+                          changeAnimation: true,
+                        );
+                        onChanged();
+                      },
+              ),
+              if (selectedModel.inspection.animations.isEmpty)
+                const StudioNotice('Ce modèle ne contient aucune animation.'),
+              const SizedBox(height: 8),
+            ],
             TerrainModelPartControls(
               key: ValueKey('model-part-${model.selectedRule}'),
               part: part,

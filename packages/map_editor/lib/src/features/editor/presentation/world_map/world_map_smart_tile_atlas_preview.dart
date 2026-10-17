@@ -391,6 +391,8 @@ List<WorldMapSmartTileAtlasUsage> collectWorldMapSmartTileAtlasUsages(
     for (final candidate in rule.candidates) {
       for (final part in candidate.parts) {
         switch (part.source) {
+          case SmartTileModel3dSource():
+            continue;
           case SmartTileFrameSource(:final frame):
             frames.add(frame);
           case SmartTileAnimationSource(:final animationId):

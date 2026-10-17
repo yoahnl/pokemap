@@ -631,7 +631,7 @@ mixin _$MovementEffectZonePayload {
 ///
 /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
 /// pour garder un JSON stable, mais elle n'est pas consommée.
- int get movementCost;
+ int get movementCost;@JsonKey(includeIfNull: false) DirectedJumpZonePayload? get directedJump;
 /// Create a copy of MovementEffectZonePayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -644,16 +644,16 @@ $MovementEffectZonePayloadCopyWith<MovementEffectZonePayload> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MovementEffectZonePayload&&(identical(other.effectKind, effectKind) || other.effectKind == effectKind)&&(identical(other.movementCost, movementCost) || other.movementCost == movementCost));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MovementEffectZonePayload&&(identical(other.effectKind, effectKind) || other.effectKind == effectKind)&&(identical(other.movementCost, movementCost) || other.movementCost == movementCost)&&(identical(other.directedJump, directedJump) || other.directedJump == directedJump));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,effectKind,movementCost);
+int get hashCode => Object.hash(runtimeType,effectKind,movementCost,directedJump);
 
 @override
 String toString() {
-  return 'MovementEffectZonePayload(effectKind: $effectKind, movementCost: $movementCost)';
+  return 'MovementEffectZonePayload(effectKind: $effectKind, movementCost: $movementCost, directedJump: $directedJump)';
 }
 
 
@@ -664,11 +664,11 @@ abstract mixin class $MovementEffectZonePayloadCopyWith<$Res>  {
   factory $MovementEffectZonePayloadCopyWith(MovementEffectZonePayload value, $Res Function(MovementEffectZonePayload) _then) = _$MovementEffectZonePayloadCopyWithImpl;
 @useResult
 $Res call({
- MovementEffectZoneKind effectKind, int movementCost
+ MovementEffectZoneKind effectKind, int movementCost,@JsonKey(includeIfNull: false) DirectedJumpZonePayload? directedJump
 });
 
 
-
+$DirectedJumpZonePayloadCopyWith<$Res>? get directedJump;
 
 }
 /// @nodoc
@@ -681,14 +681,27 @@ class _$MovementEffectZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of MovementEffectZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? effectKind = null,Object? movementCost = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? effectKind = null,Object? movementCost = null,Object? directedJump = freezed,}) {
   return _then(_self.copyWith(
 effectKind: null == effectKind ? _self.effectKind : effectKind // ignore: cast_nullable_to_non_nullable
 as MovementEffectZoneKind,movementCost: null == movementCost ? _self.movementCost : movementCost // ignore: cast_nullable_to_non_nullable
-as int,
+as int,directedJump: freezed == directedJump ? _self.directedJump : directedJump // ignore: cast_nullable_to_non_nullable
+as DirectedJumpZonePayload?,
   ));
 }
+/// Create a copy of MovementEffectZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DirectedJumpZonePayloadCopyWith<$Res>? get directedJump {
+    if (_self.directedJump == null) {
+    return null;
+  }
 
+  return $DirectedJumpZonePayloadCopyWith<$Res>(_self.directedJump!, (value) {
+    return _then(_self.copyWith(directedJump: value));
+  });
+}
 }
 
 
@@ -770,10 +783,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MovementEffectZoneKind effectKind,  int movementCost)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MovementEffectZoneKind effectKind,  int movementCost, @JsonKey(includeIfNull: false)  DirectedJumpZonePayload? directedJump)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MovementEffectZonePayload() when $default != null:
-return $default(_that.effectKind,_that.movementCost);case _:
+return $default(_that.effectKind,_that.movementCost,_that.directedJump);case _:
   return orElse();
 
 }
@@ -791,10 +804,10 @@ return $default(_that.effectKind,_that.movementCost);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MovementEffectZoneKind effectKind,  int movementCost)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MovementEffectZoneKind effectKind,  int movementCost, @JsonKey(includeIfNull: false)  DirectedJumpZonePayload? directedJump)  $default,) {final _that = this;
 switch (_that) {
 case _MovementEffectZonePayload():
-return $default(_that.effectKind,_that.movementCost);case _:
+return $default(_that.effectKind,_that.movementCost,_that.directedJump);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -811,10 +824,10 @@ return $default(_that.effectKind,_that.movementCost);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MovementEffectZoneKind effectKind,  int movementCost)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MovementEffectZoneKind effectKind,  int movementCost, @JsonKey(includeIfNull: false)  DirectedJumpZonePayload? directedJump)?  $default,) {final _that = this;
 switch (_that) {
 case _MovementEffectZonePayload() when $default != null:
-return $default(_that.effectKind,_that.movementCost);case _:
+return $default(_that.effectKind,_that.movementCost,_that.directedJump);case _:
   return null;
 
 }
@@ -824,9 +837,9 @@ return $default(_that.effectKind,_that.movementCost);case _:
 
 /// @nodoc
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _MovementEffectZonePayload implements MovementEffectZonePayload {
-  const _MovementEffectZonePayload({this.effectKind = MovementEffectZoneKind.slide, this.movementCost = 1});
+  const _MovementEffectZonePayload({this.effectKind = MovementEffectZoneKind.slide, this.movementCost = 1, @JsonKey(includeIfNull: false) this.directedJump});
   factory _MovementEffectZonePayload.fromJson(Map<String, dynamic> json) => _$MovementEffectZonePayloadFromJson(json);
 
 @override@JsonKey() final  MovementEffectZoneKind effectKind;
@@ -835,6 +848,7 @@ class _MovementEffectZonePayload implements MovementEffectZonePayload {
 /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
 /// pour garder un JSON stable, mais elle n'est pas consommée.
 @override@JsonKey() final  int movementCost;
+@override@JsonKey(includeIfNull: false) final  DirectedJumpZonePayload? directedJump;
 
 /// Create a copy of MovementEffectZonePayload
 /// with the given fields replaced by the non-null parameter values.
@@ -849,16 +863,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MovementEffectZonePayload&&(identical(other.effectKind, effectKind) || other.effectKind == effectKind)&&(identical(other.movementCost, movementCost) || other.movementCost == movementCost));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MovementEffectZonePayload&&(identical(other.effectKind, effectKind) || other.effectKind == effectKind)&&(identical(other.movementCost, movementCost) || other.movementCost == movementCost)&&(identical(other.directedJump, directedJump) || other.directedJump == directedJump));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,effectKind,movementCost);
+int get hashCode => Object.hash(runtimeType,effectKind,movementCost,directedJump);
 
 @override
 String toString() {
-  return 'MovementEffectZonePayload(effectKind: $effectKind, movementCost: $movementCost)';
+  return 'MovementEffectZonePayload(effectKind: $effectKind, movementCost: $movementCost, directedJump: $directedJump)';
 }
 
 
@@ -869,11 +883,11 @@ abstract mixin class _$MovementEffectZonePayloadCopyWith<$Res> implements $Movem
   factory _$MovementEffectZonePayloadCopyWith(_MovementEffectZonePayload value, $Res Function(_MovementEffectZonePayload) _then) = __$MovementEffectZonePayloadCopyWithImpl;
 @override @useResult
 $Res call({
- MovementEffectZoneKind effectKind, int movementCost
+ MovementEffectZoneKind effectKind, int movementCost,@JsonKey(includeIfNull: false) DirectedJumpZonePayload? directedJump
 });
 
 
-
+@override $DirectedJumpZonePayloadCopyWith<$Res>? get directedJump;
 
 }
 /// @nodoc
@@ -886,10 +900,295 @@ class __$MovementEffectZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of MovementEffectZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? effectKind = null,Object? movementCost = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? effectKind = null,Object? movementCost = null,Object? directedJump = freezed,}) {
   return _then(_MovementEffectZonePayload(
 effectKind: null == effectKind ? _self.effectKind : effectKind // ignore: cast_nullable_to_non_nullable
 as MovementEffectZoneKind,movementCost: null == movementCost ? _self.movementCost : movementCost // ignore: cast_nullable_to_non_nullable
+as int,directedJump: freezed == directedJump ? _self.directedJump : directedJump // ignore: cast_nullable_to_non_nullable
+as DirectedJumpZonePayload?,
+  ));
+}
+
+/// Create a copy of MovementEffectZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DirectedJumpZonePayloadCopyWith<$Res>? get directedJump {
+    if (_self.directedJump == null) {
+    return null;
+  }
+
+  return $DirectedJumpZonePayloadCopyWith<$Res>(_self.directedJump!, (value) {
+    return _then(_self.copyWith(directedJump: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$DirectedJumpZonePayload {
+
+ MapConnectionDirection get direction; int get distanceCells; int get durationMs; int get peakHeightPx;
+/// Create a copy of DirectedJumpZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DirectedJumpZonePayloadCopyWith<DirectedJumpZonePayload> get copyWith => _$DirectedJumpZonePayloadCopyWithImpl<DirectedJumpZonePayload>(this as DirectedJumpZonePayload, _$identity);
+
+  /// Serializes this DirectedJumpZonePayload to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DirectedJumpZonePayload&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.distanceCells, distanceCells) || other.distanceCells == distanceCells)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.peakHeightPx, peakHeightPx) || other.peakHeightPx == peakHeightPx));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,direction,distanceCells,durationMs,peakHeightPx);
+
+@override
+String toString() {
+  return 'DirectedJumpZonePayload(direction: $direction, distanceCells: $distanceCells, durationMs: $durationMs, peakHeightPx: $peakHeightPx)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DirectedJumpZonePayloadCopyWith<$Res>  {
+  factory $DirectedJumpZonePayloadCopyWith(DirectedJumpZonePayload value, $Res Function(DirectedJumpZonePayload) _then) = _$DirectedJumpZonePayloadCopyWithImpl;
+@useResult
+$Res call({
+ MapConnectionDirection direction, int distanceCells, int durationMs, int peakHeightPx
+});
+
+
+
+
+}
+/// @nodoc
+class _$DirectedJumpZonePayloadCopyWithImpl<$Res>
+    implements $DirectedJumpZonePayloadCopyWith<$Res> {
+  _$DirectedJumpZonePayloadCopyWithImpl(this._self, this._then);
+
+  final DirectedJumpZonePayload _self;
+  final $Res Function(DirectedJumpZonePayload) _then;
+
+/// Create a copy of DirectedJumpZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? direction = null,Object? distanceCells = null,Object? durationMs = null,Object? peakHeightPx = null,}) {
+  return _then(_self.copyWith(
+direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as MapConnectionDirection,distanceCells: null == distanceCells ? _self.distanceCells : distanceCells // ignore: cast_nullable_to_non_nullable
+as int,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int,peakHeightPx: null == peakHeightPx ? _self.peakHeightPx : peakHeightPx // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DirectedJumpZonePayload].
+extension DirectedJumpZonePayloadPatterns on DirectedJumpZonePayload {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DirectedJumpZonePayload value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DirectedJumpZonePayload() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DirectedJumpZonePayload value)  $default,){
+final _that = this;
+switch (_that) {
+case _DirectedJumpZonePayload():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DirectedJumpZonePayload value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DirectedJumpZonePayload() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapConnectionDirection direction,  int distanceCells,  int durationMs,  int peakHeightPx)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DirectedJumpZonePayload() when $default != null:
+return $default(_that.direction,_that.distanceCells,_that.durationMs,_that.peakHeightPx);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapConnectionDirection direction,  int distanceCells,  int durationMs,  int peakHeightPx)  $default,) {final _that = this;
+switch (_that) {
+case _DirectedJumpZonePayload():
+return $default(_that.direction,_that.distanceCells,_that.durationMs,_that.peakHeightPx);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapConnectionDirection direction,  int distanceCells,  int durationMs,  int peakHeightPx)?  $default,) {final _that = this;
+switch (_that) {
+case _DirectedJumpZonePayload() when $default != null:
+return $default(_that.direction,_that.distanceCells,_that.durationMs,_that.peakHeightPx);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _DirectedJumpZonePayload implements DirectedJumpZonePayload {
+  const _DirectedJumpZonePayload({required this.direction, this.distanceCells = 2, this.durationMs = 500, this.peakHeightPx = 24});
+  factory _DirectedJumpZonePayload.fromJson(Map<String, dynamic> json) => _$DirectedJumpZonePayloadFromJson(json);
+
+@override final  MapConnectionDirection direction;
+@override@JsonKey() final  int distanceCells;
+@override@JsonKey() final  int durationMs;
+@override@JsonKey() final  int peakHeightPx;
+
+/// Create a copy of DirectedJumpZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DirectedJumpZonePayloadCopyWith<_DirectedJumpZonePayload> get copyWith => __$DirectedJumpZonePayloadCopyWithImpl<_DirectedJumpZonePayload>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DirectedJumpZonePayloadToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DirectedJumpZonePayload&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.distanceCells, distanceCells) || other.distanceCells == distanceCells)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.peakHeightPx, peakHeightPx) || other.peakHeightPx == peakHeightPx));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,direction,distanceCells,durationMs,peakHeightPx);
+
+@override
+String toString() {
+  return 'DirectedJumpZonePayload(direction: $direction, distanceCells: $distanceCells, durationMs: $durationMs, peakHeightPx: $peakHeightPx)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DirectedJumpZonePayloadCopyWith<$Res> implements $DirectedJumpZonePayloadCopyWith<$Res> {
+  factory _$DirectedJumpZonePayloadCopyWith(_DirectedJumpZonePayload value, $Res Function(_DirectedJumpZonePayload) _then) = __$DirectedJumpZonePayloadCopyWithImpl;
+@override @useResult
+$Res call({
+ MapConnectionDirection direction, int distanceCells, int durationMs, int peakHeightPx
+});
+
+
+
+
+}
+/// @nodoc
+class __$DirectedJumpZonePayloadCopyWithImpl<$Res>
+    implements _$DirectedJumpZonePayloadCopyWith<$Res> {
+  __$DirectedJumpZonePayloadCopyWithImpl(this._self, this._then);
+
+  final _DirectedJumpZonePayload _self;
+  final $Res Function(_DirectedJumpZonePayload) _then;
+
+/// Create a copy of DirectedJumpZonePayload
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? direction = null,Object? distanceCells = null,Object? durationMs = null,Object? peakHeightPx = null,}) {
+  return _then(_DirectedJumpZonePayload(
+direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as MapConnectionDirection,distanceCells: null == distanceCells ? _self.distanceCells : distanceCells // ignore: cast_nullable_to_non_nullable
+as int,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int,peakHeightPx: null == peakHeightPx ? _self.peakHeightPx : peakHeightPx // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

@@ -14,29 +14,23 @@ void main() {
       expect(decoded.anchorX, 0);
       expect(decoded.anchorY, 1);
       expect(decoded.repeatMode, SmartTilePatternRepeatMode.tiled);
-      expect(
-        decoded.cells.last.collision,
-        SmartTilePatternCollision.blocked,
-      );
+      expect(decoded.cells.last.collision, SmartTilePatternCollision.blocked);
       expect(decoded.cells.last.eraseMaterial, isTrue);
     });
 
     test('catalog v4 reads v3 with no patterns and writes patterns', () {
-      final legacy = ProjectSmartTileCatalog.fromJson(
-        <String, dynamic>{
-          'formatVersion': 3,
-          'categories': <Object?>[],
-          'atlases': <Object?>[],
-          'materials': <Object?>[],
-          'animations': <Object?>[],
-          'presets': <Object?>[],
-          'drafts': <Object?>[],
-        },
+      final legacy = ProjectSmartTileCatalog.fromJson(<String, dynamic>{
+        'formatVersion': 3,
+        'categories': <Object?>[],
+        'atlases': <Object?>[],
+        'materials': <Object?>[],
+        'animations': <Object?>[],
+        'presets': <Object?>[],
+        'drafts': <Object?>[],
+      });
+      final current = ProjectSmartTileCatalog(
+        patterns: <ProjectSmartTilePattern>[_pattern()],
       );
-      final current =
-          ProjectSmartTileCatalog(patterns: <ProjectSmartTilePattern>[
-        _pattern(),
-      ]);
 
       expect(legacy.patterns, isEmpty);
       expect(legacy.formatVersion, ProjectSmartTileCatalog.currentFormatVersion);
@@ -53,10 +47,7 @@ void main() {
         catalog: ProjectSmartTileCatalog(
           patterns: <ProjectSmartTilePattern>[
             base.copyWith(
-              cells: <SmartTilePatternCell>[
-                base.cells.first,
-                base.cells.first,
-              ],
+              cells: <SmartTilePatternCell>[base.cells.first, base.cells.first],
             ),
           ],
         ),
@@ -70,6 +61,115 @@ void main() {
   });
 
   group('Smart Tile pattern gestures', () {
+    test('new material appends once without reindexing existing paint', () {
+      final original = _layer();
+      SmartTileLayer paint(SmartTileLayer layer, String id) =>
+          applySmartTilePatternGesture(
+            layer,
+            pattern: _pattern(),
+            mapSize: const GridSize(width: 5, height: 4),
+            selection: const SmartTilePatternSelection.stamp(
+              anchor: GridPos(x: 2, y: 2),
+            ),
+            strokeId: id,
+            materialId: 'grass',
+          ).layer;
+      final painted = paint(original, 'first');
+      expect(painted.materialPalette, ['', 'dirt', 'grass']);
+      expect(smartTileSemanticCells(painted), [
+        for (var index = 0; index < 20; index++)
+          [7, 8, 12].contains(index)
+              ? 2
+              : index == 13
+              ? 0
+              : 1,
+      ]);
+      expect(paint(painted, 'second').materialPalette, painted.materialPalette);
+      expect(original.materialPalette, ['', 'dirt']);
+      expect(smartTileSemanticCells(original), List.filled(20, 1));
+    });
+
+    test('pattern material rejects empty and noncanonical ids', () {
+      for (final material in ['', ' ', ' grass', 'grass ']) {
+        expect(
+          () => applySmartTilePatternGesture(
+            _layer(),
+            pattern: _pattern(),
+            mapSize: const GridSize(width: 5, height: 4),
+            selection: const SmartTilePatternSelection.stamp(
+              anchor: GridPos(x: 2, y: 2),
+            ),
+            strokeId: 'invalid',
+            materialId: material,
+          ),
+          throwsA(isA<ValidationException>()),
+        );
+      }
+    });
+
+    test(
+      'pattern material follows occupied cells and respects explicit holes',
+      () {
+        final empty = _layer().copyWith(
+          field: SmartTileField.cell(semanticCells: List.filled(20, 0)),
+        );
+        final applied = applySmartTilePatternGesture(
+          empty,
+          pattern: _pattern(),
+          mapSize: const GridSize(width: 5, height: 4),
+          selection: const SmartTilePatternSelection.stamp(
+            anchor: GridPos(x: 2, y: 2),
+          ),
+          strokeId: 'grass',
+          materialId: 'dirt',
+        );
+        expect(smartTileSemanticCells(applied.layer), [
+          for (var index = 0; index < 20; index++)
+            [7, 8, 12].contains(index) ? 1 : 0,
+        ]);
+        expect(
+          applied.layer.patternStrokes.single.cells,
+          applied.affectedCells,
+        );
+        expect(smartTileSemanticCells(empty), List.filled(20, 0));
+        final erased = eraseSmartTilePatternCells(
+          applied.layer,
+          mapSize: const GridSize(width: 5, height: 4),
+          cells: applied.affectedCells,
+          clearMaterial: true,
+        );
+        expect(erased.patternStrokes, isEmpty);
+        expect(smartTileSemanticCells(erased), List.filled(20, 0));
+        expect(erased.materialPalette, applied.layer.materialPalette);
+      },
+    );
+
+    test('targeted material erase preserves remaining pattern ownership', () {
+      final layer = _layer().copyWith(
+        patternStrokes: const [
+          SmartTilePatternStroke(
+            id: 'lower',
+            patternId: 'pattern',
+            cells: [GridPos(x: 0, y: 0)],
+          ),
+          SmartTilePatternStroke(
+            id: 'upper',
+            patternId: 'pattern',
+            cells: [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+          ),
+        ],
+      );
+      final erased = eraseSmartTilePatternCells(
+        layer,
+        mapSize: const GridSize(width: 5, height: 4),
+        cells: const [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+        strokeIds: const ['upper'],
+        clearMaterial: true,
+      );
+      expect(erased.patternStrokes.map((stroke) => stroke.id), ['lower']);
+      expect(smartTileSemanticCells(erased).take(3), [1, 0, 1]);
+    });
+
     test(
       'selected ownership erase preserves overlapping strokes and support',
       () {
@@ -152,15 +252,12 @@ void main() {
         strokeId: 'stamp-1',
       );
 
-      expect(
-        result.affectedCells,
-        const <GridPos>[
-          GridPos(x: 2, y: 1),
-          GridPos(x: 3, y: 1),
-          GridPos(x: 2, y: 2),
-          GridPos(x: 3, y: 2),
-        ],
-      );
+      expect(result.affectedCells, const <GridPos>[
+        GridPos(x: 2, y: 1),
+        GridPos(x: 3, y: 1),
+        GridPos(x: 2, y: 2),
+        GridPos(x: 3, y: 2),
+      ]);
       final stroke = result.layer.patternStrokes.single;
       expect(stroke.phaseX, -2);
       expect(stroke.phaseY, -1);
@@ -238,10 +335,7 @@ void main() {
       final erased = eraseSmartTilePatternCells(
         rectangle.layer,
         mapSize: const GridSize(width: 5, height: 4),
-        cells: const <GridPos>[
-          GridPos(x: 1, y: 0),
-          GridPos(x: 0, y: 1),
-        ],
+        cells: const <GridPos>[GridPos(x: 1, y: 0), GridPos(x: 0, y: 1)],
       );
       expect(erased.patternStrokes, hasLength(2));
       expect(
@@ -361,10 +455,7 @@ void main() {
     );
 
     expect(plan.canApply, isFalse);
-    expect(
-      plan.impacts.single.positions,
-      contains(const GridPos(x: 1, y: 1)),
-    );
+    expect(plan.impacts.single.positions, contains(const GridPos(x: 1, y: 1)));
     expect(union.layer.patternStrokes, hasLength(2));
     expect(
       union.layer.patternStrokes.map((stroke) => stroke.id).toSet(),
@@ -374,130 +465,112 @@ void main() {
 }
 
 ProjectSmartTilePattern _pattern() => const ProjectSmartTilePattern(
-      id: 'checker',
-      name: 'Checker',
-      usage: SmartTileUsage.path,
-      width: 2,
-      height: 2,
-      anchorX: 0,
-      anchorY: 1,
-      repeatMode: SmartTilePatternRepeatMode.tiled,
-      drawOrder: 50,
-      cells: <SmartTilePatternCell>[
-        SmartTilePatternCell(
-          x: 0,
-          y: 0,
-          parts: <SmartTileVisualPart>[
-            SmartTileVisualPart(
-              source: SmartTileVisualSource.frame(
-                frame: SmartTileFrameRef(
-                  atlasId: 'atlas',
-                  column: 0,
-                  row: 0,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SmartTilePatternCell(
-          x: 1,
-          y: 0,
-          collision: SmartTilePatternCollision.passable,
-          parts: <SmartTileVisualPart>[
-            SmartTileVisualPart(
-              source: SmartTileVisualSource.frame(
-                frame: SmartTileFrameRef(
-                  atlasId: 'atlas',
-                  column: 1,
-                  row: 0,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SmartTilePatternCell(
-          x: 0,
-          y: 1,
-          parts: <SmartTileVisualPart>[
-            SmartTileVisualPart(
-              source: SmartTileVisualSource.frame(
-                frame: SmartTileFrameRef(
-                  atlasId: 'atlas',
-                  column: 0,
-                  row: 1,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SmartTilePatternCell(
-          x: 1,
-          y: 1,
-          eraseMaterial: true,
-          collision: SmartTilePatternCollision.blocked,
-          parts: <SmartTileVisualPart>[
-            SmartTileVisualPart(
-              source: SmartTileVisualSource.frame(
-                frame: SmartTileFrameRef(
-                  atlasId: 'atlas',
-                  column: 1,
-                  row: 1,
-                ),
-              ),
-            ),
-          ],
+  id: 'checker',
+  name: 'Checker',
+  usage: SmartTileUsage.path,
+  width: 2,
+  height: 2,
+  anchorX: 0,
+  anchorY: 1,
+  repeatMode: SmartTilePatternRepeatMode.tiled,
+  drawOrder: 50,
+  cells: <SmartTilePatternCell>[
+    SmartTilePatternCell(
+      x: 0,
+      y: 0,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
+          ),
         ),
       ],
-    );
+    ),
+    SmartTilePatternCell(
+      x: 1,
+      y: 0,
+      collision: SmartTilePatternCollision.passable,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 1, row: 0),
+          ),
+        ),
+      ],
+    ),
+    SmartTilePatternCell(
+      x: 0,
+      y: 1,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 1),
+          ),
+        ),
+      ],
+    ),
+    SmartTilePatternCell(
+      x: 1,
+      y: 1,
+      eraseMaterial: true,
+      collision: SmartTilePatternCollision.blocked,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 1, row: 1),
+          ),
+        ),
+      ],
+    ),
+  ],
+);
 
 SmartTileLayer _layer({int cellCount = 20}) => SmartTileLayer(
-      id: 'path',
-      name: 'Path',
-      presetId: 'path',
-      usage: SmartTileUsage.path,
-      materialPalette: const <String>['', 'dirt'],
-      field: SmartTileField.cell(
-        semanticCells: List<int>.filled(cellCount, 1),
-      ),
-    );
+  id: 'path',
+  name: 'Path',
+  presetId: 'path',
+  usage: SmartTileUsage.path,
+  materialPalette: const <String>['', 'dirt'],
+  field: SmartTileField.cell(semanticCells: List<int>.filled(cellCount, 1)),
+);
 
 ProjectSmartTileCatalog _catalog() => ProjectSmartTileCatalog(
-      atlases: const <ProjectSmartTileAtlas>[
-        ProjectSmartTileAtlas(
-          id: 'atlas',
-          name: 'Atlas',
-          tilesetId: 'tiles',
-          columns: 2,
-          rows: 2,
+  atlases: const <ProjectSmartTileAtlas>[
+    ProjectSmartTileAtlas(
+      id: 'atlas',
+      name: 'Atlas',
+      tilesetId: 'tiles',
+      columns: 2,
+      rows: 2,
+    ),
+  ],
+  materials: const <ProjectSmartTileMaterial>[
+    ProjectSmartTileMaterial(
+      id: 'dirt',
+      name: 'Dirt',
+      connectionGroupId: 'dirt',
+    ),
+  ],
+  presets: const <ProjectSmartTilePreset>[
+    ProjectSmartTilePreset(
+      id: 'path',
+      name: 'Path',
+      usage: SmartTileUsage.path,
+      topology: SmartTileTopology.uniform,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
+      defaultMaterialId: 'dirt',
+      allowedMaterialIds: <String>['dirt'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'base',
+          centerMatch: SmartTileSlotMatch.material('dirt'),
         ),
       ],
-      materials: const <ProjectSmartTileMaterial>[
-        ProjectSmartTileMaterial(
-          id: 'dirt',
-          name: 'Dirt',
-          connectionGroupId: 'dirt',
-        ),
-      ],
-      presets: const <ProjectSmartTilePreset>[
-        ProjectSmartTilePreset(
-          id: 'path',
-          name: 'Path',
-          usage: SmartTileUsage.path,
-          topology: SmartTileTopology.uniform,
-          coveragePolicy: SmartTileCoveragePolicy.sparse,
-          coverageProfile: SmartTileCoverageProfile(
-            mode: SmartTileCoverageMode.explicit,
-          ),
-          transformPolicy: SmartTileTransformPolicy(),
-          defaultMaterialId: 'dirt',
-          allowedMaterialIds: <String>['dirt'],
-          rules: <SmartTileRule>[
-            SmartTileRule(
-              id: 'base',
-              centerMatch: SmartTileSlotMatch.material('dirt'),
-            ),
-          ],
-        ),
-      ],
-      patterns: <ProjectSmartTilePattern>[_pattern()],
-    );
+    ),
+  ],
+  patterns: <ProjectSmartTilePattern>[_pattern()],
+);

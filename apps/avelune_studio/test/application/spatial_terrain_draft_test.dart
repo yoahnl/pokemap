@@ -32,6 +32,86 @@ ProjectModel3dEntry spatialPathModel(
 }
 
 void main() {
+  test('model animation selection, clearing and geometry edits preserve draft intent', () {
+    final base = spatialPathDraft();
+    final original = base.manifest.models3d.single;
+    final animated = ProjectModel3dEntry(
+      id: original.id,
+      name: original.name,
+      sourceAssetId: original.sourceAssetId,
+      relativePath: original.relativePath,
+      inspection: Model3dInspection(
+        bounds: original.inspection.bounds,
+        meshCount: 1,
+        triangleCount: 4,
+        animations: [
+          Model3dAnimation(index: 0, name: 'Passage', durationSeconds: .6),
+        ],
+      ),
+    );
+    final project = base.manifest.copyWith(models3d: [animated]);
+    final draft = TerrainDraftController.resume(
+      manifest: project,
+      draft: base.draft,
+    );
+    draft.assignModel(
+      animated,
+      scale: 1.5,
+      offsetX: .125,
+      offsetY: .2,
+      offsetZ: -.375,
+      quarterTurns: 2,
+      animationIndex: 0,
+      changeAnimation: true,
+    );
+    final selected = draft.draft;
+    final part = draft.partFor(0)!;
+    expect((part.source as SmartTileModel3dSource).animationIndex, 0);
+    expect(
+      compileSmartTileAuthoringDraft(
+        draft: selected,
+        catalog: project.smartTileCatalog,
+        manifest: project,
+      ),
+      isA<SmartTileDraftCompilationSuccess>(),
+    );
+    draft.assignModel(
+      animated,
+      scale: 1.5,
+      offsetX: .125,
+      offsetY: .2,
+      offsetZ: -.375,
+      quarterTurns: 2,
+    );
+    expect(draft.draft, selected);
+    draft.assignModel(animated, animationIndex: 7, changeAnimation: true);
+    expect(draft.draft, selected);
+    draft.assignModel(
+      animated,
+      scale: 1.5,
+      offsetX: .125,
+      offsetY: .2,
+      offsetZ: -.375,
+      quarterTurns: 2,
+      changeAnimation: true,
+    );
+    expect(
+      draft.partFor(0),
+      part.copyWith(
+        source: (part.source as SmartTileModel3dSource).copyWith(
+          animationIndex: null,
+        ),
+      ),
+    );
+    draft.undo();
+    expect(draft.draft, selected);
+    draft.redo();
+    expect(
+      (draft.partFor(0)!.source as SmartTileModel3dSource).animationIndex,
+      isNull,
+    );
+  });
+
   test('unit models compile without an atlas and painted cells produce native instances', () {
     final model = spatialPathDraft();
     expect(model.uniform, isTrue);

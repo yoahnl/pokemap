@@ -15,6 +15,23 @@ import '../../support/glb_fixture.dart';
 const editing = EnvironmentEditing();
 
 void main() {
+  test('continuous terrain invalidates stale Environment generation previews', () {
+    final fixture = spatialEnvironmentFixture();
+    final preview = generate(fixture.project, fixture.map);
+    final surface = SpatialTerrainSurface(id: 'hill', x: 0, z: 0, height: 2,
+      gradientX: .25, footprints: [BorderGroundFootprint(points: [
+        BorderGroundPoint(x: 0, z: 0), BorderGroundPoint(x: 2, z: 0),
+        BorderGroundPoint(x: 2, z: 2), BorderGroundPoint(x: 0, z: 2),
+      ])]);
+    final changed = const SpatialMapOperations().upsertTerrainSurfaces(fixture.map, [surface]);
+    expect(generate(fixture.project, changed).inputFingerprint, isNot(preview.inputFingerprint));
+    expect(() => apply(fixture.project, changed, preview), throwsA(isA<MapAuthoringException>()));
+    final regenerated = apply(fixture.project, changed, generate(fixture.project, changed));
+    for (final instance in regenerated.spatialScene!.instances) {
+      expect(instance.position.y, regenerated.spatialScene!.worldHeightAt(instance.position.x, instance.position.z));
+    }
+  });
+
   test(
       'native generation input ignores unrelated instances areas and resource metadata',
       () {

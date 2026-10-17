@@ -32,6 +32,8 @@ final class SmartTileCatalogActions {
   final ArtifactStore? artifactStore;
   static const maximumDraftArtifactBytes = 8 * 1024 * 1024;
   static const maximumMaterialBatchCount = 250;
+  static const maximumPatternBatchCount = 250;
+  static const maximumPatternBatchCellCount = 16384;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
@@ -98,6 +100,17 @@ final class SmartTileCatalogActions {
           'smartTilePattern',
           'smartTileAtlas',
           'smartTileAnimation',
+        ],
+      ),
+      _descriptor(
+        'smart_tile.pattern.upsert_batch',
+        'Create or replace a bounded batch of reusable Smart Tile patterns atomically',
+        resourceKinds: const <String>[
+          'project',
+          'smartTilePattern',
+          'smartTileAtlas',
+          'smartTileAnimation',
+          'model3d',
         ],
       ),
       _descriptor(
@@ -198,6 +211,7 @@ final class SmartTileCatalogActions {
       'smart_tile.animation.upsert' => _upsertAnimation(planning),
       'smart_tile.animation.delete' => _deleteAnimation(planning),
       'smart_tile.pattern.upsert' => _upsertPattern(planning),
+      'smart_tile.pattern.upsert_batch' => _upsertPatternBatch(planning),
       'smart_tile.pattern.delete' => _deletePattern(planning),
       'smart_tile.preset.draft.upsert' => _upsertDraft(planning),
       'smart_tile.preset.draft.delete' => _deleteDraft(planning),
@@ -459,6 +473,92 @@ final class SmartTileCatalogActions {
       path: '/smartTileCatalog/patterns/${pattern.id}',
       before: before?.toJson(),
       after: pattern.toJson(),
+    );
+  }
+
+  AuthoringMutationDraft _upsertPatternBatch(
+      AuthoringPlanningContext planning) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{'patterns'},
+    );
+    final documents = parameters.list('patterns');
+    if (documents.isEmpty || documents.length > maximumPatternBatchCount) {
+      throw semanticFailure(
+        'smart_tile.pattern.batch_invalid',
+        'A Smart Tile pattern batch must contain between 1 and $maximumPatternBatchCount patterns.',
+        details: {
+          'patternCount': documents.length,
+          'maximumPatternCount': maximumPatternBatchCount,
+        },
+      );
+    }
+    final replacements = <String, ProjectSmartTilePattern>{};
+    var cellCount = 0;
+    for (var index = 0; index < documents.length; index++) {
+      final document = documents[index];
+      final field = 'patterns[$index]';
+      if (document is! Map || document.keys.any((key) => key is! String)) {
+        throw invalidSemanticField(field, 'a JSON object');
+      }
+      final pattern = _decode(
+        Map<String, Object?>.from(document),
+        field: field,
+        decode: ProjectSmartTilePattern.fromJson,
+      );
+      if (replacements.containsKey(pattern.id)) {
+        throw semanticFailure(
+          'smart_tile.pattern.batch_duplicate',
+          'A Smart Tile pattern batch cannot repeat a pattern id.',
+          details: {'patternId': pattern.id, 'parameter': field},
+        );
+      }
+      cellCount += pattern.cells.length;
+      if (cellCount > maximumPatternBatchCellCount) {
+        throw semanticFailure(
+          'smart_tile.pattern.batch_cells_limit',
+          'A Smart Tile pattern batch exceeds $maximumPatternBatchCellCount defined cells.',
+          details: {
+            'definedCellCount': cellCount,
+            'maximumPatternCellCount': maximumPatternBatchCellCount
+          },
+        );
+      }
+      replacements[pattern.id] = pattern;
+    }
+    final existing = planning.snapshot.manifest.smartTileCatalog;
+    final before = existing.patterns
+        .where((pattern) => replacements.containsKey(pattern.id))
+        .toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
+    final after = replacements.values.toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
+    final merged = <String, ProjectSmartTilePattern>{
+      for (final pattern in existing.patterns) pattern.id: pattern,
+      ...replacements,
+    }.values.toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(
+          planning.snapshot.manifest, _catalogWith(existing, patterns: merged)),
+      operation: 'smart_tile.pattern.upsert_batch',
+      path: '/smartTileCatalog/patterns',
+      before: {
+        'patterns': [for (final pattern in before) pattern.toJson()]
+      },
+      after: {
+        'patterns': [for (final pattern in after) pattern.toJson()]
+      },
+      preview: {
+        'patternCount': after.length,
+        'patternIds': [for (final pattern in after) pattern.id],
+        'definedCellCount': cellCount,
+        'addedPatternCount': after.length - before.length,
+        'updatedPatternCount': before.length,
+        'batchAtomicity': 'all_or_nothing',
+        'undoBoundary': 'batch',
+      },
     );
   }
 
@@ -764,6 +864,18 @@ final class SmartTileCatalogActions {
             'draftId': draft.id,
             'targetPresetId': draft.targetPresetId
           },
+      for (final record in planning.snapshot.manifest.borderCatalog.records)
+        for (final definition in <BorderBlueprintDefinition>[
+          record.draft.definition,
+          if (record.latestPublished != null) record.latestPublished!.definition
+        ])
+          for (final primitive in definition.primitives)
+            if (primitive.groundSurfaces
+                .any((surface) => surface.sourceSmartTilePresetId == presetId))
+              <String, Object?>{
+                'blueprintId': record.id,
+                'primitiveId': primitive.id
+              },
       for (final map in planning.snapshot.maps)
         for (final layer in map.layers.whereType<SmartTileLayer>())
           if (layer.presetId == presetId)
@@ -772,7 +884,7 @@ final class SmartTileCatalogActions {
     if (references.isNotEmpty) {
       throw semanticFailure(
         'smart_tile.preset.references_blocking',
-        'The Smart Tile preset is still referenced by map layers.',
+        'The Smart Tile preset is still referenced by map layers or Border surfaces.',
         details: <String, Object?>{
           'presetId': presetId,
           'references': references,

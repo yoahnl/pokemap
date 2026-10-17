@@ -227,6 +227,7 @@ void _validateZone(
   }
   validateFieldActionZone(map, zone);
   validateGameplayZoneCellMask(zone);
+  validateDirectedJumpZone(map, zone, excludedZoneId: excludedZoneId);
   final specialProps = zone.special?.properties;
   if (specialProps != null) {
     for (final key in specialProps.keys) {
@@ -277,6 +278,84 @@ bool gameplayZoneContainsPosition(MapGameplayZone zone, GridPos position) {
   return mask.contains(
     GridPos(x: position.x - zone.area.pos.x, y: position.y - zone.area.pos.y),
   );
+}
+
+void validateDirectedJumpZone(
+  MapData map,
+  MapGameplayZone zone, {
+  String? excludedZoneId,
+}) {
+  final effect = zone.movementEffect;
+  final jump = effect?.directedJump;
+  if (effect?.effectKind != MovementEffectZoneKind.directedJump) {
+    if (jump != null) {
+      throw const ValidationException(
+        'Directed jump payload has a different effect kind',
+      );
+    }
+    return;
+  }
+  if (jump == null ||
+      zone.kind != GameplayZoneKind.movementEffect ||
+      zone.encounter != null ||
+      zone.movement != null ||
+      zone.hazard != null ||
+      zone.special != null ||
+      zone.cellMask != null ||
+      jump.distanceCells != 2 ||
+      jump.durationMs < 1 ||
+      jump.durationMs > 60000 ||
+      jump.peakHeightPx < 1 ||
+      jump.peakHeightPx > 1024) {
+    throw ValidationException(
+      'Gameplay zone ${zone.id} has an invalid directed jump',
+    );
+  }
+  final dx = switch (jump.direction) {
+    MapConnectionDirection.east => 1,
+    MapConnectionDirection.west => -1,
+    _ => 0,
+  };
+  final dy = switch (jump.direction) {
+    MapConnectionDirection.south => 1,
+    MapConnectionDirection.north => -1,
+    _ => 0,
+  };
+  final area = zone.area;
+  if (area.pos.x - dx < 0 ||
+      area.pos.y - dy < 0 ||
+      area.pos.x + dx < 0 ||
+      area.pos.y + dy < 0 ||
+      area.pos.x - dx + area.size.width > map.size.width ||
+      area.pos.y - dy + area.size.height > map.size.height ||
+      area.pos.x + dx + area.size.width > map.size.width ||
+      area.pos.y + dy + area.size.height > map.size.height) {
+    throw ValidationException(
+      'Gameplay zone ${zone.id} jump endpoints are outside the map',
+    );
+  }
+  for (final other in map.gameplayZones) {
+    if (identical(other, zone) ||
+        other.id == excludedZoneId ||
+        other.id == zone.id ||
+        other.kind != GameplayZoneKind.movementEffect ||
+        other.movementEffect?.effectKind !=
+            MovementEffectZoneKind.directedJump ||
+        other.movementEffect?.directedJump?.direction != jump.direction ||
+        other.priority != zone.priority) {
+      continue;
+    }
+    final b = other.area;
+    if (area.pos.x < b.pos.x + b.size.width &&
+        area.pos.x + area.size.width > b.pos.x &&
+        area.pos.y < b.pos.y + b.size.height &&
+        area.pos.y + area.size.height > b.pos.y) {
+      throw ValidationException(
+        'Directed jump zones ${zone.id} and ${other.id} are ambiguous',
+        code: 'movement.directed_jump_ambiguous',
+      );
+    }
+  }
 }
 
 void validateGameplayZoneCellMask(MapGameplayZone zone) {

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../models/map_data.dart';
+import '../models/geometry.dart';
 import '../models/map_layer.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/project_model3d.dart';
@@ -52,6 +53,7 @@ List<SpatialModelInstance> resolveSpatialSmartTileInstances({
 typedef SpatialSmartTileModelProjection = ({
   List<SpatialModelInstance> instances,
   Map<String, Set<(int, int)>> groundReplacements,
+  Map<String, ({String layerId, GridPos cell})> cellOrigins,
 });
 
 SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
@@ -62,7 +64,13 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   int sourceCellHeight = 32,
 }) {
   final scene = map.spatialScene;
-  if (scene == null) return (instances: const [], groundReplacements: const {});
+  if (scene == null) {
+    return (
+      instances: const [],
+      groundReplacements: const {},
+      cellOrigins: const {},
+    );
+  }
   if (sourceCellWidth <= 0 || sourceCellHeight <= 0) {
     throw ArgumentError('Source cell dimensions must be positive.');
   }
@@ -72,6 +80,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   };
   final result = <SpatialModelInstance>[];
   final groundReplacements = <String, Set<(int, int)>>{};
+  final cellOrigins = <String, ({String layerId, GridPos cell})>{};
   for (final layer in map.layers.whereType<SmartTileLayer>()) {
     if (!layer.isVisible || layer.opacity <= 0) continue;
     final preset = presets[layer.presetId];
@@ -152,6 +161,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
             _addModel(
               result,
               groundReplacements: groundReplacements,
+              cellOrigins: cellOrigins,
               map: map,
               layer: layer,
               part: part,
@@ -169,7 +179,9 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
         }
       }
     }
-    for (final entry in owners.entries) {
+    final orderedOwners = owners.entries.toList()
+      ..sort((first, second) => first.key.compareTo(second.key));
+    for (final entry in orderedOwners) {
       final x = entry.key % scene.width, z = entry.key ~/ scene.width;
       final pattern = entry.value.pattern, stroke = entry.value.stroke;
       final px = (x + stroke.phaseX) % pattern.width;
@@ -181,6 +193,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
         _addModel(
           result,
           groundReplacements: groundReplacements,
+          cellOrigins: cellOrigins,
           map: map,
           layer: layer,
           part: part,
@@ -200,12 +213,14 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
       for (final entry in groundReplacements.entries)
         entry.key: Set<(int, int)>.unmodifiable(entry.value),
     }),
+    cellOrigins: Map.unmodifiable(cellOrigins),
   );
 }
 
 void _addModel(
   List<SpatialModelInstance> result, {
   required Map<String, Set<(int, int)>> groundReplacements,
+  required Map<String, ({String layerId, GridPos cell})> cellOrigins,
   required MapData map,
   required SmartTileLayer layer,
   required SmartTileVisualPart part,
@@ -265,9 +280,11 @@ void _addModel(
   final digest = sha256.convert(
     utf8.encode('${map.id}|${layer.id}|$x|$z|$key'),
   );
+  final instanceId = 'smt_$digest';
+  cellOrigins[instanceId] = (layerId: layer.id, cell: GridPos(x: x, y: z));
   result.add(
     SpatialModelInstance(
-      id: 'smt_$digest',
+      id: instanceId,
       modelId: source.modelId,
       position: Model3dVector3(
         x: worldX,

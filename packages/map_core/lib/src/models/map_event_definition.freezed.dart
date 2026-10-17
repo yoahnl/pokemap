@@ -88,7 +88,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $EventPositionCopyWith<$Res> get position {
-
+  
   return $EventPositionCopyWith<$Res>(_self.position, (value) {
     return _then(_self.copyWith(position: value));
   });
@@ -329,7 +329,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $EventPositionCopyWith<$Res> get position {
-
+  
   return $EventPositionCopyWith<$Res>(_self.position, (value) {
     return _then(_self.copyWith(position: value));
   });
@@ -1608,7 +1608,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $MapEventPageCopyWith<$Res> get page {
-
+  
   return $MapEventPageCopyWith<$Res>(_self.page, (value) {
     return _then(_self.copyWith(page: value));
   });
@@ -1824,7 +1824,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $MapEventPageCopyWith<$Res> get page {
-
+  
   return $MapEventPageCopyWith<$Res>(_self.page, (value) {
     return _then(_self.copyWith(page: value));
   });

@@ -78,7 +78,7 @@ as EncounterZonePayload,
 @override
 @pragma('vm:prefer-inline')
 $EncounterZonePayloadCopyWith<$Res> get encounter {
-
+  
   return $EncounterZonePayloadCopyWith<$Res>(_self.encounter, (value) {
     return _then(_self.copyWith(encounter: value));
   });
@@ -291,7 +291,7 @@ as EncounterZonePayload,
 @override
 @pragma('vm:prefer-inline')
 $EncounterZonePayloadCopyWith<$Res> get encounter {
-
+  
   return $EncounterZonePayloadCopyWith<$Res>(_self.encounter, (value) {
     return _then(_self.copyWith(encounter: value));
   });

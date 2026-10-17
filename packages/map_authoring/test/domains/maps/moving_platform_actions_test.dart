@@ -8,16 +8,27 @@ import 'package:test/test.dart';
 import '../assets/resource_information_fixture.dart';
 
 void main() {
-  for (final jsonl in [false, true]) {
+  for (final (jsonl, smart) in [
+    (false, false),
+    (true, false),
+    (false, true),
+    (true, true),
+  ]) {
     test(
-        'platform upsert and delete through ${jsonl ? 'JSONL' : 'direct API'} preserve ordinary map content',
+        '${smart ? 'Smart Tile' : 'Tile'} platform upsert and delete through ${jsonl ? 'JSONL' : 'direct API'} preserve ordinary map content',
         () async {
-      final host = await ResourceInformationFixture.create(_project());
+      final sourceMap = smart ? _smartMap() : _map();
+      final sourceProject = smart ? _smartProject() : _project();
+      final sourcePlatform = MovingPlatformDefinition.fromJson({
+        ..._platform(precise: smart).toJson(),
+        'controls': [{'id': 'turn', 'cell': {'x': 0, 'y': 0}, 'motion': 'rotateClockwise'}],
+      });
+      final host = await ResourceInformationFixture.create(sourceProject);
       addTearDown(host.dispose);
       final mapFile = File('${host.root.path}/map.json');
-      await mapFile.writeAsString(jsonEncode(_map().toJson()));
+      await mapFile.writeAsString(jsonEncode(sourceMap.toJson()));
       await File('${host.root.path}/project.json').writeAsString(jsonEncode(
-          _project().copyWith(maps: const [
+          sourceProject.copyWith(maps: const [
         ProjectMapEntry(id: 'gym', name: 'Gym', relativePath: 'map.json')
       ]).toJson()));
       Future<void> mutate(
@@ -49,12 +60,12 @@ void main() {
       }
 
       await mutate('map.platform.upsert',
-          {'mapId': 'gym', 'platform': _platform().toJson()});
+          {'mapId': 'gym', 'platform': sourcePlatform.toJson()});
       var map = MapData.fromJson(jsonDecode(await mapFile.readAsString()));
-      expect(map.movingPlatforms.single.toJson(), _platform().toJson());
-      expect(map.placedElements, _map().placedElements);
-      expect(map.layers, _map().layers);
-      final updated = _platform().toJson()..['translationDistanceCells'] = 6;
+      expect(map.movingPlatforms.single.toJson(), sourcePlatform.toJson());
+      expect(map.placedElements, sourceMap.placedElements);
+      expect(map.layers, sourceMap.layers);
+      final updated = sourcePlatform.toJson()..['translationDistanceCells'] = 6;
       await mutate(
           'map.platform.upsert', {'mapId': 'gym', 'platform': updated});
       map = MapData.fromJson(jsonDecode(await mapFile.readAsString()));
@@ -108,7 +119,7 @@ void main() {
           'map.platform.delete', {'mapId': 'gym', 'platformId': 'bridge'});
       map = MapData.fromJson(jsonDecode(await mapFile.readAsString()));
       expect(map.movingPlatforms, isEmpty);
-      expect(map.placedElements, _map().placedElements);
+      expect(map.placedElements, sourceMap.placedElements);
       final invalid = _platform().toJson();
       invalid['terrainLayerIds'] = ['solid'];
       final planned = await host
@@ -122,7 +133,53 @@ void main() {
   }
 }
 
-MovingPlatformDefinition _platform() => MovingPlatformDefinition(
+MapData _smartMap() => _map().copyWith(layers: [
+      MapLayer.smartTile(
+        id: 'magma',
+        name: 'Magma',
+        presetId: 'lava',
+        usage: SmartTileUsage.terrain,
+        materialPalette: const ['', 'lava'],
+        field: SmartTileField.cell(semanticCells: List.filled(100, 1)),
+      ),
+      MapLayer.tile(
+        id: 'platform-art',
+        name: 'Platform art',
+        cells: List.filled(100, 0),
+      ),
+      _map().layers.last,
+    ], placedElements: [
+      _map().placedElements.single.copyWith(layerId: 'platform-art'),
+    ]);
+
+ProjectManifest _smartProject() => _project().copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const [
+          ProjectSmartTileMaterial(
+            id: 'lava',
+            name: 'Lava',
+            connectionGroupId: 'lava',
+          ),
+        ],
+        presets: const [
+          ProjectSmartTilePreset(
+            id: 'lava',
+            name: 'Lava',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.explicit,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'lava',
+            allowedMaterialIds: ['lava'],
+          ),
+        ],
+      ),
+    );
+
+MovingPlatformDefinition _platform({bool precise = false}) => MovingPlatformDefinition(
         id: 'bridge',
         placedElementId: 'art',
         initialPose: MovingPlatformPose(leftPx: 64, topPx: 64, quarterTurns: 0),
@@ -136,6 +193,13 @@ MovingPlatformDefinition _platform() => MovingPlatformDefinition(
         translationDistanceCells: 5,
         terrainLayerIds: {
           'magma'
+        },
+        terrainCellsByLayer: {
+          if (precise)
+            'magma': [
+              for (var y = 0; y < 10; y++)
+                for (var x = 0; x < 10; x++) GridPos(x: x, y: y),
+            ],
         },
         travelCells: const [
           GridPos(x: 2, y: 2),

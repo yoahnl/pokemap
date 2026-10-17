@@ -73,6 +73,36 @@ void main() {
       },
     );
 
+    test(
+      'rejects model primitives before reading 2D sprite metadata',
+      () async {
+        final primitive = BorderPrimitiveDraft(
+          id: 'tree-model',
+          sourceModelId: 'coast-rock',
+          role: BorderPrimitiveRole.structureLarge,
+          weight: 1,
+          transforms: BorderTransformPolicy(
+            allowFlipX: false,
+            allowedQuarterTurns: const [0],
+          ),
+        );
+        expect(
+          () => const BorderProjectElementAssetService().reanalyze(
+            manifest: _manifest(),
+            projectRootPath: projectRoot.path,
+            primitive: primitive,
+          ),
+          throwsA(
+            isA<BorderProjectElementAssetException>().having(
+              (error) => error.userMessage,
+              'message',
+              contains('3D'),
+            ),
+          ),
+        );
+      },
+    );
+
     test('uses the connected-line network anchor by default', () async {
       final atlas = File(
         p.join(projectRoot.path, 'assets', 'tilesets', 'square.png'),

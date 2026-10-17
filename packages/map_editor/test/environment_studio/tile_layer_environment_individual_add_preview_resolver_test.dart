@@ -47,6 +47,39 @@ void main() {
       expect(preview.footprint, const GridSize(width: 2, height: 2));
     });
 
+    test('sélectionne la palette 2D dans un projet contenant aussi un preset 3D', () {
+      final model = EnvironmentPaletteItem(modelId: 'tree-model', weight: 100);
+      final ctx = _context(palette: [EnvironmentPaletteItem(elementId: 'bush', weight: 1)]);
+      final spatial = EnvironmentPreset(id: 'spatial', name: 'Spatial',
+        templateId: 'forest', sortOrder: 0, palette: [model],
+        defaultParams: EnvironmentGenerationParams.standard());
+      final manifest = ctx.manifest.copyWith(environmentPresets: [spatial, ...ctx.manifest.environmentPresets]);
+      final preview = resolveEnvironmentGeneratedPlacementAddPreview(
+        map: ctx.map, manifest: manifest, activeLayerId: 'tiles', selectedAreaId: 'area',
+        pos: const GridPos(x: 1, y: 2));
+      expect(preview?.placed.elementId, 'bush');
+      expect(manifest.environmentPresets.first.palette.single, same(model));
+    });
+
+    test('ne crée aucun preview pour une palette de modèles seuls', () {
+      final ctx = _context(
+        palette: [EnvironmentPaletteItem(modelId: 'bush', weight: 1)],
+      );
+      for (final selectedId in <String?>[null, 'bush']) {
+        expect(
+          resolveEnvironmentGeneratedPlacementAddPreview(
+            map: ctx.map,
+            manifest: ctx.manifest,
+            activeLayerId: 'tiles',
+            selectedAreaId: 'area',
+            selectedElementId: selectedId,
+            pos: const GridPos(x: 1, y: 2),
+          ),
+          isNull,
+        );
+      }
+    });
+
     test('ne choisit pas arbitrairement si plusieurs items valides existent',
         () {
       final ctx = _context();

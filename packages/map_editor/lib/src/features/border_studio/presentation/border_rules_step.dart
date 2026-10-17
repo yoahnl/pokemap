@@ -10,10 +10,12 @@ class BorderRulesStep extends StatelessWidget {
     super.key,
     required this.state,
     required this.onRulesChanged,
+    this.tileSizePx = const GridSize(width: 32, height: 32),
   });
 
   final BorderStudioDraftState state;
   final ValueChanged<BorderGenerationParams> onRulesChanged;
+  final GridSize tileSizePx;
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +25,18 @@ class BorderRulesStep extends StatelessWidget {
     final isConnectedLine = template == BorderBlueprintTemplate.connectedLine;
     final isStoneChain = template == BorderBlueprintTemplate.stoneChainLine;
     final isLedge = template == BorderBlueprintTemplate.ledgeLine;
+    final maximumLedgeGap =
+        (tileSizePx.width < tileSizePx.height
+            ? tileSizePx.width
+            : tileSizePx.height) -
+        1;
     final supportsAutoRotation =
         isConnectedLine ||
         isStoneChain ||
         template == BorderBlueprintTemplate.masonryLine;
     return BorderStudioStepScaffold(
       title: '4. Règles',
-      description:
-          'Réglez le caractère visuel avec des profils guidés, sans toucher aux données internes.',
+      description: 'Réglez le caractère visuel avec des profils guidés, sans toucher aux données internes.',
       child: rules == null
           ? const PokeMapEmptyState(
               title: 'Créez un blueprint pour régler son assemblage',
@@ -72,8 +78,7 @@ class BorderRulesStep extends StatelessWidget {
                       : _isWild(rules, template)
                       ? _wildAppliedLabel(template)
                       : 'Réglage personnalisé',
-                  description:
-                      'Les valeurs restent entières et déterministes pour chaque seed.',
+                  description: 'Les valeurs restent entières et déterministes pour chaque seed.',
                   tone: PokeMapTone.info,
                   icon: CupertinoIcons.checkmark_seal,
                 ),
@@ -122,8 +127,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-stone-interlock-control',
                           ),
                           label: 'Imbrication des pierres',
-                          description:
-                              'Rapproche les pierres des deux rangées pour former une falaise continue.',
+                          description: 'Rapproche les pierres des deux rangées pour former une falaise continue.',
                           value: (rules.maxOverlapPx * 100 / 12).round(),
                           onChanged: (value) => onRulesChanged(
                             _copyRules(
@@ -138,8 +142,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-stone-spacing-control',
                           ),
                           label: 'Espacement des pierres',
-                          description:
-                              'Ajuste le petit vide toléré entre deux pierres principales.',
+                          description: 'Ajuste le petit vide toléré entre deux pierres principales.',
                           value: (rules.gapTolerancePx * 100 / 8).round(),
                           onChanged: (value) => onRulesChanged(
                             _copyRules(
@@ -154,8 +157,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-stone-irregularity-control',
                           ),
                           label: 'Irrégularité des pierres',
-                          description:
-                              'Décale légèrement la chaîne sans créer de gros blocs.',
+                          description: 'Décale légèrement la chaîne sans créer de gros blocs.',
                           value: rules.irregularityPermille ~/ 10,
                           onChanged: (value) => onRulesChanged(
                             _copyRules(rules, irregularityPermille: value * 10),
@@ -167,8 +169,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-stone-secondary-density-control',
                           ),
                           label: 'Pierres secondaires',
-                          description:
-                              'Dose les petites pierres et rochers facultatifs.',
+                          description: 'Dose les petites pierres et rochers facultatifs.',
                           value: rules.detailDensityPermille ~/ 10,
                           onChanged: (value) => onRulesChanged(
                             _copyRules(
@@ -184,8 +185,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-regularity-control',
                           ),
                           label: 'Régularité',
-                          description:
-                              'Élevée pour un tracé calme, basse pour plus d’aspérités.',
+                          description: 'Élevée pour un tracé calme, basse pour plus d’aspérités.',
                           value: 100 - rules.irregularityPermille ~/ 10,
                           onChanged: (value) => onRulesChanged(
                             _copyRules(
@@ -200,8 +200,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-details-control',
                           ),
                           label: 'Quantité de détails',
-                          description:
-                              'Dose les petits éléments ajoutés autour de la structure.',
+                          description: 'Dose les petits éléments ajoutés autour de la structure.',
                           value: rules.detailDensityPermille ~/ 10,
                           onChanged: (value) => onRulesChanged(
                             _copyRules(
@@ -217,8 +216,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-connected-line-overlap-control',
                           ),
                           label: 'Chevauchement des raccords',
-                          description:
-                              'Autorise les morceaux voisins à se recouvrir pour fermer visuellement la ligne.',
+                          description: 'Autorise les morceaux voisins à se recouvrir pour fermer visuellement la ligne.',
                           value: _connectedLineSliderValue(rules.maxOverlapPx),
                           onChanged: (value) => onRulesChanged(
                             _copyRules(
@@ -235,8 +233,7 @@ class BorderRulesStep extends StatelessWidget {
                             'border-studio-connected-line-gap-control',
                           ),
                           label: 'Vide toléré aux raccords',
-                          description:
-                              'Accepte les ouvertures transparentes propres au dessin de la clôture.',
+                          description: 'Accepte les ouvertures transparentes propres au dessin de la clôture.',
                           value: _connectedLineSliderValue(
                             rules.gapTolerancePx,
                           ),
@@ -251,13 +248,31 @@ class BorderRulesStep extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                       ],
+                      if (isLedge && maximumLedgeGap > 0) ...[
+                        PokeMapGuidedSlider(
+                          key: const ValueKey<String>(
+                            'border-studio-ledge-gap-control',
+                          ),
+                          label: 'Retrait transparent toléré',
+                          description: 'Accepte les bords transparents du dessin. La collision reste sur une case complète.',
+                          value: rules.gapTolerancePx,
+                          max: maximumLedgeGap,
+                          valueFormatter: (value) => '$value px',
+                          onChanged: (value) => onRulesChanged(
+                            _copyRules(
+                              rules,
+                              gapTolerancePx: value.clamp(0, maximumLedgeGap),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       PokeMapGuidedSlider(
                         key: const ValueKey<String>(
                           'border-studio-variety-control',
                         ),
                         label: 'Variété',
-                        description:
-                            'Augmente la fréquence des alternatives compatibles.',
+                        description: 'Augmente la fréquence des alternatives compatibles.',
                         value: rules.variationPermille ~/ 10,
                         onChanged: (value) => onRulesChanged(
                           _copyRules(rules, variationPermille: value * 10),
@@ -272,8 +287,7 @@ class BorderRulesStep extends StatelessWidget {
                   const SizedBox(height: 12),
                   const BorderStudioNotice(
                     title: 'Espacement visible entre les pierres',
-                    description:
-                        'Avec deux étages, un espacement supérieur à 0 px peut ouvrir la falaise. Ramenez-le à 0 px pour une bordure continue.',
+                    description: 'Avec deux étages, un espacement supérieur à 0 px peut ouvrir la falaise. Ramenez-le à 0 px pour une bordure continue.',
                     tone: PokeMapTone.warning,
                     icon: CupertinoIcons.exclamationmark_triangle,
                   ),
@@ -336,7 +350,7 @@ class BorderRulesStep extends StatelessWidget {
     BorderGenerationParams current,
     BorderBlueprintTemplate template,
   ) => template == BorderBlueprintTemplate.ledgeLine
-      ? _ledgeRules(0)
+      ? _ledgeRules(0, gapTolerancePx: current.gapTolerancePx)
       : template == BorderBlueprintTemplate.stoneChainLine
       ? _copyRules(
           current,
@@ -365,7 +379,7 @@ class BorderRulesStep extends StatelessWidget {
     BorderGenerationParams current,
     BorderBlueprintTemplate template,
   ) => template == BorderBlueprintTemplate.ledgeLine
-      ? _ledgeRules(1000)
+      ? _ledgeRules(1000, gapTolerancePx: current.gapTolerancePx)
       : template == BorderBlueprintTemplate.stoneChainLine
       ? _copyRules(
           current,
@@ -394,7 +408,7 @@ class BorderRulesStep extends StatelessWidget {
     BorderGenerationParams rules,
     BorderBlueprintTemplate template,
   ) => template == BorderBlueprintTemplate.ledgeLine
-      ? rules == _ledgeRules(0)
+      ? rules == _ledgeRules(0, gapTolerancePx: rules.gapTolerancePx)
       : template == BorderBlueprintTemplate.stoneChainLine
       ? rules.irregularityPermille == 180 &&
             rules.detailDensityPermille == 0 &&
@@ -413,7 +427,7 @@ class BorderRulesStep extends StatelessWidget {
     BorderGenerationParams rules,
     BorderBlueprintTemplate template,
   ) => template == BorderBlueprintTemplate.ledgeLine
-      ? rules == _ledgeRules(1000)
+      ? rules == _ledgeRules(1000, gapTolerancePx: rules.gapTolerancePx)
       : template == BorderBlueprintTemplate.stoneChainLine
       ? rules.irregularityPermille == 420 &&
             rules.detailDensityPermille == 330 &&
@@ -428,16 +442,18 @@ class BorderRulesStep extends StatelessWidget {
             (template != BorderBlueprintTemplate.connectedLine ||
                 (rules.maxOverlapPx == 32 && rules.gapTolerancePx == 6));
 
-  BorderGenerationParams _ledgeRules(int variationPermille) =>
-      BorderGenerationParams(
-        irregularityPermille: 0,
-        detailDensityPermille: 0,
-        variationPermille: variationPermille,
-        maxOverlapPx: 0,
-        gapTolerancePx: 0,
-        depthRows: 1,
-        allowAutoRotation: false,
-      );
+  BorderGenerationParams _ledgeRules(
+    int variationPermille, {
+    int gapTolerancePx = 0,
+  }) => BorderGenerationParams(
+    irregularityPermille: 0,
+    detailDensityPermille: 0,
+    variationPermille: variationPermille,
+    maxOverlapPx: 0,
+    gapTolerancePx: gapTolerancePx,
+    depthRows: 1,
+    allowAutoRotation: false,
+  );
 
   BorderGenerationParams _copyRules(
     BorderGenerationParams source, {

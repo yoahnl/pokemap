@@ -5,6 +5,9 @@ import '../models/border_blueprint.dart';
 import '../models/border_diagnostics.dart';
 import '../models/border_feature.dart';
 import '../models/border_geometry.dart';
+import '../models/border_ground_footprint.dart';
+import '../models/border_ground_surface.dart';
+import '../models/smart_tile.dart';
 import '../models/border_materialization.dart';
 import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
@@ -17,12 +20,14 @@ import '../models/project_manifest.dart';
 import '../models/project_model3d.dart';
 import 'border_blueprint_json_codec.dart';
 import 'border_feature_json_codec.dart';
+import 'border_feature_update_operations.dart';
 import 'border_fingerprints.dart';
 import 'border_layer_operations.dart';
 import 'border_linear_lattice.dart';
 import 'border_region_contours.dart';
 import 'border_resolver.dart';
 import 'narrative_event_canonical_json.dart';
+import 'map_visual_composition.dart';
 
 final class SpatialBorderResolutionResult {
   SpatialBorderResolutionResult({
@@ -45,14 +50,51 @@ typedef _SpatialBorderNode = ({
   GridPos? terrainCell,
 });
 
-typedef SpatialBorderGroundReplacement = ({
-  double left,
-  double top,
-  double right,
-  double bottom,
-  double lowerHeight,
-  double upperHeight,
-});
+final class SpatialBorderGroundReplacement {
+  const SpatialBorderGroundReplacement({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+    required this.lowerHeight,
+    required this.upperHeight,
+    this.footprints = const [],
+  });
+
+  final double left, top, right, bottom, lowerHeight, upperHeight;
+  final List<BorderGroundFootprint> footprints;
+
+  bool contains(double x, double z) {
+    if (x <= left || x >= right || z <= top || z >= bottom) return false;
+    if (footprints.isEmpty) return true;
+    return footprints.any((footprint) => footprint.contains(x, z));
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SpatialBorderGroundReplacement &&
+      left == other.left &&
+      top == other.top &&
+      right == other.right &&
+      bottom == other.bottom &&
+      lowerHeight == other.lowerHeight &&
+      upperHeight == other.upperHeight &&
+      footprints.length == other.footprints.length &&
+      Iterable<int>.generate(
+        footprints.length,
+      ).every((index) => footprints[index] == other.footprints[index]);
+
+  @override
+  int get hashCode => Object.hash(
+    left,
+    top,
+    right,
+    bottom,
+    lowerHeight,
+    upperHeight,
+    Object.hashAll(footprints),
+  );
+}
 
 typedef SpatialBorderGroundReplacementIndex =
     Map<(int, int), List<SpatialBorderGroundReplacement>>;
@@ -92,20 +134,26 @@ Set<(int, int)> resolveSpatialBorderGroundMaskCells({
         final instance = instances[placement.instanceId];
         return instance == null ||
             !models.containsKey(instance.modelId) ||
-            primitives[placement.primitiveId]?.sourceModelId != instance.modelId;
+            primitives[placement.primitiveId]?.sourceModelId !=
+                instance.modelId;
       })) {
         continue;
       }
       for (final placement in applied.spatialPlacements) {
         final instance = instances[placement.instanceId]!;
         final model = models[instance.modelId]!;
-        final anchor = primitives[placement.primitiveId]!.anchorWorld ?? model.pivot;
+        final anchor =
+            primitives[placement.primitiveId]!.anchorWorld ?? model.pivot;
         final scale = model.scale * instance.scale;
         final angle = instance.rotationDegrees * math.pi / 180;
         final dx = (anchor.x - model.pivot.x) * scale;
         final dz = (anchor.z - model.pivot.z) * scale;
-        final x = (instance.position.x + math.cos(angle) * dx + math.sin(angle) * dz).floor();
-        final z = (instance.position.z - math.sin(angle) * dx + math.cos(angle) * dz).floor();
+        final x =
+            (instance.position.x + math.cos(angle) * dx + math.sin(angle) * dz)
+                .floor();
+        final z =
+            (instance.position.z - math.sin(angle) * dx + math.cos(angle) * dz)
+                .floor();
         if (x >= 0 && z >= 0 && x < scene.width && z < scene.depth) {
           result.add((x, z));
         }
@@ -155,6 +203,12 @@ List<SpatialBorderGroundReplacement> resolveSpatialBorderGroundReplacements({
           .recordById(feature.blueprintId)
           ?.latestPublished;
       final applied = feature.materialization;
+      final primitives = {
+        for (final primitive
+            in publication?.definition.primitives ??
+                <BorderPublishedPrimitive>[])
+          primitive.id: primitive,
+      };
       if (publication?.definition.replacesGround != true ||
           applied == null ||
           !applied.targetsSpatialScene ||
@@ -162,7 +216,9 @@ List<SpatialBorderGroundReplacement> resolveSpatialBorderGroundReplacements({
           applied.spatialPlacements.any(
             (placement) =>
                 !instances.containsKey(placement.instanceId) ||
-                !models.containsKey(instances[placement.instanceId]!.modelId),
+                !models.containsKey(instances[placement.instanceId]!.modelId) ||
+                primitives[placement.primitiveId]?.sourceModelId !=
+                    instances[placement.instanceId]!.modelId,
           )) {
         continue;
       }
@@ -188,20 +244,171 @@ List<SpatialBorderGroundReplacement> resolveSpatialBorderGroundReplacements({
         final left = xs.reduce(math.min), right = xs.reduce(math.max);
         final top = zs.reduce(math.min), bottom = zs.reduce(math.max);
         if (right - left <= .000001 || bottom - top <= .000001) continue;
-        result.add((
-          left: left,
-          top: top,
-          right: right,
-          bottom: bottom,
-          lowerHeight:
-              instance.position.y +
-              (bounds.min.y +
-                      publication.definition.groundBaseOffset -
-                      model.pivot.y) *
-                  scale,
-          upperHeight:
-              instance.position.y + (bounds.max.y - model.pivot.y) * scale,
-        ));
+        final footprints = [
+          for (final footprint
+              in primitives[placement.primitiveId]!.groundFootprints)
+            BorderGroundFootprint(
+              points: [
+                for (final point in footprint.points)
+                  BorderGroundPoint(
+                    x:
+                        instance.position.x +
+                        math.cos(angle) * (point.x - model.pivot.x) * scale +
+                        math.sin(angle) * (point.z - model.pivot.z) * scale,
+                    z:
+                        instance.position.z -
+                        math.sin(angle) * (point.x - model.pivot.x) * scale +
+                        math.cos(angle) * (point.z - model.pivot.z) * scale,
+                  ),
+              ],
+            ),
+        ];
+        result.add(
+          SpatialBorderGroundReplacement(
+            left: left,
+            top: top,
+            right: right,
+            bottom: bottom,
+            footprints: List.unmodifiable(footprints),
+            lowerHeight:
+                instance.position.y +
+                (bounds.min.y +
+                        publication.definition.groundBaseOffset -
+                        model.pivot.y) *
+                    scale,
+            upperHeight:
+                instance.position.y + (bounds.max.y - model.pivot.y) * scale,
+          ),
+        );
+      }
+    }
+  }
+  return List.unmodifiable(result);
+}
+
+final class SpatialBorderGroundSurface {
+  SpatialBorderGroundSurface({
+    required this.layerId,
+    required this.sourceSmartTilePresetId,
+    required this.materialId,
+    required this.height,
+    required this.opacity,
+    this.gradientX = 0,
+    this.gradientZ = 0,
+    required List<BorderGroundFootprint> footprints,
+  }) : footprints = List.unmodifiable(footprints);
+
+  final String layerId;
+  final String sourceSmartTilePresetId;
+  final String materialId;
+  final double height;
+  final double opacity;
+  final double gradientX;
+  final double gradientZ;
+  final List<BorderGroundFootprint> footprints;
+
+  double heightAt(double x, double z) => height + gradientX * x + gradientZ * z;
+}
+
+List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfaces({
+  required ProjectManifest manifest,
+  required MapData map,
+}) {
+  final scene = map.spatialScene;
+  if (scene == null) return const [];
+  final instances = {
+    for (final instance in scene.instances) instance.id: instance,
+  };
+  final models = {for (final model in manifest.models3d) model.id: model};
+  final result = <SpatialBorderGroundSurface>[];
+  final ordered = mapPaintsFirstLayerInFront(map)
+      ? map.layers.reversed
+      : map.layers;
+  for (final layer in ordered.whereType<BorderLayer>()) {
+    if (!layer.isVisible || layer.opacity <= 0) continue;
+    for (final feature in layer.content.features) {
+      final published = manifest.borderCatalog
+          .recordById(feature.blueprintId)
+          ?.latestPublished;
+      final applied = feature.materialization;
+      if (published == null ||
+          applied == null ||
+          !applied.targetsSpatialScene ||
+          applied.receipt.blueprintRevision != published.revision) {
+        continue;
+      }
+      final primitives = {
+        for (final primitive in published.definition.primitives)
+          primitive.id: primitive,
+      };
+      if (applied.spatialPlacements.any(
+        (placement) =>
+            !instances.containsKey(placement.instanceId) ||
+            !models.containsKey(instances[placement.instanceId]!.modelId) ||
+            primitives[placement.primitiveId]?.sourceModelId !=
+                instances[placement.instanceId]!.modelId,
+      )) {
+        continue;
+      }
+      for (final placement in applied.spatialPlacements) {
+        final instance = instances[placement.instanceId]!;
+        final model = models[instance.modelId]!;
+        final scale = model.scale * instance.scale;
+        final angle = instance.rotationDegrees * math.pi / 180;
+        for (final surface
+            in primitives[placement.primitiveId]!.groundSurfaces) {
+          final gradientX =
+              surface.gradientX * math.cos(angle) +
+              surface.gradientZ * math.sin(angle);
+          final gradientZ =
+              -surface.gradientX * math.sin(angle) +
+              surface.gradientZ * math.cos(angle);
+          result.add(
+            SpatialBorderGroundSurface(
+              layerId: layer.id,
+              sourceSmartTilePresetId: surface.sourceSmartTilePresetId,
+              materialId: surface.materialId,
+              height:
+                  instance.position.y +
+                  (surface.height +
+                          surface.gradientX * model.pivot.x +
+                          surface.gradientZ * model.pivot.z -
+                          model.pivot.y) *
+                      scale -
+                  gradientX * instance.position.x -
+                  gradientZ * instance.position.z,
+              gradientX: gradientX,
+              gradientZ: gradientZ,
+              opacity: layer.opacity,
+              footprints: [
+                for (final footprint in surface.footprints)
+                  BorderGroundFootprint(
+                    points: [
+                      for (final point in footprint.points)
+                        BorderGroundPoint(
+                          x:
+                              instance.position.x +
+                              math.cos(angle) *
+                                  (point.x - model.pivot.x) *
+                                  scale +
+                              math.sin(angle) *
+                                  (point.z - model.pivot.z) *
+                                  scale,
+                          z:
+                              instance.position.z -
+                              math.sin(angle) *
+                                  (point.x - model.pivot.x) *
+                                  scale +
+                              math.cos(angle) *
+                                  (point.z - model.pivot.z) *
+                                  scale,
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          );
+        }
       }
     }
   }
@@ -271,6 +478,52 @@ BorderDiagnosticsReport diagnoseSpatialBorderFeature({
   return BorderDiagnosticsReport(diagnostics: diagnostics);
 }
 
+List<String> validateBorderGroundSurfaceSources({
+  required BorderGroundSurface surface,
+  required ProjectManifest manifest,
+}) {
+  final errors = <String>[];
+  final preset = manifest.smartTileCatalog.presets
+      .where((preset) => preset.id == surface.sourceSmartTilePresetId)
+      .firstOrNull;
+  final material = manifest.smartTileCatalog.materials
+      .where((material) => material.id == surface.materialId)
+      .firstOrNull;
+  if (preset == null || preset.usage != SmartTileUsage.terrain) {
+    errors.add('border.spatial.ground_surface_preset_invalid');
+  } else {
+    if (!preset.allowedMaterialIds.contains(surface.materialId)) {
+      errors.add('border.spatial.ground_surface_material_not_allowed');
+    }
+    if (preset.topology != SmartTileTopology.uniform ||
+        preset.rules.isEmpty ||
+        preset.rules.any(
+          (rule) => rule.candidates.any(
+            (candidate) => candidate.parts.any(
+              (part) =>
+                  part.source is SmartTileModel3dSource ||
+                  part.channel != SmartTileRenderChannel.ground ||
+                  part.footprintWidth != 1 ||
+                  part.footprintHeight != 1 ||
+                  part.offsetX != 0 ||
+                  part.offsetY != 0 ||
+                  part.anchorX != 0 ||
+                  part.anchorY != 0 ||
+                  part.spatialHeightOffset != 0 ||
+                  !part.spatialFollowTerrain ||
+                  part.spatialClip != null,
+            ),
+          ),
+        )) {
+      errors.add('border.spatial.ground_surface_raster_terrain_required');
+    }
+  }
+  if (material == null || material.isEmpty) {
+    errors.add('border.spatial.ground_surface_material_missing');
+  }
+  return errors;
+}
+
 BorderDiagnosticsReport validateSpatialBorderBlueprint({
   required String blueprintId,
   required BorderBlueprintPublishedDefinition definition,
@@ -308,6 +561,29 @@ BorderDiagnosticsReport validateSpatialBorderBlueprint({
           (clip) => clip.index == primitive.animationIndex,
         )) {
       error('border.spatial.animation_missing', primitiveId: primitive.id);
+    }
+    if (model != null &&
+        primitive.groundFootprints.any(
+          (footprint) => footprint.points.any(
+            (point) =>
+                point.x < model.inspection.bounds.min.x - 1e-6 ||
+                point.x > model.inspection.bounds.max.x + 1e-6 ||
+                point.z < model.inspection.bounds.min.z - 1e-6 ||
+                point.z > model.inspection.bounds.max.z + 1e-6,
+          ),
+        )) {
+      error(
+        'border.spatial.ground_footprint_outside_model',
+        primitiveId: primitive.id,
+      );
+    }
+    for (final surface in primitive.groundSurfaces) {
+      for (final code in validateBorderGroundSurfaceSources(
+        surface: surface,
+        manifest: manifest,
+      )) {
+        error(code, primitiveId: primitive.id);
+      }
     }
     if (!const {
       BorderPrimitiveRole.lineCap,
@@ -579,8 +855,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
               node.outgoingDirection?.name,
             ]
           : [chain.lineageNamespace];
-      final slotKey =
-          'border3d-slot:${_hash([layerId, featureId, ...lineage, node.cell.x, node.cell.y]).substring(7)}';
+      final slotKey = _spatialSlotKey(layerId, featureId, lineage, node.cell);
       if (!slots.add(slotKey)) {
         error('border.spatial.slot_identity_conflict', slotKey: slotKey);
         continue;
@@ -820,7 +1095,10 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   };
   final components = BorderInputFingerprints(
     blueprint: _hash(
-      encodeBorderBlueprintRevisionJson(revision, formatVersion: 6),
+      encodeBorderBlueprintRevisionJson(
+        revision,
+        formatVersion: manifest.borderCatalog.formatVersion,
+      ),
     ),
     geometryAndSeed: _hash({
       'geometry': featureJson['geometry'],
@@ -884,6 +1162,166 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
     ),
     modelInstances: instances,
   );
+}
+
+MapData moveSpatialBorderFeature(
+  MapData map, {
+  required ProjectManifest manifest,
+  required String layerId,
+  required String featureId,
+  required BorderFeatureGeometry geometry,
+  required int dx,
+  required int dz,
+}) {
+  final feature = map.layers
+      .whereType<BorderLayer>()
+      .where((layer) => layer.id == layerId)
+      .firstOrNull
+      ?.content
+      .featureById(featureId);
+  if (map.spatialScene == null || feature == null) {
+    throw const ValidationException('A spatial Border feature is required');
+  }
+  final updated = updateBorderFeatureGeometry(
+    map,
+    layerId: layerId,
+    featureId: featureId,
+    geometry: geometry,
+  );
+  if (feature.overrides.isEmpty || (dx == 0 && dz == 0)) return updated;
+  if (feature.overrides.any((override) => override.locked)) {
+    throw const ValidationException(
+      'Unlock spatial Border slots before moving the feature',
+    );
+  }
+  final definition = manifest.borderCatalog
+      .recordById(feature.blueprintId)
+      ?.latestPublished
+      ?.definition;
+  if (definition == null) {
+    throw const ValidationException(
+      'The spatial Border blueprint is unavailable',
+    );
+  }
+  final translatedKeys = _translatedSpatialSlotKeys(
+    feature.geometry,
+    layerId: layerId,
+    featureId: featureId,
+    directed: definition.followContourDirection,
+    dx: dx,
+    dz: dz,
+  );
+  final availableKeys = _translatedSpatialSlotKeys(
+    geometry,
+    layerId: layerId,
+    featureId: featureId,
+    directed: definition.followContourDirection,
+    dx: 0,
+    dz: 0,
+  ).keys.toSet();
+  final source = resolveSpatialBorderFeature(
+    manifest: manifest,
+    map: map,
+    layerId: layerId,
+    featureId: featureId,
+  );
+  if (!source.result.canApply) {
+    throw const ValidationException(
+      'Resolve spatial Border corrections before moving the feature',
+    );
+  }
+  final selectedPrimitives = {
+    for (final placement in source.result.materialization!.spatialPlacements)
+      placement.slotKey: placement.primitiveId,
+  };
+  final overrides = <BorderSlotOverride>[];
+  for (final override in feature.overrides) {
+    final key = translatedKeys[override.slotKey];
+    if (key == null || !availableKeys.contains(key)) {
+      throw const ValidationException(
+        'A spatial Border override cannot follow this translation',
+      );
+    }
+    overrides.add(
+      BorderSlotOverride(
+        slotKey: key,
+        variationSalt: override.variationSalt,
+        suppressed: override.suppressed,
+        locked: false,
+        replacementPrimitiveId: override.suppressed
+            ? null
+            : override.replacementPrimitiveId ??
+                  selectedPrimitives[override.slotKey],
+        offsetDeltaPx: override.offsetDeltaPx,
+        transformOverride: override.transformOverride,
+      ),
+    );
+  }
+  return updateBorderFeatureOverrides(
+    updated,
+    layerId: layerId,
+    featureId: featureId,
+    overrides: overrides,
+  );
+}
+
+String _spatialSlotKey(
+  String layerId,
+  String featureId,
+  List<Object?> lineage,
+  GridPos cell,
+) =>
+    'border3d-slot:${_hash([layerId, featureId, ...lineage, cell.x, cell.y]).substring(7)}';
+
+Map<String, String> _translatedSpatialSlotKeys(
+  BorderFeatureGeometry geometry, {
+  required String layerId,
+  required String featureId,
+  required bool directed,
+  required int dx,
+  required int dz,
+}) {
+  final keys = <String, String>{};
+  void add(List<Object?> lineage, GridPos cell) {
+    keys[_spatialSlotKey(layerId, featureId, lineage, cell)] = _spatialSlotKey(
+      layerId,
+      featureId,
+      lineage,
+      GridPos(x: cell.x + dx, y: cell.y + dz),
+    );
+  }
+
+  switch (geometry) {
+    case BorderStrokeGeometry geometry:
+      for (final stroke in geometry.strokes) {
+        final lattice = buildBorderLinearLatticeV1(
+          stroke: stroke,
+          tileSizePx: const GridSize(width: 1, height: 1),
+          preserveTraversal: directed,
+        );
+        for (final node in lattice.nodes) {
+          add([lattice.lineageNamespace], node.cell);
+        }
+      }
+    case BorderRegionGeometry geometry:
+      for (final contour in extractCanonicalBorderRegionContours(
+        region: geometry,
+        tileSizePx: const GridSize(width: 1, height: 1),
+      )) {
+        for (var index = 0; index < contour.edges.length; index++) {
+          add([
+            'region',
+            contour
+                .edges[(index + contour.edges.length - 1) %
+                    contour.edges.length]
+                .direction
+                .name,
+            contour.edges[index].direction.name,
+          ], contour.edges[index].startVertex);
+        }
+      }
+  }
+  return keys;
 }
 
 GridPos _strokeLandCell(

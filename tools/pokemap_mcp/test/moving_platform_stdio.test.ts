@@ -13,7 +13,8 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test('packaged MCP discovers and authors moving platforms without whole-map persistence', { timeout: 120_000 }, async () => {
+for (const smartTerrain of [false, true]) {
+test(`packaged MCP authors ${smartTerrain ? 'Smart Tile' : 'Tile'} moving platforms without whole-map persistence`, { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'pokemap-moving-platform-'));
   const mapPath = join(root, 'gym.json');
   const cells = [{ x: 0, y: 0 }];
@@ -22,19 +23,36 @@ test('packaged MCP discovers and authors moving platforms without whole-map pers
     lattice: { widthPx: 32, heightPx: 24.03323336836951, originLeftPx: 0, originTopPx: 0,
       cellOffsetLeftPx: 0, cellOffsetTopPx: 0 },
     translationDistanceCells: 5, terrainLayerIds: ['magma'], travelCells: [{ x: 2, y: 2 }],
+    controls: [{ id: 'turn', cell: { x: 0, y: 0 }, motion: 'rotateClockwise' }],
+    ...(smartTerrain ? { terrainCellsByLayer: {
+      magma: Array.from({ length: 100 }, (_, index) => ({ x: index % 10, y: Math.floor(index / 10) })),
+    } } : {}),
     variants: Array.from({ length: 4 }, () => ({ elementId: 'platform', anchorOffsetPx: { x: 0, y: 0 },
       supportCells: cells, clearanceCells: cells, forwardClearanceCells: cells,
       backwardClearanceCells: cells, rotationClearanceCells: cells })),
   };
   const map: JsonRecord = { id: 'gym', name: 'Gym', version: 'v8', size: { width: 10, height: 10 },
-    layers: [{ runtimeType: 'tile', id: 'magma', name: 'Magma', isVisible: true, opacity: 1, purpose: 'visual', palette: [], cells: Array(100).fill(0) },
+    layers: [smartTerrain
+      ? { runtimeType: 'smart_tile', id: 'magma', name: 'Magma', presetId: 'lava', usage: 'terrain',
+        isVisible: true, opacity: 1, layerSeed: 0, animationActivation: 'always',
+        patternStrokes: [], properties: {},
+        materialPalette: ['', 'lava'], field: { kind: 'cell', semanticCells: Array(100).fill(1) } }
+      : { runtimeType: 'tile', id: 'magma', name: 'Magma', isVisible: true, opacity: 1, purpose: 'visual', palette: [], cells: Array(100).fill(0) },
+      { runtimeType: 'tile', id: 'platform-art', name: 'Art', isVisible: true,
+        opacity: 1, purpose: 'visual', palette: [], cells: Array(100).fill(0) },
       { runtimeType: 'collision', id: 'walls', name: 'Walls', isVisible: true, opacity: 1, collisions: Array(100).fill(false) }],
-    placedElements: [{ id: 'art', layerId: 'magma', elementId: 'platform', pos: { x: 2, y: 2 },
+    placedElements: [{ id: 'art', layerId: 'platform-art', elementId: 'platform', pos: { x: 2, y: 2 },
       applyCollision: false, properties: { pokemapPlacementOrigin: 'authored' } }],
   };
   await writeFile(mapPath, JSON.stringify(map));
   await writeFile(join(root, 'project.json'), JSON.stringify({ name: 'Moving Platform MCP', version: 'v8',
     pokemon: canonicalPokemonConfig(), settings: { tileWidth: 32, tileHeight: 32 },
+    ...(smartTerrain ? { smartTileCatalog: { formatVersion: 4,
+      materials: [{ id: 'lava', name: 'Lava', connectionGroupId: 'lava' }],
+      presets: [{ id: 'lava', name: 'Lava', usage: 'terrain', topology: 'uniform',
+        coveragePolicy: 'sparse', coverageProfile: { mode: 'explicit' }, transformPolicy: {},
+        defaultMaterialId: 'lava', allowedMaterialIds: ['lava'] }],
+    } } : {}),
     maps: [{ id: 'gym', name: 'Gym', relativePath: 'gym.json' }],
     tilesets: [{ id: 'tiles', name: 'Tiles', relativePath: 'tiles.png' }],
     elements: [{ id: 'platform', name: 'Platform', tilesetId: 'tiles', categoryId: 'platform',
@@ -57,6 +75,11 @@ test('packaged MCP discovers and authors moving platforms without whole-map pers
     const actions = catalog.mutationActions as JsonRecord[];
     assert.ok(actions.some((action) => action.id === 'map.platform.upsert'));
     assert.ok(actions.some((action) => action.id === 'map.platform.delete'));
+    const platformAction = actions.find((action) => action.id === 'map.platform.upsert');
+    assert.ok(JSON.stringify(platformAction).includes('nominatedTileAndSmartTileLayersOnly'));
+    assert.ok(JSON.stringify(platformAction).includes('occupiedSemanticCells'));
+    assert.ok(JSON.stringify(platformAction).includes('explicitLatticeCellsByLayer'));
+    assert.ok(JSON.stringify(platformAction).includes('automaticPlayerEntryWithRotationAndCarrySuppression'));
     const sceneAction = actions.find((action) => action.id === 'scene.upsert');
     assert.ok(JSON.stringify(sceneAction).includes('movePlatform'));
     const workspace = await call('pokemap_workspace', { operation: 'open', projectRoot: root });
@@ -96,3 +119,4 @@ test('packaged MCP discovers and authors moving platforms without whole-map pers
     await rm(root, { recursive: true, force: true });
   }
 });
+}

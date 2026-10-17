@@ -12,6 +12,43 @@ import 'border_spatial_actions_test.dart'
 import 'environment_spatial_actions_test.dart' show environmentModelGlb;
 
 void main() {
+  test('planar erased fragments retain valid lineage after a canonical move',
+      () async {
+    final fixture = _planarFixture();
+    final erased = const BorderActions().eraseStroke(
+        manifest: fixture.project,
+        map: fixture.map,
+        layerId: 'border',
+        featureId: 'fence',
+        sampledPoints: const [GridPos(x: 4, y: 1)]);
+    final mutation = await MapMutationDispatcher.canonical().build(context(
+        librarySnapshot([erased], project: fixture.project),
+        'border_layer.feature_move',
+        {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence', 'dx': 1, 'dy': 1}));
+    final moved = MapData.fromJson(jsonDecode(
+        utf8.decode(mutation.changeSet.changes.single.afterBytes!)));
+    final feature = moved.layers.whereType<BorderLayer>()
+        .single.content.features.single;
+    final strokes = (feature.geometry as BorderStrokeGeometry).strokes;
+    expect(strokes, hasLength(2));
+    for (final stroke in strokes) {
+      expect(resolveBorderStrokeLineageIdentityV1(stroke).preserveTraversal, isTrue);
+    }
+    final result = resolveBorderFeature(BorderResolutionRequest(
+        mapSize: moved.size,
+        tileSizePx: const GridSize(width: 16, height: 16),
+        blueprintId: feature.blueprintId,
+        blueprintRevision: fixture.project.borderCatalog
+            .recordById(feature.blueprintId)!.latestPublished!,
+        feature: feature,
+        visualSnapshots: fixture.project.borderCatalog.visualSnapshots,
+        resolverVersion: borderResolverVersion));
+    expect(result.canApply, isTrue);
+    expect(result.materialization!.placements, hasLength(6));
+    expect(moved.layers.first, fixture.map.layers.first);
+    expect(moved.spatialScene, isNull);
+    expect(MapData.fromJson(jsonDecode(jsonEncode(moved.toJson()))), moved);
+  });
   test(
       'planar canonical erasure resolves both fragments and preserves the foreign layers',
       () async {

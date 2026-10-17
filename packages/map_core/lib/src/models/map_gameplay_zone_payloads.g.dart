@@ -79,26 +79,75 @@ const _$MovementModeEnumMap = {
 
 _MovementEffectZonePayload _$MovementEffectZonePayloadFromJson(
   Map<String, dynamic> json,
-) => _MovementEffectZonePayload(
-  effectKind:
-      $enumDecodeNullable(
-        _$MovementEffectZoneKindEnumMap,
-        json['effectKind'],
-      ) ??
-      MovementEffectZoneKind.slide,
-  movementCost: (json['movementCost'] as num?)?.toInt() ?? 1,
-);
+) {
+  $checkKeys(
+    json,
+    allowedKeys: const ['effectKind', 'movementCost', 'directedJump'],
+  );
+  return _MovementEffectZonePayload(
+    effectKind:
+        $enumDecodeNullable(
+          _$MovementEffectZoneKindEnumMap,
+          json['effectKind'],
+        ) ??
+        MovementEffectZoneKind.slide,
+    movementCost: (json['movementCost'] as num?)?.toInt() ?? 1,
+    directedJump: json['directedJump'] == null
+        ? null
+        : DirectedJumpZonePayload.fromJson(
+            json['directedJump'] as Map<String, dynamic>,
+          ),
+  );
+}
 
 Map<String, dynamic> _$MovementEffectZonePayloadToJson(
   _MovementEffectZonePayload instance,
 ) => <String, dynamic>{
   'effectKind': _$MovementEffectZoneKindEnumMap[instance.effectKind]!,
   'movementCost': instance.movementCost,
+  'directedJump': ?instance.directedJump?.toJson(),
 };
 
 const _$MovementEffectZoneKindEnumMap = {
   MovementEffectZoneKind.slide: 'slide',
   MovementEffectZoneKind.movementCost: 'movementCost',
+  MovementEffectZoneKind.directedJump: 'directedJump',
+};
+
+_DirectedJumpZonePayload _$DirectedJumpZonePayloadFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(
+    json,
+    allowedKeys: const [
+      'direction',
+      'distanceCells',
+      'durationMs',
+      'peakHeightPx',
+    ],
+  );
+  return _DirectedJumpZonePayload(
+    direction: $enumDecode(_$MapConnectionDirectionEnumMap, json['direction']),
+    distanceCells: (json['distanceCells'] as num?)?.toInt() ?? 2,
+    durationMs: (json['durationMs'] as num?)?.toInt() ?? 500,
+    peakHeightPx: (json['peakHeightPx'] as num?)?.toInt() ?? 24,
+  );
+}
+
+Map<String, dynamic> _$DirectedJumpZonePayloadToJson(
+  _DirectedJumpZonePayload instance,
+) => <String, dynamic>{
+  'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
+  'distanceCells': instance.distanceCells,
+  'durationMs': instance.durationMs,
+  'peakHeightPx': instance.peakHeightPx,
+};
+
+const _$MapConnectionDirectionEnumMap = {
+  MapConnectionDirection.north: 'north',
+  MapConnectionDirection.south: 'south',
+  MapConnectionDirection.east: 'east',
+  MapConnectionDirection.west: 'west',
 };
 
 _HazardZonePayload _$HazardZonePayloadFromJson(Map<String, dynamic> json) =>
@@ -214,13 +263,6 @@ Map<String, dynamic> _$WaterfallZonePayloadToJson(
   'exit': instance.exit.toJson(),
   'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
   'requiresSurf': instance.requiresSurf,
-};
-
-const _$MapConnectionDirectionEnumMap = {
-  MapConnectionDirection.north: 'north',
-  MapConnectionDirection.south: 'south',
-  MapConnectionDirection.east: 'east',
-  MapConnectionDirection.west: 'west',
 };
 
 _DiveZonePayload _$DiveZonePayloadFromJson(Map<String, dynamic> json) {

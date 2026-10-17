@@ -46,6 +46,8 @@ class GameplayWorldState {
     required this.map,
     required this.player,
     required this.borderJumpBindings,
+    required this.movingPlatformWorldState,
+    required ProjectManifest? collisionProject,
     required List<bool> tileCollisionCellCache,
     required List<bool> placedElementCellCollisionCache,
     required WorldCollisionStorage staticCollisionStorage,
@@ -63,7 +65,8 @@ class GameplayWorldState {
     required int tileHeight,
     this.npcMapPresencePredicate,
     this.mapEntityPresencePredicate,
-  })  : _tileCollisionCellCache = tileCollisionCellCache,
+  })  : _collisionProject = collisionProject,
+        _tileCollisionCellCache = tileCollisionCellCache,
         _placedElementCellCollisionCache = placedElementCellCollisionCache,
         _staticCollisionStorage = staticCollisionStorage,
         _blockingEntityByPos = blockingEntityByPos,
@@ -112,6 +115,8 @@ class GameplayWorldState {
       project: project,
     );
     return GameplayWorldState._(
+      collisionProject: project,
+      movingPlatformWorldState: movingPlatformWorldState,
       map: map,
       player: GameplayPlayerState.fromGridSpawn(
         cell: playerPos,
@@ -246,6 +251,8 @@ class GameplayWorldState {
       entityPresence: mapEntityPresencePredicate,
     );
     final world = GameplayWorldState._(
+      collisionProject: project,
+      movingPlatformWorldState: movingPlatformWorldState,
       map: map,
       player: player,
       borderJumpBindings: borderBindings,
@@ -328,6 +335,8 @@ class GameplayWorldState {
 
   /// Calque collision **tuiles** uniquement (grille auteur). Pas les éléments placés.
   final List<bool> _tileCollisionCellCache;
+  final ProjectManifest? _collisionProject;
+  final MovingPlatformWorldState movingPlatformWorldState;
   final List<bool> _placedElementCellCollisionCache;
   final WorldCollisionStorage _staticCollisionStorage;
   final Map<int, List<MapEntity>> _blockingEntityByPos;
@@ -357,6 +366,7 @@ class GameplayWorldState {
   bool worldStaticObstaclesCollidePixelRect(PixelRect rect,
       {bool playerContact = false,
       BorderCollisionExclusion? borderExclusion,
+      Set<String> ignoredSupportableTerrainLayerIds = const {},
       String? ignoredEntityId, String? permittedWaterfallZoneId}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
     for (final zone in map.gameplayZones) {
@@ -380,6 +390,7 @@ class GameplayWorldState {
       rect,
       isDynamicCellBlocked: (_) => false,
       borderExclusion: borderExclusion,
+      ignoredSupportableTerrainLayerIds: ignoredSupportableTerrainLayerIds,
     )) {
       return true;
     }
@@ -645,8 +656,85 @@ class GameplayWorldState {
     return toActivation;
   }
 
+  GameplayWorldState withMovingPlatformState({
+    required ProjectManifest project,
+    required MovingPlatformWorldState worldState,
+  }) {
+    final tile = PixelSize(width: _tileWidth, height: _tileHeight);
+    final projected = applyMovingPlatformWorldStateToMap(
+      map: map,
+      worldState: worldState,
+      tileSize: tile,
+    );
+    if (!identical(project, _collisionProject)) {
+      return GameplayWorldState.initial(
+        map: projected,
+        project: project,
+        movingPlatformWorldState: worldState,
+        playerPos: player.pos,
+        tileWidth: _tileWidth,
+        tileHeight: _tileHeight,
+        npcMapPresencePredicate: npcMapPresencePredicate,
+        mapEntityPresencePredicate: mapEntityPresencePredicate,
+      ).withPlayer(player);
+    }
+    final terrainIds = {
+      for (final platform in map.movingPlatforms) ...platform.terrainLayerIds,
+    };
+    Map<int, PlacedElementBehaviorActivation> behaviors(
+      MapPlacedElementTriggerType trigger,
+    ) => _buildPlacedElementBehaviorByPos(
+      projected,
+      project: project,
+      tileSize: tile,
+      trigger: trigger,
+    );
+    return GameplayWorldState._(
+      collisionProject: _collisionProject,
+      movingPlatformWorldState: worldState,
+      map: projected,
+      player: player,
+      borderJumpBindings: borderJumpBindings,
+      tileCollisionCellCache: _tileCollisionCellCache,
+      placedElementCellCollisionCache: _placedElementCellCollisionCache,
+      staticCollisionStorage: _staticCollisionStorage.withSupportRectsByLayer({
+        for (final id in terrainIds)
+          id: movingPlatformSupportRects(
+            map: projected,
+            worldState: worldState,
+            tileSize: tile,
+            terrainLayerId: id,
+          ).toList(),
+      }),
+      blockingEntityByPos: _blockingEntityByPos,
+      warpCandidatesByPos: _warpCandidatesByPos,
+      entityByPos: _entityByPos,
+      actionBehaviorByPos: behaviors(MapPlacedElementTriggerType.onAction),
+      enterBehaviorByPos: behaviors(MapPlacedElementTriggerType.onEnter),
+      bumpBehaviorByPos: behaviors(MapPlacedElementTriggerType.onBump),
+      exitBehaviorByPos: behaviors(MapPlacedElementTriggerType.onExit),
+      nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
+        projected,
+        project: project,
+        tileSize: tile,
+      ),
+      placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
+        projected,
+        project: project,
+        tileSize: tile,
+      ),
+      waterCellCache: _waterCellCache,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
+    );
+  }
+
   GameplayWorldState withPlayer(GameplayPlayerState player) =>
       GameplayWorldState._(
+      collisionProject: _collisionProject,
+      movingPlatformWorldState: movingPlatformWorldState,
         map: map,
         player: player,
         tileCollisionCellCache: _tileCollisionCellCache,
@@ -679,6 +767,8 @@ class GameplayWorldState {
       entityPresence: mapEntityPresencePredicate,
     );
     return GameplayWorldState._(
+      collisionProject: _collisionProject,
+      movingPlatformWorldState: movingPlatformWorldState,
       map: map,
       player: player,
       tileCollisionCellCache: _tileCollisionCellCache,
@@ -717,6 +807,8 @@ class GameplayWorldState {
       entityPresence: predicate,
     );
     return GameplayWorldState._(
+      collisionProject: _collisionProject,
+      movingPlatformWorldState: movingPlatformWorldState,
       map: map,
       player: player,
       tileCollisionCellCache: _tileCollisionCellCache,
@@ -809,6 +901,8 @@ class GameplayWorldState {
       entityPresence: mapEntityPresencePredicate,
     );
     return GameplayWorldState._(
+      collisionProject: _collisionProject,
+      movingPlatformWorldState: movingPlatformWorldState,
       map: updatedMap,
       player: player,
       tileCollisionCellCache: _tileCollisionCellCache,
@@ -959,6 +1053,35 @@ List<bool> _buildTileCollisionCellCache(
   return List<bool>.unmodifiable(cache);
 }
 
+List<bool> _buildMovingPlatformTerrainCollisionCells(
+  MapData map, {
+  required String layerId,
+  required ProjectManifest? project,
+}) {
+  final layer = map.layers.singleWhere((layer) => layer.id == layerId);
+  if (layer is SmartTileLayer) {
+    final cells = smartTileSemanticCells(layer);
+    final emptyMaterialIds = {
+      for (final material in project?.smartTileCatalog.materials ??
+          const <ProjectSmartTileMaterial>[])
+        if (material.isEmpty) material.id,
+    };
+    return List<bool>.unmodifiable([
+      for (var i = 0; i < map.size.width * map.size.height; i++)
+        layer.isVisible &&
+            i < cells.length &&
+            cells[i] > 0 &&
+            cells[i] < layer.materialPalette.length &&
+            layer.materialPalette[cells[i]].isNotEmpty &&
+            !emptyMaterialIds.contains(layer.materialPalette[cells[i]]),
+    ]);
+  }
+  return _buildTileCollisionCellCache(
+    map.copyWith(layers: [layer]),
+    project: project,
+  );
+}
+
 WorldCollisionStorage _buildStaticCollisionStorage(
   MapData map, {
   required ProjectManifest? project,
@@ -976,6 +1099,15 @@ WorldCollisionStorage _buildStaticCollisionStorage(
     validateMovingPlatformMapState(map: map, project: project, worldState: movingPlatformWorldState,
         tileSize: PixelSize(width: safeTileWidth, height: safeTileHeight));
   }
+  final preciseTerrain = <String, List<PixelRect>>{};
+  for (final platform in map.movingPlatforms) {
+    for (final entry in platform.terrainCellsByLayer.entries) {
+      preciseTerrain.putIfAbsent(entry.key, () => [
+        for (final cell in entry.value)
+          movingPlatformTerrainCellRect(platform: platform, cell: cell),
+      ]);
+    }
+  }
   final storage = WorldCollisionStorageBuilder(
     widthCells: map.size.width,
     heightCells: map.size.height,
@@ -983,8 +1115,9 @@ WorldCollisionStorage _buildStaticCollisionStorage(
     tileHeightPx: safeTileHeight,
     tileCollisionCells: terrainIds.isEmpty ? tileCollisionCellCache : _buildTileCollisionCellCache(
       map, project: project, ignoredTileLayerIds: terrainIds),
-    supportableTerrainCellsByLayer: {for (final id in terrainIds) id: _buildTileCollisionCellCache(
-      map.copyWith(layers: map.layers.where((layer) => layer.id == id).toList()), project: project)},
+    supportableTerrainCellsByLayer: {for (final id in terrainIds) if (!preciseTerrain.containsKey(id)) id: _buildMovingPlatformTerrainCollisionCells(
+      map, layerId: id, project: project)},
+    supportableTerrainRectsByLayer: preciseTerrain,
     supportRectsByLayer: {for (final id in terrainIds) id: movingPlatformSupportRects(
       map: map, worldState: movingPlatformWorldState, terrainLayerId: id,
       tileSize: PixelSize(width: safeTileWidth, height: safeTileHeight)).toList()},

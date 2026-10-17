@@ -11,11 +11,18 @@ import 'smart_tile_native_transition_guard.dart';
 final class SmartTilePatternActions {
   const SmartTilePatternActions();
 
+  static const maximumStrokesPerBatch = 250;
+  static const maximumCellsPerBatch = 65536;
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
       _descriptor(
         'smart_tile.pattern.paint',
         'Paint one reusable Smart Tile pattern as an atomic stroke',
+      ),
+      _descriptor(
+        'smart_tile.pattern.paint_batch',
+        'Paint an ordered bounded batch of reusable Smart Tile patterns',
       ),
       _descriptor(
         'smart_tile.pattern.erase',
@@ -27,6 +34,7 @@ final class SmartTilePatternActions {
   AuthoringMutationDraft build(AuthoringPlanningContext planning) =>
       switch (planning.request.actionId) {
         'smart_tile.pattern.paint' => _paint(planning),
+        'smart_tile.pattern.paint_batch' => _paintBatch(planning),
         'smart_tile.pattern.erase' => _erase(planning),
         _ => throw semanticFailure(
             'smart_tile.pattern.action_unsupported',
@@ -36,6 +44,140 @@ final class SmartTilePatternActions {
             },
           ),
       };
+
+  AuthoringMutationDraft _paintBatch(AuthoringPlanningContext planning) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const {'layerId', 'strokes', 'collisionLayerId'},
+    );
+    final operation = planning.request.actionId;
+    final layerId = context.parameters.string('layerId');
+    requireExistingNativeSmartTileProject(
+      planning.snapshot,
+      operation: operation,
+      layerId: layerId,
+    );
+    var layer = _patternLayer(context.map, layerId);
+    final strokes = context.parameters.list('strokes');
+    if (strokes.isEmpty) {
+      throw invalidSemanticField(
+          'strokes', 'a nonempty list of pattern strokes');
+    }
+    if (strokes.length > maximumStrokesPerBatch) {
+      throw semanticFailure(
+        'smart_tile.pattern.batch_too_large',
+        'The Smart Tile pattern batch exceeds the bounded stroke limit.',
+        details: {'maximumStrokeCount': maximumStrokesPerBatch},
+      );
+    }
+    final patterns = {
+      for (final pattern in context.manifest.smartTileCatalog.patterns)
+        pattern.id: pattern,
+    };
+    final strokeIds = <String>{};
+    final collisions = <SmartTilePatternCollisionUpdate>[];
+    var affectedCellCount = 0;
+    for (var index = 0; index < strokes.length; index++) {
+      final raw = strokes[index];
+      if (raw is! Map || raw.keys.any((key) => key is! String)) {
+        throw invalidSemanticField(
+            'strokes[$index]', 'a pattern stroke object');
+      }
+      final parameters = SemanticParameters(
+        Map<String, Object?>.from(raw),
+        allowed: const {
+          'patternId',
+          'strokeId',
+          'selection',
+          'phaseX',
+          'phaseY',
+          'materialId',
+        },
+      );
+      final strokeId = parameters.string('strokeId');
+      if (!strokeIds.add(strokeId)) {
+        throw semanticFailure(
+          'smart_tile.pattern.batch_duplicate_stroke',
+          'Pattern stroke IDs must be unique within the batch.',
+          details: {'strokeId': strokeId},
+        );
+      }
+      final patternId = parameters.string('patternId');
+      final pattern = patterns[patternId];
+      if (pattern == null) {
+        throw semanticFailure(
+          'smart_tile.pattern.unknown',
+          'The requested Smart Tile pattern does not exist.',
+          details: {'patternId': patternId},
+        );
+      }
+      final selection = _patternSelection(
+        parameters.object('selection'),
+        mapSize: context.map.size,
+      );
+      final materialId = _patternMaterial(context, layer, parameters);
+      if (affectedCellCount == maximumCellsPerBatch) {
+        throw semanticFailure(
+          'smart_tile.pattern.batch_too_large',
+          'The Smart Tile pattern batch exceeds the bounded total cell limit.',
+          details: {'maximumTotalCellCount': maximumCellsPerBatch},
+        );
+      }
+      late final SmartTilePatternApplication application;
+      try {
+        application = applySmartTilePatternGesture(
+          layer,
+          pattern: pattern,
+          mapSize: context.map.size,
+          selection: selection,
+          strokeId: strokeId,
+          phaseX: parameters.optionalInteger('phaseX') ?? 0,
+          phaseY: parameters.optionalInteger('phaseY') ?? 0,
+          materialId: materialId,
+          maximumCellCount: maximumCellsPerBatch - affectedCellCount,
+        );
+      } on SmartTileGestureLimitException {
+        throw semanticFailure(
+          'smart_tile.pattern.batch_too_large',
+          'The Smart Tile pattern batch exceeds the bounded total cell limit.',
+          details: {'maximumTotalCellCount': maximumCellsPerBatch},
+        );
+      } on ValidationException catch (error) {
+        throw semanticFailure(
+          error.code ?? 'smart_tile.pattern.invalid',
+          error.message,
+        );
+      }
+      layer = application.layer;
+      affectedCellCount += application.affectedCells.length;
+      collisions.addAll(application.collisionUpdates);
+    }
+    var projected = _replaceLayer(context.map, layer);
+    final collisionLayerId =
+        context.parameters.optionalString('collisionLayerId');
+    if (collisionLayerId != null && collisions.isNotEmpty) {
+      projected = _applyCollisionUpdates(
+        projected,
+        collisionLayerId: collisionLayerId,
+        updates: collisions,
+      );
+    }
+    return context.draftMap(
+      after: projected,
+      operation: operation,
+      changedItems: affectedCellCount,
+      layerId: layerId,
+      preview: {
+        'strokeCount': strokes.length,
+        'gestureCellCount': affectedCellCount,
+        'collisionUpdateCount': collisions.length,
+        'collisionApplied': collisionLayerId != null,
+        'overlapPolicy': 'ordered_strokes',
+        'batchAtomicity': 'all_or_nothing',
+        'undoBoundary': 'batch',
+      },
+    );
+  }
 
   AuthoringMutationDraft _paint(AuthoringPlanningContext planning) {
     final context = SemanticMapActionContext.read(
@@ -48,6 +190,7 @@ final class SmartTilePatternActions {
         'phaseX',
         'phaseY',
         'collisionLayerId',
+        'materialId',
       },
     );
     final layerId = context.parameters.string('layerId');
@@ -72,6 +215,7 @@ final class SmartTilePatternActions {
       context.parameters.object('selection'),
       mapSize: context.map.size,
     );
+    final materialId = _patternMaterial(context, layer, context.parameters);
     late final SmartTilePatternApplication application;
     try {
       application = applySmartTilePatternGesture(
@@ -82,6 +226,7 @@ final class SmartTilePatternActions {
         strokeId: context.parameters.string('strokeId'),
         phaseX: context.parameters.optionalInteger('phaseX') ?? 0,
         phaseY: context.parameters.optionalInteger('phaseY') ?? 0,
+        materialId: materialId,
       );
     } on SmartTileGestureLimitException catch (error) {
       throw semanticFailure(
@@ -147,7 +292,8 @@ final class SmartTilePatternActions {
         'layerId',
         'cells',
         'selection',
-        'strokeIds'
+        'strokeIds',
+        'clearMaterial',
       },
     );
     final layerId = context.parameters.string('layerId');
@@ -176,21 +322,34 @@ final class SmartTilePatternActions {
         for (final cell in gesture.cells) GridPos(x: cell.x, y: cell.y),
       ],
       strokeIds: strokeIds,
+      clearMaterial: context.parameters.contains('clearMaterial')
+          ? context.parameters.boolean('clearMaterial')
+          : false,
     );
     final afterCount = projectedLayer.patternStrokes.fold<int>(
       0,
       (sum, stroke) => sum + stroke.cells.length,
     );
+    final beforeMaterials = smartTileSemanticCells(layer);
+    final afterMaterials = smartTileSemanticCells(projectedLayer);
+    final clearedMaterialCellCount = gesture.cells.where((cell) {
+      final index = cell.y * context.map.size.width + cell.x;
+      return beforeMaterials[index] != afterMaterials[index];
+    }).length;
     return context.draft(
       SemanticMapEdit(
         map: _replaceLayer(context.map, projectedLayer),
         layerId: layerId,
         operation: 'smart_tile.pattern.erase',
-        changedCells: beforeCount - afterCount,
+        changedCells: beforeCount - afterCount + clearedMaterialCellCount,
         preview: <String, Object?>{
           'gestureSelection': gesture.selectionKind,
           'gestureCellCount': gesture.cells.length,
           'erasedOwnershipCount': beforeCount - afterCount,
+          'clearedMaterialCellCount': clearedMaterialCellCount,
+          'clearMaterial': context.parameters.contains('clearMaterial')
+              ? context.parameters.boolean('clearMaterial')
+              : false,
           if (strokeIds != null) 'targetStrokeIds': strokeIds,
           'batchAtomicity': 'all_or_nothing',
           'undoBoundary': 'gesture',
@@ -225,6 +384,8 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         AuthoringGuarantee.undoable,
       ],
       extensions: <String, Object?>{
+        if (id != 'smart_tile.pattern.erase')
+          'materialPalettePolicy': 'append_catalog_material_allowed_by_preset',
         'semanticIds': true,
         'rawTilesetRequired': false,
         'gestureAtomic': true,
@@ -236,7 +397,77 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           'floodFill',
         ],
         'optionalCollisionLayer': true,
+        if (id != 'smart_tile.pattern.erase') ...{
+          'optionalPatternMaterial': true,
+          'materialIdSchema': {'type': 'string', 'minLength': 1},
+          'materialCoveragePolicy':
+              'occupied_cells_except_explicit_material_holes',
+          'preserveMaterialsWhenAbsent': true,
+        },
+        if (id == 'smart_tile.pattern.paint_batch') ...{
+          'maximumStrokeCount': SmartTilePatternActions.maximumStrokesPerBatch,
+          'maximumTotalCellCount': SmartTilePatternActions.maximumCellsPerBatch,
+          'overlapPolicy': 'ordered_strokes',
+          'duplicateStrokeIds': 'reject',
+          'batchAtomicity': 'all_or_nothing',
+          'undoBoundary': 'batch',
+          'inputSchema': {
+            'type': 'object',
+            'required': ['mapId', 'layerId', 'strokes'],
+            'additionalProperties': false,
+            'properties': {
+              'mapId': {'type': 'string', 'minLength': 1},
+              'layerId': {'type': 'string', 'minLength': 1},
+              'collisionLayerId': {'type': 'string', 'minLength': 1},
+              'strokes': {
+                'type': 'array',
+                'minItems': 1,
+                'maxItems': SmartTilePatternActions.maximumStrokesPerBatch,
+                'items': {
+                  'type': 'object',
+                  'additionalProperties': false,
+                  'required': ['patternId', 'strokeId', 'selection'],
+                  'properties': {
+                    'patternId': {'type': 'string', 'minLength': 1},
+                    'strokeId': {'type': 'string', 'minLength': 1},
+                    'phaseX': {'type': 'integer'},
+                    'phaseY': {'type': 'integer'},
+                    'materialId': {'type': 'string', 'minLength': 1},
+                    'selection': {
+                      'oneOf': [
+                        {
+                          'type': 'object',
+                          'additionalProperties': false,
+                          'required': ['kind', 'anchor'],
+                          'properties': {
+                            'kind': {'const': 'stamp'},
+                            'anchor': _coordinateSchema,
+                          },
+                        },
+                        {
+                          'type': 'object',
+                          'additionalProperties': false,
+                          'required': ['kind', 'start', 'end'],
+                          'properties': {
+                            'kind': {
+                              'enum': ['line', 'rectangle']
+                            },
+                            'start': _coordinateSchema,
+                            'end': _coordinateSchema,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         if (id == 'smart_tile.pattern.erase') ...{
+          'optionalClearMaterial': true,
+          'clearMaterialSchema': {'type': 'boolean', 'default': false},
+          'clearMaterialPolicy': 'preserve_remaining_pattern_ownership',
           'optionalEraseStrokeIds': true,
           'eraseStrokeIdsSchema': const <String, Object?>{
             'type': 'array',
@@ -248,6 +479,33 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         },
       },
     );
+
+const _coordinateSchema = {
+  'type': 'object',
+  'additionalProperties': false,
+  'required': ['x', 'y'],
+  'properties': {
+    'x': {'type': 'integer', 'minimum': 0},
+    'y': {'type': 'integer', 'minimum': 0},
+  },
+};
+
+String? _patternMaterial(SemanticMapActionContext context, SmartTileLayer layer,
+    SemanticParameters parameters) {
+  final id = parameters.optionalString('materialId');
+  if (id == null) return null;
+  final preset = context.manifest.smartTileCatalog.presets
+      .where((preset) => preset.id == layer.presetId)
+      .firstOrNull;
+  if (!(preset?.allowedMaterialIds.contains(id) ?? false) ||
+      !context.manifest.smartTileCatalog.materials
+          .any((material) => material.id == id)) {
+    throw semanticFailure('smart_tile.pattern.material_not_allowed',
+        'The pattern material is not available in the target layer.',
+        details: {'layerId': layer.id, 'materialId': id});
+  }
+  return id;
+}
 
 List<String> _eraseStrokeIds(List<Object?> raw, SmartTileLayer layer) {
   final existingIds = layer.patternStrokes.map((stroke) => stroke.id).toSet();

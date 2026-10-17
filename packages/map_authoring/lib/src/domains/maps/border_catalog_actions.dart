@@ -676,6 +676,8 @@ AuthoringMutationDraft _publishSpatial(
               animationLoop: primitive.animationLoop,
               animationSpeed: primitive.animationSpeed,
               blocksMovement: primitive.blocksMovement,
+              groundFootprints: primitive.groundFootprints,
+              groundSurfaces: primitive.groundSurfaces,
             )
       ],
       defaults: draft.defaults,
@@ -1081,6 +1083,14 @@ AuthoringActionDescriptor _descriptor(
             'sourceOrigin': 'carrierCellOrigin',
             'jumpOwner': 'borderBlueprint',
             'jumpSideChangesVisuals': false,
+            'visualGapTolerance': {
+              'property': 'definition.defaults.gapTolerancePx',
+              'unit': 'pixels',
+              'default': 0,
+              'maximum': 'lessThanOneCell',
+              'coverage': 'allAdmissibleVariantPairs',
+              'changesCollision': false,
+            },
           },
         if (id == 'border.blueprint.draft.upsert' ||
             id == 'border.blueprint.publish')
@@ -1109,7 +1119,12 @@ AuthoringActionDescriptor _descriptor(
                   'maximum': 1024,
                 },
               },
-              'required': ['side', 'distanceCells', 'durationMs', 'peakHeightPx'],
+              'required': [
+                'side',
+                'distanceCells',
+                'durationMs',
+                'peakHeightPx'
+              ],
             },
           },
         if (id == 'border.blueprint.draft.upsert' ||
@@ -1121,6 +1136,33 @@ AuthoringActionDescriptor _descriptor(
             'offsetUnits': 'model',
             'appliesTo': 'nativeGroundOnly',
             'preservesModelGeometry': true,
+            'footprintsField': 'primitives[].groundFootprints',
+            'footprintsMinimumCatalogVersion': 8,
+            'footprintsCoordinates': 'modelXZ',
+            'footprintsShape': 'unionOfStrictlyConvexPolygons',
+            'footprintsMaximumPolygons': 8,
+            'footprintsVerticesPerPolygon': [3, 16],
+            'footprintsPreserveNavigation': true,
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'spatialGroundSurfaces': {
+            'field': 'primitives[].groundSurfaces',
+            'minimumCatalogFormatVersion': 9,
+            'inclinedMinimumCatalogFormatVersion': 10,
+            'gradientFields': ['gradientX', 'gradientZ'],
+            'heightEquation': 'height + gradientX * x + gradientZ * z',
+            'coordinates': 'modelXZ',
+            'heightReference': 'modelY',
+            'followsRelief': false,
+            'sourceFields': ['sourceSmartTilePresetId', 'materialId'],
+            'sourceTopology': 'uniform',
+            'sourceUsage': 'terrain',
+            'shape': 'unionOfStrictlyConvexPolygons',
+            'maximumSurfaces': 8,
+            'maximumFootprintsPerSurface': 8,
+            'verticesPerFootprint': [3, 16],
+            'preservesNavigation': true,
           },
         if (id == 'border.blueprint.draft.upsert' ||
             id == 'border.blueprint.publish')

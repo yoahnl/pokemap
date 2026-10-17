@@ -72,7 +72,7 @@ void main() {
     final index = indexSpatialBorderGroundReplacements(
       scene: scene,
       replacements: [
-        (
+        SpatialBorderGroundReplacement(
           left: .5,
           top: 0.0,
           right: 2.5,
@@ -114,7 +114,7 @@ void main() {
       generateCliffs: false,
     );
     final replacements = [
-      (
+      SpatialBorderGroundReplacement(
         left: 0.0,
         top: 0.0,
         right: 1.0,
@@ -122,7 +122,7 @@ void main() {
         lowerHeight: 4.0,
         upperHeight: 9.0,
       ),
-      (
+      SpatialBorderGroundReplacement(
         left: 0.0,
         top: 0.0,
         right: 1.0,
@@ -151,7 +151,7 @@ void main() {
     final index = indexSpatialBorderGroundReplacements(
       scene: scene,
       replacements: [
-        (
+        SpatialBorderGroundReplacement(
           left: 0.0,
           top: 0.0,
           right: 1.0,

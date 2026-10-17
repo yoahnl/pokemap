@@ -79,6 +79,7 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     for (const field of ["x", "z", "width", "depth"]) {
       assert.equal(record(record(rampSchema.properties)[field]).type, "number");
     }
+    assert.deepEqual(record(record(rampSchema.properties).surfaceInstanceId).type, ["string", "null"]);
 
     const request = { name: "Fractional ramp", folderName: "ramp", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 64, mapHeight: 24 };
@@ -166,7 +167,7 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     assert.equal(beforeScene.levelHeight, .25);
     assert.deepEqual(beforeScene.heightLevels, heightLevels);
     const previousHistory = await call("pokemap_history", { operation: "list", projectHandle, limit: 2 });
-    const navigation = { ...originalNavigation, ramps: [sourceRamp, otherRamp] };
+    const navigation = { ...originalNavigation, ramps: [{ ...sourceRamp, surfaceInstanceId: "supported" }, otherRamp] };
     const invalid = await plan("map3d.navigation.configure", { mapId,
       navigation: { ...navigation, ramps: [{ ...sourceRamp, lowLevel: 0 }, otherRamp] } }, true);
     assert.equal(invalid.code, "validation_failed");

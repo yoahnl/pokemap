@@ -588,10 +588,8 @@ final class SmartTileLayerActions {
           ],
         ),
     };
-    final projected = replaceSmartTileLayer(
-      context.map,
-      layer: layer.copyWith(animationActivation: activation),
-    );
+    final projected = setSmartTileLayerAnimationActivation(context.map,
+        layerId: layer.id, activation: activation);
     preflightNativeSmartTileMutation(
       snapshot: context.planning.snapshot,
       projectedManifest: context.manifest,
@@ -686,10 +684,18 @@ final class SmartTileLayerActions {
             const <String>[],
       ),
     );
-    final projected = replaceSmartTileLayer(
-      context.map,
-      layer: layer.copyWith(encounterBehavior: behavior),
-    );
+    late final MapData projected;
+    try {
+      projected = setSmartTileLayerEncounterBehavior(context.map,
+          manifest: context.manifest, layerId: layer.id, behavior: behavior);
+    } on ValidationException catch (error) {
+      throw semanticFailure(
+        error.code ?? 'smart_tile.encounter_behavior_invalid',
+        error.message,
+        details: error.details,
+        remediation: error.remediation,
+      );
+    }
     preflightNativeSmartTileMutation(
       snapshot: context.planning.snapshot,
       projectedManifest: context.manifest,
@@ -725,10 +731,18 @@ final class SmartTileLayerActions {
       layerId: layerId,
     );
     final layer = _smartTileLayer(context.map, layerId);
-    final projected = replaceSmartTileLayer(
-      context.map,
-      layer: layer.copyWith(encounterBehavior: null),
-    );
+    late final MapData projected;
+    try {
+      projected = setSmartTileLayerEncounterBehavior(context.map,
+          manifest: context.manifest, layerId: layer.id, behavior: null);
+    } on ValidationException catch (error) {
+      throw semanticFailure(
+        error.code ?? 'smart_tile.encounter_behavior_invalid',
+        error.message,
+        details: error.details,
+        remediation: error.remediation,
+      );
+    }
     preflightNativeSmartTileMutation(
       snapshot: context.planning.snapshot,
       projectedManifest: context.manifest,

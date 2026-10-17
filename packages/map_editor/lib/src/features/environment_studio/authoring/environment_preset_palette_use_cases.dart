@@ -75,6 +75,9 @@ final class UpdateEnvironmentPresetPaletteUseCase {
       throw StateError('Environment preset "$key" not found.');
     }
     final source = presets[index];
+    if (source.isSpatial) {
+      throw ArgumentError.value(source.id, 'presetId', 'Un preset 3D ne peut pas recevoir une palette 2D.');
+    }
     final updatedPreset = EnvironmentPreset(
       id: source.id,
       name: source.name,

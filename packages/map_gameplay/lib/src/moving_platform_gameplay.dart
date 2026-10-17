@@ -3,6 +3,88 @@ import 'package:map_core/map_core.dart';
 import 'gameplay_player_state.dart';
 import 'gameplay_world_state.dart';
 
+final class MovingPlatformControlActivation {
+  const MovingPlatformControlActivation({
+    required this.platformId,
+    required this.controlId,
+    required this.motion,
+    required this.playerPositionPx,
+  });
+  final String platformId, controlId;
+  final MovingPlatformMotion motion;
+  final PixelPosition playerPositionPx;
+}
+
+MovingPlatformControlActivation? resolveMovingPlatformControlEntry({
+  required GameplayWorldState world,
+  required PixelPosition destination,
+}) {
+  if (world.map.movingPlatforms.every(
+    (platform) => platform.controls.isEmpty,
+  )) {
+    return null;
+  }
+  final start = world.player.playerPositionPx;
+  final dx = destination.leftPx - start.leftPx;
+  final dy = destination.topPx - start.topPx;
+  if (dx != 0 && dy != 0) {
+    return null;
+  }
+  final distance = dx.abs() + dy.abs();
+  if (distance == 0) {
+    return null;
+  }
+  final candidates =
+      <(MovingPlatformDefinition, MovingPlatformControl, PixelRect)>[];
+  final current = world.player.playerCollisionRectPx;
+  for (final platform in world.map.movingPlatforms) {
+    final pose =
+        world.movingPlatformWorldState.platform(world.map.id, platform.id) ??
+        platform.initialPose;
+    for (final control in platform.controls) {
+      final rect = movingPlatformCellRect(
+        platform: platform,
+        pose: pose,
+        cell: control.cellForQuarterTurns(pose.quarterTurns),
+      );
+      if (!_covered(current, [rect])) {
+        candidates.add((platform, control, rect));
+      }
+    }
+  }
+  if (candidates.isEmpty) {
+    return null;
+  }
+  for (var pixel = 1; pixel <= distance; pixel++) {
+    final position = PixelPosition(
+      leftPx: start.leftPx + dx.sign * pixel,
+      topPx: start.topPx + dy.sign * pixel,
+    );
+    final feet =
+        PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+          spriteTopLeftPx: position,
+          spriteWidthPx: world.player.playerSpriteWidthPx,
+          spriteHeightPx: world.player.playerSpriteHeightPx,
+        );
+    final matching = candidates
+        .where((candidate) => _covered(feet, [candidate.$3]))
+        .toList();
+    if (matching.length > 1) {
+      throw const FormatException('Platform controls overlap.');
+    }
+    if (matching.length == 1) {
+      final (platform, control, _) = matching.single;
+      return MovingPlatformControlActivation(
+        platformId: platform.id,
+        controlId: control.id,
+        motion: control.motion,
+        playerPositionPx: position,
+      );
+    }
+  }
+  return null;
+}
+
 enum MovingPlatformMoveOutcome {
   moved,
   blocked,
@@ -118,22 +200,6 @@ MovingPlatformMoveResult moveGameplayPlatform(
       ])) {
     return unchanged(MovingPlatformMoveOutcome.rotationRequiresPivot);
   }
-  final hardMap = map.copyWith(
-      movingPlatforms: const [],
-      layers: map.layers
-          .where((layer) =>
-              layer is! TileLayer ||
-              !definition.terrainLayerIds.contains(layer.id))
-          .toList());
-  final obstacleWorld = GameplayWorldState.initial(
-          map: hardMap,
-          project: project,
-          playerPos: world.player.pos,
-          tileWidth: tileSize.width,
-          tileHeight: tileSize.height,
-          npcMapPresencePredicate: world.npcMapPresencePredicate,
-          mapEntityPresencePredicate: world.mapEntityPresencePredicate)
-      .withPlayer(world.player);
   final travel = definition.travelCells.map((cell) => (cell.x, cell.y)).toSet();
   final otherRects = <PixelRect>[];
   for (final other
@@ -168,24 +234,14 @@ MovingPlatformMoveResult moveGameplayPlatform(
             if (!travel.contains((x, y))) return false;
           }
         }
-        return !obstacleWorld.worldStaticObstaclesCollidePixelRect(rect) &&
+        return !world.worldStaticObstaclesCollidePixelRect(
+                rect,
+                ignoredSupportableTerrainLayerIds: definition.terrainLayerIds) &&
             !otherRects.any((other) => _overlaps(rect, other));
       });
   GameplayWorldState at(
       MovingPlatformWorldState state, GameplayPlayerState player) {
-    final projected = applyMovingPlatformWorldStateToMap(
-        map: map, worldState: state, tileSize: tileSize);
-    return GameplayWorldState.initial(
-            map: projected,
-            project: project,
-            movingPlatformWorldState: state,
-            playerPos: player.pos,
-            playerFacing: player.facing,
-            playerMovementMode: player.movementMode,
-            tileWidth: tileSize.width,
-            tileHeight: tileSize.height,
-            npcMapPresencePredicate: world.npcMapPresencePredicate,
-            mapEntityPresencePredicate: world.mapEntityPresencePredicate)
+    return world.withMovingPlatformState(project: project, worldState: state)
         .withPlayer(player);
   }
 
@@ -246,7 +302,8 @@ MovingPlatformMoveResult moveGameplayPlatform(
                 : variant.forwardClearanceCells,
             pose)) ||
         _rects(definition, variant.supportCells, pose).any((rect) =>
-            obstacleWorld.worldStaticObstaclesCollidePixelRect(rect) ||
+            world.worldStaticObstaclesCollidePixelRect(rect,
+                ignoredSupportableTerrainLayerIds: definition.terrainLayerIds) ||
             otherRects.any((other) => _overlaps(rect, other)))) {
       return _rollback(world, initialized, frames);
     }

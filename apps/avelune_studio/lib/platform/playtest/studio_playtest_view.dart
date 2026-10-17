@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
 import 'studio_playtest_start.dart';
+import 'studio_playtest_performance.dart';
 import 'studio_playtest_player_view.dart';
 import 'studio_spatial_playtest.dart';
 import 'studio_spatial_playtest_view.dart';
@@ -73,13 +74,17 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       );
       _requireUnchangedMap(bundle, document.map);
       StudioSpatialPlaytest.validateHero(bundle);
-      await _prepareProjectAssets();
-      if (!mounted) throw StateError('Test fermé');
-      bundle = await loadRuntimeMapBundle(
-        projectFilePath: projectPath,
-        mapId: widget.entry.id,
+      final preparedAssets = await _prepareProjectAssets(
+        project: bundle.manifest,
       );
-      _requireUnchangedMap(bundle, document.map);
+      if (!mounted) throw StateError('Test fermé');
+      if (preparedAssets) {
+        bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectPath,
+          mapId: widget.entry.id,
+        );
+        _requireUnchangedMap(bundle, document.map);
+      }
       final playtest = await StudioSpatialPlaytest.prepare(
         bundle: bundle,
         projectFilePath: projectPath,
@@ -180,16 +185,18 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     }
   }
 
-  Future<void> _prepareProjectAssets() async {
+  Future<bool> _prepareProjectAssets({ProjectManifest? project}) async {
     final prepareProjectAssets = widget.prepareProjectAssets;
     if (prepareProjectAssets != null) {
       await prepareProjectAssets(widget.session.directoryPath);
-    } else {
-      await StudioProjectItemIcons.shared.prepare(
-        widget.session.directoryPath,
-        shouldContinue: () => mounted,
-      );
+      return true;
     }
+    if (project?.pokemon.enabled == false) return false;
+    await StudioProjectItemIcons.shared.prepare(
+      widget.session.directoryPath,
+      shouldContinue: () => mounted,
+    );
+    return true;
   }
 
   @override
@@ -323,6 +330,8 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+            const SizedBox(width: 12),
+            Flexible(flex: 2, child: StudioPlaytestPerformance(active: _ready)),
           ],
         ),
       ),

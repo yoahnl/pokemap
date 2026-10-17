@@ -634,13 +634,15 @@ List<TileLayerEnvironmentPaletteItemSummary> _buildPaletteSummaries({
   return List.unmodifiable(
     [
       for (final item in preset.palette)
-        _paletteSummary(
-          manifest: manifest,
-          item: item,
-          isSelected: selectedId != null &&
-              selectedId.isNotEmpty &&
-              item.elementId == selectedId,
-        ),
+        if (item.elementId case final String elementId)
+          _paletteSummary(
+            elementId: elementId,
+            manifest: manifest,
+            item: item,
+            isSelected: selectedId != null &&
+                selectedId.isNotEmpty &&
+                item.elementId == selectedId,
+          ),
     ],
   );
 }
@@ -648,11 +650,12 @@ List<TileLayerEnvironmentPaletteItemSummary> _buildPaletteSummaries({
 TileLayerEnvironmentPaletteItemSummary _paletteSummary({
   required ProjectManifest manifest,
   required EnvironmentPaletteItem item,
+  required String elementId,
   required bool isSelected,
 }) {
-  final element = _findProjectElement(manifest, item.elementId);
+  final element = _findProjectElement(manifest, elementId);
   return TileLayerEnvironmentPaletteItemSummary(
-    elementId: item.elementId,
+    elementId: elementId,
     elementName: element?.name,
     weight: item.weight,
     collisionMode: item.collisionMode,

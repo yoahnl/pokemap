@@ -11,6 +11,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import 'session/spatial_exploration_game_session_runtime_test.dart' as fixture;
+import 'support/spatial_smart_tile_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -124,6 +125,56 @@ void main() {
     expect(session.movement.x, greaterThan(arrivalX));
     expect(session.frames(0)['target:npc:guide']!.x, 3.5);
     expect(loads, 1);
+  });
+
+  test('connected maps keep grass reactions local and retain their clocks',
+      () async {
+    final grass = spatialGrassFixture();
+    final layer = grass.map.layers.single as SmartTileLayer;
+    source = source.copyWith(
+        manifest: source.manifest.copyWith(
+            smartTileCatalog: grass.project.smartTileCatalog,
+            models3d: grass.project.models3d),
+        map: source.map.copyWith(
+            layers: [
+              layer.copyWith(field: SmartTileField.cell(semanticCells: [
+                for (var i = 0; i < 64; i++) i == 38 ? 1 : 0
+              ]))
+            ],
+            connections: const [MapConnection(
+                direction: MapConnectionDirection.east, targetMapId: 'target')]));
+    target = target.copyWith(
+        manifest: source.manifest,
+        map: target.map.copyWith(
+            layers: [
+              layer.copyWith(field: SmartTileField.cell(semanticCells: [
+                for (var i = 0; i < 64; i++) i == 32 ? 1 : 0
+              ]))
+            ],
+            connections: const [MapConnection(
+                direction: MapConnectionDirection.west, targetMapId: 'source')]));
+    final sourceModel = resolveSpatialSmartTileInstances(
+        map: source.map, catalog: source.manifest.smartTileCatalog).single;
+    final targetModel = resolveSpatialSmartTileInstances(
+        map: target.map, catalog: target.manifest.smartTileCatalog).single;
+    final session = await SpatialExplorationSession.load(source,
+        loadMap: (id) async => id == 'target' ? target : source);
+    addTearDown(session.dispose);
+    await session.loadConnectionNeighbor(source.map.connections.single);
+    session.setVisibleMaps({'source', 'target'});
+    expect(session.modelRuntimeState('target', targetModel.id)!.normalizedTime, 0);
+    attemptExit(session, MapConnectionDirection.east);
+    expect(session.bundle.map.id, 'target');
+    session.frame(.1);
+    expect(session.modelRuntimeState('target', targetModel.id)!.normalizedTime,
+        closeTo(.25, 1e-9));
+    expect(session.modelRuntimeState('source', sourceModel.id)!.normalizedTime, 0);
+    attemptExit(session, MapConnectionDirection.west);
+    expect(session.bundle.map.id, 'source');
+    expect(session.modelRuntimeState('target', targetModel.id)!.normalizedTime,
+        greaterThan(0));
+    session.frame(.5);
+    expect(session.modelRuntimeState('target', targetModel.id)!.normalizedTime, 0);
   });
 
   test('retained neighbor collision reads its own map state after promotion',
@@ -247,6 +298,64 @@ void main() {
       expect(restored.movement.isPositionTraversable, isTrue);
     });
   }
+
+  testWidgets('warp keeps actor frames on the map still being rendered', (
+    tester,
+  ) async {
+    const outward = MapWarp(
+      id: 'outward',
+      pos: GridPos(x: 2, y: 2),
+      targetMapId: 'target',
+      targetPos: GridPos(x: 6, y: 1),
+    );
+    const back = MapWarp(
+      id: 'back',
+      pos: GridPos(x: 2, y: 2),
+      targetMapId: 'source',
+      targetPos: GridPos(x: 4, y: 4),
+    );
+    source = source.copyWith(map: source.map.copyWith(warps: [outward]));
+    target = target.copyWith(map: target.map.copyWith(warps: [back]));
+    final session = (await tester.runAsync(
+      () => SpatialExplorationSession.load(
+        source,
+        loadMap: (id) async => id == 'target' ? target : source,
+      ),
+    ))!;
+    await tester.pumpWidget(
+      MaterialApp(home: SpatialExplorationView(session: session)),
+    );
+    final sourceScene = tester.widget<SpatialSceneView>(
+      find.byType(SpatialSceneView),
+    );
+    final before = sourceScene.actorFrames!(0);
+    await tester.runAsync(() => session.enterWarp(outward));
+    expect(session.bundle.map.id, 'target');
+    expect(session.movement.x, 6.5);
+    session.movement.setInput(x: -1, z: 0);
+    final pending = sourceScene.actorFrames!(.05);
+    expect(session.movement.x, lessThan(6.5));
+    expect(pending['hero'], same(before['hero']));
+    await tester.pump();
+    final targetScene = tester.widget<SpatialSceneView>(
+      find.byType(SpatialSceneView),
+    );
+    final arrived = targetScene.actorFrames!(0);
+    expect(targetScene.groundMap!.id, 'target');
+    expect(arrived['hero']!.x, session.movement.x);
+    expect(arrived['hero']!.z, 1.5);
+    await tester.runAsync(() => session.enterWarp(back));
+    expect(session.bundle.map.id, 'source');
+    expect(targetScene.actorFrames!(0)['hero'], same(arrived['hero']));
+    await tester.pump();
+    final returnedScene = tester.widget<SpatialSceneView>(
+      find.byType(SpatialSceneView),
+    );
+    expect(returnedScene.actorFrames!(0)['hero']!.x, 4.5);
+    expect(returnedScene.actorFrames!(0)['hero']!.z, 4.5);
+    await tester.pumpWidget(const SizedBox());
+    session.dispose();
+  });
 
   testWidgets(
       'connected viewport retains world placement and continuous arrival',

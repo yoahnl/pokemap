@@ -353,7 +353,7 @@ PokemonMoveEffect _$PokemonMoveEffectFromJson(
           return PokemonMoveEffectSetSlotCondition.fromJson(
             json
           );
-
+        
           default:
             throw CheckedFromJsonException(
   json,
@@ -362,7 +362,7 @@ PokemonMoveEffect _$PokemonMoveEffectFromJson(
   'Invalid union type "${json['kind']}"!'
 );
         }
-
+      
 }
 
 /// @nodoc

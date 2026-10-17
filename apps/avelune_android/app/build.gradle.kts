@@ -4,6 +4,19 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val aveluneVersionName = providers.fileContents(
+    rootProject.layout.projectDirectory.file("../avelune_version.xcconfig"),
+).asText.map { source ->
+    Regex("""\s*MARKETING_VERSION\s*=\s*([0-9]+\.[0-9]+\.[0-9]+)\s*""")
+        .matchEntire(source)?.groupValues?.get(1)
+        ?: throw GradleException("avelune_version.xcconfig must define a single numeric MARKETING_VERSION (x.y.z).")
+}.get()
+providers.gradleProperty("aveluneVersionName").orNull?.let { requestedVersion ->
+    require(requestedVersion == aveluneVersionName) {
+        "aveluneVersionName must match the shared Avelune version $aveluneVersionName."
+    }
+}
+
 val aveluneKeystorePath = providers.environmentVariable("AVELUNE_KEYSTORE_PATH").orNull
 val aveluneKeystorePassword = providers.environmentVariable("AVELUNE_KEYSTORE_PASSWORD").orNull
 val aveluneKeyAlias = providers.environmentVariable("AVELUNE_KEY_ALIAS").orNull
@@ -39,7 +52,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = providers.gradleProperty("aveluneVersionCode").orElse("3").get().toInt()
-        versionName = providers.gradleProperty("aveluneVersionName").orElse("1.0.1").get()
+        versionName = aveluneVersionName
         manifestPlaceholders["surfaceProbeEnabled"] = "false"
         manifestPlaceholders["aveluneAppLabel"] = providers.gradleProperty("aveluneAppLabel")
             .orElse("@string/app_name").get()

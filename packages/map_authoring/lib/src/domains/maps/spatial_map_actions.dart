@@ -138,11 +138,7 @@ final class SpatialMapActions {
                   level: cell['level'] as int);
             }).toList()),
         'instance' => _upsertInstance(context),
-        'navigation' => operations.configureNavigation(
-            context.map,
-            SpatialNavigationProfile.fromJson(_object(
-                context.parameters.object(field),
-                {'spawn', 'allowDiagonalMovement', 'ramps', 'blockedAreas'}))),
+        'navigation' => _configureNavigation(context),
         'instanceId' => operations.deleteInstance(
             context.map, context.parameters.string(field)),
         _ => operations.configureCamera(
@@ -182,6 +178,9 @@ final class SpatialMapActions {
               : {'spatialScene': after.spatialScene!.toJson()});
     } on FormatException catch (error) {
       throw semanticFailure('map3d.parameters_invalid', error.message);
+    } on ValidationException catch (error) {
+      throw semanticFailure(error.code ?? 'map3d.parameters_invalid', error.message,
+          details: error.details);
     } on TypeError {
       throw semanticFailure('map3d.parameters_invalid',
           'The spatial action parameters have invalid types or missing fields.');
@@ -196,6 +195,19 @@ MapData _upsertInstance(SemanticMapActionContext context) {
   }));
   _requireAuthoredInstance(context.map, instance.id, allowManualEnvironment: true);
   return const SpatialMapOperations().upsertInstance(context.map, instance);
+}
+
+MapData _configureNavigation(SemanticMapActionContext context) {
+  final navigation = SpatialNavigationProfile.fromJson(_object(
+    context.parameters.object('navigation'),
+    {'spawn', 'allowDiagonalMovement', 'ramps', 'blockedAreas'},
+  ));
+  for (final ramp in navigation.ramps) {
+    final surfaceId = ramp.surfaceInstanceId;
+    if (surfaceId != null) _requireAuthoredInstance(context.map, surfaceId);
+  }
+  return const SpatialMapOperations()
+      .configureNavigation(context.map, navigation);
 }
 
 void _requireAuthoredInstance(MapData map, String id, {bool requireExisting = false, bool allowManualEnvironment = false}) {
@@ -364,6 +376,7 @@ MapData _configureTerrainHeight(MapData map, Object? value) {
     width: before.width,
     depth: before.depth,
     heightLevels: before.heightLevels,
+    terrainSurfaces: before.terrainSurfaces,
     levelHeight: value.toDouble(),
     cliffFrame: before.cliffFrame,
     generateCliffs: before.generateCliffs,
@@ -477,7 +490,12 @@ Map<String, Object?> _schema(String field) => switch (field) {
                   'highLevel': {'type': 'integer', 'minimum': 1, 'maximum': MapSpatialScene.maximumTerrainLevel},
                   'direction': {
                     'enum': ['north', 'south', 'east', 'west']
-                  }
+                  },
+                  'surfaceInstanceId': {
+                    'type': ['string', 'null'],
+                    'pattern': r'^[a-zA-Z0-9_-]{1,128}$',
+                    'description': 'Existing walkable authored model instance that replaces the painted ramp surface; null restores terrain.',
+                  },
                 }
               }
             },

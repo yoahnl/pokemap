@@ -830,6 +830,61 @@ void main() {
     });
   });
 
+  for (final direction in [2, 4, 6, 8]) {
+    test('player facing condition recognizes only literal player $direction',
+        () async {
+      final project = await _events([
+        _page([
+          _command(111, [6, -1, direction]),
+          _command(101, ['Facing'], indent: 1),
+          _command(0, [], indent: 1),
+          _command(412, []),
+          _command(0, []),
+        ])
+      ]);
+      final page = _analyzer(project).analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, isFalse);
+      final node = page.body.nodes.single as SourceConditionalNode;
+      expect(node.condition.kind.name, 'playerFacing');
+      expect(node.condition.toJson()['sourceDirection'], direction);
+    });
+  }
+  for (final parameters in <List<Object?>>[
+    [6, 0, 8], [6, 1, 8], [6, -2, 8], [6, -1, 0], [6, -1, 3],
+    [6, -1, 10], [6, -1, 8, 'suffix'], [6, -1], [6, -1, '8;bad()'],
+  ]) {
+    test('player facing condition rejects malformed or other actors $parameters', () async {
+      final project = await _events([_page([
+        _command(111, parameters),
+        _command(101, ['Facing'], indent: 1),
+        _command(0, [], indent: 1),
+        _command(412, []), _command(0, []),
+      ])]);
+      expect(_analyzer(project).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+    });
+  }
+  test('player facing condition requires the qualified profile', () async {
+    final project = await _events([_page([
+      _command(111, [6, -1, 8]),
+      _command(101, ['Facing'], indent: 1),
+      _command(0, [], indent: 1),
+      _command(412, []), _command(0, []),
+    ])]);
+    expect(_analyzer(project, scriptsHash: '0' * 64).analyze()
+        .requireEvent(1, 1).isQuarantined, isTrue);
+  });
+  test('player facing condition validates kind and evaluates unknown explicitly', () {
+    final facing = SourceEventCondition(kind: SourceEventConditionKind.playerFacing,
+        sourceDirection: 8);
+    expect(facing.isQualified, isTrue);
+    expect(facing.evaluate(), isNull);
+    expect(facing.evaluate(playerFacing: 8), isTrue);
+    expect(facing.evaluate(playerFacing: 2), isFalse);
+    expect(SourceEventCondition(kind: SourceEventConditionKind.playerFacing,
+        sourceDirection: 3).isQualified, isFalse);
+    expect(SourceEventCondition(kind: SourceEventConditionKind.always,
+        sourceDirection: 8).isQualified, isFalse);
+  });
   test('original door profile declares a map scoped route barrier and fresh followers', () {
     final profile = SourceEventProfile.kanto(
       scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),

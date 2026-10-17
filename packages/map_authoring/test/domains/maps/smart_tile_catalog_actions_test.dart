@@ -6,6 +6,41 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileCatalogActions', () {
+    test('canonical publication retains physical raster supports in 3D only', () {
+      final preset = _preset();
+      final rule = preset.rules.single;
+      final candidate = rule.candidates.single;
+      final supported = preset.copyWith(rules: [rule.copyWith(candidates: [candidate.copyWith(parts: [
+        for (final height in [0.0, -1.0, -2.5]) candidate.parts.single.copyWith(spatialHeightOffset: height, spatialFollowTerrain: height != -1),
+      ])])]);
+      final map = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9,
+        size: const GridSize(width: 1, height: 1), spatialScene: MapSpatialScene(width: 1, depth: 1));
+      final fixture = _fixture(map: map, projectVersion: ProjectVersion.v9, spatial: true);
+      final draft = const SmartTileCatalogActions().build(_context(fixture,
+        actionId: 'smart_tile.preset.publish', parameters: {'preset': supported.toJson()}));
+      final projected = ProjectManifest.fromJson(jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!)));
+      expect(projected.smartTileCatalog.formatVersion, ProjectSmartTileCatalog.currentFormatVersion);
+      expect(projected.smartTileCatalog.presets.single.rules.single.candidates.single.parts.map((part) => part.spatialHeightOffset), [0, -1, -2.5]);
+      expect(projected.smartTileCatalog.presets.single.rules.single.candidates.single.parts.map((part) => part.spatialFollowTerrain), [true, false, true]);
+      expect(draft.changeSet.changes.map((change) => change.resource.kind), ['project']);
+      expect(() => const SmartTileCatalogActions().build(_context(_fixture(),
+        actionId: 'smart_tile.preset.publish', parameters: {'preset': supported.toJson()})), throwsA(isA<MapAuthoringException>()));
+    });
+
+    test('raster physical heights are discoverable through canonical contracts', () {
+      for (final id in ['smart_tile.pattern.upsert', 'smart_tile.pattern.upsert_batch', 'smart_tile.preset.draft.upsert', 'smart_tile.preset.publish']) {
+        final descriptor = SmartTileCatalogActions.descriptors.singleWhere((value) => value.id == id);
+        final contract = descriptor.extensions['rasterSpatialHeight'] as Map?;
+        expect(contract, isNotNull, reason: id);
+        expect(contract!['field'], 'parts[].spatialHeightOffset');
+        expect(contract['relativeTo'], 'resolvedNativeGround');
+        expect(contract['units'], 'world');
+        expect(contract['preservesNavigation'], true);
+        expect(contract['terrainSamplingMinimumCatalogFormatVersion'], 7);
+        expect(contract['whenTerrainSamplingDisabled'], 'constantWorldHeight');
+      }
+    });
+
     test('publishing a candidate label preserves weights and map data', () {
       final preset =
           _preset().copyWith(status: SmartTilePresetStatus.published);
@@ -43,6 +78,7 @@ void main() {
           'smart_tile.material.upsert_batch',
           'smart_tile.pattern.delete',
           'smart_tile.pattern.upsert',
+          'smart_tile.pattern.upsert_batch',
           'smart_tile.preset.delete',
           'smart_tile.preset.draft.delete',
           'smart_tile.preset.draft.import',
@@ -208,6 +244,126 @@ void main() {
         projectedManifest.smartTileCatalog.drafts,
         const <ProjectSmartTileAuthoringDraft>[_draft],
       );
+    });
+
+    test('pattern batch advertises bounded atomic input', () {
+      final descriptor = SmartTileCatalogActions.descriptors.singleWhere(
+        (item) => item.id == 'smart_tile.pattern.upsert_batch',
+      );
+      expect(descriptor.extensions['maximumPatternCount'], 250);
+      expect(descriptor.extensions['maximumPatternCellCount'], 16384);
+      expect(descriptor.extensions['batchAtomicity'], 'all_or_nothing');
+      expect(descriptor.extensions['undoBoundary'], 'batch');
+      final schema = descriptor.extensions['inputSchema'] as Map;
+      final patterns = (schema['properties'] as Map)['patterns'] as Map;
+      expect(patterns['minItems'], 1);
+      expect(patterns['maxItems'], 250);
+    });
+
+    test('pattern batch creates and updates without changing other resources',
+        () {
+      final fixture = _fixture(patterns: [_pattern]);
+      final patterns = [
+        _pattern.copyWith(name: 'Renamed rock'),
+        _pattern.copyWith(id: 'soil-unit', name: 'Soil unit'),
+      ];
+      final draft = const SmartTileCatalogActions().build(_context(
+        fixture,
+        actionId: 'smart_tile.pattern.upsert_batch',
+        parameters: {
+          'patterns': [for (final pattern in patterns) pattern.toJson()]
+        },
+      ));
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.preview['patternCount'], 2);
+      expect(draft.preview['addedPatternCount'], 1);
+      expect(draft.preview['updatedPatternCount'], 1);
+      expect(draft.preview['definedCellCount'], 2);
+      expect(draft.preview['projectWidePreflight'], 'passed');
+      final projected = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+            as Map<String, dynamic>,
+      );
+      expect(projected.smartTileCatalog.patterns, patterns);
+      expect(
+          projected.copyWith(
+              smartTileCatalog: fixture.manifest.smartTileCatalog),
+          fixture.manifest);
+      expect(fixture.snapshot.manifest, fixture.manifest);
+    });
+
+    test('pattern batch accepts 250 reusable units', () {
+      final fixture = _fixture();
+      final draft = const SmartTileCatalogActions().build(_context(
+        fixture,
+        actionId: 'smart_tile.pattern.upsert_batch',
+        parameters: {
+          'patterns': [
+            for (var index = 0; index < 250; index++)
+              _pattern
+                  .copyWith(id: 'unit-$index', name: 'Unit $index')
+                  .toJson(),
+          ]
+        },
+      ));
+      expect(draft.preview['patternCount'], 250);
+      expect(draft.preview['definedCellCount'], 250);
+    });
+
+    test('pattern batch bounds the combined defined cells', () {
+      final fixture = _fixture();
+      final cells = [
+        for (var y = 0; y < 64; y++)
+          for (var x = 0; x < 64; x++)
+            _pattern.cells.single.copyWith(x: x, y: y),
+      ];
+      expect(
+        () => const SmartTileCatalogActions().build(_context(
+          fixture,
+          actionId: 'smart_tile.pattern.upsert_batch',
+          parameters: {
+            'patterns': [
+              for (var index = 0; index < 5; index++)
+                _pattern
+                    .copyWith(
+                        id: 'large-$index', width: 64, height: 64, cells: cells)
+                    .toJson(),
+            ]
+          },
+        )),
+        throwsA(isA<MapAuthoringException>().having((error) => error.code,
+            'code', 'smart_tile.pattern.batch_cells_limit')),
+      );
+      expect(fixture.snapshot.manifest, fixture.manifest);
+    });
+
+    test('pattern batch rejects invalid documents atomically', () {
+      final fixture = _fixture(patterns: [_pattern]);
+      final pattern = _pattern.toJson();
+      for (final (patterns, code) in <(List<Object?>, String)>[
+        ([], 'smart_tile.pattern.batch_invalid'),
+        (List.filled(251, pattern), 'smart_tile.pattern.batch_invalid'),
+        ([pattern, pattern], 'smart_tile.pattern.batch_duplicate'),
+        ([pattern, 'broken'], 'map.request_invalid'),
+        (
+          [
+            pattern,
+            {'id': 'broken'}
+          ],
+          'smart_tile.request_invalid'
+        ),
+      ]) {
+        expect(
+          () => const SmartTileCatalogActions().build(_context(
+            fixture,
+            actionId: 'smart_tile.pattern.upsert_batch',
+            parameters: {'patterns': patterns},
+          )),
+          throwsA(isA<MapAuthoringException>()
+              .having((error) => error.code, 'code', code)),
+        );
+        expect(fixture.snapshot.manifest, fixture.manifest);
+      }
     });
 
     test('material batch advertises its bounded atomic input', () {
@@ -557,6 +713,7 @@ void main() {
   List<ProjectSmartTilePattern> patterns = const [],
   List<ProjectSmartTileAuthoringDraft> drafts = const [],
   ProjectVersion projectVersion = ProjectVersion.v8,
+  bool spatial = false,
 }) {
   final artifact = ContentArtifactRef.fromBytes(
     _pngBytes,
@@ -574,6 +731,8 @@ void main() {
   final manifest = ProjectManifest(
     name: 'Smart Tile authoring fixture',
     version: projectVersion,
+    settings: ProjectSettings(dimension: spatial ? ProjectDimension.threeD : ProjectDimension.twoD,
+      spatialCamera: spatial ? SpatialCameraProfile() : null),
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

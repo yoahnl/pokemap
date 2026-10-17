@@ -195,37 +195,51 @@ Future<MapData> loadMapDataFromFile(
   String absoluteMapPath, {
   required ProjectManifest projectDialogueContext,
 }) async {
-  final file = File(absoluteMapPath);
-  _runtimeLoaderLog('map file lookup path=$absoluteMapPath');
-  if (!await file.exists()) {
-    _runtimeLoaderLog('map file missing path=$absoluteMapPath');
-    throw MapLoadException('Map file not found: $absoluteMapPath');
-  }
-  try {
-    final text = await file.readAsString();
-    _runtimeLoaderLog('map file read ok bytes=${text.length}');
-    // Parse + validation + plan de composition sur un isolate de travail :
-    // c'était un stall de plusieurs centaines de ms par warp sur une grosse
-    // carte, entièrement sur l'isolate UI.
-    final map = await _decodeMapDataOffThread(text, projectDialogueContext);
-    _runtimeLoaderLog(
-      'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
-    );
-    return map;
-  } catch (e) {
-    _runtimeLoaderLog('map load failed path=$absoluteMapPath error=$e');
-    throw MapLoadException('Failed to load map: $e');
-  }
+  final maps = await loadMapDataFiles([
+    absoluteMapPath,
+  ], projectDialogueContext: projectDialogueContext);
+  return maps.single;
 }
 
-/// Portée top-level volontaire : voir [_decodeProjectManifestOffThread].
-Future<MapData> _decodeMapDataOffThread(
-  String text,
-  ProjectManifest projectDialogueContext,
-) {
+Future<List<MapData>> loadMapDataFiles(
+  List<String> absoluteMapPaths, {
+  required ProjectManifest projectDialogueContext,
+}) {
+  if (absoluteMapPaths.isEmpty) return Future.value(const <MapData>[]);
   return Isolate.run(
-    () => _decodeValidateAndComposeMapData(text, projectDialogueContext),
+    () => _readMapDataFiles(absoluteMapPaths, projectDialogueContext),
   );
+}
+
+Future<List<MapData>> _readMapDataFiles(
+  List<String> absoluteMapPaths,
+  ProjectManifest projectDialogueContext,
+) async {
+  final maps = <MapData>[];
+  for (final absoluteMapPath in absoluteMapPaths) {
+    final file = File(absoluteMapPath);
+    _runtimeLoaderLog('map file lookup path=$absoluteMapPath');
+    if (!await file.exists()) {
+      _runtimeLoaderLog('map file missing path=$absoluteMapPath');
+      throw MapLoadException('Map file not found: $absoluteMapPath');
+    }
+    try {
+      final text = await file.readAsString();
+      _runtimeLoaderLog('map file read ok bytes=${text.length}');
+      final map = _decodeValidateAndComposeMapData(
+        text,
+        projectDialogueContext,
+      );
+      _runtimeLoaderLog(
+        'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
+      );
+      maps.add(map);
+    } catch (e) {
+      _runtimeLoaderLog('map load failed path=$absoluteMapPath error=$e');
+      throw MapLoadException('Failed to load map: $e');
+    }
+  }
+  return List.unmodifiable(maps);
 }
 
 MapData _decodeValidateAndComposeMapData(

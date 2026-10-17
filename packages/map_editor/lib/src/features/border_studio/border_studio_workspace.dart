@@ -355,6 +355,10 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                   ),
                 3 => BorderRulesStep(
                     state: state,
+                    tileSizePx: GridSize(
+                      width: manifest.settings.tileWidth,
+                      height: manifest.settings.tileHeight,
+                    ),
                     onRulesChanged: controller.setGenerationParams,
                   ),
                 _ => BorderPreviewPublicationStep(

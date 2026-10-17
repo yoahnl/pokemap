@@ -8,6 +8,46 @@ import 'package:map_editor/src/features/smart_tiles_studio/application/smart_til
 
 void main() {
   group('SmartTileAuthoringController', () {
+    for (final animated in [false, true]) {
+      test('source replacement preserves raster elevation (animation: $animated)', () {
+        final controller = _configuredController()
+          ..selectUsage(SmartTileUsage.terrain)
+          ..addAtlasVariant(mask: 0, column: 0, row: 0, candidateId: 'base');
+        final part = controller.state.mappings[0]!.single.parts.single;
+        controller.updateCandidateVisualPart(mask: 0, candidateId: 'base', partIndex: 0,
+          part: part.copyWith(spatialHeightOffset: -2.5, spatialFollowTerrain: false, spatialClip: SmartTileSpatialClip(left: 0, top: .0625, right: 1, bottom: 1)));
+        if (animated) {
+          controller.addAnimation(const ProjectSmartTileAnimation(id: 'water', name: 'Water', frames: [
+            ProjectSmartTileAnimationFrame(frame: SmartTileFrameRef(atlasId: 'atlas-hanazuki', column: 1, row: 0), durationMs: 100),
+          ]));
+          controller.replaceCandidateWithAnimation(mask: 0, candidateId: 'base', animationId: 'water');
+        } else {
+          controller.replaceAtlasCandidate(mask: 0, candidateId: 'base', column: 1, row: 0);
+        }
+        expect(controller.state.mappings[0]!.single.parts.single.spatialHeightOffset, -2.5);
+        expect(controller.state.mappings[0]!.single.parts.single.spatialFollowTerrain, false);
+        expect(controller.state.mappings[0]!.single.parts.single.spatialClip?.top, .0625);
+        final reopened = SmartTileAuthoringController.fromCanonicalDraft(controller.compileAuthoringDraft(
+          lastStage: SmartTileAuthoringStage.forms));
+        expect(reopened.state.mappings[0]!.single.parts.single.spatialHeightOffset, -2.5);
+        expect(reopened.state.mappings[0]!.single.parts.single.spatialFollowTerrain, false);
+        expect(reopened.state.mappings[0]!.single.parts.single.spatialClip?.top, .0625);
+      });
+    }
+
+    test('transition frame replacement preserves raster elevation', () {
+      final controller = _configuredController()..selectUsage(SmartTileUsage.path);
+      final rule = controller.createTransitionCase(centerMatch: const SmartTileSlotMatch.material('grass'));
+      controller.addTransitionCaseAtlasVariant(caseId: rule.id, column: 0, row: 0, candidateId: 'base');
+      final part = controller.state.transitionCases.single.candidates.single.parts.single;
+      controller.updateTransitionCaseCandidateVisualPart(caseId: rule.id, candidateId: 'base', partIndex: 0,
+        part: part.copyWith(spatialHeightOffset: -2.5, spatialFollowTerrain: false, spatialClip: SmartTileSpatialClip(left: 0, top: .0625, right: 1, bottom: 1)));
+      controller.replaceTransitionCaseAtlasCandidate(caseId: rule.id, candidateId: 'base', column: 1, row: 0);
+      expect(controller.state.transitionCases.single.candidates.single.parts.single.spatialHeightOffset, -2.5);
+      expect(controller.state.transitionCases.single.candidates.single.parts.single.spatialFollowTerrain, false);
+      expect(controller.state.transitionCases.single.candidates.single.parts.single.spatialClip?.top, .0625);
+    });
+
     test('chooses native defaults for each supported usage', () {
       final controller = SmartTileAuthoringController.blank();
 

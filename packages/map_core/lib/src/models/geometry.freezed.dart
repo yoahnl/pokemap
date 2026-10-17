@@ -1141,7 +1141,7 @@ as GridSize,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -1150,7 +1150,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -1361,7 +1361,7 @@ as GridSize,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -1370,7 +1370,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });

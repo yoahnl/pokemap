@@ -10,6 +10,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../support/spatial_smart_tile_fixture.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory root;
@@ -1466,6 +1468,116 @@ void main() {
     expect(state.playerSpatialPosition!.x, session.movement.x);
     expect(state.playerSpatialPosition!.z, session.movement.z);
   });
+
+  for (final running in [false, true]) {
+    test('spatial grass reacts locally to movement: running $running', () async {
+      final grass = spatialGrassFixture();
+      bundle = bundle.copyWith(
+          manifest: bundle.manifest.copyWith(
+              models3d: grass.project.models3d,
+              smartTileCatalog: grass.project.smartTileCatalog),
+          map: grass.map);
+      final models = resolveSpatialSmartTileInstances(
+          map: bundle.map, catalog: bundle.manifest.smartTileCatalog);
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final session = runtime.session!;
+      expect(session.modelRuntimeState('field', models.first.id)!.normalizedTime, 0);
+      runtime.handleInput(
+          const RuntimeInputEvent.press(RuntimeInputControl.down));
+      if (running) {
+        runtime.handleInput(
+            const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      }
+      for (var i = 0; i < 40 && session.movement.z < 5; i++) {
+        session.frame(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(session.movement.z.floor(), 5);
+      session.frame(.1);
+      expect(session.modelRuntimeState('field', models.first.id)!.normalizedTime,
+          closeTo(.25, 1e-9));
+      expect(session.modelRuntimeState('field', models.last.id)!.normalizedTime, 0);
+      session.frame(0);
+      expect(session.modelRuntimeState('field', models.first.id)!.normalizedTime,
+          closeTo(.25, 1e-9));
+      await runtime.pause();
+      session.frame(10);
+      expect(session.modelRuntimeState('field', models.first.id)!.normalizedTime,
+          closeTo(.25, 1e-9));
+      await runtime.resume();
+      session.frame(.3);
+      expect(session.modelRuntimeState('field', models.first.id)!.normalizedTime, 0);
+      final override = SpatialModelRuntimeState(
+          modelId: 'grass-model', animationIndex: 0,
+          normalizedTime: .8, blocksMovement: false);
+      session.worldStateProvider = () => const SpatialWorldState.empty()
+          .setModelState('field', models.first.id, override);
+      expect(session.modelRuntimeState('field', models.first.id), same(override));
+      expect(session.modelRuntimeState('missing', models.first.id), isNull);
+    });
+  }
+
+  for (final running in [false, true]) {
+    test('native encounter paths receive cell entries: running $running',
+        () async {
+      bundle = bundle.copyWith(
+          manifest: bundle.manifest.copyWith(encounterTables: const [
+            ProjectEncounterTable(
+                id: 'grass-table',
+                name: 'Grass',
+                encounterKind: EncounterKind.walk,
+                chancePerStep: 0,
+                entries: [
+                  ProjectEncounterEntry(
+                      speciesId: 'zubat', minLevel: 5, maxLevel: 5)
+                ])
+          ]),
+          map: bundle.map.copyWith(layers: [
+            SmartTileLayer(
+                id: 'grass',
+                name: 'Grass',
+                presetId: 'grass-preset',
+                usage: SmartTileUsage.path,
+                materialPalette: const ['', 'grass-material'],
+                field: SmartTileField.cell(
+                    semanticCells: List.filled(64, 1)),
+                encounterBehavior: const SmartTileEncounterBehavior(
+                    materialId: 'grass-material',
+                    encounter: EncounterZonePayload(
+                        encounterTableId: 'grass-table',
+                        encounterKind: EncounterKind.walk)))
+          ]));
+      expect(bundle.map.triggers, isEmpty);
+      expect(bundle.map.gameplayZones, isEmpty);
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final session = runtime.session!;
+      expect(session.movement.paused, isFalse);
+      final checkedCells = <int>{};
+      final inputEpoch = session.movement.inputEpoch;
+      runtime.handleInput(
+          const RuntimeInputEvent.press(RuntimeInputControl.down));
+      if (running) {
+        runtime.handleInput(
+            const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      }
+      for (var frame = 0; frame < 80 && session.movement.z < 7.1; frame++) {
+        session.frame(.05);
+        if (session.movement.paused) {
+          checkedCells.add(session.movement.z.floor());
+        }
+        for (var tick = 0; tick < 100 && session.movement.paused; tick++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(session.interactionError.value, isNull);
+        expect(session.movement.paused, isFalse);
+        expect(session.movement.inputEpoch, inputEpoch);
+      }
+      expect(checkedCells, containsAll([5, 6, 7]));
+      expect(session.movement.z, greaterThanOrEqualTo(7.1));
+    });
+  }
 
   for (final running in [false, true]) {
     test(

@@ -6,6 +6,8 @@ String environmentDiagnosticKindLabel(EnvironmentAuthoringDiagnosticKind kind) {
     EnvironmentAuthoringDiagnosticKind.duplicatePresetId => 'Preset dupliqué',
     EnvironmentAuthoringDiagnosticKind.missingPaletteElement =>
       'Élément introuvable',
+    EnvironmentAuthoringDiagnosticKind.missingPaletteModel =>
+      'Modèle 3D introuvable',
     EnvironmentAuthoringDiagnosticKind.unknownTemplateId => 'Template inconnu',
     EnvironmentAuthoringDiagnosticKind.forcedCollisionWithoutProfile =>
       'Collision forcée sans profil',
@@ -22,6 +24,10 @@ String environmentDiagnosticKindLabel(EnvironmentAuthoringDiagnosticKind kind) {
     EnvironmentAuthoringDiagnosticKind.emptyAreaMask => 'Zone vide',
     EnvironmentAuthoringDiagnosticKind.missingGeneratedPlacement =>
       'Placement généré introuvable',
+    EnvironmentAuthoringDiagnosticKind.spatialTerrainMissing =>
+      'Terrain 3D introuvable',
+    EnvironmentAuthoringDiagnosticKind.duplicateGeneratedOwnership =>
+      'Placement généré partagé entre plusieurs zones',
   };
 }
 

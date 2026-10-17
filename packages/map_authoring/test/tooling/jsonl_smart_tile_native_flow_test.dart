@@ -343,7 +343,7 @@ void main() {
             [action == 'smart_tile.cell.erase' ? 0 : 1]);
       });
     }
-    test('selected pattern ownership erase persists through direct and JSONL',
+    test('selected pattern ownership and material erase persist through direct and JSONL',
         () async {
       final direct =
           await _Harness.create('selected_pattern_direct', spatial: true);
@@ -381,6 +381,7 @@ void main() {
             'layerId': 'terrain',
             'patternId': 'grass-detail',
             'strokeId': 'lower',
+            'materialId': 'grass',
             'selection': {
               'kind': 'stamp',
               'anchor': {'x': 0, 'y': 0}
@@ -395,6 +396,7 @@ void main() {
             'layerId': 'terrain',
             'patternId': 'grass-detail',
             'strokeId': 'upper',
+            'materialId': 'grass',
             'selection': {
               'kind': 'stamp',
               'anchor': {'x': 0, 'y': 0}
@@ -414,6 +416,7 @@ void main() {
             'mapId': 'map',
             'layerId': 'terrain',
             'strokeIds': ['upper'],
+            'clearMaterial': true,
             'cells': [
               {'x': 0, 'y': 0}
             ],
@@ -431,9 +434,137 @@ void main() {
         final reopened = await harness.openDirect();
         final fresh = await harness.snapshots.load(reopened.project);
         expect(fresh.maps.single, snapshot.maps.single);
+        await harness.readApi.close(reopened.workspace);
+        await transport(actionId: 'smart_tile.pattern.erase', parameters: const {
+          'mapId': 'map', 'layerId': 'terrain', 'clearMaterial': true,
+          'cells': [{'x': 0, 'y': 0}]
+        }, sequence: 'selected-final-erase');
+        final cleared = MapData.fromJson(jsonDecode(utf8.decode(await harness.mapBytes()))
+            as Map<String, dynamic>);
+        final clearedLayer = cleared.layers.single as SmartTileLayer;
+        expect(clearedLayer.patternStrokes, isEmpty);
+        expect(smartTileSemanticCells(clearedLayer), List.filled(
+            cleared.size.width * cleared.size.height, 0));
       }
       expect(await direct.mapBytes(), await jsonl.mapBytes());
       expect(await direct.projectBytes(), await jsonl.projectBytes());
+    });
+
+    test(
+        'pattern batch persists reusable units identically through direct and JSONL',
+        () async {
+      final direct = await _Harness.create('patterns_direct', spatial: true);
+      final jsonl = await _Harness.create('patterns_jsonl', spatial: true);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      await direct.applyDirectFlow();
+      await jsonl.applyJsonlFlow();
+      final beforeMap = await direct.mapBytes();
+      final beforeProject = await direct.projectBytes();
+      final manifest = ProjectManifest.fromJson(
+          jsonDecode(utf8.decode(beforeProject)) as Map<String, dynamic>);
+      final preset = manifest.smartTileCatalog.presets.first;
+      final patterns = [
+        for (var index = 0; index < 217; index++)
+          ProjectSmartTilePattern(
+            id: 'unit-$index',
+            name: 'Reusable unit $index',
+            usage: preset.usage,
+            width: 1,
+            height: 1,
+            cells: [
+              SmartTilePatternCell(
+                  x: 0, y: 0, parts: [
+                    for (final part in preset.rules.first.candidates.first.parts)
+                      index == 0 ? part.copyWith(spatialFollowTerrain: false, spatialHeightOffset: .25) : part,
+                  ])
+            ],
+          ).toJson(),
+      ];
+      final invalid = {
+        'patterns': [patterns.first, patterns.first]
+      };
+      await expectLater(
+          direct.planDirect(
+              actionId: 'smart_tile.pattern.upsert_batch',
+              parameters: invalid,
+              sequence: 'duplicate-patterns'),
+          throwsA(isA<MapAuthoringException>().having((error) => error.code,
+              'code', 'smart_tile.pattern.batch_duplicate')));
+      final rejected = await jsonl.planJsonlFailure(
+          actionId: 'smart_tile.pattern.upsert_batch',
+          parameters: invalid,
+          sequence: 'duplicate-patterns');
+      expect(rejected.error?.details['domainCode'],
+          'smart_tile.pattern.batch_duplicate');
+      expect(await direct.projectBytes(), beforeProject);
+      expect(await jsonl.projectBytes(), beforeProject);
+      final parameters = {'patterns': patterns};
+      await direct.applyDirectAction(
+          actionId: 'smart_tile.pattern.upsert_batch',
+          parameters: parameters,
+          sequence: 'patterns');
+      await jsonl.applyJsonlAction(
+          actionId: 'smart_tile.pattern.upsert_batch',
+          parameters: parameters,
+          sequence: 'patterns');
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), beforeMap);
+      expect(await jsonl.mapBytes(), beforeMap);
+      final saved = ProjectManifest.fromJson(
+          jsonDecode(utf8.decode(await direct.projectBytes()))
+              as Map<String, dynamic>);
+      expect(
+          saved.smartTileCatalog.patterns
+              .where((pattern) => pattern.id.startsWith('unit-')),
+          hasLength(217));
+      expect(saved.smartTileCatalog.patterns.singleWhere((pattern) => pattern.id == 'unit-0').cells.single.parts.single.spatialFollowTerrain, false);
+      expect(saved.copyWith(smartTileCatalog: manifest.smartTileCatalog),
+          manifest);
+      final beforePainting = MapData.fromJson(
+        jsonDecode(utf8.decode(beforeMap)) as Map<String, dynamic>,
+      );
+      final strokeBatch = {
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'strokes': [
+          for (var index = 0; index < patterns.length; index++)
+            {
+              'patternId': 'unit-$index',
+              'strokeId': 'stroke-$index',
+              'phaseX': -index,
+              'phaseY': index,
+              'selection': {
+                'kind': 'stamp',
+                'anchor': {
+                  'x': index % beforePainting.size.width,
+                  'y': (index ~/ beforePainting.size.width) %
+                      beforePainting.size.height,
+                },
+              },
+            },
+        ],
+      };
+      await direct.applyDirectAction(
+        actionId: 'smart_tile.pattern.paint_batch',
+        parameters: strokeBatch,
+        sequence: 'paint-patterns',
+      );
+      await jsonl.applyJsonlAction(
+        actionId: 'smart_tile.pattern.paint_batch',
+        parameters: strokeBatch,
+        sequence: 'paint-patterns',
+      );
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      final painted = MapData.fromJson(
+        jsonDecode(utf8.decode(await direct.mapBytes()))
+            as Map<String, dynamic>,
+      );
+      expect((painted.layers.single as SmartTileLayer).patternStrokes,
+          hasLength(217));
+      expect(painted.spatialScene, beforePainting.spatialScene);
+      expect(painted.copyWith(layers: beforePainting.layers), beforePainting);
     });
 
     test(
@@ -597,14 +728,33 @@ void main() {
     for (final actionId in [
       'smart_tile.cell.paint_batch',
       'smart_tile.material.upsert_batch',
+      'smart_tile.pattern.upsert_batch',
+      'smart_tile.pattern.paint_batch',
     ]) {
       test(
         '$actionId is discoverable and persisted by the canonical CLI',
         () async {
           final harness = await _Harness.create('batch_cli', spatial: true);
           addTearDown(harness.dispose);
-          if (actionId == 'smart_tile.cell.paint_batch') {
+          if (actionId != 'smart_tile.material.upsert_batch') {
             await harness.applyDirectFlow();
+          }
+          if (actionId == 'smart_tile.pattern.paint_batch') {
+            await harness.applyDirectAction(
+              actionId: 'smart_tile.pattern.upsert',
+              parameters: {
+                'pattern': ProjectSmartTilePattern(
+                  id: 'cli-unit', name: 'CLI unit', usage: SmartTileUsage.terrain,
+                  width: 1, height: 1,
+                  cells: const [SmartTilePatternCell(x: 0, y: 0, parts: [
+                    SmartTileVisualPart(source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
+                    )),
+                  ])],
+                ).toJson(),
+              },
+              sequence: 'cli-pattern',
+            );
           }
           final beforeMap = await harness.mapBytes();
           final process = await Process.start('dart', [
@@ -667,7 +817,15 @@ void main() {
                 workspaceHandle: opened['workspaceHandle'] as String,
                 revision: validation['snapshotRevision'] as String,
                 actionId: actionId,
-                parameters: actionId == 'smart_tile.cell.paint_batch'
+                parameters: actionId == 'smart_tile.pattern.paint_batch'
+                    ? {
+                        'mapId': 'map', 'layerId': 'terrain',
+                        'strokes': [{
+                          'patternId': 'cli-unit', 'strokeId': 'cli-stroke',
+                          'selection': {'kind': 'stamp', 'anchor': {'x': 0, 'y': 0}},
+                        }],
+                      }
+                    : actionId == 'smart_tile.cell.paint_batch'
                     ? {
                         'mapId': 'map',
                         'layerId': 'terrain',
@@ -680,16 +838,38 @@ void main() {
                           },
                         ],
                       }
-                    : {
-                        'materials': [
-                          {
-                            'id': 'grass',
-                            'name': 'Grass',
-                            'connectionGroupId': 'ground',
-                            'pathSurfaceKind': 'bridge',
+                    : actionId == 'smart_tile.pattern.upsert_batch'
+                        ? {
+                            'patterns': [
+                              ProjectSmartTilePattern(
+                                id: 'cli-unit',
+                                name: 'CLI unit',
+                                usage: SmartTileUsage.terrain,
+                                width: 1,
+                                height: 1,
+                                cells: const [
+                                  SmartTilePatternCell(x: 0, y: 0, parts: [
+                                    SmartTileVisualPart(
+                                        source: SmartTileVisualSource.frame(
+                                            frame: SmartTileFrameRef(
+                                                atlasId: 'atlas',
+                                                column: 0,
+                                                row: 0))),
+                                  ])
+                                ],
+                              ).toJson(),
+                            ],
+                          }
+                        : {
+                            'materials': [
+                              {
+                                'id': 'grass',
+                                'name': 'Grass',
+                                'connectionGroupId': 'ground',
+                                'pathSurfaceKind': 'bridge',
+                              },
+                            ],
                           },
-                        ],
-                      },
                 sequence: 'cli-batch',
               ).toJson(),
             });
@@ -707,15 +887,24 @@ void main() {
                 smartTileSemanticCells(painted.layers.single as SmartTileLayer),
                 [1],
               );
+            } else if (actionId == 'smart_tile.pattern.paint_batch') {
+              final painted = MapData.fromJson(
+                jsonDecode(utf8.decode(await harness.mapBytes())) as Map<String, dynamic>,
+              );
+              expect((painted.layers.single as SmartTileLayer).patternStrokes.single.id, 'cli-stroke');
             } else {
               final manifest = ProjectManifest.fromJson(
                 jsonDecode(utf8.decode(await harness.projectBytes()))
                     as Map<String, dynamic>,
               );
-              expect(
-                manifest.smartTileCatalog.materials.single.pathSurfaceKind,
-                PathSurfaceKind.bridge,
-              );
+              if (actionId == 'smart_tile.pattern.upsert_batch') {
+                expect(
+                    manifest.smartTileCatalog.patterns.single.id, 'cli-unit');
+              } else {
+                expect(
+                    manifest.smartTileCatalog.materials.single.pathSurfaceKind,
+                    PathSurfaceKind.bridge);
+              }
               expect(await harness.mapBytes(), beforeMap);
             }
           } finally {

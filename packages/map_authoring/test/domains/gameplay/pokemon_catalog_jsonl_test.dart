@@ -7,6 +7,111 @@ import 'package:test/test.dart';
 
 void main() {
   group('Pokemon document transport parity', () {
+    test('repairs invalid evolution preimages through direct API and JSONL',
+        () async {
+      final beforeBytes = utf8.encode(jsonEncode(_invalidTradeEvolution()));
+      expect(
+        () => PokemonEvolutionFile.fromJson(_invalidTradeEvolution()),
+        throwsFormatException,
+      );
+      for (final useJsonl in [false, true]) {
+        final harness =
+            await _PokemonTransportHarness.create('evolution-repair-$useJsonl');
+        addTearDown(harness.dispose);
+        final file =
+            File('${harness.root.path}/data/pokemon/evolutions/seadra.json');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(beforeBytes);
+        final batch = _evolutionRepairBatch(beforeBytes);
+        final receipt = useJsonl
+            ? await harness.writeJsonl(batch)
+            : await harness.writeDirect(batch);
+        expect(receipt['actionId'], 'pokemon.documents.write');
+        expect(
+          jsonDecode(await file.readAsString()),
+          PokemonEvolutionFile.fromJson(_repairedTradeEvolution()).toJson(),
+        );
+        final historyLines =
+            await File('${harness.root.path}/.pokemap/authoring/history.jsonl')
+                .readAsLines();
+        final appended = historyLines
+            .map((line) => jsonDecode(line) as Map<String, dynamic>)
+            .firstWhere((line) => line['type'] == 'append')['payload']['entry'];
+        final history = await FileAuthoringHistoryStore.open(
+            projectRoot: harness.root.path);
+        final entry = await history.get(
+          projectId: appended['projectId'] as String,
+          entryId: receipt['receiptId']! as String,
+        );
+        expect(entry, isNotNull);
+        final blobs = await FileAuthoringContentBlobStore.open(
+            projectRoot: harness.root.path);
+        expect(
+            await (await blobs.get(entry!.changes.single.beforeBlobId!))!
+                .readBytes(),
+            beforeBytes);
+        expect(
+            await (await blobs.get(entry.changes.single.afterBlobId!))!
+                .readBytes(),
+            await file.readAsBytes());
+      }
+    });
+
+    test('evolution repair rejects mismatched identity and invalid replacement',
+        () async {
+      for (final useJsonl in [false, true]) {
+        for (final wrongIdentity in [false, true]) {
+          final harness = await _PokemonTransportHarness.create(
+              'evolution-repair-rejected-$useJsonl-$wrongIdentity');
+          addTearDown(harness.dispose);
+          final original = _invalidTradeEvolution();
+          final bytes = utf8.encode(jsonEncode(original));
+          final file =
+              File('${harness.root.path}/data/pokemon/evolutions/seadra.json');
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(bytes);
+          final batch = _evolutionRepairBatch(
+            wrongIdentity
+                ? utf8.encode(jsonEncode({...original, 'speciesId': 'horsea'}))
+                : bytes,
+            document: wrongIdentity ? null : _invalidTradeEvolution(),
+          );
+          if (useJsonl) {
+            expect((await harness.writeJsonlResult(batch)).status,
+                AuthoringResultStatus.failure);
+          } else {
+            await expectLater(
+                () => harness.writeDirect(batch), throwsFormatException);
+          }
+          expect(await file.readAsBytes(), bytes);
+        }
+      }
+    });
+
+    test('evolution repair refuses a forged preimage with the same identity',
+        () async {
+      for (final useJsonl in [false, true]) {
+        final harness = await _PokemonTransportHarness.create(
+            'evolution-repair-stale-$useJsonl');
+        addTearDown(harness.dispose);
+        final actual = utf8.encode('${jsonEncode(_invalidTradeEvolution())}\n');
+        final file =
+            File('${harness.root.path}/data/pokemon/evolutions/seadra.json');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(actual);
+        final batch = _evolutionRepairBatch(
+            utf8.encode(jsonEncode(_invalidTradeEvolution())));
+        if (useJsonl) {
+          expect((await harness.writeJsonlResult(batch)).status,
+              AuthoringResultStatus.failure);
+        } else {
+          await expectLater(
+              () => harness.writeDirect(batch), throwsA(anything));
+        }
+        expect(await file.readAsBytes(), actual);
+      }
+    });
+
     test(
         'adds catalog entries without resending or modifying existing definitions',
         () async {
@@ -205,6 +310,47 @@ void main() {
     });
   });
 }
+
+Map<String, dynamic> _invalidTradeEvolution() => {
+      'schemaVersion': 1,
+      'speciesId': 'seadra',
+      'preEvolution': 'horsea',
+      'evolutions': [
+        {
+          'method': 'trade',
+          'targetSpeciesId': 'kingdra',
+          'itemId': 'dragon_scale',
+        },
+      ],
+    };
+
+Map<String, dynamic> _repairedTradeEvolution() => {
+      'schemaVersion': 1,
+      'speciesId': 'seadra',
+      'preEvolution': 'horsea',
+      'evolutions': [
+        {
+          'method': 'trade',
+          'targetSpeciesId': 'kingdra',
+          'tradeRequirements': {'requiredHeldItemId': 'dragon_scale'},
+        },
+      ],
+    };
+
+Map<String, dynamic> _evolutionRepairBatch(List<int> beforeBytes,
+        {Map<String, dynamic>? document}) =>
+    {
+      'documents': [
+        {
+          'actionId': 'pokemon.evolution.write',
+          'parameters': {
+            'relativePath': 'data/pokemon/evolutions/seadra.json',
+            'document': document ?? _repairedTradeEvolution(),
+            'beforeBytesBase64': base64Encode(beforeBytes),
+          },
+        },
+      ],
+    };
 
 Map<String, Object?> _receiptAfter(Map<String, Object?> receipt) {
   final diff = Map<String, Object?>.from(receipt['diff']! as Map);

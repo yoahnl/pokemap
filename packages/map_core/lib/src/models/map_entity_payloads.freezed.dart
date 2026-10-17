@@ -912,7 +912,7 @@ as DialogueRef,
 @override
 @pragma('vm:prefer-inline')
 $MapEntityRuntimePredicateCopyWith<$Res> get when {
-
+  
   return $MapEntityRuntimePredicateCopyWith<$Res>(_self.when, (value) {
     return _then(_self.copyWith(when: value));
   });
@@ -921,7 +921,7 @@ $MapEntityRuntimePredicateCopyWith<$Res> get when {
 @override
 @pragma('vm:prefer-inline')
 $DialogueRefCopyWith<$Res> get dialogue {
-
+  
   return $DialogueRefCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
   });
@@ -1132,7 +1132,7 @@ as DialogueRef,
 @override
 @pragma('vm:prefer-inline')
 $MapEntityRuntimePredicateCopyWith<$Res> get when {
-
+  
   return $MapEntityRuntimePredicateCopyWith<$Res>(_self.when, (value) {
     return _then(_self.copyWith(when: value));
   });
@@ -1141,7 +1141,7 @@ $MapEntityRuntimePredicateCopyWith<$Res> get when {
 @override
 @pragma('vm:prefer-inline')
 $DialogueRefCopyWith<$Res> get dialogue {
-
+  
   return $DialogueRefCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
   });
@@ -1250,7 +1250,7 @@ $DialogueRefCopyWith<$Res>? get defeatDialogueRef {
 @override
 @pragma('vm:prefer-inline')
 $MapEntityNpcMovementConfigCopyWith<$Res> get movement {
-
+  
   return $MapEntityNpcMovementConfigCopyWith<$Res>(_self.movement, (value) {
     return _then(_self.copyWith(movement: value));
   });
@@ -1532,7 +1532,7 @@ $DialogueRefCopyWith<$Res>? get defeatDialogueRef {
 @override
 @pragma('vm:prefer-inline')
 $MapEntityNpcMovementConfigCopyWith<$Res> get movement {
-
+  
   return $MapEntityNpcMovementConfigCopyWith<$Res>(_self.movement, (value) {
     return _then(_self.copyWith(movement: value));
   });

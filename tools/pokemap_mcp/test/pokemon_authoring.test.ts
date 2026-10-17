@@ -281,6 +281,89 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
   }
 });
 
+test("MCP repairs invalid evolution documents while preserving exact preimage guards", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-evolution-repair-"));
+  const relativePath = "data/pokemon/evolutions/seadra.json";
+  const path = join(root, relativePath);
+  const original = {
+    schemaVersion: 1, speciesId: "seadra", preEvolution: "horsea",
+    evolutions: [{ method: "trade", targetSpeciesId: "kingdra", itemId: "dragon_scale" }],
+  };
+  const replacement = {
+    ...original,
+    evolutions: [{ method: "trade", targetSpeciesId: "kingdra", tradeRequirements: { requiredHeldItemId: "dragon_scale" } }],
+  };
+  const originalBytes = Buffer.from(JSON.stringify(original));
+  await writeFile(join(root, "project.json"), JSON.stringify({
+    name: "Evolution repair", version: "v8", maps: [], tilesets: [],
+    pokemon: { ...canonicalPokemonConfig(), enabled: true },
+  }));
+  await mkdir(join(root, "data/pokemon/evolutions"), { recursive: true });
+  await writeFile(path, originalBytes);
+  const authoring = new LocalAuthoringClient({
+    allowedRoots: [root], authoringPackageRoot,
+    requestTimeoutMs: 60_000, workerTimeoutMs: 30_000,
+  });
+  const server = createPokeMapMcpServer({ authoring, artifacts: new MemoryArtifactReader() });
+  const [ct, st] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "evolution-repair", version: "1.0.0" });
+  await server.connect(st);
+  await client.connect(ct);
+  try {
+    const described = await toolData(client, "pokemap_describe");
+    assert.ok((described.mutationActions as JsonRecord[]).some(a => a.id === "pokemon.evolution.write" && a.version === 1));
+    const opened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const before = await toolData(client, "pokemap_validate", { projectHandle: opened.projectHandle });
+    assert.ok((record(before.pokemonCatalog).diagnostics as JsonRecord[]).some(d => d.code === "evolution.read_error"));
+    const request = (suffix: string, document: JsonRecord, preimage = originalBytes): JsonRecord => ({
+      requestId: `repair-${suffix}`, actionId: "pokemon.evolution.write", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: before.snapshotRevision,
+      idempotencyKey: `repair-${suffix}`, dryRun: false,
+      parameters: { relativePath, document, beforeBytesBase64: preimage.toString("base64") },
+    });
+    await toolFailure(client, "pokemap_plan", {
+      projectHandle: opened.projectHandle, request: request("invalid-target", original),
+    });
+    await toolFailure(client, "pokemap_plan", {
+      projectHandle: opened.projectHandle,
+      request: request("wrong-identity", replacement, Buffer.from(JSON.stringify({ ...original, speciesId: "horsea" }))),
+    });
+    const forgedPlan = await toolData(client, "pokemap_plan", {
+      projectHandle: opened.projectHandle,
+      request: request("forged-preimage", replacement, Buffer.from(`${JSON.stringify(original)}\n`)),
+    });
+    await toolFailure(client, "pokemap_apply", {
+      operation: "apply", projectHandle: opened.projectHandle,
+      planId: forgedPlan.planId, operationId: "forged-evolution-repair-apply",
+    });
+    assert.deepEqual(await readFile(path), originalBytes);
+    const planned = await toolData(client, "pokemap_plan", {
+      projectHandle: opened.projectHandle, request: request("valid", replacement),
+    });
+    assert.equal(planned.applicable, true);
+    assert.deepEqual(await readFile(path), originalBytes);
+    const applied = await toolData(client, "pokemap_apply", {
+      operation: "apply", projectHandle: opened.projectHandle,
+      planId: planned.planId, operationId: "evolution-repair-apply",
+    });
+    assert.equal(record(applied.receipt).actionId, "pokemon.evolution.write");
+    const persisted = JSON.parse(await readFile(path, "utf8")) as JsonRecord;
+    assert.equal(persisted.speciesId, "seadra");
+    const evolution = record((persisted.evolutions as JsonRecord[])[0]);
+    assert.deepEqual(evolution.tradeRequirements, { requiredHeldItemId: "dragon_scale" });
+    assert.equal(evolution.itemId, null);
+    const validated = await toolData(client, "pokemap_validate", { projectHandle: opened.projectHandle });
+    const diagnostics = record(validated.pokemonCatalog).diagnostics as JsonRecord[];
+    assert.ok(!diagnostics.some(d => d.code === "evolution.read_error"));
+    await toolData(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+  } finally {
+    await client.close();
+    await server.close();
+    await authoring.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 function mutationRequest(
   workspaceHandle: string,
   expectedRevision: string,

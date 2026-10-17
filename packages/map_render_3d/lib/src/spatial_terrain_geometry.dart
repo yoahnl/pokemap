@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flame_3d/core.dart';
 import 'package:map_core/map_core.dart';
 
+part 'spatial_ground_polygon.dart';
+
 final class SpatialSurfacePatch {
   const SpatialSurfacePatch({
     required this.scene,
@@ -13,6 +15,9 @@ final class SpatialSurfacePatch {
     required this.bottom,
     required this.ramp,
     this.groundHeight,
+    this.groundGradientX = 0,
+    this.groundGradientZ = 0,
+    this.footprint,
   });
 
   final MapSpatialScene scene;
@@ -20,17 +25,115 @@ final class SpatialSurfacePatch {
   final double left, top, right, bottom;
   final SpatialRamp? ramp;
   final double? groundHeight;
+  final double groundGradientX;
+  final double groundGradientZ;
+  final List<BorderGroundPoint>? footprint;
 
   double heightAt(double x, double z) => ramp == null
-      ? groundHeight ?? scene.heightAt(cell.$1, cell.$2)
+      ? (groundHeight ?? scene.heightAt(cell.$1, cell.$2)) +
+            groundGradientX * x +
+            groundGradientZ * z
       : ramp!.levelAt(x, z) * scene.levelHeight;
 
-  List<Vector3> get corners => [
-    Vector3(left, heightAt(left, top), top),
-    Vector3(left, heightAt(left, bottom), bottom),
-    Vector3(right, heightAt(right, bottom), bottom),
-    Vector3(right, heightAt(right, top), top),
-  ];
+  List<Vector3> get corners => footprint != null
+      ? [
+          for (final point in footprint!)
+            Vector3(point.x, heightAt(point.x, point.z), point.z),
+        ]
+      : [
+          Vector3(left, heightAt(left, top), top),
+          Vector3(left, heightAt(left, bottom), bottom),
+          Vector3(right, heightAt(right, bottom), bottom),
+          Vector3(right, heightAt(right, top), top),
+        ];
+}
+
+final class SpatialFlatGroundSurface {
+  SpatialFlatGroundSurface({
+    required this.height,
+    this.gradientX = 0,
+    this.gradientZ = 0,
+    required List<BorderGroundFootprint> footprints,
+  }) : footprints = List.unmodifiable(footprints) {
+    if (!height.isFinite ||
+        !gradientX.isFinite ||
+        !gradientZ.isFinite ||
+        footprints.isEmpty) {
+      throw ArgumentError(
+        'Flat surfaces require a finite height and footprints',
+      );
+    }
+  }
+
+  final double height;
+  final double gradientX;
+  final double gradientZ;
+  final List<BorderGroundFootprint> footprints;
+
+  double heightAt(double x, double z) => height + gradientX * x + gradientZ * z;
+}
+
+Iterable<SpatialSurfacePatch> spatialFlatGroundPatches(
+  MapSpatialScene scene, {
+  required SpatialFlatGroundSurface surface,
+  double left = 0,
+  double top = 0,
+  double? right,
+  double? bottom,
+}) sync* {
+  final a = math.max(0.0, left), b = math.max(0.0, top);
+  final c = math.min(scene.width.toDouble(), right ?? scene.width.toDouble());
+  final d = math.min(scene.depth.toDouble(), bottom ?? scene.depth.toDouble());
+  if (a >= c || b >= d) return;
+  for (var z = b.floor(); z < d; z++) {
+    for (var x = a.floor(); x < c; x++) {
+      final l = math.max(a, x.toDouble()), t = math.max(b, z.toDouble());
+      final r = math.min(c, x + 1.0), end = math.min(d, z + 1.0);
+      var remaining = [
+        [
+          BorderGroundPoint(x: l, z: t),
+          BorderGroundPoint(x: r, z: t),
+          BorderGroundPoint(x: r, z: end),
+          BorderGroundPoint(x: l, z: end),
+        ],
+      ];
+      for (final footprint in surface.footprints) {
+        final outside = <List<BorderGroundPoint>>[];
+        for (final polygon in remaining) {
+          final split = _splitGroundPolygon(polygon, footprint.points);
+          outside.addAll(split.outside);
+          if (split.inside.isEmpty) continue;
+          final ordered = _groundPolygonArea(split.inside) < 0
+              ? split.inside
+              : split.inside.reversed.toList();
+          final pieces = ordered.length <= 4
+              ? [ordered]
+              : [
+                  for (var i = 1; i < ordered.length - 1; i++)
+                    [ordered.first, ordered[i], ordered[i + 1]],
+                ];
+          for (final piece in pieces) {
+            if (_groundPolygonArea(piece).abs() <= 1e-12) continue;
+            yield SpatialSurfacePatch(
+              scene: scene,
+              cell: (x, z),
+              left: l,
+              top: t,
+              right: r,
+              bottom: end,
+              ramp: null,
+              groundHeight: surface.height,
+              groundGradientX: surface.gradientX,
+              groundGradientZ: surface.gradientZ,
+              footprint: piece.length == 3 ? [...piece, piece.last] : piece,
+            );
+          }
+        }
+        remaining = outside;
+        if (remaining.isEmpty) break;
+      }
+    }
+  }
 }
 
 Iterable<SpatialSurfacePatch> spatialSurfacePatches(
@@ -45,6 +148,7 @@ Iterable<SpatialSurfacePatch> spatialSurfacePatches(
   final c = math.min(scene.width.toDouble(), right ?? scene.width.toDouble());
   final d = math.min(scene.depth.toDouble(), bottom ?? scene.depth.toDouble());
   if (a >= c || b >= d) return;
+  final hasTerrainSurfaces = scene.terrainSurfaces.surfaces.isNotEmpty;
   for (var cellZ = b.floor(); cellZ < d; cellZ++) {
     for (var cellX = a.floor(); cellX < c; cellX++) {
       final cellLeft = math.max(a, cellX.toDouble());
@@ -102,7 +206,20 @@ Iterable<SpatialSurfacePatch> spatialSurfacePatches(
                   )
                 : null,
           );
-          yield patch;
+          if (ramp == null &&
+              replacements.any((value) => value.footprints.isNotEmpty)) {
+            if (hasTerrainSurfaces) {
+              for (final piece in _preciseGroundPatches(patch, replacements)) {
+                yield* _terrainSurfacePatches(piece);
+              }
+            } else {
+              yield* _preciseGroundPatches(patch, replacements);
+            }
+          } else if (hasTerrainSurfaces) {
+            yield* _terrainSurfacePatches(patch);
+          } else {
+            yield patch;
+          }
         }
       }
     }
@@ -118,10 +235,7 @@ double _borderGroundHeight(
   for (var pass = 0; pass < replacements.length; pass++) {
     var lowered = height;
     for (final replacement in replacements) {
-      if (x > replacement.left &&
-          x < replacement.right &&
-          z > replacement.top &&
-          z < replacement.bottom &&
+      if (replacement.contains(x, z) &&
           height > replacement.lowerHeight + .000001 &&
           height <= replacement.upperHeight + .000001) {
         lowered = math.min(lowered, replacement.lowerHeight);
@@ -140,6 +254,90 @@ typedef SpatialTerrainFace = ({
   List<Vector2> uvs,
 });
 
+typedef SpatialGroundUnderlay = ({
+  List<BorderGroundPoint> footprint,
+  double heightOffset,
+});
+
+typedef SpatialGroundUnderlayIndex =
+    Map<(int, int), List<SpatialGroundUnderlay>>;
+
+Iterable<SpatialTerrainFace> spatialTerrainUnderlayFaces(
+  SpatialTerrainFace face,
+  SpatialGroundUnderlayIndex supports,
+) sync* {
+  final underlays = supports[face.cell];
+  if (!face.isTop) {
+    yield face;
+    return;
+  }
+  if (underlays == null || underlays.isEmpty) return;
+  final points = [
+    for (final position in face.positions)
+      BorderGroundPoint(x: position.x, z: position.z),
+  ];
+  var pieces = [(points: points, offset: 0.0, covered: false)];
+  var changed = false;
+  for (final underlay in underlays) {
+    final next =
+        <({List<BorderGroundPoint> points, double offset, bool covered})>[];
+    for (final piece in pieces) {
+      if (piece.covered && underlay.heightOffset >= piece.offset) {
+        next.add(piece);
+        continue;
+      }
+      final split = _splitGroundPolygon(piece.points, underlay.footprint);
+      if (split.inside.isEmpty) {
+        next.add(piece);
+        continue;
+      }
+      changed = true;
+      next.add((
+        points: split.inside,
+        offset: underlay.heightOffset,
+        covered: true,
+      ));
+      next.addAll([
+        for (final outside in split.outside)
+          (points: outside, offset: piece.offset, covered: piece.covered),
+      ]);
+    }
+    pieces = next;
+  }
+  if (!changed) {
+    return;
+  }
+  final origin = face.positions[0];
+  final u = face.positions[1] - origin;
+  final v = face.positions
+      .skip(2)
+      .map((point) => point - origin)
+      .firstWhere((point) => (u.x * point.z - u.z * point.x).abs() > 1e-12);
+  final determinant = u.x * v.z - u.z * v.x;
+  double heightAt(BorderGroundPoint point) {
+    final x = point.x - origin.x, z = point.z - origin.z;
+    final a = (x * v.z - z * v.x) / determinant;
+    final b = (u.x * z - u.z * x) / determinant;
+    return origin.y + a * u.y + b * v.y;
+  }
+
+  for (final piece in pieces) {
+    if (!piece.covered) continue;
+    yield (
+      cell: face.cell,
+      isTop: true,
+      positions: [
+        for (final point in piece.points)
+          Vector3(point.x, heightAt(point) + piece.offset, point.z),
+      ],
+      uvs: [
+        for (final point in piece.points)
+          Vector2(point.x - face.cell.$1, point.z - face.cell.$2),
+      ],
+    );
+  }
+}
+
 Iterable<SpatialTerrainFace> spatialTerrainFaces(
   MapSpatialScene scene, {
   double left = 0,
@@ -147,6 +345,7 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
   double? right,
   double? bottom,
   bool repeatWalls = true,
+  bool includeModelledRampSurfaces = false,
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
   for (final patch in spatialSurfacePatches(
@@ -157,20 +356,21 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
     bottom: bottom,
     groundReplacements: groundReplacements,
   )) {
-    yield (
-      cell: patch.cell,
-      isTop: true,
-      positions: patch.corners,
-      uvs: [Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0)],
-    );
+    if (patch.ramp?.surfaceInstanceId == null || includeModelledRampSurfaces) {
+      yield (
+        cell: patch.cell,
+        isTop: true,
+        positions: patch.corners,
+        uvs: patch.footprint == null
+            ? [Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0)]
+            : [
+                for (final point in patch.corners)
+                  Vector2(point.x - patch.cell.$1, point.z - patch.cell.$2),
+              ],
+      );
+    }
     if (!scene.generateCliffs) continue;
-    final a = patch.left, b = patch.top, c = patch.right, d = patch.bottom;
-    for (final edge in [
-      ((a, b), (a, d), (-1.0, 0.0)),
-      ((c, d), (c, b), (1.0, 0.0)),
-      ((c, b), (a, b), (0.0, -1.0)),
-      ((a, d), (c, d), (0.0, 1.0)),
-    ]) {
+    for (final edge in _groundPatchEdges(patch, groundReplacements)) {
       final start = edge.$1, end = edge.$2, normal = edge.$3;
       final midpointX = (start.$1 + end.$1) / 2 + normal.$1 * .000001;
       final midpointZ = (start.$2 + end.$2) / 2 + normal.$2 * .000001;
@@ -187,13 +387,14 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
       double neighborHeight((double, double) point) => outside
           ? -.15
           : neighbor == null
-          ? _borderGroundHeight(
-              scene.heightAt(midpointX.floor(), midpointZ.floor()),
-              midpointX,
-              midpointZ,
-              groundReplacements[(midpointX.floor(), midpointZ.floor())] ??
-                  const [],
-            )
+          ? _terrainNeighborHeight(scene, midpointX, midpointZ, point) ??
+                _borderGroundHeight(
+                  scene.heightAt(midpointX.floor(), midpointZ.floor()),
+                  midpointX,
+                  midpointZ,
+                  groundReplacements[(midpointX.floor(), midpointZ.floor())] ??
+                      const [],
+                )
           : neighbor.levelAt(point.$1, point.$2) * scene.levelHeight;
       final highA = patch.heightAt(start.$1, start.$2);
       final highB = patch.heightAt(end.$1, end.$2);
@@ -240,7 +441,10 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
         );
         if (clipped.length < 3 || _polygonArea(clipped).abs() < .00000001)
           continue;
-        final length = (end.$1 - start.$1).abs() + (end.$2 - start.$2).abs();
+        final dx = end.$1 - start.$1, dz = end.$2 - start.$2;
+        final length = dx == 0 || dz == 0
+            ? dx.abs() + dz.abs()
+            : math.sqrt(dx * dx + dz * dz);
         final startU = normal.$1 < 0
             ? start.$2 - patch.cell.$2
             : normal.$1 > 0

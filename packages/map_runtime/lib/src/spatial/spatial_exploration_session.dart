@@ -21,10 +21,14 @@ import '../presentation/flame/dialogue_overlay_component.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
+import 'spatial_smart_tile_animation_controller.dart';
 
 final class SpatialExplorationSession {
   SpatialExplorationSession._(this.bundle, this.character, this.movement,
-      this._assets, this._ownsAssets, this._knownMaps);
+      this._assets, this._ownsAssets, this._knownMaps)
+      : _smartTileAnimations = SpatialSmartTileAnimationController(
+            map: bundle.map, project: bundle.manifest);
+  SpatialSmartTileAnimationController _smartTileAnimations;
   RuntimeMapBundle bundle;
   ProjectCharacterEntry character;
   SpatialMovementController movement;
@@ -102,6 +106,13 @@ final class SpatialExplorationSession {
         ? worldStateProvider?.call().actorState(bundle.map.id, entity.id)
         : SpatialActorRuntimeState(x: pose.x, z: pose.z, facing: pose.facing);
   }
+
+  SpatialModelRuntimeState? modelRuntimeState(String mapId, String instanceId) =>
+      worldStateProvider?.call().modelState(mapId, instanceId) ??
+      (mapId == bundle.map.id
+              ? _smartTileAnimations
+              : _preparedMaps[mapId]?.animations)
+          ?.stateFor(instanceId);
 
   void attachWorldStateProviders() {
     final source = bundle;
@@ -508,6 +519,17 @@ final class SpatialExplorationSession {
       (throw StateError('Source d’animation du héros indisponible.'));
   SpatialActorVisual frame(double dt) {
     if (!_disposed) {
+      final previousMapId = bundle.map.id;
+      final previousCell =
+          GridPos(x: movement.x.floor(), y: movement.z.floor());
+      if (!presentationPaused && !transitioning.value) {
+        _smartTileAnimations.update(dt);
+        for (final prepared in _preparedMaps.values) {
+          if (!identical(prepared.animations, _smartTileAnimations)) {
+            prepared.animations.update(dt);
+          }
+        }
+      }
       movement.update(dt);
       if (!presentationPaused &&
           !storyInputLocked &&
@@ -527,6 +549,14 @@ final class SpatialExplorationSession {
               : findMapConnection(bundle.map, direction);
           if (connection != null) unawaited(enterConnection(connection));
         }
+      }
+      final cell = GridPos(x: movement.x.floor(), y: movement.z.floor());
+      if (!presentationPaused &&
+          !storyInputLocked &&
+          !transitioning.value &&
+          movement.moving &&
+          (previousMapId != bundle.map.id || previousCell != cell)) {
+        _smartTileAnimations.onPlayerEnteredCell(cell);
       }
       onFrame?.call();
       if (!presentationPaused && dt.isFinite && dt > 0) {
@@ -762,6 +792,7 @@ final class SpatialExplorationSession {
         _preparedMaps[bundle.map.id] = _capturePrepared();
         bundle = prepared.bundle;
         movement = prepared.movement;
+        _smartTileAnimations = prepared.animations;
         _entityVisuals = prepared.visuals;
         _imageIds = prepared.imageIds;
         _assets.owners[_assetOwner] = _imageIds;
@@ -818,7 +849,8 @@ final class SpatialExplorationSession {
   }
 
   _PreparedSpatialMap _capturePrepared() =>
-      _PreparedSpatialMap(bundle, movement, _entityVisuals, _imageIds);
+      _PreparedSpatialMap(
+          bundle, movement, _entityVisuals, _imageIds, _smartTileAnimations);
 
   void setVisibleMaps(Set<String> ids) {
     if (_disposed) return;
@@ -988,6 +1020,7 @@ final class SpatialExplorationSession {
       _preparedMaps[bundle.map.id] = _capturePrepared();
       final nextMovement = candidate.movement;
       final nextWarps = candidate._warps;
+      final nextAnimations = candidate._smartTileAnimations;
       _entityVisuals = candidate._entityVisuals;
       _imageIds = candidate._imageIds;
       _assets.owners[_assetOwner] = _imageIds;
@@ -997,6 +1030,7 @@ final class SpatialExplorationSession {
       candidate = null;
       bundle = next;
       movement = nextMovement;
+      _smartTileAnimations = nextAnimations;
       _preparedMaps.addAll(preparedNeighbors);
       _mapOrigins.addAll(preparedOrigins);
       _preparedMaps[bundle.map.id] = _capturePrepared();
@@ -1077,11 +1111,13 @@ final class SpatialExplorationSession {
 }
 
 final class _PreparedSpatialMap {
-  _PreparedSpatialMap(this.bundle, this.movement, this.visuals, this.imageIds);
+  _PreparedSpatialMap(
+      this.bundle, this.movement, this.visuals, this.imageIds, this.animations);
   final RuntimeMapBundle bundle;
   final SpatialMovementController movement;
   final SpatialEntityVisualPlan visuals;
   final Set<String> imageIds;
+  final SpatialSmartTileAnimationController animations;
 }
 
 final class _SpatialActorAssets {

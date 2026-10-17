@@ -16,10 +16,89 @@ import 'package:map_runtime/src/presentation/flame/playable_map_game.dart';
 import 'package:map_runtime/src/presentation/flame/runtime_map_game.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../map_core/test/support/spatial_border_ground_surface_fixture.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('spatial Border runtime readiness', () {
+    for (final mutation in ['none', 'republished', 'tampered']) {
+      test(
+        'verifies plateau publication identity: $mutation',
+        () async {
+          final own = surfaceFixture();
+          final resolved = resolveSpatialBorderFeature(
+            manifest: own.project,
+            map: own.map,
+            layerId: 'border',
+            featureId: 'fence',
+          );
+          final map = applySpatialBorderFeaturePreview(
+            own.map,
+            manifest: own.project,
+            proposedResult: resolved,
+          );
+          final raw = own.project.toJson();
+          if (mutation != 'none') {
+            final record =
+                ((raw['borderCatalog'] as Map)['records'] as List).single
+                    as Map;
+            final primitive =
+                (((record['latestPublished'] as Map)['definition']
+                                as Map)['primitives']
+                            as List)
+                        .first
+                    as Map;
+            ((primitive['groundSurfaces'] as List).first as Map)['height'] =
+                .125;
+            if (mutation == 'republished') {
+              (record['latestPublished'] as Map)['revision'] = 2;
+              (record['draft'] as Map)['baseRevision'] = 2;
+            }
+          }
+          final project = ProjectManifest.fromJson(raw);
+          final bundle = RuntimeMapBundle(
+            manifest: project,
+            map: map,
+            projectRootDirectory: Directory.systemTemp.path,
+            tilesetAbsolutePathsById: const {},
+          );
+          if (mutation == 'tampered') {
+            await expectLater(
+              prepareBorderRuntimeBundle(bundle),
+              throwsA(isA<BorderRuntimeReadinessException>().having(
+                (error) => error.reasons,
+                'reasons',
+                contains(BorderStalenessReason.outputAltered),
+              )),
+            );
+            return;
+          }
+          final prepared = await prepareBorderRuntimeBundle(bundle);
+          expect(prepared.map, map);
+          expect(prepared.manifest, project);
+          expect(
+            prepared.borderRuntimePreparation!.featureFreshness.single.state,
+            mutation == 'republished'
+                ? BorderMaterializationState.stale
+                : BorderMaterializationState.fresh,
+          );
+          expect(
+            prepared
+                .borderRuntimePreparation!
+                .featureFreshness
+                .single
+                .isRenderable,
+            true,
+          );
+          expect(
+            prepared.borderRuntimePreparation!.assetCollection.snapshots,
+            isEmpty,
+          );
+        },
+      );
+    }
+
     test('accepts passive native placements without sprite metadata', () async {
       final fixture = await _SpatialFixture.create();
       addTearDown(fixture.dispose);
@@ -335,147 +414,154 @@ void main() {
   });
 
   group('prepareBorderRuntimeBundle', () {
-    test('accepts fresh materialization and ignores an unused corrupt snapshot',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final unused = _snapshot(
-        digest: 'f' * 64,
-        relativePath: 'assets/borders/snapshots/unused/corrupt.png',
-      );
-      await File(
-              p.join(fixture.root.path, unused.frames.single.relativeAssetPath))
-          .parent
-          .create(recursive: true);
-      await File(
-              p.join(fixture.root.path, unused.frames.single.relativeAssetPath))
-          .writeAsBytes(<int>[1, 2, 3]);
+    test(
+      'accepts fresh materialization and ignores an unused corrupt snapshot',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final unused = _snapshot(
+          digest: 'f' * 64,
+          relativePath: 'assets/borders/snapshots/unused/corrupt.png',
+        );
+        await File(
+          p.join(fixture.root.path, unused.frames.single.relativeAssetPath),
+        ).parent.create(recursive: true);
+        await File(
+          p.join(fixture.root.path, unused.frames.single.relativeAssetPath),
+        ).writeAsBytes(<int>[1, 2, 3]);
 
-      final prepared = await prepareBorderRuntimeBundle(
-        fixture.bundle(extraSnapshots: <BorderVisualSnapshot>[unused]),
-      );
+        final prepared = await prepareBorderRuntimeBundle(
+          fixture.bundle(extraSnapshots: <BorderVisualSnapshot>[unused]),
+        );
 
-      expect(prepared.borderRuntimePreparation, isNotNull);
-      expect(
-        prepared.borderRuntimePreparation!.assetCollection.snapshots
-            .map((request) => request.snapshotId),
-        <String>[fixture.snapshot.id],
-      );
-      expect(
-        prepared.borderRuntimePreparation!
-            .snapshotIntegrity[fixture.snapshot.id]?.isValid,
-        isTrue,
-      );
-      expect(
-        prepared.borderRuntimePreparation!.featureFreshness.single.state,
-        BorderMaterializationState.fresh,
-      );
-    });
+        expect(prepared.borderRuntimePreparation, isNotNull);
+        expect(
+          prepared.borderRuntimePreparation!.assetCollection.snapshots.map(
+            (request) => request.snapshotId,
+          ),
+          <String>[fixture.snapshot.id],
+        );
+        expect(
+          prepared
+              .borderRuntimePreparation!
+              .snapshotIntegrity[fixture.snapshot.id]
+              ?.isValid,
+          isTrue,
+        );
+        expect(
+          prepared.borderRuntimePreparation!.featureFreshness.single.state,
+          BorderMaterializationState.fresh,
+        );
+      },
+    );
 
-    test('permits a missing blueprint when persisted output stays renderable',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
+    test(
+      'permits a missing blueprint when persisted output stays renderable',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
 
-      final prepared = await prepareBorderRuntimeBundle(
-        fixture.bundle(includeBlueprint: false),
-      );
+        final prepared = await prepareBorderRuntimeBundle(
+          fixture.bundle(includeBlueprint: false),
+        );
 
-      final freshness =
-          prepared.borderRuntimePreparation!.featureFreshness.single;
-      expect(freshness.state, BorderMaterializationState.stale);
-      expect(
-        freshness.reasons,
-        contains(BorderStalenessReason.blueprintMissing),
-      );
-      expect(freshness.isRenderable, isTrue);
-    });
+        final freshness =
+            prepared.borderRuntimePreparation!.featureFreshness.single;
+        expect(freshness.state, BorderMaterializationState.stale);
+        expect(
+          freshness.reasons,
+          contains(BorderStalenessReason.blueprintMissing),
+        );
+        expect(freshness.isRenderable, isTrue);
+      },
+    );
 
-    test('permits a newer blueprint with a corrupt generation-only snapshot',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final corruptGenerationSnapshot = _snapshot(
-        digest: 'e' * 64,
-        relativePath: 'assets/borders/snapshots/generation-only/corrupt.png',
-      );
-      final priorPrimitive = fixture.revision.definition.primitives.single;
-      final newerPrimitive = BorderPublishedPrimitive(
-        id: priorPrimitive.id,
-        sourceElementId: priorPrimitive.sourceElementId,
-        visualSnapshotId: corruptGenerationSnapshot.id,
-        role: priorPrimitive.role,
-        weight: priorPrimitive.weight,
-        anchorPx: priorPrimitive.anchorPx,
-        transforms: priorPrimitive.transforms,
-        publishedMetrics: priorPrimitive.publishedMetrics,
-      );
-      final newerRevision = BorderBlueprintRevision(
-        revision: fixture.revision.revision + 1,
-        definition: BorderBlueprintPublishedDefinition(
-          name: fixture.revision.definition.name,
-          previewSeed: fixture.revision.definition.previewSeed,
-          template: fixture.revision.definition.template,
-          primitives: <BorderPublishedPrimitive>[newerPrimitive],
-          defaults: fixture.revision.definition.defaults,
-          ground: fixture.revision.definition.ground,
-          categoryId: fixture.revision.definition.categoryId,
-          sortOrder: fixture.revision.definition.sortOrder,
-        ),
-      );
-      final source = fixture.bundle();
-      final prepared = await prepareBorderRuntimeBundle(
-        source.copyWith(
-          manifest: source.manifest.copyWith(
-            borderCatalog: ProjectBorderCatalog(
-              records: <BorderBlueprintRecord>[_record(newerRevision)],
-              visualSnapshots: <BorderVisualSnapshot>[
-                fixture.snapshot,
-                corruptGenerationSnapshot,
-              ],
+    test(
+      'permits a newer blueprint with a corrupt generation-only snapshot',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final corruptGenerationSnapshot = _snapshot(
+          digest: 'e' * 64,
+          relativePath: 'assets/borders/snapshots/generation-only/corrupt.png',
+        );
+        final priorPrimitive = fixture.revision.definition.primitives.single;
+        final newerPrimitive = BorderPublishedPrimitive(
+          id: priorPrimitive.id,
+          sourceElementId: priorPrimitive.sourceElementId,
+          visualSnapshotId: corruptGenerationSnapshot.id,
+          role: priorPrimitive.role,
+          weight: priorPrimitive.weight,
+          anchorPx: priorPrimitive.anchorPx,
+          transforms: priorPrimitive.transforms,
+          publishedMetrics: priorPrimitive.publishedMetrics,
+        );
+        final newerRevision = BorderBlueprintRevision(
+          revision: fixture.revision.revision + 1,
+          definition: BorderBlueprintPublishedDefinition(
+            name: fixture.revision.definition.name,
+            previewSeed: fixture.revision.definition.previewSeed,
+            template: fixture.revision.definition.template,
+            primitives: <BorderPublishedPrimitive>[newerPrimitive],
+            defaults: fixture.revision.definition.defaults,
+            ground: fixture.revision.definition.ground,
+            categoryId: fixture.revision.definition.categoryId,
+            sortOrder: fixture.revision.definition.sortOrder,
+          ),
+        );
+        final source = fixture.bundle();
+        final prepared = await prepareBorderRuntimeBundle(
+          source.copyWith(
+            manifest: source.manifest.copyWith(
+              borderCatalog: ProjectBorderCatalog(
+                records: <BorderBlueprintRecord>[_record(newerRevision)],
+                visualSnapshots: <BorderVisualSnapshot>[
+                  fixture.snapshot,
+                  corruptGenerationSnapshot,
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      final freshness =
-          prepared.borderRuntimePreparation!.featureFreshness.single;
-      expect(freshness.state, BorderMaterializationState.stale);
-      expect(freshness.isRenderable, isTrue);
-      expect(
-        freshness.reasons,
-        contains(BorderStalenessReason.blueprintNewer),
-      );
-      expect(
-        prepared.borderRuntimePreparation!.snapshotIntegrity,
-        isNot(contains(corruptGenerationSnapshot.id)),
-      );
-    });
+        final freshness =
+            prepared.borderRuntimePreparation!.featureFreshness.single;
+        expect(freshness.state, BorderMaterializationState.stale);
+        expect(freshness.isRenderable, isTrue);
+        expect(
+          freshness.reasons,
+          contains(BorderStalenessReason.blueprintNewer),
+        );
+        expect(
+          prepared.borderRuntimePreparation!.snapshotIntegrity,
+          isNot(contains(corruptGenerationSnapshot.id)),
+        );
+      },
+    );
 
-    test('validates hidden Border features and blocks unmaterialized content',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
+    test(
+      'validates hidden Border features and blocks unmaterialized content',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
 
-      await expectLater(
-        prepareBorderRuntimeBundle(
-          fixture.bundle(
-            isVisible: false,
-            unmaterialized: true,
+        await expectLater(
+          prepareBorderRuntimeBundle(
+            fixture.bundle(isVisible: false, unmaterialized: true),
           ),
-        ),
-        throwsA(
-          isA<BorderRuntimeReadinessException>()
-              .having((error) => error.layerId, 'layer', 'border')
-              .having((error) => error.featureId, 'feature', 'coast')
-              .having(
-                (error) => error.state,
-                'state',
-                BorderMaterializationState.unmaterialized,
-              ),
-        ),
-      );
-    });
+          throwsA(
+            isA<BorderRuntimeReadinessException>()
+                .having((error) => error.layerId, 'layer', 'border')
+                .having((error) => error.featureId, 'feature', 'coast')
+                .having(
+                  (error) => error.state,
+                  'state',
+                  BorderMaterializationState.unmaterialized,
+                ),
+          ),
+        );
+      },
+    );
 
     test('blocks an altered persisted output fingerprint', () async {
       final fixture = await _Fixture.create();
@@ -568,72 +654,78 @@ void main() {
       }
     });
 
-    test('copyWith preserves preparation only when no source input changes',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final prepared = await prepareBorderRuntimeBundle(fixture.bundle());
+    test(
+      'copyWith preserves preparation only when no source input changes',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final prepared = await prepareBorderRuntimeBundle(fixture.bundle());
 
-      final unrelatedMapEdit = prepared.copyWith(
-        map: prepared.map.copyWith(name: 'Renamed only'),
-      );
-      final borderEdit = prepared.copyWith(
-        map: fixture.bundle(unmaterialized: true).map,
-        borderRuntimePreparation: prepared.borderRuntimePreparation,
-      );
-      final catalogEdit = prepared.copyWith(
-        manifest: prepared.manifest.copyWith(
-          borderCatalog: const ProjectBorderCatalog.empty(),
-        ),
-      );
-      final rootEdit = prepared.copyWith(
-        projectRootDirectory: p.join(fixture.root.path, 'moved'),
-      );
-
-      expect(prepared.copyWith().borderRuntimePreparation,
-          same(prepared.borderRuntimePreparation));
-      expect(unrelatedMapEdit.borderRuntimePreparation, isNull);
-      expect(borderEdit.borderRuntimePreparation, isNull);
-      expect(catalogEdit.borderRuntimePreparation, isNull);
-      expect(rootEdit.borderRuntimePreparation, isNull);
-    });
-
-    test('Border materialization does not change gameplay collision results',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final bundle = fixture.bundle();
-      final baselineMap = bundle.map.copyWith(layers: const <MapLayer>[]);
-      final baseline = GameplayWorldState.initial(
-        map: baselineMap,
-        playerPos: const GridPos(x: 0, y: 0),
-        project: bundle.manifest,
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-      final withBorder = GameplayWorldState.initial(
-        map: bundle.map,
-        playerPos: const GridPos(x: 0, y: 0),
-        project: bundle.manifest,
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-
-      for (var x = 0; x < bundle.map.size.width; x += 1) {
-        expect(
-          withBorder.movementBlockReasonAt(
-            x: x,
-            y: 0,
-            movementMode: MovementMode.walk,
-          ),
-          baseline.movementBlockReasonAt(
-            x: x,
-            y: 0,
-            movementMode: MovementMode.walk,
+        final unrelatedMapEdit = prepared.copyWith(
+          map: prepared.map.copyWith(name: 'Renamed only'),
+        );
+        final borderEdit = prepared.copyWith(
+          map: fixture.bundle(unmaterialized: true).map,
+          borderRuntimePreparation: prepared.borderRuntimePreparation,
+        );
+        final catalogEdit = prepared.copyWith(
+          manifest: prepared.manifest.copyWith(
+            borderCatalog: const ProjectBorderCatalog.empty(),
           ),
         );
-      }
-    });
+        final rootEdit = prepared.copyWith(
+          projectRootDirectory: p.join(fixture.root.path, 'moved'),
+        );
+
+        expect(
+          prepared.copyWith().borderRuntimePreparation,
+          same(prepared.borderRuntimePreparation),
+        );
+        expect(unrelatedMapEdit.borderRuntimePreparation, isNull);
+        expect(borderEdit.borderRuntimePreparation, isNull);
+        expect(catalogEdit.borderRuntimePreparation, isNull);
+        expect(rootEdit.borderRuntimePreparation, isNull);
+      },
+    );
+
+    test(
+      'Border materialization does not change gameplay collision results',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final bundle = fixture.bundle();
+        final baselineMap = bundle.map.copyWith(layers: const <MapLayer>[]);
+        final baseline = GameplayWorldState.initial(
+          map: baselineMap,
+          playerPos: const GridPos(x: 0, y: 0),
+          project: bundle.manifest,
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+        final withBorder = GameplayWorldState.initial(
+          map: bundle.map,
+          playerPos: const GridPos(x: 0, y: 0),
+          project: bundle.manifest,
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+
+        for (var x = 0; x < bundle.map.size.width; x += 1) {
+          expect(
+            withBorder.movementBlockReasonAt(
+              x: x,
+              y: 0,
+              movementMode: MovementMode.walk,
+            ),
+            baseline.movementBlockReasonAt(
+              x: x,
+              y: 0,
+              movementMode: MovementMode.walk,
+            ),
+          );
+        }
+      },
+    );
   });
 
   test('loadRuntimeMapBundle returns a Border-ready bundle', () async {
@@ -648,96 +740,112 @@ void main() {
 
     expect(loaded.borderRuntimePreparation, isNotNull);
     expect(
-      loaded.borderRuntimePreparation!.assetCollection.snapshots.single
+      loaded
+          .borderRuntimePreparation!
+          .assetCollection
+          .snapshots
+          .single
           .snapshotId,
       fixture.snapshot.id,
     );
   });
 
   group('Border runtime host gate', () {
-    test('RuntimeMapGame prepares and renders a real snapshot before mount',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final game = RuntimeMapGame(bundle: fixture.bundle());
+    test(
+      'RuntimeMapGame prepares and renders a real snapshot before mount',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final game = RuntimeMapGame(bundle: fixture.bundle());
 
-      game.onGameResize(Vector2(32, 16));
-      await game.onLoad();
+        game.onGameResize(Vector2(32, 16));
+        await game.onLoad();
 
-      final layer = game.world.children.whereType<MapLayersComponent>().single;
-      expect(layer.borderAssets, isNotNull);
-      final rendered = await _render(layer, width: 32, height: 16);
-      expect(await _rgbaAt(rendered, 8, 8), <int>[12, 34, 56, 255]);
-    });
+        final layer = game.world.children
+            .whereType<MapLayersComponent>()
+            .single;
+        expect(layer.borderAssets, isNotNull);
+        final rendered = await _render(layer, width: 32, height: 16);
+        expect(await _rgbaAt(rendered, 8, 8), <int>[12, 34, 56, 255]);
+      },
+    );
 
-    test('PlayableMapGame prepares and renders a real snapshot before mount',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final game = PlayableMapGame(
-        bundle: fixture.bundle(),
-        projectFilePath: p.join(fixture.root.path, 'project.json'),
-      );
+    test(
+      'PlayableMapGame prepares and renders a real snapshot before mount',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final game = PlayableMapGame(
+          bundle: fixture.bundle(),
+          projectFilePath: p.join(fixture.root.path, 'project.json'),
+        );
 
-      game.onGameResize(Vector2(32, 16));
-      await game.onLoad();
+        game.onGameResize(Vector2(32, 16));
+        await game.onLoad();
 
-      final layer =
-          game.world.children.whereType<MapLayersComponent>().singleWhere(
-                (component) =>
-                    component.renderPass == MapLayerRenderPass.background,
-              );
-      expect(layer.borderAssets, isNotNull);
-      final rendered = await _render(layer, width: 32, height: 16);
-      expect(await _rgbaAt(rendered, 8, 8), <int>[12, 34, 56, 255]);
-    });
+        final layer = game.world.children
+            .whereType<MapLayersComponent>()
+            .singleWhere(
+              (component) =>
+                  component.renderPass == MapLayerRenderPass.background,
+            );
+        expect(layer.borderAssets, isNotNull);
+        final rendered = await _render(layer, width: 32, height: 16);
+        expect(await _rgbaAt(rendered, 8, 8), <int>[12, 34, 56, 255]);
+      },
+    );
 
-    test('PlayableMapGame revalidates an invalid bundleTransformer result',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final game = PlayableMapGame(
-        bundle: fixture.bundle(),
-        projectFilePath: p.join(fixture.root.path, 'project.json'),
-        bundleTransformer: (_) => fixture.bundle(unmaterialized: true),
-      );
+    test(
+      'PlayableMapGame revalidates an invalid bundleTransformer result',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final game = PlayableMapGame(
+          bundle: fixture.bundle(),
+          projectFilePath: p.join(fixture.root.path, 'project.json'),
+          bundleTransformer: (_) => fixture.bundle(unmaterialized: true),
+        );
 
-      game.onGameResize(Vector2(32, 16));
-      await expectLater(
-        game.onLoad(),
-        throwsA(isA<BorderRuntimeReadinessException>()),
-      );
-      expect(game.world.children.whereType<MapLayersComponent>(), isEmpty);
-    });
+        game.onGameResize(Vector2(32, 16));
+        await expectLater(
+          game.onLoad(),
+          throwsA(isA<BorderRuntimeReadinessException>()),
+        );
+        expect(game.world.children.whereType<MapLayersComponent>(), isEmpty);
+      },
+    );
 
-    test('PlayableMapGame revalidates a prewarmed cached bundle before reuse',
-        () async {
-      final fixture = await _Fixture.create();
-      addTearDown(fixture.dispose);
-      final projectFilePath = await fixture.writeProject();
-      final game = PlayableMapGame(
-        bundle: fixture.bundle(),
-        projectFilePath: projectFilePath,
-      );
+    test(
+      'PlayableMapGame revalidates a prewarmed cached bundle before reuse',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final projectFilePath = await fixture.writeProject();
+        final game = PlayableMapGame(
+          bundle: fixture.bundle(),
+          projectFilePath: projectFilePath,
+        );
 
-      game.onGameResize(Vector2(32, 16));
-      await game.onLoad();
-      await game.debugLoadRuntimeMapBundleCachedForTest('map');
-      expect(game.debugIsMapLoaded('map'), isTrue);
-      final mountedLayerCount =
-          game.world.children.whereType<MapLayersComponent>().length;
-      await fixture.snapshotFile.writeAsBytes(<int>[1, 2, 3]);
+        game.onGameResize(Vector2(32, 16));
+        await game.onLoad();
+        await game.debugLoadRuntimeMapBundleCachedForTest('map');
+        expect(game.debugIsMapLoaded('map'), isTrue);
+        final mountedLayerCount = game.world.children
+            .whereType<MapLayersComponent>()
+            .length;
+        await fixture.snapshotFile.writeAsBytes(<int>[1, 2, 3]);
 
-      await expectLater(
-        game.debugLoadRuntimeMapBundleCachedForTest('map'),
-        throwsA(isA<BorderRuntimeReadinessException>()),
-      );
-      expect(game.debugIsMapLoaded('map'), isTrue);
-      expect(
-        game.world.children.whereType<MapLayersComponent>().length,
-        mountedLayerCount,
-      );
-    });
+        await expectLater(
+          game.debugLoadRuntimeMapBundleCachedForTest('map'),
+          throwsA(isA<BorderRuntimeReadinessException>()),
+        );
+        expect(game.debugIsMapLoaded('map'), isTrue);
+        expect(
+          game.world.children.whereType<MapLayersComponent>().length,
+          mountedLayerCount,
+        );
+      },
+    );
   });
 }
 
@@ -1011,10 +1119,7 @@ final class _Fixture {
     final image = img.Image(width: 1, height: 1, numChannels: 4)
       ..setPixelRgba(0, 0, 12, 34, 56, 255);
     await snapshotFile.writeAsBytes(img.encodePng(image));
-    final snapshot = _snapshot(
-      digest: digest,
-      relativePath: relativePath,
-    );
+    final snapshot = _snapshot(digest: digest, relativePath: relativePath);
     final metrics = BorderPrimitiveAssetMetrics(
       assetFingerprint: 'source-asset',
       pixelSize: const GridSize(width: 1, height: 1),
@@ -1120,8 +1225,9 @@ final class _Fixture {
     BorderMaterialization? materialization,
     List<BorderVisualSnapshot> extraSnapshots = const <BorderVisualSnapshot>[],
   }) {
-    final effectiveMaterialization =
-        unmaterialized ? null : materialization ?? this.materialization;
+    final effectiveMaterialization = unmaterialized
+        ? null
+        : materialization ?? this.materialization;
     final feature = BorderFeature(
       id: this.feature.id,
       name: this.feature.name,
@@ -1144,10 +1250,7 @@ final class _Fixture {
           records: <BorderBlueprintRecord>[
             if (includeBlueprint) _record(revision),
           ],
-          visualSnapshots: <BorderVisualSnapshot>[
-            snapshot,
-            ...extraSnapshots,
-          ],
+          visualSnapshots: <BorderVisualSnapshot>[snapshot, ...extraSnapshots],
         ),
       ),
       map: MapData(
@@ -1179,11 +1282,7 @@ final class _Fixture {
     final source = bundle();
     final manifest = source.manifest.copyWith(
       maps: const <ProjectMapEntry>[
-        ProjectMapEntry(
-          id: 'map',
-          name: 'Map',
-          relativePath: 'maps/map.json',
-        ),
+        ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
       ],
     );
     final projectFile = File(p.join(root.path, 'project.json'));
@@ -1198,18 +1297,17 @@ final class _Fixture {
 BorderVisualSnapshot _snapshot({
   required String digest,
   required String relativePath,
-}) =>
-    BorderVisualSnapshot(
-      id: 'border-snapshot-sha256:$digest',
-      contentFingerprint: digest,
-      frames: <BorderVisualFrameSnapshot>[
-        BorderVisualFrameSnapshot(
-          relativeAssetPath: relativePath,
-          sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
-          durationMs: 100,
-        ),
-      ],
-    );
+}) => BorderVisualSnapshot(
+  id: 'border-snapshot-sha256:$digest',
+  contentFingerprint: digest,
+  frames: <BorderVisualFrameSnapshot>[
+    BorderVisualFrameSnapshot(
+      relativeAssetPath: relativePath,
+      sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+      durationMs: 100,
+    ),
+  ],
+);
 
 BorderBlueprintRecord _record(BorderBlueprintRevision revision) =>
     BorderBlueprintRecord(

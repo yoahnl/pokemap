@@ -830,7 +830,7 @@ Widget _candidateSpritePreview({
         ?.frames
         .firstOrNull
         ?.frame,
-    null => null,
+    SmartTileModel3dSource() || null => null,
   };
   if (frame == null) return SizedBox(width: size, height: size);
   return SmartTileSpritePreview(

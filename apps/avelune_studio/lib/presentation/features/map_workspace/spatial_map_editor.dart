@@ -10,6 +10,7 @@ import '../../../features/map_workspace/application/spatial_model_editing_comman
 import '../../../features/map_workspace/application/map_border_editing_commands.dart';
 import '../../../features/map_workspace/application/map_border_drawing_draft.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
+import '../../../features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
 import '../../../features/map_workspace/application/environment_editing_commands.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_editing_commands.dart';
@@ -56,7 +57,8 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   _SpatialEnvironmentGesture? environmentGesture;
   MapBorderEraseDraft? borderEraseDraft;
   MapData? borderErasePreview;
-  ({double yaw, double pitch, double zoom, Offset pan, SpatialEditorView view})? borderEraseCamera;
+  ({double yaw, double pitch, double zoom, Offset pan, SpatialEditorView view})?
+  borderEraseCamera;
   bool? borderFreeView;
   Object? borderSession;
   MapBorderDrawingDraft? borderPreviewDraft;
@@ -66,6 +68,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   MapData? terrainSource;
   ProjectManifest? terrainProject;
   StudioMapTool? terrainTool;
+  (bool, String, String, SpatialRampDirection, bool)? terrainSurfaceOptions;
   int previewGeneration = 0;
   Object? error;
   String? modelGesture;
@@ -149,6 +152,10 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   void surfaceTap(SpatialSurfaceHit hit) {
     if (locked) return;
+    if (selectingTerrainSurface) {
+      selectTerrainSurfaceAt(hit.position.x, hit.position.z);
+      return;
+    }
     if (widget.view.tool != StudioMapTool.place ||
         widget.view.model3d == null) {
       tap(hit.cell.$1, hit.cell.$2);
@@ -171,6 +178,27 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   bool get locked =>
       widget.document.saving ||
       widget.controller.catalogLocks(widget.document.base.mapId);
+  bool get selectingTerrainSurface =>
+      widget.view.tool == StudioMapTool.terrain &&
+      widget.view.spatialTerrainMode == SpatialTerrainMode.relief &&
+      widget.view.spatialContinuousTerrain &&
+      widget.view.spatialSurfaceSelect;
+
+  void selectTerrainSurfaceAt(double x, double z) {
+    SpatialTerrainSurface? selected;
+    for (final surface
+        in widget.document.current.spatialScene!.terrainSurfaces.surfaces) {
+      if (surface.contains(x, z) &&
+          (selected == null ||
+              surface.heightAt(x, z) >= selected.heightAt(x, z))) {
+        selected = surface;
+      }
+    }
+    widget.view.spatialSurfaceId = selected?.id;
+    widget.view.terrainSurfacePreview = null;
+    widget.onChanged();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -193,6 +221,10 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       gestureFreeView == widget.view.spatialFreeView &&
       identical(terrainSource, widget.document.current) &&
       identical(terrainProject, widget.project) &&
+      (!widget.view.spatialSurfaceSelect ||
+          reliefStroke?.surfaceBrush == null) &&
+      (terrainSurfaceOptions == null ||
+          terrainSurfaceOptions == widget.view.terrainSurfaceOptions) &&
       (terrainStroke == null || terrainStroke!.matches(widget.view)) &&
       (reliefStroke == null ||
           reliefStroke!.mode == widget.view.spatialTerrainMode &&
@@ -268,6 +300,10 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     if (widget.view.rampPreview?.validFor(widget.document.current) == false) {
       widget.view.rampPreview = null;
+    }
+    if (widget.view.terrainSurfacePreview?.validFor(widget.document.current) ==
+        false) {
+      widget.view.terrainSurfacePreview = null;
     }
   }
 
@@ -346,6 +382,11 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       return false;
     }
     widget.view.rampPreview = null;
+    widget.view.terrainSurfacePreview = null;
+    if (selectingTerrainSurface) {
+      selectTerrainSurfaceAt(x + .5, z + .5);
+      return false;
+    }
     if (widget.view.tool == StudioMapTool.border) {
       if (widget.view.borderEditingMode == BorderStrokeEditingMode.erase) {
         return startBorderErase(GridPos(x: x, y: z));
@@ -392,7 +433,24 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
             level: widget.view.spatialTerrainLevel,
             erase: widget.view.tool == StudioMapTool.erase,
             origin: cell,
+            reanchorInstances: widget.view.spatialSurfaceReanchorInstances,
+            surfaceBrush:
+                widget.view.spatialTerrainMode == SpatialTerrainMode.relief &&
+                    widget.view.spatialContinuousTerrain
+                ? widget.view.tool == StudioMapTool.erase
+                      ? const SpatialTerrainSurfaceBrush(
+                          lowLevel: 0,
+                          highLevel: 0,
+                          direction: SpatialRampDirection.north,
+                        )
+                      : SpatialTerrainSurfaceBrush.parse(
+                          lowLevel: widget.view.spatialSurfaceLowLevel,
+                          highLevel: widget.view.spatialSurfaceHighLevel,
+                          direction: widget.view.spatialSurfaceDirection,
+                        )
+                : null,
           );
+          terrainSurfaceOptions = widget.view.terrainSurfaceOptions;
           terrainSource = document.current;
           terrainProject = widget.project;
           terrainTool = widget.view.tool;
@@ -533,6 +591,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     terrainSource = null;
     terrainProject = null;
     terrainTool = null;
+    terrainSurfaceOptions = null;
     gesture = null;
     modelGesture = null;
     modelEnd = null;
@@ -578,6 +637,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     terrainSource = null;
     terrainProject = null;
     terrainTool = null;
+    terrainSurfaceOptions = null;
     if (stroke != null || relief != null) {
       if (!locked &&
           identical(widget.document.current, source) &&
@@ -587,6 +647,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                   relief.level == widget.view.spatialTerrainLevel)) {
         try {
           widget.document.commit(relief?.commit() ?? stroke!.commit());
+          if (relief?.surfaceId != null) {
+            widget.view.spatialSurfaceId = relief!.surfaceId;
+          }
         } on Object catch (failure) {
           widget.document.error = failure.toString();
         }
@@ -774,11 +837,15 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
             terrainStroke != null ||
             environmentGesture != null ||
             widget.view.rampPreview != null ||
+            widget.view.terrainSurfacePreview != null ||
+            (selectingTerrainSurface && widget.view.spatialSurfaceId != null) ||
             widget.view.hasSelectionIn(widget.document.current.id) ||
             widget.view.pendingMove != null ||
             widget.view.tool == StudioMapTool.place)) {
       discardGesture();
       widget.view.rampPreview = null;
+      widget.view.terrainSurfacePreview = null;
+      widget.view.spatialSurfaceId = null;
       hover = null;
       if (widget.view.tool == StudioMapTool.place) {
         widget.view.tool = StudioMapTool.select;
@@ -888,10 +955,22 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     updatePreview(visuals as SpatialWorkspaceVisuals);
     final freeView = widget.view.spatialFreeView;
     final borderMap = spatialBorderPreview;
-    final rampMap = widget.view.tool == StudioMapTool.terrain &&
-        widget.view.spatialTerrainMode == SpatialTerrainMode.ramp &&
-        widget.view.rampPreview?.validFor(widget.document.current) == true
-        ? widget.view.rampPreview!.result : null;
+    final rampMap =
+        widget.view.tool == StudioMapTool.terrain &&
+            widget.view.spatialTerrainMode == SpatialTerrainMode.ramp &&
+            widget.view.rampPreview?.validFor(widget.document.current) == true
+        ? widget.view.rampPreview!.result
+        : null;
+    final terrainSurfaceMap =
+        widget.view.tool == StudioMapTool.terrain &&
+            widget.view.spatialTerrainMode == SpatialTerrainMode.relief &&
+            widget.view.spatialContinuousTerrain &&
+            widget.view.terrainSurfacePreview?.validFor(
+                  widget.document.current,
+                ) ==
+                true
+        ? widget.view.terrainSurfacePreview!.result
+        : null;
     final colors = Theme.of(context).colorScheme;
     final selectedModel = widget.document.current.spatialScene!.instances
         .where(
@@ -966,12 +1045,14 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               scene:
                   borderMap?.spatialScene ??
                   rampMap?.spatialScene ??
+                  terrainSurfaceMap?.spatialScene ??
                   environmentPreview?.spatialScene ??
                   reliefStroke?.preview.spatialScene ??
                   widget.document.current.spatialScene!,
               groundMap:
                   borderMap ??
                   rampMap ??
+                  terrainSurfaceMap ??
                   environmentPreview ??
                   reliefStroke?.preview ??
                   terrainStroke?.preview ??
@@ -987,7 +1068,8 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               onDragStart: (x, z, hit) =>
                   widget.view.tool == StudioMapTool.place ||
                       (widget.view.tool == StudioMapTool.border &&
-                          widget.view.borderEditingMode == BorderStrokeEditingMode.draw)
+                          widget.view.borderEditingMode ==
+                              BorderStrokeEditingMode.draw)
                   ? false
                   : start(x, z, hit),
               onDragUpdate: updateDrag,
@@ -1044,6 +1126,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     cells.addAll(previewOverlays(colors));
     cells.addAll(environmentOverlays(colors));
     cells.addAll(borderOverlays(colors));
+    cells.addAll(terrainSurfaceSelectionOverlays(colors));
     for (final layer in map.layers.whereType<CollisionLayer>()) {
       for (var index = 0; index < layer.collisions.length; index++) {
         if (layer.collisions[index]) {

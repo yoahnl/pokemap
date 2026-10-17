@@ -11,21 +11,21 @@ enum SmartTilePatternSelectionKind { stamp, line, rectangle }
 @immutable
 final class SmartTilePatternSelection {
   const SmartTilePatternSelection.stamp({required GridPos anchor})
-      : kind = SmartTilePatternSelectionKind.stamp,
-        start = anchor,
-        _end = null;
+    : kind = SmartTilePatternSelectionKind.stamp,
+      start = anchor,
+      _end = null;
 
   const SmartTilePatternSelection.line({
     required this.start,
     required GridPos end,
-  })  : kind = SmartTilePatternSelectionKind.line,
-        _end = end;
+  }) : kind = SmartTilePatternSelectionKind.line,
+       _end = end;
 
   const SmartTilePatternSelection.rectangle({
     required this.start,
     required GridPos end,
-  })  : kind = SmartTilePatternSelectionKind.rectangle,
-        _end = end;
+  }) : kind = SmartTilePatternSelectionKind.rectangle,
+       _end = end;
 
   final SmartTilePatternSelectionKind kind;
   final GridPos start;
@@ -89,6 +89,7 @@ SmartTilePatternApplication applySmartTilePatternGesture(
   required GridSize mapSize,
   required SmartTilePatternSelection selection,
   required String strokeId,
+  String? materialId,
   int phaseX = 0,
   int phaseY = 0,
   int maximumCellCount = smartTileMaximumCellsPerGesture,
@@ -103,6 +104,13 @@ SmartTilePatternApplication applySmartTilePatternGesture(
     throw const ValidationException(
       'Smart Tile pattern usage must match the target layer.',
       code: 'smart_tile.pattern.usage_mismatch',
+    );
+  }
+  if (materialId != null &&
+      (materialId.isEmpty || materialId != materialId.trim())) {
+    throw const ValidationException(
+      'The pattern material must have a canonical non-empty id.',
+      code: 'smart_tile.pattern.material_not_allowed',
     );
   }
   if (pattern.repeatMode == SmartTilePatternRepeatMode.stamp &&
@@ -140,6 +148,7 @@ SmartTilePatternApplication applySmartTilePatternGesture(
     ],
   );
   final eraseCells = <GridPos>[];
+  final materialCells = <GridPos>[];
   final collisions = <SmartTilePatternCollisionUpdate>[];
   for (final cell in compiled) {
     final patternCell = smartTilePatternCellAt(
@@ -149,6 +158,11 @@ SmartTilePatternApplication applySmartTilePatternGesture(
     );
     if (patternCell == null) continue;
     if (patternCell.eraseMaterial) eraseCells.add(cell);
+    if (materialId != null &&
+        patternCell.parts.isNotEmpty &&
+        !patternCell.eraseMaterial) {
+      materialCells.add(cell);
+    }
     switch (patternCell.collision) {
       case SmartTilePatternCollision.inherit:
         break;
@@ -162,6 +176,14 @@ SmartTilePatternApplication applySmartTilePatternGesture(
         );
     }
   }
+  if (materialCells.isNotEmpty) {
+    next = applySmartTileMaterialGesture(
+      next,
+      mapSize: mapSize,
+      cells: materialCells,
+      materialId: materialId,
+    );
+  }
   if (eraseCells.isNotEmpty) {
     next = applySmartTileMaterialGesture(
       next,
@@ -173,17 +195,18 @@ SmartTilePatternApplication applySmartTilePatternGesture(
   return SmartTilePatternApplication(
     layer: next,
     affectedCells: compiled,
-    collisionUpdates:
-        List<SmartTilePatternCollisionUpdate>.unmodifiable(collisions),
+    collisionUpdates: List<SmartTilePatternCollisionUpdate>.unmodifiable(
+      collisions,
+    ),
   );
 }
 
-/// Removes pattern ownership from selected cells without changing materials.
 SmartTileLayer eraseSmartTilePatternCells(
   SmartTileLayer layer, {
   required GridSize mapSize,
   required Iterable<GridPos> cells,
   Iterable<String>? strokeIds,
+  bool clearMaterial = false,
 }) {
   Set<String>? selectedIds;
   if (strokeIds != null) {
@@ -232,7 +255,15 @@ SmartTileLayer eraseSmartTilePatternCells(
       strokes.add(stroke.copyWith(cells: remaining));
     }
   }
-  return changed ? layer.copyWith(patternStrokes: strokes) : layer;
+  final next = changed ? layer.copyWith(patternStrokes: strokes) : layer;
+  if (!clearMaterial) return next;
+  final retained = {for (final stroke in next.patternStrokes) ...stroke.cells};
+  return applySmartTileMaterialGesture(
+    next,
+    mapSize: mapSize,
+    cells: removed.where((cell) => !retained.contains(cell)),
+    materialId: null,
+  );
 }
 
 /// Resolves the authored pattern cell used by one map cell in a stroke.
@@ -267,9 +298,9 @@ List<GridPos> _compileSelection(
   if (selection.kind != SmartTilePatternSelectionKind.stamp) {
     final geometric = switch (selection.kind) {
       SmartTilePatternSelectionKind.line => SmartTileGestureSelection.line(
-          start: selection.start,
-          end: selection.end!,
-        ),
+        start: selection.start,
+        end: selection.end!,
+      ),
       SmartTilePatternSelectionKind.rectangle =>
         SmartTileGestureSelection.rectangle(
           start: selection.start,

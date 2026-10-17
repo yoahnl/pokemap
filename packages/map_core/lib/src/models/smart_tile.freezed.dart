@@ -1193,7 +1193,7 @@ as SmartTileExactSignature,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileExactSignatureCopyWith<$Res> get signature {
-
+  
   return $SmartTileExactSignatureCopyWith<$Res>(_self.signature, (value) {
     return _then(_self.copyWith(signature: value));
   });
@@ -1406,7 +1406,7 @@ as SmartTileExactSignature,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileExactSignatureCopyWith<$Res> get signature {
-
+  
   return $SmartTileExactSignatureCopyWith<$Res>(_self.signature, (value) {
     return _then(_self.copyWith(signature: value));
   });
@@ -2242,7 +2242,7 @@ SmartTileVisualSource _$SmartTileVisualSourceFromJson(
           return SmartTileModel3dSource.fromJson(
             json
           );
-
+        
           default:
             throw CheckedFromJsonException(
   json,
@@ -2251,7 +2251,7 @@ SmartTileVisualSource _$SmartTileVisualSourceFromJson(
   'Invalid union type "${json['kind']}"!'
 );
         }
-
+      
 }
 
 /// @nodoc
@@ -2497,7 +2497,7 @@ as SmartTileFrameRef,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileFrameRefCopyWith<$Res> get frame {
-
+  
   return $SmartTileFrameRefCopyWith<$Res>(_self.frame, (value) {
     return _then(_self.copyWith(frame: value));
   });
@@ -2743,7 +2743,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileVisualSourceCopyWith<$Res> get source {
-
+  
   return $SmartTileVisualSourceCopyWith<$Res>(_self.source, (value) {
     return _then(_self.copyWith(source: value));
   });
@@ -2752,7 +2752,7 @@ $SmartTileVisualSourceCopyWith<$Res> get source {
 @override
 @pragma('vm:prefer-inline')
 $SmartTileSpriteTransformCopyWith<$Res> get transform {
-
+  
   return $SmartTileSpriteTransformCopyWith<$Res>(_self.transform, (value) {
     return _then(_self.copyWith(transform: value));
   });
@@ -2989,7 +2989,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileVisualSourceCopyWith<$Res> get source {
-
+  
   return $SmartTileVisualSourceCopyWith<$Res>(_self.source, (value) {
     return _then(_self.copyWith(source: value));
   });
@@ -2998,7 +2998,7 @@ $SmartTileVisualSourceCopyWith<$Res> get source {
 @override
 @pragma('vm:prefer-inline')
 $SmartTileSpriteTransformCopyWith<$Res> get transform {
-
+  
   return $SmartTileSpriteTransformCopyWith<$Res>(_self.transform, (value) {
     return _then(_self.copyWith(transform: value));
   });
@@ -4224,7 +4224,7 @@ as List<SmartTileCandidate>,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileSignatureCopyWith<$Res> get signature {
-
+  
   return $SmartTileSignatureCopyWith<$Res>(_self.signature, (value) {
     return _then(_self.copyWith(signature: value));
   });
@@ -4445,7 +4445,7 @@ as List<SmartTileCandidate>,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileSignatureCopyWith<$Res> get signature {
-
+  
   return $SmartTileSignatureCopyWith<$Res>(_self.signature, (value) {
     return _then(_self.copyWith(signature: value));
   });
@@ -5379,7 +5379,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileFrameRefCopyWith<$Res> get frame {
-
+  
   return $SmartTileFrameRefCopyWith<$Res>(_self.frame, (value) {
     return _then(_self.copyWith(frame: value));
   });
@@ -5590,7 +5590,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileFrameRefCopyWith<$Res> get frame {
-
+  
   return $SmartTileFrameRefCopyWith<$Res>(_self.frame, (value) {
     return _then(_self.copyWith(frame: value));
   });
@@ -5960,7 +5960,7 @@ as String?,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
-
+  
   return $SmartTileCoverageProfileCopyWith<$Res>(_self.coverageProfile, (value) {
     return _then(_self.copyWith(coverageProfile: value));
   });
@@ -5969,7 +5969,7 @@ $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
 @override
 @pragma('vm:prefer-inline')
 $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy {
-
+  
   return $SmartTileTransformPolicyCopyWith<$Res>(_self.transformPolicy, (value) {
     return _then(_self.copyWith(transformPolicy: value));
   });
@@ -6230,7 +6230,7 @@ as String?,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
-
+  
   return $SmartTileCoverageProfileCopyWith<$Res>(_self.coverageProfile, (value) {
     return _then(_self.copyWith(coverageProfile: value));
   });
@@ -6239,7 +6239,7 @@ $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
 @override
 @pragma('vm:prefer-inline')
 $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy {
-
+  
   return $SmartTileTransformPolicyCopyWith<$Res>(_self.transformPolicy, (value) {
     return _then(_self.copyWith(transformPolicy: value));
   });
@@ -6336,7 +6336,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
-
+  
   return $SmartTileCoverageProfileCopyWith<$Res>(_self.coverageProfile, (value) {
     return _then(_self.copyWith(coverageProfile: value));
   });
@@ -6345,7 +6345,7 @@ $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
 @override
 @pragma('vm:prefer-inline')
 $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy {
-
+  
   return $SmartTileTransformPolicyCopyWith<$Res>(_self.transformPolicy, (value) {
     return _then(_self.copyWith(transformPolicy: value));
   });
@@ -6646,7 +6646,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
-
+  
   return $SmartTileCoverageProfileCopyWith<$Res>(_self.coverageProfile, (value) {
     return _then(_self.copyWith(coverageProfile: value));
   });
@@ -6655,7 +6655,7 @@ $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
 @override
 @pragma('vm:prefer-inline')
 $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy {
-
+  
   return $SmartTileTransformPolicyCopyWith<$Res>(_self.transformPolicy, (value) {
     return _then(_self.copyWith(transformPolicy: value));
   });

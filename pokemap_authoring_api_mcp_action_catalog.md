@@ -1048,7 +1048,9 @@ smart_tile.material.upsert_batch
 smart_tile.pattern.delete
 smart_tile.pattern.erase
 smart_tile.pattern.paint
+smart_tile.pattern.paint_batch
 smart_tile.pattern.upsert
+smart_tile.pattern.upsert_batch
 smart_tile.preset.delete
 smart_tile.preset.draft.delete
 smart_tile.preset.draft.import
@@ -1137,6 +1139,8 @@ Les lots de ressources et de placements 3D utilisent les contrats suivants :
 model3d.import_batch
 map3d.instance.upsert_batch
 map3d.instance.delete_batch
+map3d.terrain.surface.upsert_batch
+map3d.terrain.surface.delete_batch
 ```
 
 `model3d.import_batch` v1 reçoit `{models: [{modelId, name, artifactHandle}]}`.
@@ -1173,9 +1177,59 @@ Les placements d'environnement explicitement manuels peuvent recevoir une
 transformation exacte via `map3d.instance.upsert` ou `upsert_batch` ; leur
 suppression reste une opération de l'aire qui conserve ses métadonnées.
 
+`map3d.terrain.surface.upsert_batch` v1 reçoit `{mapId, surfaces}` et
+`map3d.terrain.surface.delete_batch` v1 reçoit `{mapId, surfaceIds}`. Chaque
+lot contient de 1 à 128 identités distinctes, pour un maximum de 128 surfaces
+sur une carte. Une surface contient `id`, une origine `x`, `z`, une `height`,
+les pentes optionnelles `gradientX`, `gradientZ` et de 1 à 32 `footprints`.
+Chaque empreinte convexe contient de 3 à 16 points `{x, z}` locaux à l'origine.
+Les hauteurs physiques des sommets restent entre 0 et 1024 ; toutes les
+empreintes doivent rester dans les limites de la carte. Un lot invalide ou
+une suppression d'identité absente refuse toute écriture. Les deux actions
+acceptent `reanchorInstances`, booléen optionnel valant `true` par défaut.
+Lorsqu'il est vrai, les instances conservent leur décalage par rapport au
+terrain, y compris lors de la suppression. Lorsqu'il est faux, toutes leurs
+positions restent intactes. Studio expose le même choix dans les réglages
+de surface, pour le dessin, la modification et la gomme.
+Une transaction et une annulation couvrent le lot entier.
+Le plan expose seulement les identités et les comptes de surfaces et
+d'instances réancrées ; le détail se lit dans la ressource `map`.
+Une scène possédant ces surfaces utilise `spatialScene.schemaVersion: 2`
+et un composant `terrainSurfaces.schemaVersion: 1`. Une scène de grille sans
+surface continue utilise la version 1. La version 1 refuse explicitement
+le champ de surfaces continues pour éviter sa perte par un ancien lecteur.
+L'export déclare `map3d.terrain-surfaces@1` et l'inspection de paquet exige
+cette capacité dès qu'une carte contient une surface continue.
+
 Les motifs multi-cellules sont des ressources `smartTilePattern` natives. Ils
 sont créés/supprimés avec `smart_tile.pattern.upsert`/`delete` et peints ou
 effacés atomiquement avec `smart_tile.pattern.paint`/`erase`.
+
+`smart_tile.pattern.upsert_batch` reçoit `patterns`, une liste de 1 à 250
+définitions réutilisables, limitée à 16 384 cellules définies au total.
+Les identifiants dupliqués, les documents invalides et les références invalides
+font refuser le lot entier avant écriture. Le catalogue est validé à l'échelle
+du projet, puis une seule transaction et une seule annulation couvrent le lot ;
+les cartes et les autres collections du manifeste sont conservées.
+
+`smart_tile.pattern.paint_batch` reçoit `mapId`, `layerId`, `strokes` et un
+`collisionLayerId` optionnel. Les 1 à 250 gestes contiennent `patternId`,
+`strokeId`, `selection` (`stamp`, `line` ou `rectangle`) et les phases signées
+optionnelles `phaseX`/`phaseY`. Le lot est limité à 65 536 cellules compilées,
+y compris les recouvrements. Les gestes sont appliqués dans l'ordre fourni ;
+des identifiants de geste dupliqués ou un geste invalide refusent tout le lot.
+Les collisions explicites suivent le même ordre. Une seule écriture de carte
+et une seule annulation couvrent le lot ; les autres couches et le manifeste
+sont conservés.
+
+Le paramètre optionnel `materialId` de `smart_tile.pattern.paint` et de chaque
+geste de `paint_batch` lie le motif au matériau de ses cellules occupées. Les
+cellules vides restent inchangées et `eraseMaterial` conserve la priorité. Sans
+ce paramètre, les matériaux sont préservés. `smart_tile.pattern.erase` accepte
+`clearMaterial: true` pour effacer aussi le matériau des cellules qui n'ont
+plus de propriétaire de motif ; les propriétaires conservés restent intacts.
+La prévisualisation expose `clearedMaterialCellCount` et une seule annulation
+couvre les changements visuels et sémantiques.
 
 `tileset.tiled.import` importe en une transaction l'image préalablement mise en
 scène, son tileset atlas régulier et les Wang Sets sélectionnés vers le catalogue

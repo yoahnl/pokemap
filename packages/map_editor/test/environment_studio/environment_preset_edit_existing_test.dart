@@ -11,6 +11,23 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   group('Lot 18 — édition preset existant en brouillon', () {
+    testWidgets('un preset 3D reste consultable sans actions d’édition 2D', (tester) async {
+      final model = EnvironmentPaletteItem(modelId: 'tree-model', weight: 1);
+      final preset = EnvironmentPreset(id: 'spatial', name: 'Forêt 3D',
+        templateId: 'forest', sortOrder: 0, palette: [model],
+        defaultParams: EnvironmentGenerationParams.standard());
+      var saves = 0;
+      await _pumpPanel(tester, manifest: _manifest(environmentPresets: [preset]),
+        onSaved: (_, _, _) { saves++; });
+      expect(find.text('Forêt 3D'), findsWidgets);
+      expect(find.byKey(const Key('environment-studio-edit-as-draft')), findsNothing);
+      expect(find.byKey(const Key('environment-studio-edit-palette')), findsNothing);
+      expect(find.byKey(const Key('environment-studio-spatial-palette-message')), findsOneWidget);
+      expect(saves, 0);
+      expect(preset.palette.single, same(model));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
         'action Modifier en brouillon ouvre le formulaire (titre + badge)',
         (tester) async {

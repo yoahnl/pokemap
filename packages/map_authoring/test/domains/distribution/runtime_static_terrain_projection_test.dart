@@ -9,6 +9,105 @@ import 'package:map_authoring/src/domains/distribution/runtime_static_terrain_pr
 import 'package:test/test.dart';
 
 void main() {
+  test('static projection preserves flat sampling and refuses mixed sampling', () async {
+    final source = image.Image(width: 4, height: 1, numChannels: 4);
+    for (var x = 0; x < 4; x++) {
+      source.setPixelRgba(x, 0, x * 50, 10, 20, 255);
+    }
+    final base = _project();
+    for (final uniform in [true, false]) {
+      final original = base.smartTileCatalog.presets.single;
+      final changed = original.copyWith(rules: [
+        for (var index = 0; index < original.rules.length; index++)
+          original.rules[index].copyWith(candidates: [
+            original.rules[index].candidates.single.copyWith(parts: [
+              original.rules[index].candidates.single.parts.single.copyWith(
+                spatialFollowTerrain: !uniform && index != 0),
+            ]),
+          ]),
+      ]);
+      final project = base.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: base.smartTileCatalog.atlases, materials: base.smartTileCatalog.materials, presets: [changed]));
+      final result = await projectRuntimeStaticTerrain(project: project, maps: [_map()], minimumRuleCount: 1,
+        readAsset: (_) async => image.encodePng(source));
+      if (uniform) {
+        expect(result.assets, hasLength(1));
+        expect(result.project.smartTileCatalog.presets.single.rules
+          .map((rule) => rule.candidates.single.parts.single.spatialFollowTerrain), everyElement(false));
+      } else {
+        expect(result.assets, isEmpty);
+        expect(result.project, project);
+      }
+    }
+  });
+  test('static projection preserves raster elevation and rejects incompatible heights', () async {
+    final source = image.Image(width: 4, height: 1, numChannels: 4);
+    for (var x = 0; x < 4; x++) {
+      source.setPixelRgba(x, 0, x * 50, 10, 20, 255);
+    }
+    final base = _project();
+    final preset = base.smartTileCatalog.presets.single;
+    for (final uniform in [true, false]) {
+      final elevated = preset.copyWith(rules: [
+        for (var index = 0; index < preset.rules.length; index++)
+          preset.rules[index].copyWith(candidates: [
+            preset.rules[index].candidates.single.copyWith(parts: [
+              preset.rules[index].candidates.single.parts.single.copyWith(spatialHeightOffset: uniform ? -2.5 : -index.toDouble()),
+            ]),
+          ]),
+      ]);
+      final project = base.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: base.smartTileCatalog.atlases, materials: base.smartTileCatalog.materials, presets: [elevated],
+      ));
+      final result = await projectRuntimeStaticTerrain(project: project, maps: [_map()], minimumRuleCount: 1,
+        readAsset: (_) async => image.encodePng(source));
+      if (uniform) {
+        expect(result.assets, hasLength(1));
+        for (final rule in result.project.smartTileCatalog.presets.single.rules) {
+          expect(rule.candidates.single.parts.single.spatialHeightOffset, -2.5);
+        }
+      } else {
+        expect(result.assets, isEmpty);
+        expect(result.project, project);
+        expect(result.maps, [_map()]);
+      }
+    }
+  });
+
+  test('static projection preserves uniform raster clipping and retains mixed shapes', () async {
+    final source = image.Image(width: 4, height: 1, numChannels: 4);
+    for (var x = 0; x < 4; x++) {
+      source.setPixelRgba(x, 0, x * 50, 10, 20, 255);
+    }
+    final base = _project();
+    final preset = base.smartTileCatalog.presets.single;
+    for (final uniform in [true, false]) {
+      final elevated = preset.copyWith(rules: [
+        for (var index = 0; index < preset.rules.length; index++)
+          preset.rules[index].copyWith(candidates: [
+            preset.rules[index].candidates.single.copyWith(parts: [
+              preset.rules[index].candidates.single.parts.single.copyWith(spatialClip: SmartTileSpatialClip(left: 0, top: uniform ? .0625 : index / 16, right: 1, bottom: 1)),
+            ]),
+          ]),
+      ]);
+      final project = base.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: base.smartTileCatalog.atlases, materials: base.smartTileCatalog.materials, presets: [elevated],
+      ));
+      final result = await projectRuntimeStaticTerrain(project: project, maps: [_map()], minimumRuleCount: 1,
+        readAsset: (_) async => image.encodePng(source));
+      if (uniform) {
+        expect(result.assets, hasLength(1));
+        for (final rule in result.project.smartTileCatalog.presets.single.rules) {
+          expect(rule.candidates.single.parts.single.spatialClip?.top, .0625);
+        }
+      } else {
+        expect(result.assets, isEmpty);
+        expect(result.project, project);
+        expect(result.maps, [_map()]);
+      }
+    }
+  });
+
   test('canonical projection includes verified derived atlas blobs', () async {
     final root =
         await Directory.systemTemp.createTemp('static-terrain-export-');

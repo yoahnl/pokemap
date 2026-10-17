@@ -63,13 +63,13 @@ EnvironmentGeneratedPlacementAddPreview?
     map,
     area: area,
     pos: pos,
-    elementId: selection.item.elementId,
+    elementId: selection.element.id,
   );
   return EnvironmentGeneratedPlacementAddPreview(
     placed: MapPlacedElement(
       id: placedId,
       layerId: targetLayer.id,
-      elementId: selection.item.elementId,
+      elementId: selection.element.id,
       pos: pos,
       applyCollision:
           _applyCollisionFromEnvironmentMode(selection.item.collisionMode),
@@ -293,7 +293,7 @@ _EnvironmentGeneratedPlacementAddSelection? _resolveAddPreviewPaletteSelection({
   if (selectedId != null && selectedId.isNotEmpty) {
     final item = _paletteItemByElementId(preset, selectedId);
     if (item == null) return null;
-    final element = _projectElementById(manifest, item.elementId);
+    final element = _projectElementById(manifest, selectedId);
     if (element == null) return null;
     return _EnvironmentGeneratedPlacementAddSelection(
       item: item,
@@ -303,7 +303,9 @@ _EnvironmentGeneratedPlacementAddSelection? _resolveAddPreviewPaletteSelection({
 
   final candidates = <_EnvironmentGeneratedPlacementAddSelection>[];
   for (final item in preset.palette) {
-    final element = _projectElementById(manifest, item.elementId);
+    final elementId = item.elementId;
+    if (elementId == null) continue;
+    final element = _projectElementById(manifest, elementId);
     if (element == null) continue;
     candidates.add(
       _EnvironmentGeneratedPlacementAddSelection(

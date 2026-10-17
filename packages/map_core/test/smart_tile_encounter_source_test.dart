@@ -3,6 +3,96 @@ import 'package:test/test.dart';
 
 void main() {
   group('Smart Tile encounter sources', () {
+    test(
+      'shared layer settings preserve geometry and reject unknown references',
+      () {
+        final base = _mapWithBehavior();
+        final layer = base.layers.single as SmartTileLayer;
+        final animated = setSmartTileLayerAnimationActivation(
+          base,
+          layerId: layer.id,
+          activation: SmartTileAnimationActivation.onEnter,
+        );
+        final changed = animated.layers.single as SmartTileLayer;
+        expect(
+          changed.animationActivation,
+          SmartTileAnimationActivation.onEnter,
+        );
+        expect(
+          changed.copyWith(animationActivation: layer.animationActivation),
+          layer,
+        );
+        final cleared = setSmartTileLayerEncounterBehavior(
+          animated,
+          manifest: _project(),
+          layerId: layer.id,
+          behavior: null,
+        );
+        expect(
+          (cleared.layers.single as SmartTileLayer).encounterBehavior,
+          isNull,
+        );
+        final restored = setSmartTileLayerEncounterBehavior(
+          cleared,
+          manifest: _project(),
+          layerId: layer.id,
+          behavior: layer.encounterBehavior,
+        );
+        expect(restored, animated);
+        expect(
+          () => setSmartTileLayerEncounterBehavior(
+            base,
+            manifest: _project(),
+            layerId: layer.id,
+            behavior: layer.encounterBehavior!.copyWith(
+              encounter: layer.encounterBehavior!.encounter.copyWith(
+                encounterTableId: 'missing',
+              ),
+            ),
+          ),
+          _throwsCode('encounter.table_unknown'),
+        );
+        expect(
+          () => setSmartTileLayerAnimationActivation(
+            base,
+            layerId: 'missing',
+            activation: SmartTileAnimationActivation.always,
+          ),
+          _throwsCode('smart_tile.layer_missing'),
+        );
+        expect(base.layers.single, layer);
+      },
+    );
+
+    test(
+      'an empty path retains encounter settings without active encounters',
+      () {
+        final map = _mapWithBehavior();
+        final layer = (map.layers.single as SmartTileLayer).copyWith(
+          usage: SmartTileUsage.path,
+          field: const SmartTileField.cell(semanticCells: [0, 0, 0, 0, 0, 0]),
+        );
+        final empty = map.copyWith(layers: [layer]);
+        expect(() => MapValidator.validate(empty), returnsNormally);
+        for (var y = 0; y < map.size.height; y++) {
+          for (var x = 0; x < map.size.width; x++) {
+            expect(
+              resolveEncounterSourceAtPosition(
+                empty,
+                position: GridPos(x: x, y: y),
+                encounterKind: EncounterKind.walk,
+              ).status,
+              EncounterSourceResolutionStatus.noSource,
+            );
+          }
+        }
+        expect(
+          layer.encounterBehavior,
+          (map.layers.single as SmartTileLayer).encounterBehavior,
+        );
+      },
+    );
+
     test('round-trips the encounter behavior on the layer', () {
       const layer = SmartTileLayer(
         id: 'grass',
@@ -122,115 +212,111 @@ void main() {
       );
 
       expect(resolution.status, EncounterSourceResolutionStatus.ambiguous);
+      expect(resolution.ambiguousSourceIds, <String>[
+        'manual-grass',
+        'smart_tile_layer:grass',
+      ]);
       expect(
-        resolution.ambiguousSourceIds,
-        <String>['manual-grass', 'smart_tile_layer:grass'],
-      );
-      expect(
-        () => MapValidator.validate(
-          map,
-          projectDialogueContext: _project(),
-        ),
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
         _throwsCode('encounter.source_ambiguous'),
       );
     });
 
-    test('validates material, visibility, table, and duplicate projections', () {
-      final project = _project();
-      final base = _mapWithBehavior();
-      final layer = base.layers.single as SmartTileLayer;
-      final invalidMaterial = base.copyWith(
-        layers: <MapLayer>[
-          layer.copyWith(
-            encounterBehavior: layer.encounterBehavior!.copyWith(
-              materialId: 'missing',
-            ),
-          ),
-        ],
-      );
-      final hidden = base.copyWith(
-        layers: <MapLayer>[layer.copyWith(isVisible: false)],
-      );
-      final empty = base.copyWith(
-        layers: <MapLayer>[
-          layer.copyWith(
-            field: const SmartTileField.cell(
-              semanticCells: <int>[0, 0, 0, 0, 0, 0],
-            ),
-          ),
-        ],
-      );
-      final unknownTable = base.copyWith(
-        layers: <MapLayer>[
-          layer.copyWith(
-            encounterBehavior: layer.encounterBehavior!.copyWith(
-              encounter: layer.encounterBehavior!.encounter.copyWith(
-                encounterTableId: 'missing',
+    test(
+      'validates material, visibility, table, and duplicate projections',
+      () {
+        final project = _project();
+        final base = _mapWithBehavior();
+        final layer = base.layers.single as SmartTileLayer;
+        final invalidMaterial = base.copyWith(
+          layers: <MapLayer>[
+            layer.copyWith(
+              encounterBehavior: layer.encounterBehavior!.copyWith(
+                materialId: 'missing',
               ),
             ),
-          ),
-        ],
-      );
-      final duplicated = base.copyWith(
-        gameplayZones: const <MapGameplayZone>[
-          MapGameplayZone(
-            id: 'generated',
-            kind: GameplayZoneKind.encounter,
-            area: MapRect(
-              pos: GridPos(x: 1, y: 0),
-              size: GridSize(width: 1, height: 1),
+          ],
+        );
+        final hidden = base.copyWith(
+          layers: <MapLayer>[layer.copyWith(isVisible: false)],
+        );
+        final empty = base.copyWith(
+          layers: <MapLayer>[
+            layer.copyWith(
+              field: const SmartTileField.cell(
+                semanticCells: <int>[0, 0, 0, 0, 0, 0],
+              ),
             ),
-            encounter: EncounterZonePayload(
-              encounterTableId: 'route_grass',
-              encounterKind: EncounterKind.walk,
+          ],
+        );
+        final unknownTable = base.copyWith(
+          layers: <MapLayer>[
+            layer.copyWith(
+              encounterBehavior: layer.encounterBehavior!.copyWith(
+                encounter: layer.encounterBehavior!.encounter.copyWith(
+                  encounterTableId: 'missing',
+                ),
+              ),
             ),
-            smartTileProvenance: SmartTileGameplayZoneProvenance(
-              smartTileLayerId: 'grass',
-              smartTilePresetId: 'grass-preset',
-              materialId: 'tall_grass',
-              behaviorKey: 'encounter.walk',
+          ],
+        );
+        final duplicated = base.copyWith(
+          gameplayZones: const <MapGameplayZone>[
+            MapGameplayZone(
+              id: 'generated',
+              kind: GameplayZoneKind.encounter,
+              area: MapRect(
+                pos: GridPos(x: 1, y: 0),
+                size: GridSize(width: 1, height: 1),
+              ),
+              encounter: EncounterZonePayload(
+                encounterTableId: 'route_grass',
+                encounterKind: EncounterKind.walk,
+              ),
+              smartTileProvenance: SmartTileGameplayZoneProvenance(
+                smartTileLayerId: 'grass',
+                smartTilePresetId: 'grass-preset',
+                materialId: 'tall_grass',
+                behaviorKey: 'encounter.walk',
+              ),
             ),
-          ),
-        ],
-      );
+          ],
+        );
 
-      expect(
-        () => MapValidator.validate(invalidMaterial),
-        _throwsCode('smart_tile_encounter_material_unknown'),
-      );
-      expect(
-        () => MapValidator.validate(hidden),
-        _throwsCode('smart_tile_encounter_layer_hidden'),
-      );
-      expect(
-        () => MapValidator.validate(empty),
-        _throwsCode('smart_tile_encounter_layer_empty'),
-      );
-      expect(
-        () => MapValidator.validate(
-          unknownTable,
-          projectDialogueContext: project,
-        ),
-        _throwsCode('encounter.table_unknown'),
-      );
-      expect(
-        () => MapValidator.validate(
-          duplicated,
-          projectDialogueContext: project,
-        ),
-        _throwsCode('encounter.smart_tile_duplicate_representation'),
-      );
-    });
+        expect(
+          () => MapValidator.validate(invalidMaterial),
+          _throwsCode('smart_tile_encounter_material_unknown'),
+        );
+        expect(
+          () => MapValidator.validate(hidden),
+          _throwsCode('smart_tile_encounter_layer_hidden'),
+        );
+        expect(
+          () => MapValidator.validate(empty),
+          _throwsCode('smart_tile_encounter_layer_empty'),
+        );
+        expect(
+          () => MapValidator.validate(
+            unknownTable,
+            projectDialogueContext: project,
+          ),
+          _throwsCode('encounter.table_unknown'),
+        );
+        expect(
+          () => MapValidator.validate(
+            duplicated,
+            projectDialogueContext: project,
+          ),
+          _throwsCode('encounter.smart_tile_duplicate_representation'),
+        );
+      },
+    );
   });
 }
 
 Matcher _throwsCode(String code) {
   return throwsA(
-    isA<ValidationException>().having(
-      (error) => error.code,
-      'code',
-      code,
-    ),
+    isA<ValidationException>().having((error) => error.code, 'code', code),
   );
 }
 
@@ -246,9 +332,7 @@ MapData _mapWithBehavior() {
         presetId: 'grass-preset',
         usage: SmartTileUsage.terrain,
         materialPalette: <String>['', 'tall_grass'],
-        field: SmartTileField.cell(
-          semanticCells: <int>[0, 1, 0, 0, 1, 0],
-        ),
+        field: SmartTileField.cell(semanticCells: <int>[0, 1, 0, 0, 1, 0]),
         encounterBehavior: SmartTileEncounterBehavior(
           materialId: 'tall_grass',
           priority: 7,
@@ -273,11 +357,7 @@ ProjectManifest _project() {
         name: 'Route grass',
         encounterKind: EncounterKind.walk,
         entries: <ProjectEncounterEntry>[
-          ProjectEncounterEntry(
-            speciesId: 'pidgey',
-            minLevel: 3,
-            maxLevel: 3,
-          ),
+          ProjectEncounterEntry(speciesId: 'pidgey', minLevel: 3, maxLevel: 3),
         ],
       ),
     ],

@@ -278,12 +278,13 @@ final class LocalTransactionFileGateway
         }
         AuthoringPayload? source;
         if (present) {
-          final observed = await _inspectFile(paths.payload, storageKey);
+          final observed = await _inspectFile(paths.payload, storageKey,
+              expectedStagedRevision: rawRevision as String);
           source = await AuthoringPayload.verifiedSource(
               storageKey: storageKey,
               byteLength: rawLength as int,
               rawSha256: observed.rawSha256,
-              resourceRevision: rawRevision as String,
+              resourceRevision: rawRevision,
               openRead: () => _readFile(paths.payload,
                   AuthoringPerformanceCounterName.gatewayResourceReadBytes));
         }
@@ -333,8 +334,9 @@ final class LocalTransactionFileGateway
         await _deleteIfExists(temporary);
         await _writePayloadAtomic(temporary, staged.payload!,
             suffix: 'promote');
-        final temporaryRevision =
-            (await _inspectFile(temporary, storageKey)).resourceRevision;
+        final temporaryRevision = (await _inspectFile(temporary, storageKey,
+                expectedStagedRevision: staged.revision))
+            .resourceRevision;
         if (temporaryRevision != staged.revision) {
           await _deleteIfExists(temporary);
           throw const TransactionFileGatewayException(
@@ -343,7 +345,12 @@ final class LocalTransactionFileGateway
         }
         await temporary.rename(target.path);
       }
-      if (await readResourceRevision(storageKey) != staged.revision) {
+      final promotedRevision = staged.payload == null
+          ? await readResourceRevision(storageKey)
+          : (await _inspectFile(target, storageKey,
+                  expectedStagedRevision: staged.revision))
+              .resourceRevision;
+      if (promotedRevision != staged.revision) {
         throw const TransactionFileGatewayException(
           'transaction.promotion_unverified',
           'The promoted resource revision could not be verified.',
@@ -560,30 +567,41 @@ final class LocalTransactionFileGateway
     );
   }
 
-  Future<AuthoringPayloadInspection> _inspectFile(
-      File file, String storageKey) async {
-    final before = await file.stat();
-    if (await FileSystemEntity.type(file.path, followLinks: false) !=
-            FileSystemEntityType.file ||
-        before.type != FileSystemEntityType.file) {
-      throw const TransactionFileGatewayException(
-          'transaction.resource_not_regular',
-          'The resource is not a regular file.');
+  Future<AuthoringPayloadInspection> _inspectFile(File file, String storageKey,
+      {String? expectedStagedRevision}) async {
+    for (var attempt = 0;; attempt++) {
+      final before = await file.stat();
+      if (await FileSystemEntity.type(file.path, followLinks: false) !=
+              FileSystemEntityType.file ||
+          before.type != FileSystemEntityType.file) {
+        throw const TransactionFileGatewayException(
+            'transaction.resource_not_regular',
+            'The resource is not a regular file.');
+      }
+      final observed = await inspectAuthoringPayload(
+          _readFile(file,
+              AuthoringPerformanceCounterName.gatewayVerificationReadBytes),
+          storageKey: storageKey,
+          byteLength: before.size);
+      final after = await file.stat();
+      if (before.size != after.size ||
+          before.modified != after.modified ||
+          before.changed != after.changed) {
+        if (attempt < 2 &&
+            expectedStagedRevision != null &&
+            observed.resourceRevision == expectedStagedRevision &&
+            before.size == after.size &&
+            before.modified == after.modified &&
+            before.mode == after.mode &&
+            before.type == after.type) {
+          continue;
+        }
+        throw const TransactionFileGatewayException(
+            'transaction.resource_changed_during_read',
+            'The resource changed during verification.');
+      }
+      return observed;
     }
-    final observed = await inspectAuthoringPayload(
-        _readFile(
-            file, AuthoringPerformanceCounterName.gatewayVerificationReadBytes),
-        storageKey: storageKey,
-        byteLength: before.size);
-    final after = await file.stat();
-    if (before.size != after.size ||
-        before.modified != after.modified ||
-        before.changed != after.changed) {
-      throw const TransactionFileGatewayException(
-          'transaction.resource_changed_during_read',
-          'The resource changed during verification.');
-    }
-    return observed;
   }
 
   Future<void> _writePayloadAtomic(File target, AuthoringPayload payload,
@@ -604,7 +622,8 @@ final class LocalTransactionFileGateway
       } finally {
         await writer.close();
       }
-      if ((await _inspectFile(temporary, payload.storageKey))
+      if ((await _inspectFile(temporary, payload.storageKey,
+                  expectedStagedRevision: payload.resourceRevision))
               .resourceRevision !=
           payload.resourceRevision) {
         throw const TransactionFileGatewayException('transaction.stage_corrupt',

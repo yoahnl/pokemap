@@ -31,7 +31,7 @@ SmartTileField _$SmartTileFieldFromJson(
           return SmartTileMixedField.fromJson(
             json
           );
-
+        
           default:
             throw CheckedFromJsonException(
   json,
@@ -40,7 +40,7 @@ SmartTileField _$SmartTileFieldFromJson(
   'Invalid union type "${json['kind']}"!'
 );
         }
-
+      
 }
 
 /// @nodoc

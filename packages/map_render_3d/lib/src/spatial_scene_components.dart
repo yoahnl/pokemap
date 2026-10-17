@@ -96,10 +96,15 @@ final class SpatialSceneComponents {
     }
   }
 
-  void replaceSubset(Iterable<Component> previous, Iterable<Component> next) {
+  void replaceSubset(
+    Iterable<Component> previous,
+    Iterable<Component> next, {
+    Object? groupKey,
+  }) {
     final previousChildren = previous.toList();
-    final batch =
-        _active.values
+    final batch = groupKey != null
+        ? _active[groupKey]
+        : _active.values
             .where(
               (candidate) => previousChildren.any(
                 (component) => identical(component.parent, candidate),

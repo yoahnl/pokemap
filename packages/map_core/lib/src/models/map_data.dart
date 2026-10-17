@@ -314,6 +314,26 @@ Map<String, dynamic> _checkedGameplayZoneJson(Map<String, dynamic> json) {
     }
     return json;
   }
+  final effect = json['movementEffect'];
+  if (effect is Map && effect['effectKind'] == 'directedJump') {
+    const fields = {
+      'id',
+      'name',
+      'kind',
+      'area',
+      'cellMask',
+      'priority',
+      'encounter',
+      'movement',
+      'movementEffect',
+      'hazard',
+      'special',
+      'smartTileProvenance',
+    };
+    if (json.keys.any((key) => !fields.contains(key))) {
+      throw const FormatException('Directed jump zone has unknown fields');
+    }
+  }
   return migrateMapGameplayZoneJson(json);
 }
 

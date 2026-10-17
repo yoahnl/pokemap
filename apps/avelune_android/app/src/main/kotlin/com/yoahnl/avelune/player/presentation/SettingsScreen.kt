@@ -213,5 +213,11 @@ private fun installedVersion(context: Context): String = runCatching {
         @Suppress("DEPRECATION")
         context.packageManager.getPackageInfo(context.packageName, 0)
     }
-    info.versionName ?: "—"
+    val build = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        info.longVersionCode
+    } else {
+        @Suppress("DEPRECATION")
+        info.versionCode.toLong()
+    }
+    "${info.versionName ?: "—"} ($build)"
 }.getOrDefault("—")

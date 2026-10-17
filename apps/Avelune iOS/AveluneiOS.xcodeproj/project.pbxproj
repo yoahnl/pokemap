@@ -52,6 +52,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		012FB46CDFBA4DC794D37A60 /* avelune_version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ../avelune_version.xcconfig; sourceTree = SOURCE_ROOT; };
 		022C618AD49B6491C916A767 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		098820CC6943BEF1D1542FCF /* AppComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComposition.swift; sourceTree = "<group>"; };
 		13DDA7E95C7A585B155082CB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -242,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				6197ED970A2B7F99EE6FBA37 /* AveluneiOS */,
+				012FB46CDFBA4DC794D37A60 /* avelune_version.xcconfig */,
 				F7C48F78B8BD183A1A66FD81 /* AveluneiOSTests */,
 				E931339323D3F5F3CD86F24D /* AveluneiOSUITests */,
 				4F4B9A7FCF5310B7A0B4BD2C /* Packages */,
@@ -520,6 +522,7 @@
 		};
 		95576490203096E8CB87B8CB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 012FB46CDFBA4DC794D37A60 /* avelune_version.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				AVELUNE_APP_BUNDLE_ID = com.yoahnl.avelune.player;
@@ -574,7 +577,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = AveluneiOS/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -589,6 +591,7 @@
 		};
 		ACECC0D9CC475F4271D9D2EF /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 012FB46CDFBA4DC794D37A60 /* avelune_version.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				AVELUNE_APP_BUNDLE_ID = com.yoahnl.avelune.player;
@@ -637,7 +640,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = AveluneiOS/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(AVELUNE_APP_BUNDLE_ID)";

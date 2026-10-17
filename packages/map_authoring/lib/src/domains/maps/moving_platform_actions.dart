@@ -32,8 +32,13 @@ final class MovingPlatformActions {
             AuthoringGuarantee.undoable
           ],
           extensions: {
-            'terrainSupport': 'nominatedTileLayersOnly',
+            'terrainSupport': 'nominatedTileAndSmartTileLayersOnly',
+            'smartTileSupport': 'occupiedSemanticCells',
+            'preciseTerrainSupport': 'explicitLatticeCellsByLayer',
+            'sharedTerrainGeometry': 'identicalAcrossPlatforms',
+            'independentCollisionLayers': 'alwaysBlocking',
             'maximumTranslationPixels': maxMovingPlatformTranslationPixels,
+            'controls': 'automaticPlayerEntryWithRotationAndCarrySuppression',
             'motionOutcomes': [
               'moved',
               'blocked',
@@ -171,6 +176,28 @@ const _definitionSchema = {
       'type': 'integer',
       'minimum': 1,
       'maximum': 256
+    },
+    'controls': {
+      'type': 'array',
+      'maxItems': 64,
+      'items': {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['id', 'cell', 'motion'],
+        'properties': {
+          'id': {'type': 'string', 'minLength': 1},
+          'cell': _pointSchema,
+          'motion': {'type': 'string', 'enum': ['forward', 'backward', 'rotateClockwise']},
+        },
+      },
+    },
+    'terrainCellsByLayer': {
+      'type': 'object',
+      'additionalProperties': {
+        'type': 'array',
+        'maxItems': 65536,
+        'items': _pointSchema,
+      },
     },
     'terrainLayerIds': {
       'type': 'array',

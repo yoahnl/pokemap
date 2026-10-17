@@ -2,6 +2,7 @@ import '../diagnostics/scene_diagnostics.dart';
 import '../encounters/encounter_contract.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/badge_definition.dart';
+import '../models/border_blueprint.dart';
 import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
@@ -160,6 +161,31 @@ class ProjectValidator {
               'missingMasks': diagnostic.missingMasks,
           },
         );
+      }
+    }
+    for (final record in manifest.borderCatalog.records) {
+      for (final definition in <BorderBlueprintDefinition>[
+        record.draft.definition,
+        if (record.latestPublished != null) record.latestPublished!.definition,
+      ]) {
+        for (final primitive in definition.primitives) {
+          for (final surface in primitive.groundSurfaces) {
+            final errors = validateBorderGroundSurfaceSources(
+              surface: surface,
+              manifest: manifest,
+            );
+            if (errors.isNotEmpty) {
+              throw ValidationException(
+                'Border ${record.id}, primitive ${primitive.id}: ${errors.first}',
+                code: errors.first,
+                details: {
+                  'blueprintId': record.id,
+                  'primitiveId': primitive.id,
+                },
+              );
+            }
+          }
+        }
       }
     }
     for (final diagnostic in validateProjectPresentationProfile(
@@ -2597,12 +2623,21 @@ class MapValidator {
       final project = projectDialogueContext;
       if (project != null) {
         try {
-          validateMovingPlatformMapState(map: map, project: project,
-              worldState: const MovingPlatformWorldState.empty(),
-              tileSize: PixelSize(width: project.settings.tileWidth, height: project.settings.tileHeight));
+          validateMovingPlatformMapState(
+            map: map,
+            project: project,
+            worldState: const MovingPlatformWorldState.empty(),
+            tileSize: PixelSize(
+              width: project.settings.tileWidth,
+              height: project.settings.tileHeight,
+            ),
+          );
         } on FormatException catch (error) {
-          throw ValidationException(error.message.toString(), code: 'map.platform_invalid',
-              details: {'mapId': mapId, 'path': 'movingPlatforms'});
+          throw ValidationException(
+            error.message.toString(),
+            code: 'map.platform_invalid',
+            details: {'mapId': mapId, 'path': 'movingPlatforms'},
+          );
         }
       }
     }
@@ -3062,6 +3097,7 @@ class MapValidator {
       }
       validateFieldActionZone(map, zone);
       validateGameplayZoneCellMask(zone);
+      validateDirectedJumpZone(map, zone);
     }
     _validateUniqueIds(
       map.gameplayZones,
@@ -3637,7 +3673,8 @@ class MapValidator {
           final hasEncounterCells = smartTileLayer.field.semanticCells.contains(
             materialIndex,
           );
-          if (!hasEncounterCells) {
+          if (!hasEncounterCells &&
+              smartTileLayer.usage != SmartTileUsage.path) {
             throw ValidationException(
               'Smart Tile layer $layerId encounter behavior has no painted '
               'cells',
@@ -3946,14 +3983,22 @@ class MapValidator {
             );
           }
           if (environmentLayer.content.targetsSpatialTerrain) {
-            for (final instance in map.spatialScene!.instances.where((instance) =>
-                area.generatedPlacementIds.contains(instance.id) &&
-                !area.manualPlacementIds.contains(instance.id))) {
-              final anchor = environmentSpatialPlacementAnchor(placementId: instance.id,
-                  layerId: environmentLayer.id, areaId: area.id, modelId: instance.modelId);
+            for (final instance in map.spatialScene!.instances.where(
+              (instance) =>
+                  area.generatedPlacementIds.contains(instance.id) &&
+                  !area.manualPlacementIds.contains(instance.id),
+            )) {
+              final anchor = environmentSpatialPlacementAnchor(
+                placementId: instance.id,
+                layerId: environmentLayer.id,
+                areaId: area.id,
+                modelId: instance.modelId,
+              );
               if (anchor.x >= mapWidth || anchor.y >= mapHeight) {
-                throw const ValidationException('The spatial Environment ownership anchor is outside the map.',
-                    code: 'environment.placement_anchor_invalid');
+                throw const ValidationException(
+                  'The spatial Environment ownership anchor is outside the map.',
+                  code: 'environment.placement_anchor_invalid',
+                );
               }
             }
           }
@@ -3984,8 +4029,14 @@ class MapValidator {
         }
       },
       border: (borderLayer) {
-        if (map.spatialScene == null && borderLayer.content.features.any((feature) => feature.spatialOffsetWorld != null)) {
-          throw const ValidationException('A spatial Border offset requires a 3D map', code: 'border.spatial.map_required');
+        if (map.spatialScene == null &&
+            borderLayer.content.features.any(
+              (feature) => feature.spatialOffsetWorld != null,
+            )) {
+          throw const ValidationException(
+            'A spatial Border offset requires a 3D map',
+            code: 'border.spatial.map_required',
+          );
         }
         for (final key in borderLayer.properties.keys) {
           if (key.trim().isEmpty) {
@@ -4016,11 +4067,17 @@ class MapValidator {
                 'A spatial Border blueprint references an unavailable model.',
               );
             }
-            if (definition != null && validateSpatialBorderFeatureGeometry(
-                blueprintId: feature.blueprintId, featureId: feature.id,
-                definition: definition, geometry: feature.geometry).hasErrors) {
-              throw const ValidationException('This spatial Border profile requires straight strokes',
-                  code: 'border.spatial.straight_only_geometry_required');
+            if (definition != null &&
+                validateSpatialBorderFeatureGeometry(
+                  blueprintId: feature.blueprintId,
+                  featureId: feature.id,
+                  definition: definition,
+                  geometry: feature.geometry,
+                ).hasErrors) {
+              throw const ValidationException(
+                'This spatial Border profile requires straight strokes',
+                code: 'border.spatial.straight_only_geometry_required',
+              );
             }
             for (final placement
                 in feature.materialization?.spatialPlacements ?? []) {

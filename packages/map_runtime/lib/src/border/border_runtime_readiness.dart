@@ -230,7 +230,10 @@ final class _SpatialBorderReadiness {
               ),
             ),
         blueprint: _spatialFingerprint(
-          encodeBorderBlueprintRevisionJson(revision, formatVersion: 5),
+          encodeBorderBlueprintRevisionJson(
+            revision,
+            formatVersion: manifest.borderCatalog.formatVersion,
+          ),
         ),
         visual: _spatialFingerprint({
           'models': sources.map((model) => model.toJson()).toList(),

@@ -95,7 +95,7 @@ as List<MapEventDefinition>,
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -104,7 +104,7 @@ $GridSizeCopyWith<$Res> get size {
 @override
 @pragma('vm:prefer-inline')
 $MapMetadataCopyWith<$Res> get mapMetadata {
-
+  
   return $MapMetadataCopyWith<$Res>(_self.mapMetadata, (value) {
     return _then(_self.copyWith(mapMetadata: value));
   });
@@ -411,7 +411,7 @@ as List<MapEventDefinition>,
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -420,7 +420,7 @@ $GridSizeCopyWith<$Res> get size {
 @override
 @pragma('vm:prefer-inline')
 $MapMetadataCopyWith<$Res> get mapMetadata {
-
+  
   return $MapMetadataCopyWith<$Res>(_self.mapMetadata, (value) {
     return _then(_self.copyWith(mapMetadata: value));
   });
@@ -510,7 +510,7 @@ as SmartTileGameplayZoneProvenance?,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });
@@ -829,7 +829,7 @@ as SmartTileGameplayZoneProvenance?,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });
@@ -985,7 +985,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -994,7 +994,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $PixelOffsetCopyWith<$Res> get pixelOffset {
-
+  
   return $PixelOffsetCopyWith<$Res>(_self.pixelOffset, (value) {
     return _then(_self.copyWith(pixelOffset: value));
   });
@@ -1263,7 +1263,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -1272,7 +1272,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $PixelOffsetCopyWith<$Res> get pixelOffset {
-
+  
   return $PixelOffsetCopyWith<$Res>(_self.pixelOffset, (value) {
     return _then(_self.copyWith(pixelOffset: value));
   });
@@ -1373,7 +1373,7 @@ as MapPlacedElementEffect,
 @override
 @pragma('vm:prefer-inline')
 $MapPlacedElementEffectCopyWith<$Res> get effect {
-
+  
   return $MapPlacedElementEffectCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
   });
@@ -1592,7 +1592,7 @@ as MapPlacedElementEffect,
 @override
 @pragma('vm:prefer-inline')
 $MapPlacedElementEffectCopyWith<$Res> get effect {
-
+  
   return $MapPlacedElementEffectCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
   });
@@ -2282,7 +2282,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2291,7 +2291,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -2594,7 +2594,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2603,7 +2603,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -2741,7 +2741,7 @@ as WarpTriggerPadding,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2750,7 +2750,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get targetPos {
-
+  
   return $GridPosCopyWith<$Res>(_self.targetPos, (value) {
     return _then(_self.copyWith(targetPos: value));
   });
@@ -2759,7 +2759,7 @@ $GridPosCopyWith<$Res> get targetPos {
 @override
 @pragma('vm:prefer-inline')
 $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
-
+  
   return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
     return _then(_self.copyWith(triggerPadding: value));
   });
@@ -2986,7 +2986,7 @@ as WarpTriggerPadding,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2995,7 +2995,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get targetPos {
-
+  
   return $GridPosCopyWith<$Res>(_self.targetPos, (value) {
     return _then(_self.copyWith(targetPos: value));
   });
@@ -3004,7 +3004,7 @@ $GridPosCopyWith<$Res> get targetPos {
 @override
 @pragma('vm:prefer-inline')
 $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
-
+  
   return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
     return _then(_self.copyWith(triggerPadding: value));
   });
@@ -3621,7 +3621,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });
@@ -3844,7 +3844,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });

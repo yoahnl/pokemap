@@ -435,6 +435,9 @@ List<_VisualKey>? _candidateBaseVisuals(
       part.offsetUnit != SmartTileOffsetUnit.pixel ||
       part.offsetX != 0 ||
       part.offsetY != 0 ||
+      part.spatialHeightOffset != 0 ||
+      !part.spatialFollowTerrain ||
+      part.spatialClip != null ||
       part.footprintWidth != 1 ||
       part.footprintHeight != 1 ||
       part.anchorX != 0 ||

@@ -29,6 +29,89 @@ StudioButton button(WidgetTester tester, String action) =>
 
 void main() {
   testWidgets(
+    'a guided ramp surface can select a walkable decor then return to terrain with undo',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1100, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final original = precisionRampMap(instances: false);
+      final map = original.copyWith(
+        spatialScene: original.spatialScene!.copyWith(
+          instances: [
+            SpatialModelInstance(
+              id: 'stairs',
+              modelId: 'stair-model',
+              position: Model3dVector3(x: 3.5, y: 1, z: 4.5),
+              blocksMovement: false,
+            ),
+            SpatialModelInstance(
+              id: 'wall',
+              modelId: 'wall-model',
+              position: Model3dVector3(x: 8, y: 1, z: 8),
+              blocksMovement: true,
+            ),
+          ],
+        ),
+      );
+      final document = rampDocument(map);
+      final view = MapWorkspaceViewState();
+      addTearDown(view.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, refresh) => SingleChildScrollView(
+                child: SpatialRampEditor(
+                  document: document,
+                  view: view,
+                  onChanged: () => refresh(() {}),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final finder = find.byKey(const ValueKey('spatial-ramp-surface'));
+      expect(finder, findsOneWidget);
+      final selector = tester.widget<StudioSelect>(finder);
+      expect(selector.options.keys, contains('stairs'));
+      expect(selector.options.keys, isNot(contains('wall')));
+      selector.onChanged!('stairs');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('spatial-ramp-preview')));
+      await tester.pump();
+      expect(
+        view.rampPreview!.updatedRamp.toJson()['surfaceInstanceId'],
+        'stairs',
+      );
+      expect(document.current, map);
+      await tester.tap(find.byKey(const ValueKey('spatial-ramp-apply')));
+      await tester.pump();
+      expect(
+        document.current.spatialScene!.navigation.ramps.first
+            .toJson()['surfaceInstanceId'],
+        'stairs',
+      );
+      expect(
+        document.current.spatialScene!.instances,
+        map.spatialScene!.instances,
+      );
+      final linked = document.current;
+      tester.widget<StudioSelect>(finder).onChanged!('');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('spatial-ramp-preview')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('spatial-ramp-apply')));
+      await tester.pump();
+      expect(document.current, map);
+      document.restore(redo: false);
+      expect(document.current, linked);
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'French fractional draft previews cancels and applies once without altering other ramps',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1100, 1200));

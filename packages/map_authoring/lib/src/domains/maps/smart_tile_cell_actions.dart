@@ -417,6 +417,7 @@ AuthoringActionDescriptor _batchDescriptor() => AuthoringActionDescriptor(
       ],
       extensions: const {
         'semanticIds': true,
+        'materialPalettePolicy': 'append_catalog_material_allowed_by_preset',
         'rawTilesetRequired': false,
         'batchAtomicity': 'all_or_nothing',
         'undoBoundary': 'batch',
@@ -489,8 +490,10 @@ AuthoringActionDescriptor _cornerDescriptor(String id, String summary) =>
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const <String, Object?>{
+      extensions: <String, Object?>{
         'semanticIds': true,
+        if (id.endsWith('.paint'))
+          'materialPalettePolicy': 'append_catalog_material_allowed_by_preset',
         'rawTilesetRequired': false,
         'gestureAtomic': true,
         'semanticCellsPreserved': true,
@@ -571,8 +574,10 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const <String, Object?>{
+      extensions: <String, Object?>{
         'semanticIds': true,
+        if (id.endsWith('.paint'))
+          'materialPalettePolicy': 'append_catalog_material_allowed_by_preset',
         'rawTilesetRequired': false,
         'gestureAtomic': true,
         'cellFieldOnly': false,
@@ -628,7 +633,7 @@ void _requireAllowedMaterial({
       .any((material) => material.id == materialId);
   final presetAllows = preset.allowedMaterialIds.contains(materialId);
   final paletteContains = layer.materialPalette.contains(materialId);
-  if (catalogContains && presetAllows && paletteContains) return;
+  if (catalogContains && presetAllows) return;
   throw semanticFailure(
     'smart_tile.cell.material_not_allowed',
     'The material is not available in this Smart Tile layer.',

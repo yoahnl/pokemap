@@ -73,6 +73,8 @@ BorderPrimitiveDraft _withModelSettings(
     animationLoop: settings.animationLoop,
     animationSpeed: settings.animationSpeed,
     blocksMovement: settings.blocksMovement,
+    groundFootprints: primitive.groundFootprints,
+    groundSurfaces: primitive.groundSurfaces,
   );
 }
 
@@ -252,6 +254,8 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
                     animationLoop: primitive.animationLoop,
                     animationSpeed: primitive.animationSpeed,
                     blocksMovement: primitive.blocksMovement,
+                    groundFootprints: primitive.groundFootprints,
+                    groundSurfaces: primitive.groundSurfaces,
                   ),
           ),
           frames: const [],

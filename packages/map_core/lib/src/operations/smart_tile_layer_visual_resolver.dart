@@ -34,6 +34,9 @@ final class SmartTileLayerVisual {
     required this.anchorX,
     required this.anchorY,
     required this.drawOrder,
+    this.spatialHeightOffset = 0,
+    this.spatialFollowTerrain = true,
+    this.spatialClip,
   });
 
   final int cellX;
@@ -54,6 +57,9 @@ final class SmartTileLayerVisual {
   final int anchorX;
   final int anchorY;
   final int drawOrder;
+  final double spatialHeightOffset;
+  final bool spatialFollowTerrain;
+  final SmartTileSpatialClip? spatialClip;
 }
 
 /// Deterministic operation counts emitted by one Smart Tile visual pass.
@@ -446,7 +452,7 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
       }
     }
   }
-  visuals.sort(_compareSmartTileVisualPaintOrder);
+  _sortSmartTileVisuals(visuals);
   return SmartTileLayerVisualBatch(
     visuals: visuals,
     work: SmartTileLayerVisualWorkCounts(
@@ -574,6 +580,24 @@ int _compareSmartTileVisualPaintOrder(
   return a.cellX.compareTo(b.cellX);
 }
 
+void _sortSmartTileVisuals(List<SmartTileLayerVisual> visuals) {
+  for (var index = 1; index < visuals.length; index++) {
+    if (_compareSmartTileVisualPaintOrder(visuals[index - 1], visuals[index]) <=
+        0) {
+      continue;
+    }
+    final positions = Map<SmartTileLayerVisual, int>.identity();
+    for (var position = 0; position < visuals.length; position++) {
+      positions[visuals[position]] = position;
+    }
+    visuals.sort((a, b) {
+      final order = _compareSmartTileVisualPaintOrder(a, b);
+      return order == 0 ? positions[a]!.compareTo(positions[b]!) : order;
+    });
+    return;
+  }
+}
+
 /// Builds one renderer-neutral visual for an already-resolved frame.
 ///
 /// Shared by the per-call batch resolver and [SmartTileLayerVisualPlan] so
@@ -655,6 +679,9 @@ SmartTileLayerVisual? _buildPartVisual({
     anchorX: part.anchorX,
     anchorY: part.anchorY,
     drawOrder: drawOrder,
+    spatialHeightOffset: part.spatialHeightOffset,
+    spatialFollowTerrain: part.spatialFollowTerrain,
+    spatialClip: part.spatialClip,
   );
 }
 
@@ -1182,7 +1209,7 @@ final class SmartTileLayerVisualPlan {
         }
       }
     }
-    visuals.sort(_compareSmartTileVisualPaintOrder);
+    _sortSmartTileVisuals(visuals);
     return SmartTileLayerVisualBatch(
       visuals: visuals,
       work: SmartTileLayerVisualWorkCounts(

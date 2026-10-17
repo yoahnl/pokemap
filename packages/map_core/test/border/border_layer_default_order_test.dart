@@ -2,6 +2,21 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('authored placed elements paint with their owning layer below later layers', () {
+    final map = MapData(
+      id: 'height-layers', name: 'Planchers', size: const GridSize(width: 1, height: 1),
+      visualStack: MapVisualStackConfig.canonicalV1,
+      layers: [
+        const MapLayer.border(id: 'upper', name: 'Plancher supérieur'),
+        TileLayer(id: 'lower', name: 'Ombres sous le plancher', cells: [0]),
+      ],
+      placedElements: const [MapPlacedElement(id: 'shadow', layerId: 'lower', elementId: 'shadow', pos: GridPos(x: 0, y: 0))],
+    );
+    final keys = buildMapVisualCompositionPlan(map).plan!.steps.map((step) => step.stableKey).toList();
+    expect(keys.indexOf('placedElements:lower'), lessThan(keys.indexOf('borderLayer:upper')));
+    expect(keys.where((key) => key == 'placedElements:lower'), hasLength(1));
+  });
+
   for (final frontFirst in [true, false]) {
     test('new Border layer paints above existing ground ($frontFirst)', () {
       final ground = TileLayer(id: 'ground', name: 'Sol', cells: [0]);

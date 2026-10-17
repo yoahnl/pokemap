@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'gameplay_hazard.dart';
+import 'moving_platform_gameplay.dart';
 import 'directed_jump_plan.dart';
 import 'direction.dart';
 import 'gameplay_movement_effect.dart';
@@ -45,10 +46,12 @@ final class Moved extends GameplayStepResult {
     super.world, {
     this.hazardEffect,
     this.movementEffect,
+    this.platformControl,
   });
 
   final GameplayHazardEffect? hazardEffect;
   final GameplayMovementEffect? movementEffect;
+  final MovingPlatformControlActivation? platformControl;
 }
 
 final class GameplayEntityBumpContact {

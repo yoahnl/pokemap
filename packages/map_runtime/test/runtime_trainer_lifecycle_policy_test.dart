@@ -116,7 +116,67 @@ void main() {
       );
     });
 
-    test('trainer lifecycle dialogue ids override NPC fallback refs', () {
+    for (final rematch in [false, true]) {
+      test(
+        'defeated interaction selects its dialogue for rematch=$rematch',
+        () {
+          final trainer = ProjectTrainerEntry(
+            id: 'lysa',
+            name: 'Lysa',
+            trainerClass: 'Rival',
+            victoryDialogueId: 'battle_result',
+            rematchPolicy: rematch ? ProjectTrainerRematchPolicy.allowed : null,
+          );
+          final plan = resolveRuntimeTrainerInteractionPlan(
+            trainer: trainer,
+            npc: npc,
+            isDefeated: true,
+          );
+          expect(
+            plan.dialogue?.dialogueId,
+            rematch ? 'battle_result' : 'npc_victory',
+          );
+          expect(
+            plan.disposition,
+            rematch
+                ? RuntimeTrainerInteractionDisposition.dialogueThenBattle
+                : RuntimeTrainerInteractionDisposition.dialogueOnly,
+          );
+          expect(
+            resolveRuntimeTrainerPostBattleDialogue(
+              trainer: trainer,
+              npc: npc,
+              result: RuntimeTrainerPostBattleResult.victory,
+            )?.dialogueId,
+            'battle_result',
+          );
+        },
+      );
+    }
+
+    test(
+      'defeated trainer without NPC repeat dialogue uses trainer victory',
+      () {
+        const trainer = ProjectTrainerEntry(
+          id: 'lysa',
+          name: 'Lysa',
+          trainerClass: 'Rival',
+          victoryDialogueId: 'battle_result',
+        );
+        final plan = resolveRuntimeTrainerInteractionPlan(
+          trainer: trainer,
+          npc: const MapEntityNpcData(trainerId: 'lysa'),
+          isDefeated: true,
+        );
+        expect(
+          plan.disposition,
+          RuntimeTrainerInteractionDisposition.dialogueOnly,
+        );
+        expect(plan.dialogue?.dialogueId, 'battle_result');
+      },
+    );
+
+    test('trainer prebattle and result hooks override NPC fallback refs', () {
       const trainer = ProjectTrainerEntry(
         id: 'lysa',
         name: 'Lysa',

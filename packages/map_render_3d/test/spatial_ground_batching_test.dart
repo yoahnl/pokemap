@@ -132,7 +132,6 @@ void main() {
         final original = spatialGroundVertices(
           item.visual.geometry,
           scene: scene,
-          height: item.height,
         );
         final surface = spatialGroundMeshes(
           [item],
@@ -153,6 +152,7 @@ void main() {
               ),
             );
           }
+          expect(uploaded[offset + 10], closeTo(item.height, .000001));
           expect(uploaded[offset + 3], closeTo(vertex.texCoord.x / 4, .000001));
           expect(uploaded[offset + 4], closeTo(vertex.texCoord.y / 2, .000001));
           expect(vertex.position.x, inInclusiveRange(0, 3));

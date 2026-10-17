@@ -5,6 +5,388 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final spatial in [false, true]) {
+    for (final actionId in [
+      'smart_tile.pattern.paint',
+      'smart_tile.pattern.paint_batch'
+    ]) {
+      test(
+          'patterns paint a newly published material through $actionId in ${spatial ? '3D' : '2D'}',
+          () {
+        final pattern = _rockPattern.copyWith(cells: [
+          _rockPattern.cells.single.copyWith(eraseMaterial: false),
+        ]);
+        final fixture = _fixture(
+            spatial: spatial,
+            includePattern: true,
+            pattern: pattern,
+            extendedPublishedPreset: true);
+        final paint = {
+          'patternId': pattern.id,
+          'strokeId': 'relief',
+          'materialId': 'relief',
+          'selection': {
+            'kind': 'stamp',
+            'anchor': {'x': 0, 'y': 0}
+          },
+        };
+        final draft =
+            _buildPattern(fixture.snapshot, actionId: actionId, parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          if (actionId.endsWith('paint_batch'))
+            'strokes': [paint]
+          else
+            ...paint,
+        });
+        final map = _map(draft);
+        final layer = map.layers.single as SmartTileLayer;
+        expect(layer.materialPalette, ['', 'grass', 'relief']);
+        expect(smartTileSemanticCells(layer), [2, 0, 0, 0]);
+        expect(map.spatialScene, fixture.map.spatialScene);
+        expect(draft.changeSet.changes, hasLength(1));
+        expect(MapData.fromJson(map.toJson()), map);
+      });
+    }
+  }
+
+  test('a catalog material outside the published preset remains forbidden', () {
+    final fixture = _fixture(extendedPublishedPreset: true);
+    final before = jsonEncode(fixture.map.toJson());
+    expect(
+        () => _build(fixture.snapshot,
+                actionId: 'smart_tile.cell.paint_batch',
+                parameters: {
+                  'mapId': 'map',
+                  'layerId': 'ground',
+                  'strokes': [
+                    {
+                      'materialId': 'relief',
+                      'cells': [
+                        {'x': 0, 'y': 0}
+                      ]
+                    },
+                    {
+                      'materialId': 'forbidden',
+                      'cells': [
+                        {'x': 1, 'y': 0}
+                      ]
+                    },
+                  ],
+                }),
+        _failure('smart_tile.cell.material_not_allowed'));
+    expect(jsonEncode(fixture.map.toJson()), before);
+  });
+
+  for (final spatial in [false, true]) {
+    for (final actionId in [
+      'smart_tile.cell.paint',
+      'smart_tile.cell.paint_batch',
+      'smart_tile.corner.paint',
+    ]) {
+      test(
+          'paints a newly published material through $actionId in ${spatial ? '3D' : '2D'}',
+          () {
+        final corner = actionId == 'smart_tile.corner.paint';
+        final fixture = _fixture(
+          spatial: spatial,
+          extendedPublishedPreset: true,
+          field: corner
+              ? const SmartTileField.corner(
+                  semanticCells: [0, 0, 0, 0],
+                  corners: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                )
+              : null,
+        );
+        final before = fixture.map.layers.single as SmartTileLayer;
+        expect(before.materialPalette, ['', 'grass']);
+        final draft = _build(fixture.snapshot, actionId: actionId, parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          if (actionId == 'smart_tile.cell.paint_batch')
+            'strokes': [
+              {
+                'materialId': 'relief',
+                'cells': [
+                  {'x': 0, 'y': 0}
+                ]
+              },
+            ]
+          else ...{
+            'materialId': 'relief',
+            if (corner)
+              'corners': [
+                {'x': 0, 'y': 0}
+              ]
+            else
+              'cells': [
+                {'x': 0, 'y': 0}
+              ],
+          },
+        });
+        final map = _map(draft);
+        final layer = map.layers.single as SmartTileLayer;
+        expect(layer.materialPalette, ['', 'grass', 'relief']);
+        if (corner) {
+          expect((layer.field as SmartTileCornerField).corners.first, 2);
+        } else {
+          expect(smartTileSemanticCells(layer), [2, 0, 0, 0]);
+        }
+        expect(fixture.map.layers.single, before);
+        expect(map.spatialScene, fixture.map.spatialScene);
+        expect(draft.changeSet.changes, hasLength(1));
+        expect(MapData.fromJson(map.toJson()), map);
+      });
+    }
+  }
+
+  test('pattern material painting and erasing share one atomic map mutation',
+      () {
+    final pattern = _rockPattern.copyWith(
+        cells: [_rockPattern.cells.single.copyWith(eraseMaterial: false)]);
+    final fixture = _fixture(
+        includePattern: true,
+        spatial: true,
+        pattern: pattern,
+        field: const SmartTileField.cell(semanticCells: [0, 0, 0, 0]));
+    for (final actionId in [
+      'smart_tile.pattern.paint',
+      'smart_tile.pattern.paint_batch'
+    ]) {
+      final paint = <String, Object?>{
+        'patternId': pattern.id,
+        'strokeId': 'grass',
+        'materialId': 'grass',
+        'selection': {
+          'kind': 'stamp',
+          'anchor': {'x': 1, 'y': 1}
+        },
+      };
+      final draft =
+          _buildPattern(fixture.snapshot, actionId: actionId, parameters: {
+        'mapId': 'map',
+        'layerId': 'ground',
+        if (actionId.endsWith('paint_batch')) 'strokes': [paint] else ...paint
+      });
+      final map = _map(draft);
+      expect(smartTileSemanticCells(map.layers.single as SmartTileLayer),
+          [0, 0, 0, 1]);
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(map.spatialScene, fixture.map.spatialScene);
+    }
+    for (final materialId in ['water', '']) {
+      expect(
+          () => _buildPattern(fixture.snapshot,
+                  actionId: 'smart_tile.pattern.paint',
+                  parameters: {
+                    'mapId': 'map',
+                    'layerId': 'ground',
+                    'patternId': pattern.id,
+                    'strokeId': 'invalid',
+                    'materialId': materialId,
+                    'selection': {
+                      'kind': 'stamp',
+                      'anchor': {'x': 0, 'y': 0}
+                    }
+                  }),
+          throwsA(isA<MapAuthoringException>()));
+    }
+    final eraseFixture = _fixture(
+        includePattern: true,
+        spatial: true,
+        pattern: pattern,
+        field: const SmartTileField.cell(semanticCells: [1, 0, 0, 0]),
+        patternStrokes: [
+          SmartTilePatternStroke(
+              id: 'grass',
+              patternId: pattern.id,
+              cells: const [GridPos(x: 0, y: 0)])
+        ]);
+    final erased = _buildPattern(eraseFixture.snapshot,
+        actionId: 'smart_tile.pattern.erase',
+        parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          'clearMaterial': true,
+          'cells': [
+            {'x': 0, 'y': 0}
+          ]
+        });
+    final erasedLayer = _map(erased).layers.single as SmartTileLayer;
+    expect(smartTileSemanticCells(erasedLayer), [0, 0, 0, 0]);
+    expect(erasedLayer.patternStrokes, isEmpty);
+    expect(erased.preview['clearMaterial'], true);
+    expect(erased.changeSet.changes, hasLength(1));
+  });
+
+  group('pattern paint batch', () {
+    Map<String, Object?> stroke(String id, int x, int y) => {
+          'patternId': 'rock-stamp',
+          'strokeId': id,
+          'selection': {
+            'kind': 'stamp',
+            'anchor': {'x': x, 'y': y},
+          },
+        };
+
+    test('paints ordered patterns and collisions in one map change', () {
+      final fixture = _fixture(
+        spatial: true,
+        elevated: true,
+        includePattern: true,
+        includeCollision: true,
+        field: const SmartTileField.cell(semanticCells: [1, 1, 1, 1]),
+      );
+      final draft = _buildPattern(
+        fixture.snapshot,
+        actionId: 'smart_tile.pattern.paint_batch',
+        parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          'collisionLayerId': 'collision',
+          'strokes': [stroke('a', 0, 0), stroke('b', 1, 1)],
+        },
+      );
+      final map = _map(draft);
+      final layer = map.layers.whereType<SmartTileLayer>().single;
+      expect(layer.patternStrokes.map((value) => value.id), ['a', 'b']);
+      expect(smartTileSemanticCells(layer), [0, 1, 1, 0]);
+      expect(map.layers.whereType<CollisionLayer>().single.collisions,
+          [true, false, false, true]);
+      expect(map.spatialScene, fixture.map.spatialScene);
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.preview['strokeCount'], 2);
+      expect(draft.preview['gestureCellCount'], 2);
+      expect(draft.preview['undoBoundary'], 'batch');
+      expect(draft.preview['batchAtomicity'], 'all_or_nothing');
+      expect(MapData.fromJson(map.toJson()), map);
+    });
+
+    test('preserves overlap order and signed phases', () {
+      final fixture = _fixture(includePattern: true);
+      final draft = _buildPattern(
+        fixture.snapshot,
+        actionId: 'smart_tile.pattern.paint_batch',
+        parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          'strokes': [
+            {...stroke('lower', 0, 0), 'phaseX': -2, 'phaseY': 3},
+            {...stroke('upper', 0, 0), 'phaseX': 4, 'phaseY': -5},
+          ],
+        },
+      );
+      final strokes =
+          (_map(draft).layers.single as SmartTileLayer).patternStrokes;
+      expect(strokes.map((value) => value.id), ['lower', 'upper']);
+      expect(strokes.first.phaseX, -2);
+      expect(strokes.first.phaseY, 3);
+      expect(strokes.last.phaseX, 4);
+      expect(strokes.last.phaseY, -5);
+    });
+
+    test('rejects a later invalid pattern without changing the snapshot', () {
+      final fixture = _fixture(includePattern: true);
+      final before = jsonEncode(fixture.map.toJson());
+      expect(
+        () => _buildPattern(
+          fixture.snapshot,
+          actionId: 'smart_tile.pattern.paint_batch',
+          parameters: {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'strokes': [
+              stroke('a', 0, 0),
+              {...stroke('b', 1, 1), 'patternId': 'unknown'},
+            ],
+          },
+        ),
+        _failure('smart_tile.pattern.unknown'),
+      );
+      expect(jsonEncode(fixture.map.toJson()), before);
+    });
+
+    test('rejects empty, duplicate, malformed and oversized batches', () {
+      final fixture = _fixture(includePattern: true);
+      for (final strokes in <List<Object?>>[
+        [],
+        [stroke('same', 0, 0), stroke('same', 1, 1)],
+        [
+          stroke('a', 0, 0),
+          {...stroke('b', 1, 1), 'unrecognized': true}
+        ],
+        [stroke('a', 0, 0), stroke('b', 2, 1)],
+        [stroke('a', 0, 0), 3],
+        List.generate(251, (index) => stroke('stroke-$index', 0, 0)),
+      ]) {
+        expect(
+          () => _buildPattern(
+            fixture.snapshot,
+            actionId: 'smart_tile.pattern.paint_batch',
+            parameters: {
+              'mapId': 'map',
+              'layerId': 'ground',
+              'strokes': strokes,
+            },
+          ),
+          throwsA(isA<MapAuthoringException>()),
+        );
+      }
+    });
+
+    test('advertises bounded ordered painting and a batch undo boundary', () {
+      final descriptor = SmartTilePatternActions.descriptors.singleWhere(
+        (value) => value.id == 'smart_tile.pattern.paint_batch',
+      );
+      expect(descriptor.extensions['maximumStrokeCount'], 250);
+      expect(descriptor.extensions['maximumTotalCellCount'], 65536);
+      expect(descriptor.extensions['overlapPolicy'], 'ordered_strokes');
+      expect(descriptor.extensions['undoBoundary'], 'batch');
+      expect(descriptor.extensions['inputSchema'], isA<Map>());
+    });
+
+    test('enforces the total cell limit including overlapping strokes', () {
+      final fixture = _fixture(
+        includePattern: true,
+        mapSize: const GridSize(width: 256, height: 256),
+        pattern: ProjectSmartTilePattern.fromJson({
+          ..._rockPattern.toJson(),
+          'repeatMode': 'tiled',
+          'cells': [
+            {
+              ..._rockPattern.cells.single.toJson(),
+              'eraseMaterial': false,
+              'collision': 'inherit',
+            },
+          ],
+        }),
+      );
+      expect(
+        () => _buildPattern(
+          fixture.snapshot,
+          actionId: 'smart_tile.pattern.paint_batch',
+          parameters: {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'strokes': [
+              {
+                'patternId': 'rock-stamp',
+                'strokeId': 'full',
+                'selection': {
+                  'kind': 'rectangle',
+                  'start': {'x': 0, 'y': 0},
+                  'end': {'x': 255, 'y': 255},
+                },
+              },
+              stroke('overflow', 0, 0),
+            ],
+          },
+        ),
+        _failure('smart_tile.pattern.batch_too_large'),
+      );
+    });
+  });
+
   test(
       'pattern erase targets explicit strokes without deleting lower ownership',
       () {
@@ -898,6 +1280,8 @@ AuthoringMutationDraft _build(
   SmartTileField? field,
   GridSize mapSize = const GridSize(width: 2, height: 2),
   bool includePattern = false,
+  bool extendedPublishedPreset = false,
+  ProjectSmartTilePattern? pattern,
   bool includeCollision = false,
   bool includeInvalidUnrelatedLayer = false,
   bool spatial = false,
@@ -1003,6 +1387,12 @@ AuthoringMutationDraft _build(
         ),
       ],
       materials: <ProjectSmartTileMaterial>[
+        if (extendedPublishedPreset)
+          ProjectSmartTileMaterial(
+              id: 'forbidden', name: 'Forbidden', connectionGroupId: 'ground'),
+        if (extendedPublishedPreset)
+          ProjectSmartTileMaterial(
+              id: 'relief', name: 'Relief', connectionGroupId: 'ground'),
         ProjectSmartTileMaterial(
           id: 'grass',
           name: 'Grass',
@@ -1023,8 +1413,25 @@ AuthoringMutationDraft _build(
           ),
           transformPolicy: SmartTileTransformPolicy(),
           defaultMaterialId: 'grass',
-          allowedMaterialIds: <String>['grass'],
+          allowedMaterialIds: <String>[
+            'grass',
+            if (extendedPublishedPreset) 'relief'
+          ],
           rules: <SmartTileRule>[
+            if (extendedPublishedPreset)
+              SmartTileRule(
+                id: 'relief',
+                centerMatch: SmartTileSlotMatch.material('relief'),
+                candidates: [
+                  SmartTileCandidate(id: 'relief', parts: [
+                    SmartTileVisualPart(
+                        source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                          atlasId: 'atlas', column: 0, row: 0),
+                    )),
+                  ]),
+                ],
+              ),
             SmartTileRule(
               id: 'base',
               centerMatch: SmartTileSlotMatch.material('grass'),
@@ -1050,7 +1457,7 @@ AuthoringMutationDraft _build(
         ),
       ],
       patterns: <ProjectSmartTilePattern>[
-        if (includePattern) _rockPattern,
+        if (includePattern) pattern ?? _rockPattern,
       ],
     ),
   );

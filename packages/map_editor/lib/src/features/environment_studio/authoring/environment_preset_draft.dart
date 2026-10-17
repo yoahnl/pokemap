@@ -160,6 +160,9 @@ final class EnvironmentPresetDraft {
   }
 
   factory EnvironmentPresetDraft.fromPreset(EnvironmentPreset preset) {
+    if (preset.isSpatial) {
+      throw ArgumentError.value(preset.id, 'preset', 'Un preset 3D ne peut pas être modifié dans le formulaire 2D.');
+    }
     return EnvironmentPresetDraft(
       id: preset.id,
       name: preset.name,
@@ -167,7 +170,7 @@ final class EnvironmentPresetDraft {
       palette: [
         for (final item in preset.palette)
           EnvironmentPaletteItemDraft(
-            elementId: item.elementId,
+            elementId: item.resourceId,
             weight: item.weight,
             collisionMode: item.collisionMode,
             tags: item.tags,

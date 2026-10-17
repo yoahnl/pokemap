@@ -1,11 +1,15 @@
 import io
 import struct
+import subprocess
+import sys
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import Mock
 
 from publish_play import API, UPLOAD, PlayPublisher
+from read_app_version import read_app_version
 from verify_release_bundle import PACKAGE, verify_elf_alignment, verify_libraries, verify_manifest
 
 
@@ -31,6 +35,40 @@ def library(alignment=16384):
     struct.pack_into("<I", data, 64, 1)
     struct.pack_into("<Q", data, 112, alignment)
     return bytes(data)
+
+
+class SharedAppVersionTest(unittest.TestCase):
+    def test_reads_the_version_from_the_shared_xcode_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            configuration = Path(directory) / "version.xcconfig"
+            configuration.write_text("MARKETING_VERSION = 2.4.6\n", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(Path(__file__).with_name("read_app_version.py")), str(configuration)],
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "2.4.6")
+
+    def test_rejects_missing_ambiguous_or_non_numeric_versions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            configuration = Path(directory) / "version.xcconfig"
+            for source in [
+                "",
+                "MARKETING_VERSION = 1.0\n",
+                "MARKETING_VERSION = 1.0.2-beta\n",
+                "MARKETING_VERSION = 1.0.2\nMARKETING_VERSION = 1.0.3\n",
+                "CURRENT_PROJECT_VERSION = 20\n",
+            ]:
+                with self.subTest(source=source):
+                    configuration.write_text(source, encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "single numeric MARKETING_VERSION"):
+                        read_app_version(configuration)
+
+    def test_missing_configuration_does_not_fall_back_to_an_old_version(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(FileNotFoundError):
+                read_app_version(Path(directory) / "missing.xcconfig")
 
 
 class BundleVerificationTest(unittest.TestCase):

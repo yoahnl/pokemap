@@ -96,7 +96,8 @@ LedgeLineBorderResolutionEvidence resolveLedgeLineBorderWithEvidence(
       parameters.irregularityPermille != 0 ||
       parameters.detailDensityPermille != 0 ||
       parameters.allowAutoRotation ||
-      parameters.gapTolerancePx != 0 ||
+      parameters.gapTolerancePx >= request.tileSizePx.width ||
+      parameters.gapTolerancePx >= request.tileSizePx.height ||
       parameters.maxOverlapPx != 0) {
     error('border.resolution.ledge_parameters_invalid');
   }
@@ -465,7 +466,8 @@ bool ledgeLineNativePlacementGeometryMatches(
       params.allowAutoRotation ||
       params.irregularityPermille != 0 ||
       params.detailDensityPermille != 0 ||
-      params.gapTolerancePx != 0 ||
+      params.gapTolerancePx >= request.tileSizePx.width ||
+      params.gapTolerancePx >= request.tileSizePx.height ||
       params.maxOverlapPx != 0) {
     return false;
   }

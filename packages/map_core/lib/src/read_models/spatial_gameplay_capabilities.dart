@@ -3,6 +3,9 @@ import '../models/scene_interactive_command.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
 import '../models/map_data.dart';
+import '../models/map_layer.dart';
+import '../models/smart_tile.dart';
+import '../operations/spatial_smart_tile_models.dart';
 import '../models/cinematic_asset.dart';
 import '../models/enums.dart';
 import '../dialogue/runtime_dialogue_document.dart';
@@ -73,22 +76,56 @@ abstract final class SpatialGameplayCapabilities {
   static bool requiresModelAnimation(
     ProjectManifest project, {
     Iterable<MapData> maps = const [],
-  }) =>
-      project.scenes.any(
-        (scene) => scene.graph.nodes.any(
-          (node) =>
-              node.payload is SceneActionPayload &&
-              (node.payload as SceneActionPayload).interactiveCommand
-                  is ScenePlayModelAnimationInteractiveCommand,
-        ),
-      ) ||
-      maps.any(
-        (map) =>
-            map.spatialScene?.instances.any(
-              (instance) => instance.animationIndex != null,
-            ) ??
-            false,
-      );
+  }) {
+    if (project.scenes.any(
+      (scene) => scene.graph.nodes.any(
+        (node) =>
+            node.payload is SceneActionPayload &&
+            (node.payload as SceneActionPayload).interactiveCommand
+                is ScenePlayModelAnimationInteractiveCommand,
+      ),
+    )) {
+      return true;
+    }
+    bool animated(SmartTileVisualPart part) =>
+        part.source is SmartTileModel3dSource &&
+        (part.source as SmartTileModel3dSource).animationIndex != null;
+    final presets = {
+      for (final preset in project.smartTileCatalog.presets)
+        if (preset.rules.any(
+          (rule) =>
+              rule.candidates.any((candidate) => candidate.parts.any(animated)),
+        ))
+          preset.id,
+    };
+    final patterns = {
+      for (final pattern in project.smartTileCatalog.patterns)
+        if (pattern.cells.any((cell) => cell.parts.any(animated))) pattern.id,
+    };
+    return maps.any(
+      (map) =>
+          (map.spatialScene?.instances.any(
+                (instance) => instance.animationIndex != null,
+              ) ??
+              false) ||
+          map.spatialScene != null &&
+              map.layers.whereType<SmartTileLayer>().any(
+                (layer) =>
+                    layer.isVisible &&
+                    layer.opacity > 0 &&
+                    (presets.contains(layer.presetId) ||
+                        layer.patternStrokes.any(
+                          (stroke) => patterns.contains(stroke.patternId),
+                        )),
+              ) &&
+              resolveSpatialSmartTileInstances(
+                map: map,
+                catalog: project.smartTileCatalog,
+                sourceCellWidth: project.settings.tileWidth,
+                sourceCellHeight: project.settings.tileHeight,
+              ).any((instance) => instance.animationIndex != null),
+    );
+  }
 
   static bool requiresGameplay(
     ProjectManifest project, {

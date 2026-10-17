@@ -5,9 +5,11 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'spatial_ramp_editor.dart';
+import 'spatial_terrain_surface_editor.dart';
 
 class SpatialTerrainControls extends StatelessWidget {
   const SpatialTerrainControls({
@@ -45,23 +47,116 @@ class SpatialTerrainControls extends StatelessWidget {
       children: [
         if (view.spatialTerrainMode == SpatialTerrainMode.relief) ...[
           StudioSelect(
-            label: 'Hauteur du relief',
-            value: '${view.spatialTerrainLevel}',
-            options: {
-              for (var level = 0; level <= MapSpatialScene.maximumTerrainLevel; level++)
-                '$level': level == 0
-                    ? 'Sol · 0 bloc'
-                    : '$level ${level == 1 ? "bloc" : "blocs"}',
-            },
-            onChanged: (value) {
-              view.spatialTerrainLevel = int.parse(value);
-              onChanged();
-            },
+            key: const ValueKey('spatial-relief-shape'),
+            label: 'Forme du relief',
+            value: view.spatialContinuousTerrain ? 'surface' : 'blocks',
+            options: const {'blocks': 'Blocs', 'surface': 'Surface continue'},
+            onChanged: document.saving
+                ? null
+                : (value) {
+                    view.spatialContinuousTerrain = value == 'surface';
+                    view.terrainSurfacePreview = null;
+                    onChanged();
+                  },
           ),
           const SizedBox(height: 12),
-          const StudioNotice(
-            'Peignez les cases à cette hauteur. La gomme remet le relief au sol.',
-          ),
+          if (view.spatialContinuousTerrain) ...[
+            StudioSelect(
+              key: const ValueKey('spatial-surface-model-heights'),
+              label: 'Décors déjà placés',
+              value: view.spatialSurfaceReanchorInstances ? 'follow' : 'keep',
+              options: const {
+                'follow': 'Suivre la hauteur du terrain',
+                'keep': 'Conserver leur hauteur',
+              },
+              onChanged: document.saving
+                  ? null
+                  : (value) {
+                      view.spatialSurfaceReanchorInstances = value == 'follow';
+                      view.terrainSurfacePreview = null;
+                      onChanged();
+                    },
+            ),
+            const SizedBox(height: 12),
+            StudioDraftField(
+              key: const ValueKey('spatial-surface-low-level'),
+              label: 'Hauteur basse',
+              value: view.spatialSurfaceLowLevel,
+              enabled: !document.saving,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (value) {
+                view.spatialSurfaceLowLevel = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 12),
+            StudioDraftField(
+              key: const ValueKey('spatial-surface-high-level'),
+              label: 'Hauteur haute',
+              value: view.spatialSurfaceHighLevel,
+              enabled: !document.saving,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (value) {
+                view.spatialSurfaceHighLevel = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 12),
+            StudioSelect(
+              label: 'Montée vers',
+              value: view.spatialSurfaceDirection.name,
+              options: const {
+                'north': 'Le haut de la carte',
+                'south': 'Le bas de la carte',
+                'east': 'La droite de la carte',
+                'west': 'La gauche de la carte',
+              },
+              onChanged: document.saving
+                  ? null
+                  : (value) {
+                      view.spatialSurfaceDirection = SpatialRampDirection.values
+                          .byName(value);
+                      onChanged();
+                    },
+            ),
+            const SizedBox(height: 8),
+            const StudioNotice(
+              'Glissez pour dessiner une surface. Deux hauteurs identiques créent un replat. Le terrain peint suit sa forme. La gomme supprime entièrement les surfaces touchées.',
+            ),
+            const SizedBox(height: 12),
+            SpatialTerrainSurfaceEditor(
+              document: document,
+              view: view,
+              onChanged: onChanged,
+            ),
+          ] else ...[
+            StudioSelect(
+              label: 'Hauteur du relief',
+              value: '${view.spatialTerrainLevel}',
+              options: {
+                for (
+                  var level = 0;
+                  level <= MapSpatialScene.maximumTerrainLevel;
+                  level++
+                )
+                  '$level': level == 0
+                      ? 'Sol · 0 bloc'
+                      : '$level ${level == 1 ? "bloc" : "blocs"}',
+              },
+              onChanged: (value) {
+                view.spatialTerrainLevel = int.parse(value);
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 12),
+            const StudioNotice(
+              'Peignez les cases à cette hauteur. La gomme remet le relief au sol.',
+            ),
+          ],
         ] else if (view.spatialTerrainMode == SpatialTerrainMode.ramp) ...[
           const StudioNotice(
             'Glissez du bas vers le haut, entre deux sols de hauteurs différentes. Les cases dessinées forment la pente ; ses deux extrémités doivent toucher les sols.',
@@ -73,6 +168,7 @@ class SpatialTerrainControls extends StatelessWidget {
           const SizedBox(height: 12),
           SpatialRampEditor(
             document: document,
+            project: project,
             view: view,
             onChanged: onChanged,
           ),

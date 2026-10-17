@@ -371,7 +371,7 @@ as PokemonMoveSourceRefs,
 @override
 @pragma('vm:prefer-inline')
 $PokemonMoveAccuracyCopyWith<$Res> get accuracy {
-
+  
   return $PokemonMoveAccuracyCopyWith<$Res>(_self.accuracy, (value) {
     return _then(_self.copyWith(accuracy: value));
   });
@@ -380,7 +380,7 @@ $PokemonMoveAccuracyCopyWith<$Res> get accuracy {
 @override
 @pragma('vm:prefer-inline')
 $PokemonMoveSourceRefsCopyWith<$Res> get sourceRefs {
-
+  
   return $PokemonMoveSourceRefsCopyWith<$Res>(_self.sourceRefs, (value) {
     return _then(_self.copyWith(sourceRefs: value));
   });
@@ -658,7 +658,7 @@ as PokemonMoveSourceRefs,
 @override
 @pragma('vm:prefer-inline')
 $PokemonMoveAccuracyCopyWith<$Res> get accuracy {
-
+  
   return $PokemonMoveAccuracyCopyWith<$Res>(_self.accuracy, (value) {
     return _then(_self.copyWith(accuracy: value));
   });
@@ -667,7 +667,7 @@ $PokemonMoveAccuracyCopyWith<$Res> get accuracy {
 @override
 @pragma('vm:prefer-inline')
 $PokemonMoveSourceRefsCopyWith<$Res> get sourceRefs {
-
+  
   return $PokemonMoveSourceRefsCopyWith<$Res>(_self.sourceRefs, (value) {
     return _then(_self.copyWith(sourceRefs: value));
   });

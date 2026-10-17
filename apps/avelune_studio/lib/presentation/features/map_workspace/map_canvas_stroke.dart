@@ -462,6 +462,10 @@ class MapCanvasStroke {
             ),
         },
         strokeId: patternStrokeId!,
+        materialId: layer.usage == SmartTileUsage.path &&
+                (layer.encounterBehavior != null ||
+                    layer.animationActivation == SmartTileAnimationActivation.onEnter)
+            ? materialId : null,
       );
       cells
         ..clear()
@@ -503,6 +507,9 @@ class MapCanvasStroke {
         layer,
         mapSize: buffer.sourceMap.size,
         cells: _terrainCells,
+        clearMaterial: layer.usage == SmartTileUsage.path &&
+            (layer.encounterBehavior != null ||
+                layer.animationActivation == SmartTileAnimationActivation.onEnter),
       );
     }
     final strokeIds = <String>{};
@@ -532,6 +539,9 @@ class MapCanvasStroke {
       mapSize: buffer.sourceMap.size,
       cells: cells,
       strokeIds: strokeIds,
+      clearMaterial: layer.usage == SmartTileUsage.path &&
+          (layer.encounterBehavior != null ||
+              layer.animationActivation == SmartTileAnimationActivation.onEnter),
     );
   }
 

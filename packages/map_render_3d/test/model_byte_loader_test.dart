@@ -13,6 +13,139 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
+    'scene model preload overlaps four reads and reuses cached models',
+    () async {
+      final cache = <String, Future<Model>>{};
+      final gates = [
+        for (var index = 0; index < 6; index++) Completer<Uint8List>(),
+      ];
+      final started = <int>[];
+      var active = 0, maximum = 0;
+      final sources = {
+        for (var index = 0; index < gates.length; index++)
+          'model-$index': () async {
+            started.add(index);
+            active++;
+            if (active > maximum) maximum = active;
+            try {
+              return await gates[index].future;
+            } finally {
+              active--;
+            }
+          },
+      };
+      final loading = ModelByteLoader.preloadCached(cache, sources);
+      try {
+        await Future<void>.delayed(Duration.zero);
+        expect(started, [0, 1, 2, 3]);
+        for (var index = 0; index < 4; index++) {
+          gates[index].complete(_triangle('Model $index'));
+        }
+        await Future.wait([
+          for (var index = 0; index < 4; index++) cache['model-$index']!,
+        ]);
+        await Future<void>.delayed(Duration.zero);
+        expect(started, [0, 1, 2, 3, 4, 5]);
+        for (var index = 4; index < gates.length; index++) {
+          gates[index].complete(_triangle('Model $index'));
+        }
+        expect(await loading, isTrue);
+        expect(maximum, 4);
+        final models = await Future.wait(cache.values);
+        expect(models.map((model) => model.nodes.values.single.name), [
+          for (var index = 0; index < 6; index++) 'Model $index',
+        ]);
+        expect(await ModelByteLoader.preloadCached(cache, sources), isTrue);
+        expect(started, [0, 1, 2, 3, 4, 5]);
+      } finally {
+        for (var index = 0; index < gates.length; index++) {
+          if (!gates[index].isCompleted)
+            gates[index].complete(_triangle('Model $index'));
+        }
+        await loading;
+      }
+    },
+  );
+
+  test('cancelled scene preload starts no further model reads', () async {
+    final cache = <String, Future<Model>>{};
+    final gates = [
+      for (var index = 0; index < 6; index++) Completer<Uint8List>(),
+    ];
+    final started = <int>[];
+    var current = true;
+    final loading = ModelByteLoader.preloadCached(cache, {
+      for (var index = 0; index < gates.length; index++)
+        'model-$index': () {
+          started.add(index);
+          return gates[index].future;
+        },
+    }, isCurrent: () => current);
+    try {
+      await Future<void>.delayed(Duration.zero);
+      expect(started, [0, 1, 2, 3]);
+      current = false;
+      for (var index = 0; index < 4; index++) {
+        gates[index].complete(_triangle('Model $index'));
+      }
+      expect(await loading, isFalse);
+      expect(started, [0, 1, 2, 3]);
+      expect(cache.keys, ['model-0', 'model-1', 'model-2', 'model-3']);
+    } finally {
+      current = false;
+      for (var index = 0; index < gates.length; index++) {
+        if (!gates[index].isCompleted)
+          gates[index].complete(_triangle('Model $index'));
+      }
+      await loading;
+    }
+  });
+
+  test(
+    'failed scene preload drains active reads and remains retryable',
+    () async {
+      final cache = <String, Future<Model>>{};
+      final gates = [
+        for (var index = 0; index < 6; index++) Completer<Uint8List>(),
+      ];
+      final started = <int>[];
+      final loading = ModelByteLoader.preloadCached(cache, {
+        for (var index = 0; index < gates.length; index++)
+          'model-$index': () {
+            started.add(index);
+            return gates[index].future;
+          },
+      });
+      final failure = expectLater(loading, throwsStateError);
+      try {
+        await Future<void>.delayed(Duration.zero);
+        expect(started, [0, 1, 2, 3]);
+        gates[0].completeError(StateError('Unavailable model'));
+        await Future<void>.delayed(Duration.zero);
+        expect(cache.containsKey('model-0'), isFalse);
+        for (var index = 1; index < 4; index++) {
+          gates[index].complete(_triangle('Model $index'));
+        }
+        await failure;
+        expect(started, [0, 1, 2, 3]);
+        expect(
+          await ModelByteLoader.preloadCached(cache, {
+            'model-0': () async => _triangle('Recovered'),
+          }),
+          isTrue,
+        );
+        expect((await cache['model-0']!).nodes.values.single.name, 'Recovered');
+      } finally {
+        for (var index = 0; index < gates.length; index++) {
+          if (!gates[index].isCompleted)
+            gates[index].complete(_triangle('Model $index'));
+        }
+        await failure;
+      }
+    },
+  );
+
+  test(
     'shared model cache retries a rejected asset once it becomes available',
     () async {
       final cache = <String, Future<Model>>{};

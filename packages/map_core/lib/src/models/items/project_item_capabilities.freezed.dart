@@ -79,7 +79,7 @@ as ProjectItemEffectDefinition,
 @override
 @pragma('vm:prefer-inline')
 $ProjectItemEffectDefinitionCopyWith<$Res> get effect {
-
+  
   return $ProjectItemEffectDefinitionCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
   });
@@ -300,7 +300,7 @@ as ProjectItemEffectDefinition,
 @override
 @pragma('vm:prefer-inline')
 $ProjectItemEffectDefinitionCopyWith<$Res> get effect {
-
+  
   return $ProjectItemEffectDefinitionCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
   });

@@ -413,7 +413,7 @@ $ElementCollisionPixelMaskCopyWith<$Res>? get occlusionMask {
 @override
 @pragma('vm:prefer-inline')
 $WarpTriggerPaddingCopyWith<$Res> get padding {
-
+  
   return $WarpTriggerPaddingCopyWith<$Res>(_self.padding, (value) {
     return _then(_self.copyWith(padding: value));
   });
@@ -740,7 +740,7 @@ $ElementCollisionPixelMaskCopyWith<$Res>? get occlusionMask {
 @override
 @pragma('vm:prefer-inline')
 $WarpTriggerPaddingCopyWith<$Res> get padding {
-
+  
   return $WarpTriggerPaddingCopyWith<$Res>(_self.padding, (value) {
     return _then(_self.copyWith(padding: value));
   });

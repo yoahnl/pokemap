@@ -260,6 +260,7 @@ final class NativeMutation {
         'map' ||
         'entity' ||
         'trigger' ||
+        'gameplay_zone' ||
         'warp' ||
         'connection' || 'border_layer' =>
           OperationDomain.maps,

@@ -158,6 +158,33 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('an initially empty animated ground stays in its map group', (
+    tester,
+  ) async {
+    final game = await _mountedGame(tester);
+    final scene = SpatialSceneComponents(game.world);
+    final rendered = <String>[];
+    final overlay = _SceneProbe('overlay', rendered);
+    final initial = scene.replaceGroups({
+      'forest': [],
+      'overlays': [overlay],
+    });
+    await tester.runAsync(game.ready);
+    await tester.runAsync(() => initial);
+    final ground = _SceneProbe('ground', rendered);
+    scene.replaceSubset([], [ground], groupKey: 'forest');
+    await tester.runAsync(game.ready);
+    expect(ground.parent, isNot(same(overlay.parent)));
+    final replacing = scene.replaceGroups({
+      'forest': [],
+      'overlays': [_SceneProbe('new-overlay', rendered)],
+    });
+    await tester.runAsync(game.ready);
+    await tester.runAsync(() => replacing);
+    expect(_render(game.world, rendered), contains('ground'));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test('initial scene commits before its world is mounted', () async {
     final world = World3D();
     final scene = SpatialSceneComponents(world);

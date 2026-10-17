@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:map_core/map_core.dart';
 
+import 'spatial_terrain_surface_editing_commands.dart';
+
 enum SpatialTerrainMode { ground, relief, ramp }
 
 class SpatialTerrainStroke {
@@ -11,6 +13,8 @@ class SpatialTerrainStroke {
     required this.level,
     required this.erase,
     required this.origin,
+    this.surfaceBrush,
+    this.reanchorInstances = true,
   }) : preview = source {
     paint(origin);
   }
@@ -20,6 +24,9 @@ class SpatialTerrainStroke {
   final int level;
   final bool erase;
   final GridPos origin;
+  final SpatialTerrainSurfaceBrush? surfaceBrush;
+  final bool reanchorInstances;
+  String? surfaceId;
   final cells = <GridPos>{};
   MapData preview;
   String? error;
@@ -53,9 +60,51 @@ class SpatialTerrainStroke {
     }
     _previous = cell;
     _end = cell;
+    if (surfaceBrush != null) {
+      cells.clear();
+      for (
+        var z = math.min(origin.y, cell.y);
+        z <= math.max(origin.y, cell.y);
+        z++
+      ) {
+        for (
+          var x = math.min(origin.x, cell.x);
+          x <= math.max(origin.x, cell.x);
+          x++
+        ) {
+          cells.add(GridPos(x: x, y: z));
+        }
+      }
+    }
     error = null;
     try {
-      if (mode == SpatialTerrainMode.relief) {
+      if (surfaceBrush != null) {
+        if (erase) {
+          final ids = [
+            for (final surface in scene.terrainSurfaces.surfaces)
+              if (cells.any((cell) => surface.overlapsCell(cell.x, cell.y)))
+                surface.id,
+          ];
+          preview = ids.isEmpty
+              ? source
+              : _operations.deleteTerrainSurfaces(
+                  source,
+                  ids,
+                  reanchorInstances: reanchorInstances,
+                );
+        } else {
+          final surface = surfaceBrush!.rectangle(
+            id: nextTerrainSurfaceId(scene),
+            scene: scene,
+            start: origin,
+            end: cell,
+          );
+          surfaceId = surface.id;
+          preview = _operations.upsertTerrainSurfaces(source, [
+            surface,
+          ], reanchorInstances: reanchorInstances);
+        }
+      } else if (mode == SpatialTerrainMode.relief) {
         preview = _operations.setLevels(source, [
           for (final cell in cells)
             SpatialCellLevel(x: cell.x, z: cell.y, level: erase ? 0 : level),
@@ -82,8 +131,13 @@ class SpatialTerrainStroke {
           scene.navigation.copyWith(ramps: [...scene.navigation.ramps, ramp]),
         );
       }
-    } on Object {
-      error = mode == SpatialTerrainMode.relief
+    } on Object catch (failure) {
+      error = surfaceBrush != null
+          ? terrainSurfaceFailureMessage(failure)
+          : failure is ValidationException &&
+                failure.code == 'spatial.terrain.surface_grid_conflict'
+          ? 'Cette zone appartient à une surface de terrain. Modifiez cette surface plutôt que la grille en dessous.'
+          : mode == SpatialTerrainMode.relief
           ? 'Cette hauteur couperait une pente. Retirez la pente avec sa gomme avant de changer le relief.'
           : 'La pente doit relier un sol bas à un sol haut, sans croiser une autre pente ou une zone bloquée.';
       preview = source;

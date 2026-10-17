@@ -78,7 +78,7 @@ as SmartTileSpriteTransform,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileSpriteTransformCopyWith<$Res> get transform {
-
+  
   return $SmartTileSpriteTransformCopyWith<$Res>(_self.transform, (value) {
     return _then(_self.copyWith(transform: value));
   });
@@ -291,7 +291,7 @@ as SmartTileSpriteTransform,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileSpriteTransformCopyWith<$Res> get transform {
-
+  
   return $SmartTileSpriteTransformCopyWith<$Res>(_self.transform, (value) {
     return _then(_self.copyWith(transform: value));
   });
@@ -374,7 +374,7 @@ as Map<String, Object?>,
 @override
 @pragma('vm:prefer-inline')
 $TileLayerPaletteEntryCopyWith<$Res> get tile {
-
+  
   return $TileLayerPaletteEntryCopyWith<$Res>(_self.tile, (value) {
     return _then(_self.copyWith(tile: value));
   });
@@ -611,7 +611,7 @@ as Map<String, Object?>,
 @override
 @pragma('vm:prefer-inline')
 $TileLayerPaletteEntryCopyWith<$Res> get tile {
-
+  
   return $TileLayerPaletteEntryCopyWith<$Res>(_self.tile, (value) {
     return _then(_self.copyWith(tile: value));
   });
@@ -646,7 +646,7 @@ MapLayer _$MapLayerFromJson(
           return BorderLayer.fromJson(
             json
           );
-
+        
           default:
             throw CheckedFromJsonException(
   json,
@@ -655,7 +655,7 @@ MapLayer _$MapLayerFromJson(
   'Invalid union type "${json['runtimeType']}"!'
 );
         }
-
+      
 }
 
 /// @nodoc
@@ -1195,7 +1195,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $SmartTileFieldCopyWith<$Res> get field {
-
+  
   return $SmartTileFieldCopyWith<$Res>(_self.field, (value) {
     return _then(_self.copyWith(field: value));
   });

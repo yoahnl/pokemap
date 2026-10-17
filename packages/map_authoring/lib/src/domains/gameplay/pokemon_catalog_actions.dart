@@ -233,6 +233,7 @@ final class PokemonCatalogActions {
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor('pokemon.documents.write', delete: false),
+    _descriptor('pokemon.documents.delete', delete: true),
     _descriptor('pokemon.catalog.entries.add', delete: false),
     for (final entry in const [
       ('pokemon.catalog.write', PokemonDocumentKind.catalog, false),
@@ -250,7 +251,10 @@ final class PokemonCatalogActions {
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final actionId = context.request.actionId;
-    if (actionId == 'pokemon.documents.write') return _buildBatch(context);
+    if (actionId == 'pokemon.documents.write' ||
+        actionId == 'pokemon.documents.delete') {
+      return _buildBatch(context);
+    }
     if (actionId == 'pokemon.catalog.entries.add') {
       return _buildCatalogAddition(context);
     }
@@ -299,28 +303,36 @@ final class PokemonCatalogActions {
 
   AuthoringMutationDraft _buildBatch(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
+    final deleting = context.request.actionId == 'pokemon.documents.delete';
     final raw = parameters['documents'];
     if (parameters.length != 1 ||
         raw is! List ||
         raw.isEmpty ||
         raw.length > 200) {
       throw const FormatException(
-          'Expected a batch of 1 to 200 typed Pokemon document writes.');
+          'Expected a batch of 1 to 200 typed Pokemon document mutations.');
     }
     final drafts = <AuthoringMutationDraft>[];
-    const allowedActions = {
-      'pokemon.species.write',
-      'pokemon.learnset.write',
-      'pokemon.evolution.write',
-      'pokemon.media.write',
-    };
+    final allowedActions = deleting
+        ? const {
+            'pokemon.species.delete',
+            'pokemon.learnset.delete',
+            'pokemon.evolution.delete',
+            'pokemon.media.delete',
+          }
+        : const {
+            'pokemon.species.write',
+            'pokemon.learnset.write',
+            'pokemon.evolution.write',
+            'pokemon.media.write',
+          };
     for (final entry in raw) {
       if (entry is! Map ||
           entry.length != 2 ||
           !allowedActions.contains(entry['actionId']) ||
           entry['parameters'] is! Map) {
         throw const FormatException(
-            'Batch members require a supported document write actionId and parameters.');
+            'Batch members must match the requested typed document operation.');
       }
       drafts.add(_buildDocument(context, entry['actionId'] as String,
           Map<String, Object?>.from(entry['parameters'] as Map)));
@@ -332,7 +344,7 @@ final class PokemonCatalogActions {
             drafts.expand((draft) => draft.changeSet.diff.entries)),
       ),
       preview: {
-        'operation': 'pokemon.documents.write',
+        'operation': context.request.actionId,
         'documentCount': drafts.length,
         'documents': [for (final draft in drafts) draft.preview]
       },
@@ -381,11 +393,12 @@ final class PokemonCatalogActions {
         throw const FormatException('Before bytes must contain a JSON object.');
       }
       if (!isItemCatalog) {
-        final before = PokemonJsonDocument.fromJson(
-          kind,
-          Map<String, dynamic>.from(raw),
-        );
-        if (before.identity != resourceId) {
+        final identityKey = kind == PokemonDocumentKind.catalog
+            ? 'catalog'
+            : kind == PokemonDocumentKind.species
+                ? 'id'
+                : 'speciesId';
+        if (raw[identityKey] != resourceId) {
           throw const FormatException('Before document identity mismatch.');
         }
       }
@@ -440,7 +453,9 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
       id: id,
       version: 1,
       summary: delete
-          ? 'Delete one exact Pokemon data document'
+          ? id == 'pokemon.documents.delete'
+              ? 'Atomically delete 1 to 200 typed species, learnset, evolution or media documents with exact preimages'
+              : 'Delete one exact Pokemon data document'
           : id == 'pokemon.documents.write'
               ? 'Atomically write 1 to 200 typed species, learnset, evolution or media documents with exact preimages'
               : id == 'pokemon.catalog.entries.add'

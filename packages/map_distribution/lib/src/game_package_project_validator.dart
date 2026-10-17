@@ -94,6 +94,11 @@ final class GamePackageProjectValidator {
                 .contains('map3d.terrain-appearance@1')) {
           _fail('Custom 3D terrain appearance requires map3d.terrain-appearance@1.');
         }
+        if (maps.any((map) => map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialTerrainSurfaceSet.capabilityId)) {
+          _fail('Continuous 3D terrain requires map3d.terrain-surfaces@1.');
+        }
       }
       return project;
     } on GamePackageFormatException {

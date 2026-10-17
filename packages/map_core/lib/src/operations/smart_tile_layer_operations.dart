@@ -5,6 +5,9 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
+import '../models/smart_tile_encounter_behavior.dart';
+import '../models/project_manifest.dart';
+import '../validation/validators.dart';
 import 'map_visual_composition.dart';
 import 'smart_tile_pattern_operations.dart';
 import 'spatial_smart_tile_models.dart';
@@ -24,6 +27,49 @@ MapData addSmartTileLayer(
     'Use the canonical smart_tile.layer.create authoring action',
     code: 'smart_tile_canonical_layer_action_required',
   );
+}
+
+MapData setSmartTileLayerAnimationActivation(
+  MapData map, {
+  required String layerId,
+  required SmartTileAnimationActivation activation,
+}) => replaceSmartTileLayer(
+  map,
+  layer: _layerForSettings(
+    map,
+    layerId,
+  ).copyWith(animationActivation: activation),
+);
+
+MapData setSmartTileLayerEncounterBehavior(
+  MapData map, {
+  required ProjectManifest manifest,
+  required String layerId,
+  required SmartTileEncounterBehavior? behavior,
+}) {
+  final next = replaceSmartTileLayer(
+    map,
+    layer: _layerForSettings(
+      map,
+      layerId,
+    ).copyWith(encounterBehavior: behavior),
+  );
+  MapValidator.validate(next, projectDialogueContext: manifest);
+  return next;
+}
+
+SmartTileLayer _layerForSettings(MapData map, String id) {
+  final layer = map.layers
+      .whereType<SmartTileLayer>()
+      .where((layer) => layer.id == id)
+      .firstOrNull;
+  if (layer == null) {
+    throw const ValidationException(
+      'Smart Tile layer not found.',
+      code: 'smart_tile.layer_missing',
+    );
+  }
+  return layer;
 }
 
 List<int> smartTileSemanticCells(SmartTileLayer layer) => switch (layer.field) {

@@ -5,6 +5,8 @@ final class MovingPlatformFixture {
   MovingPlatformFixture(
       {int distance = 1,
       int quarterTurns = 0,
+      bool smartTerrain = false,
+      bool preciseTerrain = false,
       MovingPlatformLattice? lattice}) {
     definition = MovingPlatformDefinition(
         id: 'bridge',
@@ -22,6 +24,13 @@ final class MovingPlatformFixture {
                 cellOffsetTopPx: 0),
         terrainLayerIds: {
           'magma'
+        },
+        terrainCellsByLayer: {
+          if (preciseTerrain)
+            'magma': [
+              for (var y = 0; y < 10; y++)
+                for (var x = 0; x < 10; x++) GridPos(x: x, y: y),
+            ],
         },
         variants: [
           for (var index = 0; index < 4; index++)
@@ -44,19 +53,35 @@ final class MovingPlatformFixture {
         name: 'Gym',
         size: const GridSize(width: 10, height: 10),
         layers: [
-          terrain('magma')
+          if (smartTerrain)
+            MapLayer.smartTile(
+              id: 'magma',
+              name: 'Magma',
+              presetId: 'lava',
+              usage: SmartTileUsage.terrain,
+              materialPalette: const ['', 'lava'],
+              field: SmartTileField.cell(semanticCells: List.filled(100, 1)),
+            )
+          else
+            terrain('magma'),
+          if (smartTerrain)
+            MapLayer.tile(
+              id: 'platform-art',
+              name: 'Platform art',
+              cells: List.filled(100, 0),
+            ),
         ],
         movingPlatforms: [
           definition
         ],
-        placedElements: const [
+        placedElements: [
           MapPlacedElement(
               id: 'bridge-art',
-              layerId: 'magma',
+              layerId: smartTerrain ? 'platform-art' : 'magma',
               elementId: 'platform-0',
-              pos: GridPos(x: 2, y: 2),
+              pos: const GridPos(x: 2, y: 2),
               applyCollision: false,
-              properties: {
+              properties: const {
                 pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored
               }),
         ]);
@@ -64,6 +89,26 @@ final class MovingPlatformFixture {
         name: 'Platforms',
         maps: const [],
         settings: const ProjectSettings(tileWidth: 32, tileHeight: 32),
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: const [
+            ProjectSmartTileMaterial(
+                id: 'lava', name: 'Lava', connectionGroupId: 'lava'),
+          ],
+          presets: const [
+            ProjectSmartTilePreset(
+              id: 'lava',
+              name: 'Lava',
+              usage: SmartTileUsage.terrain,
+              topology: SmartTileTopology.uniform,
+              coveragePolicy: SmartTileCoveragePolicy.sparse,
+              coverageProfile: SmartTileCoverageProfile(
+                  mode: SmartTileCoverageMode.explicit),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'lava',
+              allowedMaterialIds: ['lava'],
+            ),
+          ],
+        ),
         tilesets: const [
           ProjectTilesetEntry(
               id: 'tiles',

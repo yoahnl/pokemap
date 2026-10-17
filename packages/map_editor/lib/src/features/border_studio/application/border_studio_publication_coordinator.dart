@@ -212,10 +212,18 @@ final class BorderStudioPublicationCoordinator {
         .where((primitive) => primitive.weight > 0)
         .toList(growable: false);
     for (final primitive in weightedPrimitives) {
+      final sourceElementId = primitive.sourceElementId;
+      if (sourceElementId == null) {
+        throw BorderStudioPublicationCoordinatorException(
+          code: BorderStudioPublicationCoordinatorErrorCode.validationFailed,
+          userMessage: 'Les modèles 3D ne peuvent pas être publiés comme des éléments 2D.',
+          primitiveIds: [primitive.id],
+        );
+      }
       final prepared = await _prepareProjectElementAsset(
         manifest: manifest,
         projectRootPath: projectRootPath,
-        sourceElementId: primitive.sourceElementId,
+        sourceElementId: sourceElementId,
         primitiveId: primitive.id,
         role: primitive.role,
         weight: primitive.weight,

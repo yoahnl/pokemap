@@ -9,9 +9,8 @@ Future<void> main() async {
   );
   if (flame == null) throw StateError('flame_3d package is unavailable.');
   final cache = File(Platform.resolvedExecutable).resolveSymbolicLinksSync();
-  final artifacts = File(
-    cache,
-  ).parent.parent.parent.uri.resolve('artifacts/engine/');
+  final artifacts = File(cache).parent.parent.parent.uri
+      .resolve('artifacts/engine/');
   final compiler = [
     for (final host in [
       'darwin-x64',
@@ -31,6 +30,10 @@ Future<void> main() async {
     'TextureVertex': {
       'type': 'vertex',
       'file': '${package.path}/shaders/pixel_material.vert',
+    },
+    'GroundVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/pixel_ground.vert',
     },
   };
   final result = await Process.run(compiler.path, [

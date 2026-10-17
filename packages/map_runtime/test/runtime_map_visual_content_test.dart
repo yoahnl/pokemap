@@ -11,6 +11,30 @@ import 'surface/surface_runtime_test_support.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('an upper authored layer covers an asset placed in a lower layer in both renderers', () async {
+    final map = MapData(
+      id: 'layered-asset', name: 'Planchers', size: const GridSize(width: 2, height: 1),
+      visualStack: MapVisualStackConfig.canonicalV1,
+      layers: const [
+        TileLayer(id: 'upper', name: 'Parquet', palette: [TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0)], cells: [1, 0]),
+        TileLayer(id: 'lower', name: 'Treillis', palette: [TileLayerPaletteEntry(tilesetId: 'blue', localTileId: 0)], cells: [1, 1]),
+      ],
+      placedElements: const [MapPlacedElement(id: 'shadow', layerId: 'lower', elementId: 'red', pos: GridPos(x: 0, y: 0))],
+    );
+    final bundle = surfaceTestBundle(map: map, elements: const [ProjectElementEntry(id: 'red', name: 'Ombre', tilesetId: 'red', categoryId: 'test', frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))])]);
+    final images = {'base': await runtimeTilesetImage(const [Color(0xff00ff00)]), 'blue': await runtimeTilesetImage(const [Color(0xff0000ff)]), 'red': await runtimeTilesetImage(const [Color(0xffff0000)])};
+    addTearDown(() {for (final image in images.values) {image.dispose();}});
+    final renderer = RuntimeAuthoringMapRenderer(bundle: bundle, images: images)..update(0);
+    final background = MapLayersComponent(bundle: bundle, tileImagesByTilesetId: images)..update(0);
+    final foreground = MapLayersComponent(bundle: bundle, tileImagesByTilesetId: images, renderPass: MapLayerRenderPass.foreground)..update(0);
+    addTearDown(renderer.dispose);addTearDown(background.dispose);addTearDown(foreground.dispose);
+    final runtime = await _paint((canvas) {background.render(canvas);foreground.render(canvas);});
+    final authoring = await _paint(renderer.paint);addTearDown(runtime.dispose);addTearDown(authoring.dispose);
+    expect(await pixelAt(runtime, 16, 16), rgba(0, 255, 0, 255));
+    expect(await pixelAt(runtime, 48, 16), rgba(0, 0, 255, 255));
+    expect(await _pixels(authoring), await _pixels(runtime));
+  });
+
   test('map composition exposes only the current visual phases', () {
     final plan = buildMapVisualCompositionPlan(_map()).plan!;
     expect(

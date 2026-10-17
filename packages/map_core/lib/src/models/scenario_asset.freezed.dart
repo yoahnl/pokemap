@@ -462,7 +462,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $ScenarioNodePositionCopyWith<$Res> get position {
-
+  
   return $ScenarioNodePositionCopyWith<$Res>(_self.position, (value) {
     return _then(_self.copyWith(position: value));
   });
@@ -471,7 +471,7 @@ $ScenarioNodePositionCopyWith<$Res> get position {
 @override
 @pragma('vm:prefer-inline')
 $ScenarioNodeBindingCopyWith<$Res> get binding {
-
+  
   return $ScenarioNodeBindingCopyWith<$Res>(_self.binding, (value) {
     return _then(_self.copyWith(binding: value));
   });
@@ -480,7 +480,7 @@ $ScenarioNodeBindingCopyWith<$Res> get binding {
 @override
 @pragma('vm:prefer-inline')
 $ScenarioNodePayloadCopyWith<$Res> get payload {
-
+  
   return $ScenarioNodePayloadCopyWith<$Res>(_self.payload, (value) {
     return _then(_self.copyWith(payload: value));
   });
@@ -709,7 +709,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $ScenarioNodePositionCopyWith<$Res> get position {
-
+  
   return $ScenarioNodePositionCopyWith<$Res>(_self.position, (value) {
     return _then(_self.copyWith(position: value));
   });
@@ -718,7 +718,7 @@ $ScenarioNodePositionCopyWith<$Res> get position {
 @override
 @pragma('vm:prefer-inline')
 $ScenarioNodeBindingCopyWith<$Res> get binding {
-
+  
   return $ScenarioNodeBindingCopyWith<$Res>(_self.binding, (value) {
     return _then(_self.copyWith(binding: value));
   });
@@ -727,7 +727,7 @@ $ScenarioNodeBindingCopyWith<$Res> get binding {
 @override
 @pragma('vm:prefer-inline')
 $ScenarioNodePayloadCopyWith<$Res> get payload {
-
+  
   return $ScenarioNodePayloadCopyWith<$Res>(_self.payload, (value) {
     return _then(_self.copyWith(payload: value));
   });
