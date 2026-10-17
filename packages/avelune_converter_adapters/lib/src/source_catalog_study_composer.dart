@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 import 'native_mutation_batches.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_trainer_catalog_bindings.dart';
+import 'native_encounter_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
 import 'source_semantic_study_composer.dart';
 
@@ -45,8 +46,10 @@ final class SourceCatalogStudyComposition {
 final class SourceCatalogStudyComposer {
   const SourceCatalogStudyComposer(
       {this.nativeTrainerMovePolicy =
-          NativeTrainerMovePolicy.nativeAveluneDefaults});
+          NativeTrainerMovePolicy.nativeAveluneDefaults,
+      this.nativeEncounterQualification});
   final NativeTrainerMovePolicy nativeTrainerMovePolicy;
+  final NativeEncounterCatalogQualification? nativeEncounterQualification;
 
   Future<SourceCatalogStudyComposition?> compose({
     required NormalizedSourceProject source,
@@ -84,6 +87,13 @@ final class SourceCatalogStudyComposer {
         profile: SourcePbsProfile.essentials21_1,
         cancellation: cancellation);
     if (pbs.documents.isEmpty) return null;
+    final encounterCandidate = nativeEncounterQualification ??
+        NativeEncounterCatalogQualification.builtinKantoV1();
+    final encounters = nativeEncounterQualification != null ||
+            encounterCandidate.admitsAutomaticSource(source.snapshot)
+        ? encounterCandidate
+        : null;
+    final encounterRelease = encounters?.artifacts(limits: limits);
     final selection = _catalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
     final native = NativePsdkTrainerBundle.builtin();
@@ -108,6 +118,15 @@ final class SourceCatalogStudyComposer {
         nativeTrainerKeys: nativeKeys,
         nativeTrainerBundle:
             nativeKeys.isEmpty && !nativePartyTrade ? null : native,
+        nativeEncounterQualification: encounters,
+        nativeEncounterRatePolicy: encounters == null
+            ? NativeEncounterRatePolicy.unresolved
+            : NativeEncounterRatePolicy
+                .adaptSourceBasePercentToNativeConstantChance,
+        nativeEncounterFishingRatePolicy: encounters == null
+            ? NativeEncounterFishingRatePolicy.unresolved
+            : NativeEncounterFishingRatePolicy
+                .adaptSourceBaseFishingBiteChanceToNativeTable,
         nativeTrainerMovePolicy: nativeTrainerMovePolicy,
         cancellation: cancellation);
     final owners = pbs.documents
@@ -129,8 +148,21 @@ final class SourceCatalogStudyComposer {
             targetEntityIds: [ConverterId(target)],
             parameters: parameters,
             limits: limits);
+    for (final artifact
+        in encounterRelease?.artifacts ?? const <NativeArtifact>[]) {
+      final id =
+          'native_encounter_release_${artifact.rawSha256.value.substring(0, 24)}';
+      mutations.add(mutation('asset.import', id, {
+        'artifactHandle': artifact.handle,
+        'assetId': id,
+        'logicalPath': 'assets/converter/$id.json',
+        'tags': ['native-encounter-release', 'preserved-native-provenance'],
+        'usages': ['converter.nativeEncounterQualificationBytes'],
+      }));
+    }
     final nativeCatalogQualified =
-        projection.evidence['nativeTrainerBindings'] is Map;
+        projection.evidence['nativeTrainerBindings'] is Map ||
+            projection.evidence['nativeEncounterBindings'] is Map;
     final hasData = nativeCatalogQualified && projection.documents.isNotEmpty;
     if (hasData &&
         !base.mutations.any((entry) =>
@@ -274,6 +306,8 @@ final class SourceCatalogStudyComposer {
       'kind': 'sourceCatalogProjection',
       'version': 1,
       'projection': projection.toJson(),
+      if (encounterRelease != null)
+        'nativeEncounterRelease': encounterRelease.evidence,
       'preservedSourceFiles': preservedFiles,
     };
     final companionBytes = utf8
@@ -347,6 +381,8 @@ final class SourceCatalogStudyComposer {
       'profile': profile.toJson(),
       'projectionHash': projection.canonicalHash.value,
       'projection': projection.evidence,
+      if (encounterRelease != null)
+        'nativeEncounterRelease': encounterRelease.evidence,
       'diagnostics':
           projection.diagnostics.map((entry) => entry.toJson()).toList(),
       'requestedItemSymbols': selection.items,
@@ -368,6 +404,7 @@ final class SourceCatalogStudyComposer {
       for (final entry in [
         ...base.artifacts,
         ...projection.artifacts,
+        ...?encounterRelease?.artifacts,
         ...preservedArtifacts.values,
         companion
       ])

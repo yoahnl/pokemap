@@ -7,6 +7,7 @@ import 'package:image/image.dart' as image;
 import 'native_project_writer.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_trainer_catalog_bindings.dart';
+import 'native_encounter_catalog_bindings.dart';
 
 enum SourceCatalogDocumentKind { catalog, species, learnset, evolution, media }
 
@@ -116,6 +117,11 @@ final class SourceCatalogProjector {
           List<SourcePbsIdentity> requestedTrainerKeys = const [],
           List<SourcePbsIdentity> nativeTrainerKeys = const [],
           NativePsdkTrainerBundle? nativeTrainerBundle,
+          NativeEncounterCatalogQualification? nativeEncounterQualification,
+          NativeEncounterRatePolicy nativeEncounterRatePolicy =
+              NativeEncounterRatePolicy.unresolved,
+          NativeEncounterFishingRatePolicy nativeEncounterFishingRatePolicy =
+              NativeEncounterFishingRatePolicy.unresolved,
           NativeTrainerMovePolicy nativeTrainerMovePolicy =
               NativeTrainerMovePolicy.unresolved,
           SourceCatalogProjectionLimits limits =
@@ -132,6 +138,9 @@ final class SourceCatalogProjector {
               nativeTrainerKeys,
               nativeTrainerBundle,
               nativeTrainerMovePolicy,
+              nativeEncounterQualification,
+              nativeEncounterRatePolicy,
+              nativeEncounterFishingRatePolicy,
               limits,
               cancellation ?? ScanCancellation())
           .read();
@@ -156,6 +165,9 @@ final class _Run {
       this.nativeTrainers,
       this.nativeBundle,
       this.nativeMovePolicy,
+      this.encounterQualification,
+      this.encounterRatePolicy,
+      this.encounterFishingRatePolicy,
       this.limits,
       this.cancel);
   final NormalizedSourceProject source;
@@ -168,6 +180,9 @@ final class _Run {
   final List<SourcePbsIdentity> nativeTrainers;
   final NativePsdkTrainerBundle? nativeBundle;
   final NativeTrainerMovePolicy nativeMovePolicy;
+  final NativeEncounterCatalogQualification? encounterQualification;
+  final NativeEncounterRatePolicy encounterRatePolicy;
+  final NativeEncounterFishingRatePolicy encounterFishingRatePolicy;
   final nativeArtifacts = <NativeArtifact>[];
   final nativeAssetMutations = <NativeMutation>[];
   final SourceCatalogProjectionLimits limits;
@@ -475,9 +490,50 @@ final class _Run {
       ],
     };
     documents.clear();
-    final nativeBinding = await _bindNativeTrainers();
+    final trainerBinding = _bindNativeTrainers();
+    final encounterBinding = encounterQualification == null
+        ? null
+        : await const NativeEncounterCatalogBindings().bind(
+            snapshot: source.snapshot,
+            source: pbs,
+            files: files,
+            nativeMapIds: maps,
+            sourceMapNames: {
+              for (final map in source.maps) map.map.sourceMapId: map.map.name,
+            },
+            qualification: encounterQualification!,
+            ratePolicy: encounterRatePolicy,
+            fishingRatePolicy: encounterFishingRatePolicy,
+            cancellation: cancel);
+    final activeBundle = encounterQualification?.bundle ?? nativeBundle;
+    final media = activeBundle == null
+        ? const <Map<String, Object?>>[]
+        : await _publishNativeBundle(
+            activeBundle, trainerBinding?.trainers ?? const []);
+    final nativeBinding = trainerBinding == null
+        ? null
+        : NativeTrainerCatalogBindingResult(
+            trainers: trainerBinding.trainers,
+            evidence: {
+                ...trainerBinding.evidence,
+                'nativeClosureComplete': true,
+                'globalLearnsetsPublished': true,
+                'globalCatalogComplete': false,
+                'conditionalEvolutionExecutionQualified': false,
+                'media': media
+              });
+    final nativeCatalogPublished = activeBundle != null;
+    for (final method in encounterBinding?.unqualifiedMethods ??
+        const <Map<String, Object?>>[]) {
+      _gap(
+          'native_encounter.method_unqualified',
+          'Source encounter method remains unpublished: ${method['reason']}.',
+          canonicalJsonOf(method['sourceIdentity']),
+          false,
+          null);
+    }
     final merged = itemConflict
-        ? nativeBinding == null
+        ? !nativeCatalogPublished
             ? null
             : existing ??
                 const ProjectItemCatalog(schemaVersion: 1, entries: [])
@@ -490,8 +546,8 @@ final class _Run {
         artifacts: nativeArtifacts,
         assetMutations: nativeAssetMutations,
         documents: documents,
-        mergedItemCatalog: nativeBinding == null ? null : merged,
-        encounterTables: const [],
+        mergedItemCatalog: !nativeCatalogPublished ? null : merged,
+        encounterTables: encounterBinding?.tables ?? const [],
         trainers: nativeBinding?.trainers ?? const [],
         diagnostics: diagnostics,
         evidence: {
@@ -505,6 +561,12 @@ final class _Run {
           'battleAuthority': 'aveluneNative',
           if (nativeBinding != null)
             'nativeTrainerBindings': nativeBinding.evidence,
+          if (encounterBinding != null)
+            'nativeEncounterBindings': {
+              ...encounterBinding.evidence,
+              'nativeClosureComplete': true,
+              'media': media
+            },
           'sourceOnlyData': sourceOnlyData,
           'sourceBattleScriptsExecuted': false,
           'sourceAbilitySlotSemanticsQualified': false,
@@ -551,7 +613,7 @@ final class _Run {
             'sourceMergeApplied': !itemConflict,
             'nativeCatalogPolicy': !itemConflict
                 ? 'sourceMerge'
-                : nativeBinding == null
+                : !nativeCatalogPublished
                     ? 'sourceMergeBlocked'
                     : existing == null
                         ? 'initializeEmptyNative'
@@ -574,7 +636,7 @@ final class _Run {
     return result;
   }
 
-  Future<NativeTrainerCatalogBindingResult?> _bindNativeTrainers() async {
+  NativeTrainerCatalogBindingResult? _bindNativeTrainers() {
     if (nativeTrainers.isEmpty && nativeBundle == null) return null;
     final bundle = nativeBundle;
     if (bundle == null ||
@@ -583,11 +645,34 @@ final class _Run {
       throw ContractError('native_trainer.projection_binding', r'$',
           'Native trainer bindings require their explicit requested source roots and bundle.');
     }
-    final result = const NativeTrainerCatalogBindings().bind(
+    return const NativeTrainerCatalogBindings().bind(
         source: pbs,
         requestedTrainers: nativeTrainers,
         native: bundle,
         movePolicy: nativeMovePolicy);
+  }
+
+  Future<List<Map<String, Object?>>> _publishNativeBundle(
+      NativePsdkTrainerBundle bundle,
+      List<ProjectTrainerEntry> trainers) async {
+    for (final trainer in trainers) {
+      for (final member in trainer.team) {
+        final species = bundle.speciesById[member.speciesId];
+        final learnset = bundle.learnsetsBySpeciesId[member.speciesId];
+        if (species == null ||
+            learnset == null ||
+            member.abilityId != species.abilities.primary ||
+            canonicalJsonOf(member.moves) !=
+                canonicalJsonOf(
+                    nativeTrainerDefaultMoveIds(learnset, member.level)) ||
+            member.moves.any((move) => !bundle.movesById.containsKey(move))) {
+          throw ContractError(
+              'native_trainer.active_catalog_binding',
+              trainer.id,
+              'The active native catalogue must exactly cover every qualified trainer member, ability and default move order.');
+        }
+      }
+    }
     for (final catalog in bundle.catalogs.values) {
       documents.add(SourceCatalogDocument(
           kind: SourceCatalogDocumentKind.catalog,
@@ -764,16 +849,7 @@ final class _Run {
       throw ContractError('source.catalog.quota', r'$',
           'Native closure exceeds its document limit.');
     }
-    return NativeTrainerCatalogBindingResult(
-        trainers: result.trainers,
-        evidence: {
-          ...result.evidence,
-          'nativeClosureComplete': true,
-          'globalLearnsetsPublished': true,
-          'globalCatalogComplete': false,
-          'conditionalEvolutionExecutionQualified': false,
-          'media': mediaEvidence
-        });
+    return mediaEvidence;
   }
 
   Future<void> _readDex() async {

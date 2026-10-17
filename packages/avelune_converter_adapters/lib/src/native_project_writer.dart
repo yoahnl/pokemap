@@ -21,6 +21,7 @@ import 'source_directed_jump_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_event_arrival_validation.dart';
 import 'source_catalog_study_composer.dart';
+import 'native_encounter_catalog_qualification.dart';
 import 'source_catalog_projection.dart';
 import 'native_source_event_atlas_admission.dart';
 import 'native_mutation_batches.dart';
@@ -2217,7 +2218,8 @@ void _validateCatalogReferences(
   }
 
   for (final table in manifest.encounterTables) {
-    if (table.chancePerStep != 0.0) {
+    if (table.chancePerStep != 0.0 &&
+        projection.evidence['nativeEncounterBindings'] is! Map) {
       throw const NativeWriteException('native.catalogs.activation',
           'Imported encounter data requires separate native runtime qualification');
     }
@@ -2568,8 +2570,16 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     }
     final preceding = eventComposition?.draft ?? regenerated;
     if (catalogRaw != null) {
-      catalogComposition = await const SourceCatalogStudyComposer().compose(
-          source: draft.source,
+      final release = (catalogRaw as Map)['nativeEncounterRelease'];
+      final nativeEncounters = release == null
+          ? null
+          : NativeEncounterCatalogQualification.fromArtifacts(
+              evidence: Map<String, Object?>.from(release as Map),
+              artifacts: draft.artifacts);
+      catalogComposition = await SourceCatalogStudyComposer(
+              nativeEncounterQualification: nativeEncounters)
+          .compose(
+              source: draft.source,
           base: preceding,
           files: _WitnessSourceFiles(files),
           limits: limits,
