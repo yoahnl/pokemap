@@ -208,6 +208,8 @@ void main() {
         'native writer preserves source-only documents in companion without runtime publication',
         () async {
       final draft = composition.draft;
+      expect(draft.mutations.any((m) => m.actionId == 'asset.import_batch'),
+          isTrue);
       final approval = approveNativeFixtureDraft(draft);
       final receipt = await const NativeProjectWriter().write(
           approval.plan, approval.context, draft,
@@ -456,6 +458,94 @@ void main() {
       }
     });
 
+    for (final tamper in [
+      'component',
+      'owner',
+      'target',
+      'parameter',
+      'artifact',
+      'order',
+      'identity'
+    ]) {
+      test('rehashed catalog batch $tamper tamper is refused before staging',
+          () async {
+        final draft = composition.draft;
+        final evidence = Map<String, Object?>.from(
+            jsonDecode(jsonEncode(draft.compositionEvidence)) as Map);
+        final marker = evidence['sourceCatalogs'] as Map;
+        final row = (marker['mutationBatches'] as List).first as Map;
+        final oldId = row['operationId'] as String;
+        final components = (row['components'] as List).cast<Map>();
+        expect(components.length, greaterThan(1));
+        final first = components.first;
+        switch (tamper) {
+          case 'component':
+            components.removeLast();
+          case 'owner':
+            (first['sourceEntityIds'] as List).removeAt(0);
+          case 'target':
+            final value = first['targetEntityIds'];
+            first['targetEntityIds'] = components[1]['targetEntityIds'];
+            components[1]['targetEntityIds'] = value;
+          case 'parameter':
+            (first['parameters'] as Map)['tags'] = ['forged'];
+          case 'artifact':
+            (first['parameters'] as Map)['artifactHandle'] = draft.artifacts
+                .firstWhere((artifact) =>
+                    artifact.handle !=
+                    (first['parameters'] as Map)['artifactHandle'])
+                .handle;
+          case 'order':
+            final value = components[0];
+            components[0] = components[1];
+            components[1] = value;
+          case 'identity':
+            first['operationId'] = 'forged-component';
+        }
+        row['components'] = components;
+        final id =
+            'native-batch-${canonicalHashOf(components, limits: ac14CatalogReferenceLimits.jsonLimits).value}';
+        row['operationId'] = id;
+        marker['operationIds'] = [
+          for (final value in marker['operationIds'] as List)
+            value == oldId ? id : value
+        ];
+        final forged = NativeMutation(
+            operationId: ConverterId(id),
+            actionId: 'asset.import_batch',
+            sourceEntityIds: components
+                .expand((entry) =>
+                    (entry['sourceEntityIds'] as List).cast<String>())
+                .toSet()
+                .map(ConverterId.new)
+                .toList(),
+            targetEntityIds: components
+                .expand((entry) =>
+                    (entry['targetEntityIds'] as List).cast<String>())
+                .toSet()
+                .map(ConverterId.new)
+                .toList(),
+            parameters: {
+              'entries': [
+                for (final component in components) component['parameters']
+              ]
+            },
+            limits: ac14CatalogReferenceLimits);
+        await _refuseBeforeStage(
+            _copyDraft(draft,
+                mutations: [
+                  for (final mutation in draft.mutations)
+                    mutation.operationId.value == oldId ? forged : mutation
+                ],
+                evidence: evidence),
+            'native.semantics.regeneration');
+        expect(
+            await ac14CatalogDirectoryHashes(
+                composition.sourceFixture.sourceRootPath!),
+            composition.sourceHashes);
+      });
+    }
+
     test('a smaller caller budget refuses without a stage or source mutation',
         () async {
       final draft = composition.draft;
@@ -554,7 +644,7 @@ void main() {
         opened.close();
       }
     });
-    test('local native conversion executes over sixty bounded mutations',
+    test('local native conversion preserves over sixty bounded components',
         () async {
       const limits =
           NativeWriteLimits(maxArtifacts: 128, maxArtifactBytes: 1048576);
@@ -566,7 +656,18 @@ void main() {
       );
       final original = large.sourceFixture.sourceBytes['PBS/pokemon.txt']!;
       expect(original.length, lessThan(const SourcePbsLimits().maxFileBytes));
-      expect(large.draft.mutations.length, greaterThan(60));
+      final logicalCount = large.draft.mutations.fold<int>(
+          0,
+          (sum, mutation) =>
+              sum +
+              switch (mutation.actionId) {
+                'asset.import_batch' =>
+                  (mutation.parameters['entries'] as List).length,
+                'element.batch_upsert' =>
+                  (mutation.parameters['elements'] as List).length,
+                _ => 1,
+              });
+      expect(logicalCount, greaterThan(60));
       expect(
           large.draft.mutations.length, lessThanOrEqualTo(limits.maxMutations));
       expect(large.draft.artifacts.length + large.draft.sourceArtifacts.length,

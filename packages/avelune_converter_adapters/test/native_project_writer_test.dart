@@ -173,6 +173,49 @@ void main() {
     await sourceUnchanged();
   });
 
+  test('native batches preserve original component mutation quota', () {
+    final original = fixture.draft;
+    final batch = NativeMutation(
+        operationId: ConverterId('batch-quota'),
+        actionId: 'asset.import_batch',
+        sourceEntityIds: original.mutations.first.sourceEntityIds,
+        targetEntityIds: [
+          ConverterId('quota-a'),
+          ConverterId('quota-b')
+        ],
+        parameters: {
+          'entries': [
+            {
+              'assetId': 'quota-a',
+              'artifactHandle': original.artifacts.first.handle,
+              'logicalPath': 'assets/quota-a.png',
+              'tags': [],
+              'usages': []
+            },
+            {
+              'assetId': 'quota-b',
+              'artifactHandle': original.artifacts.first.handle,
+              'logicalPath': 'assets/quota-b.png',
+              'tags': [],
+              'usages': []
+            },
+          ]
+        });
+    expect(
+        () => NativeProjectDraft(
+            source: original.source,
+            projectName: original.projectName,
+            parentPath: original.parentPath,
+            folderName: original.folderName,
+            mapIds: original.mapIds,
+            artifacts: original.artifacts,
+            mutations: [...original.mutations, batch],
+            limits:
+                NativeWriteLimits(maxMutations: original.mutations.length + 1)),
+        throwsA(isA<NativeWriteException>()
+            .having((e) => e.code, 'code', 'native.quota.draft')));
+  });
+
   test('writer revision chain avoids redundant loads and retains cold verification',
       () async {
     final profiles = <ProjectSnapshotLoadProfile>[];

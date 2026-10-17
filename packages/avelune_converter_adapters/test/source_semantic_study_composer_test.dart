@@ -6,7 +6,6 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -166,6 +165,8 @@ void main() {
           folderName: 'original-player-order');
       final draft = (await const SourceSemanticStudyComposer()
           .compose(source: fixture.source, base: base, files: fixture.files))!;
+      expect(draft.mutations.any((m) => m.actionId == 'element.batch_upsert'),
+          isTrue);
       final playerMutations = draft.mutations
           .where((mutation) =>
               mutation.operationId.value.startsWith('ac12-player-'))
@@ -270,6 +271,21 @@ void main() {
           const BorderPixelPos(x: 64, y: 64),
           const BorderPixelPos(x: 96, y: 64),
         ]);
+        final batchRows = {
+          for (final row in semantic['mutationBatches'] as List)
+            row['operationId'] as String: row['components'] as List
+        };
+        final originalEvidence =
+            jsonDecode(jsonEncode(draft.compositionEvidence)) as Map;
+        final originalSemantic = originalEvidence['sourceSemantics'] as Map;
+        originalSemantic['operationIds'] = [
+          for (final id in semantic['operationIds'] as List)
+            if (batchRows.containsKey(id))
+              for (final component in batchRows[id]!) component['operationId']
+            else
+              id
+        ];
+        originalSemantic.remove('mutationBatches');
         final unchangedDraftHash = canonicalHashOf({
           'mapIds': {
             for (final entry in draft.mapIds.entries)
@@ -291,9 +307,18 @@ void main() {
           ],
           'remainingMutations': [
             for (final mutation in draft.mutations)
-              if (!playerMutations.contains(mutation)) mutation.toJson(0)
+              if (!playerMutations.contains(mutation))
+                if (batchRows.containsKey(mutation.operationId.value))
+                  for (final component
+                      in batchRows[mutation.operationId.value]!)
+                    {
+                      ...Map<String, Object?>.from(component as Map),
+                      'ordinal': 0
+                    }
+                else
+                  mutation.toJson(0)
           ],
-          'compositionEvidence': draft.compositionEvidence
+          'compositionEvidence': originalEvidence
         }).value;
         final nativeHash = canonicalHashOf(jsonDecode(jsonEncode({
           'manifest': native.manifest.toJson(),
@@ -312,7 +337,12 @@ void main() {
             '73f63dd7546ecc7893f94d75a10c6bc0f2b09fe8ca3284b9ec9ca060ca7a6d89',
             reason: 'Strictly reopened native resources match the atlas-first '
                 'fixture');
-        expect(draft.mutations, hasLength(46));
+        expect(draft.mutations.length, lessThan(46));
+        expect(
+            draft.mutations.length +
+                batchRows.values
+                    .fold<int>(0, (sum, entries) => sum + entries.length - 1),
+            46);
       } finally {
         opener.closeWorkspace(opened.workspaceHandle);
       }

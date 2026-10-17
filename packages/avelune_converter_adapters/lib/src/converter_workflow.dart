@@ -2199,7 +2199,9 @@ const _nativeStudyActions = [
   'border_layer.materialize_apply',
   'element_category.upsert',
   'element.upsert',
+  'element.batch_upsert',
   'asset.import',
+  'asset.import_batch',
   'smart_tile.atlas.upsert',
   'smart_tile.material.upsert',
   'smart_tile.preset.publish',
@@ -2282,6 +2284,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                 'reference':
                     'repo:packages/avelune_converter_adapters/test/source_event_study_composer_test.dart:AC-13',
               },
+              if (action == 'element.batch_upsert' || action == 'asset.import_batch')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Ordered source-derived batches retain every component and its owners, targets and artifacts; canonical limits, pre-stage regeneration and cold single-operation equivalence are verified.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/native_mutation_batches_test.dart',
+                },
               if (action.startsWith('border.blueprint.') ||
                   action.startsWith('border_layer.'))
                 {

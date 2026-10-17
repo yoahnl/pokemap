@@ -23,6 +23,7 @@ import 'source_event_arrival_validation.dart';
 import 'source_catalog_study_composer.dart';
 import 'source_catalog_projection.dart';
 import 'native_source_event_atlas_admission.dart';
+import 'native_mutation_batches.dart';
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -304,7 +305,7 @@ final class NativeProjectDraft {
     limits._validate();
     if (mapIds.length > limits.maxMutations ||
         artifacts.length + sourceArtifacts.length > limits.maxArtifacts ||
-        mutations.length > limits.maxMutations) {
+        nativeLogicalMutationCount(mutations) > limits.maxMutations) {
       final uniqueArtifacts = {
         for (final artifact in [...artifacts, ...sourceArtifacts])
           artifact.handle,
@@ -314,7 +315,7 @@ final class NativeProjectDraft {
           'sourceArtifacts=${sourceArtifacts.length}, '
           'totalArtifacts=${artifacts.length + sourceArtifacts.length}, '
           'uniqueArtifacts=$uniqueArtifacts, maxArtifacts=${limits.maxArtifacts}; '
-          'mutations=${mutations.length}, maxMutations=${limits.maxMutations}; '
+          'mutations=${nativeLogicalMutationCount(mutations)}, maxMutations=${limits.maxMutations}; '
           'maps=${mapIds.length}, maxMaps=${limits.maxMutations}.');
     }
     var total = 0;
@@ -474,7 +475,7 @@ void _validateNativeDraftBinding(
     NativeProjectDraft draft, NativeWriteLimits limits) {
   if (draft.artifacts.length + draft.sourceArtifacts.length >
           limits.maxArtifacts ||
-      draft.mutations.length > limits.maxMutations ||
+      nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
       draft.mapIds.length > limits.maxMutations) {
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
@@ -658,10 +659,12 @@ final class NativeProjectWriter {
       session = await _NativeSession.open(projectPath,
           allowedRoot: stagingRoot, mutable: true, profileSink: snapshotProfileSink);
       final api = session.mutations!;
+      final stagedHandles = <String, String>{};
       for (final artifact in draft.artifacts) {
         _checkCancelled(cancellation);
         final stored = await api.artifacts.put(artifact.bytes,
             declaredMediaType: artifact.reference.mediaType);
+        stagedHandles[artifact.handle] = stored.reference.handle;
         if (stored.reference != artifact.reference) {
           throw const NativeWriteException('native.artifact.stage',
               'Native artifact staging changed the content reference');
@@ -688,7 +691,12 @@ final class NativeProjectWriter {
                 workspaceHandle: session.workspace.value,
                 expectedRevision: beforeRevision,
                 idempotencyKey: mutation.operationId.value,
-                parameters: mutation.parameters));
+                parameters: mutation.actionId == 'asset.import_batch'
+                    ? {'entries': [
+                        for (final entry in nativeImportParameters(mutation))
+                          {...entry, 'artifactHandle': stagedHandles[entry['artifactHandle']]!}
+                      ]}
+                    : mutation.parameters));
         if (!mutationPlan.applicable ||
             mutationPlan.snapshotRevision != beforeRevision) {
           throw NativeWriteException('native.mutation.plan',
@@ -1064,27 +1072,21 @@ final class _PreparedNativeDraft {
   var importBytes = 0;
   var importPixels = 0;
   for (final mutation in draft.mutations) {
-    if (mutation.actionId != 'tileset.import_image' &&
-        mutation.actionId != 'asset.import') {
-      continue;
-    }
-    final handle = mutation.parameters['artifactHandle'];
-    final artifact = artifacts[handle];
-    final size = dimensions[handle];
-    if (artifact == null ||
-        (mutation.actionId == 'tileset.import_image' && size == null)) {
-      throw const NativeWriteException('native.tileset.invalid',
-          'An imported resource must name an admitted artifact');
-    }
-    importBytes += artifact.bytes.length;
-    if (size != null) importPixels += size.$1 * size.$2;
-    if (importBytes > limits.maxTotalArtifactBytes) {
-      throw const NativeWriteException('native.quota.artifact',
-          'Aggregate logical import byte budget exceeded');
-    }
-    if (importPixels > limits.maxTotalImagePixels) {
-      throw const NativeWriteException('native.quota.image',
-          'Aggregate logical image import pixel budget exceeded');
+    for (final parameters in nativeImportParameters(mutation)) {
+      final handle = parameters['artifactHandle'];
+      final artifact = artifacts[handle];
+      final size = dimensions[handle];
+      if (artifact == null || (mutation.actionId == 'tileset.import_image' && size == null)) {
+        throw const NativeWriteException('native.tileset.invalid', 'An imported resource must name an admitted artifact');
+      }
+      importBytes += artifact.bytes.length;
+      if (size != null) importPixels += size.$1 * size.$2;
+      if (importBytes > limits.maxTotalArtifactBytes) {
+        throw const NativeWriteException('native.quota.artifact', 'Aggregate logical import byte budget exceeded');
+      }
+      if (importPixels > limits.maxTotalImagePixels) {
+        throw const NativeWriteException('native.quota.image', 'Aggregate logical image import pixel budget exceeded');
+      }
     }
   }
   return (artifacts: artifacts, dimensions: dimensions);
@@ -1113,7 +1115,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   if (draft.artifacts.length + draft.sourceArtifacts.length >
           limits.maxArtifacts ||
-      draft.mutations.length > limits.maxMutations ||
+      nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
       draft.mapIds.length > limits.maxMutations) {
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
@@ -1191,6 +1193,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'border_layer.materialize_apply',
           'element_category.upsert',
           'element.upsert',
+          'element.batch_upsert',
           'characterStudio.character.create',
           'characterStudio.character.update',
           'characterStudio.animationClip.upsert',
@@ -1222,6 +1225,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     final catalogs = draft.compositionEvidence.containsKey('sourceCatalogs') &&
         const {
           'asset.import',
+          'asset.import_batch',
           'pokemon.configuration.set_enabled',
           'pokemon.catalog.write',
           'pokemon.species.write',
@@ -1313,8 +1317,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
-  for (var i = 0; i < draft.mutations.length; i++) {
-    final mutation = draft.mutations[i];
+  for (final mutation in expandNativeMutationBatches(draft, limits)) {
     final parameters = mutation.parameters;
     switch (mutation.actionId) {
       case 'tileset.import_image':
@@ -1715,6 +1718,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         if (artifact == null ||
             artifact.reference.mediaType != 'application/json' ||
             companions.containsKey(id) ||
+            assetRecords.any((entry) => entry.id == id || entry.logicalPath == parameters['logicalPath']) ||
             !_targetIds(mutation.targetEntityIds, {id})) {
           throw const NativeWriteException('native.library.companion',
               'Only unique exact approved JSON provenance companions may be imported');
@@ -2608,6 +2612,9 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
             as Map)['operationIds'] as List)
         .cast<String>());
   }
+  semanticIds.addAll(expandNativeMutationBatches(expected, limits)
+      .where((mutation) => !expectedIds.contains(mutation.operationId))
+      .map((mutation) => mutation.operationId.value));
   return _VerifiedSourceSemantics(
       true,
       semanticIds.map(ConverterId.new).toSet(),

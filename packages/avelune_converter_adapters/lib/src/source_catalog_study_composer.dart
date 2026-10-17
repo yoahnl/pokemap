@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'native_mutation_batches.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
@@ -334,6 +335,8 @@ final class SourceCatalogStudyComposer {
       'tags': ['source-catalogs', 'preserved-source-provenance'],
       'usages': ['converter.sourceCatalogs'],
     }));
+    final grouped = batchNativeMutations(mutations,
+        actionId: 'asset.import', limits: limits);
     final evidence = {
       'kind': 'sourceCatalogStudy',
       'version': 1,
@@ -357,8 +360,9 @@ final class SourceCatalogStudyComposer {
       'battleAuthority': 'aveluneNative',
       'sourceBattleScriptsExecuted': false,
       'playableCertified': false,
+      'mutationBatches': grouped.evidence,
       'operationIds':
-          mutations.map((entry) => entry.operationId.value).toList(),
+          grouped.mutations.map((entry) => entry.operationId.value).toList(),
     };
     final artifacts = {
       for (final entry in [
@@ -393,7 +397,7 @@ final class SourceCatalogStudyComposer {
             mapIds: base.mapIds,
             artifacts: artifacts,
             sourceArtifacts: witnesses,
-            mutations: _mergeCatalogMutations(base.mutations, mutations,
+            mutations: _mergeCatalogMutations(base.mutations, grouped.mutations,
                 sourceOnlyTrainerIds: {
                   for (final key in selection.trainers) key.sourceId.value,
                 }),

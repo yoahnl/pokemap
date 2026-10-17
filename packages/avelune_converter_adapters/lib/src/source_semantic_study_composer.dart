@@ -7,6 +7,7 @@ import 'source_directed_jump_study_composer.dart';
 
 import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
+import 'native_mutation_batches.dart';
 import 'source_player_character_import.dart';
 import 'source_semantics_projection.dart';
 import 'source_connection_study_composer.dart';
@@ -148,6 +149,8 @@ final class SourceSemanticStudyComposer {
       ..sort((a, b) => a.handle.compareTo(b.handle));
     final witnesses = recording.artifacts.values.toList()
       ..sort((a, b) => a.handle.compareTo(b.handle));
+    final grouped = batchNativeMutations(projection.mutations,
+        actionId: 'element.upsert', limits: limits);
     final semantic = {
       'kind': 'sourceSemanticStudy',
       'version': 1,
@@ -161,9 +164,10 @@ final class SourceSemanticStudyComposer {
       'automatic': true,
       'aiCalls': 0,
       'playableCertified': false,
+      'mutationBatches': grouped.evidence,
       'operationIds': [
         ...playerMutations.map((entry) => entry.operationId.value),
-        ...projection.operationIds.map((entry) => entry.value),
+        ...grouped.mutations.map((entry) => entry.operationId.value),
         ...connections.mutations.map((entry) => entry.operationId.value),
         ...jumps.mutations.map((entry) => entry.operationId.value),
       ],
@@ -181,7 +185,7 @@ final class SourceSemanticStudyComposer {
           ...playerMutations,
           ...original.mutations
               .where((entry) => !entry.actionId.startsWith('map.')),
-          ...projection.mutations
+          ...grouped.mutations
               .where((entry) => !entry.actionId.startsWith('map.')),
           ...jumps.resourceMutations,
           ...original.mutations
@@ -365,6 +369,8 @@ ProjectManifest sourceSemanticNativeProject({
         tilesets[entry.id] = entry;
       case 'element_category.upsert':
         categories.add(ProjectElementCategory.fromJson(Map<String, dynamic>.from(p['category'] as Map)));
+      case 'element.batch_upsert':
+        elements.addAll((p['elements'] as List).map((entry) => ProjectElementEntry.fromJson(Map<String, dynamic>.from(entry as Map))));
       case 'element.upsert':
         elements.add(ProjectElementEntry.fromJson(Map<String, dynamic>.from(p['element'] as Map)));
       case 'characterStudio.character.create':

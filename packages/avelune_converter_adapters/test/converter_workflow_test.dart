@@ -416,6 +416,11 @@ void main() {
               capability.capabilityId.value ==
               'native.study.border_layer.unknown'),
           isFalse);
+      for (final action in ['element.batch_upsert', 'asset.import_batch']) {
+        final capability = prepared.targetCapabilities.capabilities.singleWhere((entry) => entry.capabilityId.value == 'native.study.$action');
+        expect(capability.status, CapabilityStatus.supported);
+        expect(capability.evidence, isNotEmpty);
+      }
       final approved = harness.approve(prepared).approvedPlan;
       final unknown = ConversionPlan.fromJson({
         ...approved.toJson(),
