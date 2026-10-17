@@ -32,6 +32,7 @@ class SceneActorActionForm extends StatefulWidget {
 class _SceneActorActionFormState extends State<SceneActorActionForm> {
   String? _mapId, _entityId;
   SceneActorTargetKind _targetKind = SceneActorTargetKind.player;
+  ActorRouteTransientScope _transientScope = ActorRouteTransientScope.route;
   bool _skippable = false, _visible = true, _loading = false;
   MapData? _map;
   String? _mapError;
@@ -63,6 +64,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
     _entityId = null;
     _targetKind = SceneActorTargetKind.player;
     _skippable = false;
+    _transientScope = ActorRouteTransientScope.route;
     _visible = true;
     _steps.clear();
     _nextStepId = 0;
@@ -79,6 +81,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
     }
     if (command is SceneActorRouteInteractiveCommand && _route) {
       _skippable = command.skippable;
+      _transientScope = command.transientScope;
       for (final step in command.steps) {
         _steps.add(
           _ActorStepDraft.fromStep(_nextStepId++, step, mapId: target!.mapId),
@@ -308,10 +311,18 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
       durationMs: step.duration!,
       initialCollisionOwnerEntityId: step.initialCollisionOwnerEntityId,
     ),
+    SceneActorRouteStepKind.moveDiagonal => SceneActorRouteStep.moveDiagonal(
+      horizontal: step.horizontal,
+      vertical: step.vertical,
+      durationMs: step.duration!,
+    ),
     SceneActorRouteStepKind.wait => SceneActorRouteStep.wait(
       durationMs: step.duration!,
     ),
     SceneActorRouteStepKind.through => SceneActorRouteStep.through(
+      enabled: step.enabled,
+    ),
+    SceneActorRouteStepKind.renderAboveMap => SceneActorRouteStep.renderAboveMap(
       enabled: step.enabled,
     ),
     SceneActorRouteStepKind.sound => SceneActorRouteStep.sound(
@@ -349,6 +360,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             target: _target,
             steps: [for (final step in _steps) _typedStep(step)],
             skippable: _skippable,
+            transientScope: _transientScope,
           )
         : SceneInteractiveCommand.actorVisibility(
             target: _target,
@@ -421,6 +433,22 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
           ),
       ],
       if (_route) ...[
+        StudioSelect(
+          label: 'Restauration des effets temporaires',
+          value: _transientScope.name,
+          options: const {
+            'route': 'À la fin du trajet',
+            'scene': 'À la fin de la scène',
+          },
+          onChanged: (value) => setState(
+            () => _transientScope = ActorRouteTransientScope.values.byName(value),
+          ),
+        ),
+        StudioNotice(
+          _transientScope == ActorRouteTransientScope.scene
+              ? 'La traversée et le premier plan restent actifs entre les trajets et les changements de carte de cette scène.'
+              : 'La traversée et le premier plan sont rétablis à la fin de ce trajet.',
+        ),
         StudioToggleRow(
           label: 'Continuer si un déplacement est bloqué',
           value: _skippable,
@@ -507,8 +535,10 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
           options: const {
             'face': 'Se tourner',
             'move': 'Avancer d’une case',
+            'moveDiagonal': 'Avancer en diagonale',
             'wait': 'Attendre',
             'through': 'Traverser les obstacles',
+            'renderAboveMap': 'Afficher au premier plan',
             'sound': 'Jouer un son',
           },
           onChanged: (value) => setState(
@@ -532,6 +562,26 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             ),
           ),
         ],
+        if (step.kind == SceneActorRouteStepKind.moveDiagonal) ...[
+          const SizedBox(height: 8),
+          StudioSelect(
+            label: 'Direction horizontale de l’étape ${index + 1}',
+            value: step.horizontal.name,
+            options: const {'west': 'Ouest', 'east': 'Est'},
+            onChanged: (value) => setState(
+              () => step.horizontal = EntityFacing.values.byName(value),
+            ),
+          ),
+          const SizedBox(height: 8),
+          StudioSelect(
+            label: 'Direction verticale de l’étape ${index + 1}',
+            value: step.vertical.name,
+            options: const {'north': 'Nord', 'south': 'Sud'},
+            onChanged: (value) => setState(
+              () => step.vertical = EntityFacing.values.byName(value),
+            ),
+          ),
+        ],
         if (step.hasDuration) ...[
           const SizedBox(height: 8),
           StudioDraftField(
@@ -541,7 +591,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
                 ? 'Maintien de la direction (ms)'
                 : 'Durée (ms)',
             keyboardType: TextInputType.number,
-            helperText: step.kind == SceneActorRouteStepKind.move
+            helperText: step.isMovement
                 ? 'De 1 à 2147483647 ms.'
                 : 'De 0 à 2147483647 ms.',
             errorText: step.durationValid
@@ -566,6 +616,12 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
         if (step.kind == SceneActorRouteStepKind.through)
           StudioToggleRow(
             label: 'Traversée autorisée',
+            value: step.enabled,
+            onChanged: (value) => setState(() => step.enabled = value),
+          ),
+        if (step.kind == SceneActorRouteStepKind.renderAboveMap)
+          StudioToggleRow(
+            label: 'Acteur au premier plan',
             value: step.enabled,
             onChanged: (value) => setState(() => step.enabled = value),
           ),
@@ -606,6 +662,7 @@ class _ActorStepDraft {
   final int id;
   SceneActorRouteStepKind kind = SceneActorRouteStepKind.face;
   EntityFacing direction = EntityFacing.south;
+  EntityFacing horizontal = EntityFacing.west, vertical = EntityFacing.north;
   String durationText = '0', gainText = '1';
   String? soundId;
   String? initialCollisionOwnerEntityId, initialCollisionOwnerMapId;
@@ -630,9 +687,15 @@ class _ActorStepDraft {
         if (step.initialCollisionOwnerEntityId != null) {
           draft.initialCollisionOwnerMapId = mapId;
         }
+      case SceneActorDiagonalMoveStep():
+        draft.horizontal = step.horizontal;
+        draft.vertical = step.vertical;
+        draft.durationText = '${step.durationMs}';
       case SceneActorWaitStep():
         draft.durationText = '${step.durationMs}';
       case SceneActorThroughStep():
+        draft.enabled = step.enabled;
+      case SceneActorRenderAboveMapStep():
         draft.enabled = step.enabled;
       case SceneActorSoundStep():
         draft.soundId = step.mediaAssetId;
@@ -641,16 +704,19 @@ class _ActorStepDraft {
     return draft;
   }
 
+  bool get isMovement =>
+      kind == SceneActorRouteStepKind.move ||
+      kind == SceneActorRouteStepKind.moveDiagonal;
   bool get hasDuration =>
       kind == SceneActorRouteStepKind.face ||
-      kind == SceneActorRouteStepKind.move ||
+      isMovement ||
       kind == SceneActorRouteStepKind.wait;
   int? get duration => RegExp(r'^\d+$').hasMatch(durationText.trim())
       ? int.tryParse(durationText.trim())
       : null;
   bool get durationValid =>
       duration != null &&
-      duration! >= (kind == SceneActorRouteStepKind.move ? 1 : 0) &&
+      duration! >= (isMovement ? 1 : 0) &&
       duration! <= 0x7fffffff;
   bool get gainValid {
     final value = double.tryParse(gainText.trim());
@@ -660,7 +726,7 @@ class _ActorStepDraft {
   void changeKind(SceneActorRouteStepKind next) {
     if (next == kind) return;
     kind = next;
-    durationText = next == SceneActorRouteStepKind.move ? '200' : '0';
+    durationText = isMovement ? '200' : '0';
     gainText = '1';
     soundId = null;
     enabled = false;

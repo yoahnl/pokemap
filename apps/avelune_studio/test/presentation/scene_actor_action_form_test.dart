@@ -105,12 +105,14 @@ List<SceneActorRouteStep> _steps() => [
 SceneActionPayload _route({
   SceneActorTarget? target,
   List<SceneActorRouteStep>? steps,
+  ActorRouteTransientScope transientScope = ActorRouteTransientScope.route,
 }) => SceneActionPayload.interactive(
   SceneInteractiveCommand.actorRoute(
     target:
         target ?? SceneActorTarget.entity(mapId: 'alpha', entityId: 'actor'),
     steps: steps ?? _steps(),
     skippable: true,
+    transientScope: transientScope,
   ),
   actionKind: 'keep-action',
   parameters: const {'keep': 'parameter'},
@@ -212,6 +214,330 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  for (final enabled in [false, true]) {
+    testWidgets(
+      'v2 imported scene route preserves all seven typed steps and render flag $enabled',
+      (tester) async {
+        final original = SceneActionPayload.fromJson(
+          _route(
+            transientScope: ActorRouteTransientScope.scene,
+            steps: [
+              ..._steps().take(2),
+              SceneActorRouteStep.moveDiagonal(
+                horizontal: EntityFacing.west,
+                vertical: EntityFacing.north,
+                durationMs: 350,
+              ),
+              ..._steps().skip(2).take(2),
+              SceneActorRouteStep.renderAboveMap(enabled: enabled),
+              _steps().last,
+            ],
+          ).toJson(),
+        );
+        final applied = <SceneNodePayload>[];
+        await _pump(
+          tester,
+          current: original,
+          injected: false,
+          onApply: applied.add,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<StudioSelect>(
+                _select('Restauration des effets temporaires'),
+              )
+              .value,
+          'scene',
+        );
+        final stepTypes = tester.widget<StudioSelect>(
+          _select('Action de l’étape 1'),
+        );
+        expect(
+          stepTypes.options.keys.toSet(),
+          SceneActorRouteStepKind.values.map((kind) => kind.name).toSet(),
+        );
+        expect(_select('Direction horizontale de l’étape 3'), findsOneWidget);
+        expect(_select('Direction verticale de l’étape 3'), findsOneWidget);
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.widgetWithText(SwitchListTile, 'Acteur au premier plan'),
+              )
+              .value,
+          enabled,
+        );
+        await _submit(tester);
+        expect(applied.single, original);
+        expect(
+          SceneActionPayload.fromJson(
+            (applied.single as SceneActionPayload).toJson(),
+          ),
+          original,
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'v2 imported scene route edits axes duration rendering and restoration scope',
+    (tester) async {
+      final original = _route(
+        transientScope: ActorRouteTransientScope.scene,
+        steps: [
+          SceneActorRouteStep.moveDiagonal(
+            horizontal: EntityFacing.west,
+            vertical: EntityFacing.north,
+            durationMs: 350,
+          ),
+          SceneActorRouteStep.renderAboveMap(enabled: true),
+        ],
+      );
+      final applied = <SceneNodePayload>[];
+      await _pump(
+        tester,
+        current: original,
+        injected: false,
+        onApply: applied.add,
+      );
+      await tester.pumpAndSettle();
+      await _pick(tester, 'Direction horizontale de l’étape 1', 'Est');
+      await _pick(tester, 'Direction verticale de l’étape 1', 'Sud');
+      await _enter(tester, 'actor-step-0-duration', '475');
+      final toggle = find.widgetWithText(
+        SwitchListTile,
+        'Acteur au premier plan',
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pump();
+      await _pick(
+        tester,
+        'Restauration des effets temporaires',
+        'À la fin du trajet',
+      );
+      await _submit(tester);
+      final first = applied.single as SceneActionPayload;
+      expect(first.actionKind, original.actionKind);
+      expect(first.parameters, original.parameters);
+      final command =
+          first.interactiveCommand as SceneActorRouteInteractiveCommand;
+      expect(command.transientScope, ActorRouteTransientScope.route);
+      expect(command.skippable, isTrue);
+      expect(command.steps, [
+        SceneActorRouteStep.moveDiagonal(
+          horizontal: EntityFacing.east,
+          vertical: EntityFacing.south,
+          durationMs: 475,
+        ),
+        SceneActorRouteStep.renderAboveMap(enabled: false),
+      ]);
+      await _pick(
+        tester,
+        'Restauration des effets temporaires',
+        'À la fin de la scène',
+      );
+      await _submit(tester);
+      expect(
+        (applied.last as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.actorRoute(
+          target: command.target,
+          steps: command.steps,
+          skippable: true,
+          transientScope: ActorRouteTransientScope.scene,
+        ),
+      );
+    },
+  );
+
+  testWidgets(
+    'v2 new route creates diagonal and foreground steps through guided controls',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(tester, injected: false, onApply: applied.add);
+      await _pick(
+        tester,
+        'Commande',
+        _commands()
+            .firstWhere((c) => c.id == NarrativeCommandIds.actorRoute)
+            .label,
+      );
+      await _pick(tester, 'Carte de l’acteur', 'Alpha');
+      expect(
+        tester
+            .widget<StudioSelect>(
+              _select('Restauration des effets temporaires'),
+            )
+            .value,
+        'route',
+      );
+      final add = find.byKey(const ValueKey('actor-add-step'));
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pump();
+      await _pick(tester, 'Action de l’étape 1', 'Avancer en diagonale');
+      expect(_select('Personnage à quitter'), findsNothing);
+      expect(_apply(tester).onPressed, isNotNull);
+      await _submit(tester);
+      final defaults =
+          (applied.single as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(
+        defaults.steps.single,
+        SceneActorRouteStep.moveDiagonal(
+          horizontal: EntityFacing.west,
+          vertical: EntityFacing.north,
+          durationMs: 200,
+        ),
+      );
+      applied.clear();
+      await _pick(tester, 'Direction horizontale de l’étape 1', 'Est');
+      await _pick(tester, 'Direction verticale de l’étape 1', 'Sud');
+      await _enter(tester, 'actor-step-0-duration', '125');
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pump();
+      await _pick(tester, 'Action de l’étape 2', 'Afficher au premier plan');
+      expect(find.byKey(const ValueKey('actor-step-1-duration')), findsNothing);
+      final toggle = find.widgetWithText(
+        SwitchListTile,
+        'Acteur au premier plan',
+      );
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pump();
+      await _pick(
+        tester,
+        'Restauration des effets temporaires',
+        'À la fin de la scène',
+      );
+      await _submit(tester);
+      expect(
+        (applied.single as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.actorRoute(
+          target: SceneActorTarget.player(mapId: 'alpha'),
+          transientScope: ActorRouteTransientScope.scene,
+          steps: [
+            SceneActorRouteStep.moveDiagonal(
+              horizontal: EntityFacing.east,
+              vertical: EntityFacing.south,
+              durationMs: 125,
+            ),
+            SceneActorRouteStep.renderAboveMap(enabled: true),
+          ],
+        ),
+      );
+      await _pick(tester, 'Action de l’étape 2', 'Avancer en diagonale');
+      await _submit(tester);
+      final changed =
+          (applied.last as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(
+        changed.steps.last,
+        SceneActorRouteStep.moveDiagonal(
+          horizontal: EntityFacing.west,
+          vertical: EntityFacing.north,
+          durationMs: 200,
+        ),
+      );
+    },
+  );
+
+  testWidgets('v2 diagonal rejects invalid duration and axes before applying', (
+    tester,
+  ) async {
+    final applied = <SceneNodePayload>[];
+    await _pump(
+      tester,
+      current: _route(
+        steps: [
+          SceneActorRouteStep.moveDiagonal(
+            horizontal: EntityFacing.west,
+            vertical: EntityFacing.north,
+            durationMs: 200,
+          ),
+        ],
+      ),
+      onApply: applied.add,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<StudioSelect>(_select('Direction horizontale de l’étape 1'))
+          .options
+          .keys
+          .toSet(),
+      {'west', 'east'},
+    );
+    expect(
+      tester
+          .widget<StudioSelect>(_select('Direction verticale de l’étape 1'))
+          .options
+          .keys
+          .toSet(),
+      {'north', 'south'},
+    );
+    for (final value in ['', '0', '-1', '0.5', '2147483648']) {
+      await _enter(tester, 'actor-step-0-duration', value);
+      expect(_apply(tester).onPressed, isNull);
+    }
+    await _enter(tester, 'actor-step-0-duration', '1');
+    expect(_apply(tester).onPressed, isNotNull);
+    tester
+        .widget<StudioSelect>(_select('Direction horizontale de l’étape 1'))
+        .onChanged!('north');
+    await tester.pump();
+    expect(_apply(tester).onPressed, isNull);
+    await _pick(tester, 'Direction horizontale de l’étape 1', 'Ouest');
+    tester
+        .widget<StudioSelect>(_select('Direction verticale de l’étape 1'))
+        .onChanged!('east');
+    await tester.pump();
+    expect(_apply(tester).onPressed, isNull);
+    expect(applied, isEmpty);
+    await _pick(tester, 'Direction verticale de l’étape 1', 'Sud');
+    await _enter(tester, 'actor-step-0-duration', '2147483647');
+    await _submit(tester);
+    expect(
+      ((applied.single as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand)
+          .steps
+          .single,
+      SceneActorRouteStep.moveDiagonal(
+        horizontal: EntityFacing.west,
+        vertical: EntityFacing.south,
+        durationMs: 2147483647,
+      ),
+    );
+  });
+
+  testWidgets(
+    'v2 diagonal cannot silently inherit a cardinal collision owner',
+    (tester) async {
+      final applied = <SceneNodePayload>[];
+      await _pump(tester, current: _egress(), onApply: applied.add);
+      await tester.pumpAndSettle();
+      await _pick(tester, 'Action de l’étape 1', 'Avancer en diagonale');
+      expect(_apply(tester).onPressed, isNull);
+      expect(_select('Personnage à quitter'), findsOneWidget);
+      await _pick(tester, 'Personnage à quitter', 'Aucun');
+      expect(_select('Personnage à quitter'), findsNothing);
+      await _submit(tester);
+      final command =
+          (applied.single as SceneActionPayload).interactiveCommand
+              as SceneActorRouteInteractiveCommand;
+      expect(
+        command.steps.single,
+        SceneActorRouteStep.moveDiagonal(
+          horizontal: EntityFacing.west,
+          vertical: EntityFacing.north,
+          durationMs: 200,
+        ),
+      );
+    },
+  );
+
   testWidgets('face update yield hydrates and can be disabled without losing hold', (tester) async {
     final original = _route(steps: [
       SceneActorRouteStep.face(direction: EntityFacing.east, durationMs: 50, yieldAfter: true),
