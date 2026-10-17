@@ -9,6 +9,7 @@ import 'package:avelune_converter_adapters/src/literal_tile_composer.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:image/image.dart' as image;
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
@@ -88,6 +89,9 @@ void main() {
         methods: 'Water,2\n100,RATTATA,14\n',
         extraFiles: {
           ...nativeMedia(),
+          'Data/items.dat': await File.fromUri(
+                  File(scriptsPath).parent.uri.resolve('items.dat'))
+              .readAsBytes(),
           'PBS/metadata.txt':
               utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
           'Graphics/Characters/OriginalPlayer.png': image
@@ -152,6 +156,23 @@ void main() {
         as Map;
     expect(manifest['encounterTables'], hasLength(1));
     expect((manifest['encounterTables'] as List).single['chancePerStep'], .02);
+    final reopened =
+        ProjectManifest.fromJson(Map<String, dynamic>.from(manifest));
+    expect(reopened.newGame.initialBag, isEmpty);
+    expect(reopened.newGame.initialParty, isEmpty);
+    final itemPath =
+        const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1)
+            .catalogFiles['items']!;
+    final catalog = decodeProjectItemCatalog(jsonDecode(
+        await File('${receipt.projectPath}/$itemPath').readAsString()));
+    expect(
+        catalog.entries.where((item) => item.uses
+            .any((use) => use.effect is ProjectItemFishingEffectDefinition)),
+        hasLength(3));
+    expect(
+        catalog.entries.where((item) => item.uses
+            .any((use) => use.effect is ProjectItemRepelEffectDefinition)),
+        hasLength(3));
 
     final changed = jsonDecode(jsonEncode(draft.compositionEvidence))
         as Map<String, dynamic>;
@@ -177,6 +198,50 @@ void main() {
         throwsA(isA<NativeWriteException>().having(
             (error) => error.code, 'code', 'native.semantics.regeneration')));
     expect(await Directory('${temporary.path}/forged').exists(), isFalse);
+    var modifiedCatalogs = 0;
+    final changedItems = draft.mutations.map((mutation) {
+      if (mutation.actionId != 'pokemon.catalog.write' ||
+          mutation.parameters['relativePath'] != itemPath) {
+        return mutation;
+      }
+      final parameters =
+          jsonDecode(jsonEncode(mutation.parameters)) as Map<String, dynamic>;
+      final definitions = (parameters['document'] as Map)['entries'] as List;
+      final rod = definitions.cast<Map>().firstWhere((definition) =>
+          (definition['uses'] as List)
+              .any((use) => (use['effect'] as Map)['kind'] == 'fishing'));
+      rod['uses'] = <Object?>[];
+      modifiedCatalogs++;
+      return NativeMutation(
+          operationId: mutation.operationId,
+          actionId: mutation.actionId,
+          sourceEntityIds: mutation.sourceEntityIds,
+          targetEntityIds: mutation.targetEntityIds,
+          parameters: parameters,
+          limits: limits);
+    }).toList();
+    expect(modifiedCatalogs, 1);
+    final forgedItems = NativeProjectDraft(
+        source: draft.source,
+        projectName: draft.projectName,
+        parentPath: draft.parentPath,
+        folderName: 'forged_items',
+        sourceRootPath: draft.sourceRootPath,
+        mapIds: draft.mapIds,
+        artifacts: draft.artifacts,
+        sourceArtifacts: draft.sourceArtifacts,
+        mutations: changedItems,
+        compositionEvidence: draft.compositionEvidence,
+        limits: limits);
+    final itemsApproval = approveNativeFixtureDraft(forgedItems);
+    await expectLater(
+        const NativeProjectWriter().write(
+            itemsApproval.plan, itemsApproval.context, forgedItems,
+            limits: limits),
+        throwsA(isA<NativeWriteException>().having(
+            (error) => error.code, 'code', 'native.semantics.regeneration')));
+    expect(await Directory('${temporary.path}/forged_items').exists(), isFalse);
+
     expect(
         (await temporary.list().toList())
             .where((entry) => entry.path.contains('staging')),

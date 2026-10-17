@@ -10,6 +10,7 @@ import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
 import 'source_encounter_consumers.dart';
+import 'source_event_item_bindings.dart';
 import 'source_semantic_study_composer.dart';
 
 const sourceCatalogStudyWriteLimits = NativeWriteLimits(
@@ -110,7 +111,7 @@ final class SourceCatalogStudyComposer {
             key.version == 0 &&
             supported.contains('${key.trainerType},${key.trainerName}'))
         .toList();
-    final projection = await const SourceCatalogProjector().read(
+    var projection = await const SourceCatalogProjector().read(
         source: source,
         pbs: pbs,
         files: recording,
@@ -132,6 +133,15 @@ final class SourceCatalogStudyComposer {
                 .adaptSourceBaseFishingBiteChanceToNativeTable,
         nativeTrainerMovePolicy: nativeTrainerMovePolicy,
         cancellation: cancellation);
+    if (includeNativeEncounterConsumers) {
+      projection = await _seedNativeExplorationItems(
+          source: source,
+          projection: projection,
+          previous: existing?.catalog,
+          files: recording,
+          profile: profile,
+          cancellation: cancellation);
+    }
     final owners = pbs.documents
         .map((document) => document.file.fileId)
         .toSet()
@@ -493,6 +503,102 @@ final class SourceCatalogStudyComposer {
             defaultMapHeight: base.defaultMapHeight,
             limits: limits));
   }
+}
+
+Future<SourceCatalogProjection> _seedNativeExplorationItems({
+  required NormalizedSourceProject source,
+  required SourceCatalogProjection projection,
+  required ProjectItemCatalog? previous,
+  required SourceFilePort files,
+  required SourceEventProfile profile,
+  ScanCancellation? cancellation,
+}) async {
+  const symbols = [
+    'REPEL',
+    'SUPERREPEL',
+    'MAXREPEL',
+    'ESCAPEROPE',
+    'BICYCLE',
+    'OLDROD',
+    'GOODROD',
+    'SUPERROD',
+  ];
+  final bindings = await const SourceEventItemBindingResolver().read(
+      snapshot: source.snapshot,
+      files: files,
+      symbols: symbols,
+      eventProfile: profile,
+      cancellation: cancellation);
+  if (projection.mergedItemCatalog == null ||
+      bindings.quarantinedSymbols.isNotEmpty ||
+      bindings.bindings.length != symbols.length ||
+      bindings.bindings.values.any((binding) =>
+          binding.definition.uses.length != 1 ||
+          binding.definition.uses.single.target !=
+              ProjectItemTargetKind.world)) {
+    throw NativeWriteException('catalogs.exploration_items.unqualified',
+        'Native encounter consumers require all eight exact source exploration definitions: ${canonicalJsonOf(bindings.quarantinedSymbols)}');
+  }
+  final items = {
+    for (final item in projection.mergedItemCatalog!.entries) item.id: item
+  };
+  final previousIds =
+      previous?.entries.map((item) => item.id).toSet() ?? <String>{};
+  final newlySeeded = <Map<String, Object?>>[];
+  for (final binding in bindings.bindings.values) {
+    final definition = binding.definition;
+    final projected = items[definition.id];
+    if (projected != null &&
+        (projected.displayName != definition.displayName ||
+            projected.pocketId != definition.pocketId ||
+            projected.buyPrice != definition.buyPrice ||
+            projected.sellPrice != definition.sellPrice ||
+            projected.description != definition.description ||
+            (projected.uses.isNotEmpty && projected != definition))) {
+      throw NativeWriteException('catalogs.exploration_items.conflict',
+          'The source exploration definition conflicts with its preceding catalog item: ${binding.sourceSymbol}');
+    }
+    items[definition.id] = definition;
+    if (!previousIds.contains(definition.id)) newlySeeded.add(binding.toJson());
+  }
+  final merged = ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: items.values.toList()..sort((a, b) => a.id.compareTo(b.id)));
+  final evidence = <String, Object?>{
+    ...projection.evidence,
+    'sourceOnlyData': {
+      ...Map<String, Object?>.from(
+          projection.evidence['sourceOnlyData'] as Map),
+      'mergedItemCatalog': merged.toJson(),
+    },
+    'nativeExplorationItemDefinitions': {
+      'kind': 'sourceBoundNativeExplorationDefinitions',
+      'sourceSnapshotHash': source.snapshot.canonicalHash.value,
+      'sourceProfile': profile.toJson(),
+      'previousNativeCatalog': {
+        'itemIds':
+            previous?.entries.map((item) => item.id).toList() ?? <String>[],
+        'canonicalHash':
+            previous == null ? null : canonicalHashOf(previous.toJson()).value,
+      },
+      'newlySeededSourceDefinitions': newlySeeded,
+      'bindings': bindings.evidence,
+      'initialPlayerStateMutated': false,
+      'inventoryGranted': false,
+      'progressionGranted': false,
+      'sourceScriptsExecuted': 0,
+      'fullSourceExplorationParityQualified': false,
+    },
+  };
+  return SourceCatalogProjection(
+      documents: projection.documents,
+      mergedItemCatalog: merged,
+      encounterTables: projection.encounterTables,
+      trainers: projection.trainers,
+      artifacts: projection.artifacts,
+      assetMutations: projection.assetMutations,
+      diagnostics: projection.diagnostics,
+      evidence: evidence);
 }
 
 List<NativeMutation> _mergeCatalogMutations(
