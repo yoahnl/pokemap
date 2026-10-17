@@ -1,6 +1,7 @@
 part of '../avelune_converter_core.dart';
 
-Object? _freezeJson(Object? input, ContractLimits limits) {
+Object? _freezeJson(Object? input, ContractLimits limits,
+    {bool canonicalObjectKeys = false}) {
   if (limits.maxDepth < 1 ||
       limits.maxNodes < 1 ||
       limits.maxStringCodeUnits < 1 ||
@@ -61,6 +62,11 @@ Object? _freezeJson(Object? input, ContractLimits limits) {
       for (final key in map.keys.cast<String>()) {
         countText(key, path);
         copy[key] = visit(map[key], '$path.$key', depth + 1);
+      }
+      if (canonicalObjectKeys) {
+        final keys = copy.keys.toList()..sort();
+        return Map<String, Object?>.unmodifiable(
+            {for (final key in keys) key: copy[key]});
       }
       return Map<String, Object?>.unmodifiable(copy);
     } finally {
@@ -196,6 +202,10 @@ void _validateShape(Object? value, Map<String, Object?> schema, String path) {
     }
   }
 }
+
+Object? immutableCanonicalJsonOf(Object? input,
+        {ContractLimits limits = const ContractLimits()}) =>
+    _freezeJson(input, limits, canonicalObjectKeys: true);
 
 String canonicalJsonOf(Object? input,
     {ContractLimits limits = const ContractLimits()}) {

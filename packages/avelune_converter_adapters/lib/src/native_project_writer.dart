@@ -228,23 +228,21 @@ final class NativeMutation {
       throw const NativeWriteException(
           'native.quota.references', 'Mutation reference budget exceeded');
     }
-    canonicalJsonOf({
+    final immutable = immutableCanonicalJsonOf({
       'operationId': operationId.value,
       'actionId': actionId,
       'actionVersion': actionVersion,
       'sourceEntityIds': sourceEntityIds.map((id) => id.value).toList(),
       'targetEntityIds': targetEntityIds.map((id) => id.value).toList(),
       'parameters': parameters
-    }, limits: limits.jsonLimits);
+    }, limits: limits.jsonLimits) as Map<String, Object?>;
     return NativeMutation._(
         operationId,
         actionId,
         actionVersion,
         List.unmodifiable(sourceEntityIds),
         List.unmodifiable(targetEntityIds),
-        _freezeNativeJson(jsonDecode(
-                canonicalJsonOf(parameters, limits: limits.jsonLimits)))
-            as Map<String, Object?>);
+        immutable['parameters'] as Map<String, Object?>);
   }
 
   const NativeMutation._(this.operationId, this.actionId, this.actionVersion,
