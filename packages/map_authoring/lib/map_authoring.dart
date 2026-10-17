@@ -222,3 +222,6 @@ export 'src/api/authoring_result_projection.dart'
 
 export 'src/domains/maps/canonical_border_ground_composer.dart';
 export 'src/domains/assets/resource_pack_projection.dart';
+
+export 'src/domains/assets/resource_pack_actions.dart';
+export 'src/domains/assets/resource_pack_import_preparer.dart';

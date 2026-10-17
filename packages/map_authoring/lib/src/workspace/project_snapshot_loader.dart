@@ -341,6 +341,10 @@ final class ProjectSnapshotLoader {
     }
   }
 
+  Future<ProjectResourceProbe> probeResource(
+          ProjectHandle projectHandle, String storageKey) =>
+      _handles.resolveProject(projectHandle).probeResource(storageKey);
+
   void invalidate(ProjectHandle projectHandle) {
     _snapshotCache?.invalidateHandle(projectHandle);
     _resourceUsageSnapshotCache.invalidateHandle(projectHandle);

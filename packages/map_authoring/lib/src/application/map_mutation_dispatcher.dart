@@ -1,3 +1,5 @@
+import '../domains/assets/resource_pack_actions.dart';
+import '../domains/assets/resource_pack_import_preparer.dart';
 import '../domains/maps/spatial_map_actions.dart';
 import '../domains/maps/dive_pair_actions.dart';
 import '../domains/maps/moving_platform_actions.dart';
@@ -98,6 +100,7 @@ final class MapMutationDispatcher {
 
   factory MapMutationDispatcher.canonical({
     ArtifactStore? artifactStore,
+    ResourcePackPreparedImportResolver? preparedResourcePackImportResolver,
     RetainedAssetBlobReader? retainedAssetBlobReader,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
     PresentationMediaProbePort presentationMediaProbe =
@@ -188,7 +191,12 @@ final class MapMutationDispatcher {
     const factsAndRules = FactRuleActions();
     const storylines = StorylineActions();
     const railJourneys = RailJourneyActions();
+    final resourcePacks = ResourcePackActions(
+        resolvePreparedImport: preparedResourcePackImportResolver);
     return MapMutationDispatcher([
+      for (final descriptor in ResourcePackActions.descriptors)
+        MapMutationActionRegistration(
+            descriptor: descriptor, build: resourcePacks.build),
       for (final descriptor in ResourceLibraryActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor,

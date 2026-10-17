@@ -509,6 +509,12 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'resource_pack.import') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/assets/resource_pack_transaction_test.dart',
+    };
+  }
   if (actionId.startsWith('gameplay_zone.dive.')) {
     return const {
       AuthoringTransport.directApi:
@@ -1361,6 +1367,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'resource_pack.import') {
+    return 'test/domains/assets/resource_pack_actions_test.dart';
+  }
   if (actionId.startsWith('gameplay_zone.dive.')) {
     return 'test/domains/maps/dive_pair_actions_test.dart';
   }

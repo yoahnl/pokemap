@@ -98,7 +98,8 @@ List<ResourceUsageDocument> resourceDefinitionUsageDocuments(
   Iterable<MapData> maps,
 ) {
   final result = <ResourceUsageDocument>[];
-  final project = Map<String, dynamic>.from(manifest.toJson());
+  final project = Map<String, dynamic>.from(manifest.toJson())
+    ..remove('resourcePackInstallations');
   const sections = {
     'tilesets': 'tileset',
     'elements': 'element',

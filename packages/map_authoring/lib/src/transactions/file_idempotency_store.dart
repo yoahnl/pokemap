@@ -107,6 +107,18 @@ final class FileIdempotencyStoreDiagnostics {
   final int materializedRecords;
 }
 
+final class AuthoringOperationReplayLookup {
+  const AuthoringOperationReplayLookup(
+      {required this.scope,
+      required this.operationId,
+      required this.payloadFingerprint,
+      this.completed});
+  final AuthoringIdempotencyScope scope;
+  final String operationId;
+  final String payloadFingerprint;
+  final AuthoringIdempotencyRecord? completed;
+}
+
 final class _IndexedIdempotencyRecord {
   const _IndexedIdempotencyRecord({
     required this.scope,
@@ -179,6 +191,20 @@ final class FileIdempotencyStore implements IdempotencyStore {
   final File _backupFile;
   final void Function()? _onFullRead;
   Map<String, _IndexedIdempotencyRecord> _cachedIndexes = {};
+  Map<(String, String, String), List<_IndexedIdempotencyRecord>>
+      _operationIndexes = {};
+  void _replaceIndexes(Map<String, _IndexedIdempotencyRecord> indexes) {
+    _cachedIndexes = indexes;
+    final secondary =
+        <(String, String, String), List<_IndexedIdempotencyRecord>>{};
+    for (final item in indexes.values) {
+      secondary.putIfAbsent(
+          (item.scope.actorId, item.scope.projectId, item.operationId),
+          () => []).add(item);
+    }
+    _operationIndexes = secondary;
+  }
+
   AuthoringFileSnapshot? _cachedSnapshot;
   bool _cacheInitialized = false;
   var _materializedRecords = 0;
@@ -190,6 +216,35 @@ final class FileIdempotencyStore implements IdempotencyStore {
         indexedRecords: _cachedIndexes.length,
         materializedRecords: _materializedRecords,
       );
+
+  Future<AuthoringOperationReplayLookup?> lookupOperation(
+          {required String actorId,
+          required String projectId,
+          required String operationId,
+          required DateTime now}) =>
+      _withLock(() async {
+        await _readIndexUnlocked();
+        final matches =
+            _operationIndexes[(actorId, projectId, operationId)] ?? const [];
+        if (matches.length > 1) {
+          throw const IdempotencyStoreException(
+              'idempotency.operation_ambiguous',
+              'This operation identity belongs to more than one durable scope.');
+        }
+        if (matches.isEmpty) return null;
+        final indexed = matches.single;
+        if (indexed.expiresAt != null &&
+            !now.toUtc().isBefore(indexed.expiresAt!)) {
+          return null;
+        }
+        return AuthoringOperationReplayLookup(
+            scope: indexed.scope,
+            operationId: indexed.operationId,
+            payloadFingerprint: indexed.payloadFingerprint,
+            completed: indexed.status == AuthoringIdempotencyStatus.completed
+                ? await _materializeRecord(indexed)
+                : null);
+      });
 
   @override
   Future<AuthoringIdempotencyRecord?> read(AuthoringIdempotencyScope scope) {
@@ -377,7 +432,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
     }
     _onFullRead?.call();
     if (snapshot == null) {
-      _cachedIndexes = {};
+      _replaceIndexes({});
       _cachedSnapshot = null;
       _cacheInitialized = true;
       return {};
@@ -400,7 +455,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
       by: decoded.eventCount,
     );
     final indexes = decoded.indexes;
-    _cachedIndexes = Map<String, _IndexedIdempotencyRecord>.of(indexes);
+    _replaceIndexes(Map<String, _IndexedIdempotencyRecord>.of(indexes));
     _cachedSnapshot = snapshot;
     _cacheInitialized = true;
     return indexes;
@@ -466,7 +521,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
       await writer.close();
     }
     if (_cacheInitialized) {
-      _cachedIndexes = indexes;
+      _replaceIndexes(indexes);
       _cachedSnapshot = await AuthoringFileSnapshot.capture(_file);
     }
   }
@@ -515,7 +570,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
     }
     await _compactionFile.rename(_file.path);
     await _deleteIfExists(_backupFile);
-    _cachedIndexes = indexes;
+    _replaceIndexes(indexes);
     _cachedSnapshot = await AuthoringFileSnapshot.capture(_file);
     _cacheInitialized = true;
   }

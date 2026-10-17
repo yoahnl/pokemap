@@ -1,3 +1,4 @@
+import '../domains/assets/resource_pack_import_preparer.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -78,6 +79,10 @@ final class LocalMapAuthoringMutationApi
     _dispatcher = dispatcher ??
         MapMutationDispatcher.canonical(
           artifactStore: artifacts,
+          preparedResourcePackImportResolver: (context, handle) =>
+              _session(context.snapshot.projectHandle)
+                  ._resourcePacks
+                  .buildDraft(context, handle),
           retainedAssetBlobReader: (snapshot, artifact) => _snapshotLoader
               .readRetainedAssetBlob(snapshot.projectHandle, artifact),
           tiledImageCollectionRasterCodec: tiledImageCollectionRasterCodec,
@@ -98,6 +103,12 @@ final class LocalMapAuthoringMutationApi
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
   final Map<WorkspaceHandle, ProjectHandle> _projectsByWorkspace = {};
   final Set<(ProjectHandle, String)> _modelBatchStagingPlans = {};
+
+  ResourcePackImportPreparer resourcePackImports(ProjectHandle projectHandle) =>
+      _session(projectHandle)._resourcePacks;
+  LocalResourcePackStore resourcePackPayloadStore(
+          ProjectHandle projectHandle) =>
+      _session(projectHandle)._projectionPayloadStore;
 
   @override
   AuthoringMutationDescription describeMutationContracts() =>
@@ -468,6 +479,8 @@ final class _LocalMapAuthoringSession {
     required AuthoringPerformanceObserver? performanceObserver,
     required AuthoringResultProjectionStore projections,
     required LocalResourcePackStore projectionPayloadStore,
+    required ResourcePackImportPreparer resourcePacks,
+    required FileIdempotencyStore idempotencyStore,
   })  : _snapshotLoader = snapshotLoader,
         _dispatcher = dispatcher,
         _actor = actor,
@@ -481,7 +494,9 @@ final class _LocalMapAuthoringSession {
         _recoveryExecutor = recoveryExecutor,
         _performanceObserver = performanceObserver,
         _projections = projections,
-        _projectionPayloadStore = projectionPayloadStore;
+        _projectionPayloadStore = projectionPayloadStore,
+        _resourcePacks = resourcePacks,
+        _idempotencyStore = idempotencyStore;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
@@ -512,18 +527,16 @@ final class _LocalMapAuthoringSession {
     );
     final plans = AuthoringPlanStore(clock: clock);
     final planner = AuthoringActionPlanner(store: plans);
-    final idempotency = AuthoringIdempotencyLedger(
-      store: FileIdempotencyStore(
+    final idempotencyStore = FileIdempotencyStore(
         filePath: _joinAll([
           canonicalProjectRoot,
           '.pokemap',
           'authoring',
-          'idempotency.jsonl',
+          'idempotency.jsonl'
         ]),
-        performanceObserver: performanceObserver,
-      ),
-      clock: clock,
-    );
+        performanceObserver: performanceObserver);
+    final idempotency =
+        AuthoringIdempotencyLedger(store: idempotencyStore, clock: clock);
     // The ledger is append-only, so nothing reclaims a completed reservation
     // unless maintenance runs. Opening a project is the one moment that is
     // already off the interactive path; a failure here must not deny the open.
@@ -586,7 +599,18 @@ final class _LocalMapAuthoringSession {
         store: projectionPayloadStore,
         scope: FileBackedPayloadScope(
             sessionId: workspaceHandle.value, projectId: projectId));
+    final resourcePacks = ResourcePackImportPreparer(
+        store: projectionPayloadStore,
+        scope: FileBackedPayloadScope(
+            sessionId: workspaceHandle.value, projectId: projectId),
+        workspaceHandle: workspaceHandle.value,
+        clock: clock,
+        loadSnapshot: () => snapshotLoader.load(projectHandle),
+        probeResource: (path) =>
+            snapshotLoader.probeResource(projectHandle, path));
     return _LocalMapAuthoringSession._(
+      resourcePacks: resourcePacks,
+      idempotencyStore: idempotencyStore,
       projections: projections,
       projectionPayloadStore: projectionPayloadStore,
       projectId: projectId,
@@ -609,10 +633,13 @@ final class _LocalMapAuthoringSession {
 
   final AuthoringResultProjectionStore _projections;
   final LocalResourcePackStore _projectionPayloadStore;
+  final ResourcePackImportPreparer _resourcePacks;
+  final FileIdempotencyStore _idempotencyStore;
 
   Future<void> dispose() async {
     try {
       await _plans.dispose();
+      await _resourcePacks.dispose();
     } finally {
       try {
         await _projections.dispose();
@@ -763,6 +790,21 @@ final class _LocalMapAuthoringSession {
   }) async {
     final safePlanId = _safeIdentity(planId, 'planId');
     final safeOperationId = _safeIdentity(operationId, 'operationId');
+    _snapshotLoader.requireActiveProject(projectHandle);
+    final replay = await _executor.inspectDurableReplay(
+        actor: _actor,
+        projectId: projectId,
+        planId: safePlanId,
+        operationId: safeOperationId,
+        lookup: () => _idempotencyStore.lookupOperation(
+            actorId: _actor.actorId,
+            projectId: projectId,
+            operationId: safeOperationId,
+            now: _plans.now),
+        readHistory: (entryId) =>
+            _history.get(projectId: projectId, entryId: entryId),
+        resolveAction: _dispatcher.descriptor);
+    if (replay != null) return _mutationResult(replay);
     final plan = await _plans.resolveActive(safePlanId);
     _requireApplicablePlan(plan);
     _requireWorkspace(plan.request.workspaceHandle);
@@ -775,6 +817,19 @@ final class _LocalMapAuthoringSession {
     }
     final snapshot = await _loadSnapshot(repairRequest: plan.request);
     final descriptor = _dispatcher.descriptor(plan.request.actionId);
+    if (plan.request.actionId == 'resource_pack.import') {
+      if (plan.appliedPayloadReleased) {
+        throw AuthoringPlanException(
+            code: 'plan.already_applied',
+            message:
+                'This import plan was applied under another operation identity.');
+      }
+      _resourcePacks.certifyPlan(
+          plan: plan,
+          actorId: _actor.actorId,
+          projectId: projectId,
+          operationId: safeOperationId);
+    }
     final payloadWasReleased = plan.appliedPayloadReleased;
     final changes = payloadWasReleased ? null : plan.changeSet.changes;
     final span = _performanceObserver?.startSpan(
@@ -911,6 +966,7 @@ final class _LocalMapAuthoringSession {
     AuthoringTransactionPrecondition? supplied,
   ) {
     const guarded = {
+      'resource_pack.import',
       'model3d.delete',
       'tileset.source.replace',
       'tileset.remove',
@@ -937,6 +993,9 @@ final class _LocalMapAuthoringSession {
     }
     return () async {
       await supplied?.call();
+      if (plan.request.actionId == 'resource_pack.import') {
+        await _resourcePacks.requirePlanPreconditions(plan);
+      }
       if (guarded.contains(plan.request.actionId)) {
         final current = await _loadSnapshot(repairRequest: plan.request);
         if (current.revision != plan.baseRevision) {

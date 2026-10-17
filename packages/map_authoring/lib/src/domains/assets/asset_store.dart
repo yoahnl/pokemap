@@ -29,7 +29,7 @@ List<String> deriveAssetUsages({
   };
   final usages = <String>{};
   _collectAssetUsages(
-    manifest.toJson(),
+    manifest.toJson()..remove('resourcePackInstallations'),
     owner: 'project',
     path: r'$',
     needles: needles,

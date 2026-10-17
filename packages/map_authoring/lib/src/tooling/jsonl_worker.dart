@@ -1,3 +1,5 @@
+import '../domains/assets/resource_pack_import_preparer.dart';
+import '../transactions/file_idempotency_store.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -257,6 +259,19 @@ final class JsonlWorker {
         message: error.message,
         details: _safeDetails(error.details),
       );
+    } on ResourcePackImportException catch (error) {
+      result = _failure(requestId,
+          code: error.code.endsWith('_stale')
+              ? AuthoringErrorCode.revisionConflict
+              : AuthoringErrorCode.validationFailed,
+          domainCode: error.code,
+          message: error.message,
+          retryable: error.code.endsWith('_stale'));
+    } on IdempotencyStoreException catch (error) {
+      result = _failure(requestId,
+          code: AuthoringErrorCode.revisionConflict,
+          domainCode: error.code,
+          message: error.message);
     } on VisualLibraryException catch (error) {
       result = _failure(
         requestId,
@@ -706,14 +721,28 @@ final class JsonlWorker {
           'dimensions': ['twoD', 'threeD'],
           'defaultDimension': 'twoD',
           'mapInstanceRetentionPolicy': {
-            'schemaVersion': 1, 'dimension': 'twoD',
+            'schemaVersion': 1,
+            'dimension': 'twoD',
             'templates': ['empty'],
-            'fields': ['viewportWidthTiles', 'viewportHeightTiles', 'marginTiles', 'clampViewportToMapIds'],
+            'fields': [
+              'viewportWidthTiles',
+              'viewportHeightTiles',
+              'marginTiles',
+              'clampViewportToMapIds'
+            ],
             'integerMaximum': 2147483647,
             'confirmationBinding': 'exactPolicy',
           },
           'threeDTemplates': ['empty'],
-          'spatialCamera': {'mode': 'fixed', 'fields': ['pitchDegrees', 'yawDegrees', 'fieldOfViewDegrees', 'distance']},
+          'spatialCamera': {
+            'mode': 'fixed',
+            'fields': [
+              'pitchDegrees',
+              'yawDegrees',
+              'fieldOfViewDegrees',
+              'distance'
+            ]
+          },
         },
       if (creation != null)
         const {

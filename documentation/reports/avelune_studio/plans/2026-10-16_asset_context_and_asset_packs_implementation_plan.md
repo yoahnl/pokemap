@@ -893,19 +893,19 @@ dart analyze
 
 **Modifier :** application/map_mutation_dispatcher.dart, registre d'actions, API locale de composition, codecs du reçu d'installation et gardes pertinentes.
 
-- [ ] Construire un preparedImportHandle lié à archiveHash, sélection/révision, projet/révision, mappings, contraintes et inventaire exact.
-- [ ] Allouer tous les IDs et chemins avant le plan. Pour model3d : reconstruire assets/models3d/<nouvel-id>.glb et respecter le regex natif des IDs.
-- [ ] Remapper toutes les références et vérifier la fermeture après projection dans le manifeste cible.
-- [ ] Préserver la désignation isWorldTileset de la cible ; aucune bibliothèque importée ne choisit le tileset monde du projet.
-- [ ] Produire un changeset unique : définitions, classification, AssetCatalog, blobs/aliases, documents de licence et reçu d'installation.
-- [ ] Enregistrer resource_pack.import avec paramètre preparedImportHandle ; requête courte et projection compacte.
-- [ ] Protéger sources locales modifiées, identités occupées et dépendances déjà installées mais éditées.
-- [ ] Tester chaque ligne de la table3.3, y compris suppression locale suivie d'un réimport qui ne recrée pas silencieusement le travail supprimé.
-- [ ] Tester qu'un conflit preserveProject reste non applicable, puis que le choix explicite importCopy produit une autre fermeture sans modifier la cible existante.
-- [ ] Tester dry-run sans écriture native, plan périmé, repeated operationId, reconstruction du service puis réimport, undo/redo et fermeture/réouverture.
-- [ ] Tester crash/disque plein/fichier ciblé modifié pendant promotion : reçu durable ou recoveryRequired, jamais faux succès.
-- [ ] Vérifier que les cartes, scènes, dialogues, paramètres projet et données de progression restent identiques.
-- [ ] Exécuter :
+- [x] Construire un preparedImportHandle lié à archiveHash, sélection/révision, projet/révision, mappings, contraintes et inventaire exact.
+- [x] Allouer tous les IDs et chemins avant le plan. Pour model3d : reconstruire assets/models3d/<nouvel-id>.glb et respecter le regex natif des IDs.
+- [x] Remapper toutes les références et vérifier la fermeture après projection dans le manifeste cible.
+- [x] Préserver la désignation isWorldTileset de la cible ; aucune bibliothèque importée ne choisit le tileset monde du projet.
+- [x] Produire un changeset unique : définitions, classification, AssetCatalog, blobs/aliases, documents de licence et reçu d'installation.
+- [x] Enregistrer resource_pack.import avec paramètre preparedImportHandle ; requête courte et projection compacte.
+- [x] Protéger sources locales modifiées, identités occupées et dépendances déjà installées mais éditées.
+- [x] Tester chaque ligne de la table3.3, y compris suppression locale suivie d'un réimport qui ne recrée pas silencieusement le travail supprimé.
+- [x] Tester qu'un conflit preserveProject reste non applicable, puis que le choix explicite importCopy produit une autre fermeture sans modifier la cible existante.
+- [x] Tester dry-run sans écriture native, plan périmé, repeated operationId, reconstruction du service puis réimport, undo/redo et fermeture/réouverture.
+- [x] Tester crash/disque plein/fichier ciblé modifié pendant promotion : reçu durable ou recoveryRequired, jamais faux succès.
+- [x] Vérifier que les cartes, scènes, dialogues, paramètres projet et données de progression restent identiques.
+- [x] Exécuter :
 
 ~~~bash
 cd packages/map_authoring
@@ -1228,8 +1228,8 @@ L'état initial d'exécution est main, 00c3112c0754ee54553584d38f7e44598c3077c3,
 | P04 | TO REVIEW | Commit280e24c64 ; deux revues favorables ;351 tests distribution/35 authoring partagés,350 distribution/36 authoring dans la copie isolée sansP05 ; analyses/builds vérifiés |
 | P05 | TO REVIEW | Commit97cb46796 ; deux revues V2 favorables ;140 tests authoring isolés sans hunks étrangers,2 tests API éditeur isolés, MCP réel2/2 ; limites de suite globale consignées |
 | P06 | TO REVIEW | Commit5a6e2556f ; V3 conforme et qualité approuvée ;128 tests isolés, analyse/AOT et MCP2/2 ; limites explicites conservées |
-| P07 | TO REVIEW | Candidat V3 conforme et qualité approuvée ; export32tests, distribution57, editor9, analyse/AOT et MCP2/2 ; commit ciblé préparé |
-| P08 | TODO | Installation additive |
+| P07 | TO REVIEW | Commit cfad4b922 ; V3 conforme et qualité approuvée ;32tests authoring,57distribution,9editor, analyse/AOT et MCP2/2 ; limites explicites |
+| P08 | TO REVIEW | V2r qualifié : préparation/import additif et replay durable ; SPEC conforme, qualité approuvée ; commit local ciblé préparé |
 | P09 | TODO | Jobs et transports |
 | P10 | TODO | Import Studio |
 | P11 | TODO | Export Studio et aller-retour |
@@ -1697,3 +1697,106 @@ Tous les runs possédés utilisent `/tmp/avelune-assets-owned-run.py` ; les logs
 Auto-critique et limites : pas de vert global monorepo, les réserves P05 restent ouvertes. La preuve couvre les fichiers sélectionnés aux observations de l'export, sans prétendre un verrou filesystem global. Les lectures supplémentaires des aliases sont nécessaires et seront comptées en P12. Un média candidat et les JSON restent matérialisables dans leurs limites natives ; aucun RSS ni volume réel n'est mesuré ici. Sol Border dérivé d'un modèle 3D et remapping pondéré changeant les pixels sont refusés en v1. Le cache P04 conserve les octets sans lease jusqu'au TTL/collectExpired/close, avec refus cache_full possible ; les fichiers de construction privés sont supprimés immédiatement. Import/certification apply P08, jobs/transports P09, UI P10/P11 et parcours natifs/Player P12 restent à livrer. P13 demeure différé.
 
 Staging P07 autorisé : les huit sources techniques V3 et ce plan consolidé, neuf chemins seulement. Contrôler HEAD/index puis les hashes qualifiés de chaque blob indexé, committer une seule fois, et vérifier parent, liste des chemins et hashes du commit. Les 327 entrées dirty globales observées par la revue incluent les chantiers étrangers ; elles restent hors qualification et hors staging P07. Aucun push/rebase. Résultat et SHA seront consignés dans `/tmp/p07-commit-receipt.json` et Notion ; DONE reste réservé à Yoahn.
+
+
+### Commit P07 et démarrage P08
+
+P07 est committé en `cfad4b922909f0225ceaf022af227795d78d9b63`, parent `cd46a8a58a59155126653e60a06c7b438d7a13ec`. Les neuf chemins et leurs hashes d’index ont été vérifiés avant commit, puis les mêmes neuf chemins et contenus vérifiés dans le commit. Reçu `/tmp/p07-commit-receipt.json` ; index vide, 318 entrées dirty étrangères préservées, aucun push/rebase. Notion contient le SHA, les deux verdicts et les limites ; agrégat DOING et P07 proposé TO REVIEW. Le propriétaire terrain a reçu le SHA et la frontière de chevauchement probable du dispatcher, sans accès à MAIN/NB2.
+
+P08 démarre après les revues favorables, avec une sauvegarde de 3983 sources core/gameplay/distribution/authoring/editor/MCP, des règles et du plan dans `/tmp/avelune-p08-before.json`. HEAD cfad4b922, index vide. Un seul implémenteur prend la projection/préparation additive, la certification finale P06 et le replay durable sécurisé ; les audits de raccord post-P06 et de réutilisation des helpers P03/P07 lui sont transmis. Les hunks étrangers de terrain, gateway, gameplay et Studio restent protégés. Aucun job, UI, galerie ou projet réel n’est ajouté à P08.
+
+La copie de qualification parent `/tmp/p08-qualified-probe.json` contient les 9659 fichiers réguliers de HEAD seul ; l'inventaire Git a été comparé sans omission. Un lien historique absolu de file_picker est exclu, comme aux lots précédents. Les quatre `dart pub get --offline` des packages purs et `flutter pub get --offline` de l'éditeur passent ; l'ajustement du lockfile éditeur dans cette seule copie reste exclu du candidat.
+
+Probe initial indépendant de reconstruction : `/tmp/p08-replay-reconstruction-probe.dart`, SHA256 `6fae457246ac78133b40337c17a71b926f5049ed11b6f3dca251df95398934d8`, reçu `/tmp/p08-replay-probe-receipt.json`. Sur HEAD cfad4b922, après apply resource.classify réussi et suppression normale du journal, fermeture puis reconstruction de worker/API/handles et réouverture : même plan/op refusé avec `validation_failed` / domainCode `plan.unknown`, sameReceipt false, projet et historique inchangés. Commande `dart --packages=<copie>/packages/map_authoring/.dart_tool/package_config.json /tmp/p08-replay-reconstruction-probe.dart`, via wrapper possédé ; log `/tmp/p08-replay-reconstruction-baseline-v2.log`, runner 32099, exit 0, aucun descendant ni résidu. Ce résultat caractérise le besoin P08 et ne prouve aucune correction. La première version du seul affichage JSON encodait un enum directement ; elle a été corrigée vers toJson avant de figer le probe, sans changement produit. Le probe restera inchangé lors de la qualification du replay sécurisé.
+
+Le commit étranger Fishing `0e6dbc7b67e6f9bd4921cb1081136c2128781896` avance HEAD pendant P08. La copie parent est rafraîchie uniquement avec ses 37 blobs committés, après comparaison de chacun au précédent HEAD ; reçu `/tmp/p08-qualified-fishing-refresh.json`. La sauvegarde initiale P08 reste inchangée pour attribuer les hunks. Aucun fichier non committé de Fishing ou de terrain n'est ajouté à cette copie.
+
+Une régression intermédiaire P08 bloque `describe` : `_contractTestFor` ne possède pas encore la preuve `resource_pack.import` et lève `No PMCP-085 contract evidence for resource_pack.import`, remonté `worker.internal`. RED `/tmp/p08-describe-red.log` et reproduction parent `/tmp/p08-shared-describe-probe.log`. Le raccord ciblé ajoute l'action et sa preuve directe, sans inventer d'exécution CLI/éditeur/MCP du workflow de transfert ; GREEN `/tmp/p08-describe-green.log`. Un AOT de checkpoint partagé compile dans `/tmp/p08-authoring-checkpoint-build.log` et son vrai JSONL describe passe, 423 actions, `/tmp/p08-parent-checkpoint-describe.log`, runner 44326, exit 0, aucun descendant. Le schéma de l'import n'accepte que preparedImportHandle. Cela vérifie la santé du checkpoint partagé, pas le candidat final isolé P08 ni les transports P09.
+
+Coordination du chantier terrain : un gel temporaire des écritures de production P08 permet d'épingler un worker indépendant avant une mutation native autorisée de son côté. Une copie de notre checkpoint est conservée séparément avec SHA256 `c2be76b3d67ca45ad541541af8d54f0ecebbdaad2df18f03be466627c312ed50`, reçu `/tmp/p08-terrain-checkpoint-handoff.json`. Le propriétaire confirme finalement son propre AOT SHA256 `8d8c822ddb23982b637dea27a70ba30b463cb0f9731bbf2ef16497c224f2a2fc`, 961 sources/configs stables avant/après compilation, describe et test MCP terrain 1/1 ; ces derniers sont ses preuves, pas une qualification P08 du parent. Le gel est levé dès son épinglage. Aucun accès ou mutation MAIN/NB2 par ce chantier assets ; P08 continue sur fixtures privées.
+
+### P08 — Candidat V1 et premières réserves indépendantes
+
+L'audit d'implémentation confirme les frontières P03/P04/P06/P07 : le visiteur portable inventorie sans remapper, le store possède déjà les leases et lectures vérifiées, l'autorité bulk reste interne, et les helpers de réécriture typée/préparation Border sont extraits de l'export. Une projection native pure précède la fusion additive et sert aussi de référence pour les dépendances historiques. Aucun job, UI, galerie, donnée de projet réel, push ou rebase dans ce lot.
+
+Le candidat V1 compte 24 fichiers techniques, neuf créations ; `/tmp/p08-final-candidate.json`, patch `/tmp/p08-final-owned.patch`, SHA256 `4d0b0a8c1f29781a463837c772ff79b278c003fa0df3c415cb37289167ae5dd9`. Le parent vérifie chaque contenu contre le candidat, le checkout, la sauvegarde initiale et HEAD `0e6dbc7b67e6f9bd4921cb1081136c2128781896`, puis le fige dans `/tmp/p08-parent-candidate-v1.json`. Les deux fichiers partagés contiennent uniquement les injections P08 au-dessus de HEAD ; leurs hunks étrangers restent exclus. La copie exécutable ne reçoit que ces 24 fichiers au-dessus de ses blobs committés.
+
+| Fichier technique | Zones et effet attendu |
+| --- | --- |
+| packages/map_core/lib/src/models/resource_pack_installation_catalog.dart | Trace JSON des mappings internes déterministes ; aucun fingerprint supplémentaire de support |
+| packages/map_distribution/lib/map_distribution.dart | Export limité des trois types du lecteur ZIP aléatoire existant |
+| packages/map_authoring/lib/map_authoring.dart | Exports de l'action et du préparateur canonique |
+| packages/map_authoring/lib/src/api/local_map_authoring_mutation_api.dart | Composition par session, préflight replay durable, certification finale et préconditions sous verrou |
+| packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart | Injection du résolveur opaque et enregistrement de l'action, sans exemption de garde |
+| packages/map_authoring/lib/src/parity/full_authoring_parity.dart | Contrat import et preuve directe ; aucune preuve de transfert distant inventée |
+| packages/map_authoring/lib/src/security/secure_mutation_executor.dart | Contrôles de contexte et reçu ledger/historique, autorisation et audit du replay sans mutation |
+| packages/map_authoring/lib/src/tooling/jsonl_worker.dart | Traduction des erreurs de préparation et d'index en refus de domaine |
+| packages/map_authoring/lib/src/transactions/file_idempotency_store.dart | Lookup secondaire acteur/projet/opération sur l'index existant, matérialisation du seul record demandé |
+| packages/map_authoring/lib/src/transactions/authoring_payload.dart | Cleanup d'association d'inventaire lié à l'owner du plan |
+| packages/map_authoring/lib/src/workspace/project_snapshot_loader.dart | Petit port de probe conservant missing/exists/inventoryUnavailable |
+| packages/map_authoring/lib/src/domains/assets/asset_store.dart | Exclusion exacte de la trace historique du scan d'usages |
+| packages/map_authoring/lib/src/domains/assets/resource_source_guards.dart | Même exclusion exacte de la garde de suppression |
+| packages/map_authoring/lib/src/references/resource_usage_documents.dart | Même exclusion exacte des documents de références vivantes |
+| packages/map_authoring/lib/src/domains/assets/resource_pack_projection.dart | Export raccordé aux helpers communs, preuve d'aliases P07 conservée |
+| packages/map_authoring/lib/src/domains/assets/resource_pack_native_remapper.dart | Réécritures typées partagées des références, frames, propriétés et supports |
+| packages/map_authoring/lib/src/domains/assets/resource_pack_border_sources.dart | Préparation Border commune avec marges, métriques et compilateur canonique |
+| packages/map_authoring/lib/src/domains/assets/resource_pack_import_projection.dart | Projection des sept kinds/supports, namespace, GLB, classification et snapshots |
+| packages/map_authoring/lib/src/domains/assets/resource_pack_import_preparer.dart | Sélection/préparation possédées, conflits, fichiers/CAS/licences, leases, expiration et inventaire final |
+| packages/map_authoring/lib/src/domains/assets/resource_pack_actions.dart | Paramètre unique preparedImportHandle et garantie publique recoverable, sans atomic ambigu |
+| packages/map_authoring/test/domains/assets/resource_pack_actions_test.dart | Révisions, dry-run, ownership multi-plans, expiration, Border réel, image collection, monde et discoverability |
+| packages/map_authoring/test/domains/assets/resource_pack_transaction_test.dart | Apply/replay, contexte, rétention, fautes, certification et trajet réel de plus de 500 fichiers |
+| packages/map_authoring/test/domains/assets/resource_pack_reimport_test.dart | Tableau de réimport, dépendances historiques, copie isolée et versions côte à côte |
+| packages/map_authoring/test/domains/assets/resource_pack_import_fixture.dart | Fixtures possédées et reconstruction native ; aucun projet réel |
+
+Preuves auteur V1 : cinq suites signées 57/57, `/tmp/p08-signed-final-v2.log` ; export 23/23, `/tmp/p08-export-final.log` ; analyse authoring `No issues found!`, `/tmp/p08-shared-analyze-final-v2.log`. Un premier helper redo retournait une Future sans await dans try/finally et libérait son plan trop tôt ; corrigé. Le trajet bulk complet dépassait ensuite 30 secondes dans un test ; il a été découpé en trois phases ordonnées partageant une fixture, sans augmenter les délais. Ces preuves partagées ne constituent pas une qualification isolée.
+
+Commande parent V1, dans map_authoring qualifié, via `/tmp/avelune-assets-owned-run.py` : `dart test test/domains/assets/resource_pack_actions_test.dart test/domains/assets/resource_pack_transaction_test.dart test/domains/assets/resource_pack_reimport_test.dart test/domains/assets/content_addressing_test.dart test/domains/assets/asset_security_test.dart test/domains/assets/resource_pack_export_test.dart test/domains/distribution/resource_library_export_test.dart --concurrency=1 --reporter expanded`. Résultat exact : `02:25 +87 -2: Some tests failed.`, exit 1, `/tmp/p08-qualified-authoring-v1.log`. L'apply bulk prend environ 19 secondes ; undo dépasse 30 secondes, puis redo échoue car l'historique est encore mutation. Le teardown produit une erreur IO secondaire pendant l'undo encore actif. Trois descendants observés, aucun résidu confirmé. Aucun vert global ni augmentation d'un délai global ; diagnostic privé borné demandé avant décision sur ce test d'intégration.
+
+Le probe parent original inchangé de reconstruction passe désormais sur V1 : `replayStatus: success`, `sameReceipt: true`, journal supprimé, worker/API reconstruits, projet et historique inchangés. `/tmp/p08-replay-reconstruction-green-v1.log`, runner 65310, exit 0, un descendant, aucun résidu. La même source avait donné plan.unknown sur les deux HEAD de référence.
+
+Conformité indépendante V1 : **NON CONFORME, un P2**. Une classification ajoutée localement à une dépendance historique initialement non classée est ignorée lors d'une extension : la boucle compare seulement les entrées attendues présentes. Probe `/tmp/p08-spec-classification-probe.dart`, SHA256 `1d28188baebc64bb28c71445cfd7643cfe96cfa1f81bdf308bed324088fbea89`, log associé : extension character après import element et classement local interior du tileset requis retourne ready/conflicts vides. La correction doit comparer symétriquement présence et absence pour les seules dépendances historiques requises. Le probe restera inchangé pour la requalification.
+
+La même revue altère directement le seul fingerprint privé du ledger : replay accepté avec reçu identique et projet inchangé, `/tmp/p08-spec-fingerprint-probe.dart` et `.log`. Limite d'intégrité privée explicite, sans finding P1/P2 : la menace de réécriture directe des fichiers privés reste hors contrat, et aucun nouveau champ/signature n'est introduit. Les 24 hashes gelés/qualifiés restent identiques avant/après la revue. Sa garde Markdown en copie sans dépôt Git sort 128 ; la garde réellement lancée au dépôt par le parent est verte, aucun nouveau Markdown. Qualité, AOT final, parité/MCP final et commit P08 restent ouverts.
+
+### P08 — Correction, qualification V2r et avis de revue
+
+Le P2 est corrigé dans `_definitionConflicts` : comparer symétriquement les classifications attendues et actuelles des seules ressources historiques requises, y compris absence/présence. Les nouvelles régressions vérifient ajout, suppression, importCopy sans modifier le classement local original, et modification hors fermeture conservée. L'oracle indépendant V1 reste byte-identique et retourne maintenant conflict avec classification_modified_or_missing. Aucun changement de politique pour une sélection déjà couverte.
+
+Un diagnostic privé sur les sources V1 immuables garde la fixture jusqu'à la fin réelle des opérations et mesure une progression régulière jusqu'aux 506 changements physiques : apply 15,123 secondes, undo 22,360 secondes, reçu applied et zéro tileset après annulation ; `/tmp/p08-bulk-stages-probe.log`, exit 0 sans résidu. Il ne prouve pas la cause exacte du ralentissement du premier run. Le test volumineux devient une seule intégration apply → undo → redo → reopen, propriétaire de sa fixture dans le try/finally du même Future. Sa borne locale explicite est 180 secondes ; aucun délai global, SLA produit, workflow ou coût de runner CI n'est changé. Le premier parcours auteur complet se termine en 58,585 secondes ; `/tmp/p08-bulk-integration-v2.log`. Ce changement de test remplace le découpage artificiel en phases et empêche le teardown de supprimer les fichiers pendant une phase encore active.
+
+Le gel final V2r contient 25 fichiers techniques, neuf créations : les 24 chemins du tableau précédent, plus `packages/map_distribution/test/resource_pack_inspector_test.dart`. Ce dernier retire une seule importation interne devenue redondante après l'export public du lecteur ZIP ; il était propre, byte-identique baseline/HEAD/checkout avant intervention. Cinq chemins seulement diffèrent de V1 : préparateur, trois tests/fixture authoring et ce test distribution. Les vingt autres SHA sont identiques. Aucun hunk étranger de dispatcher/parité/gateway n'est absorbé.
+
+Manifeste parent `/tmp/p08-parent-candidate-v2r.json`, gel `/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-p08-frozen-v2r-60qtah57`, copie exécutable indiquée dans le manifeste. Patch propre `/tmp/p08-final-v2r-owned.patch`, SHA256 `94e4e4d657ac76306a6d273de5e99c96dfe3f00ffe1f32b9b15ef6ab59196e21`. Les 25 contenus sont contrôlés depuis HEAD 0e6, la sauvegarde initiale, le checkout et le candidat ; les deux revues vérifient leurs SHA avant/après sans écart.
+
+| Passe / commande fraîche du parent | Résultat exact et preuve |
+| --- | --- |
+| map_authoring : sept fichiers de tests de la commande V1, `--concurrency=1 --reporter expanded` | `01:27 +89: All tests passed!`, exit 0 ; `/tmp/p08-qualified-authoring-v2r.log` |
+| map_authoring : `dart test test/transactions/idempotency_contract_test.dart test/security/authorization_policy_test.dart test/security/resource_pack_bulk_authorization_test.dart --concurrency=1 --reporter expanded` | `01:52 +38: All tests passed!`, exit 0 ; `/tmp/p08-qualified-security-v2r.log` |
+| map_authoring : `dart test test/parity/full_authoring_parity_test.dart --concurrency=1 --reporter expanded` | `00:36 +20: All tests passed!`, exit 0 ; `/tmp/p08-qualified-parity-isolated-v2r.log` |
+| map_core : quatre fichiers resource_pack_contract/publication/dependency_graph/installation_catalog, `--reporter expanded` | `00:07 +47: All tests passed!`, exit 0 ; `/tmp/p08-qualified-core-v1.log`. Sources core strictement identiques dans V2r |
+| map_distribution : `dart test --reporter expanded` | `01:05 +355: All tests passed!`, exit 0 ; `/tmp/p08-qualified-distribution-v2r.log`, suite du candidat isolé. Les 357 tests du checkout partagé de l'auteur ne sont pas présentés comme ces 355 tests |
+| map_authoring : `dart analyze` | `No issues found!`, exit 0 ; `/tmp/p08-qualified-authoring-analyze-v2r.log` |
+| map_core : `dart analyze lib/src/models/resource_pack_installation_catalog.dart` | `No issues found!`, exit 0 ; `/tmp/p08-qualified-core-target-analyze-v2r.log` |
+| map_core : `dart analyze` | 129 infos, zéro warning/erreur, exit 0 ; `/tmp/p08-qualified-core-analyze-v1.log`, toutes hors fichier modifié |
+| map_distribution : `dart analyze` | Une info unnecessary_library_name hors delta, exit 0 ; `/tmp/p08-qualified-distribution-analyze-v2r.log`. L'info nouvelle unnecessary_import est supprimée |
+| map_authoring : `dart compile exe bin/pokemap_authoring.dart -o /tmp/p08-qualified-authoring-v2r` | `Generated: /tmp/p08-qualified-authoring-v2r`, exit 0 ; `/tmp/p08-qualified-build-v2r.log` |
+| tools/pokemap_mcp : `npm run check`, puis `npm run build` | Exit 0 chacun ; `/tmp/p08-mcp-check-v2r.log`, `/tmp/p08-mcp-build-v2r.log` |
+| Deux tests MCP originaux resource_library_stdio et model3d_source_replace_stdio, puis probe privé du contrat d'import | 2/2 en 5,122 secondes, puis schéma strict/garantie recoverable/refus resource_pack.prepared_unknown avec manifeste inchangé ; exit 0, `/tmp/p08-mcp-live-v2r.log` |
+
+Le MCP utilise un AOT épinglé du seul candidat HEAD+P08, SHA256 `bdcb29dfad8394e13e4d282b663f8fed0ed94b0c173cfa3222d221036c63762d`, reçu `/tmp/p08-mcp-aot-v2r.json`. Shim dart limité au child de cette vérification ; tests originaux et deadlines MCP inchangés. Le catalogue réel expose 417 actions et 60 kinds. Ce probe prouve l'action et ses refus, pas le workflow de transfert complet P09.
+
+Deux oracles privés inchangés sont rejoués par le parent sur V2r : reconstruction après suppression du journal → même reçu, projet/historique inchangés, `/tmp/p08-replay-reconstruction-green-v2r.log`, exit 0 ; classification ajoutée → conflict, `/tmp/p08-parent-classification-green-v2r.log`, exit 0. Les SHA des sources d'oracle restent ceux consignés plus haut.
+
+La vérification additionnelle groupée parité/registre/documentation donne initialement 30 passés et trois échecs, `/tmp/p08-qualified-parity-v2r.log` : deux sous-processus PMCP expirent à 30 secondes, et le registre manque cinematicMediaAsset. Les deux sous-processus passent ensuite sur HEAD pur (2/2 en 35 secondes, `/tmp/p08-head-pmcp-tool-tests.log`) et toute la parité V2r passe isolément (20/20 en 36 secondes), délais inchangés. La cause exacte des expirations du run groupé n'est pas affirmée ; elles restent consignées, sans vert global.
+
+Le cas cinematicMediaAsset est reproduit exactement, sans P08, sur une archive Git de HEAD 0e6 contenant les quatre packages purs : `/tmp/p08-registry-baseline.json`, `dart test test/registry/action_registry_test.dart --plain-name 'registers every resource kind used by canonical mutations' --reporter expanded` → 0 passé, un échec, même Set cinematicMediaAsset, exit 1 ; `/tmp/p08-head-registry-baseline.log`. Il reste hors correctif P08. Une analyse core de cette archive partielle retourne exit 3 : les 129 infos du candidat y sont retrouvées, avec 70 diagnostics supplémentaires dus aux références externes non extraites ; `/tmp/p08-head-core-analyze.log`. Cette analyse partielle ne constitue pas un baseline global vert.
+
+La commande autonome `dart run tool/pmcp085_conformance.dart` produit catalogComplete true, blockedOrMissingCount 0, 417 actions, mais transportCertificationComplete et itemTransportCertificationComplete false ; exit 1 attendu sans bundle des reçus Item, `/tmp/p08-qualified-pmcp085-v2r.log`. Aucun reçu de transport n'est fabriqué pour changer ce résultat. La parité de transfert du lot reste explicitement PARTIAL jusqu'à P09.
+
+Conformité V2r : **CONFORME**, aucun P1/P2 restant. Le reviewer rejoue son oracle intact puis trois tests indépendants de classification/hors fermeture/importCopy : 3/3 en 14 secondes, `/tmp/p08-spec-classification-targeted-v2r.log`, exit 0. Qualité V2r : **APPROUVÉE**, aucun P1/P2 concret. Son probe original `/tmp/p08-quality-owned-probe.dart`, SHA256 `631c648d0bc49a42291d72f297ada3f34611737f3276e201bf9779e5819d1d48`, prouve apply après release de préparation/sélection/archive, nettoyage des inventaires indépendants, refus d'acteur sans mutation, reçu original reconstruit et rétention de 31 jours ; `/tmp/p08-quality-owned-probe-v2.log`, exit 0. Le premier essai de ce seul probe gardait le workspace vivant 31 jours et recevait workspace.handle_expired ; correction du probe par fermeture/réouverture, aucun changement produit.
+
+Verdicts des passes : audit/architecture raccord conforme ; implémentation livrée sur le périmètre signé après correction P2 ; tests et build ciblés validés ci-dessus, réserves globales explicites ; conformité indépendante conforme ; critique qualité indépendante approuvée. Tous les runners parent sont possédés par le wrapper ; le run groupé parité réape deux descendants confirmés après timeout, les autres runs finaux n'ont aucun résidu non confirmé. Aucun processus ou application étrangère arrêté.
+
+Auto-critique : aucune mesure RSS, saturation réelle de disque, capacité maximale, UI ou lecture Player n'est certifiée. Les fautes sont injectées aux checkpoints dans des fixtures originales temporaires. Le trajet bulk réel porte sur 501 aliases PNG et une licence, 502 sorties logiques et deux CAS ; il ne remplace pas P12. La limite d'intégrité privée du fingerprint et les refus v1 Border restent explicites. Les réserves globales P05, le registre cinématique antérieur et les expirations du premier run groupé restent visibles. P09 porte jobs/transports/annulation, P10/P11 les parcours Studio et P12 la certification native/volume ; P13 reste différé.
+
+Préparation du commit P08 autorisé : 25 fichiers techniques qualifiés et ce plan consolidé, 26 chemins uniquement. HEAD attendu 0e6, index vide, 310 chemins dirty globaux avant staging. Contrôler chaque blob d'index contre le gel, puis committer et vérifier parent, liste des chemins et hashes ; reçu `/tmp/p08-commit-receipt.json`. Aucun push/rebase. P08 proposé TO REVIEW, décision DONE réservée à Yoahn ; agrégat Notion DOING et P09 prochaine étape après commit.

@@ -206,6 +206,7 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
     required Iterable<ResourcePackResourceMapping> resources,
     required Iterable<ResourcePackSupportMapping> supports,
     required Iterable<ResourcePackAssetMapping> assets,
+    Map<String, String> internalMappings = const {},
     required String installedAtUtc,
     required this.provenanceStatus,
   }) : installationId = _identifier(installationId, 'installationId'),
@@ -222,6 +223,13 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
        resources = _ordered(resources, (mapping) => mapping.source.identity),
        supports = _ordered(supports, (mapping) => mapping.sourceIdentity),
        assets = _ordered(assets, (mapping) => mapping.fileId),
+       internalMappings = Map.unmodifiable({
+         for (final key in internalMappings.keys.toList()..sort())
+           _identifier(key, 'internalMappings.key'): _identifier(
+             internalMappings[key]!,
+             'internalMappings.targetId',
+           ),
+       }),
        installedAtUtc = _timestamp(installedAtUtc) {
     if (copyOrdinal < 0 ||
         this.selectedRoots.isEmpty &&
@@ -236,6 +244,7 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
     if (this.selectedRoots.any((root) => !mapped.contains(root.identity))) {
       throw const FormatException('A selected root has no installed mapping');
     }
+    _unique(this.internalMappings.values);
     _unique(this.resources.map((mapping) => mapping.targetIdentity));
     _unique(this.supports.map((mapping) => mapping.targetIdentity));
     final mappedPatterns = this.supports
@@ -299,6 +308,7 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
       'resources',
       'supports',
       'assets',
+      'internalMappings',
       'installedAtUtc',
       'provenanceStatus',
     });
@@ -324,6 +334,11 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
         json['supports'],
       ).map(ResourcePackSupportMapping.fromJson),
       assets: _objects(json['assets']).map(ResourcePackAssetMapping.fromJson),
+      internalMappings: json['internalMappings'] == null
+          ? const {}
+          : _object(
+              json['internalMappings'],
+            ).map((key, value) => MapEntry(key, _string(value))),
       installedAtUtc: _string(json['installedAtUtc']),
       provenanceStatus: _enum(
         ResourcePackProvenanceStatus.values,
@@ -344,6 +359,7 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
   final List<ResourcePackResourceMapping> resources;
   final List<ResourcePackSupportMapping> supports;
   final List<ResourcePackAssetMapping> assets;
+  final Map<String, String> internalMappings;
   final String installedAtUtc;
   final ResourcePackProvenanceStatus provenanceStatus;
 
@@ -365,6 +381,7 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
     'resources': [for (final mapping in resources) mapping.toJson()],
     'supports': [for (final mapping in supports) mapping.toJson()],
     'assets': [for (final mapping in assets) mapping.toJson()],
+    if (internalMappings.isNotEmpty) 'internalMappings': internalMappings,
     'installedAtUtc': installedAtUtc,
     'provenanceStatus': provenanceStatus.name,
   };

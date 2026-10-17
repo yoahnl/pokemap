@@ -275,6 +275,7 @@ final class _PayloadInspection {
 
 final class AuthoringPayloadOwner {
   final Set<AuthoringPayload> _payloads = {};
+  final List<FutureOr<void> Function()> _cleanups = [];
   Future<void>? _releaseFuture;
 
   AuthoringPayload own(AuthoringPayload payload) {
@@ -285,12 +286,30 @@ final class AuthoringPayloadOwner {
     return payload;
   }
 
+  void onRelease(FutureOr<void> Function() cleanup) {
+    if (_releaseFuture != null) {
+      throw StateError('The payload owner has been released.');
+    }
+    _cleanups.add(cleanup);
+  }
+
   Future<void> release() => _releaseFuture ??= _releaseOwned();
 
-  Future<void> _releaseOwned() {
+  Future<void> _releaseOwned() async {
     final payloads = _payloads.toList(growable: false);
+    final cleanups = _cleanups.toList(growable: false);
     _payloads.clear();
-    return releaseAuthoringPayloads(payloads);
+    _cleanups.clear();
+    final results = await Future.wait([
+      releaseAuthoringPayloads(payloads)
+          .then<Object?>((_) => null, onError: (Object error) => error),
+      for (final cleanup in cleanups)
+        Future<void>.sync(cleanup)
+            .then<Object?>((_) => null, onError: (Object error) => error),
+    ]);
+    for (final error in results) {
+      if (error != null) throw error;
+    }
   }
 }
 

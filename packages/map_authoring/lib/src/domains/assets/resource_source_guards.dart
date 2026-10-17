@@ -107,7 +107,7 @@ void requireResourceAssetUnused(
     }
   }
   final values = {
-    'project': projected.toJson(),
+    'project': projected.toJson()..remove('resourcePackInstallations'),
     for (final map in snapshot.maps) 'map:${map.id}': map.toJson(),
     ...additional
   };

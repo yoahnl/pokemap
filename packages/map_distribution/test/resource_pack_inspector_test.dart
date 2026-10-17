@@ -9,7 +9,6 @@ import 'package:map_distribution/map_distribution.dart';
 import 'support/glb_fixture.dart';
 
 import 'package:map_distribution/src/deterministic_zip_encoder.dart';
-import 'package:map_distribution/src/random_access_zip_structure_reader.dart';
 import 'package:test/test.dart';
 
 final class _Source implements RandomAccessPackageSource {
