@@ -75,6 +75,8 @@ loadWorkspaceSession(
           port: widget.resourcePort!,
           packPort: widget.resourcePackPort,
           packPicker: widget.resourcePackPicker,
+          packLicensePicker: widget.resourcePackLicensePicker,
+          packExportSink: widget.resourcePackExportSink,
           visuals: visuals,
           onUse: onUse,
           openUsage: openUsage,

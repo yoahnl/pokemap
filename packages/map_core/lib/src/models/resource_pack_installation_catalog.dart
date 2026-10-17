@@ -127,6 +127,51 @@ final class ResourcePackSupportMapping extends _InstallationJsonValue {
   };
 }
 
+final class ResourcePackLicenseMapping extends _InstallationJsonValue {
+  ResourcePackLicenseMapping({
+    required this.sourcePath,
+    required String targetPath,
+    required String rawSha256,
+    required this.byteLength,
+  }) : targetPath = _targetPath(targetPath),
+       rawSha256 = _digest(rawSha256) {
+    ResourcePackInventoryFile(
+      path: sourcePath,
+      byteLength: byteLength,
+      mediaType: 'text/plain',
+      rawSha256: rawSha256,
+    );
+    if (sourcePath != 'licenses/$rawSha256.txt' ||
+        !targetPath.startsWith('assets/resource_packs/') ||
+        !targetPath.endsWith('/$sourcePath')) {
+      throw const FormatException('Invalid installed licence document path');
+    }
+  }
+
+  factory ResourcePackLicenseMapping.fromJson(Map<String, Object?> json) {
+    _keys(json, {'sourcePath', 'targetPath', 'rawSha256', 'byteLength'});
+    return ResourcePackLicenseMapping(
+      sourcePath: _string(json['sourcePath']),
+      targetPath: _string(json['targetPath']),
+      rawSha256: _string(json['rawSha256']),
+      byteLength: _integer(json['byteLength']),
+    );
+  }
+
+  final String sourcePath;
+  final String targetPath;
+  final String rawSha256;
+  final int byteLength;
+
+  @override
+  Map<String, Object?> toJson() => {
+    'sourcePath': sourcePath,
+    'targetPath': targetPath,
+    'rawSha256': rawSha256,
+    'byteLength': byteLength,
+  };
+}
+
 final class ResourcePackAssetMapping extends _InstallationJsonValue {
   ResourcePackAssetMapping({
     required String fileId,
@@ -135,10 +180,14 @@ final class ResourcePackAssetMapping extends _InstallationJsonValue {
     required String rawSha256,
     required this.byteLength,
     required this.mediaType,
+    required String provenanceId,
+    required Iterable<String> licenseIds,
   }) : fileId = _portableIdentifier(fileId),
        assetId = _nativeAssetId(assetId),
        targetPath = _targetPath(targetPath),
-       rawSha256 = _digest(rawSha256) {
+       rawSha256 = _digest(rawSha256),
+       provenanceId = _portableIdentifier(provenanceId),
+       licenseIds = _ordered(licenseIds, (id) => id) {
     final extension = switch (mediaType) {
       'image/png' => 'png',
       'model/gltf-binary' => 'glb',
@@ -163,6 +212,8 @@ final class ResourcePackAssetMapping extends _InstallationJsonValue {
       'rawSha256',
       'byteLength',
       'mediaType',
+      'provenanceId',
+      'licenseIds',
     });
     return ResourcePackAssetMapping(
       fileId: _string(json['fileId']),
@@ -171,6 +222,8 @@ final class ResourcePackAssetMapping extends _InstallationJsonValue {
       rawSha256: _string(json['rawSha256']),
       byteLength: _integer(json['byteLength']),
       mediaType: _string(json['mediaType']),
+      provenanceId: _string(json['provenanceId']),
+      licenseIds: _strings(json['licenseIds']),
     );
   }
 
@@ -180,6 +233,8 @@ final class ResourcePackAssetMapping extends _InstallationJsonValue {
   final String rawSha256;
   final int byteLength;
   final String mediaType;
+  final String provenanceId;
+  final List<String> licenseIds;
 
   @override
   Map<String, Object?> toJson() => {
@@ -189,6 +244,8 @@ final class ResourcePackAssetMapping extends _InstallationJsonValue {
     'rawSha256': rawSha256,
     'byteLength': byteLength,
     'mediaType': mediaType,
+    'provenanceId': provenanceId,
+    'licenseIds': licenseIds,
   };
 }
 
@@ -206,6 +263,8 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
     required Iterable<ResourcePackResourceMapping> resources,
     required Iterable<ResourcePackSupportMapping> supports,
     required Iterable<ResourcePackAssetMapping> assets,
+    required Iterable<ResourcePackProvenance> origins,
+    required Iterable<ResourcePackLicenseMapping> licenses,
     Map<String, String> internalMappings = const {},
     required String installedAtUtc,
     required this.provenanceStatus,
@@ -223,6 +282,8 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
        resources = _ordered(resources, (mapping) => mapping.source.identity),
        supports = _ordered(supports, (mapping) => mapping.sourceIdentity),
        assets = _ordered(assets, (mapping) => mapping.fileId),
+       origins = _ordered(origins, (origin) => origin.id),
+       licenses = _ordered(licenses, (license) => license.sourcePath),
        internalMappings = Map.unmodifiable({
          for (final key in internalMappings.keys.toList()..sort())
            _identifier(key, 'internalMappings.key'): _identifier(
@@ -272,7 +333,29 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
         );
       }
     }
-    final assetRecords = <String, (String, String, int, String)>{};
+    final originIds = this.origins.map((origin) => origin.id).toSet();
+    final licensePaths = this.licenses
+        .map((license) => license.sourcePath)
+        .toSet();
+    _unique(this.licenses.map((license) => license.targetPath));
+    for (final origin in this.origins) {
+      if (origin.resources.any((ref) => !mapped.contains(ref.identity)) ||
+          origin.licenseIds.any((path) => !licensePaths.contains(path))) {
+        throw const FormatException(
+          'Installed origin has unresolved associations',
+        );
+      }
+    }
+    for (final asset in this.assets) {
+      if (!originIds.contains(asset.provenanceId) ||
+          asset.licenseIds.any((path) => !licensePaths.contains(path))) {
+        throw const FormatException(
+          'Installed asset has unresolved attribution',
+        );
+      }
+    }
+    final assetRecords =
+        <String, (String, String, int, String, String, String)>{};
     final assetPaths = <String, String>{};
     for (final asset in this.assets) {
       final record = (
@@ -280,6 +363,8 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
         asset.rawSha256,
         asset.byteLength,
         asset.mediaType,
+        asset.provenanceId,
+        jsonEncode(asset.licenseIds),
       );
       final existing = assetRecords[asset.assetId];
       final pathOwner = assetPaths[asset.targetPath];
@@ -308,6 +393,8 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
       'resources',
       'supports',
       'assets',
+      'origins',
+      'licenses',
       'internalMappings',
       'installedAtUtc',
       'provenanceStatus',
@@ -334,6 +421,10 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
         json['supports'],
       ).map(ResourcePackSupportMapping.fromJson),
       assets: _objects(json['assets']).map(ResourcePackAssetMapping.fromJson),
+      origins: _objects(json['origins']).map(ResourcePackProvenance.fromJson),
+      licenses: _objects(
+        json['licenses'],
+      ).map(ResourcePackLicenseMapping.fromJson),
       internalMappings: json['internalMappings'] == null
           ? const {}
           : _object(
@@ -359,6 +450,8 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
   final List<ResourcePackResourceMapping> resources;
   final List<ResourcePackSupportMapping> supports;
   final List<ResourcePackAssetMapping> assets;
+  final List<ResourcePackProvenance> origins;
+  final List<ResourcePackLicenseMapping> licenses;
   final Map<String, String> internalMappings;
   final String installedAtUtc;
   final ResourcePackProvenanceStatus provenanceStatus;
@@ -381,6 +474,8 @@ final class ResourcePackInstallation extends _InstallationJsonValue {
     'resources': [for (final mapping in resources) mapping.toJson()],
     'supports': [for (final mapping in supports) mapping.toJson()],
     'assets': [for (final mapping in assets) mapping.toJson()],
+    'origins': [for (final origin in origins) origin.toJson()],
+    'licenses': [for (final license in licenses) license.toJson()],
     if (internalMappings.isNotEmpty) 'internalMappings': internalMappings,
     'installedAtUtc': installedAtUtc,
     'provenanceStatus': provenanceStatus.name,
@@ -418,7 +513,7 @@ final class ResourcePackInstallationCatalog extends _InstallationJsonValue {
     );
   }
 
-  static const currentFormatVersion = 1;
+  static const currentFormatVersion = 2;
   final List<ResourcePackInstallation> entries;
   bool get isEmpty => entries.isEmpty;
 

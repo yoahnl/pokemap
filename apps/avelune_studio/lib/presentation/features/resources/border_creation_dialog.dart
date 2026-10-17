@@ -1,3 +1,5 @@
+import '../../../features/resources/domain/resource_pack_port.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -56,6 +58,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   String? _error;
   List<String> _warningCodes = const [];
   late final bool Function() _dirtyOwner;
+  late final ResourcePackBorderDraft Function() _exportOwner;
 
   @override
   void initState() {
@@ -72,8 +75,14 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     _masksGroundCells = record?.draft.definition.masksGroundCells ?? false;
     _groundBaseOffset = record?.draft.definition.groundBaseOffset ?? 0;
     _dirtyOwner = () => _hasChanges || _saving;
+    _exportOwner = () => ResourcePackBorderDraft(
+      request: _currentRequest(),
+      dirty: _hasChanges,
+      saving: _saving,
+    );
     if (_pendingId != null) {
       widget.navigation.borderEditorOwners[_pendingId!] = _dirtyOwner;
+      widget.navigation.packBorderDraftOwners[_pendingId!] = _exportOwner;
     }
     for (final primitive
         in record?.draft.definition.primitives ?? <BorderPrimitiveDraft>[]) {
@@ -100,6 +109,9 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   void dispose() {
     if (widget.navigation.borderEditorOwners[_pendingId] == _dirtyOwner) {
       widget.navigation.borderEditorOwners.remove(_pendingId);
+    }
+    if (widget.navigation.packBorderDraftOwners[_pendingId] == _exportOwner) {
+      widget.navigation.packBorderDraftOwners.remove(_pendingId);
     }
     _name.dispose();
     super.dispose();
@@ -428,6 +440,62 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     if (discard == true && mounted) Navigator.of(context).pop(false);
   }
 
+  BorderCreationRequest _currentRequest({bool publish = false}) => _nativeLedge
+      ? BorderCreationRequest(
+          name: _name.text.trim(),
+          blueprintId: _pendingId,
+          jumpSide: _jumpSide,
+          expectedRecord: _expectedRecord,
+          publish: publish,
+          acceptedWarningCodes: List.unmodifiable(_warningCodes),
+        )
+      : BorderCreationRequest(
+          name: _name.text.trim(),
+          capElementId:
+              widget.project.settings.dimension == ProjectDimension.twoD
+              ? _sourceId('lineCap')
+              : null,
+          straightElementId:
+              widget.project.settings.dimension == ProjectDimension.twoD
+              ? _sourceId('lineStraight')
+              : null,
+          cornerElementId:
+              widget.project.settings.dimension == ProjectDimension.twoD
+              ? _sourceId('lineCorner')
+              : null,
+          capModelId:
+              widget.project.settings.dimension == ProjectDimension.threeD &&
+                  !_selectedPrimitiveIds.containsKey('lineCap')
+              ? _sourceId('lineCap')
+              : null,
+          straightModelId:
+              widget.project.settings.dimension == ProjectDimension.threeD &&
+                  !_selectedPrimitiveIds.containsKey('lineStraight')
+              ? _sourceId('lineStraight')
+              : null,
+          cornerModelId:
+              widget.project.settings.dimension == ProjectDimension.threeD &&
+                  !_selectedPrimitiveIds.containsKey('lineCorner')
+              ? _sourceId('lineCorner')
+              : null,
+          innerCornerModelId:
+              _followContourDirection &&
+                  !_selectedPrimitiveIds.containsKey('lineCornerLeft')
+              ? _sourceId('lineCornerLeft')
+              : null,
+          blueprintId: _pendingId,
+          expectedRecord: _expectedRecord,
+          primitiveModelIds: Map.unmodifiable(_primitiveModelIds),
+          primitiveModelSettings: Map.unmodifiable(_primitiveModelSettings),
+          straightOnly: _straightOnly,
+          followContourDirection: _followContourDirection,
+          replacesGround: _replacesGround,
+          masksGroundCells: _masksGroundCells,
+          groundBaseOffset: _groundBaseOffset,
+          publish: publish,
+          acceptedWarningCodes: List.unmodifiable(_warningCodes),
+        );
+
   Future<void> _save(bool publish) async {
     if (_saving ||
         _name.text.trim().isEmpty ||
@@ -439,60 +507,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
       _saving = true;
       _error = null;
     });
-    final request = _nativeLedge
-        ? BorderCreationRequest(
-            name: _name.text.trim(),
-            blueprintId: _pendingId,
-            jumpSide: _jumpSide,
-            expectedRecord: _expectedRecord,
-            publish: publish,
-            acceptedWarningCodes: _warningCodes,
-          )
-        : BorderCreationRequest(
-      name: _name.text.trim(),
-      capElementId: widget.project.settings.dimension == ProjectDimension.twoD
-          ? _sourceId('lineCap')
-          : null,
-      straightElementId:
-          widget.project.settings.dimension == ProjectDimension.twoD
-          ? _sourceId('lineStraight')
-          : null,
-      cornerElementId:
-          widget.project.settings.dimension == ProjectDimension.twoD
-          ? _sourceId('lineCorner')
-          : null,
-      capModelId:
-          widget.project.settings.dimension == ProjectDimension.threeD &&
-              !_selectedPrimitiveIds.containsKey('lineCap')
-          ? _sourceId('lineCap')
-          : null,
-      straightModelId:
-          widget.project.settings.dimension == ProjectDimension.threeD &&
-              !_selectedPrimitiveIds.containsKey('lineStraight')
-          ? _sourceId('lineStraight')
-          : null,
-      cornerModelId:
-          widget.project.settings.dimension == ProjectDimension.threeD &&
-              !_selectedPrimitiveIds.containsKey('lineCorner')
-          ? _sourceId('lineCorner')
-          : null,
-      innerCornerModelId:
-          _followContourDirection &&
-              !_selectedPrimitiveIds.containsKey('lineCornerLeft')
-          ? _sourceId('lineCornerLeft')
-          : null,
-      blueprintId: _pendingId,
-      expectedRecord: _expectedRecord,
-      primitiveModelIds: Map.unmodifiable(_primitiveModelIds),
-      primitiveModelSettings: Map.unmodifiable(_primitiveModelSettings),
-      straightOnly: _straightOnly,
-      followContourDirection: _followContourDirection,
-      replacesGround: _replacesGround,
-      masksGroundCells: _masksGroundCells,
-      groundBaseOffset: _groundBaseOffset,
-      publish: publish,
-      acceptedWarningCodes: _warningCodes,
-    );
+    final request = _currentRequest(publish: publish);
     try {
       final receipt = await widget.navigation.port.createBorder(request);
       await widget.navigation.accept(receipt);
@@ -513,6 +528,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
         _pendingId = failure.borderId ?? _pendingId;
         if (_pendingId != null) {
           widget.navigation.borderEditorOwners[_pendingId!] = _dirtyOwner;
+          widget.navigation.packBorderDraftOwners[_pendingId!] = _exportOwner;
         }
         _warningCodes = failure.warningCodes;
       });
@@ -635,32 +651,42 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
               if (widget.project.settings.dimension == ProjectDimension.threeD)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: LayoutBuilder(builder: (context, bounds) {
-                    final controls = [StudioToggleRow(
-                    key: const ValueKey('border-replaces-ground'),
-                    label: 'Les pièces contiennent le rebord du sol',
-                    value: _replacesGround,
-                    onChanged: (value) => setState(() {
-                      _replacesGround = value;
-                      if (!value) _groundBaseOffset = 0;
-                      if (value) _masksGroundCells = false;
-                    }),
-                  ), StudioToggleRow(
-                    key: const ValueKey('border-masks-ground-cells'),
-                    label: 'Masquer le sol sur les cases de la bordure',
-                    value: _masksGroundCells,
-                    onChanged: (value) => setState(() {
-                      _masksGroundCells = value;
-                      if (value) {
-                        _replacesGround = false;
-                        _groundBaseOffset = 0;
-                      }
-                    }),
-                  )];
-                    return bounds.maxWidth < 760
-                        ? Column(children: controls)
-                        : Row(children: [for (final control in controls) Expanded(child: control)]);
-                  }),
+                  child: LayoutBuilder(
+                    builder: (context, bounds) {
+                      final controls = [
+                        StudioToggleRow(
+                          key: const ValueKey('border-replaces-ground'),
+                          label: 'Les pièces contiennent le rebord du sol',
+                          value: _replacesGround,
+                          onChanged: (value) => setState(() {
+                            _replacesGround = value;
+                            if (!value) _groundBaseOffset = 0;
+                            if (value) _masksGroundCells = false;
+                          }),
+                        ),
+                        StudioToggleRow(
+                          key: const ValueKey('border-masks-ground-cells'),
+                          label: 'Masquer le sol sur les cases de la bordure',
+                          value: _masksGroundCells,
+                          onChanged: (value) => setState(() {
+                            _masksGroundCells = value;
+                            if (value) {
+                              _replacesGround = false;
+                              _groundBaseOffset = 0;
+                            }
+                          }),
+                        ),
+                      ];
+                      return bounds.maxWidth < 760
+                          ? Column(children: controls)
+                          : Row(
+                              children: [
+                                for (final control in controls)
+                                  Expanded(child: control),
+                              ],
+                            );
+                    },
+                  ),
                 ),
               if (widget.project.settings.dimension ==
                       ProjectDimension.threeD &&

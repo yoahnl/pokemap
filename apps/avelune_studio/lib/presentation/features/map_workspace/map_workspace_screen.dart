@@ -115,6 +115,8 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.resourcePort,
     this.resourcePackPort,
     this.resourcePackPicker,
+    this.resourcePackLicensePicker,
+    this.resourcePackExportSink,
     this.mapConnectionPort,
     this.pokemonPort,
     this.pokemonCommercePort,
@@ -142,6 +144,8 @@ class MapWorkspaceScreen extends StatefulWidget {
   final ResourcePort? resourcePort;
   final ResourcePackPort? resourcePackPort;
   final PickResourcePack? resourcePackPicker;
+  final PickResourcePackLicenses? resourcePackLicensePicker;
+  final ResourcePackExportSink? resourcePackExportSink;
   final MapConnectionPort? mapConnectionPort;
   final PokemonWorkspacePort? pokemonPort;
   final PokemonCommercePort? pokemonCommercePort;

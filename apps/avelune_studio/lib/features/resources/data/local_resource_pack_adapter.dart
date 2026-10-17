@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
@@ -117,6 +118,23 @@ final class LocalResourcePackAdapter implements ResourcePackPort {
     final active = await _session();
     _requireActive();
     return active.transfers.queryTransfer(active.opened.projectHandle, request);
+  }
+
+  @override
+  Future<List<int>> readExportPayloadChunk(
+    String payloadRef,
+    int offset,
+    int length,
+  ) async {
+    if (length < 1 || length > 128 * 1024) {
+      throw const ResourceFailure('Bloc de fichier invalide.');
+    }
+    final result = await transfer('read_payload', {
+      'payloadRef': payloadRef,
+      'offset': offset,
+      'length': length,
+    });
+    return base64Decode(result['bytesBase64']! as String);
   }
 
   @override

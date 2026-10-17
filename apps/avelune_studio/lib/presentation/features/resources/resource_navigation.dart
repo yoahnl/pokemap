@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import '../../../features/resources/application/resource_pack_transfer_controller.dart';
 import '../../../features/resources/domain/resource_pack_port.dart';
@@ -42,11 +44,22 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     this.canOpenUsage,
     ResourcePackPort? packPort,
     PickResourcePack? packPicker,
+    PickResourcePackLicenses? packLicensePicker,
+    ResourcePackExportSink? packExportSink,
   }) {
     characters.addListener(notifyListeners);
     workspace.addListener(changed);
     if (packPort != null && packPicker != null) {
-      packTransfer = ResourcePackTransferController(port: packPort, picker: packPicker, accept: (receipt) async { await accept(receipt); });
+      packTransfer = ResourcePackTransferController(
+        port: packPort,
+        picker: packPicker,
+        pickLicenses: packLicensePicker,
+        exportSink: packExportSink,
+        localDrafts: _packLocalDrafts,
+        accept: (receipt) async {
+          await accept(receipt);
+        },
+      );
       packTransfer!.addListener(_packChanged);
     } else {
       packTransfer = null;
@@ -79,6 +92,28 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   void Function(Set<String> dialogueIds)? characterSourcesChanged;
   String? Function(Set<String> dialogueIds)? characterSourceProblem;
   final Map<String, bool Function()> borderEditorOwners = {};
+  final Map<String, ResourcePackBorderDraft Function()> packBorderDraftOwners =
+      {};
+  List<ResourcePackLocalDraft> _packLocalDrafts() => [
+    for (final terrain in terrains.values)
+      if (terrain.dirty || terrain.busy)
+        ResourcePackLocalDraft(
+          kind: 'smartTilePreset',
+          id: terrain.draft.targetPresetId,
+          label: terrain.draft.name,
+          signature: jsonEncode(terrain.draft.toJson()),
+          saving: terrain.busy,
+        ),
+    for (final owner in packBorderDraftOwners.entries)
+      if (owner.value() case final state when state.dirty || state.saving)
+        ResourcePackLocalDraft(
+          kind: 'borderBlueprint',
+          id: owner.key,
+          label: state.request.name,
+          signature: state.signature,
+          saving: state.saving,
+        ),
+  ];
   final library = ResourceLibraryState();
   final Map<String, DecorDraft> decors = {};
   @override

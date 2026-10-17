@@ -55,28 +55,7 @@ ProjectSmartTilePreset terrainDraftPreset(
   fallbackRuleId: draft.fallbackRuleId,
 );
 
-const terrainConnectionNames = [
-  'Îlot isolé',
-  'Extrémité vers le haut',
-  'Extrémité vers la droite',
-  'Angle haut · droite',
-  'Extrémité vers le bas',
-  'Passage vertical',
-  'Angle droite · bas',
-  'Bord gauche',
-  'Extrémité vers la gauche',
-  'Angle gauche · haut',
-  'Passage horizontal',
-  'Bord bas',
-  'Angle bas · gauche',
-  'Bord droit',
-  'Bord haut',
-  'Centre',
-  'Coin extérieur haut gauche',
-  'Coin extérieur haut droit',
-  'Coin extérieur bas gauche',
-  'Coin extérieur bas droit',
-];
+const terrainConnectionNames = smartTileAuthoringConnectionNames;
 
 int terrainRuleAt(
   Set<GridPos> cells,
@@ -103,99 +82,13 @@ SmartTileRule terrainOuterCornerRule(
   int index,
   SmartTileFrameRef? frame,
   String materialId,
-) {
-  if (index < 16 || index > 19) {
-    throw RangeError.range(index, 16, 19);
-  }
-  SmartTileSlotMatch corner(int slot) => index == slot
-      ? const SmartTileSlotMatch.empty()
-      : const SmartTileSlotMatch.same();
-  return SmartTileRule(
-    id: 'connection-$index',
-    centerMatch: SmartTileSlotMatch.material(materialId),
-    signature: SmartTileSignature(
-      northEdge: const SmartTileSlotMatch.same(),
-      eastEdge: const SmartTileSlotMatch.same(),
-      southEdge: const SmartTileSlotMatch.same(),
-      westEdge: const SmartTileSlotMatch.same(),
-      northWestCorner: corner(16),
-      northEastCorner: corner(17),
-      southWestCorner: corner(18),
-      southEastCorner: corner(19),
-    ),
-    candidates: frame == null
-        ? []
-        : [
-            SmartTileCandidate(
-              id: 'piece-$index',
-              label: terrainConnectionNames[index],
-              parts: [
-                SmartTileVisualPart(
-                  source: SmartTileVisualSource.frame(frame: frame),
-                ),
-              ],
-            ),
-          ],
-  );
-}
+) => smartTileAuthoringOuterCornerRule(index, frame, materialId);
 
 SmartTileRule terrainConnectionRule(
   int mask,
   SmartTileFrameRef? frame,
   String materialId,
-) {
-  SmartTileSlotMatch match(int bit) => mask & bit != 0
-      ? const SmartTileSlotMatch.same()
-      : const SmartTileSlotMatch.empty();
-  return SmartTileRule(
-    id: 'connection-$mask',
-    centerMatch: SmartTileSlotMatch.material(materialId),
-    signature: SmartTileSignature(
-      northEdge: match(1),
-      eastEdge: match(2),
-      southEdge: match(4),
-      westEdge: match(8),
-    ),
-    candidates: frame == null
-        ? []
-        : [
-            SmartTileCandidate(
-              id: 'piece-$mask',
-              label: terrainConnectionNames[mask],
-              parts: [
-                SmartTileVisualPart(
-                  source: SmartTileVisualSource.frame(frame: frame),
-                ),
-              ],
-            ),
-          ],
-  );
-}
+) => smartTileAuthoringConnectionRule(mask, frame, materialId);
 
-ProjectSmartTileAtlas terrainAtlas(ProjectTilesetEntry tileset, String id) {
-  final source = tileset.source;
-  if (source is! ProjectRegularAtlasTilesetSource) {
-    throw StateError(
-      'Cette source ne propose pas encore de grille de terrain éditable.',
-    );
-  }
-  return ProjectSmartTileAtlas(
-    id: id,
-    name: tileset.name,
-    tilesetId: tileset.id,
-    cellWidth: source.tileWidth,
-    cellHeight: source.tileHeight,
-    columns:
-        (source.pixelWidth - source.marginX * 2 + source.spacingX) ~/
-        (source.tileWidth + source.spacingX),
-    rows:
-        (source.pixelHeight - source.marginY * 2 + source.spacingY) ~/
-        (source.tileHeight + source.spacingY),
-    marginX: source.marginX,
-    marginY: source.marginY,
-    spacingX: source.spacingX,
-    spacingY: source.spacingY,
-    pixelOffsetX: source.pixelOffsetX,
-    pixelOffsetY: source.pixelOffsetY,
-  );
-}
+ProjectSmartTileAtlas terrainAtlas(ProjectTilesetEntry tileset, String id) =>
+    smartTileAuthoringAtlas(tileset, id);

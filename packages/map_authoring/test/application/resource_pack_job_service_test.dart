@@ -4,11 +4,148 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('a returned result cannot mutate canonical receipt data in a later poll', () async {
+  test(
+      'rejected result cleanup is awaited before settlement and cannot retain an undisclosed owner',
+      () async {
+    final cleanupEntered = Completer<void>();
+    final allowCleanup = Completer<void>();
+    var ownsResult = true;
+    var settled = false;
     final jobs = ResourcePackJobService(requireActive: () {});
-    final started = await jobs.startWork(AuthoringJobRequest(requestId: 'immutable',
-        kind: 'resource_pack.import', projectId: 'p', projectRevision: 'sha256:${'0' * 64}'),
-        (context) async => {'receipt': {'receiptId': 'canonical', 'resources': ['owned']}});
+    try {
+      await jobs.startWork(
+          AuthoringJobRequest(
+              requestId: 'rejected',
+              kind: 'resource_pack.prepare',
+              projectId: 'p',
+              projectRevision: 'sha256:${'0' * 64}'), (context) async {
+        context.onResultRejected(() async {
+          cleanupEntered.complete();
+          await allowCleanup.future;
+          ownsResult = false;
+        });
+        return {'unserializable': Object()};
+      }, onSettled: () async {
+        settled = true;
+      });
+      await cleanupEntered.future;
+      var completed = false;
+      final closing = jobs.close().then((value) {
+        completed = true;
+        return value;
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(settled, isFalse);
+      expect(ownsResult, isTrue);
+      allowCleanup.complete();
+      await closing;
+      expect(ownsResult, isFalse);
+      expect(settled, isTrue);
+    } finally {
+      if (!allowCleanup.isCompleted) allowCleanup.complete();
+      await jobs.close();
+    }
+  });
+
+  test(
+      'rejected result cleanup failure preserves diagnostics and still releases job pins',
+      () async {
+    final jobs = ResourcePackJobService(requireActive: () {});
+    var settled = false;
+    final started = await jobs.startWork(
+        AuthoringJobRequest(
+            requestId: 'cleanup-failure',
+            kind: 'resource_pack.export',
+            projectId: 'p',
+            projectRevision: 'sha256:${'0' * 64}'), (context) async {
+      context.onResultRejected(() async {
+        throw StateError('Cannot release owner');
+      });
+      return {'tooLarge': 'x' * (240 * 1024)};
+    }, onSettled: () async {
+      settled = true;
+    });
+    while (!settled) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    final result = jobs.result(started.jobId);
+    expect((result['snapshot'] as Map)['state'], 'failed');
+    expect((result['snapshot'] as Map)['errorCode'],
+        'resource_pack.result_too_large');
+    expect((result['result'] as Map)['cleanupDiagnostic'],
+        {'code': 'resource_pack.cleanup_required'});
+    expect(settled, isTrue);
+    await jobs.close();
+  });
+
+  test('accepted result keeps its result owner and settles only the job pins',
+      () async {
+    final jobs = ResourcePackJobService(requireActive: () {});
+    var discarded = false;
+    var settled = false;
+    final started = await jobs.startWork(
+        AuthoringJobRequest(
+            requestId: 'accepted',
+            kind: 'resource_pack.license.stage',
+            projectId: 'p',
+            projectRevision: 'sha256:${'0' * 64}'), (context) async {
+      context.onResultRejected(() async {
+        discarded = true;
+      });
+      return {'licenseHandle': 'delivered'};
+    }, onSettled: () async {
+      settled = true;
+    });
+    while (!settled) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(
+        (jobs.result(started.jobId)['snapshot'] as Map)['state'], 'succeeded');
+    expect(discarded, isFalse);
+    await jobs.close();
+    expect(discarded, isFalse);
+  });
+
+  test(
+      'licence staging uses a canonical dotted kind and queued cancellation settles cleanup',
+      () async {
+    final jobs = ResourcePackJobService(requireActive: () {});
+    var entered = false;
+    var cleaned = 0;
+    final start = await jobs.startWork(
+        AuthoringJobRequest(
+            requestId: 'license',
+            kind: 'resource_pack.license.stage',
+            projectId: 'project',
+            projectRevision: 'sha256:${'0' * 64}'), (job) async {
+      entered = true;
+      return {};
+    }, onSettled: () async {
+      cleaned++;
+    });
+    await jobs.cancel(start.jobId, timeout: const Duration(seconds: 1));
+    final result = await jobs.close();
+    expect(result.single.state, AuthoringJobState.cancelled);
+    expect(entered, isFalse);
+    expect(cleaned, 1);
+  });
+
+  test('a returned result cannot mutate canonical receipt data in a later poll',
+      () async {
+    final jobs = ResourcePackJobService(requireActive: () {});
+    final started = await jobs.startWork(
+        AuthoringJobRequest(
+            requestId: 'immutable',
+            kind: 'resource_pack.import',
+            projectId: 'p',
+            projectRevision: 'sha256:${'0' * 64}'),
+        (context) async => {
+              'receipt': {
+                'receiptId': 'canonical',
+                'resources': ['owned']
+              }
+            });
     while (!(await jobs.get(started.jobId)).state.isTerminal) {
       await Future<void>.delayed(Duration.zero);
     }

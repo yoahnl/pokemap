@@ -31,6 +31,7 @@ const metadata = z.object({
 }).strict();
 export const resourcePackToolSchema = z.discriminatedUnion("verb", [
   z.object({ projectHandle: handle, verb: z.literal("stage"), input: z.object({ sourcePath: z.string().min(1).max(4096) }).strict() }).strict(),
+  z.object({ projectHandle: handle, verb: z.literal("stage_license"), input: z.object({ sourcePath: z.string().min(1).max(4096) }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("inspect"), input: z.object({ archiveHandle: handle }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("entries"), input: z.object({
     inspectionHandle: handle.optional(), selectionHandle: handle.optional(), section: z.enum(["resources", "families", "authors", "sources"]).optional(), filter: filter.optional(), ...page,
@@ -43,9 +44,10 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
     ...selection, add: z.array(ref).max(200).optional(), remove: z.array(ref).max(200).optional(),
   }).strict().refine((value) => (value.add?.length ?? 0) + (value.remove?.length ?? 0) <= 200) }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("selection.select_filtered"), input: z.object({ ...selection, filter }).strict() }).strict(),
-  z.object({ projectHandle: handle, verb: z.literal("prepare"), input: z.object({
-    ...selection, expectedRevision: revision, conflictPolicy: z.enum(["preserveProject", "importCopy"]).optional(),
-  }).strict() }).strict(),
+  z.object({ projectHandle: handle, verb: z.literal("prepare"), input: z.union([
+    z.object({ ...selection, expectedRevision: revision, conflictPolicy: z.enum(["preserveProject", "importCopy"]).optional() }).strict(),
+    z.object({ ...selection, expectedRevision: revision, metadata, author: z.string().min(1).max(128), sourceUrl: z.string().max(4096).optional(), licenseHandles: z.array(handle).max(200).optional() }).strict(),
+  ]) }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("preview"), input: z.object({ previewHandle: handle, ...page }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("start_apply"), input: z.object({
     planId: handle, operationId: handle, confirmationToken: z.string().min(1).max(4096).optional(),
@@ -56,11 +58,7 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
   }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("start_recovery"), input: z.object({ operationId: handle }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("recovery_status"), input: z.object({}).strict() }).strict(),
-  z.object({ projectHandle: handle, verb: z.literal("export"), input: z.object({
-    ...selection, expectedRevision: revision, metadata, author: z.string().min(1).max(256),
-    sourceUrl: z.string().max(4096).optional(), licenseText: z.string().max(32000).optional(),
-    acknowledgeOrganizationRemoval: z.boolean().optional(),
-  }).strict() }).strict(),
+  z.object({ projectHandle: handle, verb: z.literal("export"), input: z.object({ preparedExportHandle: handle, acknowledgeOrganizationRemoval: z.boolean().optional() }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("get"), input: z.object({ jobId: handle }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("events"), input: z.object({
     jobId: handle, afterSequence: z.number().int().min(0).optional(), cursor: handle.optional(),
@@ -75,7 +73,7 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
 export function registerResourcePackTool(server: McpServer, authoring: AuthoringGateway): void {
   server.registerTool("pokemap_resource_pack", {
     title: "Transfer native Avelune resource packs",
-    description: "Runs bounded session-owned pack jobs. Stage only from configured source roots; inspect, select, prepare, then plan resource_pack.import before start_apply. Native selections are explicit for export.",
+    description: "Runs bounded session-owned pack jobs. Stage only from configured source roots; inspect, select, prepare, then plan resource_pack.import before start_apply. Stage UTF-8 licences, prepare a native selection, then inspect its prepared preview and export only its immutable preparedExportHandle. Native entry sections describe the captured project inventory; preview credits describe only reached origins/documents. Acknowledge organization removal only on export when the preparation requires it.",
     inputSchema: resourcePackToolSchema,
     outputSchema: toolEnvelopeSchema,
     annotations: mutationAnnotations,

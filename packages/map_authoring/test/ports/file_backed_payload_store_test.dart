@@ -44,6 +44,50 @@ void main() {
       File('${sources.path}/$name').writeAsBytes(bytes);
 
   test(
+      'licence staging validates bounded UTF8 during copy before publishing a payload',
+      () async {
+    final valid = await source('split-utf8', utf8.encode('é😀'));
+    final lease =
+        await store.stageLicenseFile(scope: scope, sourcePath: valid.path);
+    expect(lease.payload.byteLength, 6);
+    for (final bytes in [
+      [255],
+      [0xf0, 0x9f],
+      [0xc0, 0xaf]
+    ]) {
+      final file = await source('invalid', bytes);
+      await expectLater(
+          store.stageLicenseFile(scope: scope, sourcePath: file.path),
+          throwsA(isA<FileBackedPayloadException>().having(
+              (error) => error.code,
+              'code',
+              'resource_pack.license_invalid_utf8')));
+      expect(store.cachedBytes, 6);
+      expect(store.reservedBytes, 0);
+    }
+    final bounded = LocalResourcePackStore(
+        cacheDirectory: '${sandbox.path}/bounded',
+        allowedSourceRoots: [sources.path],
+        policy: const ResourcePackSecurityPolicy(maxFileBytes: 3));
+    var copied = 0;
+    try {
+      await expectLater(
+          bounded.stageLicenseFile(
+              scope: scope,
+              sourcePath: valid.path,
+              onProgress: (length) {
+                copied = length;
+              }),
+          throwsA(isA<FileBackedPayloadException>()));
+      expect(copied, 0);
+      expect(bounded.cachedBytes, 0);
+      expect(bounded.reservedBytes, 0);
+    } finally {
+      await bounded.close();
+    }
+  });
+
+  test(
     'immediate job pin survives owner release and expiry until settlement',
     () async {
       final owner = await store.stageFile(

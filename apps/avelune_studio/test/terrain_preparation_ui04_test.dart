@@ -7,6 +7,32 @@ import 'terrain_creation_test.dart'
     show terrainDraft, assignAll, publishFixture;
 
 void main() {
+  test(
+    'recognized structure does not overwrite an unrecognized pending guide',
+    () {
+      final controller = terrainDraft();
+      assignAll(controller);
+      final manifest = publishFixture(controller);
+      final preset = manifest.smartTileCatalog.presets.single;
+      final draft = terrainDraftForPreset(manifest, preset)!;
+      final unsupported = draft.copyWith(guideId: 'advanced-guide');
+      expect(
+        recognizeSmartTileAuthoringGuide(manifest, unsupported),
+        'avelune-cardinal4-v1',
+      );
+      expect(
+        terrainDraftCompatibilityProblem(manifest, unsupported),
+        advancedTerrainPreparationMessage,
+      );
+      expect(
+        editableTerrainDraft(manifest, preset, localDrafts: [unsupported]),
+        isNull,
+      );
+      expect(unsupported.guideId, 'advanced-guide');
+      expect(terrainDraftCompatibilityProblem(manifest, draft), isNull);
+    },
+  );
+
   test('examining missing contexts selects every cardinal configuration', () {
     final controller = terrainDraft();
     for (var mask = 0; mask < 16; mask++) {

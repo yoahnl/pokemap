@@ -1,6 +1,7 @@
 import 'dart:io';
 import '../features/resources/data/local_resource_pack_adapter.dart';
 import '../platform/files/native_resource_pack_picker.dart';
+import '../platform/files/native_resource_pack_export_sink.dart';
 import '../features/regional_map/data/local_regional_map_adapter.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import '../platform/files/native_project_creation_picker.dart';
@@ -50,6 +51,10 @@ class StudioBootstrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      if (Platform.isMacOS)
+        resourcePackExportSinkProvider.overrideWith(
+          (ref) => NativeResourcePackExportSink(),
+        ),
       projectCreationPortProvider.overrideWithValue(
         const LocalProjectCreationService(),
       ),
@@ -87,25 +92,37 @@ class StudioBootstrap extends StatelessWidget {
       resourcePortProvider.overrideWith((ref, session) {
         final port = LocalResourceAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         );
         ref.onDispose(port.dispose);
         return port;
       }),
       resourcePackPortProvider.overrideWith((ref, session) {
-        final port = LocalResourcePackAdapter(session: session, mapAdapter: ref.watch(mapWorkspacePortProvider(session)) as LocalMapWorkspaceAdapter, resources: ref.watch(resourcePortProvider(session)) as LocalResourceAdapter);
+        final port = LocalResourcePackAdapter(
+          session: session,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
+          resources:
+              ref.watch(resourcePortProvider(session)) as LocalResourceAdapter,
+        );
         ref.onDispose(port.dispose);
         return port;
       }),
-      resourcePackPickerProvider.overrideWithValue(const NativeResourcePackPicker().choose),
+      resourcePackLicensePickerProvider.overrideWithValue(
+        const NativeResourcePackPicker().chooseLicenseDocuments,
+      ),
+      resourcePackPickerProvider.overrideWithValue(
+        const NativeResourcePackPicker().choose,
+      ),
       pokemonPortProvider.overrideWith((ref, session) {
         final port = LocalPokemonWorkspaceAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         );
         ref.onDispose(port.dispose);
         return port;
@@ -113,17 +130,17 @@ class StudioBootstrap extends StatelessWidget {
       pokemonCommercePortProvider.overrideWith(
         (ref, session) => LocalPokemonCommerceAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       pokemonCombatPortProvider.overrideWith(
         (ref, session) => LocalPokemonCombatAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       pokemonJsonPickerProvider.overrideWithValue(
@@ -144,47 +161,53 @@ class StudioBootstrap extends StatelessWidget {
         return port;
       }),
       gameExportPickerProvider.overrideWithValue(pickNativeGameExportFile),
-      regionalMapPortProvider.overrideWith((ref, session) => LocalRegionalMapAdapter(
-        session: session, mapAdapter: ref.watch(mapWorkspacePortProvider(session)) as LocalMapWorkspaceAdapter)),
+      regionalMapPortProvider.overrideWith(
+        (ref, session) => LocalRegionalMapAdapter(
+          session: session,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
+        ),
+      ),
       narrativePortProvider.overrideWith(
         (ref, session) => LocalNarrativeAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       workspaceVisualsLoaderProvider.overrideWithValue(StudioMapResources.load),
       scenePortProvider.overrideWith(
         (ref, session) => LocalSceneAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       storyPortProvider.overrideWith(
         (ref, session) => LocalStoryAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       eventPortProvider.overrideWith(
         (ref, session) => LocalEventAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       dialoguePortProvider.overrideWith(
         (ref, session) => LocalDialogueAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       presentationMediaPickerProvider.overrideWithValue(
@@ -193,33 +216,33 @@ class StudioBootstrap extends StatelessWidget {
       presentationPortProvider.overrideWith(
         (ref, session) => LocalPresentationAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       worldPortProvider.overrideWith(
         (ref, session) => LocalWorldAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       verificationPortProvider.overrideWith(
         (ref, session) => LocalVerificationAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       cinematicPortProvider.overrideWith(
         (ref, session) => LocalCinematicAdapter(
           session: session,
-          mapAdapter:
-              ref.watch(mapWorkspacePortProvider(session))
-                  as LocalMapWorkspaceAdapter,
+          mapAdapter: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
         ),
       ),
       workspaceRuntimeBuilderProvider.overrideWithValue((session, port) {

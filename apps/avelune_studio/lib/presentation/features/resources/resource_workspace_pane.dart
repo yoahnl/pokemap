@@ -144,7 +144,12 @@ class ResourceWorkspacePane extends StatelessWidget {
               modelLibrary: (items) =>
                   ModelResourceLibrary(navigation: n, items: items),
               onImportModel: n.busy ? null : () => importStudioModel(n),
-              onImportPack: n.packTransfer == null || n.busy ? null : () => importPack(context),
+              onExportPack: n.packTransfer?.exportAvailable != true || n.busy
+                  ? null
+                  : () => exportPack(context),
+              onImportPack: n.packTransfer == null || n.busy
+                  ? null
+                  : () => importPack(context),
               project: project,
               openMaps: n.workspace.documents.values
                   .map((d) => d.current)

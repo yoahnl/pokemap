@@ -374,17 +374,14 @@ final class ResourcePackImportPreparer {
     try {
       leases.add(await store.retain(
           scope: scope, handle: selection._archiveLease.payload.handle));
-      final neededLicenses = <String>{
-        for (final file in inspection.catalog.files
-            .where((f) => closure.files.contains(f.id)))
-          ...file.licenseIds,
-        for (final origin in inspection.catalog.provenance)
-          if (origin.resources.any((r) => closure.resources.contains(r)))
-            ...origin.licenseIds,
-      };
+      final closureFiles = closure.files.toSet();
+      final selectedFiles = inspection.catalog.files
+          .where((file) => closureFiles.contains(file.id))
+          .toList();
+      final neededLicenses =
+          _requiredImportLicenses(inspection.catalog, closure);
       final archivePaths = <String>{
-        for (final file in inspection.catalog.files
-            .where((f) => closure.files.contains(f.id)))
+        for (final file in selectedFiles)
           file.archivePath,
         ...neededLicenses
       };
@@ -452,8 +449,7 @@ final class ResourcePackImportPreparer {
       final outputs = <_Output>[];
       final newBlobs = <String>{};
       final mappings = <ResourcePackAssetMapping>[];
-      for (final file in inspection.catalog.files
-          .where((f) => closure.files.contains(f.id))) {
+      for (final file in selectedFiles) {
         final id = projection.reference('file', file.id);
         final path = projection.filePaths[file.id]!;
         final payload = staged[file.archivePath]!;
@@ -470,24 +466,18 @@ final class ResourcePackImportPreparer {
             targetPath: path,
             rawSha256: file.rawSha256,
             byteLength: file.byteLength,
-            mediaType: file.mediaType));
+            mediaType: file.mediaType,
+            provenanceId: file.provenanceId,
+            licenseIds: file.licenseIds));
         await _addFile(snapshot, assets, records, record, payload, observed,
             outputs, newBlobs, conflicts,
             historical:
                 previous?.assets.any((a) => a.fileId == file.id) ?? false,
             contentAddressed: path.startsWith('assets/borders/snapshots/'));
       }
-      final historicalLicenses = <String>{
-        if (previous != null) ...[
-          for (final file in inspection.catalog.files)
-            if (previous.assets.any((a) => a.fileId == file.id))
-              ...file.licenseIds,
-          for (final origin in inspection.catalog.provenance)
-            if (origin.resources.any((r) =>
-                previous.resources.any((mapping) => mapping.source == r)))
-              ...origin.licenseIds,
-        ]
-      };
+      final historicalLicenses =
+          previous?.licenses.map((license) => license.sourcePath).toSet() ??
+              const <String>{};
       for (final license in neededLicenses.toList()..sort()) {
         final payload = staged[license]!;
         final path = 'assets/resource_packs/${projection.namespace}/$license';
@@ -890,32 +880,47 @@ Map<String, Map<String, dynamic>> _nativeDefinitions(
     indexResourcePackDefinitions(manifest.toJson());
 
 ProjectManifest _projectedLibrary(
-    ProjectManifest target, ResourcePackImportProjection projection) {
+  ProjectManifest target,
+  ResourcePackImportProjection projection,
+) {
   final c = projection.catalog;
   final smart = c.smartTileCatalog;
-  return target.copyWith(
-      tilesets: c.tilesets,
-      elements: c.elements,
-      models3d: c.models3d,
-      characters: c.characters,
-      environmentPresets: c.environmentPresets,
-      elementCategories: c.elementCategories,
-      tilesetFolders: c.tilesetFolders,
-      resourceLibraryCatalog: c.resourceLibraryCatalog,
-      borderCatalog: c.borderCatalog,
-      characterStudioCatalog: c.characterStudioCatalog,
-      smartTileCatalog: ProjectSmartTileCatalog(
-          categories: smart.categories,
-          materials: smart.materials,
-          atlases: smart.atlases,
-          animations: smart.animations,
-          presets: smart.presets,
-          patterns: smart.patterns,
-          drafts: [
-            for (final preset in smart.presets)
-              reconstructResourcePackSmartTileDraft(
-                  preset: preset, catalog: smart)
-          ]));
+  final manifest = target.copyWith(
+    tilesets: c.tilesets,
+    elements: c.elements,
+    models3d: c.models3d,
+    characters: c.characters,
+    environmentPresets: c.environmentPresets,
+    elementCategories: c.elementCategories,
+    tilesetFolders: c.tilesetFolders,
+    resourceLibraryCatalog: c.resourceLibraryCatalog,
+    borderCatalog: c.borderCatalog,
+    characterStudioCatalog: c.characterStudioCatalog,
+    smartTileCatalog: smart,
+  );
+  final drafts = <ProjectSmartTileAuthoringDraft>[];
+  for (final preset in smart.presets) {
+    final draft = reconstructResourcePackSmartTileDraft(
+      preset: preset,
+      catalog: smart,
+    );
+    drafts.add(
+      draft.copyWith(
+        guideId: recognizeSmartTileAuthoringGuide(manifest, draft),
+      ),
+    );
+  }
+  return manifest.copyWith(
+    smartTileCatalog: ProjectSmartTileCatalog(
+      categories: smart.categories,
+      materials: smart.materials,
+      atlases: smart.atlases,
+      animations: smart.animations,
+      presets: smart.presets,
+      patterns: smart.patterns,
+      drafts: drafts,
+    ),
+  );
 }
 
 Set<String> _definitionConflicts(
@@ -1053,7 +1058,48 @@ ResourcePackInstallation _installation(
       item.fileId: item,
     for (final item in assets) item.fileId: item
   };
+  final closureResources = projection.closure.resources.toSet();
+  final reachedOrigins =
+      _reachedImportOrigins(selection.inspection.catalog, projection.closure);
+  final origins = {
+    for (final origin in previous?.origins ?? const <ResourcePackProvenance>[])
+      origin.id: origin
+  };
+  for (final origin in selection.inspection.catalog.provenance) {
+    final selectedResources =
+        origin.resources.where(closureResources.contains).toList();
+    if (!reachedOrigins.contains(origin.id)) continue;
+    origins[origin.id] = ResourcePackProvenance(
+        id: origin.id,
+        author: origin.author,
+        sourceUrl: origin.sourceUrl,
+        licenseIds: origin.licenseIds,
+        resources: {...?origins[origin.id]?.resources, ...selectedResources});
+  }
+  final licenseIds = {
+    for (final origin in origins.values) ...origin.licenseIds,
+    for (final file in files.values) ...file.licenseIds
+  };
+  final inventory = {
+    for (final file in selection.inspection.manifest.content.files)
+      file.path: file
+  };
+  final licenses = {
+    for (final license
+        in previous?.licenses ?? const <ResourcePackLicenseMapping>[])
+      license.sourcePath: license
+  };
+  for (final path in licenseIds) {
+    final file = inventory[path]!;
+    licenses[path] = ResourcePackLicenseMapping(
+        sourcePath: path,
+        targetPath: 'assets/resource_packs/${projection.namespace}/$path',
+        rawSha256: file.rawSha256,
+        byteLength: file.byteLength);
+  }
   return ResourcePackInstallation(
+      origins: origins.values,
+      licenses: licenses.values,
       installationId: previous?.installationId ?? 'rp_${projection.namespace}',
       packId: selection.inspection.manifest.pack.id,
       packVersion: selection.inspection.manifest.pack.version,
@@ -1235,49 +1281,53 @@ _borderWorker(
   ResourcePackInspection inspection,
   Map<String, dynamic> entries,
   int chunkBytes,
-) => (source) async {
-  List<int> read(String path) {
-    final entry = entries[path];
-    if (entry == null) {
-      _fail(
-        'border_source_missing',
-        'A Border source is outside the certified inventory.',
-      );
-    }
-    final bytes = BytesBuilder(copy: false);
-    for (var offset = 0; offset < (entry.size as int); offset += chunkBytes) {
-      bytes.add(
-        source.readAtSync(
-          (entry.dataOffset as int) + offset,
-          min(chunkBytes, (entry.size as int) - offset),
-        ),
-      );
-    }
-    return bytes.takeBytes();
-  }
+) =>
+    (source) async {
+      List<int> read(String path) {
+        final entry = entries[path];
+        if (entry == null) {
+          _fail(
+            'border_source_missing',
+            'A Border source is outside the certified inventory.',
+          );
+        }
+        final bytes = BytesBuilder(copy: false);
+        for (var offset = 0;
+            offset < (entry.size as int);
+            offset += chunkBytes) {
+          bytes.add(
+            source.readAtSync(
+              (entry.dataOffset as int) + offset,
+              min(chunkBytes, (entry.size as int) - offset),
+            ),
+          );
+        }
+        return bytes.takeBytes();
+      }
 
-  final mapped = {
-    for (final file in inspection.catalog.files)
-      projection.mapping[resourcePackNativeKey('file', file.id)]: file,
-  };
-  await projection.certifyBorders(
-    target,
-    (tileset, assetId) async {
-      final binding = mapped[assetId];
-      if (binding == null) {
-        _fail('border_source_missing', 'A mapped Border source is absent.');
-      }
-      return read(binding.archivePath);
-    },
-    (tileset, assetId) async {
-      final binding = inspection.catalog.files
-          .where((file) => file.id == assetId)
-          .firstOrNull;
-      if (binding == null) {
-        _fail('border_source_missing', 'A portable Border source is absent.');
-      }
-      return read(binding.archivePath);
-    },
-  );
-  return projection;
-};
+      final mapped = {
+        for (final file in inspection.catalog.files)
+          projection.mapping[resourcePackNativeKey('file', file.id)]: file,
+      };
+      await projection.certifyBorders(
+        target,
+        (tileset, assetId) async {
+          final binding = mapped[assetId];
+          if (binding == null) {
+            _fail('border_source_missing', 'A mapped Border source is absent.');
+          }
+          return read(binding.archivePath);
+        },
+        (tileset, assetId) async {
+          final binding = inspection.catalog.files
+              .where((file) => file.id == assetId)
+              .firstOrNull;
+          if (binding == null) {
+            _fail(
+                'border_source_missing', 'A portable Border source is absent.');
+          }
+          return read(binding.archivePath);
+        },
+      );
+      return projection;
+    };

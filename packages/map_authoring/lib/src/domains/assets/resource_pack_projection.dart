@@ -9,10 +9,14 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../../ports/file_backed_payload_store.dart';
+import '../../support/authoring_fingerprint.dart';
 import '../../infrastructure/local_resource_pack_store.dart';
 import 'resource_pack_native_remapper.dart';
 import 'resource_pack_border_sources.dart';
 import '../maps/canonical_border_ground_composer.dart';
+
+part 'resource_pack_native_attribution.dart';
+part 'resource_pack_native_review.dart';
 
 final class NativeResourcePackRef {
   NativeResourcePackRef({required this.kind, required this.id}) {
@@ -48,7 +52,9 @@ final class ResourcePackExportProjection {
       required this.sources,
       required this.promotedResources,
       required this.removedOrganization,
-      required this.nativeMappings});
+      required this.nativeMappings,
+      required this.nativeSourceIds,
+      required this.review});
   final String sourceRevision;
   final int tileWidth;
   final int tileHeight;
@@ -58,6 +64,8 @@ final class ResourcePackExportProjection {
   final List<NativeResourcePackRef> promotedResources;
   final List<String> removedOrganization;
   final Map<String, String> nativeMappings;
+  final Set<String> nativeSourceIds;
+  final ResourcePackNativeReview review;
 }
 
 final class ResourcePackProjectionBuilder {
@@ -89,16 +97,17 @@ final class ResourcePackProjectionBuilder {
     ),
   );
 
-  Future<ResourcePackExportProjection> project(
-      {required ProjectManifest manifest,
-      required Iterable<NativeResourcePackRef> roots,
-      required Iterable<NativeResourcePackFile> files,
-      required String author,
-      required String sourceRevision,
-      String? sourceUrl,
-      String? licenseText,
-      Iterable<String> smartTilePatternIds = const [],
-      bool acknowledgeOrganizationRemoval = false}) async {
+  Future<ResourcePackExportProjection> project({
+    required ProjectManifest manifest,
+    required Iterable<NativeResourcePackRef> roots,
+    required Iterable<NativeResourcePackFile> files,
+    required String author,
+    required String sourceRevision,
+    String? sourceUrl,
+    Iterable<ResourcePackBuildSource> localLicenses = const [],
+    NativeResourcePackAttribution? attribution,
+    Iterable<String> smartTilePatternIds = const [],
+  }) async {
     final projection = _Projection(manifest, files, policy);
     final selected = roots.toList()
       ..sort(
@@ -113,19 +122,35 @@ final class ResourcePackProjectionBuilder {
       projection.reference('smartTilePattern', id);
     }
     if (portableRoots.isEmpty && patterns.isEmpty) _fail('selection_empty');
-    if (projection.removed.isNotEmpty && !acknowledgeOrganizationRemoval) {
-      _fail('organization_acknowledgement_required');
-    }
+    final inherited = _NativeAttributions(projection, attribution);
     final licenses = <String>[];
     final sources = <String, ResourcePackBuildSource>{};
-    if (licenseText != null) {
-      final bytes = Uint8List.fromList(utf8.encode(licenseText));
-      final hash = sha256.convert(bytes).toString();
-      final path = 'licenses/$hash.txt';
-      licenses.add(path);
-      sources[path] =
-          _inlineSource(path, bytes, 'text/plain', policy.maxChunkBytes);
+    final localDocuments = <String, List<ResourcePackBuildSource>>{};
+    for (final document in localLicenses) {
+      document.inventory;
+      if (document.path != 'licenses/${document.rawSha256}.txt' ||
+          document.mediaType != 'text/plain' ||
+          document.byteLength > policy.maxFileBytes) {
+        _fail('license_document_invalid');
+      }
+      localDocuments.putIfAbsent(document.path, () => []).add(document);
     }
+    for (final entry in localDocuments.entries) {
+      licenses.add(entry.key);
+      sources[entry.key] = _documentAliases(entry.value, policy);
+    }
+    final localResources = <ResourcePackRef>[];
+    for (final key in projection.completed.keys) {
+      final node = projection.nodes[key]!;
+      if (!ResourcePackKind.values.any((kind) => kind.name == node.kind)) {
+        continue;
+      }
+      final ref = ResourcePackRef(
+          kind: ResourcePackKind.values.byName(node.kind),
+          id: projection.allocate(key));
+      if (!inherited.resourceOrigins.containsKey(key)) localResources.add(ref);
+    }
+    var hasLocalFiles = false;
     final bindings = <ResourcePackFileBinding>[];
     final blobAliases = <String, List<NativeResourcePackFile>>{};
     for (final key in projection.completed.keys
@@ -137,6 +162,8 @@ final class ResourcePackProjectionBuilder {
       final path =
           'blobs/${file.rawSha256}.${file.mediaType == 'image/png' ? 'png' : 'glb'}';
       final id = projection.allocate(key);
+      final attribution = inherited.fileOrigins[node.id];
+      hasLocalFiles |= attribution == null;
       bindings.add(ResourcePackFileBinding(
           id: id,
           logicalPath: projection.filePaths[node.id]!,
@@ -144,8 +171,8 @@ final class ResourcePackProjectionBuilder {
           byteLength: file.byteLength,
           mediaType: file.mediaType,
           rawSha256: file.rawSha256,
-          provenanceId: 'declared',
-          licenseIds: licenses));
+          provenanceId: attribution?.$1 ?? 'declared',
+          licenseIds: attribution?.$2 ?? licenses));
       final aliases = blobAliases.putIfAbsent(path, () => []);
       if (aliases.isNotEmpty &&
           (aliases.first.byteLength != file.byteLength ||
@@ -169,22 +196,24 @@ final class ResourcePackProjectionBuilder {
             yield* representative.openRead();
           });
     }
-    final json = projection.catalogJson(bindings, [
-      ResourcePackProvenance(
+    for (final entry in inherited.documentSources().entries) {
+      final existing = sources[entry.key];
+      sources[entry.key] = existing == null
+          ? entry.value
+          : _documentAliases([existing, entry.value], policy);
+    }
+    final origins = inherited.portableOrigins();
+    if (localResources.isNotEmpty ||
+        hasLocalFiles ||
+        localDocuments.isNotEmpty) {
+      origins.add(ResourcePackProvenance(
           id: 'declared',
           author: author,
           sourceUrl: sourceUrl,
           licenseIds: licenses,
-          resources: [
-            for (final key in projection.completed.keys)
-              if (ResourcePackKind.values
-                  .any((kind) => kind.name == projection.nodes[key]!.kind))
-                ResourcePackRef(
-                    kind: ResourcePackKind.values
-                        .byName(projection.nodes[key]!.kind),
-                    id: projection.allocate(key))
-          ])
-    ]);
+          resources: localResources));
+    }
+    final json = projection.catalogJson(bindings, origins);
     var catalog = ResourcePackCatalog.fromJson(json);
     ResourcePackDependencyGraph.fromCatalog(catalog).validateAll();
     catalog = await projection.verifyBorders(catalog);
@@ -199,7 +228,15 @@ final class ResourcePackProjectionBuilder {
         promotedResources: List.unmodifiable(projection.promoted),
         removedOrganization:
             List.unmodifiable(projection.removed.toList()..sort()),
-        nativeMappings: Map.unmodifiable(projection.mapping));
+        nativeMappings: Map.unmodifiable(projection.mapping),
+        review: _nativeReview(projection, catalog, selected, patterns,
+            sources.values.toList(), inherited.documentFileIds),
+        nativeSourceIds: Set.unmodifiable({
+          for (final key in projection.completed.keys)
+            if (projection.nodes[key]!.kind == 'file')
+              projection.nodes[key]!.id,
+          ...inherited.documentFileIds
+        }));
   }
 }
 
@@ -563,23 +600,6 @@ Map<String, dynamic> _clone(Map<String, dynamic> value) =>
     jsonDecode(jsonEncode(value)) as Map<String, dynamic>;
 Iterable<Map<String, dynamic>> _objects(Object? value) =>
     value == null ? const [] : (value as List).cast<Map<String, dynamic>>();
-ResourcePackBuildSource _inlineSource(
-        String path, Uint8List bytes, String type, int chunkSize) =>
-    ResourcePackBuildSource(
-        path: path,
-        byteLength: bytes.length,
-        rawSha256: sha256.convert(bytes).toString(),
-        mediaType: type,
-        openRead: () async* {
-          for (var start = 0; start < bytes.length; start += chunkSize) {
-            yield Uint8List.sublistView(
-                bytes,
-                start,
-                start + chunkSize < bytes.length
-                    ? start + chunkSize
-                    : bytes.length);
-          }
-        });
 Never _fail(String code, [String? identity]) => throw FormatException(
     'resource_pack.$code${identity == null ? '' : ': $identity'}');
 
@@ -604,6 +624,97 @@ final class OwnedResourcePackExport {
   }
 }
 
+final class NativeResourcePackPreparedExport {
+  NativeResourcePackPreparedExport._(this._store, this._scope, this.metadata,
+      this.sourceRevision, this._snapshot, this._bindings, this._leases);
+  final LocalResourcePackStore _store;
+  final FileBackedPayloadScope _scope;
+  final ResourcePackMetadata metadata;
+  final String sourceRevision;
+  final _NativeExportSnapshot _snapshot;
+  final Map<String, List<StoredFilePayload>> _bindings;
+  final List<FileBackedPayloadLease> _leases;
+  bool _disposed = false;
+  Future<void>? _closing;
+  ResourcePackCatalog get catalog => _snapshot.catalog;
+  ResourcePackNativeReview get review => _snapshot.review;
+  Map<String, List<String>> get reachedNativeIds => review.reachedNativeIds;
+  Set<String> get nativeSourceIds => _snapshot.nativeSourceIds;
+  Map<String, String> get nativeMappings => _snapshot.nativeMappings;
+  List<NativeResourcePackRef> get promotedResources =>
+      _snapshot.promotedResources;
+  List<String> get removedOrganization => _snapshot.removedOrganization;
+  List<ResourcePackRef> get roots => _snapshot.roots;
+  List<ResourcePackInventoryFile> get sourceInventory => _snapshot.sources;
+  Iterable<String> get payloadHandles =>
+      _leases.map((lease) => lease.payload.handle);
+  late final String projectionFingerprint = computeAuthoringJsonFingerprint({
+    'sourceRevision': sourceRevision,
+    'metadata': metadata.toJson(),
+    'catalog': catalog.toJson(),
+    'roots': roots.map((root) => root.toJson()).toList(),
+    'sources': sourceInventory.map((source) => source.toJson()).toList()
+  }, logicalName: 'resource-pack-export-preparation');
+
+  Future<NativeResourcePackPreparedExport> retain() async {
+    if (_disposed) _failPrepared('preparation_released');
+    final leases = <FileBackedPayloadLease>[];
+    try {
+      for (final handle in payloadHandles.toSet()) {
+        leases.add(_store.retainForJob(scope: _scope, handle: handle));
+      }
+      return NativeResourcePackPreparedExport._(_store, _scope, metadata,
+          sourceRevision, _snapshot, _bindings, List.unmodifiable(leases));
+    } on Object {
+      for (final lease in leases) {
+        await _store.release(scope: _scope, leaseId: lease.leaseId);
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> dispose() {
+    _disposed = true;
+    return _closing ??= _release();
+  }
+
+  Future<void> _release() async {
+    for (final lease in _leases) {
+      await _store.release(scope: _scope, leaseId: lease.leaseId);
+    }
+  }
+}
+
+final class _NativeExportSnapshot {
+  _NativeExportSnapshot(
+      this.catalog,
+      Iterable<ResourcePackRef> roots,
+      this.tileWidth,
+      this.tileHeight,
+      Iterable<ResourcePackInventoryFile> sources,
+      Iterable<String> nativeSourceIds,
+      Iterable<NativeResourcePackRef> promotedResources,
+      Iterable<String> removedOrganization,
+      Map<String, String> nativeMappings,
+      this.review)
+      : roots = List.unmodifiable(roots),
+        sources = List.unmodifiable(sources),
+        nativeSourceIds = Set.unmodifiable(nativeSourceIds),
+        promotedResources = List.unmodifiable(promotedResources),
+        removedOrganization = List.unmodifiable(removedOrganization),
+        nativeMappings = Map.unmodifiable(nativeMappings);
+  final ResourcePackCatalog catalog;
+  final List<ResourcePackRef> roots;
+  final int tileWidth;
+  final int tileHeight;
+  final List<ResourcePackInventoryFile> sources;
+  final Set<String> nativeSourceIds;
+  final ResourcePackNativeReview review;
+  final List<NativeResourcePackRef> promotedResources;
+  final List<String> removedOrganization;
+  final Map<String, String> nativeMappings;
+}
+
 final class CanonicalResourcePackExportService {
   const CanonicalResourcePackExportService(
       {required this.store,
@@ -612,7 +723,7 @@ final class CanonicalResourcePackExportService {
   final FileBackedPayloadStore store;
   final FileBackedPayloadScope scope;
   final ResourcePackSecurityPolicy policy;
-  Future<OwnedResourcePackExport> exportNative({
+  Future<NativeResourcePackPreparedExport> prepareNative({
     required ProjectManifest manifest,
     required List<NativeResourcePackRef> roots,
     required List<String> smartTilePatternIds,
@@ -621,66 +732,144 @@ final class CanonicalResourcePackExportService {
     required String author,
     required String expectedRevision,
     required Future<String> Function() readCurrentRevision,
+    List<StoredFilePayload> licenseDocuments = const [],
     String? sourceUrl,
-    String? licenseText,
-    bool acknowledgeOrganizationRemoval = false,
     void Function()? checkCancelled,
   }) async {
     final local = store;
     if (local is! LocalResourcePackStore) {
       throw StateError('A disk worker is required.');
     }
-    if (await readCurrentRevision() != expectedRevision) {
-      _fail('revision_changed');
-    }
-    checkCancelled?.call();
-    final directory = await Directory.systemTemp.createTemp(
-      'avelune-native-export-',
-    );
-    FileBackedPayloadLease? lease;
+    final selectedRoots = List<NativeResourcePackRef>.unmodifiable(roots);
+    final selectedPatterns = List<String>.unmodifiable(smartTilePatternIds);
+    final nativeFiles =
+        List<(String, String, StoredFilePayload, String)>.unmodifiable(files);
+    final documents = List<StoredFilePayload>.unmodifiable(licenseDocuments);
+    final leases = <FileBackedPayloadLease>[];
     try {
-      final result = await local.withSourcesInIsolate(
-        scope: scope,
-        handles: files.map((file) => file.$3.handle),
-        read: _nativeExportWorker(
-          manifest,
-          roots,
-          smartTilePatternIds,
-          files,
-          metadata,
-          author,
-          expectedRevision,
-          sourceUrl,
-          licenseText,
-          acknowledgeOrganizationRemoval,
-          directory.path,
-          policy,
-        ),
-      );
+      for (final handle in {
+        ...nativeFiles.map((file) => file.$3.handle),
+        ...documents.map((file) => file.handle)
+      }) {
+        leases.add(local.retainForJob(scope: scope, handle: handle));
+      }
+      if (await readCurrentRevision() != expectedRevision) {
+        _failPrepared('revision_changed');
+      }
+      checkCancelled?.call();
+      final snapshot = await local.withSourcesInIsolate(
+          scope: scope,
+          handles: leases.map((lease) => lease.payload.handle),
+          read: _nativePrepareWorker(
+              manifest,
+              selectedRoots,
+              selectedPatterns,
+              nativeFiles,
+              documents,
+              author,
+              expectedRevision,
+              sourceUrl,
+              policy));
       checkCancelled?.call();
       if (await readCurrentRevision() != expectedRevision) {
-        _fail('revision_changed');
+        _failPrepared('revision_changed');
+      }
+      final payloads = [
+        for (final file in nativeFiles)
+          if (snapshot.nativeSourceIds.contains(file.$1)) (file.$3, file.$4),
+        for (final document in documents) (document, 'text/plain')
+      ];
+      final payloadsByContent =
+          <(String, int, String), Map<String, StoredFilePayload>>{};
+      for (final (payload, mediaType) in payloads) {
+        payloadsByContent.putIfAbsent(
+            (payload.rawSha256, payload.byteLength, mediaType),
+            () => {})[payload.handle] = payload;
+      }
+      final bindings = <String, List<StoredFilePayload>>{};
+      for (final descriptor in snapshot.sources) {
+        final aliases = payloadsByContent[(
+          descriptor.rawSha256,
+          descriptor.byteLength,
+          descriptor.mediaType
+        )];
+        if (aliases == null || aliases.isEmpty) {
+          _failPrepared('prepared_source_missing');
+        }
+        bindings[descriptor.path] = List.unmodifiable(aliases.values);
+      }
+      final used = {
+        for (final aliases in bindings.values)
+          ...aliases.map((payload) => payload.handle)
+      };
+      for (final lease in leases
+          .where((lease) => !used.contains(lease.payload.handle))
+          .toList()) {
+        await local.release(scope: scope, leaseId: lease.leaseId);
+        leases.remove(lease);
+      }
+      return NativeResourcePackPreparedExport._(
+          local,
+          scope,
+          metadata,
+          expectedRevision,
+          snapshot,
+          Map.unmodifiable(bindings),
+          List.unmodifiable(leases));
+    } on Object {
+      for (final lease in leases) {
+        await local.release(scope: scope, leaseId: lease.leaseId);
+      }
+      rethrow;
+    }
+  }
+
+  Future<OwnedResourcePackExport> exportPrepared(
+      {required NativeResourcePackPreparedExport prepared,
+      bool acknowledgeOrganizationRemoval = false,
+      required Future<String> Function() readCurrentRevision,
+      void Function()? checkCancelled}) async {
+    if (!identical(prepared._store, store) || prepared._scope != scope) {
+      _failPrepared('preparation_owner_mismatch');
+    }
+    if (prepared.review.requiresOrganizationAcknowledgement &&
+        !acknowledgeOrganizationRemoval) {
+      _failPrepared('organization_acknowledgement_required');
+    }
+    final owner = await prepared.retain();
+    Directory? directory;
+    FileBackedPayloadLease? lease;
+    try {
+      directory =
+          await Directory.systemTemp.createTemp('avelune-native-export-');
+      if (await readCurrentRevision() != owner.sourceRevision) {
+        _failPrepared('revision_changed');
+      }
+      checkCancelled?.call();
+      final result = await owner._store.withSourcesInIsolate(
+          scope: scope,
+          handles: owner.payloadHandles,
+          read: _preparedExportWorker(owner._snapshot, owner.metadata,
+              owner._bindings, directory.path, policy));
+      checkCancelled?.call();
+      if (await readCurrentRevision() != owner.sourceRevision) {
+        _failPrepared('revision_changed');
       }
       lease = await store.stage(
-        scope: scope,
-        chunks: _readChunks(
-          File('${directory.path}/archive'),
-          policy.maxChunkBytes,
-        ),
-        byteLength: result.$1,
-        expectedRawSha256: result.$2,
-        checkCancelled: checkCancelled,
-      );
-      checkCancelled?.call();
-      final inspection = await local.withSourceInIsolate(
-        scope: scope,
-        handle: lease.payload.handle,
-        read: _exportInspector(policy),
-      );
+          scope: scope,
+          chunks: _readChunks(
+              File('${directory.path}/archive'), policy.maxChunkBytes),
+          byteLength: result.$1,
+          expectedRawSha256: result.$2,
+          checkCancelled: checkCancelled);
+      final inspection = await owner._store.withSourceInIsolate(
+          scope: scope,
+          handle: lease.payload.handle,
+          read: _exportInspector(policy));
       checkCancelled?.call();
       if (inspection.archiveRawSha256 != result.$2 ||
-          await readCurrentRevision() != expectedRevision) {
-        _fail('revision_changed');
+          await readCurrentRevision() != owner.sourceRevision) {
+        _failPrepared('revision_changed');
       }
       return OwnedResourcePackExport._(store, scope, lease, inspection);
     } on Object {
@@ -689,15 +878,59 @@ final class CanonicalResourcePackExportService {
       }
       rethrow;
     } finally {
-      if (await directory.exists()) await directory.delete(recursive: true);
+      await owner.dispose();
+      if (directory != null && await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    }
+  }
+
+  Future<OwnedResourcePackExport> exportNative(
+      {required ProjectManifest manifest,
+      required List<NativeResourcePackRef> roots,
+      required List<String> smartTilePatternIds,
+      required List<(String, String, StoredFilePayload, String)> files,
+      required ResourcePackMetadata metadata,
+      required String author,
+      required String expectedRevision,
+      required Future<String> Function() readCurrentRevision,
+      List<StoredFilePayload> licenseDocuments = const [],
+      String? sourceUrl,
+      bool acknowledgeOrganizationRemoval = false,
+      void Function()? checkCancelled}) async {
+    final prepared = await prepareNative(
+        manifest: manifest,
+        roots: roots,
+        smartTilePatternIds: smartTilePatternIds,
+        files: files,
+        metadata: metadata,
+        author: author,
+        expectedRevision: expectedRevision,
+        readCurrentRevision: readCurrentRevision,
+        licenseDocuments: licenseDocuments,
+        sourceUrl: sourceUrl,
+        checkCancelled: checkCancelled);
+    try {
+      return await exportPrepared(
+          prepared: prepared,
+          acknowledgeOrganizationRemoval: acknowledgeOrganizationRemoval,
+          readCurrentRevision: readCurrentRevision,
+          checkCancelled: checkCancelled);
+    } finally {
+      await prepared.dispose();
     }
   }
 
   Future<OwnedResourcePackExport> export(
       {required ResourcePackExportProjection projection,
+      bool acknowledgeOrganizationRemoval = false,
       required ResourcePackMetadata metadata,
       required String expectedRevision,
       required Future<String> Function() readCurrentRevision}) async {
+    if (projection.review.requiresOrganizationAcknowledgement &&
+        !acknowledgeOrganizationRemoval) {
+      _failPrepared('organization_acknowledgement_required');
+    }
     if (projection.sourceRevision != expectedRevision ||
         await readCurrentRevision() != expectedRevision) {
       _fail('revision_changed');
@@ -822,63 +1055,115 @@ ResourcePackInspection Function(RandomAccessPackageSource) _exportInspector(
 ) =>
     (source) => ResourcePackInspector(policy: policy).inspectSourceSync(source);
 
-Future<(int, String)> Function(Map<String, RandomAccessPackageSource>)
-_nativeExportWorker(
-  ProjectManifest manifest,
-  List<NativeResourcePackRef> roots,
-  List<String> patterns,
-  List<(String, String, StoredFilePayload, String)> files,
-  ResourcePackMetadata metadata,
-  String author,
-  String revision,
-  String? sourceUrl,
-  String? licenseText,
-  bool acknowledgeOrganizationRemoval,
-  String directory,
-  ResourcePackSecurityPolicy policy,
-) => (sources) async {
-  final nativeFiles = [
-    for (final file in files)
-      NativeResourcePackFile(
-        id: file.$1,
-        logicalPath: file.$2,
-        byteLength: file.$3.byteLength,
-        rawSha256: file.$3.rawSha256,
-        mediaType: file.$4,
-        openRead: () =>
-            _nativeChunks(sources[file.$3.handle]!, policy.maxChunkBytes),
-      ),
-  ];
-  final projection = await ResourcePackProjectionBuilder(policy: policy)
-      .project(
-        manifest: manifest,
-        roots: roots,
-        files: nativeFiles,
-        author: author,
-        sourceRevision: revision,
-        sourceUrl: sourceUrl,
-        licenseText: licenseText,
-        smartTilePatternIds: patterns,
-        acknowledgeOrganizationRemoval: acknowledgeOrganizationRemoval,
-      );
-  final sink = _PrivateArchiveSink(File('$directory/archive'));
-  try {
-    final built = await ResourcePackBuilder(policy: policy).build(
-      metadata: metadata,
-      catalog: projection.catalog,
-      tileWidth: projection.tileWidth,
-      tileHeight: projection.tileHeight,
-      sources: projection.sources,
-      sink: sink,
-    );
-    return (built.archiveBytes, built.archiveRawSha256);
-  } on Object {
-    await sink.abort();
-    rethrow;
-  } finally {
-    await sink.close();
-  }
-};
+Future<_NativeExportSnapshot> Function(Map<String, RandomAccessPackageSource>)
+    _nativePrepareWorker(
+            ProjectManifest manifest,
+            List<NativeResourcePackRef> roots,
+            List<String> patterns,
+            List<(String, String, StoredFilePayload, String)> files,
+            List<StoredFilePayload> documents,
+            String author,
+            String revision,
+            String? sourceUrl,
+            ResourcePackSecurityPolicy policy) =>
+        (sources) async {
+          final projection =
+              await ResourcePackProjectionBuilder(policy: policy).project(
+            manifest: manifest,
+            roots: roots,
+            files: [
+              for (final file in files)
+                NativeResourcePackFile(
+                    id: file.$1,
+                    logicalPath: file.$2,
+                    byteLength: file.$3.byteLength,
+                    rawSha256: file.$3.rawSha256,
+                    mediaType: file.$4,
+                    openRead: () => _nativeChunks(
+                        sources[file.$3.handle]!, policy.maxChunkBytes))
+            ],
+            author: author,
+            sourceRevision: revision,
+            sourceUrl: sourceUrl,
+            localLicenses: [
+              for (final document in documents)
+                ResourcePackBuildSource(
+                    path: 'licenses/${document.rawSha256}.txt',
+                    byteLength: document.byteLength,
+                    rawSha256: document.rawSha256,
+                    mediaType: 'text/plain',
+                    openRead: () => _nativeChunks(
+                        sources[document.handle]!, policy.maxChunkBytes))
+            ],
+            smartTilePatternIds: patterns,
+          );
+          for (final source in projection.sources
+              .where((source) => source.mediaType == 'text/plain')) {
+            await source.openRead().drain<void>();
+          }
+          return _NativeExportSnapshot(
+              projection.catalog,
+              projection.roots,
+              projection.tileWidth,
+              projection.tileHeight,
+              projection.sources.map((source) => source.inventory).toList(),
+              projection.nativeSourceIds,
+              projection.promotedResources,
+              projection.removedOrganization,
+              projection.nativeMappings,
+              projection.review);
+        };
+
+Future<(int, String)> Function(
+    Map<String, RandomAccessPackageSource>) _preparedExportWorker(
+        _NativeExportSnapshot snapshot,
+        ResourcePackMetadata metadata,
+        Map<String, List<StoredFilePayload>> bindings,
+        String directory,
+        ResourcePackSecurityPolicy policy) =>
+    (sources) async {
+      final sink = _PrivateArchiveSink(File('$directory/archive'));
+      try {
+        final built = await ResourcePackBuilder(policy: policy).build(
+            metadata: metadata,
+            catalog: snapshot.catalog,
+            tileWidth: snapshot.tileWidth,
+            tileHeight: snapshot.tileHeight,
+            sources: [
+              for (final descriptor in snapshot.sources)
+                ResourcePackBuildSource(
+                    path: descriptor.path,
+                    byteLength: descriptor.byteLength,
+                    rawSha256: descriptor.rawSha256,
+                    mediaType: descriptor.mediaType,
+                    openRead: () async* {
+                      final aliases = bindings[descriptor.path]!;
+                      for (final alias in aliases.skip(1)) {
+                        await _verifyNativeAlias(
+                            NativeResourcePackFile(
+                                id: alias.handle,
+                                logicalPath: descriptor.path,
+                                byteLength: alias.byteLength,
+                                rawSha256: alias.rawSha256,
+                                mediaType: descriptor.mediaType,
+                                openRead: () => _nativeChunks(
+                                    sources[alias.handle]!,
+                                    policy.maxChunkBytes)),
+                            policy);
+                      }
+                      yield* _nativeChunks(
+                          sources[aliases.first.handle]!, policy.maxChunkBytes);
+                    })
+            ],
+            sink: sink);
+        return (built.archiveBytes, built.archiveRawSha256);
+      } on Object {
+        await sink.abort();
+        rethrow;
+      } finally {
+        await sink.close();
+      }
+    };
 
 Stream<List<int>> _nativeChunks(
   RandomAccessPackageSource source,
@@ -895,27 +1180,65 @@ Set<String> Function() _requiredNativeFilesWorker(
   List<(String, String, int, String, String)> files,
   List<String> patterns,
   ResourcePackSecurityPolicy policy,
-) => () {
-  final projection = _Projection(manifest, [
-    for (final file in files)
-      NativeResourcePackFile(
-        id: file.$1,
-        logicalPath: file.$2,
-        byteLength: file.$3,
-        rawSha256: file.$4,
-        mediaType: file.$5,
-        openRead: _emptyNativeRead,
-      ),
-  ], policy);
-  for (final root in roots) {
-    projection.reference(root.kind.name, root.id);
-  }
-  for (final id in patterns) {
-    projection.reference('smartTilePattern', id);
-  }
-  return {
-    for (final key in projection.completed.keys)
-      if (projection.nodes[key]!.kind == 'file') projection.nodes[key]!.id,
-  };
-};
+) =>
+    () {
+      final projection = _Projection(
+          manifest,
+          [
+            for (final file in files)
+              NativeResourcePackFile(
+                id: file.$1,
+                logicalPath: file.$2,
+                byteLength: file.$3,
+                rawSha256: file.$4,
+                mediaType: file.$5,
+                openRead: _emptyNativeRead,
+              ),
+          ],
+          policy);
+      for (final root in roots) {
+        projection.reference(root.kind.name, root.id);
+      }
+      for (final id in patterns) {
+        projection.reference('smartTilePattern', id);
+      }
+      final inherited = _NativeAttributions(projection, null);
+      return {
+        ...inherited.documentFileIds,
+        for (final key in projection.completed.keys)
+          if (projection.nodes[key]!.kind == 'file') projection.nodes[key]!.id,
+      };
+    };
 Stream<List<int>> _emptyNativeRead() => const Stream.empty();
+
+ResourcePackBuildSource _documentAliases(
+    List<ResourcePackBuildSource> aliases, ResourcePackSecurityPolicy policy) {
+  final representative = aliases.first;
+  if (aliases.any((source) =>
+      source.path != representative.path ||
+      source.rawSha256 != representative.rawSha256 ||
+      source.byteLength != representative.byteLength ||
+      source.mediaType != 'text/plain')) {
+    _fail('license_document_changed');
+  }
+  return ResourcePackBuildSource(
+      path: representative.path,
+      byteLength: representative.byteLength,
+      rawSha256: representative.rawSha256,
+      mediaType: 'text/plain',
+      openRead: () async* {
+        for (final alias in aliases.skip(1)) {
+          await _verifiedDocumentChunks(alias, policy).drain<void>();
+        }
+        yield* _verifiedDocumentChunks(representative, policy);
+      });
+}
+
+final class ResourcePackExportException extends FormatException {
+  ResourcePackExportException(String suffix)
+      : code = 'resource_pack.$suffix',
+        super('resource_pack.$suffix');
+  final String code;
+}
+
+Never _failPrepared(String code) => throw ResourcePackExportException(code);

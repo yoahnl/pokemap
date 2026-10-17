@@ -338,6 +338,8 @@ class ResourcePackTestHost {
   ResourcePackTransferController get transfer => navigation.packTransfer!;
   static Future<ResourcePackTestHost> create({
     Future<void> Function()? beforeReconciliation,
+    ResourcePackExportSink? exportSink,
+    PickResourcePackLicenses? pickLicenses,
     ResourcePackImportFixture? sourceFixture,
     MapData? initialMap,
     ResourcePackPort Function(ResourcePackPort)? wrapPack,
@@ -393,6 +395,8 @@ class ResourcePackTestHost {
       onUse: (_) {},
       packPort: wrapPack?.call(pack) ?? pack,
       packPicker: () async => archiveFile.path,
+      packExportSink: exportSink,
+      packLicensePicker: pickLicenses,
     );
     return ResourcePackTestHost(
       source,
@@ -477,6 +481,12 @@ class RecordingPackPort implements ResourcePackPort {
   @override
   Future<Map<String, Object?>> query(AuthoringQueryRequest request) =>
       delegate.query(request);
+  @override
+  Future<List<int>> readExportPayloadChunk(
+    String payloadRef,
+    int offset,
+    int length,
+  ) => delegate.readExportPayloadChunk(payloadRef, offset, length);
   @override
   Future<ResourceMutationReceipt> applyImport({
     required String preparedHandle,

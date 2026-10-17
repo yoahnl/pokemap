@@ -12,6 +12,193 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('portable terrain keeps preset-local rule candidate and fallback identities', () async {
+    final base = originalManifest();
+    final first = base.smartTileCatalog.presets.single;
+    final second = first.copyWith(id: 'second', name: 'Second');
+    final manifest = base.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: base.smartTileCatalog.atlases,
+        materials: base.smartTileCatalog.materials,
+        presets: [first, second],
+      ),
+    );
+    final projection = await projectFixture(
+      manifest,
+      [nativeImage()],
+      roots: [
+        NativeResourcePackRef(
+          kind: ResourcePackKind.smartTilePreset,
+          id: first.id,
+        ),
+        NativeResourcePackRef(
+          kind: ResourcePackKind.smartTilePreset,
+          id: second.id,
+        ),
+      ],
+    );
+    final presets = projection.catalog.smartTileCatalog.presets;
+    expect(presets.map((p) => p.id).toSet(), hasLength(2));
+    for (final preset in presets) {
+      expect(preset.rules.single.id, 'all');
+      expect(preset.rules.single.candidates.single.id, 'one');
+      expect(preset.fallbackRuleId, 'all');
+      expect(
+        preset.rules.single.candidates.single.parts.single.source,
+        SmartTileVisualSource.frame(
+          frame: SmartTileFrameRef(
+            atlasId: projection.catalog.smartTileCatalog.atlases.single.id,
+            column: 0,
+            row: 0,
+          ),
+        ),
+      );
+    }
+    expect(
+      projection.catalog.smartTileCatalog.materials.single.connectionGroupId,
+      isNot('g'),
+    );
+    expect(base.smartTileCatalog.presets.single, first);
+  });
+  test(
+      'native preparation pins snapshots without copying bytes and builds after owner release and expiry',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('p11-prepared-export-');
+    var now = DateTime.utc(2026, 10, 17);
+    final store = LocalResourcePackStore(
+        cacheDirectory: '${directory.path}/cache',
+        allowedSourceRoots: [],
+        clock: () => now);
+    const scope =
+        FileBackedPayloadScope(sessionId: 'native', projectId: 'project');
+    final image = nativeImage();
+    final media = await store.stage(
+        scope: scope,
+        chunks: image.openRead(),
+        byteLength: image.byteLength,
+        expectedRawSha256: image.rawSha256);
+    final docs = <FileBackedPayloadLease>[];
+    for (final text in ['First licence', 'Second licence']) {
+      final bytes = utf8.encode(text);
+      docs.add(await store.stage(
+          scope: scope, chunks: Stream.value(bytes), byteLength: bytes.length));
+    }
+    final cachedBefore = store.cachedBytes;
+    final service =
+        CanonicalResourcePackExportService(store: store, scope: scope);
+    NativeResourcePackPreparedExport? prepared;
+    OwnedResourcePackExport? artifact;
+    try {
+      final roots = [
+        NativeResourcePackRef(kind: ResourcePackKind.tileset, id: 'atlas')
+      ];
+      final patterns = <String>[];
+      final files = [
+        (image.id, image.logicalPath, media.payload, image.mediaType)
+      ];
+      final documents = docs.map((lease) => lease.payload).toList();
+      final preparation = service.prepareNative(
+        manifest: originalManifest(),
+        roots: roots,
+        smartTilePatternIds: patterns,
+        files: files,
+        licenseDocuments: documents,
+        metadata: metadata(),
+        author: 'Original',
+        expectedRevision: 'revision',
+        readCurrentRevision: () async => 'revision',
+      );
+      roots.clear();
+      patterns.add('changed-after-preparation');
+      files.clear();
+      documents.clear();
+      prepared = await preparation;
+      expect(prepared.catalog.tilesets, hasLength(1));
+      expect(store.cachedBytes, cachedBefore);
+      final fingerprint = prepared.projectionFingerprint;
+      expect(() => prepared!.sourceInventory.clear(), throwsUnsupportedError);
+      expect(() => prepared!.nativeMappings.clear(), throwsUnsupportedError);
+      expect(() => prepared!.nativeSourceIds.clear(), throwsUnsupportedError);
+      for (final lease in [media, ...docs]) {
+        await store.release(scope: scope, leaseId: lease.leaseId);
+      }
+      now = now.add(const Duration(days: 2));
+      await store.collectExpired();
+      expect(store.cachedBytes, cachedBefore);
+      artifact = await service.exportPrepared(
+          prepared: prepared, readCurrentRevision: () async => 'revision');
+      expect(artifact.inspection.catalog, prepared.catalog);
+      expect(artifact.inspection.manifest.pack, prepared.metadata);
+      expect(prepared.projectionFingerprint, fingerprint);
+      expect(
+          artifact.inspection.manifest.content.files
+              .where((file) => file.mediaType == 'text/plain'),
+          hasLength(2));
+      await prepared.dispose();
+      now = now.add(const Duration(days: 2));
+      await store.collectExpired();
+      expect(store.cachedBytes, artifact.payload.byteLength);
+    } finally {
+      await artifact?.dispose();
+      await prepared?.dispose();
+      await store.close();
+      await directory.delete(recursive: true);
+    }
+  });
+
+  test(
+      'native preparation rolls back earlier pins if a later source is unknown',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('p11-pin-rollback-');
+    var now = DateTime.utc(2026, 10, 17);
+    final store = LocalResourcePackStore(
+        cacheDirectory: '${directory.path}/cache',
+        allowedSourceRoots: [],
+        clock: () => now);
+    const scope =
+        FileBackedPayloadScope(sessionId: 'native', projectId: 'project');
+    final image = nativeImage();
+    final media = await store.stage(
+        scope: scope, chunks: image.openRead(), byteLength: image.byteLength);
+    try {
+      await expectLater(
+          CanonicalResourcePackExportService(store: store, scope: scope)
+              .prepareNative(
+                  manifest: originalManifest(),
+                  roots: [
+                    NativeResourcePackRef(
+                        kind: ResourcePackKind.tileset, id: 'atlas')
+                  ],
+                  smartTilePatternIds: [],
+                  files: [
+                    (
+                      image.id,
+                      image.logicalPath,
+                      media.payload,
+                      image.mediaType
+                    )
+                  ],
+                  licenseDocuments: [
+                    StoredFilePayload(
+                        handle: 'unknown', byteLength: 0, rawSha256: '0' * 64)
+                  ],
+                  metadata: metadata(),
+                  author: 'Original',
+                  expectedRevision: 'revision',
+                  readCurrentRevision: () async => 'revision'),
+          throwsA(isA<FileBackedPayloadException>()));
+      await store.release(scope: scope, leaseId: media.leaseId);
+      now = now.add(const Duration(days: 2));
+      await store.collectExpired();
+      expect(store.cachedBytes, 0);
+    } finally {
+      await store.close();
+      await directory.delete(recursive: true);
+    }
+  });
+
   test(
       'refuses a deduplicated native alias mutated after projection with a stable revision',
       () async {
@@ -47,6 +234,7 @@ void main() {
       try {
         await expectLater(() async {
           result = await service.export(
+              acknowledgeOrganizationRemoval: true,
               projection: projection,
               metadata: metadata(),
               expectedRevision: 'revision',
@@ -96,6 +284,7 @@ void main() {
         ]);
     await withAliasExportService((service, store) async {
       final result = await service.export(
+          acknowledgeOrganizationRemoval: true,
           projection: projection,
           metadata: metadata(),
           expectedRevision: 'revision',
@@ -142,6 +331,7 @@ void main() {
       try {
         await expectLater(() async {
           result = await service.export(
+              acknowledgeOrganizationRemoval: true,
               projection: projection,
               metadata: metadata(),
               expectedRevision: 'revision',
@@ -212,6 +402,7 @@ void main() {
         try {
           await expectLater(() async {
             result = await service.export(
+                acknowledgeOrganizationRemoval: true,
                 projection: projection,
                 metadata: metadata(),
                 expectedRevision: 'revision',
@@ -438,6 +629,7 @@ void main() {
               scope: FileBackedPayloadScope(
                   sessionId: 'sprite', projectId: 'sprite'))
           .export(
+              acknowledgeOrganizationRemoval: true,
               projection: projection,
               metadata: metadata(),
               expectedRevision: 'revision',
@@ -652,6 +844,7 @@ void main() {
               scope: FileBackedPayloadScope(
                   sessionId: 'mixed', projectId: 'mixed'))
           .export(
+              acknowledgeOrganizationRemoval: true,
               projection: projection,
               metadata: metadata(),
               expectedRevision: 'revision',
@@ -695,7 +888,8 @@ void main() {
             (e) => e.message, 'message', contains('border_unpublished'))));
   });
 
-  test('normalization requires acknowledgement and never changes native data',
+  test(
+      'normalization is described before acknowledgement and never changes native data',
       () async {
     final fixture = mixedFixture();
     final manifest = fixture.$1.copyWith(tilesets: [
@@ -707,16 +901,15 @@ void main() {
         ])
       ])
     ]);
-    await expectLater(
-        ResourcePackProjectionBuilder().project(
-            manifest: manifest,
-            roots: [
-              NativeResourcePackRef(kind: ResourcePackKind.tileset, id: 'atlas')
-            ],
-            files: fixture.$2,
-            author: 'Original',
-            sourceRevision: 'revision'),
-        throwsFormatException);
+    final described = await ResourcePackProjectionBuilder().project(
+        manifest: manifest,
+        roots: [
+          NativeResourcePackRef(kind: ResourcePackKind.tileset, id: 'atlas')
+        ],
+        files: fixture.$2,
+        author: 'Original',
+        sourceRevision: 'revision');
+    expect(described.review.requiresOrganizationAcknowledgement, isTrue);
     final result = await projectFixture(manifest, fixture.$2, roots: [
       NativeResourcePackRef(kind: ResourcePackKind.tileset, id: 'atlas')
     ]);
@@ -792,11 +985,13 @@ void main() {
         provenance: 'Original fixture');
     try {
       final first = await service.export(
+          acknowledgeOrganizationRemoval: true,
           projection: projection,
           metadata: metadata,
           expectedRevision: 'revision',
           readCurrentRevision: () async => 'revision');
       final second = await service.export(
+          acknowledgeOrganizationRemoval: true,
           projection: projection,
           metadata: metadata,
           expectedRevision: 'revision',
@@ -809,6 +1004,7 @@ void main() {
       var checks = 0;
       await expectLater(
           service.export(
+              acknowledgeOrganizationRemoval: true,
               projection: projection,
               metadata: metadata,
               expectedRevision: 'revision',
@@ -846,14 +1042,14 @@ void main() {
         ]));
     final before = manifest.toJson();
     final result = await ResourcePackProjectionBuilder().project(
-        manifest: manifest,
-        roots: [
-          NativeResourcePackRef(kind: ResourcePackKind.element, id: 'décor été')
-        ],
-        files: [nativeImage()],
-        author: 'Original',
-        sourceRevision: 'revision',
-        acknowledgeOrganizationRemoval: true);
+      manifest: manifest,
+      roots: [
+        NativeResourcePackRef(kind: ResourcePackKind.element, id: 'décor été')
+      ],
+      files: [nativeImage()],
+      author: 'Original',
+      sourceRevision: 'revision',
+    );
     expect(result.catalog.elements, hasLength(1));
     expect(result.catalog.smartTileCatalog.presets, isEmpty);
     expect(result.catalog.elements.single.id, matches(RegExp(r'^[a-z0-9_]+$')));
@@ -967,13 +1163,13 @@ Future<ResourcePackExportProjection> projectFixture(
         {required List<NativeResourcePackRef> roots,
         List<String> patterns = const []}) =>
     ResourcePackProjectionBuilder().project(
-        manifest: manifest,
-        files: files,
-        roots: roots,
-        smartTilePatternIds: patterns,
-        author: 'Original',
-        sourceRevision: 'revision',
-        acknowledgeOrganizationRemoval: true);
+      manifest: manifest,
+      files: files,
+      roots: roots,
+      smartTilePatternIds: patterns,
+      author: 'Original',
+      sourceRevision: 'revision',
+    );
 
 ResourcePackMetadata metadata() => ResourcePackMetadata(
     id: 'original.pack',
@@ -1259,7 +1455,7 @@ Future<(ProjectManifest, List<NativeResourcePackFile>)> spriteFixture(
               original.copyWith(seedSalt: seed, rules: [
                 rule.copyWith(candidates: [
                   ...rule.candidates,
-                  SmartTileCandidate(id: 'two', parts: [
+                  SmartTileCandidate(id: 'two', weight: 2, parts: [
                     SmartTileVisualPart(
                         source: SmartTileVisualSource.frame(
                             frame: SmartTileFrameRef(

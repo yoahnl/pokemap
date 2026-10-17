@@ -33,7 +33,7 @@ final class ResourcePackActions {
       ],
       extensions: const {
         'multiFileGuarantee': 'recoverable',
-        'transferProtocol': 'pokemap.authoring.resource_pack.v1',
+        'transferProtocol': 'pokemap.authoring.resource_pack.v2',
         'applyJobVerb': 'start_apply',
         'editorTransport': 'PARTIAL:P10/P11',
         'inputSchema': {

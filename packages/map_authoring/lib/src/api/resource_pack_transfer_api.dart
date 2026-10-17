@@ -33,8 +33,8 @@ abstract interface class ResourcePackTransferApiPort {
 }
 
 final resourcePackTransferContract = <String, Object?>{
-  'schemaVersion': 1,
-  'protocol': 'pokemap.authoring.resource_pack.v1',
+  'schemaVersion': 2,
+  'protocol': 'pokemap.authoring.resource_pack.v2',
   'capabilityId': 'authoring.resource_packs',
   'actionIds': ['resource_pack.import'],
   'resourceKinds': [
@@ -46,6 +46,7 @@ final resourcePackTransferContract = <String, Object?>{
   ],
   'verbs': [
     'stage',
+    'stage_license',
     'inspect',
     'entries',
     'selection.create',
@@ -68,11 +69,24 @@ final resourcePackTransferContract = <String, Object?>{
   'schemaDescriptors': [resourcePackTransferSchema.toJson()],
   'capability': resourcePackTransferCapability.toJson(),
   'schemas': {
-    'input': 'pokemap.authoring.resource_pack.transfer.input.v1',
-    'output': 'pokemap.authoring.resource_pack.transfer.output.v1',
+    'input': 'pokemap.authoring.resource_pack.transfer.input.v2',
+    'output': 'pokemap.authoring.resource_pack.transfer.output.v2',
     'additionalProperties': false,
     'nativeReferences': 'kindAndNativeId',
     'archiveReferences': 'kindAndPortableId',
+  },
+  'nativeSemantics': {
+    'entrySectionsScope': 'nativeInventoryAtSelectionRevision',
+    'inventoryAttributionScope': 'persistedInstallationDeclarations',
+    'previewScope': 'preparedNativeClosure',
+    'organizationAcknowledgement': 'exportOnly',
+    'publishedSources': 'strict',
+    'savedDraftComparison': [
+      'equivalent',
+      'divergent',
+      'notComparable',
+      'absent'
+    ]
   },
   'limits': {
     'pageRows': 200,
@@ -91,7 +105,7 @@ final resourcePackTransferContract = <String, Object?>{
 
 final resourcePackTransferCapability = AuthoringCapabilityDescriptor(
   id: 'authoring.resource_packs',
-  version: 1,
+  version: 2,
   summary: 'Scoped asynchronous transfer of native resource packs',
   resourceKinds: resourcePackTemporaryKinds,
   actionIds: const ['resource_pack.import'],
@@ -99,9 +113,9 @@ final resourcePackTransferCapability = AuthoringCapabilityDescriptor(
 );
 
 final resourcePackTransferSchema = AuthoringSchemaDescriptor(
-  id: 'pokemap.authoring.resource_pack.transfer.input.v1',
-  version: 1,
-  uri: 'pokemap://schema/resource-pack-transfer/input/v1',
+  id: 'pokemap.authoring.resource_pack.transfer.input.v2',
+  version: 2,
+  uri: 'pokemap://schema/resource-pack-transfer/input/v2',
   sha256: computeAuthoringJsonFingerprint(
     resourcePackTransferInputSchema,
     logicalName: 'resource-pack-transfer-schema',
@@ -125,6 +139,7 @@ final resourcePackTransferInputSchema = <String, Object?>{
 
 final resourcePackVerbInputSchemas = <String, Map<String, Object?>>{
   'stage': _object(['sourcePath'], {'sourcePath': _textSchema(4096)}),
+  'stage_license': _object(['sourcePath'], {'sourcePath': _textSchema(4096)}),
   'inspect': _object(['archiveHandle'], {'archiveHandle': _handleSchema}),
   'entries':
       _object([], {
@@ -177,18 +192,40 @@ final resourcePackVerbInputSchemas = <String, Map<String, Object?>>{
     ['selectionHandle', 'revision', 'filter'],
     {..._selectionSchema, 'filter': _filterSchema},
   ),
-  'prepare': _object(
-    ['selectionHandle', 'revision', 'expectedRevision'],
-    {
-      ..._selectionSchema,
-      'expectedRevision': _revisionSchema,
-      'conflictPolicy': {
-        'type': 'string',
-        'enum': ['preserveProject', 'importCopy'],
-        'default': 'preserveProject',
-      },
-    },
-  ),
+  'prepare': {
+    'oneOf': [
+      _object(
+        ['selectionHandle', 'revision', 'expectedRevision'],
+        {
+          ..._selectionSchema,
+          'expectedRevision': _revisionSchema,
+          'conflictPolicy': {
+            'type': 'string',
+            'enum': ['preserveProject', 'importCopy'],
+            'default': 'preserveProject',
+          },
+        },
+      ),
+      _object([
+        'selectionHandle',
+        'revision',
+        'expectedRevision',
+        'metadata',
+        'author'
+      ], {
+        ..._selectionSchema,
+        'expectedRevision': _revisionSchema,
+        'metadata': _metadataSchema,
+        'author': _textSchema(128),
+        'sourceUrl': {'type': 'string', 'maxLength': 4096},
+        'licenseHandles': {
+          'type': 'array',
+          'maxItems': 200,
+          'items': _handleSchema
+        },
+      }),
+    ]
+  },
   'preview': _object(
     ['previewHandle'],
     {'previewHandle': _handleSchema, ..._pageSchema},
@@ -216,42 +253,12 @@ final resourcePackVerbInputSchemas = <String, Map<String, Object?>>{
   ),
   'start_recovery': _object(['operationId'], {'operationId': _handleSchema}),
   'recovery_status': _object([], {}),
-  'export': _object(
-    ['selectionHandle', 'revision', 'expectedRevision', 'metadata', 'author'],
-    {
-      ..._selectionSchema,
-      'expectedRevision': _revisionSchema,
-      'metadata': _object(
-        [
-          'id',
-          'version',
-          'name',
-          'description',
-          'universeId',
-          'authors',
-          'provenance',
-        ],
-        {
-          'id': _textSchema(256),
-          'version': _textSchema(128),
-          'name': _textSchema(256),
-          'description': {'type': 'string', 'maxLength': 4096},
-          'universeId': _textSchema(256),
-          'authors': {
-            'type': 'array',
-            'minItems': 1,
-            'maxItems': 200,
-            'items': _textSchema(128),
-          },
-          'provenance': _textSchema(4096),
-        },
-      ),
-      'author': _textSchema(256),
-      'sourceUrl': {'type': 'string', 'maxLength': 4096},
-      'licenseText': {'type': 'string', 'maxLength': 32000},
-      'acknowledgeOrganizationRemoval': {'type': 'boolean'},
-    },
-  ),
+  'export': _object([
+    'preparedExportHandle'
+  ], {
+    'preparedExportHandle': _handleSchema,
+    'acknowledgeOrganizationRemoval': {'type': 'boolean'}
+  }),
   'get': _object(['jobId'], {'jobId': _handleSchema}),
   'events': _object(
     ['jobId'],
@@ -321,7 +328,33 @@ Map<String, Object?> _object(
   'properties': properties,
 };
 Map<String, Object?> _textSchema(int max) => {
-  'type': 'string',
-  'minLength': 1,
-  'maxLength': max,
-};
+      'type': 'string',
+      'minLength': 1,
+      'maxLength': max,
+    };
+
+final _metadataSchema = _object(
+  [
+    'id',
+    'version',
+    'name',
+    'description',
+    'universeId',
+    'authors',
+    'provenance',
+  ],
+  {
+    'id': _textSchema(256),
+    'version': _textSchema(128),
+    'name': _textSchema(256),
+    'description': {'type': 'string', 'maxLength': 4096},
+    'universeId': _textSchema(256),
+    'authors': {
+      'type': 'array',
+      'minItems': 1,
+      'maxItems': 200,
+      'items': _textSchema(128),
+    },
+    'provenance': _textSchema(4096),
+  },
+);

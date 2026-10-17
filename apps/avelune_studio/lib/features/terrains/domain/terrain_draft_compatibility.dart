@@ -130,88 +130,17 @@ String? terrainDraftCompatibilityProblem(
   if (terrainDraftIsSpatial(draft)) {
     return spatialTerrainCompatibilityProblem(manifest, draft);
   }
-  final extended =
-      draft.guideId == 'avelune-path20-v1' &&
-      draft.topology == SmartTileTopology.blob8 &&
-      draft.templateHint == SmartTileTemplateHint.blob47 &&
-      draft.rules.length == 20;
-  final cardinal =
-      draft.guideId == 'avelune-cardinal4-v1' &&
-      draft.topology == SmartTileTopology.cardinal4 &&
-      draft.templateHint == SmartTileTemplateHint.edge16 &&
-      draft.rules.length == 16;
-  if (!(cardinal || extended) ||
-      draft.boundaryPolicy != SmartTileBoundaryPolicy.empty ||
-      draft.transformPolicy != const SmartTileTransformPolicy() ||
-      draft.coverageProfile !=
-          const SmartTileCoverageProfile(
-            mode: SmartTileCoverageMode.template,
-          ) ||
-      draft.fallbackRuleId != null ||
-      draft.animations.isNotEmpty ||
-      draft.atlases.length != 1 ||
-      draft.materials.length != 1 ||
-      draft.materials.single.isEmpty ||
-      draft.materials.single.id != draft.defaultMaterialId ||
-      draft.allowedMaterialIds.length != 1 ||
-      draft.allowedMaterialIds.single != draft.defaultMaterialId) {
-    return advancedTerrainPreparationMessage;
-  }
-  final atlas = draft.atlases.single;
-  if (draft.primaryAtlasId != atlas.id ||
-      draft.sourceTilesetIds.length != 1 ||
-      draft.sourceTilesetIds.single != atlas.tilesetId) {
-    return advancedTerrainPreparationMessage;
-  }
-  final source = manifest.tilesets
-      .where((t) => t.id == atlas.tilesetId)
-      .firstOrNull;
-  if (source == null) {
-    return 'L’image source de ce terrain est absente du projet.';
-  }
-  final problem = terrainSourceCompatibilityProblem(source);
-  if (problem != null) return problem;
-  if (terrainAtlas(source, atlas.id).copyWith(name: atlas.name) != atlas) {
-    return advancedTerrainPreparationMessage;
-  }
-  for (var mask = 0; mask < 16; mask++) {
-    final rule = draft.rules[mask];
-    final part = rule.candidates.firstOrNull?.parts.firstOrNull?.source;
-    final frame = part is SmartTileFrameSource ? part.frame : null;
-    if (frame != null &&
-        (frame.atlasId != atlas.id ||
-            frame.columnSpan != 1 ||
-            frame.rowSpan != 1 ||
-            frame.column < 0 ||
-            frame.row < 0 ||
-            frame.column >= atlas.columns ||
-            frame.row >= atlas.rows)) {
-      return advancedTerrainPreparationMessage;
+  final guide = recognizeSmartTileAuthoringGuide(manifest, draft);
+  if (guide != null && guide == draft.guideId) return null;
+  if (draft.atlases.length == 1) {
+    final source = manifest.tilesets
+        .where((tile) => tile.id == draft.atlases.single.tilesetId)
+        .firstOrNull;
+    if (source == null) {
+      return 'L’image source de ce terrain est absente du projet.';
     }
-    if (rule != terrainConnectionRule(mask, frame, draft.defaultMaterialId!)) {
-      return advancedTerrainPreparationMessage;
-    }
+    final problem = terrainSourceCompatibilityProblem(source);
+    if (problem != null) return problem;
   }
-  if (extended) {
-    for (var index = 16; index < 20; index++) {
-      final rule = draft.rules[index];
-      final part = rule.candidates.firstOrNull?.parts.firstOrNull?.source;
-      final frame = part is SmartTileFrameSource ? part.frame : null;
-      if (frame != null &&
-          (frame.atlasId != atlas.id ||
-              frame.columnSpan != 1 ||
-              frame.rowSpan != 1 ||
-              frame.column < 0 ||
-              frame.row < 0 ||
-              frame.column >= atlas.columns ||
-              frame.row >= atlas.rows)) {
-        return advancedTerrainPreparationMessage;
-      }
-      if (rule !=
-          terrainOuterCornerRule(index, frame, draft.defaultMaterialId!)) {
-        return advancedTerrainPreparationMessage;
-      }
-    }
-  }
-  return null;
+  return advancedTerrainPreparationMessage;
 }

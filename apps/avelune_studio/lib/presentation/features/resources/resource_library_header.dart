@@ -62,8 +62,22 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
     }
 
     return [
+      if (widget.onExportPack != null)
+        StudioButton(
+          key: const ValueKey('resource-export-pack'),
+          label: 'Exporter un pack…',
+          icon: Icons.inventory_2_outlined,
+          secondary: true,
+          onPressed: () => run(widget.onExportPack!),
+        ),
       if (widget.onImportPack != null)
-        StudioButton(key: const ValueKey('resource-import-pack'), label: 'Importer un pack…', icon: Icons.inventory_2_outlined, secondary: true, onPressed: () => run(widget.onImportPack!)),
+        StudioButton(
+          key: const ValueKey('resource-import-pack'),
+          label: 'Importer un pack…',
+          icon: Icons.inventory_2_outlined,
+          secondary: true,
+          onPressed: () => run(widget.onImportPack!),
+        ),
       if (compact) ...[
         StudioButton(
           label: state.grid ? 'Mode liste' : 'Mode grille',

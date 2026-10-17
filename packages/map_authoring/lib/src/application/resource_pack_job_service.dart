@@ -22,6 +22,14 @@ final class ResourcePackJobContext {
   ResourcePackJobContext._(this._job, this._checkOwner);
   final _Job _job;
   final void Function() _checkOwner;
+  Future<void> Function()? _discardResult;
+
+  void onResultRejected(Future<void> Function() discard) {
+    if (_discardResult != null) {
+      throw StateError('A result owner is already registered for this job.');
+    }
+    _discardResult = discard;
+  }
 
   void checkCancelled() {
     if (!_job.cancelAllowed) return;
@@ -69,6 +77,7 @@ final class ResourcePackJobService implements AuthoringJobPort {
     _checkOpen();
     if (!const {
       'resource_pack.stage',
+      'resource_pack.license.stage',
       'resource_pack.inspect',
       'resource_pack.prepare',
       'resource_pack.import',
@@ -99,12 +108,13 @@ final class ResourcePackJobService implements AuthoringJobPort {
     _jobs[id] = job;
     final initial = job.snapshot;
     job.completion = Future<void>(() async {
+      final context = ResourcePackJobContext._(job, _checkOpen);
       try {
         _checkOpen();
         if (job.cancelRequested) throw const _Cancelled();
         job.state = AuthoringJobState.running;
         job.emit('running');
-        final result = await work(ResourcePackJobContext._(job, _checkOpen));
+        final result = await work(context);
         if (job.cancelAllowed) _checkOpen();
         if (job.cancelAllowed && job.cancelRequested) throw const _Cancelled();
         if (utf8.encode(jsonEncode(result)).length > 240 * 1024) {
@@ -140,7 +150,13 @@ final class ResourcePackJobService implements AuthoringJobPort {
         job.emit(job.cancelAllowed ? 'failed' : 'recoveryRequired');
       } finally {
         try {
-          await onSettled?.call();
+          try {
+            if (job.state != AuthoringJobState.succeeded) {
+              await context._discardResult?.call();
+            }
+          } finally {
+            await onSettled?.call();
+          }
         } on Object {
           job.result = {
             ...?job.result,

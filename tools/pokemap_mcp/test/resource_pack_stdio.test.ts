@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -50,7 +51,7 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
   const root = await mkdtemp(join(tmpdir(), "p09-mcp-"));
   const packageRoot = resolve("../../packages/map_authoring");
   const transport = new StdioClientTransport({
-    command: process.execPath, args: ["dist/src/index.js", "--root", root],
+    command: process.execPath, args: ["dist/src/index.js", "--root", root, ...(process.env.POKEMAP_TEST_DART ? ["--dart", process.env.POKEMAP_TEST_DART] : [])],
     cwd: process.cwd(), stderr: "pipe",
   });
   const client = new Client({ name: "resource-pack-contract", version: "1.0.0" });
@@ -64,14 +65,16 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
     return record(error ? envelope.error : envelope.data);
   }
   try {
-  await run("dart", ["run", "test/support/resource_pack_transport_fixture.dart", root], { cwd: packageRoot });
+  const built = await run("dart", ["run", "test/support/resource_pack_transport_fixture.dart", root], { cwd: packageRoot });
+  const metadata = record(JSON.parse(built.stdout).metadata);
     await client.connect(transport);
     const catalog = await call("pokemap_describe");
     const contract = record(catalog.resourcePackTransfer);
     const published = record(contract.inputSchema);
     const validated = z.toJSONSchema(resourcePackToolSchema, { unrepresentable: "any" }) as JsonRecord;
     comparePublishedShape(published, validated);
-    assert.equal((published.oneOf as unknown[]).length, 18);
+    assert.equal((published.oneOf as unknown[]).length, 19);
+    assert.equal(contract.schemaVersion, 2);
     for (const kind of ["resourcePackJob", "resourcePackInspection", "resourcePackEntry", "resourcePackSelection", "resourcePackPreview"]) {
       assert.ok((catalog.resourceKinds as JsonRecord[]).some((entry) => entry.id === kind), kind);
     }
@@ -141,8 +144,96 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
     const replayed = await settle(await transfer("start_apply", { planId: planned.planId, operationId: "pack-operation" }));
     assert.equal(record(replayed.receipt).receiptId, record(applied.receipt).receiptId);
     await transfer("cancel", { jobId: stageStart.jobId }, true);
+    const licenses: unknown[] = [];
+    for (const [index, text] of ["MCP licence é😀", "A second original document"].entries()) {
+      const path = join(root, `license-${index}.txt`);
+      await writeFile(path, text);
+      const stagedLicense = await settle(await transfer("stage_license", { sourcePath: path }));
+      assert.equal(stagedLicense.byteLength, Buffer.byteLength(text, "utf8"));
+      licenses.push(stagedLicense.licenseHandle);
+    }
+    await transfer("inspect", { archiveHandle: licenses[0] }, true);
+    async function ordinary(id: string, actionId: string, parameters: JsonRecord) {
+      const validation = await call("pokemap_validate", { projectHandle });
+      const plan = await call("pokemap_plan", { projectHandle, request: { requestId: id, actionId, actionVersion: 1, workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision, idempotencyKey: id, parameters } });
+      await call("pokemap_apply", { operation: "apply", projectHandle, planId: plan.planId, operationId: id });
+    }
+    await ordinary("native-private-map", "map.create", { mapId: "native-private-map", name: "Private map", width: 2, height: 2 });
+    const inventory = await transfer("selection.create", { mode: "native" });
+    const elementPage = await transfer("entries", { selectionHandle: inventory.selectionHandle, filter: { kind: "element" }, limit: 1 });
+    await ordinary("native-private-resource", "resource.classify", { resourceKind: "element", resourceId: (elementPage.items as JsonRecord[])[0]!.id, mapId: "native-private-map" });
+    const native = await transfer("selection.create", { mode: "native" });
+    const nativeSelection = await transfer("selection.select_filtered", { selectionHandle: native.selectionHandle, revision: native.revision, filter: { kind: "element" } });
+    for (const section of ["families", "authors", "sources"]) {
+      const page = await transfer("entries", { selectionHandle: nativeSelection.selectionHandle, section, limit: 1 });
+      assert.equal(page.scope, "nativeInventory");
+      assert.equal(page.sourceRevision, native.sourceRevision);
+      if (page.nextCursor) await transfer("entries", { selectionHandle: nativeSelection.selectionHandle, section: section === "families" ? "authors" : "families", cursor: page.nextCursor }, true);
+    }
+    const nativeStart = await transfer("prepare", { selectionHandle: nativeSelection.selectionHandle, revision: nativeSelection.revision, expectedRevision: native.sourceRevision, metadata, author: "MCP Publisher", licenseHandles: [...licenses, licenses[0]] });
+    for (const handle of licenses) await transfer("release", { handle });
+    const nativePrepared = await settle(nativeStart);
+    assert.equal(nativePrepared.status, "ready");
+    assert.equal(nativePrepared.requiresOrganizationAcknowledgement, true);
+    const firstNativePage = await transfer("preview", { previewHandle: nativePrepared.previewHandle, limit: 1 });
+    let nativePage = firstNativePage;
+    const nativeRows: JsonRecord[] = [];
+    while (true) {
+      assert.equal(nativePage.scope, "preparedNativeClosure");
+      nativeRows.push(...nativePage.items as JsonRecord[]);
+      if (!nativePage.nextCursor) break;
+      nativePage = await transfer("preview", { previewHandle: nativePrepared.previewHandle, limit: 1, cursor: nativePage.nextCursor });
+    }
+    assert.ok(nativeRows.some((row) => row.kind === "promotion"));
+    assert.equal(nativeRows.filter((row) => row.kind === "source" && row.label === "MCP Publisher").length, 1);
+    const nativeResource = await client.readResource({ uri: nativePrepared.previewUri as string });
+    assert.ok(Buffer.byteLength(JSON.stringify({ jsonrpc: "2.0", id: "x".repeat(128), result: nativeResource }), "utf8") <= 256 * 1024);
+    const nativeQuery = await call("pokemap_query", { projectHandle, resourceKind: "resourcePackPreview", operation: "get", ids: [nativePrepared.previewHandle], pageSize: 1 });
+    assert.equal(nativeQuery.snapshotRevision, native.sourceRevision);
+    const unacknowledged = await transfer("export", { preparedExportHandle: nativePrepared.preparedExportHandle }, true);
+    assert.equal(unacknowledged.domainCode, "resource_pack.organization_acknowledgement_required");
+    const exportStart = await transfer("export", { preparedExportHandle: nativePrepared.preparedExportHandle, acknowledgeOrganizationRemoval: true });
+    await transfer("release", { handle: nativePrepared.preparedExportHandle });
+    await transfer("preview", { previewHandle: nativePrepared.previewHandle, cursor: firstNativePage.nextCursor }, true);
+    const exported = await settle(exportStart);
+    assert.equal(exported.projectionFingerprint, nativePrepared.projectionFingerprint);
+    const chunks: Buffer[] = [];
+    for (let offset = 0; offset < Number(exported.byteLength); offset += 128 * 1024) {
+      const chunk = await transfer("read_payload", { payloadRef: exported.payloadRef, offset, length: 128 * 1024 });
+      chunks.push(Buffer.from(String(chunk.bytesBase64), "base64"));
+    }
+    const archive = Buffer.concat(chunks);
+    assert.equal(archive.length, exported.byteLength);
+    assert.equal(createHash("sha256").update(archive).digest("hex"), exported.rawSha256);
+    const exportedPath = join(root, "exported.aveluneassets");
+    await writeFile(exportedPath, archive);
+    const exportedStage = await settle(await transfer("stage", { sourcePath: exportedPath }));
+    const exportedInspection = await settle(await transfer("inspect", { archiveHandle: exportedStage.archiveHandle }));
+    const exportedSources = await transfer("entries", { inspectionHandle: exportedInspection.inspectionHandle, section: "sources" });
+    const publisher = (exportedSources.items as JsonRecord[]).find((row) => row.label === "MCP Publisher");
+    assert.equal(publisher?.licenseCount, 2);
+    for (const [verb, input, field] of [
+      ["export", { selectionHandle: nativeSelection.selectionHandle, licenseText: "obsolete" }, "preparedExportHandle"],
+      ["prepare", { selectionHandle: nativeSelection.selectionHandle, revision: nativeSelection.revision, expectedRevision: native.sourceRevision, metadata, author: "MCP Publisher", acknowledgeOrganizationRemoval: true }, "input: Invalid input"],
+      ["prepare", { selectionHandle: nativeSelection.selectionHandle, revision: nativeSelection.revision, expectedRevision: native.sourceRevision, metadata, author: "x".repeat(129) }, "author"],
+      ["prepare", { selectionHandle: nativeSelection.selectionHandle, revision: nativeSelection.revision, expectedRevision: native.sourceRevision, metadata, author: "MCP Publisher", licenseHandles: Array(201).fill("license") }, "licenseHandles"],
+    ] as const) {
+      const refused = await client.callTool({ name: "pokemap_resource_pack", arguments: { projectHandle, verb, input } });
+      assert.equal(refused.isError, true);
+      const message = (refused.content as { type: string; text?: string }[]).map((content) => content.text ?? "").join("\n");
+      assert.match(message, /Input validation error: Invalid arguments for tool pokemap_resource_pack/);
+      assert.ok(message.includes(field), message);
+      assert.equal(refused.structuredContent, undefined);
+      assert.doesNotMatch(message, /"(?:jobId|payloadRef)"\s*:/);
+    }
     const other = await call("pokemap_workspace", { operation: "open", projectRoot: join(root, "target") });
     await call("pokemap_resource_pack", { projectHandle: other.projectHandle, verb: "get", input: { jobId: stageStart.jobId } }, true);
+    const ownedLicense = await settle(await transfer("stage_license", { sourcePath: join(root, "license-0.txt") }));
+    const foreignNative = await call("pokemap_resource_pack", { projectHandle: other.projectHandle, verb: "selection.create", input: { mode: "native" } });
+    const foreignSelection = await call("pokemap_resource_pack", { projectHandle: other.projectHandle, verb: "selection.select_filtered", input: { selectionHandle: foreignNative.selectionHandle, revision: foreignNative.revision, filter: { kind: "element" } } });
+    const scopeError = await call("pokemap_resource_pack", { projectHandle: other.projectHandle, verb: "prepare", input: { selectionHandle: foreignSelection.selectionHandle, revision: foreignSelection.revision, expectedRevision: foreignNative.sourceRevision, metadata, author: "MCP Publisher", licenseHandles: [ownedLicense.licenseHandle] } }, true);
+    assert.equal(scopeError.domainCode, "resource_pack.license_unknown");
+    await transfer("release", { handle: ownedLicense.licenseHandle });
     const invalid = await client.callTool({ name: "pokemap_resource_pack", arguments: {
       projectHandle, verb: "stage", input: { sourcePath: "/outside", inlineArchive: "forbidden" },
     } });

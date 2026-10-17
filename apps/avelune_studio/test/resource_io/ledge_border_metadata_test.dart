@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/resources/data/local_resource_adapter.da
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_documents.dart';
@@ -464,6 +465,57 @@ final class NativeLedgeResourceFixture {
           ],
         ),
       ),
+    );
+    final catalogFile = File('${base.root.path}/$assetCatalogStorageKey');
+    final catalog = await catalogFile.exists()
+        ? AssetCatalog.fromJson(
+            jsonDecode(await catalogFile.readAsString())
+                as Map<String, dynamic>,
+          )
+        : AssetCatalog();
+    final records = {
+      for (final record in catalog.records) record.logicalPath: record,
+    };
+    for (final preparation in preparations) {
+      for (final asset in preparation.files) {
+        final artifact = ContentArtifactRef.fromBytes(
+          asset.bytes,
+          mediaType: 'image/png',
+        );
+        final known = records[asset.relativePath];
+        if (known != null && known.artifact != artifact) {
+          throw StateError(
+            'Fixture snapshot registry conflicts with certified pixels.',
+          );
+        }
+        records.putIfAbsent(
+          asset.relativePath,
+          () => AssetRecord(
+            id: 'native_snapshot_${sha256.convert(utf8.encode(asset.relativePath))}',
+            logicalPath: asset.relativePath,
+            artifact: artifact,
+          ),
+        );
+        final blob = File('${base.root.path}/${assetBlobStorageKey(artifact)}');
+        if (await blob.exists()) {
+          if (ContentArtifactRef.fromBytes(
+                await blob.readAsBytes(),
+                mediaType: 'image/png',
+              ) !=
+              artifact) {
+            throw StateError(
+              'Fixture snapshot blob conflicts with certified pixels.',
+            );
+          }
+        } else {
+          await blob.parent.create(recursive: true);
+          await blob.writeAsBytes(asset.bytes);
+        }
+      }
+    }
+    await catalogFile.parent.create(recursive: true);
+    await catalogFile.writeAsString(
+      jsonEncode(AssetCatalog(records: records.values).toJson()),
     );
     await base.maps.loadProject(base.session);
     final media = <String, List<int>>{path: await file.readAsBytes()};

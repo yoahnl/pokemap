@@ -8,13 +8,128 @@ import 'package:avelune_studio/presentation/features/resources/resource_pack_tra
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
 import '../application/resource_pack_transfer_controller_test.dart'
-    show PackTestPort;
+    show
+        PackTestPort,
+        ExportPackTestPort,
+        ExportTestSink,
+        PendingExportTestSink;
 
 import '../support/map_workspace_fixture.dart';
 import '../resource_io/resource_pack_import_host_test.dart'
     show ResourcePackTestHost;
 
 void main() {
+  testWidgets(
+    'unknown publication shows a status-only retry without premature success',
+    (tester) async {
+      final port = ExportPackTestPort();
+      final sink = PendingExportTestSink();
+      final c = ResourcePackTransferController(
+        port: port,
+        picker: () async => null,
+        exportSink: sink,
+        accept: (_) async {},
+      );
+      addTearDown(c.dispose);
+      await c.beginExport();
+      for (final e in {
+        'name': 'Pack',
+        'author': 'Publisher',
+        'universeId': 'original',
+        'provenance': 'Original',
+      }.entries) {
+        await c.setExportField(e.key, e.value);
+      }
+      await c.selectFiltered();
+      await c.prepare();
+      c.setOrganizationAcknowledgement(true);
+      await c.export();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(body: ResourcePackTransferDialog(controller: c)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Relire le statut de publication'), findsOneWidget);
+      expect(find.textContaining('Pack exporté :'), findsNothing);
+      expect(c.outputPath, isNull);
+      await tester.tap(find.text('Relire le statut de publication'));
+      await tester.pumpAndSettle();
+      expect(c.outputPath, '/published.aveluneassets');
+      expect(find.textContaining('Pack exporté :'), findsOneWidget);
+      expect(sink.requeries, 1);
+    },
+  );
+
+  testWidgets(
+    'export route keeps its footer and Escape accessible at 700x500 and text 1.8',
+    (tester) async {
+      tester.view.physicalSize = const Size(700, 500);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final port = ExportPackTestPort();
+      final c = ResourcePackTransferController(
+        port: port,
+        picker: () async => null,
+        exportSink: ExportTestSink(),
+        accept: (_) async {},
+      );
+      addTearDown(c.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.8)),
+            child: child!,
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () =>
+                    showResourcePackExport(context, c, projectName: 'Project'),
+                child: const Text('Open export'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open export'));
+      await tester.pumpAndSettle();
+      expect(find.text('Exporter un pack de ressources'), findsOneWidget);
+      for (final e in {
+        'name': 'Pack',
+        'author': 'Publisher',
+        'universeId': 'original',
+        'provenance': 'Original',
+      }.entries) {
+        await c.setExportField(e.key, e.value);
+      }
+      await c.selectFiltered();
+      await c.prepare();
+      await tester.pumpAndSettle();
+      expect(c.error, isNull);
+      final ack = find.byKey(const ValueKey('resource-pack-organization-ack'));
+      await tester.ensureVisible(ack);
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: ack, matching: find.byType(Switch)));
+      await tester.pumpAndSettle();
+      final confirm = find.byKey(const ValueKey('confirm-reviewed-plan'));
+      expect(tester.getBottomRight(confirm).dy, lessThanOrEqualTo(500));
+      expect(c.canExport, isTrue);
+      expect(tester.takeException(), isNull);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byType(ResourcePackTransferDialog), findsNothing);
+      expect(
+        port.released.where((h) => h == 'native-prepared-1'),
+        hasLength(1),
+      );
+    },
+  );
+
   testWidgets(
     'completed import retains the explicit before-import and planned-write summary',
     (tester) async {

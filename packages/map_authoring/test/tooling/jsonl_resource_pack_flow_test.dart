@@ -11,6 +11,175 @@ import '../support/resource_pack_stdio_client.dart';
 
 void main() {
   test(
+      'real bin stages licence documents and exports only a prepared native snapshot',
+      () async {
+    final fixture = await NativeResourcePackImportFixture.create();
+    await fixture.apply(await fixture.plan(await fixture.prepare()));
+    final root = fixture.source.directory.path;
+    final client = await ResourcePackStdioClient.start(root);
+    try {
+      final opened =
+          await client.call('open', {'projectRoot': fixture.root.path});
+      final handles = <String>[];
+      for (final (index, text)
+          in ['Document é😀', 'Another original document'].indexed) {
+        final path = '$root/license-$index.txt';
+        await File(path).writeAsString(text);
+        final staged = await client.result(opened,
+            await client.pack(opened, 'stage_license', {'sourcePath': path}));
+        handles.add(staged['licenseHandle'] as String);
+        expect(staged['byteLength'], utf8.encode(text).length);
+      }
+      await client.pack(opened, 'inspect', {'archiveHandle': handles.first},
+          'resource_pack.archive_unknown');
+      Future<void> ordinary(
+          String id, String action, Map<String, Object?> parameters) async {
+        final validation = await client
+            .call('validate', {'projectHandle': opened['projectHandle']});
+        final plan = await client.call('plan', {
+          'projectHandle': opened['projectHandle'],
+          'request': {
+            'requestId': id,
+            'actionId': action,
+            'actionVersion': 1,
+            'workspaceHandle': opened['workspaceHandle'],
+            'expectedRevision': validation['snapshotRevision'],
+            'idempotencyKey': id,
+            'dryRun': false,
+            'parameters': parameters
+          }
+        });
+        await client.call('apply', {
+          'projectHandle': opened['projectHandle'],
+          'planId': plan['planId'],
+          'operationId': id
+        });
+      }
+
+      await ordinary('jsonl-private-map', 'map.create', {
+        'mapId': 'jsonl-private-map',
+        'name': 'Private map',
+        'width': 2,
+        'height': 2
+      });
+      final inventory =
+          await client.pack(opened, 'selection.create', {'mode': 'native'});
+      final entry = await client.pack(opened, 'entries', {
+        'selectionHandle': inventory['selectionHandle'],
+        'filter': {'kind': 'character'},
+        'limit': 1
+      });
+      await ordinary('jsonl-private-character', 'resource.classify', {
+        'resourceKind': 'character',
+        'resourceId': ((entry['items'] as List).single as Map)['id'],
+        'mapId': 'jsonl-private-map'
+      });
+      final selection =
+          await client.pack(opened, 'selection.create', {'mode': 'native'});
+      final selected = await client.pack(opened, 'selection.select_filtered', {
+        'selectionHandle': selection['selectionHandle'],
+        'revision': selection['revision'],
+        'filter': {'kind': 'character'}
+      });
+      for (final section in ['families', 'authors', 'sources']) {
+        final page = await client.pack(opened, 'entries', {
+          'selectionHandle': selected['selectionHandle'],
+          'section': section,
+          'limit': 1
+        });
+        expect(page['scope'], 'nativeInventory');
+        expect(page['sourceRevision'], selection['sourceRevision']);
+      }
+      final prepare = await client.pack(opened, 'prepare', {
+        'selectionHandle': selected['selectionHandle'],
+        'revision': selected['revision'],
+        'expectedRevision': selection['sourceRevision'],
+        'metadata': fixture.source.archive.inspection.manifest.pack.toJson(),
+        'author': 'JSONL Publisher',
+        'licenseHandles': handles,
+      });
+      for (final handle in handles) {
+        await client.pack(opened, 'release', {'handle': handle});
+      }
+      final prepared = await client.result(opened, prepare);
+      expect(prepared['requiresOrganizationAcknowledgement'], isTrue);
+      var page = await client.pack(opened, 'preview',
+          {'previewHandle': prepared['previewHandle'], 'limit': 1});
+      final rows = <Map>[];
+      while (true) {
+        rows.addAll((page['items'] as List).cast<Map>());
+        expect(page['scope'], 'preparedNativeClosure');
+        if (page['nextCursor'] == null) break;
+        page = await client.pack(opened, 'preview', {
+          'previewHandle': prepared['previewHandle'],
+          'limit': 1,
+          'cursor': page['nextCursor']
+        });
+      }
+      expect(rows.any((row) => row['kind'] == 'promotion'), isTrue);
+      expect(
+          rows.where((row) =>
+              row['kind'] == 'source' && row['label'] == 'JSONL Publisher'),
+          hasLength(1));
+      await client.pack(
+          opened,
+          'export',
+          {'preparedExportHandle': prepared['preparedExportHandle']},
+          'resource_pack.organization_acknowledgement_required');
+      final start = await client.pack(opened, 'export', {
+        'acknowledgeOrganizationRemoval': true,
+        'preparedExportHandle': prepared['preparedExportHandle']
+      });
+      await client.pack(
+          opened, 'release', {'handle': prepared['preparedExportHandle']});
+      await client.pack(
+          opened,
+          'preview',
+          {'previewHandle': prepared['previewHandle']},
+          'resource_pack.preview_unknown');
+      final exported = await client.result(opened, start);
+      expect(
+          exported['projectionFingerprint'], prepared['projectionFingerprint']);
+      final chunk = await client.pack(opened, 'read_payload', {
+        'payloadRef': exported['payloadRef'],
+        'offset': 0,
+        'length': 128 * 1024
+      });
+      final file = File('$root/exported.aveluneassets');
+      await file.writeAsBytes(base64Decode(chunk['bytesBase64'] as String));
+      expect(await file.length(), exported['byteLength']);
+      final staged = await client.result(opened,
+          await client.pack(opened, 'stage', {'sourcePath': file.path}));
+      final inspection = await client.result(
+          opened,
+          await client.pack(
+              opened, 'inspect', {'archiveHandle': staged['archiveHandle']}));
+      expect(inspection['archiveRawSha256'], exported['rawSha256']);
+      final sources = await client.pack(opened, 'entries', {
+        'inspectionHandle': inspection['inspectionHandle'],
+        'section': 'sources'
+      });
+      final publisher = (sources['items'] as List)
+          .cast<Map>()
+          .singleWhere((row) => row['label'] == 'JSONL Publisher');
+      expect(publisher['licenseCount'], 2);
+      await client.pack(
+          opened,
+          'export',
+          {
+            'selectionHandle': selected['selectionHandle'],
+            'licenseText': 'obsolete'
+          },
+          'worker.request_invalid');
+      await client
+          .call('close', {'workspaceHandle': opened['workspaceHandle']});
+    } finally {
+      await client.close();
+      await fixture.dispose();
+    }
+  });
+
+  test(
       'JSONL correlation identities are bounded at both ASCII and UTF8 boundaries',
       () async {
     final fixture = await NativeResourcePackImportFixture.create();

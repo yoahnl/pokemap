@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/infrastructure/local_resource_pack_store.dart';
@@ -29,6 +30,7 @@ final class ResourcePackImportFixture {
     DateTime Function()? clock,
     Future<ProjectResourceProbe> Function(String)? probe,
     ResourcePackMetadata? metadata,
+    NativeResourcePackAttribution? attribution,
     Iterable<String> smartTilePatternIds = const [],
   }) async {
     final directory = await Directory.systemTemp.createTemp('p08-test-');
@@ -38,26 +40,29 @@ final class ResourcePackImportFixture {
         clock: clock);
     final mixed = source.mixedFixture();
     final projection = await ResourcePackProjectionBuilder().project(
-        manifest: sourceManifest ?? mixed.$1,
-        files: sourceFiles ?? mixed.$2,
-        roots: roots ??
-            [
-              for (final root in [
-                (ResourcePackKind.element, 'decor'),
-                (ResourcePackKind.model3d, 'model'),
-                (ResourcePackKind.smartTilePreset, 'sol'),
-                (ResourcePackKind.tileset, 'atlas'),
-                (ResourcePackKind.borderBlueprint, 'border'),
-                (ResourcePackKind.environmentPreset, 'environment'),
-                (ResourcePackKind.character, 'person')
-              ])
-                NativeResourcePackRef(kind: root.$1, id: root.$2)
-            ],
-        smartTilePatternIds: smartTilePatternIds,
-        author: 'Original',
-        sourceRevision: 'revision',
-        licenseText: 'Licensed for this fixture',
-        acknowledgeOrganizationRemoval: true);
+      manifest: sourceManifest ?? mixed.$1,
+      files: sourceFiles ?? mixed.$2,
+      roots: roots ??
+          [
+            for (final root in [
+              (ResourcePackKind.element, 'decor'),
+              (ResourcePackKind.model3d, 'model'),
+              (ResourcePackKind.smartTilePreset, 'sol'),
+              (ResourcePackKind.tileset, 'atlas'),
+              (ResourcePackKind.borderBlueprint, 'border'),
+              (ResourcePackKind.environmentPreset, 'environment'),
+              (ResourcePackKind.character, 'person')
+            ])
+              NativeResourcePackRef(kind: root.$1, id: root.$2)
+          ],
+      smartTilePatternIds: smartTilePatternIds,
+      author: 'Original',
+      attribution: attribution,
+      sourceRevision: 'revision',
+      localLicenses: attribution == null
+          ? [fixtureLicense('Licensed for this fixture')]
+          : [],
+    );
     final archive =
         await CanonicalResourcePackExportService(store: store, scope: scope)
             .export(
@@ -182,22 +187,27 @@ final class NativeResourcePackImportFixture {
   static Future<NativeResourcePackImportFixture> create({
     ProjectManifest? sourceManifest,
     ResourcePackMetadata? metadata,
+    NativeResourcePackAttribution? attribution,
     Iterable<String> smartTilePatternIds = const [],
     List<NativeResourcePackFile>? sourceFiles,
     Iterable<NativeResourcePackRef>? roots,
     ProjectManifest? target,
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
+    Directory? nativeRoot,
   }) async {
     final fixture = await ResourcePackImportFixture.create(
         sourceManifest: sourceManifest,
+        attribution: attribution,
         metadata: metadata,
         smartTilePatternIds: smartTilePatternIds,
         sourceFiles: sourceFiles,
         roots: roots,
         target: target,
         clock: clock);
-    final root = await Directory('${fixture.directory.path}/native').create();
+    final root =
+        await (nativeRoot ?? Directory('${fixture.directory.path}/native'))
+            .create();
     await File('${root.path}/project.json').writeAsString(jsonEncode({
       ...fixture.snapshot.manifest.toJson(),
       'unknownNativeMetadata': {
@@ -364,4 +374,15 @@ Future<AuthoringReceipt> redoNativeImport(
   } finally {
     await plans.dispose();
   }
+}
+
+ResourcePackBuildSource fixtureLicense(String text) {
+  final bytes = utf8.encode(text);
+  final hash = sha256.convert(bytes).toString();
+  return ResourcePackBuildSource(
+      path: 'licenses/$hash.txt',
+      byteLength: bytes.length,
+      rawSha256: hash,
+      mediaType: 'text/plain',
+      openRead: () => Stream.value(bytes));
 }

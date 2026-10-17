@@ -3,6 +3,129 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final extended in [false, true]) {
+    test(
+      'strict authoring guide recognizes ${extended ? 20 : 16} portable connections without trusting guideId',
+      () {
+        final (manifest, draft) = guideFixture(extended: extended);
+        final expected = extended
+            ? 'avelune-path20-v1'
+            : 'avelune-cardinal4-v1';
+        expect(draft.guideId, isNull);
+        expect(recognizeSmartTileAuthoringGuide(manifest, draft), expected);
+        expect(
+          recognizeSmartTileAuthoringGuide(
+            manifest,
+            draft.copyWith(guideId: 'untrusted'),
+          ),
+          expected,
+        );
+        final compiled = compileSmartTileAuthoringDraft(
+          draft: draft,
+          catalog: manifest.smartTileCatalog,
+          manifest: manifest,
+        );
+        expect(compiled, isA<SmartTileDraftCompilationSuccess>());
+        final restored = reconstructResourcePackSmartTileDraft(
+          preset: (compiled as SmartTileDraftCompilationSuccess).preset,
+          catalog: manifest.smartTileCatalog,
+        );
+        expect(restored.rules, draft.rules);
+        expect(recognizeSmartTileAuthoringGuide(manifest, restored), expected);
+        expect(draft.rules.first.id, 'connection-0');
+        expect(draft.rules.first.candidates.single.id, 'piece-0');
+        expect(draft.atlases.single.columns, 4);
+        expect(draft.atlases.single.rows, 4);
+      },
+    );
+  }
+  test(
+    'strict authoring guide refuses advanced structure and altered source grid',
+    () {
+      final (manifest, draft) = guideFixture();
+      final rule = draft.rules.first;
+      final candidate = rule.candidates.single;
+      final part = candidate.parts.single;
+      for (final changed in [
+        draft.copyWith(rules: draft.rules.reversed.toList()),
+        draft.copyWith(
+          rules: [
+            rule.copyWith(id: 'custom'),
+            ...draft.rules.skip(1),
+          ],
+        ),
+        draft.copyWith(
+          rules: [
+            rule.copyWith(candidates: [candidate.copyWith(id: 'variant')]),
+            ...draft.rules.skip(1),
+          ],
+        ),
+        draft.copyWith(
+          rules: [
+            rule.copyWith(candidates: [candidate.copyWith(weight: 2)]),
+            ...draft.rules.skip(1),
+          ],
+        ),
+        draft.copyWith(
+          rules: [
+            rule.copyWith(
+              candidates: [
+                candidate.copyWith(parts: [part, part]),
+              ],
+            ),
+            ...draft.rules.skip(1),
+          ],
+        ),
+        draft.copyWith(
+          rules: [
+            smartTileAuthoringConnectionRule(
+              0,
+              SmartTileFrameRef(atlasId: 'a', column: 4, row: 0),
+              'm',
+            ),
+            ...draft.rules.skip(1),
+          ],
+        ),
+        draft.copyWith(
+          rules: [
+            smartTileAuthoringConnectionRule(
+              0,
+              SmartTileFrameRef(atlasId: 'a', column: 0, row: 0, columnSpan: 2),
+              'm',
+            ),
+            ...draft.rules.skip(1),
+          ],
+        ),
+        draft.copyWith(fallbackRuleId: rule.id),
+        draft.copyWith(atlases: [draft.atlases.single.copyWith(marginX: 0)]),
+        draft.copyWith(
+          transformPolicy: const SmartTileTransformPolicy(allowHFlip: true),
+        ),
+      ]) {
+        expect(recognizeSmartTileAuthoringGuide(manifest, changed), isNull);
+      }
+      expect(
+        recognizeSmartTileAuthoringGuide(
+          manifest.copyWith(tilesets: []),
+          draft,
+        ),
+        isNull,
+      );
+      final tile = manifest.tilesets.single;
+      final altered = ProjectTilesetEntry.fromJson({
+        ...tile.toJson(),
+        'source': {...tile.source!.toJson(), 'pixelWidth': 12},
+      });
+      expect(
+        recognizeSmartTileAuthoringGuide(
+          manifest.copyWith(tilesets: [altered]),
+          draft,
+        ),
+        isNull,
+      );
+    },
+  );
+
   test(
     'published border projection omits divergent private draft and reconstructs editable native state',
     () {
@@ -288,5 +411,77 @@ BorderBlueprintRecord borderFixture() {
       revision: 3,
       definition: published,
     ),
+  );
+}
+
+(ProjectManifest, ProjectSmartTileAuthoringDraft) guideFixture({
+  bool extended = false,
+}) {
+  final source = ProjectTilesetEntry(
+    id: 'tiles',
+    name: 'Source',
+    relativePath: 'assets/source.png',
+    source: ProjectTilesetSource.regularAtlas(
+      assetId: 'source',
+      pixelWidth: 13,
+      pixelHeight: 22,
+      tileWidth: 2,
+      tileHeight: 3,
+      marginX: 1,
+      marginY: 2,
+      spacingX: 1,
+      spacingY: 2,
+      pixelOffsetX: 1,
+      pixelOffsetY: -1,
+    ),
+  );
+  final atlas = smartTileAuthoringAtlas(source, 'a');
+  final material = ProjectSmartTileMaterial(
+    id: 'm',
+    name: 'Ground',
+    connectionGroupId: 'g',
+  );
+  final draft = ProjectSmartTileAuthoringDraft(
+    id: 'draft-terrain',
+    targetPresetId: 'terrain',
+    name: 'Original',
+    usage: SmartTileUsage.path,
+    topology: extended ? SmartTileTopology.blob8 : SmartTileTopology.cardinal4,
+    templateHint: extended
+        ? SmartTileTemplateHint.blob47
+        : SmartTileTemplateHint.edge16,
+    lastStage: SmartTileAuthoringStage.connections,
+    sourceTilesetIds: ['tiles'],
+    atlases: [atlas],
+    primaryAtlasId: 'a',
+    materials: [material],
+    defaultMaterialId: 'm',
+    allowedMaterialIds: ['m'],
+    rules: [
+      for (var i = 0; i < (extended ? 20 : 16); i++)
+        i < 16
+            ? smartTileAuthoringConnectionRule(
+                i,
+                SmartTileFrameRef(atlasId: 'a', column: i % 4, row: i ~/ 4),
+                'm',
+              )
+            : smartTileAuthoringOuterCornerRule(
+                i,
+                SmartTileFrameRef(atlasId: 'a', column: (i - 16) % 4, row: 0),
+                'm',
+              ),
+    ],
+  );
+  return (
+    ProjectManifest(
+      name: 'Guide',
+      maps: [],
+      tilesets: [source],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: [atlas],
+        materials: [material],
+      ),
+    ),
+    draft,
   );
 }

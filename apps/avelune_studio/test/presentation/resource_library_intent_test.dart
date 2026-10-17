@@ -6,6 +6,47 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  testWidgets('export pack is a common action in global and compact library', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var exports = 0;
+    for (final size in [const Size(1536, 1024), const Size(700, 500)]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ResourceLibraryScreen(
+              project: workspaceProject,
+              visuals: WorkspaceTestVisuals(),
+              state: ResourceLibraryState(),
+              onUse: (_) {},
+              onEdit: (_) {},
+              onTerrain: (_) {},
+              onCreateBorder: () {},
+              onResumeBorder: (_) {},
+              onImport: () {},
+              onExportPack: () => exports++,
+              onBack: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final action = find.byKey(const ValueKey('resource-export-pack'));
+      if (action.evaluate().isEmpty) {
+        await tester.tap(find.text('Actions'));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+    expect(exports, 2);
+  });
+
   testWidgets('families explain their tools and creation follows selection', (
     tester,
   ) async {

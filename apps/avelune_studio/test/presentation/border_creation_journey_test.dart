@@ -147,6 +147,23 @@ void main() {
       find.byKey(const ValueKey('border-name')),
       'Clôture du jardin ajustée',
     );
+    final beforeExportRead = fixture.controller.project!.toJson();
+    final owner = navigation.packBorderDraftOwners[borderId]!;
+    final draft = owner();
+    expect(draft.dirty, isTrue);
+    expect(draft.saving, isFalse);
+    expect(draft.request.name, 'Clôture du jardin ajustée');
+    expect(draft.request.publish, isFalse);
+    expect(
+      () => draft.request.primitiveModelIds.clear(),
+      throwsUnsupportedError,
+    );
+    expect(
+      () => draft.request.acceptedWarningCodes.clear(),
+      throwsUnsupportedError,
+    );
+    expect(owner().signature, draft.signature);
+    expect(fixture.controller.project!.toJson(), beforeExportRead);
     await tester.tap(find.text('Fermer'));
     await tester.pumpAndSettle();
     expect(

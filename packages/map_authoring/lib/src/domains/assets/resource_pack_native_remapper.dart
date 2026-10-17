@@ -225,15 +225,21 @@ final class ResourcePackNativeRemapper {
     }
   }
 
-  void _smart(Map<String, dynamic> value, String owner,
-      {bool root = false, String path = ''}) {
+  void _smart(
+    Map<String, dynamic> value,
+    String owner, {
+    bool root = false,
+    String path = '',
+  }) {
     final localId = value['id'];
     for (final key in value.keys.toList()) {
       final item = value[key];
       if (item is String && item.isNotEmpty) {
         switch (key) {
           case 'id':
-            if (!root) {
+            if (!root &&
+                path != 'rules' &&
+                !(path.startsWith('rules/') && path.endsWith('/candidates'))) {
               value[key] = allocate(_key('smartLocal', item, '$owner/$path'));
             }
           case 'atlasId':
@@ -247,7 +253,7 @@ final class ResourcePackNativeRemapper {
           case 'defaultMaterialId':
             value[key] = reference('smartTileMaterial', item);
           case 'fallbackRuleId':
-            value[key] = allocate(_key('smartLocal', item, '$owner/rules'));
+            break;
           case 'northEdge':
           case 'northEastCorner':
           case 'eastEdge':
@@ -260,22 +266,26 @@ final class ResourcePackNativeRemapper {
         }
       } else if (key == 'allowedMaterialIds' && item is List) {
         value[key] = [
-          for (final id in item) reference('smartTileMaterial', id as String)
+          for (final id in item) reference('smartTileMaterial', id as String),
         ];
       } else if (item is Map<String, dynamic>) {
         _smart(item, owner, path: path.isEmpty ? key : '$path/$key');
       } else if (item is List) {
         for (final child in item.whereType<Map<String, dynamic>>()) {
-          _smart(child, owner,
-              path: path.isEmpty
-                  ? key
-                  : key == 'candidates' && localId is String
-                      ? '$path/$localId/$key'
-                      : '$path/$key');
+          _smart(
+            child,
+            owner,
+            path: path.isEmpty
+                ? key
+                : key == 'candidates' && localId is String
+                ? '$path/$localId/$key'
+                : '$path/$key',
+          );
         }
       }
     }
   }
+
 }
 
 String _key(String kind, String id, [String? owner]) =>

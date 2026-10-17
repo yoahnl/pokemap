@@ -34,6 +34,26 @@ Map<String, Object?> packInstallationJson() => {
       'rawSha256': 'd' * 64,
       'byteLength': 32,
       'mediaType': 'image/png',
+      'provenanceId': 'original',
+      'licenseIds': ['licenses/${'e' * 64}.txt'],
+    },
+  ],
+  'origins': [
+    {
+      'id': 'original',
+      'author': 'Original',
+      'licenseIds': ['licenses/${'e' * 64}.txt'],
+      'resources': [
+        {'resourceKind': 'element', 'id': 'chair'},
+      ],
+    },
+  ],
+  'licenses': [
+    {
+      'sourcePath': 'licenses/${'e' * 64}.txt',
+      'targetPath': 'assets/resource_packs/original/licenses/${'e' * 64}.txt',
+      'rawSha256': 'e' * 64,
+      'byteLength': 12,
     },
   ],
   'installedAtUtc': '2026-10-16T19:00:00.000Z',
@@ -41,6 +61,125 @@ Map<String, Object?> packInstallationJson() => {
 };
 
 void main() {
+  test(
+    'installation format v2 persists origin and document associations and refuses v1',
+    () {
+      expect(ResourcePackInstallationCatalog.currentFormatVersion, 2);
+      final value = packInstallationJson();
+      value['origins'] = [
+        {
+          'id': 'original',
+          'author': 'Alice',
+          'sourceUrl': 'https://example.test/alice',
+          'licenseIds': ['licenses/${'e' * 64}.txt'],
+          'resources': [
+            {'resourceKind': 'element', 'id': 'chair'},
+          ],
+        },
+      ];
+      value['licenses'] = [
+        {
+          'sourcePath': 'licenses/${'e' * 64}.txt',
+          'targetPath':
+              'assets/resource_packs/original/licenses/${'e' * 64}.txt',
+          'rawSha256': 'e' * 64,
+          'byteLength': 12,
+        },
+      ];
+      (value['assets'] as List).single.addAll({
+        'provenanceId': 'original',
+        'licenseIds': ['licenses/${'e' * 64}.txt'],
+      });
+      final catalog = ResourcePackInstallationCatalog.fromJson({
+        'formatVersion': 2,
+        'entries': [value],
+      });
+      expect(
+        ResourcePackInstallationCatalog.fromJson(catalog.toJson()),
+        catalog,
+      );
+      expect(
+        (catalog.toJson()['entries'] as List).single['origins'],
+        value['origins'],
+      );
+      expect(
+        () => ResourcePackInstallationCatalog.fromJson({
+          'formatVersion': 1,
+          'entries': [],
+        }),
+        throwsFormatException,
+      );
+    },
+  );
+  test(
+    'v2 rejects unresolved origins resources licences and non-document descriptors',
+    () {
+      final valid = packInstallationJson();
+      final changes = <Map<String, Object?>>[
+        {'origins': []},
+        {'licenses': []},
+        {
+          'origins': [
+            {
+              'id': 'original',
+              'author': 'Alice',
+              'licenseIds': [],
+              'resources': [
+                {'resourceKind': 'model3d', 'id': 'chair'},
+              ],
+            },
+          ],
+        },
+        {
+          'assets': [
+            {
+              ...Map<String, Object?>.from(
+                (valid['assets'] as List).single as Map,
+              ),
+              'provenanceId': 'missing',
+            },
+          ],
+        },
+        {
+          'assets': [
+            {
+              ...Map<String, Object?>.from(
+                (valid['assets'] as List).single as Map,
+              ),
+              'licenseIds': ['licenses/${'f' * 64}.txt'],
+            },
+          ],
+        },
+        {
+          'licenses': [
+            {
+              ...Map<String, Object?>.from(
+                (valid['licenses'] as List).single as Map,
+              ),
+              'rawSha256': 'f' * 64,
+            },
+          ],
+        },
+        {
+          'licenses': [
+            {
+              ...Map<String, Object?>.from(
+                (valid['licenses'] as List).single as Map,
+              ),
+              'targetPath': 'assets/elsewhere.txt',
+            },
+          ],
+        },
+      ];
+      for (final change in changes) {
+        expect(
+          () => ResourcePackInstallation.fromJson({...valid, ...change}),
+          throwsFormatException,
+          reason: '$change',
+        );
+      }
+    },
+  );
   test(
     'installation catalogue roundtrips typed immutable historical mappings',
     () {
@@ -113,6 +252,25 @@ void main() {
     final first = ResourcePackInstallation.fromJson(packInstallationJson());
     final second = ResourcePackInstallation.fromJson({
       ...packInstallationJson(),
+      'origins': [
+        {
+          'id': 'original',
+          'author': 'Original',
+          'licenseIds': ['licenses/${'e' * 64}.txt'],
+          'resources': [
+            {'resourceKind': 'element', 'id': 'chair'},
+          ],
+        },
+      ],
+      'licenses': [
+        {
+          'sourcePath': 'licenses/${'e' * 64}.txt',
+          'targetPath':
+              'assets/resource_packs/original/licenses/${'e' * 64}.txt',
+          'rawSha256': 'e' * 64,
+          'byteLength': 12,
+        },
+      ],
       'installedAtUtc': '2026-10-17T20:00:00.000Z',
     });
     expect(first.packIdentity, second.packIdentity);
@@ -263,7 +421,7 @@ void main() {
         );
       }
       for (final json in [
-        {'formatVersion': 2, 'entries': []},
+        {'formatVersion': 3, 'entries': []},
         {'formatVersion': 1, 'entries': [], 'ignored': true},
         {'formatVersion': 1, 'entries': null},
       ]) {

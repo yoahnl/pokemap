@@ -99,7 +99,11 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
         'Les variantes natives de ce rebord doivent être conservées.',
       );
     }
-    return _prepareNativeLedgeSources(manifest, root, record!.draft.definition);
+    return _prepareExistingSpriteSources(
+      manifest,
+      root,
+      record!.draft.definition.primitives,
+    );
   }
   final existing = manifest.borderCatalog
       .recordById(request.blueprintId ?? '')
@@ -295,7 +299,32 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
     }
     return result;
   }
+  final preservedRoles = <(BorderPrimitiveRole, BorderCornerTurn?)>{};
+  if (existing != null && !existing.isSpatial) {
+    for (final (role, turn, elementId, modelId) in chosen) {
+      final first = existing.primitives
+          .where((primitive) => matches(primitive, role, turn))
+          .firstOrNull;
+      if (modelId == null &&
+          elementId != null &&
+          first?.sourceElementId == elementId) {
+        preservedRoles.add((role, turn));
+      }
+    }
+    result.addAll(
+      await _prepareExistingSpriteSources(
+        manifest,
+        root,
+        existing.primitives.where(
+          (primitive) => preservedRoles.any(
+            (source) => matches(primitive, source.$1, source.$2),
+          ),
+        ),
+      ),
+    );
+  }
   for (final (role, turn, elementId, modelId) in chosen) {
+    if (preservedRoles.contains((role, turn))) continue;
     if (modelId != null) {
       if (elementId != null ||
           manifest.settings.dimension != ProjectDimension.threeD ||
@@ -449,13 +478,13 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
   return result;
 }
 
-Future<List<BorderResourcePrimitive>> _prepareNativeLedgeSources(
+Future<List<BorderResourcePrimitive>> _prepareExistingSpriteSources(
   ProjectManifest manifest,
   String root,
-  BorderBlueprintDraftDefinition definition,
+  Iterable<BorderPrimitiveDraft> primitives,
 ) async {
   final result = <BorderResourcePrimitive>[];
-  for (final primitive in definition.primitives) {
+  for (final primitive in primitives) {
     final element = manifest.elements
         .where((element) => element.id == primitive.sourceElementId)
         .firstOrNull;

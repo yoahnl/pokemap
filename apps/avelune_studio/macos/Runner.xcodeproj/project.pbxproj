@@ -31,6 +31,8 @@
 		A22000012C01000100000001 /* StudioUpdaterBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22000022C01000100000002 /* StudioUpdaterBridge.swift */; };
 		A22000032C01000100000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A22000052C01000100000005 /* Sparkle */; };
 		A22000062C01000100000006 /* StudioProjectAccessBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22000072C01000100000007 /* StudioProjectAccessBridge.swift */; };
+		A55000012C01000100000001 = {isa = PBXBuildFile; fileRef = A55000022C01000100000002; };
+		A55000032C01000100000003 = {isa = PBXBuildFile; fileRef = A55000042C01000100000004; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +87,8 @@
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A22000022C01000100000002 /* StudioUpdaterBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioUpdaterBridge.swift; sourceTree = "<group>"; };
 		A22000072C01000100000007 /* StudioProjectAccessBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioProjectAccessBridge.swift; sourceTree = "<group>"; };
+		A55000022C01000100000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioResourcePackExportWriter.swift; sourceTree = "<group>"; };
+		A55000042C01000100000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioResourcePackExportWriterTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				331C80D7294CF71000263BE5 /* RunnerTests.swift */,
+				A55000042C01000100000004,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -176,6 +181,7 @@
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
 				A22000022C01000100000002 /* StudioUpdaterBridge.swift */,
 				A22000072C01000100000007 /* StudioProjectAccessBridge.swift */,
+				A55000022C01000100000002,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -357,6 +363,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C80D8294CF71000263BE5 /* RunnerTests.swift in Sources */,
+				A55000032C01000100000003,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,6 +374,7 @@
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				A22000012C01000100000001 /* StudioUpdaterBridge.swift in Sources */,
 				A22000062C01000100000006 /* StudioProjectAccessBridge.swift in Sources */,
+				A55000012C01000100000001,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);
@@ -410,7 +418,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/avelune_studio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/avelune_studio";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Avelune Studio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Avelune Studio";
 			};
 			name = Debug;
 		};
@@ -424,7 +432,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/avelune_studio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/avelune_studio";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Avelune Studio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Avelune Studio";
 			};
 			name = Release;
 		};
@@ -438,7 +446,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/avelune_studio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/avelune_studio";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Avelune Studio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Avelune Studio";
 			};
 			name = Profile;
 		};

@@ -11,6 +11,381 @@ import 'package:avelune_studio/presentation/features/resources/resource_navigati
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  test('unknown publication blocks close until status-only reconciliation confirms publication', () async {
+    final port = ExportPackTestPort();
+    final sink = PendingExportTestSink();
+    final c = ResourcePackTransferController(
+      port: port,
+      picker: () async => null,
+      exportSink: sink,
+      accept: (_) async {},
+    );
+    addTearDown(c.dispose);
+    await c.beginExport();
+    for (final e in {
+      'name': 'Pack',
+      'author': 'Publisher',
+      'universeId': 'original',
+      'provenance': 'Original',
+    }.entries) {
+      await c.setExportField(e.key, e.value);
+    }
+    await c.selectFiltered();
+    await c.prepare();
+    c.setOrganizationAcknowledgement(true);
+    await c.export();
+    expect(c.requiresPublicationReconciliation, isTrue);
+    expect(c.outputPath, isNull);
+    expect(await c.requestClose(), isFalse);
+    final exports = port.verbs.where((verb) => verb == 'export').length;
+    await c.retryPublication();
+    expect(c.requiresPublicationReconciliation, isFalse);
+    expect(c.outputPath, '/published.aveluneassets');
+    expect(port.verbs.where((verb) => verb == 'export'), hasLength(exports));
+    expect(sink.requeries, 1);
+    expect(await c.requestClose(), isTrue);
+  });
+
+  for (final verb in ['stage_license', 'prepare', 'export']) {
+    test(
+      'late successful export $verb reply is owned and released while close waits',
+      () async {
+        final port = LateExportPackPort();
+        final c = ResourcePackTransferController(
+          port: port,
+          picker: () async => null,
+          pickLicenses: () async => ['/LICENSE'],
+          exportSink: ExportTestSink(),
+          accept: (_) async {},
+        );
+        addTearDown(c.dispose);
+        await c.beginExport();
+        for (final e in {
+          'name': 'Pack',
+          'author': 'Publisher',
+          'universeId': 'original',
+          'provenance': 'Original',
+        }.entries) {
+          await c.setExportField(e.key, e.value);
+        }
+        await c.selectFiltered();
+        if (verb == 'export') {
+          await c.prepare();
+          c.setOrganizationAcknowledgement(true);
+        }
+        port.lateVerb = verb;
+        final operation = verb == 'stage_license'
+            ? c.addLicenseDocuments()
+            : verb == 'prepare'
+            ? c.prepare()
+            : c.export();
+        await port.entered.future;
+        var done = false;
+        final close = c.requestClose().then((v) {
+          done = true;
+          return v;
+        });
+        await Future<void>.delayed(Duration.zero);
+        expect(done, isFalse);
+        port.gate.complete();
+        await operation;
+        expect(await close, isTrue);
+        final handle = verb == 'stage_license'
+            ? 'license-1'
+            : verb == 'prepare'
+            ? 'native-prepared-1'
+            : 'artifact';
+        expect(port.released.where((h) => h == handle), hasLength(1));
+        expect(port.released, isNot(contains('native-preview-1')));
+        expect(c.outputPath, isNull);
+      },
+    );
+  }
+  test(
+    'late failed native preview cannot report an error after the route closes',
+    () async {
+      final port = LatePreviewExportPort();
+      final c = ResourcePackTransferController(
+        port: port,
+        picker: () async => null,
+        exportSink: ExportTestSink(),
+        accept: (_) async {},
+      );
+      addTearDown(c.dispose);
+      await c.beginExport();
+      for (final e in {
+        'name': 'Pack',
+        'author': 'Publisher',
+        'universeId': 'original',
+        'provenance': 'Original',
+      }.entries) {
+        await c.setExportField(e.key, e.value);
+      }
+      await c.selectFiltered();
+      await c.prepare();
+      port.delay = true;
+      final reading = c.nextPreviewPage();
+      await port.entered.future;
+      final close = c.requestClose();
+      port.gate.completeError(StateError('obsolete preview'));
+      await reading;
+      expect(await close, isTrue);
+      expect(c.error, isNull);
+    },
+  );
+
+  test('native owner release failure is observable and close retries the shared owner once', () async {
+    final port = ExportPackTestPort();
+    final c = ResourcePackTransferController(
+      port: port,
+      picker: () async => null,
+      exportSink: ExportTestSink(),
+      accept: (_) async {},
+    );
+    addTearDown(c.dispose);
+    await c.beginExport();
+    for (final e in {
+      'name': 'Pack',
+      'author': 'Publisher',
+      'universeId': 'original',
+      'provenance': 'Original',
+    }.entries) {
+      await c.setExportField(e.key, e.value);
+    }
+    await c.selectFiltered();
+    await c.prepare();
+    expect(c.error, isNull);
+    port.failNativeRelease = true;
+    await c.setExportField('name', 'Changed');
+    expect(c.error, contains('cleanup'));
+    expect(await c.requestClose(), isTrue);
+    expect(port.released, isNot(contains('native-preview-1')));
+  });
+  test('repreparing retries a failed native owner cleanup before creating another owner', () async {
+    final port = ExportPackTestPort();
+    final c = ResourcePackTransferController(
+      port: port,
+      picker: () async => null,
+      exportSink: ExportTestSink(),
+      accept: (_) async {},
+    );
+    addTearDown(c.dispose);
+    await c.beginExport();
+    for (final e in {
+      'name': 'Pack',
+      'author': 'Publisher',
+      'universeId': 'original',
+      'provenance': 'Original',
+    }.entries) {
+      await c.setExportField(e.key, e.value);
+    }
+    await c.selectFiltered();
+    await c.prepare();
+    port.failNativeRelease = true;
+    await c.setExportField('name', 'Changed');
+    expect(c.error, contains('cleanup'));
+    await c.prepare();
+    expect(c.error, isNull);
+    expect(
+      port.released.where((handle) => handle == 'native-prepared-1'),
+      hasLength(2),
+    );
+    expect(port.preparations, 2);
+    expect(await c.requestClose(), isTrue);
+    expect(port.released, isNot(contains('native-preview-1')));
+  });
+  test('a reached memory edit after preview resets acknowledgement before building', () async {
+    final port = ExportPackTestPort();
+    var signature = 'before';
+    final c = ResourcePackTransferController(
+      port: port,
+      picker: () async => null,
+      exportSink: ExportTestSink(),
+      localDrafts: () => [
+        ResourcePackLocalDraft(
+          kind: 'borderBlueprint',
+          id: 'late',
+          label: 'Late border',
+          signature: signature,
+        ),
+      ],
+      accept: (_) async {},
+    );
+    addTearDown(c.dispose);
+    await c.beginExport();
+    for (final e in {
+      'name': 'Pack',
+      'author': 'Publisher',
+      'universeId': 'original',
+      'provenance': 'Original',
+    }.entries) {
+      await c.setExportField(e.key, e.value);
+    }
+    await c.selectFiltered();
+    await c.prepare();
+    c.setOrganizationAcknowledgement(true);
+    signature = 'after';
+    await c.export();
+    expect(port.lastExport, isNull);
+    expect(c.organizationAcknowledged, isFalse);
+    expect(c.localNotices.single.signature, 'after');
+    expect(c.notice, contains('ont changé'));
+    c.setOrganizationAcknowledgement(true);
+    await c.export();
+    expect(c.outputPath, isNotNull);
+    expect(port.applies, 0);
+  });
+
+  test('native export stages several licences, previews exact selection and completes only after publication', () async {
+    final port = ExportPackTestPort();
+    final sink = ExportTestSink();
+    final controller = ResourcePackTransferController(
+      port: port,
+      picker: () async => null,
+      pickLicenses: () async => ['/one.txt', '/two.txt'],
+      exportSink: sink,
+      localDrafts: () => [
+        const ResourcePackLocalDraft(
+          kind: 'borderBlueprint',
+          id: 'late',
+          label: 'Late border',
+          signature: 'draft-1',
+        ),
+        const ResourcePackLocalDraft(
+          kind: 'borderBlueprint',
+          id: 'neighbour',
+          label: 'Neighbour',
+          signature: 'unrelated',
+        ),
+      ],
+      accept: (_) async {
+        fail('export cannot accept a mutation');
+      },
+    );
+    addTearDown(controller.dispose);
+    await controller.beginExport();
+    for (final entry in {
+      'name': 'My pack',
+      'version': '1.2.3',
+      'author': 'Publisher',
+      'universeId': 'original',
+      'provenance': 'Original work',
+    }.entries) {
+      await controller.setExportField(entry.key, entry.value);
+    }
+    await controller.selectFiltered();
+    await controller.addLicenseDocuments();
+    expect(controller.licenseDocuments, hasLength(2));
+    expect(port.authorizedPaths, ['/one.txt', '/two.txt']);
+    await controller.prepare();
+    expect(controller.error, isNull);
+    expect(controller.direction, ResourcePackTransferDirection.exporting);
+    expect(controller.localNotices.map((row) => row.id), ['late']);
+    expect(controller.preview, hasLength(1));
+    expect(controller.requiresOrganizationAcknowledgement, isTrue);
+    expect(controller.canExport, isFalse);
+    controller.setOrganizationAcknowledgement(true);
+    expect(controller.canExport, isTrue);
+    await controller.export();
+    expect(controller.phase, ResourcePackTransferPhase.complete);
+    expect(controller.outputPath, '/published.aveluneassets');
+    expect(sink.bytes, [1, 2, 3]);
+    expect(port.lastExport, {
+      'preparedExportHandle': 'native-prepared-1',
+      'acknowledgeOrganizationRemoval': true,
+    });
+    expect(port.applies, 0);
+    expect(
+      port.verbs.where((verb) => verb == 'selection.create'),
+      hasLength(1),
+    );
+    expect(
+      port.inputs
+          .firstWhere((input) => input['mode'] == 'native')
+          .containsKey('mapId'),
+      isFalse,
+    );
+  });
+  test('export edits release one native owner, reset acknowledgement and retain chosen licences', () async {
+    final port = ExportPackTestPort();
+    final c = ResourcePackTransferController(
+      port: port,
+      picker: () async => null,
+      pickLicenses: () async => ['/one.txt'],
+      exportSink: ExportTestSink(),
+      accept: (_) async {},
+    );
+    addTearDown(c.dispose);
+    await c.beginExport();
+    for (final e in {
+      'name': 'Pack',
+      'author': 'Publisher',
+      'universeId': 'original',
+      'provenance': 'Original',
+    }.entries) {
+      await c.setExportField(e.key, e.value);
+    }
+    await c.selectFiltered();
+    await c.addLicenseDocuments();
+    await c.prepare();
+    c.setOrganizationAcknowledgement(true);
+    await c.setExportField('name', 'Changed');
+    expect(c.organizationAcknowledged, isFalse);
+    expect(c.canExport, isFalse);
+    expect(c.licenseDocuments, hasLength(1));
+    expect(port.released.where((h) => h == 'native-prepared-1'), hasLength(1));
+    expect(port.released, isNot(contains('native-preview-1')));
+    await c.prepare();
+    c.setOrganizationAcknowledgement(true);
+    await c.removeLicenseDocument(c.licenseDocuments.single.handle);
+    expect(c.organizationAcknowledged, isFalse);
+    expect(c.licenseDocuments, isEmpty);
+    expect(port.released, contains('license-1'));
+  });
+  test(
+    'close waits for an export sink after its canonical job has finished',
+    () async {
+      final port = ExportPackTestPort();
+      final sink = ExportTestSink(wait: true);
+      final c = ResourcePackTransferController(
+        port: port,
+        picker: () async => null,
+        exportSink: sink,
+        accept: (_) async {},
+      );
+      addTearDown(c.dispose);
+      await c.beginExport();
+      for (final e in {
+        'name': 'Pack',
+        'author': 'Publisher',
+        'universeId': 'original',
+        'provenance': 'Original',
+      }.entries) {
+        await c.setExportField(e.key, e.value);
+      }
+      await c.selectFiltered();
+      await c.prepare();
+      expect(c.error, isNull);
+      c.setOrganizationAcknowledgement(true);
+      expect(c.canExport, isTrue);
+      final writing = c.export();
+      await sink.entered.future;
+      var closed = false;
+      final closing = c.requestClose().then((v) {
+        closed = true;
+        return v;
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(c.operationActive, isTrue);
+      expect(closed, isFalse);
+      sink.gate.complete();
+      await writing;
+      expect(await closing, isTrue);
+      expect(c.outputPath, isNull);
+      expect(c.phase, ResourcePackTransferPhase.closed);
+    },
+  );
+
   test(
     'concurrent close shares cleanup and a later import closes again',
     () async {
@@ -389,6 +764,12 @@ class PackTestPort implements ResourcePackPort {
     'totalAvailable': request.filters['context'] == 'interior' ? 1 : 10000,
   };
   @override
+  Future<List<int>> readExportPayloadChunk(
+    String payloadRef,
+    int offset,
+    int length,
+  ) async => const [];
+  @override
   Future<ResourceMutationReceipt> applyImport({
     required String preparedHandle,
     required String expectedRevision,
@@ -422,4 +803,202 @@ class PackTestPort implements ResourcePackPort {
   Future<void> reconcile(ResourceMutationReceipt receipt) async {}
   @override
   Future<void> dispose() async {}
+}
+
+class ExportPackTestPort extends PackTestPort {
+  final authorizedPaths = <String>[];
+  final released = <String>[];
+  Map<String, Object?>? lastExport;
+  int preparations = 0, licenses = 0;
+  bool failNativeRelease = false;
+  @override
+  Future<void> authorizeSource(String path) async {
+    authorizedPaths.add(path);
+  }
+
+  @override
+  Future<List<int>> readExportPayloadChunk(
+    String payloadRef,
+    int offset,
+    int length,
+  ) async => [1, 2, 3].skip(offset).take(length).toList();
+  @override
+  Future<Map<String, Object?>> transfer(
+    String verb, [
+    Map<String, Object?> input = const {},
+  ]) async {
+    if (verb == 'selection.create' && input['mode'] == 'native') {
+      verbs.add(verb);
+      inputs.add(input);
+      return {...summary, 'sourceRevision': 'snapshot-revision'};
+    }
+    if (verb == 'stage_license') {
+      verbs.add(verb);
+      inputs.add(input);
+      licenses++;
+      return settled({
+        'licenseHandle': 'license-$licenses',
+        'rawSha256': 'document-$licenses',
+        'byteLength': 12,
+      });
+    }
+    if (verb == 'prepare' && input.containsKey('metadata')) {
+      verbs.add(verb);
+      inputs.add(input);
+      preparations++;
+      return settled({
+        'preparedExportHandle': 'native-prepared-$preparations',
+        'previewHandle': 'native-preview-$preparations',
+        'projectionFingerprint': 'projection-$preparations',
+        'requiresOrganizationAcknowledgement': true,
+        'resourceCount': 2,
+        'summary': {
+          'selectedRootCount': selected,
+          'resourceCount': 2,
+          'supportCount': 0,
+          'fileCount': 1,
+          'promotionCount': 1,
+          'neutralizationCount': 1,
+          'sourceCount': 1,
+          'globalCreditCount': 1,
+          'licenseCount': licenses,
+          'publicationNoticeCount': 1,
+        },
+      });
+    }
+    if (verb == 'preview' &&
+        (input['previewHandle'] as String).startsWith('native-preview')) {
+      verbs.add(verb);
+      inputs.add(input);
+      return {
+        'scope': 'preparedNativeClosure',
+        'items': input['cursor'] == null
+            ? [
+                {
+                  'kind': 'resource',
+                  'resourceKind': 'character',
+                  'nativeId': 'hero',
+                  'id': 'hero',
+                  'label': 'Hero',
+                  'selected': true,
+                },
+              ]
+            : [
+                {
+                  'kind': 'resource',
+                  'resourceKind': 'borderBlueprint',
+                  'nativeId': 'late',
+                  'id': 'late',
+                  'label': 'Late border',
+                  'selected': true,
+                },
+              ],
+        if (input['cursor'] == null) 'nextCursor': 'later',
+      };
+    }
+    if (verb == 'export') {
+      verbs.add(verb);
+      inputs.add(input);
+      lastExport = Map.of(input);
+      return settled({
+        'artifactHandle': 'artifact',
+        'payloadRef': 'payload',
+        'rawSha256': 'hash',
+        'byteLength': 3,
+      });
+    }
+    if (verb == 'release') {
+      released.add(input['handle']! as String);
+      if (failNativeRelease &&
+          (input['handle']! as String).startsWith('native-prepared')) {
+        failNativeRelease = false;
+        throw StateError('cleanup');
+      }
+      return {'released': true};
+    }
+    return super.transfer(verb, input);
+  }
+}
+
+class ExportTestSink implements ResourcePackExportSink {
+  @override
+  Future<ResourcePackPublication> reconcilePublication(String token) async =>
+      throw StateError('No pending publication');
+  ExportTestSink({this.wait = false});
+  final bool wait;
+  final entered = Completer<void>(), gate = Completer<void>();
+  List<int> bytes = [];
+  @override
+  Future<ResourcePackPublication> publish({
+    required String suggestedName,
+    required int byteLength,
+    required String rawSha256,
+    required Future<List<int>> Function(int, int) readChunk,
+    required bool Function() isCancelled,
+    required void Function() enterFinalization,
+  }) async {
+    entered.complete();
+    if (wait) await gate.future;
+    if (isCancelled()) return const ResourcePackPublication.cancelled();
+    bytes = await readChunk(0, byteLength);
+    enterFinalization();
+    return const ResourcePackPublication.published('/published.aveluneassets');
+  }
+}
+
+class LateExportPackPort extends ExportPackTestPort {
+  String? lateVerb;
+  final entered = Completer<void>(), gate = Completer<void>();
+  @override
+  Future<Map<String, Object?>> transfer(
+    String verb, [
+    Map<String, Object?> input = const {},
+  ]) async {
+    final result = await super.transfer(verb, input);
+    if (verb == lateVerb) {
+      entered.complete();
+      await gate.future;
+    }
+    return result;
+  }
+}
+
+class LatePreviewExportPort extends ExportPackTestPort {
+  bool delay = false;
+  final entered = Completer<void>();
+  final gate = Completer<Map<String, Object?>>();
+  @override
+  Future<Map<String, Object?>> transfer(
+    String verb, [
+    Map<String, Object?> input = const {},
+  ]) async {
+    if (verb == 'preview' && delay) {
+      entered.complete();
+      return gate.future;
+    }
+    return super.transfer(verb, input);
+  }
+}
+
+class PendingExportTestSink extends ExportTestSink {
+  int requeries = 0;
+  @override
+  Future<ResourcePackPublication> publish({
+    required String suggestedName,
+    required int byteLength,
+    required String rawSha256,
+    required Future<List<int>> Function(int, int) readChunk,
+    required bool Function() isCancelled,
+    required void Function() enterFinalization,
+  }) async {
+    enterFinalization();
+    return const ResourcePackPublication.pending('native-pending');
+  }
+
+  @override
+  Future<ResourcePackPublication> reconcilePublication(String token) async {
+    expect(token, 'native-pending');
+    requeries++;
+    return const ResourcePackPublication.published('/published.aveluneassets');
+  }
 }

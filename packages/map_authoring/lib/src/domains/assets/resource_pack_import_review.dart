@@ -6,6 +6,38 @@ final class ResourcePackImportReview {
   final List<Map<String, Object?>> rows;
 }
 
+Set<String> _reachedImportOrigins(
+    ResourcePackCatalog catalog, ResourcePackClosure closure) {
+  final resources = closure.resources.toSet();
+  final files = closure.files.toSet();
+  final mediaOrigins = catalog.files.map((file) => file.provenanceId).toSet();
+  final selectedOrigins = {
+    for (final file in catalog.files)
+      if (files.contains(file.id)) file.provenanceId
+  };
+  return {
+    for (final origin in catalog.provenance)
+      if (selectedOrigins.contains(origin.id) ||
+          origin.resources.any(resources.contains) ||
+          closure.nodes.isNotEmpty &&
+              origin.resources.isEmpty &&
+              !mediaOrigins.contains(origin.id))
+        origin.id
+  };
+}
+
+Set<String> _requiredImportLicenses(
+    ResourcePackCatalog catalog, ResourcePackClosure closure) {
+  final files = closure.files.toSet();
+  final origins = _reachedImportOrigins(catalog, closure);
+  return {
+    for (final file in catalog.files)
+      if (files.contains(file.id)) ...file.licenseIds,
+    for (final origin in catalog.provenance)
+      if (origins.contains(origin.id)) ...origin.licenseIds
+  };
+}
+
 ResourcePackImportReview _buildImportReview({
   required ResourcePackImportSelection selection,
   required ProjectSnapshot snapshot,
@@ -178,13 +210,7 @@ ResourcePackImportReview _buildImportReview({
       'requiredByRepresentative': !roots.contains(node)
     });
   }
-  final resourceSet = resources.toSet();
-  final licenses = <String>{
-    for (final file in catalog.files)
-      if (files.contains(file.id)) ...file.licenseIds,
-    for (final origin in catalog.provenance)
-      if (origin.resources.any(resourceSet.contains)) ...origin.licenseIds,
-  };
+  final licenses = _requiredImportLicenses(catalog, closure);
   final sourceBytes = catalog.files
       .where((file) => files.contains(file.id))
       .fold<int>(0, (total, file) => total + file.byteLength);

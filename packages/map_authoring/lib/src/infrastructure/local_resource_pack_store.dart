@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
@@ -64,12 +65,39 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
             _Authorization(resolved, before, digest);
       });
 
-  Future<FileBackedPayloadLease> stageFile({
-    required FileBackedPayloadScope scope,
-    required String sourcePath,
-    void Function()? checkCancelled,
-    void Function(int copiedBytes)? onProgress,
-  }) =>
+  Future<FileBackedPayloadLease> stageFile(
+          {required FileBackedPayloadScope scope,
+          required String sourcePath,
+          void Function()? checkCancelled,
+          void Function(int copiedBytes)? onProgress}) =>
+      _stageFile(
+          scope: scope,
+          sourcePath: sourcePath,
+          checkCancelled: checkCancelled,
+          onProgress: onProgress,
+          maximumBytes: policy.maxArchiveBytes,
+          requireUtf8: false);
+
+  Future<FileBackedPayloadLease> stageLicenseFile(
+          {required FileBackedPayloadScope scope,
+          required String sourcePath,
+          void Function()? checkCancelled,
+          void Function(int copiedBytes)? onProgress}) =>
+      _stageFile(
+          scope: scope,
+          sourcePath: sourcePath,
+          checkCancelled: checkCancelled,
+          onProgress: onProgress,
+          maximumBytes: policy.maxFileBytes,
+          requireUtf8: true);
+
+  Future<FileBackedPayloadLease> _stageFile(
+          {required FileBackedPayloadScope scope,
+          required String sourcePath,
+          required int maximumBytes,
+          required bool requireUtf8,
+          void Function()? checkCancelled,
+          void Function(int copiedBytes)? onProgress}) =>
       _owned(() async {
         _checkScope(scope);
         final resolved = await _resolve(sourcePath);
@@ -91,6 +119,10 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         }
         final before = await _stat(resolved);
         _checkSource(before);
+        if (before.size > maximumBytes) {
+          _fail('too_large',
+              'The selected source exceeds its certified file limit.');
+        }
         if (authorized != null && !_sameIdentity(authorized.identity, before)) {
           _fail('source_changed_after_authorization',
               'The selected source changed after authorization.');
@@ -99,12 +131,29 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         try {
           var copied = 0;
           Stream<List<int>> chunks() async* {
+            final text = requireUtf8
+                ? utf8.decoder.startChunkedConversion(const _DiscardUtf8Text())
+                : null;
             final reader = await File(resolved).open();
             try {
               while (true) {
                 checkCancelled?.call();
                 final chunk = await reader.read(policy.maxChunkBytes);
-                if (chunk.isEmpty) break;
+                if (chunk.isEmpty) {
+                  try {
+                    text?.close();
+                  } on FormatException {
+                    _fail('license_invalid_utf8',
+                        'A licence must contain strict UTF-8 text.');
+                  }
+                  break;
+                }
+                try {
+                  text?.add(chunk);
+                } on FormatException {
+                  _fail('license_invalid_utf8',
+                      'A licence must contain strict UTF-8 text.');
+                }
                 yield chunk;
                 copied += chunk.length;
                 onProgress?.call(copied);
@@ -795,4 +844,12 @@ final class _WorkerFileSource implements RandomAccessPackageSource {
       source.close();
     }
   }
+}
+
+final class _DiscardUtf8Text implements Sink<String> {
+  const _DiscardUtf8Text();
+  @override
+  void add(String value) {}
+  @override
+  void close() {}
 }

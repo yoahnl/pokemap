@@ -11,5 +11,17 @@ final resourcePortProvider = Provider.autoDispose
 final resourceImagePickerProvider = Provider<PickResourceImage>(
   (ref) => throw StateError('Resource image picker must be configured'),
 );
-final resourcePackPortProvider = Provider.autoDispose.family<ResourcePackPort?, ProjectSession>((ref, session) => null);
-final resourcePackPickerProvider = Provider<PickResourcePack>((ref) => () async => null);
+final resourcePackPortProvider = Provider.autoDispose
+    .family<ResourcePackPort?, ProjectSession>((ref, session) => null);
+final resourcePackPickerProvider = Provider<PickResourcePack>(
+  (ref) =>
+      () async => null,
+);
+
+final resourcePackLicensePickerProvider = Provider<PickResourcePackLicenses>(
+  (ref) =>
+      () async => null,
+);
+final resourcePackExportSinkProvider = Provider<ResourcePackExportSink?>(
+  (ref) => null,
+);

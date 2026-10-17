@@ -1,8 +1,13 @@
+import 'dart:convert';
 import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
 
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
+import '../../contracts/artifact_ref.dart';
+import '../assets/asset_store.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/artifact_store.dart';
@@ -46,6 +51,8 @@ final class BorderCatalogActions {
           'project',
           'borderBlueprint',
           'borderSnapshot',
+          'assetCatalog',
+          'assetBlob',
           'model3d',
         ],
       ),
@@ -794,13 +801,8 @@ AuthoringMutationDraft _publicationMutation(
       ),
     ),
   ];
-  final knownSnapshotIds = planning
-      .snapshot.manifest.borderCatalog.visualSnapshots
-      .map((snapshot) => snapshot.id)
-      .toSet();
   final filesByPath = <String, Uint8List>{};
   for (final preparation in preparations) {
-    if (knownSnapshotIds.contains(preparation.snapshot.id)) continue;
     for (final file in preparation.files) {
       final existing = filesByPath[file.relativePath];
       if (existing != null && !_sameBytes(existing, file.bytes)) {
@@ -813,36 +815,142 @@ AuthoringMutationDraft _publicationMutation(
       filesByPath[file.relativePath] = file.bytes;
     }
   }
+  final catalogBytes = planning.snapshot.findResourceBytes(
+    assetCatalogResourceIdentity,
+  );
+  final assets = catalogBytes == null
+      ? AssetCatalog()
+      : AssetCatalog.fromJson(
+          jsonDecode(utf8.decode(catalogBytes)) as Map<String, dynamic>,
+        );
+  final records = [...assets.records];
+  final blobDigests = <String>{};
   for (final entry in filesByPath.entries) {
-    final resource = AuthoringResourceRef(
-      kind: 'borderSnapshot',
-      id: entry.key,
+    final artifact = ContentArtifactRef.fromBytes(
+      entry.value,
+      mediaType: 'image/png',
     );
+    final known = assets.findByLogicalPath(entry.key);
+    if (known != null && known.artifact != artifact) {
+      throw semanticFailure(
+        'border.snapshot.asset_conflict',
+        'The registered Border snapshot differs from its certified content.',
+        details: {'relativePath': entry.key},
+      );
+    }
+    if (known == null) {
+      final id = 'border_snapshot_${sha256.convert(utf8.encode(entry.key))}';
+      if (assets.find(id) != null) {
+        throw semanticFailure(
+          'border.snapshot.asset_conflict',
+          'The Border snapshot asset identity is already occupied.',
+          details: {'relativePath': entry.key, 'assetId': id},
+        );
+      }
+      records.add(
+        AssetRecord(id: id, logicalPath: entry.key, artifact: artifact),
+      );
+    }
+    final existingIdentity = planning.snapshot.resourceStorageKeys.entries
+        .where((candidate) => candidate.value == entry.key)
+        .firstOrNull
+        ?.key;
+    if (existingIdentity != null) {
+      if (!planning.snapshot.resourceMatchesArtifact(
+        existingIdentity,
+        artifact,
+      )) {
+        throw semanticFailure(
+          'border.snapshot.asset_conflict',
+          'The Border snapshot file differs from its certified content.',
+          details: {'relativePath': entry.key},
+        );
+      }
+    } else {
+      final resource = AuthoringResourceRef(
+        kind: 'borderSnapshot',
+        id: entry.key,
+      );
+      changes.add(
+        AuthoringResourceChange(
+          resource: resource,
+          storageKey: entry.key,
+          beforeBytes: null,
+          afterBytes: entry.value,
+        ),
+      );
+      diff.add(
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.add,
+          resource: resource,
+          path: '/',
+          after: {'relativePath': entry.key, 'byteLength': entry.value.length},
+        ),
+      );
+    }
+    if (!blobDigests.add(artifact.digest)) continue;
+    final blobIdentity = assetBlobResourceIdentity(artifact.digest);
+    if (planning.snapshot.hasResource(blobIdentity)) {
+      if (!planning.snapshot.resourceMatchesArtifact(blobIdentity, artifact)) {
+        throw semanticFailure(
+          'border.snapshot.asset_conflict',
+          'The retained Border snapshot blob differs from its certified content.',
+          details: {'relativePath': entry.key},
+        );
+      }
+    } else {
+      final resource = AuthoringResourceRef(
+        kind: 'assetBlob',
+        id: artifact.digest,
+      );
+      changes.add(
+        AuthoringResourceChange(
+          resource: resource,
+          storageKey: assetBlobStorageKey(artifact),
+          beforeBytes: null,
+          afterBytes: entry.value,
+        ),
+      );
+      diff.add(
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.add,
+          resource: resource,
+          path: '/',
+          after: artifact.toJson(),
+        ),
+      );
+    }
+  }
+  if (records.length != assets.records.length) {
+    final resource = AuthoringResourceRef(
+      kind: 'assetCatalog',
+      id: 'project',
+      revision:
+          planning.snapshot.resourceFingerprints[assetCatalogResourceIdentity],
+    );
+    final catalog = AssetCatalog(records: records);
     changes.add(
       AuthoringResourceChange(
         resource: resource,
-        storageKey: entry.key,
-        beforeBytes: null,
-        afterBytes: entry.value,
+        storageKey: assetCatalogStorageKey,
+        beforeBytes: catalogBytes,
+        afterBytes: utf8.encode(jsonEncode(catalog.toJson())),
       ),
     );
     diff.add(
       AuthoringDiffEntry(
-        operation: AuthoringDiffOperation.add,
+        operation: catalogBytes == null
+            ? AuthoringDiffOperation.add
+            : AuthoringDiffOperation.replace,
         resource: resource,
         path: '/',
-        after: <String, Object?>{
-          'relativePath': entry.key,
-          'byteLength': entry.value.length,
-        },
+        before: catalogBytes == null ? null : assets.toJson(),
+        after: catalog.toJson(),
       ),
     );
   }
   return AuthoringMutationDraft(
-    changeSet: AuthoringChangeSet(
-      changes: changes,
-      diff: AuthoringDiff(diff),
-    ),
+    changeSet: AuthoringChangeSet(changes: changes, diff: AuthoringDiff(diff)),
     preview: <String, Object?>{
       'operation': 'border.blueprint.publish',
       'blueprintId': after.id,
@@ -856,9 +964,14 @@ AuthoringMutationDraft _publicationMutation(
           if (primitive.isSpatial) primitive.id: primitive.sourceModelId,
       },
       'groundSnapshotIdsByRole': <String, Object?>{
-        for (final entry in after.latestPublished!.definition.ground
-                ?.visualSnapshotIdsByRole.entries ??
-            const <MapEntry<BorderGroundVariantRole, String>>[])
+        for (final entry
+            in after
+                    .latestPublished!
+                    .definition
+                    .ground
+                    ?.visualSnapshotIdsByRole
+                    .entries ??
+                const <MapEntry<BorderGroundVariantRole, String>>[])
           entry.key.name: entry.value,
       },
       'diagnosticCount': diagnostics.length,

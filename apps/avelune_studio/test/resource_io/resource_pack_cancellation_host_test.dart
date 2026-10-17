@@ -19,10 +19,135 @@ import 'package:map_authoring/map_authoring.dart'
     show AuthoringTransactionCheckpoint, AuthoringTransactionSimulatedCrash;
 
 import '../application/resource_pack_transfer_controller_test.dart'
-    show PackTestPort;
+    show
+        PackTestPort,
+        ExportPackTestPort,
+        ExportTestSink,
+        PendingExportTestSink;
 import 'resource_pack_import_host_test.dart' show ResourcePackTestHost;
 
 void main() {
+  testWidgets(
+    'real shell blocks close and switch until unknown publication is reconciled',
+    (tester) async {
+      final sink = PendingExportTestSink();
+      final host = await mountPackShell(
+        tester,
+        ExportPackTestPort(),
+        exportSink: sink,
+      );
+      final c = host.navigation.packTransfer!;
+      await configurePackExport(c);
+      await c.selectFiltered();
+      await c.prepare();
+      c.setOrganizationAcknowledgement(true);
+      await c.export();
+      expect(c.requiresPublicationReconciliation, isTrue);
+      expect(await host.exit(), isFalse);
+      expect(await host.home.allowSwitch!(), isFalse);
+      await c.retryPublication();
+      expect(c.outputPath, '/published.aveluneassets');
+      expect(await host.exit(), isTrue);
+      expect(await host.home.allowSwitch!(), isTrue);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  for (final verb in ['stage_license', 'prepare', 'export']) {
+    testWidgets(
+      'real shell close and switch wait for export $verb cancellation',
+      (tester) async {
+        final port = DelayedExportPackPort();
+        final host = await mountPackShell(
+          tester,
+          port,
+          exportSink: ExportTestSink(),
+        );
+        final c = host.navigation.packTransfer!;
+        await configurePackExport(c);
+        await c.selectFiltered();
+        if (verb == 'export') {
+          await c.prepare();
+          c.setOrganizationAcknowledgement(true);
+        }
+        port.blockedVerb = verb;
+        final operation = verb == 'stage_license'
+            ? c.addLicenseDocuments()
+            : verb == 'prepare'
+            ? c.prepare()
+            : c.export();
+        await port.entered.future;
+        var exited = false, switched = false;
+        final exiting = host.exit().then((v) {
+          exited = true;
+          return v;
+        });
+        final switching = host.home.allowSwitch!().then((v) {
+          switched = true;
+          return v;
+        });
+        await tester.pump();
+        await port.cancelled.future;
+        expect(exited, isFalse);
+        expect(switched, isFalse);
+        port.terminal.complete();
+        await tester.pump(const Duration(milliseconds: 100));
+        await operation;
+        expect(await exiting, isTrue);
+        expect(await switching, isTrue);
+        expect(c.outputPath, isNull);
+        expect(port.applies, 0);
+        await tester.pumpWidget(const SizedBox());
+        host.home.dispose();
+        host.workspace.dispose();
+      },
+    );
+  }
+  testWidgets(
+    'real shell waits during sink writing and refuses close at the publication barrier',
+    (tester) async {
+      for (final publishing in [false, true]) {
+        final port = ExportPackTestPort();
+        final sink = BarrierExportTestSink(publishing);
+        final host = await mountPackShell(tester, port, exportSink: sink);
+        final c = host.navigation.packTransfer!;
+        await configurePackExport(c);
+        await c.selectFiltered();
+        await c.prepare();
+        c.setOrganizationAcknowledgement(true);
+        final exporting = c.export();
+        await sink.entered.future;
+        expect(c.operationActive, isTrue);
+        if (publishing) {
+          expect(c.phase, ResourcePackTransferPhase.publishing);
+          expect(await host.exit(), isFalse);
+          expect(await host.home.allowSwitch!(), isFalse);
+          sink.gate.complete();
+          await exporting;
+          expect(c.outputPath, '/published.aveluneassets');
+          expect(await host.exit(), isTrue);
+        } else {
+          var done = false;
+          final exiting = host.exit().then((v) {
+            done = true;
+            return v;
+          });
+          final switching = host.home.allowSwitch!();
+          await tester.pump();
+          expect(done, isFalse);
+          sink.gate.complete();
+          await exporting;
+          expect(await exiting, isTrue);
+          expect(await switching, isTrue);
+          expect(c.outputPath, isNull);
+        }
+        await tester.pumpWidget(const SizedBox());
+        host.home.dispose();
+        host.workspace.dispose();
+      }
+    },
+  );
+
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
     'real shell close and project switch await cancellation before reservation',
@@ -251,6 +376,7 @@ mountPackShell(
   WidgetTester tester,
   PackTestPort pack, {
   GuardVisuals? visuals,
+  ResourcePackExportSink? exportSink,
 }) async {
   final workspace = MapWorkspaceController(
     workspaceSession,
@@ -268,6 +394,8 @@ mountPackShell(
         registerExitGuard: (value) => exit = value,
         resourcePort: GuardResourcePort(),
         resourcePackPort: pack,
+        resourcePackLicensePicker: () async => ['/LICENSE'],
+        resourcePackExportSink: exportSink,
         resourcePackPicker: () async => '/chosen.aveluneassets',
         home: home,
       ),
@@ -307,5 +435,77 @@ class GuardVisuals extends WorkspaceTestVisuals
     Set<String> changedRelativePaths = const {},
   }) async {
     if (fail) throw StateError('visual refresh unavailable');
+  }
+}
+
+Future<void> configurePackExport(ResourcePackTransferController c) async {
+  await c.beginExport();
+  for (final e in {
+    'name': 'Pack',
+    'author': 'Publisher',
+    'universeId': 'original',
+    'provenance': 'Original',
+  }.entries) {
+    await c.setExportField(e.key, e.value);
+  }
+  expect(c.error, isNull);
+}
+
+class DelayedExportPackPort extends ExportPackTestPort {
+  String? blockedVerb;
+  final entered = Completer<void>(),
+      cancelled = Completer<void>(),
+      terminal = Completer<void>();
+  @override
+  Future<Map<String, Object?>> transfer(
+    String verb, [
+    Map<String, Object?> input = const {},
+  ]) async {
+    if (verb == blockedVerb) {
+      entered.complete();
+      return {
+        'snapshot': {'jobId': 'export-test-job', 'state': 'running'},
+        'phase': verb,
+        'cancelAllowed': true,
+      };
+    }
+    if (verb == 'cancel' && input['jobId'] == 'export-test-job') {
+      if (!cancelled.isCompleted) cancelled.complete();
+      return {'state': 'cancelling', 'bounded': false};
+    }
+    if (verb == 'get' && input['jobId'] == 'export-test-job') {
+      await terminal.future;
+      return {
+        'snapshot': {'jobId': 'export-test-job', 'state': 'cancelled'},
+        'phase': 'cancelled',
+        'cancelAllowed': false,
+      };
+    }
+    return super.transfer(verb, input);
+  }
+}
+
+class BarrierExportTestSink implements ResourcePackExportSink {
+  @override
+  Future<ResourcePackPublication> reconcilePublication(String token) async =>
+      throw StateError('No pending publication');
+  BarrierExportTestSink(this.publishing);
+  final bool publishing;
+  final entered = Completer<void>(), gate = Completer<void>();
+  @override
+  Future<ResourcePackPublication> publish({
+    required String suggestedName,
+    required int byteLength,
+    required String rawSha256,
+    required Future<List<int>> Function(int, int) readChunk,
+    required bool Function() isCancelled,
+    required void Function() enterFinalization,
+  }) async {
+    if (publishing) enterFinalization();
+    entered.complete();
+    await gate.future;
+    if (isCancelled()) return const ResourcePackPublication.cancelled();
+    if (!publishing) enterFinalization();
+    return const ResourcePackPublication.published('/published.aveluneassets');
   }
 }

@@ -123,10 +123,62 @@ final class LocalResourcePackTransferApi
             job.checkCancelled();
             final handle = _token('archive');
             session.archives[handle] = staged;
+            job.onResultRejected(() async {
+              final owner = session.archives.remove(handle);
+              if (owner != null) {
+                await session.store
+                    .release(scope: session.scope, leaseId: owner.leaseId);
+              }
+            });
             staged = null;
             final payload = session.archives[handle]!.payload;
             return {
               'archiveHandle': handle,
+              'byteLength': payload.byteLength,
+              'rawSha256': payload.rawSha256,
+            };
+          } finally {
+            if (staged != null) {
+              await session.store.release(
+                scope: session.scope,
+                leaseId: staged.leaseId,
+              );
+            }
+          }
+        });
+      case 'stage_license':
+        _keys(args, const {'sourcePath'});
+        final path = _string(args, 'sourcePath', max: 4096);
+        return _start(session, 'license.stage', {}, (job) async {
+          job.progress('stagingLicense');
+          var reported = 0;
+          FileBackedPayloadLease? staged;
+          try {
+            staged = await session.store.stageLicenseFile(
+              scope: session.scope,
+              sourcePath: path,
+              checkCancelled: job.checkCancelled,
+              onProgress: (copied) {
+                if (copied - reported >= 8 * 1024 * 1024) {
+                  reported = copied;
+                  job.progress('staging', counters: {'copiedBytes': copied});
+                }
+              },
+            );
+            job.checkCancelled();
+            final handle = _token('license');
+            session.licenses[handle] = staged;
+            job.onResultRejected(() async {
+              final owner = session.licenses.remove(handle);
+              if (owner != null) {
+                await session.store
+                    .release(scope: session.scope, leaseId: owner.leaseId);
+              }
+            });
+            staged = null;
+            final payload = session.licenses[handle]!.payload;
+            return {
+              'licenseHandle': handle,
               'byteLength': payload.byteLength,
               'rawSha256': payload.rawSha256,
             };
@@ -151,6 +203,7 @@ final class LocalResourcePackTransferApi
             handle: archive.payload.handle,
             purpose: FileBackedPayloadPurpose.job,
           );
+          var published = false;
           try {
             job.progress('inspecting');
             final proof = await mutations
@@ -163,15 +216,25 @@ final class LocalResourcePackTransferApi
             job.checkCancelled();
             final id = _token('inspection');
             session.inspections[id] = _Inspection(id, lease, inspected, proof);
+            job.onResultRejected(() async {
+              final owner = session.inspections.remove(id);
+              if (owner != null) {
+                await session.store.release(
+                    scope: session.scope, leaseId: owner.lease.leaseId);
+              }
+            });
+            published = true;
             return _inspectionSummary(session, session.inspections[id]!);
           } on Object {
-            await session.store.release(
-              scope: session.scope,
-              leaseId: lease.leaseId,
-            );
+            if (!published) {
+              await session.store.release(
+                scope: session.scope,
+                leaseId: lease.leaseId,
+              );
+            }
             rethrow;
           }
-        }, sourceHandle: archive.payload.handle);
+        }, sourceHandles: [archive.payload.handle]);
       case 'entries':
         _keys(args, const {
           'inspectionHandle',
@@ -193,18 +256,31 @@ final class LocalResourcePackTransferApi
         final section = args['section'] ?? 'resources';
         if (!const {'resources', 'families', 'authors', 'sources'}.contains(section)) _fail('section_invalid');
         final source = inspection ?? selection?.inspection;
-        if (section != 'resources' && source == null) _fail('section_unavailable');
+        final inventory = selection?.nativeInventory;
+        if (section != 'resources' && source == null && inventory == null) {
+          _fail('section_unavailable');
+        }
         final rows = section == 'resources'
-            ? _filterRows(selection?.rows ?? inspection!.rows, _filter(args), selection)
-            : _inspectionSection(source!, section as String);
-        return _page(
-          session,
-          owner,
-          selection?.revision ?? inspection!.value.archiveRawSha256,
-          rows,
-          args,
-          'resourcePackEntry',
-        );
+            ? _filterRows(
+                selection?.rows ?? inspection!.rows, _filter(args), selection)
+            : inventory?.sections[section] ??
+                _inspectionSection(source!, section as String);
+        return {
+          ..._page(
+              session,
+              owner,
+              selection?.revision ?? inspection!.value.archiveRawSha256,
+              rows,
+              args,
+              'resourcePackEntry'),
+          if (inventory != null) ...{
+            'scope': 'nativeInventory',
+            if (section == 'authors' || section == 'sources')
+              'attributionScope': 'persistedInstallationDeclarations',
+            'sourceRevision': selection!.sourceRevision,
+            'snapshotRevision': selection.sourceRevision
+          },
+        };
       case 'selection.create':
         _keys(args, const {'mode', 'inspectionHandle'});
         final mode = _string(args, 'mode');
@@ -213,6 +289,7 @@ final class LocalResourcePackTransferApi
         FileBackedPayloadLease? lease;
         _Inspection? inspection;
         String sourceRevision;
+        ResourcePackNativeInventory? inventory;
         if (mode == 'archive') {
           inspection = session.inspections[_string(args, 'inspectionHandle')];
           if (inspection == null) _fail('inspection_unknown');
@@ -228,6 +305,7 @@ final class LocalResourcePackTransferApi
             policy: ProjectSnapshotLoadPolicy.editorReadProjection,
           );
           rows = _rootRows(snapshot.manifest);
+          inventory = ResourcePackNativeInventory(snapshot.manifest);
           sourceRevision = snapshot.revision;
         } else {
           _fail('selection_mode_invalid');
@@ -239,6 +317,7 @@ final class LocalResourcePackTransferApi
           sourceRevision,
           inspection,
           lease,
+          nativeInventory: inventory,
         );
         session.selections[id] = selected;
         return _selectionSummary(session, selected);
@@ -272,11 +351,23 @@ final class LocalResourcePackTransferApi
           'revision',
           'expectedRevision',
           'conflictPolicy',
+          'metadata',
+          'author',
+          'sourceUrl',
+          'licenseHandles',
         });
         final selected = _selection(session, args);
-        if (selected.mode != 'archive' || selected.selected.isEmpty) {
-          _fail('selection_invalid');
+        if (selected.selected.isEmpty) _fail('selection_invalid');
+        if (selected.mode == 'native') {
+          return _prepareNative(session, selected, args);
         }
+        _keys(args, const {
+          'selectionHandle',
+          'revision',
+          'expectedRevision',
+          'conflictPolicy'
+        });
+        if (selected.mode != 'archive') _fail('selection_invalid');
         final revision = _string(args, 'expectedRevision');
         final policyName = args['conflictPolicy'] ?? 'preserveProject';
         final conflictPolicy = ResourcePackConflictPolicy.values
@@ -320,6 +411,15 @@ final class LocalResourcePackTransferApi
             if (prepared.preparedImportHandle != null) {
               session.prepared.add(prepared.preparedImportHandle!);
             }
+            final preparedHandle = prepared.preparedImportHandle;
+            job.onResultRejected(() async {
+              session.previews.remove(preview);
+              session.cursors.removeWhere((_, cursor) => cursor.$1 == preview);
+              if (preparedHandle != null &&
+                  session.prepared.remove(preparedHandle)) {
+                await preparer.discardPrepared(preparedHandle);
+              }
+            });
             return {
               'status': prepared.status.name,
               if (prepared.preparedImportHandle != null)
@@ -340,13 +440,13 @@ final class LocalResourcePackTransferApi
               await preparer.discardSelection(canonical.handle);
             }
           }
-        }, sourceHandle: inspected.lease.payload.handle);
+        }, sourceHandles: [inspected.lease.payload.handle]);
       case 'preview':
         _keys(args, const {'previewHandle', 'cursor', 'limit'});
         final id = _string(args, 'previewHandle');
         final rows = session.previews[id];
         if (rows == null) _fail('preview_unknown');
-        return _page(session, id, id, rows, args, 'resourcePackPreview');
+        return _nativePreviewPage(session, id, rows, args);
       case 'start_apply':
         _keys(args, const {'planId', 'operationId', 'confirmationToken'});
         final planId = _string(args, 'planId');
@@ -378,193 +478,88 @@ final class LocalResourcePackTransferApi
         );
       case 'export':
         mutations.requireResourcePackExport(projectHandle);
-        _keys(args, const {
-          'selectionHandle',
-          'revision',
-          'expectedRevision',
-          'metadata',
-          'author',
-          'sourceUrl',
-          'licenseText',
-          'acknowledgeOrganizationRemoval',
-        });
-        final selected = _selection(session, args);
-        if (selected.mode != 'native' || selected.selected.isEmpty) {
-          _fail('selection_invalid');
+        _keys(args,
+            const {'preparedExportHandle', 'acknowledgeOrganizationRemoval'});
+        final acknowledge = args.containsKey('acknowledgeOrganizationRemoval')
+            ? args['acknowledgeOrganizationRemoval']
+            : false;
+        if (acknowledge is! bool) _fail('input_invalid');
+        final preparation =
+            session.preparedExports[_string(args, 'preparedExportHandle')];
+        if (preparation == null) _fail('preparation_unknown');
+        final selection = session.selections[preparation.selectionId];
+        if (selection == null ||
+            selection.revision != preparation.selectionRevision) {
+          _fail('selection_stale');
         }
-        final expected = _string(args, 'expectedRevision');
-        if (selected.sourceRevision != expected) _fail('selection_stale');
-        final metadataJson = args['metadata'];
-        if (metadataJson is! Map) _fail('metadata_invalid');
-        final metadata = ResourcePackMetadata.fromJson(
-          Map<String, Object?>.from(metadataJson),
-        );
-        final author = _string(args, 'author', max: 256);
-        final sourceUrl = args['sourceUrl'];
-        final license = args['licenseText'];
-        final acknowledge = args['acknowledgeOrganizationRemoval'] ?? false;
-        if ((sourceUrl != null &&
-                (sourceUrl is! String || sourceUrl.length > 4096)) ||
-            (license != null &&
-                (license is! String || license.length > 32000)) ||
-            acknowledge is! bool) {
-          _fail('metadata_invalid');
+        if (preparation.value.review.requiresOrganizationAcknowledgement &&
+            !acknowledge) {
+          _fail('organization_acknowledgement_required');
         }
-        final refs = selected.selected.toList();
-        return _start(session, 'export', {'selectionHandle': selected.id}, (
-          job,
-        ) async {
-          final leases = <FileBackedPayloadLease>[];
-          OwnedResourcePackExport? artifact;
-          String? pendingPayloadRef;
-          try {
-            job.progress('selectingNativeClosure');
-            final snapshot = await snapshotLoader.load(
-              projectHandle,
-              policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-            );
-            if (snapshot.revision != expected) _fail('project_stale');
-            final roots = [
-              for (final key in refs)
-                if ((jsonDecode(key) as List)[0] != 'smartTilePattern')
-                  NativeResourcePackRef(
-                    kind: ResourcePackKind.values.singleWhere(
-                      (kind) => kind.name == (jsonDecode(key) as List)[0],
-                    ),
-                    id: (jsonDecode(key) as List)[1] as String,
-                  ),
-            ];
-            final patterns = [
-              for (final key in refs)
-                if ((jsonDecode(key) as List)[0] == 'smartTilePattern')
-                  (jsonDecode(key) as List)[1] as String,
-            ];
-            final catalogBytes = snapshot.findResourceBytes(
-              assetCatalogResourceIdentity,
-            );
-            final catalog = catalogBytes == null
-                ? AssetCatalog()
-                : AssetCatalog.fromJson(
-                    Map<String, dynamic>.from(
-                      jsonDecode(utf8.decode(catalogBytes)) as Map,
-                    ),
-                  );
-            final sourceDigests = <String, String>{
-              for (final entry in snapshot.resourceStorageKeys.entries)
-                if (snapshot.storedResources[entry.key] != null)
-                  entry.value: snapshot.storedResources[entry.key]!.rawSha256,
-            };
-            final candidates = [
-              for (final record in catalog.records)
-                NativeResourcePackFile(
-                  id: record.id,
-                  logicalPath: record.logicalPath,
-                  byteLength: record.artifact.byteLength,
-                  rawSha256: sourceDigests[record.logicalPath] ?? '',
-                  mediaType: record.artifact.mediaType,
-                  openRead: () => snapshotLoader.openResourceStream(
-                    projectHandle,
-                    record.logicalPath,
-                  ),
-                ),
-            ];
-            final required = await const ResourcePackProjectionBuilder()
-                .selectedFileIds(
-                  manifest: snapshot.manifest,
-                  roots: roots,
-                  files: candidates,
-                  smartTilePatternIds: patterns,
-                );
-            final files = <(String, String, StoredFilePayload, String)>[];
-            for (final file in candidates.where(
-              (file) => required.contains(file.id),
-            )) {
+        final prepared = await preparation.value.retain();
+        try {
+          return await _start(session, 'export', {
+            'preparedExportHandle': args['preparedExportHandle']
+          }, (job) async {
+            OwnedResourcePackExport? artifact;
+            String? pendingPayloadRef;
+            try {
+              job.progress('exporting');
+              artifact = await CanonicalResourcePackExportService(
+                      store: session.store, scope: session.scope)
+                  .exportPrepared(
+                      prepared: prepared,
+                      acknowledgeOrganizationRemoval: acknowledge,
+                      checkCancelled: job.checkCancelled,
+                      readCurrentRevision: () async =>
+                          (await snapshotLoader.load(projectHandle,
+                                  policy: ProjectSnapshotLoadPolicy
+                                      .editorReadProjection))
+                              .revision);
               job.checkCancelled();
-              if (file.rawSha256.isEmpty) _fail('native_source_unavailable');
-              final lease = await session.store.stage(
-                scope: session.scope,
-                chunks: file.openRead(),
-                byteLength: file.byteLength,
-                expectedRawSha256: file.rawSha256,
-                checkCancelled: job.checkCancelled,
-              );
-              leases.add(lease);
-              files.add((
-                file.id,
-                file.logicalPath,
-                lease.payload,
-                file.mediaType,
-              ));
+              final id = _token('artifact');
+              final payload = artifact.payload;
+              final reference = await mutations.resourcePackExportPayload(
+                  projectHandle, payload,
+                  checkCancelled: job.checkCancelled);
+              pendingPayloadRef = reference['payloadRef']! as String;
+              job.checkCancelled();
+              session.artifacts[id] =
+                  _ExportArtifact(artifact, pendingPayloadRef);
+              job.onResultRejected(() async {
+                final owner = session.artifacts.remove(id);
+                if (owner != null) {
+                  try {
+                    await mutations.resourcePackReleaseExportPayload(
+                        projectHandle, owner.payloadRef);
+                  } finally {
+                    await owner.owner.dispose();
+                  }
+                }
+              });
+              pendingPayloadRef = null;
+              artifact = null;
+              return {
+                'artifactHandle': id,
+                'payloadRef': reference['payloadRef'],
+                'rawSha256': payload.rawSha256,
+                'byteLength': payload.byteLength,
+                'projectionFingerprint': prepared.projectionFingerprint
+              };
+            } finally {
+              if (pendingPayloadRef != null) {
+                await mutations.resourcePackReleaseExportPayload(
+                    projectHandle, pendingPayloadRef);
+              }
+              await artifact?.dispose();
             }
-            job.progress(
-              'exporting',
-              counters: {
-                'selectedRoots': roots.length,
-                'sourceFiles': files.length,
-              },
-            );
-            artifact =
-                await CanonicalResourcePackExportService(
-                  store: session.store,
-                  scope: session.scope,
-                ).exportNative(
-                  manifest: snapshot.manifest,
-                  roots: roots,
-                  smartTilePatternIds: patterns,
-                  files: files,
-                  metadata: metadata,
-                  author: author,
-                  expectedRevision: expected,
-                  sourceUrl: sourceUrl as String?,
-                  licenseText: license as String?,
-                  acknowledgeOrganizationRemoval: acknowledge,
-                  checkCancelled: job.checkCancelled,
-                  readCurrentRevision: () async => (await snapshotLoader.load(
-                    projectHandle,
-                    policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-                  )).revision,
-                );
-            job.checkCancelled();
-            final id = _token('artifact');
-            final payload = artifact.payload;
-            job.progress('preparingPayload');
-            final reference = await mutations.resourcePackExportPayload(
-              projectHandle,
-              payload,
-              checkCancelled: job.checkCancelled,
-            );
-            pendingPayloadRef = reference['payloadRef']! as String;
-            job.checkCancelled();
-            session.artifacts[id] = _ExportArtifact(
-              artifact,
-              pendingPayloadRef,
-            );
-            pendingPayloadRef = null;
-            artifact = null;
-            return {
-              'artifactHandle': id,
-              'payloadRef': reference['payloadRef'],
-              'rawSha256': payload.rawSha256,
-              'byteLength': payload.byteLength,
-              'selectedRoots': roots.length,
-              'fileCount': files.length,
-            };
-          } finally {
-            if (pendingPayloadRef != null) {
-              await mutations.resourcePackReleaseExportPayload(
-                projectHandle,
-                pendingPayloadRef,
-              );
-            }
-            await artifact?.dispose();
-            for (final lease in leases) {
-              await session.store.release(
-                scope: session.scope,
-                leaseId: lease.leaseId,
-              );
-            }
-          }
-        });
+          },
+              afterSettled: prepared.dispose,
+              sourceRevision: prepared.sourceRevision);
+        } on Object {
+          await prepared.dispose();
+          rethrow;
+        }
       case 'read_payload':
         _keys(args, const {'payloadRef', 'offset', 'length'});
         final ref = _string(args, 'payloadRef');
@@ -679,8 +674,23 @@ final class LocalResourcePackTransferApi
       case 'release':
         _keys(args, const {'handle'});
         final handle = _string(args, 'handle');
+        final nativePreview = _nativePreviewOwner(session, handle);
+        if (nativePreview != null) {
+          await _releaseNativePrepared(session, nativePreview.$1);
+          return {'released': true};
+        }
         if (session.previews.remove(handle) != null) {
           session.cursors.removeWhere((_, cursor) => cursor.$1 == handle);
+          return {'released': true};
+        }
+        if (session.preparedExports.containsKey(handle)) {
+          await _releaseNativePrepared(session, handle);
+          return {'released': true};
+        }
+        final license = session.licenses.remove(handle);
+        if (license != null) {
+          await session.store
+              .release(scope: session.scope, leaseId: license.leaseId);
           return {'released': true};
         }
         final artifact = session.artifacts.remove(handle);
@@ -722,26 +732,206 @@ final class LocalResourcePackTransferApi
     }
   }
 
+  Future<Map<String, Object?>> _prepareNative(_TransferSession session,
+      _Selection selected, Map<String, dynamic> args) {
+    mutations.requireResourcePackExport(session.project);
+    _keys(args, const {
+      'selectionHandle',
+      'revision',
+      'expectedRevision',
+      'metadata',
+      'author',
+      'sourceUrl',
+      'licenseHandles',
+    });
+    final expected = _string(args, 'expectedRevision');
+    if (selected.sourceRevision != expected) _fail('selection_stale');
+    final metadataJson = args['metadata'];
+    if (metadataJson is! Map ||
+        metadataJson['authors'] is! List ||
+        (metadataJson['authors'] as List).length > 200) {
+      _fail('metadata_invalid');
+    }
+    final metadata =
+        ResourcePackMetadata.fromJson(Map<String, Object?>.from(metadataJson));
+    final author = _string(args, 'author', max: 128);
+    final url = args['sourceUrl'];
+    if (url != null && url is! String) _fail('metadata_invalid');
+    ResourcePackProvenance(
+        id: 'declared',
+        author: author,
+        sourceUrl: url as String?,
+        licenseIds: []);
+    final rawHandles = args['licenseHandles'] ?? const [];
+    if (rawHandles is! List ||
+        rawHandles.length > 200 ||
+        rawHandles.any((handle) =>
+            handle is! String || handle.isEmpty || handle.length > 128)) {
+      _fail('license_handles_invalid');
+    }
+    final documents = <StoredFilePayload>[];
+    for (final handle in rawHandles.toSet()) {
+      final lease = session.licenses[handle];
+      if (lease == null) _fail('license_unknown');
+      documents.add(lease.payload);
+    }
+    final refs = selected.selected.toList();
+    final selectionRevision = selected.revision;
+    return _start(session, 'prepare', {
+      'selectionHandle': selected.id,
+      'revision': selectionRevision
+    }, (job) async {
+      final leases = <FileBackedPayloadLease>[];
+      NativeResourcePackPreparedExport? prepared;
+      try {
+        job.progress('selectingNativeClosure');
+        final snapshot = await snapshotLoader.load(session.project,
+            policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+        if (snapshot.revision != expected) _fail('project_stale');
+        final roots = [
+          for (final key in refs)
+            if ((jsonDecode(key) as List)[0] != 'smartTilePattern')
+              NativeResourcePackRef(
+                  kind: ResourcePackKind.values
+                      .byName((jsonDecode(key) as List)[0] as String),
+                  id: (jsonDecode(key) as List)[1] as String)
+        ];
+        final patterns = [
+          for (final key in refs)
+            if ((jsonDecode(key) as List)[0] == 'smartTilePattern')
+              (jsonDecode(key) as List)[1] as String
+        ];
+        final catalogBytes =
+            snapshot.findResourceBytes(assetCatalogResourceIdentity);
+        final catalog = catalogBytes == null
+            ? AssetCatalog()
+            : AssetCatalog.fromJson(Map<String, dynamic>.from(
+                jsonDecode(utf8.decode(catalogBytes)) as Map));
+        final sourceDigests = {
+          for (final entry in snapshot.resourceStorageKeys.entries)
+            if (snapshot.storedResources[entry.key] != null)
+              entry.value: snapshot.storedResources[entry.key]!.rawSha256
+        };
+        final candidates = [
+          for (final record in catalog.records)
+            NativeResourcePackFile(
+                id: record.id,
+                logicalPath: record.logicalPath,
+                byteLength: record.artifact.byteLength,
+                rawSha256: sourceDigests[record.logicalPath] ?? '',
+                mediaType: record.artifact.mediaType,
+                openRead: () => snapshotLoader.openResourceStream(
+                    session.project, record.logicalPath))
+        ];
+        final required = await const ResourcePackProjectionBuilder()
+            .selectedFileIds(
+                manifest: snapshot.manifest,
+                roots: roots,
+                files: candidates,
+                smartTilePatternIds: patterns);
+        final files = <(String, String, StoredFilePayload, String)>[];
+        for (final file
+            in candidates.where((file) => required.contains(file.id))) {
+          job.checkCancelled();
+          if (file.rawSha256.isEmpty) _fail('native_source_unavailable');
+          final lease = await session.store.stage(
+              scope: session.scope,
+              chunks: file.openRead(),
+              byteLength: file.byteLength,
+              expectedRawSha256: file.rawSha256,
+              checkCancelled: job.checkCancelled);
+          leases.add(lease);
+          files.add((file.id, file.logicalPath, lease.payload, file.mediaType));
+        }
+        job.progress('preparingNative');
+        prepared = await CanonicalResourcePackExportService(
+                store: session.store, scope: session.scope)
+            .prepareNative(
+                manifest: snapshot.manifest,
+                roots: roots,
+                smartTilePatternIds: patterns,
+                files: files,
+                metadata: metadata,
+                author: author,
+                expectedRevision: expected,
+                sourceUrl: url,
+                licenseDocuments: documents,
+                checkCancelled: job.checkCancelled,
+                readCurrentRevision: () async => (await snapshotLoader.load(
+                        session.project,
+                        policy: ProjectSnapshotLoadPolicy.editorReadProjection))
+                    .revision);
+        job.checkCancelled();
+        if (selected.revision != selectionRevision ||
+            !identical(session.selections[selected.id], selected)) {
+          _fail('selection_stale');
+        }
+        final id = _token('prepared_export');
+        final preview = _token('preview');
+        final result = {
+          'status': 'ready',
+          'preparedExportHandle': id,
+          'previewHandle': preview,
+          'previewUri': _uri(session, 'resourcePackPreview', preview),
+          'projectionFingerprint': prepared.projectionFingerprint,
+          'requiresOrganizationAcknowledgement':
+              prepared.review.requiresOrganizationAcknowledgement,
+          'summary': prepared.review.summary,
+          ...prepared.review.summary,
+          'sourceFileCount': prepared.sourceInventory.length,
+        };
+        session.preparedExports[id] = _PreparedNativeExport(
+            selected.id, selectionRevision, preview, prepared);
+        session.previews[preview] = prepared.review.rows;
+        job.onResultRejected(() async {
+          await _releaseNativePrepared(session, id);
+        });
+        prepared = null;
+        return result;
+      } finally {
+        await prepared?.dispose();
+        for (final lease in leases) {
+          await session.store
+              .release(scope: session.scope, leaseId: lease.leaseId);
+        }
+      }
+    },
+        sourceHandles: documents.map((document) => document.handle),
+        sourceRevision: expected);
+  }
+
   Future<Map<String, Object?>> _start(
     _TransferSession session,
     String kind,
     Map<String, Object?> input,
     ResourcePackJobWork work, {
-    String? sourceHandle,
+    Iterable<String> sourceHandles = const [],
+    Future<void> Function()? afterSettled,
+    String? sourceRevision,
   }) async {
-    final revision = session.revision ??= mutations.resourcePackInitialRevision(
-      session.project,
-    );
-    final pin = sourceHandle == null
-        ? null
-        : session.store.retainForJob(
-            scope: session.scope,
-            handle: sourceHandle,
-          );
-    Future<void> releasePin() async {
-      if (pin != null) {
+    final revision = sourceRevision ??
+        (session.revision ??= mutations.resourcePackInitialRevision(
+          session.project,
+        ));
+    final pins = <FileBackedPayloadLease>[];
+    var pinsReleased = false;
+    Future<void> releasePins() async {
+      if (pinsReleased) return;
+      pinsReleased = true;
+      for (final pin in pins) {
         await session.store.release(scope: session.scope, leaseId: pin.leaseId);
       }
+      await afterSettled?.call();
+    }
+
+    try {
+      for (final handle in sourceHandles.toSet()) {
+        pins.add(
+            session.store.retainForJob(scope: session.scope, handle: handle));
+      }
+    } on Object {
+      await releasePins();
+      rethrow;
     }
 
     late final AuthoringJobSnapshot result;
@@ -755,10 +945,10 @@ final class LocalResourcePackTransferApi
           input: input,
         ),
         work,
-        onSettled: releasePin,
+        onSettled: releasePins,
       );
     } on Object {
-      await releasePin();
+      await releasePins();
       rethrow;
     }
     return {
@@ -795,6 +985,7 @@ final class LocalResourcePackTransferApi
       _fail('query_invalid');
     }
     final id = request.ids.single;
+    String? capturedRevision;
     final Map<String, Object?> value;
     switch (request.resourceKind) {
       case 'resourcePackJob':
@@ -802,37 +993,41 @@ final class LocalResourcePackTransferApi
       case 'resourcePackSelection':
         final selected = session.selections[id];
         if (selected == null) _fail('selection_unknown');
+        capturedRevision = selected.sourceRevision;
         value = _selectionSummary(session, selected);
       case 'resourcePackEntry':
         final selected = session.selections[id];
         final inspected = session.inspections[id];
         if (selected == null && inspected == null) _fail('handle_unknown');
-        return _queryPage(
-          _page(
-            session,
-            id,
-            selected?.revision ?? inspected!.value.archiveRawSha256,
-            _filterRows(
-              selected?.rows ?? inspected!.rows,
-              _filter({'filter': request.filters}),
-              selected,
-            ),
-            {
-              'limit': request.pageSize,
-              'filter': request.filters,
-              if (request.cursor != null) 'cursor': request.cursor,
-            },
-            'resourcePackEntry',
+        final page = _page(
+          session,
+          id,
+          selected?.revision ?? inspected!.value.archiveRawSha256,
+          _filterRows(
+            selected?.rows ?? inspected!.rows,
+            _filter({'filter': request.filters}),
+            selected,
           ),
+          {
+            'limit': request.pageSize,
+            'filter': request.filters,
+            if (request.cursor != null) 'cursor': request.cursor,
+          },
+          'resourcePackEntry',
         );
+        return _queryPage({
+          ...page,
+          if (selected?.nativeInventory != null)
+            'snapshotRevision': selected!.sourceRevision
+        });
       case 'resourcePackPreview':
         final rows = session.previews[id];
         if (rows == null) _fail('preview_unknown');
         return _queryPage(
-          _page(session, id, id, rows, {
+          _nativePreviewPage(session, id, rows, {
             'limit': request.pageSize,
             if (request.cursor != null) 'cursor': request.cursor,
-          }, 'resourcePackPreview'),
+          }),
         );
       case 'resourcePackInspection':
         final inspected = session.inspections[id];
@@ -842,7 +1037,7 @@ final class LocalResourcePackTransferApi
         _fail('handle_unknown');
     }
     return {
-      'snapshotRevision': session.revision!,
+      'snapshotRevision': capturedRevision ?? session.revision!,
       'items': [value],
       'returned': 1,
       'totalAvailable': 1,
@@ -865,7 +1060,11 @@ final class LocalResourcePackTransferApi
         );
         await artifact.owner.dispose();
       }
+      for (final id in entry.value.preparedExports.keys.toList()) {
+        await _releaseNativePrepared(entry.value, id);
+      }
       for (final lease in [
+        ...entry.value.licenses.values,
         ...entry.value.archives.values,
         ...entry.value.inspections.values.map((value) => value.lease),
         ...entry.value.selections.values
@@ -897,6 +1096,8 @@ final class _TransferSession {
   final ResourcePackJobService jobs;
   String? revision;
   final Map<String, FileBackedPayloadLease> archives = {};
+  final Map<String, FileBackedPayloadLease> licenses = {};
+  final Map<String, _PreparedNativeExport> preparedExports = {};
   final Map<String, _Inspection> inspections = {};
   final Map<String, _Selection> selections = {};
   final Map<String, List<Map<String, Object?>>> previews = {};
@@ -904,6 +1105,45 @@ final class _TransferSession {
   final Map<String, _ExportArtifact> artifacts = {};
   final Map<String, (String, String, String, int)> cursors = {};
   final Map<String, (String, int)> eventCursors = {};
+}
+
+(String, _PreparedNativeExport)? _nativePreviewOwner(
+    _TransferSession session, String preview) {
+  for (final entry in session.preparedExports.entries) {
+    if (entry.value.previewId == preview) return (entry.key, entry.value);
+  }
+  return null;
+}
+
+Future<void> _releaseNativePrepared(_TransferSession session, String id) async {
+  final owner = session.preparedExports.remove(id);
+  if (owner == null) return;
+  session.previews.remove(owner.previewId);
+  session.cursors.removeWhere((_, cursor) => cursor.$1 == owner.previewId);
+  await owner.value.dispose();
+}
+
+Map<String, Object?> _nativePreviewPage(_TransferSession session, String id,
+    List<Map<String, Object?>> rows, Map<String, dynamic> args) {
+  final owner = _nativePreviewOwner(session, id)?.$2;
+  return {
+    ..._page(session, id, id, rows, args, 'resourcePackPreview'),
+    if (owner != null) ...{
+      'scope': 'preparedNativeClosure',
+      'sourceRevision': owner.value.sourceRevision,
+      'snapshotRevision': owner.value.sourceRevision,
+      'projectionFingerprint': owner.value.projectionFingerprint
+    }
+  };
+}
+
+final class _PreparedNativeExport {
+  const _PreparedNativeExport(
+      this.selectionId, this.selectionRevision, this.previewId, this.value);
+  final String selectionId;
+  final String selectionRevision;
+  final String previewId;
+  final NativeResourcePackPreparedExport value;
 }
 
 final class _Inspection {
@@ -984,19 +1224,15 @@ String _token(String prefix) {
 }
 
 final class _Selection {
-  _Selection(
-    this.id,
-    this.mode,
-    this.rows,
-    this.sourceRevision,
-    this.inspection,
-    this.lease,
-  );
+  _Selection(this.id, this.mode, this.rows, this.sourceRevision,
+      this.inspection, this.lease,
+      {this.nativeInventory});
   final String id;
   final String mode;
   final List<Map<String, Object?>> rows;
   final String sourceRevision;
   final _Inspection? inspection;
+  final ResourcePackNativeInventory? nativeInventory;
   final FileBackedPayloadLease? lease;
   final Set<String> selected = {};
   int version = 0;
@@ -1224,7 +1460,7 @@ bool _matchesContext(Object? value, Object? context) => switch (context) {
 };
 
 String _rowLabel(dynamic item) => item is BorderBlueprintRecord
-    ? item.draft.definition.name
+    ? item.latestPublished?.definition.name ?? item.draft.definition.name
     : item.name as String;
 
 final class _ExportArtifact {

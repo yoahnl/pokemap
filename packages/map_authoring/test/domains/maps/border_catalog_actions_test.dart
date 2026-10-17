@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -6,6 +7,56 @@ import 'package:test/test.dart';
 
 void main() {
   group('BorderCatalogActions', () {
+    test(
+      'snapshot publication reuses matching indexed path and shared blob',
+      () async {
+        final f = await _indexedPublicationFixture();
+        final mutation = await f.actions.build(
+          _context(
+            f.snapshot,
+            actionId: 'border.blueprint.publish',
+            parameters: f.parameters,
+          ),
+        );
+        expect(mutation.changeSet.changes.map((c) => c.resource.kind), [
+          'project',
+        ]);
+      },
+    );
+
+    for (final conflict in [
+      'digest',
+      'length',
+      'media',
+      'identity',
+      'file',
+      'blob',
+    ]) {
+      test(
+        'snapshot publication refuses $conflict conflict before mutation',
+        () async {
+          final f = await _indexedPublicationFixture(conflict: conflict);
+          final before = f.snapshot.resourceBytes('project');
+          await expectLater(
+            f.actions.build(
+              _context(
+                f.snapshot,
+                actionId: 'border.blueprint.publish',
+                parameters: f.parameters,
+              ),
+            ),
+            throwsA(
+              isA<MapAuthoringException>().having(
+                (e) => e.code,
+                'code',
+                'border.snapshot.asset_conflict',
+              ),
+            ),
+          );
+          expect(f.snapshot.resourceBytes('project'), before);
+        },
+      );
+    }
     test('delete and deprecation descriptors declare strict action parameters',
         () {
       for (final id in [
@@ -192,9 +243,7 @@ void main() {
         ),
       ];
       final fixture = _fixture(
-        records: <BorderBlueprintRecord>[
-          _record(primitives: primitives),
-        ],
+        records: <BorderBlueprintRecord>[_record(primitives: primitives)],
         elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'fence-element',
@@ -202,9 +251,7 @@ void main() {
             tilesetId: 'tileset',
             categoryId: 'border',
             frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 0, y: 0),
-              ),
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
             ],
           ),
         ],
@@ -245,14 +292,38 @@ void main() {
       expect(projected.borderCatalog.visualSnapshots, hasLength(1));
       expect(
         mutation.changeSet.changes.map((change) => change.resource.kind),
-        containsAll(<String>['borderSnapshot', 'project']),
+        containsAll(<String>['borderSnapshot', 'project', 'assetCatalog']),
       );
       expect(
         mutation.preview,
         containsPair('primitiveSnapshotIdsByPrimitiveId', isNotEmpty),
       );
+      final catalogChange = mutation.changeSet.changes.singleWhere(
+        (c) => c.resource.kind == 'assetCatalog',
+      );
+      final assets = AssetCatalog.fromJson(
+        jsonDecode(utf8.decode(catalogChange.afterBytes!))
+            as Map<String, dynamic>,
+      );
+      final snapshotChange = mutation.changeSet.changes.singleWhere(
+        (c) => c.resource.kind == 'borderSnapshot',
+      );
+      expect(assets.records, hasLength(1));
+      expect(assets.records.single.logicalPath, snapshotChange.storageKey);
+      expect(
+        assets.records.single.artifact,
+        ContentArtifactRef.fromBytes(
+          snapshotChange.afterBytes!,
+          mediaType: 'image/png',
+        ),
+      );
+      expect(
+        BorderCatalogActions.descriptors
+            .singleWhere((d) => d.id == 'border.blueprint.publish')
+            .resourceKinds,
+        contains('assetCatalog'),
+      );
     });
-
     test('publishes the directed jump property of a 2D Border atomically', () async {
       final jump = BorderJumpBehavior(side: BorderLineSide.inverted, durationMs: 750, peakHeightPx: 36);
       final preparation = const CanonicalBorderSnapshotCompiler().prepare(
@@ -558,6 +629,8 @@ void main() {
 }) _fixture({
   List<BorderBlueprintRecord> records = const <BorderBlueprintRecord>[],
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
+  Map<String, List<int>> resources = const {},
+  Map<String, String> storageKeys = const {},
 }) {
   final artifacts = MemoryArtifactStore(maximumArtifactBytes: 1024 * 1024);
   final manifest = ProjectManifest(
@@ -585,14 +658,15 @@ void main() {
       manifest: manifest,
       maps: const <MapData>[],
       resourceFingerprints: <String, String>{
+        for (final entry in resources.entries) entry.key: computeAuthoringBytesFingerprint(entry.value, logicalName: storageKeys[entry.key]!),
         'project': computeAuthoringBytesFingerprint(
           bytes,
           logicalName: storageKey,
         ),
       },
-      resourceBytes: <String, List<int>>{'project': bytes},
-      resourceStorageKeys: const <String, String>{
-        'project': storageKey,
+      resourceBytes: <String, List<int>>{'project': bytes, ...resources},
+      resourceStorageKeys: <String, String>{
+        'project': storageKey, ...storageKeys,
       },
     ),
   );
@@ -736,6 +810,117 @@ List<int> _networkPngBytes(BorderPrimitiveRole role) {
       BorderPrimitiveRole.lineCorner =>
         'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASUlEQVR4nO2WsQkAMAzDXP//s0tv8GAK0h4QKJAoSVTQzte0AtYYIyASjDECIsEYI6AxZ37PW/gHvl9CIyASjDECIsGYaYJ3SS+xeRgizvP++gAAAABJRU5ErkJggg==',
       _ => throw StateError('Unexpected connected-line role'),
+    },
+  );
+}
+
+Future<
+  ({
+    BorderCatalogActions actions,
+    ProjectSnapshot snapshot,
+    Map<String, Object?> parameters,
+  })
+>
+_indexedPublicationFixture({String? conflict}) async {
+  final preparation = const CanonicalBorderSnapshotCompiler().prepare(
+    sourceElementId: 'fence-element',
+    anchorPx: const BorderPixelPos(x: 16, y: 16),
+    frames: [
+      CanonicalBorderSourceFrame(
+        sourceProjectRelativePath: 'assets/tilesets/fence.png',
+        encodedImageBytes: _pngBytes,
+      ),
+    ],
+  );
+  final file = preparation.files.single;
+  final certified = ContentArtifactRef.fromBytes(
+    file.bytes,
+    mediaType: 'image/png',
+  );
+  final id = conflict == 'identity'
+      ? 'border_snapshot_${sha256.convert(utf8.encode(file.relativePath))}'
+      : 'existing_snapshot';
+  final metadata = conflict == 'digest'
+      ? ContentArtifactRef.fromBytes([1, 2, 3], mediaType: 'image/png')
+      : ContentArtifactRef(
+          digest: certified.digest,
+          byteLength: certified.byteLength + (conflict == 'length' ? 1 : 0),
+          mediaType: conflict == 'media'
+              ? 'application/octet-stream'
+              : 'image/png',
+        );
+  final catalog = AssetCatalog(
+    records: [
+      AssetRecord(
+        id: id,
+        logicalPath: conflict == 'identity'
+            ? 'assets/occupied.png'
+            : file.relativePath,
+        artifact: metadata,
+      ),
+    ],
+  );
+  final primitives = [
+    for (final pair in [
+      ('cap', BorderPrimitiveRole.lineCap),
+      ('span', BorderPrimitiveRole.lineStraight),
+      ('corner', BorderPrimitiveRole.lineCorner),
+    ])
+      _primitive(
+        id: pair.$1,
+        role: pair.$2,
+        metrics: preparation.metrics,
+        anchorPx: const BorderPixelPos(x: 16, y: 16),
+      ),
+  ];
+  final f = _fixture(
+    records: [_record(primitives: primitives)],
+    elements: const [
+      ProjectElementEntry(
+        id: 'fence-element',
+        name: 'Fence',
+        tilesetId: 'tileset',
+        categoryId: 'border',
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+      ),
+    ],
+    resources: {
+      assetCatalogResourceIdentity: utf8.encode(jsonEncode(catalog.toJson())),
+      'asset:$id': conflict == 'file' ? [1, 2, 3] : file.bytes,
+      assetBlobResourceIdentity(certified.digest): conflict == 'blob'
+          ? [1, 2, 3]
+          : file.bytes,
+    },
+    storageKeys: {
+      assetCatalogResourceIdentity: assetCatalogStorageKey,
+      'asset:$id': catalog.records.single.logicalPath,
+      assetBlobResourceIdentity(certified.digest): assetBlobStorageKey(
+        certified,
+      ),
+    },
+  );
+  final artifact = await f.artifacts.put(
+    _pngBytes,
+    declaredMediaType: 'image/png',
+  );
+  return (
+    actions: f.actions,
+    snapshot: f.snapshot,
+    parameters: {
+      'blueprintId': 'fence',
+      'acceptedWarningCodes': ['border.publication.coverage_overlap_exceeded'],
+      'primitiveSources': [
+        for (final primitive in primitives)
+          {
+            'primitiveId': primitive.id,
+            'frames': [
+              {
+                'artifactHandle': artifact.reference.handle,
+                'sourceProjectRelativePath': 'assets/tilesets/fence.png',
+              },
+            ],
+          },
+      ],
     },
   );
 }
