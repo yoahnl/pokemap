@@ -10,6 +10,7 @@ import 'source_center_recovery_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
+import 'source_stair_program.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
@@ -104,11 +105,17 @@ final class SourceEventStudyComposer {
         entry.actionId.startsWith('border.') || entry.actionId.startsWith('border_layer.'))) {
       final replay = await replaySourceBorderMutation(project: borderProject,
           resources: borderResources,
-          maps: {for (final map in nativeMaps.values) map.id: map}, mutation: mutation,
+          maps: mutation.actionId.startsWith('border_layer.')
+              ? {for (final map in nativeMaps.values)
+                  if (map.id == mutation.parameters['mapId']) map.id: map}
+              : const {}, mutation: mutation,
           artifacts: base.artifacts, limits: limits, cancellation: cancellation);
       borderProject = replay.project;
       borderResources = replay.resources;
-      for (final entry in base.mapIds.entries) { nativeMaps[entry.key] = replay.maps[entry.value]!; }
+      for (final entry in replay.maps.entries) {
+        final sourceId = base.mapIds.entries.singleWhere((map) => map.value == entry.key).key;
+        nativeMaps[sourceId] = entry.value;
+      }
     }
     ProjectValidator.validate(borderProject, maps: nativeMaps.values);
     for (final map in nativeMaps.values) { MapValidator.validate(map, projectDialogueContext: borderProject); }
@@ -127,7 +134,11 @@ final class SourceEventStudyComposer {
       for (final entry in sourceRoutedDoorPrograms(source: source, analysis: analysis).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId) && !const {(100, 8), (102, 1)}.contains((entry.value.sourceMapId, entry.value.sourceEventId))) entry.key: entry.value,
     });
-    final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis, routedPrograms: const {})
+    final stairPrograms = Map<ConverterId, SourceStairProgram>.unmodifiable({
+      for (final entry in sourceStairPrograms(source: source, analysis: analysis).entries)
+        if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
+    });
+    final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis, routedPrograms: const {}, stairPrograms: const {})
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .map((event) => event.identity).toSet();
     SourceExternalWarpBinding? externalWarps;
@@ -142,7 +153,7 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final legacyTransitionIds = {...originalDoorIds, ...?externalWarps?.programs.keys};
-    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys};
+    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -343,10 +354,11 @@ final class SourceEventStudyComposer {
           cancellation: cancellation);
     final localDoorContexts = await const SourceEventExecutionContextResolver()
         .readTransfers(source: source, base: base, nativeMaps: nativeMaps,
-          files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, analysis: analysis,
+          files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, stairPrograms: stairPrograms, analysis: analysis,
           limits: limits, cancellation: cancellation);
     final staticDoorContexts = {for (final key in staticDoorPrograms.keys) key: localDoorContexts[key]!};
     final routedDoorContexts = {for (final key in routedDoorPrograms.keys) key: localDoorContexts[key]!};
+    final stairContexts = {for (final key in stairPrograms.keys) key: localDoorContexts[key]!};
     final characterArtifacts = <NativeArtifact>[];
     final characterMutations = <NativeMutation>[];
     final characterEvidence = <Map<String, Object?>>[];
@@ -373,6 +385,7 @@ final class SourceEventStudyComposer {
             staticDoorPrograms: staticDoorPrograms,
             staticDoorContexts: staticDoorContexts,
             routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
+            stairPrograms: stairPrograms, stairContexts: stairContexts,
             limits: limits);
     for (final event in characterCandidates) {
       for (final page in event.pages) {
@@ -454,6 +467,7 @@ final class SourceEventStudyComposer {
         staticDoorPrograms: staticDoorPrograms,
         staticDoorContexts: staticDoorContexts,
             routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
+            stairPrograms: stairPrograms, stairContexts: stairContexts,
         limits: limits);
     final usedExternalWarps = projection.semanticEvidence['usedExternalWarps'] == true
         ? externalWarps : null;

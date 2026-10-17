@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
+import 'source_stair_program.dart';
 import 'native_mutation_batches.dart';
 
 const _mapExecutionAuditHashes = {
@@ -35,6 +36,7 @@ final class SourceEventExecutionContext {
     this.staticDoorIdentity,
     this.routedDoorIdentity,
     this.routedSourceMapId,
+    this.stairIdentity, this.stairSourceMapId, this.stairTargetMapId,
   })  : mapIds = Map.unmodifiable(mapIds),
         _mapHashes = Map.unmodifiable(mapHashes),
         refusals = List.unmodifiable(refusals),
@@ -44,8 +46,8 @@ final class SourceEventExecutionContext {
   final Sha256Hash normalizationHash;
   final Sha256Hash sourceProfileHash;
   final Sha256Hash? baseDraftHash;
-  final ConverterId? staticDoorIdentity, routedDoorIdentity;
-  final int? routedSourceMapId;
+  final ConverterId? staticDoorIdentity, routedDoorIdentity, stairIdentity;
+  final int? routedSourceMapId, stairSourceMapId, stairTargetMapId;
   final Map<int, String> mapIds;
   final List<String> refusals;
   final Map<int, Sha256Hash> _mapHashes;
@@ -57,7 +59,8 @@ final class SourceEventExecutionContext {
           {ConverterId? eventIdentity}) =>
       isQualified &&
       staticDoorIdentity == null &&
-      (routedDoorIdentity != null
+      (stairIdentity != null ? eventIdentity == stairIdentity &&
+          {stairSourceMapId, stairTargetMapId}.contains(sourceMapId) : routedDoorIdentity != null
           ? eventIdentity == routedDoorIdentity &&
               sourceMapId == routedSourceMapId
           : const {100, 102}.contains(sourceMapId)) &&
@@ -95,6 +98,8 @@ final class SourceEventExecutionContext {
         if (routedDoorIdentity != null)
           'routedDoorIdentity': routedDoorIdentity!.value,
         if (routedSourceMapId != null) 'routedSourceMapId': routedSourceMapId,
+        if (stairIdentity != null) ...{'stairIdentity': stairIdentity!.value,
+          'stairSourceMapId': stairSourceMapId, 'stairTargetMapId': stairTargetMapId},
         'mapIds': {
           for (final entry in mapIds.entries) '${entry.key}': entry.value
         },
@@ -120,6 +125,7 @@ final class SourceEventExecutionContextResolver {
     ScanCancellation? cancellation,
     SourceStaticDoorProgram? staticDoorProgram,
     SourceRoutedDoorProgram? routedDoorProgram,
+    SourceStairProgram? stairProgram,
     SourceEventAnalysis? staticDoorAnalysis,
   }) =>
       _read(
@@ -131,6 +137,7 @@ final class SourceEventExecutionContextResolver {
           cancellation: cancellation,
           staticDoorProgram: staticDoorProgram,
           routedDoorProgram: routedDoorProgram,
+          stairProgram: stairProgram,
           staticDoorAnalysis: staticDoorAnalysis);
 
   Future<Map<ConverterId, SourceEventExecutionContext>> readStaticTransfers({
@@ -181,12 +188,13 @@ final class SourceEventExecutionContextResolver {
     required SourceFilePort files,
     required Map<ConverterId, SourceStaticDoorProgram> programs,
     Map<ConverterId, SourceRoutedDoorProgram> routedPrograms = const {},
+    Map<ConverterId, SourceStairProgram> stairPrograms = const {},
     required SourceEventAnalysis analysis,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
     cancellation?.check();
-    if (programs.isEmpty && routedPrograms.isEmpty) return const {};
+    if (programs.isEmpty && routedPrograms.isEmpty && stairPrograms.isEmpty) return const {};
     base.validateResourceBudget(limits: limits);
     final hashes = Map<int, Sha256Hash>.unmodifiable({
       for (final entry in nativeMaps.entries)
@@ -204,13 +212,15 @@ final class SourceEventExecutionContextResolver {
     final witnesses = <String, Map<String, Object?>>{};
     final retained = <String, Future<NormalizedSourceProject>>{};
     final retainedAnalyses = <String, SourceEventAnalysis>{};
-    for (final identity in {...programs.keys, ...routedPrograms.keys}) {
+    for (final identity in {...programs.keys, ...routedPrograms.keys, ...stairPrograms.keys}) {
       final staticProgram = programs[identity];
       final routedProgram = routedPrograms[identity];
+      final stair = stairPrograms[identity];
       cancellation?.check();
       if ((staticProgram != null && staticProgram.eventIdentity != identity) ||
           (routedProgram != null && routedProgram.eventIdentity != identity) ||
-          (staticProgram != null && routedProgram != null)) {
+          (stair != null && stair.eventIdentity != identity) ||
+          [staticProgram, routedProgram, stair].where((program) => program != null).length != 1) {
         throw const NativeWriteException('events.source.binding',
             'Static transfer context keys require exact source identities');
       }
@@ -223,6 +233,7 @@ final class SourceEventExecutionContextResolver {
           cancellation: cancellation,
           staticDoorProgram: staticProgram,
           routedDoorProgram: routedProgram,
+          stairProgram: stair,
           staticDoorAnalysis: staticProgram == null ? null : analysis,
           authoritativeSourceAnalysis: authoritativeSourceAnalysis,
           nativeMapHashes: hashes,
@@ -244,6 +255,7 @@ final class SourceEventExecutionContextResolver {
     ScanCancellation? cancellation,
     SourceStaticDoorProgram? staticDoorProgram,
     SourceRoutedDoorProgram? routedDoorProgram,
+    SourceStairProgram? stairProgram,
     SourceEventAnalysis? staticDoorAnalysis,
     SourceEventAnalysis? authoritativeSourceAnalysis,
     Map<int, Sha256Hash>? nativeMapHashes,
@@ -260,12 +272,12 @@ final class SourceEventExecutionContextResolver {
     final snapshotHash = source.snapshot.canonicalHash;
     final normalizationHash = source.canonicalHash;
     final staticTransfer = staticDoorProgram != null;
-    final localTransfer = staticTransfer || routedDoorProgram != null;
+    final localTransfer = staticTransfer || routedDoorProgram != null || stairProgram != null;
     SourceEventAnalysis? freshAnalysis = authoritativeSourceAnalysis;
     final sourceMapId =
-        staticDoorProgram?.sourceMapId ?? routedDoorProgram?.sourceMapId;
+        staticDoorProgram?.sourceMapId ?? routedDoorProgram?.sourceMapId ?? stairProgram?.sourceMapId;
     final targetMapId = staticDoorProgram?.targetSourceMapId ??
-        routedDoorProgram?.targetSourceMapId;
+        routedDoorProgram?.targetSourceMapId ?? stairProgram?.targetSourceMapId;
     if (routedDoorProgram != null) {
       final authoritative = freshAnalysis ??=
           SourceEventAnalyzer.forProject(source, profile: profile).analyze();
@@ -283,6 +295,19 @@ final class SourceEventExecutionContextResolver {
           map.entities.any((entity) =>
               entity.npc != null ||
               entity.properties.containsKey('sourceEventIdentity')))) {
+        refusals.add('sourceForcedRouteActorSetUnsupported');
+      }
+    }
+    if (stairProgram != null) {
+      final authoritative = freshAnalysis ??=
+          SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+      final event = authoritative.events.where((event) => event.identity == stairProgram.eventIdentity).singleOrNull;
+      if (staticTransfer || routedDoorProgram != null || event == null ||
+          !stairProgram.isBoundTo(source: source, analysis: authoritative, event: event)) {
+        refusals.add('sourceStairProgramBindingInvalid');
+      }
+      if (nativeMaps.values.any((map) => map.triggers.isNotEmpty ||
+          map.entities.any((entity) => entity.npc != null || entity.properties.containsKey('sourceEventIdentity')))) {
         refusals.add('sourceForcedRouteActorSetUnsupported');
       }
     }
@@ -613,7 +638,7 @@ final class SourceEventExecutionContextResolver {
         'followers': 'newGameDeclaredEmpty',
         'scope': {
           'sourceMapIds': activeMapIds.toList()..sort(),
-          'pages': routedDoorProgram != null
+          'pages': stairProgram != null ? ['${stairProgram.sourceMapId}/${stairProgram.sourceEventId}/all'] : routedDoorProgram != null
               ? [
                   '${routedDoorProgram.sourceMapId}/${routedDoorProgram.sourceEventId}/all'
                 ]
@@ -623,27 +648,28 @@ final class SourceEventExecutionContextResolver {
                       '${staticDoorProgram.sourceMapId}/${staticDoorProgram.sourceEventId}/0'
                     ]
         },
-        if (routedDoorProgram != null)
+        if (routedDoorProgram != null || stairProgram != null)
           'forcedRouteActorClosure': {
-            'programIdentity': routedDoorProgram.eventIdentity.value,
-            'sourceMapId': routedDoorProgram.sourceMapId,
+            'programIdentity': (routedDoorProgram?.eventIdentity ?? stairProgram!.eventIdentity).value,
+            'sourceMapId': sourceMapId,
             'player': 'freshNativePlayerWithoutFollowers',
             'eventAnchorId': 'ac13_${canonicalHashOf({
                   'namespace': source.snapshot.logicalProjectNamespace.value,
-                  'mapId': routedDoorProgram.sourceMapId,
-                  'eventId': routedDoorProgram.sourceEventId,
+                  'mapId': sourceMapId,
+                  'eventId': routedDoorProgram?.sourceEventId ?? stairProgram!.sourceEventId,
                   'role': 'anchor'
                 }).value.substring(0, 24)}',
             'baseForcedActors': [],
             'baseAutomaticEvents': [],
             'barrierScope': 'allForcedNativeRoutesOnExactActiveMap',
             'routeProducers':
-                'onlyBoundCompleteProgramsWithBarrierAfterEveryRoute',
+                stairProgram == null ? 'onlyBoundCompleteProgramsWithBarrierAfterEveryRoute' : 'boundStairMotionWithBarrierAndExactPostTransferFlagRestore',
+            if (stairProgram != null) 'stairProgram': stairProgram.toJson(),
             'retainedMaps': 'noParallelOrScriptedAutonomousRouteProducers',
             'temporaryStateLifetime':
                 'nativeMapEventInstanceResetAndRetainedInstancePreservation',
           },
-        'sourceContextProfile': routedDoorProgram != null
+        'sourceContextProfile': stairProgram != null ? 'kanto-stair-local-fresh-v1' : routedDoorProgram != null
             ? 'kanto-routed-door-local-fresh-v1'
             : staticTransfer
                 ? 'kanto-static-transfer-fresh-v1'
@@ -671,7 +697,7 @@ final class SourceEventExecutionContextResolver {
                 'customRouteScripts': 'refused',
                 'autoruns':
                     'serialMainInterpreterCannotOverlapExecutingStaticProgram',
-                'globalRouteBarrier': routedDoorProgram == null
+                'globalRouteBarrier': routedDoorProgram == null && stairProgram == null
                     ? 'notUsedByAttestedProgram'
                     : 'exactProgramLocalNativeActorClosure',
                 'ambientMovementParityQualified': false,
@@ -707,6 +733,8 @@ final class SourceEventExecutionContextResolver {
         staticDoorIdentity: staticDoorProgram?.eventIdentity,
         routedDoorIdentity: routedDoorProgram?.eventIdentity,
         routedSourceMapId: routedDoorProgram?.sourceMapId,
+        stairIdentity: stairProgram?.eventIdentity, stairSourceMapId: stairProgram?.sourceMapId,
+        stairTargetMapId: stairProgram?.targetSourceMapId,
         mapIds: {
           for (final entry in nativeMaps.entries) entry.key: entry.value.id
         },
