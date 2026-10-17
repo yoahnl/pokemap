@@ -1,0 +1,310 @@
+import 'package:avelune_converter_core/avelune_converter_core.dart';
+
+import 'native_project_writer.dart';
+
+final class SourceRoutedDoorProgram {
+  SourceRoutedDoorProgram._(NormalizedSourceProject source,
+      SourceEventAnalysis analysis, SourceEventDefinition event)
+      : sourceMapId = event.sourceMapId,
+        sourceEventId = event.sourceEventId,
+        eventIdentity = event.identity,
+        targetSourceMapId = event.pages
+            .expand((page) => page.body.nodes)
+            .whereType<SourceWarpNode>()
+            .single
+            .targetSourceMapId,
+        sourceSnapshotHash = source.snapshot.canonicalHash,
+        normalizationHash = source.canonicalHash,
+        profileHash = analysis.profile.canonicalHash,
+        sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
+        _fingerprint = _fingerprintOf(event);
+
+  final int sourceMapId, sourceEventId, targetSourceMapId;
+  final ConverterId eventIdentity;
+  final Sha256Hash sourceSnapshotHash,
+      normalizationHash,
+      profileHash,
+      sourceFileHash;
+  final String _fingerprint;
+
+  bool isBoundTo(
+          {required NormalizedSourceProject source,
+          required SourceEventAnalysis analysis,
+          required SourceEventDefinition event}) =>
+      analysis.profile.isQualified &&
+      source.snapshot.canonicalHash == sourceSnapshotHash &&
+      source.canonicalHash == normalizationHash &&
+      analysis.profile.canonicalHash == profileHash &&
+      source.archive.files[event.sourceFileId]?.contentHash == sourceFileHash &&
+      event.identity == eventIdentity &&
+      _isRoutedDoor(event) &&
+      _fingerprintOf(event) == _fingerprint;
+
+  Map<String, Object?> toJson() => {
+        'kind': 'sourceRoutedDoorProgram',
+        'version': 1,
+        'eventIdentity': eventIdentity.value,
+        'sourceMapId': sourceMapId,
+        'sourceEventId': sourceEventId,
+        'targetSourceMapId': targetSourceMapId,
+        'sourceSnapshotHash': sourceSnapshotHash.value,
+        'normalizationHash': normalizationHash.value,
+        'profileHash': profileHash.value,
+        'sourceFileHash': sourceFileHash.value,
+        'programHash': canonicalHashOf(_fingerprint).value,
+        'capability': 'completePairedDoorWithLocalForcedRouteBarrier',
+        'temporaryState': 'nativeMapEventInstanceBoolean',
+        'sourceScriptsExecuted': 0,
+        'sourceProgramPlaybackQualified': false,
+      };
+}
+
+Map<ConverterId, SourceRoutedDoorProgram> sourceRoutedDoorPrograms(
+    {required NormalizedSourceProject source,
+    required SourceEventAnalysis analysis}) {
+  final profile = SourceEventProfile.kantoForProject(source);
+  if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
+      analysis.profile.normalizationHash != source.canonicalHash) {
+    throw const NativeWriteException('events.source.binding',
+        'Routed doors require the exact normalized source');
+  }
+  if (!profile.isQualified ||
+      profile.canonicalHash != analysis.profile.canonicalHash) {
+    return const {};
+  }
+  final possible = analysis.events.where(_isRoutedDoor).toList();
+  if (possible.isEmpty) return const {};
+  final expected = {
+    for (final event in SourceEventAnalyzer.forProject(source, profile: profile)
+        .analyze()
+        .events
+        .where(_isRoutedDoor))
+      event.identity: _fingerprintOf(event),
+  };
+  return Map.unmodifiable({
+    for (final event in possible)
+      if (expected[event.identity] == _fingerprintOf(event))
+        event.identity: SourceRoutedDoorProgram._(source, analysis, event),
+  });
+}
+
+List<SourceEventCondition> _conditions(SourceEventCondition condition) =>
+    condition.kind == SourceEventConditionKind.all
+        ? condition.children.expand(_conditions).toList()
+        : condition.kind == SourceEventConditionKind.always
+            ? []
+            : [condition];
+
+bool _route(SourceEventNode node, int target, List<int> codes) =>
+    node is SourceForcedMoveRouteNode &&
+    node.targetSourceCharacterId == target &&
+    !node.repeat &&
+    node.skippable &&
+    canonicalJsonOf(node.steps.map((step) => step.sourceCode).toList()) ==
+        canonicalJsonOf(codes);
+
+bool _isRoutedDoor(SourceEventDefinition event) {
+  if (event.isQuarantined || !const {2, 3}.contains(event.pages.length)) {
+    return false;
+  }
+  final departure = event.pages[event.pages.length - 2];
+  final arrival = event.pages.last;
+  if (departure.triggerCode != 1 || arrival.triggerCode != 3) return false;
+  final guards = _conditions(departure.condition);
+  if (guards.any((condition) =>
+      condition.kind != SourceEventConditionKind.selfSwitch ||
+      !condition.expectedValue)) {
+    return false;
+  }
+  final arrivalGuards = _conditions(arrival.condition);
+  if (arrivalGuards
+              .where((condition) =>
+                  condition.kind == SourceEventConditionKind.tempSwitch &&
+                  condition.tempSwitchLetter == 'A' &&
+                  !condition.expectedValue)
+              .length !=
+          1 ||
+      canonicalJsonOf(arrivalGuards
+              .where((condition) =>
+                  condition.kind != SourceEventConditionKind.tempSwitch)
+              .map((condition) => condition.toJson())
+              .toList()) !=
+          canonicalJsonOf(
+              guards.map((condition) => condition.toJson()).toList())) {
+    return false;
+  }
+  if (event.pages.length == 3) {
+    final first = event.pages.first;
+    if (first.triggerCode != 0 ||
+        _conditions(first.condition).isNotEmpty ||
+        first.body.nodes.length != 1 ||
+        first.body.nodes.single is! SourceTextNode ||
+        (first.body.nodes.single as SourceTextNode).followingChoice != null ||
+        guards.length != 1) {
+      return false;
+    }
+  }
+  String? visual;
+  for (var index = 0; index < event.pages.length; index++) {
+    final page = event.pages[index];
+    final graphic = page.graphic;
+    if (page.originalPageIndex != index ||
+        graphic == null ||
+        graphic.tileId != 0 ||
+        graphic.moveType != 0) {
+      return false;
+    }
+    final empty = graphic.characterName.isEmpty;
+    final current = canonicalJsonOf({
+      'name': graphic.characterName,
+      'tile': graphic.tileId,
+      'hue': graphic.hue,
+      'opacity': empty ? null : graphic.opacity,
+      'blend': graphic.blendType,
+      'direction': graphic.direction,
+      'pattern': empty ? null : graphic.pattern,
+      'through': graphic.through,
+      'walk': graphic.walkAnime,
+      'step': graphic.stepAnime,
+      'fix': graphic.directionFix,
+      'top': empty ? null : graphic.alwaysOnTop,
+    });
+    if (visual != null && visual != current) return false;
+    visual = current;
+    final commands = page.sourcePage.commands;
+    if (List.generate(commands.length, (index) => index)
+        .any((index) => commands[index].originalIndex != index)) {
+      return false;
+    }
+  }
+  final body = departure.body.nodes;
+  final animated = body.length == 12 &&
+      _route(body[0], 0, [44, 15, 17, 15, 18, 15, 19, 15]) &&
+      body[1] is SourceMoveRouteBarrierNode &&
+      _route(body[2], -1, [37, 4, 38]) &&
+      body[3] is SourceMoveRouteBarrierNode &&
+      body[4] is SourcePlayerVisibilityNode &&
+      !(body[4] as SourcePlayerVisibilityNode).visible &&
+      _route(body[5], 0, [15, 18, 15, 17, 15, 16, 15]) &&
+      body[6] is SourceMoveRouteBarrierNode &&
+      body[7] is SourceToneNode &&
+      body[8] is SourceWaitNode &&
+      body[9] is SourcePlayerVisibilityNode &&
+      (body[9] as SourcePlayerVisibilityNode).visible &&
+      body[10] is SourceWarpNode &&
+      body[11] is SourceToneNode;
+  final invisible = body.length == 5 &&
+      body[0] is SourceSoundEffectNode &&
+      body[1] is SourceToneNode &&
+      body[2] is SourceWaitNode &&
+      body[3] is SourceWarpNode &&
+      body[4] is SourceToneNode &&
+      departure.graphic!.characterName.isEmpty;
+  if (!animated && !invisible) return false;
+  final warp = body.whereType<SourceWarpNode>().single;
+  if (warp.originalProgram != null) return false;
+  final nodes = arrival.body.nodes;
+  if (nodes.length != 2 ||
+      nodes[0] is! SourceConditionalNode ||
+      nodes[1] is! SourceTempSwitchNode) {
+    return false;
+  }
+  final branch = nodes[0] as SourceConditionalNode;
+  if (branch.condition.kind != SourceEventConditionKind.playerOnEvent ||
+      !branch.condition.expectedValue ||
+      branch.whenFalse.nodes.isNotEmpty) {
+    return false;
+  }
+  final route = branch.whenTrue.nodes;
+  return animated
+      ? route.length == 8 &&
+          route[0] is SourcePlayerVisibilityNode &&
+          !(route[0] as SourcePlayerVisibilityNode).visible &&
+          _route(route[1], 0, [44, 15, 17, 15, 18, 15, 19, 15]) &&
+          route[2] is SourceMoveRouteBarrierNode &&
+          route[3] is SourcePlayerVisibilityNode &&
+          (route[3] as SourcePlayerVisibilityNode).visible &&
+          _route(route[4], -1, [1]) &&
+          route[5] is SourceMoveRouteBarrierNode &&
+          _route(route[6], 0, [18, 15, 17, 15, 16, 15]) &&
+          route[7] is SourceMoveRouteBarrierNode
+      : route.length == 2 &&
+          _route(route[0], -1, [1]) &&
+          route[1] is SourceMoveRouteBarrierNode;
+}
+
+Object? _node(SourceEventNode node) => switch (node) {
+      SourceForcedMoveRouteNode() => node.toJson(),
+      SourceMoveRouteBarrierNode() => node.toJson(),
+      SourcePlayerVisibilityNode() => node.toJson(),
+      SourceTempSwitchNode() => node.toJson(),
+      SourceToneNode() => node.toJson(),
+      SourceWaitNode() => node.toJson(),
+      SourceSoundEffectNode() => node.toJson(),
+      SourceWarpNode() => {
+          'kind': 'warp',
+          'span': node.span.toJson(),
+          'mapId': node.targetSourceMapId,
+          'x': node.x,
+          'y': node.y,
+          'direction': node.direction,
+          'fade': node.fade
+        },
+      SourceConditionalNode() => {
+          'kind': 'conditional',
+          'span': node.span.toJson(),
+          'condition': node.condition.toJson(),
+          'true': node.whenTrue.nodes.map(_node).toList(),
+          'false': node.whenFalse.nodes.map(_node).toList()
+        },
+      SourceTextNode() => {
+          'kind': 'text',
+          'span': node.span.toJson(),
+          'text': node.text,
+          'choice': node.followingChoice?.toString()
+        },
+      _ => null,
+    };
+
+String _fingerprintOf(SourceEventDefinition event) => canonicalJsonOf({
+      'mapId': event.sourceMapId,
+      'eventId': event.sourceEventId,
+      'identity': event.identity.value,
+      'file': event.sourceFileId.value,
+      'name': event.name,
+      'x': event.x,
+      'y': event.y,
+      'locator': event.locator.toJson(),
+      'pages': [
+        for (final page in event.pages)
+          {
+            'source': page.sourcePage.toJson(),
+            'locator': page.locator.toJson(),
+            'raw': page.rawDataRef?.toJson(),
+            'condition': page.condition.toJson(),
+            'graphic': _graphic(page.graphic),
+            'nodes': page.body.nodes.map(_node).toList(),
+          }
+      ],
+    });
+
+Object? _graphic(SourceEventGraphic? graphic) => graphic == null
+    ? null
+    : {
+        'tileId': graphic.tileId,
+        'name': graphic.characterName,
+        'hue': graphic.hue,
+        'direction': graphic.direction,
+        'pattern': graphic.pattern,
+        'opacity': graphic.opacity,
+        'blendType': graphic.blendType,
+        'moveType': graphic.moveType,
+        'moveSpeed': graphic.moveSpeed,
+        'moveFrequency': graphic.moveFrequency,
+        'walkAnime': graphic.walkAnime,
+        'stepAnime': graphic.stepAnime,
+        'directionFix': graphic.directionFix,
+        'through': graphic.through,
+        'alwaysOnTop': graphic.alwaysOnTop,
+        'moveRouteNodeId': graphic.moveRouteNodeId,
+      };

@@ -9,6 +9,7 @@ import 'source_event_projection.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_static_door_program.dart';
+import 'source_routed_door_program.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
@@ -122,7 +123,11 @@ final class SourceEventStudyComposer {
           analysis: analysis).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
-    final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis)
+    final routedDoorPrograms = Map<ConverterId, SourceRoutedDoorProgram>.unmodifiable({
+      for (final entry in sourceRoutedDoorPrograms(source: source, analysis: analysis).entries)
+        if (nativeMaps.containsKey(entry.value.sourceMapId) && !const {(100, 8), (102, 1)}.contains((entry.value.sourceMapId, entry.value.sourceEventId))) entry.key: entry.value,
+    });
+    final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis, routedPrograms: const {})
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .map((event) => event.identity).toSet();
     SourceExternalWarpBinding? externalWarps;
@@ -137,7 +142,7 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final legacyTransitionIds = {...originalDoorIds, ...?externalWarps?.programs.keys};
-    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys};
+    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -336,10 +341,12 @@ final class SourceEventStudyComposer {
         await const SourceEventExecutionContextResolver().read(source: source,
           base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
           cancellation: cancellation);
-    final staticDoorContexts = await const SourceEventExecutionContextResolver()
-        .readStaticTransfers(source: source, base: base, nativeMaps: nativeMaps,
-          files: recording, programs: staticDoorPrograms, analysis: analysis,
+    final localDoorContexts = await const SourceEventExecutionContextResolver()
+        .readTransfers(source: source, base: base, nativeMaps: nativeMaps,
+          files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, analysis: analysis,
           limits: limits, cancellation: cancellation);
+    final staticDoorContexts = {for (final key in staticDoorPrograms.keys) key: localDoorContexts[key]!};
+    final routedDoorContexts = {for (final key in routedDoorPrograms.keys) key: localDoorContexts[key]!};
     final characterArtifacts = <NativeArtifact>[];
     final characterMutations = <NativeMutation>[];
     final characterEvidence = <Map<String, Object?>>[];
@@ -365,6 +372,7 @@ final class SourceEventStudyComposer {
             executionContext: executionContext,
             staticDoorPrograms: staticDoorPrograms,
             staticDoorContexts: staticDoorContexts,
+            routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
             limits: limits);
     for (final event in characterCandidates) {
       for (final page in event.pages) {
@@ -445,6 +453,7 @@ final class SourceEventStudyComposer {
         executionContext: executionContext,
         staticDoorPrograms: staticDoorPrograms,
         staticDoorContexts: staticDoorContexts,
+            routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
         limits: limits);
     final usedExternalWarps = projection.semanticEvidence['usedExternalWarps'] == true
         ? externalWarps : null;
@@ -511,7 +520,7 @@ final class SourceEventStudyComposer {
               'Data/CommonEvents.rxdata',
               'Graphics/Windowskins/speech hgss 1.png'
             }.contains(entry['relativePath']) ||
-            ((executionContext != null || staticDoorContexts.isNotEmpty) &&
+            ((executionContext != null || localDoorContexts.isNotEmpty) &&
                 (entry['relativePath'] == 'Data/map_connections.dat' ||
                     RegExp(r'^Data/Map\d+\.rxdata$')
                         .hasMatch(entry['relativePath'] as String))))

@@ -18,6 +18,7 @@ import 'source_healing_display_binding.dart';
 import 'source_npc_fixed_route_binding.dart';
 import 'source_external_warp_binding.dart';
 import 'source_static_door_program.dart';
+import 'source_routed_door_program.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -155,14 +156,16 @@ String sourcePickupFeedbackBindingKey(
       if (helper != SourceItemGrantHelper.itemBall) 'helper': helper.name});
 
 List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
-    required NormalizedSourceProject source, required SourceEventAnalysis analysis}) {
+    required NormalizedSourceProject source, required SourceEventAnalysis analysis,
+    Map<ConverterId, SourceRoutedDoorProgram>? routedPrograms}) {
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
     throw const NativeWriteException('events.source.binding',
       'Original door candidacy requires the exact profile and normalized archive');
   }
+  final routed = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis);
   return List.unmodifiable(analysis.events.where((event) =>
-    analysis.profile.isQualified && _hasOriginalDoorMapHash(source, event)));
+    analysis.profile.isQualified && (_hasOriginalDoorMapHash(source, event) || routed.containsKey(event.identity))));
 }
 
 bool _hasOriginalDoorMapHash(NormalizedSourceProject source, SourceEventDefinition event) {
@@ -306,6 +309,8 @@ final class SourceEventProjector {
     SourceEventExecutionContext? executionContext,
     Map<ConverterId, SourceStaticDoorProgram>? staticDoorPrograms,
     Map<ConverterId, SourceEventExecutionContext> staticDoorContexts = const {},
+    Map<ConverterId, SourceRoutedDoorProgram>? routedDoorPrograms,
+    Map<ConverterId, SourceEventExecutionContext> routedDoorContexts = const {},
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits.validate();
@@ -315,7 +320,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
@@ -344,6 +349,8 @@ final class SourceEventProjector {
       SourceEventExecutionContext? executionContext,
       Map<ConverterId, SourceStaticDoorProgram>? staticDoorPrograms,
       Map<ConverterId, SourceEventExecutionContext> staticDoorContexts = const {},
+    Map<ConverterId, SourceRoutedDoorProgram>? routedDoorPrograms,
+    Map<ConverterId, SourceEventExecutionContext> routedDoorContexts = const {},
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     limits.validate();
     if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
@@ -365,7 +372,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts)
         .build();
   }
 }
@@ -426,9 +433,11 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
       this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.fieldObstacleBindings, this.fieldObstacleRefusals, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings,
-      Map<ConverterId, SourceStaticDoorProgram>? staticPrograms, this.staticDoorContexts)
+      Map<ConverterId, SourceStaticDoorProgram>? staticPrograms, this.staticDoorContexts,
+      Map<ConverterId, SourceRoutedDoorProgram>? routedPrograms, this.routedDoorContexts)
       : maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
+        routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
@@ -440,7 +449,7 @@ final class _ProjectionBuilder {
         analysis.events.map((event) => (event.sourceMapId, event.sourceEventId)).toSet().length != analysis.events.length) {
       throw const NativeWriteException('events.source.binding', 'Source event identities must be unique.');
     }
-    SourceEventExecutionContext? verifiedStaticBinding;
+    SourceEventExecutionContext? verifiedNativeBinding;
     for (final event in analysis.events) {
       final program = staticDoorPrograms[event.identity];
       if (program == null) continue;
@@ -450,11 +459,25 @@ final class _ProjectionBuilder {
       }
       final context = staticDoorContexts[event.identity];
       if (context != null && context.staticDoorIdentity == event.identity &&
-          context.isQualified && (verifiedStaticBinding == null
+          context.isQualified && (verifiedNativeBinding == null
             ? context.isBoundTo(source, analysis.profile, nativeMaps)
-            : context.sharesNativeBindingWith(verifiedStaticBinding))) {
+            : context.sharesNativeBindingWith(verifiedNativeBinding))) {
         qualifiedStaticDoorContexts.add(event.identity);
-        verifiedStaticBinding ??= context;
+        verifiedNativeBinding ??= context;
+      }
+    }
+    for (final event in analysis.events) {
+      final program = routedDoorPrograms[event.identity];
+      if (program == null) continue;
+      if (!program.isBoundTo(source: source, analysis: analysis, event: event)) {
+        throw const NativeWriteException('events.source.binding', 'Routed doors require their exact complete source event');
+      }
+      final context = routedDoorContexts[event.identity];
+      if (context != null && context.routedDoorIdentity == event.identity &&
+          context.supportsRouteBarrierOnSourceMap(event.sourceMapId, eventIdentity: event.identity) &&
+          (verifiedNativeBinding == null ? context.isBoundTo(source, analysis.profile, nativeMaps) : context.sharesNativeBindingWith(verifiedNativeBinding))) {
+        qualifiedRoutedDoorContexts.add(event.identity);
+        verifiedNativeBinding ??= context;
       }
     }
   }
@@ -464,9 +487,19 @@ final class _ProjectionBuilder {
   late final Map<String, SourceFileEntry?> _snapshotEntriesByPath =
       _indexSnapshotEntries();
   final SourceEventAnalysis analysis;
+  late final SourceEventAnalysis _authoritativeSourceAnalysis =
+      SourceEventAnalyzer.forProject(source,
+          profile: SourceEventProfile.kantoForProject(source)).analyze();
+  List<SourceEventDefinition> get _sourceContextEvents => _authoritativeSourceAnalysis.events;
+  late final Set<ConverterId> _selectedEventIdentities =
+      analysis.events.map((event) => event.identity).toSet();
+  final _arrivalOwnerChecks = <ConverterId>{};
   final Map<int, MapData> maps;
   final Set<ConverterId> originalDoorIdentities;
   final Map<ConverterId, SourceStaticDoorProgram> staticDoorPrograms;
+  final Map<ConverterId, SourceRoutedDoorProgram> routedDoorPrograms;
+  final Map<ConverterId, SourceEventExecutionContext> routedDoorContexts;
+  final qualifiedRoutedDoorContexts = <ConverterId>{};
   final Map<ConverterId, SourceEventExecutionContext> staticDoorContexts;
   final qualifiedStaticDoorContexts = <ConverterId>{};
   final Map<String, SourceEventCharacterBinding> characterBindings;
@@ -507,15 +540,15 @@ final class _ProjectionBuilder {
 
   bool _isSourceTransition(SourceEventDefinition event) =>
       originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event) ||
-      staticDoorPrograms.containsKey(event.identity);
+      staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      qualifiedStaticDoorContexts.contains(event.identity) ||
+      qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) ||
       ((originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event)) &&
-        executionContextQualified && executionContext?.staticDoorIdentity == null);
+        executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null);
 
   SourceEventExecutionContext? _eventExecutionContext(SourceEventDefinition event) =>
-      staticDoorContexts[event.identity] ?? executionContext;
+      routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? executionContext;
 
   final _externalPrograms = <ConverterId, SourceExternalWarpProgram?>{};
 
@@ -557,6 +590,7 @@ final class _ProjectionBuilder {
     if (target.version == ProjectVersion.v9 || target.spatialScene != null) {
       gaps.add('sourceExternalWarpSpatialUnsupported');
     }
+    gaps.addAll(_sourceArrivalTileGaps(program.targetSourceMapId, program.x, program.y));
     final point = GridPos(x: program.x, y: program.y);
     final inBounds = program.x >= 0 && program.y >= 0 &&
         program.x < target.size.width && program.y < target.size.height;
@@ -588,14 +622,48 @@ final class _ProjectionBuilder {
   }
 
   bool _isArrivalCollisionOwner(SourceEventDefinition event, SourceWarpNode node) =>
-      _isSourceTransition(event) && event.sourceMapId == node.targetSourceMapId &&
+      (_isSourceTransition(event) || _isSourceArrivalCandidate(event)) && event.sourceMapId == node.targetSourceMapId &&
       event.x == node.x && event.y == node.y &&
       (!_isExternalWarpFamily(event) || _externalWarpProgram(event) != null) &&
       event.pages.firstOrNull?.graphic?.characterName.isNotEmpty == true;
 
+  bool _isSourceArrivalCandidate(SourceEventDefinition event) =>
+      !event.isQuarantined &&
+      (event.pages.any((page) => page.triggerCode == 3 &&
+          page.body.nodes.any((node) => node is SourceTempSwitchNode)) ||
+        (event.pages.length == 1 && event.pages.single.body.nodes.length == 5 &&
+          event.pages.single.body.nodes[0] is SourceSoundEffectNode &&
+          event.pages.single.body.nodes[1] is SourceToneNode &&
+          event.pages.single.body.nodes[2] is SourceWaitNode &&
+          event.pages.single.body.nodes[3] is SourceWarpNode &&
+          event.pages.single.body.nodes[4] is SourceToneNode));
+
+  Set<String> _sourceArrivalTileGaps(int targetMapId, int x, int y) {
+    for (final event in _sourceContextEvents.where((event) => event.sourceMapId == targetMapId)) {
+      for (final page in event.pages) {
+        final image = page.graphic;
+        if (image == null) {
+          if (event.x == x && event.y == y) {
+            return {'warpArrivalSourceActorUnqualified'};
+          }
+          continue;
+        }
+        if (image.tileId <= 0 || image.through) { continue; }
+        final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false).allMatches(event.name).toList();
+        final width = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(1)!);
+        final height = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(2)!);
+        if (sizes.length > 1 || width == null || width < 1 || height == null || height < 1 || image.moveType != 0 ||
+            (event.x <= x && x < event.x + width && event.y <= y && y < event.y + height)) {
+          return {'warpArrivalSourceActorUnqualified'};
+        }
+      }
+    }
+    return const {};
+  }
+
   String? _arrivalOwner(SourceWarpNode node) {
-    final owners = analysis.events.where((event) => _isArrivalCollisionOwner(event, node)).toList();
-    return owners.length == 1 ? _key(owners.single, 'anchor') : null;
+    final owners = _sourceContextEvents.where((event) => _isArrivalCollisionOwner(event, node)).toList();
+    return owners.length == 1 && _selectedEventIdentities.contains(owners.single.identity) ? _key(owners.single, 'anchor') : null;
   }
 
   SourceEventSoundBinding? _sound(String name, {bool allowNativeAdaptation = false}) {
@@ -1051,6 +1119,11 @@ final class _ProjectionBuilder {
         'sourcePassToNativeUpdateEquivalence': 'requiresRuntimeQualification',
         'global210Scope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
         'sourceExecutionContext': executionContext?.toJson(),
+        'routedDoorPrograms': [for (final entry in routedDoorPrograms.entries) {
+          ...entry.value.toJson(),
+          'executionContext': routedDoorContexts[entry.key]?.toJson(),
+          'executionContextQualified': qualifiedRoutedDoorContexts.contains(entry.key),
+        }],
         'staticDoorPrograms': [for (final entry in staticDoorPrograms.entries) {
           ...entry.value.toJson(),
           'executionContext': staticDoorContexts[entry.key]?.toJson(),
@@ -1442,7 +1515,7 @@ final class _ProjectionBuilder {
       return false;
     }
     final contact = semanticResolver.resolveStaticActionFootprint(
-        event: event, page: page, mapEvents: analysis.events,
+        event: event, page: page, mapEvents: _sourceContextEvents,
         width: 2, height: 1);
     if (contact.kind != SourceEventTouchKind.front ||
         contact.reason != 'stationaryFootprintTilesBlocked' ||
@@ -1565,7 +1638,7 @@ final class _ProjectionBuilder {
   }
 
   bool _sourceCounterCellOccupied(SourceEventDefinition owner, int x, int y) {
-    for (final candidate in analysis.events.where((candidate) =>
+    for (final candidate in _sourceContextEvents.where((candidate) =>
         candidate.sourceMapId == owner.sourceMapId)) {
       final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
           .allMatches(candidate.name).toList();
@@ -2034,7 +2107,7 @@ final class _ProjectionBuilder {
         for (final entry in _sourceMapScopes(page.body, event.sourceMapId).entries) {
           if (entry.key is SourceMoveRouteBarrierNode &&
               (entry.value.length != 1 || !maps.containsKey(entry.value.single) ||
-                (executionContextQualified && !executionContext!.supportsRouteBarrierOnSourceMap(entry.value.single)))) {
+                (_eventExecutionContextQualified(event) && !_eventExecutionContext(event)!.supportsRouteBarrierOnSourceMap(entry.value.single, eventIdentity: event.identity)))) {
             gaps.add('sourceRouteMapScopeUnsupported');
           }
           if ((entry.key is SourceForcedMoveRouteNode || entry.key is SourcePlayerVisibilityNode) &&
@@ -2048,7 +2121,7 @@ final class _ProjectionBuilder {
         gaps.add('pageGraphicInvalid');
         continue;
       }
-      final emptyStaticGraphic = staticDoorPrograms.containsKey(event.identity) &&
+      final emptyStaticGraphic = (staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity)) &&
           graphic.tileId == 0 && graphic.characterName.isEmpty;
       if (graphic.tileId != 0 ||
           graphic.hue != 0 ||
@@ -2070,7 +2143,7 @@ final class _ProjectionBuilder {
             : graphic.characterName,
         'direction': graphic.direction,
         'through': graphic.through,
-        'pattern': graphic.pattern,
+        'pattern': routedDoorPrograms.containsKey(event.identity) && graphic.characterName.isEmpty ? null : graphic.pattern,
         'walkAnime': graphic.walkAnime
       });
       if (previousGraphic != null &&
@@ -2150,12 +2223,12 @@ final class _ProjectionBuilder {
           SourceEventDefinition event, SourceEventPageAnalysis page) =>
       page.triggerCode == 1 && _staticSignWidth(event) == 2
           ? semanticResolver.resolveStaticBumpFootprint(event: event, page: page,
-              mapEvents: analysis.events, width: 2, height: 1)
+              mapEvents: _sourceContextEvents, width: 2, height: 1)
           : semanticResolver.resolveEventTouch(
           cell: semanticResolver.cellAt(event.sourceMapId, event.x, event.y),
           event: event,
           page: page,
-          mapEvents: analysis.events);
+          mapEvents: _sourceContextEvents);
 
   bool _nativeSolidAt(SourceEventDefinition event) {
     final map = maps[event.sourceMapId]!;
@@ -2299,9 +2372,18 @@ final class _ProjectionBuilder {
             gaps.add('warpDependencyMissing');
             break;
           }
-          for (final owner in analysis.events.where((owner) => _isArrivalCollisionOwner(owner, node))) {
-            if (_gaps(owner, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+          gaps.addAll(_sourceArrivalTileGaps(targetSourceMapId, x, y));
+          for (final owner in _sourceContextEvents.where((owner) => _isArrivalCollisionOwner(owner, node))) {
+            if (!_selectedEventIdentities.contains(owner.identity) || !_arrivalOwnerChecks.add(owner.identity)) {
               gaps.add('warpArrivalOwnerUnavailable');
+              continue;
+            }
+            try {
+              if (_gaps(owner, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+                gaps.add('warpArrivalOwnerUnavailable');
+              }
+            } finally {
+              _arrivalOwnerChecks.remove(owner.identity);
             }
           }
           if (direction != 0 && !_isSourceTransition(event)) gaps.add('warpFacingUnsupported');
@@ -2683,7 +2765,10 @@ final class _ProjectionBuilder {
               name: '${_name(event)} / ${page.originalPageIndex + 1}',
               source: page.triggerCode == 3
                   ? NarrativeEventSourceRef.entityAutorun(map.id, entityId)
-                  : sourceRef,
+                  : routedDoorPrograms.containsKey(event.identity) &&
+                      page.triggerCode == 1 && graphic.characterName.isNotEmpty && !graphic.through
+                      ? NarrativeEventSourceRef.entityBump(map.id, entityId)
+                      : sourceRef,
               conditions: expression.leaves,
               conditionExpression: expression,
               sceneId: scene.id,
@@ -2821,7 +2906,7 @@ final class _SceneBuilder {
                 steps.add(SceneActorRouteStep.move(direction:
                   step.kind == SourceMoveRouteStepKind.moveDown ? EntityFacing.south : EntityFacing.north,
                   durationMs: 250, initialCollisionOwnerEntityId:
-                    player && !through && event.sourceMapId == 100 && event.sourceEventId == 8
+                    player && !through && ((event.sourceMapId == 100 && event.sourceEventId == 8) || (projection.qualifiedRoutedDoorContexts.contains(event.identity) && event.pages.first.graphic!.characterName.isNotEmpty))
                       ? projection._key(event, 'anchor') : null));
               case SourceMoveRouteStepKind.wait:
                 steps.add(SceneActorRouteStep.wait(durationMs: step.durationTicks! * 50));
