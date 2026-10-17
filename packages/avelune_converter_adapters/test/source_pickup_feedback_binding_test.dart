@@ -345,6 +345,12 @@ typedef _GiverFixture = ({
 
 Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
     {bool changedSecondGraphic = false,
+    bool sourceFacing = false,
+    bool facingFirst = false,
+    int direction = 2,
+    String? sourceSoundPlacement,
+    String? nonstationaryPlacement,
+    bool malformedSound = false,
     bool ordinaryDialogue = false,
     bool activeMusic = false,
     bool missingEngine = false,
@@ -377,6 +383,7 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
                   name: 'Rod giver',
                   pages: [
                     LiteralFixtureEventPage(
+                        direction: direction,
                         characterName: ordinaryDialogue && row.$3 == 'GOODROD'
                             ? 'A'
                             : 'NPC_FRLG_FISHERMAN',
@@ -387,6 +394,8 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
                                 LiteralFixtureEventCommand(0, []),
                               ]
                             : [
+                                if (sourceFacing && facingFirst)
+                                  ..._giverFacingCommands(),
                                 const LiteralFixtureEventCommand(
                                     101, [r'\bTell me, do you like to fish?']),
                                 const LiteralFixtureEventCommand(102, [
@@ -398,6 +407,34 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
                                 const LiteralFixtureEventCommand(101,
                                     [r'\bTake this and fish, young friend!'],
                                     indent: 1),
+                                if (sourceSoundPlacement == 'attached')
+                                  _giverSoundCommand('ItemGet', indent: 1),
+                                if (sourceSoundPlacement == 'standalone' ||
+                                    sourceSoundPlacement == 'cancel') ...[
+                                  LiteralFixtureEventCommand(111,
+                                      [12, '\$bag.quantity(:${row.$3}) == 0'],
+                                      indent: 1),
+                                  const LiteralFixtureEventCommand(
+                                      102,
+                                      [
+                                        ['Continue'],
+                                        5
+                                      ],
+                                      indent: 2),
+                                  const LiteralFixtureEventCommand(
+                                      402, [0, 'Continue'],
+                                      indent: 2),
+                                  if (sourceSoundPlacement == 'standalone')
+                                    _giverSoundCommand('ItemGet', indent: 3),
+                                  const LiteralFixtureEventCommand(403, [],
+                                      indent: 2),
+                                  if (sourceSoundPlacement == 'cancel')
+                                    _giverSoundCommand('ItemGet', indent: 3),
+                                  const LiteralFixtureEventCommand(404, [],
+                                      indent: 2),
+                                  const LiteralFixtureEventCommand(412, [],
+                                      indent: 1),
+                                ],
                                 LiteralFixtureEventCommand(
                                     111,
                                     [
@@ -414,11 +451,49 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
                                     indent: 2),
                                 const LiteralFixtureEventCommand(412, [],
                                     indent: 1),
+                                if (sourceSoundPlacement == 'afterGrant')
+                                  _giverSoundCommand('ItemGet', indent: 1),
                                 const LiteralFixtureEventCommand(
                                     101, [r'\bFishing is a way of life!'],
                                     indent: 1),
+                                if (sourceFacing && row.$3 == 'SUPERROD')
+                                  ..._giverFacingCommands(indent: 1),
                                 const LiteralFixtureEventCommand(123, ['A', 0],
                                     indent: 1),
+                                if (nonstationaryPlacement == 'yesWarp')
+                                  LiteralFixtureEventCommand(
+                                      201, [0, row.$1, 0, 0, 0, 0],
+                                      indent: 1),
+                                if (nonstationaryPlacement == 'yesMove')
+                                  ..._giverMoveCommands(indent: 1),
+                                if (nonstationaryPlacement == 'nestedWarp' ||
+                                    nonstationaryPlacement == 'cancelWarp') ...[
+                                  const LiteralFixtureEventCommand(
+                                      101, ['Another choice?'],
+                                      indent: 1),
+                                  const LiteralFixtureEventCommand(
+                                      102,
+                                      [
+                                        ['Continue'],
+                                        5
+                                      ],
+                                      indent: 1),
+                                  const LiteralFixtureEventCommand(
+                                      402, [0, 'Continue'],
+                                      indent: 1),
+                                  if (nonstationaryPlacement == 'nestedWarp')
+                                    LiteralFixtureEventCommand(
+                                        201, [0, row.$1, 0, 0, 0, 0],
+                                        indent: 2),
+                                  const LiteralFixtureEventCommand(403, [],
+                                      indent: 1),
+                                  if (nonstationaryPlacement == 'cancelWarp')
+                                    LiteralFixtureEventCommand(
+                                        201, [0, row.$1, 0, 0, 0, 0],
+                                        indent: 2),
+                                  const LiteralFixtureEventCommand(404, [],
+                                      indent: 1),
+                                ],
                                 const LiteralFixtureEventCommand(0, [],
                                     indent: 1),
                                 const LiteralFixtureEventCommand(
@@ -429,9 +504,12 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
                                 const LiteralFixtureEventCommand(0, [],
                                     indent: 1),
                                 const LiteralFixtureEventCommand(404, []),
+                                if (sourceFacing && !facingFirst)
+                                  ..._giverFacingCommands(),
                                 const LiteralFixtureEventCommand(0, []),
                               ]),
                     LiteralFixtureEventPage(
+                        direction: direction,
                         selfSwitch: 'A',
                         characterName: row.$3 == 'GOODROD'
                             ? ordinaryDialogue
@@ -444,10 +522,11 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
                                     101, ['Hello again!']),
                                 LiteralFixtureEventCommand(0, []),
                               ]
-                            : const [
-                                LiteralFixtureEventCommand(
+                            : [
+                                const LiteralFixtureEventCommand(
                                     101, [r'\bHello there, \PN!']),
-                                LiteralFixtureEventCommand(0, []),
+                                if (sourceFacing) ..._giverFacingCommands(),
+                                const LiteralFixtureEventCommand(0, []),
                               ]),
                   ]),
             ]),
@@ -489,6 +568,8 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
       'Graphics/Icons/bagPocket8.png': _png(18, 32),
       _skinPath: _png(96, 48),
       'Audio/ME/FRLG Fanfare - Item Key (Fanfare! Key Item).wav': _wav(),
+      if (sourceSoundPlacement != null)
+        'Audio/SE/ItemGet.wav': malformedSound ? [1, 2, 3] : _wav(),
     },
   );
   if (!missingBgm && excludedPaths.isEmpty) {
@@ -516,6 +597,62 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
   return (source: source, files: files);
 }
 
+List<LiteralFixtureEventCommand> _giverFacingCommands({int indent = 0}) {
+  const face = LiteralFixtureObject(
+      'RPG::MoveCommand', {'@code': 25, '@parameters': <Object?>[]});
+  return [
+    LiteralFixtureEventCommand(
+        209,
+        [
+          0,
+          const LiteralFixtureObject('RPG::MoveRoute', {
+            '@repeat': false,
+            '@skippable': false,
+            '@list': [
+              face,
+              LiteralFixtureObject(
+                  'RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})
+            ],
+          })
+        ],
+        indent: indent),
+    LiteralFixtureEventCommand(509, [face], indent: indent),
+  ];
+}
+
+LiteralFixtureEventCommand _giverSoundCommand(String name,
+        {required int indent}) =>
+    LiteralFixtureEventCommand(
+        250,
+        [
+          LiteralFixtureObject(
+              'RPG::AudioFile', {'@name': name, '@volume': 100, '@pitch': 100})
+        ],
+        indent: indent);
+
+List<LiteralFixtureEventCommand> _giverMoveCommands({required int indent}) {
+  const step = LiteralFixtureObject(
+      'RPG::MoveCommand', {'@code': 1, '@parameters': <Object?>[]});
+  return [
+    LiteralFixtureEventCommand(
+        209,
+        [
+          0,
+          const LiteralFixtureObject('RPG::MoveRoute', {
+            '@repeat': false,
+            '@skippable': false,
+            '@list': [
+              step,
+              LiteralFixtureObject(
+                  'RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})
+            ]
+          })
+        ],
+        indent: indent),
+    LiteralFixtureEventCommand(509, [step], indent: indent),
+  ];
+}
+
 Future<SourceEventStudyComposition> _composeRods(_GiverFixture fixture) async {
   final literal = await const LiteralTileComposer().compose(
       source: fixture.source,
@@ -540,6 +677,7 @@ Future<
     _runGiver(SceneAsset scene,
         {required GameState state,
         String choice = 'choice_0',
+        String nestedChoice = 'choice_0',
         bool rejectGift = false,
         SceneExecutionContext? context}) async {
   final trace = <String>[];
@@ -555,6 +693,7 @@ Future<
     },
     showDialogue: (intent) {
       trace.addAll(intent.linePolicies.map((line) => line.feedback.plainText));
+      if (intent.expectedOutcomes.contains('cancel')) return nestedChoice;
       return intent.expectedOutcomes.isNotEmpty ? choice : 'completed';
     },
     startBattle: (_) =>
@@ -562,6 +701,10 @@ Future<
     playCinematic: (_) =>
         throw StateError('An item giver cannot execute a source cinematic'),
     executeInteractiveCommand: (intent) {
+      if (intent.interactiveCommand is ScenePlaySoundEffectInteractiveCommand) {
+        trace.add('sound');
+        return 'completed';
+      }
       final command =
           intent.interactiveCommand as SceneGiveItemInteractiveCommand;
       grantCount++;
@@ -789,6 +932,203 @@ void main() {
   }, skip: scriptsPath == null || !Platform.isMacOS);
 
   group('automatic native rod givers', () {
+    for (final placement in [
+      'yesWarp',
+      'nestedWarp',
+      'cancelWarp',
+      'yesMove'
+    ]) {
+      test('keeps facing giver $placement programs wholly quarantined',
+          () async {
+        final fixture = await _rodFixture(musicOracle!,
+            sourceFacing: true, nonstationaryPlacement: placement);
+        final analysis = SourceEventAnalyzer.forProject(fixture.source,
+                profile: SourceEventProfile.kantoForProject(fixture.source))
+            .analyze();
+        expect(analysis.events.every((event) => !event.isQuarantined), isTrue);
+        if (placement == 'yesMove') {
+          for (final event in analysis.events) {
+            final question =
+                event.pages.first.body.nodes.first as SourceTextNode;
+            expect(
+                question.followingChoice!.branches.first.body.nodes
+                    .whereType<SourceForcedMoveRouteNode>(),
+                hasLength(1));
+          }
+        }
+        final composed = await _composeRods(fixture);
+        final events = (composed.projection.semanticEvidence['events'] as List)
+            .cast<Map>();
+        expect(events, hasLength(3));
+        expect(
+            events.every((event) => event['status'] == 'quarantinedWholeEvent'),
+            isTrue,
+            reason: jsonEncode(events.map((event) => event['gaps']).toList()));
+        expect(composed.projection.scenes, isEmpty);
+        expect(
+            events.every((event) => (event['gaps'] as List).contains(
+                placement == 'yesMove'
+                    ? 'sourceDoorProgramUnsupported'
+                    : 'interactionFacingUnsupported')),
+            isTrue);
+      });
+    }
+
+    test('composes real facing giver pages through imported cardinal clips',
+        () async {
+      for (final direction in [2, 4, 6, 8]) {
+        final fixture = await _rodFixture(musicOracle!,
+            sourceFacing: true, direction: direction);
+        final composed = await _composeRods(fixture);
+        final evidence =
+            composed.draft.compositionEvidence['sourceEvents'] as Map;
+        final characters = (evidence['characters'] as List)
+            .cast<Map>()
+            .where((row) => row['status'] == 'imported')
+            .toList();
+        expect(characters, hasLength(2),
+            reason: jsonEncode(
+                (composed.projection.semanticEvidence['events'] as List)
+                    .map((row) => row['gaps'])
+                    .toList()));
+        expect(composed.projection.scenes, hasLength(6));
+        for (final row in characters) {
+          expect(row['animationPolicy'],
+              'fourCardinalFixedSourcePatternIdleClips');
+          expect(row['sourcePixelsPreserved'], isTrue);
+          expect(row['sourcePattern'], 0);
+          expect(row['sourceDirection'], direction);
+          final clips = composed.draft.mutations.where((mutation) =>
+              mutation.actionId == 'characterStudio.animationClip.upsert' &&
+              mutation.parameters['characterId'] == row['characterId']);
+          expect(clips, hasLength(4));
+          expect(clips.map((clip) => clip.parameters['direction']).toSet(),
+              {'south', 'west', 'east', 'north'});
+        }
+        expect(
+            composed.projection.nativeMaps.values
+                .expand((map) => map.entities)
+                .where((entity) => entity.npc != null),
+            hasLength(3));
+        final events = (composed.projection.semanticEvidence['events'] as List)
+            .cast<Map>();
+        expect(
+            events
+                .every((event) => event['status'] == 'adaptedStaticSemantics'),
+            isTrue);
+      }
+    });
+
+    for (final placement in [
+      'attached',
+      'standalone',
+      'cancel',
+      'afterGrant'
+    ]) {
+      test(
+          'composes source sound in $placement choice at its source gift position',
+          () async {
+        final fixture = await _rodFixture(musicOracle!,
+            sourceFacing: true, sourceSoundPlacement: placement);
+        final composed = await _composeRods(fixture);
+        final sounds = (composed.draft.compositionEvidence['sourceEvents']
+            as Map)['sounds'] as List;
+        expect(sounds, hasLength(1));
+        expect(sounds.single['status'], 'imported');
+        expect(sounds.single['sourceName'], 'ItemGet');
+        expect(composed.projection.scenes, hasLength(6));
+        final scene = composed.projection.scenes.singleWhere((scene) =>
+            scene.metadata['sourceEventIdentity'] ==
+                fixture.source.eventIdentity(111, 5).value &&
+            scene.metadata['sourcePageIndex'] == '0');
+        final result = await _runGiver(scene,
+            state: GameState(
+                saveId: 'source-sound',
+                currentMapId: composed.draft.mapIds[111]!),
+            nestedChoice: placement == 'cancel' ? 'cancel' : 'choice_0');
+        expect(result.grantCount, 1);
+        expect(result.state.bag.entries.single.quantity, 1);
+        expect(result.trace.where((entry) => entry == 'sound'), hasLength(1));
+        expect(
+            result.trace.indexOf('sound'),
+            placement == 'afterGrant'
+                ? greaterThan(result.trace.indexOf('grant'))
+                : lessThan(result.trace.indexOf('grant')));
+      });
+    }
+
+    test('keeps missing or corrupt choice audio quarantined', () async {
+      for (final missing in [true, false]) {
+        final fixture = await _rodFixture(musicOracle!,
+            sourceSoundPlacement: 'attached',
+            malformedSound: !missing,
+            excludedPaths: missing ? ['Audio/SE/ItemGet.wav'] : []);
+        final composed = await _composeRods(fixture);
+        expect(composed.projection.scenes, isEmpty);
+        expect(jsonEncode(composed.projection.semanticEvidence),
+            contains('sourceSoundBindingMissing'));
+      }
+    });
+
+    test('keeps missing giver graphics and unknown facing shapes quarantined',
+        () async {
+      for (final variant in ['missing', 'first', 'differentPixels']) {
+        final fixture = await _rodFixture(musicOracle!,
+            sourceFacing: true,
+            facingFirst: variant == 'first',
+            changedSecondGraphic: variant == 'differentPixels',
+            excludedPaths: variant == 'missing'
+                ? ['Graphics/Characters/NPC_FRLG_FISHERMAN.png']
+                : []);
+        final composed = await _composeRods(fixture);
+        expect(composed.projection.scenes,
+            variant == 'differentPixels' ? hasLength(4) : isEmpty);
+        expect(
+            jsonEncode(composed.projection.semanticEvidence),
+            contains(variant == 'first'
+                ? 'interactionFacingUnsupported'
+                : variant == 'differentPixels'
+                    ? 'pageGraphicChanges'
+                    : 'characterBindingMissing'));
+      }
+    });
+
+    test(
+        'regenerated writer rejects a facing giver with a removed cardinal clip',
+        () async {
+      final composed = await _composeRods(
+          await _rodFixture(musicOracle!, sourceFacing: true));
+      final draft = composed.draft;
+      final characters = (draft.compositionEvidence['sourceEvents']
+          as Map)['characters'] as List;
+      final characterId = characters.first['characterId'];
+      final removed = draft.mutations.firstWhere((mutation) =>
+          mutation.actionId == 'characterStudio.animationClip.upsert' &&
+          mutation.parameters['characterId'] == characterId);
+      final altered = NativeProjectDraft(
+          source: draft.source,
+          projectName: draft.projectName,
+          parentPath: draft.parentPath,
+          folderName: draft.folderName,
+          sourceRootPath: draft.sourceRootPath,
+          mapIds: draft.mapIds,
+          artifacts: draft.artifacts,
+          sourceArtifacts: draft.sourceArtifacts,
+          mutations:
+              draft.mutations.where((mutation) => mutation != removed).toList(),
+          compositionEvidence: draft.compositionEvidence,
+          defaultMapWidth: draft.defaultMapWidth,
+          defaultMapHeight: draft.defaultMapHeight);
+      final approval = approveNativeFixtureDraft(altered);
+      final stages = <NativeWriteStage>[];
+      await expectLater(
+          NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+              .write(approval.plan, approval.context, altered),
+          throwsA(isA<NativeWriteException>().having(
+              (error) => error.code, 'code', 'native.semantics.regeneration')));
+      expect(stages, isEmpty);
+    });
+
     test('imports all three key item givers and exact equivalent page graphics',
         () async {
       final fixture = await _rodFixture(musicOracle!);

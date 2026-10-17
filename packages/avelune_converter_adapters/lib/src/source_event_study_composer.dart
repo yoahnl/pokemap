@@ -782,6 +782,21 @@ Iterable<String> _soundNames(SourceEventBlock block) sync* {
       case SourceConditionalNode():
         yield* _soundNames(node.whenTrue);
         yield* _soundNames(node.whenFalse);
+      case SourceTextNode():
+        final choice = node.followingChoice;
+        if (choice != null) {
+          for (final branch in choice.branches) {
+            yield* _soundNames(branch.body);
+          }
+          if (choice.cancelBranch != null) {
+            yield* _soundNames(choice.cancelBranch!);
+          }
+        }
+      case SourceChoiceNode():
+        for (final branch in node.branches) {
+          yield* _soundNames(branch.body);
+        }
+        if (node.cancelBranch != null) yield* _soundNames(node.cancelBranch!);
       default:
         break;
     }

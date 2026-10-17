@@ -106,6 +106,12 @@ final class LiteralFixtureEventCommand {
   final int indent;
 }
 
+final class LiteralFixtureObject {
+  const LiteralFixtureObject(this.name, this.fields);
+  final String name;
+  final Map<String, Object?> fields;
+}
+
 final class LiteralFixtureTileset {
   LiteralFixtureTileset({
     required this.id,
@@ -466,6 +472,9 @@ final class _Marshal {
   }
 
   List<int> _value(Object? value) {
+    if (value is LiteralFixtureObject) {
+      return _value(_Object(value.name, value.fields));
+    }
     if (value == null) return [0x30];
     if (value is bool) return [value ? 0x54 : 0x46];
     if (value is int) return [0x69, ..._integer(value)];

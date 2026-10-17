@@ -1205,7 +1205,60 @@ final class _ProjectionBuilder {
     return List.unmodifiable(found);
   }
 
-  bool _supportsInteractionFacing(SourceEventDefinition event) {
+  bool _isStationaryItemGiverBlock(SourceEventBlock block) =>
+      block.nodes.every((node) => switch (node) {
+            SourceTextNode(:final followingChoice) => followingChoice == null ||
+                _isStationaryItemGiverChoice(followingChoice),
+            SourceChoiceNode() => _isStationaryItemGiverChoice(node),
+            SourceConditionalNode() =>
+              _isStationaryItemGiverBlock(node.whenTrue) &&
+                  _isStationaryItemGiverBlock(node.whenFalse),
+            SourcePickupNode() ||
+            SourceSelfSwitchNode() ||
+            SourceInteractionFacingNode() ||
+            SourceSoundEffectNode() =>
+              true,
+            _ => false,
+          });
+
+  bool _isStationaryItemGiverChoice(SourceChoiceNode choice) =>
+      choice.branches
+          .every((branch) => _isStationaryItemGiverBlock(branch.body)) &&
+      (choice.cancelBranch == null ||
+          _isStationaryItemGiverBlock(choice.cancelBranch!));
+
+  bool _supportsInteractionFacing(SourceEventDefinition event,
+      {bool checkCharacterBindings = true}) {
+    if (_isItemGiver(event) &&
+        event.pages.length == 2 &&
+        maps[event.sourceMapId]!.spatialScene == null &&
+        event.pages.first.condition.kind == SourceEventConditionKind.always &&
+        _simpleFact(event.pages.last.condition)?.kind ==
+            SourceEventConditionKind.selfSwitch &&
+        _simpleFact(event.pages.last.condition)!.expectedValue &&
+        event.pages.every((page) {
+          final graphic = page.graphic;
+          return graphic != null &&
+              graphic.characterName.isNotEmpty &&
+              graphic.moveType == 0 &&
+              !graphic.directionFix &&
+              !graphic.through &&
+              page.triggerCode == 0 &&
+              page.body.nodes.length >= 2 &&
+              _isStationaryItemGiverBlock(page.body) &&
+              page.body.nodes.take(page.body.nodes.length - 1).every((node) =>
+                  node is SourceTextNode &&
+                  (page == event.pages.first ||
+                      node.followingChoice == null)) &&
+              page.body.nodes.last is SourceInteractionFacingNode &&
+              (!checkCharacterBindings ||
+                  characterBindings.containsKey(sourceEventCharacterBindingKey(
+                      characterName: graphic.characterName,
+                      pattern: graphic.pattern,
+                      direction: graphic.direction)));
+        })) {
+      return true;
+    }
     if (event.pages.length != 1 ||
         maps[event.sourceMapId]!.spatialScene != null) {
       return false;
@@ -2140,10 +2193,12 @@ final class _ProjectionBuilder {
             gaps.add('sourceTextControlUnsupported');
           }
           if (followingChoice != null) {
-            _choiceGaps(event, followingChoice, gaps);
+            _choiceGaps(event, followingChoice, gaps,
+                checkCharacterBindings: checkCharacterBindings);
           }
         case SourceChoiceNode():
-          _choiceGaps(event, node, gaps);
+          _choiceGaps(event, node, gaps,
+              checkCharacterBindings: checkCharacterBindings);
         case SourceConditionalNode(
             :final condition,
             :final whenTrue,
@@ -2156,7 +2211,8 @@ final class _ProjectionBuilder {
         case SourceSelfSwitchNode():
           break;
         case SourceInteractionFacingNode():
-          if (!_supportsInteractionFacing(event)) {
+          if (!_supportsInteractionFacing(event,
+              checkCharacterBindings: checkCharacterBindings)) {
             gaps.add('interactionFacingUnsupported');
           }
         case SourceWarpNode(
@@ -2250,7 +2306,8 @@ final class _ProjectionBuilder {
   }
 
   void _choiceGaps(
-      SourceEventDefinition event, SourceChoiceNode choice, Set<String> gaps) {
+      SourceEventDefinition event, SourceChoiceNode choice, Set<String> gaps,
+      {bool checkCharacterBindings = true}) {
     if (choice.cancelType < 0 ||
         choice.cancelType > 5 ||
         (choice.cancelType > 0 &&
@@ -2264,10 +2321,12 @@ final class _ProjectionBuilder {
       gaps.add('choiceTextUnsupported');
     }
     for (final branch in choice.branches) {
-      _blockGaps(event, branch.body, gaps);
+      _blockGaps(event, branch.body, gaps,
+          checkCharacterBindings: checkCharacterBindings);
     }
     if (choice.cancelBranch != null) {
-      _blockGaps(event, choice.cancelBranch!, gaps);
+      _blockGaps(event, choice.cancelBranch!, gaps,
+          checkCharacterBindings: checkCharacterBindings);
     }
   }
 
