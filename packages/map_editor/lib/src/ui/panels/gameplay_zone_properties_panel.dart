@@ -1333,6 +1333,7 @@ class _GameplayZonePropertiesPanelState
     return switch (kind) {
       MovementEffectZoneKind.slide => 'Slide',
       MovementEffectZoneKind.movementCost => 'Movement Cost',
+      MovementEffectZoneKind.directedJump => 'Directed Jump',
     };
   }
 
