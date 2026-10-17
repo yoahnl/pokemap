@@ -313,6 +313,24 @@ final class _OcclusionDefinition {
   final List<TilesetVisualFrame> frames = [];
 }
 
+final class _OcclusionPage {
+  const _OcclusionPage(this.id, this.offset, this.frameHeightPx, this.columns,
+      this.start, this.count, this.frames, this.format);
+
+  final String id;
+  final int offset;
+  final int frameHeightPx;
+  final int columns;
+  final int start;
+  final int count;
+  final List<(_OcclusionDefinition, ProjectImageCollectionAnimationFrame)>
+      frames;
+  final image.Format format;
+  int get width => columns * 32;
+  int get height => ((count + columns - 1) ~/ columns) * frameHeightPx;
+  int get pixels => width * height;
+}
+
 final class _ProjectionRun {
   _ProjectionRun(this.source, this.base, this.player, this.resolver,
       this.limits, this.cancellation, this.includeNativeSurfTraversal);
@@ -333,6 +351,7 @@ final class _ProjectionRun {
   final tilesets = <ProjectTilesetEntry>[];
   final gaps = <Map<String, Object?>>[];
   final mapEvidence = <Map<String, Object?>>[];
+  final occlusionPacking = <String, Object?>{};
   final images = <String, image.Image>{};
   final wallPatterns = <int>{};
   var imagePixels = 0;
@@ -573,7 +592,7 @@ final class _ProjectionRun {
       });
       await Future<void>.delayed(Duration.zero);
     }
-    _packOcclusion();
+    await _packOcclusion();
     _buildWalls();
     if (elements.isNotEmpty) {
       final category = const ProjectElementCategory(
@@ -612,8 +631,14 @@ final class _ProjectionRun {
                 base.draft!.artifacts.length +
                 base.draft!.sourceArtifacts.length >
             limits.maxArtifacts) {
-      throw const NativeWriteException('semantics.quota.draft',
-          'Projection exceeds the aggregate native draft entry budget');
+      throw NativeWriteException('semantics.quota.draft',
+          'Projection exceeds the aggregate native draft entry budget: '
+          'mutationCount=${mutations.length + base.draft!.mutations.length}, '
+          'maxMutations=${limits.maxMutations}, '
+          'artifactCount=${artifacts.length + base.draft!.artifacts.length + base.draft!.sourceArtifacts.length}, '
+          'maxArtifacts=${limits.maxArtifacts}, '
+          'occlusionPageCount=${occlusionPacking['pageCount']}, '
+          'allocatedOcclusionPixels=${occlusionPacking['allocatedOutputPixels']}');
     }
   }
 
@@ -657,106 +682,180 @@ final class _ProjectionRun {
     return (raster, atlas);
   }
 
-  void _packOcclusion() {
-    final groups = <int, List<_OcclusionDefinition>>{};
+  Future<void> _packOcclusion() async {
+    final groups = <(int, int), List<_OcclusionDefinition>>{};
     for (final definition in definitions.values) {
-      groups
-          .putIfAbsent(definition.layout.atlasOffsetY, () => [])
-          .add(definition);
-    }
-    for (final offset in groups.keys.toList()..sort()) {
       cancellation?.check();
-      final group = groups[offset]!..sort((a, b) => a.id.compareTo(b.id));
-      final height = group.fold<int>(
-          0,
-          (sum, definition) =>
-              sum +
-              definition.layout.frameHeightTiles *
-                  32 *
-                  ((definition.sourceFrames.length + 7) ~/ 8));
-      final outputPixels = 256 * height;
-      if (outputPixels > limits.maxImagePixels ||
-          outputPixels > limits.maxTotalImagePixels - imagePixels) {
-        throw const NativeWriteException('semantics.quota.pixels',
-            'Padded occlusion atlas exceeds its pixel budget');
+      groups.putIfAbsent(
+          (definition.layout.atlasOffsetY, definition.layout.frameHeightTiles),
+          () => []).add(definition);
+    }
+    final keys = groups.keys.toList()
+      ..sort((a, b) {
+        final offset = a.$1.compareTo(b.$1);
+        return offset == 0 ? a.$2.compareTo(b.$2) : offset;
+      });
+    final pages = <_OcclusionPage>[];
+    final groupEvidence = <Map<String, Object?>>[];
+    var plannedPixels = 0;
+    for (final key in keys) {
+      cancellation?.check();
+      final group = groups[key]!..sort((a, b) => a.id.compareTo(b.id));
+      final frames = [
+        for (final definition in group)
+          for (final frame in definition.sourceFrames) (definition, frame)
+      ];
+      final frameHeight = key.$2 * 32;
+      final framePixels = 32 * frameHeight;
+      final columns = frames.length
+          .clamp(1, 8)
+          .clamp(0, limits.maxImagePixels ~/ framePixels);
+      if (columns == 0) {
+        throw NativeWriteException(
+            'semantics.quota.pixels',
+            'One padded occlusion frame exceeds its pixel budget: '
+                'framePixels=$framePixels, maxImagePixels=${limits.maxImagePixels}, '
+                'allocatedOutputPixels=0');
       }
-      imagePixels += outputPixels;
+      final rows = (limits.maxImagePixels ~/ (columns * framePixels))
+          .clamp(1, 4096 ~/ frameHeight);
+      final capacity = columns * rows;
       final format = group.any(
               (definition) => definition.raster.format == image.Format.uint16)
           ? image.Format.uint16
           : image.Format.uint8;
-      final raster = image.Image(
-          width: 256, height: height, numChannels: 4, format: format);
-      final id = 'ac12-occlusion-${offset < 0 ? 'n${-offset}' : 'p$offset'}';
-      var cursorY = 0;
-      for (final definition in group) {
-        final maskPixels = List<bool>.filled(
-            32 * definition.layout.frameHeightTiles * 32, false);
-        for (var y = 0; y < 32; y++) {
-          for (var x = 0; x < 32; x++) {
-            maskPixels[(y + definition.layout.topPaddingPx) * 32 + x] = true;
-          }
-        }
-        for (var frameIndex = 0;
-            frameIndex < definition.sourceFrames.length;
-            frameIndex++) {
-          final frame = definition.sourceFrames[frameIndex];
-          final x = frameIndex % 8 * 32;
-          final y = cursorY +
-              frameIndex ~/ 8 * definition.layout.frameHeightTiles * 32;
-          final sourceX = frame.tileId % definition.sourceColumns * 32;
-          final sourceY = frame.tileId ~/ definition.sourceColumns * 32;
-          if (sourceX + 32 > definition.raster.width ||
-              sourceY + 32 > definition.raster.height) {
-            throw const NativeWriteException('semantics.crop.bounds',
-                'Occlusion source crop exceeds its admitted atlas');
-          }
-          for (var py = 0; py < 32; py++) {
-            for (var px = 0; px < 32; px++) {
-              final pixel =
-                  definition.raster.getPixel(sourceX + px, sourceY + py);
-              final scale = format == image.Format.uint16 &&
-                      definition.raster.format != image.Format.uint16
-                  ? 257
-                  : 1;
-              raster.setPixelRgba(
-                  x + px,
-                  y + definition.layout.topPaddingPx + py,
-                  pixel.r * scale,
-                  pixel.g * scale,
-                  pixel.b * scale,
-                  pixel.a * scale);
-            }
-          }
-          definition.frames.add(TilesetVisualFrame(
-              tilesetId: id,
-              source: TilesetSourceRect(
-                  x: x ~/ 32,
-                  y: y ~/ 32,
-                  width: 1,
-                  height: definition.layout.frameHeightTiles),
-              durationMs: frame.durationMs == 0 ? null : frame.durationMs));
-        }
-        cursorY += definition.layout.frameHeightTiles *
-            32 *
-            ((definition.sourceFrames.length + 7) ~/ 8);
-        elements.add(ProjectElementEntry(
-            id: definition.id,
-            name: 'Source tile ${definition.crop.sourceTileId}',
-            categoryId: categoryId,
-            tilesetId: id,
-            frames: definition.frames,
-            collisionProfile: ElementCollisionProfile(
-                source: ElementCollisionProfileSource.manual,
-                occlusionMask: ElementCollisionPixelMask(
-                    widthPx: 32,
-                    heightPx: definition.layout.frameHeightTiles * 32,
-                    dataBase64: ElementCollisionMaskCodec.encodePackedBits(
-                        widthPx: 32,
-                        heightPx: definition.layout.frameHeightTiles * 32,
-                        solidPixels: maskPixels)))));
+      var groupPixels = 0;
+      var pageIndex = 0;
+      for (var start = 0; start < frames.length; start += capacity) {
+        cancellation?.check();
+        final count = (frames.length - start).clamp(1, capacity);
+        final offsetName = key.$1 < 0 ? 'n${-key.$1}' : 'p${key.$1}';
+        final page = _OcclusionPage(
+            'ac12-occlusion-$offsetName-h${key.$2}-p$pageIndex',
+            key.$1,
+            frameHeight,
+            count.clamp(1, columns),
+            start,
+            count,
+            frames,
+            format);
+        pages.add(page);
+        groupPixels += page.pixels;
+        pageIndex++;
       }
-      _importAtlas(id, 'Source depth $offset', raster, offset);
+      plannedPixels += groupPixels;
+      groupEvidence.add({
+        'pixelOffsetY': key.$1,
+        'frameHeightPx': frameHeight,
+        'definitionCount': group.length,
+        'frameCount': frames.length,
+        'pageCount': pageIndex,
+        'outputPixels': groupPixels,
+        'channelBitDepth': format == image.Format.uint16 ? 16 : 8,
+      });
+    }
+    if (plannedPixels > limits.maxTotalImagePixels - imagePixels) {
+      throw NativeWriteException(
+          'semantics.quota.pixels',
+          'Padded occlusion pages exceed the aggregate pixel budget: '
+              'decodedInputPixels=$imagePixels, plannedOutputPixels=$plannedPixels, '
+              'allocatedOutputPixels=0, pageCount=${pages.length}, '
+              'maxTotalImagePixels=${limits.maxTotalImagePixels}');
+    }
+    occlusionPacking.addAll({
+      'decodedInputPixels': imagePixels,
+      'plannedOutputPixels': plannedPixels,
+      'pageCount': pages.length,
+      'maxPageHeightPx': 4096,
+      'groups': groupEvidence,
+      'pages': [
+        for (final page in pages)
+          {
+            'tilesetId': page.id,
+            'pixelWidth': page.width,
+            'pixelHeight': page.height,
+            'frameCount': page.count
+          }
+      ],
+    });
+    for (final page in pages) {
+      await Future<void>.delayed(Duration.zero);
+      cancellation?.check();
+      imagePixels += page.pixels;
+      final raster = image.Image(
+          width: page.width,
+          height: page.height,
+          numChannels: 4,
+          format: page.format);
+      for (var index = 0; index < page.count; index++) {
+        if (index % 32 == 0) {
+          await Future<void>.delayed(Duration.zero);
+          cancellation?.check();
+        }
+        final (definition, frame) = page.frames[page.start + index];
+        final x = index % page.columns * 32;
+        final y = index ~/ page.columns * page.frameHeightPx;
+        final sourceX = frame.tileId % definition.sourceColumns * 32;
+        final sourceY = frame.tileId ~/ definition.sourceColumns * 32;
+        if (sourceX + 32 > definition.raster.width ||
+            sourceY + 32 > definition.raster.height) {
+          throw const NativeWriteException('semantics.crop.bounds',
+              'Occlusion source crop exceeds its admitted atlas');
+        }
+        final scale = page.format == image.Format.uint16 &&
+                definition.raster.format != image.Format.uint16
+            ? 257
+            : 1;
+        for (var py = 0; py < 32; py++) {
+          for (var px = 0; px < 32; px++) {
+            final pixel =
+                definition.raster.getPixel(sourceX + px, sourceY + py);
+            raster.setPixelRgba(
+                x + px,
+                y + definition.layout.topPaddingPx + py,
+                pixel.r * scale,
+                pixel.g * scale,
+                pixel.b * scale,
+                pixel.a * scale);
+          }
+        }
+        definition.frames.add(TilesetVisualFrame(
+            tilesetId: page.id,
+            source: TilesetSourceRect(
+                x: x ~/ 32,
+                y: y ~/ 32,
+                width: 1,
+                height: definition.layout.frameHeightTiles),
+            durationMs: frame.durationMs == 0 ? null : frame.durationMs));
+      }
+      cancellation?.check();
+      _importAtlas(page.id, 'Source depth ${page.offset}', raster, page.offset);
+    }
+    occlusionPacking['allocatedOutputPixels'] = plannedPixels;
+    for (final definition in definitions.values) {
+      cancellation?.check();
+      final maskPixels = List<bool>.filled(
+          32 * definition.layout.frameHeightTiles * 32, false);
+      for (var y = 0; y < 32; y++) {
+        for (var x = 0; x < 32; x++) {
+          maskPixels[(y + definition.layout.topPaddingPx) * 32 + x] = true;
+        }
+      }
+      elements.add(ProjectElementEntry(
+          id: definition.id,
+          name: 'Source tile ${definition.crop.sourceTileId}',
+          categoryId: categoryId,
+          tilesetId: definition.frames.first.tilesetId,
+          frames: definition.frames,
+          collisionProfile: ElementCollisionProfile(
+              source: ElementCollisionProfileSource.manual,
+              occlusionMask: ElementCollisionPixelMask(
+                  widthPx: 32,
+                  heightPx: definition.layout.frameHeightTiles * 32,
+                  dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+                      widthPx: 32,
+                      heightPx: definition.layout.frameHeightTiles * 32,
+                      solidPixels: maskPixels)))));
     }
   }
 
@@ -890,6 +989,7 @@ final class _ProjectionRun {
         'diagonalSourceMovement'
       ],
       'maps': mapEvidence,
+      'occlusionPacking': occlusionPacking,
       'gaps': gaps,
       'operationIds':
           mutations.map((mutation) => mutation.operationId.value).toList(),

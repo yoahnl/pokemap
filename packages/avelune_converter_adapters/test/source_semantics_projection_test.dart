@@ -14,7 +14,7 @@ import 'support/literal_tile_fixture.dart';
 
 void main() {
   for (final priority in [1, 2]) {
-    test('split image budget bounds each occlusion image before allocation priority $priority', () async {
+    test('compact occlusion stays within each image budget priority $priority', () async {
       final fixture = await LiteralTileFixture.create(maps: [
         LiteralFixtureMap(id: 1, width: 5, height: 5, layers: [
           List.filled(25, 391),
@@ -27,12 +27,7 @@ void main() {
       final future = const SourceSemanticsProjector().project(source: fixture.source, base: base,
         player: _playerForFixture(fixture), files: fixture.files,
         limits: const NativeWriteLimits(maxImagePixels: 16384, maxTotalImagePixels: 50000));
-      if (priority == 1) {
-        expect((await future).artifacts, isNotEmpty);
-      } else {
-        await expectLater(future, throwsA(isA<NativeWriteException>().having(
-          (error) => error.code, 'code', 'semantics.quota.pixels')));
-      }
+      expect((await future).artifacts, isNotEmpty);
     });
   }
 
