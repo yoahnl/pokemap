@@ -103,6 +103,56 @@ void main() {
   });
 
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
+  test('intermediate source maps do not consume the final draft JSON budget',
+      () async {
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        extraFiles: {
+          'PBS/metadata.txt':
+              utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+          'Graphics/Characters/OriginalPlayer.png': image
+              .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+        },
+        maps: [
+          LiteralFixtureMap(id: 98, width: 128, height: 128, layers: [
+            [
+              for (var cell = 0; cell < 128 * 128; cell++)
+                384 + ((cell * 1103515245 + (cell ~/ 9) * 12345) % 16)
+            ],
+            List.filled(128 * 128, 0),
+            List.filled(128 * 128, 0),
+          ])
+        ]);
+    final base = await const LiteralTileComposer().compose(
+        source: fixture.source,
+        files: fixture.files,
+        selectedSourceMapIds: [98],
+        projectName: 'Exact final JSON budget',
+        parentPath: '/private/tmp',
+        folderName: 'never-written-context-budget');
+    final composer = const SourceSemanticStudyComposer();
+    final full = (await composer.compose(
+        source: fixture.source, base: base, files: fixture.files))!;
+    final exact =
+        NativeWriteLimits(maxTotalDraftJsonBytes: full.validatedJsonByteLength);
+    final bounded = (await composer.compose(
+        source: fixture.source,
+        base: base,
+        files: fixture.files,
+        limits: exact))!;
+    expect(bounded.validatedJsonByteLength, full.validatedJsonByteLength);
+    expect(bounded.canonicalHash, full.canonicalHash);
+    await expectLater(
+        composer.compose(
+            source: fixture.source,
+            base: base,
+            files: fixture.files,
+            limits: NativeWriteLimits(
+                maxTotalDraftJsonBytes: full.validatedJsonByteLength - 1)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.draft_json')));
+  }, skip: scriptsPath == null);
+
   test('player authoring finishes before native atlas imports', () async {
     final scripts = await File(scriptsPath!).readAsBytes();
     expect(literalFixtureHash(scripts).value,

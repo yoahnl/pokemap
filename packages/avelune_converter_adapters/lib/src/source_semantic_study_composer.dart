@@ -137,13 +137,21 @@ final class SourceSemanticStudyComposer {
           {'characterId': player.character.id}),
     ];
     final original = literal.draft!;
-    final contextDraft = NativeProjectDraft(source: source, projectName: original.projectName,
-      parentPath: original.parentPath, folderName: original.folderName, mapIds: original.mapIds,
-      artifacts: {for (final a in [...original.artifacts, ...playerArtifacts.values, ...projection.artifacts]) a.handle: a}.values.toList(),
-      mutations: [...original.mutations, ...playerMutations, ...projection.mutations],
-      defaultMapWidth: original.defaultMapWidth, defaultMapHeight: original.defaultMapHeight, limits: limits);
-    final project = sourceSemanticNativeProject(draft: contextDraft, maps: projection.nativeMaps,
-      mutations: contextDraft.mutations, limits: limits);
+    final project = _sourceSemanticNativeProject(
+        projectName: original.projectName,
+        mapIds: original.mapIds,
+        defaultMapWidth: original.defaultMapWidth,
+        defaultMapHeight: original.defaultMapHeight,
+        artifacts: {
+          for (final artifact in [
+            ...original.artifacts,
+            ...playerArtifacts.values,
+            ...projection.artifacts
+          ]) artifact.handle: artifact
+        }.values,
+        maps: projection.nativeMaps,
+        mutations: [...original.mutations, ...playerMutations, ...projection.mutations],
+        limits: limits);
     final jumps = await const SourceDirectedJumpStudyComposer().compose(source: source, base: literal,
       nativeMaps: projection.nativeMaps, project: project, files: recording, limits: limits, cancellation: cancellation);
     final artifacts = {
@@ -373,18 +381,38 @@ ProjectManifest sourceSemanticNativeProject({
   required Map<int, MapData> maps,
   required Iterable<NativeMutation> mutations,
   NativeWriteLimits limits = const NativeWriteLimits(),
+}) =>
+    _sourceSemanticNativeProject(
+        projectName: draft.projectName,
+        mapIds: draft.mapIds,
+        defaultMapWidth: draft.defaultMapWidth,
+        defaultMapHeight: draft.defaultMapHeight,
+        artifacts: draft.artifacts,
+        maps: maps,
+        mutations: mutations,
+        limits: limits);
+
+ProjectManifest _sourceSemanticNativeProject({
+  required String projectName,
+  required Map<int, String> mapIds,
+  required int defaultMapWidth,
+  required int defaultMapHeight,
+  required Iterable<NativeArtifact> artifacts,
+  required Map<int, MapData> maps,
+  required Iterable<NativeMutation> mutations,
+  required NativeWriteLimits limits,
 }) {
   final tilesets = <String, ProjectTilesetEntry>{};
   final categories = <ProjectElementCategory>[];
   final elements = <ProjectElementEntry>[];
   final characters = <ProjectCharacterEntry>[];
   String? defaultCharacter;
-  final artifacts = {for (final a in draft.artifacts) a.handle: a};
+  final byHandle = {for (final artifact in artifacts) artifact.handle: artifact};
   for (final m in mutations) {
     final p = m.parameters;
     switch (m.actionId) {
       case 'tileset.import_image':
-        final artifact = artifacts[p['artifactHandle']];
+        final artifact = byHandle[p['artifactHandle']];
         if (artifact == null) throw const NativeWriteException('jumps.native_context', 'Source Border context requires its imported atlas bytes');
         final size = const NativePngValidator().headerDimensions(artifact.bytes, limits: limits);
         final id = p['tilesetId'] as String;
@@ -413,10 +441,10 @@ ProjectManifest sourceSemanticNativeProject({
         defaultCharacter = p['characterId'] as String;
     }
   }
-  return ProjectManifest(name: draft.projectName, version: ProjectVersion.v8,
-    maps: [for (final id in draft.mapIds.keys) ProjectMapEntry(id: maps[id]!.id, name: maps[id]!.name, relativePath: 'maps/${maps[id]!.id}.json')],
+  return ProjectManifest(name: projectName, version: ProjectVersion.v8,
+    maps: [for (final id in mapIds.keys) ProjectMapEntry(id: maps[id]!.id, name: maps[id]!.name, relativePath: 'maps/${maps[id]!.id}.json')],
     tilesets: tilesets.values.toList(), elementCategories: categories, elements: elements, characters: characters,
-    settings: ProjectSettings(tileWidth: 32, tileHeight: 32, defaultMapWidth: draft.defaultMapWidth,
-      defaultMapHeight: draft.defaultMapHeight, defaultPlayerCharacterId: defaultCharacter),
+    settings: ProjectSettings(tileWidth: 32, tileHeight: 32, defaultMapWidth: defaultMapWidth,
+      defaultMapHeight: defaultMapHeight, defaultPlayerCharacterId: defaultCharacter),
     pokemon: const ProjectPokemonConfig(enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
 }
