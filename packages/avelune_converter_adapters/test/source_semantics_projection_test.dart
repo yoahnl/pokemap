@@ -381,6 +381,51 @@ void main() {
     expect(result.staticSemanticsQualified, isFalse);
   });
 
+  test('equal tile numbers keep their own tileset priority and pixels', () async {
+    final fixture = await LiteralTileFixture.create(maps: [
+      for (final id in [1, 2])
+        LiteralFixtureMap(id: id, tilesetId: id, width: 3, height: 3, layers: [
+          List.filled(9, 391),
+          [0, 0, 0, 0, 384, 0, 0, 0, 0],
+          List.filled(9, 0),
+        ]),
+    ], tilesets: [
+      LiteralFixtureTileset(id: 1, priorities: {384: 1}),
+      LiteralFixtureTileset(id: 2, priorities: {384: 2},
+          png: literalFixtureAtlas(alternate: true)),
+    ]);
+    final base = await const LiteralTileComposer().compose(
+        source: fixture.source, files: fixture.files,
+        selectedSourceMapIds: [1, 2], projectName: 'Independent crop identities',
+        parentPath: '/private/tmp', folderName: 'independent-crops');
+    final result = await const SourceSemanticsProjector().project(
+        source: fixture.source, base: base,
+        player: _playerForFixture(fixture), files: fixture.files);
+    final ids = <String>{};
+    for (final (id, expectedHeight, expectedRed) in [(1, 64, 201), (2, 96, 101)]) {
+      final placed = result.nativeMaps[id]!.placedElements
+          .singleWhere((entry) => entry.id.startsWith('ac12-occ-'));
+      ids.add(placed.elementId);
+      final element = ProjectElementEntry.fromJson(Map<String, dynamic>.from(
+          result.mutations.singleWhere((mutation) =>
+              mutation.actionId == 'element.upsert' &&
+              (mutation.parameters['element'] as Map)['id'] == placed.elementId)
+              .parameters['element'] as Map));
+      expect(element.collisionProfile!.occlusionMask!.heightPx, expectedHeight);
+      final frame = element.frames.single;
+      final mutation = result.mutations.singleWhere((entry) =>
+          entry.actionId == 'tileset.import_image' &&
+          entry.parameters['tilesetId'] == frame.tilesetId);
+      final artifact = result.artifacts.singleWhere((entry) =>
+          entry.handle == mutation.parameters['artifactHandle']);
+      final raster = image.decodePng(Uint8List.fromList(artifact.bytes))!;
+      final pixel = raster.getPixel(frame.source.x * 32 + 16,
+          frame.source.y * 32 + 31 + 16);
+      expect(pixel.r.toInt(), expectedRed);
+    }
+    expect(ids, hasLength(2));
+  });
+
   test(
       'reflective tags retain positive-priority pixels below actors and expose a gap',
       () async {

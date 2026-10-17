@@ -350,11 +350,20 @@ final class _ProjectionRun {
           tableIdsBySourceMethod: const {},
           expectedSourceSelectionHash: source.canonicalHash);
     }
+    final crops = {
+      for (final crop in base.crops)
+        (crop.sourceTilesetId, crop.sourceTileId): crop
+    };
+    if (crops.length != base.crops.length) {
+      throw const NativeWriteException('semantics.crop.ambiguous',
+          'Source tile crops require unique tileset and tile identities');
+    }
     final ids = base.nativeMaps.keys.toList()..sort();
     for (final id in ids) {
       cancellation?.check();
       final original =
           source.maps.singleWhere((map) => map.map.sourceMapId == id).map;
+      final sourceTilesetId = original.sourceTilesetId;
       final native = base.nativeMaps[id]!;
       final cells = [
         for (var y = 0; y < original.height; y++)
@@ -414,12 +423,13 @@ final class _ProjectionRun {
             layers.indexWhere((entry) => entry.id == provenance.nativeLayerId);
         final target = layers[targetIndex] as TileLayer;
         final targetCells = target.cells.toList();
-        for (var index = 0; index < layer.cells.length; index++) {
-          final tile = layer.cells[index];
+        final sourceCells = layer.cells;
+        for (var index = 0; index < sourceCells.length; index++) {
+          final tile = sourceCells[index];
           if (tile == 0) continue;
-          final crop = base.crops.singleWhere((entry) =>
-              entry.sourceTilesetId == original.sourceTilesetId &&
-              entry.sourceTileId == tile);
+          final crop = crops[(sourceTilesetId, tile)] ??
+              (throw const NativeWriteException('semantics.crop.missing',
+                  'Every source tile requires its exact literal crop'));
           if (crop.terrainTag == 6 || crop.terrainTag == 16) {
             reflectiveTileCount++;
             continue;
@@ -477,7 +487,7 @@ final class _ProjectionRun {
               elementId: definitionId,
               pos: layout.logicalPos,
               applyCollision: false,
-              visualOrder: layer.sourceZ * layer.cells.length + index,
+              visualOrder: layer.sourceZ * sourceCells.length + index,
               properties: const {
                 pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored
               }));
