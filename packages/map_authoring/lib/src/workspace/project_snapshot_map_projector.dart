@@ -60,6 +60,24 @@ final class ProjectSnapshotMapProjector {
     final maps = [
       for (final map in snapshot.maps) replacementMaps[map.id] ?? map,
     ];
+    final projectedManifest = manifest ?? snapshot.manifest;
+    try {
+      if (projectedManifest.pokemon.enabled &&
+          projectedManifest.pokemon.catalogFiles['items'] != null &&
+          snapshot.itemCatalog == null &&
+          buildProjectItemReferenceIndex(project: projectedManifest, maps: maps)
+              .references
+              .isNotEmpty) {
+        return null;
+      }
+      for (final map in maps) {
+        if (map.spatialScene != null) {
+          MapValidator.validate(map, projectDialogueContext: projectedManifest);
+        }
+      }
+    } on Object {
+      return null;
+    }
     final resources = snapshot.resourceStorageKeys.entries.toList()
       ..sort((left, right) => left.value.compareTo(right.value));
     // Same rule as ProjectSnapshotLoader: the revision folds the per-resource
@@ -142,7 +160,13 @@ ProjectManifest? _decodeManifestProjection(
     final normalizedBefore =
         _withDefaults(rawBefore, snapshot.manifest.toJson()) as Map;
     final normalizedAfter = _withDefaults(rawAfter, manifest.toJson()) as Map;
-    for (final field in ['maps', 'groups']) {
+    for (final field in [
+      'maps',
+      'groups',
+      'scenes',
+      'worldRules',
+      'eventRegistry'
+    ]) {
       normalizedBefore.remove(field);
       normalizedAfter.remove(field);
     }
