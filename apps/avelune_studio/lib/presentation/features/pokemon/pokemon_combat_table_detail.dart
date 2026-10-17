@@ -112,7 +112,7 @@ class PokemonCombatTableDetail extends StatelessWidget {
                 const SizedBox(height: 12),
                 StudioDraftField(
                   key: ValueKey('${table.id}:chance'),
-                  label: fishing
+                  label: (fishing || table.encounterKind == EncounterKind.headbutt || table.encounterKind == EncounterKind.special)
                       ? 'Probabilité par tentative (0 à 100 %)'
                       : 'Probabilité par pas (0 à 100 %)',
                   value: combat.numericValue(
@@ -125,6 +125,10 @@ class PokemonCombatTableDetail extends StatelessWidget {
                     );
                   }),
                 ),
+                if (table.encounterKind == EncounterKind.headbutt || table.encounterKind == EncounterKind.special) ...[
+                  const SizedBox(height: 8),
+                  const Text('Associez cette table à un objet dans son inspecteur : Coud’Boule sur un arbre ou rencontre après Éclate-Roc sur un rocher. Un seul tirage par tentative.'),
+                ],
                 if (fishing) ...[
                   const SizedBox(height: 8),
                   const Text(

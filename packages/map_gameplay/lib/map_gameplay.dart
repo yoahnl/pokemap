@@ -1,5 +1,8 @@
 library map_gameplay;
 
+export 'src/interactive_encounter_action.dart';
+
+
 export 'src/movement_terrain_policy.dart';
 
 export 'src/fly_action.dart';

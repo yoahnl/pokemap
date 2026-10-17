@@ -1,3 +1,4 @@
+export 'src/models/map_entity_interactive_encounter.dart';
 export 'src/models/map_entity_field_obstacle.dart';
 export 'map_core_domain.dart';
 export 'src/models/escape_return_point.dart';

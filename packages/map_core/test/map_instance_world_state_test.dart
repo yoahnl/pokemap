@@ -6,7 +6,7 @@ void main() {
     'round-trips the empty typed instance state with its explicit schema',
     () {
       const state = MapInstanceWorldState.empty();
-      expect(state.toJson(), {'schemaVersion': 4, 'instancesByMapId': {}});
+      expect(state.toJson(), {'schemaVersion': 5, 'instancesByMapId': {}});
       expect(MapInstanceWorldState.fromJson(state.toJson()), state);
     },
   );
@@ -118,10 +118,11 @@ void main() {
     );
     expect(
       () => MapInstanceWorldState.fromJson({
-        'schemaVersion': 4,
+        'schemaVersion': 5,
         'instancesByMapId': {
           'source': {
             'instanceId': 'same',
+            'consumedInteractiveEncounterEntityIds': <String>[],
             'clearedFieldObstacleIds': <String>[],
             'fieldObstaclePositions': {},
             'npcPositions': {},
@@ -131,6 +132,7 @@ void main() {
           },
           'neighbor': {
             'instanceId': 'same',
+            'consumedInteractiveEncounterEntityIds': <String>[],
             'clearedFieldObstacleIds': <String>[],
             'fieldObstaclePositions': {},
             'npcPositions': {},
@@ -146,22 +148,23 @@ void main() {
 
   for (final json in <Map<String, dynamic>>[
     {},
-    {'schemaVersion': 4},
-    {'schemaVersion': 4.0, 'instancesByMapId': {}},
+    {'schemaVersion': 5},
+    {'schemaVersion': 5.0, 'instancesByMapId': {}},
     {'schemaVersion': 3, 'instancesByMapId': {}},
-    {'schemaVersion': 4, 'instancesByMapId': null},
-    {'schemaVersion': 4, 'instancesByMapId': {}, 'unknown': true},
+    {'schemaVersion': 5, 'instancesByMapId': null},
+    {'schemaVersion': 5, 'instancesByMapId': {}, 'unknown': true},
     {
-      'schemaVersion': 4,
+      'schemaVersion': 5,
       'instancesByMapId': {
         'source': {'instanceId': 'source-1'},
       },
     },
     {
-      'schemaVersion': 4,
+      'schemaVersion': 5,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
+          'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
           'npcPositions': {},
@@ -173,10 +176,11 @@ void main() {
       },
     },
     {
-      'schemaVersion': 4,
+      'schemaVersion': 5,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
+          'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
           'npcPositions': {},
@@ -189,10 +193,11 @@ void main() {
       },
     },
     {
-      'schemaVersion': 4,
+      'schemaVersion': 5,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
+          'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
           'npcPositions': {},
@@ -205,10 +210,11 @@ void main() {
       },
     },
     {
-      'schemaVersion': 4,
+      'schemaVersion': 5,
       'instancesByMapId': {
         'source': {
           'instanceId': ' source-1',
+          'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
           'npcPositions': {},

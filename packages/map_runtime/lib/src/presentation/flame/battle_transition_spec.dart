@@ -551,14 +551,14 @@ BattleTransitionSpec resolveBattleTransitionSpec({
   // rencontre sauvage peut porter PLUSIEURS transitions — le runtime en tire
   // une, déterministe par requête (le même requestId rejoue la même), donc
   // testable et rejouable. Les ids inconnus sont ignorés sans bruit.
-  if (map != null && request is WildBattleStartRequest) {
-    final source = findEncounterSource(
+  if (request is WildBattleStartRequest && (map != null || request.encounterSourceSnapshot != null)) {
+    final source = map == null ? null : findEncounterSource(
       map,
       kind: request.encounterSourceKind,
       id: request.encounterSourceId,
     );
     final authoredIds =
-        (source?.encounter.battleTransitionIds ?? const <String>[])
+        ((request.encounterSourceSnapshot ?? source?.encounter)?.battleTransitionIds ?? const <String>[])
             .map((id) => id.trim())
             .where(battleTransitionRegistry.containsKey)
             .toList(growable: false);

@@ -1445,6 +1445,7 @@ bool _isEntityBlockingCandidate(MapEntity entity) {
   if (!entity.blocksMovement) return false;
   if (entity.kind == MapEntityKind.spawn) return false;
   if (entity.fieldObstacle != null) return true;
+  if (entity.interactiveEncounter != null) return true;
   if (entity.kind != MapEntityKind.custom) return true;
   return _hasExplicitCollisionOverride(entity);
 }

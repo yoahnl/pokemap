@@ -172,6 +172,7 @@ part 'playable_map_game_interactions.dart';
 part 'playable_map_game_repel.dart';
 part 'playable_map_game_bicycle.dart';
 part 'playable_map_game_fishing.dart';
+part 'playable_map_game_interactive_encounters.dart';
 part 'playable_map_game_escape_rope.dart';
 part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
@@ -916,6 +917,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _pendingInteractiveEncounter != null || _activeInteractiveEncounterAttemptId != null ||
       _fishingFlow != null ||
       _sceneWorldWaitCount > 0 ||
       _sceneActorRouteTargets.isNotEmpty ||
@@ -1176,7 +1178,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _gameState.mapInstanceWorldState.instancesByMapId.isNotEmpty ||
       bundle.map.gameplayZones.any(isDarknessZone) ||
       (_runtimeBundleByMapId[bundle.map.id] ?? bundle)
-          .map.entities.any((entity) => entity.fieldObstacle != null ||
+          .map.entities.any((entity) => entity.fieldObstacle != null || entity.interactiveEncounter != null ||
               entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute);
 
   NarrativeEventDispatchHandled? _selectEntityAutorun() {
@@ -2081,6 +2083,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   FishingAttemptFlow? _fishingFlow;
   FishingAttemptPhase? _fishingFeedbackPhase;
   RuntimeInputLockToken? _fishingInputLock;
+  _PendingInteractiveEncounter? _pendingInteractiveEncounter;
+  int _interactiveEncounterSequence = 0;
+  String? _activeInteractiveEncounterAttemptId;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -2575,7 +2580,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   FishingAttemptPhase? get fishingPhase => _fishingFlow?.phase;
 
-  bool get canCapturePlayerCheckpoint => !_isFishingBusy;
+  bool get canCapturePlayerCheckpoint => !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
 
   GameState get gameStateSnapshot =>
       isLoaded ? _captureGameStateFromWorld() : _gameState;
@@ -3308,6 +3313,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       if (owner == RuntimeExternalInputLock.lifecycle) {
         _cancelPlayerFishing(notify: false);
+        _cancelInteractiveEncounter();
       }
       if (isLoaded) {
         _clearPressedMovementControls();
@@ -4623,6 +4629,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _cancelInteractiveEncounter();
     _cancelPlayerFishing(notify: false);
     final warpPresentation = _warpTransitionOverlay;
     if (warpPresentation is WarpPresentationOverlayComponent) {
@@ -8905,6 +8912,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
     }
+    if (!_canContinueInteractiveBattle(request)) {
+      _showNotification('Cette rencontre n’est plus disponible.');
+      return;
+    }
     _setFlowPhase(_RuntimeFlowPhase.battleTransition);
     _notification?.removeFromParent();
     _notification = null;
@@ -8958,6 +8969,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// l'overlay de combat est monté dessous — l'ordre d'arrivée des deux
   /// événements est indifférent.
   void _maybeRevealBattleScene() {
+    if (_pendingInteractiveEncounter != null) return;
     final battle = _battleOverlay;
     if (battle == null) {
       return;
@@ -9002,7 +9014,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final battleStopwatch = Stopwatch()..start();
     try {
       await beforeBattleHandoffPreparation?.call();
-      if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
+      if (_flowPhase != _RuntimeFlowPhase.battleTransition || !_canContinueInteractiveBattle(request)) {
         return;
       }
       if (request case WildBattleStartRequest wildRequest) {
@@ -9015,6 +9027,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ),
         );
       }
+      if (!_canContinueInteractiveBattle(request)) return;
       // BE10 recadré élargit légèrement cet invariant runtime :
       // - on mémorise toujours le slot actif exact utilisé au handoff ;
       // - mais on mémorise aussi l'ordre actif + réserves réellement injecté
@@ -9067,6 +9080,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       }
 
+      if (!_canContinueInteractiveBattle(request)) return;
       // Lot 12 pose le premier write runtime honnête du "seen" :
       // l'espèce ennemie n'est marquée vue qu'une fois le handoff réellement
       // résolu et le combat effectivement prêt à s'ouvrir.
@@ -9174,6 +9188,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
 
+      if (!_canContinueInteractiveBattle(request)) return;
       final ballResolver = BattleCombatantBallResolver.fromParty(
         gameState: _battleRuntimeGameState,
         lineupPartyIndices: playerLineup.lineupPartyIndices,
@@ -9187,9 +9202,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         projectRootDirectory: _bundle.projectRootDirectory,
         pokemonConfig: _bundle.manifest.pokemon,
       );
+      if (!_canContinueInteractiveBattle(request)) return;
       final battleSpeciesDisplayNames =
           await _loadBattleSpeciesDisplayNames(_battleSession!,
       );
+      if (!_canContinueInteractiveBattle(request)) return;
       _battleSpeciesDisplayNames = battleSpeciesDisplayNames;
       final playerExperienceProgressByLineupIndex = await _traceAsync(
         'battle',
@@ -9206,6 +9223,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   .growthRateId,
         ),
       );
+      if (!_canContinueInteractiveBattle(request)) return;
       _battleXpProgressAtMount = playerExperienceProgressByLineupIndex;
 
       // BETA-BAT-027 : le sprite du dresseur adverse pour l'INTRO — recette
@@ -9218,8 +9236,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final introTrainerImage = request is TrainerBattleStartRequest
           ? await _loadTrainerBattleImage(request.trainerId)
           : null;
-      if (_flowPhase != _RuntimeFlowPhase.battleTransition &&
-          !isBattleUiActive) {
+      if (!_canContinueInteractiveBattle(request) || (_flowPhase != _RuntimeFlowPhase.battleTransition &&
+          !isBattleUiActive)) {
         return;
       }
 
@@ -9309,7 +9327,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // le prédicat de survie est « le combat est toujours le flux actif »,
       // pas « encore en transition ».
       await overlay.loaded;
-      if (!isBattleUiActive || !identical(_battleOverlay, overlay)) {
+      if (!isBattleUiActive || !identical(_battleOverlay, overlay) || !_canContinueInteractiveBattle(request)) {
         return;
       }
       // BETA-BAT-018 : le premier usage d'une capacité décodait ses planches
@@ -9339,10 +9357,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         // setup) — exiger `battleTransition` rendait ce return systématique
         // et tuait le reveal de rattrapage quand le noir précédait la fin du
         // montage.
-        if (!isBattleUiActive || !identical(_battleOverlay, overlay)) {
+        if (!isBattleUiActive || !identical(_battleOverlay, overlay) || !_canContinueInteractiveBattle(request)) {
           return;
         }
       }
+      _commitPreparedInteractiveEncounter(request);
       _maybeRevealBattleScene();
       battleStopwatch.stop();
       debugPrint(
@@ -9352,12 +9371,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[battle] overlay opened requestId=${request.requestId} kind=${request.kind.name}',
       );
     } on RuntimeBattleSetupException catch (error) {
+      if (!_canContinueInteractiveBattle(request)) return;
       _cancelBattleHandoff(
         request: request,
         userMessage: error.message,
         debugDetails: error.debugDetails,
       );
     } catch (error, stackTrace) {
+      if (!_canContinueInteractiveBattle(request)) return;
       _cancelBattleHandoff(
         request: request,
         userMessage:
@@ -9471,6 +9492,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String userMessage,
     String? debugDetails,
   }) {
+    _releaseInteractiveEncounter(request.requestId);
     _completePendingSceneBattleOutcome(
       SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
@@ -10747,6 +10769,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _scheduleRootNarrativeOutcomePublication(
     NarrativeOutcomeRef? outcome) {
+    if (outcome == null) {
+      if (_activeNarrativeSceneWorkingSession != null) {
+        return;
+      }
+      unawaited(_narrativeStateTransactions.transact<void>((current) {
+        if (_isRemoved || _activeNarrativeSceneWorkingSession != null) {
+          return NarrativeEventStateTransaction.rollback(null);
+        }
+        return NarrativeEventStateTransaction.commit(
+          _gameState.copyWith(
+            narrativeEventProgress: current.narrativeEventProgress,
+          ),
+          null,
+        );
+      }));
+      return;
+    }
     _scheduleNarrativeOutcomePublication(outcome);
   }
 
@@ -16005,6 +16044,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _clearTransientUiState({_SceneWarpPresentationOwner? preservedWarpOwner}) {
+    _cancelInteractiveEncounter();
     _cancelPendingDirectedJump();
     _preservingConnectionInput = false;
     _cinematicRuntimeController.cancel(

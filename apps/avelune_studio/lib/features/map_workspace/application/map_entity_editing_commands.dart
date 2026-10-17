@@ -184,6 +184,9 @@ class MapEntityEditingCommands {
         ),
       );
 
+  void setInteractiveEncounter(String id, MapEntityInteractiveEncounterData? payload) =>
+    document.commit(const EntityActions().setInteractiveEncounter(document.current, project: project, entityId: id, interactiveEncounter: payload));
+
   void setHealingDisplay(String id, MapEntityHealingDisplayData? display) =>
       document.commit(const EntityActions().setHealingDisplay(
         document.current, project: project, entityId: id, healingDisplay: display));

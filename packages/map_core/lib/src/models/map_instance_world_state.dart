@@ -4,7 +4,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import 'geometry.dart';
 
-const currentMapInstanceWorldStateSchemaVersion = 4;
+const currentMapInstanceWorldStateSchemaVersion = 5;
 const _collectionEquality = DeepCollectionEquality();
 
 Object? readMapInstanceWorldStateJson(Map<dynamic, dynamic> json, String key) {
@@ -40,6 +40,7 @@ final class MapInstanceRuntimeState {
     required String instanceId,
     Map<String, Map<String, bool>> eventBooleans = const {},
     Set<String> clearedFieldObstacleIds = const {},
+    Set<String> consumedInteractiveEncounterEntityIds = const {},
     Set<String> illuminatedZoneIds = const {},
     Map<String, GridPos> fieldObstaclePositions = const {},
     Map<String, GridPos> npcPositions = const {},
@@ -56,6 +57,7 @@ final class MapInstanceRuntimeState {
        illuminatedZoneIds = Set.unmodifiable(
          illuminatedZoneIds.map((id) => _identity(id, 'zoneId')),
        ),
+       consumedInteractiveEncounterEntityIds = Set.unmodifiable(consumedInteractiveEncounterEntityIds.map((id) => _identity(id, 'interactiveEncounterEntityId'))),
        clearedFieldObstacleIds = Set.unmodifiable(
          clearedFieldObstacleIds.map((id) => _identity(id, 'fieldObstacleId')),
        ),
@@ -70,6 +72,7 @@ final class MapInstanceRuntimeState {
   final String instanceId;
   final Map<String, Map<String, bool>> eventBooleans;
   final Set<String> clearedFieldObstacleIds;
+  final Set<String> consumedInteractiveEncounterEntityIds;
   final Set<String> illuminatedZoneIds;
   final Map<String, GridPos> fieldObstaclePositions;
   final Map<String, GridPos> npcPositions;
@@ -80,6 +83,7 @@ final class MapInstanceRuntimeState {
       'instanceId',
       'eventBooleans',
       'clearedFieldObstacleIds',
+      'consumedInteractiveEncounterEntityIds',
       'illuminatedZoneIds',
       'fieldObstaclePositions',
       'npcPositions',
@@ -100,6 +104,10 @@ final class MapInstanceRuntimeState {
       throw const FormatException(
         'Illuminated zone identities must be a unique string list.',
       );
+    }
+    final consumed = json['consumedInteractiveEncounterEntityIds'];
+    if (consumed is! List || consumed.any((id) => id is! String) || consumed.toSet().length != consumed.length) {
+      throw const FormatException('Consumed interactive encounters must be a unique string list.');
     }
     final cleared = json['clearedFieldObstacleIds'];
     if (cleared is! List ||
@@ -134,6 +142,7 @@ final class MapInstanceRuntimeState {
         npcPositions: npcPositions,
         strengthActive: json['strengthActive'] as bool,
         clearedFieldObstacleIds: cleared.cast<String>().toSet(),
+        consumedInteractiveEncounterEntityIds: consumed.cast<String>().toSet(),
       );
     } on ArgumentError catch (error) {
       throw FormatException(error.message?.toString() ?? 'Invalid instance.');
@@ -145,6 +154,7 @@ final class MapInstanceRuntimeState {
     return {
       'instanceId': instanceId,
       'clearedFieldObstacleIds': clearedFieldObstacleIds.toList()..sort(),
+      'consumedInteractiveEncounterEntityIds': consumedInteractiveEncounterEntityIds.toList()..sort(),
       'illuminatedZoneIds': illuminatedZoneIds.toList()..sort(),
       'fieldObstaclePositions': {
         for (final id in fieldObstaclePositions.keys.toList()..sort())
@@ -171,6 +181,7 @@ final class MapInstanceRuntimeState {
       other is MapInstanceRuntimeState &&
           other.instanceId == instanceId &&
           other.strengthActive == strengthActive &&
+          _collectionEquality.equals(other.consumedInteractiveEncounterEntityIds, consumedInteractiveEncounterEntityIds) &&
           _collectionEquality.equals(
             other.illuminatedZoneIds,
             illuminatedZoneIds,
@@ -189,6 +200,7 @@ final class MapInstanceRuntimeState {
   @override
   int get hashCode => Object.hash(
     instanceId,
+    _collectionEquality.hash(consumedInteractiveEncounterEntityIds),
     strengthActive,
     _collectionEquality.hash(fieldObstaclePositions),
     _collectionEquality.hash(npcPositions),
@@ -272,6 +284,7 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
           npcPositions: instance.npcPositions,
           fieldObstaclePositions: instance.fieldObstaclePositions,
@@ -303,6 +316,7 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
           npcPositions: instance.npcPositions,
           fieldObstaclePositions: instance.fieldObstaclePositions,
@@ -315,6 +329,25 @@ final class MapInstanceWorldState {
         ),
       },
     );
+  }
+
+  bool isInteractiveEncounterConsumed(MapInstanceRef scope, String entityId) =>
+    _currentInstance(scope).consumedInteractiveEncounterEntityIds.contains(_identity(entityId, 'interactiveEncounterEntityId'));
+
+  MapInstanceWorldState consumeInteractiveEncounter(MapInstanceRef scope, String entityId) {
+    final instance = _currentInstance(scope);
+    _identity(entityId, 'interactiveEncounterEntityId');
+    if (instance.consumedInteractiveEncounterEntityIds.contains(entityId)) return this;
+    return MapInstanceWorldState(instancesByMapId: {
+      ...instancesByMapId,
+      scope.mapId: MapInstanceRuntimeState(
+        instanceId: instance.instanceId,
+        consumedInteractiveEncounterEntityIds: {...instance.consumedInteractiveEncounterEntityIds, entityId},
+        eventBooleans: instance.eventBooleans, clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
+        illuminatedZoneIds: instance.illuminatedZoneIds, fieldObstaclePositions: instance.fieldObstaclePositions,
+        npcPositions: instance.npcPositions, strengthActive: instance.strengthActive,
+      ),
+    });
   }
 
   GridPos? fieldObstaclePosition(MapInstanceRef scope, String entityId) =>
@@ -337,6 +370,7 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: {...instance.illuminatedZoneIds, zoneId},
           npcPositions: instance.npcPositions,
           fieldObstaclePositions: instance.fieldObstaclePositions,
@@ -359,6 +393,7 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
           npcPositions: instance.npcPositions,
           eventBooleans: instance.eventBooleans,
@@ -384,6 +419,7 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
           npcPositions: instance.npcPositions,
           eventBooleans: instance.eventBooleans,
@@ -411,6 +447,7 @@ final class MapInstanceWorldState {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
           instanceId: instance.instanceId,
+          consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
           npcPositions: positions,
           fieldObstaclePositions: instance.fieldObstaclePositions,

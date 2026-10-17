@@ -2,7 +2,7 @@
   "itemSystemSchemaVersion": 1,
   "saveId": "phase-a-golden-slice",
   "mapInstanceWorldState": {
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "instancesByMapId": {}
   },
   "currentMapId": "golden_field",

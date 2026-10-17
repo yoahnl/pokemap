@@ -2732,7 +2732,7 @@ class MapValidator {
           (map.spatialScene != null || map.version == ProjectVersion.v9)) {
         throw ValidationException('Healing displays require a 2D map.');
       }
-      if (entity.fieldObstacle != null &&
+      if ((entity.fieldObstacle != null || entity.interactiveEncounter != null) &&
           (map.spatialScene != null || map.version == ProjectVersion.v9)) {
         throw ValidationException('Field obstacles require a 2D map.');
       }
@@ -2748,6 +2748,7 @@ class MapValidator {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
         assertEntityTrainerRefsAgainstProject(entity, projectDialogueContext);
         assertEntityCharacterRefsAgainstProject(entity, projectDialogueContext);
+        assertEntityInteractiveEncounterAgainstProject(entity, projectDialogueContext);
         assertEntityEditorVisualAgainstProject(entity, projectDialogueContext);
       }
     }

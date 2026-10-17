@@ -108,6 +108,21 @@ final class EntityActions {
       },
     ),
     AuthoringActionDescriptor(
+      id: 'entity.set_interactive_encounter', version: 1,
+      summary: 'Set or clear a native Headbutt or after Rock Smash encounter',
+      inputSchemaId: 'schema.entity.set_interactive_encounter.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low, resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent, AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
+      extensions: const {'semanticIds': true, 'rawTilesetRequired': false,
+        'interactiveEncounter': {'triggers': ['headbutt','afterRockSmash'], 'tableKinds': {'headbutt':'headbutt','afterRockSmash':'special'},
+          'reusePolicies': ['repeatable','oncePerMapInstance'], 'mapMode': '2d', 'visual': 'existingProjectElement',
+          'headbuttRequires': 'partyHasUsableMove:headbutt', 'chancePerAttemptField': 'chancePerStep',
+          'conditions': 'ScriptCondition', 'consumption': 'battlePrepared', 'clearValue': null,
+          'parameters': ['mapId','entityId','interactiveEncounter']}},
+    ),
+    AuthoringActionDescriptor(
       id: 'entity.set_healing_display',
       version: 1,
       summary: 'Set or clear six native party-healing display variants',
@@ -274,6 +289,16 @@ final class EntityActions {
         entityId: entityId, fieldObstacle: fieldObstacle);
   }
 
+  MapData setInteractiveEncounter(MapData map, {required ProjectManifest project, required String entityId, required MapEntityInteractiveEncounterData? interactiveEncounter}) {
+    try {
+      final updated = updateEntityOnMap(map, entityId: entityId, interactiveEncounter: interactiveEncounter);
+      _assertInteractiveEncounterTarget(updated, project, _entityById(updated, entityId));
+      return updated;
+    } on MapAuthoringException { rethrow; } on Object {
+      throw semanticFailure('entity.interactive_encounter_invalid', 'Interactive encounters require a matching native table and visual on a blocking 1x1 custom 2D object.');
+    }
+  }
+
   MapData setHealingDisplay(
     MapData map, {
     required ProjectManifest project,
@@ -317,6 +342,7 @@ final class EntityActions {
       'entity.set_visual' =>
         const {'entityId', 'payload'},
       'entity.set_field_obstacle' => const {'entityId', 'fieldObstacle'},
+      'entity.set_interactive_encounter' => const {'entityId', 'interactiveEncounter'},
       'entity.set_healing_display' => const {'entityId', 'healingDisplay'},
       'entity.set_blocks_movement' => const {'entityId', 'blocksMovement'},
       'entity.patch_properties' => const {'entityId', 'patch'},
@@ -492,7 +518,8 @@ final class EntityActions {
                 item: null,
                 spawn: null,
                 fieldObstacle: null,
-                healingDisplay: null),
+                healingDisplay: null,
+                interactiveEncounter: null),
           );
         case 'entity.set_visual':
           updated = updateEntityOnMap(
@@ -529,6 +556,14 @@ final class EntityActions {
               project: context.manifest,
               entityId: parameters.string('entityId'),
               fieldObstacle: obstacle);
+        case 'entity.set_interactive_encounter':
+          if (!parameters.contains('interactiveEncounter')) throw invalidSemanticField('interactiveEncounter', 'a typed payload or explicit null');
+          final raw = parameters.value('interactiveEncounter');
+          MapEntityInteractiveEncounterData? payload;
+          try {
+            payload = raw == null ? null : MapEntityInteractiveEncounterData.fromJson(_object(raw, 'interactiveEncounter').cast<String,dynamic>());
+          } on Object { throw semanticFailure('entity.interactive_encounter_invalid', 'Unsupported interactive encounter payload.'); }
+          updated = setInteractiveEncounter(context.map, project: context.manifest, entityId: parameters.string('entityId'), interactiveEncounter: payload);
         case 'entity.set_healing_display':
           if (!parameters.contains('healingDisplay')) {
             throw invalidSemanticField(
@@ -707,6 +742,10 @@ final class EntityActions {
       _assertHealingDisplayTarget(updated, context.manifest, entity);
     }
 
+    for (final entity in updated.entities.where((entity) => entity.interactiveEncounter != null)) {
+      _assertInteractiveEncounterTarget(updated, context.manifest, entity);
+    }
+
     return context.draftMap(
       after: updated,
       operation: actionId,
@@ -801,6 +840,7 @@ MapData _replaceEntity(MapData map, String entityId, MapEntity replacement) {
     spawn: replacement.spawn,
     fieldObstacle: replacement.fieldObstacle,
     healingDisplay: replacement.healingDisplay,
+    interactiveEncounter: replacement.interactiveEncounter,
     editorVisual: replacement.editorVisual,
   );
 }
@@ -1053,3 +1093,11 @@ MapAuthoringException _entityFailure(
       'The entity mutation is invalid.',
       details: {'validationType': error.runtimeType.toString()},
     );
+
+void _assertInteractiveEncounterTarget(MapData map, ProjectManifest project, MapEntity entity) {
+  if (entity.interactiveEncounter == null) return;
+  try {
+    if (map.version != ProjectVersion.v8 || map.spatialScene != null) throw StateError('Interactive encounters require 2D.');
+    assertEntityInteractiveEncounterAgainstProject(entity, project);
+  } on Object { throw semanticFailure('entity.interactive_encounter_invalid', 'Interactive encounters require a matching native table and visual on a blocking 1x1 custom 2D object.'); }
+}

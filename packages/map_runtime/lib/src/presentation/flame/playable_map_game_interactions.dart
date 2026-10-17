@@ -8,6 +8,7 @@ final class _ResolvedOverworldInteraction {
     this.eventId,
     this.sceneId,
     this.isIntrinsicFieldObstacle = false,
+    this.isIntrinsicInteractiveEncounter = false,
     this.flashZoneId,
     this.waterfallZoneId,
     this.diveZoneId,
@@ -19,6 +20,7 @@ final class _ResolvedOverworldInteraction {
   final String? eventId;
   final String? sceneId;
   final bool isIntrinsicFieldObstacle;
+  final bool isIntrinsicInteractiveEncounter;
   final String? flashZoneId;
   final String? waterfallZoneId;
   final String? diveZoneId;
@@ -200,6 +202,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
     String? eventId;
     String? sceneId;
     var isIntrinsicFieldObstacle = false;
+    var isIntrinsicInteractiveEncounter = false;
     late String actionId;
     late String targetId;
     late GridPos cell;
@@ -219,6 +222,11 @@ extension _PlayableMapInteractions on PlayableMapGame {
         eventId = decision.eventId;
         sceneId = decision.sceneId;
         actionId = jsonEncode(['eventV2', eventId, sceneId]);
+      } else if (decision is NarrativeEventDispatchNoMatch &&
+          entity.interactiveEncounter?.trigger == InteractiveEncounterTrigger.headbutt &&
+          !_hasIntrinsicFieldObstacleOwner(entity)) {
+        isIntrinsicInteractiveEncounter = true;
+        actionId = jsonEncode(['interactiveEncounter', entity.id, entity.interactiveEncounter!.toJson(), _gameState.mapInstanceWorldState.instanceRef(_activeMapId)?.instanceId]);
       } else if (decision is NarrativeEventDispatchNoMatch &&
           entity.fieldObstacle != null &&
           !_hasIntrinsicFieldObstacleOwner(entity)) {
@@ -455,6 +463,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       eventId: eventId,
       sceneId: sceneId,
       isIntrinsicFieldObstacle: isIntrinsicFieldObstacle,
+      isIntrinsicInteractiveEncounter: isIntrinsicInteractiveEncounter,
     );
   }
 
@@ -632,6 +641,10 @@ extension _PlayableMapInteractions on PlayableMapGame {
       _runLegacyInteractionFallback(interaction.result);
       return;
     }
+    if (interaction.isIntrinsicInteractiveEncounter) {
+      if (_resolveOverworldInteraction(includeHidden: true)?.action.request == interaction.action.request) _beginHeadbuttInteraction(entity);
+      return;
+    }
     if (interaction.isIntrinsicFieldObstacle) {
       if (_resolveOverworldInteraction(includeHidden: true)?.action.request !=
           interaction.action.request) {
@@ -719,6 +732,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       return;
     }
     if (decision is! FieldObstacleApplied) return;
+    final originalEntity = _world.map.entities.where((entity) => entity.id == decision.entityId).singleOrNull;
     _applyIntrinsicFieldObstacleState(decision.gameState);
     final ability = interaction.ticket!.fieldAction.ability;
     if (ability == FieldAbility.cut) unawaited(_overworldSfxPlayer.playCut());
@@ -729,6 +743,10 @@ extension _PlayableMapInteractions on PlayableMapGame {
       _ => throw StateError('Unsupported field obstacle ability.'),
     });
     _publishOverworldInteractions();
+    if (ability == FieldAbility.rockSmash && originalEntity?.interactiveEncounter?.trigger == InteractiveEncounterTrigger.afterRockSmash) {
+      final ticket = _interactiveEncounterTicket(originalEntity!);
+      if (ticket != null) _resolveInteractiveEncounter(ticket);
+    }
   }
 
   void _applyIntrinsicFieldObstacleState(GameState state) {

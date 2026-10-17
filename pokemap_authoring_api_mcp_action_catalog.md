@@ -1484,6 +1484,7 @@ entity.set_sign_payload
 entity.set_item_payload
 entity.set_spawn_payload
 entity.set_field_obstacle
+entity.set_interactive_encounter
 entity.set_healing_display
 entity.clear_payload
 entity.set_visual
@@ -1502,9 +1503,30 @@ champ omis est refusé. L’objet doit être `custom`, bloquant, d’une case, s
 carte 2D et posséder un visuel du catalogue du projet. Les champs inconnus et
 les objets incompatibles sont refusés sans écriture. Position, visuel et autres
 propriétés sont conservés ; planification, contrôle de révision et annulation
-suivent le contrat canonique. Les rencontres Éclate-Roc ne sont pas prises en
-charge et leur configuration est refusée. Cette capacité post-bêta ne débloque
+suivent le contrat canonique. Le payload `fieldObstacle` ne contient pas de configuration de rencontre ;
+celle-ci utilise la capacité indépendante `entity.set_interactive_encounter`.
+Cette capacité post-bêta ne débloque
 aucune CS pour le joueur et ne change pas le périmètre bêta signé de Surf.
+
+`entity.set_interactive_encounter` (v1) définit ou retire une rencontre sur
+un objet `custom`, bloquant, d’une case, avec un visuel du projet en 2D.
+Les paramètres sont `mapId`, `entityId` et `interactiveEncounter` explicitement
+nullable. Le payload strict contient `trigger` (`headbutt` ou `afterRockSmash`),
+`encounterTableId`, `reusePolicy` (`repeatable` ou `oncePerMapInstance`),
+`conditions` (conditions de script natives) et `presentation` (source de rencontre
+native, dont la table et le type doivent correspondre au déclencheur).
+Coud’Boule requiert une table `headbutt`, un Pokémon non K.O. connaissant
+`headbutt`, un objet sans obstacle terrain et une interaction à pied.
+`afterRockSmash` requiert un obstacle `rockSmashRock` et une table `special`.
+La chance provient exclusivement du champ `chancePerStep` de la table, évalué
+une fois par tentative. La consommation par instance intervient quand le combat
+Avelune est prêt ; annulation, refus, absence de rencontre ou échec du lancement
+ne consomment pas cette rencontre. Un Éclate-Roc réussi reste appliqué si son
+combat optionnel échoue. Les données de présentation sont capturées avant la
+disparition du rocher. La ressource interrogeable `map` expose cette capacité
+via `entities[].interactiveEncounter` et son contrat dans les extensions.
+La sauvegarde des instances utilise le schéma strict 5 ; les schémas précédents
+sont refusés explicitement, sans migration. Le périmètre bêta reste inchangé.
 
 `entity.set_healing_display` (v1) définit ou retire les six variantes natives
 associées à la taille de l’équipe pendant un soin. Les paramètres obligatoires

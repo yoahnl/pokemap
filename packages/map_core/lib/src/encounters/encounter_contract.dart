@@ -102,7 +102,7 @@ List<ProjectEncounterEntry> canonicalEncounterEntries(
   return List<ProjectEncounterEntry>.unmodifiable(ordered);
 }
 
-enum EncounterSourceKind { gameplayZone, smartTileLayer }
+enum EncounterSourceKind { gameplayZone, smartTileLayer, interactiveObject }
 
 class EncounterSource {
   const EncounterSource({
@@ -168,6 +168,13 @@ EncounterSource? findEncounterSource(
   required String id,
 }) {
   switch (kind) {
+    case EncounterSourceKind.interactiveObject:
+      for (final entity in map.entities) {
+        if (id == 'entity:${entity.id}' && entity.interactiveEncounter != null) {
+          return EncounterSource(kind: kind, id: id, priority: 0, encounter: entity.interactiveEncounter!.presentation);
+        }
+      }
+      return null;
     case EncounterSourceKind.gameplayZone:
       for (final zone in map.gameplayZones) {
         final encounter = zone.encounter;

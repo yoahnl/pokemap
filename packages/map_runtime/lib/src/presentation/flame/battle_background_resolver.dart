@@ -171,7 +171,7 @@ final class BattleBackgroundResolver {
         id: encounterSourceId,
       );
       final relativePath =
-          source?.encounter.battleBackgroundRelativePath?.trim();
+          (request.encounterSourceSnapshot ?? source?.encounter)?.battleBackgroundRelativePath?.trim();
       final explicitPath = relativePath == null || relativePath.isEmpty
           ? null
           : p.normalize(

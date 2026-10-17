@@ -217,6 +217,16 @@ MapData applyFieldObstacleWorldStateToMap(
     return entity;
   }
 
+  for (final id in saved.consumedInteractiveEncounterEntityIds) {
+    final matches = source.entities.where((entity) => entity.id == id).toList();
+    if (source.version != ProjectVersion.v8 || source.spatialScene != null || matches.length != 1 ||
+        matches.single.interactiveEncounter?.reusePolicy != InteractiveEncounterReusePolicy.oncePerMapInstance ||
+        (matches.single.interactiveEncounter?.trigger == InteractiveEncounterTrigger.afterRockSmash && !saved.clearedFieldObstacleIds.contains(id))) {
+      throw StateError('Saved interactive encounter ${map.id}/$id is absent or incompatible.');
+    }
+    assertValidMapEntityTypedPayloads(matches.single);
+  }
+
   for (final id in saved.clearedFieldObstacleIds) {
     if (entityFor(id).fieldObstacle!.kind ==
             FieldObstacleKind.strengthBoulder ||

@@ -170,6 +170,8 @@ final class AuthoringResourceKindRegistry {
         summary: 'PokeMap project manifest and project-owned content',
         extensions: {
           'encounterTables': {
+            'interactiveKinds': ['headbutt','special'],
+            'interactiveSource': 'explicitEntityInteraction',
             'fishingKinds': ['old_rod', 'good_rod', 'super_rod'],
             'fishingSource': 'front_water_cell',
             'fishingChancePerAttemptField': 'chancePerStep',
@@ -203,6 +205,7 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map',
         summary: 'Editable PokeMap map',
         extensions: const {
+          'interactiveEncounters': {'field': 'entities[].interactiveEncounter', 'query': 'map:get:detail', 'action': 'entity.set_interactive_encounter', 'triggers': ['headbutt','afterRockSmash'], 'reusePolicies': ['repeatable','oncePerMapInstance'], 'consumption': 'battlePrepared', 'mapMode': '2d'},
           'documentedFieldMasks': ['connections', 'gameplayZones'],
           'gameplayZoneFieldActions': ['darkness', 'waterfall', 'dive'],
           'divePair': {

@@ -128,7 +128,7 @@ final class BattleMusicResolver {
         kind: encounterSourceKind,
         id: encounterSourceId,
       );
-      final authored = source?.encounter.battleMusicPath;
+      final authored = (request.encounterSourceSnapshot ?? source?.encounter)?.battleMusicPath;
       if (_isAuthored(authored)) return authored;
     }
     final lookupPos = switch (request) {

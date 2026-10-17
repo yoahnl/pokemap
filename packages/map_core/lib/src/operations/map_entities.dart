@@ -4,8 +4,10 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_entity_editor_visual.dart';
 import '../models/map_entity_field_obstacle.dart';
+import '../models/map_entity_interactive_encounter.dart';
 import '../models/map_entity_healing_display.dart';
 import '../models/map_entity_payloads.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/project_manifest.dart';
 import 'map_healing_display.dart';
 import '../validation/dialogue_validation.dart';
@@ -76,6 +78,7 @@ MapData updateEntityOnMap(
   Object? spawn = mapEntityTypedPayloadUnset,
   Object? fieldObstacle = mapEntityTypedPayloadUnset,
   Object? healingDisplay = mapEntityTypedPayloadUnset,
+  Object? interactiveEncounter = mapEntityTypedPayloadUnset,
   Object? editorVisual = mapEntityTypedPayloadUnset,
 }) {
   final index = map.entities.indexWhere((entity) => entity.id == entityId);
@@ -111,6 +114,9 @@ MapData updateEntityOnMap(
   }
   if (!identical(healingDisplay, mapEntityTypedPayloadUnset)) {
     draft = draft.copyWith(healingDisplay: healingDisplay as MapEntityHealingDisplayData?);
+  }
+  if (!identical(interactiveEncounter, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(interactiveEncounter: interactiveEncounter as MapEntityInteractiveEncounterData?);
   }
   if (!identical(editorVisual, mapEntityTypedPayloadUnset)) {
     draft =
@@ -321,7 +327,7 @@ void _validateEntity(
       throw ValidationException('Entity $id has an empty property key');
     }
   }
-  if (entity.healingDisplay != null &&
+  if ((entity.healingDisplay != null || entity.interactiveEncounter != null) &&
       (map.spatialScene != null || map.version == ProjectVersion.v9)) {
     throw const ValidationException('Healing displays require a 2D map.');
   }
@@ -337,6 +343,15 @@ void _validateEntity(
 
 /// Règles métier sur les champs typés (également utilisées par [MapValidator]).
 void assertValidMapEntityTypedPayloads(MapEntity entity) {
+  final interactive = entity.interactiveEncounter;
+  if (interactive != null && (entity.kind != MapEntityKind.custom || !entity.blocksMovement ||
+      entity.size.width != 1 || entity.size.height != 1 || entity.npc != null || entity.sign != null ||
+      entity.item != null || entity.spawn != null || entity.healingDisplay != null ||
+      (interactive.trigger == InteractiveEncounterTrigger.afterRockSmash
+        ? entity.fieldObstacle?.kind != FieldObstacleKind.rockSmashRock : entity.fieldObstacle != null))) {
+    throw ValidationException('Entity ${entity.id} interactive encounter requires a blocking 1x1 custom object with a matching obstacle.');
+  }
+
   if (entity.healingDisplay != null &&
       (entity.kind != MapEntityKind.custom || entity.blocksMovement ||
           entity.size.width != 1 || entity.size.height != 1 ||
@@ -604,5 +619,17 @@ void assertValidMapEntityNpcMovementConfig(
       'a pause from 0 to 3600000ms and a step from 1 to 60000ms.',
       code: 'npc.fixed_route.invalid',
     );
+  }
+}
+
+void assertEntityInteractiveEncounterAgainstProject(MapEntity entity, ProjectManifest project) {
+  final payload = entity.interactiveEncounter;
+  if (payload == null) return;
+  assertValidMapEntityTypedPayloads(entity);
+  final tables = project.encounterTables.where((table) => table.id == payload.encounterTableId).toList();
+  if (project.settings.dimension != ProjectDimension.twoD || entity.editorVisual == null ||
+      project.elements.where((element) => element.id == entity.editorVisual!.elementId).length != 1 ||
+      tables.length != 1 || tables.single.encounterKind != payload.encounterKind) {
+    throw ValidationException('Entity ${entity.id} requires a matching interactive encounter table and project visual on a 2D map.');
   }
 }

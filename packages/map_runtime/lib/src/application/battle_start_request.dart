@@ -80,6 +80,7 @@ class WildBattleStartRequest extends BattleStartRequest {
     this.generatedPokemon,
     this.generationProfileId = '',
     this.generationSchemaVersion = 0,
+    this.encounterSourceSnapshot,
   }) : super(
           kind: RuntimeBattleKind.wild,
           source: RuntimeBattleSourceKind.wildEncounter,
@@ -101,6 +102,7 @@ class WildBattleStartRequest extends BattleStartRequest {
   final PlayerPokemon? generatedPokemon;
   final String generationProfileId;
   final int generationSchemaVersion;
+  final EncounterZonePayload? encounterSourceSnapshot;
 
   WildBattleStartRequest withGeneratedPokemon({
     required PlayerPokemon pokemon,
@@ -127,6 +129,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       generatedPokemon: pokemon,
       generationProfileId: profileId,
       generationSchemaVersion: schemaVersion,
+      encounterSourceSnapshot: encounterSourceSnapshot,
     );
   }
 
@@ -154,6 +157,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       'generatedPokemon': generatedPokemon?.toJson(),
       'generationProfileId': generationProfileId,
       'generationSchemaVersion': generationSchemaVersion,
+      if (encounterSourceSnapshot != null) 'encounterSourceSnapshot': encounterSourceSnapshot!.toJson(),
     };
   }
 }

@@ -7,6 +7,7 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'healing_display_controls.dart';
+import 'interactive_encounter_controls.dart';
 
 class MapMarkerInspector extends StatefulWidget {
   const MapMarkerInspector({
@@ -99,6 +100,8 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
         Text(
           spawn != null
               ? 'Point d’apparition'
+              : entity.interactiveEncounter?.trigger == InteractiveEncounterTrigger.headbutt
+              ? 'Arbre à Coud’Boule'
               : entity.fieldObstacle != null
               ? switch (entity.fieldObstacle!.kind) {
                   FieldObstacleKind.cutTree => 'Arbre à couper',
@@ -239,7 +242,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                 _change(() => _commands.setHealingDisplay(entity.id, display)),
           ),
         ],
-        if (canConfigureFieldObstacle) ...[
+        if (canConfigureFieldObstacle && entity.interactiveEncounter?.trigger != InteractiveEncounterTrigger.headbutt) ...[
           const SizedBox(height: 12),
           for (final kind in FieldObstacleKind.values)
             StudioChoice(
@@ -263,7 +266,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                 FieldObstacleKind.rockSmashRock => 'Requiert Éclate-Roc débloquée et un Pokémon apte à l’utiliser.',
               },
               selected: entity.fieldObstacle?.kind == kind,
-              onTap: () => _change(
+              onTap: entity.interactiveEncounter != null ? null : () => _change(
                 () => _commands.setFieldObstacle(
                   entity.id,
                   entity.fieldObstacle?.kind == kind
@@ -281,6 +284,10 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
             ),
           ],
         ],
+        if (canConfigureFieldObstacle && (entity.fieldObstacle == null || entity.fieldObstacle?.kind == FieldObstacleKind.rockSmashRock)) ...[
+          const SizedBox(height: 12),
+          InteractiveEncounterControls(entity: entity, project: widget.project, onChanged: (payload) => _change(() => _commands.setInteractiveEncounter(entity.id, payload))),
+        ],
         const SizedBox(height: 16),
         if (blocked != null) ...[
           Text(
@@ -295,6 +302,8 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               ? 'Suppression bloquée par l’histoire'
               : spawn != null
               ? 'Supprimer ce départ'
+              : entity.interactiveEncounter?.trigger == InteractiveEncounterTrigger.headbutt
+              ? 'Supprimer cet arbre'
               : entity.fieldObstacle != null
               ? entity.fieldObstacle!.kind == FieldObstacleKind.cutTree
                     ? 'Supprimer cet arbre'

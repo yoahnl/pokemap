@@ -7,6 +7,7 @@ import 'geometry.dart';
 import 'map_entity_editor_visual.dart';
 import 'map_entity_payloads.dart';
 import 'map_entity_field_obstacle.dart';
+import 'map_entity_interactive_encounter.dart';
 import 'map_entity_healing_display.dart';
 import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
@@ -470,6 +471,7 @@ abstract class MapEntity with _$MapEntity {
     MapEntitySpawnData? spawn,
     @JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle,
     @JsonKey(includeIfNull: false) MapEntityHealingDisplayData? healingDisplay,
+    @JsonKey(includeIfNull: false) MapEntityInteractiveEncounterData? interactiveEncounter,
     MapEntityEditorVisual? editorVisual,
     @Default(true) bool blocksMovement,
     @Default({}) Map<String, String> properties,
@@ -477,9 +479,28 @@ abstract class MapEntity with _$MapEntity {
 
   factory MapEntity.fromJson(Map<String, dynamic> json) => _$MapEntityFromJson(
     _checkedHealingDisplayEntityJson(
-      _checkedFieldObstacleEntityJson(migrateMapEntityJson(json)),
+      _checkedInteractiveEncounterEntityJson(_checkedFieldObstacleEntityJson(migrateMapEntityJson(json))),
     ),
   );
+}
+
+Map<String, dynamic> _checkedInteractiveEncounterEntityJson(Map<String, dynamic> json) {
+  final raw = json['interactiveEncounter'];
+  if (raw == null) return json;
+  if (raw is! Map || raw.keys.any((key) => key is! String)) throw const FormatException('Interactive encounter must be a typed object.');
+  final payload = MapEntityInteractiveEncounterData.fromJson(Map<String,dynamic>.from(raw));
+  final size = json['size'];
+  final obstacle = json['fieldObstacle'];
+  final validObstacle = payload.trigger == InteractiveEncounterTrigger.afterRockSmash
+    ? obstacle is Map && obstacle['kind'] == 'rockSmashRock'
+    : obstacle == null;
+  if (json['kind'] != 'custom' || json['blocksMovement'] == false ||
+      (size != null && (size is! Map || size['width'] != 1 || size['height'] != 1)) ||
+      json['npc'] != null || json['sign'] != null || json['item'] != null || json['spawn'] != null ||
+      json['healingDisplay'] != null || !validObstacle) {
+    throw const FormatException('Interactive encounters require one blocking custom cell and a matching obstacle.');
+  }
+  return json;
 }
 
 Map<String, dynamic> _checkedFieldObstacleEntityJson(
