@@ -13,6 +13,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:avelune_converter_adapters/src/source_event_study_composer.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
+import 'package:avelune_converter_adapters/src/source_static_door_program.dart';
 
 final class _RubyObject {
   _RubyObject(this.className, this.fields);
@@ -683,6 +684,78 @@ List<_RubyObject> _interactionFacingCommands() {
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  group('generic static door source programs', () {
+    List<_RubyObject> program({int mode = 0, int target = 8, int x = 1}) => [
+      _command(250, [_RubyObject('RPG::AudioFile', {
+        '@name': 'Exit Door', '@volume': 80, '@pitch': 100,
+      })]),
+      _command(223, [_tone([-255, -255, -255, 0]), 6]),
+      _command(106, [8]),
+      _command(201, [mode, target, x, 1, 0, 1]),
+      _command(223, [_tone([0, 0, 0, 0]), 6]),
+      _command(0, []),
+    ];
+    test('nonpinned single-page source program is attested with exact values', () async {
+      final source = await _events([
+        _page(program(), trigger: 1, character: ''),
+      ], attestedScripts: true);
+      final analysis = _analyzer(source).analyze();
+      final programs = sourceStaticDoorPrograms(source: source, analysis: analysis);
+      expect(programs.keys, [analysis.events.single.identity]);
+      final bound = programs.values.single;
+      expect(bound.sourceMapId, 1);
+      expect(bound.targetSourceMapId, 8);
+      expect(bound.isBoundTo(source: source, analysis: analysis,
+          event: analysis.events.single), isTrue);
+      expect(bound.toJson()['sourceScriptsExecuted'], 0);
+    });
+    for (final scenario in ['sibling', 'dynamic', 'outOfBounds', 'extraCommand', 'wrongTrigger']) {
+      test('$scenario preserves the whole static door event inactive', () async {
+        final commands = program(mode: scenario == 'dynamic' ? 1 : 0,
+            x: scenario == 'outOfBounds' ? 3 : 1);
+        if (scenario == 'extraCommand') commands.insert(3, _command(355, ['unknown()']));
+        final source = await _events([
+          _page(commands, trigger: scenario == 'wrongTrigger' ? 0 : 1, character: ''),
+          if (scenario == 'sibling') _page([_command(355, ['unknown()'])], character: ''),
+        ], attestedScripts: true);
+        expect(sourceStaticDoorPrograms(source: source,
+            analysis: _analyzer(source).analyze()), isEmpty);
+      });
+    }
+    test('forged parsed values cannot borrow an archive attestation', () async {
+      final source = await _events([
+        _page(program(), trigger: 1, character: ''),
+      ], attestedScripts: true);
+      final actual = _analyzer(source).analyze();
+      final event = actual.events.single;
+      final page = event.pages.single;
+      final sound = page.body.nodes.first as SourceSoundEffectNode;
+      final alteredPage = SourceEventPageAnalysis(sourcePage: page.sourcePage,
+          locator: page.locator, condition: page.condition, graphic: page.graphic,
+          rawDataRef: page.rawDataRef, diagnostics: [], body: SourceEventBlock(
+            span: page.body.span, nodes: [SourceSoundEffectNode(sound.span,
+              name: sound.name, volume: 1, pitch: sound.pitch,
+              rawDataRef: sound.rawDataRef, profileHash: sound.profileHash),
+              ...page.body.nodes.skip(1)]));
+      final alteredEvent = SourceEventDefinition(sourceMapId: event.sourceMapId,
+          sourceEventId: event.sourceEventId, sourceFileId: event.sourceFileId,
+          identity: event.identity, name: event.name, x: event.x, y: event.y,
+          locator: event.locator, pages: [alteredPage]);
+      final forged = SourceEventAnalysis(profile: actual.profile,
+          events: [alteredEvent], diagnostics: []);
+      expect(sourceStaticDoorPrograms(source: source, analysis: forged), isEmpty);
+    });
+    test('named invisible graphic retains its existing refusal', () async {
+      final page = _page(program(), trigger: 1);
+      (page.fields['@graphic'] as _RubyObject).fields['@opacity'] = 0;
+      final source = await _events([page], attestedScripts: true);
+      final result = _projectEvents(source);
+      final row = (result.semanticEvidence['events'] as List).single as Map;
+      expect(row['status'], 'quarantinedWholeEvent');
+      expect(row['gaps'], contains('pageGraphicContractUnsupported'));
+      expect(result.scenes, isEmpty);
+    });
+  }, skip: scriptsPath == null);
   test('invalid graphic on a later page keeps the whole event inactive',
       () async {
     final invalidPage = _page([_command(101, ['Invalid graphic'])], character: '');

@@ -17,6 +17,7 @@ import 'source_party_trade_binding.dart';
 import 'source_healing_display_binding.dart';
 import 'source_npc_fixed_route_binding.dart';
 import 'source_external_warp_binding.dart';
+import 'source_static_door_program.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -303,6 +304,8 @@ final class SourceEventProjector {
     SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
+    Map<ConverterId, SourceStaticDoorProgram>? staticDoorPrograms,
+    Map<ConverterId, SourceEventExecutionContext> staticDoorContexts = const {},
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits.validate();
@@ -312,7 +315,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
@@ -339,6 +342,8 @@ final class SourceEventProjector {
     SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
+      Map<ConverterId, SourceStaticDoorProgram>? staticDoorPrograms,
+      Map<ConverterId, SourceEventExecutionContext> staticDoorContexts = const {},
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     limits.validate();
     if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
@@ -360,7 +365,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts)
         .build();
   }
 }
@@ -420,8 +425,10 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.fieldObstacleBindings, this.fieldObstacleRefusals, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.fieldObstacleBindings, this.fieldObstacleRefusals, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings,
+      Map<ConverterId, SourceStaticDoorProgram>? staticPrograms, this.staticDoorContexts)
       : maps = Map.of(nativeMaps),
+        staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
@@ -433,6 +440,23 @@ final class _ProjectionBuilder {
         analysis.events.map((event) => (event.sourceMapId, event.sourceEventId)).toSet().length != analysis.events.length) {
       throw const NativeWriteException('events.source.binding', 'Source event identities must be unique.');
     }
+    SourceEventExecutionContext? verifiedStaticBinding;
+    for (final event in analysis.events) {
+      final program = staticDoorPrograms[event.identity];
+      if (program == null) continue;
+      if (!program.isBoundTo(source: source, analysis: analysis, event: event)) {
+        throw const NativeWriteException('events.source.binding',
+            'Static door programs require their exact source event');
+      }
+      final context = staticDoorContexts[event.identity];
+      if (context != null && context.staticDoorIdentity == event.identity &&
+          context.isQualified && (verifiedStaticBinding == null
+            ? context.isBoundTo(source, analysis.profile, nativeMaps)
+            : context.sharesNativeBindingWith(verifiedStaticBinding))) {
+        qualifiedStaticDoorContexts.add(event.identity);
+        verifiedStaticBinding ??= context;
+      }
+    }
   }
   final NormalizedSourceProject source;
   final SourceSemanticResolver semanticResolver;
@@ -442,6 +466,9 @@ final class _ProjectionBuilder {
   final SourceEventAnalysis analysis;
   final Map<int, MapData> maps;
   final Set<ConverterId> originalDoorIdentities;
+  final Map<ConverterId, SourceStaticDoorProgram> staticDoorPrograms;
+  final Map<ConverterId, SourceEventExecutionContext> staticDoorContexts;
+  final qualifiedStaticDoorContexts = <ConverterId>{};
   final Map<String, SourceEventCharacterBinding> characterBindings;
   final Map<String, SourcePickupFeedbackBinding> pickupBindings;
   final Map<String, SourceEventItemBinding> itemBindings;
@@ -479,7 +506,16 @@ final class _ProjectionBuilder {
   }.contains((event.sourceMapId, event.sourceEventId));
 
   bool _isSourceTransition(SourceEventDefinition event) =>
-      originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event);
+      originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event) ||
+      staticDoorPrograms.containsKey(event.identity);
+
+  bool _eventExecutionContextQualified(SourceEventDefinition event) =>
+      qualifiedStaticDoorContexts.contains(event.identity) ||
+      ((originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event)) &&
+        executionContextQualified && executionContext?.staticDoorIdentity == null);
+
+  SourceEventExecutionContext? _eventExecutionContext(SourceEventDefinition event) =>
+      staticDoorContexts[event.identity] ?? executionContext;
 
   final _externalPrograms = <ConverterId, SourceExternalWarpProgram?>{};
 
@@ -1015,6 +1051,11 @@ final class _ProjectionBuilder {
         'sourcePassToNativeUpdateEquivalence': 'requiresRuntimeQualification',
         'global210Scope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
         'sourceExecutionContext': executionContext?.toJson(),
+        'staticDoorPrograms': [for (final entry in staticDoorPrograms.entries) {
+          ...entry.value.toJson(),
+          'executionContext': staticDoorContexts[entry.key]?.toJson(),
+          'executionContextQualified': qualifiedStaticDoorContexts.contains(entry.key),
+        }],
         'blockedSkippableMovePassEquivalence': 'requiresRuntimeQualification',
         'otherForcedRoutesAndFollowersAdmitted': false,
         'sourceProgramPlaybackQualified': false,
@@ -1106,8 +1147,9 @@ final class _ProjectionBuilder {
         semanticEvidence: evidence,
         staticSemanticsQualified:
             analysis.profile.isQualified && quarantinedCount == 0,
-        allEnabledOriginalEventsHaveExecutionContext: executionContextQualified ||
-            !events.where(_isSourceTransition).any((event) =>
+        allEnabledOriginalEventsHaveExecutionContext:
+            !events.where((event) => _isSourceTransition(event) &&
+              !_eventExecutionContextQualified(event)).any((event) =>
               records.any((record) => record.when(draft: (_) => false,
                 configured: (definition, enabled) => enabled && event.pages.any((page) =>
                   definition.id == _eventId(event, 'page_${page.originalPageIndex}'))))),
@@ -1958,9 +2000,10 @@ final class _ProjectionBuilder {
     }
     final staticSign = _supportsStaticSign(event);
     final staticWideInteraction = _supportsStaticWideInteraction(event);
-    if (_isSourceTransition(event) && !executionContextQualified) {
-      gaps.addAll(executionContext?.refusals.isNotEmpty == true
-          ? executionContext!.refusals : ['sourceExecutionContextUnknown']);
+    if (_isSourceTransition(event) && !_eventExecutionContextQualified(event)) {
+      final context = _eventExecutionContext(event);
+      gaps.addAll(context?.refusals.isNotEmpty == true
+          ? context!.refusals : ['sourceExecutionContextUnknown']);
     }
     if (_isSourceTransition(event) && retentionPolicy == null) {
       gaps.add('sourceMapInstanceRetentionMissing');
@@ -2005,13 +2048,15 @@ final class _ProjectionBuilder {
         gaps.add('pageGraphicInvalid');
         continue;
       }
+      final emptyStaticGraphic = staticDoorPrograms.containsKey(event.identity) &&
+          graphic.tileId == 0 && graphic.characterName.isEmpty;
       if (graphic.tileId != 0 ||
           graphic.hue != 0 ||
-          graphic.opacity != 255 ||
+          (graphic.opacity != 255 && !emptyStaticGraphic) ||
           graphic.blendType != 0 ||
           (graphic.moveType != 0 && _fixedRouteBindings(event) == null) ||
           graphic.stepAnime ||
-          graphic.alwaysOnTop ||
+          (graphic.alwaysOnTop && !emptyStaticGraphic) ||
           (graphic.characterName.isNotEmpty &&
               (graphic.pattern < 0 ||
                   graphic.pattern > 3 ||

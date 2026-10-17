@@ -2,22 +2,37 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:crypto/crypto.dart' as crypto;
 
 final class ExternalOriginalFiles implements SourceFilePort {
-  ExternalOriginalFiles(this.snapshot, this.root);
+  ExternalOriginalFiles(this.snapshot, this.root,
+      {this.supplementalRoots = const []});
   final SourceSnapshot snapshot;
   final String root;
+  final List<String> supplementalRoots;
 
   @override
   Future<List<int>> read(ConverterId id) async {
     final entry = snapshot.entries.singleWhere((entry) => entry.fileId == id);
+    if (supplementalRoots.isNotEmpty) {
+      for (final candidate in [root, ...supplementalRoots]) {
+        final file = File('$candidate/${entry.relativePath}');
+        if (!await file.exists()) continue;
+        final bytes = await file.readAsBytes();
+        if (bytes.length == entry.byteLength &&
+            crypto.sha256.convert(bytes).toString() == entry.sha256?.value) {
+          return bytes;
+        }
+      }
+    }
     return File('$root/${entry.relativePath}').readAsBytes();
   }
 }
 
 Future<({NormalizedSourceProject source, ExternalOriginalFiles files})>
     readExternalOriginalSource(String root, String snapshotPath,
-        {Set<int> selectedMapIds = const {98, 100, 102, 166, 205}}) async {
+        {Set<int> selectedMapIds = const {98, 100, 102, 166, 205},
+        List<String> supplementalRoots = const []}) async {
   final input = jsonDecode(await File(snapshotPath).readAsString()) as Map;
   final snapshot = SourceSnapshot(
       logicalProjectNamespace:
@@ -48,7 +63,8 @@ Future<({NormalizedSourceProject source, ExternalOriginalFiles files})>
               excerpt: row['excerpt'] as String)
       ],
       state: SourceScanState.values.byName(input['state'] as String));
-  final files = ExternalOriginalFiles(snapshot, root);
+  final files = ExternalOriginalFiles(snapshot, root,
+      supplementalRoots: supplementalRoots);
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: snapshot,
       files: files,
