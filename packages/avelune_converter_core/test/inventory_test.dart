@@ -476,12 +476,133 @@ void main() {
   });
 
   group('SRC-03 case and Unicode ambiguity', () {
+    test('public keys preserve the complete ASCII single-unit baseline', () {
+      final keys = [
+        for (var unit = 0; unit < 128; unit++)
+          sourcePathCollisionKey(String.fromCharCode(unit)),
+      ];
+
+      expect(bytesHash(jsonEncode(keys)).value,
+          'b2f230ca679b76e3dc1a89817ccc1fb696e212bcae5992daea167caeeeea14e0');
+    });
+
+    test('public keys preserve the complete ASCII pair baseline', () {
+      final keys = [
+        for (var first = 0; first < 128; first++)
+          for (var second = 0; second < 128; second++)
+            sourcePathCollisionKey(String.fromCharCodes([first, second])),
+      ];
+
+      expect(bytesHash(jsonEncode(keys)).value,
+          '69bb21a831839500305bce43ce801d778afa3263b3a7ee95c010eb96b692c885');
+    });
+
+    test('ASCII keys preserve empty, path syntax, digits and controls', () {
+      const cases = {
+        '': '',
+        'DATA/Map001.RXDATA': 'data/map001.rxdata',
+        'Audio/BGM/Route 9_0123-ABC.OGG': 'audio/bgm/route 9_0123-abc.ogg',
+        'I/i/0123456789/%2F/%41': 'i/i/0123456789/%2f/%41',
+        '../A//B/./C:': '../a//b/./c:',
+        r'DATA\MAP001.RXDATA': r'data\map001.rxdata',
+        'A\u0000B\tC\r\nD\u007f': 'a\u0000b\tc\r\nd\u007f',
+      };
+
+      for (final entry in cases.entries) {
+        expect(sourcePathCollisionKey(entry.key), entry.value);
+      }
+      for (final path in [
+        '',
+        '../A//B/./C:',
+        r'DATA\MAP001.RXDATA',
+        for (final unit in [...List.generate(32, (unit) => unit), 127])
+          'DATA/A${String.fromCharCode(unit)}Z.RXDATA',
+      ]) {
+        expect(() => validateSourceRelativePath(path), throwsFormatException);
+      }
+    });
+
+    test('long ASCII keys preserve lengths and independent path limits', () {
+      for (final length in [127, 128, 255, 256, 4095, 4096, 4097]) {
+        final path = 'A' * length;
+
+        expect(sourcePathCollisionKey(path), 'a' * length);
+        expect(() => validateSourceRelativePath(path),
+            length <= 4096 ? returnsNormally : throwsFormatException);
+      }
+      for (final position in [0, 1, 127, 128, 4095]) {
+        final path = '${'A' * position}Z${'B' * (4096 - position)}';
+
+        expect(sourcePathCollisionKey(path),
+            '${'a' * position}z${'b' * (4096 - position)}');
+      }
+    });
+
+    test('mixed Unicode keys preserve full folding and normalization', () {
+      const cases = {
+        '\u0080': '\u0080',
+        'Ÿ': 'ÿ',
+        'Café': 'café',
+        'Cafe\u0301': 'café',
+        'Straße': 'strasse',
+        'I': 'i',
+        'İ': 'i\u0307',
+        'ı': 'ı',
+        'Σ': 'σ',
+        'ς': 'σ',
+        'K': 'k',
+        'ſ': 's',
+        'ﬀ': 'ff',
+        'ﬃ': 'ffi',
+        'Ａ': 'ａ',
+        'А': 'а',
+        '\u200b': '\u200b',
+        '\u202e': '\u202e',
+        '\u{10400}': '\u{10428}',
+        '\u{1f600}': '\u{1f600}',
+        '\u{e0041}': '\u{e0041}',
+      };
+
+      for (final entry in cases.entries) {
+        expect(sourcePathCollisionKey(entry.key), entry.value);
+        expect(sourcePathCollisionKey('${entry.key}ASCII/Z'),
+            '${entry.value}ascii/z');
+        expect(sourcePathCollisionKey('ASCII/${entry.key}/Z'),
+            'ascii/${entry.value}/z');
+        expect(sourcePathCollisionKey('ASCII/Z${entry.key}'),
+            'ascii/z${entry.value}');
+      }
+      expect(sourcePathCollisionKey('Ａ'), isNot(sourcePathCollisionKey('A')));
+      expect(sourcePathCollisionKey('А'), isNot(sourcePathCollisionKey('A')));
+    });
+
+    test('unpaired surrogate keys retain their units but remain invalid paths',
+        () {
+      for (final unit in [0xd800, 0xdbff, 0xdc00, 0xdfff]) {
+        final surrogate = String.fromCharCode(unit);
+
+        for (final (path, key) in [
+          (surrogate, surrogate),
+          ('${surrogate}ASCII/Z', '${surrogate}ascii/z'),
+          ('ASCII/$surrogate/Z', 'ascii/$surrogate/z'),
+          ('ASCII/Z$surrogate', 'ascii/z$surrogate'),
+        ]) {
+          expect(sourcePathCollisionKey(path).codeUnits, key.codeUnits);
+          expect(() => validateSourceRelativePath(path), throwsFormatException);
+        }
+      }
+    });
+
     final collisions = <String, List<String>>{
       'ASCII case': ['Graphics/Outside.png', 'graphics/outside.PNG'],
       'NFC': ['Graphics/Café.png', 'Graphics/Cafe\u0301.png'],
       'sharp s': ['Graphics/straße.png', 'Graphics/STRASSE.png'],
       'Greek sigma': ['Graphics/Σ.png', 'Graphics/σ.png', 'Graphics/ς.png'],
       'dotted I': ['Graphics/İ.png', 'Graphics/i\u0307.png'],
+      'Kelvin sign': ['Graphics/K.png', 'Graphics/K.png'],
+      'long s': ['Graphics/ſ.png', 'Graphics/S.png'],
+      'ff ligature': ['Graphics/ﬀ.png', 'Graphics/FF.png'],
+      'ffi ligature': ['Graphics/ﬃ.png', 'Graphics/FFI.png'],
     };
     for (final collision in collisions.entries) {
       test('${collision.key} has a common collision key', () {
@@ -924,6 +1045,10 @@ void main() {
     for (final paths in [
       ['Graphics/A.png', 'Graphics/a.PNG'],
       ['Graphics/Café.png', 'Graphics/Cafe\u0301.png'],
+      ['Graphics/straße.png', 'Graphics/STRASSE.png'],
+      ['Graphics/K.png', 'Graphics/K.png'],
+      ['Graphics/ﬀ.png', 'Graphics/FF.png'],
+      ['Graphics/ſ/first.png', 'Graphics/S/second.png'],
     ]) {
       test('complete public snapshots reject folded collision ${paths.first}',
           () async {

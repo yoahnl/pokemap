@@ -488,8 +488,14 @@ final class _SourceDigestSink implements Sink<Digest> {
   void close() {}
 }
 
-String sourcePathCollisionKey(String path) =>
-    unorm.nfc(_SourceUnicodeCaseFolding.fold(unorm.nfc(path)));
+String sourcePathCollisionKey(String path) {
+  for (var index = 0; index < path.length; index++) {
+    if (path.codeUnitAt(index) >= 0x80) {
+      return unorm.nfc(_SourceUnicodeCaseFolding.fold(unorm.nfc(path)));
+    }
+  }
+  return path.toLowerCase();
+}
 
 void validateSourceRelativePath(String path, {int maxCodeUnits = 4096}) {
   _require(
