@@ -56,27 +56,23 @@ void main() {
     );
   });
 
-  test(
-    'deleting a referenced stair is rejected without changing navigation',
-    () {
-      final map = MapData(
-        id: 'map',
-        name: 'Escalier',
-        version: ProjectVersion.v9,
-        size: const GridSize(width: 6, height: 4),
-        spatialScene: surfaceScene(surface: 'stairs'),
-      );
-      expect(
-        () => const SpatialMapOperations().deleteInstance(map, 'stairs'),
-        throwsFormatException,
-      );
-      expect(map.spatialScene!.instances.single.id, 'stairs');
-      expect(
-        map.spatialScene!.navigation.ramps.single.toJson()['surfaceInstanceId'],
-        'stairs',
-      );
-    },
-  );
+  test('deleting a referenced stair removes its owned navigation surface', () {
+    final map = MapData(
+      id: 'map',
+      name: 'Escalier',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 6, height: 4),
+      spatialScene: surfaceScene(surface: 'stairs'),
+    );
+    final deleted = const SpatialMapOperations().deleteInstance(map, 'stairs');
+    expect(deleted.spatialScene!.instances, isEmpty);
+    expect(deleted.spatialScene!.navigation.ramps, isEmpty);
+    expect(map.spatialScene!.instances.single.id, 'stairs');
+    expect(
+      map.spatialScene!.navigation.ramps.single.toJson()['surfaceInstanceId'],
+      'stairs',
+    );
+  });
 }
 
 Map<String, dynamic> rampJson({String? surface}) => {

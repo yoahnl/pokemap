@@ -115,18 +115,22 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
         throw StateError('La carte a changé. Choisissez à nouveau la pente.');
       }
       final ramp = _ramp!;
-      final preview = SpatialRampEditingCommands(widget.document).preview(
-        ramp.copyWith(
-          x: _number(_x, 'X'),
-          z: _number(_y, 'Y'),
-          width: _number(_width, 'La largeur'),
-          depth: _number(_depth, 'La profondeur'),
-          lowLevel: _lowLevel,
-          highLevel: _highLevel,
-          direction: _direction,
-          surfaceInstanceId: _surfaceInstanceId,
-        ),
-      );
+      final preview =
+          SpatialRampEditingCommands(
+            widget.document,
+            project: widget.project,
+          ).preview(
+            ramp.copyWith(
+              x: _number(_x, 'X'),
+              z: _number(_y, 'Y'),
+              width: _number(_width, 'La largeur'),
+              depth: _number(_depth, 'La profondeur'),
+              lowLevel: _lowLevel,
+              highLevel: _highLevel,
+              direction: _direction,
+              surfaceInstanceId: _surfaceInstanceId,
+            ),
+          );
       _ownPreview = preview;
       widget.view.rampPreview = preview;
       _error = null;
@@ -142,7 +146,10 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
     final preview = widget.view.rampPreview;
     if (preview == null) return;
     try {
-      SpatialRampEditingCommands(widget.document).apply(preview);
+      SpatialRampEditingCommands(
+        widget.document,
+        project: widget.project,
+      ).apply(preview);
       _clearPreview(widget.view);
       _load(widget.document.current);
       _notice = 'Pente appliquée. Une seule annulation restaure la carte.';
@@ -187,6 +194,42 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
     final enabled = !widget.document.saving && _ramp != null;
     final preview = widget.view.rampPreview;
     final validPreview = preview != null && preview.validFor(map);
+    final picker = StudioSelect(
+      key: const ValueKey('spatial-ramp-picker'),
+      label: 'Pente de la carte',
+      value: _ramp?.id,
+      options: {
+        for (var index = 0; index < ramps.length; index++)
+          ramps[index].id:
+              'Pente ${index + 1} · X ${ramps[index].x}, Y ${ramps[index].z}',
+      },
+      onChanged: enabled
+          ? (value) => _edit(() => _load(map, rampId: value))
+          : null,
+    );
+    final attachedInstance = scene?.instances
+        .where((instance) => instance.id == _ramp?.surfaceInstanceId)
+        .firstOrNull;
+    final automatic =
+        widget.project?.models3d.any(
+          (model) =>
+              model.id == attachedInstance?.modelId &&
+              model.rampProfile != null,
+        ) ??
+        false;
+    if (automatic) {
+      return StudioPanel(
+        compact: true,
+        title: 'Pente liée à un escalier',
+        children: [
+          picker,
+          const SizedBox(height: 12),
+          const StudioNotice(
+            'Cette pente suit automatiquement son escalier. Déplacez ou tournez le décor ; réglez ses dimensions dans Ressources pour changer le modèle.',
+          ),
+        ],
+      );
+    }
     return StudioPanel(
       compact: true,
       title: 'Ajuster une pente',
@@ -196,19 +239,7 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
             'Dessinez une pente sur la carte pour pouvoir ajuster ici sa position et ses dimensions.',
           )
         else ...[
-          StudioSelect(
-            key: const ValueKey('spatial-ramp-picker'),
-            label: 'Pente de la carte',
-            value: _ramp?.id,
-            options: {
-              for (var index = 0; index < ramps.length; index++)
-                ramps[index].id:
-                    'Pente ${index + 1} · X ${ramps[index].x}, Y ${ramps[index].z}',
-            },
-            onChanged: enabled
-                ? (value) => _edit(() => _load(map, rampId: value))
-                : null,
-          ),
+          picker,
           const SizedBox(height: 12),
           for (final field in <(String, String, ValueChanged<String>)>[
             ('X', _x, (value) => _x = value),

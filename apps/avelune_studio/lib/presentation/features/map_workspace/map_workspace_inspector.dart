@@ -82,6 +82,11 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
         .where((model) => model.id == instance.modelId)
         .firstOrNull;
     final commands = SpatialModelEditingCommands(document, project);
+    final attached =
+        model?.rampProfile != null ||
+        document.current.spatialScene!.navigation.ramps.any(
+          (ramp) => ramp.surfaceInstanceId == instance.id,
+        );
     bool change(void Function() action) {
       try {
         action();
@@ -156,12 +161,52 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             instance.position.z,
             (number) => commands.update(instance.id, z: number),
           ),
-          field(
-            'rotation',
-            'Rotation',
-            instance.rotationDegrees,
-            (number) => commands.update(instance.id, rotation: number),
-          ),
+          if (attached) ...[
+            Text(
+              'Rotation : ${(instance.rotationDegrees % 360).toStringAsFixed(0)}°',
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                StudioButton(
+                  label: '↺ 90°',
+                  secondary: true,
+                  onPressed: () => change(
+                    () => commands.update(
+                      instance.id,
+                      rotation: instance.rotationDegrees - 90,
+                    ),
+                  ),
+                ),
+                StudioButton(
+                  label: '↻ 90°',
+                  secondary: true,
+                  onPressed: () => change(
+                    () => commands.update(
+                      instance.id,
+                      rotation: instance.rotationDegrees + 90,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Text('Pente liée · suit cet escalier'),
+            if (document.current.spatialScene!.navigation.ramps
+                .where((ramp) => ramp.surfaceInstanceId == instance.id)
+                .any(
+                  (ramp) => !document.current.spatialScene!
+                      .rampHasTerrainContacts(ramp),
+                ))
+              const Text(
+                'Accès à raccorder : dessinez les sols aux deux extrémités avant d’exporter.',
+              ),
+          ] else
+            field(
+              'rotation',
+              'Rotation',
+              instance.rotationDegrees,
+              (number) => commands.update(instance.id, rotation: number),
+            ),
           field(
             'height-offset',
             'Décalage vertical (cases)',
@@ -169,6 +214,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                 document.current.spatialScene!.worldHeightAt(
                   instance.position.x,
                   instance.position.z,
+                  excludingRampSurface: instance.id,
                 ),
             (number) => commands.update(instance.id, heightOffset: number),
           ),
@@ -178,13 +224,14 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             instance.scale,
             (number) => commands.update(instance.id, scale: number),
           ),
-          StudioToggleRow(
-            label: 'Bloque le passage',
-            value: instance.blocksMovement,
-            onChanged: (value) => change(
-              () => commands.update(instance.id, blocksMovement: value),
+          if (!attached)
+            StudioToggleRow(
+              label: 'Bloque le passage',
+              value: instance.blocksMovement,
+              onChanged: (value) => change(
+                () => commands.update(instance.id, blocksMovement: value),
+              ),
             ),
-          ),
           if (model != null && model.inspection.animations.isNotEmpty) ...[
             const SizedBox(height: 12),
             ListenableBuilder(

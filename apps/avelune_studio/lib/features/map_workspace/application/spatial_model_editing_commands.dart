@@ -62,7 +62,7 @@ class SpatialModelEditingCommands {
     return 'model_$index';
   }
 
-  Model3dVector3 _position(double x, double z) {
+  Model3dVector3 _position(double x, double z, {String? excludingRampSurface}) {
     final scene = document.current.spatialScene!;
     if (!x.isFinite ||
         !z.isFinite ||
@@ -72,7 +72,11 @@ class SpatialModelEditingCommands {
         z >= scene.depth) {
       throw StateError('Placez le décor à l’intérieur de la carte.');
     }
-    return Model3dVector3(x: x, y: scene.worldHeightAt(x, z), z: z);
+    return Model3dVector3(
+      x: x,
+      y: scene.worldHeightAt(x, z, excludingRampSurface: excludingRampSurface),
+      z: z,
+    );
   }
 
   SpatialModelInstance place(ProjectModel3dEntry model, GridPos cell) =>
@@ -90,9 +94,11 @@ class SpatialModelEditingCommands {
       modelId: model.id,
       position: _position(position.x, position.z),
     );
-    document.commit(operations.upsertInstance(document.current, instance));
+    document.commit(
+      operations.upsertInstance(document.current, instance, model: model),
+    );
     document.selectedId = instance.id;
-    return instance;
+    return selected(instance.id)!;
   }
 
   void update(
@@ -127,10 +133,15 @@ class SpatialModelEditingCommands {
     final scene = document.current.spatialScene!;
     final elevated =
         instance.position.y -
-        scene.worldHeightAt(instance.position.x, instance.position.z);
+        scene.worldHeightAt(
+          instance.position.x,
+          instance.position.z,
+          excludingRampSurface: id,
+        );
     final anchor = _position(
       x ?? instance.position.x,
       z ?? instance.position.z,
+      excludingRampSurface: id,
     );
     final next = instance.copyWith(
       position: x == null && z == null && heightOffset == null
@@ -161,7 +172,15 @@ class SpatialModelEditingCommands {
               y: next.position.z.floor(),
             ),
           );
-    document.commit(operations.upsertInstance(map, next));
+    document.commit(
+      operations.upsertInstance(
+        map,
+        next,
+        model: project.models3d
+            .where((model) => model.id == instance.modelId)
+            .firstOrNull,
+      ),
+    );
   }
 
   void delete(String id) {
@@ -209,7 +228,63 @@ class SpatialModelEditingCommands {
               y: next.position.z.floor(),
             ),
           );
-    document.commit(operations.upsertInstance(map, next));
+    final model = project.models3d
+        .where((model) => model.id == item.modelId)
+        .firstOrNull;
+    if (model?.rampProfile != null) {
+      final scene = map.spatialScene!;
+      final elevated =
+          item.position.y -
+          scene.worldHeightAt(
+            item.position.x,
+            item.position.z,
+            excludingRampSurface: item.id,
+          );
+      for (var distance = 1; distance < scene.width + scene.depth; distance++) {
+        for (final offset in [
+          (distance, 0),
+          (-distance, 0),
+          (0, distance),
+          (0, -distance),
+        ]) {
+          final x = next.position.x + offset.$1;
+          final z = next.position.z + offset.$2;
+          if (x < 0 || z < 0 || x >= scene.width || z >= scene.depth) continue;
+          final candidate = next.copyWith(
+            position: Model3dVector3(
+              x: x,
+              y:
+                  scene.worldHeightAt(x, z, excludingRampSurface: item.id) +
+                  elevated,
+              z: z,
+            ),
+          );
+          try {
+            final result = operations.upsertInstance(
+              map,
+              candidate,
+              model: model,
+            );
+            document.commit(result);
+            document.selectedId = next.id;
+            return;
+          } on FormatException {
+            continue;
+          }
+        }
+      }
+      throw StateError(
+        'Aucune place libre pour dupliquer cet escalier et sa pente.',
+      );
+    }
+    if (map.spatialScene!.navigation.ramps.any(
+      (ramp) => ramp.surfaceInstanceId == item.id,
+    )) {
+      throw StateError(
+        'Définissez le comportement Escalier dans Ressources avant de dupliquer cet ancien assemblage manuel.',
+      );
+    }
+    document.commit(operations.upsertInstance(map, next, model: model));
     document.selectedId = next.id;
   }
 }

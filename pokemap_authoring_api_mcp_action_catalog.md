@@ -1167,6 +1167,17 @@ les modèles et les animations doivent exister et toutes les positions doivent
 et validée avant une seule écriture atomique et une seule annulation de lot ;
 les terrains, la caméra, la navigation et les autres instances sont conservés.
 
+`model3d.configure` accepte un `rampProfile` local au modèle :
+`{x, z, width, depth, lowHeight, highHeight, direction}` ou `null`.
+Les poses créent alors leur pente franchissable ; les transformations et les
+suppressions d’instances mettent leurs pentes à jour dans la même écriture de
+carte. Les rotations de ces escaliers sont cardinales, les hauteurs s’alignent
+sur les niveaux du terrain et les lots refusent tout chevauchement final.
+La reconfiguration du profil publie le manifeste et les cartes concernées avec
+récupération transactionnelle et une seule annulation. Le profil reste dans
+les packs de ressources ; l’export de jeu conserve seulement les rampes
+calculées et refuse les escaliers dont les extrémités ne sont pas raccordées.
+
 `map3d.instance.delete_batch` v1 reçoit `{mapId, instanceIds: [instanceId]}`.
 Le lot contient de 1 à 50 identités distinctes d'une seule map 3D. Une identité
 absente, un doublon, une instance Smart Tile, une instance détenue par une aire

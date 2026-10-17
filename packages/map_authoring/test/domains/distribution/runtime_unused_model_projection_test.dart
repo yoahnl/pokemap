@@ -4,12 +4,65 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/domains/distribution/runtime_unused_model_projection.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('a projected game retains baked stair navigation without the authoring profile', () async {
+    final fixture = await _fixture();
+    final projectFile = File('${fixture.root.path}/project.json');
+    final project = ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()));
+    final model = project.models3d.first.copyWith(rampProfile: Model3dRampProfile(
+      x: -.5, z: -1, width: 1, depth: 1, lowHeight: 0, highHeight: 1, direction: SpatialRampDirection.north));
+    final updatedProject = project.copyWith(models3d: [model, ...project.models3d.skip(1)]);
+    final mapFile = File('${fixture.root.path}/maps/map.json');
+    final source = MapData.fromJson(jsonDecode(await mapFile.readAsString()));
+    final terrain = source.copyWith(spatialScene: source.spatialScene!.copyWith(instances: const [],
+      heightLevels: List.generate(64, (index) => index ~/ 8 < 2 ? 1 : 0)));
+    final map = const SpatialMapOperations().upsertInstance(terrain, SpatialModelInstance(
+      id: 'placed-stair', modelId: model.id, position: Model3dVector3(x: 3.5, y: 0, z: 3)), model: model);
+    await projectFile.writeAsString(jsonEncode(updatedProject.toJson()));
+    await mapFile.writeAsString(jsonEncode(map.toJson()));
+    final beforeProject = await projectFile.readAsBytes();
+    final beforeMap = await mapFile.readAsBytes();
+    final projection = await const RuntimeProjectProjectionBuilder().build(projectRoot: fixture.root, profile: _profile());
+    expect(projection.project.models3d.single.rampProfile, isNull);
+    final exported = MapData.fromJson(jsonDecode(utf8.decode(projection.payloadFiles['project/maps/map.json']!)));
+    expect(exported.spatialScene!.navigation.ramps.single, map.spatialScene!.navigation.ramps.single);
+    final built = const GamePackageBuilder().build(manifest: spatialManifest(), payloadFiles: projection.payloadFiles);
+    expect(const GamePackageInspector().inspect(built.packageBytes).manifest.gameId, 'games.example.exploration');
+    expect(await projectFile.readAsBytes(), beforeProject);
+    expect(await mapFile.readAsBytes(), beforeMap);
+  });
+  test(
+      'runtime removes authoring-only ramp profiles without mutating source models',
+      () async {
+    final source = await _source();
+    final profile = Model3dRampProfile(
+        x: 0,
+        z: 0,
+        width: 1,
+        depth: 1,
+        lowHeight: 0,
+        highHeight: 1,
+        direction: SpatialRampDirection.north);
+    final project = source.project.copyWith(
+        models3d: source.project.models3d
+            .map((model) => model.copyWith(rampProfile: profile))
+            .toList());
+    final result = projectRuntimeModelResources(
+        project: project, maps: [source.map], assets: source.assets);
+    expect(result.project.models3d, isNotEmpty);
+    expect(
+        result.project.models3d
+            .every((model) => !model.toJson().containsKey('rampProfile')),
+        isTrue);
+    expect(project.models3d.every((model) => model.rampProfile == profile),
+        isTrue);
+  });
   test('export omits unused models and assets while preserving authoring data',
       () async {
     final fixture = await _fixture();

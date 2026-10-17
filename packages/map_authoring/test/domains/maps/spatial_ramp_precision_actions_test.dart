@@ -98,7 +98,7 @@ void main() {
           invalidPlan.error!.details['domainCode'], 'map3d.parameters_invalid');
       final deletePlan = await host.plan(
           'map3d.instance.delete', {'mapId': 'map', 'instanceId': 'stairs'});
-      expect(deletePlan.status, AuthoringResultStatus.failure);
+      expect(deletePlan.status, AuthoringResultStatus.success);
       final linkedBytes = await file.readAsBytes();
       final cleared = stored.spatialScene!.navigation.toJson();
       (cleared['ramps'] as List).single['surfaceInstanceId'] = null;

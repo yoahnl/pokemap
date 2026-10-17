@@ -9,6 +9,18 @@ import 'support/glb_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('unfinished attached stairs are editable but cannot be exported as playable', () {
+    final files = spatialPayload();
+    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
+    final instance = map.spatialScene!.instances.single.copyWith(blocksMovement: false);
+    final scene = map.spatialScene!.copyWith(instances: [instance], navigation: SpatialNavigationProfile(ramps: [
+      SpatialRamp(id: 'stairs', x: 2, z: 2, width: 1, depth: 1, lowLevel: 0, highLevel: 1,
+        direction: SpatialRampDirection.north, surfaceInstanceId: instance.id),
+    ]));
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(spatialScene: scene).toJson()));
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(), payloadFiles: files),
+      throwsA(isA<GamePackageFormatException>().having((error) => error.code, 'code', 'runtime3d.ramp_unconnected')));
+  });
   test('continuous terrain packages require an explicit runtime capability', () {
     final files = spatialPayload();
     final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);

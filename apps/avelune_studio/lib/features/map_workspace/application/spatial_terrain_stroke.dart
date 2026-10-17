@@ -13,6 +13,7 @@ class SpatialTerrainStroke {
     required this.level,
     required this.erase,
     required this.origin,
+    this.models = const [],
     this.surfaceBrush,
     this.reanchorInstances = true,
   }) : preview = source {
@@ -24,6 +25,7 @@ class SpatialTerrainStroke {
   final int level;
   final bool erase;
   final GridPos origin;
+  final Iterable<ProjectModel3dEntry> models;
   final SpatialTerrainSurfaceBrush? surfaceBrush;
   final bool reanchorInstances;
   String? surfaceId;
@@ -110,25 +112,47 @@ class SpatialTerrainStroke {
             SpatialCellLevel(x: cell.x, z: cell.y, level: erase ? 0 : level),
         ]);
       } else if (erase) {
-        preview = _operations.configureNavigation(
-          source,
-          scene.navigation.copyWith(
-            ramps: scene.navigation.ramps.where(
-              (ramp) => !cells.any(
+        final removed = scene.navigation.ramps
+            .where(
+              (ramp) => cells.any(
                 (cell) =>
                     ramp.x < cell.x + 1 &&
                     ramp.x + ramp.width > cell.x &&
                     ramp.z < cell.y + 1 &&
                     ramp.z + ramp.depth > cell.y,
               ),
+            )
+            .toList();
+        final automaticModels = models
+            .where((model) => model.rampProfile != null)
+            .map((model) => model.id)
+            .toSet();
+        final automaticInstances = scene.instances
+            .where((instance) => automaticModels.contains(instance.modelId))
+            .map((instance) => instance.id)
+            .toSet();
+        if (removed.any(
+          (ramp) => automaticInstances.contains(ramp.surfaceInstanceId),
+        )) {
+          error = 'Cette pente suit son escalier. Supprimez l’escalier pour retirer aussi sa pente.';
+          preview = source;
+          return;
+        }
+        preview = _operations.configureNavigation(
+          source,
+          scene.navigation.copyWith(
+            ramps: scene.navigation.ramps.where(
+              (ramp) => !removed.contains(ramp),
             ),
           ),
+          models: models,
         );
       } else if (cell != origin) {
         final ramp = _ramp(scene, cell);
         preview = _operations.configureNavigation(
           source,
           scene.navigation.copyWith(ramps: [...scene.navigation.ramps, ramp]),
+          models: models,
         );
       }
     } on Object catch (failure) {

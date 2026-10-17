@@ -6,6 +6,7 @@ import '../models/spatial_navigation.dart';
 import '../models/spatial_terrain_surface.dart';
 import '../models/project_model3d.dart';
 import '../models/smart_tile.dart';
+import 'spatial_stair_attachment.dart';
 
 final class SpatialCellLevel {
   const SpatialCellLevel({
@@ -117,17 +118,82 @@ final class SpatialMapOperations {
     );
   }
 
-  MapData upsertInstance(MapData map, SpatialModelInstance instance) {
-    _requireAuthoredInstance(instance.id);
+  MapData upsertInstance(
+    MapData map,
+    SpatialModelInstance instance, {
+    ProjectModel3dEntry? model,
+  }) => upsertInstances(map, [
+    instance,
+  ], models: model == null ? const [] : [model]);
+
+  MapData upsertInstances(
+    MapData map,
+    List<SpatialModelInstance> instances, {
+    Iterable<ProjectModel3dEntry> models = const [],
+  }) {
     final scene = _scene(map);
-    final exists = scene.instances.any((value) => value.id == instance.id);
+    final replacements = {for (final value in instances) value.id: value};
+    if (replacements.length != instances.length) {
+      throw const FormatException('Instance identities must be distinct.');
+    }
+    final definitions = {for (final model in models) model.id: model};
+    final previous = {for (final value in scene.instances) value.id: value};
+    final ramps = scene.navigation.ramps.toList();
+    const attachment = SpatialStairAttachment();
+    for (final instance in instances) {
+      _requireAuthoredInstance(instance.id);
+      final model = definitions[instance.modelId];
+      final linked = ramps
+          .where((ramp) => ramp.surfaceInstanceId == instance.id)
+          .toList();
+      if (model?.rampProfile != null) {
+        if (linked.length > 1) {
+          throw const FormatException(
+            'A stair profile requires a single attached ramp.',
+          );
+        }
+        final rampId = linked.firstOrNull?.id ?? instance.id;
+        if (ramps.any(
+          (ramp) => ramp.id == rampId && ramp.surfaceInstanceId != instance.id,
+        )) {
+          throw const FormatException(
+            'The stair ramp identity is already in use.',
+          );
+        }
+        ramps.removeWhere((ramp) => ramp.surfaceInstanceId == instance.id);
+        ramps.add(
+          attachment.fromModel(
+            model!,
+            instance,
+            scene.levelHeight,
+            rampId: rampId,
+          ),
+        );
+        replacements[instance.id] = instance.copyWith(blocksMovement: false);
+      } else if (linked.isNotEmpty) {
+        final before = previous[instance.id]!;
+        if (before.modelId != instance.modelId) {
+          ramps.removeWhere((ramp) => ramp.surfaceInstanceId == instance.id);
+          continue;
+        }
+        for (final ramp in linked) {
+          ramps[ramps.indexOf(ramp)] = attachment.transform(
+            ramp,
+            before,
+            instance,
+            scene.levelHeight,
+          );
+        }
+      }
+    }
     return map.copyWith(
       spatialScene: scene.copyWith(
         instances: [
-          for (final value in scene.instances)
-            value.id == instance.id ? instance : value,
-          if (!exists) instance,
+          for (final value in scene.instances) replacements[value.id] ?? value,
+          for (final value in instances)
+            if (!previous.containsKey(value.id)) replacements[value.id]!,
         ],
+        navigation: scene.navigation.copyWith(ramps: ramps),
       ),
     );
   }
@@ -141,6 +207,11 @@ final class SpatialMapOperations {
     return map.copyWith(
       spatialScene: scene.copyWith(
         instances: scene.instances.where((value) => value.id != instanceId),
+        navigation: scene.navigation.copyWith(
+          ramps: scene.navigation.ramps.where(
+            (ramp) => ramp.surfaceInstanceId != instanceId,
+          ),
+        ),
       ),
     );
   }
@@ -150,12 +221,39 @@ final class SpatialMapOperations {
 
   MapData configureNavigation(
     MapData map,
-    SpatialNavigationProfile navigation,
-  ) {
+    SpatialNavigationProfile navigation, {
+    Iterable<ProjectModel3dEntry> models = const [],
+  }) {
     final scene = _scene(map);
-    return map.copyWith(
-      spatialScene: _reanchor(scene, scene.copyWith(navigation: navigation)),
+    final result = map.copyWith(
+      spatialScene: _reanchor(
+        scene,
+        scene.copyWith(navigation: navigation),
+        reanchorAttached: false,
+      ),
     );
+    final modelIds = models
+        .where((model) => model.rampProfile != null)
+        .map((model) => model.id)
+        .toSet();
+    final stairs = result.spatialScene!.instances
+        .where((instance) => modelIds.contains(instance.modelId))
+        .toList();
+    if (stairs.isNotEmpty) {
+      final expected = upsertInstances(
+        result,
+        stairs,
+        models: models,
+      ).spatialScene!.navigation.ramps;
+      final actual = {for (final ramp in navigation.ramps) ramp.id: ramp};
+      if (actual.length != expected.length ||
+          expected.any((ramp) => actual[ramp.id] != ramp)) {
+        throw const FormatException(
+          'Stair ramps are derived from their model profile. Edit the staircase instead.',
+        );
+      }
+    }
+    return result;
   }
 
   MapData configureTerrainAppearance(
@@ -168,23 +266,89 @@ final class SpatialMapOperations {
     ).copyWith(cliffFrame: cliffFrame, generateCliffs: generateCliffs),
   );
 
-  MapSpatialScene _reanchor(MapSpatialScene before, MapSpatialScene after) =>
-      after.copyWith(
-        instances: before.instances.map((instance) {
-          final position = instance.position;
-          final heightDelta =
-              after.worldHeightAt(position.x, position.z) -
-              before.worldHeightAt(position.x, position.z);
-          if (heightDelta == 0) return instance;
-          return instance.copyWith(
-            position: Model3dVector3(
-              x: position.x,
-              y: position.y + heightDelta,
-              z: position.z,
-            ),
+  MapData configureLevelHeight(MapData map, double levelHeight) {
+    final scene = _scene(map);
+    final after = MapSpatialScene(
+      width: scene.width,
+      depth: scene.depth,
+      heightLevels: scene.heightLevels,
+      terrainSurfaces: scene.terrainSurfaces,
+      levelHeight: levelHeight,
+      cliffFrame: scene.cliffFrame,
+      generateCliffs: scene.generateCliffs,
+      instances: scene.instances,
+      camera: scene.camera,
+      navigation: scene.navigation,
+    );
+    return map.copyWith(spatialScene: _reanchor(scene, after));
+  }
+
+  MapSpatialScene _reanchor(
+    MapSpatialScene before,
+    MapSpatialScene after, {
+    bool reanchorAttached = true,
+  }) {
+    final attached = {
+      ...before.navigation.ramps,
+      ...after.navigation.ramps,
+    }.map((ramp) => ramp.surfaceInstanceId).whereType<String>().toSet();
+    final owners = <String, SpatialModelInstance>{};
+    for (final instance in before.instances.where(
+      (instance) => attached.contains(instance.id),
+    )) {
+      final p = instance.position;
+      final previouslyAttached = before.navigation.ramps.any((ramp) => ramp.surfaceInstanceId == instance.id);
+      final delta = reanchorAttached
+          ? after.worldHeightAt(p.x, p.z, excludingRampSurface: instance.id) -
+                before.worldHeightAt(
+                  p.x,
+                  p.z,
+                  excludingRampSurface: instance.id,
+                )
+          : previouslyAttached ? 0.0 : after.worldHeightAt(p.x, p.z) - before.worldHeightAt(p.x, p.z);
+      owners[instance.id] = delta == 0
+          ? instance
+          : instance.copyWith(
+              position: Model3dVector3(x: p.x, y: p.y + delta, z: p.z),
+            );
+    }
+    final previous = {
+      for (final instance in before.instances) instance.id: instance,
+    };
+    final positioned = after.copyWith(
+      instances: after.instances.map(
+        (instance) => owners[instance.id] ?? instance,
+      ),
+      navigation: after.navigation.copyWith(
+        ramps: after.navigation.ramps.map((ramp) {
+          final id = ramp.surfaceInstanceId;
+          if (!reanchorAttached || id == null || owners[id] == null) {
+            return ramp;
+          }
+          return const SpatialStairAttachment().transform(
+            ramp,
+            previous[id]!,
+            owners[id]!,
+            after.levelHeight,
+            sourceLevelHeight: before.levelHeight,
           );
         }),
-      );
+      ),
+    );
+    return positioned.copyWith(
+      instances: positioned.instances.map((instance) {
+        if (attached.contains(instance.id)) return instance;
+        final p = instance.position;
+        final delta =
+            positioned.worldHeightAt(p.x, p.z) - before.worldHeightAt(p.x, p.z);
+        return delta == 0
+            ? instance
+            : instance.copyWith(
+                position: Model3dVector3(x: p.x, y: p.y + delta, z: p.z),
+              );
+      }),
+    );
+  }
 
   MapSpatialScene _scene(MapData map) {
     if (map.version != ProjectVersion.v9 || map.spatialScene == null) {

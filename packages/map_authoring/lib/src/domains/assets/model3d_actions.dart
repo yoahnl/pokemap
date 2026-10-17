@@ -6,6 +6,8 @@ import '../../contracts/action_descriptor.dart';
 import '../../contracts/artifact_ref.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/authoring_request.dart';
+import '../../contracts/resource_ref.dart';
+import '../maps/map_lifecycle_adapter.dart';
 import '../../ports/artifact_store.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../transactions/action_planner.dart';
@@ -46,7 +48,7 @@ final class Model3dActions {
           'source.replace_batch' =>
             'Replace 1 to 50 inspected GLB sources in one recoverable publication',
           'configure' =>
-            'Configure a model name, scale, pivot and local collision volume',
+            'Configure a model name, scale, pivot, collision volume and attached stair profile',
           _ => 'Delete an unused model and its owned source'
         },
         inputSchemaId: 'pokemap.authoring.model3d.$action.input.v1',
@@ -54,12 +56,13 @@ final class Model3dActions {
         riskLevel: action == 'delete'
             ? AuthoringRiskLevel.high
             : AuthoringRiskLevel.medium,
-        resourceKinds: const [
+        resourceKinds: [
           'project',
           'model3d',
           'assetCatalog',
           'asset',
-          'assetBlob'
+          'assetBlob',
+          if (action == 'configure') 'map',
         ],
         capabilityIds: const ['authoring.visual_library'],
         requiredPermissions: [
@@ -71,13 +74,15 @@ final class Model3dActions {
         guarantees: [
           AuthoringGuarantee.dryRun,
           AuthoringGuarantee.idempotent,
-          if (action != 'import_batch' && !action.startsWith('source.replace'))
+          if (action != 'import_batch' &&
+              action != 'configure' &&
+              !action.startsWith('source.replace'))
             AuthoringGuarantee.atomic,
           AuthoringGuarantee.revisionChecked,
           AuthoringGuarantee.undoable
         ],
         extensions: {
-          if (action == 'source.replace')
+          if (action == 'source.replace' || action == 'configure')
             'publicationSemantics': 'recoverable_cross_file',
           if (action == 'import_batch' || action == 'source.replace_batch') ...{
             'maximumModelCount': maximumModelCount,
@@ -142,6 +147,29 @@ final class Model3dActions {
                 if (action == 'import' || action == 'configure')
                   'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
                 if (action == 'configure') ...{
+                  'rampProfile': {
+                    'type': ['object', 'null'],
+                    'additionalProperties': false,
+                    'required': [
+                      'x',
+                      'z',
+                      'width',
+                      'depth',
+                      'lowHeight',
+                      'highHeight',
+                      'direction'
+                    ],
+                    'properties': {
+                      for (final field in ['x', 'z', 'lowHeight', 'highHeight'])
+                        field: {'type': 'number'},
+                      for (final field in ['width', 'depth'])
+                        field: {'type': 'number', 'exclusiveMinimum': 0},
+                      'direction': {
+                        'type': 'string',
+                        'enum': ['north', 'south', 'east', 'west']
+                      },
+                    },
+                  },
                   'scale': {
                     'type': 'number',
                     'exclusiveMinimum': 0,
@@ -197,7 +225,8 @@ final class Model3dActions {
           'name',
           'scale',
           'pivot',
-          'collisionBounds'
+          'collisionBounds',
+          'rampProfile',
         },
       'model3d.delete' => {'modelId'},
       _ => throw const FormatException('Unknown model action.'),
@@ -276,7 +305,12 @@ final class Model3dActions {
               ? null
               : Model3dBounds.fromJson(parameters.object('collisionBounds')),
           clearCollisionBounds: fields.containsKey('collisionBounds') &&
-              fields['collisionBounds'] == null);
+              fields['collisionBounds'] == null,
+          rampProfile: fields['rampProfile'] == null
+              ? null
+              : Model3dRampProfile.fromJson(parameters.object('rampProfile')),
+          clearRampProfile: fields.containsKey('rampProfile') &&
+              fields['rampProfile'] == null);
       return _compose(
           context,
           context.snapshot.manifest.copyWith(models3d: [
@@ -382,7 +416,8 @@ final class Model3dActions {
           inspection: inspection,
           scale: current.scale,
           pivot: current.pivot,
-          collisionBounds: current.collisionBounds);
+          collisionBounds: current.collisionBounds,
+          rampProfile: current.rampProfile);
       final sameContent = source.artifact.digest == actual.digest &&
           source.artifact.byteLength == actual.byteLength;
       if (sameContent && next == current) {
@@ -529,7 +564,8 @@ final class Model3dActions {
             inspection: inspection,
             scale: current.scale,
             pivot: current.pivot,
-            collisionBounds: current.collisionBounds);
+            collisionBounds: current.collisionBounds,
+            rampProfile: current.rampProfile);
         final sameContent = source.artifact.digest == actual.digest &&
             source.artifact.byteLength == actual.byteLength;
         if (sameContent && next == current) continue;
@@ -807,6 +843,7 @@ Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
       'pivot': model.pivot.toJson(),
       if (model.collisionBounds != null)
         'collisionBounds': model.collisionBounds!.toJson(),
+      if (model.rampProfile != null) 'rampProfile': model.rampProfile!.toJson(),
       'inspection': {
         'bounds': inspection.bounds.toJson(),
         'meshCount': inspection.meshCount,
@@ -833,15 +870,62 @@ AuthoringMutationDraft _compose(
       path: '/models3d/${after?.id ?? before!.id}',
       before: before?.toJson(),
       after: after?.toJson());
+  final mapChanges = <AuthoringResourceChange>[];
+  final mapDiffs = <AuthoringDiffEntry>[];
+  if (before != null &&
+      after != null &&
+      (before.rampProfile != null || after.rampProfile != null) &&
+      (before.rampProfile != after.rampProfile ||
+          before.scale != after.scale ||
+          before.pivot != after.pivot)) {
+    for (final map in context.snapshot.maps) {
+      final scene = map.spatialScene;
+      if (scene == null) continue;
+      final instances = scene.instances
+          .where((instance) => instance.modelId == after.id)
+          .toList();
+      if (instances.isEmpty) continue;
+      final ids = instances.map((instance) => instance.id).toSet();
+      final next = after.rampProfile == null
+          ? map.copyWith(
+              spatialScene: scene.copyWith(
+                  navigation: scene.navigation.copyWith(
+                      ramps: scene.navigation.ramps.where(
+                          (ramp) => !ids.contains(ramp.surfaceInstanceId)))))
+          : const SpatialMapOperations()
+              .upsertInstances(map, instances, models: [after]);
+      if (next == map) continue;
+      MapValidator.validate(next, projectDialogueContext: manifest);
+      final resource = AuthoringResourceRef(
+          kind: 'map',
+          id: map.id,
+          revision: context.snapshot.resourceFingerprints['map:${map.id}']);
+      mapChanges.add(AuthoringResourceChange(
+          resource: resource,
+          storageKey: manifest.maps
+              .singleWhere((entry) => entry.id == map.id)
+              .relativePath,
+          beforeBytes: context.snapshot.resourceBytes('map:${map.id}'),
+          afterBytes: encodeMapAuthoringDocument(next)));
+      mapDiffs.add(AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.replace,
+          resource: resource,
+          path: '/maps/${map.id}/spatialScene',
+          before: scene.toJson(),
+          after: next.spatialScene!.toJson()));
+    }
+  }
   return AuthoringMutationDraft(
       changeSet: AuthoringChangeSet(
           changes: [
             ...?assetDraft?.changeSet.changes,
-            ...draft.changeSet.changes
+            ...draft.changeSet.changes,
+            ...mapChanges,
           ],
           diff: AuthoringDiff([
             ...?assetDraft?.changeSet.diff.entries,
-            ...draft.changeSet.diff.entries
+            ...draft.changeSet.diff.entries,
+            ...mapDiffs,
           ])),
       projectedProject: manifest,
       preview: {

@@ -18,9 +18,10 @@ final class SpatialRampEditingPreview {
 }
 
 final class SpatialRampEditingCommands {
-  SpatialRampEditingCommands(this.document);
+  SpatialRampEditingCommands(this.document, {this.project});
 
   final EditableMapDocument document;
+  final ProjectManifest? project;
 
   SpatialRampEditingPreview preview(SpatialRamp ramp) {
     _requireEditable();
@@ -42,6 +43,7 @@ final class SpatialRampEditingCommands {
             if (existing.id == ramp.id) ramp else existing,
         ],
       ),
+      models: project?.models3d ?? const [],
     );
     return SpatialRampEditingPreview._(
       source: source,

@@ -280,8 +280,12 @@ final class MapSpatialScene {
     return maximum;
   }
 
-  double worldHeightAt(double x, double z) {
+  double worldHeightAt(double x, double z, {String? excludingRampSurface}) {
     for (final ramp in navigation.ramps) {
+      if (excludingRampSurface != null &&
+          ramp.surfaceInstanceId == excludingRampSurface) {
+        continue;
+      }
       if (ramp.contains(x, z)) return ramp.levelAt(x, z) * levelHeight;
     }
     return terrainSurfaces.heightAt(x, z) ??
@@ -290,41 +294,48 @@ final class MapSpatialScene {
 
   double heightAt(int x, int z) => heightLevels[z * width + x] * levelHeight;
   void _validateRampContacts() {
-    const epsilon = 0.000001;
     for (final ramp in navigation.ramps) {
-      final alongZ =
-          ramp.direction == SpatialRampDirection.north ||
-          ramp.direction == SpatialRampDirection.south;
-      final negativeHigh =
-          ramp.direction == SpatialRampDirection.north ||
-          ramp.direction == SpatialRampDirection.west;
-      for (final fraction in [epsilon, .5, 1 - epsilon]) {
-        final negativeX = alongZ
-            ? ramp.x + ramp.width * fraction
-            : ramp.x - epsilon;
-        final negativeZ = alongZ
-            ? ramp.z - epsilon
-            : ramp.z + ramp.depth * fraction;
-        final positiveX = alongZ ? negativeX : ramp.x + ramp.width + epsilon;
-        final positiveZ = alongZ ? ramp.z + ramp.depth + epsilon : negativeZ;
-        if (negativeX < 0 ||
-            negativeZ < 0 ||
-            positiveX >= width ||
-            positiveZ >= depth ||
-            (worldHeightAt(negativeX, negativeZ) / levelHeight -
-                        (negativeHigh ? ramp.highLevel : ramp.lowLevel))
-                    .abs() >
-                .0001 ||
-            (worldHeightAt(positiveX, positiveZ) / levelHeight -
-                        (negativeHigh ? ramp.lowLevel : ramp.highLevel))
-                    .abs() >
-                .0001) {
-          throw const FormatException(
-            'A ramp must contact its low and high terrain levels.',
-          );
-        }
+      if (ramp.surfaceInstanceId == null && !rampHasTerrainContacts(ramp)) {
+        throw const FormatException(
+          'A ramp must contact its low and high terrain levels.',
+        );
       }
     }
+  }
+
+  bool rampHasTerrainContacts(SpatialRamp ramp) {
+    const epsilon = 0.000001;
+    final alongZ =
+        ramp.direction == SpatialRampDirection.north ||
+        ramp.direction == SpatialRampDirection.south;
+    final negativeHigh =
+        ramp.direction == SpatialRampDirection.north ||
+        ramp.direction == SpatialRampDirection.west;
+    for (final fraction in [epsilon, .5, 1 - epsilon]) {
+      final negativeX = alongZ
+          ? ramp.x + ramp.width * fraction
+          : ramp.x - epsilon;
+      final negativeZ = alongZ
+          ? ramp.z - epsilon
+          : ramp.z + ramp.depth * fraction;
+      final positiveX = alongZ ? negativeX : ramp.x + ramp.width + epsilon;
+      final positiveZ = alongZ ? ramp.z + ramp.depth + epsilon : negativeZ;
+      if (negativeX < 0 ||
+          negativeZ < 0 ||
+          positiveX >= width ||
+          positiveZ >= depth ||
+          (worldHeightAt(negativeX, negativeZ) / levelHeight -
+                      (negativeHigh ? ramp.highLevel : ramp.lowLevel))
+                  .abs() >
+              .0001 ||
+          (worldHeightAt(positiveX, positiveZ) / levelHeight -
+                      (negativeHigh ? ramp.lowLevel : ramp.highLevel))
+                  .abs() >
+              .0001) {
+        return false;
+      }
+    }
+    return true;
   }
 
   MapSpatialScene copyWith({

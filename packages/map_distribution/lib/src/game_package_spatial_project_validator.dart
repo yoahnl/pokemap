@@ -422,6 +422,12 @@ final class GamePackageSpatialProjectValidator {
         }
         if (gameplay) _validateGameplayMap(map, path);
         MapValidator.validate(map, projectDialogueContext: project);
+        for (final ramp in map.spatialScene!.navigation.ramps) {
+          if (!map.spatialScene!.rampHasTerrainContacts(ramp)) {
+            _fail('runtime3d.ramp_unconnected', '$path.spatialScene.navigation.ramps.${ramp.id}',
+                'Connect the staircase to its low and high terrain before exporting.');
+          }
+        }
         maps.add(map);
       }
       final mapsById = {for (final map in maps) map.id: map};

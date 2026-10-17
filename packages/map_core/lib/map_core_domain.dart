@@ -1,7 +1,8 @@
 library map_core;
 
-export 'src/models/map_entity_interactive_encounter.dart';
+export 'src/models/model3d_ramp_profile.dart';
 
+export 'src/models/map_entity_interactive_encounter.dart';
 
 export 'src/models/map_instance_retention_policy.dart';
 

@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
+import 'model3d_ramp_profile.dart';
 
 final class Model3dVector3 {
   Model3dVector3({required num x, required num y, required num z})
@@ -269,6 +270,7 @@ final class ProjectModel3dEntry {
     num scale = 1,
     Model3dVector3? pivot,
     this.collisionBounds,
+    this.rampProfile,
   }) : id = _id(id),
        name = _name(name),
        sourceAssetId = _id(sourceAssetId, maximumLength: 160),
@@ -300,6 +302,7 @@ final class ProjectModel3dEntry {
   final double scale;
   final Model3dVector3 pivot;
   final Model3dBounds? collisionBounds;
+  final Model3dRampProfile? rampProfile;
 
   ProjectModel3dEntry copyWith({
     String? name,
@@ -307,6 +310,8 @@ final class ProjectModel3dEntry {
     Model3dVector3? pivot,
     Model3dBounds? collisionBounds,
     bool clearCollisionBounds = false,
+    Model3dRampProfile? rampProfile,
+    bool clearRampProfile = false,
   }) => ProjectModel3dEntry(
     id: id,
     name: name ?? this.name,
@@ -318,6 +323,7 @@ final class ProjectModel3dEntry {
     collisionBounds: clearCollisionBounds
         ? null
         : collisionBounds ?? this.collisionBounds,
+    rampProfile: clearRampProfile ? null : rampProfile ?? this.rampProfile,
   );
 
   @override
@@ -331,7 +337,8 @@ final class ProjectModel3dEntry {
           other.inspection == inspection &&
           other.scale == scale &&
           other.pivot == pivot &&
-          other.collisionBounds == collisionBounds;
+          other.collisionBounds == collisionBounds &&
+          other.rampProfile == rampProfile;
   @override
   int get hashCode => Object.hash(
     id,
@@ -342,6 +349,7 @@ final class ProjectModel3dEntry {
     scale,
     pivot,
     collisionBounds,
+    rampProfile,
   );
 
   factory ProjectModel3dEntry.fromJson(Map<String, dynamic> json) {
@@ -354,6 +362,7 @@ final class ProjectModel3dEntry {
       'scale',
       'pivot',
       if (json.containsKey('collisionBounds')) 'collisionBounds',
+      if (json.containsKey('rampProfile')) 'rampProfile',
     });
     return ProjectModel3dEntry(
       id: json['id'] as String,
@@ -366,6 +375,9 @@ final class ProjectModel3dEntry {
       collisionBounds: json['collisionBounds'] == null
           ? null
           : Model3dBounds.fromJson(_object(json['collisionBounds'])),
+      rampProfile: json['rampProfile'] == null
+          ? null
+          : Model3dRampProfile.fromJson(_object(json['rampProfile'])),
     );
   }
   Map<String, dynamic> toJson() => {
@@ -377,6 +389,7 @@ final class ProjectModel3dEntry {
     'scale': scale,
     'pivot': pivot.toJson(),
     if (collisionBounds != null) 'collisionBounds': collisionBounds!.toJson(),
+    if (rampProfile != null) 'rampProfile': rampProfile!.toJson(),
   };
 }
 

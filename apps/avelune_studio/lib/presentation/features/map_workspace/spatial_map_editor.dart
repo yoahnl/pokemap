@@ -429,6 +429,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
             widget.view.spatialTerrainMode != SpatialTerrainMode.ground) {
           reliefStroke = SpatialTerrainStroke(
             source: document.current,
+            models: widget.project.models3d,
             mode: widget.view.spatialTerrainMode,
             level: widget.view.spatialTerrainLevel,
             erase: widget.view.tool == StudioMapTool.erase,

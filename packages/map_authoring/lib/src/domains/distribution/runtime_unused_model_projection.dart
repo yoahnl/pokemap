@@ -77,6 +77,7 @@ RuntimeModelResourceProjection projectRuntimeModelResources({
   var projected = project.copyWith(
       models3d: project.models3d
           .where((model) => retainedModels.contains(model.id))
+          .map((model) => model.copyWith(clearRampProfile: true))
           .toList(),
       smartTileCatalog: smartCatalog);
   projected = projected.copyWith(
