@@ -559,6 +559,45 @@ _RubyObject _withCondition(_RubyObject page, Map<String, Object?> values) {
   return page;
 }
 
+_RubyObject _cutPage() => _page([
+      ..._forcedRoute([_moveCommand(16)], skippable: false),
+      _command(111, [12, 'pbCut']),
+      _command(355, ['pbSmashThisEvent'], indent: 1),
+      _command(0, [], indent: 1),
+      _command(412, []),
+      _command(0, []),
+    ], character: 'OBJ_FRLG_Cut Tree');
+
+Future<NormalizedSourceProject> _cutSource({
+  int mapId = 37,
+  int eventId = 12,
+  int x = 2,
+  int y = 3,
+  String name = 'Garden obstacle',
+  String namespace = 'synthetic-cut-garden',
+  List<_RubyObject>? pages,
+}) {
+  final event = _event(eventId, pages ?? [_cutPage()], x: x, y: y);
+  event.fields['@name'] = name;
+  final data = _project(maps: {
+    mapId: _map(width: 8, height: 8, events: {eventId: event}),
+  });
+  return _normalize(_source(data, namespace: namespace),
+      includeEventSystem: true);
+}
+
+SourceEvent _cutSourceEvent(NormalizedSourceProject source) =>
+    source.maps.single.map.events.single;
+
+void _expectNoCut(SourceEventDefinition event) {
+  expect(event.isQuarantined, isTrue);
+  expect(
+      event.pages
+          .expand((page) => page.body.nodes)
+          .whereType<SourceCutObstacleProgramNode>(),
+      isEmpty);
+}
+
 extension on SourceEventAnalysis {
   SourceEventDefinition requireEvent(int mapId, int eventId) {
     final event = eventAt(mapId, eventId);
@@ -569,6 +608,228 @@ extension on SourceEventAnalysis {
 }
 
 void main() {
+  group('structural Cut obstacle programmes', () {
+    test('equivalent pages qualify independently of project and event identity',
+        () async {
+      final first = await _cutSource();
+      final second = await _cutSource(
+          mapId: 211,
+          eventId: 29,
+          x: 6,
+          y: 4,
+          name: 'A different tree',
+          namespace: 'synthetic-cut-orchard');
+      final nodes = <SourceCutObstacleProgramNode>[];
+      for (final source in [first, second]) {
+        final analysis = _analyzer(source).analyze();
+        final event = analysis.events.single;
+        expect(event.isQuarantined, isFalse);
+        expect(
+            event.pages.single.condition.kind, SourceEventConditionKind.always);
+        final node = event.pages.single.body.nodes.single;
+        expect(node, isA<SourceCutObstacleProgramNode>());
+        final cut = node as SourceCutObstacleProgramNode;
+        nodes.add(cut);
+        expect(cut.sourceMove, 'CUT');
+        expect(cut.sourceBadgeIndex, 12);
+        expect(cut.sourceRegion, 1);
+        expect(cut.span.firstCommandIndex, 0);
+        expect(cut.span.lastCommandIndex, 6);
+        expect(cut.toJson()['sourceScriptsExecuted'], 0);
+        expect(cut.toJson()['nativeExecutionQualified'], isFalse);
+        expect(cut.toJson()['fullSourceCutParityQualified'], isFalse);
+        expect(cut.rawDataRef.locator!.mapId, event.sourceMapId);
+        expect(cut.rawDataRef.locator!.eventId, event.sourceEventId);
+        expect(
+            cut.isBoundToSourceEvent(
+                source: source,
+                profile: analysis.profile,
+                sourceMapId: event.sourceMapId,
+                event: _cutSourceEvent(source)),
+            isTrue);
+      }
+      expect(nodes[0].templateHash, nodes[1].templateHash);
+      expect(nodes[0].sourceSnapshotHash, isNot(nodes[1].sourceSnapshotHash));
+      expect(nodes[0].profileHash, isNot(nodes[1].profileHash));
+      expect(nodes[0].rawDataRef.id, isNot(nodes[1].rawDataRef.id));
+    });
+
+    final mutations = <String, void Function(_RubyObject)>{
+      'conditional switch page': (page) =>
+          _withCondition(page, {'@switch1_valid': true}),
+      'conditional variable page': (page) =>
+          _withCondition(page, {'@variable_valid': true}),
+      'conditional self switch page': (page) =>
+          _withCondition(page, {'@self_switch_valid': true}),
+      'touch trigger': (page) => page.fields['@trigger'] = 1,
+      'another character graphic': (page) =>
+          (page.fields['@graphic'] as _RubyObject).fields['@character_name'] =
+              'Unqualified tree',
+      'different graphic frame': (page) =>
+          (page.fields['@graphic'] as _RubyObject).fields['@pattern'] = 1,
+      'different graphic direction': (page) =>
+          (page.fields['@graphic'] as _RubyObject).fields['@direction'] = 4,
+      'transparent graphic': (page) =>
+          (page.fields['@graphic'] as _RubyObject).fields['@opacity'] = 0,
+      'passable obstacle': (page) => page.fields['@through'] = true,
+      'moving obstacle': (page) => page.fields['@move_type'] = 1,
+      'extra page field': (page) => page.fields['@unknown'] = true,
+      'repeating forced route': (page) =>
+          (((page.fields['@list'] as List)[0] as _RubyObject)
+                  .fields['@parameters'] as List)[1]
+              .fields['@repeat'] = true,
+      'skippable forced route': (page) =>
+          (((page.fields['@list'] as List)[0] as _RubyObject)
+                  .fields['@parameters'] as List)[1]
+              .fields['@skippable'] = true,
+      'foreign route target': (page) =>
+          (((page.fields['@list'] as List)[0] as _RubyObject)
+              .fields['@parameters'] as List)[0] = -1,
+      'wrong facing route': (page) =>
+          (((((page.fields['@list'] as List)[0] as _RubyObject)
+                  .fields['@parameters'] as List)[1] as _RubyObject)
+              .fields['@list'] as List)[0] = _moveCommand(17),
+      'wrong route terminator': (page) =>
+          (((((page.fields['@list'] as List)[0] as _RubyObject)
+                  .fields['@parameters'] as List)[1] as _RubyObject)
+              .fields['@list'] as List)[1] = _moveCommand(1),
+      'wrong route copy': (page) =>
+          ((page.fields['@list'] as List)[1] as _RubyObject)
+              .fields['@parameters'] = [_moveCommand(17)],
+      'extra route parameter': (page) =>
+          ((page.fields['@list'] as List)[1] as _RubyObject)
+              .fields['@parameters'] = [
+            _moveCommand(16, parameters: [1])
+          ],
+      'wrong condition code': (page) =>
+          ((page.fields['@list'] as List)[2] as _RubyObject)
+              .fields['@parameters'] = [0, 'pbCut'],
+      'unknown condition Ruby': (page) =>
+          ((page.fields['@list'] as List)[2] as _RubyObject)
+              .fields['@parameters'] = [12, 'pbCut; unknown_call'],
+      'unknown effect Ruby': (page) =>
+          ((page.fields['@list'] as List)[3] as _RubyObject)
+              .fields['@parameters'] = ['pbSmashThisEvent; unknown_call'],
+      'wrong effect indent': (page) =>
+          ((page.fields['@list'] as List)[3] as _RubyObject).fields['@indent'] =
+              0,
+      'wrong end opcode': (page) =>
+          ((page.fields['@list'] as List)[5] as _RubyObject).fields['@code'] =
+              411,
+      'extra command': (page) =>
+          (page.fields['@list'] as List).add(_command(0, [])),
+      'missing command': (page) => (page.fields['@list'] as List).removeLast(),
+    };
+    for (final mutation in mutations.entries) {
+      test('refuses ${mutation.key}', () async {
+        final page = _cutPage();
+        mutation.value(page);
+        final source = await _cutSource(pages: [page]);
+        _expectNoCut(_analyzer(source).analyze().events.single);
+      });
+    }
+
+    test('refuses multiple pages and an unqualified source profile', () async {
+      final multiPage = await _cutSource(pages: [_cutPage(), _cutPage()]);
+      _expectNoCut(_analyzer(multiPage).analyze().events.single);
+      final source = await _cutSource();
+      _expectNoCut(
+          _analyzer(source, scriptsHash: '0' * 64).analyze().events.single);
+    });
+
+    for (final mode in [
+      'code',
+      'indent',
+      'index',
+      'parameter',
+      'parameterRef',
+      'locator',
+      'pageRef',
+      'conditionRef',
+      'trigger',
+      'position',
+      'name'
+    ]) {
+      test('binding refuses normalized $mode mismatch with raw source',
+          () async {
+        final source = await _cutSource();
+        final analysis = _analyzer(source).analyze();
+        final node = analysis.events.single.pages.single.body.nodes.single
+            as SourceCutObstacleProgramNode;
+        final json = jsonDecode(jsonEncode(source.maps.single.toJson())) as Map;
+        final event = (json['map']['events'] as List).single as Map;
+        final page = (event['pages'] as List).single as Map;
+        final commands = page['commands'] as List;
+        switch (mode) {
+          case 'code':
+            (commands[3] as Map)['code'] = 101;
+          case 'indent':
+            (commands[3] as Map)['indent'] = 0;
+          case 'index':
+              (commands[3] as Map)['originalIndex'] = 9;
+              ((commands[3] as Map)['sourceLocator'] as Map)['commandIndex'] = 9;
+          case 'parameter':
+            (commands[3] as Map)['parameters'] = ['unknown_call'];
+          case 'parameterRef':
+            ((commands[0] as Map)['parameters'] as List)[1] =
+                ((commands[1] as Map)['parameters'] as List)[0];
+          case 'locator':
+            ((commands[3] as Map)['sourceLocator'] as Map)['eventId'] = 13;
+          case 'pageRef':
+            page['rawDataRef'] = page['conditionsDataRef'];
+          case 'conditionRef':
+            page['conditionsDataRef'] = page['rawDataRef'];
+          case 'trigger':
+            page['triggerCode'] = 1;
+          case 'position':
+            event['x'] = 4;
+          case 'name':
+            event['name'] = 'Unbound name';
+        }
+          if (mode == 'locator') {
+            expect(() => SourceMapIr.fromJson(json), throwsA(isA<ContractError>()));
+            return;
+          }
+          final changed = SourceMapIr.fromJson(json).map.events.single;
+        expect(
+            node.isBoundToSourceEvent(
+                source: source,
+                profile: analysis.profile,
+                sourceMapId: 37,
+                event: changed),
+            isFalse);
+      });
+    }
+
+    test('binding refuses stale snapshot and stale profile qualification',
+        () async {
+      final first = await _cutSource();
+      final next = await _cutSource(name: 'Renamed tree');
+      final analysis = _analyzer(first).analyze();
+      final node = analysis.events.single.pages.single.body.nodes.single
+          as SourceCutObstacleProgramNode;
+      expect(
+          node.isBoundToSourceEvent(
+              source: next,
+              profile: _analyzer(next).profile,
+              sourceMapId: 37,
+              event: _cutSourceEvent(next)),
+          isFalse);
+      expect(
+          node.isBoundToSourceEvent(
+              source: first,
+              profile: _analyzer(next).profile,
+              sourceMapId: 37,
+              event: _cutSourceEvent(first)),
+          isFalse);
+      _expectNoCut(
+          SourceEventAnalyzer.forProject(next, profile: analysis.profile)
+              .analyze()
+              .events
+              .single);
+    });
+  });
+
   test('original door profile declares a map scoped route barrier and fresh followers', () {
     final profile = SourceEventProfile.kanto(
       scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),

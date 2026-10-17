@@ -75,23 +75,12 @@ final class SourceCutObstacleProgramNode extends SourceEventNode {
       };
 }
 
-const _sourceCutObstaclePositions = {
-  (98, 3): (2, 13),
-  (100, 2): (10, 25),
-  (100, 3): (10, 27),
-  (100, 4): (10, 29),
-  (100, 5): (10, 31),
-};
 String _sourceCutObstaclePath(int mapId) =>
     'Data/Map${mapId.toString().padLeft(3, '0')}.rxdata';
 
 SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
-  final position = _sourceCutObstaclePositions[(mapId, event.sourceEventId)];
   if (!analyzer._isQualified ||
-      position == null ||
-      event.name != 'CutTree' ||
-      (event.x, event.y) != position ||
       event.pages.length != 1 ||
       page.originalPageIndex != 0 ||
       page.triggerCode != 0 ||
@@ -142,16 +131,10 @@ SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     final value = _SourceCenterPageValue(document).read(reference.nodeId);
-    if (value is! Map ||
-        value['list'] is! List ||
-        (value['list'] as List).length != page.commands.length) {
+    if (!_sourceCutObstaclePageSupported(value)) {
       return null;
     }
     final hash = canonicalHashOf(value);
-    if (hash.value !=
-        'ece2960fd26895c0b5313ecd43002f5693680249d7591cf324f935d8edf1b2d7') {
-      return null;
-    }
     final condition = analyzer._reference(page.conditionsDataRef);
     if (condition == null ||
         condition.fileId != reference.fileId ||
@@ -196,3 +179,149 @@ SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
     return null;
   }
 }
+
+bool _sourceCutObstaclePageSupported(Object? value) {
+  if (value is! Map ||
+      !_sourceCutObstacleObject(value, 'RPG::Event::Page', const {
+        'condition',
+        'graphic',
+        'move_type',
+        'move_speed',
+        'move_frequency',
+        'move_route',
+        'walk_anime',
+        'step_anime',
+        'direction_fix',
+        'through',
+        'always_on_top',
+        'trigger',
+        'list',
+      }) ||
+      !_sourceCutObstacleValues(value, const {
+        'move_type': 0,
+        'move_speed': 3,
+        'move_frequency': 3,
+        'walk_anime': true,
+        'step_anime': false,
+        'direction_fix': false,
+        'through': false,
+        'always_on_top': false,
+        'trigger': 0,
+      })) {
+    return false;
+  }
+  final condition = value['condition'], graphic = value['graphic'];
+  if (condition is! Map ||
+      !_sourceCutObstacleObject(
+          condition, 'RPG::Event::Page::Condition', const {
+        'switch1_valid',
+        'switch2_valid',
+        'variable_valid',
+        'self_switch_valid',
+        'switch1_id',
+        'switch2_id',
+        'variable_id',
+        'variable_value',
+        'self_switch_ch',
+      }) ||
+      !_sourceCutObstacleValues(condition, const {
+        'switch1_valid': false,
+        'switch2_valid': false,
+        'variable_valid': false,
+        'self_switch_valid': false,
+        'switch1_id': 1,
+        'switch2_id': 1,
+        'variable_id': 1,
+        'variable_value': 0,
+        'self_switch_ch': 'A',
+      }) ||
+      graphic is! Map ||
+      !_sourceCutObstacleObject(graphic, 'RPG::Event::Page::Graphic', const {
+        'tile_id',
+        'character_name',
+        'character_hue',
+        'direction',
+        'pattern',
+        'opacity',
+        'blend_type',
+      }) ||
+      !_sourceCutObstacleValues(graphic, const {
+        'tile_id': 0,
+        'character_name': 'OBJ_FRLG_Cut Tree',
+        'character_hue': 0,
+        'direction': 2,
+        'pattern': 0,
+        'opacity': 255,
+        'blend_type': 0,
+      }) ||
+      !_sourceCutObstacleRoute(value['move_route'],
+          repeat: true, codes: const [0])) {
+    return false;
+  }
+  final commands = value['list'];
+  if (commands is! List || commands.length != 7) return false;
+  const shapes = [
+    (209, 0, 2),
+    (509, 0, 1),
+    (111, 0, 2),
+    (355, 1, 1),
+    (0, 1, 0),
+    (412, 0, 0),
+    (0, 0, 0)
+  ];
+  for (var index = 0; index < shapes.length; index++) {
+    final command = commands[index], shape = shapes[index];
+    if (command is! Map ||
+        !_sourceCutObstacleObject(command, 'RPG::EventCommand',
+            const {'code', 'indent', 'parameters'}) ||
+        command['code'] != shape.$1 ||
+        command['indent'] != shape.$2 ||
+        command['parameters'] is! List ||
+        (command['parameters'] as List).length != shape.$3) {
+      return false;
+    }
+  }
+  final route = (commands[0] as Map)['parameters'] as List;
+  final copy = (commands[1] as Map)['parameters'] as List;
+  final predicate = (commands[2] as Map)['parameters'] as List;
+  final effect = (commands[3] as Map)['parameters'] as List;
+  return route[0] == 0 &&
+      _sourceCutObstacleRoute(route[1], repeat: false, codes: const [16, 0]) &&
+      _sourceCutObstacleMove(copy.single, 16) &&
+      predicate[0] == 12 &&
+      predicate[1] == 'pbCut' &&
+      effect.single == 'pbSmashThisEvent';
+}
+
+bool _sourceCutObstacleObject(
+        Map value, String className, Set<String> fields) =>
+    value['__class__'] == className &&
+    value.length == fields.length + 1 &&
+    fields.every(value.containsKey);
+
+bool _sourceCutObstacleValues(Map value, Map<String, Object> expected) =>
+    expected.entries.every((entry) => value[entry.key] == entry.value);
+
+bool _sourceCutObstacleRoute(Object? value,
+    {required bool repeat, required List<int> codes}) {
+  if (value is! Map ||
+      !_sourceCutObstacleObject(
+          value, 'RPG::MoveRoute', const {'repeat', 'skippable', 'list'}) ||
+      value['repeat'] != repeat ||
+      value['skippable'] != false) {
+    return false;
+  }
+  final commands = value['list'];
+  return commands is List &&
+      commands.length == codes.length &&
+      codes.indexed.every(
+          (entry) => _sourceCutObstacleMove(commands[entry.$1], entry.$2));
+}
+
+bool _sourceCutObstacleMove(Object? value, int code) =>
+    value is Map &&
+    _sourceCutObstacleObject(
+        value, 'RPG::MoveCommand', const {'code', 'parameters'}) &&
+    value['code'] == code &&
+    value['parameters'] is List &&
+    (value['parameters'] as List).isEmpty;
