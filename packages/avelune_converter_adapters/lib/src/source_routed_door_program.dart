@@ -17,6 +17,9 @@ final class SourceRoutedDoorProgram {
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
         sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
+        _departureGraphic = event.pages[event.pages.length - 2].graphic!,
+        _arrivalGraphic = event.pages.last.graphic!,
+        nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event),
         _fingerprint = _fingerprintOf(event);
 
   final int sourceMapId, sourceEventId, targetSourceMapId;
@@ -25,6 +28,8 @@ final class SourceRoutedDoorProgram {
       normalizationHash,
       profileHash,
       sourceFileHash;
+  final SourceEventGraphic _departureGraphic, _arrivalGraphic;
+  final bool nativeStableDepartureDoorSkin;
   final String _fingerprint;
 
   bool isBoundTo(
@@ -56,6 +61,15 @@ final class SourceRoutedDoorProgram {
         'temporaryState': 'nativeMapEventInstanceBoolean',
         'sourceScriptsExecuted': 0,
         'sourceProgramPlaybackQualified': false,
+        if (nativeStableDepartureDoorSkin)
+          'presentationAdaptation': {
+            'kind': 'nativeStableDepartureDoorSkin',
+            'sourceCharset': _departureGraphic.characterName,
+            'departurePattern': _departureGraphic.pattern,
+            'arrivalPattern': _arrivalGraphic.pattern,
+            'nativePattern': _departureGraphic.pattern,
+            'sourceSelectedPagePatternPlaybackQualified': false,
+          },
       };
 }
 
@@ -144,6 +158,7 @@ bool _isRoutedDoor(SourceEventDefinition event) {
       return false;
     }
   }
+  final stableDepartureSkin = _usesStableDepartureDoorSkin(event);
   String? visual;
   for (var index = 0; index < event.pages.length; index++) {
     final page = event.pages[index];
@@ -162,7 +177,13 @@ bool _isRoutedDoor(SourceEventDefinition event) {
       'opacity': empty ? null : graphic.opacity,
       'blend': graphic.blendType,
       'direction': graphic.direction,
-      'pattern': empty ? null : graphic.pattern,
+      'pattern': empty
+          ? null
+          : stableDepartureSkin
+              ? departure.graphic!.pattern
+              : graphic.pattern,
+      if (stableDepartureSkin) 'speed': graphic.moveSpeed,
+      if (stableDepartureSkin) 'frequency': graphic.moveFrequency,
       'through': graphic.through,
       'walk': graphic.walkAnime,
       'step': graphic.stepAnime,
@@ -231,6 +252,25 @@ bool _isRoutedDoor(SourceEventDefinition event) {
       : route.length == 2 &&
           _route(route[0], -1, [1]) &&
           route[1] is SourceMoveRouteBarrierNode;
+}
+
+bool _usesStableDepartureDoorSkin(SourceEventDefinition event) {
+  if (event.pages.length != 2) return false;
+  final departure = event.pages.first.graphic;
+  final arrival = event.pages.last.graphic;
+  if (departure == null ||
+      arrival == null ||
+      departure.characterName != arrival.characterName) {
+    return false;
+  }
+  return switch ((
+    departure.characterName,
+    departure.pattern,
+    arrival.pattern
+  )) {
+    ('OBJ_FRLG_Doors1', 3, 1) || ('OBJ_FRLG_Doors4', 1, 0) => true,
+    _ => false,
+  };
 }
 
 Object? _node(SourceEventNode node) => switch (node) {

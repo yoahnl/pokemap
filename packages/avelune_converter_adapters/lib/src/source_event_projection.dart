@@ -2182,7 +2182,9 @@ final class _ProjectionBuilder {
             : graphic.characterName,
         'direction': graphic.direction,
         'through': graphic.through,
-        'pattern': routedDoorPrograms.containsKey(event.identity) && graphic.characterName.isEmpty ? null : graphic.pattern,
+        'pattern': routedDoorPrograms.containsKey(event.identity) && graphic.characterName.isEmpty ? null
+            : routedDoorPrograms[event.identity]?.nativeStableDepartureDoorSkin == true
+                ? event.pages.first.graphic!.pattern : graphic.pattern,
         'walkAnime': graphic.walkAnime
       });
       if (previousGraphic != null &&
