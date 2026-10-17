@@ -1673,12 +1673,17 @@ final class _SourceNormalizationRun {
       final image = tileset.images.singleWhere((image) => slot == null
           ? image.role == 'tileset'
           : image.role == 'autotile' && image.slot == slot);
+      final metadataValid = tile.$2 < tileset.passages.cellCount;
       addEventImage(NormalizedMediaReference(
         ownerId: tile.$3,
         role: slot == null ? 'eventTile' : 'eventAutotile',
         sourceName: image.sourceName,
         locator: tile.$4,
-        state: image.state == 'none' ? 'missing' : image.state,
+        state: image.state == 'resolved' && !metadataValid
+            ? 'invalid'
+            : image.state == 'none'
+                ? 'missing'
+                : image.state,
         sourceFile: image.sourceFile,
         appliedImageBinding: image.appliedImageBinding,
         slot: slot,
@@ -1688,9 +1693,10 @@ final class _SourceNormalizationRun {
         diagnostic('normalization.event_tile_image_missing', tile.$4,
             'Event tile ${tile.$2} requires an unavailable source image');
       }
-      if (tile.$2 >= tileset.passages.cellCount) {
-        diagnostic('normalization.tile_metadata_missing', tile.$4,
-            'Event tile ${tile.$2} exceeds source tileset metadata');
+      if (!metadataValid) {
+        diagnostic('normalization.event_tile_metadata_missing', tile.$4,
+            'Event tile ${tile.$2} exceeds source tileset metadata',
+            blocks: false);
       }
     }
     for (final map in maps) {

@@ -665,6 +665,17 @@ final class SourceEventAnalyzer {
   SourceEventAnalysis analyze() {
     final events = <SourceEventDefinition>[];
     final diagnostics = <SourceEventDiagnostic>[];
+    final invalidGraphicPages = {
+      for (final image in project.eventImages)
+        if (image.state == 'invalid')
+          (
+            image.ownerId,
+            image.locator.file,
+            image.locator.mapId,
+            image.locator.eventId,
+            image.locator.pageIndex
+          )
+    };
     final switches = _switchNames();
     final qualified = _isQualified;
     for (final map in project.maps) {
@@ -679,6 +690,16 @@ final class SourceEventAnalyzer {
           final loc = _eventLocator(path, map.map.sourceMapId,
               event.sourceEventId, sourcePage.originalPageIndex);
           final pageDiagnostics = <SourceEventDiagnostic>[];
+          if (invalidGraphicPages.contains((
+            project.eventIdentity(map.map.sourceMapId, event.sourceEventId),
+            path,
+            map.map.sourceMapId,
+            event.sourceEventId,
+            sourcePage.originalPageIndex
+          ))) {
+            pageDiagnostics.add(SourceEventDiagnostic(
+                'events.invalid_event_graphic_reference', loc));
+          }
           SourceEventCondition condition;
           SourceEventGraphic? graphic;
           final raw = _reference(sourcePage.rawDataRef);

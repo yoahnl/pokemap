@@ -1449,6 +1449,59 @@ void main() {
         isNotNull);
   });
 
+  test('invalid event tile stays unresolved without blocking valid terrain',
+      () async {
+    final page = _page([]);
+    (page.fields['@graphic']! as _RubyObject).fields['@tile_id'] = 647;
+    final files = _source(_project(maps: {
+      1: _map(events: {2: _event(2, [_page([]), page])})
+    }));
+    final result = await _normalize(files);
+    expect(result.canPlan, isTrue);
+    final reference = result.eventImages
+        .singleWhere((image) => image.role == 'eventTile');
+    expect(reference.state, 'invalid');
+    expect(reference.sourceTileId, 647);
+    expect(reference.sourceFile!.relativePath, 'Graphics/Tilesets/Terrain.png');
+    expect(reference.sourceFile!.sha256, _hash(_png()));
+    expect([
+      reference.locator.mapId,
+      reference.locator.eventId,
+      reference.locator.pageIndex
+    ], [1, 2, 1]);
+    final diagnostic = result.diagnostics.singleWhere(
+        (entry) => entry.code == 'normalization.event_tile_metadata_missing');
+    expect(diagnostic.blocksPlanning, isFalse);
+    expect(diagnostic.locator.toJson(), reference.locator.toJson());
+    final graphic = result.maps.single.map.events.single.pages.last;
+    expect(graphic.rawDataRef, isNotNull);
+    expect(result.archive.references[graphic.rawDataRef]!.status, 'preservedOnly');
+    expect(result.maps.single.map.layers.first.cells,
+        [384, 385, 386, 387, 388, 389]);
+    final analysis = SourceEventAnalyzer.forProject(result,
+            profile: SourceEventProfile.kantoForProject(result,
+                scriptsArchiveHash: Sha256Hash(
+                    SourceEventProfile.kantoScriptsArchiveSha256)))
+        .analyze();
+    expect(analysis.events.single.isQuarantined, isTrue);
+    final invalidGraphic = analysis.diagnostics.singleWhere(
+        (entry) => entry.code == 'events.invalid_event_graphic_reference');
+    expect(invalidGraphic.locator.toJson(), reference.locator.toJson());
+  });
+
+  test('out of range terrain metadata still blocks the entire map', () async {
+    final result = await _normalize(_source(_project(maps: {
+      1: _map(data: _RubyTable(3, 2, 3, [512, ...List.filled(17, 0)]))
+    })));
+    _blocked(result, file: 'Data/Map001.rxdata');
+    expect(
+        result.diagnostics.any((entry) =>
+            entry.code == 'normalization.tile_metadata_missing' &&
+            entry.blocksPlanning),
+        isTrue);
+    expect(result.eventImages, isEmpty);
+  });
+
   test('ambiguous event character images still block planning', () async {
     final project = _project(maps: {
       1: _map(events: {

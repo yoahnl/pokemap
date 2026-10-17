@@ -683,6 +683,40 @@ List<_RubyObject> _interactionFacingCommands() {
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  test('invalid graphic on a later page keeps the whole event inactive',
+      () async {
+    final invalidPage = _page([_command(101, ['Invalid graphic'])], character: '');
+    (invalidPage.fields['@graphic'] as _RubyObject).fields['@tile_id'] = 647;
+    final source = await _events([
+      _page([_command(101, ['Valid first page'])], character: ''),
+      invalidPage,
+    ]);
+    expect(source.canPlan, isTrue);
+    final analysis = _analyzer(source).analyze();
+    expect(analysis.events.single.isQuarantined, isTrue);
+    expect(
+        analysis.diagnostics.map((entry) => entry.code),
+        contains('events.invalid_event_graphic_reference'));
+    final projector = const SourceEventProjector();
+    final result = _projectEvents(source);
+    expect(result.scenes, isEmpty);
+    expect(result.dialogues, isEmpty);
+    expect(result.registry.records, hasLength(1));
+    expect(result.registry.records.single.definitionOrNull, isNull);
+    for (final map in result.nativeMaps.values) {
+      expect(map.entities, isEmpty);
+      expect(map.triggers, isEmpty);
+      expect(map.warps, isEmpty);
+      expect(map.events, isEmpty);
+    }
+    expect(
+        projector.characterImportCandidates(
+            source: source, analysis: analysis, nativeMaps: _nativeMaps(source)),
+        isEmpty);
+    final event = (result.semanticEvidence['events'] as List).single as Map;
+    expect(event['status'], 'quarantinedWholeEvent');
+    expect(event['gaps'], contains('sourceQuarantined'));
+  });
   group('item giver graphic byte identity', () {
     final sameHash = _hash([1, 2, 3, 4]);
 
