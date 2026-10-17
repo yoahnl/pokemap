@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
+import 'source_event_evidence.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_static_door_program.dart';
@@ -655,13 +656,29 @@ final class SourceEventStudyComposer {
         'chunks': chunks
       });
     }
-    final companion = NativeArtifact(
-        bytes: utf8.encode(canonicalJsonOf({
-          ...projection.semanticEvidence,
-          'preservedSourceFiles': preservedFiles,
-        }, limits: limits.jsonLimits)),
-        mediaType: 'application/json',
-        limits: limits);
+    final companionPacking = SourceEventEvidenceArtifacts.pack({
+      ...projection.semanticEvidence,
+      'preservedSourceFiles': preservedFiles,
+    }, limits: limits, cancellation: cancellation);
+    final companion = companionPacking.root;
+    for (final artifact in companionPacking.chunks) {
+      final id = 'ac13_events_chunk_${artifact.rawSha256.value.substring(0, 24)}';
+      preservedArtifacts[artifact.handle] = artifact;
+      preservedMutations.add(NativeMutation(
+          operationId:
+              ConverterId('ac13_events_chunk_${artifact.rawSha256.value}'),
+          actionId: 'asset.import',
+          sourceEntityIds: owners,
+          targetEntityIds: [ConverterId(id)],
+          parameters: {
+            'artifactHandle': artifact.handle,
+            'assetId': id,
+            'logicalPath': 'assets/converter/$id.json',
+            'tags': ['source-events', 'preserved-source-provenance'],
+            'usages': ['converter.sourceEventProjectionBytes'],
+          },
+          limits: limits));
+    }
     final companionId =
         'ac13_events_${companion.rawSha256.value.substring(0, 24)}';
     final companionMutation = NativeMutation(

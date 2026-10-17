@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_event_evidence.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
@@ -1127,6 +1128,8 @@ final class _ProjectionBuilder {
         mode: EventSystemMode.v2Only,
         records: records,
         legacyClaims: const []);
+    final contextEncoding = SourceEventEvidenceEncoding(
+        enabled: maps.length > 8, limits: limits);
     final evidence = <String, Object?>{
       'contract': 'source-events-v2-projection-v1',
       'sourceSnapshotHash': sourceSnapshotHash.value,
@@ -1145,19 +1148,19 @@ final class _ProjectionBuilder {
         'facePassSeparation': 'yieldAfterEachFace',
         'sourcePassToNativeUpdateEquivalence': 'requiresRuntimeQualification',
         'global210Scope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
-        'sourceExecutionContext': executionContext?.toJson(),
+        'sourceExecutionContext': contextEncoding.encodeContext(executionContext?.toJson()),
         'stairPrograms': [for (final entry in stairPrograms.entries) {
-          ...entry.value.toJson(), 'executionContext': stairContexts[entry.key]?.toJson(),
+          ...entry.value.toJson(), 'executionContext': contextEncoding.encodeContext(stairContexts[entry.key]?.toJson()),
           'executionContextQualified': qualifiedStairContexts.contains(entry.key),
         }],
         'routedDoorPrograms': [for (final entry in routedDoorPrograms.entries) {
           ...entry.value.toJson(),
-          'executionContext': routedDoorContexts[entry.key]?.toJson(),
+          'executionContext': contextEncoding.encodeContext(routedDoorContexts[entry.key]?.toJson()),
           'executionContextQualified': qualifiedRoutedDoorContexts.contains(entry.key),
         }],
         'staticDoorPrograms': [for (final entry in staticDoorPrograms.entries) {
           ...entry.value.toJson(),
-          'executionContext': staticDoorContexts[entry.key]?.toJson(),
+          'executionContext': contextEncoding.encodeContext(staticDoorContexts[entry.key]?.toJson()),
           'executionContextQualified': qualifiedStaticDoorContexts.contains(entry.key),
         }],
         'blockedSkippableMovePassEquivalence': 'requiresRuntimeQualification',
@@ -1228,10 +1231,12 @@ final class _ProjectionBuilder {
       ],
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
     };
-    final artifact = NativeArtifact(
-        bytes: utf8.encode(canonicalJsonOf(evidence)),
-        mediaType: 'application/json',
-        limits: limits);
+    final contextTables = contextEncoding.tables;
+    if (contextTables != null) {
+      evidence['executionContextTables'] = contextTables;
+    }
+    final packedEvidence =
+        SourceEventEvidenceArtifacts.pack(evidence, limits: limits);
     return SourceEventProjection(
         nativeMaps: maps,
         registry: registry,
@@ -1246,7 +1251,7 @@ final class _ProjectionBuilder {
                 schemaVersion: 1,
                 entries: usedItems.values.toList()
                   ..sort((a, b) => a.id.compareTo(b.id))),
-        artifacts: [artifact],
+        artifacts: packedEvidence.artifacts,
         mutations: mutations,
         semanticEvidence: evidence,
         staticSemanticsQualified:
