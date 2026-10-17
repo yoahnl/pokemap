@@ -38,8 +38,19 @@ List<SourceConnectionArrival> sourceConnectionArrivals({
   required NormalizedMapConnection connection,
   required Map<int, MapData> nativeMaps,
   ScanCancellation? cancellation,
+}) =>
+    _sourceConnectionArrivals(
+        resolver: SourceSemanticResolver.forProject(source),
+        connection: connection,
+        nativeMaps: nativeMaps,
+        cancellation: cancellation);
+
+List<SourceConnectionArrival> _sourceConnectionArrivals({
+  required SourceSemanticResolver resolver,
+  required NormalizedMapConnection connection,
+  required Map<int, MapData> nativeMaps,
+  ScanCancellation? cancellation,
 }) {
-  final resolver = SourceSemanticResolver.forProject(source);
   final result = <SourceConnectionArrival>[];
   void direction(int fromId, int toId,
       SourceConnectionDirection sourceDirection, int offset) {
@@ -164,6 +175,7 @@ final class SourceConnectionStudyComposer {
   }) async {
     cancellation?.check();
     limits.validate();
+    final resolver = SourceSemanticResolver.forProject(source);
     final maps = Map<int, MapData>.from(nativeMaps);
     final rows = <Map<String, Object?>>[];
     final diagnostics = <Map<String, Object?>>[];
@@ -186,8 +198,7 @@ final class SourceConnectionStudyComposer {
       'sourceDirection': 0,
       'directionBit': 0,
       'sourceEntryScope': 'destinationStaticTilesWithoutBorderEvents',
-      'sourceEntryProfile':
-          SourceSemanticResolver.forProject(source).profile.toJson(),
+      'sourceEntryProfile': resolver.profile.toJson(),
       'sourceEntryContext': const SourceSemanticContext().toJson(),
       'sourceEntryContextAssumptions': {
         'surfing': false,
@@ -388,8 +399,8 @@ final class SourceConnectionStudyComposer {
             'Source tile or sprite event pages and footprints can affect the overlap; the entire connection remains inactive');
         continue;
       }
-      final arrivals = sourceConnectionArrivals(
-          source: source,
+      final arrivals = _sourceConnectionArrivals(
+          resolver: resolver,
           connection: row,
           nativeMaps: maps,
           cancellation: cancellation);
