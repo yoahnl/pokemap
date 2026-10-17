@@ -5,6 +5,8 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import 'native_project_writer.dart';
 
+enum SourceMapMusicPolicy { sourceEngineGain, nativeAuthoredVolume }
+
 final class SourceMapMusicBindingUnavailable implements Exception {
   const SourceMapMusicBindingUnavailable(this.reason);
   final String reason;
@@ -16,6 +18,7 @@ final class SourceMapMusicBindingUnavailable implements Exception {
 final class SourceMapMusicBinding {
   SourceMapMusicBinding._({
     required this.sourceMapId,
+    required this.policy,
     required this.sourceSnapshotHash,
     required this.normalizedSourceHash,
     required this.nativeVolume,
@@ -36,6 +39,7 @@ final class SourceMapMusicBinding {
         _limits = limits;
 
   final int sourceMapId;
+  final SourceMapMusicPolicy policy;
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash normalizedSourceHash;
   final double nativeVolume;
@@ -81,6 +85,7 @@ final class SourceMapMusicResolver {
     required NormalizedSourceProject source,
     required SourceFilePort files,
     required int sourceMapId,
+    SourceMapMusicPolicy policy = SourceMapMusicPolicy.sourceEngineGain,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -158,20 +163,24 @@ final class SourceMapMusicResolver {
       _unavailable('profile_unqualified');
     }
     await read(scripts);
-    final engine = entry('Game.exe', 'engine_unqualified');
-    if (engine.byteLength != 14732288 || engine.sha256!.value != _engineHash) {
-      _unavailable('engine_unqualified');
+    SourceFileEntry? engine, configuration, gameIni;
+    if (policy == SourceMapMusicPolicy.sourceEngineGain) {
+      engine = entry('Game.exe', 'engine_unqualified');
+      if (engine.byteLength != 14732288 ||
+          engine.sha256!.value != _engineHash) {
+        _unavailable('engine_unqualified');
+      }
+      configuration = entry('mkxp.json', 'configuration_unqualified');
+      gameIni = entry('Game.ini', 'configuration_unqualified');
+      if (configuration.byteLength != 6212 ||
+          configuration.sha256!.value != _configurationHash ||
+          gameIni.byteLength != 121 ||
+          gameIni.sha256!.value != _gameIniHash) {
+        _unavailable('configuration_unqualified');
+      }
+      await read(configuration);
+      await read(gameIni);
     }
-    final configuration = entry('mkxp.json', 'configuration_unqualified');
-    final gameIni = entry('Game.ini', 'configuration_unqualified');
-    if (configuration.byteLength != 6212 ||
-        configuration.sha256!.value != _configurationHash ||
-        gameIni.byteLength != 121 ||
-        gameIni.sha256!.value != _gameIniHash) {
-      _unavailable('configuration_unqualified');
-    }
-    await read(configuration);
-    await read(gameIni);
 
     final musicId = fields['@bgm'];
     if (musicId == null) _unavailable('music_unqualified');
@@ -198,7 +207,10 @@ final class SourceMapMusicResolver {
     final pitch = _integer(document, music['@pitch']);
     if (volume == null) _unavailable('volume_unqualified');
     if (pitch == null) _unavailable('pitch_unqualified');
-    if (volume != 100) _unavailable('volume_unsupported');
+    if (volume > 100 ||
+        (policy == SourceMapMusicPolicy.sourceEngineGain && volume != 100)) {
+      _unavailable('volume_unsupported');
+    }
     if (pitch != 100) _unavailable('pitch_unsupported');
     final base = 'Audio/BGM/$name';
     final baseKey = sourcePathCollisionKey(base);
@@ -267,9 +279,12 @@ final class SourceMapMusicResolver {
     );
     return SourceMapMusicBinding._(
       sourceMapId: sourceMapId,
+      policy: policy,
       sourceSnapshotHash: snapshot.canonicalHash,
       normalizedSourceHash: source.canonicalHash,
-      nativeVolume: 0.64,
+      nativeVolume: policy == SourceMapMusicPolicy.nativeAuthoredVolume
+          ? volume / 100
+          : 0.64,
       mapFile: mapFile,
       audioFile: audioFile,
       mapMusicPath: logicalPath,
@@ -281,28 +296,47 @@ final class SourceMapMusicResolver {
       evidence: {
         'kind': 'sourceMapMusicBinding',
         'version': 1,
-        'profile': 'kanto-mkxp-z-2.4.2-c9378cf-static-audio-v1',
+        'profile': policy == SourceMapMusicPolicy.nativeAuthoredVolume
+            ? 'kanto-native-authored-audio-v1'
+            : 'kanto-mkxp-z-2.4.2-c9378cf-static-audio-v1',
+        'policy': policy.name,
+        'sourceEngineGainQualified':
+            policy == SourceMapMusicPolicy.sourceEngineGain,
+        'fullSourceParity': false,
         'sourceSnapshotHash': snapshot.canonicalHash.value,
         'normalizedSourceHash': source.canonicalHash.value,
         'sourceMapId': sourceMapId,
         'sourceMapFile': mapFile.toJson(),
         'sourceAudioFile': audioFile.toJson(),
-        'sourceEngineFile': engine.toJson(),
-        'sourceConfigurationFile': configuration.toJson(),
-        'sourceGameIniFile': gameIni.toJson(),
+        if (engine != null) 'sourceEngineFile': engine.toJson(),
+        if (configuration != null)
+          'sourceConfigurationFile': configuration.toJson(),
+        if (gameIni != null) 'sourceGameIniFile': gameIni.toJson(),
         'sourceScriptsFile': scripts.toJson(),
         'sourceAutoplayBgm': true,
         'sourceName': name,
         'sourceVolume': volume,
         'sourcePitch': pitch,
-        'sourceFreshOptionsMusicVolume': 80,
-        'sourceRubyAudioGain': 0.8,
-        'sourceEngineGlobalGain': 0.8,
-        'nativeAudioGain': 0.64,
-        'requiredRuntimeContext': 'freshGameDefaultOptions',
+        if (policy == SourceMapMusicPolicy.sourceEngineGain) ...{
+          'sourceFreshOptionsMusicVolume': 80,
+          'sourceRubyAudioGain': 0.8,
+          'sourceEngineGlobalGain': 0.8,
+        },
+        'nativeAudioGain': policy == SourceMapMusicPolicy.nativeAuthoredVolume
+            ? volume / 100
+            : 0.64,
+        if (policy == SourceMapMusicPolicy.nativeAuthoredVolume)
+          'nativeGain': 'authoredVolume/100',
+        'requiredRuntimeContext':
+            policy == SourceMapMusicPolicy.nativeAuthoredVolume
+                ? 'aveluneNativeAudio'
+                : 'freshGameDefaultOptions',
         'sourceSessionBgmInheritanceQualified': false,
         'sourceNightVariant': 'absentInCompleteSnapshot',
-        'sourceEngineIdentityAttestation': 'sealedSnapshotSha256AndByteLength',
+        'sourceEngineIdentityAttestation':
+            policy == SourceMapMusicPolicy.nativeAuthoredVolume
+                ? 'notRequiredForNativeAudioAdaptation'
+                : 'sealedSnapshotSha256AndByteLength',
         'sourceEngineBinaryBytesReinspected': false,
         'sourceEngineBinaryRetained': false,
         'sourceEngineBinaryExecuted': false,

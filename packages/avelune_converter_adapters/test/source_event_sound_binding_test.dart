@@ -37,6 +37,42 @@ void main() {
       expect(() => binding.artifact.bytes[0] = 0, throwsUnsupportedError);
     });
 
+    test(
+        'native authored sound binds exact audio without claiming source engine gain',
+        () async {
+      final input = await SourceMapMusicFixture.create(
+          oracle: oracle,
+          missingEngine: true,
+          extraFiles: {
+            'Audio/SE/ItemGet.wav': sourceMapMusicFixtureWav(),
+          });
+      final binding = await const SourceEventSoundResolver().read(
+          source: input.source,
+          files: input.files,
+          name: 'ItemGet',
+          policy: SourceEventSoundPolicy.nativeAuthoredVolume);
+      expect(binding.gainForVolume(100), 1);
+      expect(binding.gainForVolume(35), 0.35);
+      expect(binding.evidence['sourceEngineGainQualified'], isFalse);
+      expect(binding.evidence['fullSourceParity'], isFalse);
+      expect(binding.evidence['nativeGain'], 'authoredVolume/100');
+      expect(binding.evidence.containsKey('sourceEngineFile'), isFalse);
+      expect(binding.artifact.bytes, input.sourceBytes['Audio/SE/ItemGet.wav']);
+      await expectLater(
+          const SourceEventSoundResolver()
+              .read(source: input.source, files: input.files, name: 'ItemGet'),
+          throwsA(isA<SourceEventSoundBindingUnavailable>()));
+      input.files.overrides['Audio/SE/ItemGet.wav'] = [0, 1];
+      await expectLater(
+          const SourceEventSoundResolver().read(
+              source: input.source,
+              files: input.files,
+              name: 'ItemGet',
+              policy: SourceEventSoundPolicy.nativeAuthoredVolume),
+          throwsA(isA<SourceEventSoundBindingUnavailable>()
+              .having((error) => error.reason, 'reason', 'audio_changed')));
+    });
+
     test('rejects ambiguous source paths before an audio read', () async {
       final input = await fixture(duplicate: true);
       await expectLater(

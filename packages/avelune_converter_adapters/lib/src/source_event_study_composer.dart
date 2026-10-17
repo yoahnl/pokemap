@@ -129,6 +129,11 @@ final class SourceEventStudyComposer {
         .where((entry) => witnessPaths.contains(entry.relativePath))) {
       await recording.read(entry.fileId);
     }
+    final itemGiverMapIds = {
+      for (final event in selectedEvents.where((event) => !event.isQuarantined))
+        if (event.pages.any((page) => _pickups(page.body).any(
+            (pickup) => pickup.helper == SourceItemGrantHelper.receiveItem))) event.sourceMapId,
+    };
     final musicBindings = <int, SourceMapMusicBinding>{};
     final musicEvidence = <Map<String, Object?>>[];
     final musicMapIds = nativeMaps.keys.toList()..sort();
@@ -138,6 +143,8 @@ final class SourceEventStudyComposer {
             source: source,
             files: recording,
             sourceMapId: sourceMapId,
+            policy: itemGiverMapIds.contains(sourceMapId)
+                ? SourceMapMusicPolicy.nativeAuthoredVolume : SourceMapMusicPolicy.sourceEngineGain,
             limits: limits,
             cancellation: cancellation);
         if (binding == null) continue;
@@ -159,20 +166,26 @@ final class SourceEventStudyComposer {
     final pickupBindings = <String, SourcePickupFeedbackBinding>{};
     final pickupEvidence = <Map<String, Object?>>[];
     SourceEventItemBindings? items;
-    final pickups = <(int, String)>{
+    final pickups = <(int, String, SourceItemGrantHelper)>{
       for (final event in selectedEvents.where((entry) => !entry.isQuarantined))
         for (final page in event.pages)
           for (final pickup in _pickups(page.body))
-            (event.sourceMapId, pickup.sourceSymbol)
+            (event.sourceMapId, pickup.sourceSymbol, pickup.helper)
     }.toList()
       ..sort(
-          (a, b) => a.$1 == b.$1 ? a.$2.compareTo(b.$2) : a.$1.compareTo(b.$1));
-    if (pickups.isNotEmpty) {
+          (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1)
+              : a.$2 != b.$2 ? a.$2.compareTo(b.$2)
+              : a.$3.name.compareTo(b.$3.name));
+    final itemSymbols = {
+      for (final event in selectedEvents.where((entry) => !entry.isQuarantined))
+        for (final page in event.pages) ..._itemSymbols(page.body),
+    };
+    if (itemSymbols.isNotEmpty) {
       try {
         items = await const SourceEventItemBindingResolver().read(
             snapshot: source.snapshot,
             files: recording,
-            symbols: pickups.map((entry) => entry.$2),
+            symbols: itemSymbols,
             eventProfile: profile,
             cancellation: cancellation);
         for (final pickup in pickups) {
@@ -181,13 +194,14 @@ final class SourceEventStudyComposer {
             continue;
           }
           final key = sourcePickupFeedbackBindingKey(
-              sourceMapId: pickup.$1, sourceSymbol: pickup.$2);
+              sourceMapId: pickup.$1, sourceSymbol: pickup.$2, helper: pickup.$3);
           try {
             final binding = await const SourcePickupFeedbackResolver().read(
                 source: source,
                 files: recording,
                 item: item,
                 sourceMapId: pickup.$1,
+                helper: pickup.$3,
                 music: musicBindings[pickup.$1],
                 limits: limits,
                 cancellation: cancellation);
@@ -213,16 +227,24 @@ final class SourceEventStudyComposer {
         pickupEvidence.add({'status': 'preservedOnly', 'code': error.code});
       }
     }
+    final transitionSounds = {
+      for (final event in selectedEvents.where((event) => !event.isQuarantined &&
+          transitionIds.contains(event.identity)))
+        for (final page in event.pages) ..._soundNames(page.body),
+    };
     final sounds = <String, SourceEventSoundBinding>{};
     final soundEvidence = <Map<String, Object?>>[];
     for (final name in {
       for (final event in selectedEvents.where((event) => !event.isQuarantined &&
-          transitionIds.contains(event.identity)))
+          (transitionIds.contains(event.identity) || event.pages.any((page) =>
+              _pickups(page.body).any((pickup) => pickup.helper == SourceItemGrantHelper.receiveItem)))))
         for (final page in event.pages) ..._soundNames(page.body),
     }.toList()..sort()) {
       try {
         final binding = await const SourceEventSoundResolver().read(
           source: source, files: recording, name: name, limits: limits,
+          policy: transitionSounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
+              : SourceEventSoundPolicy.nativeAuthoredVolume,
           cancellation: cancellation);
         sounds[name] = binding;
         soundEvidence.add({'sourceName': name, 'status': 'imported', ...binding.evidence});
@@ -300,6 +322,7 @@ final class SourceEventStudyComposer {
             analysis: analysis,
             nativeMaps: nativeMaps,
             pickupBindings: pickupBindings,
+            itemBindings: items?.bindings ?? const {},
             soundBindings: sounds,
             centerRecoveryBinding: centerRecovery,
             trainerBindings: trainerBindings.byEventIdentity,
@@ -376,6 +399,7 @@ final class SourceEventStudyComposer {
         nativeMaps: nativeMaps,
         characterBindings: bindings,
         pickupBindings: pickupBindings,
+        itemBindings: items?.bindings ?? const {},
         soundBindings: sounds,
         centerRecoveryBinding: centerRecovery,
         trainerBindings: trainerBindings.byEventIdentity,
@@ -667,6 +691,11 @@ final class SourceEventStudyComposer {
       'characters': characterEvidence,
       'items': items?.evidence,
       'pickups': pickupEvidence,
+      'diagnostics': {
+        for (final binding in usedPickupBindings)
+          for (final diagnostic in (binding.evidence['diagnostics'] as List? ?? const []).cast<Map>())
+            canonicalJsonOf(diagnostic): diagnostic,
+      }.values.toList(),
       'sounds': soundEvidence,
       'externalWarpBindings': externalWarpEvidence,
       if (usedExternalWarps != null) 'externalWarps': usedExternalWarps.evidence,
@@ -1003,6 +1032,8 @@ Future<({MapInstanceRetentionPolicy policy, Map<String, Object?> evidence})>
 Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     switch (node) {
+      case SourcePickupNode():
+        yield node;
       case SourceConditionalNode():
         if (node.condition.pickup != null) yield node.condition.pickup!;
         yield* _pickups(node.whenTrue);
@@ -1022,6 +1053,30 @@ Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
           yield* _pickups(branch.body);
         }
         if (node.cancelBranch != null) yield* _pickups(node.cancelBranch!);
+      default:
+        break;
+    }
+  }
+}
+
+Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
+  for (final node in block.nodes) {
+    switch (node) {
+      case SourcePickupNode():
+        yield node.sourceSymbol;
+      case SourceConditionalNode():
+        if (node.condition.sourceItemSymbol != null) yield node.condition.sourceItemSymbol!;
+        if (node.condition.pickup != null) yield node.condition.pickup!.sourceSymbol;
+        yield* _itemSymbols(node.whenTrue);
+        yield* _itemSymbols(node.whenFalse);
+      case SourceTextNode():
+        if (node.followingChoice != null) {
+          for (final branch in node.followingChoice!.branches) { yield* _itemSymbols(branch.body); }
+          if (node.followingChoice!.cancelBranch != null) yield* _itemSymbols(node.followingChoice!.cancelBranch!);
+        }
+      case SourceChoiceNode():
+        for (final branch in node.branches) { yield* _itemSymbols(branch.body); }
+        if (node.cancelBranch != null) yield* _itemSymbols(node.cancelBranch!);
       default:
         break;
     }

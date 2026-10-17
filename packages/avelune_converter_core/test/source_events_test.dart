@@ -1996,6 +1996,88 @@ void main() {
     }
   });
 
+  test('closed bag item predicates preserve positive and negative presence', () async {
+    for (final expression in [
+      r'$bag.quantity(:OLDROD) == 0',
+      r'$bag.quantity(:GOODROD)>0',
+      r'$bag.has?(:SUPERROD)',
+      r'!$bag.has?(:SUPERROD)',
+    ]) {
+      final event = _analyzer(await _events([
+        _page([
+          _command(111, [12, expression]),
+          _command(101, ['matched'], indent: 1),
+          _command(411, []),
+          _command(101, ['unmatched'], indent: 1),
+          _command(412, []),
+          _command(0, []),
+        ])
+      ])).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isFalse, reason: expression);
+      final node = event.pages.single.body.nodes.single as SourceConditionalNode;
+      expect(node.condition.kind.name, 'itemPresence');
+      expect(node.condition.toJson()['sourceItemSymbol'],
+          expression.contains('OLDROD') ? 'OLDROD' : expression.contains('GOODROD') ? 'GOODROD' : 'SUPERROD');
+      expect(node.condition.expectedValue,
+          !expression.contains('== 0') && !expression.startsWith('!'));
+      expect(node.whenTrue.nodes.single, isA<SourceTextNode>());
+      expect(node.whenFalse.nodes.single, isA<SourceTextNode>());
+    }
+  });
+
+  test('standalone receive item has a typed helper and ignored source return', () async {
+    final event = _analyzer(await _events([
+      _page([
+        _command(355, ['pbReceiveItem(:OLDROD)']),
+        _command(101, ['Continue even if grant fails']),
+        _command(123, ['A', 0]),
+        _command(0, []),
+      ])
+    ])).analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isFalse);
+    final grant = event.pages.single.body.nodes.first;
+    expect(grant, isA<SourcePickupNode>());
+    expect((grant as SourcePickupNode).sourceSymbol, 'OLDROD');
+    expect(grant.toJson()['helper'], 'receiveItem');
+    expect(grant.toJson()['sourceReturnValueUsed'], isFalse);
+    expect(event.pages.single.body.nodes[1], isA<SourceTextNode>());
+    expect(event.pages.single.body.nodes[2], isA<SourceSelfSwitchNode>());
+  });
+
+  test('item giver literals reject dynamic Ruby and changed source profiles', () async {
+    for (final expression in [
+      r'$bag.quantity(item)>0',
+      r'$bag.quantity(:OLDROD) >= 1',
+      r'$bag.quantity(:OLDROD) == 1',
+      r'$bag.has?(:OLDROD) || reward()',
+      r'!$bag.has?(:OLDROD); reward()',
+      r'$bag.has?(:OLDROD, extra)',
+      r'$bag.quantity(:OLDROD)>0' '\n',
+    ]) {
+      final event = _analyzer(await _events([
+        _page([_command(111, [12, expression]), _command(412, [])])
+      ])).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isTrue, reason: expression);
+    }
+    for (final expression in [
+      'pbReceiveItem(item)',
+      'pbReceiveItem(:OLDROD); reward()',
+      'pbReceiveItem(:OLDROD) || reward()',
+      'pbReceiveItem(:OLDROD, quantity)',
+      'pbReceiveItem(:OLDROD, 0)',
+    ]) {
+      final event = _analyzer(await _events([
+        _page([_command(355, [expression]), _command(0, [])])
+      ])).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isTrue, reason: expression);
+    }
+    final project = await _events([
+      _page([_command(355, ['pbReceiveItem(:OLDROD)']), _command(0, [])])
+    ]);
+    expect(_analyzer(project, scriptsHash: '0' * 64).analyze()
+        .requireEvent(1, 1).isQuarantined, isTrue);
+  });
+
   test(
       'pickup-looking dynamic Ruby and statement suffixes are entirely quarantined',
       () async {

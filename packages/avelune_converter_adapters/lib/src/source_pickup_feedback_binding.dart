@@ -19,6 +19,7 @@ final class SourcePickupBindingUnavailable implements Exception {
 final class SourcePickupFeedbackBinding {
   SourcePickupFeedbackBinding._({
     required this.item,
+    required this.helper,
     required this.sourceMapId,
     required this.sourceSnapshotHash,
     required this.iconTilesetId,
@@ -33,6 +34,7 @@ final class SourcePickupFeedbackBinding {
     required this.bagFullFoundFeedback,
     required this.bagFullFeedback,
     required this.music,
+    required this.omittedSourceBgmPath,
     required List<DialogueLineSegment> foundSegments,
     required List<NativeArtifact> artifacts,
     required List<NativeMutation> mutations,
@@ -43,6 +45,7 @@ final class SourcePickupFeedbackBinding {
         evidence = _freeze(evidence) as Map<String, Object?>;
 
   final SourceEventItemBinding item;
+  final SourceItemGrantHelper helper;
   final int sourceMapId;
   final Sha256Hash sourceSnapshotHash;
   final String iconTilesetId;
@@ -57,10 +60,16 @@ final class SourcePickupFeedbackBinding {
   final DialogueLineFeedback bagFullFoundFeedback;
   final DialogueLineFeedback bagFullFeedback;
   final SourceMapMusicBinding? music;
+  final String? omittedSourceBgmPath;
   final List<DialogueLineSegment> _foundSegments;
   final List<NativeArtifact> artifacts;
   final List<NativeMutation> mutations;
   final Map<String, Object?> evidence;
+
+  double get nativeAudioGain => omittedSourceBgmPath != null ||
+          music?.policy == SourceMapMusicPolicy.nativeAuthoredVolume
+      ? 1
+      : music?.nativeVolume ?? 0.8;
 
   DialogueLineFeedback foundFeedback({required String cueId}) =>
       DialogueLineFeedback(
@@ -71,7 +80,7 @@ final class SourcePickupFeedbackBinding {
         audioCue: DialogueAudioCue(
           mediaAssetId: mediaId,
           cueId: cueId,
-          volume: music?.nativeVolume ?? 0.8,
+          volume: nativeAudioGain,
           role: music == null
               ? DialogueAudioCueRole.effect
               : DialogueAudioCueRole.musicEffect,
@@ -90,6 +99,7 @@ final class SourcePickupFeedbackResolver {
     required SourceFilePort files,
     required SourceEventItemBinding item,
     required int sourceMapId,
+    SourceItemGrantHelper helper = SourceItemGrantHelper.itemBall,
     SourceMapMusicBinding? music,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
@@ -106,7 +116,9 @@ final class SourcePickupFeedbackResolver {
     final profile = SourceEventProfile.kantoForProject(source);
     if (!profile.isQualified) _unavailable('profile_unqualified');
     if (!item.pickupQualified ||
-        item.isKeyItem ||
+        (item.isKeyItem &&
+            (helper != SourceItemGrantHelper.receiveItem ||
+                item.sourcePocketIndex != 8)) ||
         (item.isMachine && item.sourcePocketIndex != 4) ||
         item.sourceSymbol == 'DNASPLICERS') {
       _unavailable('item_unsupported');
@@ -146,8 +158,14 @@ final class SourcePickupFeedbackResolver {
     if (autoplayId == null) _unavailable('bgm_unqualified');
     final autoplay = mapFile.document.node(autoplayId);
     if (autoplay.kind != MarshalKind.boolean) _unavailable('bgm_unqualified');
+    String? omittedSourceBgmPath;
     if (autoplay.booleanValue == true && music == null) {
-      _unavailable('bgm_active');
+      if (helper != SourceItemGrantHelper.receiveItem) {
+        _unavailable('bgm_active');
+      }
+      omittedSourceBgmPath =
+          _absentSourceBgmPath(source, mapFile.document, mapFields['@bgm']);
+      if (omittedSourceBgmPath == null) _unavailable('bgm_active');
     }
     if (music != null &&
         (autoplay.booleanValue != true ||
@@ -250,9 +268,11 @@ final class SourcePickupFeedbackResolver {
     final iconFile =
         entry('Graphics/Icons/bagPocket${item.sourcePocketIndex}.png', 'icon');
     final skinFile = entry('Graphics/Windowskins/speech hgss 1.png', 'skin');
-    final audioBase = item.isMachine
-        ? 'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2))'
-        : 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1)';
+    final audioBase = item.isKeyItem
+        ? 'Audio/ME/FRLG Fanfare - Item Key (Fanfare! Key Item)'
+        : item.isMachine
+            ? 'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2))'
+            : 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1)';
     const mediaTypes = {
       'ogg': 'audio/ogg',
       'wav': 'audio/wav',
@@ -350,7 +370,11 @@ final class SourcePickupFeedbackResolver {
             'artifactHandle': audioArtifact.handle,
             'assetId': audioAssetId,
             'mediaId': mediaId,
-            'label': item.isMachine ? 'FRLG machine found' : 'FRLG item found',
+            'label': item.isKeyItem
+                ? 'FRLG key item obtained'
+                : item.isMachine
+                    ? 'FRLG machine found'
+                    : 'FRLG item found',
             'logicalPath': logicalAudioPath
           },
           limits: limits),
@@ -360,8 +384,10 @@ final class SourcePickupFeedbackResolver {
             .contains(name.substring(0, 1).toLowerCase())
         ? 'an'
         : 'a';
+    final verb =
+        helper == SourceItemGrantHelper.receiveItem ? 'obtained' : 'found';
     final foundSegments = [
-      DialogueTextSegment(item.isMachine ? 'You found ' : 'You found $article ',
+      DialogueTextSegment(item.isMachine ? 'You $verb ' : 'You $verb $article ',
           style: standard),
       DialogueTextSegment(item.isMachine ? '$name ${machineMove!.name}' : name,
           style: highlighted),
@@ -382,6 +408,7 @@ final class SourcePickupFeedbackResolver {
     ], revealIntervalMicros: 25000);
     return SourcePickupFeedbackBinding._(
         item: item,
+        helper: helper,
         sourceMapId: sourceMapId,
         sourceSnapshotHash: snapshot.canonicalHash,
         iconTilesetId: iconTilesetId,
@@ -396,6 +423,7 @@ final class SourcePickupFeedbackResolver {
         bagFullFoundFeedback: bagFullFound,
         bagFullFeedback: bagFull,
         music: music,
+        omittedSourceBgmPath: omittedSourceBgmPath,
         foundSegments: foundSegments,
         artifacts: [iconArtifact, audioArtifact],
         mutations: mutations,
@@ -407,6 +435,14 @@ final class SourcePickupFeedbackResolver {
           'eventProfile': profile.toJson(),
           'sourceMapId': sourceMapId,
           'sourceSymbol': item.sourceSymbol,
+          'sourceHelper': helper.name,
+          'sourceReturnValueUsed': helper == SourceItemGrantHelper.itemBall,
+          'sourceGrantOrder': helper == SourceItemGrantHelper.receiveItem
+              ? ['obtainedFeedback', 'bagAdd', 'bagFeedbackOnSuccess']
+              : ['bagAdd', 'foundFeedbackOnSuccess', 'bagFeedbackOnSuccess'],
+          'sourceFailureFeedback': helper == SourceItemGrantHelper.receiveItem
+              ? 'noneAfterObtainedFeedback'
+              : 'foundThenBagFull',
           'itemReference': item.itemReference.toJson(),
           if (item.isMachine) 'sourceMachineMove': machineMove!.toJson(),
           if (item.isMachine) 'nativeProjectMoveMachine': null,
@@ -420,10 +456,34 @@ final class SourcePickupFeedbackResolver {
           'audioFile': audioFile.toJson(),
           'sourceRegion': region,
           'sourceQuantity': 1,
-          'requiredRuntimeContext': music == null
-              ? 'freshGameDefaultOptionsAndNoActiveBgm'
-              : 'freshGameDefaultOptionsAndQualifiedMapBgm',
-          'sourceBgmAutoplay': music != null,
+          'requiredRuntimeContext': omittedSourceBgmPath != null
+              ? 'aveluneNativeWithoutMissingSourceMapBgm'
+              : music == null
+                  ? 'freshGameDefaultOptionsAndNoActiveBgm'
+                  : 'freshGameDefaultOptionsAndQualifiedMapBgm',
+          'sourceBgmAutoplay': autoplay.booleanValue,
+          'nativeMapBgmImported': music != null,
+          if (omittedSourceBgmPath != null) ...{
+            'sourceBgmOmission': {
+              'sourcePathBase': omittedSourceBgmPath,
+              'reason': 'physicallyAbsentFromCompleteSourceSnapshot',
+              'nativePolicy': 'omitMapBgmAndPlayExistingItemFeedbackOnly',
+              'resumeAbsentTrack': false,
+              'fullSourceParity': false,
+            },
+            'diagnostics': [
+              {
+                'code': 'source.item_giver.missing_bgm_omitted',
+                'message':
+                    'Map $sourceMapId omits missing source background music $omittedSourceBgmPath; item gifts use native Avelune feedback.',
+                'locator': {
+                  'file': mapFile.entry.relativePath,
+                  'mapId': sourceMapId
+                },
+                'blocksPlanning': false,
+              }
+            ],
+          },
           if (music != null) 'mapMusicBinding': music.evidence,
           'sourceSessionBgmInheritanceQualified': false,
           'sourceOptions': {
@@ -449,11 +509,15 @@ final class SourcePickupFeedbackResolver {
           'revealIntervalMicros': 25000,
           'foundAutoAfterRevealMicros': item.isMachine ? 3500000 : 2000000,
           'sourceAudioGain': 0.8,
-          'nativeAudioGain': music?.nativeVolume ?? 0.8,
+          'nativeAudioGain': omittedSourceBgmPath != null ||
+                  music?.policy == SourceMapMusicPolicy.nativeAuthoredVolume
+              ? 1.0
+              : music?.nativeVolume ?? 0.8,
           'nativeAudioRole': music == null ? 'effect' : 'musicEffect',
           if (music != null)
             'nativeBgmInterruption': {'fadeOutMs': 200, 'fadeInMs': 1000},
-          'sourceEngineAudioGainQualified': music != null,
+          'sourceEngineAudioGainQualified': music != null &&
+              music.policy == SourceMapMusicPolicy.sourceEngineGain,
           'sourceIconSize': {'width': icon.width, 'height': icon.height},
           'sourcePixelsResampled': false,
           'iconTilesetId': iconTilesetId,
@@ -476,6 +540,14 @@ final class SourcePickupFeedbackResolver {
           ],
           'oracle': {
             'archiveHash': SourceEventProfile.kantoScriptsArchiveSha256,
+            'receiveItem': {
+              'section': 241,
+              'lines': [725, 762]
+            },
+            'keyItemMusic': {
+              'section': 0,
+              'lines': [117, 129]
+            },
             'itemBall': {
               'section': 241,
               'lines': [668, 719]
@@ -499,6 +571,55 @@ final class SourcePickupFeedbackResolver {
           },
         });
   }
+}
+
+String? _absentSourceBgmPath(
+    NormalizedSourceProject source, MarshalDocument document, int? audioId) {
+  if (source.snapshot.state != SourceScanState.complete || audioId == null) {
+    return null;
+  }
+  final fields =
+      _fields(document, audioId, 'RPG::AudioFile', 'bgm_unqualified');
+  if (fields.length != 3 ||
+      !fields.keys.toSet().containsAll({'@name', '@volume', '@pitch'})) {
+    return null;
+  }
+  final nameNode = document.node(fields['@name']!);
+  final name =
+      nameNode.kind == MarshalKind.string ? nameNode.text().text : null;
+  if (name == null ||
+      name.isEmpty ||
+      name.length > 512 ||
+      name.trim() != name ||
+      name == '.' ||
+      name == '..' ||
+      RegExp(r'[\\/:<>]').hasMatch(name) ||
+      name.codeUnits.any((value) => value < 32) ||
+      _integer(document, fields['@volume']) != 100 ||
+      _integer(document, fields['@pitch']) != 100) {
+    return null;
+  }
+  final base = 'Audio/BGM/$name';
+  bool matches(String value, String candidate) =>
+      value == candidate ||
+      (value.startsWith('$candidate.') &&
+          !value.substring(candidate.length + 1).contains('/'));
+  final key = sourcePathCollisionKey(base);
+  if (source.snapshot.excludedPaths.any((excluded) {
+    final path = sourcePathCollisionKey(excluded);
+    return key.startsWith('$path/') ||
+        matches(path, key) ||
+        matches(path, '${key}_n');
+  })) {
+    return null;
+  }
+  if (source.snapshot.entries.any((entry) {
+    final path = sourcePathCollisionKey(entry.relativePath);
+    return matches(path, key) || matches(path, '${key}_n');
+  })) {
+    return null;
+  }
+  return base;
 }
 
 Never _unavailable(String reason) =>

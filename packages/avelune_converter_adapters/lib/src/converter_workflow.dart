@@ -2373,6 +2373,14 @@ ConversionPlan? _previewPlan(
       false,
       family: 'events');
   final eventEvidence = draft.compositionEvidence['sourceEvents'];
+  if (eventEvidence is Map) {
+    for (final raw in (eventEvidence['diagnostics'] as List? ?? const []).cast<Map>()) {
+      add(raw['code'] as String, raw['message'] as String, false,
+          family: 'events', disposition: 'adapted',
+          locator: _planLocator(
+              normalized, Map<String, Object?>.from(raw['locator'] as Map)));
+    }
+  }
   final semanticEvidence = draft.compositionEvidence['sourceSemantics'];
   final connectionEvidence =
       semanticEvidence is Map ? semanticEvidence['connections'] : null;

@@ -3,6 +3,8 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import 'native_project_writer.dart';
 
+enum SourceEventSoundPolicy { sourceEngineGain, nativeAuthoredVolume }
+
 final class SourceEventSoundBindingUnavailable implements Exception {
   const SourceEventSoundBindingUnavailable(this.reason);
   final String reason;
@@ -11,6 +13,7 @@ final class SourceEventSoundBindingUnavailable implements Exception {
 final class SourceEventSoundBinding {
   const SourceEventSoundBinding._(
       {required this.name,
+      required this.policy,
       required this.sourceSnapshotHash,
       required this.audioFile,
       required this.mediaId,
@@ -18,6 +21,7 @@ final class SourceEventSoundBinding {
       required this.mutation,
       required this.evidence});
   final String name, mediaId;
+  final SourceEventSoundPolicy policy;
   final Sha256Hash sourceSnapshotHash;
   final SourceFileEntry audioFile;
   final NativeArtifact artifact;
@@ -26,7 +30,9 @@ final class SourceEventSoundBinding {
 
   double gainForVolume(int volume) {
     if (volume < 0 || volume > 100) throw ArgumentError.value(volume, 'volume');
-    return (volume * 60 ~/ 100) * 0.008;
+    return policy == SourceEventSoundPolicy.nativeAuthoredVolume
+        ? volume / 100
+        : (volume * 60 ~/ 100) * 0.008;
   }
 }
 
@@ -37,6 +43,7 @@ final class SourceEventSoundResolver {
     required NormalizedSourceProject source,
     required SourceFilePort files,
     required String name,
+    SourceEventSoundPolicy policy = SourceEventSoundPolicy.sourceEngineGain,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -68,19 +75,22 @@ final class SourceEventSoundResolver {
       return matches.single;
     }
 
-    final engine = exact('Game.exe');
-    final config = exact('mkxp.json');
-    final ini = exact('Game.ini');
-    if (engine.byteLength != 14732288 ||
-        engine.sha256!.value !=
-            '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04' ||
-        config.byteLength != 6212 ||
-        config.sha256!.value !=
-            '90a3aee82895e48e6c767f973b637d27856cccfd575f48b78d04191cb3e7d35f' ||
-        ini.byteLength != 121 ||
-        ini.sha256!.value !=
-            '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6') {
-      _unavailable('engine_unqualified');
+    SourceFileEntry? engine, config, ini;
+    if (policy == SourceEventSoundPolicy.sourceEngineGain) {
+      engine = exact('Game.exe');
+      config = exact('mkxp.json');
+      ini = exact('Game.ini');
+      if (engine.byteLength != 14732288 ||
+          engine.sha256!.value !=
+              '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04' ||
+          config.byteLength != 6212 ||
+          config.sha256!.value !=
+              '90a3aee82895e48e6c767f973b637d27856cccfd575f48b78d04191cb3e7d35f' ||
+          ini.byteLength != 121 ||
+          ini.sha256!.value !=
+              '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6') {
+        _unavailable('engine_unqualified');
+      }
     }
     final base = 'Audio/SE/$name';
     final key = sourcePathCollisionKey(base);
@@ -151,6 +161,7 @@ final class SourceEventSoundResolver {
         limits: limits);
     return SourceEventSoundBinding._(
         name: name,
+        policy: policy,
         sourceSnapshotHash: source.snapshot.canonicalHash,
         audioFile: audio,
         mediaId: mediaId,
@@ -160,13 +171,26 @@ final class SourceEventSoundResolver {
           'sourceAudioFile': audio.toJson(),
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
           'sourceScriptsHash': SourceEventProfile.kantoScriptsArchiveSha256,
-          'sourceEngineFile': engine.toJson(),
-          'sourceConfigurationFile': config.toJson(),
-          'sourceGameIniFile': ini.toJson(),
-          'requiredRuntimeContext': 'freshGameDefaultOptions',
-          'sourceOptionSeVolume': 60,
-          'sourceEngineGlobalGain': 0.8,
-          'sourceRubyVolumeQuantization': 'floor(authoredVolume*60/100)',
+          'policy': policy.name,
+          'sourceEngineGainQualified':
+              policy == SourceEventSoundPolicy.sourceEngineGain,
+          'fullSourceParity': false,
+          'nativeAuthoredVolumeAdaptation':
+              policy == SourceEventSoundPolicy.nativeAuthoredVolume,
+          if (engine != null) 'sourceEngineFile': engine.toJson(),
+          if (config != null) 'sourceConfigurationFile': config.toJson(),
+          if (ini != null) 'sourceGameIniFile': ini.toJson(),
+          'requiredRuntimeContext':
+              policy == SourceEventSoundPolicy.nativeAuthoredVolume
+                  ? 'aveluneNativeAudio'
+                  : 'freshGameDefaultOptions',
+          if (policy == SourceEventSoundPolicy.sourceEngineGain) ...{
+            'sourceOptionSeVolume': 60,
+            'sourceEngineGlobalGain': 0.8,
+            'sourceRubyVolumeQuantization': 'floor(authoredVolume*60/100)',
+          },
+          if (policy == SourceEventSoundPolicy.nativeAuthoredVolume)
+            'nativeGain': 'authoredVolume/100',
           'sourceRubyOracle': {
             'play': '093:202-217',
             'volume': '040:239-245',

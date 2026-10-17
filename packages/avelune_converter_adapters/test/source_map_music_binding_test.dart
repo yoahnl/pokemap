@@ -176,6 +176,95 @@ void main() {
         _read(fixture), throwsA(_unavailable('profile_unqualified')));
   });
 
+  test(
+      'native authored music preserves attested map volume without an engine claim',
+      () async {
+    final fixture = await SourceMapMusicFixture.create(
+        oracle: oracle,
+        missingEngine: true,
+        maps: [
+          LiteralFixtureMap(
+              id: 1,
+              autoplayBgm: true,
+              bgmName: 'Original Route',
+              bgmVolume: 35)
+        ]);
+    final binding = (await const SourceMapMusicResolver().read(
+        source: fixture.source,
+        files: fixture.files,
+        sourceMapId: 1,
+        policy: SourceMapMusicPolicy.nativeAuthoredVolume))!;
+    expect(binding.nativeVolume, 0.35);
+    expect(binding.evidence['sourceEngineGainQualified'], isFalse);
+    expect(binding.evidence['fullSourceParity'], isFalse);
+    expect(binding.evidence['sourceVolume'], 35);
+    expect(binding.evidence['nativeGain'], 'authoredVolume/100');
+    expect(binding.evidence.containsKey('sourceEngineFile'), isFalse);
+    expect(binding.artifacts.single.bytes,
+        fixture.sourceBytes['Audio/BGM/Original Route.wav']);
+    final cancel = ScanCancellation()..cancel();
+    await expectLater(
+        const SourceMapMusicResolver().read(
+            source: fixture.source,
+            files: fixture.files,
+            sourceMapId: 1,
+            policy: SourceMapMusicPolicy.nativeAuthoredVolume,
+            cancellation: cancel),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'source.cancelled')));
+    fixture.files.overrides['Audio/BGM/Original Route.wav'] = [0, 1];
+    await expectLater(
+        const SourceMapMusicResolver().read(
+            source: fixture.source,
+            files: fixture.files,
+            sourceMapId: 1,
+            policy: SourceMapMusicPolicy.nativeAuthoredVolume),
+        throwsA(isA<ContractError>().having(
+            (error) => error.code, 'code', 'source.map_music.source_changed')));
+  });
+
+  test('native music keeps malformed audio unsupported pitch and quota closed',
+      () async {
+    final malformed = await SourceMapMusicFixture.create(
+        oracle: oracle,
+        missingEngine: true,
+        filePatches: {
+          'Audio/BGM/Original Route.wav': [1, 2, 3]
+        });
+    await expectLater(
+        const SourceMapMusicResolver().read(
+            source: malformed.source,
+            files: malformed.files,
+            sourceMapId: 1,
+            policy: SourceMapMusicPolicy.nativeAuthoredVolume),
+        throwsA(_unavailable('audio_unsupported')));
+    final pitch = await SourceMapMusicFixture.create(
+        oracle: oracle,
+        missingEngine: true,
+        maps: [
+          LiteralFixtureMap(
+              id: 1, autoplayBgm: true, bgmName: 'Original Route', bgmPitch: 99)
+        ]);
+    await expectLater(
+        const SourceMapMusicResolver().read(
+            source: pitch.source,
+            files: pitch.files,
+            sourceMapId: 1,
+            policy: SourceMapMusicPolicy.nativeAuthoredVolume),
+        throwsA(_unavailable('pitch_unsupported')));
+    final quota =
+        await SourceMapMusicFixture.create(oracle: oracle, missingEngine: true);
+    await expectLater(
+        const SourceMapMusicResolver().read(
+            source: quota.source,
+            files: quota.files,
+            sourceMapId: 1,
+            policy: SourceMapMusicPolicy.nativeAuthoredVolume,
+            limits: const NativeWriteLimits(maxArtifactBytes: 128)),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'source.map_music.quota')));
+  });
+
   test('refuses a missing engine identity', () async {
     final fixture =
         await SourceMapMusicFixture.create(oracle: oracle, missingEngine: true);

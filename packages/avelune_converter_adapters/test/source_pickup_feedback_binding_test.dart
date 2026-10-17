@@ -5,14 +5,22 @@ import 'dart:typed_data';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/source_event_item_bindings.dart';
+import 'package:avelune_converter_adapters/src/source_event_character_import.dart';
+import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:avelune_converter_adapters/src/source_pickup_feedback_binding.dart';
 import 'package:avelune_converter_adapters/src/source_map_music_binding.dart';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart'
     show
         LiteralTileComposer,
         SourceSemanticStudyComposer,
-        SourceEventStudyComposer;
+        SourceEventStudyComposer,
+        SourceEventStudyComposition,
+        ConverterWorkflow,
+        ConverterSourceSelection,
+        ConverterStudySettings,
+        SourceStudyAcknowledgement;
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -330,6 +338,261 @@ Future<_Fixture> _musicFixture(SourceMapMusicOracle oracle,
   return _Fixture(fixture.source, fixture.files, items);
 }
 
+typedef _GiverFixture = ({
+  NormalizedSourceProject source,
+  LiteralFixtureFiles files
+});
+
+Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
+    {bool changedSecondGraphic = false,
+    bool ordinaryDialogue = false,
+    bool activeMusic = false,
+    bool missingEngine = false,
+    bool missingBgm = false,
+    bool malformedBgm = false,
+    List<String> excludedPaths = const []}) async {
+  final fixture = await SourceMapMusicFixture.create(
+    oracle: oracle,
+    namespace: 'source-item-givers',
+    missingEngine: missingEngine,
+    filePatches: {
+      if (malformedBgm) 'Audio/BGM/Original Route.wav': [1, 2, 3]
+    },
+    includeEventSystem: true,
+    maps: [
+      for (final row in [
+        (30, 9, 'OLDROD'),
+        (49, 16, 'GOODROD'),
+        (111, 5, 'SUPERROD')
+      ])
+        LiteralFixtureMap(
+            id: row.$1,
+            autoplayBgm: activeMusic,
+            bgmName: 'Original Route',
+            events: [
+              LiteralFixtureEvent(
+                  id: row.$2,
+                  x: 1,
+                  y: 0,
+                  name: 'Rod giver',
+                  pages: [
+                    LiteralFixtureEventPage(
+                        characterName: ordinaryDialogue && row.$3 == 'GOODROD'
+                            ? 'A'
+                            : 'NPC_FRLG_FISHERMAN',
+                        commands: ordinaryDialogue && row.$3 == 'GOODROD'
+                            ? const [
+                                LiteralFixtureEventCommand(101, ['Hello!']),
+                                LiteralFixtureEventCommand(123, ['A', 0]),
+                                LiteralFixtureEventCommand(0, []),
+                              ]
+                            : [
+                                const LiteralFixtureEventCommand(
+                                    101, [r'\bTell me, do you like to fish?']),
+                                const LiteralFixtureEventCommand(102, [
+                                  ['YES', 'NO'],
+                                  2
+                                ]),
+                                const LiteralFixtureEventCommand(
+                                    402, [0, 'YES']),
+                                const LiteralFixtureEventCommand(101,
+                                    [r'\bTake this and fish, young friend!'],
+                                    indent: 1),
+                                LiteralFixtureEventCommand(
+                                    111,
+                                    [
+                                      12,
+                                      row.$3 == 'SUPERROD'
+                                          ? r'!$bag.has?(:SUPERROD)'
+                                          : '\$bag.quantity(:${row.$3}) == 0'
+                                    ],
+                                    indent: 1),
+                                LiteralFixtureEventCommand(
+                                    355, ['pbReceiveItem(:${row.$3})'],
+                                    indent: 2),
+                                const LiteralFixtureEventCommand(0, [],
+                                    indent: 2),
+                                const LiteralFixtureEventCommand(412, [],
+                                    indent: 1),
+                                const LiteralFixtureEventCommand(
+                                    101, [r'\bFishing is a way of life!'],
+                                    indent: 1),
+                                const LiteralFixtureEventCommand(123, ['A', 0],
+                                    indent: 1),
+                                const LiteralFixtureEventCommand(0, [],
+                                    indent: 1),
+                                const LiteralFixtureEventCommand(
+                                    402, [1, 'NO']),
+                                const LiteralFixtureEventCommand(
+                                    101, [r'\bOh... That is disappointing...'],
+                                    indent: 1),
+                                const LiteralFixtureEventCommand(0, [],
+                                    indent: 1),
+                                const LiteralFixtureEventCommand(404, []),
+                                const LiteralFixtureEventCommand(0, []),
+                              ]),
+                    LiteralFixtureEventPage(
+                        selfSwitch: 'A',
+                        characterName: row.$3 == 'GOODROD'
+                            ? ordinaryDialogue
+                                ? 'B'
+                                : 'trainer_FRLG_FISHERMAN'
+                            : 'NPC_FRLG_FISHERMAN',
+                        commands: ordinaryDialogue && row.$3 == 'GOODROD'
+                            ? const [
+                                LiteralFixtureEventCommand(
+                                    101, ['Hello again!']),
+                                LiteralFixtureEventCommand(0, []),
+                              ]
+                            : const [
+                                LiteralFixtureEventCommand(
+                                    101, [r'\bHello there, \PN!']),
+                                LiteralFixtureEventCommand(0, []),
+                              ]),
+                  ]),
+            ]),
+    ],
+    extraFiles: {
+      'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+      'Graphics/Characters/OriginalPlayer.png': _png(128, 192),
+      'Data/items.dat': _dump({
+        for (final row in [
+          ('OLDROD', 'Old Rod'),
+          ('GOODROD', 'Good Rod'),
+          ('SUPERROD', 'Super Rod')
+        ])
+          _Symbol(row.$1): _Object(
+              'GameData::Item',
+              _item(row.$1, patch: {
+                '@real_name': row.$2,
+                '@real_name_plural': '${row.$2}s',
+                '@pocket': 8,
+                '@field_use': 2,
+                '@battle_use': 0,
+                '@flags': ['KeyItem'],
+                '@consumable': false,
+              })),
+      }),
+      'Data/map_metadata.dat': _dump({
+        for (final id in [30, 49, 111])
+          id: _Object('GameData::MapMetadata', {
+            '@id': id,
+            '@town_map_position': [1, 16, 5],
+            '@real_name': 'Rod house',
+          }),
+      }),
+      'Graphics/Characters/NPC_FRLG_FISHERMAN.png': _png(128, 192),
+      'Graphics/Characters/trainer_FRLG_FISHERMAN.png':
+          _png(128, 192, dark: changedSecondGraphic),
+      if (ordinaryDialogue) 'Graphics/Characters/A.png': _png(128, 192),
+      if (ordinaryDialogue) 'Graphics/Characters/B.png': _png(128, 192),
+      'Graphics/Icons/bagPocket8.png': _png(18, 32),
+      _skinPath: _png(96, 48),
+      'Audio/ME/FRLG Fanfare - Item Key (Fanfare! Key Item).wav': _wav(),
+    },
+  );
+  if (!missingBgm && excludedPaths.isEmpty) {
+    return (source: fixture.source, files: fixture.files);
+  }
+  bool omitted(String path) =>
+      (missingBgm && path == 'Audio/BGM/Original Route.wav') ||
+      excludedPaths
+          .any((excluded) => path == excluded || path.startsWith('$excluded/'));
+  final snapshot = SourceSnapshot(
+      logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
+      policyHash: fixture.snapshot.policyHash,
+      entries: fixture.snapshot.entries
+          .where((entry) => !omitted(entry.relativePath))
+          .toList(),
+      diagnostics: fixture.snapshot.diagnostics,
+      excludedPaths: [...fixture.snapshot.excludedPaths, ...excludedPaths],
+      profileEvidence: fixture.snapshot.profileEvidence,
+      state: fixture.snapshot.state);
+  final bytes = {...fixture.sourceBytes}
+    ..removeWhere((path, _) => omitted(path));
+  final files = LiteralFixtureFiles(snapshot, bytes);
+  final source = await const RmxpSourceNormalizer()
+      .normalize(snapshot: snapshot, files: files, includeEventSystem: true);
+  return (source: source, files: files);
+}
+
+Future<SourceEventStudyComposition> _composeRods(_GiverFixture fixture) async {
+  final literal = await const LiteralTileComposer().compose(
+      source: fixture.source,
+      files: fixture.files,
+      selectedSourceMapIds: [30, 49, 111],
+      projectName: 'Native item givers',
+      parentPath: Directory.systemTemp.path,
+      folderName: 'native-item-givers');
+  final semantics = (await const SourceSemanticStudyComposer()
+      .compose(source: fixture.source, files: fixture.files, base: literal))!;
+  return (await const SourceEventStudyComposer()
+      .compose(source: fixture.source, files: fixture.files, base: semantics))!;
+}
+
+Future<
+        ({
+          GameState state,
+          List<String> trace,
+          int grantCount,
+          SceneExecutionContext context
+        })>
+    _runGiver(SceneAsset scene,
+        {required GameState state,
+        String choice = 'choice_0',
+        bool rejectGift = false,
+        SceneExecutionContext? context}) async {
+  final trace = <String>[];
+  var grantCount = 0;
+  final result = await SceneRuntimeExecutor(
+      callbacks: SceneRuntimeExecutionCallbacks(
+    evaluateCondition: (intent) {
+      final source = intent.conditionSource!;
+      expect(source.sourceKind, SceneConditionSourceKind.inventoryItem);
+      return evaluateSceneInventoryCondition(source: source, gameState: state)
+          ? 'true'
+          : 'false';
+    },
+    showDialogue: (intent) {
+      trace.addAll(intent.linePolicies.map((line) => line.feedback.plainText));
+      return intent.expectedOutcomes.isNotEmpty ? choice : 'completed';
+    },
+    startBattle: (_) =>
+        throw StateError('An item giver cannot start a source battle'),
+    playCinematic: (_) =>
+        throw StateError('An item giver cannot execute a source cinematic'),
+    executeInteractiveCommand: (intent) {
+      final command =
+          intent.interactiveCommand as SceneGiveItemInteractiveCommand;
+      grantCount++;
+      trace.add('grant');
+      if (rejectGift) return 'bagFull';
+      final gift = executeSceneItemGift(command: command, gameState: state);
+      state = gift.gameState;
+      return gift.outcome.name;
+    },
+    applyConsequence: (consequence) {
+      final fact = consequence as SceneSetFactConsequence;
+      state = state.copyWith(
+          narrativeFactRuntimeState:
+              NarrativeFactRuntimeState.typed(valuesByFactId: {
+        ...state.narrativeFactRuntimeState.valuesByFactId,
+        fact.factId: fact.narrativeValue
+      }));
+      trace.add('selfSwitch');
+      return 'completed';
+    },
+  )).execute(buildSceneRuntimePlan(scene).plan!, context: context);
+  expect(result.status, SceneRuntimeExecutionStatus.completed,
+      reason: result.message);
+  return (
+    state: state,
+    trace: trace,
+    grantCount: grantCount,
+    context: result.context
+  );
+}
+
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   List<int>? scripts;
@@ -522,6 +785,408 @@ void main() {
           throwsA(isA<NativeWriteException>()
               .having((e) => e.code, 'code', 'native.semantics.regeneration')));
       expect(stages, isEmpty);
+    });
+  }, skip: scriptsPath == null || !Platform.isMacOS);
+
+  group('automatic native rod givers', () {
+    test('imports all three key item givers and exact equivalent page graphics',
+        () async {
+      final fixture = await _rodFixture(musicOracle!);
+      final composed = await _composeRods(fixture);
+      expect(composed.projection.scenes, hasLength(6));
+      expect(composed.projection.itemCatalog!.entries, hasLength(3));
+      final gifts = composed.projection.scenes
+          .expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .map((payload) => payload.interactiveCommand)
+          .whereType<SceneGiveItemInteractiveCommand>()
+          .toList();
+      expect(gifts, hasLength(3));
+      final conditions = composed.projection.scenes
+          .expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload)
+          .whereType<SceneConditionPayload>()
+          .map((payload) => payload.conditionSource)
+          .whereType<SceneConditionSource>()
+          .toList();
+      expect(
+          conditions.where((source) =>
+              source.sourceKind == SceneConditionSourceKind.inventoryItem),
+          hasLength(3));
+      expect(
+          conditions.every((source) =>
+              source.inventoryQuantityThreshold == 1 &&
+              source.operator == SceneConditionOperator.isFalse),
+          isTrue);
+      final pickupEvidence = (composed.draft.compositionEvidence['sourceEvents']
+          as Map)['pickups'] as List;
+      expect(pickupEvidence, hasLength(3));
+      expect(
+          pickupEvidence
+              .every((row) => (row as Map)['sourceHelper'] == 'receiveItem'),
+          isTrue);
+      final lines = composed.projection.scenes
+          .expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload)
+          .whereType<SceneYarnDialoguePayload>()
+          .expand((payload) => payload.linePolicies)
+          .map((policy) => policy.feedback.plainText)
+          .toList();
+      expect(lines.where((line) => line.startsWith('You obtained ')),
+          hasLength(3));
+      expect(lines, contains('Hello there, {{ player_name }}!'));
+      expect(lines.any((line) => line.contains('You found')), isFalse);
+    });
+
+    test(
+        'native giver paths retain choices order failure continuation and saved idempotence',
+        () async {
+      final fixture = await _rodFixture(musicOracle!);
+      final composed = await _composeRods(fixture);
+      for (final row in [(30, 9), (49, 16), (111, 5)]) {
+        final scene = composed.projection.scenes.singleWhere((scene) =>
+            scene.metadata['sourceEventIdentity'] ==
+                fixture.source.eventIdentity(row.$1, row.$2).value &&
+            scene.metadata['sourcePageIndex'] == '0');
+        final gift = scene.graph.nodes
+            .map((node) => node.payload)
+            .whereType<SceneActionPayload>()
+            .map((payload) => payload.interactiveCommand)
+            .whereType<SceneGiveItemInteractiveCommand>()
+            .single;
+        final initial = GameState(
+            saveId: 'rod-giver', currentMapId: composed.draft.mapIds[row.$1]!);
+        final choice = scene.graph.nodes
+            .map((node) => node.payload)
+            .whereType<SceneYarnDialoguePayload>()
+            .singleWhere((payload) => payload.choicePolicies.isNotEmpty)
+            .choicePolicies
+            .single;
+        expect(choice.cancellation,
+            const SceneDialogueChoiceCancellation.choice('choice_1'));
+        final yes = await _runGiver(scene, state: initial);
+        expect(yes.grantCount, 1);
+        expect(yes.state.bag.entries.single,
+            BagEntry(itemId: gift.itemId, quantity: 1));
+        expect(yes.state.narrativeFactRuntimeState.valuesByFactId.values.single,
+            NarrativeValue.boolean(true));
+        final obtained =
+            yes.trace.indexWhere((line) => line.startsWith('You obtained '));
+        final bag =
+            yes.trace.indexWhere((line) => line.startsWith('You put the '));
+        expect(obtained, lessThan(yes.trace.indexOf('grant')));
+        expect(yes.trace.indexOf('grant'), lessThan(bag));
+        expect(bag, lessThan(yes.trace.indexOf('Fishing is a way of life!')));
+        expect(yes.trace.last, 'selfSwitch');
+        final saved = GameState.fromJson(yes.state.toJson());
+        final repeated = await _runGiver(scene, state: saved);
+        expect(repeated.grantCount, 0);
+        expect(repeated.state.bag.entries.single.quantity, 1);
+        final resumed =
+            await _runGiver(scene, state: saved, context: yes.context);
+        expect(resumed.grantCount, 0);
+        expect(resumed.state.bag.entries.single.quantity, 1);
+        final no = await _runGiver(scene, state: initial, choice: 'choice_1');
+        expect(no.grantCount, 0);
+        expect(no.state.bag.entries, isEmpty);
+        expect(no.state.narrativeFactRuntimeState.valuesByFactId, isEmpty);
+        expect(
+            no.trace.any((line) => line.startsWith('You obtained ')), isFalse);
+        final full = await _runGiver(scene, state: initial, rejectGift: true);
+        expect(full.grantCount, 1);
+        expect(full.state.bag.entries, isEmpty);
+        expect(
+            full.trace.any((line) => line.startsWith('You obtained ')), isTrue);
+        expect(
+            full.trace.any((line) => line.startsWith('You put the ')), isFalse);
+        expect(full.trace, contains('Fishing is a way of life!'));
+        expect(full.trace.last, 'selfSwitch');
+        expect(
+            full.state.narrativeFactRuntimeState.valuesByFactId.values.single,
+            NarrativeValue.boolean(true));
+      }
+    });
+
+    test(
+        'native giver music is regenerated and altered gain or policy cannot be published',
+        () async {
+      final fixture = await _rodFixture(musicOracle!,
+          activeMusic: true, missingEngine: true);
+      final composed = await _composeRods(fixture);
+      expect(composed.projection.scenes, hasLength(6));
+      expect(composed.musicBindings, hasLength(3));
+      expect(
+          composed.musicBindings.values.every((binding) =>
+              binding.policy == SourceMapMusicPolicy.nativeAuthoredVolume &&
+              binding.nativeVolume == 1 &&
+              binding.evidence['sourceEngineGainQualified'] == false),
+          isTrue);
+      final pickups = (composed.draft.compositionEvidence['sourceEvents']
+          as Map)['pickups'] as List;
+      expect(
+          pickups.every((row) =>
+              (row as Map)['nativeAudioGain'] == 1 &&
+              row['sourceEngineAudioGainQualified'] == false),
+          isTrue);
+      for (final changePolicy in [false, true]) {
+        final draft = composed.draft;
+        final evidence = jsonDecode(jsonEncode(draft.compositionEvidence))
+            as Map<String, Object?>;
+        if (changePolicy) {
+          final music = (evidence['sourceEvents'] as Map)['mapMusic'] as List;
+          (music.first as Map)['policy'] = 'sourceEngineGain';
+        }
+        final altered = NativeProjectDraft(
+            source: draft.source,
+            projectName: draft.projectName,
+            parentPath: draft.parentPath,
+            folderName: draft.folderName,
+            mapIds: draft.mapIds,
+            artifacts: draft.artifacts,
+            sourceArtifacts: draft.sourceArtifacts,
+            compositionEvidence: evidence,
+            mutations: draft.mutations
+                .map((mutation) =>
+                    !changePolicy && mutation.actionId == 'map.audio.update'
+                        ? NativeMutation(
+                            operationId: mutation.operationId,
+                            actionId: mutation.actionId,
+                            sourceEntityIds: mutation.sourceEntityIds,
+                            targetEntityIds: mutation.targetEntityIds,
+                            parameters: {
+                                ...mutation.parameters,
+                                'musicVolume': 0.64
+                              })
+                        : mutation)
+                .toList());
+        final approval = approveNativeFixtureDraft(altered);
+        final stages = <NativeWriteStage>[];
+        await expectLater(
+            NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+                .write(approval.plan, approval.context, altered),
+            throwsA(isA<NativeWriteException>().having((error) => error.code,
+                'code', 'native.semantics.regeneration')));
+        expect(stages, isEmpty);
+      }
+    });
+
+    test(
+        'physically missing source BGM is omitted with explicit warnings and no absent resume',
+        () async {
+      final fixture = await _rodFixture(musicOracle!,
+          activeMusic: true, missingEngine: true, missingBgm: true);
+      final composed = await _composeRods(fixture);
+      expect(composed.projection.scenes, hasLength(6));
+      expect(composed.musicBindings, isEmpty);
+      final events = composed.draft.compositionEvidence['sourceEvents'] as Map;
+      expect(events['diagnostics'], hasLength(3));
+      expect(
+          (events['diagnostics'] as List).every((row) =>
+              (row as Map)['code'] == 'source.item_giver.missing_bgm_omitted'),
+          isTrue);
+      final pickups = events['pickups'] as List;
+      expect(
+          pickups.every((row) =>
+              (row as Map)['sourceBgmAutoplay'] == true &&
+              row['nativeMapBgmImported'] == false &&
+              row['nativeAudioGain'] == 1 &&
+              (row['sourceBgmOmission'] as Map)['resumeAbsentTrack'] == false),
+          isTrue);
+      final feedback = composed.projection.scenes
+          .expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload)
+          .whereType<SceneYarnDialoguePayload>()
+          .expand((payload) => payload.linePolicies)
+          .map((line) => line.feedback)
+          .where((line) => line.plainText.startsWith('You obtained '));
+      expect(feedback, hasLength(3));
+      expect(
+          feedback.every((line) =>
+              line.audioCue!.role == DialogueAudioCueRole.effect &&
+              line.audioCue!.bgmInterruption == null &&
+              line.audioCue!.volume == 1),
+          isTrue);
+    });
+
+    test('present malformed BGM cannot be treated as physically absent',
+        () async {
+      final fixture = await _rodFixture(musicOracle!,
+          activeMusic: true, missingEngine: true, malformedBgm: true);
+      final composed = await _composeRods(fixture);
+      expect(composed.projection.scenes, isEmpty);
+      final events = composed.draft.compositionEvidence['sourceEvents'] as Map;
+      expect(events['diagnostics'], isEmpty);
+      expect(jsonEncode(events['pickups']),
+          contains('pickup.feedback.bgm_active'));
+      expect(jsonEncode(events['mapMusic']),
+          contains('map.music.audio_unsupported'));
+    });
+
+    for (final excluded in [
+      'Audio',
+      'Audio/BGM',
+      'Audio/BGM/Original Route',
+      'Audio/BGM/Original Route.wav',
+      'Audio/BGM/Original Route_n',
+      'Audio/BGM/Original Route_n.ogg',
+      'audio/bgm/original route_n.OGG',
+    ]) {
+      test('excluded source BGM cannot qualify omission: $excluded', () async {
+        final fixture = await _rodFixture(musicOracle!,
+            activeMusic: true,
+            missingEngine: true,
+            missingBgm: true,
+            excludedPaths: [excluded]);
+        expect(fixture.source.snapshot.state, SourceScanState.complete);
+        final items = await const SourceEventItemBindingResolver().read(
+            snapshot: fixture.source.snapshot,
+            files: fixture.files,
+            symbols: ['OLDROD'],
+            eventProfile: SourceEventProfile.kantoForProject(fixture.source));
+        fixture.files.reads.clear();
+        await expectLater(
+            const SourcePickupFeedbackResolver().read(
+                source: fixture.source,
+                files: fixture.files,
+                item: items.bindings['OLDROD']!,
+                sourceMapId: 30,
+                helper: SourceItemGrantHelper.receiveItem),
+            _unavailable('pickup.feedback.bgm_active'));
+        expect(fixture.files.reads, isEmpty);
+      });
+    }
+
+    test('excluded night BGM keeps native givers quarantined', () async {
+      final fixture = await _rodFixture(musicOracle!,
+          activeMusic: true,
+          missingEngine: true,
+          missingBgm: true,
+          excludedPaths: ['Audio/BGM/Original Route_n.wav']);
+      final composed = await _composeRods(fixture);
+      expect(composed.projection.scenes, isEmpty);
+      final events = composed.draft.compositionEvidence['sourceEvents'] as Map;
+      expect(events['diagnostics'], isEmpty);
+      expect(jsonEncode(events['pickups']),
+          contains('pickup.feedback.bgm_active'));
+    });
+
+    test('unrelated exclusions preserve physically missing BGM omission',
+        () async {
+      final fixture = await _rodFixture(musicOracle!,
+          activeMusic: true,
+          missingEngine: true,
+          missingBgm: true,
+          excludedPaths: ['Audio/BGM/Original Route Remix.wav']);
+      final composed = await _composeRods(fixture);
+      expect(composed.projection.scenes, hasLength(6));
+      expect(
+          (composed.draft.compositionEvidence['sourceEvents']
+              as Map)['diagnostics'],
+          hasLength(3));
+    });
+
+    test(
+        'public workflow exposes missing giver music as located nonblocking findings',
+        () async {
+      final fixture = await _rodFixture(musicOracle!,
+          activeMusic: true, missingEngine: true, missingBgm: true);
+      final temporary =
+          await Directory.systemTemp.createTemp('item-giver-public-workflow-');
+      addTearDown(() => temporary.delete(recursive: true));
+      final source = await Directory('${temporary.path}/source').create();
+      final destination =
+          await Directory('${temporary.path}/destination').create();
+      for (final entry in fixture.files.bytes.entries) {
+        final file = File('${source.path}/${entry.key}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final workflow = ConverterWorkflow();
+      addTearDown(workflow.dispose);
+      final snapshot = await workflow.scanSource(ConverterSourceSelection(
+          rootPath: source.path,
+          logicalProjectNamespace: ConverterId('public-native-rod-givers')));
+      workflow.updateSettings(ConverterStudySettings(
+          projectName: 'Visible native giver omissions',
+          parentPath: destination.path,
+          folderName: 'native',
+          selectedSourceMapIds: [30, 49, 111],
+          profileAcknowledgement: SourceStudyAcknowledgement(
+              sourceSnapshotHash: snapshot.canonicalHash,
+              profileEvidenceHash: snapshot.profile.evidenceHash,
+              humanConfirmed: true,
+              reason: 'Scoped synthetic item-giver test')));
+      final prepared = await workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue);
+      final findings = prepared.previewPlan!.findings
+          .where((finding) =>
+              finding.code.value == 'source.item_giver.missing_bgm_omitted')
+          .toList();
+      expect(findings, hasLength(3));
+      expect(findings.map((finding) => finding.sourceLocator!.mapId),
+          unorderedEquals([30, 49, 111]));
+      expect(
+          findings.every((finding) =>
+              !finding.blocksStudy &&
+              finding.disposition == DiagnosticDisposition.adapted &&
+              finding.message.contains('Audio/BGM/Original Route')),
+          isTrue);
+    });
+
+    test('keeps different second page pixels quarantined', () async {
+      final composed = await _composeRods(
+          await _rodFixture(musicOracle!, changedSecondGraphic: true));
+      expect(composed.projection.scenes, hasLength(4));
+      expect(jsonEncode(composed.projection.semanticEvidence),
+          contains('pageGraphicChanges'));
+    });
+
+    test('ordinary dialogue retains graphic names despite identical bytes',
+        () async {
+      final fixture = await _rodFixture(musicOracle!, ordinaryDialogue: true);
+      final a = fixture.source.snapshot.entries.singleWhere(
+          (entry) => entry.relativePath == 'Graphics/Characters/A.png');
+      final b = fixture.source.snapshot.entries.singleWhere(
+          (entry) => entry.relativePath == 'Graphics/Characters/B.png');
+      expect(a.sha256, b.sha256);
+      final literal = await const LiteralTileComposer().compose(
+          source: fixture.source,
+          files: fixture.files,
+          selectedSourceMapIds: [49],
+          projectName: 'Ordinary dialogue graphics',
+          parentPath: Directory.systemTemp.path,
+          folderName: 'ordinary-dialogue-graphics');
+      final bindings = <String, SourceEventCharacterBinding>{};
+      for (final name in ['A', 'B']) {
+        final imported = await const SourceEventCharacterImporter().read(
+            snapshot: fixture.source.snapshot,
+            files: fixture.files,
+            charsetName: name,
+            sourcePattern: 0,
+            sourceDirection: 2);
+        bindings[imported.bindingKey] = imported.binding;
+      }
+      final projection = const SourceEventProjector().project(
+          source: fixture.source,
+          analysis: SourceEventAnalyzer.forProject(fixture.source,
+                  profile: SourceEventProfile.kantoForProject(fixture.source))
+              .analyze(),
+          nativeMaps: {
+            49: MapData.fromJson(Map<String, dynamic>.from(literal
+                .draft!.mutations
+                .singleWhere((entry) => entry.actionId == 'map.save')
+                .parameters['map'] as Map))
+          },
+          characterBindings: bindings);
+      expect(
+          bindings.keys.map((key) => (jsonDecode(key) as Map)['characterName']),
+          containsAll(['A', 'B']));
+      expect(projection.scenes, isEmpty);
+      expect(jsonEncode(projection.semanticEvidence),
+          contains('pageGraphicChanges'));
+      expect(jsonEncode(projection.semanticEvidence),
+          isNot(contains('characterBindingMissing')));
     });
   }, skip: scriptsPath == null || !Platform.isMacOS);
 

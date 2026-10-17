@@ -7,6 +7,7 @@ enum SourceEventConditionKind {
   selfSwitch,
   variableAtLeast,
   pickup,
+  itemPresence,
   tempSwitch,
   playerOnEvent,
   playerFacing,
@@ -87,6 +88,7 @@ final class SourceEventCondition {
     this.minimum,
     this.reason,
     this.pickup,
+    this.sourceItemSymbol,
     this.tempSwitchLetter,
     this.sourceDirection,
     List<SourceEventCondition> children = const [],
@@ -99,6 +101,7 @@ final class SourceEventCondition {
   final int? minimum;
   final String? reason;
   final SourcePickupNode? pickup;
+  final String? sourceItemSymbol;
   final String? tempSwitchLetter;
   final int? sourceDirection;
   final List<SourceEventCondition> children;
@@ -114,6 +117,7 @@ final class SourceEventCondition {
         SourceEventConditionKind.variableAtLeast =>
           variableId != null && minimum != null,
         SourceEventConditionKind.pickup => pickup != null,
+        SourceEventConditionKind.itemPresence => sourceItemSymbol != null,
         SourceEventConditionKind.tempSwitch => tempSwitchLetter == 'A',
         SourceEventConditionKind.playerOnEvent => true,
         SourceEventConditionKind.playerFacing =>
@@ -122,12 +126,13 @@ final class SourceEventCondition {
       };
   bool? evaluate(
       {Map<String, bool> facts = const {},
-      Map<int, int> variables = const {}, int? playerFacing}) {
+      Map<int, int> variables = const {},
+      Map<String, int> itemQuantities = const {}, int? playerFacing}) {
     if (!isQualified) return null;
     if (kind == SourceEventConditionKind.all) {
       final values = children
           .map((child) => child.evaluate(facts: facts, variables: variables,
-              playerFacing: playerFacing))
+              itemQuantities: itemQuantities, playerFacing: playerFacing))
           .toList();
       return values.contains(null)
           ? null
@@ -140,6 +145,8 @@ final class SourceEventCondition {
         (facts[factId] ?? false) == expectedValue,
       SourceEventConditionKind.variableAtLeast =>
         (variables[variableId] ?? 0) >= minimum!,
+      SourceEventConditionKind.itemPresence =>
+        ((itemQuantities[sourceItemSymbol] ?? 0) > 0) == expectedValue,
       SourceEventConditionKind.playerFacing => playerFacing == null
           ? null : (playerFacing == sourceDirection) == expectedValue,
       _ => null,
@@ -154,6 +161,8 @@ final class SourceEventCondition {
         'minimum': minimum,
         'reason': reason,
         'pickup': pickup?.toJson(),
+        if (kind == SourceEventConditionKind.itemPresence)
+          'sourceItemSymbol': sourceItemSymbol,
         if (kind == SourceEventConditionKind.tempSwitch) ...{
           'tempSwitchLetter': tempSwitchLetter,
           'lifetime': 'mapEventInstance',
@@ -490,15 +499,21 @@ final class SourceTempSwitchNode extends SourceEventNode {
       };
 }
 
+enum SourceItemGrantHelper { itemBall, receiveItem }
+
 final class SourcePickupNode extends SourceEventNode {
   const SourcePickupNode(super.span,
-      {required this.sourceSymbol, required this.quantity});
+      {required this.sourceSymbol, required this.quantity,
+      this.helper = SourceItemGrantHelper.itemBall});
   final String sourceSymbol;
   final int quantity;
+  final SourceItemGrantHelper helper;
   bool get failureMayPartiallyAdd => quantity > 1;
   Map<String, Object?> toJson() => {
         'sourceSymbol': sourceSymbol,
         'quantity': quantity,
+        'helper': helper.name,
+        'sourceReturnValueUsed': helper == SourceItemGrantHelper.itemBall,
         'span': span.toJson(),
         'result': 'bagAddBoolean',
         'failureMayPartiallyAdd': failureMayPartiallyAdd,
@@ -1267,6 +1282,19 @@ final class _SourceEventParser {
           return SourceTempSwitchNode(_span(first, first),
               profileHash: analyzer.profile.canonicalHash);
         }
+        if (analyzer._isQualified && index == first + 1) {
+          final literal = _string(command.parameters.single);
+          final pickup = _SourcePickupLiteral(literal).parse(_span(first, first),
+              helper: SourceItemGrantHelper.receiveItem);
+          if (pickup != null) {
+            final raw = _rawFacingParameters(command, 1);
+            final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+            if (_routeText(doc, raw.single) != literal) {
+              throw const FormatException();
+            }
+            return pickup;
+          }
+        }
         _diagnostic('events.script_group_quarantined', first, index - 1);
         return SourceScriptNode(_span(first, index - 1), script);
       default:
@@ -1728,6 +1756,8 @@ final class _SourceEventParser {
           return SourceEventCondition(
               kind: SourceEventConditionKind.playerOnEvent);
         }
+        final itemPresence = _sourceItemPresenceLiteral(literal);
+        if (itemPresence != null) return itemPresence;
         final pickup =
             _SourcePickupLiteral(_string(params[1])).parse(_span(index, index));
         if (pickup == null) {
@@ -1824,14 +1854,31 @@ final class _SourceEventParser {
   }
 }
 
+SourceEventCondition? _sourceItemPresenceLiteral(String input) {
+  if (input.length > 512 || input.contains('\n') || input.contains('\r')) return null;
+  final quantity = RegExp(r'^[ \t]*\$bag\.quantity[ \t]*\([ \t]*:([A-Z][A-Z0-9_]*)[ \t]*\)[ \t]*(>[ \t]*0|==[ \t]*0)[ \t]*$').firstMatch(input);
+  if (quantity != null) {
+    return SourceEventCondition(kind: SourceEventConditionKind.itemPresence,
+        sourceItemSymbol: quantity.group(1),
+        expectedValue: quantity.group(2)!.startsWith('>'));
+  }
+  final has = RegExp(r'^[ \t]*(![ \t]*)?\$bag\.has\?[ \t]*\([ \t]*:([A-Z][A-Z0-9_]*)[ \t]*\)[ \t]*$').firstMatch(input);
+  return has == null ? null : SourceEventCondition(
+      kind: SourceEventConditionKind.itemPresence,
+      sourceItemSymbol: has.group(2), expectedValue: has.group(1) == null);
+}
+
 final class _SourcePickupLiteral {
   _SourcePickupLiteral(this.input);
   final String input;
   var offset = 0;
 
-  SourcePickupNode? parse(SourceEventSpan span) {
+  SourcePickupNode? parse(SourceEventSpan span,
+      {SourceItemGrantHelper helper = SourceItemGrantHelper.itemBall}) {
     _space();
-    if (_identifier() != 'pbItemBall' || !_take('(') || !_take(':')) {
+    final function = helper == SourceItemGrantHelper.itemBall
+        ? 'pbItemBall' : 'pbReceiveItem';
+    if (_identifier() != function || !_take('(') || !_take(':')) {
       return null;
     }
     final symbol = _identifier(skipSpace: false);
@@ -1854,7 +1901,8 @@ final class _SourcePickupLiteral {
     if (!_take(')')) return null;
     _space();
     if (offset != input.length) return null;
-    return SourcePickupNode(span, sourceSymbol: symbol, quantity: quantity);
+    return SourcePickupNode(span, sourceSymbol: symbol, quantity: quantity,
+        helper: helper);
   }
 
   bool _take(String token) {

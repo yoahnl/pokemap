@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_pickup_feedback_binding.dart';
+import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
@@ -147,8 +148,10 @@ String sourceEventCharacterBindingKey(
     });
 
 String sourcePickupFeedbackBindingKey(
-        {required int sourceMapId, required String sourceSymbol}) =>
-    canonicalJsonOf({'sourceMapId': sourceMapId, 'sourceSymbol': sourceSymbol});
+        {required int sourceMapId, required String sourceSymbol,
+        SourceItemGrantHelper helper = SourceItemGrantHelper.itemBall}) =>
+    canonicalJsonOf({'sourceMapId': sourceMapId, 'sourceSymbol': sourceSymbol,
+      if (helper != SourceItemGrantHelper.itemBall) 'helper': helper.name});
 
 List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
     required NormalizedSourceProject source, required SourceEventAnalysis analysis}) {
@@ -287,6 +290,7 @@ final class SourceEventProjector {
     required SourceEventAnalysis analysis,
     required Map<int, MapData> nativeMaps,
     Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
+    Map<String, SourceEventItemBinding> itemBindings = const {},
     Map<String, SourceEventSoundBinding> soundBindings = const {},
     SourceCenterRecoveryBinding? centerRecoveryBinding,
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
@@ -307,7 +311,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isCutObstacleFamily(event) &&
@@ -321,6 +325,7 @@ final class SourceEventProjector {
       required Map<int, MapData> nativeMaps,
       Map<String, SourceEventCharacterBinding> characterBindings = const {},
       Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
+    Map<String, SourceEventItemBinding> itemBindings = const {},
       Map<String, SourceEventSoundBinding> soundBindings = const {},
       SourceCenterRecoveryBinding? centerRecoveryBinding,
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
@@ -353,7 +358,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings)
         .build();
   }
 }
@@ -413,7 +418,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -435,6 +440,7 @@ final class _ProjectionBuilder {
   final Set<ConverterId> originalDoorIdentities;
   final Map<String, SourceEventCharacterBinding> characterBindings;
   final Map<String, SourcePickupFeedbackBinding> pickupBindings;
+  final Map<String, SourceEventItemBinding> itemBindings;
   final Map<String, SourceEventSoundBinding> soundBindings;
   final SourceCenterRecoveryBinding? centerRecoveryBinding;
   final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
@@ -551,9 +557,10 @@ final class _ProjectionBuilder {
     return owners.length == 1 ? _key(owners.single, 'anchor') : null;
   }
 
-  SourceEventSoundBinding? _sound(String name) {
+  SourceEventSoundBinding? _sound(String name, {bool allowNativeAdaptation = false}) {
     final binding = soundBindings[name];
-    return binding?.name == name && binding?.sourceSnapshotHash == sourceSnapshotHash
+    return binding?.name == name && binding?.sourceSnapshotHash == sourceSnapshotHash &&
+        (binding!.policy == SourceEventSoundPolicy.sourceEngineGain || allowNativeAdaptation)
       ? binding : null;
   }
 
@@ -621,6 +628,18 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && _isItemGiver(event))
+          'nativeItemGiver': {
+            'sourceHelper': 'pbReceiveItem',
+            'sourceReturnValueUsed': false,
+            'nativeCommand': 'SceneInteractiveCommand.giveItem',
+            'sourceGrantOrder': ['obtainedFeedback', 'bagAdd', 'bagFeedbackOnSuccess'],
+            'failureContinuation': 'continueSourceProgramWithoutBagMessage',
+            'playerNameVariable': '{{ player_name }}',
+            'sourceEngineGainQualified': false,
+            'fullSourceParity': false,
+            'sourceScriptsExecuted': 0,
+          },
         if (gaps.isEmpty && _isExternalWarpFamily(event))
           'nativeExternalWarp': {
             'program': _externalWarpProgram(event)!.toJson(),
@@ -1255,10 +1274,38 @@ final class _ProjectionBuilder {
         index < layer.collisions.length && layer.collisions[index]);
   }
 
+  String _graphicByteIdentity(String name) {
+    final matches = source.snapshot.entries.where((entry) =>
+        sourcePathCollisionKey(entry.relativePath) ==
+        sourcePathCollisionKey('Graphics/Characters/$name.png')).toList();
+    if (matches.length != 1 || matches.single.relativePath != 'Graphics/Characters/$name.png' ||
+        matches.single.kind != SourceNodeKind.file || matches.single.sha256 == null) {
+      return name;
+    }
+    return canonicalJsonOf({'sha256': matches.single.sha256!.value,
+        'byteLength': matches.single.byteLength});
+  }
+
+  bool _isItemGiver(SourceEventDefinition event) => event.pages.any((page) =>
+      _hasReceiveItem(page.body));
+
+  bool _hasReceiveItem(SourceEventBlock block) => block.nodes.any((node) => switch (node) {
+    SourcePickupNode() => node.helper == SourceItemGrantHelper.receiveItem,
+    SourceConditionalNode() => _hasReceiveItem(node.whenTrue) || _hasReceiveItem(node.whenFalse),
+    SourceTextNode() => node.followingChoice != null && _choiceHasReceiveItem(node.followingChoice!),
+    SourceChoiceNode() => _choiceHasReceiveItem(node),
+    _ => false,
+  });
+
+  bool _choiceHasReceiveItem(SourceChoiceNode choice) =>
+      choice.branches.any((branch) => _hasReceiveItem(branch.body)) ||
+      (choice.cancelBranch != null && _hasReceiveItem(choice.cancelBranch!));
+
   DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text) =>
       _supportsStaticSign(event)
           ? _staticSourceSignFeedback(text)
-          : _staticSourceTextFeedback(text);
+          : _staticSourceTextFeedback(_isItemGiver(event)
+              ? text.replaceAll(r'\PN', '{{ player_name }}') : text);
 
   bool _supportsStaticWideInteraction(SourceEventDefinition event) {
     final map = maps[event.sourceMapId]!;
@@ -1896,7 +1943,9 @@ final class _ProjectionBuilder {
       }
       final signature = canonicalJsonOf({
         'tileId': graphic.tileId,
-        'character': graphic.characterName,
+        'character': _isItemGiver(event)
+            ? _graphicByteIdentity(graphic.characterName)
+            : graphic.characterName,
         'direction': graphic.direction,
         'through': graphic.through,
         'pattern': graphic.pattern,
@@ -2053,6 +2102,10 @@ final class _ProjectionBuilder {
       case SourceEventConditionKind.globalSwitch:
       case SourceEventConditionKind.selfSwitch:
         break;
+      case SourceEventConditionKind.itemPresence:
+        if (_itemBinding(condition.sourceItemSymbol!) == null) {
+          gaps.add('sourceItemPresenceBindingMissing');
+        }
       case SourceEventConditionKind.pickup:
         final binding = _pickupBinding(event, condition.pickup!);
         if (binding == null) gaps.add('pickupBagCapacityMessagesAudio');
@@ -2139,9 +2192,13 @@ final class _ProjectionBuilder {
                   .any((l) => l.collisions[y * target.size.width + x])) {
             gaps.add('warpArrivalInvalid');
           }
+        case SourcePickupNode():
+          if (node.helper != SourceItemGrantHelper.receiveItem ||
+              _pickupBinding(event, node) == null) {
+            gaps.add('sourceReceiveItemBindingMissing');
+          }
         case SourceScriptNode():
         case SourceUnknownNode():
-        case SourcePickupNode():
           gaps.add('sourceCommandUnqualified');
         case SourceCenterServiceProgramNode():
           gaps.add('sourceCenterServiceBindingsMissing');
@@ -2155,14 +2212,18 @@ final class _ProjectionBuilder {
           gaps.add('sourceCutBindingsMissing');
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
+        case SourceSoundEffectNode():
+          if (node.pitch != 100 ||
+              _sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
+            gaps.add('sourceSoundBindingMissing');
+          }
+          if (!_isSourceTransition(event) && !_isItemGiver(event)) {
+            gaps.add('sourcePresentationUnsupported');
+          }
         case SourceToneNode():
         case SourceWaitNode():
-        case SourceSoundEffectNode():
           if (!_isSourceTransition(event)) {
             gaps.add('sourcePresentationUnsupported');
-          } else if (node is SourceSoundEffectNode &&
-              (node.pitch != 100 || _sound(node.name) == null)) {
-            gaps.add('sourceSoundBindingMissing');
           }
         case SourceForcedMoveRouteNode():
         case SourceMoveRouteBarrierNode():
@@ -2213,14 +2274,23 @@ final class _ProjectionBuilder {
   SourcePickupFeedbackBinding? _pickupBinding(
       SourceEventDefinition event, SourcePickupNode pickup) {
     final binding = pickupBindings[sourcePickupFeedbackBindingKey(
-        sourceMapId: event.sourceMapId, sourceSymbol: pickup.sourceSymbol)];
+        sourceMapId: event.sourceMapId, sourceSymbol: pickup.sourceSymbol,
+        helper: pickup.helper)];
     return pickup.quantity == 1 &&
+            binding?.helper == pickup.helper &&
             binding?.sourceSnapshotHash == sourceSnapshotHash &&
             binding?.sourceMapId == event.sourceMapId &&
             binding?.item.sourceSymbol == pickup.sourceSymbol &&
             binding!.item.pickupQualified
         ? binding
         : null;
+  }
+
+  SourceEventItemBinding? _itemBinding(String symbol) {
+    final binding = itemBindings[symbol] ?? pickupBindings.values
+        .where((binding) => binding.item.sourceSymbol == symbol).firstOrNull?.item;
+    return binding?.sourceSnapshotHash == sourceSnapshotHash &&
+        binding?.sourceSymbol == symbol && binding!.pickupQualified ? binding : null;
   }
 
   SourceEventCondition? _consumedPickupFact(SourceEventDefinition event) {
@@ -2591,7 +2661,8 @@ final class _SceneBuilder {
             green: node.green, blue: node.blue, gray: node.gray,
             durationMs: node.durationMs), next);
         case SourceSoundEffectNode():
-          final sound = projection._sound(node.name)!;
+          final sound = projection._sound(node.name,
+              allowNativeAdaptation: projection._isItemGiver(event))!;
           next = _interactive(SceneInteractiveCommand.playSoundEffect(
             mediaAssetId: sound.mediaId, volume: sound.gainForVolume(node.volume)), next);
         case SourcePlayerVisibilityNode():
@@ -2650,6 +2721,8 @@ final class _SceneBuilder {
           }
         case SourceSelfSwitchNode(:final factId, :final value):
           next = _fact(factId, value, next);
+        case SourcePickupNode():
+          next = _receiveItem(node, next);
         case SourceConditionalNode(
             :final condition,
             :final whenTrue,
@@ -2865,6 +2938,25 @@ final class _SceneBuilder {
     return action;
   }
 
+  String _receiveItem(SourcePickupNode pickup, String next) {
+    final binding = projection._pickupBinding(event, pickup)!;
+    projection.usedItems[binding.item.definition.id] = binding.item.definition;
+    projection.usedPickupBindingKeys.add(sourcePickupFeedbackBindingKey(
+        sourceMapId: event.sourceMapId, sourceSymbol: pickup.sourceSymbol,
+        helper: pickup.helper));
+    final key = 'receive_${page.originalPageIndex}_${pickup.span.firstCommandIndex}';
+    final bag = binding.bagFeedback;
+    final feedback = _dialogue(pickup.span, bag.plainText, null, next,
+        feedbackLines: [bag], dialogueKey: '${key}_bag');
+    final grant = _node(SceneActionPayload.interactive(
+        SceneInteractiveCommand.giveItem(itemId: binding.item.definition.id, quantity: 1)));
+    _edge(grant, 'received', feedback, SceneEdgeKind.actionCompleted);
+    _edge(grant, 'bagFull', next, SceneEdgeKind.actionCompleted);
+    final obtained = binding.foundFeedback(cueId: projection._key(event, key));
+    return _dialogue(pickup.span, obtained.plainText, null, grant,
+        feedbackLines: [obtained], dialogueKey: '${key}_obtained');
+  }
+
   String _condition(
       SourceEventCondition condition, String whenTrue, String whenFalse) {
     if (condition.kind == SourceEventConditionKind.always) return whenTrue;
@@ -2894,6 +2986,18 @@ final class _SceneBuilder {
               itemId: binding.item.definition.id, quantity: 1)));
       _edge(grant, 'completed', feedback, SceneEdgeKind.actionCompleted);
       return grant;
+    }
+    if (condition.kind == SourceEventConditionKind.itemPresence) {
+      final binding = projection._itemBinding(condition.sourceItemSymbol!)!;
+      projection.usedItems[binding.definition.id] = binding.definition;
+      final id = _node(SceneConditionPayload(conditionSource: SceneConditionSource(
+          sourceKind: SceneConditionSourceKind.inventoryItem,
+          sourceId: binding.definition.id,
+          operator: condition.expectedValue ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+          field: 'minimumQuantity', value: '1')));
+      _edge(id, 'true', whenTrue, SceneEdgeKind.conditionTrue);
+      _edge(id, 'false', whenFalse, SceneEdgeKind.conditionFalse);
+      return id;
     }
     final id = _node(SceneConditionPayload(
         conditionSource: condition.kind == SourceEventConditionKind.playerOnEvent
