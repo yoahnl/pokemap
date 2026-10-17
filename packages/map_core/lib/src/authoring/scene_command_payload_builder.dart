@@ -272,6 +272,7 @@ SceneActionPayload buildSceneActorRoutePayload({
   required SceneActorTarget target,
   required List<SceneActorRouteStep> steps,
   bool skippable = false,
+  ActorRouteTransientScope transientScope = ActorRouteTransientScope.route,
   String? actionKind,
   Map<String, String> parameters = const {},
 }) => SceneActionPayload.interactive(
@@ -279,6 +280,7 @@ SceneActionPayload buildSceneActorRoutePayload({
     target: target,
     steps: steps,
     skippable: skippable,
+    transientScope: transientScope,
   ),
   actionKind: actionKind,
   parameters: parameters,

@@ -4,7 +4,17 @@ import 'enums.dart';
 
 enum SceneActorTargetKind { player, entity }
 
-enum SceneActorRouteStepKind { face, move, wait, through, sound }
+enum ActorRouteTransientScope { route, scene }
+
+enum SceneActorRouteStepKind {
+  face,
+  move,
+  moveDiagonal,
+  wait,
+  through,
+  renderAboveMap,
+  sound,
+}
 
 @immutable
 final class SceneActorTarget {
@@ -68,10 +78,17 @@ sealed class SceneActorRouteStep {
     required int durationMs,
     String? initialCollisionOwnerEntityId,
   }) = SceneActorMoveStep;
+  factory SceneActorRouteStep.moveDiagonal({
+    required EntityFacing horizontal,
+    required EntityFacing vertical,
+    required int durationMs,
+  }) = SceneActorDiagonalMoveStep;
   factory SceneActorRouteStep.wait({required int durationMs}) =
       SceneActorWaitStep;
   factory SceneActorRouteStep.through({required bool enabled}) =
       SceneActorThroughStep;
+  factory SceneActorRouteStep.renderAboveMap({required bool enabled}) =
+      SceneActorRenderAboveMapStep;
   factory SceneActorRouteStep.sound({
     required String mediaAssetId,
     required double gain,
@@ -110,17 +127,46 @@ sealed class SceneActorRouteStep {
               ? _actorJsonInitialOwner(json['initialCollisionOwnerEntityId'])
               : null,
         );
+      case SceneActorRouteStepKind.moveDiagonal:
+        _actorFields(json, const {
+          'kind',
+          'horizontal',
+          'vertical',
+          'durationMs',
+        });
+        final horizontal = _actorEnum(json, 'horizontal', EntityFacing.values);
+        final vertical = _actorEnum(json, 'vertical', EntityFacing.values);
+        if (!const [
+              EntityFacing.west,
+              EntityFacing.east,
+            ].contains(horizontal) ||
+            !const [
+              EntityFacing.north,
+              EntityFacing.south,
+            ].contains(vertical)) {
+          throw const FormatException(
+            'Diagonal movement requires horizontal and vertical axes.',
+          );
+        }
+        return SceneActorDiagonalMoveStep(
+          horizontal: horizontal,
+          vertical: vertical,
+          durationMs: _actorJsonDuration(json, minimum: 1),
+        );
       case SceneActorRouteStepKind.wait:
         _actorFields(json, const {'kind', 'durationMs'});
         return SceneActorWaitStep(
           durationMs: _actorJsonDuration(json, minimum: 0),
         );
       case SceneActorRouteStepKind.through:
+      case SceneActorRouteStepKind.renderAboveMap:
         _actorFields(json, const {'kind', 'enabled'});
         if (json['enabled'] is! bool) {
           throw const FormatException('enabled must be a boolean.');
         }
-        return SceneActorThroughStep(enabled: json['enabled'] as bool);
+        return kind == SceneActorRouteStepKind.through
+            ? SceneActorThroughStep(enabled: json['enabled'] as bool)
+            : SceneActorRenderAboveMapStep(enabled: json['enabled'] as bool);
       case SceneActorRouteStepKind.sound:
         _actorFields(json, const {'kind', 'mediaAssetId', 'gain'});
         final gain = json['gain'];
@@ -143,8 +189,7 @@ final class SceneActorFaceStep extends SceneActorRouteStep {
     required this.direction,
     int durationMs = 0,
     this.yieldAfter = false,
-  })
-    : durationMs = _actorDuration(durationMs, minimum: 0);
+  }) : durationMs = _actorDuration(durationMs, minimum: 0);
   final EntityFacing direction;
   final int durationMs;
   final bool yieldAfter;
@@ -198,6 +243,54 @@ final class SceneActorMoveStep extends SceneActorRouteStep {
   @override
   int get hashCode =>
       Object.hash(kind, direction, durationMs, initialCollisionOwnerEntityId);
+}
+
+final class SceneActorDiagonalMoveStep extends SceneActorRouteStep {
+  SceneActorDiagonalMoveStep({
+    required this.horizontal,
+    required this.vertical,
+    required int durationMs,
+  }) : durationMs = _actorDuration(durationMs, minimum: 1) {
+    if (!const [EntityFacing.west, EntityFacing.east].contains(horizontal) ||
+        !const [EntityFacing.north, EntityFacing.south].contains(vertical)) {
+      throw ArgumentError(
+        'Diagonal movement requires horizontal and vertical axes.',
+      );
+    }
+  }
+  final EntityFacing horizontal, vertical;
+  final int durationMs;
+  @override
+  SceneActorRouteStepKind get kind => SceneActorRouteStepKind.moveDiagonal;
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'horizontal': horizontal.name,
+    'vertical': vertical.name,
+    'durationMs': durationMs,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SceneActorDiagonalMoveStep &&
+      horizontal == other.horizontal &&
+      vertical == other.vertical &&
+      durationMs == other.durationMs;
+  @override
+  int get hashCode => Object.hash(kind, horizontal, vertical, durationMs);
+}
+
+final class SceneActorRenderAboveMapStep extends SceneActorRouteStep {
+  const SceneActorRenderAboveMapStep({required this.enabled});
+  final bool enabled;
+  @override
+  SceneActorRouteStepKind get kind => SceneActorRouteStepKind.renderAboveMap;
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'enabled': enabled};
+  @override
+  bool operator ==(Object other) =>
+      other is SceneActorRenderAboveMapStep && enabled == other.enabled;
+  @override
+  int get hashCode => Object.hash(kind, enabled);
 }
 
 final class SceneActorWaitStep extends SceneActorRouteStep {

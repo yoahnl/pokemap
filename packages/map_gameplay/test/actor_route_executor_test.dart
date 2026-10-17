@@ -50,6 +50,28 @@ final class _Port implements ActorRouteExecutionPort {
         : moveOutcomes.removeAt(0);
   }
 
+  bool above = false;
+  @override
+  bool get renderAboveMap => above;
+  @override
+  Future<void> setRenderAboveMap(SceneActorTarget target,
+      {required bool enabled}) async {
+    await _call('above', 'above:$enabled');
+    above = enabled;
+  }
+
+  @override
+  Future<ActorRouteMoveOutcome> moveDiagonal(
+      SceneActorTarget target, EntityFacing horizontal, EntityFacing vertical,
+      {required int durationMs, required bool through}) async {
+    targets.add(target);
+    await _call('diagonal',
+        'diagonal:${horizontal.name}:${vertical.name}:$durationMs:$through');
+    return moveOutcomes.isEmpty
+        ? ActorRouteMoveOutcome.moved
+        : moveOutcomes.removeAt(0);
+  }
+
   @override
   Future<void> nextUpdate() => _call('nextUpdate', 'nextUpdate');
 
@@ -77,6 +99,150 @@ SceneActorRouteInteractiveCommand _route(List<SceneActorRouteStep> steps,
 
 void main() {
   const executor = ActorRouteExecutor();
+
+  test(
+      'diagonal actor route is one simultaneous operation and restores priority',
+      () async {
+    final port = _Port();
+    final command = SceneInteractiveCommand.fromJson({
+      'kind': 'actorRoute',
+      'target': {'kind': 'player', 'mapId': 'centre'},
+      'steps': [
+        {'kind': 'renderAboveMap', 'enabled': true},
+        {
+          'kind': 'moveDiagonal',
+          'horizontal': 'west',
+          'vertical': 'north',
+          'durationMs': 250
+        },
+      ],
+      'skippable': false,
+    }) as SceneActorRouteInteractiveCommand;
+    expect(await executor.execute(command, port: port),
+        ActorRouteExecutionOutcome.completed);
+    expect(port.calls,
+        ['above:true', 'diagonal:west:north:250:false', 'above:false']);
+    expect(port.above, isFalse);
+  });
+
+  test('scene scope carries flags only between its own explicit routes',
+      () async {
+    final state = ActorRouteTransientState();
+    final port = _Port();
+    SceneActorRouteInteractiveCommand scoped(
+            String mapId, List<SceneActorRouteStep> steps) =>
+        SceneActorRouteInteractiveCommand(
+            target: SceneActorTarget.player(mapId: mapId),
+            steps: steps,
+            transientScope: ActorRouteTransientScope.scene);
+    expect(
+        await executor.execute(
+            scoped('centre', [
+              SceneActorRouteStep.through(enabled: true),
+              SceneActorRouteStep.renderAboveMap(enabled: true),
+            ]),
+            port: port,
+            sceneState: state),
+        ActorRouteExecutionOutcome.completed);
+    expect(state.through, isTrue);
+    expect(state.renderAboveMap, isTrue);
+    expect(port.above, isTrue);
+    await executor.execute(
+        _route([
+          SceneActorRouteStep.move(direction: EntityFacing.east, durationMs: 20)
+        ]),
+        port: port,
+        sceneState: state);
+    expect(port.calls.last, 'move:east:20:false');
+    expect(state.through, isTrue);
+    await executor.execute(
+        scoped('upstairs', [
+          SceneActorRouteStep.moveDiagonal(
+              horizontal: EntityFacing.west,
+              vertical: EntityFacing.north,
+              durationMs: 250),
+          SceneActorRouteStep.through(enabled: false),
+          SceneActorRouteStep.renderAboveMap(enabled: false),
+        ]),
+        port: port,
+        sceneState: state);
+    expect(port.calls, contains('diagonal:west:north:250:true'));
+    expect(state.through, isFalse);
+    expect(state.renderAboveMap, isFalse);
+    expect(port.above, isFalse);
+  });
+
+  test(
+      'scene scope cannot use an initial collision owner while through is inherited',
+      () async {
+    final port = _Port();
+    final state = ActorRouteTransientState(through: true);
+    final command = SceneActorRouteInteractiveCommand(
+        target: SceneActorTarget.player(mapId: 'centre'),
+        transientScope: ActorRouteTransientScope.scene,
+        steps: [
+          SceneActorRouteStep.move(
+              direction: EntityFacing.south,
+              durationMs: 250,
+              initialCollisionOwnerEntityId: 'owner'),
+        ]);
+    expect(await executor.execute(command, port: port, sceneState: state),
+        ActorRouteExecutionOutcome.blocked);
+    expect(port.calls, isEmpty);
+    expect(state.through, isTrue);
+  });
+
+  test('scene scope requires a live scene state before changing presentation',
+      () async {
+    final port = _Port();
+    final command = SceneActorRouteInteractiveCommand(
+        target: SceneActorTarget.player(mapId: 'centre'),
+        transientScope: ActorRouteTransientScope.scene,
+        steps: [SceneActorRouteStep.renderAboveMap(enabled: true)]);
+    expect(await executor.execute(command, port: port),
+        ActorRouteExecutionOutcome.blocked);
+    expect(port.calls, isEmpty);
+  });
+
+  for (final scope in ActorRouteTransientScope.values) {
+    for (final failure in ['blocked', 'throw', 'interrupted']) {
+      test('transient scope=$scope restores previous flags after $failure',
+          () async {
+        final port = _Port()..above = true;
+        final state =
+            ActorRouteTransientState(through: true, renderAboveMap: true);
+        if (failure == 'blocked')
+          port.moveOutcomes.add(ActorRouteMoveOutcome.obstructed);
+        if (failure == 'throw') port.failingOperation = 'diagonal';
+        if (failure == 'interrupted') port.current = false;
+        final command = SceneActorRouteInteractiveCommand(
+            target: SceneActorTarget.player(mapId: 'centre'),
+            transientScope: scope,
+            steps: [
+              SceneActorRouteStep.through(enabled: false),
+              SceneActorRouteStep.renderAboveMap(enabled: false),
+              SceneActorRouteStep.moveDiagonal(
+                  horizontal: EntityFacing.east,
+                  vertical: EntityFacing.north,
+                  durationMs: 250),
+            ]);
+        final execution =
+            executor.execute(command, port: port, sceneState: state);
+        if (failure == 'throw') {
+          await expectLater(execution, throwsStateError);
+        } else {
+          expect(
+              await execution,
+              failure == 'blocked'
+                  ? ActorRouteExecutionOutcome.blocked
+                  : ActorRouteExecutionOutcome.interrupted);
+        }
+        expect(port.above, isTrue);
+        expect(state.through, isTrue);
+        expect(state.renderAboveMap, isTrue);
+      });
+    }
+  }
 
   test('actor route forwards the initial owner only for its declared move',
       () async {
@@ -216,16 +382,19 @@ void main() {
       ..gates['nextUpdate'] = Completer<void>()
       ..gates['wait'] = Completer<void>();
     var completed = false;
-    final running = executor.execute(
-        _route([
-          _yieldingFace(durationMs: 25),
-          SceneActorSoundStep(mediaAssetId: 'after-yield', gain: .8),
-        ]),
-        port: port).then((result) {
+    final running = executor
+        .execute(
+            _route([
+              _yieldingFace(durationMs: 25),
+              SceneActorSoundStep(mediaAssetId: 'after-yield', gain: .8),
+            ]),
+            port: port)
+        .then((result) {
       completed = true;
       return result;
     });
-    await port.waitUntilEntered('nextUpdate')
+    await port
+        .waitUntilEntered('nextUpdate')
         .timeout(const Duration(seconds: 1));
     expect(port.calls, ['face:north', 'nextUpdate']);
     expect(completed, isFalse);
@@ -247,7 +416,8 @@ void main() {
           SceneActorSoundStep(mediaAssetId: 'must-not-start', gain: .8),
         ], skippable: true),
         port: port);
-    await port.waitUntilEntered('nextUpdate')
+    await port
+        .waitUntilEntered('nextUpdate')
         .timeout(const Duration(seconds: 1));
     port.current = false;
     port.gates['nextUpdate']!.complete();
@@ -291,7 +461,12 @@ void main() {
       expect(
           port.calls,
           skippable
-              ? ['move:north:50:false', 'nextUpdate', 'wait:25', 'move:east:75:false']
+              ? [
+                  'move:north:50:false',
+                  'nextUpdate',
+                  'wait:25',
+                  'move:east:75:false'
+                ]
               : ['move:north:50:false']);
     });
   }
@@ -305,19 +480,19 @@ void main() {
       var completed = false;
       final running = executor
           .execute(
-            _route([
-              SceneActorMoveStep(
-                direction: EntityFacing.south,
-                durationMs: 250,
-              ),
-              SceneActorSoundStep(mediaAssetId: 'after-skip', gain: .8),
-            ], skippable: true),
-            port: port,
-          )
+        _route([
+          SceneActorMoveStep(
+            direction: EntityFacing.south,
+            durationMs: 250,
+          ),
+          SceneActorSoundStep(mediaAssetId: 'after-skip', gain: .8),
+        ], skippable: true),
+        port: port,
+      )
           .then((result) {
-            completed = true;
-            return result;
-          });
+        completed = true;
+        return result;
+      });
       await Future<void>.delayed(Duration.zero);
       expect(port.calls, ['move:south:250:false', 'nextUpdate']);
       expect(completed, isFalse);

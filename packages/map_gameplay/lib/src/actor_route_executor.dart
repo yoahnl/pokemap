@@ -13,9 +13,20 @@ abstract interface class ActorRouteExecutionPort {
       {required int durationMs,
       required bool through,
       String? initialCollisionOwnerEntityId});
+  Future<ActorRouteMoveOutcome> moveDiagonal(
+      SceneActorTarget target, EntityFacing horizontal, EntityFacing vertical,
+      {required int durationMs, required bool through});
+  bool get renderAboveMap;
+  Future<void> setRenderAboveMap(SceneActorTarget target,
+      {required bool enabled});
   Future<void> wait(int durationMs);
   Future<void> sound(String mediaAssetId, {required double gain});
   Future<void> setVisibility(SceneActorTarget target, {required bool visible});
+}
+
+final class ActorRouteTransientState {
+  ActorRouteTransientState({this.through = false, this.renderAboveMap = false});
+  bool through, renderAboveMap;
 }
 
 final class ActorRouteExecutor {
@@ -24,61 +35,98 @@ final class ActorRouteExecutor {
   Future<ActorRouteExecutionOutcome> execute(
     SceneActorRouteInteractiveCommand command, {
     required ActorRouteExecutionPort port,
+    ActorRouteTransientState? sceneState,
   }) async {
-    var through = false;
-    for (final step in command.steps) {
-      if (!port.isCurrent) {
-        return ActorRouteExecutionOutcome.interrupted;
-      }
-      switch (step) {
-        case SceneActorFaceStep():
-          await port.face(command.target, step.direction);
-          if (!port.isCurrent) {
-            return ActorRouteExecutionOutcome.interrupted;
-          }
-          if (step.yieldAfter) {
-            await port.nextUpdate();
+    final sceneScope = command.transientScope == ActorRouteTransientScope.scene;
+    if (sceneScope && sceneState == null)
+      return ActorRouteExecutionOutcome.blocked;
+    final state = sceneScope
+        ? sceneState!
+        : ActorRouteTransientState(renderAboveMap: port.renderAboveMap);
+    final beforeThrough = state.through;
+    final beforeAbove = port.renderAboveMap;
+    var completed = false;
+    try {
+      for (final step in command.steps) {
+        if (!port.isCurrent) {
+          return ActorRouteExecutionOutcome.interrupted;
+        }
+        switch (step) {
+          case SceneActorRenderAboveMapStep():
+            state.renderAboveMap = step.enabled;
+            await port.setRenderAboveMap(command.target, enabled: step.enabled);
+          case SceneActorDiagonalMoveStep():
+            final outcome = await port.moveDiagonal(
+                command.target, step.horizontal, step.vertical,
+                durationMs: step.durationMs, through: state.through);
+            if (!port.isCurrent) return ActorRouteExecutionOutcome.interrupted;
+            if (outcome == ActorRouteMoveOutcome.obstructed) {
+              if (!command.skippable) return ActorRouteExecutionOutcome.blocked;
+              await port.nextUpdate();
+              if (!port.isCurrent)
+                return ActorRouteExecutionOutcome.interrupted;
+            }
+          case SceneActorFaceStep():
+            await port.face(command.target, step.direction);
             if (!port.isCurrent) {
               return ActorRouteExecutionOutcome.interrupted;
             }
-          }
-          if (step.durationMs > 0) {
-            await port.wait(step.durationMs);
-          }
-        case SceneActorMoveStep():
-          final outcome = await port.move(
-            command.target,
-            step.direction,
-            durationMs: step.durationMs,
-            through: through,
-            initialCollisionOwnerEntityId: step.initialCollisionOwnerEntityId,
-          );
-          if (!port.isCurrent) {
-            return ActorRouteExecutionOutcome.interrupted;
-          }
-          if (outcome == ActorRouteMoveOutcome.obstructed) {
-            if (!command.skippable) {
+            if (step.yieldAfter) {
+              await port.nextUpdate();
+              if (!port.isCurrent) {
+                return ActorRouteExecutionOutcome.interrupted;
+              }
+            }
+            if (step.durationMs > 0) {
+              await port.wait(step.durationMs);
+            }
+          case SceneActorMoveStep():
+            if (state.through && step.initialCollisionOwnerEntityId != null) {
               return ActorRouteExecutionOutcome.blocked;
             }
-            await port.nextUpdate();
+            final outcome = await port.move(
+              command.target,
+              step.direction,
+              durationMs: step.durationMs,
+              through: state.through,
+              initialCollisionOwnerEntityId: step.initialCollisionOwnerEntityId,
+            );
             if (!port.isCurrent) {
               return ActorRouteExecutionOutcome.interrupted;
             }
-          }
-        case SceneActorWaitStep():
-          await port.wait(step.durationMs);
-        case SceneActorThroughStep():
-          through = step.enabled;
-        case SceneActorSoundStep():
-          await port.sound(step.mediaAssetId, gain: step.gain);
+            if (outcome == ActorRouteMoveOutcome.obstructed) {
+              if (!command.skippable) {
+                return ActorRouteExecutionOutcome.blocked;
+              }
+              await port.nextUpdate();
+              if (!port.isCurrent) {
+                return ActorRouteExecutionOutcome.interrupted;
+              }
+            }
+          case SceneActorWaitStep():
+            await port.wait(step.durationMs);
+          case SceneActorThroughStep():
+            state.through = step.enabled;
+          case SceneActorSoundStep():
+            await port.sound(step.mediaAssetId, gain: step.gain);
+        }
+        if (!port.isCurrent) {
+          return ActorRouteExecutionOutcome.interrupted;
+        }
       }
-      if (!port.isCurrent) {
-        return ActorRouteExecutionOutcome.interrupted;
+      completed = port.isCurrent;
+      return completed
+          ? ActorRouteExecutionOutcome.completed
+          : ActorRouteExecutionOutcome.interrupted;
+    } finally {
+      if (!sceneScope || !completed) {
+        state.through = beforeThrough;
+        state.renderAboveMap = beforeAbove;
+        if (port.renderAboveMap != beforeAbove) {
+          await port.setRenderAboveMap(command.target, enabled: beforeAbove);
+        }
       }
     }
-    return port.isCurrent
-        ? ActorRouteExecutionOutcome.completed
-        : ActorRouteExecutionOutcome.interrupted;
   }
 
   Future<ActorRouteExecutionOutcome> executeVisibility(

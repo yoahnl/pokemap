@@ -79,6 +79,7 @@ abstract base class SceneInteractiveCommand {
     required SceneActorTarget target,
     required List<SceneActorRouteStep> steps,
     bool skippable,
+    ActorRouteTransientScope transientScope,
   }) = SceneActorRouteInteractiveCommand;
 
   factory SceneInteractiveCommand.actorVisibility({
@@ -255,6 +256,7 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
     required this.target,
     required List<SceneActorRouteStep> steps,
     this.skippable = false,
+    this.transientScope = ActorRouteTransientScope.route,
   }) : steps = List.unmodifiable(steps) {
     var through = false;
     for (final step in this.steps) {
@@ -275,7 +277,7 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
   ) {
     if (json.keys.any(
           (key) =>
-              !const {'kind', 'target', 'steps', 'skippable'}.contains(key),
+              !const {'kind', 'target', 'steps', 'skippable', 'transientScope'}.contains(key),
         ) ||
         json['kind'] != 'actorRoute' ||
         json['steps'] is! List ||
@@ -292,6 +294,10 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
             SceneActorRouteStep.fromJson(_actorCommandObject(step, 'step')),
         ],
         skippable: json['skippable'] as bool? ?? false,
+        transientScope: json.containsKey('transientScope')
+          ? ActorRouteTransientScope.values.firstWhere((value) => value.name == json['transientScope'],
+              orElse: () => throw const FormatException('Unknown actor route transient scope.'))
+          : ActorRouteTransientScope.route,
       );
     } on ArgumentError catch (error) {
       throw FormatException(error.message.toString());
@@ -301,6 +307,7 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
   final SceneActorTarget target;
   final List<SceneActorRouteStep> steps;
   final bool skippable;
+  final ActorRouteTransientScope transientScope;
   @override
   SceneInteractiveCommandKind get kind =>
       SceneInteractiveCommandKind.actorRoute;
@@ -312,19 +319,21 @@ final class SceneActorRouteInteractiveCommand extends SceneInteractiveCommand {
     'target': target.toJson(),
     'steps': steps.map((step) => step.toJson()).toList(),
     'skippable': skippable,
+    if (transientScope != ActorRouteTransientScope.route) 'transientScope': transientScope.name,
   };
   @override
   bool operator ==(Object other) =>
       other is SceneActorRouteInteractiveCommand &&
       target == other.target &&
       skippable == other.skippable &&
+      transientScope == other.transientScope &&
       steps.length == other.steps.length &&
       Iterable<int>.generate(
         steps.length,
       ).every((index) => steps[index] == other.steps[index]);
   @override
   int get hashCode =>
-      Object.hash(kind, target, skippable, Object.hashAll(steps));
+      Object.hash(kind, target, skippable, transientScope, Object.hashAll(steps));
 }
 
 @immutable

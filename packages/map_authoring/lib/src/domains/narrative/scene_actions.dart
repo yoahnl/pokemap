@@ -128,7 +128,14 @@ final class SceneActions {
   };
 
   static const _actorRouteContract = {
-    'parameters': ['target', 'steps', 'skippable'],
+    'contractVersion': 2,
+    'parameters': ['target', 'steps', 'skippable', 'transientScope'],
+    'transientScopes': ['route', 'scene'],
+    'defaultTransientScope': 'route',
+    'transientLifetime': 'explicitScopeWithRestorationOnCompletionFailureOrCancellation',
+    'playerSceneScope': 'continuousAcrossMapTransfers',
+    'entitySceneScope': 'exactMapInstanceAndEntity',
+    'savePolicy': 'transientFlagsNeverSerializedSceneCheckpointInterlock',
     'targetKinds': ['player', 'entity'],
     'targetReference': 'uniqueActorOnExactMap',
     'targetMapMode': '2D',
@@ -138,10 +145,12 @@ final class SceneActions {
       'player': ['kind', 'mapId'],
       'entity': ['kind', 'mapId', 'entityId'],
     },
-    'stepKinds': ['face', 'move', 'wait', 'through', 'sound'],
+    'stepKinds': ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'sound'],
     'stepFields': {
       'face': ['kind', 'direction', 'durationMs', 'yieldAfter'],
       'move': ['kind', 'direction', 'durationMs', 'initialCollisionOwnerEntityId'],
+      'moveDiagonal': ['kind', 'horizontal', 'vertical', 'durationMs'],
+      'renderAboveMap': ['kind', 'enabled'],
       'wait': ['kind', 'durationMs'],
       'through': ['kind', 'enabled'],
       'sound': ['kind', 'mediaAssetId', 'gain'],
@@ -168,6 +177,10 @@ final class SceneActions {
     'directions': ['north', 'south', 'east', 'west'],
     'durationMsRange': [0, 2147483647],
     'minimumMoveDurationMs': 1,
+    'diagonalHorizontalDirections': ['west', 'east'],
+    'diagonalVerticalDirections': ['north', 'south'],
+    'diagonalMotion': 'simultaneousAxesWithSweptCollisionAndSingleStep',
+    'renderAboveMap': 'aboveForegroundBelowScreenOverlays',
     'defaultFaceDurationMs': 0,
     'defaultFaceYieldAfter': false,
     'faceYieldCompletion': 'nextUpdateBeforeHold',
@@ -1070,6 +1083,7 @@ final class SceneActions {
                   target: command.target,
                   steps: command.steps,
                   skippable: command.skippable,
+                  transientScope: command.transientScope,
                   actionKind: existingAction?.actionKind,
                   parameters: existingAction?.parameters ?? const {},
                 )

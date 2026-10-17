@@ -695,6 +695,8 @@ final class _FlameSceneActorRouteExecutionPort
     required this.nextUpdateAction,
     required this.soundAction,
     required this.visibilityAction,
+    required this.aboveMapValue,
+    required this.aboveMapAction,
   });
 
   final bool Function() current;
@@ -705,8 +707,11 @@ final class _FlameSceneActorRouteExecutionPort
     required int durationMs,
     required bool through,
     String? initialCollisionOwnerEntityId,
+    EntityFacing? vertical,
   })
   moveAction;
+  final bool Function() aboveMapValue;
+  final Future<void> Function(bool) aboveMapAction;
   final Future<void> Function(int) waitAction;
   final Future<void> Function() nextUpdateAction;
   final Future<void> Function(String, {required double gain}) soundAction;
@@ -728,6 +733,15 @@ final class _FlameSceneActorRouteExecutionPort
   }) => moveAction(target, direction, durationMs: durationMs, through: through,
       initialCollisionOwnerEntityId: initialCollisionOwnerEntityId);
   @override
+  Future<ActorRouteMoveOutcome> moveDiagonal(SceneActorTarget target,
+      EntityFacing horizontal, EntityFacing vertical,
+      {required int durationMs, required bool through}) => moveAction(target, horizontal,
+        durationMs: durationMs, through: through, vertical: vertical);
+  @override
+  bool get renderAboveMap => aboveMapValue();
+  @override
+  Future<void> setRenderAboveMap(SceneActorTarget target, {required bool enabled}) => aboveMapAction(enabled);
+  @override
   Future<void> wait(int durationMs) => waitAction(durationMs);
   @override
   Future<void> nextUpdate() => nextUpdateAction();
@@ -747,6 +761,17 @@ final class _NarrativeSceneWorkingSession {
   GameState gameState;
   bool defersMapActivation = false;
   MapActivation? deferredMapActivation;
+  final actorRouteStates = <Object, ActorRouteTransientState>{};
+  final actorRouteCleanup = <void Function()>[];
+
+  void restoreActorRoutes() {
+    for (final restore in actorRouteCleanup.reversed) {
+      restore();
+    }
+    actorRouteCleanup.clear();
+    actorRouteStates.clear();
+  }
+
   final List<Future<void> Function()> _compensations =
       <Future<void> Function()>[];
 

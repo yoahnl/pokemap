@@ -31,7 +31,7 @@ function scene(id: string, command: JsonRecord): JsonRecord {
     startNodeId: "start", nodes: [
       { id: "start", kind: "start" },
       { id: "action", kind: "action", title: "Keep title", payload: {
-        actionKind: "keep-action", parameters: { keep: "parameter" }, interactiveCommand: command } },
+        kind: "action", actionKind: "keep-action", parameters: { keep: "parameter" }, interactiveCommand: command } },
       { id: "end", kind: "end" },
     ], edges: [
       { id: "start", fromNodeId: "start", fromPortId: "completed", toNodeId: "action", kind: "default" },
@@ -135,7 +135,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
       assert.equal(contract.entityKind, "npc");
       assert.equal(contract.entityCharacterReference, "knownUniqueDirectOrTrainerCharacter");
     }
-    assert.deepEqual(record(extension.actorRoute).stepKinds, ["face", "move", "wait", "through", "sound"]);
+    assert.deepEqual(record(extension.actorRoute).stepKinds, ["face", "move", "moveDiagonal", "wait", "through", "renderAboveMap", "sound"]);
     assert.equal(record(extension.actorRoute).dynamicCollisionValidation, "runtime");
     for (const id of ["scene.interactive_command.set", "scene.upsert", "scene.graph.patch"]) {
       const descriptor = (description.mutationActions as JsonRecord[]).find((value) => value.id === id);
@@ -146,6 +146,12 @@ test("live MCP authors typed actor routes and visibility with strict references 
       assert.deepEqual(record(contract.stepFields).face, ["kind", "direction", "durationMs", "yieldAfter"]);
       assert.deepEqual(record(contract.stepOptionalFields).face, ["durationMs", "yieldAfter"]);
       assert.equal(contract.defaultFaceYieldAfter, false);
+      assert.equal(contract.contractVersion, 2);
+      assert.deepEqual(contract.transientScopes, ["route", "scene"]);
+      assert.equal(contract.defaultTransientScope, "route");
+      assert.deepEqual(record(contract.stepFields).moveDiagonal, ["kind", "horizontal", "vertical", "durationMs"]);
+      assert.deepEqual(record(contract.stepFields).renderAboveMap, ["kind", "enabled"]);
+
       const owner = record(contract.initialCollisionOwner);
       assert.equal(owner.status, "partial");
       assert.equal(owner.targetKind, "player");
@@ -179,9 +185,16 @@ test("live MCP authors typed actor routes and visibility with strict references 
       assert.deepEqual(await readFile(mapFile), mapBefore);
       return result;
     }
+    const diagonal = { ...route(target()), transientScope: "scene", steps: [
+      { kind: "through", enabled: true }, { kind: "renderAboveMap", enabled: true },
+      { kind: "moveDiagonal", horizontal: "east", vertical: "north", durationMs: 250 },
+      { kind: "through", enabled: false }, { kind: "renderAboveMap", enabled: false },
+    ] };
     const commands = [route(), route(target()), route(target("map", "trainer-actor")), visibility(),
       route(target(), "door", "actor"), route(target(), "door", "anchored-tall"), route(target(), "door", "trainer-actor")];
-    const mutations = [...commands.map((command) => ({ command, actionId: "scene.interactive_command.set" })),
+    commands.push(diagonal);
+    const mutations = [...["scene.upsert", "scene.graph.patch"].map((actionId) => ({ command: actionId === "scene.graph.patch"
+      ? { ...diagonal, steps: [{ kind: "moveDiagonal", horizontal: "west", vertical: "north", durationMs: 300 }] } : diagonal, actionId })), ...commands.map((command) => ({ command, actionId: "scene.interactive_command.set" })),
       ...["scene.upsert", "scene.graph.patch"].map((actionId) => ({ command: route(target(), "door", actionId === "scene.upsert" ? "actor" : "trainer-actor"), actionId }))];
     for (const { command, actionId } of mutations) {
       const planned = await plan(command, false, actionId);
@@ -198,6 +211,18 @@ test("live MCP authors typed actor routes and visibility with strict references 
       assert.equal(node.title, "Keep title");
       assert.deepEqual(await readFile(mapFile), mapBefore);
     }
+    const nativePlan = await plan(diagonal);
+    await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: nativePlan.planId, operationId: `apply-${sequence}` });
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+    workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    const nativeReopen = await call("pokemap_query", { projectHandle: workspace.projectHandle, resourceKind: "scene", operation: "get", ids: ["edit"], view: "detail" });
+    assert.ok(JSON.stringify(nativeReopen).includes('"moveDiagonal"'));
+    assert.ok(JSON.stringify(nativeReopen).includes('"transientScope":"scene"'));
+    const restorePlan = await plan(route(target(), "door", "trainer-actor"));
+    await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: restorePlan.planId, operationId: `apply-${sequence}` });
+    for (const transientScope of [null, 1, true, "permanent"]) await plan({ ...diagonal, transientScope }, true);
+    for (const horizontal of ["north", null, 4]) await plan({ ...diagonal,
+      steps: [{ kind: "moveDiagonal", horizontal, vertical: "north", durationMs: 250 }] }, true);
     for (const id of ["missing", "music", "fx", "loop", "ambiguous"]) await plan(route(target("map", "actor"), id), true);
     await plan(route(target("missing")), true);
     await plan(route(target("map", "missing")), true);
@@ -244,6 +269,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     for (const actor of [target("spatial"), target("spatial", "actor")]) {
       await plan(route(actor), true);
+      await plan({ ...diagonal, target: actor }, true);
       await plan(visibility(actor), true);
     }
     await plan(route(target("spatial"), "door", "actor"), true);

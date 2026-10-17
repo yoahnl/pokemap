@@ -12,12 +12,190 @@ import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
+import 'package:map_runtime/src/presentation/flame/overworld_render_priority.dart';
 import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
 import 'package:map_runtime/src/presentation/flame/playable_map_game.dart' show RuntimeDialogueSessionLoader;
 import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_component.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  for (final cancelled in [false, true]) {
+    test('native scene finalizer restores effects without a reset route cancelled=$cancelled', () async {
+      final saves = _MemorySaveRepository();
+      final fixture = await _fixture(warpArrival: true, narrativeV2: true,
+        sourceSize: const GridSize(width: 4, height: 4), saveRepository: saves,
+        scenes: [_nativeTransientScene(omitRestoration: true)]);
+      final game = fixture.game;
+      final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+        eventId: 'native-event', sceneId: 'native-transient', executionId: 'native-finalizer', gameState: game.gameStateSnapshot));
+      for (var tick = 0; tick < 80 && game.gameStateSnapshot.currentMapId != 'target'; tick++) {
+        await Future<void>.delayed(Duration.zero);
+        game.update(.025);
+      }
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      final player = game.world.children.whereType<PlayerComponent>().single;
+      expect(player.priority, greaterThan(overworldForegroundRenderPriority));
+      expect(await game.saveGame(), isFalse);
+      if (cancelled) game.onRemove();
+      final result = await _finishActorScene(game, execution);
+      expect(result, cancelled ? isA<NarrativeSceneExecutionFailed>() : isA<NarrativeSceneExecutionCompleted>());
+      expect(player.priority, overworldActorRenderPriority(player.footPoint.y));
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      if (!cancelled) {
+        expect(await game.saveGame(), isTrue);
+        expect(jsonEncode(game.gameStateSnapshot.toJson()), isNot(contains('renderAboveMap')));
+      }
+    });
+  }
+
+  test('native NPC diagonal uses one motion and restores depth after interruption', () async {
+    final fixture = await _fixture(sourceSize: const GridSize(width: 5, height: 5),
+      sourceEntities: [_routeDoor.copyWith(pos: const GridPos(x: 3, y: 3))], characters: [_routeDoorCharacter]);
+    final game = fixture.game;
+    final actor = game.world.children.whereType<OverworldActorComponent>().single;
+    final before = actor.position.clone();
+    final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'through', 'enabled': true}, {'kind': 'renderAboveMap', 'enabled': true},
+      {'kind': 'moveDiagonal', 'horizontal': 'west', 'vertical': 'north', 'durationMs': 250},
+    ], entityId: 'route-door'));
+    await Future<void>.delayed(Duration.zero);
+    game.update(.125);
+    await Future<void>.delayed(Duration.zero);
+    expect(actor.position.x, lessThan(before.x));
+    expect(actor.position.y, lessThan(before.y));
+    expect(actor.priority, greaterThan(overworldForegroundRenderPriority));
+    expect(await _finishActorRoute(game, execution), 'completed');
+    expect(actor.gridPos, const GridPos(x: 2, y: 2));
+    expect(actor.priority, overworldActorRenderPriority(actor.depthSortY));
+    final interrupted = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'renderAboveMap', 'enabled': true}, {'kind': 'wait', 'durationMs': 1000},
+    ], entityId: 'route-door'));
+    final failure = expectLater(interrupted, throwsStateError);
+    await Future<void>.delayed(Duration.zero);
+    game.onRemove();
+    await failure;
+    expect(actor.priority, overworldActorRenderPriority(actor.depthSortY));
+  });
+
+  test('native entity scene flags cannot elevate an identically named actor after transfer', () async {
+    final fixture = await _fixture(warpArrival: true, narrativeV2: true,
+      sourceSize: const GridSize(width: 4, height: 4),
+      sourceEntities: [_routeDoor], targetEntities: [_routeDoor], characters: [_routeDoorCharacter],
+      scenes: [_nativeTransientScene(actorId: 'route-door')]);
+    final game = fixture.game;
+    var sourceAbove = false, targetNormal = false;
+    final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+      eventId: 'native-event', sceneId: 'native-transient', executionId: 'native-entity-scope', gameState: game.gameStateSnapshot));
+    final result = await _finishActorScene(game, execution, observe: () {
+      final actors = game.world.children.whereType<OverworldActorComponent>().toList();
+      if (game.gameStateSnapshot.currentMapId == 'source') {
+        sourceAbove |= actors.any((actor) => actor.priority > overworldForegroundRenderPriority);
+      } else if (actors.isNotEmpty) {
+        targetNormal |= actors.every((actor) => actor.priority < overworldForegroundRenderPriority);
+      }
+    });
+    expect(result, isA<NarrativeSceneExecutionCompleted>());
+    expect(sourceAbove, isTrue);
+    expect(targetNormal, isTrue);
+    expect(game.world.children.whereType<OverworldActorComponent>()
+      .every((actor) => actor.priority < overworldForegroundRenderPriority), isTrue);
+  });
+
+  test('native render priority changes foreground pixels and restores them', () async {
+    final fixture = await _fixture();
+    final game = fixture.game;
+    final player = game.world.children.whereType<PlayerComponent>().single;
+    game.update(0);
+    final foreground = RectangleComponent(position: player.position.clone(), size: player.size.clone(),
+      priority: overworldForegroundRenderPriority, paint: ui.Paint()..color = const ui.Color(0xFFFF0000));
+    game.world.add(foreground);
+    await game.ready();
+    final sample = player.position + player.size / 2;
+    expect(await _nativeWorldPixel(game, sample), [255, 0, 0, 255]);
+    final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'renderAboveMap', 'enabled': true}, {'kind': 'wait', 'durationMs': 100},
+    ]));
+    await Future<void>.delayed(Duration.zero);
+    game.update(.025);
+    await Future<void>.delayed(Duration.zero);
+    final above = await _nativeWorldPixel(game, sample);
+    expect(above, isNot([255, 0, 0, 255]));
+    expect(above[2], greaterThan(0));
+    expect(await _finishActorRoute(game, execution), 'completed');
+    game.update(0);
+    expect(await _nativeWorldPixel(game, sample), [255, 0, 0, 255]);
+  });
+
+  for (final failingAfterWarp in [false, true]) {
+    test('native scene transient flags follow the player across transfer failure=$failingAfterWarp', () async {
+      PlayableMapGame? active;
+      final sourceBefore = <String, dynamic>{};
+      final fixture = await _fixture(warpArrival: true, narrativeV2: true,
+        sourceSize: const GridSize(width: 4, height: 4),
+        targetEntities: const [MapEntity(id: 'solid', kind: MapEntityKind.custom,
+          pos: GridPos(x: 1, y: 1), blocksMovement: true)],
+        scenes: [_nativeTransientScene(failingAfterWarp: failingAfterWarp)],
+        dialogues: failingAfterWarp ? [_actorDialogueEntry] : [],
+        dialogueSessionLoader: (_) async => throw StateError('Failure after scoped transfer'));
+      final game = fixture.game;
+      active = game;
+      sourceBefore.addAll(game.gameStateSnapshot.toJson());
+      var sawSourceAbove = false, sawTargetAbove = false;
+      final saveChecks = <Future<bool>>[];
+      final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+        eventId: 'native-event', sceneId: 'native-transient', executionId: 'native-scope', gameState: game.gameStateSnapshot));
+      final result = await _finishActorScene(game, execution, observe: () {
+        final player = active!.world.children.whereType<PlayerComponent>().single;
+        if (player.priority > overworldForegroundRenderPriority) {
+          if (game.gameStateSnapshot.currentMapId == 'target') {
+            sawTargetAbove = true;
+          } else {
+            sawSourceAbove = true;
+          }
+          if (saveChecks.isEmpty) saveChecks.add(game.saveGame());
+        }
+      });
+      expect(sawSourceAbove, isTrue);
+      expect(sawTargetAbove, isTrue);
+      expect(await Future.wait(saveChecks), [false]);
+      if (failingAfterWarp) {
+        expect(result, isA<NarrativeSceneExecutionFailed>());
+        expect(game.gameStateSnapshot.toJson(), sourceBefore);
+        expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      } else {
+        expect(result, isA<NarrativeSceneExecutionCompleted>());
+        expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+        expect((result as NarrativeSceneExecutionCompleted).updatedGameState.currentMapId, 'target');
+      }
+      final player = game.world.children.whereType<PlayerComponent>().single;
+      expect(player.priority, overworldActorRenderPriority(player.footPoint.y));
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(jsonEncode(game.gameStateSnapshot.toJson()), isNot(contains('renderAboveMap')));
+    });
+  }
+
+  test('native diagonal route interpolates both axes and restores render priority', () async {
+    final fixture = await _fixture(sourceSize: const GridSize(width: 4, height: 4), saveRepository: _MemorySaveRepository());
+    final game = fixture.game;
+    final player = game.world.children.whereType<PlayerComponent>().single;
+    final before = player.position.clone();
+    final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'renderAboveMap', 'enabled': true},
+      {'kind': 'moveDiagonal', 'horizontal': 'east', 'vertical': 'north', 'durationMs': 250},
+    ]));
+    await Future<void>.delayed(Duration.zero);
+    game.update(.125);
+    await Future<void>.delayed(Duration.zero);
+    expect(player.position.x, greaterThan(before.x));
+    expect(player.position.y, lessThan(before.y));
+    expect(player.priority, greaterThan(overworldForegroundRenderPriority));
+    expect(await game.saveGame(), isFalse);
+    expect(await _finishActorRoute(game, execution), 'completed');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 0));
+    expect(player.priority, overworldActorRenderPriority(player.footPoint.y));
+    expect(await game.saveGame(), isTrue);
+  });
+
   test('multiple edge neighbors select the crossing span and preserve the return', () async {
     final fixture = await _fixture(sourceSize: const GridSize(width: 2, height: 8), targetSize: const GridSize(width: 3, height: 4), offset: 4, extraConnections: const [MapConnection(direction: MapConnectionDirection.east, targetMapId: 'other')], extraMaps: const [MapData(id: 'other', name: 'Other', size: GridSize(width: 3, height: 4), connections: [MapConnection(direction: MapConnectionDirection.west, targetMapId: 'source')])]);
     await fixture.game.debugLoadRuntimeMapBundleCachedForTest('other');
@@ -4745,6 +4923,59 @@ Future<NarrativeSceneExecutionResult> _finishActorScene(PlayableMapGame game, Fu
   }
   expect(result, isNotNull, reason: 'Actor Scene did not settle.');
   return result!;
+}
+
+Future<List<int>> _nativeWorldPixel(PlayableMapGame game, Vector2 sample) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  for (final child in game.world.children) {
+    child.renderTree(canvas);
+  }
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(512, 512);
+  try {
+    final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final offset = (sample.y.floor() * 512 + sample.x.floor()) * 4;
+    return data!.buffer.asUint8List().sublist(offset, offset + 4);
+  } finally {
+    image.dispose();
+    picture.dispose();
+  }
+}
+
+SceneAsset _nativeTransientScene({bool failingAfterWarp = false, bool omitRestoration = false, String? actorId}) {
+  SceneInteractiveCommand scoped(String mapId, List<Map<String, Object?>> steps, {String? entityId}) =>
+    SceneInteractiveCommand.fromJson({'kind': 'actorRoute', 'target': {'kind': entityId == null ? 'player' : 'entity', 'mapId': mapId, 'entityId': ?entityId},
+      'steps': steps, 'skippable': false, 'transientScope': 'scene'});
+  final commands = <SceneInteractiveCommand>[
+    scoped('source', [
+      {'kind': 'through', 'enabled': true}, {'kind': 'renderAboveMap', 'enabled': true},
+      {'kind': 'wait', 'durationMs': 50},
+    ], entityId: actorId),
+    SceneInteractiveCommand.warp(destinationMapId: 'target', warpId: 'arrival', transition: SceneWarpTransition.none),
+    scoped('target', [
+      {'kind': 'wait', 'durationMs': 50},
+      {'kind': 'move', 'direction': 'east', 'durationMs': 100},
+    ]),
+    if (!failingAfterWarp && !omitRestoration) scoped('target', [
+      {'kind': 'through', 'enabled': false}, {'kind': 'renderAboveMap', 'enabled': false},
+      {'kind': 'wait', 'durationMs': 50},
+    ]),
+  ];
+  return SceneAsset(id: 'native-transient', name: 'Native transient', graph: SceneGraph(startNodeId: 'start', nodes: [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    for (var index = 0; index < commands.length; index++) SceneNode(id: 'step$index', kind: SceneNodeKind.action,
+      payload: SceneActionPayload.interactive(commands[index])),
+    if (failingAfterWarp) SceneNode(id: 'fail', kind: SceneNodeKind.yarnDialogue,
+      payload: SceneYarnDialoguePayload(dialogueId: _actorDialogueEntry.id, yarnNodeName: 'Start', expectedOutcomes: ['done'])),
+    SceneNode(id: 'end', kind: SceneNodeKind.end, payload: SceneEndPayload()),
+  ], edges: [
+    SceneEdge(id: 'begin', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'step0', kind: SceneEdgeKind.defaultFlow),
+    for (var index = 0; index < commands.length; index++) SceneEdge(id: 'step$index', fromNodeId: 'step$index',
+      fromPortId: 'completed', toNodeId: index + 1 < commands.length ? 'step${index + 1}' : failingAfterWarp ? 'fail' : 'end',
+      kind: SceneEdgeKind.actionCompleted),
+    if (failingAfterWarp) SceneEdge(id: 'fail-end', fromNodeId: 'fail', fromPortId: 'done', toNodeId: 'end', kind: SceneEdgeKind.dialogueOutcome),
+  ]));
 }
 
 SceneAsset _actorRewardScene({bool failingDialogue = false, String? entityId,

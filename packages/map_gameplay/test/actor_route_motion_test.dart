@@ -6,6 +6,186 @@ void main() {
   final playerTarget = SceneActorTarget.player(mapId: 'map');
   final npcTarget = SceneActorTarget.entity(mapId: 'map', entityId: 'actor');
 
+  for (final horizontal in [EntityFacing.west, EntityFacing.east]) {
+    for (final vertical in [EntityFacing.north, EntityFacing.south]) {
+      test('diagonal $horizontal/$vertical translates both axes in one plan',
+          () {
+        final world = _world();
+        final plan = planActorRouteDiagonalMove(
+            world: world,
+            target: playerTarget,
+            horizontal: horizontal,
+            vertical: vertical,
+            through: false)!;
+        expect(
+            plan.to,
+            GridPos(
+                x: 2 + horizontal.asDirection.dx,
+                y: 2 + vertical.asDirection.dy));
+        expect(plan.toPositionPx.leftPx - plan.fromPositionPx.leftPx,
+            horizontal.asDirection.dx * 16);
+        expect(plan.toPositionPx.topPx - plan.fromPositionPx.topPx,
+            vertical.asDirection.dy * 16);
+        expect(world.player.pos, plan.from);
+        expect(plan.playerState!.pos, plan.to);
+      });
+    }
+  }
+
+  test(
+      'diagonal collision sweeps the simultaneous path instead of endpoint cells',
+      () {
+    final world = _world(pixel: const GridPos(x: 47, y: 33));
+    expect(
+        planActorRouteDiagonalMove(
+            world: world,
+            target: playerTarget,
+            horizontal: EntityFacing.east,
+            vertical: EntityFacing.north,
+            through: false),
+        isNull);
+    expect(
+        planActorRouteDiagonalMove(
+            world: world,
+            target: playerTarget,
+            horizontal: EntityFacing.east,
+            vertical: EntityFacing.north,
+            through: true),
+        isNotNull);
+  });
+
+  for (final tile in [(16, 24), (24, 16), (16, 16)]) {
+    for (final horizontal in [EntityFacing.west, EntityFacing.east]) {
+      for (final vertical in [EntityFacing.north, EntityFacing.south]) {
+        test(
+            'diagonal complete sweep ${tile.$1}/${tile.$2} $horizontal/$vertical',
+            () {
+          final actor = MapEntity(
+              id: 'actor',
+              kind: MapEntityKind.npc,
+              pos: const GridPos(x: 3, y: 3),
+              npc: const MapEntityNpcData());
+          final source = resolveEntityCollisionRectPx(actor,
+              tileWidthPx: tile.$1, tileHeightPx: tile.$2);
+          final east = horizontal == EntityFacing.east;
+          final south = vertical == EntityFacing.south;
+          final pixel = tile.$1 < tile.$2
+              ? GridPos(
+                  x: source.leftPx + (east ? 0 : source.widthPx - 1),
+                  y: source.topPx + (south ? source.heightPx : -1))
+              : GridPos(
+                  x: source.leftPx + (east ? source.widthPx : -1),
+                  y: source.topPx + (south ? 0 : source.heightPx - 1));
+          final width = 8 * tile.$1;
+          final height = 8 * tile.$2;
+          final pixels = List<bool>.filled(width * height, false)
+            ..[pixel.y * width + pixel.x] = true;
+          final project = ProjectManifest(
+              name: 'Fine swept collision',
+              maps: const [],
+              tilesets: const [
+                ProjectTilesetEntry(
+                    id: 'tiles', name: 'Tiles', relativePath: 'tiles.png')
+              ],
+              elements: [
+                ProjectElementEntry(
+                    id: 'fine',
+                    name: 'Fine',
+                    tilesetId: 'tiles',
+                    categoryId: 'test',
+                    frames: [
+                      TilesetVisualFrame(
+                          source: TilesetSourceRect(
+                              x: 0, y: 0, width: width, height: height))
+                    ],
+                    collisionProfile: ElementCollisionProfile(
+                        collisionMask: ElementCollisionPixelMask(
+                            widthPx: width,
+                            heightPx: height,
+                            dataBase64:
+                                ElementCollisionMaskCodec.encodePackedBits(
+                                    widthPx: width,
+                                    heightPx: height,
+                                    solidPixels: pixels))))
+              ]);
+          final map = MapData(
+              id: 'map',
+              name: 'Fine swept collision',
+              size: const GridSize(width: 8, height: 8),
+              layers: const [],
+              entities: [
+                actor
+              ],
+              placedElements: const [
+                MapPlacedElement(
+                    id: 'fine',
+                    layerId: 'objects',
+                    elementId: 'fine',
+                    pos: GridPos(x: 0, y: 0),
+                    applyCollision: true)
+              ]);
+          final world = GameplayWorldState.initial(
+              map: map,
+              project: project,
+              playerPos: const GridPos(x: 0, y: 0),
+              tileWidth: tile.$1,
+              tileHeight: tile.$2);
+          expect(
+              world.worldStaticObstaclesCollidePixelRect(source,
+                  ignoredEntityId: 'actor'),
+              isFalse);
+          final endpoint = PixelRect(
+              leftPx: source.leftPx + horizontal.asDirection.dx * tile.$1,
+              topPx: source.topPx + vertical.asDirection.dy * tile.$2,
+              widthPx: source.widthPx,
+              heightPx: source.heightPx);
+          expect(
+              world.worldStaticObstaclesCollidePixelRect(endpoint,
+                  ignoredEntityId: 'actor'),
+              isFalse);
+          expect(
+              planActorRouteDiagonalMove(
+                  world: world,
+                  target: npcTarget,
+                  horizontal: horizontal,
+                  vertical: vertical,
+                  through: false),
+              isNull);
+          expect(
+              planActorRouteDiagonalMove(
+                  world: world,
+                  target: npcTarget,
+                  horizontal: horizontal,
+                  vertical: vertical,
+                  through: true),
+              isNotNull);
+        });
+      }
+    }
+  }
+
+  test('diagonal facing keeps a matching axis and turns only an opposing axis',
+      () {
+    for (final facing in EntityFacing.values) {
+      var world = _world();
+      world =
+          world.withPlayer(world.player.copyWith(facing: facing.asDirection));
+      final plan = planActorRouteDiagonalMove(
+          world: world,
+          target: playerTarget,
+          horizontal: EntityFacing.west,
+          vertical: EntityFacing.north,
+          through: true)!;
+      expect(
+          plan.direction,
+          facing == EntityFacing.east
+              ? EntityFacing.west
+              : facing == EntityFacing.south
+                  ? EntityFacing.north
+                  : facing);
+    }
+  });
+
   for (final direction in EntityFacing.values) {
     test('player moves exactly one cell $direction without changing the world',
         () {

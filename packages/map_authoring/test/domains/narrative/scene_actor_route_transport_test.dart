@@ -182,8 +182,10 @@ void main() {
       final visibility = descriptor.extensions['actorVisibility'];
       expect(route, isA<Map>());
       expect(visibility, isA<Map>());
-      expect((route as Map)['parameters'], ['target', 'steps', 'skippable']);
-      expect(route['stepKinds'], ['face', 'move', 'wait', 'through', 'sound']);
+      expect((route as Map)['parameters'], ['target', 'steps', 'skippable', 'transientScope']);
+      expect(route['stepKinds'], ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'sound']);
+      expect(route['contractVersion'], 2);
+      expect(route['transientScopes'], ['route', 'scene']);
       expect(route['completion'], 'routeFinished');
       expect(route['targetReference'], 'uniqueActorOnExactMap');
       expect(route['targetMapMode'], '2D');
@@ -201,6 +203,54 @@ void main() {
       expect(visibility['persistent'], isFalse);
     }
   });
+
+  test('native sparse graph patch matches the live MCP typed request', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    final request = await f.actionRequest('scene.graph.patch', _route(target: _target()));
+    final node = Map<String, dynamic>.from((request.parameters['upsertNodes'] as List).single as Map);
+    node.remove('description');
+    final payload = Map<String, dynamic>.from(node['payload'] as Map);
+    payload.remove('kind');
+    node['payload'] = payload;
+    final sparse = AuthoringRequest(requestId: request.requestId, actionId: request.actionId,
+      actionVersion: 1, workspaceHandle: f.workspace.value, expectedRevision: request.expectedRevision,
+      idempotencyKey: request.idempotencyKey, parameters: {'sceneId': 'edit', 'upsertNodes': [node]});
+    await f.mutations.plan(f.project, sparse);
+  });
+
+  for (final jsonl in [false, true]) {
+    for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      test('native diagonal scene scope survives $action transport jsonl=$jsonl and strict reopen', () async {
+        final f = await _Fixture.create();
+        addTearDown(f.dispose);
+        final wire = <String, dynamic>{
+          ..._route(target: _target()), 'transientScope': 'scene',
+          'steps': [
+            {'kind': 'through', 'enabled': true}, {'kind': 'renderAboveMap', 'enabled': true},
+            {'kind': 'moveDiagonal', 'horizontal': 'east', 'vertical': 'north', 'durationMs': 250},
+            {'kind': 'through', 'enabled': false}, {'kind': 'renderAboveMap', 'enabled': false},
+          ],
+        };
+        final mapBefore = await f.mapFile.readAsBytes();
+        final request = await f.actionRequest(action, wire);
+        final planned = jsonl
+          ? await f.success('plan', {'projectHandle': f.project.value, 'request': request.toJson()})
+          : await f.mutations.plan(f.project, request);
+        if (jsonl) {
+          await f.success('apply', {'projectHandle': f.project.value, 'planId': planned['planId'], 'operationId': '${request.requestId}-apply'});
+        } else {
+          await f.mutations.apply(f.project, planId: planned['planId']! as String, operationId: '${request.requestId}-apply');
+        }
+        await f.success('close', {'workspaceHandle': f.workspace.value});
+        await f.open();
+        final scene = (await f.snapshot()).manifest.scenes.singleWhere((scene) => scene.id == 'edit');
+        final payload = scene.graph.nodes.singleWhere((node) => node.id == 'action').payload as SceneActionPayload;
+        expect(payload.interactiveCommand!.toJson(), wire);
+        expect(await f.mapFile.readAsBytes(), mapBefore);
+      });
+    }
+  }
 
   for (final jsonl in [false, true]) {
     final label = jsonl ? 'JSONL' : 'direct API';

@@ -36,13 +36,73 @@ ActorRouteMotionPlan? planActorRouteMove({
   ProjectManifest? project,
   Iterable<GridPos> dynamicBlockedCells = const [],
   Iterable<PixelRect> characterReservations = const [],
+}) =>
+    _planActorRouteMove(
+        world: world,
+        target: target,
+        direction: direction,
+        deltaX: direction.asDirection.dx,
+        deltaY: direction.asDirection.dy,
+        through: through,
+        initialCollisionOwnerEntityId: initialCollisionOwnerEntityId,
+        waterfallZone: waterfallZone,
+        project: project,
+        dynamicBlockedCells: dynamicBlockedCells,
+        characterReservations: characterReservations);
+
+ActorRouteMotionPlan? planActorRouteDiagonalMove({
+  required GameplayWorldState world,
+  required SceneActorTarget target,
+  required EntityFacing horizontal,
+  required EntityFacing vertical,
+  required bool through,
+  Iterable<GridPos> dynamicBlockedCells = const [],
+  Iterable<PixelRect> characterReservations = const [],
+}) {
+  if (!const [EntityFacing.west, EntityFacing.east].contains(horizontal) ||
+      !const [EntityFacing.north, EntityFacing.south].contains(vertical)) {
+    throw ArgumentError(
+        'Diagonal movement requires horizontal and vertical axes.');
+  }
+  final current = target.kind == SceneActorTargetKind.player
+      ? world.player.facing.asFacing
+      : world.map.entities
+          .singleWhere((entity) => entity.id == target.entityId)
+          .npc!
+          .facing;
+  final direction =
+      const [EntityFacing.west, EntityFacing.east].contains(current)
+          ? horizontal
+          : vertical;
+  return _planActorRouteMove(
+      world: world,
+      target: target,
+      direction: direction,
+      deltaX: horizontal.asDirection.dx,
+      deltaY: vertical.asDirection.dy,
+      through: through,
+      dynamicBlockedCells: dynamicBlockedCells,
+      characterReservations: characterReservations);
+}
+
+ActorRouteMotionPlan? _planActorRouteMove({
+  required GameplayWorldState world,
+  required SceneActorTarget target,
+  required EntityFacing direction,
+  required int deltaX,
+  required int deltaY,
+  required bool through,
+  String? initialCollisionOwnerEntityId,
+  MapGameplayZone? waterfallZone,
+  ProjectManifest? project,
+  Iterable<GridPos> dynamicBlockedCells = const [],
+  Iterable<PixelRect> characterReservations = const [],
 }) {
   if (target.mapId != world.map.id || world.map.spatialScene != null) {
     throw StateError('Actor route requires its active 2D map.');
   }
-  final delta = direction.asDirection;
-  final dx = delta.dx * world.tileWidthPx;
-  final dy = delta.dy * world.tileHeightPx;
+  final dx = deltaX * world.tileWidthPx;
+  final dy = deltaY * world.tileHeightPx;
   late final GridPos from;
   late final PixelPosition fromPosition;
   late final int spriteWidth;
@@ -151,7 +211,8 @@ ActorRouteMotionPlan? planActorRouteMove({
       throw StateError('Initial collision owner must match the player anchor.');
     }
     if (!(world.npcMapPresencePredicate?.call(world.map.id, owner) ?? true) ||
-        !(world.mapEntityPresencePredicate?.call(world.map.id, owner) ?? true)) {
+        !(world.mapEntityPresencePredicate?.call(world.map.id, owner) ??
+            true)) {
       throw StateError('Initial collision owner must be present.');
     }
     final ownerContact = resolveEntityCollisionRectPx(owner,
@@ -183,7 +244,7 @@ ActorRouteMotionPlan? planActorRouteMove({
   );
   final to = isPlayer
       ? _project(world, toMovementRect)
-      : GridPos(x: from.x + delta.dx, y: from.y + delta.dy);
+      : GridPos(x: from.x + deltaX, y: from.y + deltaY);
   if (to.x < 0 ||
       to.y < 0 ||
       to.x >= world.map.size.width ||
@@ -192,13 +253,10 @@ ActorRouteMotionPlan? planActorRouteMove({
     return null;
   }
   {
-    final pixels = dx.abs() + dy.abs();
-    for (var step = 0; step <= pixels; step++) {
+    for (final position in _sweptActorRoutePositions(fromPosition, dx, dy)) {
       final rect =
           PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
-              spriteTopLeftPx: PixelPosition(
-                  leftPx: fromPosition.leftPx + delta.dx * step,
-                  topPx: fromPosition.topPx + delta.dy * step),
+              spriteTopLeftPx: position,
               spriteWidthPx: spriteWidth,
               spriteHeightPx: spriteHeight);
       if (areasAt(rect).any((area) => !movementTerrainAllowsRect(
@@ -214,7 +272,7 @@ ActorRouteMotionPlan? planActorRouteMove({
   }
   final ownerContact = initialOwnerContact;
   if (ownerContact != null &&
-      (to != GridPos(x: from.x + delta.dx, y: from.y + delta.dy) ||
+      (to != GridPos(x: from.x + deltaX, y: from.y + deltaY) ||
           areasAt(toMovementRect)
               .any((rect) => _intersects(rect, ownerContact)))) {
     return null;
@@ -254,7 +312,8 @@ ActorRouteMotionPlan? planActorRouteMove({
       final footprint = footprintAt(movementRect);
       final areas = areasAt(movementRect);
       if (collisionWorld.worldStaticObstaclesCollidePixelRect(footprint,
-          playerContact: isPlayer, permittedWaterfallZoneId: waterfallZone?.id)) {
+          playerContact: isPlayer,
+          permittedWaterfallZoneId: waterfallZone?.id)) {
         return true;
       }
       if (!isPlayer && _intersects(footprint, playerContact)) return true;
@@ -282,17 +341,27 @@ ActorRouteMotionPlan? planActorRouteMove({
       return false;
     }
 
-    final resolved = PixelMovementResolverV1.resolveSeparateAxis(
-      spriteTopLeftPx: fromPosition,
-      deltaXPx: dx,
-      deltaYPx: dy,
-      spriteWidthPx: spriteWidth,
-      spriteHeightPx: spriteHeight,
-      worldStaticObstaclesCollidePixelRect: blocked,
-    );
-    if (resolved.leftPx != toPosition.leftPx ||
-        resolved.topPx != toPosition.topPx) {
-      return null;
+    if (deltaX != 0 && deltaY != 0) {
+      for (final position in _sweptActorRoutePositions(fromPosition, dx, dy)) {
+        final rect =
+            PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+                spriteTopLeftPx: position,
+                spriteWidthPx: spriteWidth,
+                spriteHeightPx: spriteHeight);
+        if (blocked(rect)) return null;
+      }
+    } else {
+      final resolved = PixelMovementResolverV1.resolveSeparateAxis(
+          spriteTopLeftPx: fromPosition,
+          deltaXPx: dx,
+          deltaYPx: dy,
+          spriteWidthPx: spriteWidth,
+          spriteHeightPx: spriteHeight,
+          worldStaticObstaclesCollidePixelRect: blocked);
+      if (resolved.leftPx != toPosition.leftPx ||
+          resolved.topPx != toPosition.topPx) {
+        return null;
+      }
     }
   }
   return ActorRouteMotionPlan._(
@@ -303,10 +372,56 @@ ActorRouteMotionPlan? planActorRouteMove({
     fromPositionPx: fromPosition,
     toPositionPx: toPosition,
     playerState: isPlayer
-        ? world.player
-            .copyWith(pos: to, playerPositionPx: toPosition, facing: delta)
+        ? world.player.copyWith(
+            pos: to,
+            playerPositionPx: toPosition,
+            facing: direction.asDirection)
         : null,
   );
+}
+
+Iterable<PixelPosition> _sweptActorRoutePositions(
+    PixelPosition from, int dx, int dy) sync* {
+  final width = dx.abs();
+  final height = dy.abs();
+  if (width == 0 || height == 0) {
+    final pixels = width + height;
+    for (var step = 0; step <= pixels; step++) {
+      yield PixelPosition(
+          leftPx: from.leftPx + dx.sign * step,
+          topPx: from.topPx + dy.sign * step);
+    }
+    return;
+  }
+  var x = 1;
+  var y = 1;
+  var previousNumerator = 0;
+  var previousDenominator = 1;
+  while (x <= width || y <= height) {
+    final compare = x * height - y * width;
+    final numerator = compare <= 0 ? x : y;
+    final denominator = compare <= 0 ? width : height;
+    final midpointNumerator =
+        previousNumerator * denominator + numerator * previousDenominator;
+    final midpointDenominator = 2 * previousDenominator * denominator;
+    int floorRatio(int numerator) => numerator >= 0
+        ? numerator ~/ midpointDenominator
+        : -((-numerator + midpointDenominator - 1) ~/ midpointDenominator);
+    final left = floorRatio(dx * midpointNumerator);
+    final right = -floorRatio(-dx * midpointNumerator);
+    final top = floorRatio(dy * midpointNumerator);
+    final bottom = -floorRatio(-dy * midpointNumerator);
+    for (final offsetX in [left, if (right != left) right]) {
+      for (final offsetY in [top, if (bottom != top) bottom]) {
+        yield PixelPosition(
+            leftPx: from.leftPx + offsetX, topPx: from.topPx + offsetY);
+      }
+    }
+    previousNumerator = numerator;
+    previousDenominator = denominator;
+    if (compare <= 0) x++;
+    if (compare >= 0) y++;
+  }
 }
 
 GridPos _project(GameplayWorldState world, PixelRect rect) =>

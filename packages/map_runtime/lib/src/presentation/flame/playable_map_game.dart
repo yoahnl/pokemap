@@ -749,6 +749,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort;
   final SceneWorldToneController _worldTone = SceneWorldToneController();
   final Set<SceneActorTarget> _sceneActorRouteTargets = {};
+  final Map<Object, bool> _sceneActorRenderAboveMap = {};
   int _sceneWorldWaitCount = 0;
   int _sceneForcedRouteBarrierCount = 0;
   int _sceneActorRouteFailureSerial = 0;
@@ -1487,6 +1488,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       return NarrativeSceneExecutionResult.failed(error);
     } finally {
+      session.restoreActorRoutes();
       _activeNarrativeSceneWorkingSession = null;
     }
   }
@@ -5477,9 +5479,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _updateActorDepthOrdering() {
-    _player.priority = overworldActorRenderPriority(_player.footPoint.y);
+    _player.priority = overworldActorRenderPriority(_player.footPoint.y,
+      aboveMap: _sceneActorRenderAboveMap[SceneActorTargetKind.player] ?? false);
+    final aboveActors = _sceneActorRenderAboveMap.isEmpty ? const <OverworldActorComponent>{} : {
+      for (final map in _loadedMapsById.entries)
+        for (final entry in map.value.npcActorByEntityId.entries)
+          if (_sceneActorRenderAboveMap[_sceneActorTransientKey(SceneActorTarget.entity(
+            mapId: map.key, entityId: entry.key))] ?? false) entry.value,
+    };
     for (final actor in _npcActors) {
-      actor.priority = overworldActorRenderPriority(actor.depthSortY);
+      actor.priority = overworldActorRenderPriority(actor.depthSortY,
+        aboveMap: aboveActors.contains(actor));
     }
   }
 
@@ -11559,6 +11569,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _showNotification('Scene V1 impossible.');
     } finally {
+      workingSession?.restoreActorRoutes();
       if (identical(_activeNarrativeSceneWorkingSession, workingSession)) {
         _activeNarrativeSceneWorkingSession = null;
       }
@@ -12658,13 +12669,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return 'completed';
   }
 
+  Object _sceneActorTransientKey(SceneActorTarget target) =>
+    target.kind == SceneActorTargetKind.player ? SceneActorTargetKind.player :
+      (target.mapId, target.entityId, _battleRuntimeGameState.mapInstanceWorldState.instanceRef(target.mapId)
+        ?? _currentMapActivationId);
+
   Future<String> _executeSceneActorRouteCommand(
     SceneInteractiveCommand command, {
     required _NarrativeSceneWorkingSession? session,
     required String playbackId,
   }) async {
     if (command is! SceneActorRouteInteractiveCommand ||
-        _sceneActorRouteTargets.isNotEmpty) {
+        _sceneActorRouteTargets.isNotEmpty ||
+        (command.transientScope == ActorRouteTransientScope.scene && session == null)) {
       return 'blocked';
     }
     final target = command.target;
@@ -12771,6 +12788,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _sceneActorRouteTargets.add(target);
     _clearPressedMovementControls();
     _publishInputAuthoritySnapshot();
+    final transientKey = _sceneActorTransientKey(target);
+    ActorRouteTransientState? sceneState;
+    if (command.transientScope == ActorRouteTransientScope.scene) {
+      sceneState = session!.actorRouteStates.putIfAbsent(transientKey, () {
+        final previous = _sceneActorRenderAboveMap[transientKey];
+        session.actorRouteCleanup.add(() {
+          if (previous == null) {
+            _sceneActorRenderAboveMap.remove(transientKey);
+          } else {
+            _sceneActorRenderAboveMap[transientKey] = previous;
+          }
+          if (isLoaded) _updateActorDepthOrdering();
+        });
+        return ActorRouteTransientState(renderAboveMap: previous ?? false);
+      });
+    }
     var soundIndex = 0;
     final port = _FlameSceneActorRouteExecutionPort(
       current: current,
@@ -12778,7 +12811,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _faceSceneActor(target, facing, session),
       moveAction:
           (target, facing, {required durationMs, required through,
-            String? initialCollisionOwnerEntityId}) async {
+            String? initialCollisionOwnerEntityId, EntityFacing? vertical}) async {
             if (!current()) {
               throw StateError('The actor route target is no longer current.');
             }
@@ -12812,35 +12845,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                       .single.pos == ownerEntity!.pos &&
                   _battleRuntimeGameState.mapInstanceWorldState.instanceRef(target.mapId)
                       == ownerInstance));
-            _faceSceneActor(target, facing, session);
+            final previousFacing = actor is PlayerComponent ? _world.player.facing.asFacing
+              : (actor as OverworldActorComponent).facing;
+            final effectiveFacing = vertical == null ? facing
+              : const [EntityFacing.west, EntityFacing.east].contains(previousFacing) ? facing : vertical;
+            _faceSceneActor(target, effectiveFacing, session);
             var playerStepStarted = false;
             try {
-              final plan = planActorRouteMove(
-                world: _world,
-                target: target,
-                direction: facing,
-                through: through,
-                initialCollisionOwnerEntityId: ownerId,
-                project: _bundle.manifest,
-                dynamicBlockedCells: target.kind == SceneActorTargetKind.player
-                    ? _scriptedNpcReservedOccupiedCellsByEntity.entries
-                          .where((entry) => entry.key != 'player' && entry.key != ownerId)
-                          .expand((entry) => entry.value.cells)
-                    : _scriptedNpcDynamicBlockedCells(
-                        ignoreEntityId: target.entityId,
-                      ),
-                characterReservations: _scriptedNpcReservedOccupiedCellsByEntity
-                    .entries
-                    .where(
-                      (entry) => entry.key != ownerId &&
-                          entry.key !=
-                          (target.kind == SceneActorTargetKind.player
-                              ? 'player'
-                              : target.entityId),
-                    )
-                    .map((entry) => entry.value.contactRect)
-                    .whereType<PixelRect>(),
-              );
+              final blockedCells = (target.kind == SceneActorTargetKind.player
+                ? _scriptedNpcReservedOccupiedCellsByEntity.entries
+                    .where((entry) => entry.key != 'player' && entry.key != ownerId)
+                    .expand((entry) => entry.value.cells)
+                : _scriptedNpcDynamicBlockedCells(ignoreEntityId: target.entityId)).toList();
+              final reservations = _scriptedNpcReservedOccupiedCellsByEntity.entries
+                .where((entry) => entry.key != ownerId && entry.key !=
+                  (target.kind == SceneActorTargetKind.player ? 'player' : target.entityId))
+                .map((entry) => entry.value.contactRect).whereType<PixelRect>().toList();
+              final plan = vertical == null ? planActorRouteMove(
+                world: _world, target: target, direction: facing, through: through,
+                initialCollisionOwnerEntityId: ownerId, project: _bundle.manifest,
+                dynamicBlockedCells: blockedCells, characterReservations: reservations)
+                : planActorRouteDiagonalMove(world: _world, target: target,
+                    horizontal: facing, vertical: vertical, through: through,
+                    dynamicBlockedCells: blockedCells, characterReservations: reservations);
               if (plan == null) return ActorRouteMoveOutcome.obstructed;
               if (actor is PlayerComponent) {
                 actor.startStep(
@@ -12881,7 +12908,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               } else if (actor is OverworldActorComponent) {
                 if (!actor.startGridStep(
                   to: plan.to,
-                  facing: facing,
+                  facing: plan.direction,
                   durationSeconds: durationMs / 1000,
                 )) {
                   throw StateError('The actor cannot start its route step.');
@@ -12914,6 +12941,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               rethrow;
             }
           },
+      aboveMapValue: () => _sceneActorRenderAboveMap[transientKey] ?? false,
+      aboveMapAction: (enabled) async {
+        if (enabled) {
+          _sceneActorRenderAboveMap[transientKey] = true;
+        } else {
+          _sceneActorRenderAboveMap.remove(transientKey);
+        }
+        if (isLoaded) _updateActorDepthOrdering();
+      },
       nextUpdateAction: () =>
           _waitForSceneActorRoute(isCurrent: current, nextUpdate: true),
       waitAction: (durationMs) =>
@@ -12955,6 +12991,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final outcome = await const ActorRouteExecutor().execute(
         command,
         port: port,
+        sceneState: sceneState,
       );
       completed = outcome == ActorRouteExecutionOutcome.completed;
       return switch (outcome) {

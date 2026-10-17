@@ -20,17 +20,103 @@ Map<String, dynamic> _routeWire({bool entity = false}) => {
 };
 
 void main() {
+  test(
+    'scene scoped diagonal route preserves native typed priority restoration',
+    () {
+      final wire = <String, dynamic>{
+        'kind': 'actorRoute',
+        'target': {'kind': 'player', 'mapId': 'centre'},
+        'transientScope': 'scene',
+        'steps': [
+          {'kind': 'through', 'enabled': true},
+          {'kind': 'renderAboveMap', 'enabled': true},
+          {
+            'kind': 'moveDiagonal',
+            'horizontal': 'east',
+            'vertical': 'north',
+            'durationMs': 250,
+          },
+          {'kind': 'through', 'enabled': false},
+          {'kind': 'renderAboveMap', 'enabled': false},
+        ],
+        'skippable': false,
+      };
+      final route = SceneInteractiveCommand.fromJson(wire);
+      expect(route.toJson(), wire);
+      expect(SceneInteractiveCommand.fromJson(route.toJson()), route);
+      expect(
+        SceneInteractiveCommand.fromJson(route.toJson()).hashCode,
+        route.hashCode,
+      );
+      final ordinary = SceneInteractiveCommand.fromJson(
+        {...wire}..remove('transientScope'),
+      );
+      expect(ordinary, isNot(route));
+      expect(ordinary.toJson().containsKey('transientScope'), isFalse);
+      for (final step in (wire['steps'] as List).cast<Map<String, dynamic>>()) {
+        final value = SceneActorRouteStep.fromJson(step);
+        expect(SceneActorRouteStep.fromJson(value.toJson()), value);
+      }
+    },
+  );
+
+  test('diagonal axes and transient scope have a strict native grammar', () {
+    final wire = <String, dynamic>{
+      'kind': 'moveDiagonal',
+      'horizontal': 'west',
+      'vertical': 'north',
+      'durationMs': 250,
+    };
+    for (final change in <Map<String, dynamic>>[
+      {'horizontal': 'north'},
+      {'vertical': 'west'},
+      {'durationMs': 0},
+      {'durationMs': 1.5},
+      {'horizontal': null},
+      {'initialCollisionOwnerEntityId': 'actor'},
+    ]) {
+      expect(
+        () => SceneActorRouteStep.fromJson({...wire, ...change}),
+        throwsFormatException,
+      );
+    }
+    for (final value in <Object?>[null, true, 1, 'permanent', ' scene']) {
+      expect(
+        () => SceneInteractiveCommand.fromJson({
+          ..._routeWire(),
+          'transientScope': value,
+        }),
+        throwsFormatException,
+      );
+      if (value is! bool) {
+        expect(
+          () => SceneActorRouteStep.fromJson({
+            'kind': 'renderAboveMap',
+            'enabled': value,
+          }),
+          throwsFormatException,
+        );
+      }
+    }
+  });
+
   test('face can yield one update without changing its default hold', () {
     final plain = SceneActorRouteStep.fromJson({
-      'kind': 'face', 'direction': 'north', 'durationMs': 0,
+      'kind': 'face',
+      'direction': 'north',
+      'durationMs': 0,
     });
     for (final yieldAfter in [false, true]) {
       final step = SceneActorRouteStep.fromJson({
-        'kind': 'face', 'direction': 'north', 'durationMs': 0,
+        'kind': 'face',
+        'direction': 'north',
+        'durationMs': 0,
         'yieldAfter': yieldAfter,
       });
       expect(step.toJson(), {
-        'kind': 'face', 'direction': 'north', 'durationMs': 0,
+        'kind': 'face',
+        'direction': 'north',
+        'durationMs': 0,
         if (yieldAfter) 'yieldAfter': true,
       });
       expect(step == plain, !yieldAfter);
@@ -41,13 +127,23 @@ void main() {
 
   test('face yield flag is strict and cannot change another step grammar', () {
     for (final value in <Object?>[null, 0, 1, 'true', <String, Object?>{}]) {
-      expect(() => SceneActorRouteStep.fromJson({
-        'kind': 'face', 'direction': 'south', 'yieldAfter': value,
-      }), throwsFormatException);
+      expect(
+        () => SceneActorRouteStep.fromJson({
+          'kind': 'face',
+          'direction': 'south',
+          'yieldAfter': value,
+        }),
+        throwsFormatException,
+      );
     }
-    expect(() => SceneActorRouteStep.fromJson({
-      'kind': 'wait', 'durationMs': 100, 'yieldAfter': true,
-    }), throwsFormatException);
+    expect(
+      () => SceneActorRouteStep.fromJson({
+        'kind': 'wait',
+        'durationMs': 100,
+        'yieldAfter': true,
+      }),
+      throwsFormatException,
+    );
   });
 
   test('actor move initial collision owner is canonical optional JSON', () {
