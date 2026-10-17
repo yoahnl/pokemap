@@ -1870,21 +1870,32 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
             .where((value) => value.name == parameters['direction'])
             .firstOrNull;
         final offset = parameters['offset'];
+        bool occupied(MapData owner, MapData target,
+            MapConnectionDirection side, int nativeOffset) {
+          final candidate = MapConnection(direction: side,
+              targetMapId: target.id, offset: nativeOffset);
+          return owner.connections.where((other) => other.direction == side)
+              .any((other) => other.targetMapId == target.id ||
+                  maps[other.targetMapId] == null || mapConnectionSpansOverlap(
+                      sourceSize: owner.size, first: candidate,
+                      firstTargetSize: target.size, second: other,
+                      secondTargetSize: maps[other.targetMapId]!.size));
+        }
         if (from == null ||
             to == null ||
             from.id == to.id ||
             direction == null ||
             offset is! int ||
             !_targetIds(mutation.targetEntityIds, {sourceId, targetId}) ||
-            findMapConnection(from, direction) != null ||
-            findMapConnection(to, direction.opposite) != null ||
+            occupied(from, to, direction, offset) ||
+            occupied(to, from, direction.opposite, -offset) ||
             !hasMapConnectionOverlap(
                 sourceSize: from.size,
                 targetSize: to.size,
                 direction: direction,
                 offset: offset)) {
           throw const NativeWriteException('native.connections.binding',
-              'Exact source connections require saved distinct native maps and unoccupied overlapping edges');
+              'Exact source connections require saved distinct native maps and disjoint unoccupied spans');
         }
         maps[sourceId] = upsertMapConnectionOnMap(from,
             connection: MapConnection(

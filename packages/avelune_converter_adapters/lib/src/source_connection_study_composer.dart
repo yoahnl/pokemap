@@ -244,17 +244,76 @@ final class SourceConnectionStudyComposer {
             'Every native connection map requires its exact source geometry');
       }
     }
-    final edgeCounts = <String, int>{};
+    final edgeRows = <String,
+        List<
+            ({
+              int target,
+              int offset,
+              SourceConnectionDirection targetDirection
+            })>>{};
     String edge(int mapId, SourceConnectionDirection direction) =>
         '$mapId:${direction.sourceCode}';
     for (final row in source.connections) {
-      for (final key in [
-        edge(row.sourceMapId, row.sourceDirection),
-        edge(row.targetSourceMapId, row.targetDirection)
-      ]) {
-        edgeCounts[key] = (edgeCounts[key] ?? 0) + 1;
-      }
+      (edgeRows[edge(row.sourceMapId, row.sourceDirection)] ??= []).add((
+        target: row.targetSourceMapId,
+        offset: row.nativeOffset,
+        targetDirection: row.targetDirection
+      ));
+      (edgeRows[edge(row.targetSourceMapId, row.targetDirection)] ??= []).add((
+        target: row.sourceMapId,
+        offset: -row.nativeOffset,
+        targetDirection: row.sourceDirection
+      ));
     }
+    final sourceSizes = {
+      for (final map in source.maps)
+        map.map.sourceMapId:
+            GridSize(width: map.map.width, height: map.map.height)
+    };
+    final ambiguousEdges = <String, bool>{};
+    bool ambiguousEdge(int id, SourceConnectionDirection sourceDirection) =>
+        ambiguousEdges.putIfAbsent(edge(id, sourceDirection), () {
+          final siblings = edgeRows[edge(id, sourceDirection)]!;
+          if (siblings.length < 2) return false;
+          final size = sourceSizes[id];
+          if (size == null) return true;
+          final direction = MapConnectionDirection.values
+              .singleWhere((value) => value.name == sourceDirection.name);
+          final positive =
+              <({MapConnection connection, GridSize targetSize})>[];
+          final targets = <int>{};
+          for (final sibling in siblings) {
+            cancellation?.check();
+            final targetSize = sourceSizes[sibling.target];
+            if (targetSize == null ||
+                !targets.add(sibling.target) ||
+                sibling.targetDirection != sourceDirection.opposite ||
+                sibling.target == id) {
+              return true;
+            }
+            if (!hasMapConnectionOverlap(
+                sourceSize: size,
+                targetSize: targetSize,
+                direction: direction,
+                offset: sibling.offset)) {
+              continue;
+            }
+            final connection = MapConnection(
+                direction: direction,
+                targetMapId: sibling.target.toString(),
+                offset: sibling.offset);
+            if (positive.any((other) => mapConnectionSpansOverlap(
+                sourceSize: size,
+                first: connection,
+                firstTargetSize: targetSize,
+                second: other.connection,
+                secondTargetSize: other.targetSize))) {
+              return true;
+            }
+            positive.add((connection: connection, targetSize: targetSize));
+          }
+          return false;
+        });
     for (final row in source.connections) {
       cancellation?.check();
       final record = {...row.toJson(), 'status': 'preservedOnly'};
@@ -269,10 +328,10 @@ final class SourceConnectionStudyComposer {
         record['gap'] = code;
       }
 
-      if (edgeCounts[edge(row.sourceMapId, row.sourceDirection)] != 1 ||
-          edgeCounts[edge(row.targetSourceMapId, row.targetDirection)] != 1) {
+      if (ambiguousEdge(row.sourceMapId, row.sourceDirection) ||
+          ambiguousEdge(row.targetSourceMapId, row.targetDirection)) {
         preserve('connections.edge_multiplicity',
-            'A source edge has multiple neighbors; the native one-connection-per-edge contract cannot represent this row');
+            'A source edge has overlapping, duplicate or geometrically unknown neighbors; its rows remain inactive');
         continue;
       }
       final from = maps[row.sourceMapId], to = maps[row.targetSourceMapId];
@@ -298,10 +357,27 @@ final class SourceConnectionStudyComposer {
             'The source offset has no representable native edge overlap');
         continue;
       }
-      if (findMapConnection(from, direction) != null ||
-          findMapConnection(to, direction.opposite) != null) {
+      bool occupied(MapData owner, MapData target, MapConnectionDirection side,
+          int offset) {
+        final connection = MapConnection(
+            direction: side, targetMapId: target.id, offset: offset);
+        final byId = {for (final map in maps.values) map.id: map};
+        return owner.connections.where((other) => other.direction == side).any(
+            (other) =>
+                other.targetMapId == target.id ||
+                byId[other.targetMapId] == null ||
+                mapConnectionSpansOverlap(
+                    sourceSize: owner.size,
+                    first: connection,
+                    firstTargetSize: target.size,
+                    second: other,
+                    secondTargetSize: byId[other.targetMapId]!.size));
+      }
+
+      if (occupied(from, to, direction, row.nativeOffset) ||
+          occupied(to, from, direction.opposite, -row.nativeOffset)) {
         throw const NativeWriteException('connections.native_occupied',
-            'A source connection cannot overwrite an occupied native edge');
+            'A source connection cannot replace an existing pair or overlap an occupied native span');
       }
       if (sourceConnectionHasBorderEvents(
           source: source,

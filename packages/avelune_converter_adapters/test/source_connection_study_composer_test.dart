@@ -80,6 +80,99 @@ void main() {
     expect(result.evidence['wholeSourceConnectivityQualified'], isFalse);
   });
 
+  for (final (fromSide, toSide, direction) in [
+    ('E', 'W', MapConnectionDirection.east),
+    ('W', 'E', MapConnectionDirection.west),
+    ('N', 'S', MapConnectionDirection.north),
+    ('S', 'N', MapConnectionDirection.south),
+  ]) {
+    qualifiedTest(
+        'disjoint $fromSide neighbors share an edge with exact reciprocals',
+        () async {
+      final offset = direction.usesHorizontalOffset ? 5 : 6;
+      final fixture = await _fixture([
+        [98, fromSide, 0, 100, toSide, 0],
+        [98, fromSide, offset, 101, toSide, 0],
+      ], allIds: [
+        98,
+        100,
+        101
+      ], selectedIds: [
+        98,
+        100,
+        101
+      ], heights: {
+        98: direction.usesHorizontalOffset ? 6 : 12
+      }, widths: {
+        98: direction.usesHorizontalOffset ? 10 : 5
+      });
+      final result = await _compose(fixture);
+      expect(result.mutations, hasLength(2));
+      expect(result.nativeMaps[98]!.connections, hasLength(2));
+      for (final (target, expectedOffset) in [(100, 0), (101, offset)]) {
+        final forward = findMapConnection(result.nativeMaps[98]!, direction,
+            targetMapId: result.nativeMaps[target]!.id)!;
+        final backward = result.nativeMaps[target]!.connections.single;
+        expect(forward.offset, expectedOffset);
+        expect(backward.targetMapId, result.nativeMaps[98]!.id);
+        expect(backward.offset, -expectedOffset);
+      }
+      expect(
+          (result.evidence['rows'] as List)
+              .every((row) => row['status'] == 'imported'),
+          isTrue);
+    });
+  }
+
+  qualifiedTest('overlapping source neighbors stay inactive as a whole edge',
+      () async {
+    final fixture = await _fixture([
+      [98, 'E', 0, 100, 'W', 0],
+      [98, 'E', 5, 101, 'W', 0],
+    ], allIds: [
+      98,
+      100,
+      101
+    ], selectedIds: [
+      98,
+      100,
+      101
+    ], heights: {
+      98: 12
+    });
+    final result = await _compose(fixture);
+    expect(result.mutations, isEmpty);
+    expect(result.nativeMaps.values.every((map) => map.connections.isEmpty),
+        isTrue);
+    expect(
+        (result.evidence['diagnostics'] as List)
+            .every((row) => row['code'] == 'connections.edge_multiplicity'),
+        isTrue);
+  });
+
+  qualifiedTest('a placement without overlap does not hide a physical neighbor',
+      () async {
+    final fixture = await _fixture([
+      [98, 'E', 0, 100, 'W', 0],
+      [98, 'E', 20, 101, 'W', 0],
+    ], allIds: [
+      98,
+      100,
+      101
+    ], selectedIds: [
+      98,
+      100,
+      101
+    ], heights: {
+      98: 12
+    });
+    final result = await _compose(fixture);
+    expect(result.mutations, hasLength(1));
+    final rows = (result.evidence['rows'] as List).cast<Map>();
+    expect(rows.first['status'], 'imported');
+    expect(rows.last['gap'], 'connections.no_overlap');
+  });
+
   test('unselected unique neighbor is preserved without a fabricated map',
       () async {
     final fixture = await _fixture([
@@ -313,141 +406,155 @@ void main() {
   });
 
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
-  test(
-      'qualified connection follows map saves, survives events and strict writer regeneration',
-      () async {
-    final scripts = await File(scriptsPath!).readAsBytes();
-    final output =
-        await Directory.systemTemp.createTemp('ac15-native-connection-');
-    try {
-      final fixture = await LiteralTileFixture.create(
-          scriptsBytes: scripts,
-          includeEventSystem: true,
-          maps: [
-            for (final id in [98, 100, 105])
-              LiteralFixtureMap(id: id, width: 5, height: 6, layers: [
-                List.filled(30, 384),
-                List.filled(30, 0),
-                List.filled(30, 0)
-              ])
-          ],
-          extraFiles: {
-            'Data/map_connections.dat': _marshal([
-              [98, 'E', 0, 100, 'W', 0]
-            ]),
-            'PBS/metadata.txt':
-                utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
-            'Graphics/Characters/OriginalPlayer.png': image.encodePng(
-                image.Image(width: 128, height: 192, numChannels: 4)),
-          });
-      final source = await const RmxpSourceNormalizer().normalize(
-          snapshot: fixture.snapshot,
-          files: fixture.files,
-          selectedMapIds: {98, 100, 105},
-          includeConnections: true,
-          includeEventSystem: true);
-      final literal = await const LiteralTileComposer().compose(
-          source: source,
-          files: fixture.files,
-          selectedSourceMapIds: [98, 100, 105],
-          projectName: 'Original joined maps',
-          parentPath: output.path,
-          folderName: 'original-joined-maps');
-      final semantic = (await const SourceSemanticStudyComposer()
-          .compose(source: source, base: literal, files: fixture.files))!;
-      expect(
-          semantic.mutations.where(
-              (row) => row.actionId == 'connection.create_bidirectional_apply'),
-          hasLength(1));
-      final event = (await const SourceEventStudyComposer()
-          .compose(source: source, base: semantic, files: fixture.files))!;
-      final draft = event.draft;
-      final connectionIndex = draft.mutations.indexWhere(
-          (row) => row.actionId == 'connection.create_bidirectional_apply');
-      expect(
-          draft.mutations.lastIndexWhere((row) => row.actionId == 'map.save'),
-          lessThan(connectionIndex));
-      expect(
-          event.projection.nativeMaps.values
-              .where((map) => map.connections.length == 1),
-          hasLength(2));
-      expect(event.projection.nativeMaps[105]!.connections, isEmpty);
-      final witness = ((draft.compositionEvidence['sourceSemantics']
-              as Map)['witnesses'] as List)
-          .singleWhere(
-              (row) => row['relativePath'] == 'Data/map_connections.dat');
-      expect(
-          witness['rawSha256'],
-          literalFixtureHash(_marshal([
-            [98, 'E', 0, 100, 'W', 0]
-          ])).value);
-      final approval = approveNativeFixtureDraft(draft);
-      final receipt = await NativeProjectWriter()
-          .write(approval.plan, approval.context, draft);
-      expect(receipt.verified, isTrue);
-      const reader = LocalProjectFileReader();
-      final handles = WorkspaceHandleStore();
-      final policy = await WorkspacePolicy.create(
-          allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
-      final opener = ProjectOpenService(
-          policy: policy, fileReader: reader, handles: handles);
-      final opened = await opener.openProject(receipt.projectPath);
+  for (final multiple in [false, true]) {
+    test(
+        'qualified connection follows map saves, survives events and strict writer regeneration multiple=$multiple',
+        () async {
+      final scripts = await File(scriptsPath!).readAsBytes();
+      final output =
+          await Directory.systemTemp.createTemp('ac15-native-connection-');
       try {
-        final native = await ProjectSnapshotLoader(handles: handles).load(
-            opened.projectHandle,
-            policy: ProjectSnapshotLoadPolicy.strict);
-        expect(native.loadDiagnostics, isEmpty);
-        expect(native.maps.where((map) => map.connections.length == 1),
-            hasLength(2));
+        final fixture = await LiteralTileFixture.create(
+            scriptsBytes: scripts,
+            includeEventSystem: true,
+            maps: [
+              for (final id in [98, 100, 105, if (multiple) 101])
+                LiteralFixtureMap(
+                    id: id,
+                    width: 5,
+                    height: multiple && id == 98 ? 12 : 6,
+                    layers: [
+                      List.filled(multiple && id == 98 ? 60 : 30, 384),
+                      List.filled(multiple && id == 98 ? 60 : 30, 0),
+                      List.filled(multiple && id == 98 ? 60 : 30, 0)
+                    ])
+            ],
+            extraFiles: {
+              'Data/map_connections.dat': _marshal([
+                [98, 'E', 0, 100, 'W', 0],
+                if (multiple) [98, 'E', 6, 101, 'W', 0]
+              ]),
+              'PBS/metadata.txt':
+                  utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+              'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+                  image.Image(width: 128, height: 192, numChannels: 4)),
+            });
+        final source = await const RmxpSourceNormalizer().normalize(
+            snapshot: fixture.snapshot,
+            files: fixture.files,
+            selectedMapIds: {98, 100, 105, if (multiple) 101},
+            includeConnections: true,
+            includeEventSystem: true);
+        final literal = await const LiteralTileComposer().compose(
+            source: source,
+            files: fixture.files,
+            selectedSourceMapIds: [98, 100, 105, if (multiple) 101],
+            projectName: 'Original joined maps',
+            parentPath: output.path,
+            folderName: 'original-joined-maps');
+        final semantic = (await const SourceSemanticStudyComposer()
+            .compose(source: source, base: literal, files: fixture.files))!;
         expect(
-            native.maps
-                .singleWhere((map) => map.id == draft.mapIds[105])
-                .connections,
-            isEmpty);
-        final maps = {for (final map in native.maps) map.id: map};
-        for (final map
-            in native.maps.where((map) => map.connections.isNotEmpty)) {
-          final connection = map.connections.single;
-          final reciprocal = maps[connection.targetMapId]!.connections.single;
-          expect(reciprocal.targetMapId, map.id);
-          expect(reciprocal.offset, -connection.offset);
+            semantic.mutations.where((row) =>
+                row.actionId == 'connection.create_bidirectional_apply'),
+            hasLength(multiple ? 2 : 1));
+        final event = (await const SourceEventStudyComposer()
+            .compose(source: source, base: semantic, files: fixture.files))!;
+        final draft = event.draft;
+        final connectionIndex = draft.mutations.indexWhere(
+            (row) => row.actionId == 'connection.create_bidirectional_apply');
+        expect(
+            draft.mutations.lastIndexWhere((row) => row.actionId == 'map.save'),
+            lessThan(connectionIndex));
+        expect(
+            event.projection.nativeMaps.values
+                .where((map) => map.connections.length == 1),
+            hasLength(2));
+        expect(event.projection.nativeMaps[105]!.connections, isEmpty);
+        final witness = ((draft.compositionEvidence['sourceSemantics']
+                as Map)['witnesses'] as List)
+            .singleWhere(
+                (row) => row['relativePath'] == 'Data/map_connections.dat');
+        expect(
+            witness['rawSha256'],
+            literalFixtureHash(_marshal([
+              [98, 'E', 0, 100, 'W', 0],
+              if (multiple) [98, 'E', 6, 101, 'W', 0]
+            ])).value);
+        final approval = approveNativeFixtureDraft(draft);
+        final receipt = await NativeProjectWriter()
+            .write(approval.plan, approval.context, draft);
+        expect(receipt.verified, isTrue);
+        const reader = LocalProjectFileReader();
+        final handles = WorkspaceHandleStore();
+        final policy = await WorkspacePolicy.create(
+            allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+        final opener = ProjectOpenService(
+            policy: policy, fileReader: reader, handles: handles);
+        final opened = await opener.openProject(receipt.projectPath);
+        try {
+          final native = await ProjectSnapshotLoader(handles: handles).load(
+              opened.projectHandle,
+              policy: ProjectSnapshotLoadPolicy.strict);
+          expect(native.loadDiagnostics, isEmpty);
+          expect(native.maps.where((map) => map.connections.length == 1),
+              hasLength(2));
+          expect(native.maps.where((map) => map.connections.length == 2),
+              hasLength(multiple ? 1 : 0));
+          expect(
+              native.maps
+                  .singleWhere((map) => map.id == draft.mapIds[105])
+                  .connections,
+              isEmpty);
+          final maps = {for (final map in native.maps) map.id: map};
+          for (final map
+              in native.maps.where((map) => map.connections.isNotEmpty)) {
+            for (final connection in map.connections) {
+              final reciprocal = findMapConnection(
+                  maps[connection.targetMapId]!, connection.direction.opposite,
+                  targetMapId: map.id)!;
+              expect(reciprocal.targetMapId, map.id);
+              expect(reciprocal.offset, -connection.offset);
+            }
+          }
+        } finally {
+          opener.closeWorkspace(opened.workspaceHandle);
         }
+        final forged = NativeProjectDraft(
+            source: source,
+            projectName: draft.projectName,
+            parentPath: draft.parentPath,
+            folderName: draft.folderName,
+            mapIds: draft.mapIds,
+            artifacts: draft.artifacts,
+            sourceArtifacts: draft.sourceArtifacts,
+            compositionEvidence: draft.compositionEvidence,
+            mutations: [
+              for (final mutation in draft.mutations)
+                if (mutation.actionId ==
+                    'connection.create_bidirectional_apply')
+                  NativeMutation(
+                      operationId: mutation.operationId,
+                      actionId: mutation.actionId,
+                      sourceEntityIds: mutation.sourceEntityIds,
+                      targetEntityIds: mutation.targetEntityIds,
+                      parameters: {...mutation.parameters, 'offset': 1})
+                else
+                  mutation
+            ]);
+        final forgedApproval = approveNativeFixtureDraft(forged);
+        final stages = <NativeWriteStage>[];
+        await expectLater(
+            NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+                .write(forgedApproval.plan, forgedApproval.context, forged),
+            throwsA(isA<NativeWriteException>().having((error) => error.code,
+                'code', 'native.semantics.regeneration')));
+        expect(stages, isEmpty);
       } finally {
-        opener.closeWorkspace(opened.workspaceHandle);
+        await output.delete(recursive: true);
       }
-      final forged = NativeProjectDraft(
-          source: source,
-          projectName: draft.projectName,
-          parentPath: draft.parentPath,
-          folderName: draft.folderName,
-          mapIds: draft.mapIds,
-          artifacts: draft.artifacts,
-          sourceArtifacts: draft.sourceArtifacts,
-          compositionEvidence: draft.compositionEvidence,
-          mutations: [
-            for (final mutation in draft.mutations)
-              if (mutation.actionId == 'connection.create_bidirectional_apply')
-                NativeMutation(
-                    operationId: mutation.operationId,
-                    actionId: mutation.actionId,
-                    sourceEntityIds: mutation.sourceEntityIds,
-                    targetEntityIds: mutation.targetEntityIds,
-                    parameters: {...mutation.parameters, 'offset': 1})
-              else
-                mutation
-          ]);
-      final forgedApproval = approveNativeFixtureDraft(forged);
-      final stages = <NativeWriteStage>[];
-      await expectLater(
-          NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
-              .write(forgedApproval.plan, forgedApproval.context, forged),
-          throwsA(isA<NativeWriteException>().having(
-              (error) => error.code, 'code', 'native.semantics.regeneration')));
-      expect(stages, isEmpty);
-    } finally {
-      await output.delete(recursive: true);
-    }
-  }, skip: scriptsPath == null || !Platform.isMacOS);
+    }, skip: scriptsPath == null || !Platform.isMacOS);
+  }
 }
 
 typedef _Fixture = ({
@@ -458,6 +565,9 @@ typedef _Fixture = ({
 
 Future<_Fixture> _fixture(List<List<Object>>? rows,
     {List<int> allIds = const [98, 100],
+    List<int> selectedIds = const [98, 100],
+    Map<int, int> heights = const {},
+    Map<int, int> widths = const {},
     Map<String, List<int>> extras = const {},
     List<LiteralFixtureTileset>? tilesets,
     Map<int, List<LiteralFixtureEvent>> events = const {}}) async {
@@ -470,19 +580,16 @@ Future<_Fixture> _fixture(List<List<Object>>? rows,
         for (final id in allIds)
           LiteralFixtureMap(
               id: id,
-              width: 5,
-              height: 6,
+              width: widths[id] ?? 5,
+              height: heights[id] ?? 6,
               layers: [
-                List.filled(30, 384),
-                List.filled(30, 0),
-                List.filled(30, 0)
+                List.filled((widths[id] ?? 5) * (heights[id] ?? 6), 384),
+                List.filled((widths[id] ?? 5) * (heights[id] ?? 6), 0),
+                List.filled((widths[id] ?? 5) * (heights[id] ?? 6), 0)
               ],
               events: events[id] ?? [])
       ],
-      selectedMapIds: {
-        98,
-        100
-      },
+      selectedMapIds: selectedIds.toSet(),
       extraFiles: {
         ...extras,
         if (rows != null) 'Data/map_connections.dat': _marshal(rows)
@@ -490,12 +597,12 @@ Future<_Fixture> _fixture(List<List<Object>>? rows,
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: fixture.snapshot,
       files: fixture.files,
-      selectedMapIds: {98, 100},
+      selectedMapIds: selectedIds.toSet(),
       includeConnections: rows != null);
   final literal = await const LiteralTileComposer().compose(
       source: source,
       files: fixture.files,
-      selectedSourceMapIds: [98, 100],
+      selectedSourceMapIds: selectedIds,
       projectName: 'Original connected study',
       parentPath: '/private/tmp',
       folderName: 'unused-connection-study');

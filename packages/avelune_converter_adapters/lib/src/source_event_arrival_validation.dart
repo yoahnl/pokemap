@@ -73,10 +73,9 @@ final class SourceEventArrivalValidator {
           mutation.parameters['targetMapId'] != to.id ||
           mutation.parameters['offset'] != row.nativeOffset ||
           mutation.parameters['direction'] != direction.name ||
-          findMapConnection(from, direction)?.targetMapId != to.id ||
-          findMapConnection(from, direction)?.offset != row.nativeOffset ||
-          findMapConnection(to, direction.opposite)?.targetMapId != from.id ||
-          findMapConnection(to, direction.opposite)?.offset !=
+          findMapConnection(from, direction, targetMapId: to.id)?.offset !=
+              row.nativeOffset ||
+          findMapConnection(to, direction.opposite, targetMapId: from.id)?.offset !=
               -row.nativeOffset ||
           sourceConnectionHasBorderEvents(
               source: source,
