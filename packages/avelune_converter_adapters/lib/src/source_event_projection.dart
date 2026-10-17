@@ -22,6 +22,7 @@ import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
 import 'source_hole_native_program.dart';
+import 'source_elevator_program.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -161,7 +162,8 @@ String sourcePickupFeedbackBindingKey(
 List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
     required NormalizedSourceProject source, required SourceEventAnalysis analysis,
     Map<ConverterId, SourceRoutedDoorProgram>? routedPrograms,
-    Map<ConverterId, SourceStairProgram>? stairPrograms}) {
+    Map<ConverterId, SourceStairProgram>? stairPrograms,
+    Map<ConverterId, SourceElevatorProgram>? elevatorPrograms}) {
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
     throw const NativeWriteException('events.source.binding',
@@ -169,8 +171,9 @@ List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
   }
   final routed = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis);
   final stairs = stairPrograms ?? sourceStairPrograms(source: source, analysis: analysis);
+  final elevators = elevatorPrograms ?? sourceElevatorPrograms(source: source, analysis: analysis);
   return List.unmodifiable(analysis.events.where((event) =>
-    analysis.profile.isQualified && (_hasOriginalDoorMapHash(source, event) || routed.containsKey(event.identity) || stairs.containsKey(event.identity))));
+    analysis.profile.isQualified && (!isSourceElevatorFamilyEvent(event) || elevators.containsKey(event.identity)) && (_hasOriginalDoorMapHash(source, event) || routed.containsKey(event.identity) || stairs.containsKey(event.identity) || elevators.containsKey(event.identity))));
 }
 
 bool _hasOriginalDoorMapHash(NormalizedSourceProject source, SourceEventDefinition event) {
@@ -320,6 +323,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEventExecutionContext> stairContexts = const {},
     Map<ConverterId, SourceHoleNativeProgram>? holePrograms,
     Map<ConverterId, SourceEventExecutionContext> holeContexts = const {},
+    Map<ConverterId, SourceElevatorProgram>? elevatorPrograms,
+    Map<ConverterId, SourceEventExecutionContext> elevatorContexts = const {},
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits.validate();
@@ -329,7 +334,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
@@ -364,6 +369,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEventExecutionContext> stairContexts = const {},
     Map<ConverterId, SourceHoleNativeProgram>? holePrograms,
     Map<ConverterId, SourceEventExecutionContext> holeContexts = const {},
+    Map<ConverterId, SourceElevatorProgram>? elevatorPrograms,
+    Map<ConverterId, SourceEventExecutionContext> elevatorContexts = const {},
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     limits.validate();
     if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
@@ -385,7 +392,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts)
         .build();
   }
 }
@@ -449,12 +456,14 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceStaticDoorProgram>? staticPrograms, this.staticDoorContexts,
       Map<ConverterId, SourceRoutedDoorProgram>? routedPrograms, this.routedDoorContexts,
       Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts,
-      Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts)
+      Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
+      Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts)
       : maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
         routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis),
         stairPrograms = stairs ?? sourceStairPrograms(source: source, analysis: analysis),
         holePrograms = holes ?? sourceHoleNativePrograms(source: source, analysis: analysis),
+        elevatorPrograms = elevators ?? sourceElevatorPrograms(source: source, analysis: analysis),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
@@ -525,6 +534,20 @@ final class _ProjectionBuilder {
         verifiedNativeBinding ??= context;
       }
     }
+    for (final event in analysis.events) {
+      final program = elevatorPrograms[event.identity];
+      if (program == null) continue;
+      if (!program.isBoundTo(source: source, analysis: analysis, event: event)) {
+        throw const NativeWriteException('events.source.binding', 'Elevators require their exact complete family');
+      }
+      final context = elevatorContexts[event.identity];
+      if (context != null && context.elevatorIdentity == event.identity &&
+          context.supportsRouteBarrierOnSourceMap(event.sourceMapId, eventIdentity: event.identity) &&
+          (verifiedNativeBinding == null ? context.isBoundTo(source, analysis.profile, nativeMaps) : context.sharesNativeBindingWith(verifiedNativeBinding))) {
+        qualifiedElevatorContexts.add(event.identity);
+        verifiedNativeBinding ??= context;
+      }
+    }
   }
   final NormalizedSourceProject source;
   final SourceSemanticResolver semanticResolver;
@@ -548,6 +571,10 @@ final class _ProjectionBuilder {
   final Map<ConverterId, SourceHoleNativeProgram> holePrograms;
   final Map<ConverterId, SourceEventExecutionContext> holeContexts;
   final qualifiedHoleContexts = <ConverterId>{};
+  final Map<ConverterId, SourceElevatorProgram> elevatorPrograms;
+  final Map<ConverterId, SourceEventExecutionContext> elevatorContexts;
+  final qualifiedElevatorContexts = <ConverterId>{};
+  final _elevatorGapCache = <bool, Set<String>>{};
   final Map<ConverterId, SourceStairProgram> stairPrograms;
   final Map<ConverterId, SourceEventExecutionContext> stairContexts;
   final qualifiedStairContexts = <ConverterId>{};
@@ -585,21 +612,121 @@ final class _ProjectionBuilder {
   final gapsByEvent = <ConverterId, Set<String>>{};
   var quarantinedCount = 0;
 
+  String _elevatorVariableKey(int variable) => 'source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable';
+  NarrativeFactDefinition _elevatorFact(int variable) => addNarrativeFact(
+      const ProjectManifest(name: 'Source elevator', maps: [], tilesets: []),
+      label: 'Source elevator ${canonicalHashOf({'source': source.snapshot.logicalProjectNamespace.value, 'variable': variable}).value.substring(0, 24)}',
+      initialValue: NarrativeValue.integer(0), category: 'Source events',
+      description: 'Shared source variable $variable', tags: ['sourceImported']).createdFact;
+
+  Set<String> _elevatorGaps(
+    SourceEventDefinition event, {
+    required bool checkCharacterBindings,
+  }) {
+    final cached = _elevatorGapCache[checkCharacterBindings];
+    if (cached != null) return cached;
+    final gaps = <String>{};
+    _elevatorGapCache[checkCharacterBindings] = gaps;
+    final program = elevatorPrograms[event.identity]!;
+    if (!program.requiredEventIdentities.every(
+      (identity) =>
+          _selectedEventIdentities.contains(identity) &&
+          elevatorPrograms[identity]?.familyHash == program.familyHash &&
+          qualifiedElevatorContexts.contains(identity),
+    )) {
+      gaps.add('sourceElevatorCompleteFamilyContextMissing');
+    }
+    if (retentionPolicy == null) gaps.add('sourceMapInstanceRetentionMissing');
+    if (!maps.keys.toSet().containsAll(program.requiredSourceMapIds)) {
+      gaps.add('sourceElevatorMapsMissing');
+    }
+    if ([
+      'Entering Door',
+      'Exit Door',
+      'Elevator moving',
+      'Elevator end',
+    ].any((name) => _sound(name) == null)) {
+      gaps.add('sourceSoundBindingMissing');
+    }
+    if (gaps.isNotEmpty) return gaps;
+    for (final member in elevatorPrograms.values) {
+      final owner = analysis.events.singleWhere(
+        (candidate) => candidate.identity == member.eventIdentity,
+      );
+      final map = maps[owner.sourceMapId]!;
+      if (map.version == ProjectVersion.v9 || map.spatialScene != null) {
+        gaps.add('sourceElevatorSpatialUnsupported');
+      }
+      if (checkCharacterBindings) {
+        for (final page in owner.pages) {
+          final graphic = page.graphic!;
+          if (graphic.characterName.isEmpty) continue;
+          final binding =
+              characterBindings[sourceEventCharacterBindingKey(
+                characterName: graphic.characterName,
+                pattern: graphic.pattern,
+                direction: graphic.direction,
+              )];
+          final file = source.snapshot.entries
+              .where((file) => file.fileId == binding?.sourceFileId)
+              .firstOrNull;
+          if (binding == null ||
+              binding.characterId.trim().isEmpty ||
+              binding.sourceSnapshotHash != sourceSnapshotHash ||
+              binding.sourcePattern != graphic.pattern ||
+              binding.sourceDirection != graphic.direction ||
+              file?.sha256 != binding.sourceFileHash ||
+              file?.relativePath !=
+                  'Graphics/Characters/${graphic.characterName}.png') {
+            gaps.add('characterBindingMissing');
+          }
+        }
+      }
+      if (member.role == SourceElevatorRole.door) {
+        for (final page in owner.pages) {
+          _blockGaps(
+            owner,
+            SourceEventBlock(
+              nodes: page.body.nodes
+                  .where((node) => node is! SourceUnknownNode)
+                  .toList(),
+              span: page.body.span,
+            ),
+            gaps,
+            checkCharacterBindings: checkCharacterBindings,
+          );
+        }
+      } else if (member.role == SourceElevatorRole.exit) {
+        _blockGaps(
+          owner,
+          SourceEventBlock(
+            nodes: sourceElevatorNodes(owner)
+                .whereType<SourceWarpNode>()
+                .toList(),
+            span: owner.pages.first.body.span,
+          ),
+          gaps,
+          checkCharacterBindings: checkCharacterBindings,
+        );
+      }
+    }
+    return gaps;
+  }
   bool _isExternalWarpFamily(SourceEventDefinition event) => const {
     (100, 6), (100, 7), (100, 13), (166, 1), (205, 2), (205, 4)
   }.contains((event.sourceMapId, event.sourceEventId));
 
   bool _isSourceTransition(SourceEventDefinition event) =>
       originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event) ||
-      staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity);
+      staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      qualifiedHoleContexts.contains(event.identity) || qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
+      qualifiedHoleContexts.contains(event.identity) || qualifiedElevatorContexts.contains(event.identity) || qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
       ((originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event)) &&
-        executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null && executionContext?.holeIdentity == null);
+        executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null && executionContext?.holeIdentity == null && executionContext?.elevatorIdentity == null);
 
   SourceEventExecutionContext? _eventExecutionContext(SourceEventDefinition event) =>
-      holeContexts[event.identity] ?? stairContexts[event.identity] ?? routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? executionContext;
+      holeContexts[event.identity] ?? elevatorContexts[event.identity] ?? stairContexts[event.identity] ?? routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? executionContext;
 
   final _externalPrograms = <ConverterId, SourceExternalWarpProgram?>{};
 
@@ -792,6 +919,7 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && elevatorPrograms.containsKey(event.identity)) 'nativeElevator': {'familyHash': elevatorPrograms[event.identity]!.familyHash.value, 'role': elevatorPrograms[event.identity]!.role.name, 'policy': elevatorPrograms[event.identity]!.policy.name},
         if (gaps.isEmpty && _isItemGiver(event))
           'nativeItemGiver': {
             'sourceHelper': 'pbReceiveItem',
@@ -964,7 +1092,7 @@ final class _ProjectionBuilder {
               'locator': page.locator.toJson(),
               'isEmpty': page.isEmpty,
               'rawDataRef': page.rawDataRef?.toJson(),
-              'nativeEventId': gaps.isEmpty &&
+              'nativeEventId': gaps.isEmpty && elevatorPrograms[event.identity]?.role != SourceElevatorRole.actor &&
                       ((!_isNativeCenterPc(event) && !_isNativeCenterNurse(event)) || page.originalPageIndex == 0)
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
@@ -1081,6 +1209,7 @@ final class _ProjectionBuilder {
     final ownersByFact = <String, Set<ConverterId>>{};
     for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty)) {
       final ids = <String>{};
+      if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(10), _elevatorVariableKey(11)]);
       for (final page in event.pages) {
         _collectFacts(page.condition, ids);
         _blockFacts(page.body, ids);
@@ -1167,6 +1296,7 @@ final class _ProjectionBuilder {
           'sceneOnly self-target at the exact Scene.warp destination; no physical activation',
       'sourceAdmission': false,
       if (retentionPolicy != null) 'mapInstanceRetentionPolicy': retentionPolicy!.toJson(),
+      'elevatorPrograms': [for (final program in elevatorPrograms.values) {...program.toJson(), 'executionContext': contextEncoding.encodeContext(elevatorContexts[program.eventIdentity]?.toJson()), 'executionContextQualified': qualifiedElevatorContexts.contains(program.eventIdentity)}],
       'doorExecutionQualification': {
         'playerMovementContext': 'atFoot',
         'playerStepMs': 250,
@@ -1264,8 +1394,7 @@ final class _ProjectionBuilder {
     if (contextTables != null) {
       evidence['executionContextTables'] = contextTables;
     }
-    final packedEvidence =
-        SourceEventEvidenceArtifacts.pack(evidence, limits: limits);
+    final packedEvidence = SourceEventEvidenceArtifacts.pack(evidence, limits: limits);
     return SourceEventProjection(
         nativeMaps: maps,
         registry: registry,
@@ -2127,6 +2256,10 @@ final class _ProjectionBuilder {
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     if (isSourceHoleNativeIdentity(event)) return _holeGaps(event);
+    if (elevatorPrograms.containsKey(event.identity)) return _elevatorGaps(event, checkCharacterBindings: checkCharacterBindings);
+    if (analysis.profile.isQualified && isSourceElevatorFamilyEvent(event)) {
+      return {'sourceElevatorCompleteFamilyBindingMissing'};
+    }
     if (const {166, 205}.contains(event.sourceMapId) && !_isExternalWarpFamily(event)) {
       return {'sourceExternalMapScopeExcluded'};
     }
@@ -2707,6 +2840,9 @@ final class _ProjectionBuilder {
   }
 
   void _projectEvent(SourceEventDefinition event) {
+    if (elevatorPrograms.containsKey(event.identity)) {
+      for (final variable in [10, 11]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
+    }
     if (_isHealingDisplayFamily(event)) {
       if (gapsByEvent[event.identity]?.isEmpty != true || healingDisplayBinding == null) {
         throw const NativeWriteException('events.healing_display.binding_missing',
@@ -2827,6 +2963,7 @@ final class _ProjectionBuilder {
         [event.identity, event.sourceFileId],
         [map.id, entity.id],
         {'mapId': map.id, 'entity': entity.toJson()}));
+    if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.actor) return;
     final consumed = _consumedPickupFact(event);
     final presence = consumed == null
         ? (!_conditionGuardSafe(event.pages.first.condition) &&
@@ -2874,6 +3011,9 @@ final class _ProjectionBuilder {
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
       final guard = _all([
+        if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.controller)
+          for (final bound in [(NarrativeFactOperator.greaterThanOrEqual, 1), (NarrativeFactOperator.lessThanOrEqual, elevatorPrograms[event.identity]!.maximumFloor)])
+            _Guard.expression(NarrativeEventConditionExpression.leaf(NarrativeEventCondition.factValue(_elevatorFact(10).id, operator: bound.$1, expectedValue: NarrativeValue.integer(bound.$2)))),
         _pageGuard(event, page.condition),
         _not(_any(projectedPages
             .skip(index + 1)
@@ -2970,7 +3110,10 @@ final class _SceneBuilder {
   SceneAsset build() {
     final end = _node(SceneEndPayload());
     final hole = projection.holePrograms[event.identity];
-    final first = hole == null ? _block(page.body, end) : _hole(hole, end);
+    final elevator = projection.elevatorPrograms[event.identity];
+    final first = hole != null ? _hole(hole, end)
+      : elevator == null || elevator.role == SourceElevatorRole.actor ? _block(page.body, end)
+      : _elevator(elevator, end);
     final start = _node(SceneStartPayload());
     _edge(start, 'completed', first);
     return SceneAsset(
@@ -3024,6 +3167,195 @@ final class _SceneBuilder {
       target: SceneActorTarget.player(mapId: sourceMapId), visible: false), next);
   }
 
+  String _elevator(SourceElevatorProgram program, String next) {
+    if (program.role == SourceElevatorRole.door) {
+      if (page.originalPageIndex != 0) return _block(page.body, next);
+      return _integerFact(
+        10,
+        program.floor!,
+        _block(
+          SourceEventBlock(
+            nodes: page.body.nodes.skip(1).toList(),
+            span: page.body.span,
+          ),
+          next,
+        ),
+      );
+    }
+    if (program.role == SourceElevatorRole.exit) {
+      final warps = sourceElevatorNodes(event)
+          .whereType<SourceWarpNode>()
+          .toList();
+      final body = page.body.nodes;
+      final revealed = _block(
+        SourceEventBlock(nodes: [body.last], span: page.body.span),
+        next,
+      );
+      var branch = _block(
+        SourceEventBlock(nodes: [warps.last], span: page.body.span),
+        revealed,
+      );
+      for (var index = warps.length - 2; index >= 0; index--) {
+        branch = _integerCondition(
+          10,
+          program.maximumFloor - index,
+          _block(
+            SourceEventBlock(nodes: [warps[index]], span: page.body.span),
+            revealed,
+          ),
+          branch,
+        );
+      }
+      return _block(
+        SourceEventBlock(nodes: body.take(3).toList(), span: page.body.span),
+        branch,
+      );
+    }
+    if (program.role != SourceElevatorRole.controller) {
+      throw const NativeWriteException(
+        'events.elevator.role',
+        'Only attested elevator programs may build a scene',
+      );
+    }
+    final finish = _elevatorSound('Elevator end', next);
+    final routes = sourceElevatorNodes(event)
+        .whereType<SourceForcedMoveRouteNode>()
+        .toList();
+    final memo = <(int, int), String>{};
+    String journey(int current, int target) {
+      if (current == target) return finish;
+      return memo.putIfAbsent((current, target), () {
+        final following = current + (target > current ? 1 : -1);
+        var step = _integerFact(10, following, journey(following, target));
+        step = _interactive(
+          SceneInteractiveCommand.waitForActorRoutes(
+            mapId: projection.maps[event.sourceMapId]!.id,
+          ),
+          step,
+        );
+        final directionRoutes = target > current
+            ? routes.take(3)
+            : routes.skip(3);
+        for (final route in directionRoutes.toList().reversed) {
+          final owner = projection.analysis.eventAt(
+            event.sourceMapId,
+            route.targetSourceCharacterId,
+          )!;
+          step = _interactive(
+            SceneInteractiveCommand.actorRoute(
+              target: SceneActorTarget.entity(
+                mapId: projection.maps[event.sourceMapId]!.id,
+                entityId: projection._key(owner, 'anchor'),
+              ),
+              skippable: false,
+              steps: [
+                for (final value in route.steps)
+                  if (value.kind == SourceMoveRouteStepKind.wait)
+                    SceneActorRouteStep.wait(
+                      durationMs: value.durationTicks! * 50,
+                    )
+                  else
+                    SceneActorRouteStep.face(
+                      direction: switch (value.kind) {
+                        SourceMoveRouteStepKind.turnLeft => EntityFacing.west,
+                        SourceMoveRouteStepKind.turnRight => EntityFacing.east,
+                        _ => EntityFacing.south,
+                      },
+                      yieldAfter: true,
+                    ),
+              ],
+            ),
+            step,
+          );
+        }
+        return _elevatorSound('Elevator moving', step);
+      });
+    }
+
+    final script = page.body.nodes.whereType<SourceScriptNode>().first.script;
+    final literals = RegExp(r'_I\("([^"\n]*)"\)')
+        .allMatches(script)
+        .map((match) => match.group(1)!)
+        .toList();
+    final labels = literals.skip(1).toList();
+    final empty = SourceEventBlock(nodes: const [], span: page.body.span);
+    final choice = SourceChoiceNode(
+      page.body.span,
+      cancelType: labels.length,
+      branches: [
+        for (final entry in labels.indexed)
+          SourceChoiceBranch(entry.$1, entry.$2, empty),
+      ],
+    );
+    var dispatch = next;
+    for (var current = program.maximumFloor; current >= 1; current--) {
+      final targets = <int, String>{};
+      for (var index = 0; index < labels.length; index++) {
+        final target = program.maximumFloor - index;
+        final route = target == 0 ? finish : journey(current, target);
+        targets[index] = _integerFact(
+          11,
+          index,
+          _integerFact(11, target, route),
+        );
+      }
+      final menu = _dialogue(
+        page.body.span,
+        literals.first,
+        choice,
+        finish,
+        choiceTargets: targets,
+        dialogueKey: 'elevator_$current',
+        defaultChoiceIndex: program.maximumFloor - current,
+      );
+      dispatch = _integerCondition(10, current, menu, dispatch);
+    }
+    return dispatch;
+  }
+
+  String _integerFact(int variable, int value, String next) {
+    final action = _node(
+      SceneActionPayload.consequence(
+        SceneConsequence.setFactValue(
+          factId: projection._elevatorFact(variable).id,
+          value: NarrativeValue.integer(value),
+        ),
+      ),
+    );
+    _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+    return action;
+  }
+
+  String _integerCondition(
+    int variable,
+    int value,
+    String whenTrue,
+    String whenFalse,
+  ) {
+    final condition = _node(
+      SceneConditionPayload(
+        conditionSource: SceneConditionSource.factValue(
+          factId: projection._elevatorFact(variable).id,
+          operator: NarrativeFactOperator.equals,
+          expectedValue: NarrativeValue.integer(value),
+        ),
+      ),
+    );
+    _edge(condition, 'true', whenTrue, SceneEdgeKind.conditionTrue);
+    _edge(condition, 'false', whenFalse, SceneEdgeKind.conditionFalse);
+    return condition;
+  }
+
+  String _elevatorSound(String name, String next) {
+    final sound = projection._sound(name)!;
+    return _interactive(
+      SceneInteractiveCommand.playSoundEffect(
+        mediaAssetId: sound.mediaId,
+        volume: sound.gainForVolume(80),
+      ),
+      next,
+    );
+  }
   String _block(SourceEventBlock block, String continuation) {
     var next = continuation;
     for (final node in block.nodes.reversed) {
@@ -3079,7 +3411,7 @@ final class _SceneBuilder {
                     _ => EntityFacing.north,
                   },
                   durationMs: 250, initialCollisionOwnerEntityId:
-                    player && !through && ((event.sourceMapId == 100 && event.sourceEventId == 8) || (projection.qualifiedRoutedDoorContexts.contains(event.identity) && event.pages.first.graphic!.characterName.isNotEmpty))
+                    player && !through && ((event.sourceMapId == 100 && event.sourceEventId == 8) || ((projection.qualifiedRoutedDoorContexts.contains(event.identity) || projection.qualifiedElevatorContexts.contains(event.identity)) && event.pages.first.graphic!.characterName.isNotEmpty))
                       ? projection._key(event, 'anchor') : null));
               case SourceMoveRouteStepKind.wait:
                 steps.add(SceneActorRouteStep.wait(durationMs: step.durationTicks! * 50));
@@ -3143,7 +3475,17 @@ final class _SceneBuilder {
                     projection._externalWarpProgram(event)!))));
           _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
           final blocked = _node(SceneEndPayload());
-          _edge(action, 'blocked', blocked, SceneEdgeKind.actionCompleted);
+          final blockedExit = projection.elevatorPrograms[event.identity]?.role ==
+                  SourceElevatorRole.exit
+              ? _block(
+                  SourceEventBlock(
+                    nodes: [page.body.nodes.last as SourceToneNode],
+                    span: page.body.span,
+                  ),
+                  blocked,
+                )
+              : blocked;
+          _edge(action, 'blocked', blockedExit, SceneEdgeKind.actionCompleted);
           next = action;
           if (node.originalProgram != null) {
             final program = projection._externalWarpProgram(event)!;
@@ -3422,7 +3764,7 @@ final class _SceneBuilder {
   String _dialogue(
       SourceEventSpan span, String? text, SourceChoiceNode? choice, String next,
       {List<DialogueLineFeedback>? feedbackLines, Map<int, String>? choiceTargets,
-      String? dialogueKey}) {
+      String? dialogueKey, int? defaultChoiceIndex}) {
     final feedback = feedbackLines ??
         (text != null && text.contains(r'\')
             ? [projection._textFeedback(event, text)!]
@@ -3482,7 +3824,7 @@ final class _SceneBuilder {
                 SceneDialogueChoicePolicy(
                     nodeName: 'Start',
                     choiceIndex: 0,
-                    defaultOutcomeId: 'choice_${choice.branches.first.index}',
+                    defaultOutcomeId: 'choice_${defaultChoiceIndex ?? choice.branches.first.index}',
                     cancellation: switch (choice.cancelType) {
                       0 => const SceneDialogueChoiceCancellation.disabled(),
                       5 =>
