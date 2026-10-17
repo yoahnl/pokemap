@@ -533,7 +533,9 @@ Map<String, Object?> _connectionValidation(
       .where(
         (issue) =>
             (mapId == null || issue.mapId == mapId) &&
-            (direction == null || issue.sourceId == direction.name),
+            (direction == null ||
+                issue.sourceId?.split(':').elementAtOrNull(1) ==
+                    direction.name),
       )
       .toList(growable: false);
   final connectionCount = snapshot.maps
@@ -1515,7 +1517,7 @@ Map<String, Object?> _mapConnectionRecord(
   MapConnection connection,
 ) =>
     {
-      'id': '${map.id}:${connection.direction.name}',
+      'id': mapConnectionResourceId(map.id, connection),
       'name': '${map.name} — ${_directionLabel(connection.direction)}',
       'resourceKind': 'mapConnection',
       'mapId': map.id,

@@ -46,12 +46,12 @@ class MapConnectionContextLayer extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          for (final neighbor in this.context.neighbors.values)
+          for (final neighbor in this.context.allNeighbors)
             Positioned.fill(
               child: IgnorePointer(
                 key: ValueKey<String>(
                   'map-connection-context-ignore-pointer-'
-                  '${neighbor.direction.name}',
+                  '${this.context.neighborKey(neighbor)}',
                 ),
                 ignoring: true,
                 child: Stack(
@@ -61,7 +61,7 @@ class MapConnectionContextLayer extends StatelessWidget {
                       child: Opacity(
                         key: ValueKey<String>(
                           'map-connection-context-opacity-'
-                          '${neighbor.direction.name}',
+                          '${this.context.neighborKey(neighbor)}',
                         ),
                         opacity: neighbor.direction == selectedDirection
                             ? selectedOpacity
@@ -69,7 +69,7 @@ class MapConnectionContextLayer extends StatelessWidget {
                         child: CustomPaint(
                           key: ValueKey<String>(
                             'map-connection-context-painter-'
-                            '${neighbor.direction.name}',
+                            '${this.context.neighborKey(neighbor)}',
                           ),
                           painter: MapGridPainter(
                             map: neighbor.map,
@@ -102,7 +102,7 @@ class MapConnectionContextLayer extends StatelessWidget {
                       child: CustomPaint(
                         key: ValueKey<String>(
                           'map-connection-context-outline-'
-                          '${neighbor.direction.name}',
+                          '${this.context.neighborKey(neighbor)}',
                         ),
                         painter: MapConnectionContextOutlinePainter(
                           tileBounds: neighbor.tileBounds,
@@ -122,9 +122,10 @@ class MapConnectionContextLayer extends StatelessWidget {
                       child: PokeMapBadge(
                         key: ValueKey<String>(
                           'map-connection-context-label-'
-                          '${neighbor.direction.name}',
+                          '${this.context.neighborKey(neighbor)}',
                         ),
-                        label: '${neighbor.entry.name} · '
+                        label:
+                            '${neighbor.entry.name} · '
                             '${_directionLabel(neighbor.direction)}',
                         variant: neighbor.direction == selectedDirection
                             ? PokeMapBadgeVariant.mapAccent
@@ -222,6 +223,7 @@ class MapConnectionContextNavigationLayer extends StatelessWidget {
     required this.tileHeight,
     required this.enabled,
     required this.onPressed,
+    this.onTargetPressed,
   });
 
   final WorldMapConnectionContext context;
@@ -231,13 +233,14 @@ class MapConnectionContextNavigationLayer extends StatelessWidget {
   final double tileHeight;
   final bool enabled;
   final ValueChanged<MapConnectionDirection> onPressed;
+  final ValueChanged<WorldMapConnectionNeighbor>? onTargetPressed;
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        for (final neighbor in this.context.neighbors.values)
+        for (final neighbor in this.context.allNeighbors)
           Positioned.fromRect(
             rect: _screenBounds(neighbor),
             child: Semantics(
@@ -252,10 +255,14 @@ class MapConnectionContextNavigationLayer extends StatelessWidget {
                 child: GestureDetector(
                   key: ValueKey<String>(
                     'map-connection-context-open-'
-                    '${neighbor.direction.name}',
+                    '${this.context.neighborKey(neighbor)}',
                   ),
                   behavior: HitTestBehavior.opaque,
-                  onTap: enabled ? () => onPressed(neighbor.direction) : null,
+                  onTap: enabled
+                      ? () => onTargetPressed != null
+                            ? onTargetPressed!(neighbor)
+                            : onPressed(neighbor.direction)
+                      : null,
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -331,7 +338,8 @@ Map<MapConnectionDirection, String> resolveMapConnectionLabels(
   };
   for (final connection in map.connections) {
     final mapEntry = projectMapById[connection.targetMapId];
-    result[connection.direction] = mapEntry?.name ?? connection.targetMapId;
+    final count = map.connections.where((candidate) => candidate.direction == connection.direction).length;
+    result[connection.direction] = count > 1 ? '$count maps liées' : mapEntry?.name ?? connection.targetMapId;
   }
   return result;
 }
@@ -360,22 +368,16 @@ class _MapConnectionIssueOutlinePainter extends CustomPainter {
     final width = mapSize.width * tileWidth * zoom;
     final height = mapSize.height * tileHeight * zoom;
     final (start, end) = switch (direction) {
-      MapConnectionDirection.north => (
-          offset,
-          offset + Offset(width, 0),
-        ),
+      MapConnectionDirection.north => (offset, offset + Offset(width, 0)),
       MapConnectionDirection.east => (
-          offset + Offset(width, 0),
-          offset + Offset(width, height),
-        ),
+        offset + Offset(width, 0),
+        offset + Offset(width, height),
+      ),
       MapConnectionDirection.south => (
-          offset + Offset(0, height),
-          offset + Offset(width, height),
-        ),
-      MapConnectionDirection.west => (
-          offset,
-          offset + Offset(0, height),
-        ),
+        offset + Offset(0, height),
+        offset + Offset(width, height),
+      ),
+      MapConnectionDirection.west => (offset, offset + Offset(0, height)),
     };
     canvas.drawLine(
       start,

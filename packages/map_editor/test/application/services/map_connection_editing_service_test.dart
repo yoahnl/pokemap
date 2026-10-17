@@ -10,6 +10,42 @@ void main() {
       resolveMapConnectionTargetUseCase: ResolveMapConnectionTargetUseCase(),
     );
     final source = _map('source');
+    test('finds the exact reciprocal target among multiple edge neighbors', () {
+      final sourceMap = source.copyWith(
+        connections: const [
+          MapConnection(
+            direction: MapConnectionDirection.east,
+            targetMapId: 'other',
+          ),
+          MapConnection(
+            direction: MapConnectionDirection.east,
+            targetMapId: 'target',
+            offset: 4,
+          ),
+        ],
+      );
+      final target = _map('target').copyWith(
+        connections: const [
+          MapConnection(
+            direction: MapConnectionDirection.west,
+            targetMapId: 'other',
+          ),
+          MapConnection(
+            direction: MapConnectionDirection.west,
+            targetMapId: 'source',
+            offset: -4,
+          ),
+        ],
+      );
+      expect(
+        service.hasExactReciprocalPair(
+          sourceMap: sourceMap,
+          targetMap: target,
+          direction: MapConnectionDirection.east,
+        ),
+        isTrue,
+      );
+    });
 
     test('routes one-way upsert to connection.upsert', () {
       final intent = service.buildUpsertIntent(
@@ -70,10 +106,7 @@ void main() {
       );
 
       expect(intent.actionId, 'connection.delete');
-      expect(intent.parameters, {
-        'mapId': 'source',
-        'direction': 'west',
-      });
+      expect(intent.parameters, {'mapId': 'source', 'direction': 'west'});
     });
 
     test('routes exact reciprocal delete to delete pair action', () {
@@ -163,14 +196,10 @@ void main() {
 }
 
 MapData _map(String id) => MapData(
-      id: id,
-      name: id,
-      size: const GridSize(width: 4, height: 3),
-      layers: [
-        MapLayer.tile(
-          id: 'base',
-          name: 'Base',
-          cells: List<int>.filled(12, 0),
-        ),
-      ],
-    );
+  id: id,
+  name: id,
+  size: const GridSize(width: 4, height: 3),
+  layers: [
+    MapLayer.tile(id: 'base', name: 'Base', cells: List<int>.filled(12, 0)),
+  ],
+);

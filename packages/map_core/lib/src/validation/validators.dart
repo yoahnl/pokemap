@@ -2,6 +2,7 @@ import '../diagnostics/scene_diagnostics.dart';
 import '../encounters/encounter_contract.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/badge_definition.dart';
+import '../operations/map_connections.dart';
 import '../models/border_blueprint.dart';
 import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
@@ -122,11 +123,58 @@ class ProjectValidator {
       );
     }
     if (maps != null) {
+      final mapsById = {for (final map in maps) map.id: map};
       for (final map in maps) {
         if ((map.spatialScene != null) != spatial) {
           throw const ValidationException(
             'A project cannot mix 2D and 3D maps.',
           );
+        }
+        final keys = <(MapConnectionDirection, String)>{};
+        for (var i = 0; i < map.connections.length; i++) {
+          final first = map.connections[i];
+          final firstTarget = mapsById[first.targetMapId];
+          if (firstTarget != null &&
+              !hasMapConnectionOverlap(
+                sourceSize: map.size,
+                targetSize: firstTarget.size,
+                direction: first.direction,
+                offset: first.offset,
+              )) {
+            throw ValidationException(
+              'Map connection has no physical overlap: ${mapConnectionResourceId(map.id, first)}',
+            );
+          }
+          if (!keys.add((first.direction, first.targetMapId))) {
+            throw ValidationException(
+              'Duplicate map connection: ${map.id}:${first.direction.name}:${first.targetMapId}',
+            );
+          }
+          for (final second in map.connections.skip(i + 1)) {
+            if (first.direction != second.direction) continue;
+            if (spatial) {
+              throw const ValidationException(
+                'Multiple neighbors on a 3D map edge are unsupported.',
+              );
+            }
+            final secondTarget = mapsById[second.targetMapId];
+            if (firstTarget == null || secondTarget == null) {
+              throw const ValidationException(
+                'Multiple map connections require known target map sizes.',
+              );
+            }
+            if (mapConnectionSpansOverlap(
+              sourceSize: map.size,
+              first: first,
+              firstTargetSize: firstTarget.size,
+              second: second,
+              secondTargetSize: secondTarget.size,
+            )) {
+              throw ValidationException(
+                'Overlapping map connections: ${map.id}:${first.direction.name}',
+              );
+            }
+          }
         }
       }
     }
@@ -2607,9 +2655,16 @@ class MapValidator {
   static void validate(MapData map, {ProjectManifest? projectDialogueContext}) {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
     final dungeonId = map.mapMetadata.escapeRopeDungeonId;
-    if (dungeonId != null && (dungeonId.trim().isEmpty || dungeonId != dungeonId.trim() ||
-        (projectDialogueContext != null && !projectDialogueContext.groups.any((group) => group.id == dungeonId)))) {
-      throw const ValidationException('The Escape Rope dungeon must reference an existing group.');
+    if (dungeonId != null &&
+        (dungeonId.trim().isEmpty ||
+            dungeonId != dungeonId.trim() ||
+            (projectDialogueContext != null &&
+                !projectDialogueContext.groups.any(
+                  (group) => group.id == dungeonId,
+                )))) {
+      throw const ValidationException(
+        'The Escape Rope dungeon must reference an existing group.',
+      );
     }
     if (projectDialogueContext != null &&
         (map.spatialScene != null) !=
@@ -2783,7 +2838,10 @@ class MapValidator {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
         assertEntityTrainerRefsAgainstProject(entity, projectDialogueContext);
         assertEntityCharacterRefsAgainstProject(entity, projectDialogueContext);
-        assertEntityInteractiveEncounterAgainstProject(entity, projectDialogueContext);
+        assertEntityInteractiveEncounterAgainstProject(
+          entity,
+          projectDialogueContext,
+        );
         assertEntityEditorVisualAgainstProject(entity, projectDialogueContext);
       }
     }
@@ -2836,7 +2894,7 @@ class MapValidator {
       duplicateMessagePrefix: 'Duplicate placed element instance ID',
     );
 
-    final seenConnectionDirections = <MapConnectionDirection>{};
+    final seenConnections = <(MapConnectionDirection, String)>{};
     for (final connection in map.connections) {
       final targetMapId = _requireNonBlank(
         connection.targetMapId,
@@ -2847,9 +2905,9 @@ class MapValidator {
           'Map connection ${connection.direction.name} cannot target its own map',
         );
       }
-      if (!seenConnectionDirections.add(connection.direction)) {
+      if (!seenConnections.add((connection.direction, targetMapId))) {
         throw ValidationException(
-          'Duplicate map connection direction: ${connection.direction.name}',
+          'Duplicate map connection: ${connection.direction.name}:$targetMapId',
         );
       }
     }

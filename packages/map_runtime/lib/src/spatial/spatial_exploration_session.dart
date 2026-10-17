@@ -51,21 +51,25 @@ final class SpatialExplorationSession {
       _viewConnectionsById.putIfAbsent(map.id, () {
         final result = [...map.connections];
         final occupied = {
-          for (final connection in result) connection.direction
+          for (final connection in result) (connection.direction, connection.targetMapId)
         };
         for (final source in _knownMaps.values) {
           for (final connection in source.connections) {
             final direction = connection.direction.opposite;
             if (connection.targetMapId != map.id ||
-                occupied.contains(direction)) {
+                occupied.contains((direction, source.id))) {
               continue;
             }
-            occupied.add(direction);
+            occupied.add((direction, source.id));
             result.add(MapConnection(
                 direction: direction,
                 targetMapId: source.id,
                 offset: -connection.offset));
           }
+        }
+        final directions = <MapConnectionDirection>{};
+        if (result.any((connection) => !directions.add(connection.direction))) {
+          throw StateError('Plusieurs voisines sur un bord 3D ne sont pas prises en charge.');
         }
         return List.unmodifiable(result);
       });
@@ -383,6 +387,11 @@ final class SpatialExplorationSession {
     if (scene == null ||
         bundle.manifest.settings.dimension != ProjectDimension.threeD) {
       throw StateError('Une carte 3D est requise.');
+    }
+    final connectionDirections = <MapConnectionDirection>{};
+    if (bundle.map.connections.any((connection) =>
+        !connectionDirections.add(connection.direction))) {
+      throw StateError('Plusieurs voisines sur un bord 3D ne sont pas prises en charge.');
     }
     final id = characterId ?? bundle.manifest.settings.defaultPlayerCharacterId;
     final character =

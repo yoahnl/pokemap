@@ -6502,10 +6502,14 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  MapConnection? getMapConnection(MapConnectionDirection direction) {
+  MapConnection? getMapConnection(
+    MapConnectionDirection direction, {
+    String? targetMapId,
+  }) {
     return _mapConnectionEditingService.findConnection(
       state.activeMap,
       direction,
+      targetMapId: targetMapId,
     );
   }
 
@@ -8592,16 +8596,17 @@ class EditorNotifier extends _$EditorNotifier
   Future<MapActivationOutcome> activateConnectedMap(
     MapConnectionDirection direction, {
     DirtyMapActivationDecision? dirtyDecision,
+    String? targetMapId,
   }) async {
     final project = state.project;
-    final connection = getMapConnection(direction);
-    if (project == null || connection == null) {
-      state = state.copyWith(
-        errorMessage: 'No ${direction.name} connection available',
-      );
-      return MapActivationOutcome.unavailable;
-    }
     try {
+      final connection = getMapConnection(direction, targetMapId: targetMapId);
+      if (project == null || connection == null) {
+        state = state.copyWith(
+          errorMessage: 'No ${direction.name} connection available',
+        );
+        return MapActivationOutcome.unavailable;
+      }
       final targetEntry = _mapConnectionEditingService.resolveTargetMapEntry(
         project,
         connection.targetMapId,
@@ -14068,10 +14073,7 @@ class EditorNotifier extends _$EditorNotifier
     for (final candidate in preset.palette) {
       final candidateElementId = candidate.elementId;
       if (candidateElementId == null) continue;
-      final candidateElement = _projectElementById(
-        project,
-        candidateElementId,
-      );
+      final candidateElement = _projectElementById(project, candidateElementId);
       if (candidateElement == null) continue;
       item = candidate;
       element = candidateElement;

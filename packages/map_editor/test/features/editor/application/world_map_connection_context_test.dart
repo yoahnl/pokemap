@@ -11,6 +11,15 @@ import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart
 
 void main() {
   group('WorldMapConnectionContextLoader', () {
+    test('loads every disjoint neighbor on one edge without a direction alias', () async {
+      final source = _source.copyWith(connections: const [MapConnection(direction: MapConnectionDirection.east, targetMapId: 'north'), MapConnection(direction: MapConnectionDirection.east, targetMapId: 'east', offset: 4)]);
+      final repository = _MapRepository({'/project/maps/north.json': _map('north', 5, 4), '/project/maps/east.json': _map('east', 5, 4)});
+      final context = await WorldMapConnectionContextLoader(mapRepository: repository).load(workspace: const FileProjectWorkspaceFactory().create('/project'), project: _project, sourceMap: source);
+      expect(context.allNeighbors.map((neighbor) => neighbor.map.id), ['north', 'east']);
+      expect(context.neighbors, isEmpty);
+      expect(context.allNeighbors.last.tileBounds, const Rect.fromLTWH(10, 4, 5, 4));
+      expect(repository.loadedPaths, hasLength(2));
+    });
     test(
       'projects four directions and bounds the first-level context',
       () async {

@@ -1892,7 +1892,11 @@ class MapGridPainter extends CustomPainter {
     if (map.connections.isEmpty) {
       return;
     }
+    final paintedDirections = <MapConnectionDirection>{};
     for (final connection in map.connections) {
+      if (!paintedDirections.add(connection.direction)) {
+        continue;
+      }
       final badgeRect = _connectionBadgeRect(
         connection.direction,
         gridWidth,

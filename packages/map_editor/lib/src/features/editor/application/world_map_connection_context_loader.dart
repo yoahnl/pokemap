@@ -19,37 +19,39 @@ final class WorldMapConnectionContextLoader {
     required MapData sourceMap,
   }) async {
     final entriesById = {for (final entry in project.maps) entry.id: entry};
-    final connectionsByDirection = <MapConnectionDirection, MapConnection>{};
-    for (final connection in sourceMap.connections) {
-      connectionsByDirection.putIfAbsent(
-        connection.direction,
-        () => connection,
-      );
-    }
     final results = await Future.wait([
-      for (final direction in MapConnectionDirection.values)
-        if (connectionsByDirection[direction] case final connection?)
-          _loadOne(
-            workspace: workspace,
-            sourceMap: sourceMap,
-            connection: connection,
-            entry: entriesById[connection.targetMapId],
-          ),
+      for (final connection in sourceMap.connections)
+        _loadOne(
+          workspace: workspace,
+          sourceMap: sourceMap,
+          connection: connection,
+          entry: entriesById[connection.targetMapId],
+        ),
     ]);
     final neighbors = <MapConnectionDirection, WorldMapConnectionNeighbor>{};
+    final allNeighbors = <WorldMapConnectionNeighbor>[];
     final issues = <MapConnectionDirection, WorldMapConnectionContextIssue>{};
     for (final result in results) {
       switch (result) {
         case _NeighborResult(:final neighbor):
-          neighbors[neighbor.direction] = neighbor;
+          allNeighbors.add(neighbor);
         case _IssueResult(:final issue):
           issues[issue.direction] = issue;
+      }
+    }
+    for (final neighbor in allNeighbors) {
+      if (allNeighbors
+              .where((other) => other.direction == neighbor.direction)
+              .length ==
+          1) {
+        neighbors[neighbor.direction] = neighbor;
       }
     }
     return WorldMapConnectionContext(
       sourceMap: sourceMap,
       neighbors: neighbors,
       issues: issues,
+      allNeighbors: allNeighbors,
     );
   }
 

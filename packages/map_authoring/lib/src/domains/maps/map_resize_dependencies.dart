@@ -49,7 +49,8 @@ List<Map<String, Object?>> mapResizeDependencyImpacts(
         (size.width < target.size.width || size.height < target.size.height)) {
       for (final connection in owner.connections
           .where((connection) => connection.targetMapId == target.id)) {
-        add('connection', owner.id, connection.direction.name,
+        add('connection', owner.id,
+            mapConnectionResourceId(owner.id, connection),
             ownerMapId: owner.id);
       }
     }

@@ -69,6 +69,11 @@ void main() {
   });
   tearDown(() async => root.delete(recursive: true));
 
+  test('refuses unsupported multiple neighbors on a 3D edge', () async {
+    source = source.copyWith(map: source.map.copyWith(connections: const [MapConnection(direction: MapConnectionDirection.east, targetMapId: 'target'), MapConnection(direction: MapConnectionDirection.east, targetMapId: 'other', offset: 4)]));
+    await expectLater(SpatialExplorationSession.load(source, loadMap: (_) async => target), throwsStateError);
+  });
+
   test('prepared neighbors share resources and preserve moving animation',
       () async {
     const connection = MapConnection(

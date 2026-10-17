@@ -67,6 +67,7 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
 
   Future<void> deleteMapConnection(
     MapConnectionDirection direction, {
+    String? targetMapId,
     bool exactReciprocalPairExists = false,
   }) async {
     if (!await _flushSessionForCanonicalMapConnectionMutation()) return;
@@ -77,6 +78,7 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
       final connection = _mapConnectionEditingService.findConnection(
         map,
         direction,
+        targetMapId: targetMapId,
       );
       final detectedExactPair = connection == null
           ? false
@@ -88,6 +90,7 @@ mixin _EditorNotifierMapConnections on _$EditorNotifier {
       final intent = _mapConnectionEditingService.buildDeleteIntent(
         sourceMap: map,
         direction: direction,
+        targetMapId: targetMapId,
         exactReciprocalPairExists:
             exactReciprocalPairExists || detectedExactPair,
       );

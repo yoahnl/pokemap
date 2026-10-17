@@ -18,6 +18,26 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 import 'package:path/path.dart' as p;
 
 void main() {
+  test('multiple edge neighbors select the crossing span and preserve the return', () async {
+    final fixture = await _fixture(sourceSize: const GridSize(width: 2, height: 8), targetSize: const GridSize(width: 3, height: 4), offset: 4, extraConnections: const [MapConnection(direction: MapConnectionDirection.east, targetMapId: 'other')], extraMaps: const [MapData(id: 'other', name: 'Other', size: GridSize(width: 3, height: 4), connections: [MapConnection(direction: MapConnectionDirection.west, targetMapId: 'source')])]);
+    await fixture.game.debugLoadRuntimeMapBundleCachedForTest('other');
+    await _move(fixture.game, RuntimeInputControl.right);
+    expect(fixture.game.gameStateSnapshot.currentMapId, 'other');
+    expect(fixture.game.gameStateSnapshot.playerPosition, const GridPos(x: 0, y: 1));
+    await _move(fixture.game, RuntimeInputControl.left);
+    expect(fixture.game.gameStateSnapshot.currentMapId, 'source');
+    expect(fixture.game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+    for (var step = 0; step < 4; step++) {
+      await _move(fixture.game, RuntimeInputControl.down);
+    }
+    expect(fixture.game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 5));
+    await _move(fixture.game, RuntimeInputControl.right);
+    expect(fixture.game.gameStateSnapshot.currentMapId, 'target');
+    expect(fixture.game.gameStateSnapshot.playerPosition, const GridPos(x: 0, y: 1));
+    await _move(fixture.game, RuntimeInputControl.left);
+    expect(fixture.game.gameStateSnapshot.currentMapId, 'source');
+    expect(fixture.game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 5));
+  });
   for (final withPolicy in [false, true]) {
     for (final checkpointBusy in [false, true]) {
       for (final logicalOnly in [false, true]) {
@@ -2318,13 +2338,9 @@ void main() {
   );
 
   test(
-    'connection refuses an out-of-bounds offset before changing the map',
+    'project refuses an out-of-bounds connection before runtime starts',
     () async {
-      final fixture = await _fixture(offset: 4);
-
-      await _move(fixture.game, RuntimeInputControl.right);
-
-      _expectRejected(fixture.game, 'Connection invalid');
+      await expectLater(_fixture(offset: 4), throwsA(isA<ValidationException>()));
     },
   );
 
@@ -4071,6 +4087,8 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   (int, int)? maskPixel,
   bool? blockingEntity,
   int offset = 0,
+  List<MapConnection> extraConnections = const [],
+  List<MapData> extraMaps = const [],
   bool water = false,
   bool warpArrival = false,
   bool sameMapArrival = false,
@@ -4135,6 +4153,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       ),
     ],
     connections: [
+      ...extraConnections,
       MapConnection(
         direction: MapConnectionDirection.east,
         targetMapId: 'target',
@@ -4249,7 +4268,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     eventRegistry: eventRegistry ?? (narrativeV2 ? NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: const [], legacyClaims: const [],
           ) : null),
     maps: [
-      for (final map in [source, target])
+      for (final map in [source, target, ...extraMaps])
         ProjectMapEntry(
           id: map.id,
           name: map.name,
@@ -4295,10 +4314,10 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       ),
     ],
   );
-  ProjectValidator.validate(manifest, maps: [source, target]);
+  ProjectValidator.validate(manifest, maps: [source, target, ...extraMaps]);
   if (eventRegistry != null) {
     final catalog = buildNarrativeSpatialEventSourceCatalog(
-      project: manifest, maps: [source, target]);
+      project: manifest, maps: [source, target, ...extraMaps]);
     for (final record in eventRegistry.records) {
       final eventSource = record.definitionOrNull?.source;
       if (eventSource?.kind == NarrativeEventSourceKind.triggerBump ||
@@ -4317,12 +4336,12 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     expect(diagnostics.hasErrors, isFalse, reason: diagnostics.diagnostics.toString(),
     );
   }
-  for (final map in [source, target]) {
+  for (final map in [source, target, ...extraMaps]) {
     MapValidator.validate(map, projectDialogueContext: manifest);
   }
   await Directory(p.join(root.path, 'maps')).create();
   await Directory(p.join(root.path, 'assets')).create();
-  for (final map in [source, target]) {
+  for (final map in [source, target, ...extraMaps]) {
     await File(p.join(root.path, 'maps', '${map.id}.json'))
         .writeAsString(jsonEncode(map.toJson()));
   }

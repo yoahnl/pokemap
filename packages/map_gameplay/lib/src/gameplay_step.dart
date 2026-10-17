@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 import 'movement_terrain_policy.dart';
+import 'gameplay_connection.dart';
 import 'moving_platform_gameplay.dart';
 
 import 'collision/pixel_movement_resolver.dart';
@@ -14,9 +15,11 @@ import 'gameplay_world_state.dart';
 
 GameplayStepResult stepGameplayWorld(
     GameplayWorldState world, GameplayIntent intent,
-    {Iterable<PixelRect> characterReservations = const []}) {
+    {Iterable<PixelRect> characterReservations = const [],
+    Map<String, GridSize> connectionTargetSizes = const {}}) {
   return switch (intent) {
-    MoveIntent move => _resolveMove(world, move, characterReservations),
+    MoveIntent move =>
+      _resolveMove(world, move, characterReservations, connectionTargetSizes),
     InteractIntent() => _resolveInteract(world),
   };
 }
@@ -322,8 +325,11 @@ bool _bumpRectsOverlap(PixelRect a, PixelRect b) =>
     a.topPx + a.heightPx > b.topPx;
 
 /// Déplacement **réellement pixel-level** : [playerPositionPx] + résolveur séparé H/V.
-GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
-    Iterable<PixelRect> characterReservations) {
+GameplayStepResult _resolveMove(
+    GameplayWorldState world,
+    MoveIntent intent,
+    Iterable<PixelRect> characterReservations,
+    Map<String, GridSize> connectionTargetSizes) {
   final direction = intent.direction;
   final step = intent.pixelsPerStep;
   final facingWorld = world.withPlayer(
@@ -345,7 +351,11 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
 
   if (isOutOfBounds) {
     final connectionDirection = _connectionDirectionForMove(direction);
-    final connection = findMapConnection(facingWorld.map, connectionDirection);
+    final connection = resolveMapConnectionForPosition(
+        map: facingWorld.map,
+        sourcePos: facingWorld.player.pos,
+        direction: connectionDirection,
+        targetMapSizes: connectionTargetSizes);
     if (connection == null) {
       return Blocked(
         facingWorld,

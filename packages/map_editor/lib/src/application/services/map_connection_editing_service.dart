@@ -23,12 +23,13 @@ class MapConnectionEditingService {
 
   MapConnection? findConnection(
     MapData? map,
-    MapConnectionDirection direction,
-  ) {
+    MapConnectionDirection direction, {
+    String? targetMapId,
+  }) {
     if (map == null) {
       return null;
     }
-    return findMapConnection(map, direction);
+    return findMapConnection(map, direction, targetMapId: targetMapId);
   }
 
   MapConnectionMutationIntent buildUpsertIntent({
@@ -41,14 +42,10 @@ class MapConnectionEditingService {
   }) {
     final normalizedTargetMapId = targetMapId.trim();
     if (normalizedTargetMapId.isEmpty) {
-      throw const EditorValidationException(
-        'Connected map cannot be empty',
-      );
+      throw const EditorValidationException('Connected map cannot be empty');
     }
     if (normalizedTargetMapId == sourceMap.id) {
-      throw const EditorValidationException(
-        'A map cannot connect to itself',
-      );
+      throw const EditorValidationException('A map cannot connect to itself');
     }
     return MapConnectionMutationIntent(
       actionId: reciprocal
@@ -69,7 +66,13 @@ class MapConnectionEditingService {
     required MapData sourceMap,
     required MapConnectionDirection direction,
     required bool exactReciprocalPairExists,
+    String? targetMapId,
   }) {
+    final connection = findConnection(
+      sourceMap,
+      direction,
+      targetMapId: targetMapId,
+    );
     return MapConnectionMutationIntent(
       actionId: exactReciprocalPairExists
           ? 'connection.delete_bidirectional_apply'
@@ -77,6 +80,7 @@ class MapConnectionEditingService {
       parameters: Map<String, Object?>.unmodifiable({
         'mapId': sourceMap.id,
         'direction': direction.name,
+        if (connection != null) 'targetMapId': connection.targetMapId,
       }),
     );
   }
@@ -86,12 +90,20 @@ class MapConnectionEditingService {
     required MapData targetMap,
     required MapConnectionDirection direction,
   }) {
-    final sourceConnection = findConnection(sourceMap, direction);
+    final sourceConnection = findConnection(
+      sourceMap,
+      direction,
+      targetMapId: targetMap.id,
+    );
     if (sourceConnection == null ||
         sourceConnection.targetMapId != targetMap.id) {
       return false;
     }
-    final targetConnection = findConnection(targetMap, direction.opposite);
+    final targetConnection = findConnection(
+      targetMap,
+      direction.opposite,
+      targetMapId: sourceMap.id,
+    );
     return targetConnection != null &&
         targetConnection.targetMapId == sourceMap.id &&
         targetConnection.offset == -sourceConnection.offset;

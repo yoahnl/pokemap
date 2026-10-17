@@ -146,7 +146,8 @@ export 'src/gameplay_encounter.dart'
         checkEncounterAtPlayerPosition,
         validateEncounterSource,
         checkEncounterFromSource;
-export 'src/gameplay_connection.dart' show resolveConnectedMapTargetPos;
+export 'src/gameplay_connection.dart'
+    show resolveConnectedMapTargetPos, resolveMapConnectionForPosition;
 export 'src/gameplay_hazard.dart' show GameplayHazardEffect;
 export 'src/gameplay_movement_effect.dart'
     show GameplayMovementEffect, GameplayMovementEffectKind;

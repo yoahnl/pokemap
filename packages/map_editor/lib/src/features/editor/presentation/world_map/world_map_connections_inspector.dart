@@ -105,14 +105,15 @@ class _WorldMapConnectionsInspectorState
     final sharedContext = contextRequest == null
         ? null
         : ref.watch(worldMapConnectionContextProvider(contextRequest));
-    final existing = _connectionFor(map, selectedDirection);
     final targetMapId = _selectedTargetMapIds[selectedDirection]?.trim();
+    final existing = targetMapId == null
+        ? null
+        : _connectionFor(map, selectedDirection, targetMapId: targetMapId);
     final targetManifested =
         targetMapId != null &&
         targetMapId.isNotEmpty &&
         projectMapById.containsKey(targetMapId);
-    final targetFuture =
-        targetManifested && (sharedContext == null || existing == null)
+    final targetFuture = targetManifested
         ? _targetFutures.putIfAbsent(
             targetMapId,
             () => (widget.loadTargetMap ?? notifier.loadMapSnapshotById)(
@@ -126,9 +127,17 @@ class _WorldMapConnectionsInspectorState
       builder: (context, targetSnapshot) {
         final loadedContext = sharedContext?.value;
         final targetMap =
-            loadedContext?.neighbors[selectedDirection]?.map ??
+            loadedContext?.allNeighbors
+                .where(
+                  (neighbor) =>
+                      neighbor.direction == selectedDirection &&
+                      neighbor.map.id == targetMapId,
+                )
+                .firstOrNull
+                ?.map ??
             targetSnapshot.data;
-        final contextIssue = loadedContext?.issues[selectedDirection];
+        final issue = loadedContext?.issues[selectedDirection];
+        final contextIssue = issue?.targetMapId == targetMapId ? issue : null;
         final targetMissing =
             targetMapId != null &&
             targetMapId.isNotEmpty &&
@@ -231,7 +240,7 @@ class _WorldMapConnectionsInspectorState
                     key: const ValueKey<String>('world-map-connection-target'),
                     label: 'Map cible',
                     value: targetMapId ?? '',
-                    enabled: existing == null && projectMaps.isNotEmpty,
+                    enabled: projectMaps.isNotEmpty,
                     items: [
                       const PokeMapDropdownItem<String>(
                         value: '',
@@ -255,6 +264,15 @@ class _WorldMapConnectionsInspectorState
                         _selectedTargetMapIds[selectedDirection] = value.isEmpty
                             ? null
                             : value;
+                        final selected = value.isEmpty
+                            ? null
+                            : _connectionFor(
+                                map,
+                                selectedDirection,
+                                targetMapId: value,
+                              );
+                        _offsetControllers[selectedDirection]!.text =
+                            selected?.offset.toString() ?? '0';
                         _announcement = value.isEmpty
                             ? 'Choisissez une map cible.'
                             : 'Map cible sélectionnée : '
@@ -265,8 +283,8 @@ class _WorldMapConnectionsInspectorState
                   if (existing != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Pour changer la cible, supprimez cette connexion puis '
-                      'créez-en une nouvelle.',
+                      'Sélectionnez une liaison existante pour la modifier, ou '
+                      'une autre map pour ajouter un voisin sur ce bord.',
                       style: TextStyle(
                         color: context.pokeMapColors.textMuted,
                         fontSize: 10,
@@ -515,7 +533,10 @@ class _WorldMapConnectionsInspectorState
       if (callback != null) {
         await callback(direction);
       } else {
-        await notifier.deleteMapConnection(direction);
+        await notifier.deleteMapConnection(
+          direction,
+          targetMapId: _selectedTargetMapIds[direction],
+        );
       }
       if (!mounted) return;
       final error = ref.read(editorNotifierProvider).errorMessage;
@@ -545,6 +566,7 @@ class _WorldMapConnectionsInspectorState
       context: context,
       notifier: notifier,
       direction: direction,
+      targetMapId: _selectedTargetMapIds[direction],
     );
   }
 }
@@ -565,8 +587,13 @@ class _ConnectionCompass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget direction(MapConnectionDirection value) {
-      final connection = _connectionFor(map, value);
-      final target = connection == null
+      final connections = map.connections
+          .where((connection) => connection.direction == value)
+          .toList(growable: false);
+      final connection = connections.length == 1 ? connections.single : null;
+      final target = connections.length > 1
+          ? '${connections.length} voisines'
+          : connection == null
           ? '+ Ajouter'
           : projectMapById[connection.targetMapId]?.name ?? 'Introuvable';
       return PokeMapButton(
@@ -749,11 +776,19 @@ _ConnectionValidation _validationFor({
   );
 }
 
-MapConnection? _connectionFor(MapData map, MapConnectionDirection direction) {
-  for (final connection in map.connections) {
-    if (connection.direction == direction) return connection;
-  }
-  return null;
+MapConnection? _connectionFor(
+  MapData map,
+  MapConnectionDirection direction, {
+  String? targetMapId,
+}) {
+  final matches = map.connections
+      .where(
+        (connection) =>
+            connection.direction == direction &&
+            (targetMapId == null || connection.targetMapId == targetMapId),
+      )
+      .toList(growable: false);
+  return matches.length == 1 ? matches.single : null;
 }
 
 int _compareMapEntries(ProjectMapEntry left, ProjectMapEntry right) {

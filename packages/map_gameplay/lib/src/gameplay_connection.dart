@@ -1,5 +1,42 @@
 import 'package:map_core/map_core.dart';
 
+MapConnection? resolveMapConnectionForPosition({
+  required MapData map,
+  required GridPos sourcePos,
+  required MapConnectionDirection direction,
+  required Map<String, GridSize> targetMapSizes,
+}) {
+  if (!_isSourceBorderCell(
+      sourcePos: sourcePos, sourceSize: map.size, direction: direction)) {
+    return null;
+  }
+  final candidates = map.connections
+      .where((connection) => connection.direction == direction)
+      .toList(growable: false);
+  if (candidates.isEmpty) return null;
+  if (candidates.length > 1 &&
+      candidates.any((connection) =>
+          !targetMapSizes.containsKey(connection.targetMapId))) {
+    return null;
+  }
+  MapConnection? result;
+  for (final connection in candidates) {
+    final targetSize = targetMapSizes[connection.targetMapId];
+    if (targetSize == null ||
+        resolveConnectedMapTargetPos(
+                sourcePos: sourcePos,
+                sourceSize: map.size,
+                targetSize: targetSize,
+                direction: direction,
+                offset: connection.offset) !=
+            null) {
+      if (result != null) return null;
+      result = connection;
+    }
+  }
+  return result;
+}
+
 GridPos? resolveConnectedMapTargetPos({
   required GridPos sourcePos,
   required GridSize sourceSize,

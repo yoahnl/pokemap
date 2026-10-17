@@ -95,7 +95,7 @@ void main() {
       (queriedConnections.data['items']! as List)
           .cast<Map>()
           .map((item) => item['id']),
-      ['alpha:east', 'beta:west'],
+      ['alpha:east:beta', 'beta:west:alpha'],
     );
     final preview = await setup.request(
       'query',

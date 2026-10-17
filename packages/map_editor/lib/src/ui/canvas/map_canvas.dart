@@ -897,7 +897,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final tilesetPathsById = collectMapCanvasTilesetPaths(
       maps: [
         ?activeMap,
-        ...?connectionContext?.neighbors.values.map((neighbor) => neighbor.map),
+        ...?connectionContext?.allNeighbors.map((neighbor) => neighbor.map),
       ],
       resolveTilesetAbsolutePath: notifier.getTilesetAbsolutePathById,
       activeBrushTilesetId: notifier.getActiveBrushTilesetId(),
@@ -2150,6 +2150,16 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           tileWidth: tileWidth,
                           tileHeight: tileHeight,
                           enabled: !state.isSaving,
+                          onTargetPressed: (neighbor) {
+                            unawaited(
+                              requestEditorConnectedMapSaveAndActivation(
+                                context: context,
+                                notifier: notifier,
+                                direction: neighbor.direction,
+                                targetMapId: neighbor.map.id,
+                              ),
+                            );
+                          },
                           onPressed: (direction) {
                             unawaited(
                               requestEditorConnectedMapSaveAndActivation(

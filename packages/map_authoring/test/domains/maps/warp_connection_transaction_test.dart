@@ -7,6 +7,74 @@ import 'package:test/test.dart';
 
 void main() {
   group('WarpConnectionActions', () {
+    test('queries retain distinct semantic IDs for each edge target', () {
+      final source = _map('alpha', height: 8).copyWith(connections: const [MapConnection(direction: MapConnectionDirection.east, targetMapId: 'beta'), MapConnection(direction: MapConnectionDirection.east, targetMapId: 'gamma', offset: 4)]);
+      final snapshot = _snapshot([source, _map('beta', height: 4), _map('gamma', height: 4)]);
+      final result = const ProjectQueryService().query(snapshot, AuthoringQueryRequest(resourceKind: 'mapConnection', operation: AuthoringQueryOperation.list));
+      expect(result.items.map((item) => item['id']), ['alpha:east:beta', 'alpha:east:gamma']);
+      final fetched = const ProjectQueryService().query(snapshot, AuthoringQueryRequest(resourceKind: 'mapConnection', operation: AuthoringQueryOperation.get, ids: ['alpha:east:gamma']));
+      expect(fetched.items.single['targetMapId'], 'gamma');
+    });
+    test('adds a disjoint reciprocal neighbor on an occupied edge', () {
+      final source = _map('alpha', height: 8).copyWith(connections: const [
+        MapConnection(
+            direction: MapConnectionDirection.east, targetMapId: 'beta')
+      ]);
+      final snapshot = _snapshot(
+          [source, _map('beta', height: 4), _map('gamma', height: 4)]);
+      final request = _request(snapshot,
+          actionId: 'connection.create_bidirectional_apply',
+          parameters: const {
+            'mapId': 'alpha',
+            'direction': 'east',
+            'targetMapId': 'gamma',
+            'offset': 4
+          });
+      final projected = _projectedMaps(
+          const WarpConnectionActions().build(_context(snapshot, request)));
+      expect(
+          projected['alpha']!
+              .connections
+              .map((connection) => connection.targetMapId),
+          ['beta', 'gamma']);
+      expect(projected['gamma']!.connections.single.offset, -4);
+      final deletionSnapshot = _snapshot(
+          [projected['alpha']!, _map('beta', height: 4), projected['gamma']!]);
+      final deletion = _request(deletionSnapshot,
+          actionId: 'connection.delete_bidirectional_apply',
+          parameters: const {
+            'mapId': 'alpha',
+            'direction': 'east',
+            'targetMapId': 'gamma'
+          });
+      final deleted = _projectedMaps(const WarpConnectionActions()
+          .build(_context(deletionSnapshot, deletion)));
+      expect(deleted['alpha']!.connections.single.targetMapId, 'beta');
+      expect(deleted['gamma']!.connections, isEmpty);
+    });
+
+    test('rejects a neighbor that overlaps another target on the edge', () {
+      final source = _map('alpha', height: 8).copyWith(connections: const [
+        MapConnection(
+            direction: MapConnectionDirection.east, targetMapId: 'beta')
+      ]);
+      final snapshot = _snapshot(
+          [source, _map('beta', height: 4), _map('gamma', height: 4)]);
+      final request = _request(snapshot,
+          actionId: 'connection.upsert',
+          parameters: const {
+            'mapId': 'alpha',
+            'direction': 'east',
+            'targetMapId': 'gamma',
+            'offset': 3
+          });
+      expect(
+          () =>
+              const WarpConnectionActions().build(_context(snapshot, request)),
+          throwsA(isA<MapAuthoringException>().having(
+              (error) => error.code, 'code', 'connection.edge_overlap')));
+    });
+
     test('reciprocal warp is one recoverable two-map change set', () async {
       final source = _map('alpha');
       final target = _map('beta');

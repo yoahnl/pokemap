@@ -19,6 +19,17 @@ import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
+  testWidgets('each neighbor on a shared edge opens its exact target', (tester) async {
+    final first = _context.neighbors[MapConnectionDirection.east]!;
+    final second = WorldMapConnectionNeighbor(direction: MapConnectionDirection.east, connection: const MapConnection(direction: MapConnectionDirection.east, targetMapId: 'north', offset: 6), entry: _project.maps.singleWhere((entry) => entry.id == 'north'), map: _north, tileBounds: const Rect.fromLTWH(10, 6, 6, 4), exactReciprocalPair: false);
+    final context = WorldMapConnectionContext(sourceMap: _source, neighbors: const {}, issues: const {}, allNeighbors: [first, second]);
+    expect(resolveMapConnectionLabels(_source.copyWith(connections: [first.connection, second.connection]), _project)[MapConnectionDirection.east], '2 maps liées');
+    final opened = <String>[];
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: MapConnectionContextNavigationLayer(context: context, zoom: 1, offset: const Offset(20, 20), tileWidth: 16, tileHeight: 16, enabled: true, onPressed: (_) => fail('A shared edge must select its exact target'), onTargetPressed: (neighbor) => opened.add(neighbor.map.id)))));
+    await tester.tap(find.byKey(const ValueKey<String>('map-connection-context-open-east:east')));
+    await tester.tap(find.byKey(const ValueKey<String>('map-connection-context-open-east:north')));
+    expect(opened, ['east', 'north']);
+  });
   testWidgets(
     'renders non-interactive north/east previews below the active map',
     (tester) async {

@@ -40,14 +40,24 @@ final class WorldMapConnectionContext {
     required this.sourceMap,
     required Map<MapConnectionDirection, WorldMapConnectionNeighbor> neighbors,
     required Map<MapConnectionDirection, WorldMapConnectionContextIssue> issues,
-  })  : neighbors = Map.unmodifiable(neighbors),
-        issues = Map.unmodifiable(issues),
-        contentTileBounds = _contentBounds(sourceMap, neighbors.values);
+    Iterable<WorldMapConnectionNeighbor>? allNeighbors,
+  }) : neighbors = Map.unmodifiable(neighbors),
+       allNeighbors = List.unmodifiable(allNeighbors ?? neighbors.values),
+       issues = Map.unmodifiable(issues),
+       contentTileBounds = _contentBounds(
+         sourceMap,
+         allNeighbors ?? neighbors.values,
+       );
 
   final MapData sourceMap;
   final Map<MapConnectionDirection, WorldMapConnectionNeighbor> neighbors;
+  final List<WorldMapConnectionNeighbor> allNeighbors;
   final Map<MapConnectionDirection, WorldMapConnectionContextIssue> issues;
   final Rect contentTileBounds;
+
+  String neighborKey(WorldMapConnectionNeighbor neighbor) =>
+      neighbors.containsKey(neighbor.direction) ? neighbor.direction.name :
+      '${neighbor.direction.name}:${Uri.encodeComponent(neighbor.map.id)}';
 
   static Rect _contentBounds(
     MapData sourceMap,
@@ -111,9 +121,10 @@ final class WorldMapConnectionContextProjector {
       MapConnectionDirection.south => Offset(along, sourceHeight),
       MapConnectionDirection.west => Offset(-targetWidth, along),
     };
-    final reciprocal = _connectionFor(
+    final reciprocal = findMapConnection(
       targetMap,
       connection.direction.opposite,
+      targetMapId: sourceMap.id,
     );
     return WorldMapConnectionNeighbor(
       direction: connection.direction,
@@ -131,14 +142,4 @@ final class WorldMapConnectionContextProjector {
           reciprocal.offset == -connection.offset,
     );
   }
-}
-
-MapConnection? _connectionFor(
-  MapData map,
-  MapConnectionDirection direction,
-) {
-  for (final connection in map.connections) {
-    if (connection.direction == direction) return connection;
-  }
-  return null;
 }

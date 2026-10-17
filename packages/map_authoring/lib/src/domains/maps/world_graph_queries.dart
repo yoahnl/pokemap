@@ -132,36 +132,57 @@ final class WorldGraphQueries {
     }
 
     for (final map in snapshot.maps) {
-      for (final connection in map.connections) {
+      for (var index = 0; index < map.connections.length; index++) {
+        final connection = map.connections[index];
+        for (final other in map.connections.skip(index + 1)) {
+          if (other.direction != connection.direction) continue;
+          final target = snapshot.mapById(connection.targetMapId);
+          final otherTarget = snapshot.mapById(other.targetMapId);
+          final duplicate = connection.targetMapId == other.targetMapId;
+          if (duplicate ||
+              (target != null &&
+                  otherTarget != null &&
+                  mapConnectionSpansOverlap(
+                      sourceSize: map.size,
+                      first: connection,
+                      firstTargetSize: target.size,
+                      second: other,
+                      secondTargetSize: otherTarget.size))) {
+            issues.add(WorldGraphIssue(
+                code: duplicate
+                    ? 'world_graph.connection_duplicate'
+                    : 'world_graph.connection_edge_overlap',
+                message:
+                    'Connections on this edge must have distinct targets and disjoint spans.',
+                mapId: map.id,
+                targetMapId: connection.targetMapId,
+                sourceId: mapConnectionResourceId(map.id, connection)));
+          }
+        }
         edges.add(WorldGraphEdge(
           sourceMapId: map.id,
           targetMapId: connection.targetMapId,
           kind: WorldGraphEdgeKind.connection,
-          sourceId: connection.direction.name,
+          sourceId: mapConnectionResourceId(map.id, connection),
         ));
         final target = snapshot.mapById(connection.targetMapId);
         if (target == null) {
           issues.add(_missingTarget(
             mapId: map.id,
             targetMapId: connection.targetMapId,
-            sourceId: connection.direction.name,
+            sourceId: mapConnectionResourceId(map.id, connection),
             kind: 'connection',
           ));
           continue;
         }
-        final reciprocal = findMapConnection(
-          target,
-          connection.direction.opposite,
-        );
-        if (reciprocal == null ||
-            reciprocal.targetMapId != map.id ||
-            reciprocal.offset != -connection.offset) {
+        final reciprocals = target.connections.where((candidate) => candidate.direction == connection.direction.opposite && candidate.targetMapId == map.id).toList(growable: false);
+        if (reciprocals.length != 1 || reciprocals.single.offset != -connection.offset) {
           issues.add(WorldGraphIssue(
             code: 'world_graph.connection_reciprocal_mismatch',
             message: 'A connection has no exact reciprocal connection.',
             mapId: map.id,
             targetMapId: target.id,
-            sourceId: connection.direction.name,
+            sourceId: mapConnectionResourceId(map.id, connection),
           ));
         }
         if (!hasMapConnectionOverlap(
@@ -175,7 +196,7 @@ final class WorldGraphQueries {
             message: 'A connection has no overlapping border cells.',
             mapId: map.id,
             targetMapId: target.id,
-            sourceId: connection.direction.name,
+            sourceId: mapConnectionResourceId(map.id, connection),
           ));
         }
       }

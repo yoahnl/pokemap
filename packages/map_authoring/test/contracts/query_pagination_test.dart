@@ -325,17 +325,17 @@ void main() {
         AuthoringQueryRequest(
           resourceKind: 'mapConnection',
           operation: AuthoringQueryOperation.get,
-          ids: const ['a-map:east'],
+          ids: const ['a-map:east:b-map'],
           view: AuthoringQueryView.detail,
         ),
       );
 
       expect(
         listed.items.map((item) => item['id']),
-        ['a-map:east', 'b-map:west'],
+        ['a-map:east:b-map', 'b-map:west:a-map'],
       );
       expect(fetched.items.single, {
-        'id': 'a-map:east',
+        'id': 'a-map:east:b-map',
         'name': 'Alpha Field — East',
         'resourceKind': 'mapConnection',
         'mapId': 'a-map',

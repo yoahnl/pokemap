@@ -11,6 +11,7 @@ import '../models/project_manifest.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import 'border_resize.dart';
+import 'map_connections.dart';
 import 'map_placed_element_footprint.dart';
 
 const int _maximumResizeImpactPositionSamples = 8;
@@ -531,7 +532,7 @@ MapResizePlan planMapResize(
         MapResizeImpact(
           kind: MapResizeImpactKind.connection,
           reason: MapResizeImpactReason.connectionTopologyChanged,
-          subjectId: connection.direction.name,
+          subjectId: mapConnectionResourceId(map.id, connection),
           subjectLabel: connection.targetMapId,
           relatedIds: <String>[connection.targetMapId],
         ),

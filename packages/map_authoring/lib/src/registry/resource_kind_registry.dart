@@ -226,7 +226,9 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map connection',
         summary: 'Directional physical adjacency between two maps',
         extensions: const {
-          'idFormat': 'mapId:direction',
+          'idFormat': 'encodeURIComponent(mapId):direction:encodeURIComponent(targetMapId)',
+          'identityFields': ['mapId', 'direction', 'targetMapId'],
+          'multipleNeighborsPerEdge': 'nonOverlapping2d',
           'queryActions': [
             'connection.list',
             'connection.get',

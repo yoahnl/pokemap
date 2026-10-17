@@ -124,11 +124,9 @@ final class WarpConnectionActions {
               left.direction.index.compareTo(right.direction.index)),
       );
 
-  MapConnection getConnection(
-    MapData map,
-    MapConnectionDirection direction,
-  ) =>
-      _connection(map, direction);
+  MapConnection getConnection(MapData map, MapConnectionDirection direction,
+          {String? targetMapId}) =>
+      _connection(map, direction, targetMapId: targetMapId);
 
   ConnectionAlignmentPreview previewAlignment({
     required GridSize sourceSize,
@@ -228,6 +226,7 @@ final class WarpConnectionActions {
         const {'direction', 'targetMapId', 'offset'},
       'connection.delete' || 'connection.delete_bidirectional_apply' => const {
           'direction',
+          'targetMapId',
         },
       _ => throw _failure(
           'map.action_unsupported',
@@ -280,7 +279,8 @@ final class WarpConnectionActions {
       case 'connection.delete':
         final direction = _direction(parameters.string('direction'));
         return context.draftMap(
-          after: _removeConnection(context.map, direction),
+          after: _removeConnection(context.map, direction,
+              targetMapId: parameters.optionalString('targetMapId')),
           operation: 'connection.delete',
           changedItems: 1,
           preview: {'direction': direction.name},
@@ -423,6 +423,7 @@ final class WarpConnectionActions {
       offset: connection.offset,
     );
     _requireOverlap(alignment, context.map.id, target.id);
+    _requireFreeSpan(planning.snapshot, context.map, connection);
     return context.draftMap(
       after: _upsertConnectionOnMap(context.map, connection),
       operation: 'connection.upsert',
@@ -461,10 +462,12 @@ final class WarpConnectionActions {
     final sourceExisting = findMapConnection(
       context.map,
       sourceConnection.direction,
+      targetMapId: target.id,
     );
     final targetExisting = findMapConnection(
       target,
       targetConnection.direction,
+      targetMapId: context.map.id,
     );
     if (createOnly && (sourceExisting != null || targetExisting != null)) {
       throw _failure(
@@ -482,6 +485,8 @@ final class WarpConnectionActions {
         'An exact bidirectional connection pair is required for update.',
       );
     }
+    _requireFreeSpan(planning.snapshot, context.map, sourceConnection);
+    _requireFreeSpan(planning.snapshot, target, targetConnection);
     return _draftPair(
       planning: planning,
       sourceBefore: context.map,
@@ -505,14 +510,16 @@ final class WarpConnectionActions {
     SemanticMapActionContext context,
   ) {
     final direction = _direction(context.parameters.string('direction'));
-    final sourceConnection = _connection(context.map, direction);
+    final sourceConnection = _connection(context.map, direction,
+        targetMapId: context.parameters.optionalString('targetMapId'));
     final target = _targetMap(
       planning,
       sourceConnection.targetMapId,
       kind: 'connection',
     );
     _requireDistinctMaps(context.map, target, kind: 'connection');
-    final targetConnection = findMapConnection(target, direction.opposite);
+    final targetConnection = findMapConnection(target, direction.opposite,
+        targetMapId: context.map.id);
     if (targetConnection == null ||
         targetConnection.targetMapId != context.map.id ||
         targetConnection.offset != -sourceConnection.offset) {
@@ -524,9 +531,11 @@ final class WarpConnectionActions {
     return _draftPair(
       planning: planning,
       sourceBefore: context.map,
-      sourceAfter: _removeConnection(context.map, direction),
+      sourceAfter:
+          _removeConnection(context.map, direction, targetMapId: target.id),
       targetBefore: target,
-      targetAfter: _removeConnection(target, direction.opposite),
+      targetAfter: _removeConnection(target, direction.opposite,
+          targetMapId: context.map.id),
       operation: 'connection.delete_bidirectional_apply',
       collection: 'connections',
       preview: {
@@ -559,6 +568,12 @@ AuthoringActionDescriptor _descriptor(
       ],
       extensions: {
         'multiFileGuarantee': 'recoverable',
+        if (id.startsWith('connection.'))
+          'connectionIdentity': const {
+            'fields': ['direction', 'targetMapId'],
+            'multipleNeighbors': 'nonOverlapping2d',
+            'ambiguousDirectionOnly': 'rejected'
+          },
         if (id.startsWith('warp.'))
           'warpDestinationContract': const {
             'triggerModeValues': ['on_enter', 'on_bump', 'scene_only'],
@@ -853,12 +868,11 @@ MapData _upsertConnectionOnMap(MapData map, MapConnection connection) {
   }
 }
 
-MapData _removeConnection(
-  MapData map,
-  MapConnectionDirection direction,
-) {
+MapData _removeConnection(MapData map, MapConnectionDirection direction,
+    {String? targetMapId}) {
   try {
-    return removeMapConnectionFromMap(map, direction: direction);
+    return removeMapConnectionFromMap(map,
+        direction: direction, targetMapId: targetMapId);
   } on Object catch (error) {
     throw _coreFailure('connection.delete_invalid', error);
   }
@@ -875,11 +889,15 @@ MapWarp _warp(MapData map, String warpId) {
   );
 }
 
-MapConnection _connection(
-  MapData map,
-  MapConnectionDirection direction,
-) {
-  final connection = findMapConnection(map, direction);
+MapConnection _connection(MapData map, MapConnectionDirection direction,
+    {String? targetMapId}) {
+  MapConnection? connection;
+  try {
+    connection = findMapConnection(map, direction, targetMapId: targetMapId);
+  } on ValidationException {
+    throw _failure('connection.ambiguous',
+        'Select targetMapId for an ambiguous map edge.');
+  }
   if (connection != null) return connection;
   throw _failure(
     'connection.not_found',
@@ -1033,3 +1051,32 @@ MapAuthoringException _failure(
       message: message,
       details: details,
     );
+
+void _requireFreeSpan(
+    ProjectSnapshot snapshot, MapData source, MapConnection connection) {
+  final target = snapshot.mapById(connection.targetMapId)!;
+  for (final other in source.connections) {
+    if (other.direction != connection.direction ||
+        other.targetMapId == connection.targetMapId) {
+      continue;
+    }
+    if (source.spatialScene != null) {
+      throw _failure('connection.multiple_spatial_neighbors_unsupported',
+          'Multiple neighbors on a 3D map edge are unsupported.');
+    }
+    final otherTarget = snapshot.mapById(other.targetMapId);
+    if (otherTarget == null) {
+      throw _failure('connection.target_geometry_missing',
+          'Every neighbor on this edge requires a known map size.');
+    }
+    if (mapConnectionSpansOverlap(
+        sourceSize: source.size,
+        first: connection,
+        firstTargetSize: target.size,
+        second: other,
+        secondTargetSize: otherTarget.size)) {
+      throw _failure('connection.edge_overlap',
+          'Connected maps cannot overlap on the same edge.');
+    }
+  }
+}

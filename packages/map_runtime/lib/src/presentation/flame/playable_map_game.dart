@@ -5598,6 +5598,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final result = stepGameplayWorld(
       _world,
       intent,
+      connectionTargetSizes: Map.unmodifiable({
+        for (final entry in _runtimeBundleByMapId.entries)
+          entry.key: entry.value.map.size,
+      }),
       characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
           .map((reservation) => reservation.contactRect)
           .whereType<PixelRect>(),
@@ -5770,6 +5774,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint(
           '[connection] no connection for direction=${direction.name} map=${_bundle.map.id}',
         );
+        if (_world.map.connections.where((connection) => connection.direction == direction).length == 1) {
+          _showNotification('Connection invalid');
+        }
       }
       _player.syncState(_world.player);
       final contact = result.entityBumpContact;
@@ -15946,6 +15953,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return;
       }
       debugPrint('[connection] resolved target map=${target.bundle.map.id}');
+      final selectedConnection = resolveMapConnectionForPosition(
+        map: source.bundle.map,
+        sourcePos: connection.sourcePos,
+        direction: connection.direction,
+        targetMapSizes: {
+          for (final entry in _runtimeBundleByMapId.entries)
+            entry.key: entry.value.map.size,
+        },
+      );
+      if (selectedConnection == null ||
+          selectedConnection.targetMapId != connection.targetMapId ||
+          selectedConnection.offset != connection.offset) {
+        _player.syncState(_world.player, snapToGrid: true);
+        _showNotification('Connection invalid');
+        return;
+      }
       final targetPos = resolveConnectedMapTargetPos(
         sourcePos: connection.sourcePos,
         sourceSize: source.bundle.map.size,

@@ -5,16 +5,50 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 
+String mapConnectionResourceId(String mapId, MapConnection connection) =>
+    '${Uri.encodeComponent(mapId)}:${connection.direction.name}:${Uri.encodeComponent(connection.targetMapId)}';
+
+bool mapConnectionSpansOverlap({
+  required GridSize sourceSize,
+  required MapConnection first,
+  required GridSize firstTargetSize,
+  required MapConnection second,
+  required GridSize secondTargetSize,
+}) {
+  if (first.direction != second.direction) return false;
+  final horizontal = first.direction.usesHorizontalOffset;
+  final sourceLength = horizontal ? sourceSize.width : sourceSize.height;
+  final start = math.max(0, math.max(first.offset, second.offset));
+  final end = math.min(
+    sourceLength,
+    math.min(
+      first.offset +
+          (horizontal ? firstTargetSize.width : firstTargetSize.height),
+      second.offset +
+          (horizontal ? secondTargetSize.width : secondTargetSize.height),
+    ),
+  );
+  return start < end;
+}
+
 MapConnection? findMapConnection(
   MapData map,
-  MapConnectionDirection direction,
-) {
+  MapConnectionDirection direction, {
+  String? targetMapId,
+}) {
+  MapConnection? result;
   for (final connection in map.connections) {
-    if (connection.direction == direction) {
-      return connection;
+    if (connection.direction == direction &&
+        (targetMapId == null || connection.targetMapId == targetMapId)) {
+      if (result != null) {
+        throw ValidationException(
+          'Ambiguous map connection: ${direction.name}',
+        );
+      }
+      result = connection;
     }
   }
-  return null;
+  return result;
 }
 
 MapData upsertMapConnectionOnMap(
@@ -27,25 +61,36 @@ MapData upsertMapConnectionOnMap(
     growable: true,
   );
   final existingIndex = updatedConnections.indexWhere(
-    (entry) => entry.direction == connection.direction,
+    (entry) =>
+        entry.direction == connection.direction &&
+        entry.targetMapId == connection.targetMapId,
   );
   if (existingIndex >= 0) {
     updatedConnections[existingIndex] = connection;
   } else {
     updatedConnections.add(connection);
   }
-  updatedConnections.sort(
-    (left, right) => left.direction.index.compareTo(right.direction.index),
-  );
+  updatedConnections.sort((left, right) {
+    final direction = left.direction.index.compareTo(right.direction.index);
+    return direction == 0
+        ? left.targetMapId.compareTo(right.targetMapId)
+        : direction;
+  });
   return map.copyWith(connections: updatedConnections);
 }
 
 MapData removeMapConnectionFromMap(
   MapData map, {
   required MapConnectionDirection direction,
+  String? targetMapId,
 }) {
+  final connection = findMapConnection(
+    map,
+    direction,
+    targetMapId: targetMapId,
+  );
   final existingIndex = map.connections.indexWhere(
-    (entry) => entry.direction == direction,
+    (entry) => identical(entry, connection),
   );
   if (existingIndex < 0) {
     throw ValidationException(
@@ -89,10 +134,7 @@ bool hasMapConnectionOverlap({
       0;
 }
 
-void _validateMapConnection(
-  MapData map,
-  MapConnection connection,
-) {
+void _validateMapConnection(MapData map, MapConnection connection) {
   final targetMapId = connection.targetMapId.trim();
   if (targetMapId.isEmpty) {
     throw ValidationException(

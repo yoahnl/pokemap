@@ -107,11 +107,15 @@ Future<MapActivationOutcome> requestEditorConnectedMapActivation({
   required BuildContext context,
   required EditorNotifier notifier,
   required MapConnectionDirection direction,
+  String? targetMapId,
 }) async {
   final outcome = await requestGuardedMapActivation(
     context: context,
-    activate: (decision) =>
-        notifier.activateConnectedMap(direction, dirtyDecision: decision),
+    activate: (decision) => notifier.activateConnectedMap(
+      direction,
+      targetMapId: targetMapId,
+      dirtyDecision: decision,
+    ),
     save: () => requestActiveMapSaveWithBorderPreviewGuard(
       context: context,
       notifier: notifier,
@@ -132,6 +136,7 @@ Future<MapActivationOutcome> requestEditorConnectedMapSaveAndActivation({
   required BuildContext context,
   required EditorNotifier notifier,
   required MapConnectionDirection direction,
+  String? targetMapId,
 }) async {
   final saveOutcome = await requestActiveMapSaveWithBorderPreviewGuard(
     context: context,
@@ -148,6 +153,7 @@ Future<MapActivationOutcome> requestEditorConnectedMapSaveAndActivation({
     context: context,
     notifier: notifier,
     direction: direction,
+    targetMapId: targetMapId,
   );
 }
 

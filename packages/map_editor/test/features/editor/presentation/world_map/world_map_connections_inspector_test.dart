@@ -12,6 +12,48 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('WorldMapConnectionsInspector', () {
+    testWidgets(
+      'selects an existing neighbor or a new target on the same edge',
+      (tester) async {
+        final harness = _ConnectionsHarness();
+        addTearDown(harness.dispose);
+        harness.notifier.state = harness.notifier.state.copyWith(
+          activeMap: _activeMap.copyWith(
+            connections: [
+              ..._activeMap.connections,
+              const MapConnection(
+                direction: MapConnectionDirection.east,
+                targetMapId: 'south',
+                offset: 4,
+              ),
+            ],
+          ),
+        );
+        await harness.pump(tester);
+        await tester.tap(
+          find.byKey(const ValueKey<String>('world-map-connection-east')),
+        );
+        await tester.pumpAndSettle();
+        final picker = tester.widget<PokeMapDropdownField<String>>(
+          find.byKey(const ValueKey<String>('world-map-connection-target')),
+        );
+        expect(picker.enabled, isTrue);
+        picker.onChanged('south');
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const ValueKey<String>('world-map-connection-offset')),
+              )
+              .controller!
+              .text,
+          '4',
+        );
+        picker.onChanged('west');
+        await tester.pumpAndSettle();
+        expect(find.text('Appliquer'), findsOneWidget);
+      },
+    );
     testWidgets('shares the selected direction with the canvas context',
         (tester) async {
       final harness = _ConnectionsHarness();
