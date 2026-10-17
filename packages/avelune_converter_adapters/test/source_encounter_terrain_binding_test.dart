@@ -270,11 +270,11 @@ void main() {
     });
     for (final zone in encounters) {
       expect(zone.cellMask, [
-        const GridPos(x: 2, y: 0),
-        const GridPos(x: 3, y: 0),
-        const GridPos(x: 2, y: 1),
-        const GridPos(x: 3, y: 1),
-        const GridPos(x: 3, y: 2)
+        const GridPos(x: 0, y: 0),
+        const GridPos(x: 1, y: 0),
+        const GridPos(x: 0, y: 1),
+        const GridPos(x: 1, y: 1),
+        const GridPos(x: 1, y: 2)
       ]);
     }
     final movements = result.zonesBySourceMapId[9]!
@@ -294,9 +294,75 @@ void main() {
         }
       }
     }
-    expect(cells.toSet(), encounters.first.cellMask!.toSet());
+    expect(cells.toSet(), _worldCells(encounters.first).toSet());
     expect(cells.toSet().length, cells.length);
     expect(movements, hasLength(2));
+  });
+
+  test('every generated zone passes canonical cell mask validation', () async {
+    final source = await _source();
+    final result = _bind(source, [
+      'Land',
+      'Cave',
+      'Water',
+      'OldRod',
+      'GoodRod',
+      'SuperRod',
+      'RockSmash'
+    ]);
+    for (final zone in result.zonesBySourceMapId[9]!) {
+      expect(() => validateGameplayZoneCellMask(zone), returnsNormally);
+    }
+  });
+
+  test('nonzero origin keeps local mask and exact world encounter coverage',
+      () async {
+    final source = await _source(offsetTerrain: true);
+    final result = _bind(source, ['Water']);
+    final zone = result.zonesBySourceMapId[9]!
+        .singleWhere((zone) => zone.kind == GameplayZoneKind.encounter);
+    expect(zone.area.pos, const GridPos(x: 2, y: 2));
+    expect(zone.cellMask, [
+      const GridPos(x: 0, y: 0),
+      const GridPos(x: 1, y: 0),
+      const GridPos(x: 0, y: 1)
+    ]);
+    final worldCells = [
+      const GridPos(x: 2, y: 2),
+      const GridPos(x: 3, y: 2),
+      const GridPos(x: 2, y: 3)
+    ];
+    expect(_worldCells(zone), worldCells);
+    final evidence = (result.evidence['maps'] as List).single as Map;
+    final encounter = (evidence['encounterZones'] as List).single as Map;
+    expect(encounter['cells'], [
+      {'x': 2, 'y': 2},
+      {'x': 3, 'y': 2},
+      {'x': 2, 'y': 3}
+    ]);
+    final identity = Map<String, Object?>.from(encounter)..remove('zone');
+    expect(zone.id,
+        'source-encounter-terrain-${canonicalHashOf(identity).value.substring(0, 24)}');
+    final map = addGameplayZoneToMap(
+        MapData(
+            id: 'native-9',
+            name: 'Offset water',
+            size: const GridSize(width: 6, height: 5)),
+        zone: zone);
+    for (var y = 0; y < map.size.height; y++) {
+      for (var x = 0; x < map.size.width; x++) {
+        final position = GridPos(x: x, y: y);
+        final expected = worldCells.contains(position);
+        expect(gameplayZoneContainsPosition(zone, position), expected);
+        expect(
+            resolveEncounterSourceAtPosition(map,
+                    position: position, encounterKind: EncounterKind.surf)
+                .source
+                ?.encounter
+                .encounterTableId,
+            expected ? _tableId(source, 'Water') : null);
+      }
+    }
   });
 
   test('bindings and evidence are deterministic, JSON inert and source bound',
@@ -404,29 +470,43 @@ String _tableId(NormalizedSourceProject source, String method) =>
           'method': method,
         }).value.substring(0, 24)}';
 
-Future<NormalizedSourceProject> _source({bool qualified = true}) async {
+List<GridPos> _worldCells(MapGameplayZone zone) => [
+      for (final cell in zone.cellMask!)
+        GridPos(x: cell.x + zone.area.pos.x, y: cell.y + zone.area.pos.y)
+    ];
+
+Future<NormalizedSourceProject> _source(
+    {bool qualified = true, bool offsetTerrain = false}) async {
   final fixture = await LiteralTileFixture.create(maps: [
-    LiteralFixtureMap(id: 9, width: 5, height: 3, layers: [
-      [
-        385,
-        384,
-        386,
-        386,
-        387,
-        384,
-        386,
-        386,
-        386,
-        384,
-        384,
-        384,
-        384,
-        386,
-        385
-      ],
-      List.filled(15, 0),
-      [0, 0, 0, 0, 0, 0, 387, 0, 0, 0, 0, 0, 0, 0, 0]
-    ])
+    if (offsetTerrain)
+      LiteralFixtureMap(id: 9, width: 6, height: 5, layers: [
+        List<int>.generate(
+            30, (index) => {14, 15, 20}.contains(index) ? 386 : 384),
+        List.filled(30, 0),
+        List.filled(30, 0)
+      ])
+    else
+      LiteralFixtureMap(id: 9, width: 5, height: 3, layers: [
+        [
+          385,
+          384,
+          386,
+          386,
+          387,
+          384,
+          386,
+          386,
+          386,
+          384,
+          384,
+          384,
+          384,
+          386,
+          385
+        ],
+        List.filled(15, 0),
+        [0, 0, 0, 0, 0, 0, 387, 0, 0, 0, 0, 0, 0, 0, 0]
+      ])
   ], tilesets: [
     LiteralFixtureTileset(
         id: 1,

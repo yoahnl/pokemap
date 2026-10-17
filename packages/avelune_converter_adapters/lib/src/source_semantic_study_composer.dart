@@ -13,7 +13,9 @@ import 'source_semantics_projection.dart';
 import 'source_connection_study_composer.dart';
 
 final class SourceSemanticStudyComposer {
-  const SourceSemanticStudyComposer();
+  const SourceSemanticStudyComposer({this.includeNativeSurfTraversal = false});
+
+  final bool includeNativeSurfTraversal;
 
   Future<NativeProjectDraft?> compose({
     required NormalizedSourceProject source,
@@ -57,7 +59,9 @@ final class SourceSemanticStudyComposer {
         snapshot: source.snapshot,
         files: recording,
         cancellation: cancellation);
-    final projection = await const SourceSemanticsProjector().project(
+    final projection = await SourceSemanticsProjector(
+            includeNativeSurfTraversal: includeNativeSurfTraversal)
+        .project(
         source: source,
         base: literal,
         player: player,
@@ -151,11 +155,27 @@ final class SourceSemanticStudyComposer {
       ..sort((a, b) => a.handle.compareTo(b.handle));
     final grouped = batchNativeMutations(projection.mutations,
         actionId: 'element.upsert', limits: limits);
+    final surfZoneCreates = projection.mutations
+        .where((entry) => entry.actionId == 'gameplay_zone.create')
+        .toList();
+    final surfZoneIds = surfZoneCreates
+        .map((entry) => (entry.parameters['zone'] as Map)['id'] as String)
+        .toSet();
+    Map<String, Object?> preparedMapForSave(NativeMutation mutation) {
+      final prepared = jumps.preparedMaps.values.singleWhere(
+          (map) => map.id == (mutation.parameters['map'] as Map)['id']);
+      final saved = prepared.copyWith(gameplayZones: [
+        for (final zone in prepared.gameplayZones)
+          if (!surfZoneIds.contains(zone.id)) zone
+      ]);
+      return jsonDecode(jsonEncode(saved.toJson())) as Map<String, Object?>;
+    }
     final semantic = {
       'kind': 'sourceSemanticStudy',
       'version': 1,
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
       'normalizedSourceHash': source.canonicalHash.value,
+      if (includeNativeSurfTraversal) 'includeNativeSurfTraversal': true,
       'projection': projection.semanticEvidence,
       'player': player.evidence,
       'connections': connections.evidence,
@@ -186,15 +206,17 @@ final class SourceSemanticStudyComposer {
           ...original.mutations
               .where((entry) => !entry.actionId.startsWith('map.')),
           ...grouped.mutations
-              .where((entry) => !entry.actionId.startsWith('map.')),
+              .where((entry) => !entry.actionId.startsWith('map.') &&
+                  entry.actionId != 'gameplay_zone.create'),
           ...jumps.resourceMutations,
           ...original.mutations
               .where((entry) => entry.actionId == 'map.create'),
           for (final mutation in projection.mutations.where((entry) => entry.actionId.startsWith('map.')))
             if (mutation.actionId == 'map.save') NativeMutation(operationId: mutation.operationId,
               actionId: mutation.actionId, sourceEntityIds: mutation.sourceEntityIds, targetEntityIds: mutation.targetEntityIds,
-              parameters: {'map': jumps.preparedMaps.values.singleWhere((m) => m.id == (mutation.parameters['map'] as Map)['id']).toJson()}, limits: limits)
+              parameters: {'map': preparedMapForSave(mutation)}, limits: limits)
             else mutation,
+          ...surfZoneCreates,
           ...connections.mutations,
           ...jumps.mapMutations,
         ],

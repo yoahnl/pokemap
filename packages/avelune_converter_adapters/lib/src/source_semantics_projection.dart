@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 
 import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
+import 'source_encounter_terrain_binding.dart';
 import 'source_player_character_import.dart';
 
 final class SourceOcclusionLayout {
@@ -90,6 +91,7 @@ final class SourceCollisionProjection {
     required List<SourceSemanticCell> cells,
     required SourceSemanticResolver resolver,
     required GridSize mapSize,
+    bool includeNativeSurfTraversal = false,
   }) {
     if (mapSize.width < 1 ||
         mapSize.height < 1 ||
@@ -105,6 +107,9 @@ final class SourceCollisionProjection {
     final transitions = <SourceTransitionPassage>[];
     final allowed = List<int>.filled(cells.length, 0);
     final blocked = List<bool>.filled(cells.length, false);
+    final terrain = includeNativeSurfTraversal
+        ? SourceEncounterTerrainResolver(resolver: resolver)
+        : null;
     var unqualified = 0;
     for (var index = 0; index < cells.length; index++) {
       final from = cells[index];
@@ -124,7 +129,9 @@ final class SourceCollisionProjection {
                     SourceSemanticTile(sourceZ: 1, tileId: 0),
                     SourceSemanticTile(sourceZ: 0, tileId: 0),
                   ]);
-        final transition = resolver.resolveTransition(from, to, direction);
+        final transition =
+            terrain?.resolveWalkSurfTransition(from, to, direction) ??
+                resolver.resolveTransition(from, to, direction);
         transitions.add(transition);
         if (transition.status == SourcePassageStatus.allowed) {
           allowed[index] |= direction.bit;
@@ -135,7 +142,9 @@ final class SourceCollisionProjection {
         }
       }
       blocked[index] = blockedMask == 15 &&
-          resolver.resolveConnectionEntryTile(from).isPassable != true;
+          (terrain?.resolveWalkSurfEntryTile(from) ??
+                  resolver.resolveConnectionEntryTile(from))
+              .isPassable != true;
     }
     final walls = <int, int>{};
     for (var index = 0; index < cells.length; index++) {
@@ -264,7 +273,9 @@ final class SourceSemanticsProjection {
 }
 
 final class SourceSemanticsProjector {
-  const SourceSemanticsProjector();
+  const SourceSemanticsProjector({this.includeNativeSurfTraversal = false});
+
+  final bool includeNativeSurfTraversal;
 
   Future<SourceSemanticsProjection> project({
     required NormalizedSourceProject source,
@@ -283,8 +294,8 @@ final class SourceSemanticsProjector {
           'Projection requires exact admitted literal and player source bindings');
     }
     final resolver = SourceSemanticResolver.forProject(source);
-    final run =
-        _ProjectionRun(source, base, player, resolver, limits, cancellation);
+    final run = _ProjectionRun(source, base, player, resolver, limits,
+        cancellation, includeNativeSurfTraversal);
     await run.project();
     return run.finish();
   }
@@ -304,7 +315,7 @@ final class _OcclusionDefinition {
 
 final class _ProjectionRun {
   _ProjectionRun(this.source, this.base, this.player, this.resolver,
-      this.limits, this.cancellation);
+      this.limits, this.cancellation, this.includeNativeSurfTraversal);
 
   final NormalizedSourceProject source;
   final LiteralTileComposition base;
@@ -312,6 +323,8 @@ final class _ProjectionRun {
   final SourceSemanticResolver resolver;
   final NativeWriteLimits limits;
   final ScanCancellation? cancellation;
+  final bool includeNativeSurfTraversal;
+  SourceEncounterTerrainBindingResult? encounterTerrain;
   final maps = <int, MapData>{};
   final artifacts = <NativeArtifact>[];
   final mutations = <NativeMutation>[];
@@ -327,6 +340,16 @@ final class _ProjectionRun {
   static const categoryId = 'ac12-source-semantics';
 
   Future<void> project() async {
+    if (includeNativeSurfTraversal) {
+      encounterTerrain = const SourceEncounterTerrainBinding().bind(
+          source: source,
+          nativeMapIds: {
+            for (final entry in base.nativeMaps.entries)
+              entry.key: entry.value.id
+          },
+          tableIdsBySourceMethod: const {},
+          expectedSourceSelectionHash: source.canonicalHash);
+    }
     final ids = base.nativeMaps.keys.toList()..sort();
     for (final id in ids) {
       cancellation?.check();
@@ -338,7 +361,10 @@ final class _ProjectionRun {
           for (var x = 0; x < original.width; x++) resolver.cellAt(id, x, y)
       ];
       final collision = SourceCollisionProjection.resolve(
-          cells: cells, resolver: resolver, mapSize: native.size);
+          cells: cells,
+          resolver: resolver,
+          mapSize: native.size,
+          includeNativeSurfTraversal: includeNativeSurfTraversal);
       allQualified &= collision.qualified;
       if (!collision.qualified) {
         gaps.add({
@@ -479,7 +505,13 @@ final class _ProjectionRun {
               event.y * original.width + event.x
           },
           raisedCells: raised);
-      var output = native.copyWith(layers: layers, placedElements: placed);
+      var output = native.copyWith(
+          layers: layers,
+          placedElements: placed,
+          gameplayZones: [
+            ...native.gameplayZones,
+            ...?encounterTerrain?.zonesBySourceMapId[id]
+          ]);
       if (spawn != null) {
         final spawnId = 'ac12-preview-start-$id';
         output = output.copyWith(entities: [
@@ -504,7 +536,8 @@ final class _ProjectionRun {
         'sourceMapId': id,
         'nativeMapId': native.id,
         'sourceMapHash': canonicalHashOf(original.toJson()).value,
-        'nativeMapHash': canonicalHashOf(output.toJson()).value,
+        'nativeMapHash':
+            canonicalHashOf(jsonDecode(jsonEncode(output.toJson()))).value,
         'fullyBlockedCellCount':
             collision.fullyBlockedCells.where((cell) => cell).length,
         'boundaryInstanceCount': collision.wallMasksByCell.length,
@@ -545,9 +578,24 @@ final class _ProjectionRun {
     }
     for (final id in maps.keys.toList()..sort()) {
       final map = maps[id]!;
+      final surfZones = encounterTerrain?.zonesBySourceMapId[id] ??
+          const <MapGameplayZone>[];
+      final surfZoneIds = surfZones.map((zone) => zone.id).toSet();
+      final saved = map.copyWith(gameplayZones: [
+        for (final zone in map.gameplayZones)
+          if (!surfZoneIds.contains(zone.id)) zone
+      ]);
       mutations.add(_mutation('ac12-save-${map.id}', 'map.save',
-          [ConverterId(map.id)], {'map': map.toJson()},
+          [ConverterId(map.id)], {'map': jsonDecode(jsonEncode(saved.toJson()))},
           sourceIds: [source.mapIdentity(id)]));
+      for (final zone in surfZones) {
+        mutations.add(_mutation(
+            'ac12-surf-zone-${zone.id}',
+            'gameplay_zone.create',
+            [ConverterId(map.id), ConverterId(zone.id)],
+            {'mapId': map.id, 'zone': jsonDecode(jsonEncode(zone.toJson()))},
+            sourceIds: [source.mapIdentity(id)]));
+      }
     }
     if (mutations.length + base.draft!.mutations.length > limits.maxMutations ||
         artifacts.length +
@@ -818,6 +866,9 @@ final class _ProjectionRun {
       'sourceScriptsExecuted': 0,
       'aiCalls': 0,
       'sourceEventsScope': 'AC13Deferred',
+      if (includeNativeSurfTraversal) 'includeNativeSurfTraversal': true,
+      if (encounterTerrain != null)
+        'encounterTerrainBinding': encounterTerrain!.evidence,
       'unsupportedContexts': [
         'npc',
         'follower',

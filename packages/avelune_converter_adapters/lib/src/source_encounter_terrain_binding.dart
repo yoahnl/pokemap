@@ -148,7 +148,7 @@ final class SourceEncounterTerrainBinding {
             name: '${sourceMap.name} · $method',
             kind: GameplayZoneKind.encounter,
             area: area,
-            cellMask: cells,
+            cellMask: paintedEncounterMask(cells, area),
             encounter: EncounterZonePayload(
                 encounterTableId: methods[method],
                 encounterKind: _kinds[method]!));
