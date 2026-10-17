@@ -23,6 +23,7 @@ import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
 import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
+import 'source_warp_tile_native_program.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -233,6 +234,16 @@ NarrativeFactDefinition _nativeFact(String sourceId) => addNarrativeFact(
 
 String sourceEventFactBindingId(String sourceFactId) =>
     _nativeFact(sourceFactId).id;
+
+NarrativeFactDefinition _nativeIntegerFact(String sourceId) =>
+    addNarrativeFact(const ProjectManifest(name: 'Source event projection', maps: [], tilesets: []),
+        label: 'Source variable ${canonicalHashOf({'sourceVariableId': sourceId}).value.substring(0, 24)}',
+        description: 'Persistent source integer: $sourceId',
+        category: 'Source variables', initialValue: NarrativeValue.integer(0),
+        tags: ['sourceImported']).createdFact;
+
+String sourceEventIntegerVariableBindingId(String sourceVariableId) =>
+    _nativeIntegerFact(sourceVariableId).id;
 
 final class SourceEventCharacterBinding {
   const SourceEventCharacterBinding(
@@ -555,6 +566,8 @@ final class _ProjectionBuilder {
   late final Map<String, SourceFileEntry?> _snapshotEntriesByPath =
       _indexSnapshotEntries();
   final SourceEventAnalysis analysis;
+  late final SourceWarpTileNativePrograms warpTilePrograms =
+      sourceWarpTileNativePrograms(source: source, analysis: analysis);
   late final SourceEventAnalysis _authoritativeSourceAnalysis =
       SourceEventAnalyzer.forProject(source,
           profile: SourceEventProfile.kantoForProject(source)).analyze();
@@ -611,6 +624,12 @@ final class _ProjectionBuilder {
   final arrivalCollisionOwners = <String, String>{};
   final gapsByEvent = <ConverterId, Set<String>>{};
   var quarantinedCount = 0;
+  late final bool _warpTileNativeAudioQualified = warpTilePrograms.programs.values
+      .where((program) => !program.isActivation)
+      .every((program) => program.event.pages.every((page) {
+        final sound = program.soundForPage(page.originalPageIndex);
+        return sound != null && sound.pitch == 100 && _sound(sound.name) != null;
+      }));
 
   String _elevatorVariableKey(int variable) => 'source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable';
   NarrativeFactDefinition _elevatorFact(int variable) => addNarrativeFact(
@@ -717,10 +736,12 @@ final class _ProjectionBuilder {
   }.contains((event.sourceMapId, event.sourceEventId));
 
   bool _isSourceTransition(SourceEventDefinition event) =>
+      warpTilePrograms.programs.containsKey(event.identity) ||
       originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
+      (warpTilePrograms.programs.containsKey(event.identity) && retentionPolicy != null) ||
       qualifiedHoleContexts.contains(event.identity) || qualifiedElevatorContexts.contains(event.identity) || qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
       ((originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event)) &&
         executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null && executionContext?.holeIdentity == null && executionContext?.elevatorIdentity == null);
@@ -920,6 +941,15 @@ final class _ProjectionBuilder {
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
         if (gaps.isEmpty && elevatorPrograms.containsKey(event.identity)) 'nativeElevator': {'familyHash': elevatorPrograms[event.identity]!.familyHash.value, 'role': elevatorPrograms[event.identity]!.role.name, 'policy': elevatorPrograms[event.identity]!.policy.name},
+        if (gaps.isEmpty && warpTilePrograms.programs.containsKey(event.identity))
+          'nativeWarpTile': {
+            ...warpTilePrograms.programs[event.identity]!.toJson(),
+            if (!warpTilePrograms.programs[event.identity]!.isActivation)
+              'audio': [for (final page in event.pages) {
+                'sourcePageIndex': page.originalPageIndex,
+                ..._warpTileAudioEvidence(warpTilePrograms.programs[event.identity]!, page.originalPageIndex),
+              }],
+          },
         if (gaps.isEmpty && _isItemGiver(event))
           'nativeItemGiver': {
             'sourceHelper': 'pbReceiveItem',
@@ -1210,6 +1240,7 @@ final class _ProjectionBuilder {
     for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty)) {
       final ids = <String>{};
       if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(10), _elevatorVariableKey(11)]);
+      ids.addAll(_warpTileFactIds(event));
       for (final page in event.pages) {
         _collectFacts(page.condition, ids);
         _blockFacts(page.body, ids);
@@ -1290,6 +1321,8 @@ final class _ProjectionBuilder {
       'normalizationHash': source.canonicalHash.value,
       'sourceProfileHash': analysis.profile.canonicalHash.value,
       'sourceProfile': analysis.profile.toJson(),
+      if (eventEvidence.any((row) => row.containsKey('nativeWarpTile')))
+        'warpTileNativePolicy': sourceWarpTileNativePolicyEvidence,
       'eventIdConvention':
           'deterministicSha256IdentityWithUuidVersion7WireBits',
       'arrivalAnchorContract':
@@ -2260,6 +2293,27 @@ final class _ProjectionBuilder {
     if (analysis.profile.isQualified && isSourceElevatorFamilyEvent(event)) {
       return {'sourceElevatorCompleteFamilyBindingMissing'};
     }
+    if (warpTilePrograms.refusals[event.identity] case final reason?) return {reason};
+    if (warpTilePrograms.programs[event.identity] case final program?) {
+      if (!_warpTileNativeAudioQualified) {
+        return {'sourceWarpTileAudioBindingMissingOrUnsupported'};
+      }
+      if (retentionPolicy == null || !_warpTileNativeContextPresent(program)) {
+        return {'sourceWarpTileNativeContextMissing'};
+      }
+      final warp = program.warp;
+      if (warp != null) {
+        final target = maps[warp.targetSourceMapId];
+        if (target == null || warp.x < 0 || warp.y < 0 ||
+            warp.x >= target.size.width || warp.y >= target.size.height ||
+            target.layers.whereType<CollisionLayer>().any((layer) =>
+              layer.collisions[warp.y * target.size.width + warp.x]) ||
+            target.entities.any((entity) => entity.blocksMovement && entity.pos == GridPos(x: warp.x, y: warp.y))) {
+          return {'sourceWarpTileArrivalInvalid'};
+        }
+      }
+      return const {};
+    }
     if (const {166, 205}.contains(event.sourceMapId) && !_isExternalWarpFamily(event)) {
       return {'sourceExternalMapScopeExcluded'};
     }
@@ -2843,6 +2897,12 @@ final class _ProjectionBuilder {
     if (elevatorPrograms.containsKey(event.identity)) {
       for (final variable in [10, 11]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
     }
+    final warpTile = warpTilePrograms.programs[event.identity];
+    if (warpTile != null) {
+      for (final id in _warpTileFactIds(event)) {
+        factsById.putIfAbsent(id, () => id.contains(':variable:') ? _nativeIntegerFact(id) : _nativeFact(id));
+      }
+    }
     if (_isHealingDisplayFamily(event)) {
       if (gapsByEvent[event.identity]?.isEmpty != true || healingDisplayBinding == null) {
         throw const NativeWriteException('events.healing_display.binding_missing',
@@ -3076,6 +3136,50 @@ final class _ProjectionBuilder {
     }
     return id;
   }
+
+  Set<String> _warpTileFactIds(SourceEventDefinition event) {
+    final program = warpTilePrograms.programs[event.identity];
+    if (program == null) return const {};
+    return {program.selfSourceId(source),
+      if (!program.isActivation) for (var id = 1; id <= 3; id++) program.variableSourceId(id, source)};
+  }
+
+  Map<String, Object?> _warpTileAudioEvidence(SourceWarpTileNativeProgram program, int pageIndex) {
+    final node = program.soundForPage(pageIndex);
+    final binding = node == null || node.pitch != 100 ? null : _sound(node.name);
+    if (node == null || binding == null) {
+      throw const NativeWriteException('events.warp.audio',
+          'Native warp evidence requires qualified exact source audio');
+    }
+    return {
+      'sourceName': node.name, 'sourceVolume': node.volume, 'sourcePitch': node.pitch,
+      'status': 'preservedSourceAudio',
+      'mediaAssetId': binding.mediaId,
+      'sourceFileHash': binding.audioFile.sha256!.value,
+      'nativeVolume': binding.gainForVolume(node.volume), 'nativePitch': 100,
+    };
+  }
+
+  bool _warpTileNativeContextPresent(SourceWarpTileNativeProgram start) {
+    var current = start;
+    final visited = <ConverterId>{};
+    while (visited.add(current.event.identity)) {
+      if (!maps.containsKey(current.event.sourceMapId)) return false;
+      if (current.isActivation) {
+        final next = warpTilePrograms.programs[current.target!.identity];
+        if (next == null) return false;
+        current = next;
+        continue;
+      }
+      final warp = current.warp!;
+      final destinations = warpTilePrograms.programs.values.where((candidate) =>
+          !candidate.isActivation && candidate.event.sourceMapId == warp.targetSourceMapId &&
+          candidate.event.x == warp.x && candidate.event.y == warp.y).toList();
+      if (destinations.length != 1) return false;
+      current = destinations.single;
+    }
+    return true;
+  }
 }
 
 final class _SceneBuilder {
@@ -3111,9 +3215,10 @@ final class _SceneBuilder {
     final end = _node(SceneEndPayload());
     final hole = projection.holePrograms[event.identity];
     final elevator = projection.elevatorPrograms[event.identity];
+    final warpTile = projection.warpTilePrograms.programs[event.identity];
     final first = hole != null ? _hole(hole, end)
-      : elevator == null || elevator.role == SourceElevatorRole.actor ? _block(page.body, end)
-      : _elevator(elevator, end);
+      : elevator != null && elevator.role != SourceElevatorRole.actor ? _elevator(elevator, end)
+      : warpTile != null ? _warpTile(warpTile, end) : _block(page.body, end);
     final start = _node(SceneStartPayload());
     _edge(start, 'completed', first);
     return SceneAsset(
@@ -3356,6 +3461,55 @@ final class _SceneBuilder {
       next,
     );
   }
+  String _warpTile(SourceWarpTileNativeProgram program, String end) {
+    String consequence(SceneConsequence value, String next) {
+      final action = _node(SceneActionPayload.consequence(value));
+      _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+      return action;
+    }
+    String variables(int y, String next) {
+      final values = [event.sourceMapId, event.x, y];
+      for (var id = 3; id >= 1; id--) {
+        next = consequence(SceneConsequence.setFactValue(
+            factId: sourceEventIntegerVariableBindingId(program.variableSourceId(id, projection.source)),
+            value: NarrativeValue.integer(values[id - 1])), next);
+      }
+      return next;
+    }
+    String sound(String next) {
+      final node = program.soundForPage(page.originalPageIndex);
+      final binding = node == null || node.pitch != 100 ? null : projection._sound(node.name);
+      if (node == null || binding == null) {
+        throw const NativeWriteException('events.warp.audio',
+            'Native warp execution requires qualified exact source audio');
+      }
+      return _interactive(SceneInteractiveCommand.playSoundEffect(
+          mediaAssetId: binding.mediaId, volume: binding.gainForVolume(node.volume)), next);
+    }
+    if (program.isActivation) return _fact(program.selfSourceId(projection.source), true, end);
+    if (page.originalPageIndex == 1) {
+      final cleanup = _fact(program.selfSourceId(projection.source), false,
+          consequence(SceneConsequence.setMapEventInstanceBoolean(
+              mapId: projection.maps[event.sourceMapId]!.id,
+              eventId: projection._key(event, 'anchor'), key: 'A', value: true), end));
+      final branch = _node(SceneConditionPayload(conditionSource:
+          SceneConditionSource.playerAtEntityAnchor(mapId: projection.maps[event.sourceMapId]!.id,
+              entityId: projection._key(event, 'anchor'))));
+      _edge(branch, 'true', variables(event.y - 6, sound(cleanup)), SceneEdgeKind.conditionTrue);
+      _edge(branch, 'false', cleanup, SceneEdgeKind.conditionFalse);
+      return branch;
+    }
+    final warp = program.warp!;
+    final transfer = _node(SceneActionPayload.interactive(SceneInteractiveCommand.warp(
+        destinationMapId: projection.maps[warp.targetSourceMapId]!.id,
+        warpId: projection.arrival(event, warp), transition: SceneWarpTransition.none,
+        presentation: SceneWarpPresentation(mode: SceneWarpPresentationMode.fade,
+            fadeOutMs: 300, transferDelayMs: 400, revealMs: 300))));
+    _edge(transfer, 'completed', variables(event.y, end), SceneEdgeKind.actionCompleted);
+    _edge(transfer, 'blocked', _node(SceneEndPayload()), SceneEdgeKind.actionCompleted);
+    return sound(transfer);
+  }
+
   String _block(SourceEventBlock block, String continuation) {
     var next = continuation;
     for (final node in block.nodes.reversed) {

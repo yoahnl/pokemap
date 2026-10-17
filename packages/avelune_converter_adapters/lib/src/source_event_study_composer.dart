@@ -15,6 +15,7 @@ import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
 import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
+import 'source_warp_tile_native_program.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
@@ -147,6 +148,7 @@ final class SourceEventStudyComposer {
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
     final elevatorPrograms = sourceElevatorPrograms(source: source, analysis: analysis);
+    final warpTilePrograms = sourceWarpTileNativePrograms(source: source, analysis: analysis);
     final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis, routedPrograms: const {}, stairPrograms: const {}, elevatorPrograms: const {})
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .map((event) => event.identity).toSet();
@@ -162,10 +164,12 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final legacyTransitionIds = {...originalDoorIds, ...?externalWarps?.programs.keys};
-    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys};
+    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
+      for (final program in warpTilePrograms.programs.values)
+        source.snapshot.entries.singleWhere((entry) => entry.fileId == program.event.sourceFileId).relativePath,
       for (final event in selectedEvents)
         source.snapshot.entries
             .singleWhere((entry) => entry.fileId == event.sourceFileId)
@@ -278,14 +282,14 @@ final class SourceEventStudyComposer {
       }
     }
     final transitionSounds = {
-      for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity)) &&
+      for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
           transitionIds.contains(event.identity)))
         for (final page in event.pages) ..._soundNames(page.body),
     };
     final sounds = <String, SourceEventSoundBinding>{};
     final soundEvidence = <Map<String, Object?>>[];
     for (final name in {
-      for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity)) &&
+      for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
           (transitionIds.contains(event.identity) || event.pages.any((page) =>
               _pickups(page.body).any((pickup) => pickup.helper == SourceItemGrantHelper.receiveItem)))))
         for (final page in event.pages) ..._soundNames(page.body),
