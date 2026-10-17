@@ -1188,6 +1188,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }.contains(mutation.actionId);
     final semantic = draft.compositionEvidence.containsKey('sourceSemantics') &&
         const {
+          'gameplay_zone.create',
           'connection.create_bidirectional_apply',
           'border.blueprint.draft.upsert', 'border.blueprint.publish',
           'border_layer.feature_create', 'border_layer.feature_set_replacement',
@@ -1226,6 +1227,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }.contains(mutation.actionId);
     final catalogs = draft.compositionEvidence.containsKey('sourceCatalogs') &&
         const {
+          'gameplay_zone.create',
+          'entity.set_interactive_encounter',
           'asset.import',
           'asset.import_batch',
           'pokemon.configuration.set_enabled',
@@ -1296,6 +1299,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final tilesetEntries = <ProjectTilesetEntry>[];
   final mapEntries = <ProjectMapEntry>[];
   final maps = <String, MapData>{};
+  final interactiveCompanions = <String, Map<String, MapEntityInteractiveEncounterData>>{};
   final createdMaps = <String, Map<String, Object?>>{};
   final animatedTilesets = <String>{};
   final usedArtifacts = <String>{};
@@ -1319,7 +1323,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
-  for (final mutation in expandNativeMutationBatches(draft, limits)) {
+  final expandedMutations = expandNativeMutationBatches(draft, limits);
+  for (final mutation in expandedMutations) {
     final parameters = mutation.parameters;
     switch (mutation.actionId) {
       case 'tileset.import_image':
@@ -1812,6 +1817,44 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'A canonical map save must follow the exact approved creation geometry');
         }
         maps[map.id] = map;
+      case 'gameplay_zone.create':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'mapId', 'zone'});
+        final mapId = _string(parameters, 'mapId');
+        final zone = MapGameplayZone.fromJson(
+            Map<String, dynamic>.from(parameters['zone'] as Map));
+        _requireMapBinding(draft, mutation, mapId, expectedTargets: {mapId, zone.id});
+        final map = maps[mapId];
+        if (map == null) {
+          throw const NativeWriteException('native.encounter_consumers.map',
+              'Typed encounter terrain must follow its saved native map.');
+        }
+        maps[mapId] = addGameplayZoneToMap(map, zone: zone);
+      case 'entity.set_interactive_encounter':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'mapId', 'entityId', 'interactiveEncounter'});
+        final mapId = _string(parameters, 'mapId');
+        final entityId = _string(parameters, 'entityId');
+        _requireMapBinding(draft, mutation, mapId, expectedTargets: {mapId, entityId});
+        if (semantics.catalogs == null || parameters['interactiveEncounter'] is! Map) {
+          throw const NativeWriteException('native.encounter_consumers.companion',
+              'Interactive encounters require their exact catalogue companion.');
+        }
+        final payload = MapEntityInteractiveEncounterData.fromJson(
+            Map<String, dynamic>.from(parameters['interactiveEncounter'] as Map));
+        final sourceMapId = draft.mapIds.entries.singleWhere((entry) => entry.value == mapId).key;
+        final projectedMap = semantics.events?.projection.nativeMaps[sourceMapId];
+        final entity = projectedMap?.entities.where((entry) => entry.id == entityId).singleOrNull;
+        final precedingTable = expandedMutations.takeWhile((entry) =>
+            entry.operationId != mutation.operationId).any((entry) =>
+                entry.actionId == 'campaign.encounter_table.upsert' &&
+                (entry.parameters['value'] as Map)['id'] == payload.encounterTableId);
+        if (entity?.fieldObstacle?.kind != FieldObstacleKind.rockSmashRock ||
+            !precedingTable || interactiveCompanions[mapId]?.containsKey(entityId) == true) {
+          throw const NativeWriteException('native.encounter_consumers.order',
+              'Interactive encounters must follow their exact table and obstacle.');
+        }
+        (interactiveCompanions[mapId] ??= {})[entityId] = payload;
       case 'connection.create_bidirectional_apply':
         semantics.requireOperation(mutation);
         _allowParameters(
@@ -2043,10 +2086,18 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final projectedEvents = semantics.events?.projection;
   final projectedCatalogs = semantics.catalogs?.projection;
   if (projectedEvents != null) {
-    maps
-      ..clear()
-      ..addEntries(projectedEvents.nativeMaps.values
-          .map((map) => MapEntry(map.id, map)));
+    for (final map in projectedEvents.nativeMaps.values) {
+      final preceding = maps[map.id]!;
+      final existingZoneIds = map.gameplayZones.map((zone) => zone.id).toSet();
+      final companions = interactiveCompanions[map.id] ?? const {};
+      maps[map.id] = map.copyWith(
+          gameplayZones: [...map.gameplayZones,
+            ...preceding.gameplayZones.where((zone) => !existingZoneIds.contains(zone.id))],
+          entities: [for (final entity in map.entities)
+            if (companions.containsKey(entity.id))
+              entity.copyWith(interactiveEncounter: companions[entity.id])
+            else entity]);
+    }
   }
   final manifest = bootstrap.copyWith(
       maps: mapEntries,
@@ -2528,7 +2579,15 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   final NativeProjectDraft expected;
   SourceEventStudyComposition? eventComposition;
   SourceCatalogStudyComposition? catalogComposition;
+  final includeSurf = raw['includeNativeSurfTraversal'] == true;
   try {
+    final release = catalogRaw is Map ? catalogRaw['nativeEncounterRelease'] : null;
+    final nativeEncounters = release == null ? null
+        : NativeEncounterCatalogQualification.fromArtifacts(
+            evidence: Map<String, Object?>.from(release as Map), artifacts: draft.artifacts);
+    if (includeSurf && nativeEncounters == null) {
+      throw const FormatException('Surf traversal requires its exact native encounter release');
+    }
     final composition = draft.compositionEvidence['composition'] as Map;
     final base = await const LiteralTileComposer().compose(
         source: draft.source,
@@ -2545,7 +2604,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
             composition['allowFirstFrameAutotiles'] == true,
         limits: limits,
         cancellation: cancellation);
-    final regenerated = await const SourceSemanticStudyComposer().compose(
+    final regenerated = await SourceSemanticStudyComposer(
+        includeNativeSurfTraversal: includeSurf).compose(
         source: draft.source,
         base: base,
         files: _WitnessSourceFiles(files),
@@ -2555,7 +2615,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
       throw const FormatException('Missing semantic draft');
     }
     if (eventRaw != null) {
-      eventComposition = await const SourceEventStudyComposer().compose(
+      eventComposition = await SourceEventStudyComposer(
+          nativeEncounterQualification: includeSurf ? nativeEncounters : null).compose(
           source: draft.source,
           base: regenerated,
           files: _WitnessSourceFiles(files),
@@ -2570,14 +2631,10 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     }
     final preceding = eventComposition?.draft ?? regenerated;
     if (catalogRaw != null) {
-      final release = (catalogRaw as Map)['nativeEncounterRelease'];
-      final nativeEncounters = release == null
-          ? null
-          : NativeEncounterCatalogQualification.fromArtifacts(
-              evidence: Map<String, Object?>.from(release as Map),
-              artifacts: draft.artifacts);
       catalogComposition = await SourceCatalogStudyComposer(
-              nativeEncounterQualification: nativeEncounters)
+              nativeEncounterQualification: nativeEncounters,
+              includeNativeEncounterConsumers:
+                  (catalogRaw as Map)['includeNativeEncounterConsumers'] == true)
           .compose(
               source: draft.source,
           base: preceding,
@@ -2587,6 +2644,10 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
       if (catalogComposition == null) {
         throw const FormatException('Missing source catalog draft');
       }
+    }
+    final pending = eventComposition?.projection.semanticEvidence['pendingCatalogCompanions'];
+    if (pending is List && pending.isNotEmpty && catalogComposition == null) {
+      throw const FormatException('Deferred encounter companions require a catalogue composition');
     }
     expected = catalogComposition?.draft ?? preceding;
   } catch (_) {

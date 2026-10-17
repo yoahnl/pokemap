@@ -68,6 +68,14 @@ final class SourceEventStudyComposer {
           base.mapIds.entries.singleWhere((entry) => entry.value == map.id).key;
       nativeMaps[sourceId] = map;
     }
+    for (final mutation in base.mutations.where((entry) =>
+        entry.actionId == 'gameplay_zone.create')) {
+      final mapId = mutation.parameters['mapId'];
+      final sourceId = base.mapIds.entries.where((entry) => entry.value == mapId).single.key;
+      final zone = MapGameplayZone.fromJson(
+          Map<String, dynamic>.from(mutation.parameters['zone'] as Map));
+      nativeMaps[sourceId] = addGameplayZoneToMap(nativeMaps[sourceId]!, zone: zone);
+    }
     if (nativeMaps.length != base.mapIds.length) {
       throw const NativeWriteException('events.base.maps',
           'Every event destination requires its exact preceding native map');
@@ -761,11 +769,13 @@ final class SourceEventStudyComposer {
               ...base.mutations
                   .where((entry) => !entry.actionId.startsWith('map.') &&
                     entry.actionId != 'connection.create_bidirectional_apply' &&
+                    entry.actionId != 'gameplay_zone.create' &&
                     !entry.actionId.startsWith('border_layer.')),
               ...importedMutations,
               ...base.mutations
                   .where((entry) => entry.actionId.startsWith('map.')),
               ...baseConnections,
+              ...base.mutations.where((entry) => entry.actionId == 'gameplay_zone.create'),
               ...base.mutations.where((entry) => entry.actionId.startsWith('border_layer.')),
               ...eventMutations,
             ],

@@ -12,6 +12,7 @@ import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_catalog_study_composer.dart';
+import 'native_encounter_catalog_bindings.dart';
 import 'local_asset_proposer.dart';
 import 'supplemented_source_tree.dart';
 import 'native_project_writer.dart';
@@ -1628,7 +1629,12 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 outputMode: settings.assetOutputMode,
                 limits: settings.writeLimits,
                 cancellation: relay.cancellation);
-        final semantic = await const SourceSemanticStudyComposer().compose(
+        final encounterCandidate = NativeEncounterCatalogQualification.builtinKantoV1();
+        final encounters = settings.selectedSourceMapIds.length <= 8 &&
+                encounterCandidate.admitsAutomaticSource(snapshot)
+            ? encounterCandidate : null;
+        final semantic = await SourceSemanticStudyComposer(
+            includeNativeSurfTraversal: encounters != null).compose(
             source: normalized,
             base: composition,
             files: files,
@@ -1636,7 +1642,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             cancellation: relay.cancellation);
         final events = semantic == null
             ? null
-            : await const SourceEventStudyComposer().compose(
+            : await SourceEventStudyComposer(nativeEncounterQualification: encounters).compose(
                 source: normalized,
                 base: semantic,
                 files: files,
@@ -1645,7 +1651,8 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         final preceding = events?.draft ?? semantic ?? composition.draft;
         final catalogs = preceding == null
             ? null
-            : await const SourceCatalogStudyComposer().compose(
+            : await SourceCatalogStudyComposer(nativeEncounterQualification: encounters,
+                includeNativeEncounterConsumers: encounters != null).compose(
                 source: normalized,
                 base: preceding,
                 files: files,
@@ -2232,6 +2239,8 @@ const _nativeStudyActions = [
   'campaign.encounter_table.upsert',
   'campaign.badge.upsert',
   'entity.set_field_obstacle',
+  'entity.set_interactive_encounter',
+  'gameplay_zone.create',
   'campaign.trainer.upsert',
 ];
 

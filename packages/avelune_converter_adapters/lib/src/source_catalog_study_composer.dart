@@ -9,6 +9,7 @@ import 'native_psdk_trainer_bundle.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
+import 'source_encounter_consumers.dart';
 import 'source_semantic_study_composer.dart';
 
 const sourceCatalogStudyWriteLimits = NativeWriteLimits(
@@ -47,9 +48,11 @@ final class SourceCatalogStudyComposer {
   const SourceCatalogStudyComposer(
       {this.nativeTrainerMovePolicy =
           NativeTrainerMovePolicy.nativeAveluneDefaults,
-      this.nativeEncounterQualification});
+      this.nativeEncounterQualification,
+      this.includeNativeEncounterConsumers = false});
   final NativeTrainerMovePolicy nativeTrainerMovePolicy;
   final NativeEncounterCatalogQualification? nativeEncounterQualification;
+  final bool includeNativeEncounterConsumers;
 
   Future<SourceCatalogStudyComposition?> compose({
     required NormalizedSourceProject source,
@@ -260,6 +263,47 @@ final class SourceCatalogStudyComposer {
       mutations.add(mutation('campaign.encounter_table.upsert', table.id,
           {'value': table.toJson()}));
     }
+    final eventProjection = sourceEvents is Map ? sourceEvents['projection'] : null;
+    final pending = eventProjection is Map
+        ? List<Object?>.from(eventProjection['pendingCatalogCompanions'] as List? ?? const [])
+        : const <Object?>[];
+    SourceEncounterConsumers? consumers;
+    if (includeNativeEncounterConsumers) {
+      final binding = projection.evidence['nativeEncounterBindings'];
+      if (encounters == null || binding is! Map<String, Object?>) {
+        throw const NativeWriteException('catalogs.encounter_consumers.qualification',
+            'Active encounter consumers require their exact native catalogue release.');
+      }
+      consumers = SourceEncounterConsumers.bind(source: source,
+          nativeMapIds: base.mapIds, tables: projection.encounterTables,
+          catalogEvidence: binding, qualification: encounters,
+          pendingCompanions: pending, precedingMutations: base.mutations);
+      for (final entry in consumers.zones.entries) {
+        for (final zone in entry.value) {
+          final mapId = base.mapIds[entry.key]!;
+          final parameters = <String, Object?>{
+            'mapId': mapId, 'zone': jsonDecode(jsonEncode(zone.toJson()))};
+          final operation = mutation('gameplay_zone.create', zone.id, parameters);
+          mutations.add(NativeMutation(operationId: operation.operationId,
+              actionId: operation.actionId, sourceEntityIds: [...owners, source.mapIdentity(entry.key)],
+              targetEntityIds: [ConverterId(mapId), ConverterId(zone.id)],
+              parameters: parameters, limits: limits));
+        }
+      }
+      for (final parameters in consumers.companions) {
+        final mapId = parameters['mapId'] as String;
+        final entityId = parameters['entityId'] as String;
+        final operation = mutation('entity.set_interactive_encounter', entityId, parameters);
+        mutations.add(NativeMutation(operationId: operation.operationId,
+            actionId: operation.actionId, sourceEntityIds: [...owners, source.mapIdentity(
+                base.mapIds.entries.singleWhere((entry) => entry.value == mapId).key)],
+            targetEntityIds: [ConverterId(mapId), ConverterId(entityId)],
+            parameters: parameters, limits: limits));
+      }
+    } else if (pending.isNotEmpty) {
+      throw const NativeWriteException('catalogs.encounter_consumers.pending',
+          'Deferred field encounters require their exact native catalogue consumers.');
+    }
     for (final trainer in nativeCatalogQualified
         ? projection.trainers
         : const <ProjectTrainerEntry>[]) {
@@ -306,6 +350,7 @@ final class SourceCatalogStudyComposer {
       'kind': 'sourceCatalogProjection',
       'version': 1,
       'projection': projection.toJson(),
+      if (consumers != null) 'nativeEncounterConsumers': consumers.evidence,
       if (encounterRelease != null)
         'nativeEncounterRelease': encounterRelease.evidence,
       'preservedSourceFiles': preservedFiles,
@@ -381,6 +426,8 @@ final class SourceCatalogStudyComposer {
       'profile': profile.toJson(),
       'projectionHash': projection.canonicalHash.value,
       'projection': projection.evidence,
+      if (includeNativeEncounterConsumers) 'includeNativeEncounterConsumers': true,
+      if (consumers != null) 'nativeEncounterConsumers': consumers.evidence,
       if (encounterRelease != null)
         'nativeEncounterRelease': encounterRelease.evidence,
       'diagnostics':
