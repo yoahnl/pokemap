@@ -57,7 +57,8 @@ void main() {
     expect(native.movesById.keys, ['cut', 'outside_cut']);
     expect(
         native.learnsetsBySpeciesId['fixture_form1']!.startingMoves, ['cut']);
-    expect(native.speciesById['fixture_form1']!.names, isEmpty);
+    expect(native.speciesById['fixture_form1']!.names,
+        {'en': 'Beedrill', 'fr': 'Dardargnan'});
     expect(native.evidence['nativeNamesQualified'], isFalse);
     expect(native.evidence.containsKey('sourceTrainerRosters'), isFalse);
     expect(
@@ -93,6 +94,121 @@ void main() {
                   NativePsdkCatalogRequest(baseId: 'fixture', form: 1, level: 1)
                 ]),
         _code('empty_moves'));
+  });
+
+  test('attests species and form names from distinct native text indices', () {
+    final sources = _fixtureSources();
+    _mutateSource(sources, 'Data/Studio/pokemon/fixture.json', (raw) {
+      raw['id'] = 1;
+      ((raw['forms'] as List).first as Map)['formTextId'] = {'name': 0};
+      ((raw['forms'] as List).last as Map)['formTextId'] = {'name': 2};
+    });
+    _replaceCsv(
+        sources,
+        'Data/Text/Dialogs/100067.csv',
+        ' FR ,en,it\r\nBulbizarre,Bulbasaur,Bulbasaur\r\n'
+            'Dardargnan,Beedrill,Beedrill\r\n'
+            '"Méga\\nlDardargnan","Mega ""Bee"",\ndrill",Mega\r\n');
+    final native = const NativePsdkTrainerBundleBuilder().build(
+        files: sources,
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 1, level: 1)
+        ]);
+    for (final species in native.speciesById.values) {
+      expect(species.names, {'en': 'Bulbasaur', 'fr': 'Bulbizarre'});
+    }
+    expect(native.speciesById['fixture']!.forms.formName, 'Bulbasaur');
+    expect(native.speciesById['fixture_form1']!.forms.formName,
+        'Mega "Bee",\ndrill');
+    expect(native.evidence['nativeFormNamesBySpeciesId'], {
+      'fixture': {'en': 'Bulbasaur', 'fr': 'Bulbizarre'},
+      'fixture_form1': {'en': 'Mega "Bee",\ndrill', 'fr': 'Méga\nDardargnan'}
+    });
+    expect(native.evidence['speciesNamesQualified'], isTrue);
+    expect(native.evidence['formNamesQualified'], isTrue);
+    expect(native.evidence['nativeNamesQualified'], isFalse);
+    final witnesses = (native.evidence['sources'] as List).cast<Map>();
+    for (final path in _textPaths) {
+      final source =
+          sources.singleWhere((source) => source.relativePath == path);
+      expect(witnesses.singleWhere((row) => row['relativePath'] == path),
+          source.evidence);
+    }
+  });
+
+  test('requires exact bounded species and form CSV source witnesses', () {
+    for (final path in _textPaths) {
+      final sources = _fixtureSources()
+        ..removeWhere((source) => source.relativePath == path);
+      expect(
+          () => const NativePsdkTrainerBundleBuilder()
+                  .build(files: sources, requests: [
+                NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+              ]),
+          _code('source_missing:$path'));
+    }
+    for (final path in [
+      'Data/Text/Dialogs/100001.csv',
+      'Data/Text/Dialogs/../100000.csv',
+      'Data/Text/Dialogs/100000.csv.json'
+    ]) {
+      expect(() => _csvSource(path, 'en,fr\nA,B\n'), _code('source_witness'));
+    }
+    final oversized = 'x' * 1048577;
+    expect(
+        () => _csvSource(_textPaths.first, oversized), _code('source_witness'));
+  });
+
+  test('rejects malformed native name tables without inventing display names',
+      () {
+    for (final path in _textPaths) {
+      for (final (csv, code) in [
+        ('en,fr\n"unterminated,B\n', 'source_csv:$path'),
+        ('en,fr\nA"quote,B\n', 'source_csv:$path'),
+        ('en,fr\n"A"tail,B\n', 'source_csv:$path'),
+        ('en,fr\nA,B,extra\n', 'source_csv:$path'),
+        ('en,fr\nA\n', 'source_csv:$path'),
+        ('en,it\nA,B\n', 'name_languages:$path'),
+        ('en,en,fr\nA,B,C\n', 'name_languages:$path'),
+        ('en,fr\nA,B\n', 'name_missing:$path:15'),
+      ]) {
+        final sources = _fixtureSources();
+        _replaceCsv(sources, path, csv);
+        expect(
+            () => const NativePsdkTrainerBundleBuilder()
+                    .build(files: sources, requests: [
+                  NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+                ]),
+            _code(code));
+      }
+    }
+    for (final value in [
+      null,
+      {},
+      {'name': -1},
+      {'name': '15'}
+    ]) {
+      final sources = _fixtureSources();
+      _mutateSource(sources, 'Data/Studio/pokemon/fixture.json',
+          (raw) => ((raw['forms'] as List).first as Map)['formTextId'] = value);
+      expect(
+          () => const NativePsdkTrainerBundleBuilder()
+                  .build(files: sources, requests: [
+                NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+              ]),
+          _code('form_text_id'));
+    }
+    for (final path in _textPaths) {
+      final sources = _fixtureSources();
+      _replaceCsv(sources, path,
+          'en,fr\n${List.filled(15, 'A,B').join('\n')}\nA,   \nA,B\n');
+      expect(
+          () => const NativePsdkTrainerBundleBuilder()
+                  .build(files: sources, requests: [
+                NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+              ]),
+          _code('name_missing:$path:15'));
+    }
   });
 
   test(
@@ -332,7 +448,7 @@ void main() {
         closure,
         'Data/Studio/pokemon/fixture.json',
         (raw) => ((raw['forms'] as List).first as Map)['evolutions'] = [
-              for (var i = 0; i < 64; i++)
+              for (var i = 0; i < 128; i++)
                 {'dbSymbol': 'target_$i', 'form': 0, 'conditions': []}
             ]);
     expect(
@@ -340,6 +456,82 @@ void main() {
             .build(files: closure, requests: [request]),
         _code('species_closure_quota'));
   });
+
+  test('closes 128 native bases from one request while preserving other quotas',
+      () {
+    final native = const NativePsdkTrainerBundleBuilder().build(
+        files: _closureSources(128),
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'base_0', form: 0, level: 1)
+        ]);
+    expect(native.speciesById, hasLength(128));
+    expect(native.evidence['quotas'], {
+      'requests': 256,
+      'requestedBases': 64,
+      'closureBases': 128,
+      'forms': 128,
+      'moves': 512,
+      'sourceFiles': 2048,
+      'perSourceBytes': 1048576,
+      'totalSourceBytes': 16777216
+    });
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(
+                files: _closureSources(129),
+                requests: [
+                  NativePsdkCatalogRequest(baseId: 'base_0', form: 0, level: 1)
+                ]),
+        _code('species_closure_quota'));
+  });
+
+  test('recipe accepts 128 closure bases and preserves outputs on overflow',
+      () async {
+    final temp = await Directory.systemTemp.createTemp('native_closure_');
+    addTearDown(() => temp.delete(recursive: true));
+    final root = Directory('${temp.path}/reference');
+    final request = File('${temp.path}/requests.json');
+    final output = File('${temp.path}/bundle.json');
+    final dartOutput = File('${temp.path}/bundle.dart');
+    await request.writeAsString(jsonEncode({
+      'kind': 'nativePsdkCatalogRequests',
+      'version': 1,
+      'requests': [
+        {'baseId': 'base_0', 'form': 0, 'level': 1}
+      ]
+    }));
+    Future<ProcessResult> run(int count) async {
+      for (final source in _closureSources(count)) {
+        final file = File('${root.path}/${source.relativePath}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(source.bytes);
+      }
+      return Process.run(
+          'dart',
+          [
+            'run',
+            'tool/build_native_psdk_trainer_bundle.dart',
+            '--catalog-requests',
+            root.path,
+            request.path,
+            output.path,
+            dartOutput.path
+          ],
+          workingDirectory: Directory.current.path);
+    }
+
+    final accepted = await run(128);
+    expect(accepted.exitCode, 0,
+        reason: '${accepted.stdout} ${accepted.stderr}');
+    final bytes = await output.readAsBytes();
+    final dartBytes = await dartOutput.readAsBytes();
+    expect((jsonDecode(utf8.decode(bytes)) as Map)['species'], hasLength(128));
+    final refused = await run(129);
+    expect(refused.exitCode, isNot(0));
+    expect(
+        refused.stderr, contains('Native species closure exceeds its limit.'));
+    expect(await output.readAsBytes(), bytes);
+    expect(await dartOutput.readAsBytes(), dartBytes);
+  }, timeout: const Timeout(Duration(seconds: 60)));
 
   test(
       'preserves the complete native move signature for explicit and progression data',
@@ -619,6 +811,25 @@ void main() {
     expect(await output.readAsBytes(), bytes);
     expect(await dartOutput.readAsString(),
         "const nativePsdkTrainerBundleJson = r'''${utf8.decode(bytes)}''';\n");
+    final dartBytes = await dartOutput.readAsBytes();
+    final speciesText = File('${root.path}/${_textPaths.first}');
+    final speciesTextBytes = await speciesText.readAsBytes();
+    await speciesText.delete();
+    final missingText = await run();
+    expect(missingText.exitCode, isNot(0));
+    expect(missingText.stderr, contains(_textPaths.first));
+    expect(await output.readAsBytes(), bytes);
+    expect(await dartOutput.readAsBytes(), dartBytes);
+    await speciesText.writeAsBytes(speciesTextBytes);
+    final formText = File('${root.path}/${_textPaths.last}');
+    final formTextBytes = await formText.readAsBytes();
+    await formText.writeAsString('en,fr\n"unterminated,B\n');
+    final malformedText = await run();
+    expect(malformedText.exitCode, isNot(0));
+    expect(malformedText.stderr, contains('native_trainer.source_csv:'));
+    expect(await output.readAsBytes(), bytes);
+    expect(await dartOutput.readAsBytes(), dartBytes);
+    await formText.writeAsBytes(formTextBytes);
     await requestFile.writeAsString(jsonEncode({
       'kind': 'nativePsdkCatalogRequests',
       'version': 1,
@@ -627,7 +838,7 @@ void main() {
     final invalid = await run();
     expect(invalid.exitCode, isNot(0));
     expect(await output.readAsBytes(), bytes);
-  }, timeout: const Timeout(Duration(seconds: 60)));
+  }, timeout: const Timeout(Duration(seconds: 120)));
 
   test('embedded reference matches the rebuildable asset exactly', () async {
     final asset =
@@ -897,6 +1108,13 @@ void main() {
           sha256: Sha256Hash(raw['sha256'] as String),
           bytes: bytes));
     }
+    for (final path in _textPaths) {
+      final bytes = await File('$sourceRoot/$path').readAsBytes();
+      files.add(NativePsdkTrainerSourceFile(
+          relativePath: path,
+          sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+          bytes: bytes));
+    }
     final levels = (builtin.evidence['requestedLevels'] as Map).map(
         (key, value) =>
             MapEntry(key as String, (value as List).cast<int>().toSet()));
@@ -910,7 +1128,28 @@ void main() {
     for (final species in expectedSpecies) {
       species['names'] = <String, String>{};
     }
-    expect(rebuilt.toJson()['species'], expectedSpecies);
+    final rebuiltSpecies =
+        (jsonDecode(jsonEncode(rebuilt.toJson()['species'])) as List)
+            .cast<Map>();
+    for (final species in rebuiltSpecies) {
+      species['names'] = <String, String>{};
+      (species['forms'] as Map)['formName'] = null;
+    }
+    expect(rebuiltSpecies, expectedSpecies);
+    expect(rebuilt.speciesById['beedrill']!.names,
+        {'en': 'Beedrill', 'fr': 'Dardargnan'});
+    expect(rebuilt.speciesById['beedrill_form30']!.forms.formName,
+        'Mega Beedrill');
+    expect(
+        rebuilt.evidence['nativeFormNamesBySpeciesId'],
+        containsPair('beedrill_form30',
+            {'en': 'Mega Beedrill', 'fr': 'Méga Dardargnan'}));
+    expect(
+        rebuilt.speciesById.values.every((species) =>
+            species.names.keys.toSet().containsAll({'en', 'fr'}) &&
+            species.names.values.every((name) => name.isNotEmpty) &&
+            species.forms.formName!.isNotEmpty),
+        isTrue);
     expect(rebuilt.toJson()['sourceLearnsets'],
         builtin.toJson()['sourceLearnsets']);
     final expectedCatalogs = (builtin.toJson()['catalogs'] as List).cast<Map>();
@@ -926,7 +1165,14 @@ void main() {
       }
     }
     expect(rebuilt.toJson()['catalogs'], expectedCatalogs);
-    expect(rebuilt.evidence['sources'], builtin.evidence['sources']);
+    final expectedSources = [
+      ...(builtin.evidence['sources'] as List).cast<Map>(),
+      for (final file
+          in files.where((file) => _textPaths.contains(file.relativePath)))
+        file.evidence
+    ]..sort((a, b) =>
+        (a['relativePath'] as String).compareTo(b['relativePath'] as String));
+    expect(rebuilt.evidence['sources'], expectedSources);
   },
       skip: sourceRoot == null
           ? 'Requires the optional read-only PSDK reference root.'
@@ -935,6 +1181,29 @@ void main() {
 
 Matcher _code(String suffix) => throwsA(isA<ContractError>()
     .having((error) => error.code, 'code', 'native_trainer.$suffix'));
+
+List<NativePsdkTrainerSourceFile> _closureSources(int count) {
+  final sources = _fixtureSources();
+  final template = jsonDecode(utf8.decode(sources.removeAt(0).bytes))
+      as Map<String, dynamic>;
+  final form = (template['forms'] as List).first as Map;
+  for (var i = 0; i < count; i++) {
+    sources.add(_source('Data/Studio/pokemon/base_$i.json', {
+      ...template,
+      'dbSymbol': 'base_$i',
+      'forms': [
+        {
+          ...form,
+          'evolutions': [
+            if (i + 1 < count)
+              {'dbSymbol': 'base_${i + 1}', 'form': 0, 'conditions': []}
+          ]
+        }
+      ]
+    }));
+  }
+  return sources;
+}
 
 List<dynamic> _natureEntries(Map<String, Object?> json) =>
     ((json['catalogs'] as List).cast<Map>().singleWhere(
@@ -955,6 +1224,25 @@ NativePsdkTrainerSourceFile _source(String path, Object raw) {
       bytes: bytes);
 }
 
+const _textPaths = [
+  'Data/Text/Dialogs/100000.csv',
+  'Data/Text/Dialogs/100067.csv'
+];
+
+NativePsdkTrainerSourceFile _csvSource(String path, String csv) {
+  final bytes = utf8.encode(csv);
+  return NativePsdkTrainerSourceFile(
+      relativePath: path,
+      sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+      bytes: bytes);
+}
+
+void _replaceCsv(
+    List<NativePsdkTrainerSourceFile> sources, String path, String csv) {
+  sources[sources.indexWhere((source) => source.relativePath == path)] =
+      _csvSource(path, csv);
+}
+
 void _mutateSource(List<NativePsdkTrainerSourceFile> sources, String path,
     void Function(Map<String, dynamic>) mutate) {
   final index = sources.indexWhere((source) => source.relativePath == path);
@@ -967,6 +1255,7 @@ void _mutateSource(List<NativePsdkTrainerSourceFile> sources, String path,
 List<NativePsdkTrainerSourceFile> _fixtureSources({Object? femaleRate = 50}) {
   Map<String, Object?> form(int number, Object? rate) => {
         'form': number,
+        'formTextId': {'name': number + 15},
         'femaleRate': rate,
         'type1': 'bug',
         'type2': 'poison',
@@ -1024,6 +1313,19 @@ List<NativePsdkTrainerSourceFile> _fixtureSources({Object? femaleRate = 50}) {
             stat: _natureRows[index].$2[offset],
         },
       }),
+    for (final path in _textPaths)
+      _csvSource(
+          path,
+          'en,fr,it,de,es,ko,kana\r\n${[
+            for (var i = 0; i < 1064; i++)
+              switch (i) {
+                0 => 'Egg,Œuf,,,,,',
+                1 => 'Bulbasaur,Bulbizarre,,,,,',
+                15 => 'Beedrill,Dardargnan,,,,,',
+                16 => 'Pidgey,Roucool,,,,,',
+                _ => 'Fixture species,Espèce témoin,,,,,'
+              }
+          ].join('\r\n')}\r\n'),
   ];
 }
 

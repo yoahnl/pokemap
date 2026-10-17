@@ -31,6 +31,16 @@ void main() {
           sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
           bytes: bytes));
     }
+    for (final relative in [
+      'Data/Text/Dialogs/100000.csv',
+      'Data/Text/Dialogs/100067.csv'
+    ]) {
+      final bytes = await File('$root/$relative').readAsBytes();
+      files.add(NativePsdkTrainerSourceFile(
+          relativePath: relative,
+          sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+          bytes: bytes));
+    }
     final levels = (native.evidence['requestedLevels'] as Map).map(
         (key, value) =>
             MapEntry(key as String, (value as List).cast<int>().toSet()));

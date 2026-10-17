@@ -31,6 +31,16 @@ void main() {
           sha256: Sha256Hash(raw['sha256'] as String),
           bytes: bytes));
     }
+    for (final path in [
+      'Data/Text/Dialogs/100000.csv',
+      'Data/Text/Dialogs/100067.csv'
+    ]) {
+      final bytes = await File('$root/$path').readAsBytes();
+      sources.add(NativePsdkTrainerSourceFile(
+          relativePath: path,
+          sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+          bytes: bytes));
+    }
   });
 
   test('Cut is separately qualified without changing trainer defaults', () {

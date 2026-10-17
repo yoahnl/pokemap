@@ -14,13 +14,13 @@ final class NativePsdkTrainerSourceFile {
     required this.sha256,
     required List<int> bytes,
   }) : bytes = List.unmodifiable(bytes) {
-    if (!RegExp(r'^(Data/Studio/[a-z_]+/[a-z0-9_]+\.json|graphics/pokedex/poke(front|back)/[a-z0-9_]+\.png)$')
+    if (!RegExp(r'^(Data/Studio/[a-z_]+/[a-z0-9_]+\.json|Data/Text/Dialogs/(100000|100067)\.csv|graphics/pokedex/poke(front|back)/[a-z0-9_]+\.png)$')
             .hasMatch(relativePath) ||
         bytes.length > 1048576 ||
         bytes.any((byte) => byte < 0 || byte > 255) ||
         crypto.sha256.convert(bytes).toString() != sha256.value) {
       throw ContractError('native_trainer.source_witness', relativePath,
-          'The native reference requires bounded, exact JSON source bytes.');
+          'The native reference requires bounded, exact source bytes.');
     }
   }
 
@@ -286,6 +286,97 @@ final class NativePsdkCatalogRequest {
 
 final _nativeSymbol = RegExp(r'^[a-z][a-z0-9_]*$');
 
+final class _NativePsdkNameTable {
+  _NativePsdkNameTable._(this.path, this.rows, this.enIndex, this.frIndex);
+
+  factory _NativePsdkNameTable(NativePsdkTrainerSourceFile file) {
+    final path = file.relativePath;
+    final String text;
+    try {
+      text = utf8.decode(file.bytes);
+    } on FormatException {
+      _invalid('source_csv:$path');
+    }
+    final rows = <List<String>>[];
+    var row = <String>[];
+    var field = StringBuffer();
+    var state = 0;
+    void finishField() {
+      row.add(field.toString());
+      field = StringBuffer();
+      state = 0;
+    }
+
+    for (var i = 0; i < text.length; i++) {
+      final character = text[i];
+      if (state == 1) {
+        if (character == '"') {
+          if (i + 1 < text.length && text[i + 1] == '"') {
+            field.write('"');
+            i++;
+          } else {
+            state = 2;
+          }
+        } else {
+          field.write(character);
+        }
+      } else if (character == ',') {
+        finishField();
+      } else if (character == '\r' || character == '\n') {
+        finishField();
+        rows.add(row);
+        row = <String>[];
+        if (character == '\r' && i + 1 < text.length && text[i + 1] == '\n') {
+          i++;
+        }
+      } else if (character == '"' && state == 0 && field.isEmpty) {
+        state = 1;
+      } else {
+        if (character == '"' || state == 2) _invalid('source_csv:$path');
+        field.write(character);
+      }
+    }
+    if (state == 1) _invalid('source_csv:$path');
+    if (row.isNotEmpty || field.isNotEmpty || state == 2) {
+      finishField();
+      rows.add(row);
+    }
+    if (rows.isEmpty) _invalid('name_languages:$path');
+    final header =
+        rows.first.map((value) => value.trim().toLowerCase()).toList();
+    if (header.any((value) => value.isEmpty) ||
+        header.toSet().length != header.length ||
+        !header.contains('en') ||
+        !header.contains('fr')) {
+      _invalid('name_languages:$path');
+    }
+    if (rows.any((row) => row.length != header.length)) {
+      _invalid('source_csv:$path');
+    }
+    return _NativePsdkNameTable._(
+        path, rows.sublist(1), header.indexOf('en'), header.indexOf('fr'));
+  }
+
+  final String path;
+  final List<List<String>> rows;
+  final int enIndex;
+  final int frIndex;
+
+  Map<String, String> names(int index) {
+    if (index < 0 || index >= rows.length) {
+      _invalid('name_missing:$path:$index');
+    }
+    final names = {
+      'en': rows[index][enIndex].replaceAll(r'\nl', '\n'),
+      'fr': rows[index][frIndex].replaceAll(r'\nl', '\n')
+    };
+    if (names.values.any((value) => value.trim().isEmpty)) {
+      _invalid('name_missing:$path:$index');
+    }
+    return names;
+  }
+}
+
 final class NativePsdkTrainerBundleBuilder {
   const NativePsdkTrainerBundleBuilder();
 
@@ -351,6 +442,17 @@ final class NativePsdkTrainerBundleBuilder {
       return raw;
     }
 
+    _NativePsdkNameTable readNames(String path) {
+      final file = index[path];
+      if (file == null) _invalid('source_missing:$path');
+      final table = _NativePsdkNameTable(file);
+      used.add(path);
+      return table;
+    }
+
+    final speciesNames = readNames('Data/Text/Dialogs/100000.csv');
+    final formNames = readNames('Data/Text/Dialogs/100067.csv');
+    final nativeFormNames = <String, Map<String, String>>{};
     final species = <Map<String, Object?>>[];
     final learnsets = <Map<String, Object?>>[];
     final evolutions = <Map<String, Object?>>[];
@@ -369,7 +471,7 @@ final class NativePsdkTrainerBundleBuilder {
     final formsByBase = <String, List<Map<String, dynamic>>>{};
     var formCount = 0;
     for (var cursor = 0; cursor < queue.length; cursor++) {
-      if (queue.length > 64) _invalid('species_closure_quota');
+      if (queue.length > 128) _invalid('species_closure_quota');
       final id = queue[cursor];
       final raw = read('Data/Studio/pokemon/$id.json', id);
       if (raw['klass'] != 'Specie' ||
@@ -401,7 +503,7 @@ final class NativePsdkTrainerBundleBuilder {
               target != '__undef__' &&
               closure.add(target)) {
             if (!_nativeSymbol.hasMatch(target)) _invalid('species_identity');
-            if (closure.length > 64) _invalid('species_closure_quota');
+            if (closure.length > 128) _invalid('species_closure_quota');
             queue.add(target);
           }
         }
@@ -486,7 +588,14 @@ final class NativePsdkTrainerBundleBuilder {
           'height': form['height'],
           'weight': form['weight'],
         }).toJson();
-        value['names'] = <String, String>{};
+        value['names'] = speciesNames.names(raw['id'] as int);
+        final formTextId = form['formTextId'];
+        final formNameIndex = formTextId is Map ? formTextId['name'] : null;
+        if (formNameIndex is! int || formNameIndex < 0) {
+          _invalid('form_text_id');
+        }
+        final names = formNames.names(formNameIndex);
+        nativeFormNames[id] = names;
         final growth = switch (form['experienceType']) {
           0 => 'fast',
           1 => 'medium',
@@ -512,6 +621,7 @@ final class NativePsdkTrainerBundleBuilder {
           'baseFormId': baseId,
           'isBaseForm': number == 0,
           'formId': '$number',
+          'formName': names['en'],
           'otherForms': formIds.where((value) => value != '$number').toList()
         };
         species.add(PokemonSpeciesFile.fromJson(value).toJson());
@@ -757,12 +867,19 @@ final class NativePsdkTrainerBundleBuilder {
         ],
         'nativeRequestMoveBindings': requestBindings,
         'nativeNamesQualified': false,
+        'speciesNamesQualified': true,
+        'formNamesQualified': true,
+        'speciesNameOracle': 'Studio::Creature#name:table0:JSON.id',
+        'formNameOracle':
+            'Studio::CreatureForm#form_name:table67:formTextId.name',
+        'nativeFormNameLanguage': 'en',
+        'nativeFormNamesBySpeciesId': nativeFormNames,
         'nativeMoveDataFidelityOnly': true,
         'activationRequiresExactRuntimeMoveQualification': true,
         'quotas': {
           'requests': 256,
           'requestedBases': 64,
-          'closureBases': 64,
+          'closureBases': 128,
           'forms': 128,
           'moves': 512,
           'sourceFiles': 2048,

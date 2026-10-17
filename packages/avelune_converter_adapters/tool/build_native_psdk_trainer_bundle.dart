@@ -116,7 +116,7 @@ Future<void> main(List<String> args) async {
   var totalBytes = 0;
   Future<List<int>> readBytes(String path) async {
     if (!RegExp(
-            r'^(Data/Studio/[a-z_]+/[a-z0-9_]+\.json|graphics/pokedex/poke(front|back)/[a-z0-9_]+\.png)$')
+            r'^(Data/Studio/[a-z_]+/[a-z0-9_]+\.json|Data/Text/Dialogs/(100000|100067)\.csv|graphics/pokedex/poke(front|back)/[a-z0-9_]+\.png)$')
         .hasMatch(path)) {
       throw StateError('Invalid native source path.');
     }
@@ -147,6 +147,8 @@ Future<void> main(List<String> args) async {
       (jsonDecode(utf8.decode(await readBytes(path))) as Map)
           .cast<String, dynamic>();
 
+  await readBytes('Data/Text/Dialogs/100000.csv');
+  await readBytes('Data/Text/Dialogs/100067.csv');
   final moves = {
     ...nativeQualifiedFieldMoveSourceHashes.keys,
     for (final request in requests) ...?request.explicitMoveIds
@@ -156,7 +158,7 @@ Future<void> main(List<String> args) async {
   final queue = species.toList()..sort();
   var formCount = 0;
   for (var cursor = 0; cursor < queue.length; cursor++) {
-    if (queue.length > 64) {
+    if (queue.length > 128) {
       throw StateError('Native species closure exceeds its limit.');
     }
     final id = queue[cursor];
@@ -188,7 +190,7 @@ Future<void> main(List<String> args) async {
       ];
       for (final target in targets) {
         if (target != 'none' && target != '__undef__' && species.add(target)) {
-          if (species.length > 64) {
+          if (species.length > 128) {
             throw StateError('Native species closure exceeds its limit.');
           }
           queue.add(target);
