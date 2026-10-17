@@ -1370,14 +1370,45 @@ La création de contenu reste hors des tests du mécanisme. Le système peut êt
 
 ### P14 — Revue et livraison
 
-- [ ] Refaire l'état Git, les fichiers modifiés et les écarts au plan ; préserver les modifications étrangères.
-- [ ] Relire le modèle et les frontières core/distribution/authoring/Studio/MCP.
-- [ ] Vérifier les critères de la matrice10, les tests réellement exécutés et les N/A motivés.
-- [ ] Recharger le MCP du checkout et vérifier les contrats en direct ; ne pas confondre build et serveur réellement utilisé.
-- [ ] Faire une critique indépendante : pertes de données, remapping, source externe, versions, annulation, mensonge de progression, quotas et historique.
-- [ ] Mettre le lot implémenté et vérifié à TO REVIEW, avec commit/branche si une autorisation Git a été donnée séparément.
-- [ ] Laisser DONE à la décision explicite de Yoahn.
-- [ ] Conserver séparément le statut du système et celui de chaque bibliothèque de contenu.
+- [x] Refaire l'état Git, les fichiers modifiés et les écarts au plan ; préserver les modifications étrangères.
+- [x] Relire le modèle et les frontières core/distribution/authoring/Studio/MCP.
+- [x] Vérifier les critères de la matrice10, les tests réellement exécutés et les N/A motivés.
+- [x] Reconstruire/tester le MCP qualifié et vérifier les contrats sur un nouveau SDKstdio réel ; reload de la connexion attachée N/A explicite, aucune assimilation au simple build.
+- [x] Faire une critique indépendante : pertes de données, remapping, source externe, versions, annulation, mensonge de progression, quotas et historique.
+- [x] Mettre le lot implémenté et vérifié à TO REVIEW, avec commit/branche si une autorisation Git a été donnée séparément.
+- [x] Laisser DONE à la décision explicite de Yoahn.
+- [x] Conserver séparément le statut du système et celui de chaque bibliothèque de contenu.
+
+**P14 — revue finale du système et preuve de transport :** revue indépendante SPEC/qualité favorable, zéro finding code ou périmètre sur le correctif et les preuves examinés. Le seul fichier technique P14 est `packages/map_authoring/test/domains/maps/smart_tile_catalog_transport_parity_test.dart`, zone du test de budget : ID valide stable `budget-envelope`, padding de la ligne par espaces JSON et assertion de corrélation à la limite exacte. L’ancien helper gonflait l’ID jusqu’à1Mio et déclenchait légitimement `worker.request_id_invalid` ; aucune modification de worker, quota, délai ou production. Le cas limite+1 conserve `worker.input_too_large`. Source qualifiée `db0e9983aead4a510ecd51bb5f6aa9c9edd657a1c086d759a113e6799e328820`, patch `60d3cd0522968be8ea753bc10a68540121d37ac6081a18724058385f31969d0e`, reçu `/tmp/p14-budget-envelope-test-fix-execution-receipt.json` SHA `56ac35b9156f2874409fc6560f87fc22247b221aaffed05f80c3ed77a29fb00f` : les deux tests existants passent et l’analyse ciblée dit `No issues found!`. Le RED historique reste inchangé.
+
+Reçu MCP final `/tmp/p14-mcp-final-execution-receipt.json`, SHA `e47c18299d632ee1a741a6d82f3c06c71d2e7bdb01f790ddf4d3c2f505830100` : trois AOT neufs produit/contrôlé/fixture, exit0 et stderr vides, puis JSONL5/5, MCPstdio7/7 et schéma strict1/1 ciblé. Le check/build TypeScript final est exit0 ; dist315fichiers/2560530octets. La première compilation TS refusée faute des douze helpers P11 dans la copie reste conservée ; les helpers exacts qualifiés ont été inclus avant check/build. La réponse brute live `transport-runtime/live-describe-response.json` est `5c9b3d28ef3aec902896950e48eb419105172fff65b080fd605991a1c35b68c9` :18outils,418actions,65kinds, schéma transfert2 et19branches, recomptés par la revue. Le worker produit réellement utilisé est l’AOT `31ee00f7e2fac86ea830edfe81e77a30765e948f9442096b0541b60fccf2be2b` ;4427pins et trois binaires restent identiques, dix runs terminés sans résidu propriétaire.
+
+Le catalogue est vérifié dans une nouvelle connexion réelle du SDK MCP stdio sur les sources qualifiées, jamais assimilée à un reload de la connexion attachée à Codex. Ce reload attaché est N/A : aucune session PokeMap attachée n’est disponible dans ce contexte. La preuve live du nouveau serveur, son AOT et sa réponse brute satisfont la vérification des contrats du lot. Les verbes runtime/host non appelés ne sont pas présentés comme qualifiés. La garde interne `frames()` aprèsdispose n’ajoute aucune donnée de projet ni sémantique d’authoring à exposer ; API/JSONL/MCP supplémentaires N/A pour cette garde, couverte directement et par le Player natif.
+
+Réserves globales conservées : PMCP085 termine réellement exit1 malgré un catalogue complet et zéro contrat bloqué/manquant ; certifications globale et Items restent PARTIAL. La campagne authoring antérieure1992réussites/40échecs n’est pas rejouée et ne devient pas verte après le seul correctif de budget. Aucun nombre de39échecs actuels n’est déduit. Les contrôles ciblés du système de packs, l’état du dépôt partagé et ces limites globales restent séparés. Aucun nouveau coûtCI, galerieP13, push ou rebase n’est introduit.
+
+Commandes P14 exécutées dans les copies et graphes épinglés, chacune sous le wrapper de propriété des processus ; arguments absolus, env, cwd, hashes et sorties exactes dans les deux reçus ci-dessus :
+
+~~~bash
+cd packages/map_authoring
+dart compile exe bin/pokemap_authoring.dart -o "$P14_RUNTIME/authoring-product"
+dart compile exe test/support/resource_pack_controlled_jsonl_worker.dart -o "$P14_RUNTIME/authoring-controlled"
+dart compile exe test/support/resource_pack_transport_fixture.dart -o "$P14_RUNTIME/resource-pack-transport-fixture"
+dart test test/tooling/jsonl_resource_pack_flow_test.dart --concurrency=1 --reporter=expanded
+dart test test/domains/maps/smart_tile_catalog_transport_parity_test.dart --concurrency=1 --reporter=expanded
+dart analyze test/domains/maps/smart_tile_catalog_transport_parity_test.dart
+cd ../../tools/pokemap_mcp
+npm run check
+npm run build
+node --import tsx --test test/resource_pack_stdio.test.ts
+node --import tsx --test --test-name-pattern 'all tools publish strict schemas, outputs and annotations' test/conformance_security.test.ts
+~~~
+
+Les commandes de test JSONL/MCP passent par le lanceur privé `transport-runtime/run.py`, qui transmet les trois AOT et leur identité enregistrée ; la recette normalisée ci-dessus ne prétend pas qu’un worker JIT ou un cache existant constitue la preuve finale. La sonde live utilise `p14-live-describe.mjs` dans la copie qualifiée. `dart tool/pmcp085_conformance.dart` conserve exit1/globalPARTIAL ; aucune certification globale n’est inférée de ce catalogue complet.
+
+**Livraison locale et suivi :** P12 est committé `f1c236a44d495ba7ca117a16d170268c65ada7cb`, parent `fa6a7e4c85466dcdc558617f711e5d6a9632ff69`,20chemins (19techniques+plan). Reçu `/tmp/p12-scoped-commit-receipt.json`, SHA `3a8613bc453b488c04b1509deff4cb4afb4d4f0bea88946e6d2b846aefef0a16` : les20blobs du commit sont exactement les sources qualifiées relues, index vide après commit ; dirty288→270 par retrait des seuls chemins propres. Gateway/runtime conservent leurs deux compositions étrangères en worktree. La projection de budgetP14 `db0e…` est exacte au candidat exécuté et n’entre pas dans P12.
+
+Le périmètre du commit P14 contient exactement ce test existant et le présent plan : pas de source produit, nouveau Markdown, app native, workflowCI, dépendance, push ou rebase. Le ticket existant POST-WLD-ASSET-PACK-001, domaine unique Monde & narration/PostBêta, gate inchangée, est passé à TO REVIEW après implémentation et vérification. Il conserve scope, inventaire/commandes/preuves et limites ; le SHA P14 et l’état Git final y sont consignés après commit. DONE appartient uniquement à la décision de Yoahn. P13 reste différé, sans galerie inventée ni modification de la bêta. Critique finale indépendante P14 favorable sur le code, les reçus, le catalogue live et les N/A ; critique de cette projection documentaire favorable, zéro finding avant commit.
 
 ## 10. Matrice de validation obligatoire
 
@@ -1502,9 +1533,9 @@ L'état initial d'exécution est main, 00c3112c0754ee54553584d38f7e44598c3077c3,
 | P09 | TO REVIEW | Jobs/API/JSONL/MCP qualifiés ; SPEC conforme et qualité approuvée ; commit da27b76c50c43a745a003f2e16fe80a7b9e3620e |
 | P10 | TO REVIEW | Commit a5e94377c :39chemins, SPEC et qualité favorables ; import/usages2D3D/save/cold process reopen acquis, décision DONE humaine |
 | P11 | TO REVIEW | Commit `aac1486e2`, 65chemins ; revues, transports ciblés et parcours natif signés favorables ; PMCP085 global PARTIAL conservé |
-| P12 | VÉRIFIÉ, commit préparé |19chemins techniques + plan ;5casAOT,143ciblés/357distribution/22reprise/4spatial et4natifs verts ; critique finale puis commit local |
+| P12 | TO REVIEW | Commit `f1c236a44`,20chemins ;5casAOT,143ciblés/357distribution/22reprise/4spatial et4natifs verts ; critique finale favorable |
 | P13 | Différé par Yoahn | Constitution des collections exclue de l'exécution actuelle ; système P01–P12 et revue P14 conservés |
-| P14 | TODO | Revue finale du système ; collections P13 différées |
+| P14 | TO REVIEW | Revue finale favorable ; MCP/JSONL/catalogue live et budget qualifiés ; livraison par commit séparé test+plan, SHA final dans Notion ; P13 différé |
 
 ### Preuves d'exécution du lot P01
 

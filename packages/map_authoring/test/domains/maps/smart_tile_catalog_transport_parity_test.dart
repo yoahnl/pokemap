@@ -43,6 +43,7 @@ void main() {
             defaultAuthoringJsonlMaxInputBytes,
           ));
       expect(exact.status, AuthoringResultStatus.success);
+      expect(exact.requestId, 'budget-envelope');
 
       final overflow = await _process(
           worker,
@@ -118,16 +119,14 @@ ProjectSmartTileAuthoringDraft _representativeMaximumDraft() {
 }
 
 String _describeLineWithByteLength(int targetBytes) {
-  String encodeWithId(String id) => jsonEncode(<String, Object?>{
-        'id': id,
-        'command': 'describe',
-        'args': const <String, Object?>{},
-      });
-
-  final minimum = encodeWithId('x');
+  final minimum = jsonEncode(<String, Object?>{
+    'id': 'budget-envelope',
+    'command': 'describe',
+    'args': const <String, Object?>{},
+  });
   final missing = targetBytes - utf8.encode(minimum).length;
   if (missing < 0) throw ArgumentError.value(targetBytes, 'targetBytes');
-  final result = encodeWithId('x${List<String>.filled(missing, 'x').join()}');
+  final result = '$minimum${List<String>.filled(missing, ' ').join()}';
   expect(utf8.encode(result).length, targetBytes);
   return result;
 }
