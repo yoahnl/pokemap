@@ -17,6 +17,67 @@ void main() {
   });
   tearDownAll(() => root.delete(recursive: true));
 
+  NativeProjectDraft artifactDraft(int nativeCount, int sourceCount,
+      {NativeWriteLimits? limits}) {
+    final artifact = NativeArtifact(bytes: [1, 2, 3]);
+    return NativeProjectDraft(
+        source: fixture.source,
+        projectName: fixture.draft.projectName,
+        parentPath: fixture.draft.parentPath,
+        folderName: fixture.draft.folderName,
+        sourceRootPath: fixture.draft.sourceRootPath,
+        mapIds: fixture.draft.mapIds,
+        artifacts: List.filled(nativeCount, artifact),
+        sourceArtifacts: List.filled(sourceCount, artifact),
+        mutations: fixture.draft.mutations,
+        limits: limits ?? sourceCatalogStudyWriteLimitsFor(383));
+  }
+
+  test('world artifact ceiling counts every native and source entry exactly',
+      () {
+    for (final split in [(2048, 0), (0, 2048), (1024, 1024), (593, 596)]) {
+      final draft = artifactDraft(split.$1, split.$2);
+      expect(draft.artifacts.length, split.$1);
+      expect(draft.sourceArtifacts.length, split.$2);
+    }
+    for (final split in [(2049, 0), (0, 2049), (1024, 1025)]) {
+      expect(
+          () => artifactDraft(split.$1, split.$2),
+          throwsA(isA<NativeWriteException>()
+              .having((error) => error.code, 'code', 'native.quota.draft')));
+    }
+    expect(
+        () => artifactDraft(593, 596,
+            limits: const NativeWriteLimits(maxArtifacts: 1024)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.draft')));
+  });
+
+  test('larger artifact count retains the aggregate byte budget', () {
+    expect(
+        () => artifactDraft(593, 596,
+            limits: const NativeWriteLimits(
+                maxArtifacts: 2048, maxTotalArtifactBytes: 3566)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.artifact')));
+  });
+
+  test('smaller artifact writer budget rejects before staging', () async {
+    final draft = artifactDraft(593, 596);
+    final approval = approveNativeFixtureDraft(draft);
+    var staged = false;
+    final writer = NativeProjectWriter(stagingFactory: () async {
+      staged = true;
+      throw StateError('Quota must refuse before staging');
+    });
+    await expectLater(
+        writer.write(approval.plan, approval.context, draft,
+            limits: const NativeWriteLimits(maxArtifacts: 1024)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.draft')));
+    expect(staged, isFalse);
+  });
+
   test(
       'full world settings reserve bounded operations and bytes without changing small studies',
       () {
@@ -26,7 +87,7 @@ void main() {
       expect(limits.maxMutations, 16384);
       expect(limits.maxTotalDraftJsonBytes, 268435456);
       expect(limits.maxTotalArtifactBytes, 268435456);
-      expect(limits.maxArtifacts, 1024);
+      expect(limits.maxArtifacts, 2048);
       expect(limits.maxImagePixels, 16777216);
       expect(limits.maxTotalImagePixels, 33554432);
       expect(limits.validate, returnsNormally);
@@ -34,6 +95,10 @@ void main() {
     expect(const NativeWriteLimits().maxMutations, 256);
     expect(sourceCatalogStudyWriteLimitsFor(1).maxMutations, 1024);
     expect(sourceCatalogStudyWriteLimitsFor(8).maxMutations, 2048);
+    expect(sourceCatalogStudyWriteLimitsFor(1).maxArtifacts, 512);
+    for (var count = 2; count <= 8; count++) {
+      expect(sourceCatalogStudyWriteLimitsFor(count).maxArtifacts, 1024);
+    }
     expect(
         const NativeWriteLimits(maxMutations: 16385).validate,
         throwsA(isA<NativeWriteException>()
@@ -171,8 +236,38 @@ void main() {
     final world = settings(383);
     final json = world.toJson();
     expect((json['writeLimits'] as Map)['maxMutations'], 16384);
+    expect((json['writeLimits'] as Map)['maxArtifacts'], 2048);
     expect((json['writeLimits'] as Map)['maxTotalDraftJsonBytes'], 268435456);
     expect(world.canonicalHash, settings(383).canonicalHash);
+    final resume = LocalReviewResumeSettings(
+        sourceRootPath: fixture.sourceRootPath,
+        destinationParentPath: world.parentPath,
+        projectName: world.projectName,
+        folderName: world.folderName,
+        writeLimits: world.writeLimits);
+    final restoredResume = LocalReviewResumeSettings.fromJson(resume.toJson());
+    expect(restoredResume.toJson(), resume.toJson());
+    expect(restoredResume.writeLimits.maxArtifacts, 2048);
+    final recipe = ConverterStudyPlanRecipe(
+        sessionId: ConverterId('world-capacity-session'),
+        sessionRevision: 3,
+        sourceSelection: ConverterSourceSelection(
+            rootPath: fixture.sourceRootPath,
+            logicalProjectNamespace: ConverterId('world-capacity')),
+        settings: world,
+        sourceSnapshotHash: world.profileAcknowledgement.sourceSnapshotHash,
+        profileEvidenceHash: world.profileAcknowledgement.profileEvidenceHash,
+        settingsHash: world.canonicalHash,
+        nativeDraftHash: Sha256Hash('2' * 64),
+        preparationHash: Sha256Hash('3' * 64),
+        previewPlanHash: Sha256Hash('4' * 64),
+        approvedPlanHash: Sha256Hash('5' * 64),
+        targetCapabilitiesHash: Sha256Hash('6' * 64),
+        rulesHash: Sha256Hash('7' * 64),
+        converterVersion: 'world-capacity-test');
+    final restoredRecipe = ConverterStudyPlanRecipe.fromJson(recipe.toJson());
+    expect(restoredRecipe.toJson(), recipe.toJson());
+    expect(restoredRecipe.settings.writeLimits.maxArtifacts, 2048);
     expect(
         () => settings(2049),
         throwsA(isA<ConverterWorkflowFailure>().having(

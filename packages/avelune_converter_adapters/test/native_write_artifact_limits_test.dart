@@ -102,7 +102,18 @@ void main() {
     expect(limits.validate, returnsNormally);
   });
 
-  for (final count in [-1, 0, 1025, 1000000]) {
+  test('allows an explicit bounded 2048 artifact whole-world study', () {
+    const limits = NativeWriteLimits(maxArtifacts: 2048);
+    expect(limits.validate, returnsNormally);
+    expect(limits.maxMutations, 256);
+    expect(limits.maxArtifactBytes, 16777216);
+    expect(limits.maxTotalArtifactBytes, 67108864);
+    expect(limits.maxTotalDraftJsonBytes, 67108864);
+    expect(limits.maxImagePixels, 16777216);
+    expect(limits.maxMapCells, 1048576);
+  });
+
+  for (final count in [-1, 0, 2049, 1000000]) {
     test('refuses an invalid artifact count $count', () {
       expect(
           NativeWriteLimits(maxArtifacts: count).validate,
