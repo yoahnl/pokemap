@@ -173,6 +173,83 @@ void main() {
     await sourceUnchanged();
   });
 
+  test('writer revision chain avoids redundant loads and retains cold verification',
+      () async {
+    final profiles = <ProjectSnapshotLoadProfile>[];
+    int? mutableLoads;
+    final receipt = await NativeProjectWriter(
+        snapshotProfileSink: profiles.add,
+        checkpoint: (stage, _, __) {
+          if (stage == NativeWriteStage.afterMutations) {
+            mutableLoads = profiles.length;
+          }
+        }).write(fixture.plan, fixture.context, fixture.draft);
+    stdout.writeln(jsonEncode({'qualification': 'writerRevisionChainLoads',
+      'mutations': fixture.draft.mutations.length,
+      'mutableSnapshotLoads': mutableLoads,
+      'allSnapshotLoads': profiles.length,
+      'cacheHits': profiles.where((profile) => profile.cacheHit).length}));
+    expect(receipt.verified, isTrue);
+    expect(mutableLoads, isNotNull);
+    expect(mutableLoads, lessThanOrEqualTo(3 * fixture.draft.mutations.length + 2));
+    expect(profiles[mutableLoads!].cacheHit, isFalse);
+    final opened = await _NativeProject.open(receipt.projectPath);
+    try {
+      final snapshot = await opened.load();
+      expect(snapshot.loadDiagnostics, isEmpty);
+      expect(snapshot.maps.single.toJson(), fixture.expectedMap.toJson());
+      expect(snapshot.revision, receipt.nativeRevision);
+    } finally {
+      await opened.close();
+    }
+    await sourceUnchanged();
+  });
+
+  test('writer revision chain refuses foreign canonical changes before the next operation',
+      () async {
+    var applied = 0;
+    String? foreignRevision;
+    NativeWriteException? failure;
+    try {
+      await NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
+        if (stage != NativeWriteStage.afterMutation || ++applied != 1) return;
+        final foreign = await _NativeProject.open(projectPath!);
+        try {
+          final snapshot = await foreign.load();
+          final request = AuthoringRequest(
+              requestId: 'writer-chain-foreign-plan',
+              actionId: 'tileset.upsert', actionVersion: 1,
+              workspaceHandle: foreign.opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'writer-chain-foreign-edit',
+              parameters: {'tileset': snapshot.manifest.tilesets.single
+                  .copyWith(name: 'Foreign canonical tileset change').toJson()});
+          final plan = await foreign.mutations.planMutation(foreign.project, request);
+          expect(plan.applicable, isTrue);
+          final result = await foreign.mutations.applyMutation(foreign.project,
+              planId: plan.planId, operationId: 'writer-chain-foreign-edit');
+          expect(result.receipt.status, AuthoringReceiptStatus.applied);
+          expect(result.snapshotRevision, isNotNull);
+          foreignRevision = result.snapshotRevision;
+        } finally {
+          await foreign.close();
+        }
+      }).write(fixture.plan, fixture.context, fixture.draft);
+      fail('Writer accepted a foreign canonical change');
+    } on NativeWriteException catch (error) {
+      failure = error;
+    }
+    stdout.writeln(jsonEncode({'qualification': 'writerRevisionChainForeignChange',
+      'writerAppliedCheckpoints': applied, 'failureCode': failure.code,
+      'failureMessage': failure.message, 'foreignRevision': foreignRevision}));
+    expect(foreignRevision, isNotNull);
+    expect(failure, isNotNull);
+    expect(failure.message, contains('AuthoringPlanException(plan.stale)'));
+    expect(applied, 1,
+        reason: 'The writer must not adopt a foreign revision as the next operation baseline');
+    await sourceUnchanged();
+  });
+
   test('source checkpoint import actions cannot bootstrap a fresh project',
       () async {
     final draft = fixture.draft;

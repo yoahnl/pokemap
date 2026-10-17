@@ -667,11 +667,18 @@ final class NativeProjectWriter {
               'Native artifact staging changed the content reference');
         }
       }
+      final initial = await session.snapshots.load(session.project,
+          policy: ProjectSnapshotLoadPolicy.strict);
+      if (initial.loadDiagnostics.isNotEmpty) {
+        throw const NativeWriteException('native.mutation.revision',
+            'The initial native snapshot has unresolved diagnostics');
+      }
+      var expectedRevision = initial.revision;
       for (var i = 0; i < draft.mutations.length; i++) {
         _checkCancelled(cancellation);
         await _guardStage(draft, parent, stagingRoot);
         final mutation = draft.mutations[i];
-        final before = await session.snapshots.load(session.project);
+        final beforeRevision = expectedRevision;
         final mutationPlan = await api.planMutation(
             session.project,
             AuthoringRequest(
@@ -679,11 +686,11 @@ final class NativeProjectWriter {
                 actionId: mutation.actionId,
                 actionVersion: mutation.actionVersion,
                 workspaceHandle: session.workspace.value,
-                expectedRevision: before.revision,
+                expectedRevision: beforeRevision,
                 idempotencyKey: mutation.operationId.value,
                 parameters: mutation.parameters));
         if (!mutationPlan.applicable ||
-            mutationPlan.snapshotRevision != before.revision) {
+            mutationPlan.snapshotRevision != beforeRevision) {
           throw NativeWriteException('native.mutation.plan',
               'Native mutation cannot be applied: ${mutationPlan.nonApplicableReason ?? mutation.actionId}');
         }
@@ -699,20 +706,29 @@ final class NativeProjectWriter {
             applied.receipt.beforeRevision == null ||
             applied.receipt.afterRevision == null ||
             applied.receipt.beforeRevision == applied.receipt.afterRevision ||
-            (applied.snapshotRevision != null && applied.snapshotRevision == before.revision)) {
+            (applied.snapshotRevision != null && applied.snapshotRevision == beforeRevision)) {
           throw NativeWriteException(
               'native.mutation.receipt',
               'Native mutation ${mutation.actionId} has inconsistent receipt '
                   '(status=${applied.receipt.status.name}, '
                   'plan=${applied.receipt.extensions['planId']}, '
                   'operation=${applied.receipt.extensions['operationId']}, '
-                  'beforeSnapshot=${before.revision}, '
+                  'beforeSnapshot=$beforeRevision, '
                   'afterSnapshot=${applied.snapshotRevision})');
         }
-        final observed = await session.snapshots.load(session.project);
-        if (applied.snapshotRevision != null && observed.revision != applied.snapshotRevision) {
-          throw const NativeWriteException('native.mutation.revision',
-              'Applied native revision differs from the reloaded snapshot');
+        if (applied.snapshotRevision == null || applied.diagnostic != null) {
+          final observed = await session.snapshots.load(session.project,
+              policy: ProjectSnapshotLoadPolicy.strict);
+          if (observed.loadDiagnostics.isNotEmpty ||
+              observed.revision == beforeRevision ||
+              (applied.snapshotRevision != null &&
+                  observed.revision != applied.snapshotRevision)) {
+            throw const NativeWriteException('native.mutation.revision',
+                'Applied native revision differs from the reloaded snapshot');
+          }
+          expectedRevision = observed.revision;
+        } else {
+          expectedRevision = applied.snapshotRevision!;
         }
         await checkpoint?.call(
             NativeWriteStage.afterMutation, stagingRoot, projectPath);
