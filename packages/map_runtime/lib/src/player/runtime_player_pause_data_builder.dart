@@ -36,6 +36,7 @@ final class RuntimePlayerPauseDataBuilder {
     bool supportsRepel = false,
     bool supportsEscapeRope = false,
     bool supportsBicycle = false,
+    bool supportsFishing = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ProjectRegionalMapCatalog? regionalMap,
     ItemCatalogSnapshot? itemCatalog,
@@ -157,6 +158,7 @@ final class RuntimePlayerPauseDataBuilder {
           supportsRepel: supportsRepel,
           supportsEscapeRope: supportsEscapeRope,
           supportsBicycle: supportsBicycle,
+          supportsFishing: supportsFishing,
         ),
         if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
@@ -470,6 +472,7 @@ final class RuntimePlayerPauseDataBuilder {
     required bool supportsRepel,
     required bool supportsEscapeRope,
     required bool supportsBicycle,
+    required bool supportsFishing,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
@@ -507,7 +510,8 @@ final class RuntimePlayerPauseDataBuilder {
         itemId: entry.itemId,
         context: ProjectItemUseContext.overworld,
       );
-      if (isKeyItem && effect is! ProjectItemBicycleEffectDefinition) {
+      if (isKeyItem && effect is! ProjectItemBicycleEffectDefinition &&
+          effect is! ProjectItemFishingEffectDefinition) {
         usability = ItemUsabilityState.passive;
       } else if (isMoveMachine || isEvolutionItem) {
         usability =
@@ -532,12 +536,15 @@ final class RuntimePlayerPauseDataBuilder {
           effect is ProjectItemRepelEffectDefinition && !supportsRepel;
       final escapeRopeUnsupported = effect is ProjectItemEscapeRopeEffectDefinition && !supportsEscapeRope;
       final bicycleUnsupported = effect is ProjectItemBicycleEffectDefinition && !supportsBicycle;
-      if (repelUnsupported || escapeRopeUnsupported || bicycleUnsupported) {
+      final fishingUnsupported = effect is ProjectItemFishingEffectDefinition && !supportsFishing;
+      if (repelUnsupported || escapeRopeUnsupported || bicycleUnsupported || fishingUnsupported) {
         usability = ItemUsabilityState.unsupportedCapability;
       } else if (repelAlreadyActive) {
         usability = ItemUsabilityState.unavailableInContext;
       }
-      final unavailableReason = bicycleUnsupported
+      final unavailableReason = fishingUnsupported
+          ? (isFrench ? 'La pêche est disponible uniquement dans un runtime 2D compatible.' : 'Fishing is only available in a compatible 2D runtime.')
+          : bicycleUnsupported
           ? (isFrench ? 'Le vélo est disponible uniquement dans un runtime 2D compatible.' : 'Bicycle is only available in a compatible 2D runtime.')
           : escapeRopeUnsupported
           ? (isFrench ? 'La Corde Sortie est disponible uniquement dans un runtime 2D compatible.' : 'Escape Rope is only available in a compatible 2D runtime.')

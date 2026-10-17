@@ -171,6 +171,7 @@ part 'playable_map_game_support.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_repel.dart';
 part 'playable_map_game_bicycle.dart';
+part 'playable_map_game_fishing.dart';
 part 'playable_map_game_escape_rope.dart';
 part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
@@ -915,6 +916,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _fishingFlow != null ||
       _sceneWorldWaitCount > 0 ||
       _sceneActorRouteTargets.isNotEmpty ||
       _pendingDirectedJump != null ||
@@ -2073,6 +2075,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _flyTransferInFlight = false;
   bool _escapeRopeTransferInFlight = false;
   bool _bicycleToggleInFlight = false;
+  bool _fishingPreparationInFlight = false;
+  int _fishingAttemptSequence = 0;
+  FishingActionTicket? _fishingTicket;
+  FishingAttemptFlow? _fishingFlow;
+  FishingAttemptPhase? _fishingFeedbackPhase;
+  RuntimeInputLockToken? _fishingInputLock;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -2565,6 +2573,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  FishingAttemptPhase? get fishingPhase => _fishingFlow?.phase;
+
+  bool get canCapturePlayerCheckpoint => !_isFishingBusy;
+
   GameState get gameStateSnapshot =>
       isLoaded ? _captureGameStateFromWorld() : _gameState;
 
@@ -2848,6 +2860,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     PlayerServiceRuntimeController controller,
   ) {
     controller.setPauseMutationGuard(() {
+      if (_isFishingBusy) return 'Terminez ou annulez la pêche avant de modifier le sac.';
       if (_bicycleToggleInFlight) return 'Le changement de déplacement doit se terminer.';
       if (_activeNarrativeSceneWorkingSession != null) {
         return 'Terminez la scène en cours avant de modifier le sac.';
@@ -2859,6 +2872,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     });
     controller.setEscapeRopeConsumer(_usePlayerEscapeRope);
     controller.setBicycleConsumer(_usePlayerBicycle);
+    controller.setFishingConsumer(_reservePlayerFishing);
     _playerServiceRuntimeController = controller;
   }
 
@@ -3107,6 +3121,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         context == RuntimeInputContext.overworld;
     if (!sprintAllowed) _sprintPressed = false;
     return RuntimeInputAuthoritySnapshot(
+      canCancelWorldAction: _fishingFlow != null && !isPaused && _externalInputLocks.isEmpty,
       sprintAllowed: sprintAllowed,
       sprintAccepted: sprintAllowed && _sprintPressed,
       context: context,
@@ -3291,6 +3306,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           surface: _inputSurfaceForExternalLock(owner),
         ),
       );
+      if (owner == RuntimeExternalInputLock.lifecycle) {
+        _cancelPlayerFishing(notify: false);
+      }
       if (isLoaded) {
         _clearPressedMovementControls();
       }
@@ -4605,6 +4623,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _cancelPlayerFishing(notify: false);
     final warpPresentation = _warpTransitionOverlay;
     if (warpPresentation is WarpPresentationOverlayComponent) {
       warpPresentation.close();
@@ -4918,6 +4937,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool handleRuntimeInputEvent(RuntimeInputEvent event) {
     final control = event.control;
 
+    if (_isFishingBusy) {
+      if (_fishingFlow != null && _externalInputLocks.isEmpty &&
+          control == RuntimeInputControl.secondary && event.isPress && !event.isRepeat) {
+        _cancelPlayerFishing();
+      }
+      _clearPressedMovementControls();
+      _sprintPressed = false;
+      return true;
+    }
+
     if (_bicycleToggleInFlight || _pendingDirectedJump != null) {
       _clearPressedMovementControls();
       _sprintPressed = false;
@@ -5152,6 +5181,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     super.update(dt);
     try {
       _maybePromptRepelExpiration();
+      _advancePlayerFishing(dt);
       _updateRuntime(dt);
       _updateNpcFixedRoutes(dt);
       _maybePromptRepelExpiration();
@@ -5162,6 +5192,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _updateRuntime(double dt) {
+    if (_isFishingBusy) {
+      _clearPressedMovementControls();
+      return;
+    }
     if (!_isRemoved) _worldTone.advance(dt);
     for (final loaded in _loadedMapsById.values) {
       loaded.smartTileAnimationController.update(dt);
@@ -14755,7 +14789,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// Retourne `true` si la sauvegarde a réussi.
   Future<bool> saveGame() async {
-    if (_bicycleToggleInFlight || _hasCheckpointUnsafeRuntimeWorkForSave) {
+    if (_fishingPreparationInFlight || _bicycleToggleInFlight || _hasCheckpointUnsafeRuntimeWorkForSave) {
       _logCheckpointInterlock('save');
       return false;
     }
@@ -14791,7 +14825,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Si le commit, le remontage ou le `mapEnter` final échoue, le snapshot
   /// runtime précédent est remonté et la sauvegarde fautive reste intacte.
   Future<bool> loadGame() async {
-    if (_isRemoved || _bicycleToggleInFlight) return false;
+    if (_isRemoved || _fishingPreparationInFlight || _bicycleToggleInFlight) return false;
     if (_hasCheckpointUnsafeRuntimeWork) {
       _logCheckpointInterlock('load');
       return false;

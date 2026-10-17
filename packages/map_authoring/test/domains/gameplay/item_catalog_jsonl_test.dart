@@ -87,6 +87,61 @@ void main() {
       expect(actionIds, _durableItemActionIds);
     });
 
+    for (final kind in ['old_rod', 'good_rod', 'super_rod']) {
+      test('fishing $kind roundtrips through API and JSONL and is discoverable', () async {
+        for (final jsonl in [false, true]) {
+          final harness = await _ItemTransportHarness.create('fishing-$kind-$jsonl');
+          addTearDown(harness.dispose);
+          final create = _ItemMutationScenario('item.create', {
+            'definition': const ProjectItemDefinition(id: 'tool', displayName: 'Outil',
+              pocketId: 'custom', tags: {'key-item'}).toJson(),
+          });
+          if (jsonl) { await harness.executeJsonl(create); }
+          else { await harness.executeDirect(create); }
+          final use = {
+            'contexts': ['overworld'], 'target': 'world', 'consumption': 'never',
+            'effect': {'kind': 'fishing', 'rodKind': kind},
+          };
+          final scenario = _ItemMutationScenario('item.set_overworld_effect', {
+            'itemId': 'tool', 'use': use,
+          });
+          final result = jsonl ? await harness.executeJsonl(scenario)
+              : await harness.executeDirect(scenario);
+          final item = ProjectItemCatalog.fromJson(result.catalog).entries.singleWhere((item) => item.id == 'tool');
+          expect(item.uses.single.toJson(), use);
+          final described = await _request(harness.worker, 'describe');
+          final actions = (described.data['mutationActions'] as List).cast<Map>();
+          final effectAction = actions.singleWhere((action) => action['id'] == 'item.set_overworld_effect');
+          expect(jsonEncode(effectAction), contains('fishing'));
+          expect(jsonEncode(effectAction), contains(kind));
+        }
+      });
+    }
+
+    test('fishing semantic action rejects extra effect fields in both transports', () async {
+      for (final jsonl in [false, true]) {
+        final harness = await _ItemTransportHarness.create('fishing-strict-$jsonl');
+        addTearDown(harness.dispose);
+        final create = _ItemMutationScenario('item.create', {
+          'definition': const ProjectItemDefinition(id: 'tool', displayName: 'Outil',
+            pocketId: 'custom', tags: {'key-item'}).toJson(),
+        });
+        if (jsonl) { await harness.executeJsonl(create); }
+        else { await harness.executeDirect(create); }
+        final scenario = _ItemMutationScenario('item.set_overworld_effect', {
+          'itemId': 'tool', 'use': {
+            'contexts': ['overworld'], 'target': 'world', 'consumption': 'never',
+            'effect': {'kind': 'fishing', 'rodKind': 'old_rod', 'chance': 1},
+          },
+        });
+        final refused = jsonl ? await harness.refuseJsonl(scenario)
+            : await harness.refuseDirect(scenario);
+        if (jsonl) { expect(refused.result!.status, AuthoringResultStatus.failure); }
+        else { expect(refused.error, isNotNull); }
+        expect(refused.afterCatalog, refused.beforeCatalog);
+      }
+    });
+
     test('reusable bicycle roundtrips through API and JSONL capability action', () async {
       for (final jsonl in [false, true]) {
         final harness = await _ItemTransportHarness.create('bicycle-$jsonl');

@@ -1,11 +1,28 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../enums.dart';
+
 part 'project_item_effect_definition.freezed.dart';
 part 'project_item_effect_definition.g.dart';
 
 enum ProjectItemAmountMode { flat, full }
 
 enum ProjectItemStatusCureMode { listed, all }
+
+enum ProjectFishingRodKind {
+  @JsonValue('old_rod')
+  oldRod,
+  @JsonValue('good_rod')
+  goodRod,
+  @JsonValue('super_rod')
+  superRod;
+
+  EncounterKind get encounterKind => switch (this) {
+    oldRod => EncounterKind.oldRod,
+    goodRod => EncounterKind.goodRod,
+    superRod => EncounterKind.superRod,
+  };
+}
 
 @Freezed(unionKey: 'kind', unionValueCase: FreezedUnionCase.snake)
 abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
@@ -38,6 +55,11 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectItemEffectDefinition.repel({required int steps}) =
       ProjectItemRepelEffectDefinition;
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ProjectItemEffectDefinition.fishing({
+    required ProjectFishingRodKind rodKind,
+  }) = ProjectItemFishingEffectDefinition;
 
   @JsonSerializable(explicitToJson: true)
   const factory ProjectItemEffectDefinition.bicycle() =
@@ -107,6 +129,7 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
       },
       escapeRope: (effect) => effect,
       bicycle: (effect) => effect,
+      fishing: (effect) => effect,
       semanticAction: (effect) {
         final actionId = effect.actionId.trim();
         if (actionId.isEmpty) {

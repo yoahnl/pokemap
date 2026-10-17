@@ -180,6 +180,36 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   }
   final source = sourceResolution.source!;
 
+  return checkEncounterFromSource(
+    world: world,
+    project: project,
+    source: source,
+    encounterKind: encounterKind,
+    gameState: gameState,
+    repelActiveForStep: repelActiveForStep,
+    conditionContext: conditionContext,
+    random: random,
+    policy: policy,
+  );
+}
+
+GameplayEncounterCheckResult? validateEncounterSource({
+  required ProjectManifest project,
+  required EncounterSource source,
+  required EncounterKind encounterKind,
+  GameState? gameState,
+  ScriptEvaluationContext? conditionContext,
+  GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
+}) {
+  if (source.encounter.encounterKind != encounterKind) {
+    return GameplayEncounterCheckResult(
+      status: GameplayEncounterCheckStatus.encounterKindMismatch,
+      sourceId: source.id,
+      sourceKind: source.kind,
+      tableId: source.encounter.encounterTableId,
+      encounterKind: encounterKind,
+    );
+  }
   final sourceEncounter = source.encounter;
   final tableId = sourceEncounter.encounterTableId?.trim();
   if (tableId == null || tableId.isEmpty) {
@@ -253,7 +283,6 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
     );
   }
 
-  final rng = random ?? Random();
   final chancePerStep = policy.chancePerStep ?? table.chancePerStep;
   if (!chancePerStep.isFinite || chancePerStep < 0 || chancePerStep > 1) {
     return GameplayEncounterCheckResult(
@@ -264,6 +293,37 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
       encounterKind: encounterKind,
     );
   }
+  return null;
+}
+
+GameplayEncounterCheckResult checkEncounterFromSource({
+  required GameplayWorldState world,
+  required ProjectManifest project,
+  required EncounterSource source,
+  required EncounterKind encounterKind,
+  GameState? gameState,
+  bool? repelActiveForStep,
+  ScriptEvaluationContext? conditionContext,
+  Random? random,
+  GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
+}) {
+  final refusal = validateEncounterSource(
+    project: project,
+    source: source,
+    encounterKind: encounterKind,
+    gameState: gameState,
+    conditionContext: conditionContext,
+    policy: policy,
+  );
+  if (refusal != null) return refusal;
+  final table = _findEncounterTable(
+    project.encounterTables,
+    source.encounter.encounterTableId!.trim(),
+  )!;
+  final entries = canonicalEncounterEntries(_validEncounterEntries(table.entries));
+  final chancePerStep = policy.chancePerStep ?? table.chancePerStep;
+  final position = world.player.pos;
+  final rng = random ?? Random();
   final roll = rng.nextDouble();
   if (roll >= chancePerStep) {
     return GameplayEncounterCheckResult(

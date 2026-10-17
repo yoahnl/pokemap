@@ -35,6 +35,10 @@ ProjectItemEffectDefinition _$ProjectItemEffectDefinitionFromJson(
           return ProjectItemRepelEffectDefinition.fromJson(
             json
           );
+                case 'fishing':
+          return ProjectItemFishingEffectDefinition.fromJson(
+            json
+          );
                 case 'bicycle':
           return ProjectItemBicycleEffectDefinition.fromJson(
             json
@@ -105,7 +109,7 @@ extension ProjectItemEffectDefinitionPatterns on ProjectItemEffectDefinition {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
@@ -113,7 +117,8 @@ return healHp(_that);case ProjectItemCureStatusEffectDefinition() when cureStatu
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return repel(_that);case ProjectItemFishingEffectDefinition() when fishing != null:
+return fishing(_that);case ProjectItemBicycleEffectDefinition() when bicycle != null:
 return bicycle(_that);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope(_that);case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that);case _:
@@ -134,7 +139,7 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemFishingEffectDefinition value)  fishing,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
@@ -142,7 +147,8 @@ return healHp(_that);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that);case ProjectItemReviveEffectDefinition():
 return revive(_that);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that);case ProjectItemRepelEffectDefinition():
-return repel(_that);case ProjectItemBicycleEffectDefinition():
+return repel(_that);case ProjectItemFishingEffectDefinition():
+return fishing(_that);case ProjectItemBicycleEffectDefinition():
 return bicycle(_that);case ProjectItemEscapeRopeEffectDefinition():
 return escapeRope(_that);case ProjectItemSemanticActionEffectDefinition():
 return semanticAction(_that);case _:
@@ -162,7 +168,7 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
@@ -170,7 +176,8 @@ return healHp(_that);case ProjectItemCureStatusEffectDefinition() when cureStatu
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return repel(_that);case ProjectItemFishingEffectDefinition() when fishing != null:
+return fishing(_that);case ProjectItemBicycleEffectDefinition() when bicycle != null:
 return bicycle(_that);case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope(_that);case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that);case _:
@@ -190,14 +197,15 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that.steps);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return repel(_that.steps);case ProjectItemFishingEffectDefinition() when fishing != null:
+return fishing(_that.rodKind);case ProjectItemBicycleEffectDefinition() when bicycle != null:
 return bicycle();case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope();case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that.actionId);case _:
@@ -218,14 +226,15 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
 return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition():
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition():
-return repel(_that.steps);case ProjectItemBicycleEffectDefinition():
+return repel(_that.steps);case ProjectItemFishingEffectDefinition():
+return fishing(_that.rodKind);case ProjectItemBicycleEffectDefinition():
 return bicycle();case ProjectItemEscapeRopeEffectDefinition():
 return escapeRope();case ProjectItemSemanticActionEffectDefinition():
 return semanticAction(_that.actionId);case _:
@@ -245,14 +254,15 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
-return repel(_that.steps);case ProjectItemBicycleEffectDefinition() when bicycle != null:
+return repel(_that.steps);case ProjectItemFishingEffectDefinition() when fishing != null:
+return fishing(_that.rodKind);case ProjectItemBicycleEffectDefinition() when bicycle != null:
 return bicycle();case ProjectItemEscapeRopeEffectDefinition() when escapeRope != null:
 return escapeRope();case ProjectItemSemanticActionEffectDefinition() when semanticAction != null:
 return semanticAction(_that.actionId);case _:
@@ -636,6 +646,79 @@ class _$ProjectItemRepelEffectDefinitionCopyWithImpl<$Res>
   return _then(ProjectItemRepelEffectDefinition(
 steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as int,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class ProjectItemFishingEffectDefinition extends ProjectItemEffectDefinition {
+  const ProjectItemFishingEffectDefinition({required this.rodKind, final  String? $type}): $type = $type ?? 'fishing',super._();
+  factory ProjectItemFishingEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemFishingEffectDefinitionFromJson(json);
+
+ final  ProjectFishingRodKind rodKind;
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectItemFishingEffectDefinitionCopyWith<ProjectItemFishingEffectDefinition> get copyWith => _$ProjectItemFishingEffectDefinitionCopyWithImpl<ProjectItemFishingEffectDefinition>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemFishingEffectDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemFishingEffectDefinition&&(identical(other.rodKind, rodKind) || other.rodKind == rodKind));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,rodKind);
+
+@override
+String toString() {
+  return 'ProjectItemEffectDefinition.fishing(rodKind: $rodKind)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectItemFishingEffectDefinitionCopyWith<$Res> implements $ProjectItemEffectDefinitionCopyWith<$Res> {
+  factory $ProjectItemFishingEffectDefinitionCopyWith(ProjectItemFishingEffectDefinition value, $Res Function(ProjectItemFishingEffectDefinition) _then) = _$ProjectItemFishingEffectDefinitionCopyWithImpl;
+@useResult
+$Res call({
+ ProjectFishingRodKind rodKind
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectItemFishingEffectDefinitionCopyWithImpl<$Res>
+    implements $ProjectItemFishingEffectDefinitionCopyWith<$Res> {
+  _$ProjectItemFishingEffectDefinitionCopyWithImpl(this._self, this._then);
+
+  final ProjectItemFishingEffectDefinition _self;
+  final $Res Function(ProjectItemFishingEffectDefinition) _then;
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? rodKind = null,}) {
+  return _then(ProjectItemFishingEffectDefinition(
+rodKind: null == rodKind ? _self.rodKind : rodKind // ignore: cast_nullable_to_non_nullable
+as ProjectFishingRodKind,
   ));
 }
 

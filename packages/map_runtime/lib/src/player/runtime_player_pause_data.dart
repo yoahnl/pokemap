@@ -421,8 +421,10 @@ final class RuntimePlayerPauseCommandResult {
   const RuntimePlayerPauseCommandResult({
     required this.status,
     required this.safeMessage,
+    this.resumeGameplay = false,
   });
 
+  final bool resumeGameplay;
   final RuntimePlayerPauseCommandStatus status;
   final String safeMessage;
 }

@@ -907,6 +907,37 @@ void main() {
     );
   });
 
+  test('reserved world action closes the bag before work and skips pause autosave', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetails = {
+      RuntimePlayerPauseSection.bag: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.bag, title: 'Sac',
+        entries: [RuntimePlayerDetailEntrySnapshot(id: 'bag.tool', title: 'Canne')],
+      ),
+    };
+    harness.adapter.pauseCommandResult = const RuntimePlayerPauseCommandResult(
+      status: RuntimePlayerPauseCommandStatus.accepted,
+      safeMessage: 'Préparation de la pêche.', resumeGameplay: true,
+    );
+    await _openMenu(harness);
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openBag,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.useBagItem,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'),
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
+    expect(harness.saves.commits, isEmpty);
+    expect(harness.adapter.calls, contains('resume'));
+    expect(harness.sessions.snapshot.state, GameSessionState.running);
+  });
+
   test('uses a bag item through the runtime and refreshes pause feedback',
       () async {
     final harness = RuntimePlayerTestHarness();

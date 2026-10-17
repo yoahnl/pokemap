@@ -2,6 +2,10 @@ part of 'encounter_tables_panel.dart';
 
 enum _EncounterWorkspacePane { library, table, inspector }
 
+String _encounterRateUnit(EncounterKind kind) =>
+    {EncounterKind.oldRod, EncounterKind.goodRod, EncounterKind.superRod}.contains(kind)
+        ? 'tentative' : 'pas';
+
 class _EncounterTableDiagnostic {
   const _EncounterTableDiagnostic({
     required this.severity,
@@ -442,7 +446,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
           ),
           const SizedBox(height: 5),
           Text(
-            '${_formatEncounterChancePercent(table.chancePerStep)} % par pas · '
+            '${_formatEncounterChancePercent(table.chancePerStep)} % par ${_encounterRateUnit(table.encounterKind)} · '
             '${table.entries.length} entrée${table.entries.length == 1 ? '' : 's'}',
             style: TextStyle(
               color: colors.textMuted,
@@ -506,7 +510,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
         ),
         const SizedBox(height: 10),
         PokeMapTextField(
-          label: 'Taux par pas (%)',
+          label: 'Taux par ${_encounterRateUnit(_newTableKind)} (%)',
           fieldKey: const Key('encounter-tables-create-rate-percent-field'),
           controller: _newTableChancePercentController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -722,7 +726,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
               SizedBox(
                 width: 130,
                 child: PokeMapTextField(
-                  label: 'Taux par pas (%)',
+                  label: 'Taux par ${_encounterRateUnit(_editTableKind)} (%)',
                   fieldKey: Key(
                     'encounter-tables-edit-rate-percent-field-${table.id}',
                   ),
@@ -927,7 +931,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
       diagnostics.add(
         const _EncounterTableDiagnostic(
           severity: PokeMapDiagnosticSeverity.error,
-          message: 'Le taux par pas doit rester compris entre 0 % et 100 %.',
+          message: 'Le taux doit rester compris entre 0 % et 100 %.',
         ),
       );
     }
@@ -1300,7 +1304,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${_formatEncounterProbability(draftProbability.resolvedChancePerStep!)} par pas',
+                  '${_formatEncounterProbability(draftProbability.resolvedChancePerStep!)} par ${_encounterRateUnit(table.encounterKind)}',
                   style: TextStyle(
                     color: colors.textMuted,
                     fontSize: 10,
@@ -1647,8 +1651,8 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                 const SizedBox(height: 3),
                 Text(
                   resolvedChance == null
-                      ? 'Chance par pas indisponible'
-                      : '${_formatEncounterProbability(resolvedChance)} par pas',
+                      ? 'Chance par ${_encounterRateUnit(table.encounterKind)} indisponible'
+                      : '${_formatEncounterProbability(resolvedChance)} par ${_encounterRateUnit(table.encounterKind)}',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     color: resolvedChance == null

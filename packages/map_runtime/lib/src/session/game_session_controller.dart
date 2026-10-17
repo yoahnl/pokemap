@@ -195,7 +195,7 @@ final class GameSessionController
       if (result.status != RuntimePlayerPauseCommandStatus.accepted) {
         return result;
       }
-      if (!savePolicy.autosaveAfterPauseMutation) return result;
+      if (result.resumeGameplay || !savePolicy.autosaveAfterPauseMutation) return result;
       final saved = await _captureAndCommit(
         SaveStatus.active,
         trigger: GameSessionCheckpointTrigger.pauseMutation,

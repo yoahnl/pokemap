@@ -612,6 +612,15 @@ final class RuntimePlayerCoordinator {
         }
         final bagSessionId = _sessions.snapshot.descriptor?.sessionId;
         final result = await _sessions.dispatchPauseCommand(pauseCommand);
+        if (result.status == RuntimePlayerPauseCommandStatus.accepted &&
+            result.resumeGameplay && _canPublishPauseData(bagSessionId)) {
+          await _sessions.resume();
+          if (_snapshot.phase != RuntimePlayerPhase.playing) _publishPlaying();
+          return RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted,
+            safeMessage: result.safeMessage,
+          );
+        }
         return _refreshPauseAfterCommand(
           commandSection!,
           sessionId: bagSessionId,

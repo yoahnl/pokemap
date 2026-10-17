@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/gameplay/items/item_effect_editor.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 ProjectItemDefinition _itemWithEffect(ProjectItemEffectDefinition effect) {
   return ProjectItemDefinition(
@@ -42,6 +43,44 @@ Future<void> _pumpEditor(
 const Key _notice = Key('item-effect-overworld-unsupported-notice');
 
 void main() {
+  testWidgets('legacy guided fishing presets keep reusable world constraints', (tester) async {
+    var definition = _itemWithEffect(const ProjectItemEffectDefinition.healHp(
+      mode: ProjectItemAmountMode.flat, amount: 20));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
+      child: StatefulBuilder(builder: (context, setState) => ItemEffectEditor(
+        definition: definition,
+        onChanged: (value) => setState(() => definition = value),
+      )),
+    ))));
+    for (final kind in ProjectFishingRodKind.values) {
+      final picker = tester.widget<PokeMapDropdownField<String>>(
+        find.byKey(const Key('item-effect-overworld-effect-dropdown')),
+      );
+      final choices = picker.items.where((entry) => entry.label.startsWith('Pêche —')).toList();
+      expect(choices, hasLength(3));
+      picker.onChanged(choices[kind.index].value);
+      await tester.pump();
+      expect(definition.id, 'probe');
+      expect(definition.pocketId, 'medicine');
+      expect(definition.tags, contains('key-item'));
+      expect(definition.uses.single.effect, ProjectItemEffectDefinition.fishing(rodKind: kind));
+      expect(definition.uses.single.contexts, {ProjectItemUseContext.overworld});
+      expect(definition.uses.single.target, ProjectItemTargetKind.world);
+      expect(definition.uses.single.consumption, ProjectItemConsumptionPolicy.never);
+      final targets = tester.widget<PokeMapDropdownField<ProjectItemTargetKind>>(
+        find.byType(PokeMapDropdownField<ProjectItemTargetKind>),
+      );
+      final consumption = tester.widget<PokeMapDropdownField<ProjectItemConsumptionPolicy>>(
+        find.byType(PokeMapDropdownField<ProjectItemConsumptionPolicy>),
+      );
+      expect(targets.items.single.value, ProjectItemTargetKind.world);
+      expect(consumption.items.single.value, ProjectItemConsumptionPolicy.never);
+      expect(validateProjectItemCatalog(ProjectItemCatalog(schemaVersion: 1, entries: [definition]),
+        capabilityTruth: itemSystemV1CapabilityTruth).hasBlockingDiagnostics, isFalse);
+      expect(find.byKey(_notice), findsNothing);
+    }
+    expect(tester.takeException(), isNull);
+  });
   group('BETA-ITM-007 the Item Studio warns about unrunnable effects', () {
     testWidgets('a Repel effect is executable and carries no warning', (
       tester,

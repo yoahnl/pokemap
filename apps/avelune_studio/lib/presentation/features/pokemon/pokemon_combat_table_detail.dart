@@ -40,6 +40,11 @@ class PokemonCombatTableDetail extends StatelessWidget {
     }
     final table = draft.current;
     final unique = table.tags.contains('studio:unique');
+    final fishing = {
+      EncounterKind.oldRod,
+      EncounterKind.goodRod,
+      EncounterKind.superRod,
+    }.contains(table.encounterKind);
     final species = {
       for (final entry in index.entries)
         if (entry.enabled) entry.id: entry.name,
@@ -83,19 +88,33 @@ class PokemonCombatTableDetail extends StatelessWidget {
                 StudioSelect(
                   label: 'Déclenchement',
                   value: table.encounterKind.name,
-                  options: const {'walk': 'Marche', 'surf': 'Surf'},
+                  options: {
+                    for (final kind in EncounterKind.values)
+                      kind.name: switch (kind) {
+                        EncounterKind.walk => 'Marche',
+                        EncounterKind.surf => 'Surf',
+                        EncounterKind.oldRod => 'Canne',
+                        EncounterKind.goodRod => 'Super Canne',
+                        EncounterKind.superRod => 'Méga Canne',
+                        EncounterKind.headbutt => 'Coup d’Boule',
+                        EncounterKind.gift => 'Cadeau',
+                        EncounterKind.special => 'Spéciale',
+                      },
+                  },
                   onChanged: (value) => combat.editTable(
                     (current) => current.copyWith(
-                      encounterKind: value == 'surf'
-                          ? EncounterKind.surf
-                          : EncounterKind.walk,
+                      encounterKind: EncounterKind.values.singleWhere(
+                        (kind) => kind.name == value,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 StudioDraftField(
                   key: ValueKey('${table.id}:chance'),
-                  label: 'Probabilité par pas (0 à 100 %)',
+                  label: fishing
+                      ? 'Probabilité par tentative (0 à 100 %)'
+                      : 'Probabilité par pas (0 à 100 %)',
                   value: combat.numericValue(
                     'chance',
                     (table.chancePerStep * 100).round(),
@@ -106,6 +125,12 @@ class PokemonCombatTableDetail extends StatelessWidget {
                     );
                   }),
                 ),
+                if (fishing) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Associez cette table à une zone d’eau. La canne correspondante utilise la case devant le joueur et un seul tirage par tentative.',
+                  ),
+                ],
               ] else
                 const Text(
                   'Combat sauvage fixe lancé par une scène. Liez-la à un événement à usage unique dans Histoire : la victoire ou la capture consomme la rencontre ; la défaite et la fuite permettent une nouvelle tentative.',

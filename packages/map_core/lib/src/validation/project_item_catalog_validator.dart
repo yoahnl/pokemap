@@ -213,6 +213,12 @@ ProjectItemCatalogValidationReport validateProjectItemCatalog(
           itemId: itemId,
         );
       }
+      if (use.effect is ProjectItemFishingEffectDefinition && !item.tags.contains('key-item')) {
+        addDiagnostic(ProjectItemCatalogDiagnosticCode.invalidDefinition,
+          ProjectItemCatalogDiagnosticSeverity.error,
+          'Fishing requires a reusable key item.',
+          '$itemPath.tags', entryIndex: index, itemId: itemId);
+      }
       if (use.effect is ProjectItemBicycleEffectDefinition && !item.tags.contains('key-item')) {
         addDiagnostic(ProjectItemCatalogDiagnosticCode.invalidDefinition,
           ProjectItemCatalogDiagnosticSeverity.error,
@@ -430,6 +436,7 @@ void _validateEffect(
       use.target == ProjectItemTargetKind.partyMove,
     ProjectItemRepelEffectDefinition() ||
     ProjectItemBicycleEffectDefinition() ||
+    ProjectItemFishingEffectDefinition() ||
     ProjectItemEscapeRopeEffectDefinition() =>
       use.target == ProjectItemTargetKind.world,
     ProjectItemSemanticActionEffectDefinition() =>
@@ -498,6 +505,17 @@ void _validateEffect(
           '$path.effect.steps',
           entryIndex: entryIndex,
           itemId: itemId,
+        );
+      }
+    case ProjectItemFishingEffectDefinition():
+      if (use.contexts.length != 1 ||
+          !use.contexts.contains(ProjectItemUseContext.overworld) ||
+          use.consumption != ProjectItemConsumptionPolicy.never) {
+        addDiagnostic(
+          ProjectItemCatalogDiagnosticCode.invalidDefinition,
+          ProjectItemCatalogDiagnosticSeverity.error,
+          'Fishing requires reusable overworld use',
+          path, entryIndex: entryIndex, itemId: itemId,
         );
       }
     case ProjectItemBicycleEffectDefinition():

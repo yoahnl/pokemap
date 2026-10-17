@@ -238,6 +238,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   String? Function()? _pauseMutationUnavailableReason;
   Future<bool> Function(ProjectItemDefinition, GameState)? _escapeRopeConsumer;
 
+  FutureOr<FishingBlockReason?> Function(ProjectItemDefinition, GameState)? _fishingConsumer;
+
+  void setFishingConsumer(
+    FutureOr<FishingBlockReason?> Function(ProjectItemDefinition, GameState) consumer,
+  ) {
+    _fishingConsumer = consumer;
+  }
+
   Future<bool> Function(ProjectItemDefinition, GameState)? _bicycleConsumer;
 
   void setBicycleConsumer(
@@ -301,6 +309,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
 
   bool get isActive => _active;
   bool get supportsBicycle => _bicycleConsumer != null;
+  bool get supportsFishing => _fishingConsumer != null;
+
+  ProjectItemDefinition? currentItemDefinition(String itemId) =>
+      _disposed ? null : _itemCatalog?.definitionFor(itemId);
   bool get supportsEscapeRope => _escapeRopeConsumer != null;
 
   @override
@@ -989,6 +1001,46 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         status: RuntimePlayerPauseCommandStatus.unavailable,
         safeMessage: 'La définition de cet objet est absente ou invalide.',
       );
+    }
+    if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
+        definition.uses.any((use) => use.effect is ProjectItemFishingEffectDefinition)) {
+      final consumer = _fishingConsumer;
+      if (consumer == null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'La pêche est disponible uniquement dans un runtime 2D compatible.',
+        );
+      }
+      if (_currentGameState() != state || _pauseMutationRefusal() != null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'La pêche n’est pas disponible pour le moment.',
+        );
+      }
+      try {
+        final reason = await consumer(definition, state);
+        return RuntimePlayerPauseCommandResult(
+          status: reason == null ? RuntimePlayerPauseCommandStatus.accepted
+              : RuntimePlayerPauseCommandStatus.unavailable,
+          resumeGameplay: reason == null,
+          safeMessage: switch (reason) {
+            null => 'Préparation de la pêche.',
+            FishingBlockReason.unsupportedMap => 'La pêche nécessite une carte 2D compatible.',
+            FishingBlockReason.invalidItem => 'Cet objet n’est pas une canne utilisable.',
+            FishingBlockReason.insufficientQuantity => 'Cette canne n’est plus dans le sac.',
+            FishingBlockReason.notWater => 'Placez-vous face à l’eau pour pêcher.',
+            FishingBlockReason.noEncounterSource || FishingBlockReason.encounterUnavailable =>
+              'Aucune rencontre de pêche n’est disponible ici avec cette canne.',
+            FishingBlockReason.checkpointFailed => 'La descente du vélo n’a pas pu être sauvegardée.',
+            _ => 'La pêche n’est pas disponible pour le moment.',
+          },
+        );
+      } on Object {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: 'La pêche n’a pas pu commencer.',
+        );
+      }
     }
     if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
         definition.uses.any((use) => use.effect is ProjectItemBicycleEffectDefinition)) {

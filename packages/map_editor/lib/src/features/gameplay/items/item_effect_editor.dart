@@ -174,6 +174,9 @@ final class ItemEffectEditor extends StatelessWidget {
     onChanged(
       definition
           .copyWith(
+            tags: replacement.effect is ProjectItemFishingEffectDefinition
+                ? {...definition.tags, 'key-item'}
+                : definition.tags,
             uses: <ProjectItemUseDefinition>[
               ..._withoutContext(context),
               replacement.copyWith(contexts: <ProjectItemUseContext>{context}),
@@ -259,40 +262,54 @@ final class _UseEditor extends StatelessWidget {
           PokeMapDropdownField<ProjectItemTargetKind>(
             label: 'Cible',
             value: use.target,
-            items: const <PokeMapDropdownItem<ProjectItemTargetKind>>[
-              PokeMapDropdownItem(
-                value: ProjectItemTargetKind.partyMember,
-                label: 'Équipier',
-              ),
-              PokeMapDropdownItem(
-                value: ProjectItemTargetKind.partyMove,
-                label: 'Capacité d’un équipier',
-              ),
-              PokeMapDropdownItem(
-                value: ProjectItemTargetKind.world,
-                label: 'Monde',
-              ),
-              PokeMapDropdownItem(
-                value: ProjectItemTargetKind.none,
-                label: 'Aucune cible',
-              ),
-            ],
+            items: use.effect is ProjectItemFishingEffectDefinition
+                ? const [
+                    PokeMapDropdownItem(
+                      value: ProjectItemTargetKind.world,
+                      label: 'Monde',
+                    ),
+                  ]
+                : const <PokeMapDropdownItem<ProjectItemTargetKind>>[
+                    PokeMapDropdownItem(
+                      value: ProjectItemTargetKind.partyMember,
+                      label: 'Équipier',
+                    ),
+                    PokeMapDropdownItem(
+                      value: ProjectItemTargetKind.partyMove,
+                      label: 'Capacité d’un équipier',
+                    ),
+                    PokeMapDropdownItem(
+                      value: ProjectItemTargetKind.world,
+                      label: 'Monde',
+                    ),
+                    PokeMapDropdownItem(
+                      value: ProjectItemTargetKind.none,
+                      label: 'Aucune cible',
+                    ),
+                  ],
             onChanged: (value) => onChanged(use.copyWith(target: value)),
           ),
           const SizedBox(height: 8),
           PokeMapDropdownField<ProjectItemConsumptionPolicy>(
             label: 'Consommation',
             value: use.consumption,
-            items: const <PokeMapDropdownItem<ProjectItemConsumptionPolicy>>[
-              PokeMapDropdownItem(
-                value: ProjectItemConsumptionPolicy.onApplied,
-                label: 'Quand l’effet est appliqué',
-              ),
-              PokeMapDropdownItem(
-                value: ProjectItemConsumptionPolicy.never,
-                label: 'Jamais',
-              ),
-            ],
+            items: use.effect is ProjectItemFishingEffectDefinition
+                ? const [
+                    PokeMapDropdownItem(
+                      value: ProjectItemConsumptionPolicy.never,
+                      label: 'Jamais',
+                    ),
+                  ]
+                : const <PokeMapDropdownItem<ProjectItemConsumptionPolicy>>[
+                    PokeMapDropdownItem(
+                      value: ProjectItemConsumptionPolicy.onApplied,
+                      label: 'Quand l’effet est appliqué',
+                    ),
+                    PokeMapDropdownItem(
+                      value: ProjectItemConsumptionPolicy.never,
+                      label: 'Jamais',
+                    ),
+                  ],
             onChanged: (value) => onChanged(use.copyWith(consumption: value)),
           ),
           const SizedBox(height: 8),
@@ -304,14 +321,24 @@ final class _UseEditor extends StatelessWidget {
               for (final option in effects)
                 PokeMapDropdownItem<String>(value: option.$1, label: option.$2),
             ],
-            onChanged: (value) => onChanged(
-              use.copyWith(effect: _decodeEffect(value),
-                    target:
-                        _decodeEffect(value) is ProjectItemRepelEffectDefinition
-                        ? ProjectItemTargetKind.world
-                        : use.target,
-                  ).normalized(),
-            ),
+            onChanged: (value) {
+              final effect = _decodeEffect(value);
+              onChanged(
+                use
+                    .copyWith(
+                      effect: effect,
+                      target:
+                          effect is ProjectItemRepelEffectDefinition ||
+                              effect is ProjectItemFishingEffectDefinition
+                          ? ProjectItemTargetKind.world
+                          : use.target,
+                      consumption: effect is ProjectItemFishingEffectDefinition
+                          ? ProjectItemConsumptionPolicy.never
+                          : use.consumption,
+                    )
+                    .normalized(),
+              );
+            },
           ),
           if (projectItemEffectUnsupportedReason(use.effect)
               case final reason?) ...[
@@ -468,6 +495,15 @@ List<(String, String)> _effectOptions(
           ),
           'Ranime avec la moitié des PV',
         ),
+        for (final kind in ProjectFishingRodKind.values)
+          (
+            ProjectItemEffectDefinition.fishing(rodKind: kind),
+            switch (kind) {
+              ProjectFishingRodKind.oldRod => 'Pêche — Canne',
+              ProjectFishingRodKind.goodRod => 'Pêche — Super Canne',
+              ProjectFishingRodKind.superRod => 'Pêche — Méga Canne',
+            },
+          ),
         (
           const ProjectItemEffectDefinition.repel(steps: 100),
           'Repousse pendant 100 pas',

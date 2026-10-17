@@ -10,6 +10,7 @@ enum ProjectItemEffectCapability {
   repel,
   escapeRope,
   bicycle,
+  fishing,
   semanticAction,
 }
 
@@ -114,6 +115,10 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
       effect: ProjectItemEffectCapability.bicycle,
     ),
     ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.fishing,
+    ),
+    ItemUseCapability(
       context: ProjectItemUseContext.battle,
       effect: ProjectItemEffectCapability.healHp,
     ),
@@ -155,6 +160,7 @@ ProjectItemEffectCapability projectItemEffectCapabilityOf(
       ProjectItemEffectCapability.restorePp,
     ProjectItemRepelEffectDefinition() => ProjectItemEffectCapability.repel,
     ProjectItemBicycleEffectDefinition() => ProjectItemEffectCapability.bicycle,
+    ProjectItemFishingEffectDefinition() => ProjectItemEffectCapability.fishing,
     ProjectItemEscapeRopeEffectDefinition() =>
       ProjectItemEffectCapability.escapeRope,
     ProjectItemSemanticActionEffectDefinition() =>

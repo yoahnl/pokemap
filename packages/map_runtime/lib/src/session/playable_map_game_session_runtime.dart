@@ -407,6 +407,10 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<void> pause() async {
     final game = _requireGame();
+    if (!game.canCapturePlayerCheckpoint &&
+        !game.inputAuthoritySnapshot.externalLocks.contains(RuntimeExternalInputLock.lifecycle)) {
+      throw StateError('Terminez ou annulez la pêche avant d’ouvrir le menu.');
+    }
     _interactionsEnabled = false;
     _publishOverworldInteractions();
     _playWatch.stop();
@@ -444,6 +448,7 @@ final class PlayableMapGameSessionRuntime
       supportsRepel: true,
       supportsEscapeRope: _playerServices?.supportsEscapeRope ?? false,
       supportsBicycle: _playerServices?.supportsBicycle ?? false,
+      supportsFishing: _playerServices?.supportsFishing ?? false,
       gameState: gameState,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
@@ -509,6 +514,7 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<GameSessionCheckpoint?> captureCheckpoint() async {
     final game = _requireGame();
+    if (!game.canCapturePlayerCheckpoint) return null;
     final saveId = _saveId!;
     final state = game.gameStateSnapshot.copyWith(saveId: saveId);
     return _checkpointFromState(state);

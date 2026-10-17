@@ -477,6 +477,120 @@ test("MCP bicycle contracts expose restriction, reusable effect and eight direct
   }
 });
 
+test("MCP fishing contracts expose three reusable rods and reject extra effect fields", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-fishing-"));
+  await writeFixture(root);
+  const authoring = new LocalAuthoringClient({
+    allowedRoots: [root],
+    authoringPackageRoot,
+    requestTimeoutMs: 60_000,
+    workerTimeoutMs: 30_000,
+  });
+  const server = createPokeMapMcpServer({ authoring, artifacts: new MemoryArtifactReader() });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "pokemap-fishing-test", version: "1.0.0" });
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  try {
+    const description = await toolData(client, "pokemap_describe");
+    const actions = description.mutationActions as JsonRecord[];
+    const itemAction = actions.find((action) => action.id === "item.set_overworld_effect")!;
+    assert.ok((record(itemAction.extensions).effectKinds as string[]).includes("fishing"));
+    assert.deepEqual(record(record(itemAction.extensions).fishing), {
+      rodKinds: ["old_rod", "good_rod", "super_rod"],
+      target: "world",
+      consumption: "never",
+      requiredTag: "key-item",
+      runtime: "2d",
+      source: "front_water_cell",
+      chance: "authored_per_attempt",
+    });
+    const tableResource = (description.resourceKinds as JsonRecord[])
+      .find((resource) => resource.id === "project")!;
+    const tableContract = record(record(tableResource.extensions).encounterTables);
+    assert.deepEqual(tableContract.fishingKinds, ["old_rod", "good_rod", "super_rod"]);
+    assert.equal(tableContract.fishingChancePerAttemptField, "chancePerStep");
+    const opened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let sequence = 0;
+    async function mutate(actionId: string, parameters: JsonRecord): Promise<void> {
+      const snapshot = await toolData(client, "pokemap_validate", { projectHandle });
+      sequence++;
+      const plan = await toolData(client, "pokemap_plan", { projectHandle, request: {
+        requestId: `fishing-${sequence}`,
+        actionId,
+        actionVersion: 1,
+        workspaceHandle,
+        parameters,
+        expectedRevision: snapshot.snapshotRevision,
+        idempotencyKey: `fishing-${sequence}`,
+      } });
+      const applied = await toolData(client, "pokemap_apply", {
+        operation: "apply", projectHandle, planId: plan.planId, operationId: `fishing-${sequence}`,
+      });
+      assert.equal(record(applied.receipt).status, "applied");
+    }
+    await mutate("item.create", { definition: {
+      id: "custom-tool", displayName: "Outil", pocketId: "custom", tags: ["key-item"],
+    } });
+    for (const rodKind of ["old_rod", "good_rod", "super_rod"]) {
+      const use = {
+        contexts: ["overworld"], target: "world", consumption: "never",
+        effect: { kind: "fishing", rodKind },
+      };
+      await mutate("item.set_overworld_effect", { itemId: "custom-tool", use });
+      await mutate("campaign.encounter_table.upsert", { value: {
+        id: `table-${rodKind}`, name: rodKind, encounterKind: rodKind,
+        chancePerStep: 0.4, conditions: [], tags: [],
+        entries: [{ speciesId: "rattata", minLevel: 2, maxLevel: 4, weight: 1 }],
+      } });
+      const query = await toolData(client, "pokemap_query", {
+        projectHandle, resourceKind: "itemDefinition", operation: "get", view: "detail", ids: ["custom-tool"],
+      });
+      const definition = record((query.items as JsonRecord[])[0]);
+      assert.equal(definition.pocketId, "custom");
+      assert.deepEqual(definition.uses, [use]);
+    }
+    const tables = await toolData(client, "pokemap_query", {
+      projectHandle, resourceKind: "project", operation: "get", view: "detail", ids: ["project"],
+    });
+    const project = record((tables.items as JsonRecord[])[0]);
+    assert.deepEqual((project.encounterTables as JsonRecord[]).map((table) =>
+      [table.encounterKind, table.chancePerStep]).sort(),
+    [["old_rod", 0.4], ["good_rod", 0.4], ["super_rod", 0.4]].sort());
+    for (const effect of [
+      { kind: "fishing", rodKind: "walk" },
+      { kind: "fishing", rodKind: "old_rod", chance: 1 },
+    ]) {
+      const before = await toolData(client, "pokemap_validate", { projectHandle });
+      const beforeCatalog = await readFile(join(root, "data/pokemon/catalogs/items.json"), "utf8");
+      sequence++;
+      await toolFailure(client, "pokemap_plan", { projectHandle, request: {
+        requestId: `fishing-refuse-${sequence}`,
+        actionId: "item.set_overworld_effect",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { itemId: "custom-tool", use: {
+          contexts: ["overworld"], target: "world", consumption: "never", effect,
+        } },
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: `fishing-refuse-${sequence}`,
+      } });
+      const after = await toolData(client, "pokemap_validate", { projectHandle });
+      assert.equal(after.snapshotRevision, before.snapshotRevision);
+      assert.equal(await readFile(join(root, "data/pokemon/catalogs/items.json"), "utf8"), beforeCatalog);
+    }
+    const closed = await toolData(client, "pokemap_workspace", { operation: "close", workspaceHandle });
+    assert.equal(closed.closed, true);
+  } finally {
+    await client.close();
+    await server.close();
+    await authoring.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 async function writeFixture(root: string): Promise<void> {
   await writeFile(
     join(root, "project.json"),

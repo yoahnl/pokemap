@@ -13,6 +13,39 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('fishing keeps cancel reachable while the world is locked and blocks menus', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
+      phase: RuntimePlayerPhase.playing, actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+      ]));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld));
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+    await tester.pumpWidget(_app(_view(controller, gameplayInputAuthority: authority,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+      hapticFeedback: () async {})));
+    await tester.pump();
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.blocked, canCancelWorldAction: true);
+    await tester.pump();
+    final cancel = find.byKey(const ValueKey('runtime-player-cancel-world-action'));
+    expect(cancel, findsOneWidget);
+    await tester.tap(cancel);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(events.where((event) => event.isPress && event.control == RuntimeInputControl.secondary), hasLength(2));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.pump();
+    expect(controller.commands, isEmpty);
+    authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld);
+    await tester.pump();
+    expect(cancel, findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
   for (final relayed in [false, true]) {
     testWidgets(
         '${relayed ? 'companion relay' : 'primary owner'} controller input while inactive and unfocused',

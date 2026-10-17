@@ -18,6 +18,31 @@ ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
 }
 
 void main() {
+  test('fishing key items are usable by capability only in compatible 2D hosts', () async {
+    final root = await Directory.systemTemp.createTemp('fishing-bag-projection-');
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = _catalogWith(const [
+      ProjectItemDefinition(id: 'custom_tool', displayName: 'Outil',
+        pocketId: 'custom', tags: {'key-item'}, uses: [
+          ProjectItemUseDefinition(contexts: {ProjectItemUseContext.overworld},
+            target: ProjectItemTargetKind.world, consumption: ProjectItemConsumptionPolicy.never,
+            effect: ProjectItemEffectDefinition.fishing(rodKind: ProjectFishingRodKind.goodRod)),
+        ]),
+    ]);
+    for (final supported in [false, true]) {
+      final details = await const RuntimePlayerPauseDataBuilder().build(
+        gameState: const GameState(saveId: 'fishing',
+          bag: Bag(entries: [BagEntry(itemId: 'custom_tool', quantity: 1)])),
+        projectRootDirectory: root.path,
+        pokemonConfig: const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+        locale: 'fr', itemCatalog: catalog, supportsFishing: supported,
+      );
+      final action = details[RuntimePlayerPauseSection.bag]!.entries.single.bagAction!;
+      expect(action.isEnabled, supported);
+      expect(action.targetKind, RuntimePlayerBagUseTargetKind.world);
+      if (!supported) expect(action.unavailableReason, contains('2D'));
+    }
+  });
   test(
     'Corde Sortie is unavailable in a host without a 2D escape consumer',
     () async {

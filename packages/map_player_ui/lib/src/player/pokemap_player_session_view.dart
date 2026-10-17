@@ -998,7 +998,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       _setActiveInputSource(PlayerInputSource.touch);
     }
     if (action == RuntimePlayerAction.openMenu &&
-        (widget.menuInteractionBlocked?.value == true || widget.gameplayInputAuthority?.value.context ==
+        (widget.menuInteractionBlocked?.value == true ||
+            widget.gameplayInputAuthority?.value.canCancelWorldAction == true ||
+            widget.gameplayInputAuthority?.value.context ==
                 RuntimeInputContext.battle ||
             widget.gameplayInputAuthority?.value.context ==
                 RuntimeInputContext.transition ||
@@ -1281,6 +1283,21 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
                 ],
               );
             },
+          ),
+        if (snapshot.phase == RuntimePlayerPhase.playing &&
+            inputAuthority.canCancelWorldAction && inputAuthority.acceptsRuntimeInput)
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: SafeArea(child: PlayerActionButton(
+              key: const ValueKey('runtime-player-cancel-world-action'),
+              label: Localizations.localeOf(context).languageCode == 'fr'
+                  ? 'Annuler la pêche' : 'Cancel fishing',
+              icon: Icons.close,
+              expandWidth: false,
+              onPressed: () => widget.gameplayInputRoute?.call(
+                const RuntimeInputEvent.press(RuntimeInputControl.secondary)),
+            )),
           ),
         if (acceptsTouchControls)
           Positioned.fill(

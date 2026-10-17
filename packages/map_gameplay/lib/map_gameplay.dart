@@ -5,6 +5,7 @@ export 'src/movement_terrain_policy.dart';
 export 'src/fly_action.dart';
 export 'src/escape_rope_action.dart';
 export 'src/bicycle_action.dart';
+export 'src/fishing_action.dart';
 export 'src/dive_action.dart';
 export 'src/cut_obstacle_action.dart';
 export 'src/field_obstacle_action.dart';
@@ -139,7 +140,9 @@ export 'src/gameplay_encounter.dart'
         GameplayEncounterCheckStatus,
         GameplayEncounter,
         GameplayEncounterCheckResult,
-        checkEncounterAtPlayerPosition;
+        checkEncounterAtPlayerPosition,
+        validateEncounterSource,
+        checkEncounterFromSource;
 export 'src/gameplay_connection.dart' show resolveConnectedMapTargetPos;
 export 'src/gameplay_hazard.dart' show GameplayHazardEffect;
 export 'src/gameplay_movement_effect.dart'

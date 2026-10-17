@@ -469,8 +469,11 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
     capabilityIds: const <String>['authoring.gameplay.items'],
     extensions: id == 'item.set_overworld_effect'
         ? {
-            'effectKinds': ['heal_hp', 'cure_status', 'revive', 'restore_pp', 'repel', 'escape_rope', 'bicycle'],
+            'effectKinds': ['heal_hp', 'cure_status', 'revive', 'restore_pp', 'repel', 'escape_rope', 'bicycle', 'fishing'],
             'bicycle': {'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item', 'runtime': '2d'},
+            'fishing': {'rodKinds': ['old_rod', 'good_rod', 'super_rod'],
+              'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item',
+              'runtime': '2d', 'source': 'front_water_cell', 'chance': 'authored_per_attempt'},
           }
         : id == 'item.set_held_effect'
         ? {

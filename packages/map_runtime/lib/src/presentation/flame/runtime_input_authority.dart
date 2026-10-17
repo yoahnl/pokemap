@@ -31,8 +31,10 @@ final class RuntimeInputAuthoritySnapshot {
     this.externalLocks = const <RuntimeExternalInputLock>{},
     this.sprintAllowed = false,
     this.sprintAccepted = false,
+    this.canCancelWorldAction = false,
   });
 
+  final bool canCancelWorldAction;
   final bool sprintAllowed;
   final bool sprintAccepted;
   final RuntimeInputContext context;
@@ -54,6 +56,7 @@ final class RuntimeInputAuthoritySnapshot {
           context == other.context &&
           sprintAllowed == other.sprintAllowed &&
           sprintAccepted == other.sprintAccepted &&
+          canCancelWorldAction == other.canCancelWorldAction &&
           externalLocks.length == other.externalLocks.length &&
           externalLocks.every(other.externalLocks.contains);
 
@@ -62,6 +65,7 @@ final class RuntimeInputAuthoritySnapshot {
         context,
         sprintAllowed,
         sprintAccepted,
+        canCancelWorldAction,
         ...externalLocks,
       ]);
 }

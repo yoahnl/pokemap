@@ -32,7 +32,8 @@ class PokemonItemEffects extends StatelessWidget {
     );
     commerce.editItem(
       (item) => item.copyWith(
-        tags: replacement?.effect is ProjectItemBicycleEffectDefinition
+        tags: replacement?.effect is ProjectItemBicycleEffectDefinition ||
+            replacement?.effect is ProjectItemFishingEffectDefinition
             ? {...item.tags, 'key-item'} : item.tags,
         uses: [
           for (final value in item.uses)
@@ -61,6 +62,7 @@ class PokemonItemEffects extends StatelessWidget {
     'repel' => const ProjectItemEffectDefinition.repel(steps: 100),
     'escape_rope' => const ProjectItemEffectDefinition.escapeRope(),
     'bicycle' => const ProjectItemEffectDefinition.bicycle(),
+    'fishing' => const ProjectItemEffectDefinition.fishing(rodKind: ProjectFishingRodKind.oldRod),
     'cure' => const ProjectItemEffectDefinition.cureStatus(
       mode: ProjectItemStatusCureMode.all,
     ),
@@ -86,6 +88,7 @@ class PokemonItemEffects extends StatelessWidget {
     ProjectItemRepelEffectDefinition() => 'repel',
     ProjectItemEscapeRopeEffectDefinition() => 'escape_rope',
     ProjectItemBicycleEffectDefinition() => 'bicycle',
+    ProjectItemFishingEffectDefinition() => 'fishing',
     _ => 'imported',
   };
 
@@ -139,7 +142,7 @@ class PokemonItemEffects extends StatelessWidget {
     final supported =
         kind != 'imported' &&
         (context != ProjectItemUseContext.battle ||
-            (kind != 'pp' && kind != 'repel' && kind != 'escape_rope' && kind != 'bicycle'));
+            (kind != 'pp' && kind != 'repel' && kind != 'escape_rope' && kind != 'bicycle' && kind != 'fishing'));
     return PokemonSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,17 +186,19 @@ class PokemonItemEffects extends StatelessWidget {
                     'escape_rope': 'Corde Sortie',
                   if (context == ProjectItemUseContext.overworld)
                     'bicycle': 'Vélo',
+                  if (context == ProjectItemUseContext.overworld)
+                    'fishing': 'Pêche',
                 },
                 onChanged: (value) => _set(
                   context,
                   use.copyWith(
                     effect: _effect(value),
-                    consumption: value == 'bicycle'
+                    consumption: value == 'bicycle' || value == 'fishing'
                         ? ProjectItemConsumptionPolicy.never
                         : value == 'escape_rope'
                         ? ProjectItemConsumptionPolicy.onApplied
                         : use.consumption,
-                    target: value == 'repel' || value == 'escape_rope' || value == 'bicycle'
+                    target: value == 'repel' || value == 'escape_rope' || value == 'bicycle' || value == 'fishing'
                         ? ProjectItemTargetKind.world
                         : value == 'pp'
                         ? ProjectItemTargetKind.partyMove
@@ -262,6 +267,19 @@ class PokemonItemEffects extends StatelessWidget {
                     },
                   ),
               ],
+              if (use.effect case ProjectItemFishingEffectDefinition(:final rodKind)) ...[
+                StudioSelect(
+                  label: 'Canne de pêche',
+                  value: rodKind.name,
+                  options: const {'oldRod': 'Canne', 'goodRod': 'Super Canne', 'superRod': 'Méga Canne'},
+                  onChanged: (value) => _set(context, use.copyWith(
+                    effect: ProjectItemEffectDefinition.fishing(
+                      rodKind: ProjectFishingRodKind.values.singleWhere((kind) => kind.name == value)),
+                  )),
+                ),
+                const SizedBox(height: 8),
+                const Text('La canne reste dans le sac. Peignez sa table sur une zone d’eau : la pêche vise la case devant le joueur.'),
+              ],
               if (use.effect case ProjectItemRepelEffectDefinition(
                 :final steps,
               ))
@@ -286,7 +304,7 @@ class PokemonItemEffects extends StatelessWidget {
                 label: 'Consommer après application',
                 value:
                     use.consumption == ProjectItemConsumptionPolicy.onApplied,
-                onChanged: kind == 'escape_rope' || kind == 'bicycle'
+                onChanged: kind == 'escape_rope' || kind == 'bicycle' || kind == 'fishing'
                     ? null
                     : (value) => _set(
                         context,

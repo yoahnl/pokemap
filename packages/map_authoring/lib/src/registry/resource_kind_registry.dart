@@ -168,6 +168,13 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Project',
         summary: 'PokeMap project manifest and project-owned content',
+        extensions: {
+          'encounterTables': {
+            'fishingKinds': ['old_rod', 'good_rod', 'super_rod'],
+            'fishingSource': 'front_water_cell',
+            'fishingChancePerAttemptField': 'chancePerStep',
+          },
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationProfile',

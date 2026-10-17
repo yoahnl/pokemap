@@ -95,6 +95,29 @@ Map<String, dynamic> _$ProjectItemRepelEffectDefinitionToJson(
   ProjectItemRepelEffectDefinition instance,
 ) => <String, dynamic>{'steps': instance.steps, 'kind': instance.$type};
 
+ProjectItemFishingEffectDefinition _$ProjectItemFishingEffectDefinitionFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(json, allowedKeys: const ['rodKind', 'kind']);
+  return ProjectItemFishingEffectDefinition(
+    rodKind: $enumDecode(_$ProjectFishingRodKindEnumMap, json['rodKind']),
+    $type: json['kind'] as String?,
+  );
+}
+
+Map<String, dynamic> _$ProjectItemFishingEffectDefinitionToJson(
+  ProjectItemFishingEffectDefinition instance,
+) => <String, dynamic>{
+  'rodKind': _$ProjectFishingRodKindEnumMap[instance.rodKind]!,
+  'kind': instance.$type,
+};
+
+const _$ProjectFishingRodKindEnumMap = {
+  ProjectFishingRodKind.oldRod: 'old_rod',
+  ProjectFishingRodKind.goodRod: 'good_rod',
+  ProjectFishingRodKind.superRod: 'super_rod',
+};
+
 ProjectItemBicycleEffectDefinition _$ProjectItemBicycleEffectDefinitionFromJson(
   Map<String, dynamic> json,
 ) => ProjectItemBicycleEffectDefinition($type: json['kind'] as String?);
