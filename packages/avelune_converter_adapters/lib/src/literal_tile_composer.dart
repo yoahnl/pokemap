@@ -22,7 +22,7 @@ final class LiteralDependencyDecision {
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash selectionHash;
   final SourceLocator locator;
-  final int targetSourceMapId;
+  final int? targetSourceMapId;
   final LiteralDependencyDisposition decision;
 
   Map<String, Object?> toJson() => {
@@ -393,7 +393,7 @@ final class _LiteralCompositionRun {
     return null;
   }
 
-  String decisionKey(SourceLocator locator, int target) => canonicalJsonOf(
+  String decisionKey(SourceLocator locator, int? target) => canonicalJsonOf(
       {'locator': locator.toJson(), 'targetSourceMapId': target});
 
   void inspectDependencies() {
@@ -401,8 +401,10 @@ final class _LiteralCompositionRun {
       final key = decisionKey(decision.locator, decision.targetSourceMapId);
       if (decision.sourceSnapshotHash != snapshotHash ||
           decision.selectionHash != selectionHash ||
-          decision.targetSourceMapId <= 0 ||
-          decision.targetSourceMapId > 2147483647 ||
+          (decision.targetSourceMapId == null
+              ? decision.decision == LiteralDependencyDisposition.include
+              : decision.targetSourceMapId! <= 0 ||
+                  decision.targetSourceMapId! > 2147483647) ||
           resolvedDecisions.containsKey(key)) {
         diagnostic(
             'literal.dependency.decision',
@@ -438,17 +440,26 @@ final class _LiteralCompositionRun {
             final mode = parameters.isEmpty ? null : parameters[0];
             final rawTarget = parameters.length < 2 ? null : parameters[1];
             if (mode == 1) {
+              final key = decisionKey(command.sourceLocator, null);
+              final decision = resolvedDecisions[key];
+              if (decision != null) usedDecisions.add(key);
+              final retainedInactive = decision?.decision ==
+                  LiteralDependencyDisposition.excludeStudy;
               dependencies.add(LiteralMapDependency(
                   sourceMapId: id,
                   targetSourceMapId: null,
                   locator: command.sourceLocator,
                   kind: LiteralDependencyKind.dynamicTransfer,
-                  decision: null));
+                  decision: decision?.decision));
               diagnostic(
-                  'literal.dependency.dynamic',
-                  true,
+                  retainedInactive
+                      ? 'literal.dependency.dynamic_inactive'
+                      : 'literal.dependency.dynamic',
+                  !retainedInactive,
                   command.sourceLocator.toJson(),
-                  'A variable transfer cannot be resolved as a static dependency');
+                  retainedInactive
+                      ? 'The variable transfer is preserved inactive without a fabricated destination'
+                      : 'A variable transfer cannot be resolved as a static dependency');
               continue;
             }
             if (mode != 0 ||

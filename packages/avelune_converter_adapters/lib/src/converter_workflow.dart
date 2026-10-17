@@ -1443,7 +1443,12 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         final wanted = settings.selectedSourceMapIds.toSet();
         for (final decision in settings.dependencyDecisions) {
           if (decision.decision == LiteralDependencyDisposition.include) {
-            wanted.add(decision.targetSourceMapId);
+            final target = decision.targetSourceMapId;
+            if (target == null) {
+              throw const ConverterWorkflowFailure('workflow.selection.invalid',
+                  'A dynamic transfer cannot include an unknown destination');
+            }
+            wanted.add(target);
           }
         }
         if (wanted.length > settings.normalizationLimits.maxMaps ||

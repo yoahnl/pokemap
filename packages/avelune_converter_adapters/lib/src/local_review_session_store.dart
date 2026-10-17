@@ -33,10 +33,12 @@ final class LocalReviewDependencyDecision {
     required Sha256Hash sourceSnapshotHash,
     required Sha256Hash selectionHash,
     required Sha256Hash locatorHash,
-    required int targetSourceMapId,
+    required int? targetSourceMapId,
     required LiteralDependencyDisposition decision,
   }) {
-    _requireStore(targetSourceMapId > 0 && targetSourceMapId <= 2147483647,
+    _requireStore(targetSourceMapId == null
+            ? decision != LiteralDependencyDisposition.include
+            : targetSourceMapId > 0 && targetSourceMapId <= 2147483647,
         'session.store.document', 'Invalid dependency target.');
     return LocalReviewDependencyDecision._(sourceSnapshotHash, selectionHash,
         locatorHash, targetSourceMapId, decision);
@@ -73,7 +75,9 @@ final class LocalReviewDependencyDecision {
           sourceSnapshotHash: Sha256Hash(_string(json['sourceSnapshotHash'])),
           selectionHash: Sha256Hash(_string(json['selectionHash'])),
           locatorHash: Sha256Hash(_string(json['locatorHash'])),
-          targetSourceMapId: _integer(json['targetSourceMapId']),
+          targetSourceMapId: json['targetSourceMapId'] == null
+              ? null
+              : _integer(json['targetSourceMapId']),
           decision: LiteralDependencyDisposition.values
               .byName(_string(json['decision'])),
         );
@@ -82,7 +86,7 @@ final class LocalReviewDependencyDecision {
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash selectionHash;
   final Sha256Hash locatorHash;
-  final int targetSourceMapId;
+  final int? targetSourceMapId;
   final LiteralDependencyDisposition decision;
 
   Map<String, Object?> toJson() => Map.unmodifiable({

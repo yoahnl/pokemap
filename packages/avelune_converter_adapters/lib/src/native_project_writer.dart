@@ -2910,8 +2910,11 @@ void _verifyLiteralCompositionBinding(
     if (decision is! Map ||
         decision['sourceSnapshotHash'] != plan.sourceSnapshotHash.value ||
         decision['selectionHash'] != expectedSelection.value ||
-        decision['targetSourceMapId'] is! int ||
-        (decision['targetSourceMapId'] as int) <= 0 ||
+        (decision['targetSourceMapId'] == null
+            ? decision['decision'] != 'excludeStudy'
+            : decision['targetSourceMapId'] is! int ||
+                (decision['targetSourceMapId'] as int) <= 0 ||
+                (decision['targetSourceMapId'] as int) > 2147483647) ||
         decision['locator'] is! Map ||
         !const {'include', 'excludeStudy', 'block'}
             .contains(decision['decision']) ||

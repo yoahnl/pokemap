@@ -173,7 +173,9 @@ final class ConverterStudyPlanRecipe {
                     selectionHash:
                         Sha256Hash(_string(decision['selectionHash'])),
                     locator: SourceLocator.fromJson(decision['locator']),
-                    targetSourceMapId: _int(decision['targetSourceMapId']),
+                    targetSourceMapId: decision['targetSourceMapId'] == null
+                        ? null
+                        : _int(decision['targetSourceMapId']),
                     decision: LiteralDependencyDisposition.values
                         .byName(_string(decision['decision'])));
               }).toList(),

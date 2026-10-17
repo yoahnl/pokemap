@@ -248,7 +248,7 @@ List<LiteralDependencyDecision> sourceSemanticDependencyDecisions(
           locator: locators[canonicalJsonOf(row['locator'])] ??
               (throw const NativeWriteException('semantics.dependency.locator',
                   'Semantic dependency decisions must address an original source command')),
-          targetSourceMapId: row['targetSourceMapId'] as int,
+          targetSourceMapId: row['targetSourceMapId'] as int?,
           decision: LiteralDependencyDisposition.values
               .singleWhere((value) => value.name == row['decision'])),
   ];

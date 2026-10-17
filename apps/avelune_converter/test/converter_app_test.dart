@@ -803,7 +803,8 @@ void main() {
     }
   }, skip: !Platform.isMacOS);
 
-  testWidgets('dependency choices remain visible until explicit preparation', (
+  for (final dynamicTransfer in [false, true]) {
+  testWidgets('dependency choices remain visible until explicit preparation dynamic=$dynamicTransfer', (
     tester,
   ) async {
     final source = (await tester.runAsync(
@@ -812,7 +813,7 @@ void main() {
           LiteralFixtureMap(
             id: 1,
             warpParameters: [
-              [0, 8, 0, 0, 0, 0],
+              [dynamicTransfer ? 1 : 0, 8, 0, 0, 0, 0],
               [0, 12, 0, 0, 0, 0],
             ],
           ),
@@ -862,6 +863,11 @@ void main() {
       await tester.tap(find.text('Vérification'));
       await tester.pump();
       expect(choices(), hasLength(2));
+      if (dynamicTransfer) {
+        expect(choices().first.options, isNot(contains('include')));
+        expect(choices().first.options['excludeStudy'],
+            'Conserver ce transfert inactif');
+      }
       choices().first.onChanged!('excludeStudy');
       await tester.pump();
       expect(source.workflow.state.prepared, isNull);
@@ -890,6 +896,10 @@ void main() {
             !source.workflow.state.isBusy,
       );
       expect(source.workflow.state.settings!.dependencyDecisions, hasLength(2));
+      final decisions = source.workflow.state.settings!.dependencyDecisions;
+      expect(decisions.singleWhere((decision) => decision.locator.commandIndex == 0).targetSourceMapId,
+          dynamicTransfer ? isNull : 8);
+      expect(decisions.singleWhere((decision) => decision.locator.commandIndex == 1).targetSourceMapId, 12);
       expect(source.nativeStages, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.runAsync(source.expectSourceUnchanged);
@@ -898,6 +908,7 @@ void main() {
       await tester.runAsync(source.close);
     }
   }, skip: !Platform.isMacOS);
+  }
 
   testWidgets('imported plan limits survive preparation and session save', (
     tester,

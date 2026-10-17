@@ -1057,7 +1057,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
             sourceSnapshotHash: prepared.sourceSnapshotHash,
             selectionHash: prepared.composition.selectionHash,
             locator: dependency.locator,
-            targetSourceMapId: dependency.targetSourceMapId!,
+            targetSourceMapId: dependency.targetSourceMapId,
             decision: disposition,
           ),
         );
@@ -2062,16 +2062,20 @@ class _ConverterWindowState extends State<ConverterWindow> {
           Text(
             '${_mapName(dependency.sourceMapId)} → ${dependency.targetSourceMapId == null ? 'destination dynamique inconnue' : _mapName(dependency.targetSourceMapId!)}',
           ),
-          if (dependency.kind == LiteralDependencyKind.staticTransfer &&
-              dependency.targetSourceMapId != null)
+          if ((dependency.kind == LiteralDependencyKind.staticTransfer &&
+                  dependency.targetSourceMapId != null) ||
+              dependency.kind == LiteralDependencyKind.dynamicTransfer)
             StudioSelect(
               label: dependency.locator.eventId == null
                   ? 'Choix pour cette carte dépendante'
                   : 'Transfert de l’événement ${dependency.locator.eventId}',
               value: _decisionFor(dependency)?.name,
-              options: const {
-                'include': 'Inclure cette carte',
-                'excludeStudy': 'Exclure du projet d’étude',
+              options: {
+                if (dependency.kind == LiteralDependencyKind.staticTransfer)
+                  'include': 'Inclure cette carte',
+                'excludeStudy': dependency.kind == LiteralDependencyKind.dynamicTransfer
+                    ? 'Conserver ce transfert inactif'
+                    : 'Exclure du projet d’étude',
                 'block': 'Bloquer la conversion',
               },
               onChanged:

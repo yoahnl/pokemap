@@ -832,14 +832,15 @@ void main() {
     }
   }, skip: !Platform.isMacOS);
 
+  for (final dynamicTransfer in [false, true]) {
   test(
-      'recipe retains custom budgets scan policy dependency locators and review seed',
+      'recipe retains custom budgets scan policy dependency locators and review seed dynamic=$dynamicTransfer',
       () async {
     fixture = await LiteralTileFixture.create(
         sourceRootPath: fixture.sourceRootPath!,
         maps: [
           LiteralFixtureMap(id: 1, warpParameters: [
-            [0, 8, 1, 1, 2, 0]
+            [dynamicTransfer ? 1 : 0, 8, 1, 1, 2, 0]
           ]),
           LiteralFixtureMap(id: 8)
         ]);
@@ -874,7 +875,7 @@ void main() {
         sourceSnapshotHash: snapshot.canonicalHash,
         selectionHash: literalSelectionHash(initial.normalizedSource, [1]),
         locator: dependency.locator,
-        targetSourceMapId: 8,
+        targetSourceMapId: dynamicTransfer ? null : 8,
         decision: LiteralDependencyDisposition.excludeStudy);
     original.updateSettings(
         settings(decisions: [decision], review: initial.reviewSet));
@@ -886,8 +887,11 @@ void main() {
     expect(fresh.settings.canonicalHash, prepared.settings.canonicalHash);
     expect(fresh.settings.dependencyDecisions.single.locator.toJson(),
         decision.locator.toJson());
+    expect(fresh.settings.dependencyDecisions.single.targetSourceMapId,
+        dynamicTransfer ? isNull : 8);
     expect(restored.state.source!.policy.limits.maxEntries, 128);
   }, skip: !Platform.isMacOS);
+  }
 
   test('shared plan store is bounded exclusive and outside the source',
       () async {

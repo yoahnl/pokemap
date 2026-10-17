@@ -66,8 +66,11 @@ LiteralDependencyDecision _decision(
     );
 
 Future<LiteralTileFixture> _warpFixture(
-        {bool dynamic = false, bool normalizeTarget = true}) =>
+        {bool dynamic = false,
+        bool normalizeTarget = true,
+        String? sourceRootPath}) =>
     LiteralTileFixture.create(
+      sourceRootPath: sourceRootPath,
       maps: [
         LiteralFixtureMap(id: 1, warpParameters: [
           [dynamic ? 1 : 0, 8, 1, 0, 2, 0]
@@ -124,33 +127,58 @@ List<int> _paintOriginalAtlasPixel(MapData map, image.Image atlas, int cell,
 }
 
 void main() {
-  test('split image budget admits two logical atlases below the separate total', () async {
+  test('split image budget admits two logical atlases below the separate total',
+      () async {
     final fixture = await LiteralTileFixture.create(
       maps: [LiteralFixtureMap(id: 1), LiteralFixtureMap(id: 8, tilesetId: 2)],
-      tilesets: [LiteralFixtureTileset(id: 1), LiteralFixtureTileset(id: 2, png: literalFixtureAtlas(alternate: true))],
+      tilesets: [
+        LiteralFixtureTileset(id: 1),
+        LiteralFixtureTileset(id: 2, png: literalFixtureAtlas(alternate: true))
+      ],
     );
-    final result = await _compose(fixture, selected: [1, 8], limits: const NativeWriteLimits(
-      maxImagePixels: 16384, maxTotalImagePixels: 32768));
+    final result = await _compose(fixture,
+        selected: [1, 8],
+        limits: const NativeWriteLimits(
+            maxImagePixels: 16384, maxTotalImagePixels: 32768));
     expect(result.canWrite, isTrue);
     expect(result.nativeMaps, hasLength(2));
   });
 
-  test('split image budget forwards separate remaining autotile and image caps', () async {
+  test('split image budget forwards separate remaining autotile and image caps',
+      () async {
     final fixture = await LiteralTileFixture.create(
-      maps: [LiteralFixtureMap(id: 1, layers: [[48, 384, 391], [0, 0, 0], [0, 0, 0]])],
-      tilesets: [LiteralFixtureTileset(id: 1, autotileNames: ['OriginalWater'])],
-      autotilePngs: {'OriginalWater': OriginalAutotileFixture.simple().pngBytes},
+      maps: [
+        LiteralFixtureMap(id: 1, layers: [
+          [48, 384, 391],
+          [0, 0, 0],
+          [0, 0, 0]
+        ])
+      ],
+      tilesets: [
+        LiteralFixtureTileset(id: 1, autotileNames: ['OriginalWater'])
+      ],
+      autotilePngs: {
+        'OriginalWater': OriginalAutotileFixture.simple().pngBytes
+      },
     );
     final result = await const LiteralTileComposer().compose(
-      source: fixture.source, files: fixture.files, selectedSourceMapIds: [1],
-      projectName: 'Bounded autotile', parentPath: '/private/tmp', folderName: 'bounded-autotile',
+      source: fixture.source,
+      files: fixture.files,
+      selectedSourceMapIds: [1],
+      projectName: 'Bounded autotile',
+      parentPath: '/private/tmp',
+      folderName: 'bounded-autotile',
       allowFirstFrameAutotiles: true,
-      limits: const NativeWriteLimits(maxImagePixels: 147456, maxTotalImagePixels: 166912),
+      limits: const NativeWriteLimits(
+          maxImagePixels: 147456, maxTotalImagePixels: 166912),
     );
-    expect(result.canWrite, isTrue, reason: result.diagnostics.map((entry) => entry.code).join(','));
-    expect(result.draft!.artifacts.where((artifact) => artifact.reference.mediaType == 'image/png'), hasLength(2));
+    expect(result.canWrite, isTrue,
+        reason: result.diagnostics.map((entry) => entry.code).join(','));
+    expect(
+        result.draft!.artifacts
+            .where((artifact) => artifact.reference.mediaType == 'image/png'),
+        hasLength(2));
   });
-
 
   test(
       'real macOS scanner raster inventory composes through snapshot-bound source reads',
@@ -575,6 +603,120 @@ void main() {
     _blocking(result, 'literal.dependency.dynamic');
   });
 
+  test(
+      'explicit inactive dynamic transfer retains its map without a destination',
+      () async {
+    final fixture = await _warpFixture(dynamic: true);
+    final initial = await _compose(fixture);
+    final dependency = initial.dependencies.single;
+    final decision = LiteralDependencyDecision(
+        sourceSnapshotHash: fixture.snapshot.canonicalHash,
+        selectionHash: initial.selectionHash,
+        locator: dependency.locator,
+        targetSourceMapId: null,
+        decision: LiteralDependencyDisposition.excludeStudy);
+    final result = await _compose(fixture, decisions: [decision]);
+    expect(result.canWrite, isTrue);
+    expect(result.selectedSourceMapIds, [1]);
+    expect(result.includedSourceMapIds, isEmpty);
+    expect(result.nativeMaps.keys, [1]);
+    expect(
+        result.dependencies.single.kind, LiteralDependencyKind.dynamicTransfer);
+    expect(result.dependencies.single.targetSourceMapId, isNull);
+    expect(result.dependencies.single.decision,
+        LiteralDependencyDisposition.excludeStudy);
+    expect(result.nativeMaps[1]!.warps, isEmpty);
+    expect(
+        result.diagnostics
+            .singleWhere(
+                (entry) => entry.code == 'literal.dependency.dynamic_inactive')
+            .blocksPlanning,
+        isFalse);
+    final preserved = result.draft!.source.maps
+        .singleWhere((map) => map.map.sourceMapId == 1)
+        .map
+        .events
+        .single
+        .pages
+        .single
+        .commands
+        .first;
+    expect(preserved.parameters, [1, 8, 1, 0, 2, 0]);
+    expect(
+        (result.draft!.compositionEvidence['composition'] as Map)['decisions'],
+        [decision.toJson()]);
+    final stored = LocalReviewDependencyDecision.fromDecision(decision);
+    expect(LocalReviewDependencyDecision.fromJson(stored.toJson()).toJson(),
+        stored.toJson());
+    expect(stored.targetSourceMapId, isNull);
+    final analysis = SourceEventAnalyzer.forProject(fixture.source,
+            profile: SourceEventProfile.kantoForProject(fixture.source,
+                scriptsArchiveHash:
+                    Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256)))
+        .analyze();
+    expect(
+        analysis.events
+            .singleWhere((event) => event.sourceMapId == 1)
+            .isQuarantined,
+        isTrue);
+  });
+
+  test('dynamic dependency cannot include a null destination', () async {
+    final fixture = await _warpFixture(dynamic: true);
+    final initial = await _compose(fixture);
+    final result = await _compose(fixture, decisions: [
+      LiteralDependencyDecision(
+          sourceSnapshotHash: fixture.snapshot.canonicalHash,
+          selectionHash: initial.selectionHash,
+          locator: initial.dependencies.single.locator,
+          targetSourceMapId: null,
+          decision: LiteralDependencyDisposition.include)
+    ]);
+    expect(result.canWrite, isFalse);
+    expect(result.nativeMaps, isEmpty);
+    _blocking(result, 'literal.dependency.decision');
+  });
+
+  test('inactive dynamic transfer writes and reopens without an active warp',
+      () async {
+    final root = await Directory.systemTemp.createTemp('literal-dynamic-');
+    try {
+      final output = await Directory('${root.path}/output').create();
+      final fixture = await _warpFixture(
+          dynamic: true, sourceRootPath: '${root.path}/source');
+      final before = await _sourceDiskBytes(fixture.sourceRootPath!);
+      final initial = await _compose(fixture);
+      final composition =
+          await _compose(fixture, parentPath: output.path, decisions: [
+        LiteralDependencyDecision(
+            sourceSnapshotHash: fixture.snapshot.canonicalHash,
+            selectionHash: initial.selectionHash,
+            locator: initial.dependencies.single.locator,
+            targetSourceMapId: null,
+            decision: LiteralDependencyDisposition.excludeStudy)
+      ]);
+      final approval = approveNativeFixtureDraft(composition.draft!,
+          selectedSourceMapIds: composition.selectedSourceMapIds,
+          dependencySourceMapIds: composition.includedSourceMapIds);
+      final receipt = await const NativeProjectWriter()
+          .write(approval.plan, approval.context, composition.draft!);
+      final native = await _LiteralNativeSession.open(receipt.projectPath);
+      try {
+        final snapshot = await native.snapshots
+            .load(native.project, policy: ProjectSnapshotLoadPolicy.strict);
+        expect(snapshot.maps.single.id, composition.nativeMaps[1]!.id);
+        expect(snapshot.maps.single.warps, isEmpty);
+        expect(snapshot.maps.single.entities, isEmpty);
+        expect(snapshot.manifest.maps, hasLength(1));
+      } finally {
+        await native.close();
+      }
+      expect(await _sourceDiskBytes(fixture.sourceRootPath!), before);
+    } finally {
+      await root.delete(recursive: true);
+    }
+  });
+
   for (final mutation in [
     'snapshot',
     'selection',
@@ -837,7 +979,8 @@ void main() {
             fixture.sourceBytes['Graphics/Tilesets/OriginalAtlas1.png']!;
         final tilesetId = composition.tilesetIds[1]!;
         expect(
-            snapshot.resourceBytes('assetLogical:image_$tilesetId'), sourcePng);
+            await snapshot.readResourceBytes('assetLogical:image_$tilesetId'),
+            sourcePng);
         expect(receipt.assetHashes['image_$tilesetId'],
             literalFixtureHash(sourcePng));
       } finally {
@@ -905,7 +1048,9 @@ void main() {
             .toList();
         expect(sources[0].assetId, isNot(sources[1].assetId));
         for (final source in sources) {
-          expect(snapshot.resourceBytes('assetLogical:${source.assetId}'),
+          expect(
+              await snapshot
+                  .readResourceBytes('assetLogical:${source.assetId}'),
               fixture.sourceBytes['Graphics/Tilesets/OriginalAtlas1.png']);
         }
         for (final entry in composition.nativeMaps.entries) {
