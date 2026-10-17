@@ -146,6 +146,7 @@ final class LocalReviewProfileAcknowledgement {
 final class LocalReviewResumeSettings {
   factory LocalReviewResumeSettings({
     required String sourceRootPath,
+    String? sharedDataRootPath,
     required String destinationParentPath,
     required String projectName,
     required String folderName,
@@ -160,6 +161,9 @@ final class LocalReviewResumeSettings {
   }) =>
       _readDocument(() {
         final source = _absolutePath(sourceRootPath);
+        final shared = sharedDataRootPath == null
+            ? null
+            : _absolutePath(sharedDataRootPath);
         final destination = _absolutePath(destinationParentPath);
         _requireStore(
             projectName.trim().isNotEmpty &&
@@ -193,6 +197,7 @@ final class LocalReviewResumeSettings {
             _normalizationJson(normalizationLimits), _normalizationCeilings);
         return LocalReviewResumeSettings._(
             source,
+            shared,
             destination,
             projectName.trim(),
             folderName,
@@ -207,6 +212,7 @@ final class LocalReviewResumeSettings {
 
   const LocalReviewResumeSettings._(
       this.sourceRootPath,
+      this.sharedDataRootPath,
       this.destinationParentPath,
       this.projectName,
       this.folderName,
@@ -223,6 +229,7 @@ final class LocalReviewResumeSettings {
         final json = _object(input);
         _keys(json, const {
           'sourceRootPath',
+          'sharedDataRootPath',
           'destinationParentPath',
           'projectName',
           'folderName',
@@ -239,6 +246,9 @@ final class LocalReviewResumeSettings {
             'Too many dependency receipts.');
         return LocalReviewResumeSettings(
           sourceRootPath: _string(json['sourceRootPath']),
+          sharedDataRootPath: json['sharedDataRootPath'] == null
+              ? null
+              : _string(json['sharedDataRootPath']),
           destinationParentPath: _string(json['destinationParentPath']),
           projectName: _string(json['projectName']),
           folderName: _string(json['folderName']),
@@ -260,6 +270,7 @@ final class LocalReviewResumeSettings {
       });
 
   final String sourceRootPath;
+  final String? sharedDataRootPath;
   final String destinationParentPath;
   final String projectName;
   final String folderName;
@@ -273,6 +284,7 @@ final class LocalReviewResumeSettings {
 
   Map<String, Object?> toJson() => _immutableObject({
         'sourceRootPath': sourceRootPath,
+        'sharedDataRootPath': sharedDataRootPath,
         'destinationParentPath': destinationParentPath,
         'projectName': projectName,
         'folderName': folderName,
@@ -337,7 +349,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 4,
+            json['kind'] == 'localReviewSession' && json['version'] == 5,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -359,7 +371,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 4,
+        'version': 5,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),
@@ -546,6 +558,7 @@ final class LocalReviewSessionStore {
       String root, LocalReviewResumeSettings settings) async {
     for (final selected in [
       settings.sourceRootPath,
+      if (settings.sharedDataRootPath != null) settings.sharedDataRootPath!,
       settings.destinationParentPath
     ]) {
       final other = await _canonicalContextPath(selected);

@@ -56,6 +56,27 @@ final class MacOsSourceTree implements SourceTreePort {
   Stream<SourceNode> walk({
     required SourceScanPolicy policy,
     required ScanCancellation cancellation,
+  }) =>
+      _walk(policy: policy, cancellation: cancellation);
+
+  Stream<SourceNode> walkSelected({
+    required Set<String> relativePaths,
+    required SourceScanPolicy policy,
+    required ScanCancellation cancellation,
+  }) {
+    for (final value in relativePaths) {
+      validateSourceRelativePath(value);
+    }
+    return _walk(
+        policy: policy,
+        cancellation: cancellation,
+        selectedKeys: relativePaths.map(sourcePathCollisionKey).toSet());
+  }
+
+  Stream<SourceNode> _walk({
+    required SourceScanPolicy policy,
+    required ScanCancellation cancellation,
+    Set<String>? selectedKeys,
   }) async* {
     _check(cancellation);
     final limits = policy.limits;
@@ -75,7 +96,7 @@ final class MacOsSourceTree implements SourceTreePort {
         throw _changed('');
       }
       yield* _walkDirectory(
-          fd, '', 0, _rootIdentity, policy, cancellation, budget);
+          fd, '', 0, _rootIdentity, policy, cancellation, budget, selectedKeys);
     } finally {
       _native.close(fd);
     }
@@ -89,7 +110,10 @@ final class MacOsSourceTree implements SourceTreePort {
     SourceScanPolicy policy,
     ScanCancellation cancellation,
     _WalkBudget budget,
+    Set<String>? selectedKeys,
   ) async* {
+    final initialToken =
+        selectedKeys == null ? null : _statFd(fd, parentPath).token;
     final listingFd = _openDirectory(fd, '.', parentPath);
     final directory = _native.fdopendir(listingFd);
     if (directory == nullptr) {
@@ -135,6 +159,13 @@ final class MacOsSourceTree implements SourceTreePort {
           throw ContractError(
               'source.depth_limit', path, 'Source depth limit exceeded.');
         }
+        if (selectedKeys != null) {
+          final key = sourcePathCollisionKey(path);
+          if (!selectedKeys.any(
+              (selected) => selected == key || selected.startsWith('$key/'))) {
+            continue;
+          }
+        }
         final stat = _statAt(fd, name, path);
         final excluded = policy.isExcluded(path);
         if (excluded) _excludedPaths.add(path);
@@ -163,11 +194,22 @@ final class MacOsSourceTree implements SourceTreePort {
         final child = _openDirectory(fd, name, path);
         try {
           if (_statFd(child, path).token != stat.token) throw _changed(path);
-          yield* _walkDirectory(child, path, depth + 1,
-              '$ancestry|${stat.identity}', policy, cancellation, budget);
+          yield* _walkDirectory(
+              child,
+              path,
+              depth + 1,
+              '$ancestry|${stat.identity}',
+              policy,
+              cancellation,
+              budget,
+              selectedKeys);
         } finally {
           _native.close(child);
         }
+      }
+      if (initialToken != null &&
+          _statFd(fd, parentPath).token != initialToken) {
+        throw _changed(parentPath);
       }
     } finally {
       _native.closedir(directory);

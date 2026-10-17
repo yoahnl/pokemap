@@ -13,7 +13,7 @@ import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_catalog_study_composer.dart';
 import 'local_asset_proposer.dart';
-import 'macos_source_tree.dart';
+import 'supplemented_source_tree.dart';
 import 'native_project_writer.dart';
 import 'native_project_publication.dart';
 import 'snapshot_source_files.dart';
@@ -42,23 +42,32 @@ typedef ConverterWorkflowCheckpoint = FutureOr<void> Function(
 final class ConverterSourceSelection {
   factory ConverterSourceSelection({
     required String rootPath,
+    String? sharedDataRootPath,
     required ConverterId logicalProjectNamespace,
     SourceScanPolicy? policy,
   }) {
     _workflowPath(rootPath);
-    return ConverterSourceSelection._(path.normalize(rootPath),
-        logicalProjectNamespace, policy ?? SourceScanPolicy());
+    if (sharedDataRootPath != null) _workflowPath(sharedDataRootPath);
+    return ConverterSourceSelection._(
+        path.normalize(rootPath),
+        sharedDataRootPath == null ? null : path.normalize(sharedDataRootPath),
+        logicalProjectNamespace,
+        policy ?? SourceScanPolicy());
   }
 
-  const ConverterSourceSelection._(
-      this.rootPath, this.logicalProjectNamespace, this.policy);
+  const ConverterSourceSelection._(this.rootPath, this.sharedDataRootPath,
+      this.logicalProjectNamespace, this.policy);
 
   final String rootPath;
+  final String? sharedDataRootPath;
+  List<String> get sourceRoots =>
+      [rootPath, if (sharedDataRootPath != null) sharedDataRootPath!];
   final ConverterId logicalProjectNamespace;
   final SourceScanPolicy policy;
 
   Sha256Hash get canonicalHash => canonicalHashOf({
         'rootPath': rootPath,
+        'sharedDataRootPath': sharedDataRootPath,
         'logicalProjectNamespace': logicalProjectNamespace.value,
         'policyHash': policy.canonicalHash.value,
       });
@@ -325,6 +334,8 @@ final class ConverterStudyResult {
     required this.approvedPlanHash,
     required this.sessionRevision,
     required this.sourceUnchanged,
+    required this.sourceSelection,
+    required this.sharedSourceFiles,
   });
 
   final NativeWriteReceipt receipt;
@@ -334,6 +345,22 @@ final class ConverterStudyResult {
   final Sha256Hash approvedPlanHash;
   final int sessionRevision;
   final bool sourceUnchanged;
+  final ConverterSourceSelection sourceSelection;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
+  Map<String, Object?> get sourceProvenanceReceipt => {
+        'kind': 'converterSourceProvenance',
+        'version': 1,
+        'sourceSelectionHash': sourceSelection.canonicalHash.value,
+        'sourceSnapshotHash': sourceSnapshotHash.value,
+        'preparationHash': preparationHash.value,
+        'approvedPlanHash': approvedPlanHash.value,
+        'nativeDraftHash': publication.draftHash.value,
+        'nativeInventoryHash': publication.inventoryHash.value,
+        'sourceRootPath': sourceSelection.rootPath,
+        'sharedDataRootPath': sourceSelection.sharedDataRootPath,
+        'sharedSourceFiles':
+            sharedSourceFiles.map((file) => file.toJson()).toList(),
+      };
   String get projectPath => publication.projectPath;
   bool get published => publication.published;
   bool get playableCertified => false;
@@ -367,6 +394,7 @@ final class ConverterWorkflowState {
     this.source,
     this.snapshot,
     this.sourceCatalog,
+    this.sharedSourceFiles = const [],
     this.availableSourceMapIds = const [],
     this.settings,
     this.prepared,
@@ -385,6 +413,7 @@ final class ConverterWorkflowState {
   final ConverterSourceSelection? source;
   final SourceSnapshot? snapshot;
   final NormalizedSourceProject? sourceCatalog;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
   final List<int> availableSourceMapIds;
   final ConverterStudySettings? settings;
   final PreparedStudy? prepared;
@@ -403,6 +432,7 @@ final class ConverterWorkflowState {
     Object? source = _keep,
     Object? snapshot = _keep,
     Object? sourceCatalog = _keep,
+    List<ConverterSharedSourceFile>? sharedSourceFiles,
     List<int>? availableSourceMapIds,
     Object? settings = _keep,
     Object? prepared = _keep,
@@ -427,6 +457,7 @@ final class ConverterWorkflowState {
         sourceCatalog: identical(sourceCatalog, _keep)
             ? this.sourceCatalog
             : sourceCatalog as NormalizedSourceProject?,
+        sharedSourceFiles: sharedSourceFiles ?? this.sharedSourceFiles,
         availableSourceMapIds:
             availableSourceMapIds ?? this.availableSourceMapIds,
         settings: identical(settings, _keep)
@@ -514,6 +545,7 @@ final class ConverterWorkflow {
         sessionId: _sessionId,
         sessionRevision: prepared.sessionRevision,
         sourceSelection: _state.source!,
+        sharedSourceFiles: _state.sharedSourceFiles,
         settings: prepared.settings,
         sourceSnapshotHash: prepared.sourceSnapshotHash,
         profileEvidenceHash: prepared.profileEvidenceHash,
@@ -601,6 +633,7 @@ final class ConverterWorkflow {
       _state = _state._copy(
           snapshot: snapshot,
           sourceCatalog: outcome.sourceCatalog,
+          sharedSourceFiles: outcome.sharedSourceFiles,
           availableSourceMapIds:
               complete ? _availableMapIds(snapshot) : const [],
           isBusy: false,
@@ -682,6 +715,7 @@ final class ConverterWorkflow {
           revision: _state.revision,
           source: _state.source!,
           snapshot: snapshot,
+          sharedSourceFiles: _state.sharedSourceFiles,
           settings: settings));
       final prepared = outcome.prepared!;
       _state = _state._copy(
@@ -776,6 +810,7 @@ final class ConverterWorkflow {
           revision: _state.revision,
           source: _state.source!,
           snapshot: _state.snapshot!,
+          sharedSourceFiles: _state.sharedSourceFiles,
           settings: prepared.settings,
           prepared: prepared,
           approval: approval));
@@ -1043,6 +1078,7 @@ final class _WorkerRequest {
     required this.sessionId,
     required this.revision,
     required this.source,
+    this.sharedSourceFiles = const [],
     this.snapshot,
     this.settings,
     this.prepared,
@@ -1052,6 +1088,7 @@ final class _WorkerRequest {
   final ConverterId sessionId;
   final int revision;
   final ConverterSourceSelection source;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
   final SourceSnapshot? snapshot;
   final ConverterStudySettings? settings;
   final PreparedStudy? prepared;
@@ -1141,11 +1178,13 @@ final class _WorkerOutcome {
   const _WorkerOutcome(
       {this.snapshot,
       this.sourceCatalog,
+      this.sharedSourceFiles = const [],
       this.prepared,
       this.result,
       this.failure});
   final SourceSnapshot? snapshot;
   final NormalizedSourceProject? sourceCatalog;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
   final PreparedStudy? prepared;
   final ConverterStudyResult? result;
   final ConverterWorkflowFailure? failure;
@@ -1283,7 +1322,7 @@ final class _WorkerRelay {
 Future<void> _converterWorker(_WorkerLaunch launch) async {
   final relay = _WorkerRelay(launch, ReceivePort());
   final request = launch.request;
-  MacOsSourceTree? tree;
+  SupplementedSourceTree? tree;
   NativeWriteReceipt? receipt;
   NativePublicationJob? publicationJob;
   late _WorkerOutcome outcome;
@@ -1299,7 +1338,8 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             ? ConverterWorkflowPhase.scan
             : ConverterWorkflowPhase.verifySource,
         JobUnit.files);
-    tree = await MacOsSourceTree.open(request.source.rootPath);
+    tree = await SupplementedSourceTree.open(request.source.rootPath,
+        sharedDataRootPath: request.source.sharedDataRootPath);
     relay.cancellation.check();
     final source = _CooperativeSourceTree(tree);
     final snapshot = await SourceScanner().scan(
@@ -1326,7 +1366,10 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         relay.cancellation.check();
       }
       if (snapshot.state == SourceScanState.complete) relay.finish();
-      outcome = _WorkerOutcome(snapshot: snapshot, sourceCatalog: catalog);
+      outcome = _WorkerOutcome(
+          snapshot: snapshot,
+          sourceCatalog: catalog,
+          sharedSourceFiles: tree.sharedSourceFilesFor(snapshot));
     } else {
       if (snapshot.state != SourceScanState.complete) {
         throw const ConverterWorkflowFailure(
@@ -1339,16 +1382,38 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         throw const ConverterWorkflowFailure('workflow.source_changed',
             'Source bytes changed; scan and prepare a new exact draft.');
       }
+      final boundTree = tree;
+      void verifyProvenance() {
+        final expected = canonicalHashOf(
+            request.sharedSourceFiles.map((file) => file.toJson()).toList());
+        final observed = canonicalHashOf(boundTree
+            .sharedSourceFilesFor(snapshot)
+            .map((file) => file.toJson())
+            .toList());
+        if (expected != observed) {
+          throw const ConverterWorkflowFailure(
+              'workflow.source_provenance_changed',
+              'Source file origins changed; scan and prepare a new exact draft.');
+        }
+      }
+
+      verifyProvenance();
       relay.finish();
       final files = await SnapshotSourceFiles.bind(
           source: source,
           snapshot: snapshot,
           policy: request.source.policy,
           cancellation: relay.cancellation);
+      verifyProvenance();
+      Future<void> verifySourceUnchanged() async {
+        await files.verifyUnchanged();
+        verifyProvenance();
+      }
+
       if (request.kind == _WorkerKind.prepare) {
         final settings = request.settings!;
         _checkAcknowledgement(snapshot, settings.profileAcknowledgement);
-        await _guardPreparationDestination(settings, tree.rootPath);
+        await _guardPreparationDestination(settings, tree.sourceRoots);
         final wanted = settings.selectedSourceMapIds.toSet();
         for (final decision in settings.dependencyDecisions) {
           if (decision.decision == LiteralDependencyDisposition.include) {
@@ -1569,7 +1634,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 .toSet()
                 .length);
         await relay.start(ConverterWorkflowPhase.verifySource, JobUnit.files);
-        await files.verifyUnchanged();
+        await verifySourceUnchanged();
         relay.cancellation.check();
         relay.finish();
         final capabilities = _nativeCapabilities();
@@ -1577,8 +1642,10 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             capabilities, draft, decisions, proposalDiagnostics, library);
         final hash = canonicalHashOf({
           'kind': 'preparedConverterStudy',
-          'version': 1,
+          'version': 2,
           'sessionId': request.sessionId.value,
+          'sharedSourceFiles':
+              request.sharedSourceFiles.map((file) => file.toJson()).toList(),
           'sessionRevision': request.revision,
           'sourceSelectionHash': request.source.canonicalHash.value,
           'sourceSnapshotHash': snapshot.canonicalHash.value,
@@ -1625,7 +1692,9 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 reviewSet: reviewSet,
                 canApprove: normalized.canPlan &&
                     draft != null &&
-                    (events?.projection.allEnabledOriginalEventsHaveExecutionContext ?? true) &&
+                    (events?.projection
+                            .allEnabledOriginalEventsHaveExecutionContext ??
+                        true) &&
                     settings.profileAcknowledgement.humanConfirmed &&
                     plan != null &&
                     !plan.findings.any((finding) => finding.blocksStudy)));
@@ -1664,7 +1733,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             approval.approvedPlan, context, draft,
             policy: NativePublicationPolicy(
                 allowedParentRoots: [draft.parentPath],
-                sourceRoots: [request.source.rootPath]),
+                sourceRoots: request.source.sourceRoots),
             cancellation: relay.cancellation);
         await relay.checkpoint(
             journalPath: publicationJob.journalPath,
@@ -1722,7 +1791,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 receipt.assetHashes.length +
                 receipt.borderSnapshotFiles.length);
         await relay.start(ConverterWorkflowPhase.verifySource, JobUnit.files);
-        await files.verifyUnchanged();
+        await verifySourceUnchanged();
         relay.cancellation.check();
         relay.finish();
         await relay.start(ConverterWorkflowPhase.publishNative, JobUnit.files);
@@ -1743,7 +1812,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             readCurrentContext: () =>
                 publicationCallback(relay.readCurrentContext),
             verifySourceUnchanged: () =>
-                publicationCallback(files.verifyUnchanged),
+                publicationCallback(verifySourceUnchanged),
             cancellation: relay.cancellation);
         relay.finish();
         outcome = _WorkerOutcome(
@@ -1754,7 +1823,9 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 preparationHash: prepared.preparationHash,
                 approvedPlanHash: approval.approvedPlanHash,
                 sessionRevision: request.revision,
-                sourceUnchanged: true));
+                sourceUnchanged: true,
+                sourceSelection: request.source,
+                sharedSourceFiles: tree.sharedSourceFilesFor(snapshot)));
       }
     }
   } catch (error) {
@@ -1890,7 +1961,7 @@ List<int> _availableMapIds(SourceSnapshot snapshot) {
 }
 
 Future<void> _guardPreparationDestination(
-    ConverterStudySettings settings, String sourceRoot) async {
+    ConverterStudySettings settings, List<String> sourceRoots) async {
   final String parent;
   try {
     parent = await Directory(settings.parentPath).resolveSymbolicLinks();
@@ -1903,9 +1974,10 @@ Future<void> _guardPreparationDestination(
     throw const ConverterWorkflowFailure('workflow.destination.invalid',
         'The destination parent is not a directory.');
   }
-  if (path.equals(parent, sourceRoot) ||
+  if (sourceRoots.any((sourceRoot) =>
+      path.equals(parent, sourceRoot) ||
       path.isWithin(sourceRoot, parent) ||
-      path.isWithin(parent, sourceRoot)) {
+      path.isWithin(parent, sourceRoot))) {
     throw const ConverterWorkflowFailure('native.source.overlap',
         'The destination must be isolated from the source.');
   }

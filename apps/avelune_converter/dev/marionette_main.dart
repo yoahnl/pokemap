@@ -32,7 +32,12 @@ Future<void> main() async {
         'recipeHash': recipe.canonicalHash.value,
         'expectedApprovedPlanHash': recipe.approvedPlanHash.value,
         'expectedSource': recipe.sourceSelection.rootPath,
+        'expectedSharedDataRoot': recipe.sourceSelection.sharedDataRootPath,
         'activeSource': state?.source?.rootPath,
+        'activeSharedDataRoot': state?.source?.sharedDataRootPath,
+        'sharedSourceFiles': state?.sharedSourceFiles
+            .map((file) => file.toJson())
+            .toList(),
         'phase': state?.phase?.name,
         'busy': state?.isBusy,
         'preparedPlanHash': state?.prepared?.previewPlan?.canonicalHash.value,
@@ -58,6 +63,8 @@ Future<void> main() async {
       pathPicker: (kind) async => switch (kind) {
         ConverterPathKind.planFile => selected,
         ConverterPathKind.sourceFolder => recipe.sourceSelection.rootPath,
+        ConverterPathKind.sharedDataFolder =>
+          recipe.sourceSelection.sharedDataRootPath,
         ConverterPathKind.destinationParent => recipe.settings.parentPath,
         ConverterPathKind.sourceProject => null,
       },

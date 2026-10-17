@@ -43,7 +43,10 @@ final class ConverterVisionSourceFiles implements SourceFilePort {
 
   @override
   Future<List<int>> read(ConverterId fileId) async {
-    final source = await MacOsSourceTree.open(selection.rootPath);
+    final source = await SupplementedSourceTree.open(
+      selection.rootPath,
+      sharedDataRootPath: selection.sharedDataRootPath,
+    );
     try {
       final files = await SnapshotSourceFiles.bind(
         source: source,
@@ -63,7 +66,10 @@ Future<bool> verifyConverterVisionSource(
   ConverterSourceSelection selection,
   SourceSnapshot snapshot,
 ) async {
-  final source = await MacOsSourceTree.open(selection.rootPath);
+  final source = await SupplementedSourceTree.open(
+    selection.rootPath,
+    sharedDataRootPath: selection.sharedDataRootPath,
+  );
   try {
     final fresh = await SourceScanner().scan(
       source: source,

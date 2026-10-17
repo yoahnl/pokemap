@@ -11,6 +11,7 @@ final class ConverterReviewSessionResumer {
     required StoredReviewSession stored,
     required ConverterWorkflow workflow,
     String? sourceRootPath,
+    String? sharedDataRootPath,
     String? destinationParentPath,
     String? folderName,
     String? projectName,
@@ -19,6 +20,7 @@ final class ConverterReviewSessionResumer {
     final saved = stored.resumeSettings;
     final snapshot = await workflow.scanSource(ConverterSourceSelection(
         rootPath: sourceRootPath ?? saved.sourceRootPath,
+        sharedDataRootPath: sharedDataRootPath ?? saved.sharedDataRootPath,
         logicalProjectNamespace: session.logicalProjectNamespace,
         policy: saved.sourceScanPolicy));
     if (snapshot.state != SourceScanState.complete ||

@@ -113,6 +113,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       widget.workflow ?? widget.workflowFactory?.call() ?? ConverterWorkflow();
   late bool _ownsWorkflow = widget.workflow == null;
   late final _source = TextEditingController(text: widget.initialSourcePath);
+  final _sharedSource = TextEditingController();
   late final _parent = TextEditingController(text: widget.initialParentPath);
   final _name = TextEditingController(text: 'Mon projet Avelune');
   final _folder = TextEditingController(text: 'avelune-study');
@@ -144,15 +145,25 @@ class _ConverterWindowState extends State<ConverterWindow> {
   bool _allowFirstFrameAutotiles = false;
   String? _localError;
   ConverterWorkflowEventKind? _lastOutcome;
-  late (String, String, String, String) _lastFormValues;
+  late (String, String, String, String, String) _lastFormValues;
 
   ConverterWorkflowState get _state => _workflow.state;
   bool get _busy =>
       _state.isBusy || _savingSession || _savingPlan || _loadingSession;
   PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
   AssetReviewSession? get _reviewSession => _reviewSet?.segments[_reviewMapId];
-  (String, String, String, String) get _formValues =>
-      (_source.text, _parent.text, _name.text, _folder.text);
+  (String, String, String, String, String) get _formValues => (
+    _source.text,
+    _parent.text,
+    _name.text,
+    _folder.text,
+    _sharedSource.text,
+  );
+  String? get _sharedDataRoot =>
+      _sharedSource.text.trim().isEmpty ? null : _sharedSource.text.trim();
+  bool get _sourceMatches =>
+      _sourceRoot == _state.source?.rootPath &&
+      _sharedDataRoot == _state.source?.sharedDataRootPath;
   String get _sourceRoot {
     final value = _source.text.trim();
     return path.extension(value).toLowerCase() == '.rxproj'
@@ -185,7 +196,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
           : AppExitResponse.cancel,
     );
     _lastFormValues = _formValues;
-    for (final controller in [_source, _parent, _name, _folder]) {
+    for (final controller in [
+      _source,
+      _sharedSource,
+      _parent,
+      _name,
+      _folder,
+    ]) {
       controller.addListener(_markEdited);
     }
     _listenToWorkflow();
@@ -208,7 +225,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
   void dispose() {
     _lifecycle.dispose();
     unawaited(_subscription?.cancel());
-    for (final controller in [_source, _parent, _name, _folder, _search]) {
+    for (final controller in [
+      _source,
+      _sharedSource,
+      _parent,
+      _name,
+      _folder,
+      _search,
+    ]) {
       controller.dispose();
     }
     if (_ownsWorkflow) unawaited(_workflow.dispose());
@@ -224,7 +248,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _dirty = true;
       _localError = null;
       _sessionNotice = null;
-      if (_sourceRoot != _state.source?.rootPath) _reviewSourceVerified = false;
+      if (!_sourceMatches) _reviewSourceVerified = false;
     });
   }
 
@@ -240,6 +264,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         previousAcknowledgement?.humanConfirmed == _studyAcknowledged;
     return LocalReviewResumeSettings(
       sourceRootPath: _sourceRoot,
+      sharedDataRootPath: _sharedDataRoot,
       destinationParentPath: _parent.text.trim(),
       projectName: _name.text.trim(),
       folderName: _folder.text.trim(),
@@ -437,7 +462,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (_busy ||
         _unappliedDrafts ||
         !_reviewSourceVerified ||
-        _sourceRoot != _state.source?.rootPath ||
+        !_sourceMatches ||
         _reviewSet?.segments.containsKey(sourceMapId) != true) {
       return;
     }
@@ -497,11 +522,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
   Future<void> _restoreReviewSession(
     StoredReviewSession stored, {
     String? sourceRootPath,
+    String? sharedDataRootPath,
   }) async {
     final generation = ++_sessionGeneration;
     _workflow.invalidatePrepared();
     final settings = stored.resumeSettings;
     _source.text = sourceRootPath ?? settings.sourceRootPath;
+    _sharedSource.text =
+        sharedDataRootPath ?? settings.sharedDataRootPath ?? '';
     _parent.text = settings.destinationParentPath;
     _name.text = settings.projectName;
     _folder.text = settings.folderName;
@@ -535,6 +563,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         stored: stored,
         workflow: _workflow,
         sourceRootPath: sourceRootPath,
+        sharedDataRootPath: sharedDataRootPath,
       );
       if (!mounted || generation != _sessionGeneration) return;
       setState(() {
@@ -574,7 +603,25 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (!await _prepareForSessionChange() || !mounted) return;
     final selected = await widget.pathPicker(ConverterPathKind.sourceFolder);
     if (selected == null || !mounted) return;
-    await _restoreReviewSession(stored, sourceRootPath: selected);
+    await _restoreReviewSession(
+      stored,
+      sourceRootPath: selected,
+      sharedDataRootPath: _sharedDataRoot,
+    );
+  });
+
+  Future<void> _reselectSessionSharedSource() => _run(() async {
+    final stored = _storedReview;
+    if (stored == null || !await _prepareForSessionChange() || !mounted) return;
+    final selected = await widget.pathPicker(
+      ConverterPathKind.sharedDataFolder,
+    );
+    if (selected == null || !mounted) return;
+    await _restoreReviewSession(
+      stored,
+      sourceRootPath: _sourceRoot,
+      sharedDataRootPath: selected,
+    );
   });
 
   Future<void> _run(Future<void> Function() action) async {
@@ -606,19 +653,42 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (kind == ConverterPathKind.destinationParent) {
       _parent.text = selected;
     } else {
-      _source.text = selected;
-      setState(() {
-        _studyAcknowledged = false;
-        _allowFirstFrameAutotiles = false;
-        _reviewPreview = null;
-        _reviewSet = null;
-        _reviewMapId = null;
-        _storedReview = null;
-        _reviewSourceVerified = false;
-        _sessionGeneration++;
-        _step = 0;
-      });
+      if (kind == ConverterPathKind.sharedDataFolder) {
+        _sharedSource.text = selected;
+      } else {
+        _source.text = selected;
+      }
+      _invalidateSourceSelection();
     }
+  });
+
+  void _invalidateSourceSelection() {
+    _workflow.invalidatePrepared();
+    setState(() {
+      _selectedMaps.clear();
+      _decisions.clear();
+      _imageBindings.clear();
+      _importedSettings = null;
+      _assetOutputMode = AssetOutputMode.sharedAtlas;
+      _dirty = true;
+      _studyAcknowledged = false;
+      _allowFirstFrameAutotiles = false;
+      _reviewPreview = null;
+      _reviewSet = null;
+      _reviewMapId = null;
+      _storedReview = null;
+      _reviewSourceVerified = false;
+      _sessionGeneration++;
+      _step = 0;
+    });
+  }
+
+  Future<void> _clearSharedSource() => _run(() async {
+    if (_unappliedDrafts || !await _prepareForSessionChange() || !mounted) {
+      return;
+    }
+    _sharedSource.clear();
+    _invalidateSourceSelection();
   });
 
   Future<void> _scan() => _run(() async {
@@ -643,6 +713,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     await _workflow.scanSource(
       ConverterSourceSelection(
         rootPath: _sourceRoot,
+        sharedDataRootPath: _sharedDataRoot,
         logicalProjectNamespace: ConverterId(
           'local-${canonicalHashOf(_sourceRoot).value.substring(0, 24)}',
         ),
@@ -776,6 +847,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       if (ownedPrevious) await previous.dispose();
       if (!mounted) return;
       _source.text = recipe.sourceSelection.rootPath;
+      _sharedSource.text = recipe.sourceSelection.sharedDataRootPath ?? '';
       _parent.text = recipe.settings.parentPath;
       _name.text = recipe.settings.projectName;
       _folder.text = recipe.settings.folderName;
@@ -1205,6 +1277,15 @@ class _ConverterWindowState extends State<ConverterWindow> {
           secondary: true,
           onPressed: _reselectSessionSource,
         ),
+      if (_storedReview?.resumeSettings.sharedDataRootPath != null &&
+          !_reviewSourceVerified &&
+          !_busy)
+        StudioButton(
+          key: const ValueKey('reselect-session-shared-source'),
+          label: 'Retrouver les fichiers partagés',
+          secondary: true,
+          onPressed: _reselectSessionSharedSource,
+        ),
     ],
   );
 
@@ -1252,6 +1333,44 @@ class _ConverterWindowState extends State<ConverterWindow> {
               onPressed: _source.text.trim().isEmpty
                   ? null
                   : () => Clipboard.setData(ClipboardData(text: _sourceRoot)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const Text('Fichiers partagés (facultatif)'),
+        const SizedBox(height: 8),
+        const Text(
+          'Choisissez explicitement un dossier contenant les scripts ou catalogues manquants. Seuls Scripts, objets et capacités peuvent être complétés ; les cartes et rencontres restent celles du projet source.',
+        ),
+        const SizedBox(height: 12),
+        StudioPathField(
+          key: const ValueKey('shared-source-path'),
+          controller: _sharedSource,
+          label: 'Dossier de référence partagé',
+          onSubmitted: () => FocusScope.of(context).nextFocus(),
+          enabled: false,
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            StudioButton(
+              key: const ValueKey('choose-shared-source'),
+              label: 'Choisir les fichiers partagés',
+              icon: Icons.folder_open,
+              secondary: true,
+              onPressed: _busy
+                  ? null
+                  : () => _pick(ConverterPathKind.sharedDataFolder),
+            ),
+            StudioButton(
+              key: const ValueKey('clear-shared-source'),
+              label: 'Retirer la référence',
+              secondary: true,
+              onPressed: _busy || _sharedDataRoot == null
+                  ? null
+                  : _clearSharedSource,
             ),
           ],
         ),
@@ -1357,8 +1476,21 @@ class _ConverterWindowState extends State<ConverterWindow> {
           radius: 16,
           children: [
             Text(
-              'Inventaire : ${snapshot.entries.where((value) => value.kind == SourceNodeKind.file).length} fichiers lus.',
+              'Inventaire logique : ${snapshot.entries.where((value) => value.kind == SourceNodeKind.file).length} fichiers lus.',
             ),
+            if (_state.source?.sharedDataRootPath != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Fichiers partagés utilisés : ${_state.sharedSourceFiles.length}',
+              ),
+              for (final file in _state.sharedSourceFiles)
+                SelectableText(
+                  '${file.relativePath} ← ${file.referenceRootPath}',
+                ),
+              const Text(
+                'Ces fichiers sont lus depuis la référence choisie ; ils ne sont pas ajoutés au dossier source.',
+              ),
+            ],
             const SizedBox(height: 8),
             Text(
               'Cartes : ${_state.availableSourceMapIds.length} disponibles ; ${prepared?.composition.nativeMaps.length ?? 0} préparées pour Avelune.',
@@ -1560,7 +1692,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                 !_busy &&
                     !_unappliedDrafts &&
                     _reviewSourceVerified &&
-                    _sourceRoot == _state.source?.rootPath
+                    _sourceMatches
                 ? (value) => _changeReviewMap(int.parse(value))
                 : null,
           ),
@@ -1578,13 +1710,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
                 !_busy &&
                 _reviewSourceVerified &&
                 !_unappliedDrafts &&
-                _sourceRoot == _state.source?.rootPath,
+                _sourceMatches,
             vault: widget.visionVault,
             clientFactory: widget.visionClientFactory,
             sourceFiles: _visionSourceFiles,
             verifySource: _verifyVisionSource,
             excludedRoots: () async => [
               if (_sourceRoot.isNotEmpty) _sourceRoot,
+              ?_sharedDataRoot,
               if (_parent.text.trim().isNotEmpty &&
                   _validFolder(_folder.text.trim()))
                 path.join(_parent.text.trim(), _folder.text.trim()),
@@ -1677,10 +1810,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           _importedSettings?.writeLimits ??
           sourceCatalogStudyWriteLimitsFor(_selectedMaps.length),
       outputMode: _assetOutputMode,
-      enabled:
-          !_busy &&
-          _reviewSourceVerified &&
-          _sourceRoot == _state.source?.rootPath,
+      enabled: !_busy && _reviewSourceVerified && _sourceMatches,
       session: session,
       onSessionChanged: reviewSet == null || sourceMapId == null
           ? null
@@ -1719,7 +1849,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _unappliedDrafts ||
         source == null ||
         snapshot == null ||
-        _sourceRoot != source.rootPath) {
+        (!_sourceMatches ||
+            _state.source?.canonicalHash != source.canonicalHash)) {
       throw const VisionAssistanceException('vision.stale');
     }
     return ConverterVisionSourceFiles(source, snapshot);
@@ -1733,7 +1864,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _unappliedDrafts ||
         source == null ||
         snapshot == null ||
-        _sourceRoot != source.rootPath) {
+        (!_sourceMatches ||
+            _state.source?.canonicalHash != source.canonicalHash)) {
       return false;
     }
     final verified = await verifyConverterVisionSource(source, snapshot);
@@ -1742,7 +1874,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         !_busy &&
         _reviewSourceVerified &&
         !_unappliedDrafts &&
-        _sourceRoot == source.rootPath &&
+        _sourceMatches &&
         _state.source?.canonicalHash == source.canonicalHash &&
         _state.snapshot?.canonicalHash == snapshot.canonicalHash;
   }
@@ -1892,6 +2024,18 @@ class _ConverterWindowState extends State<ConverterWindow> {
             icon: Icons.folder_open,
             onPressed: () =>
                 _run(() => widget.folderOpener(result.projectPath)),
+          ),
+          const SizedBox(height: 12),
+          StudioButton(
+            key: const ValueKey('copy-source-provenance'),
+            label: 'Copier la provenance des sources',
+            secondary: true,
+            icon: Icons.copy,
+            onPressed: () => Clipboard.setData(
+              ClipboardData(
+                text: canonicalJsonOf(result.sourceProvenanceReceipt),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           const StudioNotice(
@@ -2193,7 +2337,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
               journalPath: _state.failure!.journalPath!,
               policy: NativePublicationPolicy(
                 allowedParentRoots: [_parent.text.trim()],
-                sourceRoots: [_sourceRoot],
+                sourceRoots:
+                    _state.source?.sourceRoots ??
+                    [_sourceRoot, ?_sharedDataRoot],
               ),
             );
             if (!mounted) return;
@@ -2304,7 +2450,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                 _state.snapshot?.state == SourceScanState.complete &&
                     _selectedMaps.isNotEmpty &&
                     _formValid &&
-                    _sourceRoot == _state.source?.rootPath
+                    _sourceMatches
                 ? _prepare
                 : null,
           ),
@@ -2389,7 +2535,7 @@ String _failureMessage(Object error) {
       return 'Vérifiez la destination : choisissez un dossier parent accessible et un nouveau nom de dossier.';
     }
     if (error.code.contains('source') || error.code.contains('scan')) {
-      return 'Ce projet n’a pas pu être lu. Vérifiez le dossier, les droits d’accès et le format RPG Maker XP. ${error.message}';
+      return 'Ce projet n’a pas pu être lu. Vérifiez le dossier, les droits d’accès et le format RPG Maker XP. Resélectionnez aussi les fichiers partagés pour renouveler leur autorisation macOS. ${error.message}';
     }
     return 'La conversion n’a pas abouti. ${error.message}';
   }

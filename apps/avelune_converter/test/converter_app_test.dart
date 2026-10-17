@@ -18,6 +18,257 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  for (final sharedFirst in [false, true]) {
+    testWidgets(
+      'cold shared session relocates both roots sharedFirst=$sharedFirst',
+      (tester) async {
+        final source = (await tester.runAsync(_OriginalSource.create))!;
+        final store = LocalReviewSessionStore(
+          rootPath: '${source.root.path}/sessions',
+        );
+        final sharedPath = '${source.root.path}/shared';
+        final movedSource = '${source.root.path}/source-moved';
+        final movedShared = '${source.root.path}/shared-moved';
+        ConverterWorkflow? resumed;
+        _setWindow(tester, const Size(1600, 1000));
+        final picks = <ConverterPathKind>[];
+        try {
+          final stored = (await tester.runAsync(() async {
+            await Directory('$sharedPath/PBS').create(recursive: true);
+            await File('$sharedPath/PBS/items.txt')
+                .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+            final snapshot = await source.workflow.scanSource(
+              ConverterSourceSelection(
+                rootPath: source.sourcePath,
+                sharedDataRootPath: sharedPath,
+                logicalProjectNamespace: ConverterId('cold-shared-session'),
+              ),
+            );
+            source.workflow.updateSettings(
+              ConverterStudySettings(
+                projectName: 'Cold shared session',
+                parentPath: source.output.path,
+                folderName: 'cold-shared-session',
+                selectedSourceMapIds: [1, 8],
+                assetOutputMode: AssetOutputMode.standaloneObjects,
+                profileAcknowledgement: SourceStudyAcknowledgement(
+                  sourceSnapshotHash: snapshot.canonicalHash,
+                  profileEvidenceHash: snapshot.profile.evidenceHash,
+                  humanConfirmed: true,
+                  reason: 'Controlled original source.',
+                ),
+              ),
+            );
+            final prepared = await source.workflow.prepareStudy();
+            source.workflow.approvePrepared(
+              sessionRevision: prepared.sessionRevision,
+              preparationHash: prepared.preparationHash,
+              humanConfirmed: true,
+            );
+            final stored = await store.create(
+              reviewSet: prepared.reviewSet!,
+              resumeSettings: LocalReviewResumeSettings(
+                sourceRootPath: source.sourcePath,
+                sharedDataRootPath: sharedPath,
+                destinationParentPath: source.output.path,
+                projectName: prepared.settings.projectName,
+                folderName: prepared.settings.folderName,
+                normalizationLimits: prepared.settings.normalizationLimits,
+                writeLimits: prepared.settings.writeLimits,
+                profileAcknowledgement: LocalReviewProfileAcknowledgement(
+                  sourceSnapshotHash: prepared.sourceSnapshotHash,
+                  profileEvidenceHash: prepared.profileEvidenceHash,
+                  humanConfirmed: true,
+                  reason: 'Controlled original source.',
+                ),
+              ),
+            );
+            await Directory(source.sourcePath).rename(movedSource);
+            await Directory(sharedPath).rename(movedShared);
+            return stored;
+          }))!;
+          resumed = ConverterWorkflow();
+          await tester.pumpWidget(
+            ConverterApp(
+              workflow: resumed,
+              sessionStore: store,
+              pathPicker: (kind) async {
+                picks.add(kind);
+                return kind == ConverterPathKind.sharedDataFolder
+                    ? movedShared
+                    : movedSource;
+              },
+            ),
+          );
+          await tester.tap(find.byKey(const ValueKey('load-review-session')));
+          final sessionKey = ValueKey(
+            'load-session-${stored.reviewSet.sessionId.value}',
+          );
+          await _waitFor(
+            tester,
+            () => find.byKey(sessionKey).evaluate().isNotEmpty,
+          );
+          await tester.tap(find.byKey(sessionKey));
+          await _waitFor(
+            tester,
+            () =>
+                find
+                    .text('Session conservée · source à retrouver')
+                    .evaluate()
+                    .isNotEmpty &&
+                !resumed!.state.isBusy,
+          );
+          expect(resumed.state.approval, isNull);
+          final order = sharedFirst
+              ? ['reselect-session-shared-source', 'reselect-session-source']
+              : ['reselect-session-source', 'reselect-session-shared-source'];
+          for (var i = 0; i < order.length; i++) {
+            await tester.ensureVisible(find.byKey(ValueKey(order[i])));
+            await tester.tap(find.byKey(ValueKey(order[i])));
+            await tester.pump();
+            await _waitFor(
+              tester,
+              () =>
+                  picks.length == i + 1 ||
+                  find.text('Abandonner les changements').evaluate().isNotEmpty,
+              pumpDuration: const Duration(milliseconds: 20),
+            );
+            if (find.text('Abandonner les changements').evaluate().isNotEmpty) {
+              await tester.tap(find.text('Abandonner les changements'));
+              await tester.pump();
+            }
+            await _waitFor(
+              tester,
+              () =>
+                  picks.length == i + 1 &&
+                  !resumed!.state.isBusy &&
+                  find.text('Vérification de la source…').evaluate().isEmpty,
+              pumpDuration: const Duration(milliseconds: 20),
+            );
+            expect(resumed.state.approval, isNull);
+          }
+          expect(
+            find.text('Session reprise · source vérifiée'),
+            findsOneWidget,
+          );
+          expect(resumed.state.source!.rootPath, movedSource);
+          expect(resumed.state.source!.sharedDataRootPath, movedShared);
+          expect(resumed.state.prepared, isNotNull);
+          expect(resumed.state.result, isNull);
+          expect(
+            resumed.state.prepared!.reviewSet!.canonicalHash,
+            stored.reviewSet.canonicalHash,
+          );
+          expect(tester.takeException(), isNull);
+        } finally {
+          await tester.pumpWidget(const SizedBox());
+          await tester.runAsync(() async {
+            await resumed?.dispose();
+            await source.close();
+          });
+        }
+      },
+      skip: !Platform.isMacOS,
+    );
+  }
+  testWidgets('shared folder picker and clear feed a fresh source selection', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    final shared = (await tester.runAsync(() async {
+      final directory = await Directory('${source.root.path}/shared/PBS')
+          .create(recursive: true);
+      await File('${directory.path}/items.txt')
+          .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+      return directory.parent;
+    }))!;
+    _setWindow(tester, const Size(1600, 1000));
+    final selections = <ConverterPathKind>[];
+    try {
+      await tester.pumpWidget(
+        ConverterApp(
+          workflow: source.workflow,
+          initialSourcePath: source.sourcePath,
+          initialParentPath: source.output.path,
+          pathPicker: (kind) async {
+            selections.add(kind);
+            return shared.path;
+          },
+        ),
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('choose-shared-source')),
+      );
+      await tester.tap(find.byKey(const ValueKey('choose-shared-source')));
+      await tester.pumpAndSettle();
+      expect(selections, [ConverterPathKind.sharedDataFolder]);
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.snapshot != null &&
+            !source.workflow.state.isBusy,
+      );
+      expect(source.workflow.state.source!.sharedDataRootPath, shared.path);
+      expect(
+        source.workflow.state.sharedSourceFiles.single.relativePath,
+        'PBS/items.txt',
+      );
+      expect(find.textContaining('Fichiers partagés utilisés'), findsOneWidget);
+      await tester.ensureVisible(find.text('Tout sélectionner'));
+      await tester.tap(find.text('Tout sélectionner'));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('acknowledge-study')),
+      );
+      await tester.tap(find.byKey(const ValueKey('acknowledge-study')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared?.canApprove == true &&
+            !source.workflow.state.isBusy,
+      );
+      final prepared = source.workflow.state.prepared!;
+      source.workflow.approvePrepared(
+        sessionRevision: prepared.sessionRevision,
+        preparationHash: prepared.preparationHash,
+        humanConfirmed: true,
+      );
+      expect(source.workflow.state.approval, isNotNull);
+      await tester.tap(find.byKey(const ValueKey('step-0')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('clear-shared-source')),
+      );
+      await tester.tap(find.byKey(const ValueKey('clear-shared-source')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abandonner les changements'));
+      await tester.pumpAndSettle();
+      expect(source.workflow.state.prepared, isNull);
+      expect(source.workflow.state.approval, isNull);
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.source?.sharedDataRootPath == null &&
+            !source.workflow.state.isBusy,
+      );
+      expect(source.workflow.state.sharedSourceFiles, isEmpty);
+      expect(
+        source.workflow.state.snapshot!.entries.any(
+          (entry) => entry.relativePath == 'PBS/items.txt',
+        ),
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
   testWidgets('missing atlas images can be bound and prepared explicitly', (
     tester,
   ) async {
@@ -623,7 +874,7 @@ void main() {
         expect(find.text('Session enregistrée'), findsOneWidget);
         final stored = (await tester.runAsync(store.list))!.single;
         final document = stored.toJson();
-        expect(document['version'], 4);
+        expect(document['version'], 5);
         final reviewSet = document['reviewSet']! as Map;
         expect((reviewSet['segments']! as List), hasLength(2));
         await tester.pumpWidget(const SizedBox());

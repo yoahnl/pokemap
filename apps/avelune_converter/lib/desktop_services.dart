@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 enum ConverterPathKind {
   sourceFolder,
   sourceProject,
+  sharedDataFolder,
   destinationParent,
   planFile,
 }
@@ -43,9 +44,11 @@ Future<String?> pickConverterPath(ConverterPathKind kind) async {
     return selection?.files.single.path;
   }
   return FilePicker.getDirectoryPath(
-    dialogTitle: kind == ConverterPathKind.sourceFolder
-        ? 'Choisir le projet RPG Maker XP'
-        : 'Choisir le dossier parent de la conversion',
+    dialogTitle: switch (kind) {
+      ConverterPathKind.sourceFolder => 'Choisir le projet RPG Maker XP',
+      ConverterPathKind.sharedDataFolder => 'Choisir les fichiers partagés',
+      _ => 'Choisir le dossier parent de la conversion',
+    },
   );
 }
 

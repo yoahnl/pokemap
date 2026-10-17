@@ -6,12 +6,14 @@ import 'converter_workflow.dart';
 import 'converter_asset_review_set.dart';
 import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
+import 'supplemented_source_tree.dart';
 
 final class ConverterStudyPlanRecipe {
   factory ConverterStudyPlanRecipe({
     required ConverterId sessionId,
     required int sessionRevision,
     required ConverterSourceSelection sourceSelection,
+    List<ConverterSharedSourceFile> sharedSourceFiles = const [],
     required ConverterStudySettings settings,
     required Sha256Hash sourceSnapshotHash,
     required Sha256Hash profileEvidenceHash,
@@ -36,10 +38,23 @@ final class ConverterStudyPlanRecipe {
             profileEvidenceHash) {
       throw _invalid();
     }
+    if (sharedSourceFiles.length > SupplementedSourceTree.sharedPaths.length ||
+        sharedSourceFiles
+                .map((file) => sourcePathCollisionKey(file.relativePath))
+                .toSet()
+                .length !=
+            sharedSourceFiles.length ||
+        sharedSourceFiles.any((file) =>
+            file.referenceRootPath != sourceSelection.sharedDataRootPath)) {
+      throw _invalid();
+    }
+    final references = sharedSourceFiles.toList()
+      ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
     final recipe = ConverterStudyPlanRecipe._(
         sessionId,
         sessionRevision,
         sourceSelection,
+        List.unmodifiable(references),
         settings,
         sourceSnapshotHash,
         profileEvidenceHash,
@@ -59,6 +74,7 @@ final class ConverterStudyPlanRecipe {
       this.sessionId,
       this.sessionRevision,
       this.sourceSelection,
+      this.sharedSourceFiles,
       this.settings,
       this.sourceSnapshotHash,
       this.profileEvidenceHash,
@@ -80,7 +96,7 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 5) {
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 6) {
         throw _invalid();
       }
       final source = _object(json['sourceSelection']);
@@ -112,6 +128,9 @@ final class ConverterStudyPlanRecipe {
           sessionRevision: _int(json['sessionRevision']),
           sourceSelection: ConverterSourceSelection(
               rootPath: _string(source['rootPath']),
+              sharedDataRootPath: source['sharedDataRootPath'] == null
+                  ? null
+                  : _string(source['sharedDataRootPath']),
               logicalProjectNamespace:
                   ConverterId(_string(source['logicalProjectNamespace'])),
               policy: SourceScanPolicy(
@@ -128,6 +147,9 @@ final class ConverterStudyPlanRecipe {
                       maxProfileEvidence: _int(scan['maxProfileEvidence']),
                       maxTotalPathCodeUnits:
                           _int(scan['maxTotalPathCodeUnits'])))),
+          sharedSourceFiles: _list(json['sharedSourceFiles'])
+              .map(ConverterSharedSourceFile.fromJson)
+              .toList(),
           settings: ConverterStudySettings(
               imageBindings: _list(settings['imageBindings'])
                   .map(SourceImageBinding.fromJson)
@@ -221,6 +243,7 @@ final class ConverterStudyPlanRecipe {
   final ConverterId sessionId;
   final int sessionRevision;
   final ConverterSourceSelection sourceSelection;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
   final ConverterStudySettings settings;
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash profileEvidenceHash;
@@ -235,11 +258,12 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 5,
+        'version': 6,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {
           'rootPath': sourceSelection.rootPath,
+          'sharedDataRootPath': sourceSelection.sharedDataRootPath,
           'logicalProjectNamespace':
               sourceSelection.logicalProjectNamespace.value,
           'policy': {
@@ -247,6 +271,8 @@ final class ConverterStudyPlanRecipe {
             'excludedSegments': sourceSelection.policy.excludedSegments
           }
         },
+        'sharedSourceFiles':
+            sharedSourceFiles.map((file) => file.toJson()).toList(),
         'settings': settings.toJson(),
         'sourceSelectionHash': sourceSelection.canonicalHash.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,

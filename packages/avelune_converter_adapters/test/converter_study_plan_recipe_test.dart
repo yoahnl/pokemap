@@ -34,9 +34,11 @@ void main() {
 
   Future<PreparedStudy> prepare(
       {String? parentPath,
+      String? sharedDataRootPath,
       NativeWriteLimits writeLimits = sourceCatalogStudyWriteLimits}) async {
     final snapshot = await original.scanSource(ConverterSourceSelection(
         rootPath: fixture.sourceRootPath!,
+        sharedDataRootPath: sharedDataRootPath,
         logicalProjectNamespace: ConverterId('original-ac16')));
     original.updateSettings(ConverterStudySettings(
         projectName: 'Original offline study',
@@ -87,6 +89,68 @@ void main() {
         targetCapabilitiesHash: Sha256Hash('7' * 64),
         rulesHash: Sha256Hash('8' * 64),
         converterVersion: 'original-quota-fixture');
+  }
+
+  for (final initiallyShared in [false, true]) {
+    for (final afterApproval in [false, true]) {
+      test(
+          'constant bytes cannot change source origin shared=$initiallyShared approved=$afterApproval',
+          () async {
+        final shared =
+            await Directory('${root.path}/shared/PBS').create(recursive: true);
+        final primary = await Directory('${fixture.sourceRootPath!}/PBS')
+            .create(recursive: true);
+        final referenceFile = File('${shared.path}/items.txt');
+        final primaryFile = File('${primary.path}/items.txt');
+        await referenceFile
+            .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+        if (!initiallyShared) await referenceFile.copy(primaryFile.path);
+        final selection = ConverterSourceSelection(
+            rootPath: fixture.sourceRootPath!,
+            sharedDataRootPath: shared.parent.path,
+            logicalProjectNamespace: ConverterId('constant-origin-source'));
+        final snapshot = await original.scanSource(selection);
+        original.updateSettings(ConverterStudySettings(
+            projectName: 'Origin-bound study',
+            parentPath: output.path,
+            folderName: 'origin-bound-study',
+            selectedSourceMapIds: [1],
+            profileAcknowledgement: SourceStudyAcknowledgement(
+                sourceSnapshotHash: snapshot.canonicalHash,
+                profileEvidenceHash: snapshot.profile.evidenceHash,
+                humanConfirmed: true,
+                reason: 'Controlled original source.')));
+        StudyApproval? approval;
+        if (afterApproval) {
+          final prepared = await original.prepareStudy();
+          approval = original.approvePrepared(
+              sessionRevision: prepared.sessionRevision,
+              preparationHash: prepared.preparationHash,
+              humanConfirmed: true);
+        }
+        if (initiallyShared) {
+          await referenceFile.copy(primaryFile.path);
+        } else {
+          await primaryFile.delete();
+        }
+        final fresh = await restored.scanSource(selection);
+        expect(fresh.canonicalHash, snapshot.canonicalHash);
+        expect(original.state.sharedSourceFiles.isNotEmpty, initiallyShared);
+        expect(restored.state.sharedSourceFiles.isNotEmpty, !initiallyShared);
+        await expectLater(
+            afterApproval
+                ? original.writeApproved(approval!)
+                : original.prepareStudy(),
+            throwsA(isA<ConverterWorkflowFailure>().having(
+                (error) => error.code,
+                'code',
+                'workflow.source_provenance_changed')));
+        expect(original.state.approval, isNull);
+        expect(original.state.result, isNull);
+        expect(await Directory('${output.path}/origin-bound-study').exists(),
+            isFalse);
+      }, skip: !Platform.isMacOS);
+    }
   }
 
   Map<String, Object?> changedConnectionQuota(Object? value,
@@ -199,6 +263,85 @@ void main() {
     expect((recipe.toJson()['settings'] as Map)['version'], 4);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
+  });
+
+  test('cold recipe restores explicit shared reference and actual provenance',
+      () async {
+    final shared = await Directory('${root.path}/shared').create();
+    await Directory('${shared.path}/PBS').create();
+    await File('${shared.path}/PBS/items.txt')
+        .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+    await prepare(sharedDataRootPath: shared.path);
+    final recipe = original.exportStudyPlanRecipe();
+    final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+    expect(decoded.toJson()['version'], 6);
+    expect(decoded.sourceSelection.sharedDataRootPath, shared.path);
+    expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
+    expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
+    final prepared = await restored.restoreStudyPlanRecipe(decoded);
+    expect(prepared.preparationHash, recipe.preparationHash);
+    expect(restored.state.sharedSourceFiles.single.toJson(),
+        recipe.sharedSourceFiles.single.toJson());
+    expect(await File('${fixture.sourceRootPath}/PBS/items.txt').exists(),
+        isFalse);
+    original.approvePrepared(
+        sessionRevision: original.state.revision,
+        preparationHash: prepared.preparationHash,
+        humanConfirmed: true);
+    await original.scanSource(ConverterSourceSelection(
+        rootPath: fixture.sourceRootPath!,
+        logicalProjectNamespace: ConverterId('original-ac16')));
+    expect(original.state.approval, isNull);
+    expect(original.state.prepared, isNull);
+  });
+
+  test('shared reference protects preparation destination and plan storage',
+      () async {
+    final shared = await Directory('${root.path}/shared').create();
+    await expectLater(
+        prepare(parentPath: shared.path, sharedDataRootPath: shared.path),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((e) => e.code, 'code', 'native.source.overlap')));
+    await prepare(sharedDataRootPath: shared.path);
+    final recipe = original.exportStudyPlanRecipe();
+    await expectLater(
+        const LocalStudyPlanStore()
+            .writeNew(recipe, '${shared.path}/plan.json'),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((e) => e.code, 'code', 'workflow.recipe.source_overlap')));
+    expect(await File('${shared.path}/plan.json').exists(), isFalse);
+    final old = {...recipe.toJson(), 'version': 5};
+    expect(() => ConverterStudyPlanRecipe.fromJson(old),
+        throwsA(isA<ConverterWorkflowFailure>()));
+  });
+
+  test('publication exposes exact shared source provenance outside native data',
+      () async {
+    final shared = await Directory('${root.path}/shared').create();
+    await Directory('${shared.path}/PBS').create();
+    await File('${shared.path}/PBS/items.txt')
+        .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+    final prepared = await prepare(sharedDataRootPath: shared.path);
+    final approval = original.approvePrepared(
+        sessionRevision: original.state.revision,
+        preparationHash: prepared.preparationHash,
+        humanConfirmed: true);
+    final result = await original.writeApproved(approval);
+    expect(result.published, isTrue);
+    expect(result.sharedSourceFiles.single.toJson(),
+        original.state.sharedSourceFiles.single.toJson());
+    expect(result.sourceProvenanceReceipt['sourceSelectionHash'],
+        original.state.source!.canonicalHash.value);
+    final files = result.sourceProvenanceReceipt['sharedSourceFiles'] as List;
+    expect((files.single as Map)['relativePath'], 'PBS/items.txt');
+    expect((files.single as Map)['referenceRootPath'], shared.path);
+    expect(await File('${fixture.sourceRootPath}/PBS/items.txt').exists(),
+        isFalse);
+    await for (final entry in Directory(result.projectPath)
+        .list(recursive: true, followLinks: false)) {
+      if (entry is! File || !entry.path.endsWith('.json')) continue;
+      expect((await entry.readAsString()).contains(shared.path), isFalse);
+    }
   });
 
   test('segmented recipe rejects a resigned larger embedded set budget', () {
@@ -411,8 +554,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('aggregate image budget recipe emits breaking version 5', () {
-    expect(connectionRecipe(2).toJson()['version'], 5);
+  test('shared source recipe emits breaking version 6', () {
+    expect(connectionRecipe(2).toJson()['version'], 6);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

@@ -62,16 +62,18 @@ final class LocalStudyPlanStore {
     final bytes = utf8.encode('${recipe.encode()}\n');
     if (bytes.length > ConverterStudyPlanRecipe.maxFileBytes) throw _quota();
     final parent = await _parent(selectedPath);
-    final source =
-        await Directory(recipe.sourceSelection.rootPath).resolveSymbolicLinks();
-    if (parent == source || path.isWithin(source, parent)) {
-      throw const ConverterWorkflowFailure('workflow.recipe.source_overlap',
-          'A study plan must be written outside its read-only source.');
+    for (final sourceRoot in recipe.sourceSelection.sourceRoots) {
+      final source = await Directory(sourceRoot).resolveSymbolicLinks();
+      if (parent == source || path.isWithin(source, parent)) {
+        throw const ConverterWorkflowFailure('workflow.recipe.source_overlap',
+            'A study plan must be written outside every read-only source.');
+      }
     }
-    final nativeDestination =
-        path.join(await Directory(recipe.settings.parentPath).resolveSymbolicLinks(),
-            recipe.settings.folderName);
-    final canonicalSelectedPath = path.join(parent, path.basename(selectedPath));
+    final nativeDestination = path.join(
+        await Directory(recipe.settings.parentPath).resolveSymbolicLinks(),
+        recipe.settings.folderName);
+    final canonicalSelectedPath =
+        path.join(parent, path.basename(selectedPath));
     if (path.equals(canonicalSelectedPath, nativeDestination) ||
         path.isWithin(nativeDestination, canonicalSelectedPath)) {
       throw const ConverterWorkflowFailure(

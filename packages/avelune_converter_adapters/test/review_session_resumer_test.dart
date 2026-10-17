@@ -9,6 +9,49 @@ import 'support/literal_tile_fixture.dart';
 import 'support/original_asset_fixture.dart';
 
 void main() {
+  test(
+      'shared reference survives review reopen and missing access blocks resume',
+      () async {
+    final harness = await _ResumeHarness.create(selected: [1]);
+    final shared = await Directory('${harness.root.path}/shared/PBS')
+        .create(recursive: true);
+    await File('${shared.path}/items.txt')
+        .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+    await harness.scan(sharedDataRootPath: shared.parent.path);
+    final initial = await harness.prepare();
+    final stored = await harness.save(initial);
+    final fresh = harness.newWorkflow();
+    await ConverterReviewSessionResumer.resume(stored: stored, workflow: fresh);
+    expect(fresh.state.source!.sharedDataRootPath, shared.parent.path);
+    expect(fresh.state.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
+    final previous = fresh.state.prepared!;
+    fresh.approvePrepared(
+        sessionRevision: previous.sessionRevision,
+        preparationHash: previous.preparationHash,
+        humanConfirmed: true);
+    expect(fresh.state.approval, isNotNull);
+    await shared.parent.rename('${shared.parent.path}-unavailable');
+    final blocked = harness.newWorkflow();
+    await expectLater(
+        ConverterReviewSessionResumer.resume(stored: stored, workflow: blocked),
+        throwsA(isA<ConverterWorkflowFailure>()));
+    expect(blocked.state.approval, isNull);
+    expect(blocked.state.prepared, isNull);
+    await harness.expectSavedUnchanged(stored);
+    final relocated = fresh;
+    await ConverterReviewSessionResumer.resume(
+        stored: stored,
+        workflow: relocated,
+        sharedDataRootPath: '${shared.parent.path}-unavailable');
+    expect(relocated.state.source!.sharedDataRootPath,
+        '${shared.parent.path}-unavailable');
+    expect(relocated.state.snapshot!.canonicalHash,
+        stored.reviewSet.sourceSnapshotHash);
+    expect(relocated.state.approval, isNull);
+    expect(relocated.state.prepared!.preparationHash,
+        isNot(previous.preparationHash));
+  }, skip: !Platform.isMacOS);
+
   test('segmented resume keeps edits and approvals of both maps independently',
       () async {
     final harness = await _ResumeHarness.create(selected: [1, 8]);
@@ -545,10 +588,12 @@ final class _ResumeHarness {
     return harness;
   }
 
-  Future<SourceSnapshot> scan() => first.scanSource(ConverterSourceSelection(
-      rootPath: sourcePath,
-      logicalProjectNamespace: ConverterId('ac10-resume-source'),
-      policy: policy));
+  Future<SourceSnapshot> scan({String? sharedDataRootPath}) =>
+      first.scanSource(ConverterSourceSelection(
+          rootPath: sourcePath,
+          sharedDataRootPath: sharedDataRootPath,
+          logicalProjectNamespace: ConverterId('ac10-resume-source'),
+          policy: policy));
 
   ConverterWorkflow newWorkflow() {
     final fresh = ConverterWorkflow(nativeWriteCheckpoint: (stage, _, __) {
@@ -598,6 +643,7 @@ final class _ResumeHarness {
           reviewSet: reviewSet ?? prepared.reviewSet!,
           resumeSettings: LocalReviewResumeSettings(
               sourceRootPath: sourcePath,
+              sharedDataRootPath: first.state.source?.sharedDataRootPath,
               destinationParentPath: output.path,
               projectName: prepared.settings.projectName,
               folderName: prepared.settings.folderName,

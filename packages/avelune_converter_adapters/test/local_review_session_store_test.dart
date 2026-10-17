@@ -193,12 +193,37 @@ void main() {
     expect(await file.readAsString(), old);
   });
 
-  test('aggregate image budget store emits breaking version 4', () {
+  test(
+      'shared reference survives review disk reopen and protects source storage',
+      () async {
+    final shared = await Directory('${temporary.path}/shared').create();
+    final withShared = LocalReviewResumeSettings(
+        sourceRootPath: source.path,
+        sharedDataRootPath: shared.path,
+        destinationParentPath: destination.path,
+        projectName: settings.projectName,
+        folderName: settings.folderName);
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: withShared);
+    final loaded = (await store().load(created.reviewSet.sessionId))!;
+    expect(loaded.resumeSettings.sharedDataRootPath, shared.path);
+    expect(loaded.canonicalHash, created.canonicalHash);
+    final nested = LocalReviewSessionStore(rootPath: '${shared.path}/sessions');
+    await expectLater(
+        nested.create(
+            reviewSet: _reviewSet(_session()), resumeSettings: withShared),
+        _error('session.store.overlap'));
+    final previous = {...created.toJson(), 'version': 4};
+    expect(() => StoredReviewSession.fromJson(previous),
+        _error('session.store.document'));
+  });
+
+  test('shared source store emits breaking version 5', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 4);
+    expect(stored.toJson()['version'], 5);
   });
 
   test('aggregate image budget resume survives exact disk reopen', () async {
@@ -216,7 +241,7 @@ void main() {
     expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
-    expect(loaded.toJson()['version'], 4);
+    expect(loaded.toJson()['version'], 5);
   });
 
   test('aggregate image budget resume boundaries alter envelope hashes', () {
