@@ -107,7 +107,10 @@ final class SourceEventItemBinding {
   bool get fullPickupParityQualified => false;
   String get pickupQualificationScope =>
       'sourceItemBallCatalogAndUnitBagAddOnly';
-  String get useQualificationScope => 'bagMechanicalEffectAndConsumptionOnly';
+  String get useQualificationScope =>
+      definition.uses.any((use) => use.target == ProjectItemTargetKind.world)
+          ? 'nativeOverworldEffectAndConsumptionOnly'
+          : 'bagMechanicalEffectAndConsumptionOnly';
 
   Map<String, Object?> toJson() => _freeze({
         'sourceSymbol': sourceSymbol,
@@ -204,6 +207,22 @@ final class SourceEventItemBindings {
               '9f5bb1a5663c6ca9d34fc256f577a7918f5def7e76b2426a37116348af0bf1bc',
           '270':
               '1ec9a83206e82546b286d5524b764942795119ac0b26e26049b9ac66dbbaf2aa',
+        },
+        'explorationPolicy': {
+          'sourceScriptsArchive': SourceEventProfile.kantoScriptsArchiveSha256,
+          'itemEffectsSection': 264,
+          'itemEffectsSectionHash':
+              '9f5bb1a5663c6ca9d34fc256f577a7918f5def7e76b2426a37116348af0bf1bc',
+          'sourceLines': {
+            'repel': '123-169',
+            'escapeRope': '207-229',
+            'bicycle': '266-278',
+            'fishing': '280-319',
+          },
+          'runtime': 'avelune',
+          'sourceHandlersExecuted': false,
+          'sourcePluginsReproduced': false,
+          'fullSourceExplorationParityQualified': false,
         },
       }) as Map<String, Object?>;
 
@@ -437,9 +456,36 @@ final class SourceEventItemBindingResolver {
         final uses = <ProjectItemUseDefinition>[];
         final useGaps = <String>[];
         var useParity = SourceEventItemUseParity.unqualified;
+        final explorationUse = qualified
+            ? _nativeExplorationUse(symbol,
+                pocket: pocket,
+                fieldUse: fieldUse,
+                battleUse: battleUse,
+                consumable: consumable!,
+                isKey: isKey,
+                move: move,
+                flags: flags)
+            : null;
         if (!qualified) {
           useGaps
               .addAll(reasons.isEmpty ? ['item.profile_unqualified'] : reasons);
+        } else if (explorationUse != null) {
+          uses.add(explorationUse);
+          useParity = SourceEventItemUseParity.partial;
+          useGaps.addAll([
+            'item.use.native_exploration_adaptation',
+            'item.use.source_messages_and_plugins_not_reproduced',
+            switch (explorationUse.effect) {
+              ProjectItemRepelEffectDefinition() =>
+                'item.use.native_repel_terrain_and_renewal_policy',
+              ProjectItemEscapeRopeEffectDefinition() =>
+                'item.use.source_escape_point_replaced_by_native_dungeon_entry',
+              ProjectItemBicycleEffectDefinition() =>
+                'item.use.native_bicycle_map_terrain_and_animation_policy',
+              _ =>
+                'item.use.source_fishing_minigame_replaced_by_native_fishing',
+            },
+          ]);
         } else if (symbol == 'BURNHEAL' &&
             pocket == 2 &&
             fieldUse == 1 &&
@@ -490,9 +536,10 @@ final class SourceEventItemBindingResolver {
           description: description,
           buyPrice: price,
           sellPrice: sell,
-          tags: const {'source-imported'},
+          tags: {'source-imported', if (isKey) 'key-item'},
           heldEffectId: qualified && symbol == 'EVERSTONE'
-              ? PokemonPassiveHeldEffect.preventEvolution.id : null,
+              ? PokemonPassiveHeldEffect.preventEvolution.id
+              : null,
           uses: uses,
         ).normalized();
         final references = <String, SourcePreservedData>{};
@@ -527,6 +574,54 @@ final class SourceEventItemBindingResolver {
     }
     return finish();
   }
+}
+
+ProjectItemUseDefinition? _nativeExplorationUse(String symbol,
+    {required int pocket,
+    required int fieldUse,
+    required int battleUse,
+    required bool consumable,
+    required bool isKey,
+    required String? move,
+    required List<String> flags}) {
+  if (fieldUse != 2 || battleUse != 0 || move != null) return null;
+  final effect = switch (symbol) {
+    'REPEL' => const ProjectItemEffectDefinition.repel(steps: 100),
+    'SUPERREPEL' => const ProjectItemEffectDefinition.repel(steps: 200),
+    'MAXREPEL' => const ProjectItemEffectDefinition.repel(steps: 250),
+    'ESCAPEROPE' => const ProjectItemEffectDefinition.escapeRope(),
+    'BICYCLE' => const ProjectItemEffectDefinition.bicycle(),
+    'OLDROD' => const ProjectItemEffectDefinition.fishing(
+        rodKind: ProjectFishingRodKind.oldRod),
+    'GOODROD' => const ProjectItemEffectDefinition.fishing(
+        rodKind: ProjectFishingRodKind.goodRod),
+    'SUPERROD' => const ProjectItemEffectDefinition.fishing(
+        rodKind: ProjectFishingRodKind.superRod),
+    _ => null,
+  };
+  if (effect == null) return null;
+  final keyEffect = effect is ProjectItemBicycleEffectDefinition ||
+      effect is ProjectItemFishingEffectDefinition;
+  final expectedFlags = keyEffect
+      ? const {'KeyItem'}
+      : effect is ProjectItemRepelEffectDefinition
+          ? const {'Repel', 'Fling_30'}
+          : const <String>{};
+  if (pocket != (keyEffect ? 8 : 1) ||
+      isKey != keyEffect ||
+      consumable == keyEffect ||
+      flags.length != expectedFlags.length ||
+      !flags.toSet().containsAll(expectedFlags)) {
+    return null;
+  }
+  return ProjectItemUseDefinition(
+    contexts: const {ProjectItemUseContext.overworld},
+    target: ProjectItemTargetKind.world,
+    consumption: keyEffect
+        ? ProjectItemConsumptionPolicy.never
+        : ProjectItemConsumptionPolicy.onApplied,
+    effect: effect,
+  );
 }
 
 final class _ItemInvalid implements Exception {

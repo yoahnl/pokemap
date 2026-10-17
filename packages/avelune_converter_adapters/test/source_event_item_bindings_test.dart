@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:avelune_converter_adapters/src/source_event_item_bindings.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 final class _Symbol {
@@ -187,7 +189,170 @@ Future<SourceEventItemBindings> _read(
         cancellation: cancellation);
 Matcher _code(String code) =>
     isA<ContractError>().having((e) => e.code, 'code', code);
+
+Map<String, Object?> _explorationItem(String symbol) {
+  final isKey =
+      const {'BICYCLE', 'OLDROD', 'GOODROD', 'SUPERROD'}.contains(symbol);
+  return _item(symbol, patch: {
+    '@pocket': isKey ? 8 : 1,
+    '@field_use': 2,
+    '@battle_use': 0,
+    '@consumable': !isKey,
+    '@flags': isKey
+        ? ['KeyItem']
+        : symbol == 'ESCAPEROPE'
+            ? <String>[]
+            : ['Repel', 'Fling_30'],
+  });
+}
+
 void main() {
+  final explorationEffects = <String, ProjectItemEffectDefinition>{
+    'REPEL': const ProjectItemEffectDefinition.repel(steps: 100),
+    'SUPERREPEL': const ProjectItemEffectDefinition.repel(steps: 200),
+    'MAXREPEL': const ProjectItemEffectDefinition.repel(steps: 250),
+    'ESCAPEROPE': const ProjectItemEffectDefinition.escapeRope(),
+    'BICYCLE': const ProjectItemEffectDefinition.bicycle(),
+    'OLDROD': const ProjectItemEffectDefinition.fishing(
+        rodKind: ProjectFishingRodKind.oldRod),
+    'GOODROD': const ProjectItemEffectDefinition.fishing(
+        rodKind: ProjectFishingRodKind.goodRod),
+    'SUPERROD': const ProjectItemEffectDefinition.fishing(
+        rodKind: ProjectFishingRodKind.superRod),
+  };
+  final externalCatalog =
+      Platform.environment['AVELUNE_ESSENTIALS_ITEM_CATALOG'];
+  test('binds all eight exploration effects from an inventoried real catalog',
+      () async {
+    final fixture = _fixture(raw: await File(externalCatalog!).readAsBytes());
+    final result = await _read(fixture, symbols: explorationEffects.keys);
+    expect(result.quarantinedSymbols, isEmpty);
+    expect(result.bindings.length, explorationEffects.length);
+    for (final row in explorationEffects.entries) {
+      final binding = result.bindings[row.key]!;
+      expect(binding.definition.uses.single.effect, row.value);
+      expect(binding.itemReference.contentHash,
+          fixture.snapshot.entries.single.sha256);
+    }
+  },
+      skip: externalCatalog == null
+          ? 'Set AVELUNE_ESSENTIALS_ITEM_CATALOG for the private source witness.'
+          : false);
+  for (final row in explorationEffects.entries) {
+    test('imports ${row.key} as an explicit native exploration adaptation',
+        () async {
+      final result = await _read(
+          _fixture(items: {row.key: _explorationItem(row.key)}),
+          symbols: [row.key]);
+      final binding = result.bindings[row.key]!;
+      final item = binding.definition;
+      final use = item.uses.single;
+      expect(use.effect, row.value);
+      expect(use.contexts, {ProjectItemUseContext.overworld});
+      expect(use.target, ProjectItemTargetKind.world);
+      expect(
+          use.consumption,
+          binding.isKeyItem
+              ? ProjectItemConsumptionPolicy.never
+              : ProjectItemConsumptionPolicy.onApplied);
+      expect(item.tags.contains('key-item'), binding.isKeyItem);
+      expect(item.id, isNot(row.key.toLowerCase()));
+      expect(item.aliases, isEmpty);
+      expect(binding.pickupQualified, isTrue);
+      expect(binding.useParity, SourceEventItemUseParity.partial);
+      expect(
+          binding.useGaps, contains('item.use.native_exploration_adaptation'));
+      expect(binding.toJson()['fullUseParityQualified'], isFalse);
+      expect(binding.useQualificationScope,
+          'nativeOverworldEffectAndConsumptionOnly');
+      expect(
+          validateProjectItemCatalog(
+                  ProjectItemCatalog(schemaVersion: 1, entries: [item]),
+                  capabilityTruth: itemSystemV1CapabilityTruth)
+              .hasBlockingDiagnostics,
+          isFalse);
+      expect(ProjectItemDefinition.fromJson(item.toJson()), item);
+      if (row.key == 'BICYCLE') expect(isBicycleItem(item), isTrue);
+      if (use.effect case ProjectItemFishingEffectDefinition effect) {
+        expect(fishingRodKindForItem(item), effect.rodKind);
+      }
+    });
+    test('refuses altered ${row.key} use signatures and unqualified profiles',
+        () async {
+      final original = _explorationItem(row.key);
+      for (final patch in <Map<String, Object?>>[
+        {'@pocket': 2},
+        {'@field_use': 1},
+        {'@battle_use': 1},
+        {'@consumable': !(original['@consumable'] as bool)},
+        {'@move': const _Symbol('CUT')},
+        {
+          '@flags': ['CustomHandler']
+        },
+        {
+          '@flags': [...(original['@flags'] as List), 'CustomHandler']
+        },
+      ]) {
+        final result = await _read(
+            _fixture(items: {
+              row.key: {...original, ...patch}
+            }),
+            symbols: [row.key]);
+        expect(result.bindings[row.key]!.definition.uses, isEmpty,
+            reason: '${row.key}: $patch');
+      }
+      final unqualified = await _read(_fixture(items: {row.key: original}),
+          symbols: [row.key], qualified: false);
+      expect(unqualified.bindings[row.key]!.definition.uses, isEmpty);
+      expect(unqualified.bindings[row.key]!.useGaps,
+          contains('item.profile_unqualified'));
+    });
+  }
+  test('native repel imported from source consumes once and rejects battle use',
+      () async {
+    for (final symbol in ['REPEL', 'SUPERREPEL', 'MAXREPEL']) {
+      final result = await _read(
+          _fixture(items: {symbol: _explorationItem(symbol)}),
+          symbols: [symbol]);
+      final item = result.bindings[symbol]!.definition;
+      final service = PlayerItemUseService(
+          snapshot: ItemCatalogSnapshot.fromCatalog(
+              ProjectItemCatalog(schemaVersion: 1, entries: [item])));
+      final initial = GameState(
+          saveId: 'source-repel',
+          bag: Bag(entries: [BagEntry(itemId: item.id, quantity: 2)]));
+      PlayerItemUseResult use(GameState state, ProjectItemUseContext context) =>
+          service.use(PlayerItemUseRequest(
+              state: state, itemId: item.id, context: context));
+      final applied = use(initial, ProjectItemUseContext.overworld);
+      expect(applied.isSuccess, isTrue);
+      expect(
+          applied.state.repelState.remainingSteps,
+          (explorationEffects[symbol] as ProjectItemRepelEffectDefinition)
+              .steps);
+      expect(applied.state.bag.entries.single.quantity, 1);
+      final duplicate = use(applied.state, ProjectItemUseContext.overworld);
+      expect(duplicate.failure, PlayerItemUseFailure.noEffect);
+      expect(duplicate.state, applied.state);
+      final battle = use(initial, ProjectItemUseContext.battle);
+      expect(battle.isSuccess, isFalse);
+      expect(battle.state, initial);
+    }
+  });
+  test('custom exploration item names cannot activate a native effect',
+      () async {
+    final result = await _read(
+        _fixture(items: {
+          'INFINIREPEL': _explorationItem('INFINIREPEL'),
+          'CUSTOMROD': {
+            ..._explorationItem('OLDROD'),
+            '@id': const _Symbol('CUSTOMROD')
+          },
+        }),
+        symbols: ['INFINIREPEL', 'CUSTOMROD']);
+    expect(
+        result.bindings.values.every((b) => b.definition.uses.isEmpty), isTrue);
+  });
   test(
       'binds Burn Heal and Ether to exact catalog fields and qualified native uses',
       () async {
