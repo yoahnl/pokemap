@@ -5,9 +5,630 @@ import 'package:avelune_converter_adapters/src/generated/native_psdk_trainer_bun
 import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('retains native progression moves independently of roster defaults', () {
+    final sources = _fixtureSources();
+    _addNativeMove(sources, 'future_cut', level: 20);
+    final native = const NativePsdkTrainerBundleBuilder().build(
+        files: sources,
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+        ]);
+    expect(native.movesById['future_cut']!.engineSupportLevel,
+        PokemonMoveEngineSupportLevel.structuredPartial);
+    expect(native.movesById['future_cut']!.unsupportedReasons,
+        ['psdk_method:s_basic']);
+    expect(native.evidence['runtimeBattleBuilderQualified'], isFalse);
+  });
+
+  test('requests exact forms and preserves explicit moves outside learnsets',
+      () {
+    final sources = _fixtureSources();
+    _addNativeMove(sources, 'outside_cut');
+    final requests = [
+      NativePsdkCatalogRequest(
+          baseId: 'fixture',
+          form: 1,
+          level: 5,
+          explicitMoveIds: ['outside_cut', 'cut']),
+      NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 5),
+    ];
+    final native = const NativePsdkTrainerBundleBuilder()
+        .build(files: sources, requests: requests);
+    expect(native.evidence['nativeRequestMoveBindings'], [
+      {
+        'baseId': 'fixture',
+        'form': 0,
+        'level': 5,
+        'movePolicy': 'nativeDefaults',
+        'moveIds': ['cut']
+      },
+      {
+        'baseId': 'fixture',
+        'form': 1,
+        'level': 5,
+        'movePolicy': 'explicit',
+        'moveIds': ['outside_cut', 'cut']
+      },
+    ]);
+    expect(native.movesById.keys, ['cut', 'outside_cut']);
+    expect(
+        native.learnsetsBySpeciesId['fixture_form1']!.startingMoves, ['cut']);
+    expect(native.speciesById['fixture_form1']!.names, isEmpty);
+    expect(native.evidence['nativeNamesQualified'], isFalse);
+    expect(native.evidence.containsKey('sourceTrainerRosters'), isFalse);
+    expect(
+        canonicalHashOf(native.toJson()),
+        canonicalHashOf(const NativePsdkTrainerBundleBuilder()
+            .build(
+                files: sources.reversed.toList(),
+                requests: requests.reversed.toList())
+            .toJson()));
+  });
+
+  test('does not replace explicit moves with defaults for an empty learnset',
+      () {
+    final sources = _fixtureSources();
+    _mutateSource(sources, 'Data/Studio/pokemon/fixture.json',
+        (raw) => ((raw['forms'] as List)[1] as Map)['moveSet'] = []);
+    final native =
+        const NativePsdkTrainerBundleBuilder().build(files: sources, requests: [
+      NativePsdkCatalogRequest(
+          baseId: 'fixture', form: 1, level: 1, explicitMoveIds: ['cut'])
+    ]);
+    expect((native.evidence['nativeRequestMoveBindings'] as List).single, {
+      'baseId': 'fixture',
+      'form': 1,
+      'level': 1,
+      'movePolicy': 'explicit',
+      'moveIds': ['cut']
+    });
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(
+                files: sources,
+                requests: [
+                  NativePsdkCatalogRequest(baseId: 'fixture', form: 1, level: 1)
+                ]),
+        _code('empty_moves'));
+  });
+
+  test(
+      'keeps separate ordered move intentions for the same species form and level',
+      () {
+    final sources = _fixtureSources();
+    _addNativeMove(sources, 'outside_cut');
+    final requests = [
+      NativePsdkCatalogRequest(baseId: 'fixture', form: 1, level: 5),
+      NativePsdkCatalogRequest(
+          baseId: 'fixture',
+          form: 1,
+          level: 5,
+          explicitMoveIds: ['cut', 'outside_cut']),
+      NativePsdkCatalogRequest(
+          baseId: 'fixture',
+          form: 1,
+          level: 5,
+          explicitMoveIds: ['outside_cut', 'cut']),
+    ];
+    final native = const NativePsdkTrainerBundleBuilder()
+        .build(files: sources, requests: requests.reversed.toList());
+    expect(native.evidence['catalogRequests'],
+        requests.map((r) => r.toJson()).toList());
+    expect(native.evidence['nativeRequestMoveBindings'], [
+      {
+        'baseId': 'fixture',
+        'form': 1,
+        'level': 5,
+        'movePolicy': 'nativeDefaults',
+        'moveIds': ['cut']
+      },
+      {
+        'baseId': 'fixture',
+        'form': 1,
+        'level': 5,
+        'movePolicy': 'explicit',
+        'moveIds': ['cut', 'outside_cut']
+      },
+      {
+        'baseId': 'fixture',
+        'form': 1,
+        'level': 5,
+        'movePolicy': 'explicit',
+        'moveIds': ['outside_cut', 'cut']
+      },
+    ]);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: sources, requests: [...requests, requests.last]),
+        _code('duplicate_request'));
+  });
+
+  test('rejects invalid and ambiguous requests before output', () {
+    for (final raw in <Map<String, dynamic>>[
+      {'baseId': '', 'form': 0, 'level': 1},
+      {'baseId': '../fixture', 'form': 0, 'level': 1},
+      {'baseId': 'FIXTURE', 'form': 0, 'level': 1},
+      {'baseId': 'fixture', 'form': -1, 'level': 1},
+      {'baseId': 'fixture', 'form': 0.5, 'level': 1},
+      {'baseId': 'fixture', 'form': 0, 'level': 0},
+      {'baseId': 'fixture', 'form': 0, 'level': 101},
+      {'baseId': 'fixture', 'form': 0, 'level': 1, 'explicitMoveIds': []},
+      {'baseId': 'fixture', 'form': 0, 'level': 1, 'explicitMoveIds': null},
+      {
+        'baseId': 'fixture',
+        'form': 0,
+        'level': 1,
+        'explicitMoveIds': ['cut', 'cut']
+      },
+      {
+        'baseId': 'fixture',
+        'form': 0,
+        'level': 1,
+        'explicitMoveIds': ['../cut']
+      },
+      {
+        'baseId': 'fixture',
+        'form': 0,
+        'level': 1,
+        'explicitMoveIds': ['a', 'b', 'c', 'd', 'e']
+      },
+      {'baseId': 'fixture', 'form': 0, 'level': 1, 'unexpected': true},
+    ]) {
+      expect(() => NativePsdkCatalogRequest.fromJson(raw),
+          _code('request_invalid'));
+    }
+    final sources = _fixtureSources();
+    final request =
+        NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: sources, requests: []),
+        _code('request_invalid'));
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: sources, requests: [request, request]),
+        _code('duplicate_request'));
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(
+                files: sources,
+                requests: [
+                  NativePsdkCatalogRequest(baseId: 'fixture', form: 2, level: 1)
+                ]),
+        _code('form_missing'));
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+                .build(files: sources, requests: [
+              NativePsdkCatalogRequest(
+                  baseId: 'fixture',
+                  form: 0,
+                  level: 1,
+                  explicitMoveIds: ['missing_move'])
+            ]),
+        _code('source_missing:Data/Studio/moves/missing_move.json'));
+  });
+
+  test('closes evolution baby and known-move prerequisites without any roster',
+      () {
+    final sources = _fixtureSources();
+    _addNativeMove(sources, 'evolution_cut');
+    final first =
+        jsonDecode(utf8.decode(sources.first.bytes)) as Map<String, dynamic>;
+    final baby = jsonDecode(jsonEncode(first)) as Map<String, dynamic>;
+    baby['id'] = 16;
+    baby['dbSymbol'] = 'baby';
+    sources.add(_source('Data/Studio/pokemon/baby.json', baby));
+    _mutateSource(sources, 'Data/Studio/pokemon/fixture.json', (raw) {
+      final form = (raw['forms'] as List).first as Map;
+      form['babyDbSymbol'] = 'baby';
+      form['babyForm'] = 1;
+      form['evolutions'] = [
+        {
+          'dbSymbol': 'baby',
+          'form': 1,
+          'conditions': [
+            {'type': 'skill1', 'value': 'evolution_cut'}
+          ]
+        }
+      ];
+    });
+    final native = const NativePsdkTrainerBundleBuilder().build(
+        files: sources,
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+        ]);
+    expect(native.speciesById.keys,
+        ['baby', 'baby_form1', 'fixture', 'fixture_form1']);
+    expect(native.movesById.keys, ['cut', 'evolution_cut']);
+    expect(
+        native
+            .evolutionsBySpeciesId['fixture']!.evolutions.single.requiredMoveId,
+        'evolution_cut');
+    expect(native.evidence.containsKey('sourceTrainerRosters'), isFalse);
+    _mutateSource(
+        sources,
+        'Data/Studio/pokemon/fixture.json',
+        (raw) => (((raw['forms'] as List).first as Map)['evolutions'] as List)
+            .cast<Map>()
+            .single['form'] = 2);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(
+                files: sources,
+                requests: [
+                  NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+                ]),
+        _code('form_missing'));
+  });
+
+  test('rejects duplicate native concrete forms and source witnesses', () {
+    final sources = _fixtureSources();
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(files: [
+              ...sources,
+              sources.first
+            ], requests: [
+              NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+            ]),
+        _code('duplicate_source'));
+    _mutateSource(sources, 'Data/Studio/pokemon/fixture.json',
+        (raw) => ((raw['forms'] as List)[1] as Map)['form'] = 0);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(
+                files: sources,
+                requests: [
+                  NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+                ]),
+        _code('form_ambiguous'));
+  });
+
+  test('enforces independent request base closure form move and witness quotas',
+      () {
+    final request =
+        NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1);
+    final sources = _fixtureSources();
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: sources, requests: List.filled(257, request)),
+        _code('request_quota'));
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+                .build(files: sources, requests: [
+              for (var i = 0; i < 65; i++)
+                NativePsdkCatalogRequest(
+                    baseId: 'fixture_$i', form: 0, level: 1)
+            ]),
+        _code('requested_base_quota'));
+    expect(
+        () => const NativePsdkTrainerBundleBuilder().build(
+            files: List.filled(2049, sources.first), requests: [request]),
+        _code('source_file_quota'));
+    final forms = _fixtureSources();
+    _mutateSource(forms, 'Data/Studio/pokemon/fixture.json', (raw) {
+      final template = (raw['forms'] as List).first as Map;
+      raw['forms'] = [
+        for (var i = 0; i < 129; i++) {...template, 'form': i}
+      ];
+    });
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: forms, requests: [request]),
+        _code('form_quota'));
+    final moves = _fixtureSources();
+    _mutateSource(
+        moves,
+        'Data/Studio/pokemon/fixture.json',
+        (raw) => ((raw['forms'] as List).first as Map)['moveSet'] = [
+              for (var i = 0; i < 512; i++)
+                {'klass': 'LevelLearnableMove', 'move': 'move_$i', 'level': 1}
+            ]);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: moves, requests: [request]),
+        _code('move_quota'));
+    final closure = _fixtureSources();
+    _mutateSource(
+        closure,
+        'Data/Studio/pokemon/fixture.json',
+        (raw) => ((raw['forms'] as List).first as Map)['evolutions'] = [
+              for (var i = 0; i < 64; i++)
+                {'dbSymbol': 'target_$i', 'form': 0, 'conditions': []}
+            ]);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: closure, requests: [request]),
+        _code('species_closure_quota'));
+  });
+
+  test(
+      'preserves the complete native move signature for explicit and progression data',
+      () {
+    final sources = _fixtureSources();
+    _addNativeMove(sources, 'signature_move', level: 20);
+    _mutateSource(sources, 'Data/Studio/moves/signature_move.json', (raw) {
+      raw.addAll({
+        'battleEngineMethod': 'native_unimplemented_method',
+        'name': {'en': 'Native Signature', 'fr': 'Signature native'},
+        'type': 'fire',
+        'category': 'special',
+        'power': 77,
+        'accuracy': 83,
+        'pp': 13,
+        'priority': -2,
+        'movecriticalRate': 3,
+        'battleEngineAimedTarget': 'any_other_pokemon',
+        'effectChance': 37,
+        'battleStageMod': [
+          {'battleStage': 'ATS_STAGE', 'modificator': 2, 'targetScope': 'self'}
+        ],
+        'moveStatus': [
+          {'status': 'burn', 'luckRate': 19}
+        ],
+      });
+      for (final flag in [
+        'isDirect',
+        'isBlocable',
+        'isMirrorMove',
+        'isGravity',
+        'isPunch',
+        'isSoundAttack',
+        'isSlicingAttack',
+        'isWind',
+        'isHeal',
+        'isBite',
+        'isPulse',
+        'isPowder',
+        'isDance',
+        'isBallistics',
+        'isUnfreeze',
+        'isAuthentic'
+      ]) {
+        raw[flag] = true;
+      }
+    });
+    final native =
+        const NativePsdkTrainerBundleBuilder().build(files: sources, requests: [
+      NativePsdkCatalogRequest(
+          baseId: 'fixture',
+          form: 1,
+          level: 1,
+          explicitMoveIds: ['signature_move'])
+    ]);
+    final expected = PokemonMove(
+        id: 'signature_move',
+        name: 'Native Signature',
+        names: {'en': 'Native Signature', 'fr': 'Signature native'},
+        source: 'pokemon_sdk_studio',
+        type: 'fire',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.any,
+        basePower: 77,
+        accuracy: const PokemonMoveAccuracy.percent(value: 83),
+        pp: 13,
+        priority: -2,
+        critRatio: 3,
+        flags: const [
+          PokemonMoveFlag.contact,
+          PokemonMoveFlag.protect,
+          PokemonMoveFlag.mirror,
+          PokemonMoveFlag.gravity,
+          PokemonMoveFlag.punch,
+          PokemonMoveFlag.sound,
+          PokemonMoveFlag.slicing,
+          PokemonMoveFlag.wind,
+          PokemonMoveFlag.heal,
+          PokemonMoveFlag.bite,
+          PokemonMoveFlag.pulse,
+          PokemonMoveFlag.powder,
+          PokemonMoveFlag.dance,
+          PokemonMoveFlag.bullet,
+          PokemonMoveFlag.defrost,
+          PokemonMoveFlag.bypassSubstitute,
+        ],
+        effects: const [
+          PokemonMoveEffect.modifyStats(
+              targetScope: PokemonMoveEffectTargetScope.self,
+              chance: 37,
+              stageChanges: [
+                PokemonMoveStatStageChange(
+                    stat: PokemonMoveStatId.specialAttack, stages: 2)
+              ]),
+          PokemonMoveEffect.applyStatus(statusId: 'burn', chance: 19),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: const ['psdk_method:native_unimplemented_method']);
+    expect(native.movesById['signature_move']!.toJson(), expected.toJson());
+    final entry = native.catalogs['moves']!.entries
+        .singleWhere((move) => move['id'] == 'signature_move');
+    expect(entry['battleEngineMethod'], 'native_unimplemented_method');
+    expect((entry['sourceRefs'] as Map)['psdkBattleEngineMethod'],
+        'native_unimplemented_method');
+    expect(native.evidence['nativeMoveDataFidelityOnly'], isTrue);
+    expect(native.evidence['activationRequiresExactRuntimeMoveQualification'],
+        isTrue);
+    expect(native.evidence['runtimeBattleBuilderQualified'], isFalse);
+  });
+
+  test(
+      'accepts exact request form move and source limits without raising bounds',
+      () {
+    final sources = _fixtureSources();
+    final move = jsonDecode(utf8.decode(sources
+        .singleWhere(
+            (source) => source.relativePath == 'Data/Studio/moves/cut.json')
+        .bytes)) as Map<String, dynamic>;
+    for (var i = 0; i < 511; i++) {
+      sources.add(_source('Data/Studio/moves/bounded_$i.json',
+          {...move, 'id': i + 1000, 'dbSymbol': 'bounded_$i'}));
+    }
+    _mutateSource(sources, 'Data/Studio/pokemon/fixture.json', (raw) {
+      final template = (raw['forms'] as List).first as Map;
+      raw['forms'] = [
+        for (var i = 0; i < 128; i++)
+          {
+            ...template,
+            'form': i,
+            'moveSet': [
+              {'klass': 'LevelLearnableMove', 'move': 'cut', 'level': 1},
+              if (i == 0)
+                for (var m = 0; m < 511; m++)
+                  {'klass': 'TechLearnableMove', 'move': 'bounded_$m'}
+            ]
+          }
+      ];
+    });
+    for (var i = sources.length; i < 2048; i++) {
+      sources.add(_source(
+          'Data/Studio/abilities/unused_$i.json', {'dbSymbol': 'unused_$i'}));
+    }
+    final requests = [
+      for (var form = 0; form < 128; form++)
+        for (var level = 1; level <= 2; level++)
+          NativePsdkCatalogRequest(baseId: 'fixture', form: form, level: level)
+    ];
+    final native = const NativePsdkTrainerBundleBuilder()
+        .build(files: sources, requests: requests);
+    expect(native.speciesById, hasLength(128));
+    expect(native.movesById, hasLength(512));
+    expect(native.evidence['catalogRequests'] as List, hasLength(256));
+    expect((native.evidence['quotas'] as Map)['requestedBases'], 64);
+  });
+
+  test(
+      'accepts exact base closure and total byte limits and rejects one extra byte',
+      () {
+    final sources = _fixtureSources();
+    final template =
+        jsonDecode(utf8.decode(sources.first.bytes)) as Map<String, dynamic>;
+    sources.removeAt(0);
+    for (var i = 0; i < 64; i++) {
+      sources.add(_source('Data/Studio/pokemon/base_$i.json', {
+        ...template,
+        'id': i + 1000,
+        'dbSymbol': 'base_$i',
+        'forms': [(template['forms'] as List).first]
+      }));
+    }
+    final requests = [
+      for (var i = 0; i < 64; i++)
+        NativePsdkCatalogRequest(baseId: 'base_$i', form: 0, level: 1)
+    ];
+    expect(
+        const NativePsdkTrainerBundleBuilder()
+            .build(files: sources, requests: requests)
+            .speciesById,
+        hasLength(64));
+    final closureSources = sources.toList();
+    _mutateSource(
+        closureSources,
+        'Data/Studio/pokemon/base_0.json',
+        (raw) => ((raw['forms'] as List).first as Map)['evolutions'] = [
+              for (var i = 1; i < 64; i++)
+                {'dbSymbol': 'base_$i', 'form': 0, 'conditions': []}
+            ]);
+    expect(
+        const NativePsdkTrainerBundleBuilder().build(
+            files: closureSources, requests: [requests.first]).speciesById,
+        hasLength(64));
+    var remaining = 16777216 -
+        sources.fold<int>(0, (sum, source) => sum + source.bytes.length);
+    var index = 0;
+    while (remaining > 0) {
+      final size = remaining > 1048576 ? 1048576 : remaining;
+      final bytes = List<int>.filled(size, 32);
+      sources.add(NativePsdkTrainerSourceFile(
+          relativePath: 'Data/Studio/abilities/padding_${index++}.json',
+          sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+          bytes: bytes));
+      remaining -= size;
+    }
+    expect(
+        const NativePsdkTrainerBundleBuilder()
+            .build(files: sources, requests: requests)
+            .speciesById,
+        hasLength(64));
+    final byte = [32];
+    final oneMore = NativePsdkTrainerSourceFile(
+        relativePath: 'Data/Studio/abilities/padding_extra.json',
+        sha256: Sha256Hash(crypto.sha256.convert(byte).toString()),
+        bytes: byte);
+    expect(
+        () => const NativePsdkTrainerBundleBuilder()
+            .build(files: [...sources, oneMore], requests: requests),
+        _code('source_bytes_quota'));
+    final oversized = List<int>.filled(1048577, 32);
+    expect(
+        () => NativePsdkTrainerSourceFile(
+            relativePath: 'Data/Studio/abilities/oversized.json',
+            sha256: Sha256Hash(crypto.sha256.convert(oversized).toString()),
+            bytes: oversized),
+        _code('source_witness'));
+  });
+
+  test('generic request recipe writes deterministically without trainer PBS',
+      () async {
+    final temp =
+        await Directory.systemTemp.createTemp('native_catalog_recipe_');
+    addTearDown(() => temp.delete(recursive: true));
+    final root = Directory('${temp.path}/reference');
+    for (final source in _fixtureSources()) {
+      final file = File('${root.path}/${source.relativePath}');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(source.bytes);
+    }
+    final requestFile = File('${temp.path}/requests.json');
+    final output = File('${temp.path}/bundle.json');
+    final dartOutput = File('${temp.path}/bundle.dart');
+    Future<ProcessResult> run() => Process.run(
+        'dart',
+        [
+          'run',
+          'tool/build_native_psdk_trainer_bundle.dart',
+          '--catalog-requests',
+          root.path,
+          requestFile.path,
+          output.path,
+          dartOutput.path
+        ],
+        workingDirectory: Directory.current.path);
+    final rows = [
+      {'baseId': 'fixture', 'form': 0, 'level': 1},
+      {
+        'baseId': 'fixture',
+        'form': 1,
+        'level': 2,
+        'explicitMoveIds': ['cut']
+      }
+    ];
+    await requestFile.writeAsString(jsonEncode(
+        {'kind': 'nativePsdkCatalogRequests', 'version': 1, 'requests': rows}));
+    final first = await run();
+    expect(first.exitCode, 0, reason: '${first.stdout} ${first.stderr}');
+    final bytes = await output.readAsBytes();
+    final native = NativePsdkTrainerBundle.fromJson(
+        jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+    expect(native.evidence.containsKey('sourceTrainerRosters'), isFalse);
+    await requestFile.writeAsString(jsonEncode({
+      'kind': 'nativePsdkCatalogRequests',
+      'version': 1,
+      'requests': rows.reversed.toList()
+    }));
+    final second = await run();
+    expect(second.exitCode, 0, reason: '${second.stdout} ${second.stderr}');
+    expect(await output.readAsBytes(), bytes);
+    expect(await dartOutput.readAsString(),
+        "const nativePsdkTrainerBundleJson = r'''${utf8.decode(bytes)}''';\n");
+    await requestFile.writeAsString(jsonEncode({
+      'kind': 'nativePsdkCatalogRequests',
+      'version': 1,
+      'requests': [...rows, rows.first]
+    }));
+    final invalid = await run();
+    expect(invalid.exitCode, isNot(0));
+    expect(await output.readAsBytes(), bytes);
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
   test('embedded reference matches the rebuildable asset exactly', () async {
     final asset =
         await File('assets/native_psdk_trainer_bundle.json').readAsString();
@@ -104,9 +725,9 @@ void main() {
           bytes: bytes);
       expect(
           () => const NativePsdkTrainerBundleBuilder()
-                  .build(files: sources, requestedLevels: {
-                'fixture': {1}
-              }),
+                  .build(files: sources, requests: [
+                NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+              ]),
           _code('female_rate'));
     }
   });
@@ -116,10 +737,11 @@ void main() {
     _mutateSource(sources, 'Data/Studio/pokemon/fixture.json',
         (raw) => ((raw['forms'] as List).last as Map).remove('femaleRate'));
     expect(
-        () => const NativePsdkTrainerBundleBuilder()
-                .build(files: sources, requestedLevels: {
-              'fixture': {1}
-            }),
+        () => const NativePsdkTrainerBundleBuilder().build(
+                files: sources,
+                requests: [
+                  NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+                ]),
         _code('female_rate'));
   });
 
@@ -177,9 +799,9 @@ void main() {
       mutation(sources);
       expect(
           () => const NativePsdkTrainerBundleBuilder()
-                  .build(files: sources, requestedLevels: {
-                'fixture': {1}
-              }),
+                  .build(files: sources, requests: [
+                NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+              ]),
           throwsA(isA<ContractError>()));
     }
   });
@@ -235,14 +857,16 @@ void main() {
 
   test('builds deterministic documents from unordered exact witnesses', () {
     final files = _fixtureSources();
-    final ordered = const NativePsdkTrainerBundleBuilder()
-        .build(files: files, requestedLevels: {
-      'fixture': {1}
-    });
-    final reversed = const NativePsdkTrainerBundleBuilder()
-        .build(files: files.reversed.toList(), requestedLevels: {
-      'fixture': {1}
-    });
+    final ordered = const NativePsdkTrainerBundleBuilder().build(
+        files: files,
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+        ]);
+    final reversed = const NativePsdkTrainerBundleBuilder().build(
+        files: files.reversed.toList(),
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+        ]);
     expect(
         canonicalHashOf(ordered.toJson()), canonicalHashOf(reversed.toJson()));
     expect(ordered.movesById.keys, ['cut']);
@@ -276,12 +900,32 @@ void main() {
     final levels = (builtin.evidence['requestedLevels'] as Map).map(
         (key, value) =>
             MapEntry(key as String, (value as List).cast<int>().toSet()));
-    final rebuilt = const NativePsdkTrainerBundleBuilder()
-        .build(files: files, requestedLevels: levels);
-    expect(rebuilt.toJson()['species'], builtin.toJson()['species']);
+    final rebuilt =
+        const NativePsdkTrainerBundleBuilder().build(files: files, requests: [
+      for (final entry in levels.entries)
+        for (final level in entry.value)
+          NativePsdkCatalogRequest(baseId: entry.key, form: 0, level: level)
+    ]);
+    final expectedSpecies = (builtin.toJson()['species'] as List).cast<Map>();
+    for (final species in expectedSpecies) {
+      species['names'] = <String, String>{};
+    }
+    expect(rebuilt.toJson()['species'], expectedSpecies);
     expect(rebuilt.toJson()['sourceLearnsets'],
         builtin.toJson()['sourceLearnsets']);
-    expect(rebuilt.toJson()['catalogs'], builtin.toJson()['catalogs']);
+    final expectedCatalogs = (builtin.toJson()['catalogs'] as List).cast<Map>();
+    final moves = expectedCatalogs.singleWhere((c) => c['catalog'] == 'moves');
+    for (final move in (moves['entries'] as List).cast<Map>()) {
+      final reasons = move['unsupportedReasons'] as List;
+      if (reasons.contains('native_roster_unused_move_unqualified')) {
+        move['unsupportedReasons'] = reasons
+            .where(
+                (reason) => reason != 'native_roster_unused_move_unqualified')
+            .toList();
+        move['engineSupportLevel'] = 'structured_partial';
+      }
+    }
+    expect(rebuilt.toJson()['catalogs'], expectedCatalogs);
     expect(rebuilt.evidence['sources'], builtin.evidence['sources']);
   },
       skip: sourceRoot == null
@@ -299,9 +943,9 @@ List<dynamic> _natureEntries(Map<String, Object?> json) =>
 NativePsdkTrainerBundle _buildFixture({Object? femaleRate = 50}) =>
     const NativePsdkTrainerBundleBuilder().build(
         files: _fixtureSources(femaleRate: femaleRate),
-        requestedLevels: {
-          'fixture': {1}
-        });
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+        ]);
 
 NativePsdkTrainerSourceFile _source(String path, Object raw) {
   final bytes = utf8.encode(jsonEncode(raw));
@@ -410,3 +1054,22 @@ const _natureRows = <(String, List<int>)>[
   ('careful', [100, 100, 100, 90, 110]),
   ('quirky', [100, 100, 100, 100, 100]),
 ];
+
+void _addNativeMove(List<NativePsdkTrainerSourceFile> sources, String id,
+    {int? level}) {
+  final raw = jsonDecode(utf8.decode(sources
+      .singleWhere(
+          (source) => source.relativePath == 'Data/Studio/moves/cut.json')
+      .bytes)) as Map<String, dynamic>;
+  raw['id'] = 999;
+  raw['dbSymbol'] = id;
+  sources.add(_source('Data/Studio/moves/$id.json', raw));
+  if (level != null) {
+    _mutateSource(sources, 'Data/Studio/pokemon/fixture.json', (raw) {
+      for (final form in (raw['forms'] as List).cast<Map>()) {
+        (form['moveSet'] as List)
+            .add({'klass': 'LevelLearnableMove', 'move': id, 'level': level});
+      }
+    });
+  }
+}

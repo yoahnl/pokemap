@@ -226,19 +226,103 @@ const nativeQualifiedFieldMoveSourceHashes = <String, String>{
   'cut': 'e9c317f52c3785df6ac9731ef14d791903b5f5e5b28aee1264893f731a56fdb5',
 };
 
+final class NativePsdkCatalogRequest {
+  NativePsdkCatalogRequest({
+    required this.baseId,
+    required this.form,
+    required this.level,
+    List<String>? explicitMoveIds,
+  }) : explicitMoveIds = explicitMoveIds == null
+            ? null
+            : List.unmodifiable(explicitMoveIds) {
+    if (!_nativeSymbol.hasMatch(baseId) ||
+        form < 0 ||
+        level < 1 ||
+        level > 100 ||
+        (explicitMoveIds != null &&
+            (explicitMoveIds.isEmpty ||
+                explicitMoveIds.length > 4 ||
+                explicitMoveIds.toSet().length != explicitMoveIds.length ||
+                explicitMoveIds.any((id) => !_nativeSymbol.hasMatch(id))))) {
+      _invalid('request_invalid');
+    }
+  }
+
+  factory NativePsdkCatalogRequest.fromJson(Map<String, dynamic> json) {
+    if (json.keys.any((key) => !const {
+              'baseId',
+              'form',
+              'level',
+              'explicitMoveIds'
+            }.contains(key)) ||
+        json['baseId'] is! String ||
+        json['form'] is! int ||
+        json['level'] is! int ||
+        (json.containsKey('explicitMoveIds') &&
+            (json['explicitMoveIds'] is! List ||
+                (json['explicitMoveIds'] as List)
+                    .any((id) => id is! String)))) {
+      _invalid('request_invalid');
+    }
+    return NativePsdkCatalogRequest(
+        baseId: json['baseId'] as String,
+        form: json['form'] as int,
+        level: json['level'] as int,
+        explicitMoveIds: (json['explicitMoveIds'] as List?)?.cast<String>());
+  }
+
+  final String baseId;
+  final int form;
+  final int level;
+  final List<String>? explicitMoveIds;
+
+  Map<String, Object?> toJson() => {
+        'baseId': baseId,
+        'form': form,
+        'level': level,
+        if (explicitMoveIds != null) 'explicitMoveIds': explicitMoveIds,
+      };
+}
+
+final _nativeSymbol = RegExp(r'^[a-z][a-z0-9_]*$');
+
 final class NativePsdkTrainerBundleBuilder {
   const NativePsdkTrainerBundleBuilder();
 
   NativePsdkTrainerBundle build({
     required List<NativePsdkTrainerSourceFile> files,
-    required Map<String, Set<int>> requestedLevels,
+    required List<NativePsdkCatalogRequest> requests,
   }) {
-    if (files.length > 2048 ||
-        requestedLevels.isEmpty ||
-        requestedLevels.length > 64 ||
-        files.fold<int>(0, (sum, file) => sum + file.bytes.length) > 16777216) {
-      _invalid('bundle_quota');
+    if (requests.isEmpty) _invalid('request_invalid');
+    if (requests.length > 256) _invalid('request_quota');
+    if (files.length > 2048) _invalid('source_file_quota');
+    if (files.fold<int>(0, (sum, file) => sum + file.bytes.length) > 16777216) {
+      _invalid('source_bytes_quota');
     }
+    final orderedRequests = requests.toList()
+      ..sort((a, b) {
+        final base = a.baseId.compareTo(b.baseId);
+        if (base != 0) return base;
+        final form = a.form.compareTo(b.form);
+        if (form != 0) return form;
+        final level = a.level.compareTo(b.level);
+        if (level != 0) return level;
+        if (a.explicitMoveIds == null) {
+          return b.explicitMoveIds == null ? 0 : -1;
+        }
+        if (b.explicitMoveIds == null) return 1;
+        return jsonEncode(a.explicitMoveIds)
+            .compareTo(jsonEncode(b.explicitMoveIds));
+      });
+    final requestKeys = <String>{};
+    for (final request in orderedRequests) {
+      if (!requestKeys.add(canonicalHashOf(request.toJson()).value)) {
+        _invalid('duplicate_request');
+      }
+    }
+    final requestedSpecies =
+        orderedRequests.map((r) => r.baseId).toSet().toList()..sort();
+    if (requestedSpecies.length > 64) _invalid('requested_base_quota');
     final index = <String, NativePsdkTrainerSourceFile>{};
     for (final file in files) {
       if (index.containsKey(file.relativePath)) _invalid('duplicate_source');
@@ -254,8 +338,14 @@ final class NativePsdkTrainerBundleBuilder {
           file.sha256.value != fieldMoveHash) {
         _invalid('field_move_source_witness:$path');
       }
-      final raw =
-          (jsonDecode(utf8.decode(file.bytes)) as Map).cast<String, dynamic>();
+      final Object? decoded;
+      try {
+        decoded = jsonDecode(utf8.decode(file.bytes));
+      } on FormatException {
+        _invalid('source_json:$path');
+      }
+      if (decoded is! Map<String, dynamic>) _invalid('source_json:$path');
+      final raw = decoded;
       if (raw['dbSymbol'] != id) _invalid('source_identity:$path');
       used.add(path);
       return raw;
@@ -266,20 +356,41 @@ final class NativePsdkTrainerBundleBuilder {
     final evolutions = <Map<String, Object?>>[];
     final media = <Map<String, Object?>>[];
     final fallbackMedia = <Map<String, Object?>>[];
-    final selectedMoves = nativeQualifiedFieldMoveSourceHashes.keys.toSet();
+    final selectedMoves = {
+      ...nativeQualifiedFieldMoveSourceHashes.keys,
+      for (final request in orderedRequests) ...?request.explicitMoveIds,
+    };
     final battleDefaultMoves = <String>{};
     final abilityIds = <String>{};
     final growthIds = <String>{};
-    final requestedSpecies = requestedLevels.keys.toList()..sort();
     final closure = requestedSpecies.toSet();
     final queue = requestedSpecies.toList();
     final raws = <String, Map<String, dynamic>>{};
+    final formsByBase = <String, List<Map<String, dynamic>>>{};
+    var formCount = 0;
     for (var cursor = 0; cursor < queue.length; cursor++) {
       if (queue.length > 64) _invalid('species_closure_quota');
       final id = queue[cursor];
       final raw = read('Data/Studio/pokemon/$id.json', id);
+      if (raw['klass'] != 'Specie' ||
+          raw['id'] is! int ||
+          (raw['id'] as int) < 0) {
+        _invalid('species_identity');
+      }
       raws[id] = raw;
-      for (final form in _objects(raw['forms'])) {
+      final forms = _objects(raw['forms']);
+      formCount += forms.length;
+      if (formCount > 128) _invalid('form_quota');
+      final formNumbers = <int>{};
+      for (final form in forms) {
+        final number = form['form'];
+        if (number is! int || number < 0) _invalid('form_invalid');
+        if (!formNumbers.add(number)) _invalid('form_ambiguous');
+      }
+      if (!formNumbers.contains(0)) _invalid('form_missing');
+      formsByBase[id] = forms
+        ..sort((a, b) => (a['form'] as int).compareTo(b['form'] as int));
+      for (final form in forms) {
         final targets = <String>[
           for (final evolution in _objects(form['evolutions']))
             (evolution['dbSymbol'] ?? id) as String,
@@ -289,16 +400,59 @@ final class NativePsdkTrainerBundleBuilder {
           if (target != 'none' &&
               target != '__undef__' &&
               closure.add(target)) {
+            if (!_nativeSymbol.hasMatch(target)) _invalid('species_identity');
+            if (closure.length > 64) _invalid('species_closure_quota');
             queue.add(target);
           }
         }
       }
     }
+    void requireForm(String base, Object? number) {
+      final forms = formsByBase[base];
+      if (number is! int ||
+          number < 0 ||
+          forms == null ||
+          !forms.any((form) => form['form'] == number)) {
+        _invalid('form_missing');
+      }
+    }
+
+    for (final request in orderedRequests) {
+      requireForm(request.baseId, request.form);
+    }
+    for (final base in formsByBase.entries) {
+      for (final form in base.value) {
+        for (final rule in _objects(form['evolutions'])) {
+          requireForm((rule['dbSymbol'] ?? base.key) as String, rule['form']);
+          for (final condition in _objects(rule['conditions'])) {
+            if (condition['type'] == 'skill1') {
+              final move = condition['value'];
+              if (move is! String || !_nativeSymbol.hasMatch(move)) {
+                _invalid('move_identity');
+              }
+              selectedMoves.add(move);
+            }
+          }
+        }
+        final baby = form['babyDbSymbol'];
+        if (baby is String && baby != 'none' && baby != '__undef__') {
+          requireForm(baby, form['babyForm']);
+        }
+        for (final move in _objects(form['moveSet'])) {
+          final id = move['move'];
+          if (id is! String || !_nativeSymbol.hasMatch(id)) {
+            _invalid('move_identity');
+          }
+          selectedMoves.add(id);
+        }
+      }
+    }
+    if (selectedMoves.length > 512) _invalid('move_quota');
+    final requestBindings = <Map<String, Object?>>[];
     final orderedSpecies = raws.keys.toList()..sort();
     for (final baseId in orderedSpecies) {
       final raw = raws[baseId]!;
-      final forms = _objects(raw['forms'])
-        ..sort((a, b) => (a['form'] as int).compareTo(b['form'] as int));
+      final forms = formsByBase[baseId]!;
       final formIds = forms.map((form) => '${form['form']}').toList();
       for (final form in forms) {
         final number = form['form'] as int;
@@ -332,6 +486,7 @@ final class NativePsdkTrainerBundleBuilder {
           'height': form['height'],
           'weight': form['weight'],
         }).toJson();
+        value['names'] = <String, String>{};
         final growth = switch (form['experienceType']) {
           0 => 'fast',
           1 => 'medium',
@@ -397,19 +552,23 @@ final class NativePsdkTrainerBundleBuilder {
             egg: entries('BreedLearnableMove'),
             event: entries('EvolutionLearnableMove'));
         learnsets.add(learnset.toJson());
-        if (number == 0 && requestedLevels.containsKey(baseId)) {
-          final levels = requestedLevels[baseId]!;
-          if (levels.isEmpty ||
-              levels.any((level) => level < 1 || level > 100)) {
-            _invalid('level_invalid');
-          }
-          for (final level in levels) {
-            final defaults = nativeTrainerDefaultMoveIds(learnset, level);
-            if (defaults.isEmpty) {
-              _invalid('empty_moves');
-            }
+        for (final request in orderedRequests.where(
+            (request) => request.baseId == baseId && request.form == number)) {
+          final defaults = request.explicitMoveIds == null
+              ? nativeTrainerDefaultMoveIds(learnset, request.level)
+              : request.explicitMoveIds!;
+          if (defaults.isEmpty) _invalid('empty_moves');
+          if (request.explicitMoveIds == null) {
             battleDefaultMoves.addAll(defaults);
           }
+          requestBindings.add({
+            'baseId': baseId,
+            'form': number,
+            'level': request.level,
+            'movePolicy':
+                request.explicitMoveIds == null ? 'nativeDefaults' : 'explicit',
+            'moveIds': defaults,
+          });
         }
         final evolutionEntries = <PokemonEvolutionEntry>[];
         for (final evolution in _objects(form['evolutions'])) {
@@ -526,18 +685,6 @@ final class NativePsdkTrainerBundleBuilder {
           .convertCatalog(movePayloads)
           .toJson(),
     ];
-    final moveCatalog = catalogs.single;
-    for (final value in moveCatalog['entries'] as List) {
-      final move = value as Map<String, dynamic>;
-      if (!battleDefaultMoves.contains(move['id']) &&
-          !nativeQualifiedFieldMoveSourceHashes.containsKey(move['id'])) {
-        move['engineSupportLevel'] = 'catalog_only';
-        move['unsupportedReasons'] = [
-          ...move['unsupportedReasons'] as List,
-          'native_roster_unused_move_unqualified'
-        ];
-      }
-    }
     final types = <Map<String, dynamic>>[];
     for (final id in nativeTrainerTypeIds.toList()..sort()) {
       final raw = read('Data/Studio/types/$id.json', id);
@@ -581,7 +728,7 @@ final class NativePsdkTrainerBundleBuilder {
       'catalogs': catalogs,
       'evidence': {
         'authority': 'AveluneNativePsdkData',
-        'scope': 'nativeTrainerSpeciesCompanionClosure',
+        'scope': 'nativeSpeciesCompanionClosure',
         'globalCatalogComplete': false,
         'globalLearnsetsPublished': true,
         'nativeClosureComplete': true,
@@ -603,11 +750,24 @@ final class NativePsdkTrainerBundleBuilder {
             nativeQualifiedFieldMoveSourceHashes,
         'nativeStatProfile': 'trainerV0',
         'nativeAbilityPolicy': 'speciesPrimary',
-        'movePolicy': 'nativeAveluneDefaults',
+        'movePolicy': 'perNativeCatalogRequest',
         'moveDerivation': 'startingThenRelearnThenOrderedLevelUpUniqueLastFour',
-        'requestedLevels': {
-          for (final id in requestedSpecies)
-            id: requestedLevels[id]!.toList()..sort()
+        'catalogRequests': [
+          for (final request in orderedRequests) request.toJson()
+        ],
+        'nativeRequestMoveBindings': requestBindings,
+        'nativeNamesQualified': false,
+        'nativeMoveDataFidelityOnly': true,
+        'activationRequiresExactRuntimeMoveQualification': true,
+        'quotas': {
+          'requests': 256,
+          'requestedBases': 64,
+          'closureBases': 64,
+          'forms': 128,
+          'moves': 512,
+          'sourceFiles': 2048,
+          'perSourceBytes': 1048576,
+          'totalSourceBytes': 16777216
         },
         'sources': [
           for (final path in used.toList()..sort()) index[path]!.evidence

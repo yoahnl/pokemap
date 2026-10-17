@@ -61,11 +61,29 @@ void main() {
     expect(builtin.toJson().keys, isNot(contains('player')));
   });
 
-  test('rebuild retains only the attested field move qualification', () {
-    final rebuilt = const NativePsdkTrainerBundleBuilder()
-        .build(files: sources, requestedLevels: levels);
-    expect(rebuilt.catalogs['moves']!.toJson(),
-        builtin.catalogs['moves']!.toJson());
+  test('new inert rebuild retains attested Cut and native catalog data', () {
+    final rebuilt =
+        const NativePsdkTrainerBundleBuilder().build(files: sources, requests: [
+      for (final entry in levels.entries)
+        for (final level in entry.value)
+          NativePsdkCatalogRequest(baseId: entry.key, form: 0, level: level)
+    ]);
+    final expected = builtin.catalogs['moves']!.toJson();
+    for (final move in (expected['entries'] as List).cast<Map>()) {
+      final reasons = move['unsupportedReasons'] as List;
+      if (reasons.contains('native_roster_unused_move_unqualified')) {
+        move['unsupportedReasons'] = reasons
+            .where(
+                (reason) => reason != 'native_roster_unused_move_unqualified')
+            .toList();
+        move['engineSupportLevel'] = 'structured_partial';
+      }
+    }
+    expect(rebuilt.catalogs['moves']!.toJson(), expected);
+    expect(
+        rebuilt.movesById['cut']!.toJson(), builtin.movesById['cut']!.toJson());
+    expect(rebuilt.evidence['nativeQualifiedFieldMoveSourceHashes'],
+        builtin.evidence['nativeQualifiedFieldMoveSourceHashes']);
     expect(rebuilt.evidence['nativeBattleDefaultMoveIds'],
         builtin.evidence['nativeBattleDefaultMoveIds']);
     expect(rebuilt.evidence['nativeQualifiedFieldMoveIds'], ['cut']);
@@ -91,7 +109,12 @@ void main() {
           () => const NativePsdkTrainerBundleBuilder().build(files: [
                 for (final file in sources)
                   if (file != original) file else changed
-              ], requestedLevels: levels),
+              ], requests: [
+                for (final entry in levels.entries)
+                  for (final level in entry.value)
+                    NativePsdkCatalogRequest(
+                        baseId: entry.key, form: 0, level: level)
+              ]),
           throwsA(isA<ContractError>().having((error) => error.code, 'code',
               'native_trainer.field_move_source_witness:Data/Studio/moves/cut.json')));
     }, skip: skipSource);

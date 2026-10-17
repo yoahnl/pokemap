@@ -34,8 +34,12 @@ void main() {
     final levels = (native.evidence['requestedLevels'] as Map).map(
         (key, value) =>
             MapEntry(key as String, (value as List).cast<int>().toSet()));
-    final rebuilt = const NativePsdkTrainerBundleBuilder()
-        .build(files: files, requestedLevels: levels);
+    final rebuilt =
+        const NativePsdkTrainerBundleBuilder().build(files: files, requests: [
+      for (final entry in levels.entries)
+        for (final level in entry.value)
+          NativePsdkCatalogRequest(baseId: entry.key, form: 0, level: level)
+    ]);
     final rule = rebuilt.evolutionsBySpeciesId['machoke']!.evolutions.single;
     expect(rule.method, 'conditional');
     expect(rule.tradeRequirements, isNull);
