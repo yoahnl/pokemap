@@ -1170,6 +1170,67 @@ void main() {
     }
   });
 
+  test('stair IR preserves lateral diagonal and priority route primitives', () async {
+    final commands = <_RubyObject>[
+      _command(111, [6, -1, 6]),
+      ..._forcedRoute([
+        for (final code in [37, 39, 18, 3, 8]) _moveCommand(code),
+      ], target: -1, indent: 1, skippable: false),
+      _command(210, [], indent: 1),
+      _command(201, [0, 1, 1, 1, 0, 1], indent: 1),
+      ..._forcedRoute([
+        for (final code in [38, 40]) _moveCommand(code),
+      ], target: -1, indent: 1, skippable: false),
+      _command(0, [], indent: 1),
+      _command(412, []),
+      _command(0, []),
+    ];
+    final source = await _events([_page(commands, trigger: 1)]);
+    final event = _analyzer(source).analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isFalse);
+    final branch = event.pages.single.body.nodes.single as SourceConditionalNode;
+    expect(branch.condition.kind, SourceEventConditionKind.playerFacing);
+    expect(branch.condition.sourceDirection, 6);
+    final routes = branch.whenTrue.nodes.whereType<SourceForcedMoveRouteNode>().toList();
+    expect(routes, hasLength(2));
+    expect(routes.first.steps.map((step) => step.kind.name),
+        ['throughOn', 'alwaysOnTopOn', 'turnRight', 'moveRight', 'moveUpperRight']);
+    expect(routes.last.steps.map((step) => step.kind.name),
+        ['throughOff', 'alwaysOnTopOff']);
+    expect(routes.first.skippable, isFalse);
+    expect(routes.last.span.firstCommandIndex,
+        greaterThan(branch.whenTrue.nodes.whereType<SourceWarpNode>().single.span.lastCommandIndex));
+    expect(routes.first.rawDataRefs, hasLength(6));
+    expect(routes.last.rawDataRefs, hasLength(3));
+    for (final code in [2, 7]) {
+      final other = await _events([_page([
+        ..._forcedRoute([_moveCommand(code)], target: -1),
+        _command(0, []),
+      ])]);
+      final event = _analyzer(other).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isFalse, reason: '$code');
+      final route = event.pages.single.body.nodes.single as SourceForcedMoveRouteNode;
+      expect(route.steps.single.kind.name, code == 2 ? 'moveLeft' : 'moveUpperLeft');
+    }
+  });
+
+  test('stair IR rejects malformed primitive parameters and forged copies', () async {
+    for (final code in [2, 3, 7, 8, 39, 40]) {
+      for (final corruptCopy in [false, true]) {
+        final route = _forcedRoute([_moveCommand(code)], target: -1);
+        if (corruptCopy) {
+          route.last = _command(509, [_moveCommand(code == 39 ? 40 : 39)]);
+        } else {
+          final value = (route.first.fields['@parameters'] as List)[1] as _RubyObject;
+          (value.fields['@list'] as List).first.fields['@parameters'] = [1];
+        }
+        final source = await _events([_page([...route, _command(0, [])])]);
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined,
+            isTrue, reason: '$code corruptCopy=$corruptCopy');
+      }
+    }
+  });
+
   test('door IR validates every route copy including the last step', () async {
     for (final variant in [
       'missingCopy',

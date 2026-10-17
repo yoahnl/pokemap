@@ -378,7 +378,11 @@ final class SourceInteractionFacingNode extends SourceEventNode {
 
 enum SourceMoveRouteStepKind {
   moveDown,
+  moveLeft,
+  moveRight,
   moveUp,
+  moveUpperLeft,
+  moveUpperRight,
   wait,
   turnDown,
   turnLeft,
@@ -386,6 +390,8 @@ enum SourceMoveRouteStepKind {
   turnUp,
   throughOn,
   throughOff,
+  alwaysOnTopOn,
+  alwaysOnTopOff,
   soundEffect,
 }
 
@@ -1564,7 +1570,11 @@ final class _SourceEventParser {
         _facingPlain(doc, _eventField(fields, '@code'), MarshalKind.integer));
     final kind = switch (code) {
       1 => SourceMoveRouteStepKind.moveDown,
+      2 => SourceMoveRouteStepKind.moveLeft,
+      3 => SourceMoveRouteStepKind.moveRight,
       4 => SourceMoveRouteStepKind.moveUp,
+      7 => SourceMoveRouteStepKind.moveUpperLeft,
+      8 => SourceMoveRouteStepKind.moveUpperRight,
       15 => SourceMoveRouteStepKind.wait,
       16 => SourceMoveRouteStepKind.turnDown,
       17 => SourceMoveRouteStepKind.turnLeft,
@@ -1572,6 +1582,8 @@ final class _SourceEventParser {
       19 => SourceMoveRouteStepKind.turnUp,
       37 => SourceMoveRouteStepKind.throughOn,
       38 => SourceMoveRouteStepKind.throughOff,
+      39 => SourceMoveRouteStepKind.alwaysOnTopOn,
+      40 => SourceMoveRouteStepKind.alwaysOnTopOff,
       44 => SourceMoveRouteStepKind.soundEffect,
       _ => throw const FormatException(),
     };

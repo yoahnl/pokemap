@@ -257,7 +257,11 @@ void _auditSourceFactWriteBlock(
         for (final step in steps) {
           final allowed = switch (step.kind) {
             SourceMoveRouteStepKind.moveDown ||
+            SourceMoveRouteStepKind.moveLeft ||
+            SourceMoveRouteStepKind.moveRight ||
             SourceMoveRouteStepKind.moveUp ||
+            SourceMoveRouteStepKind.moveUpperLeft ||
+            SourceMoveRouteStepKind.moveUpperRight ||
             SourceMoveRouteStepKind.wait ||
             SourceMoveRouteStepKind.turnDown ||
             SourceMoveRouteStepKind.turnLeft ||
@@ -265,6 +269,8 @@ void _auditSourceFactWriteBlock(
             SourceMoveRouteStepKind.turnUp ||
             SourceMoveRouteStepKind.throughOn ||
             SourceMoveRouteStepKind.throughOff ||
+            SourceMoveRouteStepKind.alwaysOnTopOn ||
+            SourceMoveRouteStepKind.alwaysOnTopOff ||
             SourceMoveRouteStepKind.soundEffect =>
               true,
           };

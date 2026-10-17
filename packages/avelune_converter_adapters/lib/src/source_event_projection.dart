@@ -2444,6 +2444,16 @@ final class _ProjectionBuilder {
                 !const [-1, 0].contains(node.targetSourceCharacterId)) {
               gaps.add('sourceRouteBarrierScopeUnsupported');
             }
+            if (node.steps.any((step) => const {
+              SourceMoveRouteStepKind.moveLeft,
+              SourceMoveRouteStepKind.moveRight,
+              SourceMoveRouteStepKind.moveUpperLeft,
+              SourceMoveRouteStepKind.moveUpperRight,
+              SourceMoveRouteStepKind.alwaysOnTopOn,
+              SourceMoveRouteStepKind.alwaysOnTopOff,
+            }.contains(step.kind))) {
+              gaps.add('sourceRoutePrimitiveUnsupported');
+            }
             for (final step in node.steps.where((step) => step.soundName != null)) {
               if (step.soundPitch != 100 || _sound(step.soundName!) == null) {
                 gaps.add('sourceSoundBindingMissing');
@@ -2928,6 +2938,14 @@ final class _SceneBuilder {
                 final sound = projection._sound(step.soundName!)!;
                 steps.add(SceneActorRouteStep.sound(mediaAssetId: sound.mediaId,
                   gain: sound.gainForVolume(step.soundVolume!)));
+              case SourceMoveRouteStepKind.moveLeft:
+              case SourceMoveRouteStepKind.moveRight:
+              case SourceMoveRouteStepKind.moveUpperLeft:
+              case SourceMoveRouteStepKind.moveUpperRight:
+              case SourceMoveRouteStepKind.alwaysOnTopOn:
+              case SourceMoveRouteStepKind.alwaysOnTopOff:
+                throw const NativeWriteException('events.source.route_primitive',
+                  'The source route primitive requires a qualified native actor contract');
             }
           }
           next = _interactive(SceneInteractiveCommand.actorRoute(target: target,
