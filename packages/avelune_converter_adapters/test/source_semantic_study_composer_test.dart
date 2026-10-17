@@ -182,6 +182,12 @@ void main() {
           .toList();
       final nativeImportIds =
           nativeImports.map((mutation) => mutation.operationId).toSet();
+      for (final original in nativeImports) {
+        expect(
+            draft.mutations.singleWhere(
+                (mutation) => mutation.operationId == original.operationId),
+            same(original));
+      }
       expect(
           draft.mutations
               .where(
@@ -396,11 +402,68 @@ void main() {
           projectName: 'Original semantic study',
           parentPath: output.path,
           folderName: 'original-semantic-study');
+      final verifiedInputs = SourceSemanticWitnessFiles(
+          fixture.snapshot, fixture.files, const NativeWriteLimits(), null);
+      expect(
+          await base.verifyForReuse(
+              source: fixture.source, files: verifiedInputs),
+          same(base));
+      expect(
+          verifiedInputs.evidence.map((entry) => entry['relativePath']),
+          unorderedEquals([
+            'Graphics/Tilesets/OriginalAtlas1.png',
+            'Graphics/Autotiles/OriginalWater.png',
+            'Data/Scripts.rxdata'
+          ]));
       final draft = (await const SourceSemanticStudyComposer()
           .compose(source: fixture.source, base: base, files: fixture.files))!;
       final again = (await const SourceSemanticStudyComposer()
           .compose(source: fixture.source, base: base, files: fixture.files))!;
       expect(draft.canonicalHash, again.canonicalHash);
+      final replayed = (await const SourceSemanticStudyComposer().compose(
+          source: fixture.source,
+          base: base,
+          files: fixture.files,
+          limits: const NativeWriteLimits(maxArtifacts: 31)))!;
+      expect(replayed.canonicalHash, draft.canonicalHash);
+      expect(replayed.compositionEvidence, draft.compositionEvidence);
+      expect(replayed.sourceArtifacts.map((artifact) => artifact.rawSha256),
+          draft.sourceArtifacts.map((artifact) => artifact.rawSha256));
+      final originalImport = base.draft!.mutations
+          .firstWhere((mutation) => !mutation.actionId.startsWith('map.'));
+      expect(
+          draft.mutations.singleWhere(
+              (mutation) => mutation.operationId == originalImport.operationId),
+          same(originalImport));
+      expect(
+          replayed.mutations.singleWhere(
+              (mutation) => mutation.operationId == originalImport.operationId),
+          isNot(same(originalImport)));
+      fixture.files.reads.clear();
+      await expectLater(
+          const SourceSemanticStudyComposer().compose(
+              source: fixture.source,
+              base: base,
+              files: fixture.files,
+              limits: const NativeWriteLimits(maxMapCells: 35)),
+          throwsA(isA<NativeWriteException>()
+              .having((error) => error.code, 'code', 'literal.quota.cells')));
+      expect(fixture.files.reads, isEmpty);
+      for (final path in [
+        'Graphics/Tilesets/OriginalAtlas1.png',
+        'Graphics/Autotiles/OriginalWater.png',
+        'Data/Scripts.rxdata'
+      ]) {
+        final changed = fixture.sourceBytes[path]!.toList();
+        changed[0] ^= 1;
+        fixture.files.overrides[path] = changed;
+        await expectLater(
+            const SourceSemanticStudyComposer().compose(
+                source: fixture.source, base: base, files: fixture.files),
+            throwsA(isA<NativeWriteException>().having(
+                (error) => error.code, 'code', 'semantics.witness.changed')));
+        fixture.files.overrides.remove(path);
+      }
       expect(draft.compositionEvidence['sourceSemantics'], isA<Map>());
       expect(draft.sourceArtifacts, isNotEmpty);
       final witnesses = (draft.compositionEvidence['sourceSemantics']

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
@@ -211,6 +212,8 @@ final class LiteralTileComposition {
     required List<LiteralLayerProvenance> layerProvenance,
     required List<LiteralMapDependency> dependencies,
     required List<LiteralCompositionDiagnostic> diagnostics,
+    required NativeWriteLimits creationLimits,
+    required List<SourceFileEntry> sourceReads,
   })  : mapIds = Map.unmodifiable(mapIds),
         tilesetIds = Map.unmodifiable(tilesetIds),
         nativeMaps = Map.unmodifiable(nativeMaps),
@@ -220,7 +223,9 @@ final class LiteralTileComposition {
         autotiles = List.unmodifiable(autotiles),
         layerProvenance = List.unmodifiable(layerProvenance),
         dependencies = List.unmodifiable(dependencies),
-        diagnostics = List.unmodifiable(diagnostics);
+        diagnostics = List.unmodifiable(diagnostics),
+        _creationLimits = creationLimits,
+        _sourceReads = List.unmodifiable(sourceReads);
 
   final NativeProjectDraft? draft;
   final Sha256Hash selectionHash;
@@ -235,8 +240,100 @@ final class LiteralTileComposition {
   final List<LiteralLayerProvenance> layerProvenance;
   final List<LiteralMapDependency> dependencies;
   final List<LiteralCompositionDiagnostic> diagnostics;
+  final NativeWriteLimits _creationLimits;
+  final List<SourceFileEntry> _sourceReads;
   bool get canWrite => draft != null;
   bool get playableCertified => false;
+
+  Future<LiteralTileComposition?> verifyForReuse({
+    required NormalizedSourceProject source,
+    required SourceFilePort files,
+    NativeWriteLimits limits = const NativeWriteLimits(),
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    limits.validate();
+    final original = draft;
+    if (original == null || !_coversCreationLimits(limits)) return null;
+    if (!source.canPlan ||
+        !source.archive.isSealed ||
+        source.snapshot.state != SourceScanState.complete ||
+        source.snapshot.canonicalHash !=
+            original.source.snapshot.canonicalHash ||
+        source.canonicalHash != original.normalizedSourceHash ||
+        source.archive.canonicalHash != original.source.archive.canonicalHash ||
+        literalSelectionHash(source, selectedSourceMapIds) != selectionHash ||
+        original.compositionEvidence['compositionHash'] !=
+            compositionHash.value) {
+      throw const NativeWriteException('semantics.literal.changed',
+          'Source semantic composition requires the exact original literal generation');
+    }
+    original.validateResourceBudget(limits: limits);
+    cancellation?.check();
+    final entries = {
+      for (final entry in source.snapshot.entries) entry.fileId: entry
+    };
+    for (final entry in _sourceReads) {
+      cancellation?.check();
+      final current = entries[entry.fileId];
+      if (current == null ||
+          canonicalJsonOf(current.toJson()) !=
+              canonicalJsonOf(entry.toJson())) {
+        throw const NativeWriteException('semantics.literal.changed',
+            'Original literal source read is not in the current snapshot');
+      }
+      final bytes = await files.read(entry.fileId);
+      cancellation?.check();
+      if (bytes.length != entry.byteLength ||
+          crypto.sha256.convert(bytes).toString() != entry.sha256?.value) {
+        throw const NativeWriteException('literal.source.changed',
+            'Original literal source read differs from its admitted snapshot');
+      }
+    }
+    return this;
+  }
+
+  bool _coversCreationLimits(NativeWriteLimits limits) =>
+      limits.maxArtifacts >= _creationLimits.maxArtifacts &&
+      limits.maxMutations >= _creationLimits.maxMutations &&
+      limits.maxArtifactBytes >= _creationLimits.maxArtifactBytes &&
+      limits.maxTotalArtifactBytes >= _creationLimits.maxTotalArtifactBytes &&
+      limits.maxTotalDraftJsonBytes >= _creationLimits.maxTotalDraftJsonBytes &&
+      limits.maxImagePixels >= _creationLimits.maxImagePixels &&
+      limits.maxTotalImagePixels >= _creationLimits.maxTotalImagePixels &&
+      limits.maxMapCells >= _creationLimits.maxMapCells &&
+      limits.jsonLimits.maxDepth >= _creationLimits.jsonLimits.maxDepth &&
+      limits.jsonLimits.maxNodes >= _creationLimits.jsonLimits.maxNodes &&
+      limits.jsonLimits.maxStringCodeUnits >=
+          _creationLimits.jsonLimits.maxStringCodeUnits &&
+      limits.jsonLimits.maxTextCodeUnits >=
+          _creationLimits.jsonLimits.maxTextCodeUnits;
+}
+
+final class _LiteralSourceReads implements SourceFilePort {
+  _LiteralSourceReads(this.delegate, SourceSnapshot snapshot, this.cancellation)
+      : entries = {for (final entry in snapshot.entries) entry.fileId: entry};
+
+  final SourceFilePort delegate;
+  final Map<ConverterId, SourceFileEntry> entries;
+  final ScanCancellation? cancellation;
+  final Map<ConverterId, SourceFileEntry> reads = {};
+
+  @override
+  Future<List<int>> read(ConverterId fileId) async {
+    cancellation?.check();
+    final entry = entries[fileId];
+    if (entry == null ||
+        entry.kind != SourceNodeKind.file ||
+        entry.sha256 == null) {
+      throw const NativeWriteException('literal.source.file',
+          'A literal source read requires an inventoried hashed file');
+    }
+    final bytes = await delegate.read(fileId);
+    cancellation?.check();
+    reads.putIfAbsent(fileId, () => entry);
+    return bytes;
+  }
 }
 
 final class LiteralTileComposer {
@@ -272,7 +369,7 @@ final class LiteralTileComposer {
     final selectionHash = literalSelectionHash(source, selected);
     return _LiteralCompositionRun(
       source: source,
-      files: files,
+      files: _LiteralSourceReads(files, source.snapshot, cancellation),
       selected: selected..sort(),
       selectionHash: selectionHash,
       projectName: projectName,
@@ -311,7 +408,7 @@ final class _LiteralCompositionRun {
   });
 
   final NormalizedSourceProject source;
-  final SourceFilePort files;
+  final _LiteralSourceReads files;
   final List<int> selected;
   final Sha256Hash selectionHash;
   final String projectName;
@@ -1139,7 +1236,9 @@ final class _LiteralCompositionRun {
         autotiles: autotiles.values.toList(),
         layerProvenance: provenance,
         dependencies: dependencies,
-        diagnostics: diagnostics);
+        diagnostics: diagnostics,
+        creationLimits: limits,
+        sourceReads: files.reads.values.toList());
   }
 
   String nativeIdentity(String kind, ConverterId identity) =>

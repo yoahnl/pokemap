@@ -32,24 +32,29 @@ final class SourceSemanticStudyComposer {
     }
     final recording = SourceSemanticWitnessFiles(
         source.snapshot, files, limits, cancellation);
-    final literal = await const LiteralTileComposer().compose(
-        source: source,
-        files: recording,
-        selectedSourceMapIds: base.selectedSourceMapIds,
-        projectName: base.draft!.projectName,
-        parentPath: base.draft!.parentPath,
-        folderName: base.draft!.folderName,
-        sourceRootPath: base.draft!.sourceRootPath,
-        dependencyDecisions: sourceSemanticDependencyDecisions(
-            source,
-            (base.draft!.compositionEvidence['composition'] as Map)['decisions']
-                as List),
-        allowFirstFrameAutotiles:
-            (base.draft!.compositionEvidence['composition']
-                    as Map)['allowFirstFrameAutotiles'] ==
-                true,
-        limits: limits,
-        cancellation: cancellation);
+    final literal = await base.verifyForReuse(
+            source: source,
+            files: recording,
+            limits: limits,
+            cancellation: cancellation) ??
+        await const LiteralTileComposer().compose(
+            source: source,
+            files: recording,
+            selectedSourceMapIds: base.selectedSourceMapIds,
+            projectName: base.draft!.projectName,
+            parentPath: base.draft!.parentPath,
+            folderName: base.draft!.folderName,
+            sourceRootPath: base.draft!.sourceRootPath,
+            dependencyDecisions: sourceSemanticDependencyDecisions(
+                source,
+                (base.draft!.compositionEvidence['composition']
+                    as Map)['decisions'] as List),
+            allowFirstFrameAutotiles:
+                (base.draft!.compositionEvidence['composition']
+                        as Map)['allowFirstFrameAutotiles'] ==
+                    true,
+            limits: limits,
+            cancellation: cancellation);
     if (literal.compositionHash != base.compositionHash ||
         literal.draft == null) {
       throw const NativeWriteException('semantics.literal.changed',
