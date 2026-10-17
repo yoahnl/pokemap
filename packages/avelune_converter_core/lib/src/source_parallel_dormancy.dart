@@ -284,7 +284,7 @@ void _auditSourceFactWriteBlock(
       case SourcePickupNode():
       case SourceCenterServiceProgramNode():
       case SourceTownMapProgramNode():
-      case SourceCutObstacleProgramNode():
+      case SourceFieldObstacleProgramNode():
       case SourcePartyTradeProgramNode():
         break;
     }

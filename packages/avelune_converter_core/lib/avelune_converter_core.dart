@@ -31,7 +31,7 @@ part 'src/source_pbs.dart';
 
 part 'src/source_pokedex_reward_program.dart';
 part 'src/source_town_map_program.dart';
-part 'src/source_cut_obstacle_program.dart';
+part 'src/source_field_obstacle_program.dart';
 part 'src/source_party_trade_program.dart';
 part 'src/source_healing_display_program.dart';
 

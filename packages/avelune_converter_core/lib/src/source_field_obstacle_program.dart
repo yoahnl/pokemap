@@ -1,19 +1,31 @@
 part of '../avelune_converter_core.dart';
 
-final class SourceCutObstacleProgramNode extends SourceEventNode {
-  SourceCutObstacleProgramNode._(
+enum SourceFieldObstacleKind { cutTree, strengthBoulder, rockSmashRock }
+
+final class SourceFieldObstacleProgramNode extends SourceEventNode {
+  SourceFieldObstacleProgramNode._(
     super.span, {
     required this.rawDataRef,
     required this.sourceSnapshotHash,
     required this.profileHash,
     required this.templateHash,
+    required this.obstacleKind,
   });
 
   final SourcePreservedData rawDataRef;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
-  String get sourceMove => 'CUT';
-  int get sourceRegion => 1;
-  int get sourceBadgeIndex => 12;
+  final SourceFieldObstacleKind obstacleKind;
+  String get sourceMove => switch (obstacleKind) {
+    SourceFieldObstacleKind.cutTree => 'CUT',
+    SourceFieldObstacleKind.strengthBoulder => 'STRENGTH',
+    SourceFieldObstacleKind.rockSmashRock => 'ROCKSMASH',
+  };
+  List<String> get sourceCalls => switch (obstacleKind) {
+    SourceFieldObstacleKind.cutTree => const ['pbCut', 'pbSmashThisEvent'],
+    SourceFieldObstacleKind.strengthBoulder => const ['pbPushThisBoulder'],
+    SourceFieldObstacleKind.rockSmashRock => const [
+      'pbRockSmash', 'pbSmashThisEvent', 'pbRockSmashRandomEncounter'],
+  };
 
   bool isBoundToSourceEvent({
     required NormalizedSourceProject source,
@@ -27,64 +39,63 @@ final class SourceCutObstacleProgramNode extends SourceEventNode {
       return false;
     }
     final page = event.pages.single;
-    final block = _sourceCutObstacleProgramBlock(
+    final block = _sourceFieldObstacleProgramBlock(
         SourceEventAnalyzer.forProject(source, profile: profile),
         sourceMapId,
         event,
         page,
-        _eventLocator(_sourceCutObstaclePath(sourceMapId), sourceMapId,
+        _eventLocator(_sourceFieldObstaclePath(sourceMapId), sourceMapId,
             event.sourceEventId, page.originalPageIndex));
     return block != null &&
         block.nodes.length == 1 &&
-        canonicalJsonOf((block.nodes.single as SourceCutObstacleProgramNode)
+        canonicalJsonOf((block.nodes.single as SourceFieldObstacleProgramNode)
                 .toJson()) ==
             canonicalJsonOf(toJson());
   }
 
   Map<String, Object?> toJson() => {
-        'kind': 'cutObstacleProgram',
+        'kind': 'fieldObstacleProgram',
         'span': span.toJson(),
         'sourceMove': sourceMove,
-        'sourceRegion': sourceRegion,
-        'sourceBadgeIndex': sourceBadgeIndex,
-        'sourceCalls': ['pbCut', 'pbSmashThisEvent'],
+        'obstacleKind': obstacleKind.name,
+        'sourceCalls': sourceCalls,
         'rawDataRef': rawDataRef.toJson(),
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'profileHash': profileHash.value,
         'templateHash': templateHash.value,
         'sourceProgramRecognized': true,
         'nativeExecutionQualified': false,
-        'fullSourceCutParityQualified': false,
+        'fullSourceFieldObstacleParityQualified': false,
         'sourceScriptsExecuted': 0,
         'requiredGameplayBindings': [
-          'sourceCascadeBadge12ToNativeCutUnlock',
-          'nativeUsablePartyCutMove',
-          'nativeTypedCutObstacle',
-          'nativeCutConfirmation',
+          'sourceSettingsBadgeToNativeAbilityUnlock',
+          'nativeUsablePartyFieldMove',
+          'nativeTypedFieldObstacle',
+          'nativeFieldObstacleConfirmation',
           'nativeMapInstanceObstaclePersistence',
           'nativeSourceFrameVisualAndOneCellCollision',
         ],
         'adaptedSourceEffects': [
           'nativeRequiresNonFaintedPokemon',
           'nativeMapInstanceResetPolicy',
-          'sourceCutCounterNotImported',
+          'sourceFieldMoveCountersNotImported',
           'sourceHiddenMoveAnimationNotImported',
           'sourceDebugBypassNotImported',
-          'explicitNativeCutSoundWhenSourcePriorityUnqualified',
+          'explicitNativeFieldSoundWhenSourcePriorityUnqualified',
         ],
       };
 }
 
-String _sourceCutObstaclePath(int mapId) =>
+String _sourceFieldObstaclePath(int mapId) =>
     'Data/Map${mapId.toString().padLeft(3, '0')}.rxdata';
 
-SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
+SourceEventBlock? _sourceFieldObstacleProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
   if (!analyzer._isQualified ||
       event.pages.length != 1 ||
       page.originalPageIndex != 0 ||
-      page.triggerCode != 0 ||
-      page.commands.length != 7) {
+      !const {0, 1}.contains(page.triggerCode) ||
+      !const {2, 7, 8}.contains(page.commands.length)) {
     return null;
   }
   try {
@@ -93,7 +104,7 @@ SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     final file = analyzer.project.archive.files[reference.fileId]!;
-    if (file.entry.relativePath != _sourceCutObstaclePath(mapId)) {
+    if (file.entry.relativePath != _sourceFieldObstaclePath(mapId)) {
       return null;
     }
     final document = file.document;
@@ -131,7 +142,11 @@ SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     final value = _SourceCenterPageValue(document).read(reference.nodeId);
-    if (!_sourceCutObstaclePageSupported(value)) {
+    final kinds = SourceFieldObstacleKind.values
+        .where((kind) => _sourceFieldObstaclePageSupported(value, kind)).toList();
+    if (kinds.length != 1) return null;
+    final kind = kinds.single;
+    if (page.triggerCode != (kind == SourceFieldObstacleKind.strengthBoulder ? 1 : 0)) {
       return null;
     }
     final hash = canonicalHashOf(value);
@@ -167,22 +182,22 @@ SourceEventBlock? _sourceCutObstacleProgramBlock(SourceEventAnalyzer analyzer,
       }
     }
     final span = SourceEventSpan(
-        firstCommandIndex: 0, lastCommandIndex: 6, locator: locator);
+        firstCommandIndex: 0, lastCommandIndex: page.commands.length - 1, locator: locator);
     return SourceEventBlock(span: span, nodes: [
-      SourceCutObstacleProgramNode._(span,
+      SourceFieldObstacleProgramNode._(span,
           rawDataRef: reference,
           sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
           profileHash: analyzer.profile.canonicalHash,
-          templateHash: hash)
+          templateHash: hash, obstacleKind: kind)
     ]);
   } on FormatException {
     return null;
   }
 }
 
-bool _sourceCutObstaclePageSupported(Object? value) {
+bool _sourceFieldObstaclePageSupported(Object? value, SourceFieldObstacleKind kind) {
   if (value is! Map ||
-      !_sourceCutObstacleObject(value, 'RPG::Event::Page', const {
+      !_sourceFieldObstacleObject(value, 'RPG::Event::Page', const {
         'condition',
         'graphic',
         'move_type',
@@ -197,7 +212,7 @@ bool _sourceCutObstaclePageSupported(Object? value) {
         'trigger',
         'list',
       }) ||
-      !_sourceCutObstacleValues(value, const {
+      !_sourceFieldObstacleValues(value, {
         'move_type': 0,
         'move_speed': 3,
         'move_frequency': 3,
@@ -206,13 +221,13 @@ bool _sourceCutObstaclePageSupported(Object? value) {
         'direction_fix': false,
         'through': false,
         'always_on_top': false,
-        'trigger': 0,
+        'trigger': kind == SourceFieldObstacleKind.strengthBoulder ? 1 : 0,
       })) {
     return false;
   }
   final condition = value['condition'], graphic = value['graphic'];
   if (condition is! Map ||
-      !_sourceCutObstacleObject(
+      !_sourceFieldObstacleObject(
           condition, 'RPG::Event::Page::Condition', const {
         'switch1_valid',
         'switch2_valid',
@@ -224,7 +239,7 @@ bool _sourceCutObstaclePageSupported(Object? value) {
         'variable_value',
         'self_switch_ch',
       }) ||
-      !_sourceCutObstacleValues(condition, const {
+      !_sourceFieldObstacleValues(condition, const {
         'switch1_valid': false,
         'switch2_valid': false,
         'variable_valid': false,
@@ -236,7 +251,7 @@ bool _sourceCutObstaclePageSupported(Object? value) {
         'self_switch_ch': 'A',
       }) ||
       graphic is! Map ||
-      !_sourceCutObstacleObject(graphic, 'RPG::Event::Page::Graphic', const {
+      !_sourceFieldObstacleObject(graphic, 'RPG::Event::Page::Graphic', const {
         'tile_id',
         'character_name',
         'character_hue',
@@ -245,22 +260,31 @@ bool _sourceCutObstaclePageSupported(Object? value) {
         'opacity',
         'blend_type',
       }) ||
-      !_sourceCutObstacleValues(graphic, const {
+      !_sourceFieldObstacleValues(graphic, {
         'tile_id': 0,
-        'character_name': 'OBJ_FRLG_Cut Tree',
+        'character_name': switch (kind) {
+          SourceFieldObstacleKind.cutTree => 'OBJ_FRLG_Cut Tree',
+          SourceFieldObstacleKind.strengthBoulder => 'OBJ_FRLG_Strength Boulder',
+          SourceFieldObstacleKind.rockSmashRock => 'OBJ_FRLG_RockSmash Rock',
+        },
         'character_hue': 0,
         'direction': 2,
         'pattern': 0,
         'opacity': 255,
         'blend_type': 0,
       }) ||
-      !_sourceCutObstacleRoute(value['move_route'],
+      !_sourceFieldObstacleRoute(value['move_route'],
           repeat: true, codes: const [0])) {
     return false;
   }
   final commands = value['list'];
-  if (commands is! List || commands.length != 7) return false;
-  const shapes = [
+  if (commands is! List) return false;
+  final shapes = switch (kind) {
+    SourceFieldObstacleKind.strengthBoulder => const [(355, 0, 1), (0, 0, 0)],
+    SourceFieldObstacleKind.rockSmashRock => const [
+      (209, 0, 2), (509, 0, 1), (111, 0, 2), (355, 1, 1),
+      (355, 1, 1), (0, 1, 0), (412, 0, 0), (0, 0, 0)],
+    SourceFieldObstacleKind.cutTree => const [
     (209, 0, 2),
     (509, 0, 1),
     (111, 0, 2),
@@ -268,11 +292,13 @@ bool _sourceCutObstaclePageSupported(Object? value) {
     (0, 1, 0),
     (412, 0, 0),
     (0, 0, 0)
-  ];
+  ],
+  };
+  if (commands.length != shapes.length) return false;
   for (var index = 0; index < shapes.length; index++) {
     final command = commands[index], shape = shapes[index];
     if (command is! Map ||
-        !_sourceCutObstacleObject(command, 'RPG::EventCommand',
+        !_sourceFieldObstacleObject(command, 'RPG::EventCommand',
             const {'code', 'indent', 'parameters'}) ||
         command['code'] != shape.$1 ||
         command['indent'] != shape.$2 ||
@@ -281,31 +307,38 @@ bool _sourceCutObstaclePageSupported(Object? value) {
       return false;
     }
   }
+  if (kind == SourceFieldObstacleKind.strengthBoulder) {
+    return ((commands[0] as Map)['parameters'] as List).single == 'pbPushThisBoulder';
+  }
+  if (kind == SourceFieldObstacleKind.rockSmashRock &&
+      ((commands[4] as Map)['parameters'] as List).single != 'pbRockSmashRandomEncounter') {
+    return false;
+  }
   final route = (commands[0] as Map)['parameters'] as List;
   final copy = (commands[1] as Map)['parameters'] as List;
   final predicate = (commands[2] as Map)['parameters'] as List;
   final effect = (commands[3] as Map)['parameters'] as List;
   return route[0] == 0 &&
-      _sourceCutObstacleRoute(route[1], repeat: false, codes: const [16, 0]) &&
-      _sourceCutObstacleMove(copy.single, 16) &&
+      _sourceFieldObstacleRoute(route[1], repeat: false, codes: const [16, 0]) &&
+      _sourceFieldObstacleMove(copy.single, 16) &&
       predicate[0] == 12 &&
-      predicate[1] == 'pbCut' &&
+      predicate[1] == (kind == SourceFieldObstacleKind.cutTree ? 'pbCut' : 'pbRockSmash') &&
       effect.single == 'pbSmashThisEvent';
 }
 
-bool _sourceCutObstacleObject(
+bool _sourceFieldObstacleObject(
         Map value, String className, Set<String> fields) =>
     value['__class__'] == className &&
     value.length == fields.length + 1 &&
     fields.every(value.containsKey);
 
-bool _sourceCutObstacleValues(Map value, Map<String, Object> expected) =>
+bool _sourceFieldObstacleValues(Map value, Map<String, Object> expected) =>
     expected.entries.every((entry) => value[entry.key] == entry.value);
 
-bool _sourceCutObstacleRoute(Object? value,
+bool _sourceFieldObstacleRoute(Object? value,
     {required bool repeat, required List<int> codes}) {
   if (value is! Map ||
-      !_sourceCutObstacleObject(
+      !_sourceFieldObstacleObject(
           value, 'RPG::MoveRoute', const {'repeat', 'skippable', 'list'}) ||
       value['repeat'] != repeat ||
       value['skippable'] != false) {
@@ -315,13 +348,78 @@ bool _sourceCutObstacleRoute(Object? value,
   return commands is List &&
       commands.length == codes.length &&
       codes.indexed.every(
-          (entry) => _sourceCutObstacleMove(commands[entry.$1], entry.$2));
+          (entry) => _sourceFieldObstacleMove(commands[entry.$1], entry.$2));
 }
 
-bool _sourceCutObstacleMove(Object? value, int code) =>
+bool _sourceFieldObstacleMove(Object? value, int code) =>
     value is Map &&
-    _sourceCutObstacleObject(
+    _sourceFieldObstacleObject(
         value, 'RPG::MoveCommand', const {'code', 'parameters'}) &&
     value['code'] == code &&
     value['parameters'] is List &&
     (value['parameters'] as List).isEmpty;
+
+final class _SourceFieldObstacleAttestation {
+  _SourceFieldObstacleAttestation(NormalizedSourceProject source,
+      SourceEventProfile profile, List<SourceEventDefinition> events)
+      : snapshotHash = source.snapshot.canonicalHash,
+        normalizationHash = source.canonicalHash,
+        profileHash = profile.canonicalHash,
+        eventFingerprints = Map.unmodifiable({
+          for (final event in events)
+            if (!event.isQuarantined && event.pages.length == 1 &&
+                event.pages.single.body.nodes.length == 1 &&
+                event.pages.single.body.nodes.single is SourceFieldObstacleProgramNode)
+              event.identity: _sourceFieldObstacleEventFingerprint(event),
+        });
+
+  final Sha256Hash snapshotHash, normalizationHash, profileHash;
+  final Map<ConverterId, Sha256Hash> eventFingerprints;
+
+  bool matches(NormalizedSourceProject source, SourceEventProfile profile,
+      SourceEventDefinition event) =>
+      profile.isQualified && !event.isQuarantined &&
+      source.snapshot.canonicalHash == snapshotHash &&
+      source.canonicalHash == normalizationHash &&
+      profile.canonicalHash == profileHash &&
+      eventFingerprints[event.identity] == _sourceFieldObstacleEventFingerprint(event);
+}
+
+Sha256Hash _sourceFieldObstacleEventFingerprint(SourceEventDefinition event) =>
+    canonicalHashOf({
+      'sourceMapId': event.sourceMapId,
+      'sourceEventId': event.sourceEventId,
+      'sourceFileId': event.sourceFileId.value,
+      'identity': event.identity.value,
+      'name': event.name,
+      'x': event.x, 'y': event.y,
+      'locator': event.locator.toJson(),
+      'pages': [for (final page in event.pages) {
+        'sourcePage': page.sourcePage.toJson(),
+        'locator': page.locator.toJson(),
+        'condition': page.condition.toJson(),
+        'raw': page.rawDataRef?.toJson(),
+        'bodySpan': page.body.span.toJson(),
+        'programs': [for (final node in page.body.nodes)
+          node is SourceFieldObstacleProgramNode ? node.toJson() : null],
+        'diagnostics': [for (final diagnostic in page.diagnostics) diagnostic.toJson()],
+        'graphic': page.graphic == null ? null : {
+          'tileId': page.graphic!.tileId,
+          'name': page.graphic!.characterName,
+          'hue': page.graphic!.hue,
+          'direction': page.graphic!.direction,
+          'pattern': page.graphic!.pattern,
+          'opacity': page.graphic!.opacity,
+          'blendType': page.graphic!.blendType,
+          'moveType': page.graphic!.moveType,
+          'moveSpeed': page.graphic!.moveSpeed,
+          'moveFrequency': page.graphic!.moveFrequency,
+          'walkAnime': page.graphic!.walkAnime,
+          'stepAnime': page.graphic!.stepAnime,
+          'directionFix': page.graphic!.directionFix,
+          'through': page.graphic!.through,
+          'alwaysOnTop': page.graphic!.alwaysOnTop,
+          'moveRouteNodeId': page.graphic!.moveRouteNodeId,
+        },
+      }],
+    });

@@ -41,7 +41,7 @@ export 'src/source_center_recovery_binding.dart';
 
 export 'src/source_pokedex_reward_binding.dart';
 export 'src/source_town_map_binding.dart';
-export 'src/source_cut_obstacle_binding.dart';
+export 'src/source_field_obstacle_binding.dart';
 
 export 'src/source_party_trade_binding.dart';
 

@@ -12,7 +12,7 @@ import 'source_center_recovery_binding.dart';
 import 'source_trainer_event_bindings.dart';
 import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
-import 'source_cut_obstacle_binding.dart';
+import 'source_field_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
 import 'source_healing_display_binding.dart';
 import 'source_npc_fixed_route_binding.dart';
@@ -296,7 +296,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     SourcePokedexRewardBinding? pokedexRewardBinding,
     SourceTownMapBinding? townMapBinding,
-    Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
+    Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
+    Map<ConverterId, String> fieldObstacleRefusals = const {},
     SourcePartyTradeBinding? partyTradeBinding,
     SourceHealingDisplayBinding? healingDisplayBinding,
     SourceExternalWarpBinding? externalWarpBinding,
@@ -311,10 +312,10 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
-        !builder._isCutObstacleFamily(event) &&
+        !builder._isFieldObstacleFamily(event) &&
         !builder._isHealingDisplayFamily(event) &&
         builder._gaps(event, checkCharacterBindings: false).isEmpty));
   }
@@ -331,7 +332,8 @@ final class SourceEventProjector {
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     SourcePokedexRewardBinding? pokedexRewardBinding,
     SourceTownMapBinding? townMapBinding,
-    Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings = const {},
+    Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
+    Map<ConverterId, String> fieldObstacleRefusals = const {},
     SourcePartyTradeBinding? partyTradeBinding,
     SourceHealingDisplayBinding? healingDisplayBinding,
     SourceExternalWarpBinding? externalWarpBinding,
@@ -358,7 +360,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, cutObstacleBindings, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings)
         .build();
   }
 }
@@ -418,7 +420,7 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
-      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.cutObstacleBindings, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings)
+      this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.fieldObstacleBindings, this.fieldObstacleRefusals, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings)
       : maps = Map.of(nativeMaps),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
@@ -451,7 +453,8 @@ final class _ProjectionBuilder {
   final SourcePartyTradeBinding? partyTradeBinding;
   final SourceHealingDisplayBinding? healingDisplayBinding;
   final SourceExternalWarpBinding? externalWarpBinding;
-  final Map<ConverterId, SourceCutObstacleBinding> cutObstacleBindings;
+  final Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings;
+  final Map<ConverterId, String> fieldObstacleRefusals;
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
   final bool executionContextQualified;
@@ -611,7 +614,11 @@ final class _ProjectionBuilder {
       gapsByEvent[event.identity] = _gaps(event);
     }
     for (final event in events) {
-      final gaps = gapsByEvent[event.identity]!;
+      var gaps = gapsByEvent[event.identity]!;
+      if (gaps.isEmpty && _isFieldObstacleFamily(event)) {
+        gaps = _fieldObstacleGaps(event);
+        gapsByEvent[event.identity] = gaps;
+      }
       if (gaps.isNotEmpty) {
         quarantinedCount++;
         records.add(NarrativeEventRecord.draft(NarrativeEventDraft(
@@ -674,9 +681,9 @@ final class _ProjectionBuilder {
               'sourceRawPreserved': true,
             },
           },
-        if (gaps.isEmpty && _isCutObstacleFamily(event))
-          'nativeCutObstacle': {
-            ...cutObstacleBindings[event.identity]!.toJson(),
+        if (gaps.isEmpty && _isFieldObstacleFamily(event))
+          'nativeFieldObstacle': {
+            ...fieldObstacleBindings[event.identity]!.toJson(),
             'nativeActivation': 'intrinsicTypedObjectAfterAuthorityReadyAndNoEventMatch',
             'nativeExecutionQualified': true,
           },
@@ -964,6 +971,7 @@ final class _ProjectionBuilder {
       'event_v2.registry_mode.set': 0,
       'fact.create': 1,
       'entity.upsert': 2,
+      'entity.set_field_obstacle': 2,
       'trigger.create': 2,
       'warp.create': 3,
       'dialogue.create': 4,
@@ -1066,7 +1074,7 @@ final class _ProjectionBuilder {
       'usedPartyTrade': eventEvidence.any((row) => row.containsKey('nativePartyTrade')),
       'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
-      'usedCutObstacles': eventEvidence.any((row) => row.containsKey('nativeCutObstacle')),
+      'usedFieldObstacles': eventEvidence.any((row) => row.containsKey('nativeFieldObstacle')),
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
     };
     final artifact = NativeArtifact(
@@ -1825,20 +1833,18 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
-  bool _isCutObstacleFamily(SourceEventDefinition event) =>
-      (event.sourceMapId == 98 && event.sourceEventId == 3) ||
-      (event.sourceMapId == 100 && const {2, 3, 4, 5}.contains(event.sourceEventId)) ||
-      event.pages.expand((page) => page.body.nodes).any((node) => node is SourceCutObstacleProgramNode);
+  bool _isFieldObstacleFamily(SourceEventDefinition event) =>
+      event.pages.expand((page) => page.body.nodes).any((node) => node is SourceFieldObstacleProgramNode);
 
-  Set<String> _cutObstacleGaps(SourceEventDefinition event) {
-    final binding = cutObstacleBindings[event.identity];
-    if (binding == null) return {'sourceCutBindingsMissing'};
+  Set<String> _fieldObstacleGaps(SourceEventDefinition event) {
+    final binding = fieldObstacleBindings[event.identity];
+    if (binding == null) return {fieldObstacleRefusals[event.identity] ?? 'sourceFieldObstacleBindingsMissing'};
     if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
-      return {'sourceCutSourceBindingInvalid'};
+      return {'sourceFieldObstacleSourceBindingInvalid'};
     }
     final map = maps[event.sourceMapId]!;
     if (map.spatialScene != null || map.version == ProjectVersion.v9) {
-      return {'sourceCutSpatialUnsupported'};
+      return {'sourceFieldObstacleSpatialUnsupported'};
     }
     if (event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
       return {'eventPositionInvalid'};
@@ -1846,19 +1852,19 @@ final class _ProjectionBuilder {
     final sourceFloor = semanticResolver.resolveConnectionEntryTile(
         semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
     if (sourceFloor.status != SourcePassageStatus.allowed) {
-      return {'sourceCutSourceFloorUnqualified'};
+      return {'sourceFieldObstacleSourceFloorUnqualified'};
     }
     if (map.entities.any((entity) => entity.id == _key(event, 'anchor'))) {
-      return {'sourceCutNativeIdentityOccupied'};
+      return {'sourceFieldObstacleNativeIdentityOccupied'};
     }
     final index = event.y * map.size.width + event.x;
     if (map.layers.whereType<CollisionLayer>().any((layer) =>
         index >= layer.collisions.length || layer.collisions[index])) {
-      return {'sourceCutNativeFloorBlocked'};
+      return {'sourceFieldObstacleNativeFloorBlocked'};
     }
     if (map.entities.any((entity) => resolveEntityCollisionCells(entity)
         .contains(GridPos(x: event.x, y: event.y)))) {
-      return {'sourceCutNativeFootprintOccupied'};
+      return {'sourceFieldObstacleNativeFootprintOccupied'};
     }
     return const {};
   }
@@ -1923,7 +1929,7 @@ final class _ProjectionBuilder {
     }
     if (_isHealingDisplayFamily(event)) return _healingDisplayGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isPartyTradeFamily(event)) return _partyTradeGaps(event, checkCharacterBindings: checkCharacterBindings);
-    if (_isCutObstacleFamily(event)) return _cutObstacleGaps(event);
+    if (_isFieldObstacleFamily(event)) return _fieldObstacleGaps(event);
     if (_isTownMapFamily(event)) return _townMapGaps(event);
     if (_isPokedexRewardFamily(event)) {
       return _pokedexRewardGaps(event,checkCharacterBindings:checkCharacterBindings);
@@ -2275,8 +2281,8 @@ final class _ProjectionBuilder {
           gaps.add('sourcePokedexRewardBindingsMissing');
         case SourceTownMapProgramNode():
           gaps.add('sourceTownMapBindingsMissing');
-        case SourceCutObstacleProgramNode():
-          gaps.add('sourceCutBindingsMissing');
+        case SourceFieldObstacleProgramNode():
+          gaps.add('sourceFieldObstacleBindingsMissing');
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
         case SourceSoundEffectNode():
@@ -2451,14 +2457,18 @@ final class _ProjectionBuilder {
       return;
     }
 
-    if (_isCutObstacleFamily(event)) {
+    if (_isFieldObstacleFamily(event)) {
       final map = maps[event.sourceMapId]!;
-      final object = cutObstacleBindings[event.identity]!.createNativeEntity(_key(event, 'anchor'))
+      final object = fieldObstacleBindings[event.identity]!.createNativeEntity(_key(event, 'anchor'))
           .copyWith(properties: {'sourceEventIdentity': event.identity.value});
       maps[event.sourceMapId] = map.copyWith(entities: [...map.entities, object]);
       mutations.add(_mutation('entity.upsert', object.id,
           [event.identity, event.sourceFileId], [map.id, object.id],
-          {'mapId': map.id, 'entity': object.toJson()}));
+          {'mapId': map.id, 'entity': object.copyWith(fieldObstacle: null).toJson()}));
+      mutations.add(_mutation('entity.set_field_obstacle', '${object.id}_field_obstacle',
+          [source.mapIdentity(event.sourceMapId), event.identity, event.sourceFileId], [map.id, object.id],
+          {'mapId': map.id, 'entityId': object.id,
+            'fieldObstacle': object.fieldObstacle!.toJson()}));
       return;
     }
 

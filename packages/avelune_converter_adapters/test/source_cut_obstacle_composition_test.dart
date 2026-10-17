@@ -20,7 +20,7 @@ void main() {
         sourceMapIds: const {100});
     final draft = composition.draft;
     final evidence = draft.compositionEvidence['sourceEvents'] as Map;
-    final cut = evidence['cutObstacles'] as Map;
+    final cut = evidence['fieldObstacles'] as Map;
     expect(cut['initialPlayerStateMutated'], false);
     expect(cut['audioSourceParity'], false);
     expect(
@@ -32,19 +32,18 @@ void main() {
     final badge = draft.mutations.singleWhere(
         (mutation) => mutation.actionId == 'campaign.badge.upsert');
     expect((badge.parameters['value'] as Map)['fieldAbilityUnlock'], 'cut');
-    expect((badge.parameters['value'] as Map)['label'], 'Cascade Badge');
+    expect((badge.parameters['value'] as Map)['label'], 'Badge source 12 (région 1)');
     final element = draft.mutations.singleWhere((mutation) =>
         mutation.actionId == 'element.upsert' &&
         ((mutation.parameters['element'] as Map)['id'] as String)
-            .startsWith('source_cut_tree_element_'));
+            .startsWith('source_field_cutTree_element_'));
     final tilesetIndex = draft.mutations.indexWhere((mutation) =>
         mutation.actionId == 'tileset.import_image' &&
         (mutation.parameters['tilesetId'] as String)
-            .startsWith('source_cut_tree_'));
+            .startsWith('source_field_cutTree_'));
     final elementIndex = draft.mutations.indexOf(element);
     final objectIndex = draft.mutations.indexWhere((mutation) =>
-        mutation.actionId == 'entity.upsert' &&
-        (mutation.parameters['entity'] as Map)['fieldObstacle'] != null);
+        mutation.actionId == 'entity.set_field_obstacle');
     expect(tilesetIndex, greaterThanOrEqualTo(0));
     expect(elementIndex, greaterThan(tilesetIndex));
     expect(objectIndex, greaterThan(elementIndex));
@@ -65,7 +64,7 @@ void main() {
     final preserved =
         (companionJson['preservedSourceFiles'] as List).cast<Map>();
     expect(
-        preserved.any((file) => file['relativePath'] == 'Data/Map026.rxdata'),
+        preserved.any((file) => file['relativePath'] == 'PBS/map_metadata.txt'),
         true);
     expect(
         draft.artifacts.any((artifact) =>

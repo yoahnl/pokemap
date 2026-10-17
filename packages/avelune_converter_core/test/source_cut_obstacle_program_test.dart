@@ -110,15 +110,13 @@ void main() {
         final event = analysis.eventAt(key.$1, key.$2)!;
         expect(event.isQuarantined, isFalse);
         final node = event.pages.single.body.nodes.single
-            as SourceCutObstacleProgramNode;
-        expect(node.sourceBadgeIndex, 12);
-        expect(node.sourceRegion, 1);
+            as SourceFieldObstacleProgramNode;
         expect(node.sourceMove, 'CUT');
         expect(node.span.firstCommandIndex, 0);
         expect(node.span.lastCommandIndex, 6);
         expect(node.toJson()['sourceScriptsExecuted'], 0);
         expect(node.toJson()['nativeExecutionQualified'], isFalse);
-        expect(node.toJson()['fullSourceCutParityQualified'], isFalse);
+        expect(node.toJson()['fullSourceFieldObstacleParityQualified'], isFalse);
         final original = source.maps
             .singleWhere((m) => m.map.sourceMapId == key.$1)
             .map
@@ -147,7 +145,7 @@ void main() {
                 .single
                 .body
                 .nodes
-                .whereType<SourceCutObstacleProgramNode>(),
+                .whereType<SourceFieldObstacleProgramNode>(),
             isEmpty);
       }
     });
@@ -194,7 +192,7 @@ void main() {
             .events
             .singleWhere((e) => e.sourceEventId == 3);
         final node = analysis.eventAt(98, 3)!.pages.single.body.nodes.single
-            as SourceCutObstacleProgramNode;
+            as SourceFieldObstacleProgramNode;
         expect(
             node.isBoundToSourceEvent(
                 source: source,
@@ -223,7 +221,7 @@ void main() {
                 .single
                 .body
                 .nodes
-                .whereType<SourceCutObstacleProgramNode>(),
+                .whereType<SourceFieldObstacleProgramNode>(),
             isEmpty);
       });
     }

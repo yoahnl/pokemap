@@ -13,7 +13,7 @@ void main() {
       () {
     const badge = BadgeDefinition(
         id: 'cut-capability-badge',
-        label: 'Cascade Badge',
+        label: 'Badge source 12 (région 1)',
         fieldAbilityUnlock: FieldAbility.cut);
     final project = ProjectManifest(
         name: 'Cut definition API', maps: const [], tilesets: const []);
@@ -34,6 +34,8 @@ void main() {
   });
 
   final sourceRoot = Platform.environment['AVELUNE_AC13_SOURCE_ROOT'];
+  final supplementalRoots = (jsonDecode(
+      Platform.environment['AVELUNE_AC13_SUPPLEMENTAL_ROOTS'] ?? '[]') as List).cast<String>();
   test(
       'original Route 10 Cut workflow admits campaign badge before strict approval',
       () async {
@@ -44,11 +46,13 @@ void main() {
     try {
       final snapshot = await workflow.scanSource(ConverterSourceSelection(
           rootPath: sourceRoot!,
+          supplementalRootPaths: supplementalRoots,
           logicalProjectNamespace: ConverterId('source-semantic-study')));
       expect(snapshot.state, SourceScanState.complete);
       stdout
           .writeln('Cut approval source scan ${timer.elapsedMilliseconds} ms');
-      final tree = await MacOsSourceTree.open(sourceRoot);
+      final tree = await SupplementedSourceTree.open(sourceRoot,
+          supplementalRootPaths:supplementalRoots);
       late List<LiteralDependencyDecision> decisions;
       try {
         final files =
@@ -110,15 +114,14 @@ void main() {
           (mutation) => mutation.actionId == 'campaign.badge.upsert');
       final badge = BadgeDefinition.fromJson(
           Map<String, dynamic>.from(badgeMutation.parameters['value'] as Map));
-      expect(badge.label, 'Cascade Badge');
+      expect(badge.label, 'Badge source 12 (région 1)');
       expect(badge.fieldAbilityUnlock, FieldAbility.cut);
       expect(
           draft.mutations.where((mutation) =>
-              mutation.actionId == 'entity.upsert' &&
-              (mutation.parameters['entity'] as Map)['fieldObstacle'] != null),
+              mutation.actionId == 'entity.set_field_obstacle'),
           hasLength(4));
       final sourceEvents = draft.compositionEvidence['sourceEvents'] as Map;
-      expect((sourceEvents['cutObstacles'] as Map)['initialPlayerStateMutated'],
+      expect((sourceEvents['fieldObstacles'] as Map)['initialPlayerStateMutated'],
           isFalse);
       late StudyApproval approval;
       expect(() {

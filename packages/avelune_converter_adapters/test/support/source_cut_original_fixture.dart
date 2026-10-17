@@ -105,7 +105,10 @@ final class CutSourceFiles implements SourceFilePort {
     final entry =
         source.snapshot.entries.singleWhere((entry) => entry.fileId == id);
     reads.add(entry.relativePath);
-    final bytes = await File('$root/${entry.relativePath}').readAsBytes();
+    final explicitScripts = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+    final sourcePath = entry.relativePath == 'Data/Scripts.rxdata' && explicitScripts != null
+        ? explicitScripts : '$root/${entry.relativePath}';
+    final bytes = await File(sourcePath).readAsBytes();
     if (entry.relativePath == changedPath) bytes[bytes.length - 1] ^= 1;
     return bytes;
   }

@@ -5,7 +5,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:test/test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:avelune_converter_adapters/src/source_cut_obstacle_binding.dart';
+import 'package:avelune_converter_adapters/src/source_field_obstacle_binding.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 
 final class _Files implements SourceFilePort {
@@ -106,7 +106,10 @@ final class _SourceFiles implements SourceFilePort {
     final entry =
         source.snapshot.entries.singleWhere((entry) => entry.fileId == id);
     reads.add(entry.relativePath);
-    final bytes = await File('$root/${entry.relativePath}').readAsBytes();
+    final explicitScripts = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+    final sourcePath = entry.relativePath == 'Data/Scripts.rxdata' && explicitScripts != null
+        ? explicitScripts : '$root/${entry.relativePath}';
+    final bytes = await File(sourcePath).readAsBytes();
     if (entry.relativePath == changedPath) bytes[bytes.length - 1] ^= 1;
     return bytes;
   }
@@ -128,23 +131,22 @@ void main() {
         'the five trees bind to Cascade Badge without granting player progress',
         () async {
       final files = _SourceFiles(source, sourceRoot!);
-      final result = (await const SourceCutObstacleBindingResolver()
+      final result = (await const SourceFieldObstacleBindingResolver()
           .read(source: source, analysis: analysis, files: files))!;
       expect(result.byEventIdentity, hasLength(5));
-      expect(result.badge.label, 'Cascade Badge');
-      expect(result.badge.fieldAbilityUnlock, FieldAbility.cut);
+      expect(result.badges.single.label, 'Badge source 12 (région 1)');
+      expect(result.badges.single.fieldAbilityUnlock, FieldAbility.cut);
       expect(result.mutations.map((m) => m.actionId), [
-        'campaign.badge.upsert',
         'tileset.import_image',
         'element_category.upsert',
-        'element.upsert'
+        'element.upsert',
+        'campaign.badge.upsert'
       ]);
-      expect(result.mutations.first.parameters['value'], result.badge.toJson());
+      expect(result.mutations.last.parameters['value'], result.badges.single.toJson());
       expect(result.evidence['initialPlayerStateMutated'], isFalse);
       expect(result.evidence['audioSourceParity'], isFalse);
       expect(files.reads, [
         'Data/Scripts.rxdata',
-        'Data/Map026.rxdata',
         'PBS/map_metadata.txt',
         'Graphics/Characters/OBJ_FRLG_Cut Tree.png'
       ]);
@@ -165,28 +167,27 @@ void main() {
         expect(native.npc, isNull);
         expect(native.size, const GridSize(width: 1, height: 1));
         expect(native.blocksMovement, isTrue);
-        expect(native.editorVisual!.elementId, result.element.id);
+        expect(native.editorVisual!.elementId, result.elements.single.id);
         expect(binding.toJson()['nativeRequiresNonFaintedPokemon'], isTrue);
         expect(binding.toJson()['initialPlayerAbilityUnlocked'], isFalse);
       }
     });
     test('the source frame stays a static one cell native visual', () async {
-      final result = (await const SourceCutObstacleBindingResolver().read(
+      final result = (await const SourceFieldObstacleBindingResolver().read(
           source: source,
           analysis: analysis,
           files: _SourceFiles(source, sourceRoot!)))!;
-      expect(result.artifact.rawSha256.value,
+      expect(result.artifacts.single.rawSha256.value,
           '68271cc5662b112111bec29ea8122466712535a4fd2381262a20a65064e974cb');
-      expect(result.element.frames, hasLength(1));
-      expect(result.element.frames.single.source,
+      expect(result.elements.single.frames, hasLength(1));
+      expect(result.elements.single.frames.single.source,
           const TilesetSourceRect(x: 0, y: 0));
       expect(result.evidence['sourcePixelsResampled'], isFalse);
       expect(
-          result.element.collisionProfile!.cells, [const GridPos(x: 0, y: 0)]);
+          result.elements.single.collisionProfile!.cells, [const GridPos(x: 0, y: 0)]);
     });
     for (final path in [
       'Data/Scripts.rxdata',
-      'Data/Map026.rxdata',
       'PBS/map_metadata.txt',
       'Graphics/Characters/OBJ_FRLG_Cut Tree.png'
     ]) {
@@ -194,28 +195,28 @@ void main() {
           'changed admitted source bytes refuse $path before native activation',
           () async {
         await expectLater(
-            const SourceCutObstacleBindingResolver().read(
+            const SourceFieldObstacleBindingResolver().read(
                 source: source,
                 analysis: analysis,
                 files: _SourceFiles(source, sourceRoot!, changedPath: path)),
             throwsA(isA<ContractError>()
-                .having((e) => e.code, 'code', 'source.cut.source_changed')));
+                .having((e) => e.code, 'code', 'source.field_obstacle.source_changed')));
       });
     }
     test('source read quota refuses before reading the archive', () async {
       final files = _SourceFiles(source, sourceRoot!);
       await expectLater(
-          const SourceCutObstacleBindingResolver().read(
+          const SourceFieldObstacleBindingResolver().read(
               source: source,
               analysis: analysis,
               files: files,
               limits: const NativeWriteLimits(maxArtifactBytes: 1)),
           throwsA(isA<NativeWriteException>()
-              .having((e) => e.code, 'code', 'events.cut.quota')));
+              .having((e) => e.code, 'code', 'events.field_obstacle.quota')));
       expect(files.reads, isEmpty);
     });
     test('foreign event cannot reuse a Cut binding', () async {
-      final result = (await const SourceCutObstacleBindingResolver().read(
+      final result = (await const SourceFieldObstacleBindingResolver().read(
           source: source,
           analysis: analysis,
           files: _SourceFiles(source, sourceRoot!)))!;

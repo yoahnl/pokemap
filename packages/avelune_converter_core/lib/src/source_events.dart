@@ -617,10 +617,28 @@ final class SourceEventAnalysis {
       required List<SourceEventDefinition> events,
       required List<SourceEventDiagnostic> diagnostics})
       : events = List.unmodifiable(events),
-        diagnostics = List.unmodifiable(diagnostics);
+        diagnostics = List.unmodifiable(diagnostics),
+        _fieldObstacleAttestation = null;
+
+  SourceEventAnalysis._analyzed(
+      {required this.profile,
+      required List<SourceEventDefinition> events,
+      required List<SourceEventDiagnostic> diagnostics,
+      required NormalizedSourceProject source})
+      : events = List.unmodifiable(events),
+        diagnostics = List.unmodifiable(diagnostics),
+        _fieldObstacleAttestation = _SourceFieldObstacleAttestation(
+            source, profile, events);
+
   final SourceEventProfile profile;
   final List<SourceEventDefinition> events;
   final List<SourceEventDiagnostic> diagnostics;
+  final _SourceFieldObstacleAttestation? _fieldObstacleAttestation;
+
+  bool attestsFieldObstacleEvent({required NormalizedSourceProject source,
+      required SourceEventDefinition event}) =>
+      _fieldObstacleAttestation?.matches(source, profile, event) == true;
+
   SourceEventDefinition? eventAt(int mapId, int eventId) {
     for (final event in events) {
       if (event.sourceMapId == mapId && event.sourceEventId == eventId) {
@@ -688,7 +706,7 @@ final class SourceEventAnalyzer {
                   event, sourcePage, loc) ??
               _sourcePartyTradeProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
-              _sourceCutObstacleProgramBlock(this, map.map.sourceMapId,
+              _sourceFieldObstacleProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
               _sourceCenterServiceBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??
@@ -730,8 +748,8 @@ final class SourceEventAnalyzer {
             pages: pages));
       }
     }
-    return SourceEventAnalysis(
-        profile: profile, events: events, diagnostics: diagnostics);
+    return SourceEventAnalysis._analyzed(
+        source: project, profile: profile, events: events, diagnostics: diagnostics);
   }
 
   SourcePreservedData? _reference(ConverterId? id) {

@@ -2231,6 +2231,7 @@ const _nativeStudyActions = [
   'pokemon.media.write',
   'campaign.encounter_table.upsert',
   'campaign.badge.upsert',
+  'entity.set_field_obstacle',
   'campaign.trainer.upsert',
 ];
 
@@ -2301,11 +2302,11 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:AC15 workflow publishes native Borders with events and approved assets',
                 },
-              if (action == 'campaign.badge.upsert')
+              if (action == 'campaign.badge.upsert' || action == 'entity.set_field_obstacle')
                 {
                   'type': 'test',
                   'summary':
-                      'Canonical campaign.badge.upsert preserves the Cut badge definition through the public campaign API and admits original Route 10 Cut mutations through strict approvePrepared without granting player progress.',
+                      'Canonical campaign.badge.upsert and entity.set_field_obstacle preserve Settings-derived locked field definitions and typed native objects through strict original-source approval without granting player progress.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/source_cut_workflow_admission_test.dart',
                 },

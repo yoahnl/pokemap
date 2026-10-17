@@ -594,7 +594,7 @@ void _expectNoCut(SourceEventDefinition event) {
   expect(
       event.pages
           .expand((page) => page.body.nodes)
-          .whereType<SourceCutObstacleProgramNode>(),
+          .whereType<SourceFieldObstacleProgramNode>(),
       isEmpty);
 }
 
@@ -607,7 +607,130 @@ extension on SourceEventAnalysis {
   }
 }
 
+
+_RubyObject _rockSmashPage() => _page([
+      ..._forcedRoute([_moveCommand(16)], skippable: false),
+      _command(111, [12, 'pbRockSmash']),
+      _command(355, ['pbSmashThisEvent'], indent: 1),
+      _command(355, ['pbRockSmashRandomEncounter'], indent: 1),
+      _command(0, [], indent: 1),
+      _command(412, []),
+      _command(0, []),
+    ], character: 'OBJ_FRLG_RockSmash Rock');
+
+_RubyObject _strengthPage() => _page([
+      _command(355, ['pbPushThisBoulder']),
+      _command(0, []),
+    ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
+
 void main() {
+  group('structural field obstacle programmes CV-02A', () {
+    test('attestation is produced only by the raw source analyzer', () async {
+      final source = await _cutSource();
+      final analysis = _analyzer(source).analyze();
+      final event = analysis.events.single;
+      expect(analysis.attestsFieldObstacleEvent(source: source, event: event), isTrue);
+      final forged = SourceEventAnalysis(profile: analysis.profile,
+          events: analysis.events, diagnostics: analysis.diagnostics);
+      expect(forged.attestsFieldObstacleEvent(source: source, event: event), isFalse);
+      final changed = SourceEventDefinition(sourceMapId: event.sourceMapId,
+          sourceEventId: event.sourceEventId, sourceFileId: event.sourceFileId,
+          identity: event.identity, name: event.name, x: event.x + 1,
+          y: event.y, locator: event.locator, pages: event.pages);
+      expect(analysis.attestsFieldObstacleEvent(source: source, event: changed), isFalse);
+      final other = await _cutSource(name: 'Another raw event');
+      expect(analysis.attestsFieldObstacleEvent(source: other, event: event), isFalse);
+      final fresh = _analyzer(source).analyze();
+      expect(fresh.attestsFieldObstacleEvent(source: source, event: event), isTrue);
+    });
+
+    test('recognizes exact Rock Smash without erasing the encounter call',
+        () async {
+      final source = await _cutSource(pages: [_rockSmashPage()]);
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      final node = event.pages.single.body.nodes.single;
+      final payload = (node as dynamic).toJson() as Map;
+      expect(payload['kind'], 'fieldObstacleProgram');
+      expect(payload['sourceMove'], 'ROCKSMASH');
+      expect(payload['sourceCalls'], [
+        'pbRockSmash',
+        'pbSmashThisEvent',
+        'pbRockSmashRandomEncounter'
+      ]);
+      expect(payload.containsKey('sourceRegion'), isFalse);
+      expect(payload.containsKey('sourceBadgeIndex'), isFalse);
+      expect(node.span.firstCommandIndex, 0);
+      expect(node.span.lastCommandIndex, 7);
+    });
+
+    test('recognizes the exact Strength touch programme', () async {
+      final source = await _cutSource(pages: [_strengthPage()]);
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      final node = event.pages.single.body.nodes.single;
+      final payload = (node as dynamic).toJson() as Map;
+      expect(payload['kind'], 'fieldObstacleProgram');
+      expect(payload['sourceMove'], 'STRENGTH');
+      expect(payload['sourceCalls'], ['pbPushThisBoulder']);
+      expect(payload.containsKey('sourceRegion'), isFalse);
+      expect(payload.containsKey('sourceBadgeIndex'), isFalse);
+      expect(event.pages.single.triggerCode, 1);
+      expect(node.span.firstCommandIndex, 0);
+      expect(node.span.lastCommandIndex, 1);
+    });
+
+    test('Cut programme delegates badge and region policy to its source binding',
+        () async {
+      final source = await _cutSource();
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      final payload =
+          (event.pages.single.body.nodes.single as dynamic).toJson() as Map;
+      expect(payload['kind'], 'fieldObstacleProgram');
+      expect(payload['sourceMove'], 'CUT');
+      expect(payload.containsKey('sourceRegion'), isFalse);
+      expect(payload.containsKey('sourceBadgeIndex'), isFalse);
+    });
+
+    for (final mutation in <String, void Function(_RubyObject)>{
+      'missing encounter': (page) =>
+          (page.fields['@list'] as List).removeAt(4),
+      'changed encounter': (page) =>
+          ((page.fields['@list'] as List)[4] as _RubyObject)
+              .fields['@parameters'] = ['pbRockSmashRandomEncounter; extra'],
+      'wrong encounter indent': (page) =>
+          ((page.fields['@list'] as List)[4] as _RubyObject)
+              .fields['@indent'] = 0,
+      'touch trigger': (page) => page.fields['@trigger'] = 1,
+    }.entries) {
+      test('Rock Smash refuses ${mutation.key}', () async {
+        final page = _rockSmashPage();
+        mutation.value(page);
+        final source = await _cutSource(pages: [page]);
+        expect(_analyzer(source).analyze().events.single.isQuarantined, isTrue);
+      });
+    }
+
+    for (final mutation in <String, void Function(_RubyObject)>{
+      'action trigger': (page) => page.fields['@trigger'] = 0,
+      'appended Ruby': (page) =>
+          ((page.fields['@list'] as List)[0] as _RubyObject)
+              .fields['@parameters'] = ['pbPushThisBoulder; extra'],
+      'extra command': (page) =>
+          (page.fields['@list'] as List).add(_command(0, [])),
+      'passable obstacle': (page) => page.fields['@through'] = true,
+    }.entries) {
+      test('Strength refuses ${mutation.key}', () async {
+        final page = _strengthPage();
+        mutation.value(page);
+        final source = await _cutSource(pages: [page]);
+        expect(_analyzer(source).analyze().events.single.isQuarantined, isTrue);
+      });
+    }
+  });
+
+
   group('structural Cut obstacle programmes', () {
     test('equivalent pages qualify independently of project and event identity',
         () async {
@@ -619,7 +742,7 @@ void main() {
           y: 4,
           name: 'A different tree',
           namespace: 'synthetic-cut-orchard');
-      final nodes = <SourceCutObstacleProgramNode>[];
+      final nodes = <SourceFieldObstacleProgramNode>[];
       for (final source in [first, second]) {
         final analysis = _analyzer(source).analyze();
         final event = analysis.events.single;
@@ -627,17 +750,15 @@ void main() {
         expect(
             event.pages.single.condition.kind, SourceEventConditionKind.always);
         final node = event.pages.single.body.nodes.single;
-        expect(node, isA<SourceCutObstacleProgramNode>());
-        final cut = node as SourceCutObstacleProgramNode;
+        expect(node, isA<SourceFieldObstacleProgramNode>());
+        final cut = node as SourceFieldObstacleProgramNode;
         nodes.add(cut);
         expect(cut.sourceMove, 'CUT');
-        expect(cut.sourceBadgeIndex, 12);
-        expect(cut.sourceRegion, 1);
         expect(cut.span.firstCommandIndex, 0);
         expect(cut.span.lastCommandIndex, 6);
         expect(cut.toJson()['sourceScriptsExecuted'], 0);
         expect(cut.toJson()['nativeExecutionQualified'], isFalse);
-        expect(cut.toJson()['fullSourceCutParityQualified'], isFalse);
+        expect(cut.toJson()['fullSourceFieldObstacleParityQualified'], isFalse);
         expect(cut.rawDataRef.locator!.mapId, event.sourceMapId);
         expect(cut.rawDataRef.locator!.eventId, event.sourceEventId);
         expect(
@@ -755,7 +876,7 @@ void main() {
         final source = await _cutSource();
         final analysis = _analyzer(source).analyze();
         final node = analysis.events.single.pages.single.body.nodes.single
-            as SourceCutObstacleProgramNode;
+            as SourceFieldObstacleProgramNode;
         final json = jsonDecode(jsonEncode(source.maps.single.toJson())) as Map;
         final event = (json['map']['events'] as List).single as Map;
         final page = (event['pages'] as List).single as Map;
@@ -807,7 +928,7 @@ void main() {
       final next = await _cutSource(name: 'Renamed tree');
       final analysis = _analyzer(first).analyze();
       final node = analysis.events.single.pages.single.body.nodes.single
-          as SourceCutObstacleProgramNode;
+          as SourceFieldObstacleProgramNode;
       expect(
           node.isBoundToSourceEvent(
               source: next,

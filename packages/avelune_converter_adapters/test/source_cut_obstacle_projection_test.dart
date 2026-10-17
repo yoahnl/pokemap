@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
-import 'package:avelune_converter_adapters/src/source_cut_obstacle_binding.dart';
+import 'package:avelune_converter_adapters/src/source_field_obstacle_binding.dart';
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -46,7 +46,7 @@ void main() {
   group('original Cut native objects', () {
     late NormalizedSourceProject source;
     late SourceEventAnalysis analysis;
-    late SourceCutObstacleBindings bindings;
+    late SourceFieldObstacleBindings bindings;
     late Map<int, MapData> maps;
     SourceEventProjection project(
             {Map<int, MapData>? targets,
@@ -56,22 +56,17 @@ void main() {
             source: source,
             analysis: events ?? analysis,
             nativeMaps: targets ?? maps,
-            cutObstacleBindings: bind ? bindings.byEventIdentity : const {});
+            fieldObstacleBindings: bind ? bindings.byEventIdentity : const {});
     setUpAll(() async {
       source = await readOriginalCutSource(archive!);
       final full = SourceEventAnalyzer.forProject(source,
               profile: SourceEventProfile.kantoForProject(source))
           .analyze();
-      analysis = SourceEventAnalysis(
-          profile: full.profile,
-          events: full.events
-              .where((event) => event.pages
-                  .expand((page) => page.body.nodes)
-                  .any((node) => node is SourceCutObstacleProgramNode))
-              .toList(),
-          diagnostics: const []);
-      expect(analysis.events, hasLength(5));
-      bindings = (await const SourceCutObstacleBindingResolver().read(
+      analysis = full;
+      expect(analysis.events.where((event) => event.pages
+          .expand((page) => page.body.nodes)
+          .any((node) => node is SourceFieldObstacleProgramNode)), hasLength(5));
+      bindings = (await const SourceFieldObstacleBindingResolver().read(
           source: source,
           analysis: analysis,
           files: CutSourceFiles(source, root!)))!;
@@ -79,7 +74,7 @@ void main() {
     });
     test('all five exact source anchors become typed blocking objects', () {
       final projected = project();
-      for (final event in analysis.events) {
+      for (final event in analysis.events.where((event) => bindings.byEventIdentity.containsKey(event.identity))) {
         final evidence = cutEventEvidence(projected, event);
         expect(evidence['status'], 'adaptedStaticSemantics',
             reason: '${evidence['gaps']}');
@@ -92,16 +87,13 @@ void main() {
         expect(object.fieldObstacle?.kind, FieldObstacleKind.cutTree);
         expect(object.blocksMovement, isTrue);
         expect(object.npc, isNull);
-        expect(object.editorVisual?.elementId, bindings.element.id);
+        expect(object.editorVisual?.elementId, bindings.elements.single.id);
         expect(object.size, const GridSize(width: 1, height: 1));
       }
-      expect(projected.scenes, isEmpty);
-      expect(projected.dialogues, isEmpty);
-      expect(projected.facts, isEmpty);
-      expect(projected.worldRules, isEmpty);
-      expect(projected.registry.records, isEmpty);
+      expect(projected.nativeMaps.values.expand((map) => map.entities)
+          .where((entity) => entity.fieldObstacle != null), hasLength(5));
       expect(projected.nativeMaps.keys, {98, 100});
-      expect(projected.semanticEvidence['usedCutObstacles'], true);
+      expect(projected.semanticEvidence['usedFieldObstacles'], true);
     });
     test('the character importer never receives Cut tree sprites', () {
       expect(
@@ -109,21 +101,23 @@ void main() {
               source: source,
               analysis: analysis,
               nativeMaps: maps,
-              cutObstacleBindings: bindings.byEventIdentity),
+              fieldObstacleBindings: bindings.byEventIdentity)
+              .where((event) => bindings.byEventIdentity.containsKey(event.identity)),
           isEmpty);
     });
     test('missing gameplay binding quarantines the whole event', () {
       final projected = project(bind: false);
-      for (final event in analysis.events) {
+      for (final event in analysis.events.where((event) => bindings.byEventIdentity.containsKey(event.identity))) {
         expect(cutEventEvidence(projected, event)['gaps'],
-            contains('sourceCutBindingsMissing'));
+            contains('sourceFieldObstacleBindingsMissing'));
       }
       expect(
-          projected.nativeMaps.values.expand((map) => map.entities), isEmpty);
+          projected.nativeMaps.values.expand((map) => map.entities)
+              .where((entity) => entity.fieldObstacle != null), isEmpty);
     });
     test('blocked underlying native floor cannot claim collision liberation',
         () {
-      final event = analysis.events.first;
+      final event = analysis.events.firstWhere((event) => bindings.byEventIdentity.containsKey(event.identity));
       final map = maps[event.sourceMapId]!;
       final cells = List<bool>.filled(map.size.width * map.size.height, false);
       cells[event.y * map.size.width + event.x] = true;
@@ -134,10 +128,10 @@ void main() {
         ])
       });
       expect(cutEventEvidence(projected, event)['gaps'],
-          contains('sourceCutNativeFloorBlocked'));
+          contains('sourceFieldObstacleNativeFloorBlocked'));
     });
     test('a wide native entity covering the anchor refuses the Cut object', () {
-      final event = analysis.events.first;
+      final event = analysis.events.firstWhere((event) => bindings.byEventIdentity.containsKey(event.identity));
       final map = maps[event.sourceMapId]!;
       final projected = project(targets: {
         ...maps,
@@ -150,11 +144,11 @@ void main() {
         ])
       });
       expect(cutEventEvidence(projected, event)['gaps'],
-          contains('sourceCutNativeFootprintOccupied'));
+          contains('sourceFieldObstacleNativeFootprintOccupied'));
     });
     test('an existing native identity away from the tree cannot be overwritten',
         () {
-      final event = analysis.events.first;
+      final event = analysis.events.firstWhere((event) => bindings.byEventIdentity.containsKey(event.identity));
       final original = project()
           .nativeMaps[event.sourceMapId]!
           .entities
@@ -166,11 +160,11 @@ void main() {
             entities: [original.copyWith(pos: const GridPos(x: 0, y: 0))])
       });
       expect(cutEventEvidence(projected, event)['gaps'],
-          contains('sourceCutNativeIdentityOccupied'));
+          contains('sourceFieldObstacleNativeIdentityOccupied'));
     });
     test('an altered analysis name cannot borrow the original raw programme',
         () {
-      final event = analysis.events.first;
+      final event = analysis.events.firstWhere((event) => bindings.byEventIdentity.containsKey(event.identity));
       final changed = SourceEventDefinition(
           sourceMapId: event.sourceMapId,
           sourceEventId: event.sourceEventId,
@@ -187,17 +181,17 @@ void main() {
               events: [changed],
               diagnostics: const []));
       expect(cutEventEvidence(projected, changed)['gaps'],
-          contains('sourceCutSourceBindingInvalid'));
+          contains('sourceFieldObstacleSourceBindingInvalid'));
     });
     test('a spatial target keeps the source event quarantined', () {
-      final event = analysis.events.first;
+      final event = analysis.events.firstWhere((event) => bindings.byEventIdentity.containsKey(event.identity));
       final projected = project(targets: {
         ...maps,
         event.sourceMapId:
             maps[event.sourceMapId]!.copyWith(version: ProjectVersion.v9)
       });
       expect(cutEventEvidence(projected, event)['gaps'],
-          contains('sourceCutSpatialUnsupported'));
+          contains('sourceFieldObstacleSpatialUnsupported'));
     });
   },
       skip: archive == null || root == null

@@ -1219,6 +1219,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'scene.dialogue.audioMedia.import',
           'map.audio.update',
           'campaign.badge.upsert',
+          'entity.set_field_obstacle',
           'regionalMap.region.upsert',
           'regionalMap.poi.upsert',
         }.contains(mutation.actionId);
@@ -1940,27 +1941,40 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         semantics.requireOperation(mutation);
         if (semantics.events == null) {
           throw const NativeWriteException('native.events.binding',
-              'Cut badge publication requires exact regenerated source events.');
+              'Field badge publication requires exact regenerated source events.');
         }
         _allowParameters(parameters, const {'value'});
         final badge = BadgeDefinition.fromJson(
             Map<String, dynamic>.from(parameters['value'] as Map));
-        final identity = canonicalHashOf({
-          'namespace': draft.source.snapshot.logicalProjectNamespace.value,
-          'kind': 'sourceCutObstacle',
-        }).value.substring(0, 24);
-        final expected = BadgeDefinition(
-            id: 'source_cascade_badge_$identity', label: 'Cascade Badge',
-            fieldAbilityUnlock: FieldAbility.cut);
-        if (badge != expected || !_targetIds(mutation.targetEntityIds, {expected.id})) {
-          throw const NativeWriteException('native.events.cut_badge',
-              'Cut requires the exact source Cascade Badge definition without a player grant.');
-        }
-        if (badges.any((value) => value.id == badge.id)) {
-          throw const NativeWriteException('native.events.cut_badge',
-              'The source Cascade Badge definition must occur exactly once.');
+        final expected = semantics.events!.draft.mutations.where((entry) =>
+            entry.actionId == 'campaign.badge.upsert' &&
+            _targetIds(entry.targetEntityIds, {badge.id})).toList();
+        if (expected.length != 1 ||
+            canonicalJsonOf(expected.single.parameters) != canonicalJsonOf(parameters) ||
+            !_targetIds(mutation.targetEntityIds, {badge.id}) ||
+            badges.any((value) => value.id == badge.id)) {
+          throw const NativeWriteException('native.events.field_badge',
+              'Field badges require one exact source Settings definition without a player grant.');
         }
         badges.add(badge);
+      case 'entity.set_field_obstacle':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'mapId', 'entityId', 'fieldObstacle'});
+        final mapId = _string(parameters, 'mapId');
+        final entityId = _string(parameters, 'entityId');
+        _requireMapBinding(draft, mutation, mapId, expectedTargets: {mapId, entityId});
+        final sourceMapIds = draft.mapIds.entries.where((entry) => entry.value == mapId).toList();
+        final projectedMap = sourceMapIds.length == 1
+            ? semantics.events?.projection.nativeMaps[sourceMapIds.single.key] : null;
+        final entities = projectedMap?.entities.where((entity) => entity.id == entityId).toList() ?? const <MapEntity>[];
+        if (parameters['fieldObstacle'] is! Map || entities.length != 1 ||
+            entities.single.fieldObstacle == null ||
+            !_targetIds(mutation.targetEntityIds, {mapId, entityId}) ||
+            canonicalJsonOf(parameters['fieldObstacle']) !=
+                canonicalJsonOf(entities.single.fieldObstacle!.toJson())) {
+          throw const NativeWriteException('native.events.field_obstacle',
+              'Field obstacles require the exact regenerated typed object action.');
+        }
       case 'item.create':
       case 'fact.create':
       case 'fact.update':
