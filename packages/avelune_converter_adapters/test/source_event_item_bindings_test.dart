@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:avelune_converter_adapters/src/source_event_item_bindings.dart';
+import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
+
+import 'support/literal_tile_fixture.dart';
 
 final class _Symbol {
   const _Symbol(this.value);
@@ -207,6 +210,156 @@ Map<String, Object?> _explorationItem(String symbol) {
 }
 
 void main() {
+  final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  final capacitySymbols = [for (var i = 0; i < 65; i++) 'ITEM$i'];
+  final capacityCatalog = _fixture(items: {
+    for (final symbol in capacitySymbols) symbol: _item(symbol),
+  });
+
+  test('default item quota resolves 64 symbols and refuses 65 before I/O',
+      () async {
+    final accepted =
+        await _read(capacityCatalog, symbols: capacitySymbols.take(64));
+    expect(accepted.bindings, hasLength(64));
+    expect(accepted.quarantinedSymbols, isEmpty);
+    capacityCatalog.files.reads.clear();
+    await expectLater(_read(capacityCatalog, symbols: capacitySymbols),
+        throwsA(_code('source.event_items.symbol_limit')));
+    expect(capacityCatalog.files.reads, isEmpty);
+  });
+
+  test('expanded item quota still bounds the raw duplicate request stream',
+      () async {
+    final fixture = _fixture();
+    const limits = SourceEventItemBindingLimits(maxRequestedSymbols: 256);
+    final accepted = await _read(fixture,
+        symbols: List.filled(1024, 'ETHER'), limits: limits);
+    expect(accepted.bindings.keys, ['ETHER']);
+    fixture.files.reads.clear();
+    await expectLater(
+        _read(fixture, symbols: List.filled(1025, 'ETHER'), limits: limits),
+        throwsA(_code('source.event_items.symbol_limit')));
+    expect(fixture.files.reads, isEmpty);
+  });
+
+  test('invalid custom item quotas remain rejected before source I/O',
+      () async {
+    final fixture = _fixture();
+    for (final quota in [-1, 0, 4097]) {
+      await expectLater(
+          _read(fixture,
+              limits: SourceEventItemBindingLimits(maxRequestedSymbols: quota)),
+          throwsA(_code('source.event_items.limits_invalid')));
+    }
+    expect(fixture.files.reads, isEmpty);
+  });
+
+  group('item composition map scope', () {
+    late LiteralTileFixture fixture;
+
+    setUpAll(() async {
+      fixture = await LiteralTileFixture.create(
+          scriptsBytes: await File(scriptsPath!).readAsBytes(),
+          includeEventSystem: true,
+          extraFiles: {
+            'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = ItemActor\n'),
+            'Graphics/Characters/ItemActor.png': image.encodePng(
+                image.Image(width: 128, height: 192, numChannels: 4)),
+            'Data/items.dat':
+                capacityCatalog.files.bytes[ConverterId('source-items')]!,
+          },
+          maps: [
+            for (var mapId = 1; mapId <= 9; mapId++)
+              LiteralFixtureMap(id: mapId, events: [
+                if (mapId == 1 || mapId == 9)
+                  LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: [
+                    LiteralFixtureEventPage(commands: [
+                      for (final symbol in mapId == 1
+                          ? capacitySymbols.take(64)
+                          : capacitySymbols.skip(64)) ...[
+                        LiteralFixtureEventCommand(
+                            111, [12, '\$bag.has?(:$symbol)']),
+                        const LiteralFixtureEventCommand(101, ['Item present'],
+                            indent: 1),
+                        const LiteralFixtureEventCommand(412, []),
+                      ],
+                    ]),
+                  ]),
+              ]),
+          ]);
+    });
+
+    Future<SourceEventStudyComposition> compose(int count,
+        {NativeWriteLimits limits = const NativeWriteLimits(
+            maxArtifacts: 128, maxMutations: 1024)}) async {
+      final literal = await const LiteralTileComposer().compose(
+          source: fixture.source,
+          files: fixture.files,
+          selectedSourceMapIds: [for (var id = 1; id <= count; id++) id],
+          projectName: 'Bounded item scope',
+          parentPath: '/private/tmp',
+          folderName: 'unused-item-scope',
+          limits: limits);
+      final semantic = (await const SourceSemanticStudyComposer().compose(
+          source: fixture.source,
+          base: literal,
+          files: fixture.files,
+          limits: limits))!;
+      return (await const SourceEventStudyComposer().compose(
+          source: fixture.source,
+          base: semantic,
+          files: fixture.files,
+          limits: limits))!;
+    }
+
+    for (var count = 1; count <= 8; count++) {
+      test('$count maps retain the 64-symbol selected-scope behavior',
+          () async {
+        final result = await compose(count);
+        final evidence =
+            result.draft.compositionEvidence['sourceEvents'] as Map;
+        final items = evidence['items'] as Map;
+        expect(items['bindings'], hasLength(64));
+        expect(items['quarantinedSymbols'], isEmpty);
+      });
+    }
+
+    test('nine maps resolve all 65 source-bound item symbols', () async {
+      final result = await compose(9);
+      final evidence = result.draft.compositionEvidence['sourceEvents'] as Map;
+      final items = evidence['items'] as Map;
+      final bindings = (items['bindings'] as Map).values.cast<Map>();
+      expect(bindings, hasLength(65));
+      expect(bindings.map((binding) => binding['sourceSymbol']).toSet(),
+          capacitySymbols.toSet());
+      expect(items['quarantinedSymbols'], isEmpty);
+      final catalogEntry = fixture.snapshot.entries
+          .singleWhere((entry) => entry.relativePath == 'Data/items.dat');
+      for (final binding in bindings) {
+        expect((binding['itemReference'] as Map)['contentHash'],
+            catalogEntry.sha256!.value);
+      }
+      expect(items['sourceScriptsExecuted'], 0);
+    });
+
+    test('large map scopes refuse item requests beyond the write budget',
+        () async {
+      await expectLater(
+          compose(9,
+              limits:
+                  const NativeWriteLimits(maxArtifacts: 128, maxMutations: 64)),
+          throwsA(_code('source.event_items.symbol_limit')));
+    });
+
+    test('large map scopes accept the exact custom item write budget',
+        () async {
+      final result = await compose(9,
+          limits: const NativeWriteLimits(maxArtifacts: 128, maxMutations: 65));
+      final evidence = result.draft.compositionEvidence['sourceEvents'] as Map;
+      expect((evidence['items'] as Map)['bindings'], hasLength(65));
+    });
+  }, skip: scriptsPath == null);
+
   final explorationEffects = <String, ProjectItemEffectDefinition>{
     'REPEL': const ProjectItemEffectDefinition.repel(steps: 100),
     'SUPERREPEL': const ProjectItemEffectDefinition.repel(steps: 200),

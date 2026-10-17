@@ -224,6 +224,10 @@ final class SourceEventStudyComposer {
             files: recording,
             symbols: itemSymbols,
             eventProfile: profile,
+            limits: nativeMaps.length <= 8
+                ? const SourceEventItemBindingLimits()
+                : SourceEventItemBindingLimits(
+                    maxRequestedSymbols: limits.maxEntityReferences),
             cancellation: cancellation);
         for (final pickup in pickups) {
           final item = items.bindings[pickup.$2];
