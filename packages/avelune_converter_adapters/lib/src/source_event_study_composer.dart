@@ -13,6 +13,7 @@ import 'source_event_execution_context.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
+import 'source_hole_native_program.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
@@ -140,6 +141,10 @@ final class SourceEventStudyComposer {
       for (final entry in sourceStairPrograms(source: source, analysis: analysis).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
+    final holePrograms = Map<ConverterId, SourceHoleNativeProgram>.unmodifiable({
+      for (final entry in sourceHoleNativePrograms(source: source, analysis: analysis).entries)
+        if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
+    });
     final originalDoorIds = sourceDoorEventProjectionCandidates(source: source, analysis: analysis, routedPrograms: const {}, stairPrograms: const {})
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .map((event) => event.identity).toSet();
@@ -155,7 +160,7 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final legacyTransitionIds = {...originalDoorIds, ...?externalWarps?.programs.keys};
-    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys};
+    final transitionIds = {...legacyTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -271,14 +276,14 @@ final class SourceEventStudyComposer {
       }
     }
     final transitionSounds = {
-      for (final event in selectedEvents.where((event) => !event.isQuarantined &&
+      for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity)) &&
           transitionIds.contains(event.identity)))
         for (final page in event.pages) ..._soundNames(page.body),
     };
     final sounds = <String, SourceEventSoundBinding>{};
     final soundEvidence = <Map<String, Object?>>[];
     for (final name in {
-      for (final event in selectedEvents.where((event) => !event.isQuarantined &&
+      for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity)) &&
           (transitionIds.contains(event.identity) || event.pages.any((page) =>
               _pickups(page.body).any((pickup) => pickup.helper == SourceItemGrantHelper.receiveItem)))))
         for (final page in event.pages) ..._soundNames(page.body),
@@ -360,11 +365,12 @@ final class SourceEventStudyComposer {
           cancellation: cancellation);
     final localDoorContexts = await const SourceEventExecutionContextResolver()
         .readTransfers(source: source, base: base, nativeMaps: nativeMaps,
-          files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, stairPrograms: stairPrograms, analysis: analysis,
+          files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, stairPrograms: stairPrograms, holePrograms: holePrograms, analysis: analysis,
           limits: limits, cancellation: cancellation);
     final staticDoorContexts = {for (final key in staticDoorPrograms.keys) key: localDoorContexts[key]!};
     final routedDoorContexts = {for (final key in routedDoorPrograms.keys) key: localDoorContexts[key]!};
     final stairContexts = {for (final key in stairPrograms.keys) key: localDoorContexts[key]!};
+    final holeContexts = {for (final key in holePrograms.keys) key: localDoorContexts[key]!};
     final characterArtifacts = <NativeArtifact>[];
     final characterMutations = <NativeMutation>[];
     final characterEvidence = <Map<String, Object?>>[];
@@ -392,6 +398,7 @@ final class SourceEventStudyComposer {
             staticDoorContexts: staticDoorContexts,
             routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
             stairPrograms: stairPrograms, stairContexts: stairContexts,
+            holePrograms: holePrograms, holeContexts: holeContexts,
             limits: limits);
     for (final event in characterCandidates) {
       for (final page in event.pages) {
@@ -474,6 +481,7 @@ final class SourceEventStudyComposer {
         staticDoorContexts: staticDoorContexts,
             routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
             stairPrograms: stairPrograms, stairContexts: stairContexts,
+            holePrograms: holePrograms, holeContexts: holeContexts,
         limits: limits);
     final usedExternalWarps = projection.semanticEvidence['usedExternalWarps'] == true
         ? externalWarps : null;

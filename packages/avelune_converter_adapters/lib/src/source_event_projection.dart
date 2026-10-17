@@ -21,6 +21,7 @@ import 'source_external_warp_binding.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
+import 'source_hole_native_program.dart';
 
 final _sourceFormattingTag =
     RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
@@ -317,6 +318,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEventExecutionContext> routedDoorContexts = const {},
     Map<ConverterId, SourceStairProgram>? stairPrograms,
     Map<ConverterId, SourceEventExecutionContext> stairContexts = const {},
+    Map<ConverterId, SourceHoleNativeProgram>? holePrograms,
+    Map<ConverterId, SourceEventExecutionContext> holeContexts = const {},
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits.validate();
@@ -326,7 +329,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
@@ -359,6 +362,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEventExecutionContext> routedDoorContexts = const {},
     Map<ConverterId, SourceStairProgram>? stairPrograms,
     Map<ConverterId, SourceEventExecutionContext> stairContexts = const {},
+    Map<ConverterId, SourceHoleNativeProgram>? holePrograms,
+    Map<ConverterId, SourceEventExecutionContext> holeContexts = const {},
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     limits.validate();
     if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
@@ -380,7 +385,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts)
         .build();
   }
 }
@@ -443,11 +448,13 @@ final class _ProjectionBuilder {
       this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.fieldObstacleBindings, this.fieldObstacleRefusals, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings,
       Map<ConverterId, SourceStaticDoorProgram>? staticPrograms, this.staticDoorContexts,
       Map<ConverterId, SourceRoutedDoorProgram>? routedPrograms, this.routedDoorContexts,
-      Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts)
+      Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts,
+      Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts)
       : maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
         routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis),
         stairPrograms = stairs ?? sourceStairPrograms(source: source, analysis: analysis),
+        holePrograms = holes ?? sourceHoleNativePrograms(source: source, analysis: analysis),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
@@ -491,6 +498,19 @@ final class _ProjectionBuilder {
       }
     }
     for (final event in analysis.events) {
+      final program = holePrograms[event.identity];
+      if (program == null) continue;
+      if (!program.isBoundTo(source: source, analysis: analysis, event: event)) {
+        throw const NativeWriteException('events.source.binding', 'Holes require their exact complete source event');
+      }
+      final context = holeContexts[event.identity];
+      if (context != null && context.holeIdentity == event.identity && context.isQualified &&
+          (verifiedNativeBinding == null ? context.isBoundTo(source, analysis.profile, nativeMaps) : context.sharesNativeBindingWith(verifiedNativeBinding))) {
+        qualifiedHoleContexts.add(event.identity);
+        verifiedNativeBinding ??= context;
+      }
+    }
+    for (final event in analysis.events) {
       final program = stairPrograms[event.identity];
       if (program == null) continue;
       if (!program.isBoundTo(source: source, analysis: analysis, event: event)) {
@@ -525,6 +545,9 @@ final class _ProjectionBuilder {
   final Map<ConverterId, SourceRoutedDoorProgram> routedDoorPrograms;
   final Map<ConverterId, SourceEventExecutionContext> routedDoorContexts;
   final qualifiedRoutedDoorContexts = <ConverterId>{};
+  final Map<ConverterId, SourceHoleNativeProgram> holePrograms;
+  final Map<ConverterId, SourceEventExecutionContext> holeContexts;
+  final qualifiedHoleContexts = <ConverterId>{};
   final Map<ConverterId, SourceStairProgram> stairPrograms;
   final Map<ConverterId, SourceEventExecutionContext> stairContexts;
   final qualifiedStairContexts = <ConverterId>{};
@@ -568,15 +591,15 @@ final class _ProjectionBuilder {
 
   bool _isSourceTransition(SourceEventDefinition event) =>
       originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event) ||
-      staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity);
+      staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
+      qualifiedHoleContexts.contains(event.identity) || qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
       ((originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event)) &&
-        executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null);
+        executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null && executionContext?.holeIdentity == null);
 
   SourceEventExecutionContext? _eventExecutionContext(SourceEventDefinition event) =>
-      stairContexts[event.identity] ?? routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? executionContext;
+      holeContexts[event.identity] ?? stairContexts[event.identity] ?? routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? executionContext;
 
   final _externalPrograms = <ConverterId, SourceExternalWarpProgram?>{};
 
@@ -781,6 +804,8 @@ final class _ProjectionBuilder {
             'fullSourceParity': false,
             'sourceScriptsExecuted': 0,
           },
+        if (gaps.isEmpty && holePrograms.containsKey(event.identity))
+          'nativeHole': holePrograms[event.identity]!.toJson(),
         if (gaps.isEmpty && _isExternalWarpFamily(event))
           'nativeExternalWarp': {
             'program': _externalWarpProgram(event)!.toJson(),
@@ -1149,6 +1174,10 @@ final class _ProjectionBuilder {
         'sourcePassToNativeUpdateEquivalence': 'requiresRuntimeQualification',
         'global210Scope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
         'sourceExecutionContext': contextEncoding.encodeContext(executionContext?.toJson()),
+        if (holePrograms.isNotEmpty) 'holePrograms': [for (final entry in holePrograms.entries) {
+          ...entry.value.toJson(), 'executionContext': contextEncoding.encodeContext(holeContexts[entry.key]?.toJson()),
+          'executionContextQualified': qualifiedHoleContexts.contains(entry.key),
+        }],
         'stairPrograms': [for (final entry in stairPrograms.entries) {
           ...entry.value.toJson(), 'executionContext': contextEncoding.encodeContext(stairContexts[entry.key]?.toJson()),
           'executionContextQualified': qualifiedStairContexts.contains(entry.key),
@@ -2076,8 +2105,28 @@ final class _ProjectionBuilder {
     return const {};
   }
 
+  Set<String> _holeGaps(SourceEventDefinition event) {
+    final program = holePrograms[event.identity];
+    if (program == null) return {'sourceHoleCompleteProgramBindingMissing'};
+    final gaps = <String>{};
+    if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
+    if (!qualifiedHoleContexts.contains(event.identity)) {
+      final context = holeContexts[event.identity];
+      gaps.addAll(context?.refusals.isNotEmpty == true ? context!.refusals : ['sourceExecutionContextUnknown']);
+    }
+    if (retentionPolicy == null) gaps.add('sourceMapInstanceRetentionMissing');
+    if (_sound(program.fallingSound.name) == null || _sound(program.landingSound.name) == null) {
+      gaps.add('sourceSoundBindingMissing');
+    }
+    final touch = _touch(event, event.pages.single);
+    if (touch.kind != SourceEventTouchKind.enter) gaps.add('sourceHoleTouchUnqualified');
+    _blockGaps(event, SourceEventBlock(nodes: [program.warp], span: event.pages.single.body.span), gaps);
+    return gaps;
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (isSourceHoleNativeIdentity(event)) return _holeGaps(event);
     if (const {166, 205}.contains(event.sourceMapId) && !_isExternalWarpFamily(event)) {
       return {'sourceExternalMapScopeExcluded'};
     }
@@ -2262,7 +2311,9 @@ final class _ProjectionBuilder {
 
   SourceEventTouchResolution _touch(
           SourceEventDefinition event, SourceEventPageAnalysis page) =>
-      page.triggerCode == 1 && _staticSignWidth(event) == 2
+      holePrograms.containsKey(event.identity)
+          ? _holeTouch(event, page)
+          : page.triggerCode == 1 && _staticSignWidth(event) == 2
           ? semanticResolver.resolveStaticBumpFootprint(event: event, page: page,
               mapEvents: _sourceContextEvents, width: 2, height: 1)
           : semanticResolver.resolveEventTouch(
@@ -2270,6 +2321,35 @@ final class _ProjectionBuilder {
           event: event,
           page: page,
           mapEvents: _sourceContextEvents);
+
+  SourceEventTouchResolution _holeTouch(SourceEventDefinition event, SourceEventPageAnalysis page) {
+    SourceEventTouchResolution refused(String reason) => SourceEventTouchResolution(
+      kind: SourceEventTouchKind.unqualified, reason: reason);
+    final program = holePrograms[event.identity]!;
+    if (!program.isBoundTo(source: source, analysis: analysis, event: event) ||
+        !identical(page, event.pages.single)) {
+      return refused('sourceHoleCompleteProgramBindingMissing');
+    }
+    final candidates = _sourceContextEvents.where((candidate) => candidate.sourceMapId == event.sourceMapId).toList();
+    if (candidates.where((candidate) => candidate.identity == event.identity).length != 1) {
+      return refused('eventSetBinding');
+    }
+    for (final candidate in candidates) {
+      for (final other in candidate.pages) {
+        final graphic = other.graphic;
+        if (graphic == null || (graphic.tileId > 0 && !graphic.through &&
+            (graphic.moveType != 0 || candidate.x == event.x && candidate.y == event.y))) {
+          return refused('tileEventStateUnqualified');
+        }
+      }
+    }
+    final cell = semanticResolver.cellAt(event.sourceMapId, event.x, event.y);
+    final passage = semanticResolver.resolveConnectionEntryTile(cell);
+    return SourceEventTouchResolution(
+      kind: passage.status == SourcePassageStatus.allowed ? SourceEventTouchKind.enter : SourceEventTouchKind.unqualified,
+      reason: passage.status == SourcePassageStatus.allowed ? 'boundWholeSourceHoleStationaryTilesAllowed' : passage.reason.name,
+      trace: passage.trace);
+  }
 
   bool _nativeSolidAt(SourceEventDefinition event) {
     final map = maps[event.sourceMapId]!;
@@ -2889,7 +2969,8 @@ final class _SceneBuilder {
 
   SceneAsset build() {
     final end = _node(SceneEndPayload());
-    final first = _block(page.body, end);
+    final hole = projection.holePrograms[event.identity];
+    final first = hole == null ? _block(page.body, end) : _hole(hole, end);
     final start = _node(SceneStartPayload());
     _edge(start, 'completed', first);
     return SceneAsset(
@@ -2907,6 +2988,40 @@ final class _SceneBuilder {
           'sourceEventIdentity': event.identity.value,
           'sourcePageIndex': '${page.originalPageIndex}'
         });
+  }
+
+  String _hole(SourceHoleNativeProgram program, String end) {
+    final sourceMapId = projection.maps[event.sourceMapId]!.id;
+    final destinationMapId = projection.maps[program.warp.targetSourceMapId]!.id;
+    final landing = projection._sound(program.landingSound.name)!;
+    var completed = _interactive(SceneInteractiveCommand.playSoundEffect(
+      mediaAssetId: landing.mediaId, volume: landing.gainForVolume(program.landingSound.volume)), end);
+    completed = _interactive(SceneInteractiveCommand.actorVisibility(
+      target: SceneActorTarget.player(mapId: destinationMapId), visible: true), completed);
+    final blocked = _interactive(SceneInteractiveCommand.actorVisibility(
+      target: SceneActorTarget.player(mapId: sourceMapId), visible: true), end);
+    final transfer = _node(SceneActionPayload.interactive(SceneInteractiveCommand.warp(
+      destinationMapId: destinationMapId, warpId: projection.arrival(event, program.warp),
+      presentation: SceneWarpPresentation(mode: SceneWarpPresentationMode.fade,
+        fadeOutMs: 300, revealMs: 300))));
+    _edge(transfer, 'completed', completed, SceneEdgeKind.actionCompleted);
+    _edge(transfer, 'blocked', blocked, SceneEdgeKind.actionCompleted);
+    String prelude(SceneInteractiveCommand command, String next) {
+      final action = _node(SceneActionPayload.interactive(command));
+      for (final port in command.outputPortIds) {
+        _edge(action, port, port == 'completed' ? next : blocked, SceneEdgeKind.actionCompleted);
+      }
+      return action;
+    }
+    var next = transfer;
+    for (final wait in program.waits.reversed) {
+      next = prelude(SceneInteractiveCommand.wait(durationMs: wait.durationMs), next);
+    }
+    final falling = projection._sound(program.fallingSound.name)!;
+    next = prelude(SceneInteractiveCommand.playSoundEffect(
+      mediaAssetId: falling.mediaId, volume: falling.gainForVolume(program.fallingSound.volume)), next);
+    return prelude(SceneInteractiveCommand.actorVisibility(
+      target: SceneActorTarget.player(mapId: sourceMapId), visible: false), next);
   }
 
   String _block(SourceEventBlock block, String continuation) {

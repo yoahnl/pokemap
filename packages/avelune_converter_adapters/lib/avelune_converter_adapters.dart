@@ -53,3 +53,4 @@ export 'src/source_external_warp_binding.dart';
 export 'src/source_static_door_program.dart';
 export 'src/source_routed_door_program.dart';
 export 'src/source_stair_program.dart';
+export 'src/source_hole_native_program.dart';
