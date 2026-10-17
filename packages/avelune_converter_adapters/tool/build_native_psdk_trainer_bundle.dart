@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:map_gameplay/map_gameplay.dart';
 
 const _trainerKeys = {
   'FRLG_BUGCATCHER,Brent',
@@ -141,7 +142,9 @@ Future<void> main(List<String> args) async {
   for (final id in abilities.toList()..sort()) {
     await read('Data/Studio/abilities/$id.json');
   }
-  await read('Data/Studio/natures/hardy.json');
+  for (final id in canonicalPokemonNatureIds.toList()..sort()) {
+    await read('Data/Studio/natures/$id.json');
+  }
   final bundle = const NativePsdkTrainerBundleBuilder()
       .build(files: sourceFiles.values.toList(), requestedLevels: levels);
   final json = bundle.toJson();
@@ -181,6 +184,7 @@ Future<void> main(List<String> args) async {
     'moves': bundle.movesById.length,
     'types': bundle.catalogs['types']!.entries.length,
     'abilities': bundle.catalogs['abilities']!.entries.length,
+    'natures': bundle.catalogs['natures']!.entries.length,
     'sources': sourceFiles.length,
     'bundleHash': canonicalHashOf(json).value,
     'sourceScriptsExecuted': 0,

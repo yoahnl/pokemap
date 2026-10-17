@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'generated/native_psdk_trainer_bundle_data.dart';
 
@@ -50,7 +51,7 @@ final class NativePsdkTrainerBundle {
       (jsonDecode(nativePsdkTrainerBundleJson) as Map).cast<String, dynamic>());
 
   factory NativePsdkTrainerBundle.fromJson(Map<String, dynamic> json) {
-    if (json['kind'] != 'nativePsdkTrainerBundle' || json['version'] != 1) {
+    if (json['kind'] != 'nativePsdkTrainerBundle' || json['version'] != 2) {
       throw ContractError('native_trainer.bundle_version', r'$',
           'A versioned native trainer reference bundle is required.');
     }
@@ -59,6 +60,8 @@ final class NativePsdkTrainerBundle {
     final catalogs = <String, PokemonCatalogFile>{};
     final moves = <String, PokemonMove>{};
     for (final raw in _objects(json['species'])) {
+      final breeding = raw['breeding'];
+      _validateGenderRatio(breeding is Map ? breeding['genderRatio'] : null);
       final value = PokemonSpeciesFile.fromJson(raw);
       if (species.containsKey(value.id)) _invalid('duplicate_species');
       species[value.id] = value;
@@ -109,6 +112,14 @@ final class NativePsdkTrainerBundle {
     }
     final types = _ids(catalogs['types']);
     final abilities = _ids(catalogs['abilities']);
+    final natures = _ids(catalogs['natures']);
+    if (natures.length != canonicalPokemonNatureIds.length ||
+        !natures.containsAll(canonicalPokemonNatureIds)) {
+      _invalid('nature_closure');
+    }
+    for (final entry in catalogs['natures']!.entries) {
+      _validateNatureEntry(entry);
+    }
     if (types.length != 18 || !types.containsAll(nativeTrainerTypeIds)) {
       _invalid('type_closure');
     }
@@ -158,6 +169,22 @@ final class NativePsdkTrainerBundle {
         evidence['sourceScriptsExecuted'] != 0) {
       _invalid('qualification_scope');
     }
+    final witnesses = _objects(evidence['sources']);
+    for (final id in canonicalPokemonNatureIds) {
+      final sources = witnesses.where(
+          (source) => source['relativePath'] == 'Data/Studio/natures/$id.json');
+      if (sources.length != 1) _invalid('nature_source_witness');
+      final source = sources.single;
+      final hash = source['sha256'];
+      final byteLength = source['byteLength'];
+      if (hash is! String ||
+          !RegExp(r'^[a-f0-9]{64}$').hasMatch(hash) ||
+          byteLength is! int ||
+          byteLength <= 0 ||
+          byteLength > 1048576) {
+        _invalid('nature_source_witness');
+      }
+    }
     return NativePsdkTrainerBundle._(
         speciesById: Map.unmodifiable(species),
         learnsetsBySpeciesId: Map.unmodifiable(learnsets),
@@ -180,7 +207,7 @@ final class NativePsdkTrainerBundle {
 
   Map<String, Object?> toJson() => {
         'kind': 'nativePsdkTrainerBundle',
-        'version': 1,
+        'version': 2,
         'species': speciesById.values.map((value) => value.toJson()).toList(),
         'sourceLearnsets':
             learnsetsBySpeciesId.values.map((value) => value.toJson()).toList(),
@@ -322,6 +349,10 @@ final class NativePsdkTrainerBundleBuilder {
           'catchRate': form['catchRate'],
           'baseFriendship': form['baseLoyalty']
         };
+        value['breeding'] = {
+          ...value['breeding'] as Map,
+          'genderRatio': _nativeGenderRatio(form['femaleRate']),
+        };
         value['forms'] = {
           'baseFormId': baseId,
           'isBaseForm': number == 0,
@@ -394,12 +425,12 @@ final class NativePsdkTrainerBundleBuilder {
               method: trade != null
                   ? 'trade'
                   : type == 'minLevel'
-                  ? 'level_up'
-                  : type == 'minLoyalty'
-                      ? 'friendship'
-                      : type == 'skill1'
-                          ? 'known_move'
-                          : 'conditional',
+                      ? 'level_up'
+                      : type == 'minLoyalty'
+                          ? 'friendship'
+                          : type == 'skill1'
+                              ? 'known_move'
+                              : 'conditional',
               minLevel: type == 'minLevel' ? condition!['value'] as int : null,
               minFriendship:
                   type == 'minLoyalty' ? condition!['value'] as int : null,
@@ -517,16 +548,18 @@ final class NativePsdkTrainerBundleBuilder {
       read('Data/Studio/abilities/$id.json', id);
       abilities.add({'id': id});
     }
-    read('Data/Studio/natures/hardy.json', 'hardy');
+    final natures = <Map<String, dynamic>>[];
+    for (final id in canonicalPokemonNatureIds.toList()..sort()) {
+      final raw = read('Data/Studio/natures/$id.json', id);
+      natures.add(_nativeNatureEntry(id, raw));
+    }
     for (final entry in {
       'types': types,
       'abilities': abilities,
       'growth_rates': [
         for (final id in growthIds.toList()..sort()) {'id': id}
       ],
-      'natures': [
-        {'id': 'hardy'}
-      ],
+      'natures': natures,
     }.entries) {
       catalogs.add(PokemonCatalogFile(
               schemaVersion: 1,
@@ -539,7 +572,7 @@ final class NativePsdkTrainerBundleBuilder {
     }
     return NativePsdkTrainerBundle.fromJson({
       'kind': 'nativePsdkTrainerBundle',
-      'version': 1,
+      'version': 2,
       'species': species,
       'sourceLearnsets': learnsets,
       'evolutions': evolutions,
@@ -580,6 +613,9 @@ final class NativePsdkTrainerBundleBuilder {
           for (final path in used.toList()..sort()) index[path]!.evidence
         ],
         'growthRateOracle': 'PFM::Pokemon::ExpList::KIND_TO_METHOD',
+        'genderRatioOracle': 'Studio::CreatureForm#female_rate',
+        'natureStatOracle': 'Studio::Nature#stats',
+        'natureEffectPolicy': 'canonicalPokemonNatureEffect',
       },
     });
   }
@@ -605,6 +641,69 @@ const nativeTrainerTypeIds = {
   'steel',
   'fairy',
 };
+
+Map<String, double> _nativeGenderRatio(Object? femaleRate) {
+  if (femaleRate is! num ||
+      !femaleRate.isFinite ||
+      (femaleRate != -1 && (femaleRate < 0 || femaleRate > 100))) {
+    _invalid('female_rate');
+  }
+  if (femaleRate == -1) return {'genderless': 1};
+  return {'male': 100 - femaleRate.toDouble(), 'female': femaleRate.toDouble()};
+}
+
+void _validateGenderRatio(Object? value) {
+  if (value is! Map ||
+      value.values.any((weight) =>
+          weight is! num || !weight.isFinite || weight < 0 || weight > 100)) {
+    _invalid('gender_ratio');
+  }
+  if (value.length == 1 && value['genderless'] == 1) return;
+  if (value.length != 2 ||
+      !value.containsKey('male') ||
+      !value.containsKey('female') ||
+      (value['male'] as num) + (value['female'] as num) != 100) {
+    _invalid('gender_ratio');
+  }
+}
+
+Map<String, dynamic> _nativeNatureEntry(String id, Map<String, dynamic> raw) {
+  final stats = raw['stats'];
+  if (raw['klass'] != 'Nature' ||
+      raw['id'] != canonicalPokemonNatureIds.indexOf(id) ||
+      stats is! Map ||
+      stats.length != 5) {
+    _invalid('nature_stats');
+  }
+  const nativeStats = {
+    'atk': PokemonNatureStat.attack,
+    'dfe': PokemonNatureStat.defense,
+    'spd': PokemonNatureStat.speed,
+    'ats': PokemonNatureStat.specialAttack,
+    'dfs': PokemonNatureStat.specialDefense,
+  };
+  final effect = canonicalPokemonNatureEffect(id);
+  String? increased, decreased;
+  for (final entry in nativeStats.entries) {
+    final value = stats[entry.key];
+    if (value is! int || value != effect.apply(100, entry.value)) {
+      _invalid('nature_stats');
+    }
+    if (value == 110) increased = entry.value.name;
+    if (value == 90) decreased = entry.value.name;
+  }
+  return {'id': id, 'increasedStat': increased, 'decreasedStat': decreased};
+}
+
+void _validateNatureEntry(Map<String, dynamic> entry) {
+  final effect = canonicalPokemonNatureEffect(entry['id'] as String);
+  if (!entry.containsKey('increasedStat') ||
+      !entry.containsKey('decreasedStat') ||
+      entry['increasedStat'] != effect.increasedStat?.name ||
+      entry['decreasedStat'] != effect.decreasedStat?.name) {
+    _invalid('nature_effect');
+  }
+}
 
 Set<String> _ids(PokemonCatalogFile? catalog) {
   if (catalog == null) _invalid('catalog_missing');

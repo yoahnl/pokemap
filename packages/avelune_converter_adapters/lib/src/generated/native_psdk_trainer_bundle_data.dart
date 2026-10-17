@@ -1,6 +1,6 @@
 const nativePsdkTrainerBundleJson = r'''{
   "kind": "nativePsdkTrainerBundle",
-  "version": 1,
+  "version": 2,
   "species": [
     {
       "schemaVersion": 1,
@@ -32,7 +32,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "unnerve"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -107,7 +110,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "justified"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 75.0,
+          "female": 25.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -183,7 +189,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sniper"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -261,7 +270,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -338,7 +350,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "healer"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -414,7 +429,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "gluttony"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -490,7 +508,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "tinted_lens"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -565,7 +586,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "run_away"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -641,7 +665,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "solar_power"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 87.5,
+          "female": 12.5
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -720,7 +747,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 87.5,
+          "female": 12.5
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -799,7 +829,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 87.5,
+          "female": 12.5
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -877,7 +910,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "solar_power"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 87.5,
+          "female": 12.5
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -952,7 +988,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "solar_power"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 87.5,
+          "female": 12.5
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1027,7 +1066,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "unaware"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 25.0,
+          "female": 75.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1102,7 +1144,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "friend_guard"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 25.0,
+          "female": 75.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1177,7 +1222,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "friend_guard"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 25.0,
+          "female": 75.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1252,7 +1300,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "unnerve"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1328,7 +1379,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sand_veil"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1406,7 +1460,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "galvanize"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1484,7 +1541,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "stench"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1560,7 +1620,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sand_veil"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1638,7 +1701,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "galvanize"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1716,7 +1782,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sand_veil"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1794,7 +1863,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "galvanize"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1871,7 +1943,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "justified"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 75.0,
+          "female": 25.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -1947,7 +2022,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2022,7 +2100,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "cloud_nine"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2097,7 +2178,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "cloud_nine"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2172,7 +2256,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "steadfast"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 75.0,
+          "female": 25.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2247,7 +2334,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "steadfast"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 75.0,
+          "female": 25.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2322,7 +2412,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "steadfast"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 75.0,
+          "female": 25.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2397,7 +2490,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "unnerve"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2474,7 +2570,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "rattled"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2551,7 +2650,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2627,7 +2729,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "run_away"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2703,7 +2808,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "weak_armor"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2778,7 +2886,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "unnerve"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2855,7 +2966,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "rattled"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -2932,7 +3046,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3007,7 +3124,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3090,7 +3210,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3173,7 +3296,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3256,7 +3382,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3339,7 +3468,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3422,7 +3554,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3505,7 +3640,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3588,7 +3726,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3671,7 +3812,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "lightning_rod"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3749,7 +3893,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3826,7 +3973,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "hustle"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3904,7 +4054,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "thick_fat"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -3981,7 +4134,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "hustle"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4059,7 +4215,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "thick_fat"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4137,7 +4296,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "reckless"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4213,7 +4375,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "reckless"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4289,7 +4454,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "reckless"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4364,7 +4532,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sand_rush"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4442,7 +4613,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "slush_rush"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4519,7 +4693,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sand_rush"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4597,7 +4774,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "slush_rush"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4675,7 +4855,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "sheer_force"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4753,7 +4936,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": null
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4831,7 +5017,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "wonder_skin"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4907,7 +5096,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "run_away"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -4983,7 +5175,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "gluttony"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -5059,7 +5254,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "effect_spore"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -5135,7 +5333,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "run_away"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -5211,7 +5412,10 @@ const nativePsdkTrainerBundleJson = r'''{
         "hidden": "gluttony"
       },
       "breeding": {
-        "genderRatio": {},
+        "genderRatio": {
+          "male": 50.0,
+          "female": 50.0
+        },
         "eggGroups": [],
         "hatchCycles": 0
       },
@@ -48116,7 +48320,129 @@ const nativePsdkTrainerBundleJson = r'''{
       },
       "entries": [
         {
-          "id": "hardy"
+          "id": "adamant",
+          "increasedStat": "attack",
+          "decreasedStat": "specialAttack"
+        },
+        {
+          "id": "bashful",
+          "increasedStat": null,
+          "decreasedStat": null
+        },
+        {
+          "id": "bold",
+          "increasedStat": "defense",
+          "decreasedStat": "attack"
+        },
+        {
+          "id": "brave",
+          "increasedStat": "attack",
+          "decreasedStat": "speed"
+        },
+        {
+          "id": "calm",
+          "increasedStat": "specialDefense",
+          "decreasedStat": "attack"
+        },
+        {
+          "id": "careful",
+          "increasedStat": "specialDefense",
+          "decreasedStat": "specialAttack"
+        },
+        {
+          "id": "docile",
+          "increasedStat": null,
+          "decreasedStat": null
+        },
+        {
+          "id": "gentle",
+          "increasedStat": "specialDefense",
+          "decreasedStat": "defense"
+        },
+        {
+          "id": "hardy",
+          "increasedStat": null,
+          "decreasedStat": null
+        },
+        {
+          "id": "hasty",
+          "increasedStat": "speed",
+          "decreasedStat": "defense"
+        },
+        {
+          "id": "impish",
+          "increasedStat": "defense",
+          "decreasedStat": "specialAttack"
+        },
+        {
+          "id": "jolly",
+          "increasedStat": "speed",
+          "decreasedStat": "specialAttack"
+        },
+        {
+          "id": "lax",
+          "increasedStat": "defense",
+          "decreasedStat": "specialDefense"
+        },
+        {
+          "id": "lonely",
+          "increasedStat": "attack",
+          "decreasedStat": "defense"
+        },
+        {
+          "id": "mild",
+          "increasedStat": "specialAttack",
+          "decreasedStat": "defense"
+        },
+        {
+          "id": "modest",
+          "increasedStat": "specialAttack",
+          "decreasedStat": "attack"
+        },
+        {
+          "id": "naive",
+          "increasedStat": "speed",
+          "decreasedStat": "specialDefense"
+        },
+        {
+          "id": "naughty",
+          "increasedStat": "attack",
+          "decreasedStat": "specialDefense"
+        },
+        {
+          "id": "quiet",
+          "increasedStat": "specialAttack",
+          "decreasedStat": "speed"
+        },
+        {
+          "id": "quirky",
+          "increasedStat": null,
+          "decreasedStat": null
+        },
+        {
+          "id": "rash",
+          "increasedStat": "specialAttack",
+          "decreasedStat": "specialDefense"
+        },
+        {
+          "id": "relaxed",
+          "increasedStat": "defense",
+          "decreasedStat": "speed"
+        },
+        {
+          "id": "sassy",
+          "increasedStat": "specialDefense",
+          "decreasedStat": "speed"
+        },
+        {
+          "id": "serious",
+          "increasedStat": null,
+          "decreasedStat": null
+        },
+        {
+          "id": "timid",
+          "increasedStat": "speed",
+          "decreasedStat": "attack"
         }
       ]
     }
@@ -50528,9 +50854,129 @@ const nativePsdkTrainerBundleJson = r'''{
         "byteLength": 1126
       },
       {
+        "relativePath": "Data/Studio/natures/adamant.json",
+        "sha256": "9c669cc3c464a399628f2cae7399502f9562a976c262f7c99ec42ee4da255505",
+        "byteLength": 234
+      },
+      {
+        "relativePath": "Data/Studio/natures/bashful.json",
+        "sha256": "363cf22eabae13e2037795df6bb5b1873f66eaa2fcf9748fe9ba2f7d7b5fef55",
+        "byteLength": 236
+      },
+      {
+        "relativePath": "Data/Studio/natures/bold.json",
+        "sha256": "1084ad929c51f8876eeff89724cd00ed6e3f1d35191487adb96349bc7df12d40",
+        "byteLength": 232
+      },
+      {
+        "relativePath": "Data/Studio/natures/brave.json",
+        "sha256": "b78c0fe986940fafdefc3c47d47b6a30da18df98baa05cb3c99e7c7b629aa591",
+        "byteLength": 234
+      },
+      {
+        "relativePath": "Data/Studio/natures/calm.json",
+        "sha256": "c1810ccc1f5f8bcb304039d06ece503092556dfac903917bad48c6dc601bcdc4",
+        "byteLength": 235
+      },
+      {
+        "relativePath": "Data/Studio/natures/careful.json",
+        "sha256": "ed04076801bcfb4ba371f6a819f3a74b55ac17304b80ea4783da0f9e63a8aaa4",
+        "byteLength": 236
+      },
+      {
+        "relativePath": "Data/Studio/natures/docile.json",
+        "sha256": "4dc98355b839cf943d0eba0419a0dc57bc5250083b3e0f6bede7ee61a611b344",
+        "byteLength": 234
+      },
+      {
+        "relativePath": "Data/Studio/natures/gentle.json",
+        "sha256": "17bb2502099df4d3113d5979e455939c4bd0c46a31d2d66749fc10ebffbfebb9",
+        "byteLength": 236
+      },
+      {
         "relativePath": "Data/Studio/natures/hardy.json",
         "sha256": "2216de4c7effc2699f2b66994d7eb6ad70dc7fd312d050c5a794f753ff28be29",
         "byteLength": 233
+      },
+      {
+        "relativePath": "Data/Studio/natures/hasty.json",
+        "sha256": "1d7fdaadf46da2f126e11c2252837f6802c977aff3d6bee4946bc1a5cd159886",
+        "byteLength": 234
+      },
+      {
+        "relativePath": "Data/Studio/natures/impish.json",
+        "sha256": "3cecca4c453b52b6d2aacddd247b5c544c3e525765c42b701102391dae483af6",
+        "byteLength": 232
+      },
+      {
+        "relativePath": "Data/Studio/natures/jolly.json",
+        "sha256": "6cf45d8f446d40338040d31e08fee0b41fe548f79b5cf1e25fada880169d3968",
+        "byteLength": 233
+      },
+      {
+        "relativePath": "Data/Studio/natures/lax.json",
+        "sha256": "77f294bea67723d6eed9b25caa258fe3fc5ce08c82466a7a512210854ed5829a",
+        "byteLength": 232
+      },
+      {
+        "relativePath": "Data/Studio/natures/lonely.json",
+        "sha256": "1b94e52d387d71ff5acbecb98f5f3723b357ee84c5c708c49902d6d5c435dca0",
+        "byteLength": 234
+      },
+      {
+        "relativePath": "Data/Studio/natures/mild.json",
+        "sha256": "de0973ad3a92aec1fc33f2b9330a2de7e6edf093a591a3932358bbb87b809570",
+        "byteLength": 231
+      },
+      {
+        "relativePath": "Data/Studio/natures/modest.json",
+        "sha256": "5badb45f0adc539a49cbe893a67b03e159cf53d88fffe0473bb776ec5e8a938a",
+        "byteLength": 234
+      },
+      {
+        "relativePath": "Data/Studio/natures/naive.json",
+        "sha256": "6a924f2a3f94ccc1f41aa1c7d7ad89f371125e9113eb6cd37d6e0cf67cb3ab30",
+        "byteLength": 236
+      },
+      {
+        "relativePath": "Data/Studio/natures/naughty.json",
+        "sha256": "e53754084faa940429a5eecba717d7e895093e0361b0103dd5f16c68cf3c2eb2",
+        "byteLength": 237
+      },
+      {
+        "relativePath": "Data/Studio/natures/quiet.json",
+        "sha256": "614ba784ba75ee3a074bcc469186f5f2aef00deb193112d471a6eebc494db0d2",
+        "byteLength": 233
+      },
+      {
+        "relativePath": "Data/Studio/natures/quirky.json",
+        "sha256": "cf4600b6ba6c924df1279a97ace8cb48400726031272208983e22602f7ff499b",
+        "byteLength": 235
+      },
+      {
+        "relativePath": "Data/Studio/natures/rash.json",
+        "sha256": "c671b1e9ebc93651454f5f71ecabc779efd38d77c77d64cb5d8fc5612ee7b681",
+        "byteLength": 233
+      },
+      {
+        "relativePath": "Data/Studio/natures/relaxed.json",
+        "sha256": "e12a08e3f05f0e7b261d41d77649444d1471cdfb743ed674a6e83e3d442f7805",
+        "byteLength": 235
+      },
+      {
+        "relativePath": "Data/Studio/natures/sassy.json",
+        "sha256": "604e7ba40a9db768315ed57e80c28a69ababc70fe6a036daf5102b67e35eaf56",
+        "byteLength": 236
+      },
+      {
+        "relativePath": "Data/Studio/natures/serious.json",
+        "sha256": "c1fafdf051df27f8bb6d9ae32baed1740f8c86c76c36082e2314b43b6639eed7",
+        "byteLength": 236
+      },
+      {
+        "relativePath": "Data/Studio/natures/timid.json",
+        "sha256": "d0c3f31b73231c8fd79eca499f39216f50c186ef7aad390c35305f0cc63859d1",
+        "byteLength": 235
       },
       {
         "relativePath": "Data/Studio/pokemon/arbok.json",
@@ -51069,6 +51515,9 @@ const nativePsdkTrainerBundleJson = r'''{
       }
     ],
     "growthRateOracle": "PFM::Pokemon::ExpList::KIND_TO_METHOD",
+    "genderRatioOracle": "Studio::CreatureForm#female_rate",
+    "natureStatOracle": "Studio::Nature#stats",
+    "natureEffectPolicy": "canonicalPokemonNatureEffect",
     "sourceRosterFile": {
       "relativePath": "PBS/trainers.txt",
       "kind": "file",

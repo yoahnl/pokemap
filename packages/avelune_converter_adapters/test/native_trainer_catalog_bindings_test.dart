@@ -89,12 +89,17 @@ void main() {
     expect(native.speciesById, hasLength(68));
     expect(native.movesById, hasLength(396));
     expect(native.catalogs['types']!.entries, hasLength(18));
+    expect(native.catalogs['natures']!.entries, hasLength(25));
     expect(
         native.catalogs['types']!.entries
             .every((type) => type['damageTo'] is List),
         isTrue);
     expect(native.speciesById['beedrill']!.typing.types, ['bug', 'poison']);
     expect(native.speciesById['beedrill']!.abilities.primary, 'swarm');
+    expect(native.speciesById['beedrill']!.breeding.genderRatio,
+        {'male': 50, 'female': 50});
+    expect(native.speciesById['beedrill_form30']!.breeding.genderRatio,
+        {'male': 50, 'female': 50});
     expect(native.speciesById['machop']!.baseStats.atk, 80);
     expect(native.movesById['seismic_toss']!.unsupportedReasons,
         contains('psdk_method:s_hp_eq_level'));
