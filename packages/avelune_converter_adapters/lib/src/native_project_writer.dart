@@ -1499,18 +1499,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           throw const NativeWriteException('native.semantics.character',
               'Semantic player clips require their preceding identity');
         }
-        final clip = CharacterAnimation(
-            state: CharacterAnimationState.values
-                .singleWhere((entry) => entry.name == parameters['state']),
-            direction: EntityFacing.values
-                .singleWhere((entry) => entry.name == parameters['direction']),
-            sourceAssetId: parameters['sourceAssetId'] as String,
-            loop: parameters['loop'] as bool,
-            frames: [
-              for (final frame in parameters['frames'] as List)
-                CharacterAnimationFrame.fromJson(
-                    Map<String, dynamic>.from(frame)),
-            ]);
+        final clip = CharacterAnimation.fromJson(
+            Map<String, dynamic>.from(parameters));
         characters[index] = characters[index]
             .copyWith(animations: [...characters[index].animations, clip]);
       case 'characterStudio.character.setDefault':

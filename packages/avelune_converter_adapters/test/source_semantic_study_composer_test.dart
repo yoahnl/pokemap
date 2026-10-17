@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -113,9 +114,16 @@ void main() {
       'OriginalWater':
           image.encodePng(image.Image(width: 96, height: 128, numChannels: 4))
     }, extraFiles: {
-      'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+      'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'
+          'RunCharset = OriginalRun\nCycleCharset = OriginalCycle\n'),
       'Graphics/Characters/OriginalPlayer.png':
           image.encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+      'Graphics/Characters/OriginalRun.png': image.encodePng(
+          image.Image(width: 128, height: 192, numChannels: 4)
+            ..setPixelRgba(0, 0, 1, 2, 3, 255)),
+      'Graphics/Characters/OriginalCycle.png': image.encodePng(
+          image.Image(width: 192, height: 192, numChannels: 4)
+            ..setPixelRgba(0, 0, 4, 5, 6, 255)),
     }, maps: [
       LiteralFixtureMap(id: 1, width: 3, height: 4, layers: [
         [48, ...List.filled(11, 384)],
@@ -148,6 +156,28 @@ void main() {
       expect(draft.sourceArtifacts, isNotEmpty);
       final witnesses = (draft.compositionEvidence['sourceSemantics']
           as Map)['witnesses'] as List;
+      final sourceSheets = (draft.compositionEvidence['sourceSemantics']
+          as Map)['player']['animationSheets'] as List;
+      expect(sourceSheets, hasLength(3));
+      expect(
+          draft.mutations.where((mutation) =>
+              mutation.actionId == 'characterStudio.animationClip.upsert' &&
+              mutation.parameters['state'] == 'bicycle_idle'),
+          hasLength(4));
+      for (final name in ['OriginalPlayer', 'OriginalRun', 'OriginalCycle']) {
+        final witness = witnesses.singleWhere(
+            (row) => row['relativePath'] == 'Graphics/Characters/$name.png');
+        expect(witness['encoding'], 'png');
+        expect(draft.sourceArtifacts.map((artifact) => artifact.handle),
+            contains(witness['artifactHandle']));
+      }
+      for (final sheet in sourceSheets) {
+        expect(
+            draft.mutations.where((mutation) =>
+                mutation.actionId == 'tileset.import_image' &&
+                mutation.parameters['tilesetId'] == sheet['tilesetId']),
+            hasLength(1));
+      }
       expect(
           (witnesses.singleWhere((row) =>
               row['relativePath'] == 'Data/Scripts.rxdata')['chunks'] as List),
@@ -173,7 +203,11 @@ void main() {
             opened.projectHandle,
             policy: ProjectSnapshotLoadPolicy.strict);
         expect(native.loadDiagnostics, isEmpty);
-        expect(native.manifest.characters.single.animations, hasLength(8));
+        expect(native.manifest.characters.single.animations, hasLength(20));
+        for (final sheet in sourceSheets) {
+          expect(native.manifest.tilesets.map((entry) => entry.id),
+              contains(sheet['tilesetId']));
+        }
         expect(native.manifest.settings.defaultPlayerCharacterId,
             native.manifest.characters.single.id);
         final map = native.maps.single;
@@ -219,8 +253,119 @@ void main() {
           throwsA(isA<NativeWriteException>().having(
               (error) => error.code, 'code', 'native.semantics.regeneration')));
       expect(stages, isEmpty);
+      final forgedClips = draft.mutations.map((mutation) {
+        if (mutation.actionId != 'characterStudio.animationClip.upsert' ||
+            mutation.parameters['state'] != 'bicycle') {
+          return mutation;
+        }
+        return NativeMutation(
+            operationId: mutation.operationId,
+            actionId: mutation.actionId,
+            sourceEntityIds: mutation.sourceEntityIds,
+            targetEntityIds: mutation.targetEntityIds,
+            parameters: {
+              ...mutation.parameters,
+              'sourceAssetId': _nativePlayerAsset(draft),
+            });
+      }).toList();
+      final forgedAnimation = NativeProjectDraft(
+          source: draft.source,
+          projectName: draft.projectName,
+          parentPath: draft.parentPath,
+          folderName: draft.folderName,
+          mapIds: draft.mapIds,
+          artifacts: draft.artifacts,
+          sourceArtifacts: draft.sourceArtifacts,
+          mutations: forgedClips,
+          compositionEvidence: draft.compositionEvidence);
+      final animationApproval = approveNativeFixtureDraft(forgedAnimation);
+      await expectLater(
+          NativeProjectWriter().write(animationApproval.plan,
+              animationApproval.context, forgedAnimation),
+          throwsA(isA<NativeWriteException>().having(
+              (error) => error.code, 'code', 'native.semantics.regeneration')));
+      final cycle = sourceSheets.singleWhere(
+          (sheet) => sheet['declaration'] == 'CycleCharset') as Map;
+      final cycleImport = draft.mutations.singleWhere((mutation) =>
+          mutation.actionId == 'tileset.import_image' &&
+          mutation.parameters['tilesetId'] == cycle['tilesetId']);
+      final originalHandle = cycleImport.parameters['artifactHandle'];
+      final originalArtifact = draft.artifacts
+          .singleWhere((artifact) => artifact.handle == originalHandle);
+      final changedPixels = image
+          .decodePng(Uint8List.fromList(originalArtifact.bytes))!
+        ..setPixelRgba(8, 16, 255, 0, 0, 255);
+      final changedArtifact =
+          NativeArtifact(bytes: image.encodePng(changedPixels));
+      final semantics =
+          draft.compositionEvidence['sourceSemantics'] as Map<String, Object?>;
+      final player = semantics['player'] as Map;
+      final forgedPixels = NativeProjectDraft(
+          source: draft.source,
+          projectName: draft.projectName,
+          parentPath: draft.parentPath,
+          folderName: draft.folderName,
+          mapIds: draft.mapIds,
+          artifacts: [
+            for (final artifact in draft.artifacts)
+              if (artifact.handle == originalHandle)
+                changedArtifact
+              else
+                artifact,
+          ],
+          sourceArtifacts: draft.sourceArtifacts,
+          mutations: [
+            for (final mutation in draft.mutations)
+              if (mutation.operationId == cycleImport.operationId)
+                NativeMutation(
+                    operationId: mutation.operationId,
+                    actionId: mutation.actionId,
+                    sourceEntityIds: mutation.sourceEntityIds,
+                    targetEntityIds: mutation.targetEntityIds,
+                    parameters: {
+                      ...mutation.parameters,
+                      'artifactHandle': changedArtifact.handle,
+                    })
+              else
+                mutation,
+          ],
+          compositionEvidence: {
+            ...draft.compositionEvidence,
+            'sourceSemantics': {
+              ...semantics,
+              'player': {
+                ...player,
+                'animationSheets': [
+                  for (final sheet in sourceSheets)
+                    if (sheet['declaration'] == 'CycleCharset')
+                      {
+                        ...sheet as Map,
+                        'nativeOutput': {
+                          ...sheet['nativeOutput'] as Map,
+                          'rawSha256': changedArtifact.rawSha256.value,
+                          'byteLength': changedArtifact.bytes.length,
+                        },
+                      }
+                    else
+                      sheet,
+                ],
+              },
+            },
+          });
+      final pixelsApproval = approveNativeFixtureDraft(forgedPixels);
+      await expectLater(
+          NativeProjectWriter()
+              .write(pixelsApproval.plan, pixelsApproval.context, forgedPixels),
+          throwsA(isA<NativeWriteException>().having(
+              (error) => error.code, 'code', 'native.semantics.regeneration')));
     } finally {
       await output.delete(recursive: true);
     }
   }, skip: scriptsPath == null || !Platform.isMacOS);
 }
+
+String _nativePlayerAsset(NativeProjectDraft draft) => draft.mutations
+    .firstWhere((mutation) =>
+        mutation.actionId == 'characterStudio.animationClip.upsert' &&
+        mutation.parameters['state'] == 'walk')
+    .parameters['sourceAssetId'] as String;

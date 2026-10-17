@@ -66,8 +66,10 @@ final class SourceSemanticStudyComposer {
     final connections = await const SourceConnectionStudyComposer().compose(
         source: source, nativeMaps: projection.nativeMaps, files: recording,
         limits: limits, cancellation: cancellation);
-    final playerArtifact =
-        NativeArtifact(bytes: player.outputBytes, limits: limits);
+    final playerArtifacts = {
+      for (final sheet in player.sheets)
+        sheet.tilesetId: NativeArtifact(bytes: sheet.outputBytes, limits: limits),
+    };
     NativeMutation mutation(String suffix, String action,
             List<ConverterId> targets, Map<String, Object?> parameters) =>
         NativeMutation(
@@ -75,22 +77,27 @@ final class SourceSemanticStudyComposer {
             actionId: action,
             sourceEntityIds: [
               player.metadataFile.fileId,
-              player.imageFile.fileId
+              ...player.sheets.map((sheet) => sheet.imageFile.fileId).toSet(),
             ],
             targetEntityIds: targets,
             parameters: parameters,
             limits: limits);
     final playerMutations = [
-      mutation('import', 'tileset.import_image', [
-        ConverterId(player.tilesetId),
-        ConverterId(player.assetId)
-      ], {
-        'artifactHandle': playerArtifact.handle,
-        'tilesetId': player.tilesetId,
-        'name': player.character.name,
-        'tileWidth': 32,
-        'tileHeight': 32,
-      }),
+      for (final sheet in player.sheets)
+        mutation(
+            sheet.declaration == 'WalkCharset'
+                ? 'import'
+                : 'import-${sheet.declaration}',
+            'tileset.import_image',
+            [ConverterId(sheet.tilesetId), ConverterId(sheet.assetId)], {
+          'artifactHandle': playerArtifacts[sheet.tilesetId]!.handle,
+          'tilesetId': sheet.tilesetId,
+          'name': sheet.declaration == 'WalkCharset'
+              ? player.character.name
+              : '${player.character.name} ${sheet.states.last.name}',
+          'tileWidth': 32,
+          'tileHeight': 32,
+        }),
       mutation('create', 'characterStudio.character.create', [
         ConverterId(player.character.id)
       ], {
@@ -107,7 +114,7 @@ final class SourceSemanticStudyComposer {
         ], {
           'characterId': player.character.id,
           'kind': 'system',
-          'state': clip.state.name,
+          'state': clip.toJson()['state'],
           'direction': clip.direction.name,
           'sourceAssetId': clip.sourceAssetId,
           'loop': clip.loop,
@@ -122,7 +129,7 @@ final class SourceSemanticStudyComposer {
     final original = literal.draft!;
     final contextDraft = NativeProjectDraft(source: source, projectName: original.projectName,
       parentPath: original.parentPath, folderName: original.folderName, mapIds: original.mapIds,
-      artifacts: {for (final a in [...original.artifacts, playerArtifact, ...projection.artifacts]) a.handle: a}.values.toList(),
+      artifacts: {for (final a in [...original.artifacts, ...playerArtifacts.values, ...projection.artifacts]) a.handle: a}.values.toList(),
       mutations: [...original.mutations, ...playerMutations, ...projection.mutations],
       defaultMapWidth: original.defaultMapWidth, defaultMapHeight: original.defaultMapHeight, limits: limits);
     final project = sourceSemanticNativeProject(draft: contextDraft, maps: projection.nativeMaps,
@@ -132,7 +139,7 @@ final class SourceSemanticStudyComposer {
     final artifacts = {
       for (final artifact in [
         ...original.artifacts,
-        playerArtifact,
+        ...playerArtifacts.values,
         ...projection.artifacts,
         ...jumps.artifacts
       ])
@@ -368,9 +375,7 @@ ProjectManifest sourceSemanticNativeProject({
       case 'characterStudio.animationClip.upsert':
         final index = characters.indexWhere((c) => c.id == p['characterId']);
         characters[index] = characters[index].copyWith(animations: [...characters[index].animations,
-          CharacterAnimation(state: CharacterAnimationState.values.byName(p['state'] as String),
-            direction: EntityFacing.values.byName(p['direction'] as String), sourceAssetId: p['sourceAssetId'] as String,
-            loop: p['loop'] as bool, frames: [for (final f in p['frames'] as List) CharacterAnimationFrame.fromJson(Map<String, dynamic>.from(f))])]);
+          CharacterAnimation.fromJson(Map<String, dynamic>.from(p))]);
       case 'characterStudio.character.setDefault':
         defaultCharacter = p['characterId'] as String;
     }

@@ -6,6 +6,84 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
+final class SourcePlayerCharacterSheet {
+  SourcePlayerCharacterSheet({
+    required this.declaration,
+    required this.charsetName,
+    required this.imageFile,
+    required List<int> imageBytes,
+    required List<int> outputBytes,
+    required this.sheetWidth,
+    required this.sheetHeight,
+    required this.tilesetId,
+  })  : imageBytes = List.unmodifiable(imageBytes),
+        outputBytes = List.unmodifiable(outputBytes);
+
+  final String declaration;
+  final String charsetName;
+  final SourceFileEntry imageFile;
+  final List<int> imageBytes;
+  final List<int> outputBytes;
+  final int sheetWidth;
+  final int sheetHeight;
+  final String tilesetId;
+  String get assetId => 'image_$tilesetId';
+  int get frameWidthPx => sheetWidth ~/ 4;
+  int get frameHeightPx => sheetHeight ~/ 4;
+  int get frameDurationMs => declaration == 'WalkCharset' ? 150 : 100;
+  List<CharacterAnimationState> get states => switch (declaration) {
+        'WalkCharset' => const [
+            CharacterAnimationState.idle,
+            CharacterAnimationState.walk,
+          ],
+        'RunCharset' => const [CharacterAnimationState.run],
+        'CycleCharset' => const [
+            CharacterAnimationState.bicycleIdle,
+            CharacterAnimationState.bicycle,
+          ],
+        _ => throw StateError('Unsupported player charset declaration'),
+      };
+
+  Map<String, Object?> get evidence => {
+        'declaration': declaration,
+        'charsetName': charsetName,
+        'imageFile': imageFile.toJson(),
+        'sourceOriginal': {
+          'rawSha256': imageFile.sha256!.value,
+          'byteLength': imageBytes.length,
+          'sheetWidth': sheetWidth,
+          'sheetHeight': sheetHeight,
+          'frameWidthPx': frameWidthPx,
+          'frameHeightPx': frameHeightPx,
+        },
+        'nativeOutput': {
+          'rawSha256': crypto.sha256.convert(outputBytes).toString(),
+          'byteLength': outputBytes.length,
+          'sheetWidth': 256,
+          'sheetHeight': 256,
+          'frameWidthPx': 64,
+          'frameHeightPx': 64,
+          'sourceOffsetXPx': (64 - frameWidthPx) ~/ 2,
+          'sourceOffsetYPx': 64 - frameHeightPx,
+          'policy': 'transparent64PixelFramesSourceBottomCentered',
+          'sourcePixelsPreserved': true,
+          'sourcePixelsResampled': false,
+        },
+        'assetId': assetId,
+        'tilesetId': tilesetId,
+        'states': states
+            .map((state) => state == CharacterAnimationState.bicycleIdle
+                ? 'bicycle_idle'
+                : state.name)
+            .toList(),
+        'movingFrameOrder': [1, 2, 3, 0],
+        'idleFrame': 0,
+        'frameDurationMs': frameDurationMs,
+        'frameTimingPolicy': 'converterNativeMovementPreview',
+        'sourceMovementTimingQualified': false,
+      };
+}
+
 final class SourcePlayerCharacterImport {
   SourcePlayerCharacterImport({
     required this.sourceSnapshotHash,
@@ -22,8 +100,10 @@ final class SourcePlayerCharacterImport {
     required this.assetId,
     required this.tilesetId,
     required this.character,
+    List<SourcePlayerCharacterSheet> sheets = const [],
   })  : imageBytes = List.unmodifiable(imageBytes),
-        outputBytes = List.unmodifiable(outputBytes);
+        outputBytes = List.unmodifiable(outputBytes),
+        sheets = List.unmodifiable(sheets);
 
   final Sha256Hash sourceSnapshotHash;
   final SourceFileEntry metadataFile;
@@ -39,6 +119,7 @@ final class SourcePlayerCharacterImport {
   final String assetId;
   final String tilesetId;
   final ProjectCharacterEntry character;
+  final List<SourcePlayerCharacterSheet> sheets;
   int get nativeFrameWidthPx => 64;
   int get nativeFrameHeightPx => 64;
   int get nativeSheetWidth => nativeFrameWidthPx * 4;
@@ -100,13 +181,36 @@ final class SourcePlayerCharacterImport {
         'collisionFootprintChanged': false,
         'walkFrameOrder': [1, 2, 3, 0],
         'idleFrame': 0,
-        'frameTimingPolicy': 'converterPreview150ms',
+        'frameTimingPolicy': 'converterNativeMovementPreview',
+        'walkFrameDurationMs': 150,
         'sourceMovementTimingQualified': false,
+        'animationDeclarations': [
+          for (final declaration in const [
+            'WalkCharset',
+            'RunCharset',
+            'CycleCharset',
+          ])
+            {
+              'declaration': declaration,
+              'charsetName': declaration == 'WalkCharset'
+                  ? charsetName
+                  : sheets
+                      .where((sheet) => sheet.declaration == declaration)
+                      .firstOrNull
+                      ?.charsetName,
+              'status': declaration == 'WalkCharset' ||
+                      sheets.any((sheet) => sheet.declaration == declaration)
+                  ? 'imported'
+                  : 'notDeclared',
+            },
+        ],
+        'animationSheets': sheets.map((sheet) => sheet.evidence).toList(),
+        'declaredAnimationFailurePolicy': 'blockImport',
         'unsupportedSourceProfileSemantics': [
           'sourcePlayerIdentitySelection',
           'sourceStartingMap',
           'sourceStartingInventory',
-          'sourceRunCycleSurfFishAnimations',
+          'sourceSurfDiveFishAnimations',
         ],
       };
 }
@@ -137,18 +241,7 @@ final class SourcePlayerCharacterImporter {
           metadataFile.relativePath, 'Player metadata exceeds its byte quota.');
     }
     final metadataBytes = await _readAttested(metadataFile, files, cancel);
-    final charsetName = _walkCharset(metadataBytes, selectedHeaderId);
-    final imagePath = 'Graphics/Characters/$charsetName.png';
-    final imageFile =
-        _findFile(snapshot, imagePath, 'source.player.image_missing');
-    if (imageFile.byteLength > 4194304) {
-      throw ContractError('source.player.image_limit', imagePath,
-          'Player sprite sheet exceeds its byte quota.');
-    }
-    final imageBytes = await _readAttested(imageFile, files, cancel);
-    final (width, height) = _sheetGeometry(imageBytes, imagePath);
-    final outputBytes = _nativeSheetBytes(imageBytes, width, height, imagePath);
-    cancel.check();
+    final charsets = _playerCharsets(metadataBytes, selectedHeaderId);
     final identity = canonicalHashOf({
       'kind': 'sourcePlayerCharacterIdentity',
       'version': 1,
@@ -158,9 +251,42 @@ final class SourcePlayerCharacterImporter {
     }).value;
     final shortIdentity = identity.substring(0, 16);
     final tilesetId = 'source_player_${identity.substring(0, 32)}';
-    final assetId = 'image_$tilesetId';
-    final frameWidth = width ~/ 4;
-    final frameHeight = height ~/ 4;
+    final sheets = <SourcePlayerCharacterSheet>[];
+    for (final declaration in const [
+      'WalkCharset',
+      'RunCharset',
+      'CycleCharset',
+    ]) {
+      final charsetName = charsets[declaration];
+      if (charsetName == null) continue;
+      final imagePath = 'Graphics/Characters/$charsetName.png';
+      final imageFile =
+          _findFile(snapshot, imagePath, 'source.player.image_missing');
+      if (imageFile.byteLength > 4194304) {
+        throw ContractError('source.player.image_limit', imagePath,
+            'Player sprite sheet exceeds its byte quota.');
+      }
+      final imageBytes = await _readAttested(imageFile, files, cancel);
+      final (width, height) = _sheetGeometry(imageBytes, imagePath);
+      final outputBytes =
+          _nativeSheetBytes(imageBytes, width, height, imagePath, cancel);
+      sheets.add(SourcePlayerCharacterSheet(
+        declaration: declaration,
+        charsetName: charsetName,
+        imageFile: imageFile,
+        imageBytes: imageBytes,
+        outputBytes: outputBytes,
+        sheetWidth: width,
+        sheetHeight: height,
+        tilesetId: switch (declaration) {
+          'RunCharset' => '${tilesetId}_run',
+          'CycleCharset' => '${tilesetId}_cycle',
+          _ => tilesetId,
+        },
+      ));
+    }
+    cancel.check();
+    final walk = sheets.first;
     const rows = {
       EntityFacing.south: 0,
       EntityFacing.west: 1,
@@ -174,53 +300,53 @@ final class SourcePlayerCharacterImporter {
       frameWidth: 2,
       frameHeight: 2,
       animations: [
-        for (final direction in rows.entries)
-          for (final state in [
-            CharacterAnimationState.idle,
-            CharacterAnimationState.walk,
-          ])
-            CharacterAnimation(
-              state: state,
-              direction: direction.key,
-              sourceAssetId: assetId,
-              frames: [
-                for (final column in state == CharacterAnimationState.idle
-                    ? const [0]
-                    : const [1, 2, 3, 0])
-                  CharacterAnimationFrame(
-                    source: TilesetSourceRect(
-                      x: column * 64,
-                      y: direction.value * 64,
-                      width: 64,
-                      height: 64,
+        for (final sheet in sheets)
+          for (final direction in rows.entries)
+            for (final state in sheet.states)
+              CharacterAnimation(
+                state: state,
+                direction: direction.key,
+                sourceAssetId: sheet.assetId,
+                frames: [
+                  for (final column in state == CharacterAnimationState.idle ||
+                          state == CharacterAnimationState.bicycleIdle
+                      ? const [0]
+                      : const [1, 2, 3, 0])
+                    CharacterAnimationFrame(
+                      source: TilesetSourceRect(
+                        x: column * 64,
+                        y: direction.value * 64,
+                        width: 64,
+                        height: 64,
+                      ),
+                      durationMs: sheet.frameDurationMs,
                     ),
-                    durationMs: 150,
-                  ),
-              ],
-            ),
+                ],
+              ),
       ],
     );
     return SourcePlayerCharacterImport(
       sourceSnapshotHash: snapshot.canonicalHash,
       metadataFile: metadataFile,
-      imageFile: imageFile,
-      imageBytes: imageBytes,
-      outputBytes: outputBytes,
+      imageFile: walk.imageFile,
+      imageBytes: walk.imageBytes,
+      outputBytes: walk.outputBytes,
       selectedHeaderId: selectedHeaderId,
-      charsetName: charsetName,
-      sheetWidth: width,
-      sheetHeight: height,
-      frameWidthPx: frameWidth,
-      frameHeightPx: frameHeight,
-      assetId: assetId,
+      charsetName: walk.charsetName,
+      sheetWidth: walk.sheetWidth,
+      sheetHeight: walk.sheetHeight,
+      frameWidthPx: walk.frameWidthPx,
+      frameHeightPx: walk.frameHeightPx,
+      assetId: walk.assetId,
       tilesetId: tilesetId,
       character: character,
+      sheets: sheets,
     );
   }
 }
 
-List<int> _nativeSheetBytes(
-    Uint8List bytes, int width, int height, String path) {
+List<int> _nativeSheetBytes(Uint8List bytes, int width, int height, String path,
+    ScanCancellation cancellation) {
   final frameWidth = width ~/ 4;
   final frameHeight = height ~/ 4;
   if (frameWidth > 64 || frameHeight > 64) {
@@ -238,6 +364,7 @@ List<int> _nativeSheetBytes(
   final offsetX = (64 - frameWidth) ~/ 2;
   final offsetY = 64 - frameHeight;
   for (var row = 0; row < 4; row++) {
+    cancellation.check();
     for (var column = 0; column < 4; column++) {
       for (var y = 0; y < frameHeight; y++) {
         for (var x = 0; x < frameWidth; x++) {
@@ -279,7 +406,7 @@ Future<Uint8List> _readAttested(SourceFileEntry entry, SourceFilePort files,
   return Uint8List.fromList(bytes);
 }
 
-String _walkCharset(Uint8List bytes, int selectedHeaderId) {
+Map<String, String> _playerCharsets(Uint8List bytes, int selectedHeaderId) {
   late String text;
   try {
     text = utf8.decode(bytes);
@@ -290,7 +417,7 @@ String _walkCharset(Uint8List bytes, int selectedHeaderId) {
   if (text.startsWith('\uFEFF')) text = text.substring(1);
   var currentHeader = -1;
   var foundHeader = false;
-  String? charset;
+  final charsets = <String, String>{};
   for (final rawLine in const LineSplitter().convert(text)) {
     final line = rawLine.split('#').first.trim();
     if (line.isEmpty) continue;
@@ -311,24 +438,35 @@ String _walkCharset(Uint8List bytes, int selectedHeaderId) {
           'Player metadata contains an unsupported section header.');
     }
     if (currentHeader != selectedHeaderId) continue;
-    final declaration = RegExp(r'^WalkCharset\s*=\s*(.*)$').firstMatch(line);
-    if (declaration == null) continue;
-    if (charset != null) {
-      throw ContractError('source.player.metadata_ambiguous',
-          'PBS/metadata.txt', 'The selected WalkCharset is duplicated.');
+    final declaration =
+        RegExp(r'^(WalkCharset|RunCharset|CycleCharset)\s*=\s*(.*)$')
+            .firstMatch(line);
+    if (declaration == null) {
+      if (RegExp(r'^(WalkCharset|RunCharset|CycleCharset)\b').hasMatch(line)) {
+        throw ContractError(
+            'source.player.metadata_invalid',
+            'PBS/metadata.txt',
+            'A player charset declaration must contain an assignment.');
+      }
+      continue;
     }
-    final value = declaration.group(1)!.trim();
+    final name = declaration.group(1)!;
+    if (charsets.containsKey(name)) {
+      throw ContractError('source.player.metadata_ambiguous',
+          'PBS/metadata.txt', 'The selected $name is duplicated.');
+    }
+    final value = declaration.group(2)!.trim();
     if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_ -]{0,127}$').hasMatch(value)) {
       throw ContractError('source.player.charset_invalid', 'PBS/metadata.txt',
-          'WalkCharset must name one static character PNG without a path.');
+          '$name must name one static character PNG without a path.');
     }
-    charset = value;
+    charsets[name] = value;
   }
-  if (!foundHeader || charset == null) {
+  if (!foundHeader || !charsets.containsKey('WalkCharset')) {
     throw ContractError('source.player.header_missing', 'PBS/metadata.txt',
         'The selected player header has no static WalkCharset declaration.');
   }
-  return charset;
+  return charsets;
 }
 
 (int, int) _sheetGeometry(Uint8List bytes, String path) {
@@ -352,6 +490,42 @@ String _walkCharset(Uint8List bytes, int selectedHeaderId) {
       height % 4 != 0) {
     throw ContractError('source.player.sheet_geometry', path,
         'The player PNG must contain exactly four bounded frames in four cardinal rows.');
+  }
+  var offset = 8;
+  var chunks = 0;
+  var ended = false;
+  while (offset < bytes.length) {
+    if (++chunks > 4096 || offset > bytes.length - 12) {
+      throw ContractError('source.player.image_invalid', path,
+          'The source player PNG has invalid chunk boundaries.');
+    }
+    final length = data.getUint32(offset);
+    if (length > bytes.length - offset - 12) {
+      throw ContractError('source.player.image_invalid', path,
+          'The source player PNG has a truncated chunk.');
+    }
+    final type = String.fromCharCodes(bytes.sublist(offset + 4, offset + 8));
+    if (const {'acTL', 'fcTL', 'fdAT'}.contains(type)) {
+      throw ContractError('source.player.image_animation', path,
+          'The source player sheet must be one static PNG image.');
+    }
+    if (offset != 8 && type == 'IHDR') {
+      throw ContractError('source.player.image_invalid', path,
+          'The source player PNG has a repeated image header.');
+    }
+    offset += length + 12;
+    if (type == 'IEND') {
+      if (length != 0 || offset != bytes.length) {
+        throw ContractError('source.player.image_invalid', path,
+            'The source player PNG must end at its terminator.');
+      }
+      ended = true;
+      break;
+    }
+  }
+  if (!ended) {
+    throw ContractError('source.player.image_invalid', path,
+        'The source player PNG has no image terminator.');
   }
   try {
     final decoded = image.decodePng(bytes);
