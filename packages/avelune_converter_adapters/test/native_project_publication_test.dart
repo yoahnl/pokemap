@@ -282,6 +282,101 @@ Future<void> main() async {
     await verifySource();
   });
 
+  for (final target in ['parent', 'controlRoot', 'stageRoot']) {
+    for (final ancestorAlias in [false, true]) {
+      test(
+          'recovery refuses retargeted supplemental source before journal writes target=$target ancestor=$ancestorAlias',
+          () async {
+        final referenceBase =
+            await Directory('${root.path}/reference-base').create();
+        var source = Directory('${referenceBase.path}/reference');
+        await source.create();
+        if (ancestorAlias) {
+          final alias =
+              await Directory('${root.path}/reference-alias').create();
+          await alias.delete();
+          await Link(alias.path).create(referenceBase.path);
+          source = Directory('${alias.path}/reference');
+        }
+        policy = NativePublicationPolicy(
+            allowedParentRoots: policy.allowedParentRoots,
+            sourceRoots: [...policy.sourceRoots, source.path]);
+        final active = await begin(checkpoint: (stage) {
+          if (stage == NativePublicationStage.promotedBeforeReceipt) {
+            throw StateError('receipt interrupted');
+          }
+        });
+        final staged = await write(active);
+        await expectLater(
+            active.publish(
+                stagedReceipt: staged,
+                readCurrentContext: () async => fixture.context,
+                verifySourceUnchanged: verifySource),
+            throwsA(isA<NativePublicationException>()));
+        await active.close();
+        final journal = File(active.journalPath);
+        await journal.writeAsString('{"torn":',
+            mode: FileMode.append, flush: true);
+        final before = await journal.readAsBytes();
+        final targetPath = switch (target) {
+          'controlRoot' => journal.parent.path,
+          'stageRoot' => staged.stagingRoot,
+          _ => fixture.draft.parentPath,
+        };
+        if (ancestorAlias) {
+          await Link(source.parent.path).delete();
+          final replacement =
+              await Directory('${root.path}/replacement').create();
+          await Link('${replacement.path}/reference').create(targetPath);
+          await Link(source.parent.path).create(replacement.path);
+        } else {
+          await source.rename('${source.path}-original');
+          await Link(source.path).create(targetPath);
+        }
+        expect(await Directory(policy.sourceRoots.last).resolveSymbolicLinks(),
+            await Directory(targetPath).resolveSymbolicLinks());
+        final recovered = await const NativeProjectPublication()
+            .reconcile(journalPath: active.journalPath, policy: policy);
+        expect(recovered.state, NativePublicationRecoveryState.corrupt);
+        expect(await journal.readAsBytes(), before);
+      });
+    }
+  }
+
+  for (final mode in ['present', 'moved', 'removed']) {
+    test('recovery permits sibling or unavailable sources mode=$mode',
+        () async {
+      final supplemental =
+          await Directory('${fixture.draft.parentPath}/supplemental').create();
+      policy = NativePublicationPolicy(
+          allowedParentRoots: policy.allowedParentRoots,
+          sourceRoots: [...policy.sourceRoots, supplemental.path]);
+      final active = await begin(checkpoint: (stage) {
+        if (stage == NativePublicationStage.promotedBeforeReceipt) {
+          throw StateError('receipt interrupted');
+        }
+      });
+      final staged = await write(active);
+      await expectLater(
+          active.publish(
+              stagedReceipt: staged,
+              readCurrentContext: () async => fixture.context,
+              verifySourceUnchanged: verifySource),
+          throwsA(isA<NativePublicationException>()));
+      await active.close();
+      for (final selected in policy.sourceRoots) {
+        if (mode == 'removed') {
+          await Directory(selected).delete(recursive: true);
+        } else if (mode == 'moved') {
+          await Directory(selected).rename('$selected-moved');
+        }
+      }
+      final recovered = await const NativeProjectPublication()
+          .reconcile(journalPath: active.journalPath, policy: policy);
+      expect(recovered.state, NativePublicationRecoveryState.published);
+    });
+  }
+
   test('AC15 torn post-promotion journal tail repairs only the owned journal',
       () async {
     final active = await begin(checkpoint: (stage) {

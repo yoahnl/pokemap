@@ -746,7 +746,7 @@ void main() {
           journalPath: failure.journalPath!,
           policy: NativePublicationPolicy(
               allowedParentRoots: [harness.output.path],
-              sourceRoots: [harness.sourceRoot]));
+              sourceRoots: harness.workflow.state.source!.sourceRoots));
       expect(recovery.state, NativePublicationRecoveryState.published);
       expect(recovery.receipt!.published, isTrue);
       expect(recovery.receipt!.projectPath, harness.destination);

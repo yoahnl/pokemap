@@ -199,31 +199,41 @@ void main() {
     final shared = await Directory('${temporary.path}/shared').create();
     final withShared = LocalReviewResumeSettings(
         sourceRootPath: source.path,
-        sharedDataRootPath: shared.path,
+        supplementalRootPaths: [shared.path],
+        sharedSourceFiles: [
+          for (var index = 0; index < 610; index++)
+            ConverterSharedSourceFile(
+                relativePath:
+                    index == 609 ? 'Game.exe' : 'Graphics/Pictures/$index.png',
+                referenceRootPath: shared.path,
+                fileId: ConverterId('shared-$index'),
+                sha256: Sha256Hash('a' * 64))
+        ],
         destinationParentPath: destination.path,
         projectName: settings.projectName,
         folderName: settings.folderName);
     final created = await store()
         .create(reviewSet: _reviewSet(_session()), resumeSettings: withShared);
     final loaded = (await store().load(created.reviewSet.sessionId))!;
-    expect(loaded.resumeSettings.sharedDataRootPath, shared.path);
+    expect(loaded.resumeSettings.supplementalRootPaths, [shared.path]);
+    expect(loaded.resumeSettings.sharedSourceFiles.length, 610);
     expect(loaded.canonicalHash, created.canonicalHash);
     final nested = LocalReviewSessionStore(rootPath: '${shared.path}/sessions');
     await expectLater(
         nested.create(
             reviewSet: _reviewSet(_session()), resumeSettings: withShared),
         _error('session.store.overlap'));
-    final previous = {...created.toJson(), 'version': 4};
+    final previous = {...created.toJson(), 'version': 5};
     expect(() => StoredReviewSession.fromJson(previous),
         _error('session.store.document'));
   });
 
-  test('shared source store emits breaking version 5', () {
+  test('shared source store emits breaking version 6', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 5);
+    expect(stored.toJson()['version'], 6);
   });
 
   test('aggregate image budget resume survives exact disk reopen', () async {
@@ -241,7 +251,7 @@ void main() {
     expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
-    expect(loaded.toJson()['version'], 5);
+    expect(loaded.toJson()['version'], 6);
   });
 
   test('aggregate image budget resume boundaries alter envelope hashes', () {

@@ -37,15 +37,20 @@ Future<ConverterVisionClient> openConverterVisionClient({
 }
 
 final class ConverterVisionSourceFiles implements SourceFilePort {
-  const ConverterVisionSourceFiles(this.selection, this.snapshot);
+  ConverterVisionSourceFiles(
+    this.selection,
+    this.snapshot,
+    List<ConverterSharedSourceFile> sharedSourceFiles,
+  ) : sharedSourceFiles = List.unmodifiable(sharedSourceFiles);
   final ConverterSourceSelection selection;
   final SourceSnapshot snapshot;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
 
   @override
   Future<List<int>> read(ConverterId fileId) async {
     final source = await SupplementedSourceTree.open(
       selection.rootPath,
-      sharedDataRootPath: selection.sharedDataRootPath,
+      supplementalRootPaths: selection.supplementalRootPaths,
     );
     try {
       final files = await SnapshotSourceFiles.bind(
@@ -53,8 +58,10 @@ final class ConverterVisionSourceFiles implements SourceFilePort {
         snapshot: snapshot,
         policy: selection.policy,
       );
+      _verifyProvenance(source, snapshot, sharedSourceFiles);
       final bytes = await files.read(fileId);
       await files.verifyUnchanged();
+      _verifyProvenance(source, snapshot, sharedSourceFiles);
       return bytes;
     } finally {
       await source.close();
@@ -65,10 +72,11 @@ final class ConverterVisionSourceFiles implements SourceFilePort {
 Future<bool> verifyConverterVisionSource(
   ConverterSourceSelection selection,
   SourceSnapshot snapshot,
+  List<ConverterSharedSourceFile> sharedSourceFiles,
 ) async {
   final source = await SupplementedSourceTree.open(
     selection.rootPath,
-    sharedDataRootPath: selection.sharedDataRootPath,
+    supplementalRootPaths: selection.supplementalRootPaths,
   );
   try {
     final fresh = await SourceScanner().scan(
@@ -76,11 +84,31 @@ Future<bool> verifyConverterVisionSource(
       logicalProjectNamespace: selection.logicalProjectNamespace,
       policy: selection.policy,
     );
+    _verifyProvenance(source, fresh, sharedSourceFiles);
     return fresh.state == SourceScanState.complete &&
         fresh.canonicalHash == snapshot.canonicalHash &&
         fresh.policyHash == snapshot.policyHash;
   } finally {
     await source.close();
+  }
+}
+
+void _verifyProvenance(
+  SupplementedSourceTree source,
+  SourceSnapshot snapshot,
+  List<ConverterSharedSourceFile> expected,
+) {
+  if (canonicalHashOf(
+        source
+            .sharedSourceFilesFor(snapshot)
+            .map((file) => file.toJson())
+            .toList(),
+      ) !=
+      canonicalHashOf(expected.map((file) => file.toJson()).toList())) {
+    throw const ConverterWorkflowFailure(
+      'workflow.source_provenance_changed',
+      'Source file origins changed; scan and prepare a new exact draft.',
+    );
   }
 }
 

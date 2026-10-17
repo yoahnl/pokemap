@@ -495,6 +495,8 @@ final class NativePublicationJob {
       return NativePublicationRecovery._(
           NativePublicationRecoveryState.conflict, journalPath, null);
     }
+    final needsReceipt =
+        !_journal.records.any((record) => record['state'] == 'published');
     final fd = _os.openDirectoryAt(_parentFd, _folder);
     try {
       _verifyInventory(fd, seal, _limitsValue);
@@ -511,13 +513,17 @@ final class NativePublicationJob {
             return NativePublicationRecovery._(
                 NativePublicationRecoveryState.conflict, journalPath, null);
           }
-          _os.sync(stageFd);
+          if (needsReceipt) {
+            _guardRecoveryWrites();
+            _os.sync(stageFd);
+          }
         } finally {
           _os.close(stageFd);
         }
       }
-      _os.sync(_parentFd);
-      if (!_journal.records.any((record) => record['state'] == 'published')) {
+      if (needsReceipt) {
+        _guardRecoveryWrites();
+        _os.sync(_parentFd);
         _journal.repairTail();
         _journal.append('published', {'inventoryHash': seal['inventoryHash']});
       }
@@ -584,6 +590,34 @@ final class NativePublicationJob {
       }
     } finally {
       _os.close(current);
+    }
+  }
+
+  void _guardRecoveryWrites() {
+    _guardSynchronous();
+    final writeRoots = [destinationPath, _stageRoot, path.dirname(journalPath)];
+    for (final selectedRoot in _policyValue.sourceRoots) {
+      _absolute(selectedRoot);
+      var existing = path.normalize(selectedRoot);
+      final missing = <String>[];
+      while (FileSystemEntity.typeSync(existing, followLinks: false) ==
+          FileSystemEntityType.notFound) {
+        missing.insert(0, _component(path.basename(existing)));
+        existing = path.dirname(existing);
+      }
+      final canonicalExisting = Directory(existing).resolveSymbolicLinksSync();
+      if (FileSystemEntity.typeSync(canonicalExisting, followLinks: false) !=
+          FileSystemEntityType.directory) {
+        throw const NativePublicationException('publication.source.overlap',
+            'Recovery source roots must resolve to directories');
+      }
+      final canonical = path.joinAll([canonicalExisting, ...missing]);
+      if (_within(canonical, _parent) ||
+          writeRoots.any(
+              (root) => _within(canonical, root) || _within(root, canonical))) {
+        throw const NativePublicationException('publication.source.overlap',
+            'Recovery writes and source trees must not overlap');
+      }
     }
   }
 
@@ -795,7 +829,8 @@ Map<String, NativeBorderSnapshotReceipt> _sealBorderSnapshotFiles(
 
 Future<void> _revision(String projectPath, String allowedRoot, String expected,
     {required Map<String, Sha256Hash> assets,
-    required Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles}) async {
+    required Map<String, NativeBorderSnapshotReceipt>
+        borderSnapshotFiles}) async {
   const reader = LocalProjectFileReader();
   final policy = await WorkspacePolicy.create(
       allowedRootPaths: [allowedRoot], fileReader: reader);
@@ -832,8 +867,9 @@ Future<void> _revision(String projectPath, String allowedRoot, String expected,
           logicalPath.contains(r'\') ||
           logicalPath.contains(':') ||
           logicalPath.codeUnits.any((unit) => unit < 0x20) ||
-          logicalPath.split('/').any(
-              (part) => part.isEmpty || part == '.' || part == '..')) {
+          logicalPath
+              .split('/')
+              .any((part) => part.isEmpty || part == '.' || part == '..')) {
         throw _nativeChanged();
       }
       final before = await access.readResourceIdentity(logicalPath);

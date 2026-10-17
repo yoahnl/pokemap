@@ -17,7 +17,7 @@ void main() {
   late ConverterWorkflow restored;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('ac16-original-recipe-');
+    root = await Directory('/private/tmp').createTemp('ac16-original-recipe-');
     output = Directory(await Directory('${root.path}/output')
         .create()
         .then((d) => d.resolveSymbolicLinks()));
@@ -34,11 +34,11 @@ void main() {
 
   Future<PreparedStudy> prepare(
       {String? parentPath,
-      String? sharedDataRootPath,
+      List<String> supplementalRootPaths = const [],
       NativeWriteLimits writeLimits = sourceCatalogStudyWriteLimits}) async {
     final snapshot = await original.scanSource(ConverterSourceSelection(
         rootPath: fixture.sourceRootPath!,
-        sharedDataRootPath: sharedDataRootPath,
+        supplementalRootPaths: supplementalRootPaths,
         logicalProjectNamespace: ConverterId('original-ac16')));
     original.updateSettings(ConverterStudySettings(
         projectName: 'Original offline study',
@@ -107,7 +107,7 @@ void main() {
         if (!initiallyShared) await referenceFile.copy(primaryFile.path);
         final selection = ConverterSourceSelection(
             rootPath: fixture.sourceRootPath!,
-            sharedDataRootPath: shared.parent.path,
+            supplementalRootPaths: [shared.parent.path],
             logicalProjectNamespace: ConverterId('constant-origin-source'));
         final snapshot = await original.scanSource(selection);
         original.updateSettings(ConverterStudySettings(
@@ -152,6 +152,71 @@ void main() {
       }, skip: !Platform.isMacOS);
     }
   }
+
+  for (final afterApproval in [false, true]) {
+    test(
+        'constant media bytes cannot move between references approved=$afterApproval',
+        () async {
+      final first = await Directory('${root.path}/reference-first').create();
+      final second = await Directory('${root.path}/reference-second').create();
+      for (final reference in [first, second]) {
+        await Directory('${reference.path}/Graphics/Pictures')
+            .create(recursive: true);
+      }
+      final media = File('${second.path}/Graphics/Pictures/witness.png');
+      await media.writeAsString('original non-rendered media');
+      final prepared =
+          await prepare(supplementalRootPaths: [first.path, second.path]);
+      final snapshot = original.state.snapshot!;
+      final recipe = original.exportStudyPlanRecipe();
+      expect(recipe.toJson()['version'], 7);
+      expect(recipe.sourceSelection.supplementalRootPaths,
+          [first.path, second.path]);
+      expect(recipe.sharedSourceFiles.single.referenceRootPath, second.path);
+      StudyApproval? approval;
+      if (afterApproval) {
+        approval = original.approvePrepared(
+            sessionRevision: prepared.sessionRevision,
+            preparationHash: prepared.preparationHash,
+            humanConfirmed: true);
+      }
+      await media.copy('${first.path}/Graphics/Pictures/witness.png');
+      final fresh = await restored.scanSource(recipe.sourceSelection);
+      expect(fresh.canonicalHash, snapshot.canonicalHash);
+      await expectLater(
+          afterApproval
+              ? original.writeApproved(approval!)
+              : original.prepareStudy(),
+          throwsA(isA<ConverterWorkflowFailure>().having((error) => error.code,
+              'code', 'workflow.source_provenance_changed')));
+      expect(original.state.approval, isNull);
+      expect(original.state.result, isNull);
+    }, skip: !Platform.isMacOS);
+  }
+
+  test('cold recipe rejects the same bytes acquired from another priority',
+      () async {
+    final first =
+        await Directory('${root.path}/reference-first/Graphics/Pictures')
+            .create(recursive: true);
+    final second =
+        await Directory('${root.path}/reference-second/Graphics/Pictures')
+            .create(recursive: true);
+    final media = await File('${second.path}/witness.png')
+        .writeAsString('original non-rendered bytes');
+    await prepare(supplementalRootPaths: [
+      first.parent.parent.path,
+      second.parent.parent.path
+    ]);
+    final recipe = original.exportStudyPlanRecipe();
+    await media.copy('${first.path}/witness.png');
+    await expectLater(
+        restored.restoreStudyPlanRecipe(recipe),
+        throwsA(isA<ConverterWorkflowFailure>().having((error) => error.code,
+            'code', 'workflow.source_provenance_changed')));
+    expect(restored.state.prepared, isNull);
+    expect(restored.state.approval, isNull);
+  }, skip: !Platform.isMacOS);
 
   Map<String, Object?> changedConnectionQuota(Object? value,
       {bool remove = false}) {
@@ -271,11 +336,11 @@ void main() {
     await Directory('${shared.path}/PBS').create();
     await File('${shared.path}/PBS/items.txt')
         .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
-    await prepare(sharedDataRootPath: shared.path);
+    await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
-    expect(decoded.toJson()['version'], 6);
-    expect(decoded.sourceSelection.sharedDataRootPath, shared.path);
+    expect(decoded.toJson()['version'], 7);
+    expect(decoded.sourceSelection.supplementalRootPaths, [shared.path]);
     expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
     final prepared = await restored.restoreStudyPlanRecipe(decoded);
@@ -299,10 +364,10 @@ void main() {
       () async {
     final shared = await Directory('${root.path}/shared').create();
     await expectLater(
-        prepare(parentPath: shared.path, sharedDataRootPath: shared.path),
+        prepare(parentPath: shared.path, supplementalRootPaths: [shared.path]),
         throwsA(isA<ConverterWorkflowFailure>()
             .having((e) => e.code, 'code', 'native.source.overlap')));
-    await prepare(sharedDataRootPath: shared.path);
+    await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     await expectLater(
         const LocalStudyPlanStore()
@@ -310,7 +375,7 @@ void main() {
         throwsA(isA<ConverterWorkflowFailure>()
             .having((e) => e.code, 'code', 'workflow.recipe.source_overlap')));
     expect(await File('${shared.path}/plan.json').exists(), isFalse);
-    final old = {...recipe.toJson(), 'version': 5};
+    final old = {...recipe.toJson(), 'version': 6};
     expect(() => ConverterStudyPlanRecipe.fromJson(old),
         throwsA(isA<ConverterWorkflowFailure>()));
   });
@@ -321,7 +386,7 @@ void main() {
     await Directory('${shared.path}/PBS').create();
     await File('${shared.path}/PBS/items.txt')
         .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
-    final prepared = await prepare(sharedDataRootPath: shared.path);
+    final prepared = await prepare(supplementalRootPaths: [shared.path]);
     final approval = original.approvePrepared(
         sessionRevision: original.state.revision,
         preparationHash: prepared.preparationHash,
@@ -554,8 +619,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('shared source recipe emits breaking version 6', () {
-    expect(connectionRecipe(2).toJson()['version'], 6);
+  test('ordered source recipe emits breaking version 7', () {
+    expect(connectionRecipe(2).toJson()['version'], 7);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

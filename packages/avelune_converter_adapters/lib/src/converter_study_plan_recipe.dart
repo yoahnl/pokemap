@@ -38,18 +38,8 @@ final class ConverterStudyPlanRecipe {
             profileEvidenceHash) {
       throw _invalid();
     }
-    if (sharedSourceFiles.length > SupplementedSourceTree.sharedPaths.length ||
-        sharedSourceFiles
-                .map((file) => sourcePathCollisionKey(file.relativePath))
-                .toSet()
-                .length !=
-            sharedSourceFiles.length ||
-        sharedSourceFiles.any((file) =>
-            file.referenceRootPath != sourceSelection.sharedDataRootPath)) {
-      throw _invalid();
-    }
-    final references = sharedSourceFiles.toList()
-      ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
+    final references = validateSupplementalProvenance(
+        sharedSourceFiles, sourceSelection.supplementalRootPaths);
     final recipe = ConverterStudyPlanRecipe._(
         sessionId,
         sessionRevision,
@@ -96,7 +86,7 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 6) {
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 7) {
         throw _invalid();
       }
       final source = _object(json['sourceSelection']);
@@ -128,9 +118,8 @@ final class ConverterStudyPlanRecipe {
           sessionRevision: _int(json['sessionRevision']),
           sourceSelection: ConverterSourceSelection(
               rootPath: _string(source['rootPath']),
-              sharedDataRootPath: source['sharedDataRootPath'] == null
-                  ? null
-                  : _string(source['sharedDataRootPath']),
+              supplementalRootPaths:
+                  _list(source['supplementalRootPaths']).map(_string).toList(),
               logicalProjectNamespace:
                   ConverterId(_string(source['logicalProjectNamespace'])),
               policy: SourceScanPolicy(
@@ -258,12 +247,12 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 6,
+        'version': 7,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {
           'rootPath': sourceSelection.rootPath,
-          'sharedDataRootPath': sourceSelection.sharedDataRootPath,
+          'supplementalRootPaths': sourceSelection.supplementalRootPaths,
           'logicalProjectNamespace':
               sourceSelection.logicalProjectNamespace.value,
           'policy': {

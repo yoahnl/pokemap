@@ -17,12 +17,12 @@ void main() {
         .create(recursive: true);
     await File('${shared.path}/items.txt')
         .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
-    await harness.scan(sharedDataRootPath: shared.parent.path);
+    await harness.scan(supplementalRootPaths: [shared.parent.path]);
     final initial = await harness.prepare();
     final stored = await harness.save(initial);
     final fresh = harness.newWorkflow();
     await ConverterReviewSessionResumer.resume(stored: stored, workflow: fresh);
-    expect(fresh.state.source!.sharedDataRootPath, shared.parent.path);
+    expect(fresh.state.source!.supplementalRootPaths, [shared.parent.path]);
     expect(fresh.state.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     final previous = fresh.state.prepared!;
     fresh.approvePrepared(
@@ -42,14 +42,40 @@ void main() {
     await ConverterReviewSessionResumer.resume(
         stored: stored,
         workflow: relocated,
-        sharedDataRootPath: '${shared.parent.path}-unavailable');
-    expect(relocated.state.source!.sharedDataRootPath,
-        '${shared.parent.path}-unavailable');
+        supplementalRootPaths: ['${shared.parent.path}-unavailable']);
+    expect(relocated.state.source!.supplementalRootPaths,
+        ['${shared.parent.path}-unavailable']);
     expect(relocated.state.snapshot!.canonicalHash,
         stored.reviewSet.sourceSnapshotHash);
     expect(relocated.state.approval, isNull);
     expect(relocated.state.prepared!.preparationHash,
         isNot(previous.preparationHash));
+  }, skip: !Platform.isMacOS);
+
+  test('review resume refuses equal bytes moved to another reference',
+      () async {
+    final harness = await _ResumeHarness.create(selected: [1]);
+    final roots = <String>[];
+    for (final name in ['first', 'second']) {
+      roots.add((await Directory('${harness.root.path}/$name/PBS')
+              .create(recursive: true))
+          .parent
+          .path);
+    }
+    final original = await File('${roots[1]}/PBS/items.txt')
+        .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+    await harness.scan(supplementalRootPaths: roots);
+    final stored = await harness.save(await harness.prepare());
+    await original.copy('${roots[0]}/PBS/items.txt');
+    final workflow = harness.newWorkflow();
+    await expectLater(
+        ConverterReviewSessionResumer.resume(
+            stored: stored, workflow: workflow),
+        throwsA(isA<ConverterWorkflowFailure>().having((error) => error.code,
+            'code', 'workflow.source_provenance_changed')));
+    expect(workflow.state.prepared, isNull);
+    expect(workflow.state.approval, isNull);
+    await harness.expectSavedUnchanged(stored);
   }, skip: !Platform.isMacOS);
 
   test('segmented resume keeps edits and approvals of both maps independently',
@@ -556,7 +582,7 @@ final class _ResumeHarness {
       {List<LiteralFixtureMap>? maps,
       List<int> selected = const [1, 8, 12, 20, 21],
       SourceScanPolicy? policy}) async {
-    final root = await Directory.systemTemp.createTemp('ac10-resume-');
+    final root = await Directory('/private/tmp').createTemp('ac10-resume-');
     final output = await Directory('${root.path}/output').create();
     final fixture = maps == null
         ? (await OriginalAssetFixture.create(
@@ -588,10 +614,11 @@ final class _ResumeHarness {
     return harness;
   }
 
-  Future<SourceSnapshot> scan({String? sharedDataRootPath}) =>
+  Future<SourceSnapshot> scan(
+          {List<String> supplementalRootPaths = const []}) =>
       first.scanSource(ConverterSourceSelection(
           rootPath: sourcePath,
-          sharedDataRootPath: sharedDataRootPath,
+          supplementalRootPaths: supplementalRootPaths,
           logicalProjectNamespace: ConverterId('ac10-resume-source'),
           policy: policy));
 
@@ -643,7 +670,9 @@ final class _ResumeHarness {
           reviewSet: reviewSet ?? prepared.reviewSet!,
           resumeSettings: LocalReviewResumeSettings(
               sourceRootPath: sourcePath,
-              sharedDataRootPath: first.state.source?.sharedDataRootPath,
+              supplementalRootPaths:
+                  first.state.source?.supplementalRootPaths ?? const [],
+              sharedSourceFiles: first.state.sharedSourceFiles,
               destinationParentPath: output.path,
               projectName: prepared.settings.projectName,
               folderName: prepared.settings.folderName,

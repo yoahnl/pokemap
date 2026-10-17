@@ -18,9 +18,259 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets(
+    'cold provenance refusal cannot be replaced through prepare save or retry',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      final store = LocalReviewSessionStore(
+        rootPath: '${source.root.path}/sessions',
+      );
+      final first = '${source.root.path}/reference-first';
+      final second = '${source.root.path}/reference-second';
+      const relative = 'Audio/BGM/unused.ogg';
+      ConverterWorkflow? resumed;
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        final stored = (await tester.runAsync(() async {
+          await Directory('$first/Audio/BGM').create(recursive: true);
+          await Directory('$second/Audio/BGM').create(recursive: true);
+          await File('$second/$relative').writeAsBytes([1, 7, 19]);
+          final snapshot = await source.workflow.scanSource(
+            ConverterSourceSelection(
+              rootPath: source.sourcePath,
+              supplementalRootPaths: [first, second],
+              logicalProjectNamespace: ConverterId('cold-provenance-widget'),
+            ),
+          );
+          source.workflow.updateSettings(
+            ConverterStudySettings(
+              projectName: 'Cold provenance',
+              parentPath: source.output.path,
+              folderName: 'cold-provenance',
+              selectedSourceMapIds: [1, 8],
+              assetOutputMode: AssetOutputMode.standaloneObjects,
+              profileAcknowledgement: SourceStudyAcknowledgement(
+                sourceSnapshotHash: snapshot.canonicalHash,
+                profileEvidenceHash: snapshot.profile.evidenceHash,
+                humanConfirmed: true,
+                reason: 'Controlled original source.',
+              ),
+            ),
+          );
+          final prepared = await source.workflow.prepareStudy();
+          expect(prepared.canApprove, isTrue);
+          final saved = await store.create(
+            reviewSet: prepared.reviewSet!,
+            resumeSettings: LocalReviewResumeSettings(
+              sourceRootPath: source.sourcePath,
+              supplementalRootPaths: [first, second],
+              sharedSourceFiles: source.workflow.state.sharedSourceFiles,
+              destinationParentPath: source.output.path,
+              projectName: prepared.settings.projectName,
+              folderName: prepared.settings.folderName,
+              normalizationLimits: prepared.settings.normalizationLimits,
+              writeLimits: prepared.settings.writeLimits,
+              profileAcknowledgement: LocalReviewProfileAcknowledgement(
+                sourceSnapshotHash: prepared.sourceSnapshotHash,
+                profileEvidenceHash: prepared.profileEvidenceHash,
+                humanConfirmed: true,
+                reason: 'Controlled original source.',
+              ),
+            ),
+          );
+          expect(
+            saved.resumeSettings.sharedSourceFiles.single.referenceRootPath,
+            second,
+          );
+          await File('$second/$relative').rename('$first/$relative');
+          return saved;
+        }))!;
+        var picks = 0;
+        var selectedSource = source.sourcePath;
+        var selectedSupplements = [first, second];
+        var supplementalPick = 0;
+        resumed = ConverterWorkflow();
+        await tester.pumpWidget(
+          ConverterApp(
+            workflow: resumed,
+            sessionStore: store,
+            pathPicker: (kind) async {
+              picks++;
+              return kind == ConverterPathKind.supplementalFolder
+                  ? selectedSupplements[supplementalPick++]
+                  : selectedSource;
+            },
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('load-review-session')));
+        final sessionKey = ValueKey(
+          'load-session-${stored.reviewSet.sessionId.value}',
+        );
+        await _waitFor(
+          tester,
+          () => find.byKey(sessionKey).evaluate().isNotEmpty,
+        );
+        await tester.tap(find.byKey(sessionKey));
+        await _waitFor(
+          tester,
+          () =>
+              find
+                  .text('Session conservée · source à retrouver')
+                  .evaluate()
+                  .isNotEmpty &&
+              !resumed!.state.isBusy,
+        );
+        expect(
+          resumed.state.snapshot!.canonicalHash,
+          stored.reviewSet.sourceSnapshotHash,
+        );
+        expect(resumed.state.sharedSourceFiles.single.referenceRootPath, first);
+        expect(_reviewPanel(tester).enabled, isFalse);
+        for (var attempt = 0; attempt < 2; attempt++) {
+          expect(_button(tester, 'save-review-session').onPressed, isNull);
+          await tester.tap(find.byKey(const ValueKey('save-review-session')));
+          await tester.pump();
+          final before = resumed.state.revision;
+          expect(_button(tester, 'prepare-study').onPressed, isNotNull);
+          await tester.tap(find.byKey(const ValueKey('prepare-study')));
+          await _waitFor(
+            tester,
+            () =>
+                resumed!.state.revision > before &&
+                !resumed.state.isBusy &&
+                (resumed.state.prepared != null ||
+                    find
+                        .text(
+                          'Le projet source a changé. Relancez son analyse avant de créer le projet Avelune.',
+                        )
+                        .evaluate()
+                        .isNotEmpty),
+          );
+          expect(resumed.state.prepared, isNull);
+          expect(resumed.state.approval, isNull);
+          expect(_reviewPanel(tester).enabled, isFalse);
+          expect(_button(tester, 'save-review-session').onPressed, isNull);
+          final unchanged = (await tester.runAsync(
+            () => store.load(stored.reviewSet.sessionId),
+          ))!;
+          expect(unchanged.canonicalHash, stored.canonicalHash);
+          expect(
+            unchanged.resumeSettings.sharedSourceFiles.single.referenceRootPath,
+            second,
+          );
+          final retryRevision = resumed.state.revision;
+          await tester.tap(
+            find.byKey(const ValueKey('reselect-session-source')),
+          );
+          await _waitFor(
+            tester,
+            () =>
+                picks == attempt + 1 &&
+                resumed!.state.revision > retryRevision &&
+                !resumed.state.isBusy &&
+                find
+                    .text('Session conservée · source à retrouver')
+                    .evaluate()
+                    .isNotEmpty,
+          );
+          expect(resumed.state.prepared, isNull);
+          expect(_reviewPanel(tester).enabled, isFalse);
+        }
+        selectedSource = '${source.sourcePath}-moved';
+        selectedSupplements = ['$first-moved', '$second-moved'];
+        await tester.runAsync(() async {
+          await Directory(source.sourcePath).rename(selectedSource);
+          await Directory(first).rename(selectedSupplements[0]);
+          await Directory(second).rename(selectedSupplements[1]);
+        });
+        for (final key in [
+          'reselect-session-source',
+          'reselect-session-supplemental-source-0',
+          'reselect-session-supplemental-source-1',
+        ]) {
+          final before = picks;
+          await tester.tap(find.byKey(ValueKey(key)));
+          await tester.pump();
+          await _waitFor(
+            tester,
+            () =>
+                picks > before ||
+                find.text('Abandonner les changements').evaluate().isNotEmpty,
+          );
+          if (find.text('Abandonner les changements').evaluate().isNotEmpty) {
+            await tester.tap(find.text('Abandonner les changements'));
+          }
+          await _waitFor(
+            tester,
+            () =>
+                picks > before &&
+                !resumed!.state.isBusy &&
+                find
+                    .text('Session conservée · source à retrouver')
+                    .evaluate()
+                    .isNotEmpty &&
+                find.text('Vérification de la source…').evaluate().isEmpty,
+          );
+          expect(resumed.state.prepared, isNull);
+        }
+        expect(resumed.state.source!.rootPath, selectedSource);
+        expect(
+          resumed.state.source!.supplementalRootPaths,
+          selectedSupplements,
+        );
+        expect(_button(tester, 'prepare-study').onPressed, isNotNull);
+        final savedBeforeRecovery = (await tester.runAsync(
+          () => store.load(stored.reviewSet.sessionId),
+        ))!;
+        expect(savedBeforeRecovery.canonicalHash, stored.canonicalHash);
+        await tester.runAsync(
+          () =>
+              File('${selectedSupplements[0]}/$relative')
+                  .rename('${selectedSupplements[1]}/$relative'),
+        );
+        await tester.tap(find.byKey(const ValueKey('prepare-study')));
+        await _waitFor(
+          tester,
+          () => resumed!.state.prepared != null && !resumed.state.isBusy,
+        );
+        expect(_reviewPanel(tester).enabled, isTrue);
+        expect(
+          resumed.state.prepared!.reviewSet!.canonicalHash,
+          stored.reviewSet.canonicalHash,
+        );
+        expect(
+          resumed.state.sharedSourceFiles.single.referenceRootPath,
+          selectedSupplements[1],
+        );
+        await tester.tap(find.byKey(const ValueKey('save-review-session')));
+        await _waitFor(
+          tester,
+          () => find.text('Session enregistrée').evaluate().isNotEmpty,
+        );
+        final saved = (await tester.runAsync(
+          () => store.load(stored.reviewSet.sessionId),
+        ))!;
+        expect(
+          saved.resumeSettings.sharedSourceFiles.single.referenceRootPath,
+          selectedSupplements[1],
+        );
+        expect(saved.resumeSettings.sourceRootPath, selectedSource);
+        expect(saved.resumeSettings.supplementalRootPaths, selectedSupplements);
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(() async {
+          await resumed?.dispose();
+          await source.close();
+        });
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
   for (final sharedFirst in [false, true]) {
     testWidgets(
-      'cold shared session relocates both roots sharedFirst=$sharedFirst',
+      'cold ordered session relocates three roots supplementsFirst=$sharedFirst',
       (tester) async {
         final source = (await tester.runAsync(_OriginalSource.create))!;
         final store = LocalReviewSessionStore(
@@ -29,6 +279,8 @@ void main() {
         final sharedPath = '${source.root.path}/shared';
         final movedSource = '${source.root.path}/source-moved';
         final movedShared = '${source.root.path}/shared-moved';
+        final secondPath = '${source.root.path}/second';
+        final movedSecond = '${source.root.path}/second-moved';
         ConverterWorkflow? resumed;
         _setWindow(tester, const Size(1600, 1000));
         final picks = <ConverterPathKind>[];
@@ -37,10 +289,13 @@ void main() {
             await Directory('$sharedPath/PBS').create(recursive: true);
             await File('$sharedPath/PBS/items.txt')
                 .writeAsString('1,POTION,Potion,1,300,Heals HP,1,1,0');
+            await Directory('$secondPath/Audio/BGM').create(recursive: true);
+            await File('$secondPath/Audio/BGM/unused.ogg')
+                .writeAsString('original supplemental audio');
             final snapshot = await source.workflow.scanSource(
               ConverterSourceSelection(
                 rootPath: source.sourcePath,
-                sharedDataRootPath: sharedPath,
+                supplementalRootPaths: [sharedPath, secondPath],
                 logicalProjectNamespace: ConverterId('cold-shared-session'),
               ),
             );
@@ -69,7 +324,8 @@ void main() {
               reviewSet: prepared.reviewSet!,
               resumeSettings: LocalReviewResumeSettings(
                 sourceRootPath: source.sourcePath,
-                sharedDataRootPath: sharedPath,
+                supplementalRootPaths: [sharedPath, secondPath],
+                sharedSourceFiles: source.workflow.state.sharedSourceFiles,
                 destinationParentPath: source.output.path,
                 projectName: prepared.settings.projectName,
                 folderName: prepared.settings.folderName,
@@ -85,8 +341,13 @@ void main() {
             );
             await Directory(source.sourcePath).rename(movedSource);
             await Directory(sharedPath).rename(movedShared);
+            await Directory(secondPath).rename(movedSecond);
             return stored;
           }))!;
+          var supplementalPick = 0;
+          final movedSupplements = sharedFirst
+              ? [movedSecond, movedShared]
+              : [movedShared, movedSecond];
           resumed = ConverterWorkflow();
           await tester.pumpWidget(
             ConverterApp(
@@ -94,9 +355,12 @@ void main() {
               sessionStore: store,
               pathPicker: (kind) async {
                 picks.add(kind);
-                return kind == ConverterPathKind.sharedDataFolder
-                    ? movedShared
-                    : movedSource;
+                return kind == ConverterPathKind.supplementalFolder
+                    ? movedSupplements[supplementalPick++].replaceFirst(
+                        '/private/tmp/',
+                        '/tmp/',
+                      )
+                    : movedSource.replaceFirst('/private/tmp/', '/tmp/');
               },
             ),
           );
@@ -120,8 +384,16 @@ void main() {
           );
           expect(resumed.state.approval, isNull);
           final order = sharedFirst
-              ? ['reselect-session-shared-source', 'reselect-session-source']
-              : ['reselect-session-source', 'reselect-session-shared-source'];
+              ? [
+                  'reselect-session-supplemental-source-1',
+                  'reselect-session-supplemental-source-0',
+                  'reselect-session-source',
+                ]
+              : [
+                  'reselect-session-source',
+                  'reselect-session-supplemental-source-0',
+                  'reselect-session-supplemental-source-1',
+                ];
           for (var i = 0; i < order.length; i++) {
             await tester.ensureVisible(find.byKey(ValueKey(order[i])));
             await tester.tap(find.byKey(ValueKey(order[i])));
@@ -152,8 +424,19 @@ void main() {
             findsOneWidget,
           );
           expect(resumed.state.source!.rootPath, movedSource);
-          expect(resumed.state.source!.sharedDataRootPath, movedShared);
+          expect(resumed.state.source!.supplementalRootPaths, [
+            movedShared,
+            movedSecond,
+          ]);
           expect(resumed.state.prepared, isNotNull);
+          expect(
+            tester
+                .widget<ConverterAssetReviewPanel>(
+                  find.byType(ConverterAssetReviewPanel),
+                )
+                .enabled,
+            isTrue,
+          );
           expect(resumed.state.result, isNull);
           expect(
             resumed.state.prepared!.reviewSet!.canonicalHash,
@@ -171,6 +454,163 @@ void main() {
       skip: !Platform.isMacOS,
     );
   }
+  testWidgets(
+    'ordered folders expose priority and a four-folder picker limit',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      final roots = (await tester.runAsync(() async {
+        final values = <String>[];
+        for (var index = 0; index < 4; index++) {
+          values.add(
+            (await Directory(
+              '${source.root.path}/supplement-$index',
+            ).create()).path,
+          );
+        }
+        return values;
+      }))!;
+      var picks = 0;
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        await tester.pumpWidget(
+          ConverterApp(
+            workflow: source.workflow,
+            initialSourcePath: source.sourcePath,
+            initialParentPath: source.output.path,
+            pathPicker: (kind) async {
+              expect(kind, ConverterPathKind.supplementalFolder);
+              return roots[picks++];
+            },
+          ),
+        );
+        for (var index = 0; index < 4; index++) {
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('add-supplemental-source')),
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('add-supplemental-source')),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text('Priorité ${index + 1}'), findsOneWidget);
+        }
+        expect(
+          tester
+              .widget<StudioButton>(
+                find.byKey(const ValueKey('add-supplemental-source')),
+              )
+              .onPressed,
+          isNull,
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('move-supplemental-source-up-1')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('move-supplemental-source-up-1')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('analyse-project')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.snapshot != null &&
+              !source.workflow.state.isBusy,
+        );
+        expect(source.workflow.state.source!.supplementalRootPaths, [
+          roots[1],
+          roots[0],
+          roots[2],
+          roots[3],
+        ]);
+        expect(picks, 4);
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
+  testWidgets(
+    '616 shared origins keep maps accessible and detail reaches the last file',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      final shared = (await tester.runAsync(() async {
+        final directory = await Directory(
+          '${source.root.path}/many-shared/Graphics/Pictures',
+        ).create(recursive: true);
+        for (var index = 0; index < 616; index++) {
+          await File(
+            '${directory.path}/shared_${index.toString().padLeft(4, '0')}.png',
+          ).writeAsBytes([index % 256]);
+        }
+        return directory.parent.parent;
+      }))!;
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        await tester.pumpWidget(
+          ConverterApp(
+            workflow: source.workflow,
+            initialSourcePath: source.sourcePath,
+            initialParentPath: source.output.path,
+            pathPicker: (_) async => shared.path,
+          ),
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('add-supplemental-source')),
+        );
+        await tester.tap(find.byKey(const ValueKey('add-supplemental-source')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('analyse-project')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.snapshot != null &&
+              !source.workflow.state.isBusy,
+        );
+        expect(source.workflow.state.sharedSourceFiles, hasLength(616));
+        expect(find.byType(SelectableText), findsNWidgets(5));
+        expect(
+          tester.getTopLeft(find.text('Tout sélectionner')).dy,
+          lessThan(1500),
+        );
+        await tester.ensureVisible(find.text('Tout sélectionner'));
+        await tester.tap(find.text('Tout sélectionner'));
+        await tester.pump();
+        expect(find.text('2 sélectionnée(s)'), findsOneWidget);
+        final detail = find.text('Afficher les 616 fichiers');
+        await tester.ensureVisible(detail);
+        await tester.tap(detail);
+        await tester.pumpAndSettle();
+        final list = find.byKey(const ValueKey('shared-source-files-detail'));
+        expect(tester.getSize(list).height, lessThanOrEqualTo(360));
+        expect(
+          find.textContaining('Graphics/Pictures/shared_0615.png'),
+          findsNothing,
+        );
+        final scrollable = find
+            .descendant(of: list, matching: find.byType(Scrollable))
+            .first;
+        await tester.scrollUntilVisible(
+          find.textContaining('Graphics/Pictures/shared_0615.png'),
+          500,
+          scrollable: scrollable,
+          maxScrolls: 100,
+        );
+        expect(
+          find.textContaining('Graphics/Pictures/shared_0615.png'),
+          findsOneWidget,
+        );
+        expect(source.workflow.state.sharedSourceFiles, hasLength(616));
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
   testWidgets('shared folder picker and clear feed a fresh source selection', (
     tester,
   ) async {
@@ -197,11 +637,11 @@ void main() {
         ),
       );
       await tester.ensureVisible(
-        find.byKey(const ValueKey('choose-shared-source')),
+        find.byKey(const ValueKey('add-supplemental-source')),
       );
-      await tester.tap(find.byKey(const ValueKey('choose-shared-source')));
+      await tester.tap(find.byKey(const ValueKey('add-supplemental-source')));
       await tester.pumpAndSettle();
-      expect(selections, [ConverterPathKind.sharedDataFolder]);
+      expect(selections, [ConverterPathKind.supplementalFolder]);
       await tester.tap(find.byKey(const ValueKey('analyse-project')));
       await _waitFor(
         tester,
@@ -209,7 +649,9 @@ void main() {
             source.workflow.state.snapshot != null &&
             !source.workflow.state.isBusy,
       );
-      expect(source.workflow.state.source!.sharedDataRootPath, shared.path);
+      expect(source.workflow.state.source!.supplementalRootPaths, [
+        shared.path,
+      ]);
       expect(
         source.workflow.state.sharedSourceFiles.single.relativePath,
         'PBS/items.txt',
@@ -240,9 +682,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('step-0')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(
-        find.byKey(const ValueKey('clear-shared-source')),
+        find.byKey(const ValueKey('remove-supplemental-source-0')),
       );
-      await tester.tap(find.byKey(const ValueKey('clear-shared-source')));
+      await tester.tap(
+        find.byKey(const ValueKey('remove-supplemental-source-0')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Abandonner les changements'));
       await tester.pumpAndSettle();
@@ -252,7 +696,8 @@ void main() {
       await _waitFor(
         tester,
         () =>
-            source.workflow.state.source?.sharedDataRootPath == null &&
+            source.workflow.state.source?.supplementalRootPaths.isEmpty ==
+                true &&
             !source.workflow.state.isBusy,
       );
       expect(source.workflow.state.sharedSourceFiles, isEmpty);
@@ -874,7 +1319,7 @@ void main() {
         expect(find.text('Session enregistrée'), findsOneWidget);
         final stored = (await tester.runAsync(store.list))!.single;
         final document = stored.toJson();
-        expect(document['version'], 5);
+        expect(document['version'], 6);
         final reviewSet = document['reviewSet']! as Map;
         expect((reviewSet['segments']! as List), hasLength(2));
         await tester.pumpWidget(const SizedBox());
@@ -1932,7 +2377,8 @@ final class _OriginalSource {
     List<LiteralFixtureTileset>? tilesets,
     bool includeEventSystem = false,
   }) async {
-    final root = await Directory.systemTemp.createTemp('ac09-original-widget-');
+    final root = await Directory('/private/tmp')
+        .createTemp('ac09-original-widget-');
     try {
       final output = await Directory('${root.path}/output').create();
       final fixture = await LiteralTileFixture.create(

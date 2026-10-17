@@ -10,6 +10,7 @@ import 'native_project_writer.dart';
 import 'converter_workflow.dart';
 import 'converter_asset_review_set.dart';
 import 'literal_tile_composer.dart';
+import 'supplemented_source_tree.dart';
 
 final class LocalReviewSessionStoreLimits {
   const LocalReviewSessionStoreLimits({
@@ -146,7 +147,8 @@ final class LocalReviewProfileAcknowledgement {
 final class LocalReviewResumeSettings {
   factory LocalReviewResumeSettings({
     required String sourceRootPath,
-    String? sharedDataRootPath,
+    List<String> supplementalRootPaths = const [],
+    List<ConverterSharedSourceFile> sharedSourceFiles = const [],
     required String destinationParentPath,
     required String projectName,
     required String folderName,
@@ -160,10 +162,14 @@ final class LocalReviewResumeSettings {
     NativeWriteLimits writeLimits = const NativeWriteLimits(),
   }) =>
       _readDocument(() {
-        final source = _absolutePath(sourceRootPath);
-        final shared = sharedDataRootPath == null
-            ? null
-            : _absolutePath(sharedDataRootPath);
+        final selection = ConverterSourceSelection(
+            rootPath: _absolutePath(sourceRootPath),
+            supplementalRootPaths: supplementalRootPaths,
+            logicalProjectNamespace: ConverterId('review-resume-roots'));
+        final source = selection.rootPath;
+        final shared = selection.supplementalRootPaths;
+        final provenance =
+            validateSupplementalProvenance(sharedSourceFiles, shared);
         final destination = _absolutePath(destinationParentPath);
         _requireStore(
             projectName.trim().isNotEmpty &&
@@ -198,6 +204,7 @@ final class LocalReviewResumeSettings {
         return LocalReviewResumeSettings._(
             source,
             shared,
+            provenance,
             destination,
             projectName.trim(),
             folderName,
@@ -212,7 +219,8 @@ final class LocalReviewResumeSettings {
 
   const LocalReviewResumeSettings._(
       this.sourceRootPath,
-      this.sharedDataRootPath,
+      this.supplementalRootPaths,
+      this.sharedSourceFiles,
       this.destinationParentPath,
       this.projectName,
       this.folderName,
@@ -229,7 +237,8 @@ final class LocalReviewResumeSettings {
         final json = _object(input);
         _keys(json, const {
           'sourceRootPath',
-          'sharedDataRootPath',
+          'supplementalRootPaths',
+          'sharedSourceFiles',
           'destinationParentPath',
           'projectName',
           'folderName',
@@ -246,9 +255,11 @@ final class LocalReviewResumeSettings {
             'Too many dependency receipts.');
         return LocalReviewResumeSettings(
           sourceRootPath: _string(json['sourceRootPath']),
-          sharedDataRootPath: json['sharedDataRootPath'] == null
-              ? null
-              : _string(json['sharedDataRootPath']),
+          supplementalRootPaths:
+              _list(json['supplementalRootPaths']).map(_string).toList(),
+          sharedSourceFiles: _list(json['sharedSourceFiles'])
+              .map(ConverterSharedSourceFile.fromJson)
+              .toList(),
           destinationParentPath: _string(json['destinationParentPath']),
           projectName: _string(json['projectName']),
           folderName: _string(json['folderName']),
@@ -270,7 +281,8 @@ final class LocalReviewResumeSettings {
       });
 
   final String sourceRootPath;
-  final String? sharedDataRootPath;
+  final List<String> supplementalRootPaths;
+  final List<ConverterSharedSourceFile> sharedSourceFiles;
   final String destinationParentPath;
   final String projectName;
   final String folderName;
@@ -284,7 +296,9 @@ final class LocalReviewResumeSettings {
 
   Map<String, Object?> toJson() => _immutableObject({
         'sourceRootPath': sourceRootPath,
-        'sharedDataRootPath': sharedDataRootPath,
+        'supplementalRootPaths': supplementalRootPaths,
+        'sharedSourceFiles':
+            sharedSourceFiles.map((file) => file.toJson()).toList(),
         'destinationParentPath': destinationParentPath,
         'projectName': projectName,
         'folderName': folderName,
@@ -349,7 +363,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 5,
+            json['kind'] == 'localReviewSession' && json['version'] == 6,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -371,7 +385,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 5,
+        'version': 6,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),
@@ -558,7 +572,7 @@ final class LocalReviewSessionStore {
       String root, LocalReviewResumeSettings settings) async {
     for (final selected in [
       settings.sourceRootPath,
-      if (settings.sharedDataRootPath != null) settings.sharedDataRootPath!,
+      ...settings.supplementalRootPaths,
       settings.destinationParentPath
     ]) {
       final other = await _canonicalContextPath(selected);
@@ -925,6 +939,9 @@ T _readDocument<T>(T Function() read) {
     return read();
   } on LocalReviewSessionStoreFailure {
     rethrow;
+  } on ConverterWorkflowFailure {
+    throw const LocalReviewSessionStoreFailure(
+        'session.store.document', 'Invalid source folder selection.');
   } on ContractError catch (error) {
     throw LocalReviewSessionStoreFailure(
         error.code.toLowerCase().contains('quota')

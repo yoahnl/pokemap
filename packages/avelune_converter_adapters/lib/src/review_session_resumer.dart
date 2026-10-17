@@ -5,13 +5,14 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'converter_workflow.dart';
 import 'literal_tile_composer.dart';
 import 'local_review_session_store.dart';
+import 'supplemented_source_tree.dart';
 
 final class ConverterReviewSessionResumer {
   static Future<PreparedStudy> resume({
     required StoredReviewSession stored,
     required ConverterWorkflow workflow,
     String? sourceRootPath,
-    String? sharedDataRootPath,
+    List<String>? supplementalRootPaths,
     String? destinationParentPath,
     String? folderName,
     String? projectName,
@@ -20,13 +21,34 @@ final class ConverterReviewSessionResumer {
     final saved = stored.resumeSettings;
     final snapshot = await workflow.scanSource(ConverterSourceSelection(
         rootPath: sourceRootPath ?? saved.sourceRootPath,
-        sharedDataRootPath: sharedDataRootPath ?? saved.sharedDataRootPath,
+        supplementalRootPaths:
+            supplementalRootPaths ?? saved.supplementalRootPaths,
         logicalProjectNamespace: session.logicalProjectNamespace,
         policy: saved.sourceScanPolicy));
     if (snapshot.state != SourceScanState.complete ||
         snapshot.canonicalHash != session.sourceSnapshotHash) {
       throw const ConverterWorkflowFailure('workflow.resume.source_stale',
           'Reselect and review the exact saved source before resuming.');
+    }
+    final currentRoots = workflow.state.source!.supplementalRootPaths;
+    if (currentRoots.length != saved.supplementalRootPaths.length) {
+      throw const ConverterWorkflowFailure('workflow.source_provenance_changed',
+          'Reselect every saved supplemental folder in its original priority.');
+    }
+    final relocated = saved.sharedSourceFiles
+        .map((file) => ConverterSharedSourceFile(
+            relativePath: file.relativePath,
+            referenceRootPath: currentRoots[
+                saved.supplementalRootPaths.indexOf(file.referenceRootPath)],
+            fileId: file.fileId,
+            sha256: file.sha256))
+        .toList();
+    if (canonicalHashOf(relocated.map((file) => file.toJson()).toList()) !=
+        canonicalHashOf(workflow.state.sharedSourceFiles
+            .map((file) => file.toJson())
+            .toList())) {
+      throw const ConverterWorkflowFailure('workflow.source_provenance_changed',
+          'Source file origins differ from the saved review.');
     }
     final receipt = saved.profileAcknowledgement;
     if (receipt == null ||

@@ -113,7 +113,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       widget.workflow ?? widget.workflowFactory?.call() ?? ConverterWorkflow();
   late bool _ownsWorkflow = widget.workflow == null;
   late final _source = TextEditingController(text: widget.initialSourcePath);
-  final _sharedSource = TextEditingController();
+  final _supplementalRoots = <String>[];
   late final _parent = TextEditingController(text: widget.initialParentPath);
   final _name = TextEditingController(text: 'Mon projet Avelune');
   final _folder = TextEditingController(text: 'avelune-study');
@@ -157,13 +157,26 @@ class _ConverterWindowState extends State<ConverterWindow> {
     _parent.text,
     _name.text,
     _folder.text,
-    _sharedSource.text,
+    canonicalJsonOf(_supplementalRoots),
   );
-  String? get _sharedDataRoot =>
-      _sharedSource.text.trim().isEmpty ? null : _sharedSource.text.trim();
-  bool get _sourceMatches =>
-      _sourceRoot == _state.source?.rootPath &&
-      _sharedDataRoot == _state.source?.sharedDataRootPath;
+  List<String> get _supplementalRootPaths =>
+      List.unmodifiable(_supplementalRoots);
+  bool get _sourceMatches {
+    final selected = _state.source;
+    if (selected == null) return false;
+    try {
+      return ConverterSourceSelection(
+            rootPath: _sourceRoot,
+            supplementalRootPaths: _supplementalRootPaths,
+            logicalProjectNamespace: selected.logicalProjectNamespace,
+            policy: selected.policy,
+          ).canonicalHash ==
+          selected.canonicalHash;
+    } on ConverterWorkflowFailure {
+      return false;
+    }
+  }
+
   String get _sourceRoot {
     final value = _source.text.trim();
     return path.extension(value).toLowerCase() == '.rxproj'
@@ -196,13 +209,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           : AppExitResponse.cancel,
     );
     _lastFormValues = _formValues;
-    for (final controller in [
-      _source,
-      _sharedSource,
-      _parent,
-      _name,
-      _folder,
-    ]) {
+    for (final controller in [_source, _parent, _name, _folder]) {
       controller.addListener(_markEdited);
     }
     _listenToWorkflow();
@@ -225,14 +232,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   void dispose() {
     _lifecycle.dispose();
     unawaited(_subscription?.cancel());
-    for (final controller in [
-      _source,
-      _sharedSource,
-      _parent,
-      _name,
-      _folder,
-      _search,
-    ]) {
+    for (final controller in [_source, _parent, _name, _folder, _search]) {
       controller.dispose();
     }
     if (_ownsWorkflow) unawaited(_workflow.dispose());
@@ -255,6 +255,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   LocalReviewResumeSettings _resumeSettings() {
     final snapshot = _state.snapshot;
     final previous = _storedReview?.resumeSettings;
+    final savedSource = !_reviewSourceVerified ? previous : null;
     final previousAcknowledgement = previous?.profileAcknowledgement;
     final keepAcknowledgement =
         snapshot != null &&
@@ -263,8 +264,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
             snapshot.profile.evidenceHash &&
         previousAcknowledgement?.humanConfirmed == _studyAcknowledged;
     return LocalReviewResumeSettings(
-      sourceRootPath: _sourceRoot,
-      sharedDataRootPath: _sharedDataRoot,
+      sourceRootPath: savedSource?.sourceRootPath ?? _sourceRoot,
+      supplementalRootPaths:
+          savedSource?.supplementalRootPaths ?? _supplementalRootPaths,
+      sharedSourceFiles:
+          savedSource?.sharedSourceFiles ??
+          (_sourceMatches ? _state.sharedSourceFiles : const []),
       destinationParentPath: _parent.text.trim(),
       projectName: _name.text.trim(),
       folderName: _folder.text.trim(),
@@ -522,14 +527,15 @@ class _ConverterWindowState extends State<ConverterWindow> {
   Future<void> _restoreReviewSession(
     StoredReviewSession stored, {
     String? sourceRootPath,
-    String? sharedDataRootPath,
+    List<String>? supplementalRootPaths,
   }) async {
     final generation = ++_sessionGeneration;
     _workflow.invalidatePrepared();
     final settings = stored.resumeSettings;
     _source.text = sourceRootPath ?? settings.sourceRootPath;
-    _sharedSource.text =
-        sharedDataRootPath ?? settings.sharedDataRootPath ?? '';
+    _supplementalRoots
+      ..clear()
+      ..addAll(supplementalRootPaths ?? settings.supplementalRootPaths);
     _parent.text = settings.destinationParentPath;
     _name.text = settings.projectName;
     _folder.text = settings.folderName;
@@ -563,9 +569,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
         stored: stored,
         workflow: _workflow,
         sourceRootPath: sourceRootPath,
-        sharedDataRootPath: sharedDataRootPath,
+        supplementalRootPaths: _supplementalRootPaths,
       );
       if (!mounted || generation != _sessionGeneration) return;
+      _syncSourceSelection();
       setState(() {
         _decisions
           ..clear()
@@ -606,21 +613,22 @@ class _ConverterWindowState extends State<ConverterWindow> {
     await _restoreReviewSession(
       stored,
       sourceRootPath: selected,
-      sharedDataRootPath: _sharedDataRoot,
+      supplementalRootPaths: _supplementalRootPaths,
     );
   });
 
-  Future<void> _reselectSessionSharedSource() => _run(() async {
+  Future<void> _reselectSessionSupplementalSource(int index) => _run(() async {
     final stored = _storedReview;
     if (stored == null || !await _prepareForSessionChange() || !mounted) return;
     final selected = await widget.pathPicker(
-      ConverterPathKind.sharedDataFolder,
+      ConverterPathKind.supplementalFolder,
     );
     if (selected == null || !mounted) return;
+    final roots = _supplementalRoots.toList()..[index] = selected;
     await _restoreReviewSession(
       stored,
       sourceRootPath: _sourceRoot,
-      sharedDataRootPath: selected,
+      supplementalRootPaths: roots,
     );
   });
 
@@ -653,8 +661,23 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (kind == ConverterPathKind.destinationParent) {
       _parent.text = selected;
     } else {
-      if (kind == ConverterPathKind.sharedDataFolder) {
-        _sharedSource.text = selected;
+      if (kind == ConverterPathKind.supplementalFolder) {
+        if (_supplementalRoots.length >=
+            SupplementedSourceTree.maxSupplementalRoots) {
+          return;
+        }
+        if (path.isAbsolute(_sourceRoot)) {
+          final selection = ConverterSourceSelection(
+            rootPath: _sourceRoot,
+            supplementalRootPaths: [..._supplementalRoots, selected],
+            logicalProjectNamespace: ConverterId('source-folder-picker'),
+          );
+          _supplementalRoots
+            ..clear()
+            ..addAll(selection.supplementalRootPaths);
+        } else {
+          _supplementalRoots.add(selected);
+        }
       } else {
         _source.text = selected;
       }
@@ -683,13 +706,19 @@ class _ConverterWindowState extends State<ConverterWindow> {
     });
   }
 
-  Future<void> _clearSharedSource() => _run(() async {
-    if (_unappliedDrafts || !await _prepareForSessionChange() || !mounted) {
-      return;
-    }
-    _sharedSource.clear();
-    _invalidateSourceSelection();
-  });
+  Future<void> _changeSupplementalSource(int index, {int? move}) =>
+      _run(() async {
+        if (_unappliedDrafts || !await _prepareForSessionChange() || !mounted) {
+          return;
+        }
+        if (move == null) {
+          _supplementalRoots.removeAt(index);
+        } else {
+          final value = _supplementalRoots.removeAt(index);
+          _supplementalRoots.insert(index + move, value);
+        }
+        _invalidateSourceSelection();
+      });
 
   Future<void> _scan() => _run(() async {
     if (!await _prepareForSessionChange() || !mounted) return;
@@ -713,13 +742,30 @@ class _ConverterWindowState extends State<ConverterWindow> {
     await _workflow.scanSource(
       ConverterSourceSelection(
         rootPath: _sourceRoot,
-        sharedDataRootPath: _sharedDataRoot,
+        supplementalRootPaths: _supplementalRootPaths,
         logicalProjectNamespace: ConverterId(
           'local-${canonicalHashOf(_sourceRoot).value.substring(0, 24)}',
         ),
       ),
     );
+    _syncSourceSelection();
   });
+
+  void _syncSourceSelection() {
+    final selected = _state.source;
+    if (selected == null) return;
+    _lastFormValues = (
+      selected.rootPath,
+      _parent.text,
+      _name.text,
+      _folder.text,
+      canonicalJsonOf(selected.supplementalRootPaths),
+    );
+    _supplementalRoots
+      ..clear()
+      ..addAll(selected.supplementalRootPaths);
+    _source.text = selected.rootPath;
+  }
 
   ConverterStudySettings _settings() {
     final snapshot = _state.snapshot!;
@@ -771,6 +817,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         stored: current,
         workflow: _workflow,
         sourceRootPath: _sourceRoot,
+        supplementalRootPaths: _supplementalRootPaths,
         destinationParentPath: _parent.text.trim(),
         folderName: _folder.text.trim(),
         projectName: _name.text.trim(),
@@ -847,7 +894,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
       if (ownedPrevious) await previous.dispose();
       if (!mounted) return;
       _source.text = recipe.sourceSelection.rootPath;
-      _sharedSource.text = recipe.sourceSelection.sharedDataRootPath ?? '';
+      _supplementalRoots
+        ..clear()
+        ..addAll(recipe.sourceSelection.supplementalRootPaths);
       _parent.text = recipe.settings.parentPath;
       _name.text = recipe.settings.projectName;
       _folder.text = recipe.settings.folderName;
@@ -1277,15 +1326,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
           secondary: true,
           onPressed: _reselectSessionSource,
         ),
-      if (_storedReview?.resumeSettings.sharedDataRootPath != null &&
-          !_reviewSourceVerified &&
-          !_busy)
-        StudioButton(
-          key: const ValueKey('reselect-session-shared-source'),
-          label: 'Retrouver les fichiers partagés',
-          secondary: true,
-          onPressed: _reselectSessionSharedSource,
-        ),
+      if (_storedReview != null && !_reviewSourceVerified && !_busy)
+        for (var index = 0; index < _supplementalRoots.length; index++)
+          StudioButton(
+            key: ValueKey('reselect-session-supplemental-source-$index'),
+            label: 'Retrouver le complément ${index + 1}',
+            secondary: true,
+            onPressed: () => _reselectSessionSupplementalSource(index),
+          ),
     ],
   );
 
@@ -1337,42 +1385,62 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ],
         ),
         const SizedBox(height: 20),
-        const Text('Fichiers partagés (facultatif)'),
+        const Text('Dossiers complémentaires (facultatif)'),
         const SizedBox(height: 8),
         const Text(
-          'Choisissez explicitement un dossier contenant les scripts ou catalogues manquants. Seuls Scripts, objets et capacités peuvent être complétés ; les cartes et rencontres restent celles du projet source.',
+          'Le projet source reste prioritaire. Pour chaque fichier manquant, le premier dossier de cette liste qui le contient est utilisé. Vous pouvez compléter les scripts et catalogues pris en charge, les images et les sons. Les cartes et rencontres restent celles du projet source.',
         ),
         const SizedBox(height: 12),
-        StudioPathField(
-          key: const ValueKey('shared-source-path'),
-          controller: _sharedSource,
-          label: 'Dossier de référence partagé',
-          onSubmitted: () => FocusScope.of(context).nextFocus(),
-          enabled: false,
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            StudioButton(
-              key: const ValueKey('choose-shared-source'),
-              label: 'Choisir les fichiers partagés',
-              icon: Icons.folder_open,
-              secondary: true,
-              onPressed: _busy
-                  ? null
-                  : () => _pick(ConverterPathKind.sharedDataFolder),
-            ),
-            StudioButton(
-              key: const ValueKey('clear-shared-source'),
-              label: 'Retirer la référence',
-              secondary: true,
-              onPressed: _busy || _sharedDataRoot == null
-                  ? null
-                  : _clearSharedSource,
-            ),
-          ],
+        for (var index = 0; index < _supplementalRoots.length; index++)
+          StudioPanel(
+            key: ValueKey('supplemental-source-$index'),
+            title: 'Priorité ${index + 1}',
+            children: [
+              SelectableText(_supplementalRoots[index]),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  StudioButton(
+                    key: ValueKey('move-supplemental-source-up-$index'),
+                    label: 'Monter',
+                    secondary: true,
+                    onPressed: _busy || index == 0
+                        ? null
+                        : () => _changeSupplementalSource(index, move: -1),
+                  ),
+                  StudioButton(
+                    key: ValueKey('move-supplemental-source-down-$index'),
+                    label: 'Descendre',
+                    secondary: true,
+                    onPressed: _busy || index == _supplementalRoots.length - 1
+                        ? null
+                        : () => _changeSupplementalSource(index, move: 1),
+                  ),
+                  StudioButton(
+                    key: ValueKey('remove-supplemental-source-$index'),
+                    label: 'Retirer',
+                    secondary: true,
+                    onPressed: _busy
+                        ? null
+                        : () => _changeSupplementalSource(index),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        StudioButton(
+          key: const ValueKey('add-supplemental-source'),
+          label: 'Ajouter un dossier complémentaire',
+          icon: Icons.folder_open,
+          secondary: true,
+          onPressed:
+              _busy ||
+                  _supplementalRoots.length >=
+                      SupplementedSourceTree.maxSupplementalRoots
+              ? null
+              : () => _pick(ConverterPathKind.supplementalFolder),
         ),
         const SizedBox(height: 20),
         StudioPathField(
@@ -1478,17 +1546,49 @@ class _ConverterWindowState extends State<ConverterWindow> {
             Text(
               'Inventaire logique : ${snapshot.entries.where((value) => value.kind == SourceNodeKind.file).length} fichiers lus.',
             ),
-            if (_state.source?.sharedDataRootPath != null) ...[
+            if (_state.source?.supplementalRootPaths.isNotEmpty == true) ...[
               const SizedBox(height: 12),
               Text(
                 'Fichiers partagés utilisés : ${_state.sharedSourceFiles.length}',
               ),
-              for (final file in _state.sharedSourceFiles)
+              for (final file in _state.sharedSourceFiles.take(5))
                 SelectableText(
                   '${file.relativePath} ← ${file.referenceRootPath}',
                 ),
+              if (_state.sharedSourceFiles.length > 5)
+                StudioButton(
+                  label:
+                      'Afficher les ${_state.sharedSourceFiles.length} fichiers',
+                  secondary: true,
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (dialogContext) => StudioReviewDialog(
+                      title: 'Fichiers partagés utilisés',
+                      content: SizedBox(
+                        height: 360,
+                        child: ListView.builder(
+                          key: const ValueKey('shared-source-files-detail'),
+                          itemCount: _state.sharedSourceFiles.length,
+                          itemBuilder: (context, index) {
+                            final file = _state.sharedSourceFiles[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: SelectableText(
+                                '${file.relativePath} ← ${file.referenceRootPath}',
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      cancelLabel: 'Retour',
+                      onCancelled: () => Navigator.pop(dialogContext),
+                      confirmLabel: 'Fermer',
+                      onConfirmed: () => Navigator.pop(dialogContext),
+                    ),
+                  ),
+                ),
               const Text(
-                'Ces fichiers sont lus depuis la référence choisie ; ils ne sont pas ajoutés au dossier source.',
+                'Ces fichiers sont lus depuis les dossiers complémentaires choisis ; ils ne sont pas ajoutés au dossier source.',
               ),
             ],
             const SizedBox(height: 8),
@@ -1717,7 +1817,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
             verifySource: _verifyVisionSource,
             excludedRoots: () async => [
               if (_sourceRoot.isNotEmpty) _sourceRoot,
-              ?_sharedDataRoot,
+              ..._supplementalRootPaths,
               if (_parent.text.trim().isNotEmpty &&
                   _validFolder(_folder.text.trim()))
                 path.join(_parent.text.trim(), _folder.text.trim()),
@@ -1853,7 +1953,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
             _state.source?.canonicalHash != source.canonicalHash)) {
       throw const VisionAssistanceException('vision.stale');
     }
-    return ConverterVisionSourceFiles(source, snapshot);
+    return ConverterVisionSourceFiles(
+      source,
+      snapshot,
+      _state.sharedSourceFiles,
+    );
   }
 
   Future<bool> _verifyVisionSource() async {
@@ -1868,7 +1972,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
             _state.source?.canonicalHash != source.canonicalHash)) {
       return false;
     }
-    final verified = await verifyConverterVisionSource(source, snapshot);
+    final verified = await verifyConverterVisionSource(
+      source,
+      snapshot,
+      _state.sharedSourceFiles,
+    );
     return mounted &&
         verified &&
         !_busy &&
@@ -2339,7 +2447,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                 allowedParentRoots: [_parent.text.trim()],
                 sourceRoots:
                     _state.source?.sourceRoots ??
-                    [_sourceRoot, ?_sharedDataRoot],
+                    [_sourceRoot, ..._supplementalRootPaths],
               ),
             );
             if (!mounted) return;
@@ -2513,6 +2621,9 @@ String _phaseLabel(ConverterWorkflowPhase? phase) => switch (phase) {
 
 String _failureMessage(Object error) {
   if (error is ConverterWorkflowFailure) {
+    if (error.code == 'workflow.source_roots.invalid') {
+      return 'Choisissez au maximum quatre dossiers complémentaires distincts du projet source et les uns des autres.';
+    }
     if (error.code.startsWith('workflow.recipe')) {
       if (error.code.endsWith('conflict')) {
         return 'Ce fichier de plan existe déjà. Choisissez un nouveau nom.';

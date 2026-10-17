@@ -32,9 +32,10 @@ Future<void> main() async {
         'recipeHash': recipe.canonicalHash.value,
         'expectedApprovedPlanHash': recipe.approvedPlanHash.value,
         'expectedSource': recipe.sourceSelection.rootPath,
-        'expectedSharedDataRoot': recipe.sourceSelection.sharedDataRootPath,
+        'expectedSupplementalRoots':
+            recipe.sourceSelection.supplementalRootPaths,
         'activeSource': state?.source?.rootPath,
-        'activeSharedDataRoot': state?.source?.sharedDataRootPath,
+        'activeSupplementalRoots': state?.source?.supplementalRootPaths,
         'sharedSourceFiles': state?.sharedSourceFiles
             .map((file) => file.toJson())
             .toList(),
@@ -57,14 +58,17 @@ Future<void> main() async {
       }),
     );
   });
+  var supplementalPick = 0;
   runApp(
     ConverterApp(
       workflowFactory: () => active = ConverterWorkflow(),
       pathPicker: (kind) async => switch (kind) {
         ConverterPathKind.planFile => selected,
         ConverterPathKind.sourceFolder => recipe.sourceSelection.rootPath,
-        ConverterPathKind.sharedDataFolder =>
-          recipe.sourceSelection.sharedDataRootPath,
+        ConverterPathKind.supplementalFolder =>
+          supplementalPick < recipe.sourceSelection.supplementalRootPaths.length
+              ? recipe.sourceSelection.supplementalRootPaths[supplementalPick++]
+              : null,
         ConverterPathKind.destinationParent => recipe.settings.parentPath,
         ConverterPathKind.sourceProject => null,
       },

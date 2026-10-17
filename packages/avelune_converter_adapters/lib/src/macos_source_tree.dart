@@ -61,22 +61,27 @@ final class MacOsSourceTree implements SourceTreePort {
 
   Stream<SourceNode> walkSelected({
     required Set<String> relativePaths,
+    Set<String> recursivePaths = const {},
     required SourceScanPolicy policy,
     required ScanCancellation cancellation,
   }) {
-    for (final value in relativePaths) {
+    for (final value in {...relativePaths, ...recursivePaths}) {
       validateSourceRelativePath(value);
     }
     return _walk(
         policy: policy,
         cancellation: cancellation,
-        selectedKeys: relativePaths.map(sourcePathCollisionKey).toSet());
+        selectedKeys: {...relativePaths, ...recursivePaths}
+            .map(sourcePathCollisionKey)
+            .toSet(),
+        recursiveKeys: recursivePaths.map(sourcePathCollisionKey).toSet());
   }
 
   Stream<SourceNode> _walk({
     required SourceScanPolicy policy,
     required ScanCancellation cancellation,
     Set<String>? selectedKeys,
+    Set<String> recursiveKeys = const {},
   }) async* {
     _check(cancellation);
     final limits = policy.limits;
@@ -95,8 +100,8 @@ final class MacOsSourceTree implements SourceTreePort {
       if (_statFd(fd, '').identity != _rootIdentity) {
         throw _changed('');
       }
-      yield* _walkDirectory(
-          fd, '', 0, _rootIdentity, policy, cancellation, budget, selectedKeys);
+      yield* _walkDirectory(fd, '', 0, _rootIdentity, policy, cancellation,
+          budget, selectedKeys, recursiveKeys);
     } finally {
       _native.close(fd);
     }
@@ -111,6 +116,7 @@ final class MacOsSourceTree implements SourceTreePort {
     ScanCancellation cancellation,
     _WalkBudget budget,
     Set<String>? selectedKeys,
+    Set<String> recursiveKeys,
   ) async* {
     final initialToken =
         selectedKeys == null ? null : _statFd(fd, parentPath).token;
@@ -161,8 +167,9 @@ final class MacOsSourceTree implements SourceTreePort {
         }
         if (selectedKeys != null) {
           final key = sourcePathCollisionKey(path);
-          if (!selectedKeys.any(
-              (selected) => selected == key || selected.startsWith('$key/'))) {
+          if (!selectedKeys.any((selected) =>
+                  selected == key || selected.startsWith('$key/')) &&
+              !recursiveKeys.any((prefix) => key.startsWith('$prefix/'))) {
             continue;
           }
         }
@@ -202,7 +209,8 @@ final class MacOsSourceTree implements SourceTreePort {
               policy,
               cancellation,
               budget,
-              selectedKeys);
+              selectedKeys,
+              recursiveKeys);
         } finally {
           _native.close(child);
         }

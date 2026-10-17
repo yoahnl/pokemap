@@ -42,32 +42,49 @@ typedef ConverterWorkflowCheckpoint = FutureOr<void> Function(
 final class ConverterSourceSelection {
   factory ConverterSourceSelection({
     required String rootPath,
-    String? sharedDataRootPath,
+    List<String> supplementalRootPaths = const [],
     required ConverterId logicalProjectNamespace,
     SourceScanPolicy? policy,
   }) {
     _workflowPath(rootPath);
-    if (sharedDataRootPath != null) _workflowPath(sharedDataRootPath);
-    return ConverterSourceSelection._(
-        path.normalize(rootPath),
-        sharedDataRootPath == null ? null : path.normalize(sharedDataRootPath),
-        logicalProjectNamespace,
-        policy ?? SourceScanPolicy());
+    if (supplementalRootPaths.length >
+        SupplementedSourceTree.maxSupplementalRoots) {
+      throw const ConverterWorkflowFailure('workflow.source_roots.invalid',
+          'Choose at most four distinct supplemental folders.');
+    }
+    String canonical(String value) {
+      _workflowPath(value);
+      try {
+        return Directory(value).resolveSymbolicLinksSync();
+      } on FileSystemException {
+        return path.normalize(value);
+      }
+    }
+
+    final primary = canonical(rootPath);
+    final roots = supplementalRootPaths.map(canonical).toList();
+    if (roots.length > SupplementedSourceTree.maxSupplementalRoots ||
+        {primary, ...roots}.length != roots.length + 1) {
+      throw const ConverterWorkflowFailure('workflow.source_roots.invalid',
+          'Choose at most four distinct supplemental folders.');
+    }
+    return ConverterSourceSelection._(primary, List.unmodifiable(roots),
+        logicalProjectNamespace, policy ?? SourceScanPolicy());
   }
 
-  const ConverterSourceSelection._(this.rootPath, this.sharedDataRootPath,
+  const ConverterSourceSelection._(this.rootPath, this.supplementalRootPaths,
       this.logicalProjectNamespace, this.policy);
 
   final String rootPath;
-  final String? sharedDataRootPath;
+  final List<String> supplementalRootPaths;
   List<String> get sourceRoots =>
-      [rootPath, if (sharedDataRootPath != null) sharedDataRootPath!];
+      List.unmodifiable([rootPath, ...supplementalRootPaths]);
   final ConverterId logicalProjectNamespace;
   final SourceScanPolicy policy;
 
   Sha256Hash get canonicalHash => canonicalHashOf({
         'rootPath': rootPath,
-        'sharedDataRootPath': sharedDataRootPath,
+        'supplementalRootPaths': supplementalRootPaths,
         'logicalProjectNamespace': logicalProjectNamespace.value,
         'policyHash': policy.canonicalHash.value,
       });
@@ -349,7 +366,7 @@ final class ConverterStudyResult {
   final List<ConverterSharedSourceFile> sharedSourceFiles;
   Map<String, Object?> get sourceProvenanceReceipt => {
         'kind': 'converterSourceProvenance',
-        'version': 1,
+        'version': 2,
         'sourceSelectionHash': sourceSelection.canonicalHash.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'preparationHash': preparationHash.value,
@@ -357,7 +374,7 @@ final class ConverterStudyResult {
         'nativeDraftHash': publication.draftHash.value,
         'nativeInventoryHash': publication.inventoryHash.value,
         'sourceRootPath': sourceSelection.rootPath,
-        'sharedDataRootPath': sourceSelection.sharedDataRootPath,
+        'supplementalRootPaths': sourceSelection.supplementalRootPaths,
         'sharedSourceFiles':
             sharedSourceFiles.map((file) => file.toJson()).toList(),
       };
@@ -587,6 +604,14 @@ final class ConverterWorkflow {
           snapshot.profile.evidenceHash != recipe.profileEvidenceHash) {
         throw const ConverterWorkflowFailure('workflow.source_changed',
             'The fresh source inventory or profile differs from the saved recipe.');
+      }
+      if (canonicalHashOf(
+              recipe.sharedSourceFiles.map((file) => file.toJson()).toList()) !=
+          canonicalHashOf(
+              _state.sharedSourceFiles.map((file) => file.toJson()).toList())) {
+        throw const ConverterWorkflowFailure(
+            'workflow.source_provenance_changed',
+            'Source file origins differ from the saved recipe.');
       }
       _updateSettings(recipe.settings, restoringRecipe: true);
       final prepared = await _prepareStudy(restoringRecipe: true);
@@ -1339,7 +1364,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             : ConverterWorkflowPhase.verifySource,
         JobUnit.files);
     tree = await SupplementedSourceTree.open(request.source.rootPath,
-        sharedDataRootPath: request.source.sharedDataRootPath);
+        supplementalRootPaths: request.source.supplementalRootPaths);
     relay.cancellation.check();
     final source = _CooperativeSourceTree(tree);
     final snapshot = await SourceScanner().scan(
@@ -1733,7 +1758,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             approval.approvedPlan, context, draft,
             policy: NativePublicationPolicy(
                 allowedParentRoots: [draft.parentPath],
-                sourceRoots: request.source.sourceRoots),
+                sourceRoots: tree.sourceRoots),
             cancellation: relay.cancellation);
         await relay.checkpoint(
             journalPath: publicationJob.journalPath,

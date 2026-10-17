@@ -25,7 +25,7 @@ void main() {
     primary = await Directory('${sandbox.path}/primary').create();
     reference = await Directory('${sandbox.path}/reference').create();
     tree = await SupplementedSourceTree.open(primary.path,
-        sharedDataRootPath: reference.path);
+        supplementalRootPaths: [reference.path]);
   });
 
   tearDown(() async {
@@ -59,14 +59,21 @@ void main() {
     for (final name in [
       'Data/Scripts.rxdata',
       'Data/items.dat',
-      'PBS/items.txt'
+      'PBS/items.txt',
+      'Data/species.dat',
+      'PBS/pokemon.txt',
+      'PBS/pokemon_forms.txt',
+      'Graphics/Tilesets/FRLG_Interior general.png',
+      'Audio/BGM/route.ogg',
+      'Game.exe'
     ]) {
       await write(reference, name, name);
     }
     await write(reference, 'Data/Map002.rxdata', 'foreign map');
     await write(reference, 'Data/encounters.dat', 'foreign encounters');
     await write(reference, 'PBS/metadata.txt', 'foreign metadata');
-    await write(reference, 'Graphics/player.png', 'foreign graphics');
+    await write(reference, 'Graphics/notes.txt', 'foreign text');
+    await write(reference, 'Other.exe', 'foreign executable');
     final nodes = await walk();
     expect(
         nodes
@@ -77,10 +84,25 @@ void main() {
           'Data/Map001.rxdata',
           'Data/Scripts.rxdata',
           'Data/items.dat',
-          'PBS/items.txt'
+          'PBS/items.txt',
+          'Data/species.dat',
+          'PBS/pokemon.txt',
+          'PBS/pokemon_forms.txt',
+          'Graphics/Tilesets/FRLG_Interior general.png',
+          'Audio/BGM/route.ogg',
+          'Game.exe'
         });
-    expect(tree.sharedRelativePaths.toSet(),
-        {'Data/Scripts.rxdata', 'Data/items.dat', 'PBS/items.txt'});
+    expect(tree.sharedRelativePaths.toSet(), {
+      'Data/Scripts.rxdata',
+      'Data/items.dat',
+      'PBS/items.txt',
+      'Data/species.dat',
+      'PBS/pokemon.txt',
+      'PBS/pokemon_forms.txt',
+      'Graphics/Tilesets/FRLG_Interior general.png',
+      'Audio/BGM/route.ogg',
+      'Game.exe'
+    });
     for (final node
         in nodes.where((node) => node.kind == SourceNodeKind.file)) {
       expect(
@@ -266,12 +288,188 @@ void main() {
         throwsA(code('source.cancelled')));
   });
 
+  test('ordered roots fill missing paths once and preserve exact origins',
+      () async {
+    final later = await Directory('${sandbox.path}/later').create();
+    await tree.close();
+    tree = await SupplementedSourceTree.open(primary.path,
+        supplementalRootPaths: [reference.path, later.path]);
+    await write(primary, 'Graphics/Tilesets/primary.png', 'primary');
+    await write(reference, 'Graphics/Tilesets/primary.png', 'shadow');
+    await write(reference, 'Graphics/Tilesets/shared.png', 'first');
+    await write(later, 'Graphics/Tilesets/shared.png', 'second');
+    await write(later, 'Audio/BGM/route.ogg', 'music');
+    await write(later, 'Game.exe', 'oracle');
+    await write(later, 'Data/Map999.rxdata', 'foreign map');
+    await write(later, 'Graphics/tool.exe', 'foreign executable');
+    final nodes = await walk();
+    expect(
+        await read(nodes.singleWhere(
+            (node) => node.relativePath == 'Graphics/Tilesets/shared.png')),
+        'first');
+    final snapshot = await SourceScanner().scan(
+        source: tree, logicalProjectNamespace: ConverterId('ordered-roots'));
+    expect(snapshot.state, SourceScanState.complete);
+    final provenance = tree.sharedSourceFilesFor(snapshot);
+    expect(provenance.map((file) => file.relativePath).toSet(),
+        {'Graphics/Tilesets/shared.png', 'Audio/BGM/route.ogg', 'Game.exe'});
+    expect(
+        provenance
+            .singleWhere((file) => file.relativePath.endsWith('shared.png'))
+            .referenceRootPath,
+        reference.path);
+    expect(
+        provenance
+            .singleWhere((file) => file.relativePath == 'Game.exe')
+            .referenceRootPath,
+        later.path);
+    expect(await File('${primary.path}/Game.exe').exists(), isFalse);
+    await tree.close();
+    tree = await SupplementedSourceTree.open(primary.path,
+        supplementalRootPaths: [later.path, reference.path]);
+    expect(
+        await read((await walk())
+            .singleWhere((node) => node.relativePath.endsWith('shared.png'))),
+        'second');
+  });
+
+  for (final duringRead in [false, true]) {
+    test(
+        'earlier reference gaining a media path is rejected duringRead=$duringRead',
+        () async {
+      final later = await Directory('${sandbox.path}/later').create();
+      await tree.close();
+      tree = await SupplementedSourceTree.open(primary.path,
+          supplementalRootPaths: [reference.path, later.path]);
+      await write(reference, 'Graphics/Tilesets/existing.png', 'existing');
+      await write(later, 'Graphics/Tilesets/shared.png', 'same bytes');
+      final node = (await walk())
+          .singleWhere((node) => node.relativePath.endsWith('shared.png'));
+      if (duringRead) {
+        await expectLater(
+            tree
+                .read(node, maxBytes: 1024, cancellation: ScanCancellation())
+                .asyncMap((chunk) async {
+              await write(reference, node.relativePath, 'same bytes');
+              return chunk;
+            }).toList(),
+            throwsA(code('source.changed')));
+      } else {
+        await write(reference, node.relativePath, 'same bytes');
+        await expectLater(read(node), throwsA(code('source.changed')));
+      }
+    });
+  }
+
+  for (final blocked in ['Graphics/Pictures', 'data/items.dat']) {
+    test('an invalid earlier entry blocks a lower reference at $blocked',
+        () async {
+      final later = await Directory('${sandbox.path}/later').create();
+      await tree.close();
+      tree = await SupplementedSourceTree.open(primary.path,
+          supplementalRootPaths: [reference.path, later.path]);
+      await write(reference, blocked, 'invalid higher entry');
+      await write(
+          later,
+          blocked.startsWith('Graphics')
+              ? 'Graphics/Pictures/witness.png'
+              : 'Data/items.dat',
+          'lower substitute');
+      await expectLater(walk(), throwsA(code('source.shared.path_conflict')));
+    });
+  }
+
+  test('canonical aliases and more than four references are rejected',
+      () async {
+    for (final roots in [
+      [reference.path, reference.path.replaceFirst('/private/tmp/', '/tmp/')],
+      [primary.path],
+      List.filled(5, reference.path),
+    ]) {
+      await expectLater(
+          SupplementedSourceTree.open(primary.path,
+              supplementalRootPaths: roots),
+          throwsA(code('source.shared.roots_invalid')));
+    }
+    expect(
+        () => ConverterSourceSelection(
+            rootPath: primary.path,
+            supplementalRootPaths: [reference.path, reference.path],
+            logicalProjectNamespace: ConverterId('roots')),
+        throwsA(isA<ConverterWorkflowFailure>()));
+  });
+
+  test('media file quota stops the scan before any file body is read',
+      () async {
+    final file = await write(reference, 'Graphics/Tilesets/large.png', '');
+    final opened = await file.open(mode: FileMode.write);
+    await opened
+        .truncate(SupplementedSourceTree.maxSupplementalMediaFileBytes + 1);
+    await opened.close();
+    final snapshot = await SourceScanner().scan(
+        source: tree, logicalProjectNamespace: ConverterId('media-quota'));
+    expect(snapshot.state, isNot(SourceScanState.complete));
+    expect(snapshot.entries.where((entry) => entry.sha256 != null), isEmpty);
+    expect(
+        snapshot.diagnostics
+            .any((entry) => entry.code == 'source.shared.media_quota'),
+        isTrue);
+  });
+
+  test('media aggregate quota is reserved before reading sparse bodies',
+      () async {
+    for (var index = 0; index < 17; index++) {
+      final file = await write(reference, 'Graphics/Pictures/$index.png', '');
+      final opened = await file.open(mode: FileMode.write);
+      await opened
+          .truncate(SupplementedSourceTree.maxSupplementalMediaFileBytes);
+      await opened.close();
+    }
+    await expectLater(walk(), throwsA(code('source.shared.media_quota')));
+  });
+
+  test('selection copies the ordered roots and exposes immutable lists', () {
+    final roots = [reference.path, '${sandbox.path}/later'];
+    final selected = ConverterSourceSelection(
+        rootPath: primary.path,
+        supplementalRootPaths: roots,
+        logicalProjectNamespace: ConverterId('ordered-selection'));
+    final reversed = ConverterSourceSelection(
+        rootPath: primary.path,
+        supplementalRootPaths: roots.reversed.toList(),
+        logicalProjectNamespace: ConverterId('ordered-selection'));
+    roots.clear();
+    expect(selected.supplementalRootPaths.length, 2);
+    expect(selected.canonicalHash, isNot(reversed.canonicalHash));
+    expect(
+        () => selected.supplementalRootPaths.clear(), throwsUnsupportedError);
+    expect(() => selected.sourceRoots.clear(), throwsUnsupportedError);
+  });
+
+  test('media count quota is enforced before reading bodies', () async {
+    for (var index = 0;
+        index <= SupplementedSourceTree.maxSupplementalMediaFiles;
+        index++) {
+      await write(reference, 'Graphics/Pictures/$index.png', '');
+    }
+    await expectLater(walk(), throwsA(code('source.shared.media_quota')));
+  });
+
+  test('exclusions and unsupported media cannot be supplemented', () async {
+    await write(reference, 'Graphics/cache/private.png', 'private');
+    await write(reference, 'Audio/route.mid', 'unsupported');
+    await write(reference, 'Graphics/script.rb', 'unsupported');
+    await write(reference, 'Data/encounters.dat', 'unsupported');
+    expect((await walk()).where((node) => node.kind == SourceNodeKind.file),
+        isEmpty);
+  });
+
   test('selection identity binds the explicit reference even for equal bytes',
       () {
     ConverterSourceSelection selection(String? root) =>
         ConverterSourceSelection(
             rootPath: primary.path,
-            sharedDataRootPath: root,
+            supplementalRootPaths: root == null ? const [] : [root],
             logicalProjectNamespace: ConverterId('shared-reference'));
     expect(selection(null).canonicalHash,
         isNot(selection(reference.path).canonicalHash));
