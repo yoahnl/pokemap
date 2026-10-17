@@ -40,6 +40,7 @@ import '../../../features/scenes/domain/scene_port.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../presentation/features/scenes/scene_builder_page.dart';
 import 'package:flutter/material.dart';
+import '../../../features/resources/domain/resource_pack_port.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'workspace_actions.dart';
 import 'workspace_session_loader.dart';
@@ -112,6 +113,8 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.onClose,
     required this.registerExitGuard,
     this.resourcePort,
+    this.resourcePackPort,
+    this.resourcePackPicker,
     this.mapConnectionPort,
     this.pokemonPort,
     this.pokemonCommercePort,
@@ -137,6 +140,8 @@ class MapWorkspaceScreen extends StatefulWidget {
   final MapWorkspaceController controller;
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
+  final ResourcePackPort? resourcePackPort;
+  final PickResourcePack? resourcePackPicker;
   final MapConnectionPort? mapConnectionPort;
   final PokemonWorkspacePort? pokemonPort;
   final PokemonCommercePort? pokemonCommercePort;

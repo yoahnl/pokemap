@@ -1,6 +1,18 @@
 part of 'resource_workspace_pane.dart';
 
 extension ResourceWorkspaceActions on ResourceWorkspacePane {
+  Future<void> importPack(BuildContext context) async {
+    final transfer = navigation.packTransfer;
+    if (transfer == null || navigation.busy) return;
+    await showResourcePackImport(context, transfer, onShowImported: () {
+      final imported = transfer.firstImported;
+      if (imported == null || navigation.isDisposed) return;
+      if (imported.kind == 'character') { navigation.openCharacters(imported.id); return; }
+      final item = resourceCatalog(navigation.workspace.project!).where((item) => item.canonicalKind == imported.kind && item.id == imported.id).firstOrNull;
+      navigation.library.atelierVisible = false;
+      navigation.showLibrary(item);
+    });
+  }
   Future<void> removeEnvironment(
     BuildContext context,
     EnvironmentPreset preset,

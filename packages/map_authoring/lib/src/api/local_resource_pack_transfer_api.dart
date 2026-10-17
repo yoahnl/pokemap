@@ -176,6 +176,7 @@ final class LocalResourcePackTransferApi
         _keys(args, const {
           'inspectionHandle',
           'selectionHandle',
+          'section',
           'filter',
           'cursor',
           'limit',
@@ -189,15 +190,18 @@ final class LocalResourcePackTransferApi
         final selection = session.selections[owner];
         final inspection = session.inspections[owner];
         if (selection == null && inspection == null) _fail('handle_unknown');
+        final section = args['section'] ?? 'resources';
+        if (!const {'resources', 'families', 'authors', 'sources'}.contains(section)) _fail('section_invalid');
+        final source = inspection ?? selection?.inspection;
+        if (section != 'resources' && source == null) _fail('section_unavailable');
+        final rows = section == 'resources'
+            ? _filterRows(selection?.rows ?? inspection!.rows, _filter(args), selection)
+            : _inspectionSection(source!, section as String);
         return _page(
           session,
           owner,
           selection?.revision ?? inspection!.value.archiveRawSha256,
-          _filterRows(
-            selection?.rows ?? inspection!.rows,
-            _filter(args),
-            selection,
-          ),
+          rows,
           args,
           'resourcePackEntry',
         );
@@ -312,17 +316,7 @@ final class LocalResourcePackTransferApi
             );
             job.checkCancelled();
             final preview = _token('preview');
-            session.previews[preview] = [
-              for (final mapping
-                  in prepared.installation?.resources ??
-                      const <ResourcePackResourceMapping>[])
-                {
-                  'kind': mapping.source.kind.name,
-                  'id': mapping.source.id,
-                  'targetId': mapping.targetId,
-                },
-              for (final conflict in prepared.conflicts) {'conflict': conflict},
-            ];
+            session.previews[preview] = prepared.review.rows;
             if (prepared.preparedImportHandle != null) {
               session.prepared.add(prepared.preparedImportHandle!);
             }
@@ -332,7 +326,8 @@ final class LocalResourcePackTransferApi
                 'preparedImportHandle': prepared.preparedImportHandle,
               'previewHandle': preview,
               'previewUri': _uri(session, 'resourcePackPreview', preview),
-              'resourceCount': prepared.installation?.resources.length ?? 0,
+              'resourceCount': prepared.review.summary['resourceCount'],
+              'summary': prepared.review.summary,
               'conflictCount': prepared.conflicts.length,
             };
           } on Object {
@@ -684,6 +679,10 @@ final class LocalResourcePackTransferApi
       case 'release':
         _keys(args, const {'handle'});
         final handle = _string(args, 'handle');
+        if (session.previews.remove(handle) != null) {
+          session.cursors.removeWhere((_, cursor) => cursor.$1 == handle);
+          return {'released': true};
+        }
         final artifact = session.artifacts.remove(handle);
         if (artifact != null) {
           await mutations.resourcePackReleaseExportPayload(
@@ -929,9 +928,27 @@ Map<String, Object?> _inspectionSummary(
   'inspectionHandle': value.id,
   'archiveRawSha256': value.value.archiveRawSha256,
   'fileCount': value.value.catalog.files.length,
+  'pack': {'id': value.value.manifest.pack.id, 'name': value.value.manifest.pack.name, 'version': value.value.manifest.pack.version, 'universeId': value.value.manifest.pack.universeId, 'provenance': value.value.manifest.pack.provenance},
+  'authorCount': value.value.manifest.pack.authors.length,
+  'sourceCount': value.value.catalog.provenance.length,
+  'archiveBytes': value.value.archiveBytes,
+  'payloadBytes': value.value.payloadBytes,
+  'requiredCapabilities': value.value.manifest.compatibility.requiredCapabilities,
+  'provenanceStatus': value.value.provenanceStatus.name,
   'entriesUri': _uri(session, 'resourcePackEntry', value.id),
   'uri': _uri(session, 'resourcePackInspection', value.id),
 };
+List<Map<String, Object?>> _inspectionSection(_Inspection inspection, String section) => switch (section) {
+  'families' => [for (final family in inspection.value.catalog.resourceLibraryCatalog.effectiveFamilies) {'kind': 'resourceFamily', 'id': family.id, ..._entryLabel(family.name)}],
+  'authors' => [for (final author in inspection.value.manifest.pack.authors) {'kind': 'author', ..._entryLabel(author)}],
+  'sources' => [for (final source in inspection.value.catalog.provenance) {'kind': 'source', ..._entryLabel(source.author), if (source.sourceUrl != null) 'sourceUrl': source.sourceUrl, 'licenseCount': source.licenseIds.length}],
+  _ => throw const FormatException('Unknown inspection section'),
+};
+Map<String, Object?> _entryLabel(String value) {
+  final characters = value.runes;
+  final length = characters.length;
+  return {'label': String.fromCharCodes(characters.take(160)), 'labelComplete': length <= 160, 'labelLength': length};
+}
 ResourcePackInspection _inspect(RandomAccessPackageSource source) =>
     const ResourcePackInspector().inspectSourceSync(source);
 String _uri(_TransferSession session, String kind, String handle) =>
@@ -1146,7 +1163,7 @@ Map<String, Object?> _page(
 ) {
   final limit = _integer(args, 'limit', fallback: 50);
   if (limit < 1 || limit > 200) _fail('page_limit_invalid');
-  final filterKey = canonicalAuthoringJson(args['filter'] ?? const {});
+  final filterKey = canonicalAuthoringJson({'section': args['section'] ?? 'resources', 'filter': args['filter'] ?? const {}});
   var offset = 0;
   if (args['cursor'] != null) {
     final cursor = session.cursors[args['cursor']];
@@ -1166,7 +1183,8 @@ Map<String, Object?> _page(
     index++
   ) {
     final item = {...rows[index]};
-    final length = utf8.encode(jsonEncode(item)).length + 512;
+    final encoded = jsonEncode(item);
+    final length = utf8.encode(encoded).length + utf8.encode(jsonEncode(encoded)).length + 512;
     if (length > 200 * 1024) _fail('row_too_large');
     if (bytes + length > 110 * 1024) break;
     items.add(item);

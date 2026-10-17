@@ -176,6 +176,9 @@ extension ResourceNavigationManagement on ResourceNavigation {
   }
 
   Future<bool> retryReconciliation() async {
+    if (packTransfer?.requiresReconciliation == true) {
+      return packTransfer!.retryReconciliation();
+    }
     final receipt = pendingReceipt;
     if (receipt == null || busy || _disposed) return false;
     busy = true;

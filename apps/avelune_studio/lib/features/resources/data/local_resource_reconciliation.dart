@@ -30,17 +30,22 @@ Future<void> _reconcileResourceReceipt(
         projectRoot: adapter.session.directoryPath,
         relativePath: entry.key,
       );
-      final revision = identity == null
-          ? null
-          : computeNarrativeProjectFingerprint([
-              NarrativeProjectFingerprintEntry(
-                relativePath: entry.key,
-                bytes: await reader.readBytes(
-                  projectRoot: adapter.session.directoryPath,
-                  relativePath: entry.key,
-                ),
-              ),
-            ]);
+      String? revision;
+      if (identity != null) {
+        final fingerprint = NarrativeProjectFingerprintBuilder()
+          ..startEntry(
+            relativePath: entry.key,
+            byteLength: identity.byteLength,
+          );
+        await for (final chunk in reader.openRead(
+          projectRoot: adapter.session.directoryPath,
+          relativePath: entry.key,
+        )) {
+          fingerprint.addBytes(chunk);
+        }
+        fingerprint.endEntry();
+        revision = fingerprint.close();
+      }
       if (revision != entry.value) changed = true;
     }
     if (changed) {

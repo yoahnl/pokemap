@@ -1,4 +1,6 @@
 import 'dart:io';
+import '../features/resources/data/local_resource_pack_adapter.dart';
+import '../platform/files/native_resource_pack_picker.dart';
 import '../features/regional_map/data/local_regional_map_adapter.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import '../platform/files/native_project_creation_picker.dart';
@@ -92,6 +94,12 @@ class StudioBootstrap extends StatelessWidget {
         ref.onDispose(port.dispose);
         return port;
       }),
+      resourcePackPortProvider.overrideWith((ref, session) {
+        final port = LocalResourcePackAdapter(session: session, mapAdapter: ref.watch(mapWorkspacePortProvider(session)) as LocalMapWorkspaceAdapter, resources: ref.watch(resourcePortProvider(session)) as LocalResourceAdapter);
+        ref.onDispose(port.dispose);
+        return port;
+      }),
+      resourcePackPickerProvider.overrideWithValue(const NativeResourcePackPicker().choose),
       pokemonPortProvider.overrideWith((ref, session) {
         final port = LocalPokemonWorkspaceAdapter(
           session: session,

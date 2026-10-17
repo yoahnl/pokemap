@@ -130,6 +130,7 @@ final resourcePackVerbInputSchemas = <String, Map<String, Object?>>{
       _object([], {
           'inspectionHandle': _handleSchema,
           'selectionHandle': _handleSchema,
+          'section': {'type': 'string', 'enum': ['resources', 'families', 'authors', 'sources'], 'default': 'resources'},
           'filter': _filterSchema,
           ..._pageSchema,
         })

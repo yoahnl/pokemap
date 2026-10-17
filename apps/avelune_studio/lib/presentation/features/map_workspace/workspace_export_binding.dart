@@ -35,6 +35,7 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
   }
 
   Future<bool> _prepareGameExport() async {
+    if (_resources?.busy == true || _resources?.packTransfer?.blocksClose == true) return false;
     if (_controller.catalogBusy || _controller.pendingCatalogReceipt != null) {
       return false;
     }

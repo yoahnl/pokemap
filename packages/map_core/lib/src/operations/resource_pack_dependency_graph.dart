@@ -82,11 +82,15 @@ final class ResourcePackDependencyException implements Exception {
 }
 
 final class ResourcePackClosure {
-  ResourcePackClosure._(Iterable<ResourcePackNodeRef> references)
-    : nodes = List.unmodifiable(
+  ResourcePackClosure._(
+    Iterable<ResourcePackNodeRef> references,
+    Map<ResourcePackNodeRef, ResourcePackNodeRef> representatives,
+  ) : nodes = List.unmodifiable(
         references.toList()..sort((a, b) => a.identity.compareTo(b.identity)),
-      );
+      ),
+      representativeRoots = Map.unmodifiable(representatives);
   final List<ResourcePackNodeRef> nodes;
+  final Map<ResourcePackNodeRef, ResourcePackNodeRef> representativeRoots;
   List<ResourcePackRef> get resources => List.unmodifiable(
     nodes.map((e) => e.resource).whereType<ResourcePackRef>().toList()
       ..sort((a, b) => a.identity.compareTo(b.identity)),
@@ -144,11 +148,13 @@ final class ResourcePackDependencyGraph {
       ..sort((a, b) => a.identity.compareTo(b.identity));
     final done = <ResourcePackNodeRef>{};
     final active = <ResourcePackNodeRef>{};
+    final representatives = <ResourcePackNodeRef, ResourcePackNodeRef>{};
     for (final root in selected) {
       if (done.contains(root)) continue;
       final stack = <_TraversalFrame>[_TraversalFrame(root)];
       while (stack.isNotEmpty) {
         final frame = stack.last;
+        representatives.putIfAbsent(frame.reference, () => root);
         final node = _nodes[frame.reference];
         if (node == null) {
           throw ResourcePackDependencyException(
@@ -176,7 +182,7 @@ final class ResourcePackDependencyGraph {
         stack.add(_TraversalFrame(child));
       }
     }
-    return ResourcePackClosure._(done);
+    return ResourcePackClosure._(done, representatives);
   }
 }
 

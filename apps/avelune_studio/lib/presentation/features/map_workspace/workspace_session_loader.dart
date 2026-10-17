@@ -73,6 +73,8 @@ loadWorkspaceSession(
       : ResourceNavigation(
           workspace: workspace,
           port: widget.resourcePort!,
+          packPort: widget.resourcePackPort,
+          packPicker: widget.resourcePackPicker,
           visuals: visuals,
           onUse: onUse,
           openUsage: openUsage,

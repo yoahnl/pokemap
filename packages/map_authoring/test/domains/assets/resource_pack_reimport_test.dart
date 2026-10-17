@@ -9,6 +9,32 @@ import 'resource_pack_import_fixture.dart';
 import 'resource_pack_export_test.dart' as source;
 
 void main() {
+  test('chosen pattern review counts its support closure and representative reasons', () async {
+    final fixture = await ResourcePackImportFixture.create(roots: [], smartTilePatternIds: ['motif']);
+    try {
+      final pattern = fixture.archive.inspection.catalog.smartTileCatalog.patterns.single;
+      final selection = await fixture.preparer.select(archiveHandle: fixture.archive.payload.handle, roots: [], smartTilePatternIds: [pattern.id]);
+      final prepared = await fixture.prepare(selection: selection);
+      expect(prepared.status, ResourcePackPreparedImportStatus.ready);
+      final summary = prepared.review.summary;
+      expect(summary['selectedResourceCount'], 0);
+      expect(summary['selectedPatternCount'], 1);
+      expect(summary['supportCount'], greaterThan(0));
+      expect(summary['createdDefinitionCount'], summary['definitionCount']);
+      final graph = ResourcePackDependencyGraph.fromCatalog(fixture.archive.inspection.catalog).closure(roots: [], smartTilePatternIds: [pattern.id]);
+      final files = graph.files.toSet();
+      expect(summary['sourceBytes'], fixture.archive.inspection.catalog.files.where((file) => files.contains(file.id)).fold<int>(0, (total, file) => total + file.byteLength));
+      expect((summary['createdDefinitionCount'] as int) + (summary['copiedDefinitionCount'] as int) + (summary['reusedDefinitionCount'] as int), summary['definitionCount']);
+      final chosen = prepared.review.rows.singleWhere((row) => row['kind'] == 'smartTilePattern');
+      expect(chosen['selected'], isTrue);
+      expect(chosen['label'], 'Independent');
+      for (final dependency in prepared.review.rows.where((row) => row['selected'] == false)) {
+        expect(dependency['requiredByKind'], 'smartTilePattern');
+        expect(dependency['requiredByLabel'], 'Independent');
+      }
+      expect(summary['firstAdded'], isNotNull);
+    } finally { await fixture.dispose(); }
+  });
   test(
       'covered roots return alreadyInstalled before checking locally edited or deleted definitions',
       () async {
@@ -32,6 +58,13 @@ void main() {
       final edited = await fixture.prepare(selection: selection);
       expect(edited.status.name, 'alreadyInstalled');
       expect(edited.preparedImportHandle, isNull);
+      expect(edited.review.summary['selectedResourceCount'], 1);
+      expect(edited.review.summary['resourceCount'], 2);
+      expect(edited.review.summary['createdDefinitionCount'], 0);
+      expect(edited.review.summary['localModifiedResourceCount'], 1);
+      expect(edited.review.summary['localDeletedResourceCount'], 0);
+      expect(edited.review.summary['writeBytes'], 0);
+      expect(edited.review.summary['sourceBytes'], greaterThan(0));
       expect(
           (await fixture.loader.load(fixture.opened.projectHandle))
               .manifest
@@ -49,6 +82,9 @@ void main() {
                   .where((e) => e.resourceKind != 'element'))).toJson()));
       final deleted = await fixture.prepare(selection: selection);
       expect(deleted.status.name, 'alreadyInstalled');
+      expect(deleted.review.summary['localDeletedResourceCount'], 1);
+      expect(deleted.review.summary['localModifiedResourceCount'], 0);
+      expect(deleted.review.summary['writeBytes'], 0);
       expect(
           (await fixture.loader.load(fixture.opened.projectHandle))
               .manifest
@@ -67,12 +103,17 @@ void main() {
       final refused = await fixture.prepare(selection: extension);
       expect(refused.status.name, 'conflict');
       expect(refused.preparedImportHandle, isNull);
+      expect(refused.review.summary['blockedDefinitionCount'], refused.review.summary['definitionCount']);
+      expect(refused.review.rows.where((row) => row['conflict'] != null).every((row) => row['message'] is String && row['label'] is String), isTrue);
       expect(refused.conflicts,
           contains(startsWith('dependency_modified_or_missing:')));
       final copied = await fixture.prepare(
           selection: extension, policy: ResourcePackConflictPolicy.importCopy);
       expect(copied.status.name, 'ready');
       expect(copied.installation!.copyOrdinal, 1);
+      expect(copied.review.summary['createdDefinitionCount'], 0);
+      expect(copied.review.summary['copiedDefinitionCount'], copied.review.summary['definitionCount']);
+      expect(copied.review.summary['reusedDefinitionCount'], 0);
       await fixture.apply(await fixture.plan(copied));
       final after =
           (await fixture.loader.load(fixture.opened.projectHandle)).manifest;

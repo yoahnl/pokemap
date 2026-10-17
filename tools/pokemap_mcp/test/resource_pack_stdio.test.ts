@@ -95,6 +95,16 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
     const staged = await settle(stageStart);
     const inspectStart = await transfer("inspect", { archiveHandle: staged.archiveHandle });
     const inspected = await settle(inspectStart);
+    assert.equal(typeof record(inspected.pack).name, "string");
+    assert.equal(typeof inspected.archiveBytes, "number");
+    const authors = await transfer("entries", { inspectionHandle: inspected.inspectionHandle, section: "authors", limit: 1 });
+    assert.equal(record((authors.items as unknown[])[0]).kind, "author");
+    const sources = await transfer("entries", { inspectionHandle: inspected.inspectionHandle, section: "sources", limit: 1 });
+    assert.equal(record((sources.items as unknown[])[0]).kind, "source");
+    const families = await transfer("entries", { inspectionHandle: inspected.inspectionHandle, section: "families", limit: 1 });
+    assert.equal(record((families.items as unknown[])[0]).kind, "resourceFamily");
+    if (families.nextCursor) await transfer("entries", { inspectionHandle: inspected.inspectionHandle, section: "authors", cursor: families.nextCursor }, true);
+
     const resource = await client.readResource({ uri: inspected.uri as string });
     assert.ok(Buffer.byteLength(JSON.stringify(resource), "utf8") <= 256 * 1024);
     const resourcePage = record(JSON.parse((resource.contents[0] as { text: string }).text));
@@ -110,8 +120,17 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
     const prepared = await settle(await transfer("prepare", {
       selectionHandle: chosen.selectionHandle, revision: chosen.revision, expectedRevision: validation.snapshotRevision,
     }));
+    assert.ok(Number(record(prepared.summary).sourceBytes) > 0);
+    assert.ok(Number(record(prepared.summary).writeBytes) > 0);
     const preview = await client.readResource({ uri: prepared.previewUri as string });
     assert.ok(preview.contents.length > 0);
+    const namedPreview = await transfer("preview", { previewHandle: prepared.previewHandle });
+    assert.equal(typeof (namedPreview.items as JsonRecord[])[0]!.label, "string");
+    assert.deepEqual(await transfer("release", { handle: prepared.previewHandle }), { released: true });
+    await transfer("preview", { previewHandle: prepared.previewHandle }, true);
+    await call("pokemap_query", { projectHandle, resourceKind: "resourcePackPreview", operation: "get", ids: [prepared.previewHandle] }, true);
+    const retainedSelection = await transfer("entries", { selectionHandle: chosen.selectionHandle });
+    assert.ok((retainedSelection.items as JsonRecord[]).length > 0);
     const planned = await call("pokemap_plan", { projectHandle, request: {
       requestId: "pack-plan", actionId: "resource_pack.import", actionVersion: 1,
       workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision,

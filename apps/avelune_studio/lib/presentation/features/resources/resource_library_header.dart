@@ -62,6 +62,8 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
     }
 
     return [
+      if (widget.onImportPack != null)
+        StudioButton(key: const ValueKey('resource-import-pack'), label: 'Importer un pack…', icon: Icons.inventory_2_outlined, secondary: true, onPressed: () => run(widget.onImportPack!)),
       if (compact) ...[
         StudioButton(
           label: state.grid ? 'Mode liste' : 'Mode grille',

@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../../../features/resources/application/resource_pack_transfer_controller.dart';
+import '../../../features/resources/domain/resource_pack_port.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/decors/application/decor_draft.dart';
@@ -38,9 +40,17 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     this.additionalDraftOwners,
     this.openUsage,
     this.canOpenUsage,
+    ResourcePackPort? packPort,
+    PickResourcePack? packPicker,
   }) {
     characters.addListener(notifyListeners);
     workspace.addListener(changed);
+    if (packPort != null && packPicker != null) {
+      packTransfer = ResourcePackTransferController(port: packPort, picker: packPicker, accept: (receipt) async { await accept(receipt); });
+      packTransfer!.addListener(_packChanged);
+    } else {
+      packTransfer = null;
+    }
   }
   @override
   final MapWorkspaceController workspace;
@@ -51,6 +61,12 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   final Future<bool> Function(ResourceUsageEntry)? openUsage;
   final bool Function(ResourceUsageEntry)? canOpenUsage;
   ResourceMutationReceipt? pendingReceipt;
+  late final ResourcePackTransferController? packTransfer;
+  void _packChanged() {
+    final transfer = packTransfer!;
+    if (transfer.pendingReceipt != null) pendingReceipt = transfer.pendingReceipt;
+    changed();
+  }
   bool _disposed = false;
   bool get isDisposed => _disposed;
   int _managementDialogs = 0;
@@ -79,7 +95,9 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   EnvironmentDraft? environment;
   final environments = <String, EnvironmentDraft>{};
   Future<void> Function(EnvironmentPreset)? drawEnvironment;
-  bool busy = false;
+  bool _ordinaryBusy = false;
+  bool get busy => _ordinaryBusy || packTransfer?.operationActive == true || packTransfer?.requiresReconciliation == true || packTransfer?.requiresRecovery == true;
+  set busy(bool value) => _ordinaryBusy = value;
   String? modelRemovalProblem(String modelId) {
     final owners = workspace.documents.values.where(
       (document) =>
@@ -272,6 +290,8 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     workspace.removeListener(changed);
     characters.removeListener(notifyListeners);
     characters.dispose();
+    packTransfer?.removeListener(_packChanged);
+    packTransfer?.dispose();
     super.dispose();
   }
 }

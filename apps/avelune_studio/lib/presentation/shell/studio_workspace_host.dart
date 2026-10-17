@@ -26,6 +26,8 @@ class StudioWorkspaceHost extends ConsumerWidget {
       controller: controller,
       mapConnectionPort: ref.watch(mapConnectionPortProvider(session)),
       resourcePort: ref.watch(resourcePortProvider(session)),
+      resourcePackPort: ref.watch(resourcePackPortProvider(session)),
+      resourcePackPicker: ref.watch(resourcePackPickerProvider),
       pokemonPort: ref.watch(pokemonPortProvider(session)),
       pokemonCommercePort: ref.watch(pokemonCommercePortProvider(session)),
       pokemonCombatPort: ref.watch(pokemonCombatPortProvider(session)),

@@ -243,6 +243,17 @@ void main() {
       final planned =
           await client.planImport(opened, archivePath, 'stdio-import');
       final inspected = planned['inspection'] as Map;
+      expect((inspected['pack'] as Map)['name'], isA<String>());
+      expect(inspected['archiveBytes'], greaterThan(0));
+      for (final section in ['families', 'authors', 'sources']) {
+        final part = await client.pack(opened, 'entries', {'inspectionHandle': inspected['inspectionHandle'], 'section': section, 'limit': 1});
+        expect((part['items'] as List).length, 1);
+        if (part['nextCursor'] != null) await client.pack(opened, 'entries', {'inspectionHandle': inspected['inspectionHandle'], 'section': section == 'authors' ? 'families' : 'authors', 'cursor': part['nextCursor']}, 'resource_pack.cursor_invalid');
+      }
+      final summary = (planned['prepared'] as Map)['summary'] as Map;
+      expect(summary['createdDefinitionCount'], summary['definitionCount']);
+      expect(summary['sourceBytes'], greaterThan(0));
+
       final selection = planned['selection'] as Map;
       final first = await client.pack(opened, 'entries',
           {'inspectionHandle': inspected['inspectionHandle'], 'limit': 1});

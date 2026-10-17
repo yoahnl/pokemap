@@ -29,6 +29,7 @@ final class ResourcePackImportFixture {
     DateTime Function()? clock,
     Future<ProjectResourceProbe> Function(String)? probe,
     ResourcePackMetadata? metadata,
+    Iterable<String> smartTilePatternIds = const [],
   }) async {
     final directory = await Directory.systemTemp.createTemp('p08-test-');
     final store = LocalResourcePackStore(
@@ -52,6 +53,7 @@ final class ResourcePackImportFixture {
               ])
                 NativeResourcePackRef(kind: root.$1, id: root.$2)
             ],
+        smartTilePatternIds: smartTilePatternIds,
         author: 'Original',
         sourceRevision: 'revision',
         licenseText: 'Licensed for this fixture',
@@ -179,6 +181,8 @@ final class NativeResourcePackImportFixture {
   int sequence = 0;
   static Future<NativeResourcePackImportFixture> create({
     ProjectManifest? sourceManifest,
+    ResourcePackMetadata? metadata,
+    Iterable<String> smartTilePatternIds = const [],
     List<NativeResourcePackFile>? sourceFiles,
     Iterable<NativeResourcePackRef>? roots,
     ProjectManifest? target,
@@ -187,6 +191,8 @@ final class NativeResourcePackImportFixture {
   }) async {
     final fixture = await ResourcePackImportFixture.create(
         sourceManifest: sourceManifest,
+        metadata: metadata,
+        smartTilePatternIds: smartTilePatternIds,
         sourceFiles: sourceFiles,
         roots: roots,
         target: target,

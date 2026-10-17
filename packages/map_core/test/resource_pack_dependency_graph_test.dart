@@ -58,6 +58,12 @@ void main() {
         ResourcePackRef(kind: ResourcePackKind.element, id: id),
     ];
     final closure = graph.closure(roots: roots);
+    final shared = ResourcePackNodeRef.file('image');
+    expect(closure.representativeRoots[shared]?.resource?.id, 'chair');
+    expect(
+      closure.representativeRoots,
+      graph.closure(roots: roots.reversed).representativeRoots,
+    );
     expect(closure.nodes, graph.closure(roots: roots.reversed).nodes);
     expect(closure.files, ['image']);
     expect(

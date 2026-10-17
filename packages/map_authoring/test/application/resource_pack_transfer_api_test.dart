@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -8,8 +9,195 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 
 import '../domains/assets/resource_pack_import_fixture.dart';
+import '../domains/assets/resource_pack_export_test.dart' as source;
 
 void main() {
+  test('families and all authors page within the escaped MCP envelope and bind cursors to their section', () async {
+    final mixed = source.mixedFixture();
+    final largeName = '🌲' * 62000;
+    final authorNames = [for (var i = 0; i < 3000; i++) 'Auteur $i «"\\ ${'é' * 70}'];
+    final original = source.metadata();
+    final fixture = await NativeResourcePackImportFixture.create(
+      sourceManifest: mixed.$1.copyWith(resourceLibraryCatalog: ResourceLibraryCatalog(families: [ResourceFamily(id: 'long-name', name: largeName)], entries: [ResourceLibraryEntry(resourceKind: 'element', resourceId: 'decor', familyId: 'long-name')])),
+      metadata: ResourcePackMetadata(id: original.id, version: original.version, name: original.name, description: original.description, universeId: original.universeId, authors: authorNames, provenance: original.provenance),
+    );
+    final api = LocalResourcePackTransferApi(mutations: fixture.mutations, snapshotLoader: fixture.loader);
+    try {
+      final file = File('${fixture.source.directory.path}/attributions.aveluneassets');
+      final sink = file.openWrite();
+      await fixture.source.archive.withSource((source) => sink.addStream(sourceChunks(source)));
+      await sink.close();
+      await fixture.mutations.resourcePackPayloadStore(fixture.opened.projectHandle).authorizeSourceFile(file.path);
+      Future<Map<String, Object?>> transfer(String verb, Map<String, Object?> input) => api.transfer(fixture.opened.projectHandle, verb: verb, input: input);
+      final staged = (await waitForJob(api, fixture.opened.projectHandle, await transfer('stage', {'sourcePath': file.path})))['result']! as Map;
+      final inspection = (await waitForJob(api, fixture.opened.projectHandle, await transfer('inspect', {'archiveHandle': staged['archiveHandle']})))['result']! as Map;
+      expect(inspection['authorCount'], authorNames.length);
+      expect((inspection['pack'] as Map).containsKey('authors'), isFalse);
+      final owner = inspection['inspectionHandle'];
+      final families = await transfer('entries', {'inspectionHandle': owner, 'section': 'families', 'limit': 50});
+      final family = (families['items'] as List).cast<Map>().singleWhere((row) => row['labelComplete'] == false);
+      expect(family['labelComplete'], isFalse);
+      expect(family['labelLength'], 62000);
+      expect((family['label'] as String).runes.length, 160);
+      final chosen = await transfer('selection.create', {'mode': 'archive', 'inspectionHandle': owner});
+      final familySelection = await transfer('selection.select_filtered', {'selectionHandle': chosen['selectionHandle'], 'revision': chosen['revision'], 'filter': {'familyId': family['id']}});
+      expect(familySelection['selectedCount'], 1);
+      var page = await transfer('entries', {'inspectionHandle': owner, 'section': 'authors', 'limit': 200});
+      final firstCursor = page['nextCursor'];
+      final authors = <String>[];
+      while (true) {
+        final envelope = {'content': [{'type': 'text', 'text': jsonEncode({'data': page})}], 'structuredContent': {'data': page}};
+        expect(utf8.encode(jsonEncode(envelope)).length, lessThanOrEqualTo(256 * 1024));
+        expect((page['items'] as List).length, lessThanOrEqualTo(200));
+        authors.addAll((page['items'] as List).map((row) => (row as Map)['label'] as String));
+        if (page['nextCursor'] == null) break;
+        page = await transfer('entries', {'inspectionHandle': owner, 'section': 'authors', 'limit': 200, 'cursor': page['nextCursor']});
+      }
+      expect(authors, authorNames);
+      await expectLater(transfer('entries', {'inspectionHandle': owner, 'section': 'families', 'cursor': firstCursor}), throwsA(isA<ResourcePackTransferException>()));
+    } finally { await api.closeTransferWorkspace(fixture.opened.workspaceHandle); await fixture.dispose(); }
+  });
+  test('release preview invalidates its cursor and preserves other previews and selection', () async {
+    final fixture = await NativeResourcePackImportFixture.create();
+    final api = LocalResourcePackTransferApi(
+      mutations: fixture.mutations,
+      snapshotLoader: fixture.loader,
+    );
+    try {
+      final file = File(
+        '${fixture.source.directory.path}/preview.aveluneassets',
+      );
+      final sink = file.openWrite();
+      await fixture.source.archive.withSource(
+        (source) => sink.addStream(sourceChunks(source)),
+      );
+      await sink.close();
+      await fixture.mutations
+          .resourcePackPayloadStore(fixture.opened.projectHandle)
+          .authorizeSourceFile(file.path);
+      Future<Map> job(String verb, Map<String, Object?> input) async =>
+          (await waitForJob(
+                api,
+                fixture.opened.projectHandle,
+                await api.transfer(
+                  fixture.opened.projectHandle,
+                  verb: verb,
+                  input: input,
+                ),
+              ))['result']!
+              as Map;
+      final archive = await job('stage', {'sourcePath': file.path});
+      final inspected = await job('inspect', {
+        'archiveHandle': archive['archiveHandle'],
+      });
+      expect((inspected['pack'] as Map)['name'], isA<String>());
+      expect(inspected['archiveBytes'], await file.length());
+      expect(inspected['authorCount'], greaterThan(0));
+      final authors = await api.transfer(fixture.opened.projectHandle, verb: 'entries', input: {'inspectionHandle': inspected['inspectionHandle'], 'section': 'authors', 'limit': 1});
+      expect((authors['items'] as List).single, containsPair('kind', 'author'));
+      final families = await api.transfer(fixture.opened.projectHandle, verb: 'entries', input: {'inspectionHandle': inspected['inspectionHandle'], 'section': 'families', 'limit': 1});
+      expect((families['items'] as List).length, lessThanOrEqualTo(1));
+      var selection = await api.transfer(
+        fixture.opened.projectHandle,
+        verb: 'selection.create',
+        input: {
+          'mode': 'archive',
+          'inspectionHandle': inspected['inspectionHandle'],
+        },
+      );
+      selection = await api.transfer(
+        fixture.opened.projectHandle,
+        verb: 'selection.select_filtered',
+        input: {
+          'selectionHandle': selection['selectionHandle'],
+          'revision': selection['revision'],
+          'filter': <String, Object?>{},
+        },
+      );
+      final input = {
+        'selectionHandle': selection['selectionHandle'],
+        'revision': selection['revision'],
+        'expectedRevision': (await fixture.loader.load(
+          fixture.opened.projectHandle,
+        )).revision,
+      };
+      final first = await job('prepare', input);
+      final summary = first['summary'] as Map;
+      expect(summary['selectedResourceCount'], selection['selectedCount']);
+      expect(summary['sourceBytes'], greaterThan(0));
+      expect(summary['writeBytes'], greaterThan(0));
+      expect(summary['createdDefinitionCount'], summary['definitionCount']);
+      expect(summary['copiedDefinitionCount'], 0);
+      final second = await job('prepare', input);
+      final page = await api.transfer(
+        fixture.opened.projectHandle,
+        verb: 'preview',
+        input: {'previewHandle': first['previewHandle'], 'limit': 1},
+      );
+      expect(page['nextCursor'], isNotNull);
+      expect(((page['items'] as List).first as Map)['label'], isA<String>());
+      expect(((page['items'] as List).first as Map)['requiredByLabel'], isA<String>());
+      expect(
+        await api.transfer(
+          fixture.opened.projectHandle,
+          verb: 'release',
+          input: {'handle': first['previewHandle']},
+        ),
+        {'released': true},
+      );
+      await expectLater(
+        api.transfer(
+          fixture.opened.projectHandle,
+          verb: 'preview',
+          input: {
+            'previewHandle': first['previewHandle'],
+            'cursor': page['nextCursor'],
+          },
+        ),
+        throwsA(isA<ResourcePackTransferException>()),
+      );
+      await expectLater(
+        api.queryTransfer(
+          fixture.opened.projectHandle,
+          AuthoringQueryRequest(
+            operation: AuthoringQueryOperation.get,
+            resourceKind: 'resourcePackPreview',
+            ids: [first['previewHandle']! as String],
+          ),
+        ),
+        throwsA(isA<ResourcePackTransferException>()),
+      );
+      final retainedPreview = await api.transfer(
+        fixture.opened.projectHandle,
+        verb: 'preview',
+        input: {'previewHandle': second['previewHandle']},
+      );
+      final sourceCatalog = fixture.source.archive.inspection.catalog.toJson();
+      final sourceBorder = ((sourceCatalog['borderCatalog'] as Map)['records']
+              as List)
+          .single as Map;
+      expect(sourceBorder['draft'], isNull);
+      final publishedName =
+          ((sourceBorder['latestPublished'] as Map)['definition'] as Map)['name'];
+      expect(publishedName, 'Original border');
+      final borderRow = (retainedPreview['items'] as List).cast<Map>().singleWhere(
+          (row) => row['kind'] == 'borderBlueprint');
+      expect(borderRow['selected'], isTrue);
+      expect(borderRow['label'], publishedName);
+      expect(borderRow['requiredByLabel'], publishedName);
+      expect(
+        (await api.transfer(
+          fixture.opened.projectHandle,
+          verb: 'entries',
+          input: {'selectionHandle': selection['selectionHandle']},
+        ))['items'],
+        isNotEmpty,
+      );
+    } finally {
+      await api.closeTransferWorkspace(fixture.opened.workspaceHandle);
+      await fixture.dispose();
+    }
+  });
   test('pack start_apply rejects an ordinary plan before writing while canonical ordinary apply remains available', () async {
     final fixture = await NativeResourcePackImportFixture.create(target: ProjectManifest(
         name: 'Ordinary budget', maps: [], tilesets: [], settings: ProjectSettings(tileWidth: 2, tileHeight: 2),

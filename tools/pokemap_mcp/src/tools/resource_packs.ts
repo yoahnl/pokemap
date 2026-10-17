@@ -33,7 +33,7 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
   z.object({ projectHandle: handle, verb: z.literal("stage"), input: z.object({ sourcePath: z.string().min(1).max(4096) }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("inspect"), input: z.object({ archiveHandle: handle }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("entries"), input: z.object({
-    inspectionHandle: handle.optional(), selectionHandle: handle.optional(), filter: filter.optional(), ...page,
+    inspectionHandle: handle.optional(), selectionHandle: handle.optional(), section: z.enum(["resources", "families", "authors", "sources"]).optional(), filter: filter.optional(), ...page,
   }).strict().refine((value) => Boolean(value.inspectionHandle) !== Boolean(value.selectionHandle), "Choose one scoped owner.") }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("selection.create"), input: z.discriminatedUnion("mode", [
     z.object({ mode: z.literal("archive"), inspectionHandle: handle }).strict(),

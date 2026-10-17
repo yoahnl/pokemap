@@ -22,7 +22,7 @@ class ResourceReconciliationNotice extends StatelessWidget {
           label: 'Relire le résultat',
           icon: Icons.refresh,
           secondary: true,
-          onPressed: navigation.busy ? null : navigation.retryReconciliation,
+          onPressed: navigation.busy && navigation.packTransfer?.requiresReconciliation != true ? null : navigation.retryReconciliation,
         ),
       ],
     ),

@@ -36,6 +36,7 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onResumeBorder,
     this.onManageBorder,
     required this.onImport,
+    this.onImportPack,
     this.onCharacters,
     required this.onBack,
     this.openMaps = const [],
@@ -74,6 +75,7 @@ class ResourceLibraryScreen extends StatefulWidget {
   final void Function(BorderBlueprintRecord, BorderResourceAction)?
   onManageBorder;
   final VoidCallback onImport;
+  final VoidCallback? onImportPack;
   final VoidCallback? onCharacters;
   final VoidCallback onBack;
   final String? targetMapName;

@@ -25,6 +25,7 @@ import 'resource_management_bindings.dart';
 import 'resource_library_bindings.dart';
 import 'resource_reconciliation_notice.dart';
 import 'resource_lifecycle_bindings.dart';
+import 'resource_pack_transfer_dialog.dart';
 import 'resource_terrain_lifecycle.dart';
 
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
@@ -143,6 +144,7 @@ class ResourceWorkspacePane extends StatelessWidget {
               modelLibrary: (items) =>
                   ModelResourceLibrary(navigation: n, items: items),
               onImportModel: n.busy ? null : () => importStudioModel(n),
+              onImportPack: n.packTransfer == null || n.busy ? null : () => importPack(context),
               project: project,
               openMaps: n.workspace.documents.values
                   .map((d) => d.current)

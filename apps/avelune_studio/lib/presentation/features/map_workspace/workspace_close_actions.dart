@@ -2,6 +2,10 @@ part of 'workspace_actions.dart';
 
 extension _WorkspaceCloseActions on WorkspaceActions {
   Future<bool> _allowClose() async {
+    final pack = resources()?.packTransfer;
+    if (pack != null && (pack.routeActive || pack.blocksClose || pack.operationActive)) {
+      if (!await pack.requestClose()) return false;
+    }
     if (resources()?.managementDialogActive == true ||
         resources()?.pendingReceipt != null) {
       return false;

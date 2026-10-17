@@ -25,6 +25,7 @@ import '../../workspace/project_snapshot.dart';
 import 'asset_store.dart';
 import 'resource_information_document.dart';
 import 'resource_pack_import_projection.dart';
+part 'resource_pack_import_review.dart';
 
 final class ResourcePackImportException implements Exception {
   const ResourcePackImportException(this.code, this.message);
@@ -60,10 +61,12 @@ final class ResourcePackPreparedImport {
       {required this.status,
       this.preparedImportHandle,
       this.installation,
+      required this.review,
       this.conflicts = const []});
   final ResourcePackPreparedImportStatus status;
   final String? preparedImportHandle;
   final ResourcePackInstallation? installation;
+  final ResourcePackImportReview review;
   final List<String> conflicts;
 }
 
@@ -97,6 +100,7 @@ final class _Prepared {
   final List<int> projectBytes;
   final List<int> catalogBytes;
   final DateTime expiresAt;
+  late final ResourcePackImportReview review;
 }
 
 final class _PlanInventory {
@@ -317,6 +321,7 @@ final class ResourcePackImportPreparer {
     final same = installed
         .where((e) => e.packId == pack.id && e.packVersion == pack.version)
         .toList();
+    final closure = ResourcePackDependencyGraph.fromCatalog(inspection.catalog).closure(roots: selection.roots, smartTilePatternIds: selection.smartTilePatternIds);
     if (conflictPolicy == ResourcePackConflictPolicy.preserveProject) {
       for (final entry in same) {
         if (selection.roots.every(
@@ -327,6 +332,7 @@ final class ResourcePackImportPreparer {
                     mapping.sourceId == id))) {
           return ResourcePackPreparedImport._(
               status: ResourcePackPreparedImportStatus.alreadyInstalled,
+              review: _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: entry, installation: entry, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.alreadyInstalled),
               installation: entry);
         }
       }
@@ -343,10 +349,6 @@ final class ResourcePackImportPreparer {
     final ordinal = conflictPolicy == ResourcePackConflictPolicy.importCopy
         ? same.fold<int>(0, (v, e) => max(v, e.copyOrdinal)) + 1
         : 0;
-    final closure = ResourcePackDependencyGraph.fromCatalog(inspection.catalog)
-        .closure(
-            roots: selection.roots,
-            smartTilePatternIds: selection.smartTilePatternIds);
     final assetCatalogBytes =
         snapshot.findResourceBytes(assetCatalogResourceIdentity);
     final assets = assetCatalogBytes == null
@@ -505,6 +507,7 @@ final class ResourcePackImportPreparer {
       if (conflicts.isNotEmpty) {
         return ResourcePackPreparedImport._(
             status: ResourcePackPreparedImportStatus.conflict,
+            review: _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: previous, projection: projection, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.conflict, conflicts: conflicts),
             conflicts: List.unmodifiable(conflicts.toList()..sort()));
       }
       final logicalCount =
@@ -539,10 +542,12 @@ final class ResourcePackImportPreparer {
       _checkOpen();
       checkCancelled?.call();
       final handle = _next('prepared');
+      value.review = _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: previous, projection: projection, installation: installation, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.ready, outputs: outputs, metadataBytes: value.projectBytes.length + value.catalogBytes.length);
       _prepared[handle] = value;
       leases.clear();
       return ResourcePackPreparedImport._(
           status: ResourcePackPreparedImportStatus.ready,
+          review: value.review,
           preparedImportHandle: handle,
           installation: installation);
     } finally {
@@ -729,7 +734,8 @@ final class ResourcePackImportPreparer {
           projectedProject: prepared.manifest,
           preview: {
             'operation': 'resource_pack.import',
-            'createdResources': prepared.installation.resources.length,
+            'createdResources': prepared.review.summary['createdDefinitionCount'],
+            'selectionSummary': prepared.review.summary,
             'logicalOutputs':
                 prepared.outputs.where((o) => o.role == 'logical').length,
             'copyOrdinal': prepared.installation.copyOrdinal
