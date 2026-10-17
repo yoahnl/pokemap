@@ -6,7 +6,10 @@ import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspac
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring_dialogue.dart'
+    show DialogueLineTextEdit;
 import 'package:map_core/map_core_domain.dart';
+
 import 'support/ui09_dialogue_harness.dart';
 import 'support/ui09_runtime_fixture.dart';
 
@@ -45,6 +48,7 @@ class _VolumePort implements DialoguePort {
     required DialogueSourceSnapshot? base,
     required ProjectDialogueEntry? entry,
     required String? source,
+    List<DialogueLineTextEdit>? lineTextEdits,
   }) => throw StateError('Consultation only');
 }
 

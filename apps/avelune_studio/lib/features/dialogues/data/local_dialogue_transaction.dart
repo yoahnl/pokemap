@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring_dialogue.dart'
+    show DialogueLineTextEdit;
 import 'package:map_authoring/map_authoring.dart'
     show AuthoringTransactionFaultInjector;
 import 'package:map_core/map_core.dart';
@@ -27,6 +29,7 @@ class LocalDialogueTransaction {
     required DialogueSourceSnapshot? base,
     required ProjectDialogueEntry? entry,
     required String? source,
+    List<DialogueLineTextEdit>? lineTextEdits,
   }) async {
     final baseline = await mapAdapter.resourceBaseline(
       session,
@@ -102,6 +105,10 @@ class LocalDialogueTransaction {
             else
               'entry': entry!.toJson(),
             'source': ?source,
+            if (lineTextEdits != null)
+              'lineTextEdits': lineTextEdits
+                  .map((edit) => edit.toJson())
+                  .toList(),
           },
         ),
       );

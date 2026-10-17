@@ -1,0 +1,65 @@
+{
+  "entry": {
+    "id": "ac13_797f08bc6c87dcf4c89fcf0a",
+    "name": "Rod giver / 2",
+    "relativePath": "dialogues/ac13_797f08bc6c87dcf4c89fcf0a.yarn",
+    "tags": [],
+    "description": "",
+    "declaredOutcomes": [
+      {
+        "id": "choice_0",
+        "label": "YES"
+      },
+      {
+        "id": "choice_1",
+        "label": "NO"
+      }
+    ],
+    "defaultStartNode": "Start",
+    "folderId": null,
+    "sortOrder": 0
+  },
+  "source": "title: Start\n---\n\\\"Tell me, do you like to fish?\"\n-> \\\"YES\"\n    <<outcome choice_0>>\n-> \\\"NO\"\n    <<outcome choice_1>>\n===\n",
+  "payload": {
+    "kind": "yarnDialogue",
+    "dialogueId": "ac13_797f08bc6c87dcf4c89fcf0a",
+    "yarnNodeName": "Start",
+    "expectedOutcomes": [
+      "choice_0",
+      "choice_1"
+    ],
+    "speakerHints": [],
+    "choicePolicies": [
+      {
+        "nodeName": "Start",
+        "choiceIndex": 0,
+        "defaultOutcomeId": "choice_0",
+        "cancellation": {
+          "kind": "choice",
+          "outcomeId": "choice_1"
+        }
+      }
+    ],
+    "linePolicies": [
+      {
+        "nodeName": "Start",
+        "lineIndex": 0,
+        "feedback": {
+          "segments": [
+            {
+              "kind": "text",
+              "text": "Tell me, do you like to fish?",
+              "style": {
+                "colorArgb": 4281356488,
+                "shadowColorArgb": 4291875016
+              }
+            }
+          ],
+          "advance": {
+            "kind": "confirm"
+          }
+        }
+      }
+    ]
+  }
+}

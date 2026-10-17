@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:map_authoring/map_authoring_dialogue.dart'
+    show DialogueLineTextEdit;
 import 'package:map_core/map_core_domain.dart';
 
 import '../../resources/domain/resource_port.dart';
@@ -12,6 +14,7 @@ abstract interface class DialoguePort {
     required DialogueSourceSnapshot? base,
     required ProjectDialogueEntry? entry,
     required String? source,
+    List<DialogueLineTextEdit>? lineTextEdits,
   });
 }
 

@@ -50,21 +50,20 @@ class Ui09DialogueFixture {
       );
       await blob.parent.create(recursive: true);
       await blob.writeAsBytes(bytes);
-      await File(
-        '${source.directory.path}/$assetCatalogStorageKey',
-      ).writeAsString(
-        jsonEncode(
-          AssetCatalog(
-            records: [
-              AssetRecord(
-                id: 'ui09_guide_portrait',
-                logicalPath: 'portraits/guide.png',
-                artifact: artifact,
-              ),
-            ],
-          ).toJson(),
-        ),
-      );
+      await File('${source.directory.path}/$assetCatalogStorageKey')
+          .writeAsString(
+            jsonEncode(
+              AssetCatalog(
+                records: [
+                  AssetRecord(
+                    id: 'ui09_guide_portrait',
+                    logicalPath: 'portraits/guide.png',
+                    artifact: artifact,
+                  ),
+                ],
+              ).toJson(),
+            ),
+          );
       await file.writeAsString(
         jsonEncode(
           project
@@ -176,10 +175,17 @@ class WidgetDialoguePort implements DialoguePort, DialoguePortraitPort {
     required DialogueSourceSnapshot? base,
     required ProjectDialogueEntry? entry,
     required String? source,
+    List<DialogueLineTextEdit>? lineTextEdits,
   }) {
     writes++;
     return _run(
-      () => delegate.publish(id: id, base: base, entry: entry, source: source),
+      () => delegate.publish(
+        id: id,
+        base: base,
+        entry: entry,
+        source: source,
+        lineTextEdits: lineTextEdits,
+      ),
     );
   }
 }

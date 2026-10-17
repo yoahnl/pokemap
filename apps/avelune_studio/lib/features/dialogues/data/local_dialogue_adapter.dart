@@ -5,6 +5,7 @@ import 'package:map_authoring/map_authoring.dart'
     show
         AuthoringTransactionFaultInjector,
         NarrativeAuthoringException,
+        DialogueLineTextEdit,
         AssetCatalog,
         assetCatalogStorageKey,
         assetBlobStorageKey,
@@ -48,14 +49,13 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
       if (portrait == null) return null;
       final catalog = AssetCatalog.fromJson(
         jsonDecode(
-              utf8.decode(
-                await reader.readBytes(
-                  projectRoot: session.directoryPath,
-                  relativePath: assetCatalogStorageKey,
-                ),
-              ),
-            )
-            as Map<String, dynamic>,
+          utf8.decode(
+            await reader.readBytes(
+              projectRoot: session.directoryPath,
+              relativePath: assetCatalogStorageKey,
+            ),
+          ),
+        ) as Map<String, dynamic>,
       );
       final asset = catalog.find(portrait.assetId);
       if (asset == null || asset.artifact.mediaType != 'image/png') return null;
@@ -109,12 +109,14 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
     required DialogueSourceSnapshot? base,
     required ProjectDialogueEntry? entry,
     required String? source,
+    List<DialogueLineTextEdit>? lineTextEdits,
   }) => mapAdapter.withResourceMutation(() async {
     try {
       if ((entry == null) != (source == null) ||
           (entry != null && entry.id != id) ||
           (base != null && base.entry.id != id) ||
-          (base == null && entry == null)) {
+          (base == null && entry == null) ||
+          (lineTextEdits != null && (base == null || source == null))) {
         throw const DialogueFailure(
           'La publication ne correspond pas au dialogue.',
         );
@@ -123,7 +125,13 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
         session: session,
         mapAdapter: mapAdapter,
         faultInjector: faultInjector,
-      ).run(id: id, base: base, entry: entry, source: source);
+      ).run(
+        id: id,
+        base: base,
+        entry: entry,
+        source: source,
+        lineTextEdits: lineTextEdits,
+      );
     } on DialogueFailure {
       rethrow;
     } on NarrativeAuthoringException catch (error) {

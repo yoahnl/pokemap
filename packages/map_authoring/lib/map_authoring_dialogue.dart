@@ -1,4 +1,5 @@
 export 'src/dialogue/dialogue_editor_model.dart';
+export 'src/dialogue/dialogue_line_text_edit.dart';
 export 'src/dialogue/dialogue_yarn_codec.dart';
 export 'src/dialogue/dialogue_editor_validation.dart';
 export 'src/domains/narrative/dialogue_authoring_service.dart';

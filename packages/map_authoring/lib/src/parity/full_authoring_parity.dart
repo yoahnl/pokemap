@@ -510,6 +510,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'dialogue.source_update' || actionId == 'dialogue.update') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/narrative/dialogue_line_text_edits_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/dialogue_line_text_edits_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
+    };
+  }
   if (actionId == 'resource_pack.import') {
     return const {
       AuthoringTransport.directApi:

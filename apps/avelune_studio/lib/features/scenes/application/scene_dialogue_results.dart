@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import 'scene_workspace_controller.dart';
 
 extension SceneDialogueResults on SceneWorkspaceController {
@@ -36,6 +37,10 @@ extension SceneDialogueResults on SceneWorkspaceController {
                         ...entry.declaredOutcomes.map((o) => o.id),
                       }.toList(),
                       speakerHints: payload.speakerHints,
+                      linePolicies: payload.linePolicies,
+                      choicePolicies: payload.choicePolicies,
+                      declaredCancellationOutcomes:
+                          payload.declaredCancellationOutcomes,
                     ),
                   ).toJson()
                 else

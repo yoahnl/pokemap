@@ -6,6 +6,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../contracts/artifact_ref.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
+import '../../dialogue/dialogue_line_text_edit.dart';
 import '../../ports/project_file_reader.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -13,6 +14,7 @@ import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'dialogue_authoring_service.dart';
+import 'dialogue_line_text_reconciliation.dart';
 import 'dialogue_source_store.dart';
 import 'dialogue_source_guards.dart';
 import 'narrative_authoring_exception.dart';
@@ -66,18 +68,36 @@ final class DialogueActions {
           manifestAfter: entry.toJson(),
         );
       case 'dialogue.update':
-        parameters.allow(const {'entry', 'outcomeReplacements', 'source'});
+        parameters.allow(
+            const {'entry', 'outcomeReplacements', 'source', 'lineTextEdits'});
         final entry = parameters.dialogueEntry('entry');
-        final projected = update(
+        final edits = parameters.lineTextEdits();
+        final replacements = parameters.stringMap('outcomeReplacements');
+        if (edits != null &&
+            !context.request.parameters.containsKey('source')) {
+          throw NarrativeAuthoringException('dialogue.line_text_edits_invalid',
+              'Line text edits require an updated source.');
+        }
+        if (edits != null && replacements.isNotEmpty) {
+          _textEditStructureChanged();
+        }
+        var projected = update(
           context.snapshot.manifest,
           entry: entry,
-          outcomeReplacements: parameters.stringMap('outcomeReplacements'),
+          outcomeReplacements: replacements,
         );
         final before = _requireDialogue(context.snapshot.manifest, entry.id);
         if (context.request.parameters.containsKey('source')) {
           final source = parameters.text('source');
           final compiled = compiler.compile(entry: entry, source: source);
           _requirePublishable(compiled);
+          if (edits != null) {
+            projected = _reconcileTextEdits(context,
+                projected: projected,
+                entry: entry,
+                compiled: compiled,
+                edits: edits);
+          }
           validateDialogueSceneStarts(
             project: projected,
             dialogueId: entry.id,
@@ -94,6 +114,7 @@ final class DialogueActions {
             sourceAfter: utf8.encode(source),
             manifestBefore: before.toJson(),
             manifestAfter: entry.toJson(),
+            includeLinePolicyDiffs: edits != null,
           );
         }
         return _manifestDraft(
@@ -105,7 +126,7 @@ final class DialogueActions {
           after: entry.toJson(),
         );
       case 'dialogue.source_update':
-        parameters.allow(const {'dialogueId', 'source'});
+        parameters.allow(const {'dialogueId', 'source', 'lineTextEdits'});
         final entry = _requireDialogue(
           context.snapshot.manifest,
           parameters.string('dialogueId'),
@@ -113,6 +134,23 @@ final class DialogueActions {
         final source = parameters.text('source');
         final result = compiler.compile(entry: entry, source: source);
         _requirePublishable(result);
+        final edits = parameters.lineTextEdits();
+        if (edits != null) {
+          final projected = _reconcileTextEdits(context,
+              projected: context.snapshot.manifest,
+              entry: entry,
+              compiled: result,
+              edits: edits);
+          return _manifestAndSourceDraft(context.snapshot, projected,
+              operation: context.request.actionId,
+              entry: entry,
+              sourceBefore: context.snapshot
+                  .resourceBytes(dialogueSourceResourceIdentity(entry.id)),
+              sourceAfter: utf8.encode(source),
+              manifestBefore: entry.toJson(),
+              manifestAfter: entry.toJson(),
+              includeLinePolicyDiffs: true);
+        }
         validateDialogueSceneStarts(
           project: context.snapshot.manifest,
           dialogueId: entry.id,
@@ -184,6 +222,32 @@ final class DialogueActions {
           details: {'actionId': context.request.actionId},
         );
     }
+  }
+
+  ProjectManifest _reconcileTextEdits(
+    AuthoringPlanningContext context, {
+    required ProjectManifest projected,
+    required ProjectDialogueEntry entry,
+    required DialogueAuthoringCompileResult compiled,
+    required List<DialogueLineTextEdit> edits,
+  }) {
+    final beforeEntry = _requireDialogue(context.snapshot.manifest, entry.id);
+    if (beforeEntry.defaultStartNode != entry.defaultStartNode ||
+        !_sameJson(beforeEntry.declaredOutcomes.map((e) => e.toJson()).toList(),
+            entry.declaredOutcomes.map((e) => e.toJson()).toList())) {
+      _textEditStructureChanged();
+    }
+    final before = compiler.compile(
+        entry: beforeEntry,
+        source: _decodeSource(context.snapshot
+            .resourceBytes(dialogueSourceResourceIdentity(entry.id))));
+    _requirePublishable(before);
+    return reconcileDialogueLineTextEdits(
+        project: projected,
+        dialogueId: entry.id,
+        before: before,
+        after: compiled,
+        edits: edits);
   }
 
   ProjectManifest create(
@@ -317,6 +381,7 @@ AuthoringActionDescriptor _descriptor(
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: risk,
       resourceKinds: const ['project', 'dialogue'],
+      extensions: _textEditActionExtensions(id),
       capabilityIds: const ['authoring.narrative.dialogue'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
       guarantees: const [
@@ -365,6 +430,7 @@ AuthoringMutationDraft _manifestAndSourceDraft(
   required List<int>? sourceAfter,
   Object? manifestBefore,
   Object? manifestAfter,
+  bool includeLinePolicyDiffs = false,
 }) {
   final project = _projectRef(snapshot);
   final source = AuthoringResourceRef(
@@ -383,6 +449,7 @@ AuthoringMutationDraft _manifestAndSourceDraft(
     );
   }
   return AuthoringMutationDraft(
+    projectedProject: includeLinePolicyDiffs ? projected : null,
     changeSet: AuthoringChangeSet(
       changes: [
         if (snapshot.manifest != projected)
@@ -396,7 +463,9 @@ AuthoringMutationDraft _manifestAndSourceDraft(
           ),
       ],
       diff: AuthoringDiff([
-        if (snapshot.manifest != projected)
+        if (snapshot.manifest != projected &&
+            (!includeLinePolicyDiffs ||
+                !_sameJson(manifestBefore, manifestAfter)))
           AuthoringDiffEntry(
             operation: operation.endsWith('.delete')
                 ? AuthoringDiffOperation.remove
@@ -408,6 +477,8 @@ AuthoringMutationDraft _manifestAndSourceDraft(
             before: manifestBefore,
             after: manifestAfter,
           ),
+        if (includeLinePolicyDiffs)
+          ..._sceneLinePolicyDiffs(snapshot, projected),
         if (!_sameBytes(sourceBefore, sourceAfter))
           AuthoringDiffEntry(
             operation: operation.endsWith('.delete')
@@ -428,6 +499,88 @@ AuthoringMutationDraft _manifestAndSourceDraft(
       'sourcePreservedForUndo': sourceBefore != null,
     },
   );
+}
+
+Iterable<AuthoringDiffEntry> _sceneLinePolicyDiffs(
+    ProjectSnapshot snapshot, ProjectManifest projected) sync* {
+  final afterScenes = {for (final scene in projected.scenes) scene.id: scene};
+  for (final scene in snapshot.manifest.scenes) {
+    final after = afterScenes[scene.id];
+    if (after == null || after == scene) continue;
+    final afterNodes = {for (final node in after.graph.nodes) node.id: node};
+    for (final node in scene.graph.nodes) {
+      final beforePayload = node.payload;
+      final afterPayload = afterNodes[node.id]?.payload;
+      if (beforePayload is! SceneYarnDialoguePayload ||
+          afterPayload is! SceneYarnDialoguePayload) {
+        continue;
+      }
+      final before = beforePayload.linePolicies.map((p) => p.toJson()).toList();
+      final updated = afterPayload.linePolicies.map((p) => p.toJson()).toList();
+      if (_sameJson(before, updated)) continue;
+      yield AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.replace,
+          resource: _projectRef(snapshot),
+          path:
+              '/scenes/${scene.id}/graph/nodes/${node.id}/payload/linePolicies',
+          before: before,
+          after: updated);
+    }
+  }
+}
+
+bool _sameJson(Object? before, Object? after) =>
+    jsonEncode(before) == jsonEncode(after);
+
+Never _textEditStructureChanged() => throw NarrativeAuthoringException(
+    'dialogue.line_text_edits_structure_changed',
+    'Line text edits must preserve dialogue starts, outcomes and references.');
+
+Map<String, Object?> _textEditActionExtensions(String id) {
+  if (id != 'dialogue.update' && id != 'dialogue.source_update') {
+    return const {};
+  }
+  final update = id == 'dialogue.update';
+  return {
+    'parameterNames': [
+      if (update) 'entry' else 'dialogueId',
+      if (update) 'outcomeReplacements',
+      'source',
+      'lineTextEdits'
+    ],
+    'inputSchema': {
+      'type': 'object',
+      'additionalProperties': false,
+      'required': update ? ['entry'] : ['dialogueId', 'source'],
+      'properties': {
+        if (update)
+          'entry': {'type': 'object'}
+        else
+          'dialogueId': {'type': 'string', 'minLength': 1},
+        if (update)
+          'outcomeReplacements': {
+            'type': 'object',
+            'additionalProperties': {'type': 'string'}
+          },
+        'source': {'type': 'string', 'minLength': 1},
+        'lineTextEdits': {
+          'type': 'array',
+          'minItems': 1,
+          'items': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['nodeName', 'lineIndex', 'beforeText', 'afterText'],
+            'properties': {
+              'nodeName': {'type': 'string', 'minLength': 1},
+              'lineIndex': {'type': 'integer', 'minimum': 0},
+              'beforeText': {'type': 'string', 'minLength': 1},
+              'afterText': {'type': 'string', 'minLength': 1},
+            },
+          },
+        },
+      },
+    },
+  };
 }
 
 AuthoringMutationDraft _sourceOnlyDraft(
@@ -655,6 +808,24 @@ final class _NarrativeParameters {
   _NarrativeParameters(Map<String, Object?> values) : _values = values;
 
   final Map<String, Object?> _values;
+
+  List<DialogueLineTextEdit>? lineTextEdits() {
+    if (!_values.containsKey('lineTextEdits')) return null;
+    final raw = _values['lineTextEdits'];
+    try {
+      if (raw is! List || raw.isEmpty) throw const FormatException();
+      return List.unmodifiable([
+        for (final value in raw)
+          if (value is Map)
+            DialogueLineTextEdit.fromJson(Map<String, dynamic>.from(value))
+          else
+            throw const FormatException(),
+      ]);
+    } on Object {
+      throw NarrativeAuthoringException('dialogue.line_text_edits_invalid',
+          'Line text edits must be a nonempty list of exact typed line replacements.');
+    }
+  }
 
   void allow(Set<String> allowed) {
     final unknown = _values.keys.where((key) => !allowed.contains(key)).toList()

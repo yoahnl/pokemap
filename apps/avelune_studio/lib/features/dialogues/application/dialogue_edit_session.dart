@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:map_authoring/map_authoring_dialogue.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../domain/dialogue_port.dart';
 
 class DialogueEditSession {
@@ -43,6 +46,49 @@ class DialogueWorkingSession {
   final undo = <DialogueWorkingState>[];
   final redo = <DialogueWorkingState>[];
   DialogueEditSession? _snapshot;
+  List<DialogueLineTextEdit>? get lineTextEdits {
+    if (base == null ||
+        _textEditShape(saved.document) != _textEditShape(current.document) ||
+        saved.entry.defaultStartNode != current.entry.defaultStartNode ||
+        jsonEncode(
+              saved.entry.declaredOutcomes.map((o) => o.toJson()).toList(),
+            ) !=
+            jsonEncode(
+              current.entry.declaredOutcomes.map((o) => o.toJson()).toList(),
+            )) {
+      return null;
+    }
+    const compiler = DialogueAuthoringCompiler();
+    final before = compiler.compile(entry: saved.entry, source: saved.source);
+    final after = compiler.compile(
+      entry: current.entry,
+      source: current.source,
+    );
+    if (!before.canPublish || !after.canPublish) return null;
+    final oldLines = sceneDialogueLineScopes(before.document!);
+    final newLines = sceneDialogueLineScopes(after.document!);
+    if (oldLines.length != newLines.length) return null;
+    final edits = <DialogueLineTextEdit>[];
+    for (var i = 0; i < oldLines.length; i++) {
+      final old = oldLines[i], updated = newLines[i];
+      if (old.nodeName != updated.nodeName ||
+          old.lineIndex != updated.lineIndex) {
+        return null;
+      }
+      if (old.text != updated.text) {
+        edits.add(
+          DialogueLineTextEdit(
+            nodeName: old.nodeName,
+            lineIndex: old.lineIndex,
+            beforeText: old.text,
+            afterText: updated.text,
+          ),
+        );
+      }
+    }
+    return edits.isEmpty ? null : List.unmodifiable(edits);
+  }
+
   bool get dirty =>
       base == null ||
       current.entry != saved.entry ||
@@ -86,6 +132,50 @@ class DialogueWorkingSession {
     revision++;
     invalidate();
   }
+}
+
+String _textEditShape(DialogueEditorDocument document) {
+  Object shape(DialogueEditorStep step) => [
+    step.id,
+    switch (step) {
+      DeStartStep() => ['start'],
+      DeEndStep() => ['end'],
+      DeLineStep() => [
+        'line',
+        step.speaker,
+        step.characterId,
+        step.portraitStateId,
+      ],
+      DeNarrationStep() => ['narration'],
+      DeJumpStep() => ['jump', step.targetTitle],
+      DeCommandStep() => ['command', step.raw],
+      DeConditionStep() => ['condition', step.raw],
+      DeChoiceStep() => [
+        'choice',
+        [
+          for (final branch in step.branches)
+            [
+              branch.id,
+              branch.label,
+              branch.outcomeId,
+              branch.steps.map(shape).toList(),
+            ],
+        ],
+      ],
+    },
+  ];
+  return jsonEncode([
+    document.entryNodeId,
+    for (final node in document.nodes)
+      [
+        node.id,
+        node.title,
+        [
+          for (final header in node.headers) [header.name, header.value],
+        ],
+        node.steps.map(shape).toList(),
+      ],
+  ]);
 }
 
 String _shape(DialogueEditorDocument doc) {

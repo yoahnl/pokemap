@@ -84,9 +84,9 @@ extension DialogueWorkspacePublication on DialogueWorkspaceController {
     }
     final removedTitles = s.base == null
         ? <String>{}
-        : parseYarnToDocument(
-            s.base!.source,
-          ).nodeTitles().difference(snapshot.document.nodeTitles());
+        : parseYarnToDocument(s.base!.source)
+              .nodeTitles()
+              .difference(snapshot.document.nodeTitles());
     for (final title in removedTitles) {
       final uses = _startUsages(title);
       if (uses.isNotEmpty) {
@@ -103,6 +103,34 @@ extension DialogueWorkspacePublication on DialogueWorkspaceController {
         'Résultat utilisé par : ${badUses.map((u) => u.sceneId).toSet().join(', ')}.',
       );
     }
+    final lineTextEdits = s.lineTextEdits;
+    if (lineTextEdits != null) {
+      final scopes = {
+        for (final edit in lineTextEdits) (edit.nodeName, edit.lineIndex),
+      };
+      bool affected(SceneAsset? scene) =>
+          scene?.graph.nodes.any(
+            (node) =>
+                node.payload is SceneYarnDialoguePayload &&
+                (node.payload as SceneYarnDialoguePayload).dialogueId ==
+                    snapshot.entry.id &&
+                (node.payload as SceneYarnDialoguePayload).linePolicies.any(
+                  (policy) =>
+                      scopes.contains((policy.nodeName, policy.lineIndex)),
+                ),
+          ) ??
+          false;
+      for (final draft in sceneDrafts?.call() ?? const <SceneAsset>[]) {
+        final canonical = project.scenes
+            .where((scene) => scene.id == draft.id)
+            .firstOrNull;
+        if ((affected(canonical) || affected(draft)) && draft != canonical) {
+          return _fail(
+            'Une scène liée possède un brouillon. Enregistrez ou abandonnez explicitement ce brouillon avant de modifier son dialogue.',
+          );
+        }
+      }
+    }
     _publishing.add(s.current.entry.id);
     error = null;
     changed();
@@ -113,6 +141,7 @@ extension DialogueWorkspacePublication on DialogueWorkspaceController {
         base: s.base,
         entry: snapshot.entry,
         source: snapshot.source,
+        lineTextEdits: lineTextEdits,
       );
       if (_closed) return false;
       final saved = receipt.snapshot;

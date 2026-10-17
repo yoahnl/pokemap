@@ -35,56 +35,71 @@ List<DialogueOutcomeSceneUsage> collectDialogueOutcomeSceneUsages(
 }) {
   final normalizedDialogueId = dialogueId.trim();
   final normalizedOutcomeId = outcomeId?.trim();
+  final publicOutcomes = {
+    for (final dialogue in project.dialogues)
+      if (dialogue.id == normalizedDialogueId)
+        for (final outcome in dialogue.declaredOutcomes) outcome.id,
+  };
   final usages = <DialogueOutcomeSceneUsage>[];
 
-  bool accepts(String candidate) =>
+  bool accepts(String candidate, SceneYarnDialoguePayload source) =>
       candidate != 'completed' &&
-      (normalizedOutcomeId == null || candidate == normalizedOutcomeId);
+      (normalizedOutcomeId == null || candidate == normalizedOutcomeId) &&
+      (!source.declaredCancellationOutcomes.contains(candidate) ||
+          publicOutcomes.contains(candidate));
 
   for (final scene in project.scenes) {
-    final dialogueNodeIds = <String>{};
-    for (var nodeIndex = 0;
-        nodeIndex < scene.graph.nodes.length;
-        nodeIndex += 1) {
+    final dialogueSources = <String, SceneYarnDialoguePayload>{};
+    for (
+      var nodeIndex = 0;
+      nodeIndex < scene.graph.nodes.length;
+      nodeIndex += 1
+    ) {
       final node = scene.graph.nodes[nodeIndex];
       final payload = node.payload;
       if (payload is! SceneYarnDialoguePayload ||
           payload.dialogueId != normalizedDialogueId) {
         continue;
       }
-      dialogueNodeIds.add(node.id);
-      for (var outcomeIndex = 0;
-          outcomeIndex < payload.expectedOutcomes.length;
-          outcomeIndex += 1) {
+      dialogueSources[node.id] = payload;
+      for (
+        var outcomeIndex = 0;
+        outcomeIndex < payload.expectedOutcomes.length;
+        outcomeIndex += 1
+      ) {
         final candidate = payload.expectedOutcomes[outcomeIndex];
-        if (!accepts(candidate)) continue;
+        if (!accepts(candidate, payload)) continue;
         usages.add(
           DialogueOutcomeSceneUsage(
             dialogueId: normalizedDialogueId,
             outcomeId: candidate,
             sceneId: scene.id,
             nodeId: node.id,
-            path: 'scenes[${scene.id}].graph.nodes[$nodeIndex].payload.'
+            path:
+                'scenes[${scene.id}].graph.nodes[$nodeIndex].payload.'
                 'expectedOutcomes[$outcomeIndex]',
           ),
         );
       }
     }
 
-    final deferredBranchNodeIds = <String>{
+    final outcomeSources = <String, SceneYarnDialoguePayload>{
+      ...dialogueSources,
       for (final node in scene.graph.nodes)
         if (node.payload case SceneBranchByOutcomePayload(:final sourceNodeId))
-          if (dialogueNodeIds.contains(sourceNodeId)) node.id,
+          node.id: ?dialogueSources[sourceNodeId],
     };
-    for (var edgeIndex = 0;
-        edgeIndex < scene.graph.edges.length;
-        edgeIndex += 1) {
+    for (
+      var edgeIndex = 0;
+      edgeIndex < scene.graph.edges.length;
+      edgeIndex += 1
+    ) {
       final edge = scene.graph.edges[edgeIndex];
-      if (!dialogueNodeIds.contains(edge.fromNodeId) &&
-          !deferredBranchNodeIds.contains(edge.fromNodeId)) {
+      final source = outcomeSources[edge.fromNodeId];
+      if (source == null) {
         continue;
       }
-      if (!accepts(edge.fromPortId)) continue;
+      if (!accepts(edge.fromPortId, source)) continue;
       usages.add(
         DialogueOutcomeSceneUsage(
           dialogueId: normalizedDialogueId,

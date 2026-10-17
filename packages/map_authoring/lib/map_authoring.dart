@@ -90,6 +90,7 @@ export 'src/domains/assets/visual_organization_actions.dart';
 export 'src/domains/assets/resource_information_actions.dart';
 export 'src/domains/assets/resource_management_actions.dart';
 export 'src/domains/narrative/dialogue_actions.dart';
+export 'src/dialogue/dialogue_line_text_edit.dart';
 export 'src/domains/narrative/dialogue_audio_media_actions.dart';
 export 'src/domains/narrative/dialogue_authoring_service.dart';
 export 'src/domains/narrative/dialogue_source_store.dart';
