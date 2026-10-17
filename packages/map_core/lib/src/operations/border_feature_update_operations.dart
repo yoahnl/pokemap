@@ -200,8 +200,10 @@ MapData applyBorderFeaturePreview(
   final layers = List<MapLayer>.from(map.layers);
   var minimumFormatVersion =
       minimumBorderLayerFormatVersionForFeatures(features);
-  if (proposedRequest.blueprintRevision?.definition.template ==
-          BorderBlueprintTemplate.connectedLine &&
+  if ((proposedRequest.blueprintRevision?.definition.template ==
+          BorderBlueprintTemplate.connectedLine ||
+          proposedRequest.blueprintRevision?.definition.template ==
+              BorderBlueprintTemplate.horizontalFacade) &&
       minimumFormatVersion < BorderLayerContent.formatVersionV2) {
     minimumFormatVersion = BorderLayerContent.formatVersionV2;
   }

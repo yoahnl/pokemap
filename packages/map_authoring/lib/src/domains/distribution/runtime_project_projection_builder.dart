@@ -17,6 +17,7 @@ import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
 import 'runtime_static_terrain_projection.dart';
+import 'runtime_smart_tile_rule_projection.dart';
 import 'runtime_unused_model_projection.dart';
 
 final class RuntimeProjectProjection {
@@ -436,6 +437,26 @@ final class RuntimeProjectProjectionBuilder {
     );
 
     var runtimeMaps = <MapData>[];
+    if (projectedProject.settings.dimension == ProjectDimension.twoD &&
+        projectedProject.smartTileCatalog.presets
+            .any((preset) => preset.rules.length >= 64)) {
+      for (final entry in projectedProject.maps) {
+        runtimeMaps.add(sourceMaps[entry.id] ??
+            MapData.fromJson(_decodeJsonObject(
+                await authorFiles.read(entry.relativePath, budget,
+                    jsonLike: true),
+                entry.relativePath)));
+      }
+      projectedProject = projectRuntimeSmartTileRules(
+        project: projectedProject,
+        maps: runtimeMaps,
+        additionalDocuments: [
+          for (final entry in compiledEntries)
+            _decodeJsonObject(payload['project/${entry.relativePath}']!,
+                entry.relativePath),
+        ],
+      );
+    }
     if (projectedProject.settings.dimension == ProjectDimension.threeD &&
         projectedProject.smartTileCatalog.presets
             .any((preset) => preset.rules.length >= 64)) {

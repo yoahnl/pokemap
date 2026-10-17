@@ -2353,6 +2353,8 @@ bool _isStructural(
             role == BorderPrimitiveRole.filler,
       BorderBlueprintTemplate.postAndRailLine =>
         role == BorderPrimitiveRole.post || role == BorderPrimitiveRole.span,
+      BorderBlueprintTemplate.horizontalFacade =>
+        role == BorderPrimitiveRole.lineCap || role == BorderPrimitiveRole.lineStraight,
       BorderBlueprintTemplate.connectedLine =>
         role == BorderPrimitiveRole.lineCap ||
             role == BorderPrimitiveRole.lineStraight ||

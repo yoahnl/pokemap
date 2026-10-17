@@ -466,6 +466,12 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
         'Ground footprints require ground replacement',
       );
     }
+    if (template == BorderBlueprintTemplate.horizontalFacade &&
+        kinds.contains(BorderVisualKind.model3d)) {
+      throw const ValidationException(
+        'Horizontal facades require 2D element sources',
+      );
+    }
     if (straightOnly &&
         (template != BorderBlueprintTemplate.connectedLine ||
             !kinds.contains(BorderVisualKind.model3d))) {

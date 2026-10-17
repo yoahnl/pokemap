@@ -58,7 +58,14 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Publication disponible'), findsNWidgets(6));
+      expect(find.text('Publication disponible'), findsNWidgets(7));
+      expect(find.text('Façade horizontale'), findsOneWidget);
+      final facadeButton = tester.widget<PokeMapButton>(
+        find.byKey(
+          const ValueKey<String>('border-studio-template-horizontal-facade'),
+        ),
+      );
+      expect(facadeButton.onPressed, isNull);
       expect(find.text('Publication après BORD-03'), findsNothing);
       expect(
         find.text(
@@ -66,7 +73,7 @@ void main() {
           'charge. Réattribuez ou retirez l’asset concerné avant de choisir ce '
           'type.',
         ),
-        findsNWidgets(2),
+        findsNWidgets(3),
       );
 
       masonryButton.onPressed!();

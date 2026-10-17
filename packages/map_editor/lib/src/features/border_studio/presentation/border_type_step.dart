@@ -32,7 +32,11 @@ class BorderTypeStep extends StatelessWidget {
                 final incompatibleRoles = definition == null
                     ? const <BorderPrimitiveRole>[]
                     : _incompatibleRoles(definition, template);
-                final disabledReason = incompatibleRoles.isEmpty
+                final disabledReason =
+                    template == BorderBlueprintTemplate.horizontalFacade &&
+                        definition?.isSpatial == true
+                    ? 'Indisponible : les façades horizontales utilisent des assets 2D.'
+                    : incompatibleRoles.isEmpty
                     ? template == BorderBlueprintTemplate.ledgeLine &&
                               definition != null
                           ? _ledgeTemplateDisabledReason(definition)
@@ -50,7 +54,8 @@ class BorderTypeStep extends StatelessWidget {
                             CupertinoIcons.square_stack_3d_down_right,
                           BorderBlueprintTemplate.postAndRailLine =>
                             CupertinoIcons.equal_square,
-                          BorderBlueprintTemplate.connectedLine =>
+                          BorderBlueprintTemplate.connectedLine ||
+                          BorderBlueprintTemplate.horizontalFacade =>
                             CupertinoIcons.arrow_3_trianglepath,
                           BorderBlueprintTemplate.stoneChainLine =>
                             CupertinoIcons.circle_grid_hex,
@@ -91,6 +96,8 @@ class BorderTypeStep extends StatelessWidget {
                               'border-studio-template-masonry',
                             BorderBlueprintTemplate.postAndRailLine =>
                               'border-studio-template-fence',
+                          BorderBlueprintTemplate.horizontalFacade =>
+                            'border-studio-template-horizontal-facade',
                             BorderBlueprintTemplate.connectedLine =>
                               'border-studio-template-connected-line',
                             BorderBlueprintTemplate.stoneChainLine =>

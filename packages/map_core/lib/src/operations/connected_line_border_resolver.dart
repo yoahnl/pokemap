@@ -106,7 +106,10 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
   }
   final definition = revision.definition;
   final params = request.feature.paramsOverride ?? definition.defaults;
-  if (definition.template != BorderBlueprintTemplate.connectedLine) {
+  final isFacade =
+      definition.template == BorderBlueprintTemplate.horizontalFacade;
+  if (definition.template != BorderBlueprintTemplate.connectedLine &&
+      !isFacade) {
     diagnostics.add(
       _error(
         request,
@@ -153,6 +156,20 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
   final lattices = <BorderLinearStrokeLattice>[];
   for (final stroke in geometry.strokes) {
     final authoredStrokeId = borderStrokeAuthoredIdV1(stroke.id);
+    if (isFacade &&
+        (stroke.closed ||
+            stroke.points.any((point) => point.y != stroke.points.first.y))) {
+      diagnostics.add(
+        _error(
+          request,
+          code: 'border.resolution.horizontal_facade_stroke_required',
+          scope: BorderDiagnosticScope.stroke,
+          strokeId: authoredStrokeId,
+          action: 'border.action.draw_horizontal_facade',
+        ),
+      );
+      continue;
+    }
     final outside = stroke.points.where(
       (cell) =>
           cell.x < 0 ||
@@ -219,6 +236,18 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
     diagnostics: diagnostics,
   );
   _diagnoseRequiredRoles(request, primitives, diagnostics);
+  if (isFacade &&
+      (params.allowAutoRotation ||
+          request.feature.lineSide != BorderLineSide.primary)) {
+    diagnostics.add(
+      _error(
+        request,
+        code: 'border.resolution.horizontal_facade_orientation_required',
+        scope: BorderDiagnosticScope.feature,
+        action: 'border.action.preserve_facade_orientation',
+      ),
+    );
+  }
 
   final nodeNeeds = <_NodeNeed>[];
   for (final lattice in lattices) {
@@ -393,6 +422,21 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
     ..sort(
       (left, right) => left.stableOrderKey.compareTo(right.stableOrderKey),
     );
+  if (isFacade &&
+      placements.any(
+        (placement) =>
+            placement.transform.quarterTurns != 0 || placement.transform.flipX,
+      )) {
+    diagnostics.add(
+      _error(
+        request,
+        code: 'border.resolution.horizontal_facade_orientation_required',
+        scope: BorderDiagnosticScope.placement,
+        action: 'border.action.preserve_facade_orientation',
+      ),
+    );
+    return _failure(diagnostics);
+  }
   if (placements.isEmpty) {
     diagnostics.add(
       _error(
@@ -458,6 +502,11 @@ void _diagnoseRequiredRoles(
       'border.action.assign_connected_line_corner',
     ),
   ]) {
+    if (role == BorderPrimitiveRole.lineCorner &&
+        request.blueprintRevision!.definition.template ==
+            BorderBlueprintTemplate.horizontalFacade) {
+      continue;
+    }
     if (!primitives.any(
       (primitive) => primitive.role == role && primitive.weight > 0,
     )) {

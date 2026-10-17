@@ -1010,6 +1010,37 @@ final class BorderActions {
         }
       }
     }
+    for (final layer in updated.layers.whereType<BorderLayer>()) {
+      for (final feature in layer.content.features) {
+        final revision = context.manifest.borderCatalog
+            .recordById(feature.blueprintId)
+            ?.latestPublished;
+        if (revision?.definition.template !=
+                BorderBlueprintTemplate.horizontalFacade ||
+            feature.geometry is! BorderStrokeGeometry ||
+            (feature.geometry as BorderStrokeGeometry).strokes.isEmpty) {
+          continue;
+        }
+        final result = resolveBorderFeature(BorderResolutionRequest(
+          mapSize: updated.size,
+          tileSizePx: GridSize(
+              width: context.manifest.settings.tileWidth,
+              height: context.manifest.settings.tileHeight),
+          blueprintId: feature.blueprintId,
+          blueprintRevision: revision,
+          feature: feature,
+          visualSnapshots: context.manifest.borderCatalog.visualSnapshots,
+          resolverVersion: borderResolverVersion,
+        ));
+        if (!result.canApply) {
+          throw semanticFailure('border.horizontal_facade_invalid',
+              'Horizontal facades require open horizontal strokes without rotation or mirroring.',
+              details: {
+                'diagnostics': result.diagnostics.map((d) => d.code).toList()
+              });
+        }
+      }
+    }
     return context.draftMap(
       after: updated,
       operation: actionId,

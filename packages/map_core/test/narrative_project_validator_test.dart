@@ -10,6 +10,149 @@ void main() {
       _presentationTextReferenceTests);
 
   group('Narrative project validator', () {
+    for (final value in [
+      const NarrativeValue.string('heartgold'),
+      NarrativeValue.integer(2),
+    ]) {
+      test('validates reachable ${value.kind.wireName} Fact assignments', () {
+        final fixture = _fixture();
+        final scene = fixture.project.scenes.single;
+        final typedScene = SceneAsset(
+          id: scene.id,
+          name: scene.name,
+          graph: SceneGraph(
+            startNodeId: scene.graph.startNodeId,
+            nodes: [
+              ...scene.graph.nodes,
+              SceneNode(
+                id: 'set_choice',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.consequence(
+                  SceneSetFactConsequence.typed(
+                    factId: 'fact_choice',
+                    value: value,
+                  ),
+                ),
+              ),
+            ],
+            edges: [
+              ...scene.graph.edges.where((edge) => edge.id != 'start_action'),
+              SceneEdge(
+                id: 'start_choice',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'set_choice',
+                kind: SceneEdgeKind.defaultFlow,
+              ),
+              SceneEdge(
+                id: 'choice_action',
+                fromNodeId: 'set_choice',
+                fromPortId: 'completed',
+                toNodeId: 'complete_step',
+                kind: SceneEdgeKind.actionCompleted,
+              ),
+            ],
+          ),
+        );
+        final report = validateNarrativeProject(
+          fixture.project.copyWith(
+            scenes: [typedScene],
+            facts: [
+              ...fixture.project.facts,
+              NarrativeFactDefinition(
+                id: 'fact_choice',
+                label: 'Choix de version',
+                initialValue: value,
+              ),
+            ],
+          ),
+          maps: [fixture.map],
+        );
+
+        expect(report.isPlayable, isTrue);
+        expect(report.errorCount, 0);
+        expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+      });
+    }
+
+    for (final value in [
+      NarrativeValue.integer(0),
+      const NarrativeValue.string('heartgold'),
+      const NarrativeValue.boolean(false),
+    ]) {
+      test('respects typed World Rule equality for ${value.kind.wireName}', () {
+        final fixture = _fixture();
+        final project = fixture.project.copyWith(
+          facts: [...fixture.project.facts,
+            NarrativeFactDefinition(id: 'fact_phase', label: 'Phase', initialValue: value)],
+          worldRules: [WorldRuleDefinition(
+            id: 'phase_visibility', label: 'Phase visibility',
+            source: WorldRuleSource.factValue(factId: 'fact_phase',
+              operator: NarrativeFactOperator.equals, expectedValue: value),
+            target: WorldRuleTarget(kind: WorldRuleTargetKind.mapEntity,
+              mapId: fixture.map.id, entityId: 'npc_guide'),
+            effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityVisible),
+          )],
+        );
+        final report = validateNarrativeProject(project, maps: [fixture.map]);
+        expect(report.byCode('requiredFactNeverProduced'), isEmpty);
+        expect(report.isPlayable, isTrue);
+      });
+    }
+
+    test('validates scene actors and NPC presence against the loaded maps', () {
+      final fixture = _fixture();
+      final scene = SceneAsset(
+        id: 'map_references',
+        name: 'Map references',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'presence',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneSetNpcPresenceConsequence(
+                  mapId: fixture.map.id,
+                  entityId: 'npc_guide',
+                  present: false,
+                ),
+              ),
+            ),
+            SceneNode(
+              id: 'route',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload(
+                interactiveCommand: SceneActorRouteInteractiveCommand(
+                  target: SceneActorTarget.player(mapId: fixture.map.id),
+                  steps: [SceneActorRouteStep.move(direction: EntityFacing.north, durationMs: 200)],
+                ),
+              ),
+            ),
+          ],
+          edges: const [],
+        ),
+      );
+      final project = fixture.project.copyWith(
+        scenes: [...fixture.project.scenes, scene],
+      );
+      final loaded = validateNarrativeProject(project, maps: [fixture.map]);
+      expect(loaded.byCode('consequenceUnknownNpc'), isEmpty);
+      expect(loaded.byCode('commandInvalidActorTarget'), isEmpty);
+
+      final missingNpc = validateNarrativeProject(project, maps: [
+        fixture.map.copyWith(entities: fixture.map.entities
+            .where((entity) => entity.id != 'npc_guide').toList()),
+      ]);
+      expect(missingNpc.byCode('consequenceUnknownNpc'), hasLength(1));
+      expect(missingNpc.byCode('commandInvalidActorTarget'), isEmpty);
+
+      final unloaded = validateNarrativeProject(project, maps: const []);
+      expect(unloaded.byCode('consequenceUnknownNpc'), hasLength(1));
+      expect(unloaded.byCode('commandInvalidActorTarget'), hasLength(1));
+    });
+
     test('aggregates a playable project and exposes its map Event view', () {
       final fixture = _fixture();
 

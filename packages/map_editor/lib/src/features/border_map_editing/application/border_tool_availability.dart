@@ -44,6 +44,7 @@ BorderToolAvailability assessBorderToolAvailability({
     BorderBlueprintTemplate.masonryLine,
     BorderBlueprintTemplate.postAndRailLine,
     BorderBlueprintTemplate.connectedLine,
+        BorderBlueprintTemplate.horizontalFacade,
     BorderBlueprintTemplate.stoneChainLine,
     BorderBlueprintTemplate.ledgeLine,
   },
@@ -113,6 +114,7 @@ bool _geometryMatchesTemplate(
     BorderBlueprintTemplate.masonryLine ||
     BorderBlueprintTemplate.postAndRailLine ||
     BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.horizontalFacade ||
     BorderBlueprintTemplate.stoneChainLine ||
     BorderBlueprintTemplate.ledgeLine =>
       geometry is BorderStrokeGeometry &&

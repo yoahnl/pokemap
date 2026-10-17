@@ -7,6 +7,16 @@ import 'package:test/test.dart';
 
 void main() {
   group('BorderCatalogActions', () {
+    test('advertises the semantic horizontal facade contract', () {
+      final descriptor = BorderCatalogActions.descriptors
+          .firstWhere((value) => value.id == 'border.blueprint.draft.upsert');
+      final contract = descriptor.extensions['horizontalFacade'] as Map;
+      expect(contract['allowedAxis'], 'horizontal');
+      expect(contract['minimumCatalogFormatVersion'], 11);
+      expect(contract['canonicalGallery'], ['longEdge', 'endpoint', 'opening']);
+      expect(contract['automaticRotation'], isFalse);
+      expect(contract['flipX'], isFalse);
+    });
     test(
       'snapshot publication reuses matching indexed path and shared blob',
       () async {

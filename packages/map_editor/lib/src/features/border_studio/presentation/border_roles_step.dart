@@ -161,7 +161,9 @@ class BorderRolesStep extends StatelessWidget {
           'Au moins une Structure principale, Structure secondaire ou Remplissage est requise. Les autres rôles sont optionnels.',
         BorderBlueprintTemplate.postAndRailLine =>
           'Poteau et Traverse sont requis. Les autres rôles sont optionnels.',
-        BorderBlueprintTemplate.connectedLine =>
+        BorderBlueprintTemplate.horizontalFacade =>
+      'Extrémité et Segment droit sont requis. Les façades restent horizontales, sans angle ni rotation.',
+    BorderBlueprintTemplate.connectedLine =>
           'Extrémité, Segment droit et Angle sont requis. Ajoutez plusieurs assets à un même rôle pour créer des variantes.',
         BorderBlueprintTemplate.stoneChainLine =>
           'Sommet plat et Face de falaise sont requis pour deux étages. Les pierres libres, angles et extrémités restent facultatifs.',
@@ -179,7 +181,8 @@ class BorderRolesStep extends StatelessWidget {
       BorderBlueprintTemplate.masonryLine =>
         'Alternative de structure requise',
       BorderBlueprintTemplate.postAndRailLine => 'Rôle requis',
-      BorderBlueprintTemplate.connectedLine => 'Raccord requis',
+      BorderBlueprintTemplate.connectedLine ||
+      BorderBlueprintTemplate.horizontalFacade => 'Raccord requis',
       BorderBlueprintTemplate.stoneChainLine => 'Rôle requis',
       BorderBlueprintTemplate.ledgeLine => 'Module complet requis',
     };

@@ -21,8 +21,9 @@ class BorderRulesStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final definition = state.workingDraft?.blueprint.definition;
     final rules = definition?.defaults;
-    final template = definition?.template;
-    final isConnectedLine = template == BorderBlueprintTemplate.connectedLine;
+    final template = definition?.template ?? BorderBlueprintTemplate.organicEdge;
+    final isFacade = template == BorderBlueprintTemplate.horizontalFacade;
+    final isConnectedLine = template == BorderBlueprintTemplate.connectedLine || isFacade;
     final isStoneChain = template == BorderBlueprintTemplate.stoneChainLine;
     final isLedge = template == BorderBlueprintTemplate.ledgeLine;
     final maximumLedgeGap =
@@ -31,7 +32,7 @@ class BorderRulesStep extends StatelessWidget {
             : tileSizePx.height) -
         1;
     final supportsAutoRotation =
-        isConnectedLine ||
+        (isConnectedLine && !isFacade) ||
         isStoneChain ||
         template == BorderBlueprintTemplate.masonryLine;
     return BorderStudioStepScaffold(
@@ -45,7 +46,8 @@ class BorderRulesStep extends StatelessWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Wrap(
+                if (!isFacade)
+                  Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
@@ -56,7 +58,7 @@ class BorderRulesStep extends StatelessWidget {
                       onPressed: () =>
                           onRulesChanged(_strictFrom(rules, template)),
                       variant: PokeMapButtonVariant.secondary,
-                      isSelected: _isStrict(rules, template!),
+                      isSelected: _isStrict(rules, template),
                       leading: const Icon(CupertinoIcons.rectangle_grid_1x2),
                       child: Text(_strictProfileLabel(template)),
                     ),
@@ -78,7 +80,9 @@ class BorderRulesStep extends StatelessWidget {
                       : _isWild(rules, template)
                       ? _wildAppliedLabel(template)
                       : 'Réglage personnalisé',
-                  description: 'Les valeurs restent entières et déterministes pour chaque seed.',
+                  description: isFacade
+                      ? 'Tracés ouverts horizontaux uniquement. Séparez les lignes pour les ouvertures ; aucune rotation ni inversion des façades.'
+                      : 'Les valeurs restent entières et déterministes pour chaque seed.',
                   tone: PokeMapTone.info,
                   icon: CupertinoIcons.checkmark_seal,
                 ),
@@ -487,7 +491,8 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Strict et régulier',
         BorderBlueprintTemplate.masonryLine => 'Aligné',
         BorderBlueprintTemplate.postAndRailLine => 'Régulier',
-        BorderBlueprintTemplate.connectedLine => 'Net et régulier',
+        BorderBlueprintTemplate.connectedLine ||
+        BorderBlueprintTemplate.horizontalFacade => 'Net et régulier',
         BorderBlueprintTemplate.stoneChainLine => 'Fin et côtier',
         BorderBlueprintTemplate.ledgeLine => 'Module fixe',
       };
@@ -497,7 +502,8 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Organique et sauvage',
         BorderBlueprintTemplate.masonryLine => 'Vieilli',
         BorderBlueprintTemplate.postAndRailLine => 'Rustique',
-        BorderBlueprintTemplate.connectedLine => 'Varié et naturel',
+        BorderBlueprintTemplate.connectedLine ||
+        BorderBlueprintTemplate.horizontalFacade => 'Varié et naturel',
         BorderBlueprintTemplate.stoneChainLine => 'Naturel et irrégulier',
         BorderBlueprintTemplate.ledgeLine => 'Variantes natives',
       };
@@ -507,7 +513,8 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Profil strict appliqué',
         BorderBlueprintTemplate.masonryLine => 'Profil aligné appliqué',
         BorderBlueprintTemplate.postAndRailLine => 'Profil régulier appliqué',
-        BorderBlueprintTemplate.connectedLine => 'Profil régulier appliqué',
+        BorderBlueprintTemplate.connectedLine ||
+        BorderBlueprintTemplate.horizontalFacade => 'Profil régulier appliqué',
         BorderBlueprintTemplate.stoneChainLine =>
           'Profil fin et côtier appliqué',
         BorderBlueprintTemplate.ledgeLine => 'Module fixe appliqué',
@@ -518,7 +525,8 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Profil sauvage appliqué',
         BorderBlueprintTemplate.masonryLine => 'Profil vieilli appliqué',
         BorderBlueprintTemplate.postAndRailLine => 'Profil rustique appliqué',
-        BorderBlueprintTemplate.connectedLine => 'Profil varié appliqué',
+        BorderBlueprintTemplate.connectedLine ||
+        BorderBlueprintTemplate.horizontalFacade => 'Profil varié appliqué',
         BorderBlueprintTemplate.stoneChainLine => 'Profil naturel appliqué',
         BorderBlueprintTemplate.ledgeLine => 'Variantes natives appliquées',
       };

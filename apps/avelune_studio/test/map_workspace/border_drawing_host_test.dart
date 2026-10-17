@@ -205,6 +205,31 @@ void main() {
     expect(draft.previewCells, contains(const GridPos(x: 12, y: 5)));
   });
 
+  testWidgets('horizontal facades draw without rotation and refuse vertical edits', (tester) async {
+    final fixture = await _openWithBorder(tester, template: BorderBlueprintTemplate.horizontalFacade);
+    await tester.ensureVisible(find.text('Bordures'));
+    await tester.tap(find.text('Bordures'));
+    await pumpIo(tester, frames: 4);
+    await _chooseModel(tester);
+    await fixture.tapCell(10, 8);
+    await fixture.tapCell(13, 8);
+    await tester.tap(find.text('Terminer le tracé'));
+    await pumpIo(tester, frames: 4);
+    final current = fixture.document.current;
+    final placements = current.layers.whereType<BorderLayer>().single.content.features.single.materialization!.placements;
+    expect(placements, hasLength(4));
+    for (final placement in placements) {
+      expect(placement.transform.quarterTurns, 0);
+      expect(placement.transform.flipX, isFalse);
+    }
+    await fixture.tapCell(10, 10);
+    await fixture.tapCell(10, 13);
+    await tester.tap(find.text('Terminer le tracé'));
+    await pumpIo(tester, frames: 4);
+    expect(fixture.document.current, current);
+    expect(find.textContaining('Une façade doit suivre un tracé horizontal ouvert'), findsWidgets);
+  });
+
   testWidgets('a published stone chain uses grid edges through the host', (
     tester,
   ) async {

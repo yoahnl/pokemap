@@ -2,6 +2,104 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('native path animation activation', () {
+    for (final scenario in <({
+      String name,
+      SmartTileUsage usage,
+      PathSurfaceKind? surface,
+      SmartTileAnimationActivation expected,
+    })>[
+      (
+        name: 'tall grass reacts on entry',
+        usage: SmartTileUsage.path,
+        surface: PathSurfaceKind.tallGrass,
+        expected: SmartTileAnimationActivation.onEnter,
+      ),
+      (
+        name: 'water keeps playing',
+        usage: SmartTileUsage.path,
+        surface: PathSurfaceKind.water,
+        expected: SmartTileAnimationActivation.always,
+      ),
+      (
+        name: 'ordinary paths keep playing',
+        usage: SmartTileUsage.path,
+        surface: PathSurfaceKind.path,
+        expected: SmartTileAnimationActivation.always,
+      ),
+      (
+        name: 'untyped paths keep playing',
+        usage: SmartTileUsage.path,
+        surface: null,
+        expected: SmartTileAnimationActivation.always,
+      ),
+      (
+        name: 'terrain keeps playing',
+        usage: SmartTileUsage.terrain,
+        surface: PathSurfaceKind.tallGrass,
+        expected: SmartTileAnimationActivation.always,
+      ),
+    ]) {
+      for (final spatial in [false, true]) {
+      test('${scenario.name}, spatial=$spatial', () {
+        final base = _manifestWithMaterials();
+        final manifest = base.copyWith(
+          version: spatial ? ProjectVersion.v9 : base.version,
+          settings: spatial
+              ? ProjectSettings(dimension: ProjectDimension.threeD,
+                  spatialCamera: SpatialCameraProfile())
+              : base.settings,
+          smartTileCatalog: ProjectSmartTileCatalog(
+            materials: [
+              for (final material in base.smartTileCatalog.materials)
+                material.id == 'grass'
+                    ? material.copyWith(pathSurfaceKind: scenario.surface)
+                    : material,
+            ],
+          ),
+        );
+        final preset = _preset(topology: SmartTileTopology.uniform)
+            .copyWith(usage: scenario.usage);
+        final result = planNativeSmartTileLayerCreationForMap(
+          map: MapData(
+            id: 'target',
+            name: 'Target',
+            version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+            size: const GridSize(width: 2, height: 2),
+            spatialScene: spatial ? MapSpatialScene(width: 2, depth: 2) : null,
+          ),
+          manifest: manifest,
+          preset: preset,
+          layerId: 'surface',
+          layerName: 'Surface',
+        ) as SmartTileLayerCreationSuccess;
+        final layer = result.map.layers.single as SmartTileLayer;
+        expect(layer.animationActivation, scenario.expected);
+        expect(layer.encounterBehavior, isNull);
+        expect(MapLayer.fromJson(layer.toJson()), layer);
+        expect(smartTileSemanticCells(layer), [0, 0, 0, 0]);
+      });
+      }
+    }
+    test('mixed grass and water remain a continuous layer', () {
+      final base = _manifestWithMaterials();
+      final manifest = base.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(materials: [
+          base.smartTileCatalog.materials[0].copyWith(pathSurfaceKind: PathSurfaceKind.tallGrass),
+          base.smartTileCatalog.materials[1].copyWith(pathSurfaceKind: PathSurfaceKind.water),
+        ]),
+      );
+      final result = planNativeSmartTileLayerCreationForMap(
+        map: const MapData(id: 'target', name: 'Target', size: GridSize(width: 2, height: 2)),
+        manifest: manifest,
+        preset: _preset(topology: SmartTileTopology.uniform,
+          allowedMaterialIds: ['grass', 'dirt']).copyWith(usage: SmartTileUsage.path),
+        layerId: 'mixed', layerName: 'Mixed',
+      ) as SmartTileLayerCreationSuccess;
+      expect((result.map.layers.single as SmartTileLayer).animationActivation,
+          SmartTileAnimationActivation.always);
+    });
+  });
   test('spatial terrain presets create independent empty gesture surfaces', () {
     final map = MapData(id: 'target', name: 'Target', version: ProjectVersion.v9,
       size: const GridSize(width: 2, height: 2), spatialScene: MapSpatialScene(width: 2, depth: 2));

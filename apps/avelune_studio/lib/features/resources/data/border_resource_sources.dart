@@ -111,6 +111,12 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
       .recordById(request.blueprintId ?? '')
       ?.draft
       .definition;
+  final isFacade = (request.template ?? existing?.template) ==
+      BorderBlueprintTemplate.horizontalFacade;
+  if (isFacade && (request.cornerElementId != null || request.capModelId != null ||
+      request.straightModelId != null || request.cornerModelId != null)) {
+    throw const ResourceFailure('Une façade horizontale utilise uniquement un corps et des extrémités 2D.');
+  }
   final directed =
       request.followContourDirection ??
       existing?.followContourDirection ??
@@ -145,7 +151,7 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
       request.straightElementId,
       request.straightModelId,
     ),
-    (
+    if (!isFacade) (
       BorderPrimitiveRole.lineCorner,
       directed ? BorderCornerTurn.right : null,
       request.cornerElementId,
@@ -470,8 +476,8 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
           weight: 1000,
           anchorPx: anchor,
           transforms: BorderTransformPolicy(
-            allowFlipX: true,
-            allowedQuarterTurns: const [0, 1, 2, 3],
+            allowFlipX: !isFacade,
+            allowedQuarterTurns: isFacade ? const [0] : const [0, 1, 2, 3],
           ),
           currentMetrics: preparation.metrics,
         ),

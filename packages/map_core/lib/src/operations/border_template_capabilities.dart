@@ -7,6 +7,7 @@ bool borderTemplateUsesStrokeGeometry(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.masonryLine ||
       BorderBlueprintTemplate.postAndRailLine ||
       BorderBlueprintTemplate.connectedLine ||
+      BorderBlueprintTemplate.horizontalFacade ||
       BorderBlueprintTemplate.stoneChainLine ||
       BorderBlueprintTemplate.ledgeLine => true,
     };
@@ -50,6 +51,10 @@ Set<BorderPrimitiveRole> borderTemplateRequiredPrimitiveRoles({
     BorderPrimitiveRole.post,
     BorderPrimitiveRole.span,
   },
+  BorderBlueprintTemplate.horizontalFacade => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+  },
   BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
     BorderPrimitiveRole.lineCap,
     BorderPrimitiveRole.lineStraight,
@@ -81,6 +86,8 @@ BorderStrokeAlignment borderTemplateStrokeAlignment(
 int minimumBorderCatalogFormatVersionForTemplate(
   BorderBlueprintTemplate template,
 ) => switch (template) {
+  BorderBlueprintTemplate.horizontalFacade =>
+    ProjectBorderCatalog.formatVersionV11,
   BorderBlueprintTemplate.ledgeLine => ProjectBorderCatalog.formatVersionV7,
   BorderBlueprintTemplate.stoneChainLine =>
     ProjectBorderCatalog.formatVersionV3,
@@ -93,6 +100,7 @@ int minimumBorderLayerFormatVersionForTemplate(
 ) => switch (template) {
   BorderBlueprintTemplate.stoneChainLine ||
   BorderBlueprintTemplate.ledgeLine => 3,
-  BorderBlueprintTemplate.connectedLine => 2,
+  BorderBlueprintTemplate.connectedLine ||
+  BorderBlueprintTemplate.horizontalFacade => 2,
   _ => 1,
 };

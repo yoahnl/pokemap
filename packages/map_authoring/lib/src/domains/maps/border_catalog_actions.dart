@@ -36,7 +36,7 @@ final class BorderCatalogActions {
       ),
       _descriptor(
         'border.blueprint.draft.upsert',
-        'Create or replace one Border blueprint draft, including straight-only native profiles and explicit 3D animationIndex, animationLoop, animationSpeed and blocksMovement settings',
+        'Create or replace one Border blueprint draft, including horizontalFacade 2D profiles with horizontal open strokes, endpoints and openings without rotation or mirroring, plus straight-only native profiles and explicit 3D animationIndex, animationLoop, animationSpeed and blocksMovement settings',
         resourceKinds: const [
           'project',
           'borderBlueprint',
@@ -1067,6 +1067,22 @@ AuthoringActionDescriptor _descriptor(
             ProjectBorderCatalog.latestSupportedFormatVersion,
         'projectWidePreflight': true,
         'artifactSnapshots': true,
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'horizontalFacade': {
+            'template': 'horizontalFacade',
+            'minimumCatalogFormatVersion': 11,
+            'geometry': 'stroke',
+            'alignment': 'cellCenters',
+            'allowedAxis': 'horizontal',
+            'closed': false,
+            'requiredRoles': ['lineCap', 'lineStraight'],
+            'canonicalGallery': ['longEdge', 'endpoint', 'opening'],
+            'automaticRotation': false,
+            'flipX': false,
+            'lineSide': 'primary',
+            'sourceDimension': '2d',
+          },
         if (id == 'border.blueprint.draft.upsert' ||
             id == 'border.blueprint.publish')
           'ledgeLine': {

@@ -144,6 +144,9 @@ final class MapBorderEditingCommands {
     final result = resolveBorderFeature(request);
     if (!result.canApply) {
       final issue = result.diagnostics.first.code;
+      if (issue == 'border.resolution.horizontal_facade_stroke_required') {
+        throw const ValidationException('Une façade doit suivre un tracé horizontal ouvert. Séparez les tracés pour les ouvertures.');
+      }
       throw ValidationException(
         'Ce modèle ne peut pas produire ce tracé ($issue).',
       );

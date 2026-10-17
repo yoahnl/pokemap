@@ -13,6 +13,32 @@ typedef _ApplyAction = Future<Map<String, Object?>> Function({
 
 void main() {
   test(
+      'horizontal facade publication is identical through direct API and JSONL',
+      () async {
+    final direct = await BorderCatalogHarness.create('facade-direct');
+    final jsonl = await BorderCatalogHarness.create('facade-jsonl');
+    addTearDown(direct.dispose);
+    addTearDown(jsonl.dispose);
+    final directReceipts = await direct.runDirectLifecycle(
+        template: BorderBlueprintTemplate.horizontalFacade);
+    final jsonlReceipts = await jsonl.runJsonlLifecycle(
+        template: BorderBlueprintTemplate.horizontalFacade);
+    expect(directReceipts, jsonlReceipts);
+    expect(await direct.projectBytes(), await jsonl.projectBytes());
+    final manifest = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(await direct.projectBytes()))
+            as Map<String, dynamic>);
+    expect(manifest.borderCatalog.formatVersion, 11);
+    final published = manifest.borderCatalog.records.single.latestPublished!;
+    expect(published.definition.template,
+        BorderBlueprintTemplate.horizontalFacade);
+    expect(
+        published.definition.primitives.map((p) => p.role),
+        unorderedEquals(
+            [BorderPrimitiveRole.lineCap, BorderPrimitiveRole.lineStraight]));
+  });
+
+  test(
       'new placement is refused when blueprint is deprecated after the initial check',
       () async {
     final harness = await BorderCatalogHarness.create('uwu5-border-late');
@@ -504,7 +530,9 @@ final class BorderCatalogHarness {
     );
   }
 
-  Future<List<Map<String, Object?>>> runDirectLifecycle() async {
+  Future<List<Map<String, Object?>>> runDirectLifecycle(
+      {BorderBlueprintTemplate template =
+          BorderBlueprintTemplate.connectedLine}) async {
     final opened = await readApi.open(root.path);
     final project = ProjectHandle(opened['projectHandle']! as String);
     final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
@@ -549,12 +577,15 @@ final class BorderCatalogHarness {
     }
 
     return _runLifecycle(
+      template: template,
       apply: apply,
       artifactHandle: artifact.reference.handle,
     );
   }
 
-  Future<List<Map<String, Object?>>> runJsonlLifecycle() async {
+  Future<List<Map<String, Object?>>> runJsonlLifecycle(
+      {BorderBlueprintTemplate template =
+          BorderBlueprintTemplate.connectedLine}) async {
     final opened = await _jsonl('open', <String, Object?>{
       'projectRoot': root.path,
     });
@@ -599,6 +630,7 @@ final class BorderCatalogHarness {
     }
 
     return _runLifecycle(
+      template: template,
       apply: apply,
       artifactHandle: artifact.reference.handle,
     );
@@ -664,14 +696,20 @@ final class BorderCatalogHarness {
 Future<List<Map<String, Object?>>> _runLifecycle({
   required _ApplyAction apply,
   required String artifactHandle,
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.connectedLine,
 }) async {
+  final primitives = _primitives()
+      .where((p) =>
+          template != BorderBlueprintTemplate.horizontalFacade ||
+          p.role != BorderPrimitiveRole.lineCorner)
+      .toList();
   final results = <Map<String, Object?>>[];
   results.add(
     await apply(
       actionId: 'border.blueprint.draft.upsert',
       parameters: <String, Object?>{
         'record': encodeBorderBlueprintRecordJson(
-          _record(id: 'fence', primitives: _primitives()),
+          _record(id: 'fence', primitives: primitives, template: template),
           formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
         ),
       },
@@ -706,7 +744,7 @@ Future<List<Map<String, Object?>>> _runLifecycle({
           'border.publication.coverage_overlap_exceeded',
         ],
         'primitiveSources': <Object?>[
-          for (final primitive in _primitives())
+          for (final primitive in primitives)
             <String, Object?>{
               'primitiveId': primitive.id,
               'frames': <Object?>[
@@ -770,6 +808,7 @@ bool _requiresConfirmation(String actionId) =>
 
 BorderBlueprintRecord _record({
   required String id,
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.connectedLine,
   List<BorderPrimitiveDraft> primitives = const <BorderPrimitiveDraft>[],
   int gapTolerancePx = 0,
 }) =>
@@ -780,7 +819,7 @@ BorderBlueprintRecord _record({
         definition: BorderBlueprintDraftDefinition(
           name: id == 'fence' ? 'Fence' : 'Scratch',
           previewSeed: BorderSignedInt64.zero,
-          template: BorderBlueprintTemplate.connectedLine,
+          template: template,
           primitives: primitives,
           defaults: BorderGenerationParams(
             irregularityPermille: 0,

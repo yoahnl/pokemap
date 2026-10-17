@@ -248,7 +248,8 @@ BorderResolutionResult _resolveBorderFeatureWithCapture(
         request,
         localCapture: capture,
       ).result,
-    BorderBlueprintTemplate.connectedLine =>
+    BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.horizontalFacade =>
       resolveConnectedLineBorderWithEvidence(
         request,
         localCapture: capture,
@@ -311,7 +312,8 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
         localScope: scope,
         localCapture: capture,
       ).result,
-    BorderBlueprintTemplate.connectedLine =>
+    BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.horizontalFacade =>
       resolveConnectedLineBorderWithEvidence(
         request,
         localScope: scope,

@@ -15,6 +15,18 @@ Future<ResourceMutationReceipt> _createBorder(
       'Cette bordure a changé depuis l’ouverture de l’éditeur. Fermez puis rouvrez-la avant de modifier ses réglages.',
     );
   }
+  final template = request.template ?? existing?.draft.definition.template ??
+      BorderBlueprintTemplate.connectedLine;
+  if (request.template != null &&
+      ((existing != null && template != existing.draft.definition.template) ||
+          (template != BorderBlueprintTemplate.connectedLine &&
+              template != BorderBlueprintTemplate.horizontalFacade))) {
+    throw const ResourceFailure('Conservez le type de la bordure existante.');
+  }
+  final isFacade = template == BorderBlueprintTemplate.horizontalFacade;
+  if (isFacade && baseline.manifest.settings.dimension != ProjectDimension.twoD) {
+    throw const ResourceFailure('Les façades horizontales utilisent des décors 2D.');
+  }
   final originalJump = existing?.draft.definition.jumpBehavior;
   if (request.jumpSide != null &&
       (existing?.draft.definition.template !=
@@ -42,9 +54,7 @@ Future<ResourceMutationReceipt> _createBorder(
         name: request.name.trim(),
         previewSeed:
             existing?.draft.definition.previewSeed ?? BorderSignedInt64.zero,
-        template:
-            existing?.draft.definition.template ??
-            BorderBlueprintTemplate.connectedLine,
+        template: template,
         straightOnly:
             request.straightOnly ??
             existing?.draft.definition.straightOnly ??

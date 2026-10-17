@@ -65,7 +65,8 @@ List<BorderDirectedJumpBinding> bindMaterializedBorderJumpFaces({
       final behavior = revision.definition.jumpBehavior;
       if (behavior == null) continue;
       if (revision.definition.template != BorderBlueprintTemplate.ledgeLine ||
-          project.borderCatalog.formatVersion != 7) {
+          project.borderCatalog.formatVersion <
+              ProjectBorderCatalog.formatVersionV7) {
         throw const ValidationException(
             'Border jump template is not qualified');
       }

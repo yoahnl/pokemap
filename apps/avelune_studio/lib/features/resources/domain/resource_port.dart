@@ -49,6 +49,7 @@ final class BorderModelSettings {
 final class BorderCreationRequest {
   const BorderCreationRequest({
     required this.name,
+    this.template,
     this.capElementId,
     this.straightElementId,
     this.cornerElementId,
@@ -71,6 +72,7 @@ final class BorderCreationRequest {
   });
 
   final String name;
+  final BorderBlueprintTemplate? template;
   final String? capElementId;
   final String? straightElementId;
   final String? cornerElementId;

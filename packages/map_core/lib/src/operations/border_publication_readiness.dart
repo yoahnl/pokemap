@@ -556,6 +556,7 @@ void _diagnoseTemplateGround(
     case BorderBlueprintTemplate.masonryLine:
     case BorderBlueprintTemplate.postAndRailLine:
     case BorderBlueprintTemplate.connectedLine:
+    case BorderBlueprintTemplate.horizontalFacade:
     case BorderBlueprintTemplate.stoneChainLine:
     case BorderBlueprintTemplate.ledgeLine:
       diagnostics.add(
@@ -601,6 +602,10 @@ Set<BorderPrimitiveRole> borderAllowedPrimitiveRolesForTemplate(
     BorderPrimitiveRole.accent,
     BorderPrimitiveRole.surfacePatch,
   },
+  BorderBlueprintTemplate.horizontalFacade => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+  },
   BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
     BorderPrimitiveRole.lineCap,
     BorderPrimitiveRole.lineStraight,
@@ -623,6 +628,17 @@ void _diagnoseTemplateGenerationParams(
   BorderBlueprintPublishedDefinition definition,
   List<BorderDiagnostic> diagnostics,
 ) {
+  if (definition.template == BorderBlueprintTemplate.horizontalFacade &&
+      definition.defaults.allowAutoRotation) {
+    diagnostics.add(
+      _diagnostic(
+        code: 'border.publication.horizontal_facade_orientation_required',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        action: 'border.action.preserve_facade_orientation',
+      ),
+    );
+  }
   if (definition.template == BorderBlueprintTemplate.ledgeLine) {
     final parameters = definition.defaults;
     if (parameters.depthRows != 1 ||
@@ -870,11 +886,14 @@ void _diagnoseRequiredRolesAndOrientations(
           );
         }
       }
+    case BorderBlueprintTemplate.horizontalFacade:
     case BorderBlueprintTemplate.connectedLine:
-      for (final role in const <BorderPrimitiveRole>[
+      final isFacade =
+          definition.template == BorderBlueprintTemplate.horizontalFacade;
+      for (final role in <BorderPrimitiveRole>[
         BorderPrimitiveRole.lineCap,
         BorderPrimitiveRole.lineStraight,
-        BorderPrimitiveRole.lineCorner,
+        if (!isFacade) BorderPrimitiveRole.lineCorner,
       ]) {
         final eligible = definition.primitives
             .where((primitive) => primitive.role == role)
@@ -893,13 +912,13 @@ void _diagnoseRequiredRolesAndOrientations(
           );
           continue;
         }
-        final quarterTurns = !definition.defaults.allowAutoRotation
+        final quarterTurns = isFacade || !definition.defaults.allowAutoRotation
             ? const <int>[0]
             : role == BorderPrimitiveRole.lineStraight
             ? const <int>[0, 1]
             : _requiredQuarterTurns;
         for (final quarterTurn in quarterTurns) {
-          for (final flipX in const <bool>[false, true]) {
+          for (final flipX in isFacade ? const <bool>[false] : const <bool>[false, true]) {
             if (eligible.any(
               (primitive) =>
                   primitive.transforms.allowedQuarterTurns.contains(
@@ -2004,6 +2023,12 @@ List<BorderCanonicalGalleryCase> borderCanonicalGalleryCasesForTemplate(
     BorderCanonicalGalleryCase.endpoint,
     BorderCanonicalGalleryCase.opening,
   ],
+  BorderBlueprintTemplate.horizontalFacade =>
+    const <BorderCanonicalGalleryCase>[
+      BorderCanonicalGalleryCase.longEdge,
+      BorderCanonicalGalleryCase.endpoint,
+      BorderCanonicalGalleryCase.opening,
+    ],
   BorderBlueprintTemplate.connectedLine => const <BorderCanonicalGalleryCase>[
     BorderCanonicalGalleryCase.longEdge,
     BorderCanonicalGalleryCase.sharpCorner,
@@ -2104,7 +2129,8 @@ int? _structuralPassIndex(
   (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
   (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
   (
-    BorderBlueprintTemplate.connectedLine,
+    BorderBlueprintTemplate.connectedLine ||
+        BorderBlueprintTemplate.horizontalFacade,
     BorderPrimitiveRole.lineCap ||
         BorderPrimitiveRole.lineStraight ||
         BorderPrimitiveRole.lineCorner,
@@ -2271,6 +2297,7 @@ String _templateV1WireName(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.masonryLine => 'masonryLine',
       BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
       BorderBlueprintTemplate.connectedLine => 'connectedLine',
+      BorderBlueprintTemplate.horizontalFacade => 'horizontalFacade',
       BorderBlueprintTemplate.stoneChainLine => 'stoneChainLine',
       BorderBlueprintTemplate.ledgeLine => 'ledgeLine',
     };

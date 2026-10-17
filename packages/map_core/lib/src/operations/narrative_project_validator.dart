@@ -277,7 +277,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
       : _trimmedNonBlankIds(knownMoveIds);
 
   _appendLegacyNarrativeDiagnostics(project, maps, diagnostics);
-  _appendSceneDiagnostics(project, diagnostics);
+  _appendSceneDiagnostics(project, mapsById, diagnostics);
   _appendPresentationTextReferenceDiagnostics(project, diagnostics);
   _appendSceneBattleReadinessDiagnostics(
     project,
@@ -566,12 +566,14 @@ void _appendLegacyNarrativeDiagnostics(
 
 void _appendSceneDiagnostics(
   ProjectManifest project,
+  Map<String, MapData> mapsById,
   List<NarrativeProjectDiagnostic> target,
 ) {
   for (final scene in project.scenes) {
     for (final diagnostic in diagnoseSceneAgainstProject(
       scene,
       project,
+      mapsById: mapsById,
     ).diagnostics) {
       final dialogueId =
           diagnostic.code == SceneDiagnosticCode.dialogueRefUnknown
@@ -1141,7 +1143,9 @@ void _appendSolvabilityDiagnostics(
   for (final rule in project.worldRules) {
     if (rule.enabled &&
         rule.source.kind == WorldRuleSourceKind.fact &&
-        rule.source.predicate == WorldRuleSourcePredicate.isTrue) {
+        rule.source.resolvedFactOperator == NarrativeFactOperator.equals &&
+        rule.source.resolvedExpectedFactValue.kind == NarrativeValueKind.boolean &&
+        rule.source.resolvedExpectedFactValue.boolValue) {
       requiredFacts.add(rule.source.sourceId);
     }
   }
@@ -1349,10 +1353,11 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
           continue;
         }
         switch (payload.consequence!) {
-          case SceneSetFactConsequence(:final factId, :final value):
+          case SceneSetFactConsequence(:final factId, :final narrativeValue):
+            if (narrativeValue.kind != NarrativeValueKind.boolean) break;
             if (possibleFactValues
                 .putIfAbsent(factId, () => <bool>{})
-                .add(value)) {
+                .add(narrativeValue.boolValue)) {
               changed = true;
             }
           case SceneCompleteStoryStepConsequence(:final stepId):

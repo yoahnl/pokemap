@@ -9,6 +9,21 @@ import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 
 void main() {
   group('BorderStudioDraftController', () {
+    test('creates horizontal facades without rotation or a corner role', () {
+      final controller = mountBorderStudioDraftController();
+      controller.loadFromManifest(_manifest());
+      controller.createBlueprint(
+        id: 'facade',
+        name: 'Façade',
+        template: BorderBlueprintTemplate.horizontalFacade,
+      );
+      final definition = controller.state.workingDraft!.blueprint.definition;
+      expect(definition.defaults.allowAutoRotation, isFalse);
+      expect(controller.state.allowedPrimitiveRoles, {
+        BorderPrimitiveRole.lineCap,
+        BorderPrimitiveRole.lineStraight,
+      });
+    });
     test('loads a catalog and selects its first draft without an open map', () {
       final record = _record(id: 'coast', name: 'Cote rocheuse');
       final manifest = _manifest(records: <BorderBlueprintRecord>[record]);

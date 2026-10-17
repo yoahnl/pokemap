@@ -1,4 +1,5 @@
 import '../models/map_data.dart';
+import '../models/enums.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
 import '../models/smart_tile.dart';
@@ -219,6 +220,13 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     name: normalizedLayerName,
     presetId: preset.id,
     usage: preset.usage,
+    animationActivation: preset.usage == SmartTileUsage.path &&
+            palette.skip(1).every((id) =>
+                manifest.smartTileCatalog.materials.any((material) =>
+                    material.id == id &&
+                    material.pathSurfaceKind == PathSurfaceKind.tallGrass))
+        ? SmartTileAnimationActivation.onEnter
+        : SmartTileAnimationActivation.always,
     materialPalette: List<String>.unmodifiable(palette),
     field: field,
     layerSeed: preset.seedSalt,

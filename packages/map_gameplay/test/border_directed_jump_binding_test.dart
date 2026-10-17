@@ -47,6 +47,44 @@ MapData _withFeatures(
     ]);
 
 void main() {
+  for (var version = ProjectBorderCatalog.formatVersionV8;
+      version <= ProjectBorderCatalog.latestSupportedFormatVersion;
+      version++) {
+    for (final direction in Direction.values) {
+      test('catalog v$version preserves ${direction.name} jump behavior', () {
+        final fixture = BorderJumpFixture(direction: direction);
+        final catalog = fixture.project.borderCatalog;
+        final project = fixture.project.copyWith(
+          borderCatalog: ProjectBorderCatalog(
+            formatVersion: version,
+            records: catalog.records,
+            visualSnapshots: catalog.visualSnapshots,
+          ),
+        );
+        final original = _bind(fixture).single;
+        final binding = _bind(fixture, project: project).single;
+        expect(binding.carrierCell, original.carrierCell);
+        expect(binding.allowedDirection, original.allowedDirection);
+        expect(binding.physicalNormal, original.physicalNormal);
+        expect(binding.inputFingerprint, original.inputFingerprint);
+        expect(binding.outputFingerprint, original.outputFingerprint);
+        final world =
+            fixture.world(direction: direction, projectOverride: project);
+        expect(stepGameplayWorld(world, MoveIntent(direction)), isA<Jumped>());
+        final reverseDirection = switch (direction) {
+          Direction.north => Direction.south,
+          Direction.south => Direction.north,
+          Direction.east => Direction.west,
+          Direction.west => Direction.east,
+        };
+        final reverse = fixture.world(
+            direction: reverseDirection, projectOverride: project);
+        expect(stepGameplayWorld(reverse, MoveIntent(reverseDirection)),
+            isNot(isA<Jumped>()));
+      });
+    }
+  }
+
   for (final direction in Direction.values) {
     test(
         'canonical ${direction.name} Border binds its actual whole-cell module',

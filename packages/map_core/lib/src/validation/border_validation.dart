@@ -239,6 +239,7 @@ void _diagnoseFeatureGeometry(
     BorderBlueprintTemplate.masonryLine ||
     BorderBlueprintTemplate.postAndRailLine ||
     BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.horizontalFacade ||
     BorderBlueprintTemplate.stoneChainLine ||
     BorderBlueprintTemplate.ledgeLine => false,
   };

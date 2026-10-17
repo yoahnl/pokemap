@@ -271,6 +271,7 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
         template: template,
         defaults:
             template == BorderBlueprintTemplate.ledgeLine ||
+                template == BorderBlueprintTemplate.horizontalFacade ||
                 usesUntouchedTemplateDefaults
             ? _defaultGenerationParams(template)
             : current.defaults,
@@ -959,6 +960,7 @@ Set<String> _sourceDivergenceIds(
 BorderGenerationParams _defaultGenerationParams(
   BorderBlueprintTemplate template,
 ) => switch (template) {
+  BorderBlueprintTemplate.horizontalFacade ||
   BorderBlueprintTemplate.ledgeLine => BorderGenerationParams(
     irregularityPermille: 0,
     detailDensityPermille: 0,
@@ -980,7 +982,8 @@ BorderGenerationParams _defaultGenerationParams(
   BorderBlueprintTemplate.organicEdge ||
   BorderBlueprintTemplate.masonryLine ||
   BorderBlueprintTemplate.postAndRailLine ||
-  BorderBlueprintTemplate.connectedLine => BorderGenerationParams(
+  BorderBlueprintTemplate.connectedLine ||
+  BorderBlueprintTemplate.horizontalFacade => BorderGenerationParams(
     irregularityPermille: 250,
     detailDensityPermille: 500,
     variationPermille: 300,

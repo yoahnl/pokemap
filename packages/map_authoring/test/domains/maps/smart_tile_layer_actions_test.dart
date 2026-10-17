@@ -7,6 +7,36 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileLayerActions', () {
+    test('creating a tall grass path reacts on entry and preserves old layers', () {
+      final fixture = _reconstructionFixture();
+      final catalog = fixture.manifest.smartTileCatalog.toJson();
+      final materials = catalog['materials']! as List;
+      for (final material in materials.cast<Map<String, dynamic>>()) {
+        material['pathSurfaceKind'] = 'tall_grass';
+      }
+      final manifest = fixture.manifest.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog.fromJson(catalog),
+      );
+      final draft = const SmartTileLayerActions().build(
+        _context(
+          _snapshot(manifest, fixture.map),
+          actionId: 'smart_tile.layer.create',
+          parameters: const {
+            'mapId': 'map_hanazuki_village',
+            'presetId': 'edge',
+            'layerId': 'new-grass',
+            'name': 'Hautes herbes',
+          },
+        ),
+      );
+      final projected = _projectedMap(draft);
+      final layer = projected.layers.whereType<SmartTileLayer>()
+          .singleWhere((layer) => layer.id == 'new-grass');
+      expect(layer.animationActivation, SmartTileAnimationActivation.onEnter);
+      expect(layer.encounterBehavior, isNull);
+      expect(projected.layers.where((layer) => layer.id != 'new-grass'),
+          fixture.map.layers);
+    });
     test('advertises revisioned, idempotent, undoable canonical actions', () {
       final descriptors = SmartTileLayerActions.descriptors;
 

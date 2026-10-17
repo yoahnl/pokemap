@@ -282,7 +282,8 @@ BorderGeometryFamily borderTemplateGeometryFamily(
   BorderBlueprintTemplate.organicEdge => BorderGeometryFamily.region,
   BorderBlueprintTemplate.masonryLine ||
   BorderBlueprintTemplate.postAndRailLine ||
-  BorderBlueprintTemplate.connectedLine => BorderGeometryFamily.linear,
+  BorderBlueprintTemplate.connectedLine ||
+  BorderBlueprintTemplate.horizontalFacade => BorderGeometryFamily.linear,
   BorderBlueprintTemplate.stoneChainLine ||
   BorderBlueprintTemplate.ledgeLine => BorderGeometryFamily.gridEdgeLinear,
 };
@@ -358,7 +359,8 @@ MapData _replaceFeature(
   final layers = List<MapLayer>.from(map.layers);
   var minimumFormatVersion =
       minimumBorderLayerFormatVersionForFeatures(features);
-  if (template == BorderBlueprintTemplate.connectedLine &&
+  if ((template == BorderBlueprintTemplate.connectedLine ||
+          template == BorderBlueprintTemplate.horizontalFacade) &&
       minimumFormatVersion < BorderLayerContent.formatVersionV2) {
     minimumFormatVersion = BorderLayerContent.formatVersionV2;
   }

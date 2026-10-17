@@ -1621,7 +1621,8 @@ String _templateLabel(BorderBlueprintTemplate template) => switch (template) {
       BorderBlueprintTemplate.masonryLine => 'Muret linéaire',
       BorderBlueprintTemplate.postAndRailLine => 'Clôture linéaire',
       BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
-      BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
+      BorderBlueprintTemplate.horizontalFacade => 'Façade horizontale',
+  BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
       BorderBlueprintTemplate.ledgeLine => 'Rebord',
     };
 

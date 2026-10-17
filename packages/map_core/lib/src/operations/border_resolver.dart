@@ -37,7 +37,8 @@ BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
     BorderBlueprintTemplate.masonryLine => resolveMasonryLineBorder(request),
     BorderBlueprintTemplate.postAndRailLine =>
       resolvePostAndRailLineBorder(request),
-    BorderBlueprintTemplate.connectedLine =>
+    BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.horizontalFacade =>
       resolveConnectedLineBorder(request),
     BorderBlueprintTemplate.stoneChainLine =>
       resolveStoneChainLineBorder(request),

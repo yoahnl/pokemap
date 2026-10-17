@@ -8,6 +8,7 @@ import '../models/map_layer.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/project_model3d.dart';
 import '../models/smart_tile.dart';
+import 'map_visual_composition.dart';
 import 'smart_tile_layer_context.dart';
 import 'smart_tile_resolver.dart';
 import 'smart_tile_sprite_geometry.dart';
@@ -81,6 +82,15 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   final result = <SpatialModelInstance>[];
   final groundReplacements = <String, Set<(int, int)>>{};
   final cellOrigins = <String, ({String layerId, GridPos cell})>{};
+  final paintedLayers =
+      (mapPaintsFirstLayerInFront(map) ? map.layers.reversed : map.layers)
+          .whereType<SmartTileLayer>()
+          .where((layer) => layer.isVisible && layer.opacity > 0)
+          .toList();
+  final layerRanks = {
+    for (var index = 0; index < paintedLayers.length; index++)
+      paintedLayers[index].id: index,
+  };
   for (final layer in map.layers.whereType<SmartTileLayer>()) {
     if (!layer.isVisible || layer.opacity <= 0) continue;
     final preset = presets[layer.presetId];
@@ -156,6 +166,10 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
             x: x,
             y: z,
           );
+          final paintHeights = _partPaintHeights(
+            resolved.parts,
+            layerRanks[layer.id]!,
+          );
           for (var index = 0; index < resolved.parts.length; index++) {
             final part = resolved.parts[index];
             _addModel(
@@ -168,6 +182,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
               x: x,
               z: z,
               key: 'rule-$index',
+              paintHeight: paintHeights[index],
               transform: composeSmartTileSpriteTransforms(
                 first: part.transform,
                 second: resolved.transform,
@@ -188,6 +203,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
       final pz = (z + stroke.phaseY) % pattern.height;
       final cell = cells[pattern.id]![pz * pattern.width + px];
       if (cell == null) continue;
+      final paintHeights = _partPaintHeights(cell.parts, layerRanks[layer.id]!);
       for (var index = 0; index < cell.parts.length; index++) {
         final part = cell.parts[index];
         _addModel(
@@ -200,6 +216,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
           x: x,
           z: z,
           key: 'pattern-$index',
+          paintHeight: paintHeights[index],
           transform: part.transform,
           sourceCellWidth: sourceCellWidth,
           sourceCellHeight: sourceCellHeight,
@@ -217,6 +234,19 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   );
 }
 
+List<double> _partPaintHeights(List<SmartTileVisualPart> parts, int layerRank) {
+  final ordered = List<int>.generate(parts.length, (index) => index)
+    ..sort((a, b) {
+      final order = parts[a].drawOrder.compareTo(parts[b].drawOrder);
+      return order == 0 ? a.compareTo(b) : order;
+    });
+  final heights = List<double>.filled(parts.length, 0);
+  for (var rank = 0; rank < ordered.length; rank++) {
+    heights[ordered[rank]] = .001 * (layerRank + 1 + rank / ordered.length);
+  }
+  return heights;
+}
+
 void _addModel(
   List<SpatialModelInstance> result, {
   required Map<String, Set<(int, int)>> groundReplacements,
@@ -227,6 +257,7 @@ void _addModel(
   required int x,
   required int z,
   required String key,
+  required double paintHeight,
   required SmartTileSpriteTransform transform,
   required int sourceCellWidth,
   required int sourceCellHeight,
@@ -291,7 +322,13 @@ void _addModel(
         z: worldZ,
         y:
             (source.followTerrain ? scene.worldHeightAt(worldX, worldZ) : 0) +
-            source.offsetY,
+            source.offsetY +
+            (source.followTerrain &&
+                    !source.replacesGround &&
+                    (part.channel == SmartTileRenderChannel.ground ||
+                        part.channel == SmartTileRenderChannel.understory)
+                ? paintHeight
+                : 0),
       ),
       rotationDegrees: -(transform.quarterTurns % 4) * 90.0,
       scale: source.scale,

@@ -518,7 +518,7 @@ test("live MCP native Border contracts preserve explicit playback, collision and
     for (const field of ["animationIndex", "animationLoop", "animationSpeed", "blocksMovement"]) {
       assert.ok(String(upsert.summary).includes(field), field);
     }
-    assert.equal(record(upsert.extensions).catalogFormatVersion, 10);
+    assert.equal(record(upsert.extensions).catalogFormatVersion, 11);
     assert.ok(String(publish.summary).includes("null animationIndex does not start a clip"));
     const request = { name: "Native playback", folderName: "playback", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };

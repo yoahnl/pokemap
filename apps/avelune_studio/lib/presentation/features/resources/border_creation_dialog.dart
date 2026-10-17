@@ -45,6 +45,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   final _primitiveModelSettings = <String, BorderModelSettings>{};
   String _settingsRole = 'lineStraight';
   late bool _straightOnly;
+  late bool _horizontalFacade;
   late bool _followContourDirection;
   late bool _replacesGround;
   late bool _masksGroundCells;
@@ -69,6 +70,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     _name = TextEditingController(text: record?.draft.definition.name ?? '');
     _pendingId = record?.id;
     _straightOnly = record?.draft.definition.straightOnly ?? false;
+    _horizontalFacade = record?.draft.definition.template == BorderBlueprintTemplate.horizontalFacade;
     _followContourDirection =
         record?.draft.definition.followContourDirection ?? false;
     _replacesGround = record?.draft.definition.replacesGround ?? false;
@@ -128,6 +130,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
             _jumpSide != _expectedRecord?.draft.definition.jumpBehavior?.side
       :
       _name.text != (widget.initialRecord?.draft.definition.name ?? '') ||
+      _horizontalFacade != (widget.initialRecord?.draft.definition.template == BorderBlueprintTemplate.horizontalFacade) ||
       _straightOnly !=
           (widget.initialRecord?.draft.definition.straightOnly ?? false) ||
       _replacesGround !=
@@ -171,8 +174,8 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   List<String> get _roles => [
     'lineStraight',
     'lineCap',
-    if (!_straightOnly) 'lineCorner',
-    if (!_straightOnly && _followContourDirection) 'lineCornerLeft',
+    if (!_straightOnly && !_horizontalFacade) 'lineCorner',
+    if (!_straightOnly && !_horizontalFacade && _followContourDirection) 'lineCornerLeft',
   ];
 
   String? _sourceId(String role) => _modifiedRoles.contains(role)
@@ -195,7 +198,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
       :
       _sourceId('lineCap') != null &&
       _sourceId('lineStraight') != null &&
-      (_straightOnly ||
+      (_horizontalFacade || _straightOnly ||
           (_sourceId('lineCorner') != null &&
               (!_followContourDirection ||
                   _sourceId('lineCornerLeft') != null)));
@@ -451,6 +454,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
         )
       : BorderCreationRequest(
           name: _name.text.trim(),
+          template: _horizontalFacade ? BorderBlueprintTemplate.horizontalFacade : null,
           capElementId:
               widget.project.settings.dimension == ProjectDimension.twoD
               ? _sourceId('lineCap')
@@ -460,7 +464,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
               ? _sourceId('lineStraight')
               : null,
           cornerElementId:
-              widget.project.settings.dimension == ProjectDimension.twoD
+              widget.project.settings.dimension == ProjectDimension.twoD && !_horizontalFacade
               ? _sourceId('lineCorner')
               : null,
           capModelId:
@@ -623,6 +627,25 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                   'Raccords à vérifier : ${_warningCodes.map(_warningLabel).join(', ')}.',
                 ),
               const SizedBox(height: 12),
+              if (widget.project.settings.dimension == ProjectDimension.twoD &&
+                  widget.initialRecord == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: StudioToggleRow(
+                    key: const ValueKey('border-horizontal-facade'),
+                    label: 'Façade horizontale',
+                    value: _horizontalFacade,
+                    onChanged: _saving ? null : (value) => setState(() {
+                      _horizontalFacade = value;
+                      _warningCodes = const [];
+                    }),
+                  ),
+                ),
+              if (_horizontalFacade)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: StudioNotice('Façades sur des tracés ouverts horizontaux, sans rotation ni miroir. Séparez les tracés pour les ouvertures.'),
+                ),
               if (widget.project.settings.dimension ==
                       ProjectDimension.threeD &&
                   widget.initialRecord == null)
@@ -751,7 +774,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                         chosen: _chosen,
                         active: _activeElement,
                         visuals: widget.visuals,
-                        straightOnly: _straightOnly,
+                        straightOnly: _straightOnly || _horizontalFacade,
                         followContourDirection: _followContourDirection,
                         variantSelector: _variantSelector,
                         modelSettings:

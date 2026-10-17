@@ -10,6 +10,7 @@ String borderTemplateLabel(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.organicEdge => 'Côte organique',
       BorderBlueprintTemplate.masonryLine => 'Muret maçonné',
       BorderBlueprintTemplate.postAndRailLine => 'Clôture poteaux-traverses',
+      BorderBlueprintTemplate.horizontalFacade => 'Façade horizontale',
       BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
       BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
       BorderBlueprintTemplate.ledgeLine => 'Rebord',
@@ -24,6 +25,8 @@ String borderTemplateDescription(BorderBlueprintTemplate template,
         'Murets et remparts dessinés ensuite comme une ligne dans World Maps.',
       BorderBlueprintTemplate.postAndRailLine =>
         'Clôtures avec poteaux, traverses et futures ouvertures.',
+  BorderBlueprintTemplate.horizontalFacade =>
+    'Façades dessinées sur des lignes horizontales ouvertes, sans rotation ni miroir. Séparez les tracés pour créer des ouvertures.',
       BorderBlueprintTemplate.connectedLine =>
         'Falaises, murs et bordures libres assemblés sur un tracé cardinal.',
       BorderBlueprintTemplate.stoneChainLine =>
@@ -104,6 +107,12 @@ List<String> unresolvedBorderRoleLabels(BorderBlueprintDraftDefinition draft) {
         if (!assigned.contains(BorderPrimitiveRole.post)) 'Poteau',
         if (!assigned.contains(BorderPrimitiveRole.span)) 'Traverse',
       ];
+    case BorderBlueprintTemplate.horizontalFacade:
+      return <String>[
+        if (!assigned.contains(BorderPrimitiveRole.lineCap)) 'Extrémité',
+        if (!assigned.contains(BorderPrimitiveRole.lineStraight))
+          'Segment droit',
+      ];
     case BorderBlueprintTemplate.connectedLine:
       return <String>[
         if (!assigned.contains(BorderPrimitiveRole.lineCap)) 'Extrémité',
@@ -140,6 +149,9 @@ bool isRequiredBorderRole(
             role == BorderPrimitiveRole.filler,
       BorderBlueprintTemplate.postAndRailLine =>
         role == BorderPrimitiveRole.post || role == BorderPrimitiveRole.span,
+  BorderBlueprintTemplate.horizontalFacade =>
+    role == BorderPrimitiveRole.lineCap ||
+        role == BorderPrimitiveRole.lineStraight,
       BorderBlueprintTemplate.connectedLine =>
         role == BorderPrimitiveRole.lineCap ||
             role == BorderPrimitiveRole.lineStraight ||

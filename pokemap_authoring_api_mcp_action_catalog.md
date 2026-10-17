@@ -1437,6 +1437,15 @@ restent des références vivantes aux modèles du projet ; aucune image de snaps
 ni métrique pixel n'est publiée. `anchorWorld` optionnel désigne une ancre locale
 GLB ; sans valeur, le pivot du modèle est utilisé.
 
+Le type 2D `horizontalFacade` exige le sous-format de catalogue 11. Il utilise
+les rôles `lineCap` et `lineStraight` sur des tracés ouverts horizontaux à centres
+de cellules ; plusieurs tracés définissent les ouvertures. Sa galerie vérifie
+`longEdge`, `endpoint` et `opening`. Les tracés verticaux, obliques ou fermés,
+la rotation automatique, le miroir et le côté inversé sont refusés. Les actions
+`border.blueprint.draft.upsert` et `border.blueprint.publish` décrivent ce contrat
+dans leur extension `horizontalFacade`. Les autres types gardent leurs propres
+galeries et contrôles.
+
 Le kit 3D initial utilise `connectedLine` avec les rôles `lineCap`, `lineStraight`
 et `lineCorner`. Les mêmes traits et contours de régions, y compris leurs trous,
 produisent des instances natives orientées et posées sur le relief. Les slots et

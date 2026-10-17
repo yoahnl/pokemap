@@ -231,7 +231,10 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             publicationSample: sample,
           ),
         );
+      case BorderBlueprintTemplate.horizontalFacade:
       case BorderBlueprintTemplate.connectedLine:
+        final isFacade =
+            definition.template == BorderBlueprintTemplate.horizontalFacade;
         final geometry = _connectedLineGeometryFor(galleryCase);
         final primary = resolveConnectedLineBorderWithEvidence(
           _request(
@@ -246,7 +249,9 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             lineSide: BorderLineSide.primary,
           ),
         );
-        final inverted = resolveConnectedLineBorderWithEvidence(
+        final inverted = isFacade
+            ? primary
+            : resolveConnectedLineBorderWithEvidence(
           _request(
             mapSize: _lineGalleryMapSize,
             tileSizePx: tileSizePx,
@@ -286,7 +291,8 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
                 BorderPrimitiveRole.lineCorner,
               },
             ),
-            ..._structuralRuns(
+            if (!isFacade)
+              ..._structuralRuns(
               caseWire: caseWire,
               idPrefix: 'inverted:$caseWire',
               result: inverted.result,
@@ -306,7 +312,7 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             mapSize: _lineGalleryMapSize,
             geometry: geometry,
             resolverResult: primary.result,
-            invertedResolverResult: inverted.result,
+            invertedResolverResult: isFacade ? null : inverted.result,
             publicationSample: sample,
           ),
         );
@@ -1581,7 +1587,7 @@ List<BorderPublicationCoverageCheck> _connectedLineCoverageChecks({
   };
   return <BorderPublicationCoverageCheck>[
     for (final component in borderCanonicalCoverageComponentsForCase(
-      template: BorderBlueprintTemplate.connectedLine,
+      template: definition.template,
       galleryCase: galleryCase,
     ))
       _connectedLineCoverageCheck(

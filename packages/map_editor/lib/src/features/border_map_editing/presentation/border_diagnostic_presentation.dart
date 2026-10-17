@@ -66,6 +66,11 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Tracez au moins une ligne de deux cases.',
     'border.resolution.stroke_geometry_required' =>
       'Utilisez une géométrie de ligne pour ce blueprint.',
+    'border.resolution.horizontal_facade_stroke_required' =>
+      'Tracez une façade horizontale ouverte. Utilisez plusieurs tracés pour les ouvertures.',
+    'border.resolution.horizontal_facade_orientation_required' ||
+    'border.publication.horizontal_facade_orientation_required' =>
+      'Conservez l’orientation de la façade : désactivez la rotation et l’inversion.',
     'border.resolution.stroke_invalid' =>
       'Simplifiez le tracé pour supprimer ses raccords invalides.',
     'border.resolution.stroke_not_canonical' =>

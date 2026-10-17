@@ -501,7 +501,9 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                   BorderBlueprintTemplate.masonryLine,
           allowedQuarterTurns:
               working.blueprint.definition.template ==
-                  BorderBlueprintTemplate.ledgeLine
+                  BorderBlueprintTemplate.ledgeLine ||
+                  working.blueprint.definition.template ==
+                      BorderBlueprintTemplate.horizontalFacade
               ? const <int>[0]
               : const <int>[0, 1, 2, 3],
         ),

@@ -1,3 +1,4 @@
+import '../models/border_catalog.dart';
 import '../models/border_blueprint.dart';
 import '../models/border_ground_footprint.dart';
 import '../models/border_ground_surface.dart';
@@ -1704,6 +1705,7 @@ String _encodeTemplate(
   String path,
 ) {
   final minimumVersion = switch (value) {
+    BorderBlueprintTemplate.horizontalFacade => 11,
     BorderBlueprintTemplate.ledgeLine => 7,
     BorderBlueprintTemplate.stoneChainLine => 3,
     BorderBlueprintTemplate.connectedLine => 2,
@@ -1727,11 +1729,13 @@ BorderBlueprintTemplate _decodeTemplate(
     'masonryLine' => BorderBlueprintTemplate.masonryLine,
     'postAndRailLine' => BorderBlueprintTemplate.postAndRailLine,
     'connectedLine' => BorderBlueprintTemplate.connectedLine,
+    'horizontalFacade' => BorderBlueprintTemplate.horizontalFacade,
     'stoneChainLine' => BorderBlueprintTemplate.stoneChainLine,
     'ledgeLine' => BorderBlueprintTemplate.ledgeLine,
     _ => throw FormatException('$path: unknown Border blueprint template'),
   };
   final minimumVersion = switch (template) {
+    BorderBlueprintTemplate.horizontalFacade => 11,
     BorderBlueprintTemplate.ledgeLine => 7,
     BorderBlueprintTemplate.stoneChainLine => 3,
     BorderBlueprintTemplate.connectedLine => 2,
@@ -1789,7 +1793,7 @@ bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
 };
 
 void _requireBlueprintFormatVersion(int value, String path) {
-  if (value < 1 || value > 10) {
+  if (value < 1 || value > ProjectBorderCatalog.latestSupportedFormatVersion) {
     throw FormatException('$path: unsupported Border blueprint format version');
   }
 }

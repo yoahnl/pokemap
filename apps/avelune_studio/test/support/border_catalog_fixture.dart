@@ -8,7 +8,7 @@ ProjectBorderCatalog testBorderCatalog({
       : [
           BorderPrimitiveRole.lineCap,
           BorderPrimitiveRole.lineStraight,
-          BorderPrimitiveRole.lineCorner,
+          if (template != BorderBlueprintTemplate.horizontalFacade) BorderPrimitiveRole.lineCorner,
         ];
   final primitives = <BorderPublishedPrimitive>[
     for (final role in roles)
@@ -44,11 +44,14 @@ ProjectBorderCatalog testBorderCatalog({
       maxOverlapPx: 0,
       gapTolerancePx: 0,
       depthRows: 1,
+      allowAutoRotation: template != BorderBlueprintTemplate.horizontalFacade,
     ),
     sortOrder: 0,
   );
   return ProjectBorderCatalog(
-    formatVersion: template == BorderBlueprintTemplate.stoneChainLine
+    formatVersion: template == BorderBlueprintTemplate.horizontalFacade
+        ? ProjectBorderCatalog.formatVersionV11
+        : template == BorderBlueprintTemplate.stoneChainLine
         ? ProjectBorderCatalog.formatVersionV3
         : ProjectBorderCatalog.formatVersionV2,
     records: [

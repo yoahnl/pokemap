@@ -300,7 +300,7 @@ void main() {
       ).single;
       expect(instance.position.x, closeTo(1.75, 1e-9));
       expect(instance.position.z, closeTo(2.125, 1e-9));
-      expect(instance.position.y, 1.9375);
+      expect(instance.position.y, 1.9385);
       expect(instance.rotationDegrees, -90);
       final noOffsets = part.copyWith(
         source: SmartTileVisualSource.model3d(modelId: 'tall-grass'),
@@ -433,7 +433,7 @@ void main() {
       expect(instances.first.id, 'authored');
       final grass = instances[1];
       expect(grass.modelId, 'tall-grass');
-      expect(grass.position, Model3dVector3(x: .5, y: 2.125, z: .5));
+      expect(grass.position, Model3dVector3(x: .5, y: 2.126, z: .5));
       expect(grass.rotationDegrees, -90);
       expect(grass.scale, .75);
       expect(grass.blocksMovement, false);

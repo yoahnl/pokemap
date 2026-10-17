@@ -11,6 +11,7 @@ enum BorderBlueprintTemplate {
   masonryLine,
   postAndRailLine,
   connectedLine,
+  horizontalFacade,
   stoneChainLine,
   ledgeLine,
 }
@@ -50,6 +51,7 @@ String borderBlueprintTemplateV1WireName(
       BorderBlueprintTemplate.masonryLine => 'masonryLine',
       BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
       BorderBlueprintTemplate.connectedLine => 'connectedLine',
+      BorderBlueprintTemplate.horizontalFacade => 'horizontalFacade',
       BorderBlueprintTemplate.stoneChainLine => 'stoneChainLine',
       BorderBlueprintTemplate.ledgeLine => 'ledgeLine',
     };

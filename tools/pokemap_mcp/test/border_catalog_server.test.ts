@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 
 import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
@@ -404,3 +405,99 @@ function publishParameters(
     })),
   };
 }
+
+
+test("STDIO MCP publishes horizontal facades and refuses unsupported strokes atomically", { timeout: 120_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-horizontal-facade-"));
+  const client = new Client({ name: "horizontal-facade-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({ command: process.execPath,
+    args: [resolve("dist/src/index.js"), "--root", root, "--dart", process.env.POKEMAP_TEST_DART ?? "dart"],
+    cwd: process.cwd(), stderr: "pipe" });
+  await writeFile(join(root, "project.json"), JSON.stringify({
+    name: "Facade transport", version: "v8", pokemon: canonicalPokemonConfig(),
+    settings: { tileWidth: 32, tileHeight: 32 },
+    maps: [{ id: "map", name: "Reception", relativePath: "map.json" }],
+    tilesets: [{ id: "atlas", name: "Atlas", relativePath: "atlas.png" }],
+    elements: [{ id: "fence-element", name: "Facade", tilesetId: "atlas", categoryId: "border",
+      frames: [{ source: { x: 0, y: 0, width: 1, height: 1 } }] }],
+  }));
+  await writeFile(join(root, "atlas.png"), networkPngBytes.lineCap);
+  await writeFile(join(root, "map.json"), JSON.stringify({ version: "v8", id: "map", name: "Reception",
+    size: { width: 12, height: 10 }, visualStack: { semanticsVersion: 1 },
+    layers: [{ runtimeType: "border", id: "border", name: "Facades", content: { formatVersion: 2, features: [] } }] }));
+  let opened: JsonRecord | undefined;
+  let sequence = 0;
+  try {
+    await client.connect(transport);
+    const catalog = await toolData(client, "pokemap_describe");
+    const descriptor = (catalog.mutationActions as JsonRecord[]).find(value => value.id === "border.blueprint.draft.upsert");
+    assert.ok(descriptor);
+    const contract = record(record(descriptor.extensions).horizontalFacade);
+    assert.equal(contract.allowedAxis, "horizontal");
+    assert.equal(contract.minimumCatalogFormatVersion, 11);
+    assert.deepEqual(contract.canonicalGallery, ["longEdge", "endpoint", "opening"]);
+    opened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    async function plan(actionId: string, parameters: JsonRecord, failure = false): Promise<JsonRecord> {
+      const validation = await toolData(client, "pokemap_validate", { projectHandle: opened!.projectHandle });
+      const id = `facade-${++sequence}`;
+      const response = await client.callTool({ name: "pokemap_plan", arguments: { projectHandle: opened!.projectHandle,
+        request: { requestId: id, idempotencyKey: id, actionId, actionVersion: 1, parameters,
+          workspaceHandle: opened!.workspaceHandle, expectedRevision: validation.snapshotRevision } } });
+      const envelope = record(response.structuredContent);
+      assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
+      return record(envelope[failure ? "error" : "data"]);
+    }
+    async function mutate(actionId: string, parameters: JsonRecord): Promise<void> {
+      const planned = await plan(actionId, parameters);
+      const result = await toolData(client, "pokemap_apply", { operation: "apply", projectHandle: opened!.projectHandle,
+        planId: planned.planId, operationId: `facade-apply-${++sequence}` });
+      assert.equal(record(result.receipt).status, "applied");
+    }
+    const draft = borderRecord("fence", true);
+    const definition = record(record(draft.draft).definition);
+    definition.template = "horizontalFacade";
+    definition.primitives = (definition.primitives as JsonRecord[]).filter(value => value.role !== "lineCorner").map(value => ({
+      ...value, transforms: { allowedQuarterTurns: [0], allowFlipX: false },
+    }));
+    await mutate("border.blueprint.draft.upsert", { record: draft });
+    const primitiveSources: JsonRecord[] = [];
+    for (const [role, primitiveId] of [["lineCap", "cap"], ["lineStraight", "span"]] as const) {
+      const sourcePath = join(root, `${role}.png`);
+      await writeFile(sourcePath, networkPngBytes[role]);
+      const staged = await toolData(client, "pokemap_artifact_stage", { sourcePath, declaredMediaType: "image/png" });
+      primitiveSources.push({ primitiveId, frames: [{ artifactHandle: staged.artifactHandle,
+        sourceProjectRelativePath: `assets/tilesets/${role}.png` }] });
+    }
+    await mutate("border.blueprint.publish", { blueprintId: "fence", primitiveSources });
+    const base = { mapId: "map", layerId: "border", name: "Facade", blueprintId: "fence", seed: "0" };
+    const geometry = { kind: "stroke", strokes: [
+      { id: "left", closed: false, points: [1, 2, 3].map(x => ({ x, y: 3 })) },
+      { id: "right", closed: false, points: [7, 8, 9].map(x => ({ x, y: 3 })) },
+    ] };
+    await mutate("border_layer.feature_create", { ...base, featureId: "facade", geometry });
+    await mutate("border_layer.materialize_apply", { mapId: "map", layerId: "border", featureId: "facade",
+      tileWidthPx: 32, tileHeightPx: 32, resolverVersion: 3 });
+    const mapPath = join(root, "map.json"), before = await readFile(mapPath);
+    const saved = JSON.parse(before.toString()) as JsonRecord;
+    const layer = (saved.layers as JsonRecord[]).find(value => value.id === "border");
+    assert.ok(layer);
+    const feature = (record(layer.content).features as JsonRecord[])[0]!;
+    const placements = record(feature.materialization).placements as JsonRecord[];
+    assert.equal(placements.length, 6);
+    assert.deepEqual(placements.map(value => record(value.anchorCell).x), [1, 2, 3, 7, 8, 9]);
+    for (const placement of placements) assert.deepEqual(placement.transform, { quarterTurns: 0, flipX: false });
+    for (const points of [[{ x: 2, y: 1 }, { x: 2, y: 2 }],
+      [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }],
+      [{ x: 1, y: 1 }, { x: 2, y: 2 }]]) {
+      await plan("border_layer.feature_create", { ...base, featureId: "invalid",
+        geometry: { kind: "stroke", strokes: [{ id: "invalid", closed: false, points }] } }, true);
+      assert.deepEqual(await readFile(mapPath), before);
+    }
+    const manifest = JSON.parse(await readFile(join(root, "project.json"), "utf8")) as JsonRecord;
+    assert.equal(record(manifest.borderCatalog).formatVersion, 11);
+  } finally {
+    if (opened) await toolData(client, "pokemap_workspace", { operation: "close", projectHandle: opened.projectHandle }).catch(() => {});
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
