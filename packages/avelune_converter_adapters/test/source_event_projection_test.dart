@@ -499,6 +499,79 @@ SourceEventProjection _projectEvents(NormalizedSourceProject source,
                     sourceDirection: 2),
         });
 
+SourceFileEntry _graphicEntry(String name,
+        {Sha256Hash? hash, int length = 4, SourceNodeKind kind = SourceNodeKind.file}) =>
+    SourceFileEntry(
+        fileId: ConverterId('graphic:${base64Url.encode(utf8.encode(name)).replaceAll('=', '')}'),
+        relativePath: 'Graphics/Characters/$name.png',
+        kind: kind,
+        byteLength: kind == SourceNodeKind.file ? length : 0,
+        sha256: kind == SourceNodeKind.file ? hash : null,
+        format: 'png',
+        family: 'raster');
+
+Future<NormalizedSourceProject> _graphicSource(List<SourceFileEntry> graphics,
+    {List<String> names = const ['A', 'B']}) async {
+  final data = _project(maps: {
+    1: _map(events: {
+      1: _event(1, [
+        for (final name in names)
+          _page([_command(101, ['Hello']), _command(0, [])], character: name),
+      ]),
+    }),
+  });
+  final original = _source(data).snapshot;
+  final entries = [...original.entries, ...graphics];
+  final snapshot = SourceSnapshot(
+      logicalProjectNamespace: original.logicalProjectNamespace,
+      policyHash: original.policyHash,
+      entries: entries,
+      diagnostics: [],
+      excludedPaths: [],
+      profileEvidence: original.profileEvidence,
+      state: SourceScanState.complete);
+  entries.clear();
+  return _normalize(_Files(data, snapshot));
+}
+
+SourceEventProjection _projectGiverGraphics(NormalizedSourceProject source) {
+  final original = _analyzer(source).analyze();
+  final event = original.events.single;
+  final analysis = SourceEventAnalysis(
+      profile: original.profile,
+      diagnostics: original.diagnostics,
+      events: [
+        SourceEventDefinition(
+            sourceMapId: event.sourceMapId,
+            sourceEventId: event.sourceEventId,
+            sourceFileId: event.sourceFileId,
+            identity: event.identity,
+            name: event.name,
+            x: event.x,
+            y: event.y,
+            locator: event.locator,
+            pages: [
+              for (final page in event.pages)
+                SourceEventPageAnalysis(
+                    sourcePage: page.sourcePage,
+                    locator: page.locator,
+                    condition: page.condition,
+                    graphic: page.graphic,
+                    body: SourceEventBlock(span: page.body.span, nodes: [
+                      ...page.body.nodes,
+                      SourcePickupNode(page.body.span,
+                          sourceSymbol: 'POTION',
+                          quantity: 1,
+                          helper: SourceItemGrantHelper.receiveItem),
+                    ]),
+                    rawDataRef: page.rawDataRef,
+                    diagnostics: page.diagnostics),
+            ]),
+      ]);
+  return const SourceEventProjector().project(
+      source: source, analysis: analysis, nativeMaps: _nativeMaps(source));
+}
+
 Future<SourceEventProjection> _projectSign(_RubyObject page,
     {String eventName = 'Route sign',
     bool blockedSource = true,
@@ -610,6 +683,96 @@ List<_RubyObject> _interactionFacingCommands() {
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  group('item giver graphic byte identity', () {
+    final sameHash = _hash([1, 2, 3, 4]);
+
+    test('exact aliases with equal hash and length keep the same page graphic', () async {
+      final source = await _graphicSource([
+        _graphicEntry('A', hash: sameHash),
+        _graphicEntry('B', hash: sameHash),
+      ], names: ['A', 'B', 'A']);
+      final first = _projectGiverGraphics(source);
+      final second = _projectGiverGraphics(source);
+      expect(jsonEncode(first.semanticEvidence), isNot(contains('pageGraphicChanges')));
+      expect(canonicalJsonOf(first.semanticEvidence), canonicalJsonOf(second.semanticEvidence));
+      expect(source.snapshot.entries.where((entry) => entry.relativePath.startsWith('Graphics/Characters/')), hasLength(2));
+      expect(() => source.snapshot.entries.clear(), throwsUnsupportedError);
+    });
+
+    for (final changed in [
+      (label: 'hash', hash: _hash([4, 3, 2, 1]), length: 4),
+      (label: 'length', hash: sameHash, length: 5),
+    ]) {
+      test('different ${changed.label} remains a page graphic change', () async {
+        final source = await _graphicSource([
+          _graphicEntry('A', hash: sameHash),
+          _graphicEntry('B', hash: changed.hash, length: changed.length),
+        ]);
+        expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), contains('pageGraphicChanges'));
+      });
+    }
+
+    for (final fallback in ['wrong case', 'missing', 'directory']) {
+      test('$fallback retains the original graphic name', () async {
+        final source = await _graphicSource([
+          _graphicEntry('A', hash: sameHash),
+          if (fallback == 'wrong case') _graphicEntry('b', hash: sameHash),
+          if (fallback == 'directory') _graphicEntry('B', kind: SourceNodeKind.directory),
+        ]);
+        expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), contains('pageGraphicChanges'));
+      });
+    }
+
+    test('missing repeated names retain the same page graphic', () async {
+      final source = await _graphicSource([], names: ['A', 'A', 'A']);
+      expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), isNot(contains('pageGraphicChanges')));
+    });
+
+    test('ordinary dialogue still compares graphic names for equal bytes', () async {
+      final source = await _graphicSource([
+        _graphicEntry('A', hash: sameHash), _graphicEntry('B', hash: sameHash),
+      ]);
+      expect(jsonEncode(_projectEvents(source).semanticEvidence), contains('pageGraphicChanges'));
+    });
+
+    for (final kind in [SourceNodeKind.link, SourceNodeKind.special]) {
+      test('complete snapshot rejects graphic ${kind.name}', () async {
+        await expectLater(_graphicSource([
+          _graphicEntry('A', hash: sameHash), _graphicEntry('B', kind: kind),
+        ]), throwsA(isA<ContractError>().having((error) => error.code, 'code', 'source.snapshot_incomplete')));
+      });
+    }
+
+    test('a new snapshot cannot reuse an earlier graphic identity', () async {
+      final first = await _graphicSource([
+        _graphicEntry('A', hash: sameHash), _graphicEntry('B', hash: sameHash),
+      ]);
+      final changed = await _graphicSource([
+        _graphicEntry('A', hash: sameHash), _graphicEntry('B', hash: _hash([9, 8, 7, 6])),
+      ]);
+      expect(jsonEncode(_projectGiverGraphics(first).semanticEvidence), isNot(contains('pageGraphicChanges')));
+      expect(jsonEncode(_projectGiverGraphics(changed).semanticEvidence), contains('pageGraphicChanges'));
+      expect(jsonEncode(_projectGiverGraphics(first).semanticEvidence), isNot(contains('pageGraphicChanges')));
+    });
+
+    for (final aliases in [
+      ['É', 'E\u0301'],
+      ['S', 's', 'ſ'],
+    ]) {
+      test('complete snapshot rejects canonical aliases $aliases even with an exact member', () async {
+        await expectLater(_graphicSource([
+          for (final name in aliases) _graphicEntry(name, hash: sameHash),
+        ], names: [aliases.first, aliases.last]),
+          throwsA(isA<ContractError>().having((error) => error.code, 'code', 'source.snapshot_collision')));
+      });
+    }
+
+    test('complete snapshot rejects a graphic without a hash', () async {
+      await expectLater(_graphicSource([
+        _graphicEntry('A', hash: sameHash), _graphicEntry('B'),
+      ]), throwsA(isA<ContractError>().having((error) => error.code, 'code', 'source.snapshot_incomplete')));
+    });
+  });
   for (final value in [null, false, true, 'invalid']) {
     test('retention decodes strict selected SnapEdges $value', () async {
       final bytes = _project(maps: {1: _map(), 8: _map()});

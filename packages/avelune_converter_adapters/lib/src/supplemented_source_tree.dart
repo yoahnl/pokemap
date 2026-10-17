@@ -47,16 +47,13 @@ final class SupplementedSourceTree implements SourceTreePort {
         value.startsWith('Audio/') && _audioExtensions.contains(extension);
   }
 
-  static bool _isCandidatePath(String value) {
-    final key = sourcePathCollisionKey(value);
-    if (sharedPaths
-        .any((selected) => sourcePathCollisionKey(selected) == key)) {
-      return true;
-    }
+  static bool _isCandidatePath(String value,
+      {required String knownKey, required Set<String> sharedKeys}) {
+    if (sharedKeys.contains(knownKey)) return true;
     final extension = path.posix.extension(value).toLowerCase();
-    return key.startsWith('graphics/') &&
+    return knownKey.startsWith('graphics/') &&
             _imageExtensions.contains(extension) ||
-        key.startsWith('audio/') && _audioExtensions.contains(extension);
+        knownKey.startsWith('audio/') && _audioExtensions.contains(extension);
   }
 
   static Future<SupplementedSourceTree> open(String rootPath,
@@ -103,6 +100,7 @@ final class SupplementedSourceTree implements SourceTreePort {
       required ScanCancellation cancellation}) async* {
     _check(cancellation);
     _sharedOrigins.clear();
+    final sharedKeys = sharedPaths.map(sourcePathCollisionKey).toSet();
     final merged = <String, SourceNode>{};
     final inventories = <_SourceInventory>[];
     var entries = 0;
@@ -170,14 +168,16 @@ final class SupplementedSourceTree implements SourceTreePort {
         }
       }
       final earlier = List<_SourceInventory>.unmodifiable(inventories);
-      final files = nodes.values
-          .where((node) =>
-              _isCandidatePath(node.relativePath) &&
-              !policy.isExcluded(node.relativePath) &&
-              !merged.containsKey(sourcePathCollisionKey(node.relativePath)))
+      final files = nodes.entries
+          .where((entry) =>
+              _isCandidatePath(entry.value.relativePath,
+                  knownKey: entry.key, sharedKeys: sharedKeys) &&
+              !policy.isExcluded(entry.value.relativePath) &&
+              !merged.containsKey(entry.key))
           .toList()
-        ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
-      for (final file in files) {
+        ..sort((a, b) => a.value.relativePath.compareTo(b.value.relativePath));
+      for (final entry in files) {
+        final file = entry.value;
         if (!isSupplementalFilePath(file.relativePath)) {
           throw ContractError('source.shared.path_conflict', file.relativePath,
               'Supplemental input casing must match the exact supported path.');
@@ -223,7 +223,7 @@ final class SupplementedSourceTree implements SourceTreePort {
             yield ancestor;
           }
         }
-        merged[sourcePathCollisionKey(file.relativePath)] = file;
+        merged[entry.key] = file;
         _sharedOrigins[file.relativePath] = reference.rootPath;
         admit(file, reference, earlier);
         yield file;

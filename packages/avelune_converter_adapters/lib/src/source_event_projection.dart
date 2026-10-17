@@ -435,6 +435,8 @@ final class _ProjectionBuilder {
   final NormalizedSourceProject source;
   final SourceSemanticResolver semanticResolver;
   final Sha256Hash sourceSnapshotHash;
+  late final Map<String, SourceFileEntry?> _snapshotEntriesByPath =
+      _indexSnapshotEntries();
   final SourceEventAnalysis analysis;
   final Map<int, MapData> maps;
   final Set<ConverterId> originalDoorIdentities;
@@ -1327,16 +1329,25 @@ final class _ProjectionBuilder {
         index < layer.collisions.length && layer.collisions[index]);
   }
 
+  Map<String, SourceFileEntry?> _indexSnapshotEntries() {
+    final entries = <String, SourceFileEntry?>{};
+    for (final entry in source.snapshot.entries) {
+      final key = sourcePathCollisionKey(entry.relativePath);
+      entries[key] = entries.containsKey(key) ? null : entry;
+    }
+    return entries;
+  }
+
   String _graphicByteIdentity(String name) {
-    final matches = source.snapshot.entries.where((entry) =>
-        sourcePathCollisionKey(entry.relativePath) ==
-        sourcePathCollisionKey('Graphics/Characters/$name.png')).toList();
-    if (matches.length != 1 || matches.single.relativePath != 'Graphics/Characters/$name.png' ||
-        matches.single.kind != SourceNodeKind.file || matches.single.sha256 == null) {
+    final expectedPath = 'Graphics/Characters/$name.png';
+    final expectedKey = sourcePathCollisionKey(expectedPath);
+    final entry = _snapshotEntriesByPath[expectedKey];
+    if (entry == null || entry.relativePath != expectedPath ||
+        entry.kind != SourceNodeKind.file || entry.sha256 == null) {
       return name;
     }
-    return canonicalJsonOf({'sha256': matches.single.sha256!.value,
-        'byteLength': matches.single.byteLength});
+    return canonicalJsonOf({'sha256': entry.sha256!.value,
+        'byteLength': entry.byteLength});
   }
 
   bool _isItemGiver(SourceEventDefinition event) => event.pages.any((page) =>
