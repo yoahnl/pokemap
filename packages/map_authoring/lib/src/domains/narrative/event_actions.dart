@@ -10,10 +10,16 @@ import 'narrative_authoring_exception.dart';
 final class EventV2Actions {
   const EventV2Actions();
 
+  static const maxBatchRecords = 128;
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     for (final entry in const [
       ('event_v2.create_draft', 'Create an Event V2 draft'),
       ('event_v2.record_upsert', 'Create or replace an Event V2 record'),
+      (
+        'event_v2.record_upsert_batch',
+        'Create or replace a bounded Event V2 record batch'
+      ),
       ('event_v2.registry_mode.set', 'Activate an Event V2 registry mode'),
       ('event_v2.publish', 'Publish a complete Event V2 draft'),
       ('event_v2.unpublish', 'Return an Event V2 to draft state'),
@@ -27,6 +33,13 @@ final class EventV2Actions {
         resourceKinds: const ['project', 'eventV2'],
         extensions: {
           'sourceVariants': NarrativeEventSourceRef.contracts,
+          if (entry.$1 == 'event_v2.record_upsert_batch')
+            'records': {
+              'type': 'array',
+              'minItems': 1,
+              'maxItems': maxBatchRecords,
+              'uniqueBy': 'id'
+            },
         },
         risk: entry.$1.endsWith('.delete')
             ? AuthoringRiskLevel.high
@@ -36,6 +49,36 @@ final class EventV2Actions {
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
+    if (context.request.actionId == 'event_v2.record_upsert_batch') {
+      rejectUnknownNarrativeParameters(parameters, const {'records'});
+      final raw = parameters['records'];
+      if (raw is! List || raw.isEmpty || raw.length > maxBatchRecords) {
+        throw NarrativeAuthoringException(
+          'event_v2.batch_invalid',
+          'An Event V2 record batch requires 1 to $maxBatchRecords records.',
+        );
+      }
+      final records = <NarrativeEventRecord>[];
+      for (final value in raw) {
+        if (value is! Map) {
+          throw NarrativeAuthoringException('event_v2.record_invalid',
+              'The Event V2 record must be a JSON object.');
+        }
+        records.add(_decodeRecord(Map<String, dynamic>.from(value)));
+      }
+      final projected = upsertRecords(context.snapshot.manifest,
+          maps: context.snapshot.maps, records: records);
+      return narrativeProjectDraft(context.snapshot, projected,
+          operation: context.request.actionId,
+          path: '/eventRegistry/records',
+          before: context.snapshot.manifest.eventRegistry?.records
+              .map((record) => record.toJson())
+              .toList(),
+          after: projected.eventRegistry!.records
+              .map((record) => record.toJson())
+              .toList(),
+          preview: {'recordIds': records.map((record) => record.id).toList()});
+    }
     if (context.request.actionId == 'event_v2.registry_mode.set') {
       rejectUnknownNarrativeParameters(parameters, const {'mode'});
       final before = context.snapshot.manifest.eventRegistry?.mode;
@@ -196,42 +239,66 @@ final class EventV2Actions {
     required List<MapData> maps,
     required NarrativeEventRecord record,
   }) {
+    return upsertRecords(project, maps: maps, records: [record]);
+  }
+
+  ProjectManifest upsertRecords(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required List<NarrativeEventRecord> records,
+  }) {
+    if (records.isEmpty || records.length > maxBatchRecords) {
+      throw NarrativeAuthoringException('event_v2.batch_invalid',
+          'An Event V2 record batch requires 1 to $maxBatchRecords records.');
+    }
+    final replacements = <String, NarrativeEventRecord>{};
+    for (final record in records) {
+      if (replacements.containsKey(record.id)) {
+        throw NarrativeAuthoringException('event_v2.batch_duplicate',
+            'An Event V2 record batch requires unique event IDs.');
+      }
+      replacements[record.id] = record;
+    }
     final current = project.eventRegistry;
-    final registry = current == null
-        ? NarrativeEventRegistry(
-            schemaVersion: 1,
-            mode: EventSystemMode.legacyOnly,
-            records: [record],
-            legacyClaims: const [],
-          )
-        : _upsertNarrativeEventRecord(current, record);
+    final registry = NarrativeEventRegistry(
+      schemaVersion: current?.schemaVersion ?? 1,
+      mode: current?.mode ?? EventSystemMode.legacyOnly,
+      records: [
+        for (final record in current?.records ?? const <NarrativeEventRecord>[])
+          replacements.remove(record.id) ?? record,
+        ...replacements.values,
+      ],
+      legacyClaims: current?.legacyClaims ?? const <LegacySourceClaim>[],
+    );
     final projected = project.copyWith(eventRegistry: registry);
-    final source = record.definitionOrNull?.source ?? record.draftOrNull?.source;
-    final validatesContactSource =
-        source?.kind == NarrativeEventSourceKind.triggerBump;
-    final catalog = record.definitionOrNull != null || validatesContactSource
+    final requiresCatalog = records.any((record) =>
+        record.definitionOrNull != null ||
+        (record.definitionOrNull?.source ?? record.draftOrNull?.source)?.kind ==
+            NarrativeEventSourceKind.triggerBump);
+    final catalog = requiresCatalog
         ? buildNarrativeEventProjectCatalog(project: projected, maps: maps)
         : null;
-    if (validatesContactSource &&
-        catalog!.resolveSource(source!).status !=
-            NarrativeEventProjectResolutionStatus.found) {
-      throw NarrativeAuthoringException(
-        'event_v2.source_unavailable',
-        'The contact source requires one valid event trigger in a 2D map.',
-      );
+    for (final record in records) {
+      final source =
+          record.definitionOrNull?.source ?? record.draftOrNull?.source;
+      if (source?.kind == NarrativeEventSourceKind.triggerBump &&
+          catalog!.resolveSource(source!).status !=
+              NarrativeEventProjectResolutionStatus.found) {
+        throw NarrativeAuthoringException('event_v2.source_unavailable',
+            'The contact source requires one valid event trigger in a 2D map.');
+      }
     }
-    if (record.definitionOrNull != null) {
+    final definedIds = records
+        .where((record) => record.definitionOrNull != null)
+        .map((record) => record.id)
+        .toSet();
+    if (definedIds.isNotEmpty) {
       final report = buildNarrativeEventValidationReportSubset(
-        registry: registry,
-        catalog: catalog!,
-        eventIds: {record.id},
-      );
+          registry: registry, catalog: catalog!, eventIds: definedIds);
       if (report.hasBlockingDiagnostics) {
-        throw NarrativeAuthoringException(
-          'event_v2.validation_failed',
-          'The configured Event V2 has blocking canonical diagnostics.',
-          details: report.toDebugJson(),
-        );
+        throw NarrativeAuthoringException('event_v2.validation_failed',
+            'The configured Event V2 has blocking canonical diagnostics.',
+            details: report.toDebugJson());
       }
     }
     return projected;
@@ -461,21 +528,3 @@ EventSystemMode _decodeRegistryMode(String value) => switch (value) {
           details: {'mode': value},
         ),
     };
-
-NarrativeEventRegistry _upsertNarrativeEventRecord(
-  NarrativeEventRegistry registry,
-  NarrativeEventRecord nextRecord,
-) {
-  final exists = registry.records.any((record) => record.id == nextRecord.id);
-  return NarrativeEventRegistry(
-    schemaVersion: registry.schemaVersion,
-    mode: registry.mode,
-    records: exists
-        ? [
-            for (final record in registry.records)
-              if (record.id == nextRecord.id) nextRecord else record,
-          ]
-        : [...registry.records, nextRecord],
-    legacyClaims: registry.legacyClaims,
-  );
-}

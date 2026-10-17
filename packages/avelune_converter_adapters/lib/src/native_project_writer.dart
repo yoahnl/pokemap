@@ -1216,6 +1216,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'world_rule.update',
           'event_v2.registry_mode.set',
           'event_v2.record_upsert',
+          'event_v2.record_upsert_batch',
           'pokemon.catalog.write',
           'pokemon.configuration.set_enabled',
           'item.create',

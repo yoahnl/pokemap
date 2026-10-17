@@ -1846,6 +1846,15 @@ Studio sont dans les tests `presentation_publication_ui11` et
 
 ### 16.1 Map Events et Event V2
 
+`event_v2.record_upsert_batch` importe atomiquement de 1 à 128 enregistrements
+Event V2 complets dans `records`, avec des IDs uniques. La validation canonique,
+les sources de contact et les références sont identiques à `event_v2.record_upsert`.
+Les remplacements conservent leur position, les nouveaux IDs suivent l’ordre reçu.
+L’action respecte expectedRevision, plan/apply et les reçus idempotents standards.
+Elle expose les mêmes données Event V2 à Studio et au runtime ; aucune nouvelle
+primitive UI n’est requise pour ce transport d’import en masse du convertisseur.
+
+
 ```text
 map_event.list
 map_event.get

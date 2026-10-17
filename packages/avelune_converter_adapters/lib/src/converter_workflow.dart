@@ -2232,6 +2232,7 @@ const _nativeStudyActions = [
   'regionalMap.poi.upsert',
   'world_rule.create',
   'event_v2.record_upsert',
+  'event_v2.record_upsert_batch',
   'scene.dialogue.audioMedia.import',
   'pokemon.catalog.write',
   'pokemon.configuration.set_enabled',

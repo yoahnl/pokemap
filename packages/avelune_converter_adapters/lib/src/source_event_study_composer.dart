@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'native_mutation_batches.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
 import 'source_event_evidence.dart';
@@ -759,8 +760,14 @@ final class SourceEventStudyComposer {
       companionMutation,
       ...projection.mutations
     ];
+    final grouped = base.mapIds.length > 8 ||
+            eventMutations.where((entry) => entry.actionId == 'event_v2.record_upsert').length > 128
+        ? batchNativeMutations(eventMutations,
+            actionId: 'event_v2.record_upsert', limits: limits)
+        : (mutations: eventMutations, evidence: <Map<String, Object?>>[]);
     final evidence = {
       'kind': 'sourceEventStudy',
+      if (grouped.evidence.isNotEmpty) 'mutationBatches': grouped.evidence,
       'version': 1,
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
       'normalizedSourceHash': source.canonicalHash.value,
@@ -808,7 +815,7 @@ final class SourceEventStudyComposer {
       'automatic': true,
       'aiCalls': 0,
       'playableCertified': false,
-      'operationIds': [...importedMutations, ...eventMutations]
+      'operationIds': [...importedMutations, ...grouped.mutations]
           .map((entry) => entry.operationId.value)
           .toList(),
     };
@@ -836,7 +843,7 @@ final class SourceEventStudyComposer {
               ...baseConnections,
               ...base.mutations.where((entry) => entry.actionId == 'gameplay_zone.create'),
               ...base.mutations.where((entry) => entry.actionId.startsWith('border_layer.')),
-              ...eventMutations,
+              ...grouped.mutations,
             ],
             compositionEvidence: {
               ...base.compositionEvidence,

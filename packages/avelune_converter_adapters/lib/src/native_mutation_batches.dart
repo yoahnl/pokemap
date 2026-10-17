@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 const _batchActions = {
   'element.upsert': ('element.batch_upsert', 'elements', 'element', 512),
   'asset.import': ('asset.import_batch', 'entries', '', 200),
+  'event_v2.record_upsert': ('event_v2.record_upsert_batch', 'records', 'record', 128),
 };
 
 ({List<NativeMutation> mutations, List<Map<String, Object?>> evidence})
@@ -84,8 +85,11 @@ NativeMutation? _makeBatch(List<Map<String, Object?>> components,
         .map(ConverterId.new));
     final parameters = component['parameters'] as Map;
     final value = contract.$3.isEmpty ? parameters : parameters[contract.$3];
-    final id =
-        contract.$3.isEmpty ? parameters['assetId'] : (value as Map)['id'];
+    final id = contract.$3.isEmpty
+        ? parameters['assetId']
+        : actionId == 'event_v2.record_upsert'
+            ? ((value as Map)['definition'] ?? value['draft'] as Map)['id']
+            : (value as Map)['id'];
     if (!operationIds.add(component['operationId']) ||
         !ids.add(id) ||
         (contract.$3.isEmpty && !paths.add(parameters['logicalPath']))) {
@@ -147,7 +151,7 @@ int nativeLogicalMutationCount(Iterable<NativeMutation> mutations) {
 Iterable<NativeMutation> expandNativeMutationBatches(
     NativeProjectDraft draft, NativeWriteLimits limits) sync* {
   final rows = <String, Map>{};
-  for (final kind in ['sourceSemantics', 'sourceCatalogs']) {
+  for (final kind in ['sourceSemantics', 'sourceEvents', 'sourceCatalogs']) {
     final marker = draft.compositionEvidence[kind];
     if (marker is! Map) continue;
     for (final row in marker['mutationBatches'] as List? ?? const []) {

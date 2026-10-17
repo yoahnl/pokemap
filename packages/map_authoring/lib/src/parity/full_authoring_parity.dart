@@ -510,6 +510,13 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'event_v2.record_upsert_batch') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/narrative/event_record_batch_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/narrative/event_record_batch_transport_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/event_record_batch_stdio.test.ts',
+    };
+  }
   if (actionId == 'dialogue.source_update' || actionId == 'dialogue.update') {
     return const {
       AuthoringTransport.directApi:
@@ -1441,6 +1448,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'event_v2.record_upsert_batch') {
+    return 'test/domains/narrative/event_record_batch_transport_test.dart';
+  }
   if (actionId == 'resource_pack.import') {
     return 'test/domains/assets/resource_pack_actions_test.dart';
   }
