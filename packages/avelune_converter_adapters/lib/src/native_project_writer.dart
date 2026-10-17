@@ -1289,6 +1289,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final smartTilePresets = <ProjectSmartTilePreset>[];
   var borderCatalog = ProjectBorderCatalog();
   final borderSnapshots = <String, NativeArtifact>{};
+  var borderResources = SourceBorderReplayResources();
   final characters = <ProjectCharacterEntry>[];
   final trainersById = <String, ProjectTrainerEntry>{};
   final badges = <BadgeDefinition>[];
@@ -1841,6 +1842,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           }
         }
         final replay = await replaySourceBorderMutation(
+          resources: SourceBorderReplayResources(catalog: AssetCatalog(records: assetRecords),
+            files: borderResources.files, blobs: borderResources.blobs),
           project: bootstrap.copyWith(maps: mapEntries, tilesets: tilesetEntries,
             elements: elements, elementCategories: categories, borderCatalog: borderCatalog,
             characters: characters, settings: bootstrap.settings.copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId)),
@@ -1848,6 +1851,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           limits: limits, cancellation: cancellation,
         );
         borderCatalog = replay.project.borderCatalog;
+        borderResources = replay.resources;
+        assetRecords..clear()..addAll(borderResources.catalog.records);
         maps..clear()..addAll(replay.maps);
         for (final file in replay.files.entries) {
           final next = NativeArtifact(bytes: file.value, limits: limits);
@@ -2045,7 +2050,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   var derivedBytes = 0;
   var derivedPixels = 0;
-  for (final artifact in borderSnapshots.values) {
+  for (final artifact in [...borderSnapshots.values,
+      for (final bytes in borderResources.blobs.values) NativeArtifact(bytes: bytes, limits: limits)]) {
     derivedBytes += artifact.bytes.length;
     final size = _pngDimensions(artifact.bytes, limits);
     derivedPixels += size.$1 * size.$2;
@@ -2056,7 +2062,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     final size = _pngHeaderDimensions(artifact.bytes, limits);
     retainedPixels += size.$1 * size.$2;
   }
-  if (retained.length + borderSnapshots.length > limits.maxArtifacts ||
+  if (retained.length + borderSnapshots.length + borderResources.blobs.length > limits.maxArtifacts ||
       retained.fold<int>(0, (sum, a) => sum + a.bytes.length) + derivedBytes > limits.maxTotalArtifactBytes ||
       retainedPixels + derivedPixels > limits.maxTotalImagePixels) {
     throw const NativeWriteException('native.border.quota', 'Derived canonical Border snapshots require their explicit cumulative artifact budget');

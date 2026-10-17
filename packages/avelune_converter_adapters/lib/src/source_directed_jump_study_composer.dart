@@ -39,17 +39,339 @@ final class SourceDirectedJumpStudyComposition {
       List.unmodifiable([...resourceMutations, ...mapMutations]);
 }
 
-final class SourceBorderMutationReplay {
-  SourceBorderMutationReplay(
-      this.project, Map<String, MapData> maps, Map<String, List<int>> files)
-      : maps = Map.unmodifiable(maps),
+final class SourceBorderReplayResources {
+  SourceBorderReplayResources({
+    AssetCatalog? catalog,
+    Map<String, List<int>> files = const {},
+    Map<String, List<int>> blobs = const {},
+  })  : catalog = catalog ?? AssetCatalog(),
         files = Map.unmodifiable({
           for (final entry in files.entries)
-            entry.key: List<int>.unmodifiable(entry.value)
+            entry.key: List<int>.unmodifiable(entry.value),
+        }),
+        blobs = Map.unmodifiable({
+          for (final entry in blobs.entries)
+            entry.key: List<int>.unmodifiable(entry.value),
         });
+
+  final AssetCatalog catalog;
+  final Map<String, List<int>> files;
+  final Map<String, List<int>> blobs;
+}
+
+final class SourceBorderMutationReplay {
+  SourceBorderMutationReplay._(
+    this.project,
+    Map<String, MapData> maps,
+    this.resources,
+  ) : maps = Map.unmodifiable(maps);
+
+  factory SourceBorderMutationReplay.applyChanges({
+    required ProjectSnapshot snapshot,
+    required SourceBorderReplayResources resources,
+    required Iterable<AuthoringResourceChange> changes,
+    NativeWriteLimits limits = const NativeWriteLimits(),
+    ScanCancellation? cancellation,
+  }) {
+    cancellation?.check();
+    limits.validate();
+    var project = snapshot.manifest;
+    final maps = {for (final map in snapshot.maps) map.id: map};
+    var catalog = resources.catalog;
+    final files = Map<String, List<int>>.from(resources.files);
+    final blobs = Map<String, List<int>>.from(resources.blobs);
+    var total = 0;
+    final changedPaths = <String>{};
+    for (final change in changes) {
+      cancellation?.check();
+      final after = change.afterBytes;
+      if (after == null) {
+        throw const NativeWriteException(
+          'jumps.action',
+          'Source Border mutations cannot delete resources',
+        );
+      }
+      total += after.length;
+      if (total > limits.maxTotalDraftJsonBytes) {
+        throw const NativeWriteException(
+          'jumps.quota.action',
+          'Canonical Border changes exceed the aggregate byte budget',
+        );
+      }
+      if (!changedPaths.add(change.storageKey)) {
+        throw const NativeWriteException(
+          'jumps.resource.conflict',
+          'Canonical Border changes must have unique storage keys',
+        );
+      }
+      final kind = change.resource.kind;
+      final id = change.resource.id;
+      final identity = switch (kind) {
+        'project' when id == 'project' => 'project',
+        'map' when maps.containsKey(id) => 'map:$id',
+        'assetCatalog' when id == 'project' => assetCatalogResourceIdentity,
+        'borderSnapshot' when id == change.storageKey => 'borderSnapshot:$id',
+        'assetBlob' => assetBlobResourceIdentity(id),
+        _ => throw const NativeWriteException(
+            'jumps.resource.kind',
+            'Unexpected canonical Border resource kind or identity',
+          ),
+      };
+      final existing = snapshot.findResourceBytes(identity);
+      if (!_sameBorderBytes(existing, change.beforeBytes)) {
+        throw const NativeWriteException(
+          'jumps.resource.preimage',
+          'Canonical Border resource pre-image differs from the replay',
+        );
+      }
+      switch (kind) {
+        case 'project':
+          _requireBorderStorage(change.storageKey, 'project.json');
+          project = ProjectManifest.fromJson(_borderJson(after, limits));
+        case 'map':
+          final entry = snapshot.manifest.maps.singleWhere(
+            (entry) => entry.id == id,
+          );
+          _requireBorderStorage(change.storageKey, entry.relativePath);
+          final map = MapData.fromJson(_borderJson(after, limits));
+          if (map.id != id) {
+            throw const NativeWriteException(
+              'jumps.resource.identity',
+              'Canonical Border map identity changed',
+            );
+          }
+          maps[id] = map;
+        case 'assetCatalog':
+          _requireBorderStorage(change.storageKey, assetCatalogStorageKey);
+          try {
+            catalog = AssetCatalog.fromJson(_borderJson(after, limits));
+          } on Object {
+            throw const NativeWriteException(
+              'jumps.resource.catalog',
+              'Canonical Border asset catalog is invalid',
+            );
+          }
+          for (final record in resources.catalog.records) {
+            final retained = catalog.find(record.id);
+            if (retained == null ||
+                canonicalJsonOf(record.toJson()) !=
+                    canonicalJsonOf(retained.toJson())) {
+              throw const NativeWriteException(
+                'jumps.resource.conflict',
+                'Canonical Border publication cannot replace retained asset records',
+              );
+            }
+          }
+        case 'borderSnapshot':
+          if (existing != null && !_sameBorderBytes(existing, after)) {
+            throw const NativeWriteException(
+              'jumps.resource.conflict',
+              'Canonical Border snapshots are immutable',
+            );
+          }
+          files[change.storageKey] = after;
+        case 'assetBlob':
+          final artifact = ContentArtifactRef.fromBytes(
+            after,
+            mediaType: 'image/png',
+          );
+          if (artifact.digest != id) {
+            throw const NativeWriteException(
+              'jumps.resource.identity',
+              'Canonical Border blob digest differs from its bytes',
+            );
+          }
+          _requireBorderStorage(
+            change.storageKey,
+            assetBlobStorageKey(artifact),
+          );
+          if (existing != null && !_sameBorderBytes(existing, after)) {
+            throw const NativeWriteException(
+              'jumps.resource.conflict',
+              'Canonical Border blobs are immutable',
+            );
+          }
+          blobs[id] = after;
+      }
+    }
+    for (final record in catalog.records) {
+      if (resources.catalog.find(record.id) == null &&
+          !files.containsKey(record.logicalPath)) {
+        throw const NativeWriteException(
+          'jumps.resource.catalog',
+          'Canonical Border publications can only add their snapshot assets',
+        );
+      }
+    }
+    final next = SourceBorderReplayResources(
+      catalog: catalog,
+      files: files,
+      blobs: blobs,
+    );
+    _borderReplaySnapshot(project, maps, next, limits, cancellation);
+    return SourceBorderMutationReplay._(project, maps, next);
+  }
+
   final ProjectManifest project;
   final Map<String, MapData> maps;
-  final Map<String, List<int>> files;
+  final SourceBorderReplayResources resources;
+  Map<String, List<int>> get files => resources.files;
+}
+
+bool _sameBorderBytes(List<int>? left, List<int>? right) =>
+    left == null || right == null
+        ? left == right
+        : left.length == right.length &&
+            sha256.convert(left) == sha256.convert(right);
+
+void _requireBorderStorage(String actual, String expected) {
+  if (actual != expected) {
+    throw const NativeWriteException(
+      'jumps.resource.storage',
+      'Unexpected canonical Border resource storage key',
+    );
+  }
+}
+
+Map<String, dynamic> _borderJson(List<int> bytes, NativeWriteLimits limits) {
+  final value = jsonDecode(utf8.decode(bytes));
+  canonicalJsonOf(value, limits: limits.jsonLimits);
+  return Map<String, dynamic>.from(value as Map);
+}
+
+ProjectSnapshot _borderReplaySnapshot(
+  ProjectManifest project,
+  Map<String, MapData> maps,
+  SourceBorderReplayResources resources,
+  NativeWriteLimits limits,
+  ScanCancellation? cancellation,
+) {
+  final storage = <String, String>{
+    'project': 'project.json',
+    assetCatalogResourceIdentity: assetCatalogStorageKey,
+    for (final entry in project.maps)
+      if (maps.containsKey(entry.id)) 'map:${entry.id}': entry.relativePath,
+  };
+  final bytes = <String, List<int>>{
+    'project': utf8.encode(jsonEncode(project.toJson())),
+    assetCatalogResourceIdentity: utf8.encode(
+      jsonEncode(resources.catalog.toJson()),
+    ),
+    for (final map in maps.values)
+      'map:${map.id}': utf8.encode(jsonEncode(map.toJson())),
+  };
+  final paths = {
+    for (final snapshot in project.borderCatalog.visualSnapshots)
+      for (final frame in snapshot.frames) frame.relativeAssetPath,
+  };
+  if (paths.length != resources.files.length ||
+      !paths.containsAll(resources.files.keys)) {
+    throw const NativeWriteException(
+      'jumps.resource.storage',
+      'Canonical Border snapshots require their exact published files',
+    );
+  }
+  var totalBytes = 0;
+  var totalPixels = 0;
+  final digests = <String>{};
+  for (final entry in resources.files.entries) {
+    cancellation?.check();
+    final record = resources.catalog.findByLogicalPath(entry.key);
+    final artifact = ContentArtifactRef.fromBytes(
+      entry.value,
+      mediaType: 'image/png',
+    );
+    if (record == null ||
+        record.artifact != artifact ||
+        !_sameBorderBytes(resources.blobs[artifact.digest], entry.value)) {
+      throw const NativeWriteException(
+        'jumps.resource.catalog',
+        'Canonical Border files require matching catalog records and retained blobs',
+      );
+    }
+    digests.add(artifact.digest);
+    storage['borderSnapshot:${entry.key}'] = entry.key;
+    bytes['borderSnapshot:${entry.key}'] = entry.value;
+  }
+  if (digests.length != resources.blobs.length ||
+      !digests.containsAll(resources.blobs.keys)) {
+    throw const NativeWriteException(
+      'jumps.resource.identity',
+      'Canonical Border blobs must belong to published snapshot files',
+    );
+  }
+  for (final entry in resources.blobs.entries) {
+    final artifact = ContentArtifactRef.fromBytes(
+      entry.value,
+      mediaType: 'image/png',
+    );
+    storage[assetBlobResourceIdentity(entry.key)] = assetBlobStorageKey(
+      artifact,
+    );
+    bytes[assetBlobResourceIdentity(entry.key)] = entry.value;
+  }
+  for (final payload in [
+    ...resources.files.values,
+    ...resources.blobs.values,
+  ]) {
+    cancellation?.check();
+    if (payload.length > limits.maxArtifactBytes) {
+      throw const NativeWriteException(
+        'jumps.quota.artifact',
+        'Canonical Border snapshot exceeds the byte budget',
+      );
+    }
+    final size = const NativePngValidator().validate(payload, limits: limits);
+    totalBytes += payload.length;
+    totalPixels += size.$1 * size.$2;
+  }
+  if (resources.files.length + resources.blobs.length > limits.maxArtifacts ||
+      totalBytes > limits.maxTotalArtifactBytes ||
+      totalPixels > limits.maxTotalImagePixels) {
+    throw const NativeWriteException(
+      'jumps.quota.resources',
+      'Canonical Border resources exceed the cumulative artifact budget',
+    );
+  }
+  if (bytes.entries
+          .where(
+            (entry) =>
+                entry.key == 'project' ||
+                entry.key == assetCatalogResourceIdentity ||
+                entry.key.startsWith('map:'),
+          )
+          .fold<int>(0, (sum, entry) => sum + entry.value.length) >
+      limits.maxTotalDraftJsonBytes) {
+    throw const NativeWriteException(
+      'jumps.quota.action',
+      'Canonical Border JSON exceeds the aggregate byte budget',
+    );
+  }
+  if (storage.values.toSet().length != storage.length ||
+      bytes.length != storage.length) {
+    throw const NativeWriteException(
+      'jumps.resource.conflict',
+      'Canonical Border resource paths must be distinct and bound',
+    );
+  }
+  return ProjectSnapshot(
+    projectHandle: const ProjectHandle('source-border-study'),
+    revision: computeAuthoringBytesFingerprint(
+      bytes['project']!,
+      logicalName: 'project.json',
+    ),
+    manifest: project,
+    maps: maps.values.toList(),
+    resourceFingerprints: {
+      for (final entry in bytes.entries)
+        entry.key: computeAuthoringBytesFingerprint(
+          entry.value,
+          logicalName: storage[entry.key]!,
+        ),
+    },
+    resourceBytes: bytes,
+    resourceStorageKeys: storage,
+  );
 }
 
 Future<SourceBorderMutationReplay> replaySourceBorderMutation({
@@ -57,6 +379,7 @@ Future<SourceBorderMutationReplay> replaySourceBorderMutation({
   required Map<String, MapData> maps,
   required NativeMutation mutation,
   required Iterable<NativeArtifact> artifacts,
+  SourceBorderReplayResources? resources,
   NativeWriteLimits limits = const NativeWriteLimits(),
   ScanCancellation? cancellation,
 }) async {
@@ -67,53 +390,45 @@ Future<SourceBorderMutationReplay> replaySourceBorderMutation({
     'border.blueprint.publish',
     'border_layer.feature_create',
     'border_layer.feature_set_replacement',
-    'border_layer.materialize_apply'
+    'border_layer.materialize_apply',
   }.contains(mutation.actionId)) {
     throw const NativeWriteException(
-        'jumps.action', 'Unsupported source Border mutation');
+      'jumps.action',
+      'Unsupported source Border mutation',
+    );
   }
-  final storage = <String, String>{
-    'project': 'project.json',
-    for (final entry in project.maps)
-      if (maps.containsKey(entry.id)) 'map:${entry.id}': entry.relativePath
-  };
-  final bytes = <String, List<int>>{
-    'project': utf8.encode(jsonEncode(project.toJson())),
-    for (final map in maps.values)
-      'map:${map.id}': utf8.encode(jsonEncode(map.toJson()))
-  };
-  final snapshot = ProjectSnapshot(
-      projectHandle: const ProjectHandle('source-border-study'),
-      revision: computeAuthoringBytesFingerprint(bytes['project']!,
-          logicalName: 'project.json'),
-      manifest: project,
-      maps: maps.values.toList(),
-      resourceFingerprints: {
-        for (final entry in bytes.entries)
-          entry.key: computeAuthoringBytesFingerprint(entry.value,
-              logicalName: storage[entry.key]!)
-      },
-      resourceBytes: bytes,
-      resourceStorageKeys: storage);
+  final retained = resources ?? SourceBorderReplayResources();
+  final snapshot = _borderReplaySnapshot(
+    project,
+    maps,
+    retained,
+    limits,
+    cancellation,
+  );
   final context = AuthoringPlanningContext(
-      snapshot: snapshot,
-      request: AuthoringRequest(
-          requestId: mutation.operationId.value,
-          actionId: mutation.actionId,
-          actionVersion: mutation.actionVersion,
-          workspaceHandle: 'source-border-study',
-          parameters: mutation.parameters,
-          expectedRevision: snapshot.revision,
-          idempotencyKey: mutation.operationId.value),
-      planId: mutation.operationId.value,
-      seed: 0);
-  final store =
-      MemoryArtifactStore(maximumArtifactBytes: limits.maxArtifactBytes);
+    snapshot: snapshot,
+    request: AuthoringRequest(
+      requestId: mutation.operationId.value,
+      actionId: mutation.actionId,
+      actionVersion: mutation.actionVersion,
+      workspaceHandle: 'source-border-study',
+      parameters: mutation.parameters,
+      expectedRevision: snapshot.revision,
+      idempotencyKey: mutation.operationId.value,
+    ),
+    planId: mutation.operationId.value,
+    seed: 0,
+  );
+  final store = MemoryArtifactStore(
+    maximumArtifactBytes: limits.maxArtifactBytes,
+  );
   if (mutation.actionId == 'border.blueprint.publish') {
     for (final artifact in artifacts) {
       cancellation?.check();
-      await store.put(artifact.bytes,
-          declaredMediaType: artifact.reference.mediaType);
+      await store.put(
+        artifact.bytes,
+        declaredMediaType: artifact.reference.mediaType,
+      );
     }
   }
   cancellation?.check();
@@ -121,38 +436,13 @@ Future<SourceBorderMutationReplay> replaySourceBorderMutation({
       ? await BorderCatalogActions(artifactStore: store).build(context)
       : const BorderActions().build(context);
   cancellation?.check();
-  var nextProject = project;
-  final nextMaps = Map<String, MapData>.from(maps);
-  final companions = <String, List<int>>{};
-  var total = 0;
-  for (final change in draft.changeSet.changes) {
-    final after = change.afterBytes;
-    if (after == null) {
-      throw const NativeWriteException(
-          'jumps.action', 'Source Border mutations cannot delete resources');
-    }
-    total += after.length;
-    if (total > limits.maxTotalDraftJsonBytes) {
-      throw const NativeWriteException('jumps.quota.action',
-          'Canonical Border changes exceed the aggregate byte budget');
-    }
-    if (change.resource.kind == 'project') {
-      nextProject = ProjectManifest.fromJson(
-          jsonDecode(utf8.decode(after)) as Map<String, dynamic>);
-    } else if (change.resource.kind == 'map') {
-      final map = MapData.fromJson(
-          jsonDecode(utf8.decode(after)) as Map<String, dynamic>);
-      nextMaps[map.id] = map;
-    } else {
-      if (after.length > limits.maxArtifactBytes) {
-        throw const NativeWriteException('jumps.quota.artifact',
-            'Canonical Border snapshot exceeds the byte budget');
-      }
-      const NativePngValidator().validate(after, limits: limits);
-      companions[change.storageKey] = after;
-    }
-  }
-  return SourceBorderMutationReplay(nextProject, nextMaps, companions);
+  return SourceBorderMutationReplay.applyChanges(
+    snapshot: snapshot,
+    resources: retained,
+    changes: draft.changeSet.changes,
+    limits: limits,
+    cancellation: cancellation,
+  );
 }
 
 final class SourceDirectedJumpStudyComposer {
@@ -178,6 +468,7 @@ final class SourceDirectedJumpStudyComposer {
     final resourceMutations = <NativeMutation>[];
     final mapMutations = <NativeMutation>[];
     var manifest = project;
+    var borderResources = SourceBorderReplayResources();
     final evidence = <String, Object?>{
       'kind': 'sourceDirectedJumpStudy',
       'version': 2,
@@ -606,12 +897,14 @@ final class SourceDirectedJumpStudyComposer {
     ]) {
       final replay = await replaySourceBorderMutation(
           project: manifest,
+          resources: borderResources,
           maps: {for (final m in maps.values) m.id: m},
           mutation: mutation,
           artifacts: artifacts.values,
           limits: limits,
           cancellation: cancellation);
       manifest = replay.project;
+      borderResources = replay.resources;
       resourceMutations.add(mutation);
     }
     evidence['glyphs'] = [
@@ -684,6 +977,7 @@ final class SourceDirectedJumpStudyComposer {
           });
           final replay = await replaySourceBorderMutation(
               project: manifest,
+              resources: borderResources,
               maps: {map.id: map},
               mutation: mutation,
               artifacts: artifacts.values,

@@ -86,12 +86,15 @@ final class SourceEventStudyComposer {
     nativeMaps.addAll(connections.nativeMaps);
     var borderProject = sourceSemanticNativeProject(draft: base, maps: nativeMaps,
         mutations: base.mutations, limits: limits);
+    var borderResources = SourceBorderReplayResources();
     for (final mutation in base.mutations.where((entry) =>
         entry.actionId.startsWith('border.') || entry.actionId.startsWith('border_layer.'))) {
       final replay = await replaySourceBorderMutation(project: borderProject,
+          resources: borderResources,
           maps: {for (final map in nativeMaps.values) map.id: map}, mutation: mutation,
           artifacts: base.artifacts, limits: limits, cancellation: cancellation);
       borderProject = replay.project;
+      borderResources = replay.resources;
       for (final entry in base.mapIds.entries) { nativeMaps[entry.key] = replay.maps[entry.value]!; }
     }
     ProjectValidator.validate(borderProject, maps: nativeMaps.values);

@@ -151,12 +151,41 @@ void main() {
                 .placements,
             hasLength(3));
         expect(native.manifest.borderCatalog.visualSnapshots, hasLength(3));
-        for (final snapshot in native.manifest.borderCatalog.visualSnapshots) {
+        final catalog = AssetCatalog.fromJson(jsonDecode(
+                utf8.decode(native.resourceBytes(assetCatalogResourceIdentity)))
+            as Map<String, dynamic>);
+        expect(
+            catalog.records.where((record) =>
+                record.logicalPath.startsWith('assets/borders/snapshots/')),
+            hasLength(3));
+        for (final mutation in rebound.mutations
+            .where((entry) => entry.actionId == 'tileset.import_image')) {
+          final artifact = rebound.artifacts.singleWhere(
+              (entry) => entry.handle == mutation.parameters['artifactHandle']);
+          final record = catalog.require('image_${mutation.parameters['tilesetId']}');
+          expect(record.artifact, artifact.reference);
+          expect(
+              await File('${receipt.projectPath}/${record.logicalPath}')
+                  .readAsBytes(),
+              artifact.bytes);
           expect(
               await File(
-                      '${receipt.projectPath}/${snapshot.frames.single.relativeAssetPath}')
-                  .exists(),
-              isTrue);
+                      '${receipt.projectPath}/${assetBlobStorageKey(record.artifact)}')
+                  .readAsBytes(),
+              artifact.bytes);
+        }
+
+        for (final snapshot in native.manifest.borderCatalog.visualSnapshots) {
+          final path = snapshot.frames.single.relativeAssetPath;
+          final record = catalog.findByLogicalPath(path)!;
+          final bytes = await File('${receipt.projectPath}/$path').readAsBytes();
+          expect(ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png'),
+              record.artifact);
+          expect(
+              await File(
+                      '${receipt.projectPath}/${assetBlobStorageKey(record.artifact)}')
+                  .readAsBytes(),
+              bytes);
         }
         final world = GameplayWorldState.initial(
             map: map,
@@ -369,6 +398,52 @@ void main() {
       await f.root.delete(recursive: true);
     }
   }, skip: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null);
+  test('strict writer reopening refuses a changed retained Border blob',
+      () async {
+    final f = await jumpFixture();
+    final draft = (await const SourceSemanticStudyComposer().compose(
+        source: f.base.draft!.source, base: f.base, files: f.fixture.files))!;
+    final output = await Directory.systemTemp.createTemp('source-border-blob-');
+    final rebound = NativeProjectDraft(
+        source: draft.source,
+        projectName: draft.projectName,
+        parentPath: output.path,
+        folderName: 'border-blob',
+        mapIds: draft.mapIds,
+        artifacts: draft.artifacts,
+        sourceArtifacts: draft.sourceArtifacts,
+        mutations: draft.mutations,
+        compositionEvidence: draft.compositionEvidence,
+        defaultMapWidth: draft.defaultMapWidth,
+        defaultMapHeight: draft.defaultMapHeight);
+    final approval = approveNativeFixtureDraft(rebound);
+    String? stagingRoot;
+    try {
+      await expectLater(
+          NativeProjectWriter(checkpoint: (stage, staging, projectPath) async {
+            stagingRoot = staging;
+            if (stage != NativeWriteStage.afterNativeVerify) return;
+            final catalog = AssetCatalog.fromJson(jsonDecode(
+                await File('$projectPath/$assetCatalogStorageKey')
+                    .readAsString()) as Map<String, dynamic>);
+            final record = catalog.records.firstWhere((entry) =>
+                entry.logicalPath.startsWith('assets/borders/snapshots/'));
+            final blob =
+                File('$projectPath/${assetBlobStorageKey(record.artifact)}');
+            final bytes = await blob.readAsBytes();
+            bytes[bytes.length - 1] ^= 1;
+            await blob.writeAsBytes(bytes, flush: true);
+          }).write(approval.plan, approval.context, rebound),
+          throwsA(isA<NativeWriteException>().having((error) => error.message,
+              'message', contains('project.asset_blob_mismatch'))));
+    } finally {
+      if (stagingRoot != null) {
+        await Directory(stagingRoot!).delete(recursive: true);
+      }
+      await output.delete(recursive: true);
+    }
+  }, skip: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null);
+
 }
 
 typedef _BorderPublication = ({
