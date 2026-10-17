@@ -137,6 +137,11 @@ final class SecureAuthoringMutationExecutor {
                 permission.wireName
             ]
           });
+      await _transaction.cleanupCompletedReplay(
+          scope: found.scope,
+          planId: planId,
+          operationId: operationId,
+          receipt: receipt);
       return receipt;
     } on Object catch (error, stack) {
       await _appendReplayAudit(
@@ -294,6 +299,11 @@ final class SecureAuthoringMutationExecutor {
           'touchedResources': 0,
         },
       );
+      await _transaction.cleanupCompletedReplay(
+          scope: scope,
+          planId: plan.planId,
+          operationId: operationId,
+          receipt: replay);
       return replay;
     }
 

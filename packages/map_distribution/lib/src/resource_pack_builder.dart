@@ -95,6 +95,10 @@ final class ResourcePackBuilder {
       if (catalogBytes.length > policy.maxCatalogBytes) {
         _fail('catalog_too_large');
       }
+      payloadBytes += catalogBytes.length;
+      if (payloadBytes > policy.maxTotalPayloadBytes) {
+        _fail('payload_too_large');
+      }
       final catalogFile = ResourcePackInventoryFile(
           path: 'catalog.json',
           byteLength: catalogBytes.length,

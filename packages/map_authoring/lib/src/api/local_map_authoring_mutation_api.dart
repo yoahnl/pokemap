@@ -755,6 +755,7 @@ final class _LocalMapAuthoringSession {
       cacheDirectory:
           '${Directory.systemTemp.path}${Platform.pathSeparator}pokemap-authoring-projections',
       allowedSourceRoots: resourcePackSourceRoots,
+      performanceObserver: performanceObserver,
       clock: clock,
     );
     final projections = AuthoringResultProjectionStore(

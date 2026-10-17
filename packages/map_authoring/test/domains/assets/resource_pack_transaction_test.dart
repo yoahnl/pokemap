@@ -7,8 +7,40 @@ import 'package:test/test.dart';
 
 import 'resource_pack_import_fixture.dart';
 import 'resource_pack_export_test.dart' as source;
+import '../../support/resource_pack_recovery_exit_worker.dart' as recovery_d;
 
 void main() {
+  group('resource pack recovery D', () {
+    for (final defect in recovery_d.recoveryDCleanupGuards) {
+      test('cleanup guard $defect', () async {
+        await recovery_d.recoveryDCleanupGuard(defect);
+      });
+    }
+    for (final failure in ['read', 'delete']) {
+      test('best effort replay failure $failure', () async {
+        await recovery_d.recoveryDBestEffortReplay(failure);
+      });
+    }
+    for (final checkpoint in recovery_d.recoveryDCheckpoints) {
+      test('cooperative $checkpoint', () async {
+        await recovery_d.recoveryDCooperative(checkpoint);
+      });
+    }
+    for (final checkpoint in ['beforeResourcePromotion', 'afterResourcePromoted']) {
+      test('cooperative $checkpoint middle', () async {
+        await recovery_d.recoveryDCooperative(checkpoint, middle: true);
+      });
+    }
+    group('real exit77', () {
+      setUpAll(recovery_d.recoveryDCompileWorker);
+      tearDownAll(recovery_d.recoveryDDisposeWorker);
+      for (final checkpoint in ['afterJournalPrepared', 'afterResourcePromoted']) {
+        test(checkpoint, () async {
+          await recovery_d.recoveryDRealExit(checkpoint);
+        });
+      }
+    });
+  }, skip: Platform.environment['POKEMAP_RESOURCE_PACK_RECOVERY_LOCAL'] != '1');
   test(
       'JSONL describes the semantic action and returns a clear prepared-handle rejection',
       () async {

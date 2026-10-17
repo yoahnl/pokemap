@@ -43,6 +43,283 @@ void main() {
   Future<File> source(String name, List<int> bytes) =>
       File('${sources.path}/$name').writeAsBytes(bytes);
 
+  test('observes real store bytes through the existing local API observer',
+      () async {
+    final observer = _ByteObserver();
+    addTearDown(observer.close);
+    final project =
+        await Directory('${sandbox.path}/observed-project').create();
+    await File('${project.path}/project.json').writeAsString(jsonEncode(
+      ProjectManifest(name: 'Observed', maps: [], tilesets: []).toJson(),
+    ));
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [project.path],
+      fileReader: reader,
+    );
+    final handles = WorkspaceHandleStore();
+    final opened = await ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+    ).openProject(project.path);
+    final api = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: ProjectSnapshotLoader(handles: handles),
+      resourcePackSourceRoots: [sources.path],
+      performanceObserver: observer,
+    );
+    await api.attachProject(
+      projectRootPath: project.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    try {
+      final observed = api.resourcePackPayloadStore(opened.projectHandle);
+      final file = await source('observed-source', [1, 2, 3, 4, 5, 6, 7]);
+      await observed.authorizeSourceFile(file.path);
+      final lease =
+          await observed.stageFile(scope: scope, sourcePath: file.path);
+      final bytes = await observed.withSource(
+        scope: scope,
+        handle: lease.payload.handle,
+        read: (reader) =>
+            [...reader.readAtSync(0, 2), ...reader.readAtSync(5, 2)],
+      );
+      expect(bytes, [1, 2, 6, 7]);
+      expect(observer.resourcePackCounters, {
+        'io.resourcePack.authorize.readBytes': 7,
+        'io.resourcePack.stageSource.readBytes': 7,
+        'io.resourcePack.stagePrivate.completedWriteInputBytes': 7,
+        'io.resourcePack.postCopyVerify.readBytes': 7,
+        'io.resourcePack.stageVerify.readBytes': 7,
+        'io.resourcePack.consumerReadAt.returnedBytes': 4,
+      });
+      await observed.release(scope: scope, leaseId: lease.leaseId);
+    } finally {
+      await api.detachWorkspace(opened.workspaceHandle);
+      handles.closeWorkspace(opened.workspaceHandle);
+    }
+  });
+
+  Future<_ByteObserver> observeStore() async {
+    await store.close();
+    final observer = _ByteObserver();
+    addTearDown(observer.close);
+    store = LocalResourcePackStore(
+      cacheDirectory: '${sandbox.path}/cache',
+      allowedSourceRoots: [sources.path],
+      performanceObserver: observer,
+      policy:
+          const ResourcePackSecurityPolicy(maxChunkBytes: 3, maxCacheBytes: 20),
+      clock: () => now,
+      tokenFactory: (prefix) => '$prefix-${serial++}',
+    );
+    return observer;
+  }
+
+  test('counts completed private writes while a real stream is backpressured',
+      () async {
+    final observer = await observeStore();
+    final firstWritten = Completer<void>();
+    final continueInput = Completer<void>();
+    final failure = StateError('source interrupted after its final input');
+    Stream<List<int>> input() async* {
+      yield [1, 2, 3];
+      expect(
+          observer.counters[
+              'io.resourcePack.stagePrivate.completedWriteInputBytes'],
+          3);
+      firstWritten.complete();
+      await continueInput.future;
+      yield [4, 5];
+      throw failure;
+    }
+
+    final staging = store.stage(scope: scope, chunks: input(), byteLength: 5);
+    await firstWritten.future;
+    expect(store.reservedBytes, 5);
+    expect(store.cachedBytes, 0);
+    expect(
+        observer
+            .counters['io.resourcePack.stagePrivate.completedWriteInputBytes'],
+        3);
+    final rejected = expectLater(staging, throwsA(same(failure)));
+    continueInput.complete();
+    await rejected;
+    expect(
+        observer
+            .counters['io.resourcePack.stagePrivate.completedWriteInputBytes'],
+        5);
+    expect(
+        observer.counters.containsKey('io.resourcePack.stageSource.readBytes'),
+        isFalse);
+    expect(store.reservedBytes, 0);
+    expect(store.cachedBytes, 0);
+    expect(await _diskBytes('${sandbox.path}/cache'), 0);
+  });
+
+  test(
+      'aggregates worker verification and actual reads without sending observer',
+      () async {
+    final observer = await observeStore();
+    final lease = await store.stage(
+        scope: scope, chunks: Stream.value([1, 2, 3, 4, 5]), byteLength: 5);
+    observer.counters.clear();
+    final value = await store.withSourceInIsolate(
+      scope: scope,
+      handle: lease.payload.handle,
+      read: _readWorkerPair,
+    );
+    expect(value, [1, 2]);
+    expect(observer.resourcePackCounters, {
+      'io.resourcePack.workerVerify.readBytes': 5,
+      'io.resourcePack.workerConsumerReadAt.returnedBytes': 2,
+    });
+  });
+
+  test('aggregates distinct worker sources once per pre and post verification',
+      () async {
+    final observer = await observeStore();
+    final first = await store.stage(
+        scope: scope, chunks: Stream.value([1, 2, 3, 4, 5]), byteLength: 5);
+    final second = await store.stage(
+        scope: scope, chunks: Stream.value([8, 9, 10]), byteLength: 3);
+    observer.counters.clear();
+    final value = await store.withSourcesInIsolate(
+      scope: scope,
+      handles: [
+        first.payload.handle,
+        second.payload.handle,
+        first.payload.handle
+      ],
+      read: _readWorkerSources,
+    );
+    expect(value, [1, 2, 9]);
+    expect(observer.resourcePackCounters, {
+      'io.resourcePack.workerVerify.readBytes': 16,
+      'io.resourcePack.workerConsumerReadAt.returnedBytes': 3,
+    });
+  });
+
+  for (final failure in ['consumer', 'corruption']) {
+    test(
+        'marks failed worker observation incomplete for $failure without changing error',
+        () async {
+      final observer = await observeStore();
+      final lease = await store.stage(
+          scope: scope, chunks: Stream.value([1, 2, 3, 4, 5]), byteLength: 5);
+      observer.counters.clear();
+      if (failure == 'corruption') {
+        final files = await Directory('${sandbox.path}/cache')
+            .list(recursive: true)
+            .where((file) => file is File)
+            .cast<File>()
+            .toList();
+        await files.single.writeAsBytes([5, 4, 3, 2, 1]);
+      }
+      await expectLater(
+        store.withSourceInIsolate(
+          scope: scope,
+          handle: lease.payload.handle,
+          read: failure == 'consumer' ? _failWorkerRead : _readWorkerPair,
+        ),
+        throwsA(isA<FileBackedPayloadException>().having(
+            (error) => error.code,
+            'code',
+            failure == 'consumer'
+                ? 'original.worker_probe'
+                : 'resource_pack.stage_corrupt')),
+      );
+      expect(
+          observer
+              .counters['io.resourcePack.workerCoverage.incompleteOperations'],
+          1);
+      expect(
+          observer.counters
+              .containsKey('io.resourcePack.workerVerify.readBytes'),
+          isFalse);
+      expect(
+          observer.counters.containsKey(
+              'io.resourcePack.workerConsumerReadAt.returnedBytes'),
+          isFalse);
+      expect(store.cachedBytes, 5);
+      expect(store.reservedBytes, 0);
+    });
+  }
+
+  test(
+      'marks multi-source failed worker observation incomplete without changing error',
+      () async {
+    final observer = await observeStore();
+    final lease = await store.stage(
+        scope: scope, chunks: Stream.value([1, 2, 3, 4, 5]), byteLength: 5);
+    observer.counters.clear();
+    await expectLater(
+      store.withSourcesInIsolate(
+          scope: scope,
+          handles: [lease.payload.handle, lease.payload.handle],
+          read: _failWorkerSources),
+      throwsA(isA<FileBackedPayloadException>()
+          .having((error) => error.code, 'code', 'original.worker_probe')),
+    );
+    expect(
+        observer
+            .counters['io.resourcePack.workerCoverage.incompleteOperations'],
+        1);
+    expect(
+        observer.counters.containsKey('io.resourcePack.workerVerify.readBytes'),
+        isFalse);
+    expect(
+        observer.counters
+            .containsKey('io.resourcePack.workerConsumerReadAt.returnedBytes'),
+        isFalse);
+    expect(store.cachedBytes, 5);
+  });
+
+  test('absent observer keeps the same archive bytes and lease behavior',
+      () async {
+    final observer = _ByteObserver();
+    addTearDown(observer.close);
+    final observed = LocalResourcePackStore(
+      cacheDirectory: '${sandbox.path}/observed-cache',
+      allowedSourceRoots: [sources.path],
+      performanceObserver: observer,
+      policy: const ResourcePackSecurityPolicy(maxChunkBytes: 7),
+    );
+    final ordinary = LocalResourcePackStore(
+      cacheDirectory: '${sandbox.path}/ordinary-cache',
+      allowedSourceRoots: [sources.path],
+      policy: const ResourcePackSecurityPolicy(maxChunkBytes: 7),
+    );
+    addTearDown(observed.close);
+    addTearDown(ordinary.close);
+    final bytes = _minimalPack();
+    final file = await source('same-pack', bytes);
+    final inspections = <ResourcePackInspection>[];
+    for (final local in [ordinary, observed]) {
+      final lease = await local.stageFile(scope: scope, sourcePath: file.path);
+      expect(lease.payload.rawSha256, sha256.convert(bytes).toString());
+      expect(lease.payload.byteLength, bytes.length);
+      final pin =
+          local.retainForJob(scope: scope, handle: lease.payload.handle);
+      await local.release(scope: scope, leaseId: lease.leaseId);
+      inspections.add(await local.withSourceInIsolate(
+          scope: scope, handle: pin.payload.handle, read: _inspectWorkerPack));
+      expect(local.cachedBytes, bytes.length);
+      await local.release(scope: scope, leaseId: pin.leaseId);
+      await local.close();
+      expect(local.cachedBytes, 0);
+    }
+    expect(inspections.map((value) => value.archiveRawSha256).toSet(),
+        {sha256.convert(bytes).toString()});
+    expect(inspections.map((value) => value.resourceCount), [0, 0]);
+    expect(
+        observer
+            .counters['io.resourcePack.stagePrivate.completedWriteInputBytes'],
+        bytes.length);
+  });
+
   test(
       'licence staging validates bounded UTF8 during copy before publishing a payload',
       () async {
@@ -856,3 +1133,41 @@ int Function(RandomAccessPackageSource) _workerReadAfterSignal(
       sleep(const Duration(milliseconds: 150));
       return source.readAtSync(0, 3).length;
     };
+
+final class _ByteObserver implements AuthoringPerformanceObserver {
+  final counters = <String, int>{};
+  final _notSendable = ReceivePort();
+  Map<String, int> get resourcePackCounters => {
+        for (final entry in counters.entries)
+          if (entry.key.startsWith('io.resourcePack.')) entry.key: entry.value,
+      };
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) => null;
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    counters.update(name, (value) => value + by, ifAbsent: () => by);
+  }
+
+  void close() => _notSendable.close();
+}
+
+List<int> _readWorkerPair(RandomAccessPackageSource source) =>
+    source.readAtSync(0, 2);
+List<int> _readWorkerSources(Map<String, RandomAccessPackageSource> sources) {
+  final readers = sources.values.toList();
+  return [...readers[0].readAtSync(0, 2), ...readers[1].readAtSync(1, 1)];
+}
+
+List<int> _failWorkerRead(RandomAccessPackageSource source) {
+  source.readAtSync(0, 1);
+  throw FileBackedPayloadException(
+      'original.worker_probe', 'original worker failure');
+}
+
+ResourcePackInspection _inspectWorkerPack(RandomAccessPackageSource source) =>
+    const ResourcePackInspector(
+            policy: ResourcePackSecurityPolicy(maxChunkBytes: 7))
+        .inspectSourceSync(source);
+
+List<int> _failWorkerSources(Map<String, RandomAccessPackageSource> sources) =>
+    _failWorkerRead(sources.values.first);

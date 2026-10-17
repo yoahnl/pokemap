@@ -87,6 +87,63 @@ void main() {
     final paused = session.frame(0);
     expect(session.frame(1).x, paused.x);
   });
+  test('disposed spatial exploration returns no actor frames', () async {
+    final root = await Directory.systemTemp.createTemp('spatial-disposed-');
+    addTearDown(() => root.delete(recursive: true));
+    final path = '${root.path}/hero.png';
+    await File(path).writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+    final character = ProjectCharacterEntry(
+        id: 'hero',
+        name: 'Hero',
+        tilesetId: 'unused',
+        animations: [
+          for (final direction in [
+            EntityFacing.north,
+            EntityFacing.south,
+            EntityFacing.east,
+            EntityFacing.west
+          ])
+            CharacterAnimation(
+                state: CharacterAnimationState.walk,
+                direction: direction,
+                sourceAssetId: 'hero-sheet',
+                frames: const [
+                  CharacterAnimationFrame(
+                      source: TilesetSourceRect(
+                          x: 0, y: 0, width: 32, height: 32),
+                      durationMs: 100)
+                ])
+        ]);
+    final bundle = RuntimeMapBundle(
+        manifest: ProjectManifest(
+            version: ProjectVersion.v9,
+            name: 'Disposed spatial session',
+            settings: const ProjectSettings(
+                dimension: ProjectDimension.threeD,
+                defaultPlayerCharacterId: 'hero'),
+            maps: const [],
+            tilesets: const [],
+            characters: [character]),
+        map: MapData(
+            version: ProjectVersion.v9,
+            id: 'map',
+            name: 'Map',
+            size: const GridSize(width: 8, height: 8),
+            layers: const [],
+            spatialScene: MapSpatialScene(
+                width: 8,
+                depth: 8,
+                navigation: SpatialNavigationProfile(
+                    spawn: SpatialSpawn(x: 4, z: 4)))),
+        projectRootDirectory: root.path,
+        tilesetAbsolutePathsById: const {},
+        characterAnimationAbsolutePathsByAssetId: {'hero-sheet': path});
+    final session = await SpatialExplorationSession.load(bundle);
+    addTearDown(session.dispose);
+    expect(session.frames(0)['hero']!.frame, const Rect.fromLTWH(0, 0, 32, 32));
+    session.dispose();
+    expect(session.frames(.016), isEmpty);
+  });
   test(
       'NPC dialogue facing is scoped and persistent poses resume after it closes',
       () async {

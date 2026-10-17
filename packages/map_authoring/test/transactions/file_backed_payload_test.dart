@@ -1,5 +1,6 @@
 import 'package:map_authoring/src/transactions/local_authoring_payload.dart';
 import 'dart:io';
+import 'package:map_authoring/src/support/authoring_performance_observer.dart';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -12,6 +13,184 @@ import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('gateway counts real streaming bytes after each completed write',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('gateway-observed-');
+    addTearDown(() => directory.delete(recursive: true));
+    final observer = _GatewayByteObserver();
+    final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: directory.path, performanceObserver: observer);
+    expect(gateway, isA<StreamingTransactionFileGateway>());
+    final bytes = utf8.encode('é😀');
+    var staging = false;
+    int? writtenBeforeSecondChunk;
+    Stream<List<int>> chunks() async* {
+      yield bytes.sublist(0, 3);
+      if (staging) {
+        writtenBeforeSecondChunk = observer
+            .counters['io.gateway.stagedPayload.completedWriteInputBytes'];
+      }
+      yield bytes.sublist(3);
+    }
+
+    final payload = await AuthoringPayload.verifiedSource(
+        storageKey: 'assets/été😀.bin',
+        byteLength: bytes.length,
+        rawSha256: sha256.convert(bytes).toString(),
+        openRead: chunks);
+    addTearDown(payload.release);
+    expect(() => payload.inlineBytes, throwsStateError);
+    staging = true;
+    await gateway.stageAuthoringPayload(
+        operationId: 'observed',
+        storageKey: 'assets/été😀.bin',
+        kind: TransactionPayloadKind.after,
+        payload: payload);
+    staging = false;
+    expect(writtenBeforeSecondChunk, 3);
+    final descriptor = (await Directory('${directory.path}/.pokemap')
+            .list(recursive: true)
+            .where((file) => file is File && file.path.endsWith('.json'))
+            .cast<File>()
+            .toList())
+        .single;
+    expect(
+        observer.counters['io.gateway.stagedPayload.completedWriteInputBytes'],
+        bytes.length);
+    expect(
+        observer.counters['io.gateway.verification.readBytes'], bytes.length);
+    expect(observer.counters['io.gateway.descriptor.completedWriteInputBytes'],
+        await descriptor.length());
+    observer.counters.clear();
+    final staged = await gateway.readStagedPayload(
+        operationId: 'observed',
+        storageKey: 'assets/été😀.bin',
+        kind: TransactionPayloadKind.after);
+    expect(staged.payload!.isInline, isFalse);
+    expect(
+        observer.counters['io.gateway.verification.readBytes'], bytes.length);
+    expect(observer.counters['io.gateway.resource.readBytes'], bytes.length);
+    observer.counters.clear();
+    expect(await staged.payload!.openRead().expand((chunk) => chunk).toList(),
+        bytes);
+    expect(observer.counters['io.gateway.resource.readBytes'], bytes.length);
+    final descriptorBytes = await descriptor.readAsBytes();
+    expect(descriptorBytes.length,
+        greaterThan((await descriptor.readAsString()).length));
+    await descriptor.writeAsBytes([0xef, 0xbb, 0xbf, ...descriptorBytes]);
+    expect(
+        (await gateway.readStagedPayload(
+                operationId: 'observed',
+                storageKey: 'assets/été😀.bin',
+                kind: TransactionPayloadKind.after))
+            .payload!
+            .byteLength,
+        bytes.length);
+    await descriptor.writeAsBytes([0xff]);
+    await expectLater(
+        gateway.readStagedPayload(
+            operationId: 'observed',
+            storageKey: 'assets/été😀.bin',
+            kind: TransactionPayloadKind.after),
+        throwsA(isA<TransactionFileGatewayException>().having(
+            (error) => error.code, 'code', 'transaction.stage_corrupt')));
+    await descriptor.delete();
+    await expectLater(
+        gateway.readStagedPayload(
+            operationId: 'observed',
+            storageKey: 'assets/été😀.bin',
+            kind: TransactionPayloadKind.after),
+        throwsA(isA<TransactionFileGatewayException>().having(
+            (error) => error.code, 'code', 'transaction.stage_missing')));
+    expect(observer.counters.containsKey('io.gateway.descriptor.readBytes'),
+        isFalse);
+    expect(await gateway.readResource('assets/missing.bin'), isNull);
+  });
+
+  test('gateway counts repeated real resource reads and captures separately',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('gateway-read-observed-');
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/source.bin');
+    final bytes = utf8.encode('été😀');
+    await file.writeAsBytes(bytes);
+    final observer = _GatewayByteObserver();
+    final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: directory.path, performanceObserver: observer);
+    final first = await gateway.readResource('source.bin');
+    expect(first, bytes);
+    expect(() => first!.add(0), throwsUnsupportedError);
+    expect(await gateway.readResource('source.bin'), bytes);
+    expect(
+        observer.counters['io.gateway.resource.readBytes'], bytes.length * 2);
+    await gateway.readResourceRevision('source.bin');
+    expect(
+        observer.counters['io.gateway.verification.readBytes'], bytes.length);
+    final capture = await gateway.captureResourcePayload('source.bin');
+    addTearDown(capture!.release);
+    expect(
+        observer.counters['io.gateway.resource.readBytes'], bytes.length * 3);
+    expect(observer.counters['io.gateway.verification.readBytes'],
+        bytes.length * 2);
+    expect(await capture.readBytes(), bytes);
+    expect(
+        observer.counters['io.gateway.resource.readBytes'], bytes.length * 3);
+  });
+
+  test(
+      'gateway journals count completed UTF8 writes while read bytes stay unknown',
+      () async {
+    final harness = await TransactionTestHarness.create();
+    addTearDown(harness.dispose);
+    final applied = await harness.apply();
+    final json = applied.toJson();
+    json['extensions'] = {'label': 'été😀'};
+    final journal = AuthoringTransactionJournal(
+        operationId: harness.operationId,
+        planId: harness.plan.planId,
+        scope: harness.scope,
+        status: AuthoringTransactionStatus.prepared,
+        createdAt: harness.now,
+        updatedAt: harness.now,
+        intendedReceipt:
+            AuthoringReceipt.fromJson(Map<String, dynamic>.from(json)),
+        entries: [
+          for (final change in harness.plan.changeSet.changes)
+            AuthoringTransactionJournalEntry(
+                resource: change.resource,
+                storageKey: change.storageKey,
+                beforeRevision: change.beforeRevision,
+                afterRevision: change.afterRevision)
+        ]);
+    final observer = _GatewayByteObserver();
+    final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: harness.projectDirectory.path,
+        performanceObserver: observer);
+    await gateway.writeJournal(journal);
+    final encoded = utf8.encode(jsonEncode(journal.toJson()));
+    expect(encoded.length, greaterThan(jsonEncode(journal.toJson()).length));
+    expect(observer.counters['io.gateway.journal.completedWriteInputBytes'],
+        encoded.length);
+    expect(observer.counters['journal.completedWrites'], 1);
+    expect((await gateway.readJournal(journal.operationId))!.toJson(),
+        journal.toJson());
+    final file = File(
+        '${harness.projectDirectory.path}/.pokemap/authoring/transactions/${journal.operationId}/journal.json');
+    await file.writeAsBytes([0xef, 0xbb, 0xbf, ...encoded]);
+    expect((await gateway.readJournal(journal.operationId))!.toJson(),
+        journal.toJson());
+    await file.writeAsBytes([0xff]);
+    await expectLater(
+        gateway.readJournal(journal.operationId),
+        throwsA(isA<TransactionFileGatewayException>().having(
+            (error) => error.code, 'code', 'transaction.journal_corrupt')));
+    expect(await gateway.readJournal('missing'), isNull);
+    expect(
+        observer.counters.containsKey('io.gateway.journal.readBytes'), isFalse);
+  });
+
   for (final length in [0, 1, 1024 * 1024, 2 * 1024 * 1024 + 7]) {
     test('stored payload verifies framed and raw hashes at $length bytes',
         () async {
@@ -467,4 +646,14 @@ void main() {
     await expectLater(
         payload.readBytes(), throwsA(isA<AuthoringPayloadException>()));
   });
+}
+
+final class _GatewayByteObserver implements AuthoringPerformanceObserver {
+  final counters = <String, int>{};
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) => null;
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    counters.update(name, (value) => value + by, ifAbsent: () => by);
+  }
 }

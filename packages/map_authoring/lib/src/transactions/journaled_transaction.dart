@@ -383,6 +383,41 @@ final class JournaledAuthoringTransaction {
     return staged;
   }
 
+  Future<void> cleanupCompletedReplay({
+    required AuthoringIdempotencyScope scope,
+    required String planId,
+    required String operationId,
+    required AuthoringReceipt receipt,
+  }) async {
+    try {
+      await _gateway.withExclusiveWriteLock(() async {
+        final record = await _idempotency.recordForRecovery(scope);
+        if (record == null ||
+            record.status != AuthoringIdempotencyStatus.completed ||
+            record.scope.storageKey != scope.storageKey ||
+            record.operationId != operationId ||
+            canonicalAuthoringJson(record.receipt!.toJson()) !=
+                canonicalAuthoringJson(receipt.toJson())) {
+          return;
+        }
+        final journal = await _gateway.readJournal(operationId);
+        if (journal == null ||
+            journal.status != AuthoringTransactionStatus.committed ||
+            journal.operationId != operationId ||
+            journal.planId != planId ||
+            journal.scope.storageKey != scope.storageKey ||
+            journal.finalReceipt == null ||
+            canonicalAuthoringJson(journal.finalReceipt!.toJson()) !=
+                canonicalAuthoringJson(receipt.toJson())) {
+          return;
+        }
+        await _deleteTransactionBestEffort(operationId);
+      });
+    } on Object {
+      return;
+    }
+  }
+
   Future<void> _deleteTransactionBestEffort(String operationId) async {
     try {
       await _gateway.deleteTransaction(operationId);

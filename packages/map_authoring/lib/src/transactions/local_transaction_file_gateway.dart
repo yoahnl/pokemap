@@ -121,6 +121,8 @@ final class LocalTransactionFileGateway
       }
       final beforeStat = await file.stat();
       final bytes = await file.readAsBytes();
+      _observeBytes(AuthoringPerformanceCounterName.gatewayResourceReadBytes,
+          bytes.length);
       final afterStat = await file.stat();
       if (beforeStat.type != FileSystemEntityType.file ||
           afterStat.type != FileSystemEntityType.file ||
@@ -150,7 +152,8 @@ final class LocalTransactionFileGateway
         final before = await _inspectFile(file, storageKey);
         return captureAuthoringPayload(
             storageKey: storageKey,
-            chunks: file.openRead(),
+            chunks: _readFile(
+                file, AuthoringPerformanceCounterName.gatewayResourceReadBytes),
             byteLength: before.byteLength,
             resourceRevision: before.resourceRevision);
       });
@@ -210,7 +213,9 @@ final class LocalTransactionFileGateway
               'revision': payload?.resourceRevision,
               'byteLength': payload?.byteLength,
             })),
-            suffix: '${kind.name}.descriptor');
+            suffix: '${kind.name}.descriptor',
+            counterName: AuthoringPerformanceCounterName
+                .gatewayDescriptorCompletedWriteInputBytes);
       });
 
   @override
@@ -279,7 +284,8 @@ final class LocalTransactionFileGateway
               byteLength: rawLength as int,
               rawSha256: observed.rawSha256,
               resourceRevision: rawRevision as String,
-              openRead: paths.payload.openRead);
+              openRead: () => _readFile(paths.payload,
+                  AuthoringPerformanceCounterName.gatewayResourceReadBytes));
         }
         final payload = TransactionStagedPayload.withPayload(
             storageKey: storageKey, payload: source);
@@ -363,7 +369,11 @@ final class LocalTransactionFileGateway
         File(_join(directory.path, 'journal.json')),
         utf8.encode(jsonEncode(journal.toJson())),
         suffix: 'journal',
+        counterName: AuthoringPerformanceCounterName
+            .gatewayJournalCompletedWriteInputBytes,
       );
+      _performanceObserver?.incrementCounter(
+          AuthoringPerformanceCounterName.journalCompletedWrites);
     });
   }
 
@@ -560,8 +570,11 @@ final class LocalTransactionFileGateway
           'transaction.resource_not_regular',
           'The resource is not a regular file.');
     }
-    final observed = await inspectAuthoringPayload(file.openRead(),
-        storageKey: storageKey, byteLength: before.size);
+    final observed = await inspectAuthoringPayload(
+        _readFile(
+            file, AuthoringPerformanceCounterName.gatewayVerificationReadBytes),
+        storageKey: storageKey,
+        byteLength: before.size);
     final after = await file.stat();
     if (before.size != after.size ||
         before.modified != after.modified ||
@@ -582,6 +595,10 @@ final class LocalTransactionFileGateway
       try {
         await for (final chunk in payload.openRead()) {
           await writer.writeFrom(chunk);
+          _observeBytes(
+              AuthoringPerformanceCounterName
+                  .gatewayStagedPayloadCompletedWriteInputBytes,
+              chunk.length);
         }
         await writer.flush();
       } finally {
@@ -603,18 +620,30 @@ final class LocalTransactionFileGateway
     File target,
     List<int> bytes, {
     required String suffix,
+    required String counterName,
   }) async {
     final temporary = File('${target.path}.$suffix.tmp');
     await _deleteIfExists(temporary);
     final writer = await temporary.open(mode: FileMode.write);
     try {
       await writer.writeFrom(bytes);
+      _observeBytes(counterName, bytes.length);
       await writer.flush();
     } finally {
       await writer.close();
     }
     await temporary.rename(target.path);
   }
+
+  void _observeBytes(String name, int length) {
+    if (length > 0) _performanceObserver?.incrementCounter(name, by: length);
+  }
+
+  Stream<List<int>> _readFile(File file, String counterName) =>
+      file.openRead().map((chunk) {
+        _observeBytes(counterName, chunk.length);
+        return chunk;
+      });
 
   Future<T> _guardIo<T>(Future<T> Function() operation) async {
     try {

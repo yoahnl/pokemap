@@ -11,16 +11,19 @@ import 'package:path/path.dart' as p;
 
 import '../ports/file_backed_payload_store.dart';
 import '../ports/project_file_reader.dart' show workspacePathIsWithin;
+import '../support/authoring_performance_observer.dart';
 
 final class LocalResourcePackStore implements FileBackedPayloadStore {
   LocalResourcePackStore({
     required String cacheDirectory,
     required Iterable<String> allowedSourceRoots,
     this.policy = const ResourcePackSecurityPolicy(),
+    AuthoringPerformanceObserver? performanceObserver,
     DateTime Function()? clock,
     String Function(String prefix)? tokenFactory,
   })  : _cacheDirectory = p.normalize(p.absolute(cacheDirectory)),
         _allowedSourceRoots = List.unmodifiable(allowedSourceRoots),
+        _performanceObserver = performanceObserver,
         _clock = clock ?? DateTime.now,
         _tokenFactory = tokenFactory ?? _randomToken {
     if (_allowedSourceRoots.any((root) => !p.isAbsolute(root))) {
@@ -30,6 +33,7 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
 
   final Object _operationZoneKey = Object();
   final ResourcePackSecurityPolicy policy;
+  final AuthoringPerformanceObserver? _performanceObserver;
   final String _cacheDirectory;
   final List<String> _allowedSourceRoots;
   final DateTime Function() _clock;
@@ -54,7 +58,9 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         final resolved = await _resolve(sourcePath);
         final before = await _stat(resolved);
         _checkSource(before);
-        final digest = await _hashFile(resolved, before.size);
+        final digest = await _hashFile(resolved, before.size,
+            counterName:
+                AuthoringPerformanceCounterName.resourcePackAuthorizeReadBytes);
         if (await _resolve(sourcePath) != resolved ||
             !_sameIdentity(before, await _stat(resolved))) {
           _fail('source_changed',
@@ -139,6 +145,10 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
               while (true) {
                 checkCancelled?.call();
                 final chunk = await reader.read(policy.maxChunkBytes);
+                _observe(
+                    AuthoringPerformanceCounterName
+                        .resourcePackStageSourceReadBytes,
+                    chunk.length);
                 if (chunk.isEmpty) {
                   try {
                     text?.close();
@@ -172,6 +182,8 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
           if (await _resolve(sourcePath) != resolved ||
               !_sameIdentity(before, await _stat(resolved)) ||
               await _hashFile(resolved, before.size,
+                      counterName: AuthoringPerformanceCounterName
+                          .resourcePackPostCopyVerifyReadBytes,
                       checkCancelled: checkCancelled) !=
                   lease.payload.rawSha256 ||
               !_sameIdentity(before, await _stat(resolved)) ||
@@ -257,6 +269,10 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
               }
               input.add(chunk);
               await writer.writeFrom(chunk);
+              _observe(
+                  AuthoringPerformanceCounterName
+                      .resourcePackStagePrivateCompletedWriteInputBytes,
+                  chunk.length);
               copied += take;
               offset += take;
             }
@@ -349,13 +365,19 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
           if (before.type != FileSystemEntityType.file ||
               before.size != entry.payload.byteLength ||
               await entry.file.resolveSymbolicLinks() != entry.file.path ||
-              await _hashFile(entry.file.path, entry.payload.byteLength) !=
+              await _hashFile(entry.file.path, entry.payload.byteLength,
+                      counterName: AuthoringPerformanceCounterName
+                          .resourcePackStageVerifyReadBytes) !=
                   entry.payload.rawSha256) {
             _fail('stage_corrupt',
                 'The staged payload no longer matches its verified digest.');
           }
           source = _OwnedSource(entry.file.openSync(), entry.payload.byteLength,
-              policy.maxChunkBytes);
+              policy.maxChunkBytes,
+              onRead: (length) => _observe(
+                  AuthoringPerformanceCounterName
+                      .resourcePackConsumerReadAtReturnedBytes,
+                  length));
           final result = await read(source);
           if (!_sameIdentity(before, await _stat(entry.file.path))) {
             _fail('stage_corrupt', 'The stage changed while it was read.');
@@ -371,49 +393,77 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
     required FileBackedPayloadScope scope,
     required String handle,
     required FutureOr<T> Function(RandomAccessPackageSource source) read,
-  }) => _owned(() async {
-    final entry = _require(scope, handle);
-    entry.readers++;
-    try {
-      final path = entry.file.path;
-      final length = entry.payload.byteLength;
-      final digest = entry.payload.rawSha256;
-      final chunk = policy.maxChunkBytes;
-      return await _runWorker(path, length, digest, chunk, read);
-    } finally {
-      entry.readers--;
-    }
-  });
+  }) =>
+      _owned(() async {
+        final entry = _require(scope, handle);
+        entry.readers++;
+        try {
+          final path = entry.file.path;
+          final length = entry.payload.byteLength;
+          final digest = entry.payload.rawSha256;
+          final chunk = policy.maxChunkBytes;
+          late final (T, Map<String, int>) result;
+          try {
+            result = await _runWorker(path, length, digest, chunk, read,
+                _performanceObserver != null);
+          } on Object {
+            _performanceObserver?.incrementCounter(
+                AuthoringPerformanceCounterName
+                    .resourcePackWorkerCoverageIncompleteOperations);
+            rethrow;
+          }
+          for (final entry in result.$2.entries) {
+            _performanceObserver?.incrementCounter(entry.key, by: entry.value);
+          }
+          return result.$1;
+        } finally {
+          entry.readers--;
+        }
+      });
 
   Future<T> withSourcesInIsolate<T>({
     required FileBackedPayloadScope scope,
     required Iterable<String> handles,
     required FutureOr<T> Function(Map<String, RandomAccessPackageSource>) read,
-  }) => _owned(() async {
-    final entries = [
-      for (final handle in handles.toSet()) _require(scope, handle),
-    ];
-    for (final entry in entries) {
-      entry.readers++;
-    }
-    try {
-      final descriptors = [
-        for (final entry in entries)
-          (
-            entry.payload.handle,
-            entry.file.path,
-            entry.payload.byteLength,
-            entry.payload.rawSha256,
-            policy.maxChunkBytes,
-          ),
-      ];
-      return await _runSourcesWorker(descriptors, read);
-    } finally {
-      for (final entry in entries) {
-        entry.readers--;
-      }
-    }
-  });
+  }) =>
+      _owned(() async {
+        final entries = [
+          for (final handle in handles.toSet()) _require(scope, handle),
+        ];
+        for (final entry in entries) {
+          entry.readers++;
+        }
+        try {
+          final descriptors = [
+            for (final entry in entries)
+              (
+                entry.payload.handle,
+                entry.file.path,
+                entry.payload.byteLength,
+                entry.payload.rawSha256,
+                policy.maxChunkBytes,
+              ),
+          ];
+          late final (T, Map<String, int>) result;
+          try {
+            result = await _runSourcesWorker(
+                descriptors, read, _performanceObserver != null);
+          } on Object {
+            _performanceObserver?.incrementCounter(
+                AuthoringPerformanceCounterName
+                    .resourcePackWorkerCoverageIncompleteOperations);
+            rethrow;
+          }
+          for (final entry in result.$2.entries) {
+            _performanceObserver?.incrementCounter(entry.key, by: entry.value);
+          }
+          return result.$1;
+        } finally {
+          for (final entry in entries) {
+            entry.readers--;
+          }
+        }
+      });
 
   @override
   Future<void> collectExpired() => _owned(() async {
@@ -618,8 +668,12 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
     }
   }
 
+  void _observe(String name, int length) {
+    if (length > 0) _performanceObserver?.incrementCounter(name, by: length);
+  }
+
   Future<String> _hashFile(String path, int length,
-      {void Function()? checkCancelled}) async {
+      {required String counterName, void Function()? checkCancelled}) async {
     final reader = await File(path).open();
     final digest = _DigestSink();
     final sink = sha256.startChunkedConversion(digest);
@@ -629,6 +683,7 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         checkCancelled?.call();
         final bytes =
             await reader.read(min(policy.maxChunkBytes, length - total));
+        _observe(counterName, bytes.length);
         if (bytes.isEmpty) {
           _fail('source_changed',
               'The source became shorter during verification.');
@@ -636,7 +691,9 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         sink.add(bytes);
         total += bytes.length;
       }
-      if ((await reader.read(1)).isNotEmpty) {
+      final trailing = await reader.read(1);
+      _observe(counterName, trailing.length);
+      if (trailing.isNotEmpty) {
         _fail('source_changed', 'The source grew during verification.');
       }
       sink.close();
@@ -647,21 +704,29 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
   }
 }
 
-Future<T> _runWorker<T>(
+Future<(T, Map<String, int>)> _runWorker<T>(
   String path,
   int length,
   String digest,
   int chunk,
   FutureOr<T> Function(RandomAccessPackageSource) read,
-) => Isolate.run(() => _readInWorker(path, length, digest, chunk, read));
+  bool observeReads,
+) =>
+    Isolate.run(() async {
+      final counters = observeReads ? <String, int>{} : null;
+      final value = await _readInWorker(path, length, digest, chunk, read,
+          counters: counters);
+      return (value, counters ?? const <String, int>{});
+    });
 
 Future<T> _readInWorker<T>(
   String path,
   int length,
   String digest,
   int chunk,
-  FutureOr<T> Function(RandomAccessPackageSource) read,
-) async {
+  FutureOr<T> Function(RandomAccessPackageSource) read, {
+  Map<String, int>? counters,
+}) async {
   final file = File(path);
   final before = file.statSync();
   if (before.type != FileSystemEntityType.file ||
@@ -669,7 +734,18 @@ Future<T> _readInWorker<T>(
       file.resolveSymbolicLinksSync() != path) {
     _fail('stage_corrupt', 'The worker stage is missing or changed.');
   }
-  final source = _OwnedSource(file.openSync(), length, chunk);
+  var verifying = true;
+  final source = _OwnedSource(file.openSync(), length, chunk,
+      onRead: counters == null
+          ? null
+          : (length) => _workerBytes(
+              counters,
+              verifying
+                  ? AuthoringPerformanceCounterName
+                      .resourcePackWorkerVerifyReadBytes
+                  : AuthoringPerformanceCounterName
+                      .resourcePackWorkerConsumerReadAtReturnedBytes,
+              length));
   try {
     final result = _DigestSink();
     final sink = sha256.startChunkedConversion(result);
@@ -681,6 +757,7 @@ Future<T> _readInWorker<T>(
       _fail(
           'stage_corrupt', 'The worker stage failed raw digest verification.');
     }
+    verifying = false;
     final value = await read(source);
     if (!_sameIdentity(before, file.statSync())) {
       _fail('stage_corrupt', 'The worker stage changed during inspection.');
@@ -688,6 +765,12 @@ Future<T> _readInWorker<T>(
     return value;
   } finally {
     source.close();
+  }
+}
+
+void _workerBytes(Map<String, int> counters, String name, int length) {
+  if (length > 0) {
+    counters.update(name, (value) => value + length, ifAbsent: () => length);
   }
 }
 
@@ -715,11 +798,12 @@ final class _Authorization {
 }
 
 final class _OwnedSource implements RandomAccessPackageSource {
-  _OwnedSource(this.reader, this.length, this.chunkBytes);
+  _OwnedSource(this.reader, this.length, this.chunkBytes, {this.onRead});
   final RandomAccessFile reader;
   @override
   final int length;
   final int chunkBytes;
+  final void Function(int length)? onRead;
   bool closed = false;
   @override
   Uint8List readAtSync(int offset, int length) {
@@ -733,6 +817,7 @@ final class _OwnedSource implements RandomAccessPackageSource {
     }
     reader.setPositionSync(offset);
     final bytes = reader.readSync(length);
+    onRead?.call(bytes.length);
     if (bytes.length != length) {
       _fail('stage_corrupt', 'The stage changed during reading.');
     }
@@ -797,47 +882,62 @@ String _randomToken(String prefix) {
 Never _fail(String code, String message) =>
     throw FileBackedPayloadException('resource_pack.$code', message);
 
-Future<T> _runSourcesWorker<T>(
+Future<(T, Map<String, int>)> _runSourcesWorker<T>(
   List<(String, String, int, String, int)> descriptors,
   FutureOr<T> Function(Map<String, RandomAccessPackageSource>) read,
-) => Isolate.run(() async {
-  final sources = <String, RandomAccessPackageSource>{};
-  for (final descriptor in descriptors) {
-    await _readInWorker(
-      descriptor.$2,
-      descriptor.$3,
-      descriptor.$4,
-      descriptor.$5,
-      (_) => true,
-    );
-    sources[descriptor.$1] = _WorkerFileSource(
-      descriptor.$2,
-      descriptor.$3,
-      descriptor.$5,
-    );
-  }
-  final result = await read(sources);
-  for (final descriptor in descriptors) {
-    await _readInWorker(
-      descriptor.$2,
-      descriptor.$3,
-      descriptor.$4,
-      descriptor.$5,
-      (_) => true,
-    );
-  }
-  return result;
-});
+  bool observeReads,
+) =>
+    Isolate.run(() async {
+      final counters = observeReads ? <String, int>{} : null;
+      final sources = <String, RandomAccessPackageSource>{};
+      for (final descriptor in descriptors) {
+        await _readInWorker(
+          descriptor.$2,
+          descriptor.$3,
+          descriptor.$4,
+          descriptor.$5,
+          (_) => true,
+          counters: counters,
+        );
+        sources[descriptor.$1] = _WorkerFileSource(
+          descriptor.$2,
+          descriptor.$3,
+          descriptor.$5,
+          counters,
+        );
+      }
+      final value = await read(sources);
+      for (final descriptor in descriptors) {
+        await _readInWorker(
+          descriptor.$2,
+          descriptor.$3,
+          descriptor.$4,
+          descriptor.$5,
+          (_) => true,
+          counters: counters,
+        );
+      }
+      return (value, counters ?? const <String, int>{});
+    });
 
 final class _WorkerFileSource implements RandomAccessPackageSource {
-  const _WorkerFileSource(this.path, this.length, this.chunkBytes);
+  const _WorkerFileSource(
+      this.path, this.length, this.chunkBytes, this.counters);
   final String path;
   @override
   final int length;
   final int chunkBytes;
+  final Map<String, int>? counters;
   @override
   Uint8List readAtSync(int offset, int count) {
-    final source = _OwnedSource(File(path).openSync(), length, chunkBytes);
+    final source = _OwnedSource(File(path).openSync(), length, chunkBytes,
+        onRead: counters == null
+            ? null
+            : (length) => _workerBytes(
+                counters!,
+                AuthoringPerformanceCounterName
+                    .resourcePackWorkerConsumerReadAtReturnedBytes,
+                length));
     try {
       return source.readAtSync(offset, count);
     } finally {

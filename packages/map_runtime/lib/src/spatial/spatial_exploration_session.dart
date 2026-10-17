@@ -579,6 +579,7 @@ final class SpatialExplorationSession {
   }
 
   Map<String, SpatialActorVisual> frames(double dt, {Set<String>? mapIds}) {
+    if (_disposed) return const {};
     onPresentationFrame?.call(dt, presentationPaused || transitioning.value);
     if (dt.isFinite && dt > 0 && !presentationPaused && !transitioning.value) {
       _presentationSeconds += dt;
