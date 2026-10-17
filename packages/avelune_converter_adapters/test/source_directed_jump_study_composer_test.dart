@@ -5,8 +5,11 @@ import 'package:avelune_converter_core/avelune_converter_core.dart'
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
+import 'support/native_writer_fixture.dart';
 
 typedef JumpFixture = ({
   LiteralTileFixture fixture,
@@ -267,13 +270,111 @@ void main() {
         BorderPixelRect(x: 0, y: 16, width: 32, height: 16));
     expect(primitive.anchorPx, const BorderPixelPos(x: 16, y: 31));
   });
-  qualified('opaque pixels in the upper source half remain unqualified',
+  qualified('complete source frames retain upper pixels and exact jump faces',
       () async {
     final f = await jumpFixture(upperOpaquePixel: true);
-    await expectLater(
-        composeJump(f),
-        throwsA(isA<NativeWriteException>()
-            .having((e) => e.code, 'code', 'jumps.glyph_shape')));
+    final result = await composeJump(f);
+    expect(result.evidence['importedJumpCount'], 3);
+    final glyph = (result.evidence['glyphs'] as List)
+        .singleWhere((g) => (g['crop'] as Map)['sourceTileId'] == 392) as Map;
+    final primitive = result.project.borderCatalog.records.single
+        .latestPublished!.definition.primitives
+        .singleWhere((p) => p.id == glyph['primitiveId']);
+    final mask = [
+      for (var y = 0; y < 32; y++)
+        for (var x = 0; x < 32; x++) y >= 16 || (x == 1 && y == 1)
+    ];
+    expect(
+        primitive.publishedMetrics.occupancyMaskRle, encodeBorderRleMask(mask));
+    expect(primitive.publishedMetrics.opaqueBounds,
+        BorderPixelRect(x: 0, y: 1, width: 32, height: 31));
+    expect(primitive.anchorPx, const BorderPixelPos(x: 16, y: 31));
+    final map = result.nativeMaps[98]!;
+    final feature =
+        map.layers.whereType<BorderLayer>().single.content.features.single;
+    final placement = feature.materialization!.placements
+        .singleWhere((p) => p.primitiveId == primitive.id);
+    expect(placement.topLeftWorldPx, const BorderPixelPos(x: 32, y: 64));
+    final element = result.project.elements
+        .singleWhere((e) => e.id == primitive.sourceElementId);
+    expect(element.frames.single.source, TilesetSourceRect(x: 0, y: 1));
+    final world = GameplayWorldState.initial(
+        map: map,
+        project: result.project,
+        playerPos: const GridPos(x: 1, y: 1),
+        tileWidth: 32,
+        tileHeight: 32);
+    final step = stepGameplayWorld(
+        world, const MoveIntent(Direction.south, pixelsPerStep: 32));
+    expect(step, isA<Jumped>());
+    expect((step as Jumped).plan.landingPos, const GridPos(x: 1, y: 3));
+    final reverse = GameplayWorldState.initial(
+        map: map,
+        project: result.project,
+        playerPos: const GridPos(x: 1, y: 3),
+        tileWidth: 32,
+        tileHeight: 32);
+    expect(
+        stepGameplayWorld(
+            reverse, const MoveIntent(Direction.north, pixelsPerStep: 32)),
+        isA<Blocked>());
+  });
+  qualified('complete source frames survive native writer and strict reopen',
+      () async {
+    final f = await jumpFixture(upperOpaquePixel: true);
+    final temporary =
+        await Directory.systemTemp.createTemp('source-full-ledge-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final base = await const LiteralTileComposer().compose(
+        source: f.base.draft!.source,
+        files: f.fixture.files,
+        selectedSourceMapIds: [98],
+        projectName: 'Complete source ledge frame',
+        parentPath: temporary.path,
+        folderName: 'complete-ledge-frame');
+    final draft = (await const SourceSemanticStudyComposer().compose(
+        source: f.base.draft!.source, base: base, files: f.fixture.files))!;
+    final approval = approveNativeFixtureDraft(draft);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, draft);
+    expect(receipt.verified, isTrue);
+    final handles = WorkspaceHandleStore();
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(receipt.projectPath);
+    try {
+      final native = await ProjectSnapshotLoader(handles: handles)
+          .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(native.loadDiagnostics, isEmpty);
+      final map = native.mapById(draft.mapIds[98]!)!;
+      final primitive = native.manifest.borderCatalog.records.single
+          .latestPublished!.definition.primitives
+          .singleWhere((p) => p.publishedMetrics.opaqueBounds.y == 1);
+      final snapshot = native.manifest.borderCatalog.visualSnapshots
+          .singleWhere((s) => s.id == primitive.visualSnapshotId);
+      final frame = snapshot.frames.single;
+      final raster = image.decodePng(
+          await File('${receipt.projectPath}/${frame.relativeAssetPath}')
+              .readAsBytes())!;
+      final pixel =
+          raster.getPixel(frame.sourceRectPx.x + 1, frame.sourceRectPx.y + 1);
+      expect([pixel.r, pixel.g, pixel.b, pixel.a], [7, 11, 13, 255]);
+      final world = GameplayWorldState.initial(
+          map: map,
+          project: native.manifest,
+          playerPos: const GridPos(x: 1, y: 1),
+          tileWidth: 32,
+          tileHeight: 32);
+      final step = stepGameplayWorld(
+          world, const MoveIntent(Direction.south, pixelsPerStep: 32));
+      expect(step, isA<Jumped>());
+      expect((step as Jumped).plan.landingPos, const GridPos(x: 1, y: 3));
+    } finally {
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
   });
   qualified(
       'source blocked ledges do not create Border resources or clear pixels',

@@ -734,14 +734,6 @@ final class SourceDirectedJumpStudyComposer {
           throw const NativeWriteException('jumps.native_glyph',
               'Directed Border crop lies outside the exact atlas');
         }
-        for (var py = 0; py < 32; py++) {
-          for (var px = 0; px < 32; px++) {
-            if (py < 16 && raster.getPixel(crop.x + px, crop.y + py).a > 0) {
-              throw const NativeWriteException('jumps.glyph_shape',
-                  'Only complete south modules with exact transparent top16 are qualified');
-            }
-          }
-        }
         final elementId = 'ac15-ledge-element-${jump.key}';
         final path = project.tilesets
             .singleWhere((t) => t.id == crop.nativeTilesetId)
@@ -756,10 +748,11 @@ final class SourceDirectedJumpStudyComposer {
             sourceElementId: elementId,
             frames: [frame],
             anchorPx: const BorderPixelPos(x: 16, y: 31));
-        if (prep.metrics.opaqueBounds !=
-            BorderPixelRect(x: 0, y: 16, width: 32, height: 16)) {
+        if (prep.metrics.pixelSize != const GridSize(width: 32, height: 32) ||
+            prep.metrics.opaqueBounds.width < 1 ||
+            prep.metrics.opaqueBounds.height < 1) {
           throw const NativeWriteException('jumps.glyph_shape',
-              'The exact south source module must occupy the lower16 bounds of its 32px carrier');
+              'Directed Borders require a nonempty exact 32px source frame');
         }
         glyphs[jump.key] = _Glyph(
             jump,
