@@ -122,6 +122,9 @@ sealed class AuthoringPayload {
   Stream<List<int>> openRead();
   Future<void> release();
 
+  AuthoringPayload checkingPreparation(void Function() check) =>
+      _PreparationCheckedPayload(this, check);
+
   Future<List<int>> readBytes() async {
     final builder = BytesBuilder(copy: false);
     await for (final chunk in openRead()) {
@@ -336,4 +339,52 @@ final class _DigestSink implements Sink<Digest> {
 
   @override
   void close() {}
+}
+
+final class AuthoringPayloadPreparationAborted implements Exception {
+  const AuthoringPayloadPreparationAborted();
+}
+
+final class _PreparationCheckedPayload extends AuthoringPayload {
+  const _PreparationCheckedPayload(this.source, this.check);
+  final AuthoringPayload source;
+  final void Function() check;
+  void _check() {
+    try {
+      check();
+    } on Object {
+      throw const AuthoringPayloadPreparationAborted();
+    }
+  }
+
+  @override
+  String get storageKey => source.storageKey;
+  @override
+  int get byteLength => source.byteLength;
+  @override
+  String get rawSha256 => source.rawSha256;
+  @override
+  String get resourceRevision => source.resourceRevision;
+  @override
+  String get contentDigest => source.contentDigest;
+  @override
+  bool get isInline => source.isInline;
+  @override
+  List<int> get inlineBytes {
+    _check();
+    return source.inlineBytes;
+  }
+
+  @override
+  Stream<List<int>> openRead() async* {
+    _check();
+    await for (final chunk in source.openRead()) {
+      _check();
+      yield chunk;
+    }
+    _check();
+  }
+
+  @override
+  Future<void> release() async {}
 }

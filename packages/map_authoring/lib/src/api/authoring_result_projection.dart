@@ -4,6 +4,9 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:map_distribution/map_distribution.dart'
+    show RandomAccessPackageSource;
+
 import '../contracts/authoring_receipt.dart';
 import '../history/history_store.dart';
 import '../ports/file_backed_payload_store.dart';
@@ -25,23 +28,26 @@ final class AuthoringProjectionException implements Exception {
 }
 
 final class AuthoringProjectionChunk {
-  AuthoringProjectionChunk(
-      {required List<int> bytes,
-      required this.offset,
-      required this.totalBytes})
-      : bytes = Uint8List.fromList(bytes).asUnmodifiableView();
+  AuthoringProjectionChunk({
+    required List<int> bytes,
+    required this.offset,
+    required this.totalBytes,
+    this.rawSha256,
+  }) : bytes = Uint8List.fromList(bytes).asUnmodifiableView();
   final Uint8List bytes;
   final int offset;
   final int totalBytes;
+  final String? rawSha256;
   int get nextOffset => offset + bytes.length;
   bool get complete => nextOffset == totalBytes;
   Map<String, Object?> toJson() => {
-        'bytesBase64': base64Encode(bytes),
-        'offset': offset,
-        'nextOffset': nextOffset,
-        'totalBytes': totalBytes,
-        'complete': complete
-      };
+    'bytesBase64': base64Encode(bytes),
+    'offset': offset,
+    'nextOffset': nextOffset,
+    'totalBytes': totalBytes,
+    'complete': complete,
+    if (rawSha256 != null) 'rawSha256': rawSha256,
+  };
 }
 
 abstract interface class AuthoringResultProjectionPort {
@@ -123,7 +129,7 @@ final class AuthoringResultProjectionStore {
           'snapshotRevision': snapshotRevision,
           if (diagnostic != null) 'diagnostic': diagnostic
         };
-        if (authoringProjectionFits(full)) return full;
+        if (_mutationInlineFits(receipt, full)) return full;
         return _requireBounded({
           ...full,
           'snapshotRevision': await _boundedValue(snapshotRevision),
@@ -262,14 +268,60 @@ final class AuthoringResultProjectionStore {
           ? value
           : await _stageJson(value);
 
-  Future<Map<String, Object?>> _stageJson(Object? value) async {
+  Future<Map<String, Object?>> projectBinaryPayload(
+    StoredFilePayload source, {
+    void Function()? checkCancelled,
+  }) => _prepare(
+    () => _store.withSource(
+      scope: scope,
+      handle: source.handle,
+      read: (input) async {
+        final result = await _stageStream(
+          _sourceChunks(input, checkCancelled),
+          source.byteLength,
+          'authoring-projection.bin',
+          checkCancelled: checkCancelled,
+        );
+        if (result['rawSha256'] != source.rawSha256) {
+          throw const AuthoringProjectionException(
+            'projection.source_changed',
+            'The exported binary differs from its owned source.',
+          );
+        }
+        return {...result, 'projectionType': 'binaryPayload'};
+      },
+    ),
+  );
+
+  Future<bool> releasePayload(String payloadRef) => _prepare(() async {
+    final payload = _payloads.remove(payloadRef);
+    if (payload == null) return false;
+    await _releaseLeases(payload.segments.map((segment) => segment.handle));
+    return true;
+  });
+
+  Future<Map<String, Object?>> _stageJson(Object? value) {
     final length = projectionJsonChunks(value)
         .fold<int>(0, (total, chunk) => total + chunk.length);
+    return _stageStream(
+      Stream.fromIterable(projectionJsonChunks(value)),
+      length,
+      'authoring-projection.json',
+    );
+  }
+
+  Future<Map<String, Object?>> _stageStream(
+    Stream<List<int>> chunks,
+    int length,
+    String storageKey, {
+    void Function()? checkCancelled,
+  }) async {
     final segments = <StoredFilePayload>[];
     Stream<List<int>> stagedChunks() async* {
       var buffer = Uint8List(authoringProjectionMaxChunkBytes);
       var filled = 0;
-      for (final chunk in projectionJsonChunks(value)) {
+      await for (final chunk in chunks) {
+        checkCancelled?.call();
         var offset = 0;
         while (offset < chunk.length) {
           final copied = min(buffer.length - filled, chunk.length - offset);
@@ -278,9 +330,11 @@ final class AuthoringResultProjectionStore {
           offset += copied;
           if (filled == buffer.length) {
             final lease = await _store.stage(
-                scope: scope,
-                chunks: Stream.value(buffer),
-                byteLength: buffer.length);
+              scope: scope,
+              chunks: Stream.value(buffer),
+              byteLength: buffer.length,
+              checkCancelled: checkCancelled,
+            );
             _leases[lease.payload.handle] = lease;
             segments.add(lease.payload);
             yield buffer;
@@ -292,17 +346,29 @@ final class AuthoringResultProjectionStore {
       if (filled > 0) {
         final tail = Uint8List.sublistView(buffer, 0, filled);
         final lease = await _store.stage(
-            scope: scope, chunks: Stream.value(tail), byteLength: tail.length);
+          scope: scope,
+          chunks: Stream.value(tail),
+          byteLength: tail.length,
+          checkCancelled: checkCancelled,
+        );
         _leases[lease.payload.handle] = lease;
         segments.add(lease.payload);
         yield tail;
       }
     }
 
-    final inspection = await inspectAuthoringPayload(stagedChunks(),
-        storageKey: 'authoring-projection.json', byteLength: length);
+    final inspection = await inspectAuthoringPayload(
+      stagedChunks(),
+      storageKey: storageKey,
+      byteLength: length,
+    );
+    checkCancelled?.call();
     final ref = _newToken('payload_');
-    _payloads[ref] = _PayloadProjection(List.unmodifiable(segments), length);
+    _payloads[ref] = _PayloadProjection(
+      List.unmodifiable(segments),
+      length,
+      inspection.rawSha256,
+    );
     return {
       'projectionType': 'jsonPayload',
       'payloadRef': ref,
@@ -401,7 +467,11 @@ final class AuthoringResultProjectionStore {
       position += count;
     }
     return AuthoringProjectionChunk(
-        bytes: builder.takeBytes(), offset: offset, totalBytes: total);
+      bytes: builder.takeBytes(),
+      offset: offset,
+      totalBytes: total,
+      rawSha256: payload.rawSha256,
+    );
   }
 
   Future<T> _prepare<T>(Future<T> Function() build) async {
@@ -476,7 +546,8 @@ final class AuthoringResultProjectionStore {
 }
 
 final class _PayloadProjection {
-  const _PayloadProjection(this.segments, this.byteLength);
+  const _PayloadProjection(this.segments, this.byteLength, this.rawSha256);
+  final String rawSha256;
   final List<StoredFilePayload> segments;
   final int byteLength;
 }
@@ -619,6 +690,17 @@ bool authoringProjectionFits(Object? value,
   return true;
 }
 
+bool _mutationInlineFits(AuthoringReceipt receipt, Map<String, Object?> value) {
+  if (!authoringProjectionFits(value)) return false;
+  if (receipt.actionId != 'resource_pack.import' &&
+      !receipt.actionId.startsWith('history.')) {
+    return true;
+  }
+  const budget = authoringProjectionMaxBytes - 16 * 1024;
+  return authoringProjectionFits(value, maxBytes: budget) &&
+      authoringProjectionFits(jsonEncode(value), maxBytes: budget);
+}
+
 Iterable<List<int>> projectionJsonChunks(Object? value) sync* {
   if (value is String) {
     yield const [34];
@@ -672,4 +754,21 @@ String _projectionToken() {
   return base64Url
       .encode(List.generate(24, (_) => random.nextInt(256)))
       .replaceAll('=', '');
+}
+
+Stream<List<int>> _sourceChunks(
+  RandomAccessPackageSource source,
+  void Function()? checkCancelled,
+) async* {
+  for (
+    var offset = 0;
+    offset < source.length;
+    offset += authoringProjectionMaxChunkBytes
+  ) {
+    checkCancelled?.call();
+    yield source.readAtSync(
+      offset,
+      min(authoringProjectionMaxChunkBytes, source.length - offset),
+    );
+  }
 }

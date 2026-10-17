@@ -7,6 +7,7 @@ import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import 'authoring_plan.dart';
+import 'authoring_payload.dart';
 import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'plan_store.dart';
@@ -96,6 +97,8 @@ final class JournaledAuthoringTransaction {
     required AuthoringIdempotencyScope scope,
     required String operationId,
     AuthoringTransactionPrecondition? precondition,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
   }) {
     return _gateway.withExclusiveWriteLock(() async {
       final replay = await _idempotency.inspect(
@@ -110,6 +113,16 @@ final class JournaledAuthoringTransaction {
               : operationId,
         );
         return replay;
+      }
+      for (final journal in await _gateway.listJournals()) {
+        if (journal.bulkCapability == null) continue;
+        final reservation = await _idempotency.recordForRecovery(journal.scope);
+        if (reservation?.status == AuthoringIdempotencyStatus.pending) {
+          throw const JournaledAuthoringTransactionException(
+            'resource_pack.recovery_required',
+            'Reconcile the pending pack transaction before a new mutation.',
+          );
+        }
       }
       await precondition?.call();
 
@@ -194,31 +207,40 @@ final class JournaledAuthoringTransaction {
         operationId,
       );
 
-      for (final change in plan.changeSet.changes) {
-        await _gateway.stageAuthoringPayload(
-          operationId: operationId,
-          storageKey: change.storageKey,
-          kind: TransactionPayloadKind.before,
-          payload: change.beforePayload,
-        );
-        await _gateway.stageAuthoringPayload(
-          operationId: operationId,
-          storageKey: change.storageKey,
-          kind: TransactionPayloadKind.after,
-          payload: change.afterPayload,
-        );
-        await _requireStagedRevision(
-          operationId: operationId,
-          storageKey: change.storageKey,
-          kind: TransactionPayloadKind.before,
-          expectedRevision: change.beforeRevision,
-        );
-        await _requireStagedRevision(
-          operationId: operationId,
-          storageKey: change.storageKey,
-          kind: TransactionPayloadKind.after,
-          expectedRevision: change.afterRevision,
-        );
+      try {
+        for (final change in plan.changeSet.changes) {
+          await _gateway.stageAuthoringPayload(
+            operationId: operationId,
+            storageKey: change.storageKey,
+            kind: TransactionPayloadKind.before,
+            payload: preparationCheck == null
+                ? change.beforePayload
+                : change.beforePayload?.checkingPreparation(preparationCheck),
+          );
+          await _gateway.stageAuthoringPayload(
+            operationId: operationId,
+            storageKey: change.storageKey,
+            kind: TransactionPayloadKind.after,
+            payload: preparationCheck == null
+                ? change.afterPayload
+                : change.afterPayload?.checkingPreparation(preparationCheck),
+          );
+          await _requireStagedRevision(
+            operationId: operationId,
+            storageKey: change.storageKey,
+            kind: TransactionPayloadKind.before,
+            expectedRevision: change.beforeRevision,
+          );
+          await _requireStagedRevision(
+            operationId: operationId,
+            storageKey: change.storageKey,
+            kind: TransactionPayloadKind.after,
+            expectedRevision: change.afterRevision,
+          );
+        }
+      } on AuthoringPayloadPreparationAborted {
+        await _gateway.deleteTransaction(operationId);
+        rethrow;
       }
       await _checkpoint(
         AuthoringTransactionCheckpoint.afterPayloadsStaged,
@@ -234,6 +256,12 @@ final class JournaledAuthoringTransaction {
         operationId,
       );
 
+      try {
+        beforeReservation?.call();
+      } on Object {
+        await _gateway.deleteTransaction(operationId);
+        rethrow;
+      }
       final receipt = await _idempotency.execute(
         scope: scope,
         request: request,

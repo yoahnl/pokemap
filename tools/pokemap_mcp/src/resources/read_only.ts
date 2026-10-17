@@ -11,6 +11,28 @@ export function registerReadOnlyResources(
   authoring: AuthoringGateway,
 ): void {
   server.registerResource(
+    "pokemap-resource-pack",
+    new ResourceTemplate("pokemap://project/{projectHandle}/resource-pack/{resourceKind}/{handle}", { list: undefined }),
+    projectMetadata("Avelune resource pack", "Opaque bounded session-owned pack state."),
+    async (uri, variables) => {
+      const kind = variable(variables, "resourceKind");
+      if (!["resourcePackJob", "resourcePackInspection", "resourcePackEntry",
+        "resourcePackSelection", "resourcePackPreview"].includes(kind)) {
+        throw new Error("Unsupported temporary pack resource kind.");
+      }
+      const result = await authoring.request("query", {
+        projectHandle: variable(variables, "projectHandle"),
+        request: query(kind, "get", [variable(variables, "handle")]),
+      });
+      const response = jsonResource(uri, result.data);
+      if (Buffer.byteLength(JSON.stringify({ jsonrpc: "2.0", id: "x".repeat(128), result: response }), "utf8") > 256 * 1024) {
+        throw new Error("The pack resource exceeds its bounded response budget.");
+      }
+      return response;
+    },
+  );
+
+  server.registerResource(
     "pokemap-project",
     new ResourceTemplate("pokemap://project/{projectHandle}", {
       list: undefined,

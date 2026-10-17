@@ -1,5 +1,6 @@
 import 'local_authoring_payload.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 import '../ports/project_file_reader.dart';
@@ -50,8 +51,25 @@ final class LocalTransactionFileGateway
   final String _projectRoot;
   final AuthoringPerformanceObserver? _performanceObserver;
 
+  static final Map<String, Future<void>> _projectWriters = {};
+
   @override
   Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) async {
+    final previous = _projectWriters[_projectRoot] ?? Future<void>.value();
+    final release = Completer<void>();
+    _projectWriters[_projectRoot] = release.future;
+    await previous;
+    try {
+      return await _withFilesystemWriteLock(operation);
+    } finally {
+      release.complete();
+      if (identical(_projectWriters[_projectRoot], release.future)) {
+        _projectWriters.remove(_projectRoot);
+      }
+    }
+  }
+
+  Future<T> _withFilesystemWriteLock<T>(Future<T> Function() operation) async {
     late final RandomAccessFile lock;
     try {
       final internalRoot = await _ensureInternalRoot();
@@ -602,6 +620,8 @@ final class LocalTransactionFileGateway
     try {
       return await operation();
     } on TransactionFileGatewayException {
+      rethrow;
+    } on AuthoringPayloadPreparationAborted {
       rethrow;
     } on WorkspaceAccessException {
       throw const TransactionFileGatewayException(

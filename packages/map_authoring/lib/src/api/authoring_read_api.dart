@@ -1,3 +1,5 @@
+import 'resource_pack_transfer_api.dart';
+
 import 'package:map_core/map_core.dart';
 
 import '../contracts/json_contract_support.dart';
@@ -63,13 +65,16 @@ final class AuthoringReadApi
     required ProjectOpenService openService,
     required ProjectSnapshotLoader snapshotLoader,
     ProjectQueryService queryService = const ProjectQueryService(),
-  })  : _openService = openService,
-        _snapshotLoader = snapshotLoader,
-        _queryService = queryService;
+    ResourcePackTransferApiPort? Function()? resourcePacks,
+  }) : _openService = openService,
+       _snapshotLoader = snapshotLoader,
+       _queryService = queryService,
+       _resourcePacks = resourcePacks;
 
   final ProjectOpenService _openService;
   final ProjectSnapshotLoader _snapshotLoader;
   final ProjectQueryService _queryService;
+  final ResourcePackTransferApiPort? Function()? _resourcePacks;
 
   @override
   AuthoringReadDescription describeRead() {
@@ -125,6 +130,20 @@ final class AuthoringReadApi
     ProjectHandle projectHandle,
     AuthoringQueryRequest request,
   ) async {
+    if (resourcePackTemporaryKinds.contains(request.resourceKind)) {
+      final packs = _resourcePacks?.call();
+      if (packs == null) {
+        throw const AuthoringQueryException(
+          'query.transfer_unavailable',
+          'The pack transfer resolver is unavailable.',
+        );
+      }
+      return AuthoringQueryPage.fromJson(
+        Map<String, dynamic>.from(
+          await packs.queryTransfer(projectHandle, request),
+        ),
+      );
+    }
     final snapshot = await _snapshotLoader.load(
       projectHandle,
       policy: request.resourceKind == 'resourceUsage'

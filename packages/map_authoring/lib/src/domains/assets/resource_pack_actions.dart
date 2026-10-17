@@ -9,47 +9,47 @@ final class ResourcePackActions {
   final ResourcePackPreparedImportResolver? resolvePreparedImport;
   static final descriptors = [
     AuthoringActionDescriptor(
-        id: 'resource_pack.import',
-        version: 1,
-        summary: 'Install one certified prepared asset pack additively',
-        inputSchemaId: 'pokemap.authoring.resource_pack.import.input.v1',
-        outputSchemaId: 'pokemap.authoring.visual_library.mutation.v1',
-        riskLevel: AuthoringRiskLevel.medium,
-        resourceKinds: const [
-          'project',
-          'asset',
-          'assetBlob',
-          'assetCatalog'
-        ],
-        capabilityIds: const [
-          'authoring.visual_library'
-        ],
-        requiredPermissions: const [
-          AuthoringPermission.projectWrite,
-          AuthoringPermission.assetWrite,
-          AuthoringPermission.importRun
-        ],
-        guarantees: const [
-          AuthoringGuarantee.dryRun,
-          AuthoringGuarantee.idempotent,
-          AuthoringGuarantee.revisionChecked,
-          AuthoringGuarantee.undoable
-        ],
-        extensions: const {
-          'multiFileGuarantee': 'recoverable',
-          'inputSchema': {
-            'type': 'object',
-            'additionalProperties': false,
-            'required': ['preparedImportHandle'],
-            'properties': {
-              'preparedImportHandle': {
-                'type': 'string',
-                'minLength': 1,
-                'maxLength': 128
-              }
-            }
-          }
-        })
+      id: 'resource_pack.import',
+      version: 1,
+      summary: 'Install one certified prepared asset pack additively',
+      inputSchemaId: 'pokemap.authoring.resource_pack.import.input.v1',
+      outputSchemaId: 'pokemap.authoring.visual_library.mutation.v1',
+      riskLevel: AuthoringRiskLevel.medium,
+      resourceKinds: const ['project', 'asset', 'assetBlob', 'assetCatalog'],
+      capabilityIds: const [
+        'authoring.visual_library',
+        'authoring.resource_packs',
+      ],
+      requiredPermissions: const [
+        AuthoringPermission.projectWrite,
+        AuthoringPermission.assetWrite,
+        AuthoringPermission.importRun,
+      ],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable,
+      ],
+      extensions: const {
+        'multiFileGuarantee': 'recoverable',
+        'transferProtocol': 'pokemap.authoring.resource_pack.v1',
+        'applyJobVerb': 'start_apply',
+        'editorTransport': 'PARTIAL:P10/P11',
+        'inputSchema': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['preparedImportHandle'],
+          'properties': {
+            'preparedImportHandle': {
+              'type': 'string',
+              'minLength': 1,
+              'maxLength': 128,
+            },
+          },
+        },
+      },
+    ),
   ];
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
     final parameters = VisualLibraryParameters(context.request.parameters);

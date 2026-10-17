@@ -69,3 +69,5 @@ export 'src/workspace/workspace_policy.dart' show WorkspacePolicy;
 export 'src/infrastructure/local_resource_pack_store.dart';
 
 export 'src/transactions/local_authoring_payload.dart';
+
+export 'src/api/local_resource_pack_transfer_api.dart';

@@ -37,6 +37,116 @@ void main() {
     await sandbox.delete(recursive: true);
   });
 
+  test('escaped pack receipt fields compact before exceeding a resources read envelope', () async {
+    final fixture = BulkTransactionFixture(1);
+    addTearDown(fixture.plans.dispose);
+    final requestId = '"\\' * 50000;
+    final receipt = _receipt(fixture.plan.changeSet.diff, requestId: requestId, actionId: 'resource_pack.import');
+    final full = {'receipt': receipt.toJson(), 'snapshotRevision': fixture.plan.baseRevision};
+    expect(utf8.encode(jsonEncode(full)).length, lessThan(240 * 1024));
+    expect(utf8.encode(jsonEncode(jsonEncode(full))).length, greaterThan(256 * 1024));
+    final projected = await projections.prepareCommittedMutation(receipt: receipt, snapshotRevision: fixture.plan.baseRevision);
+    final descriptor = (projected['receipt'] as Map)['requestId'] as Map;
+    final restored = BytesBuilder(copy: false);
+    for (var offset = 0; offset < (descriptor['byteLength'] as int);) {
+      final chunk = await projections.readPayloadChunk(payloadRef: descriptor['payloadRef'] as String, offset: offset);
+      restored.add(chunk.bytes);
+      offset = chunk.nextOffset;
+    }
+    expect(jsonDecode(utf8.decode(restored.takeBytes())), requestId);
+    final envelope = {'jsonrpc': '2.0', 'id': 'x' * 128, 'result': {'contents': [
+      {'uri': 'pokemap://owned', 'text': jsonEncode(projected)}]}};
+    expect(utf8.encode(jsonEncode(envelope)).length, lessThanOrEqualTo(256 * 1024));
+  });
+
+  test('a committed pack at the inline boundary keeps its receipt and complete diff in bounded job envelopes', () async {
+    final fixture = BulkTransactionFixture(1282);
+    fixture.certify();
+    final jobs = ResourcePackJobService(requireActive: () {});
+    try {
+      final start = await jobs.startWork(AuthoringJobRequest(requestId: 'budget', kind: 'resource_pack.import',
+          projectId: fixture.scope.projectId, projectRevision: fixture.plan.baseRevision), (context) async {
+        final receipt = await fixture.transaction().apply(planId: fixture.plan.planId, request: fixture.plan.request,
+            currentProjectRevision: fixture.plan.baseRevision, scope: fixture.scope, operationId: fixture.operationId,
+            beforeReservation: context.enterFinalization);
+        return projections.prepareCommittedMutation(receipt: receipt, snapshotRevision: fixture.plan.baseRevision);
+      });
+      while (!(await jobs.get(start.jobId)).state.isTerminal) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect((await jobs.get(start.jobId)).state, AuthoringJobState.succeeded);
+      expect(fixture.gateway.promotions, 1282);
+      final value = jobs.result(start.jobId);
+      final result = value['result'] as Map;
+      final receipt = result['receipt'] as Map;
+      expect(receipt['status'], 'applied');
+      expect(receipt['receiptId'], fixture.plan.receiptId);
+      final diff = receipt['diff'] as Map;
+      expect(diff['entryCount'], fixture.plan.changeSet.diff.entries.length);
+      final restored = <Object?>[];
+      String? cursor;
+      do {
+        final page = await projections.readDiffPage(diffRef: diff['diffRef'] as String, cursor: cursor);
+        restored.addAll(page['entries'] as List);
+        cursor = page['nextCursor'] as String?;
+      } while (cursor != null);
+      expect(restored, fixture.plan.changeSet.diff.toJson()['entries']);
+      for (final envelope in [
+        {'requestId': 'x' * 128, 'status': 'success', 'data': value, 'artifacts': []},
+        {'jsonrpc': '2.0', 'id': 'x' * 128, 'result': {'content': [{'type': 'text', 'text': 'Pack result'}], 'structuredContent': {'ok': true, 'data': value}}},
+        {'jsonrpc': '2.0', 'id': 'x' * 128, 'result': {'contents': [{'uri': 'pokemap://owned', 'mimeType': 'application/json', 'text': jsonEncode(value)}]}},
+      ]) {
+        expect(utf8.encode(jsonEncode(envelope)).length, lessThanOrEqualTo(256 * 1024));
+      }
+    } finally {
+      await jobs.close();
+      await fixture.plans.dispose();
+    }
+  });
+
+  test(
+    'binary export projection verifies only bounded segments per payload chunk',
+    () async {
+      final bytes = List<int>.generate(3 * 128 * 1024 + 17, (i) => i % 251);
+      final lease = await store.stage(
+        scope: projections.scope,
+        chunks: Stream.value(bytes),
+        byteLength: bytes.length,
+      );
+      final descriptor = await projections.projectBinaryPayload(lease.payload);
+      measured.verifiedBytes = 0;
+      measured.sourceCalls = 0;
+      measured.maxSourceBytes = 0;
+      final output = BytesBuilder(copy: false);
+      for (var offset = 0; offset < bytes.length;) {
+        final chunk = await projections.readPayloadChunk(
+          payloadRef: descriptor['payloadRef'] as String,
+          offset: offset,
+          byteLength: 128 * 1024,
+        );
+        output.add(chunk.bytes);
+        offset = chunk.nextOffset;
+        expect(chunk.rawSha256, lease.payload.rawSha256);
+      }
+      expect(output.takeBytes(), bytes);
+      expect(measured.sourceCalls, 4);
+      expect(measured.verifiedBytes, bytes.length);
+      expect(measured.maxSourceBytes, 128 * 1024);
+      expect(
+        await projections.releasePayload(descriptor['payloadRef'] as String),
+        true,
+      );
+      await expectLater(
+        projections.readPayloadChunk(
+          payloadRef: descriptor['payloadRef'] as String,
+          offset: 0,
+        ),
+        throwsA(isA<AuthoringProjectionException>()),
+      );
+      await store.release(scope: projections.scope, leaseId: lease.leaseId);
+    },
+  );
+
   test(
       'streamed JSON matches jsonEncode UTF8 at escaping and surrogate boundaries',
       () {

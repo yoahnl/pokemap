@@ -65,6 +65,12 @@ final class AuthoringRecoveryService {
   final AuthoringTransactionCommitHook? _commitHook;
   final void Function()? _mutationGuard;
 
+  Future<bool> isResourcePackOperation(String operationId) =>
+      _gateway.withExclusiveWriteLock(() async {
+        final journal = await _gateway.readJournal(operationId);
+        return journal?.bulkCapability != null;
+      });
+
   Future<List<AuthoringRecoveryInspection>> inspect() {
     return _gateway.withExclusiveWriteLock(() async {
       final journals = await _gateway.listJournals();

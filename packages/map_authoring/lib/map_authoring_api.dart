@@ -65,3 +65,6 @@ export 'src/api/authoring_result_projection.dart'
         AuthoringResultProjectionPort,
         AuthoringProjectionChunk,
         AuthoringProjectionException;
+
+export 'src/api/resource_pack_transfer_api.dart';
+export 'src/application/resource_pack_job_service.dart';

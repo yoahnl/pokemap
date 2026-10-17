@@ -23,6 +23,7 @@ import 'undo_service.dart';
 
 /// Plans a forward transaction that restores one retained historical state.
 final class AuthoringRevisionRevertService {
+  static AuthoringActionDescriptor get descriptor => _revertAction();
   const AuthoringRevisionRevertService({
     required AuthoringHistoryStore history,
     required AuthoringContentBlobStore blobs,
@@ -55,6 +56,7 @@ final class AuthoringRevisionRevertService {
     required ProjectSnapshot snapshot,
     required String workspaceHandle,
     required String idempotencyKey,
+    String? operationId,
   }) async {
     final action = _revertAction();
     final request = AuthoringRequest(
@@ -107,13 +109,14 @@ final class AuthoringRevisionRevertService {
         preview: const {'historyForwardTransaction': true},
       ),
     );
-    final operationId = _validatedToken('operation_');
+    final resolvedOperationId = operationId ?? _validatedToken('operation_');
     await bindCanonicalBulkHistoryPlan(
-        history: _history,
-        plan: plan,
-        actorId: actor.actorId,
-        projectId: projectId,
-        operationId: operationId);
+      history: _history,
+      plan: plan,
+      actorId: actor.actorId,
+      projectId: projectId,
+      operationId: resolvedOperationId,
+    );
     return AuthoringPreparedHistoryMutation(
       actor: actor,
       projectId: projectId,
@@ -127,7 +130,7 @@ final class AuthoringRevisionRevertService {
         actionVersion: action.version,
         key: idempotencyKey,
       ),
-      operationId: operationId,
+      operationId: resolvedOperationId,
       precondition: () => _requireHistoryHead(
         projectId: projectId,
         expectedHeadEntryId: expectedHeadEntryId,

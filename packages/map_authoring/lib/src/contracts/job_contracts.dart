@@ -321,7 +321,7 @@ String? _optionalNonBlank(String? value, String field) {
 
 String _operation(String value) {
   final normalized = _nonBlank(value, 'operation');
-  if (!RegExp(r'^[a-z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+$')
+  if (!RegExp(r'^(?:[a-z][a-zA-Z0-9]*|resource_pack)(\.[a-zA-Z][a-zA-Z0-9]*)+$')
       .hasMatch(normalized)) {
     throw ArgumentError.value(value, 'operation', 'must be a dotted name');
   }

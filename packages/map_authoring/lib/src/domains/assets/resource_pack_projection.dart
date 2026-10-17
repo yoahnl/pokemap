@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -7,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../../ports/file_backed_payload_store.dart';
+import '../../infrastructure/local_resource_pack_store.dart';
 import 'resource_pack_native_remapper.dart';
 import 'resource_pack_border_sources.dart';
 import '../maps/canonical_border_ground_composer.dart';
@@ -61,6 +64,30 @@ final class ResourcePackProjectionBuilder {
   const ResourcePackProjectionBuilder(
       {this.policy = const ResourcePackSecurityPolicy()});
   final ResourcePackSecurityPolicy policy;
+
+  Future<Set<String>> selectedFileIds({
+    required ProjectManifest manifest,
+    required Iterable<NativeResourcePackRef> roots,
+    required Iterable<NativeResourcePackFile> files,
+    Iterable<String> smartTilePatternIds = const [],
+  }) => Isolate.run(
+    _requiredNativeFilesWorker(
+      manifest,
+      roots.toList(),
+      [
+        for (final file in files)
+          (
+            file.id,
+            file.logicalPath,
+            file.byteLength,
+            file.rawSha256,
+            file.mediaType,
+          ),
+      ],
+      smartTilePatternIds.toList(),
+      policy,
+    ),
+  );
 
   Future<ResourcePackExportProjection> project(
       {required ProjectManifest manifest,
@@ -585,6 +612,87 @@ final class CanonicalResourcePackExportService {
   final FileBackedPayloadStore store;
   final FileBackedPayloadScope scope;
   final ResourcePackSecurityPolicy policy;
+  Future<OwnedResourcePackExport> exportNative({
+    required ProjectManifest manifest,
+    required List<NativeResourcePackRef> roots,
+    required List<String> smartTilePatternIds,
+    required List<(String, String, StoredFilePayload, String)> files,
+    required ResourcePackMetadata metadata,
+    required String author,
+    required String expectedRevision,
+    required Future<String> Function() readCurrentRevision,
+    String? sourceUrl,
+    String? licenseText,
+    bool acknowledgeOrganizationRemoval = false,
+    void Function()? checkCancelled,
+  }) async {
+    final local = store;
+    if (local is! LocalResourcePackStore) {
+      throw StateError('A disk worker is required.');
+    }
+    if (await readCurrentRevision() != expectedRevision) {
+      _fail('revision_changed');
+    }
+    checkCancelled?.call();
+    final directory = await Directory.systemTemp.createTemp(
+      'avelune-native-export-',
+    );
+    FileBackedPayloadLease? lease;
+    try {
+      final result = await local.withSourcesInIsolate(
+        scope: scope,
+        handles: files.map((file) => file.$3.handle),
+        read: _nativeExportWorker(
+          manifest,
+          roots,
+          smartTilePatternIds,
+          files,
+          metadata,
+          author,
+          expectedRevision,
+          sourceUrl,
+          licenseText,
+          acknowledgeOrganizationRemoval,
+          directory.path,
+          policy,
+        ),
+      );
+      checkCancelled?.call();
+      if (await readCurrentRevision() != expectedRevision) {
+        _fail('revision_changed');
+      }
+      lease = await store.stage(
+        scope: scope,
+        chunks: _readChunks(
+          File('${directory.path}/archive'),
+          policy.maxChunkBytes,
+        ),
+        byteLength: result.$1,
+        expectedRawSha256: result.$2,
+        checkCancelled: checkCancelled,
+      );
+      checkCancelled?.call();
+      final inspection = await local.withSourceInIsolate(
+        scope: scope,
+        handle: lease.payload.handle,
+        read: _exportInspector(policy),
+      );
+      checkCancelled?.call();
+      if (inspection.archiveRawSha256 != result.$2 ||
+          await readCurrentRevision() != expectedRevision) {
+        _fail('revision_changed');
+      }
+      return OwnedResourcePackExport._(store, scope, lease, inspection);
+    } on Object {
+      if (lease != null) {
+        await store.release(scope: scope, leaseId: lease.leaseId);
+      }
+      rethrow;
+    } finally {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    }
+  }
+
   Future<OwnedResourcePackExport> export(
       {required ResourcePackExportProjection projection,
       required ResourcePackMetadata metadata,
@@ -708,3 +816,106 @@ Future<void> _verifyNativeAlias(
     _fail('source_changed', file.id);
   }
 }
+
+ResourcePackInspection Function(RandomAccessPackageSource) _exportInspector(
+  ResourcePackSecurityPolicy policy,
+) =>
+    (source) => ResourcePackInspector(policy: policy).inspectSourceSync(source);
+
+Future<(int, String)> Function(Map<String, RandomAccessPackageSource>)
+_nativeExportWorker(
+  ProjectManifest manifest,
+  List<NativeResourcePackRef> roots,
+  List<String> patterns,
+  List<(String, String, StoredFilePayload, String)> files,
+  ResourcePackMetadata metadata,
+  String author,
+  String revision,
+  String? sourceUrl,
+  String? licenseText,
+  bool acknowledgeOrganizationRemoval,
+  String directory,
+  ResourcePackSecurityPolicy policy,
+) => (sources) async {
+  final nativeFiles = [
+    for (final file in files)
+      NativeResourcePackFile(
+        id: file.$1,
+        logicalPath: file.$2,
+        byteLength: file.$3.byteLength,
+        rawSha256: file.$3.rawSha256,
+        mediaType: file.$4,
+        openRead: () =>
+            _nativeChunks(sources[file.$3.handle]!, policy.maxChunkBytes),
+      ),
+  ];
+  final projection = await ResourcePackProjectionBuilder(policy: policy)
+      .project(
+        manifest: manifest,
+        roots: roots,
+        files: nativeFiles,
+        author: author,
+        sourceRevision: revision,
+        sourceUrl: sourceUrl,
+        licenseText: licenseText,
+        smartTilePatternIds: patterns,
+        acknowledgeOrganizationRemoval: acknowledgeOrganizationRemoval,
+      );
+  final sink = _PrivateArchiveSink(File('$directory/archive'));
+  try {
+    final built = await ResourcePackBuilder(policy: policy).build(
+      metadata: metadata,
+      catalog: projection.catalog,
+      tileWidth: projection.tileWidth,
+      tileHeight: projection.tileHeight,
+      sources: projection.sources,
+      sink: sink,
+    );
+    return (built.archiveBytes, built.archiveRawSha256);
+  } on Object {
+    await sink.abort();
+    rethrow;
+  } finally {
+    await sink.close();
+  }
+};
+
+Stream<List<int>> _nativeChunks(
+  RandomAccessPackageSource source,
+  int chunk,
+) async* {
+  for (var offset = 0; offset < source.length; offset += chunk) {
+    yield source.readAtSync(offset, min(chunk, source.length - offset));
+  }
+}
+
+Set<String> Function() _requiredNativeFilesWorker(
+  ProjectManifest manifest,
+  List<NativeResourcePackRef> roots,
+  List<(String, String, int, String, String)> files,
+  List<String> patterns,
+  ResourcePackSecurityPolicy policy,
+) => () {
+  final projection = _Projection(manifest, [
+    for (final file in files)
+      NativeResourcePackFile(
+        id: file.$1,
+        logicalPath: file.$2,
+        byteLength: file.$3,
+        rawSha256: file.$4,
+        mediaType: file.$5,
+        openRead: _emptyNativeRead,
+      ),
+  ], policy);
+  for (final root in roots) {
+    projection.reference(root.kind.name, root.id);
+  }
+  for (final id in patterns) {
+    projection.reference('smartTilePattern', id);
+  }
+  return {
+    for (final key in projection.completed.keys)
+      if (projection.nodes[key]!.kind == 'file') projection.nodes[key]!.id,
+  };
+};
+Stream<List<int>> _emptyNativeRead() => const Stream.empty();

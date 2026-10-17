@@ -3015,3 +3015,24 @@ protocole.
 `gameplay_zone.dive.link_pair_apply` prend `mapId`, `zoneId`, `targetMapId` et `targetZoneId`. Deux points propres, non liés, de rôles opposés et sur deux cartes distinctes sont publiés ensemble après validation des deux spawns, terrains et empreintes. `gameplay_zone.dive.unlink_pair_apply` prend `mapId` et `zoneId` et retire les deux liens réciproques en conservant rôle et spawn. La garantie multi-fichier est récupérable.
 
 Les sélecteurs rôle et spawn restent des brouillons locaux avec Undo/redo. Carte et point opposé sont des sélections UI temporaires ; seul Lier publie les liens. Lier/Délier demandent deux cartes enregistrées et rafraîchissent leurs historiques locaux. Le runtime persiste `MovementMode.dive`, revalide le ticket et les deux arrivées aux frontières asynchrones, et restaure le checkpoint source si le transfert échoue. Aucun PP n’est consommé et le périmètre bêta signé reste inchangé.
+
+
+### P09 — Transfert de bibliothèques d’assets
+
+La capacité authoring.resource_packs version 1 publie le protocole pokemap.authoring.resource_pack.v1, le canal JSONL resource_pack et l’outil MCP pokemap_resource_pack. Le schéma strict pokemap.authoring.resource_pack.transfer.input.v1 et son empreinte sont découverts dans describe ; chaque verbe possède son contrat sans propriété supplémentaire.
+
+| Verbes de transfert | Contrat |
+|---|---|
+| stage, inspect | Source autorisée vers archive possédée puis inspection ; job enregistré avant I/O lourde, CPU dans le worker P04. |
+| entries, selection.create, selection.patch, selection.select_filtered | Pages bornées et sélection révisionnée archive ou native ; filtre serveur par recherche, libellés, famille et descendants, contexte P02 ; choix cachés conservés. |
+| prepare, preview | Préparation canonique révisionnée, conflits preserveProject par défaut ou importCopy, aperçu borné et handle opaque. |
+| start_apply | Refuse tout plan ordinaire avant écriture et applique le plan canonique `resource_pack.import`, dont le seul paramètre est preparedImportHandle ; reçu et replay durables P08. |
+| start_history, start_recovery, recovery_status | Jobs undo/redo/revert et reprise explicite autorisée ; statut lisible avant snapshot complet et blocage mutateur canonique pendant pending. |
+| export, read_payload | Sélection native vers artifactHandle et SHA ; téléchargement segmenté via P06, sans binaire ni chemin serveur inline. |
+| get, events, cancel, release | Poll, progression honnête, annulation coopérative avant réservation, refus après, libération des références possédées. |
+
+Les cinq kinds resourcePackJob, resourcePackInspection, resourcePackEntry, resourcePackSelection et resourcePackPreview sont temporaires, liés à la session et au projet, sans listing global. Leurs URI sont émises par le serveur sous pokemap://project/{projectHandle}/resource-pack/{resourceKind}/{handle} ; query et resources/read rejoignent le même port avant un chargement natif.
+
+Bornes : 200 lignes par page/événements, enveloppe réelle 256 Kio échappements et base64 compris, chunks 128 Kio, patch de sélection 200 références combinées, entrée de transfert 64 Kio, corrélation JSONL de 1 à 128 octets UTF-8. Un choix de fichier local exact reste réservé à l’adaptateur de confiance ; le MCP ne s’accorde aucun accès supplémentaire. Les anciennes commandes JSONL refusent le bulk canonique avec resource_pack.job_required. Une fermeture annule avant réservation et attend la finalisation engagée ; elle conserve reçu ou recovery. L’annulation publie bounded=false, sans garantie temporelle inventée.
+
+Preuves : test/application/resource_pack_transfer_api_test.dart, test/application/resource_pack_job_lifecycle_test.dart et test/tooling/jsonl_resource_pack_flow_test.dart dans map_authoring ; test/resource_pack_stdio.test.ts dans pokemap_mcp. Les transports API/JSONL/MCP sont qualifiés par P09 ; Studio reste PARTIAL jusqu’à P10/P11 et les volumes/natif/Player relèvent de P12. Le rattrapage de fixture MCP attend 15 outils : 14 déjà présents sur HEAD et un ajouté par P09.

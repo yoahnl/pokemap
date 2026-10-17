@@ -800,6 +800,11 @@ const Set<String> _characterStudioActionIds = <String>{
 };
 
 final Set<String> _approvedResourceKinds = {
+  'resourcePackJob',
+  'resourcePackInspection',
+  'resourcePackEntry',
+  'resourcePackSelection',
+  'resourcePackPreview',
   'resourceLibraryCatalog',
   'resourceFamily',
   'resourceLibraryEntry',

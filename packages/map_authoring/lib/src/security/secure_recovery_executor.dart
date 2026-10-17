@@ -39,6 +39,7 @@ final class SecureAuthoringRecoveryExecutor {
     required AuthoringActor actor,
     required String projectId,
     required String operationId,
+    void Function()? beforeRecovery,
   }) async {
     late final AuthoringAuthorizationDecision authorization;
     try {
@@ -67,6 +68,7 @@ final class SecureAuthoringRecoveryExecutor {
 
     late final AuthoringReceipt receipt;
     try {
+      beforeRecovery?.call();
       receipt = await _recover(operationId);
     } on Object catch (error, stackTrace) {
       await _appendAudit(

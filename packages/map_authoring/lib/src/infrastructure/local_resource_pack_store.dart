@@ -262,6 +262,11 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         return _newLease(_require(scope, handle), purpose);
       });
 
+  FileBackedPayloadLease retainForJob({
+    required FileBackedPayloadScope scope,
+    required String handle,
+  }) => _newLease(_require(scope, handle), FileBackedPayloadPurpose.job);
+
   @override
   Future<bool> release(
           {required FileBackedPayloadScope scope, required String leaseId}) =>
@@ -313,23 +318,53 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
         }
       });
 
-  Future<T> withSourceInIsolate<T>(
-          {required FileBackedPayloadScope scope,
-          required String handle,
-          required T Function(RandomAccessPackageSource source) read}) =>
-      _owned(() async {
-        final entry = _require(scope, handle);
-        entry.readers++;
-        try {
-          final path = entry.file.path;
-          final length = entry.payload.byteLength;
-          final digest = entry.payload.rawSha256;
-          final chunk = policy.maxChunkBytes;
-          return await _runWorker(path, length, digest, chunk, read);
-        } finally {
-          entry.readers--;
-        }
-      });
+  Future<T> withSourceInIsolate<T>({
+    required FileBackedPayloadScope scope,
+    required String handle,
+    required FutureOr<T> Function(RandomAccessPackageSource source) read,
+  }) => _owned(() async {
+    final entry = _require(scope, handle);
+    entry.readers++;
+    try {
+      final path = entry.file.path;
+      final length = entry.payload.byteLength;
+      final digest = entry.payload.rawSha256;
+      final chunk = policy.maxChunkBytes;
+      return await _runWorker(path, length, digest, chunk, read);
+    } finally {
+      entry.readers--;
+    }
+  });
+
+  Future<T> withSourcesInIsolate<T>({
+    required FileBackedPayloadScope scope,
+    required Iterable<String> handles,
+    required FutureOr<T> Function(Map<String, RandomAccessPackageSource>) read,
+  }) => _owned(() async {
+    final entries = [
+      for (final handle in handles.toSet()) _require(scope, handle),
+    ];
+    for (final entry in entries) {
+      entry.readers++;
+    }
+    try {
+      final descriptors = [
+        for (final entry in entries)
+          (
+            entry.payload.handle,
+            entry.file.path,
+            entry.payload.byteLength,
+            entry.payload.rawSha256,
+            policy.maxChunkBytes,
+          ),
+      ];
+      return await _runSourcesWorker(descriptors, read);
+    } finally {
+      for (final entry in entries) {
+        entry.readers--;
+      }
+    }
+  });
 
   @override
   Future<void> collectExpired() => _owned(() async {
@@ -563,12 +598,21 @@ final class LocalResourcePackStore implements FileBackedPayloadStore {
   }
 }
 
-Future<T> _runWorker<T>(String path, int length, String digest, int chunk,
-        T Function(RandomAccessPackageSource) read) =>
-    Isolate.run(() => _readInWorker(path, length, digest, chunk, read));
+Future<T> _runWorker<T>(
+  String path,
+  int length,
+  String digest,
+  int chunk,
+  FutureOr<T> Function(RandomAccessPackageSource) read,
+) => Isolate.run(() => _readInWorker(path, length, digest, chunk, read));
 
-T _readInWorker<T>(String path, int length, String digest, int chunk,
-    T Function(RandomAccessPackageSource) read) {
+Future<T> _readInWorker<T>(
+  String path,
+  int length,
+  String digest,
+  int chunk,
+  FutureOr<T> Function(RandomAccessPackageSource) read,
+) async {
   final file = File(path);
   final before = file.statSync();
   if (before.type != FileSystemEntityType.file ||
@@ -588,7 +632,7 @@ T _readInWorker<T>(String path, int length, String digest, int chunk,
       _fail(
           'stage_corrupt', 'The worker stage failed raw digest verification.');
     }
-    final value = read(source);
+    final value = await read(source);
     if (!_sameIdentity(before, file.statSync())) {
       _fail('stage_corrupt', 'The worker stage changed during inspection.');
     }
@@ -703,3 +747,52 @@ String _randomToken(String prefix) {
 
 Never _fail(String code, String message) =>
     throw FileBackedPayloadException('resource_pack.$code', message);
+
+Future<T> _runSourcesWorker<T>(
+  List<(String, String, int, String, int)> descriptors,
+  FutureOr<T> Function(Map<String, RandomAccessPackageSource>) read,
+) => Isolate.run(() async {
+  final sources = <String, RandomAccessPackageSource>{};
+  for (final descriptor in descriptors) {
+    await _readInWorker(
+      descriptor.$2,
+      descriptor.$3,
+      descriptor.$4,
+      descriptor.$5,
+      (_) => true,
+    );
+    sources[descriptor.$1] = _WorkerFileSource(
+      descriptor.$2,
+      descriptor.$3,
+      descriptor.$5,
+    );
+  }
+  final result = await read(sources);
+  for (final descriptor in descriptors) {
+    await _readInWorker(
+      descriptor.$2,
+      descriptor.$3,
+      descriptor.$4,
+      descriptor.$5,
+      (_) => true,
+    );
+  }
+  return result;
+});
+
+final class _WorkerFileSource implements RandomAccessPackageSource {
+  const _WorkerFileSource(this.path, this.length, this.chunkBytes);
+  final String path;
+  @override
+  final int length;
+  final int chunkBytes;
+  @override
+  Uint8List readAtSync(int offset, int count) {
+    final source = _OwnedSource(File(path).openSync(), length, chunkBytes);
+    try {
+      return source.readAtSync(offset, count);
+    } finally {
+      source.close();
+    }
+  }
+}

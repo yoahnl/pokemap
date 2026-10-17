@@ -206,14 +206,15 @@ void main() {
   });
 
   test(
-      'describe parity includes the import contract without claiming remote transfer proof',
+      'describe parity includes pack API CLI and MCP evidence while editor remains partial',
       () {
     final parity = AuthoringFullParityCatalog.canonical()
         .requireMutationAction('resource_pack.import');
     expect(parity.contractTestPath,
         'test/domains/assets/resource_pack_actions_test.dart');
-    expect(parity.endToEndEvidence.keys, {AuthoringTransport.directApi});
-    expect(parity.endToEndVerifiedTransports, {AuthoringTransport.directApi});
+    expect(parity.endToEndEvidence.keys, {AuthoringTransport.directApi, AuthoringTransport.cli, AuthoringTransport.mcp});
+    expect(parity.endToEndVerifiedTransports, {AuthoringTransport.directApi, AuthoringTransport.cli, AuthoringTransport.mcp});
+    expect(parity.endToEndEvidence.containsKey(AuthoringTransport.editor), false);
   });
 
   test(

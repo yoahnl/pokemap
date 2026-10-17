@@ -13,6 +13,8 @@ import '../history/content_blob_store.dart';
 import '../history/file_history_store.dart';
 import '../history/history_store.dart';
 import '../history/undo_service.dart';
+import '../history/revision_revert_service.dart';
+import '../history/authoring_history.dart';
 import '../parity/full_authoring_parity.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/artifact_store.dart';
@@ -59,6 +61,7 @@ final class LocalMapAuthoringMutationApi
     required ProjectSnapshotLoader snapshotLoader,
     MapMutationDispatcher? dispatcher,
     ArtifactStore? artifactStore,
+    Iterable<String> resourcePackSourceRoots = const [],
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
     AuthoringActor? actor,
     AuthoringSecurityLimits authorizationLimits =
@@ -66,13 +69,15 @@ final class LocalMapAuthoringMutationApi
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
     AuthoringPerformanceObserver? performanceObserver,
-  })  : _policy = policy,
-        _snapshotLoader = snapshotLoader,
-        _actor = actor ?? _localActor,
-        _authorizationLimits = authorizationLimits,
-        _clock = clock ?? _systemClock,
-        _faultInjector = faultInjector {
-    artifacts = artifactStore ??
+  }) : _policy = policy,
+       _snapshotLoader = snapshotLoader,
+       _actor = actor ?? _localActor,
+       _authorizationLimits = authorizationLimits,
+       _clock = clock ?? _systemClock,
+       _faultInjector = faultInjector,
+       _resourcePackSourceRoots = List.unmodifiable(resourcePackSourceRoots) {
+    artifacts =
+        artifactStore ??
         MemoryArtifactStore(
           maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
         );
@@ -91,6 +96,7 @@ final class LocalMapAuthoringMutationApi
     _performanceObserver = performanceObserver;
   }
 
+  final List<String> _resourcePackSourceRoots;
   final WorkspacePolicy _policy;
   final ProjectSnapshotLoader _snapshotLoader;
   late final MapMutationDispatcher _dispatcher;
@@ -103,6 +109,23 @@ final class LocalMapAuthoringMutationApi
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
   final Map<WorkspaceHandle, ProjectHandle> _projectsByWorkspace = {};
   final Set<(ProjectHandle, String)> _modelBatchStagingPlans = {};
+
+  String resourcePackInitialRevision(ProjectHandle projectHandle) =>
+      _session(projectHandle).initialRevision;
+
+  void requireResourcePackRead(ProjectHandle projectHandle) =>
+      _session(projectHandle).requireProjectionRead();
+
+  void requireResourcePackExport(ProjectHandle projectHandle) {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    if (!session._actor.allows(AuthoringPermissionScope.exportRun)) {
+      throw const AuthoringAuthorizationException(
+        code: 'authorization.permission_denied',
+        message: 'Resource pack export requires export.run permission.',
+      );
+    }
+  }
 
   ResourcePackImportPreparer resourcePackImports(ProjectHandle projectHandle) =>
       _session(projectHandle)._resourcePacks;
@@ -199,14 +222,55 @@ final class LocalMapAuthoringMutationApi
       );
     }
     final canonicalRoot = await _policy.authorizeProjectRoot(projectRootPath);
-    final snapshot = await _snapshotLoader.load(
-      projectHandle,
-      policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+    final initialGateway = await LocalTransactionFileGateway.open(
+      projectRoot: canonicalRoot,
     );
-    await _requireRootMatchesSnapshot(canonicalRoot, snapshot);
+    final initialLedger = AuthoringIdempotencyLedger(
+      store: FileIdempotencyStore(
+        filePath: _joinAll([
+          canonicalRoot,
+          '.pokemap',
+          'authoring',
+          'idempotency.jsonl',
+        ]),
+      ),
+    );
+    final recoveryState = await AuthoringRecoveryService(
+      gateway: initialGateway,
+      idempotency: initialLedger,
+      clock: _clock,
+    ).inspect();
+    final pending = recoveryState.any(
+      (entry) =>
+          entry.disposition == AuthoringRecoveryDisposition.resumable ||
+          entry.disposition == AuthoringRecoveryDisposition.blocked,
+    );
+    final String initialRevision;
+    if (pending) {
+      final observed = await _snapshotLoader.resourcePackManifestRevision(
+        projectHandle,
+      );
+      if (await initialGateway.readResourceRevision('project.json') !=
+          observed) {
+        throw const WorkspaceHandleException(
+          'workspace.mutation_binding_mismatch',
+          'The mutation root differs from the opened project.',
+        );
+      }
+      initialRevision = observed;
+    } else {
+      final snapshot = await _snapshotLoader.load(
+        projectHandle,
+        policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+      );
+      await _requireRootMatchesSnapshot(canonicalRoot, snapshot);
+      initialRevision = snapshot.revision;
+    }
     final projectId = _projectIdentity(canonicalRoot);
     final session = await _LocalMapAuthoringSession.open(
       canonicalProjectRoot: canonicalRoot,
+      resourcePackSourceRoots: _resourcePackSourceRoots,
+      initialRevision: initialRevision,
       projectId: projectId,
       workspaceHandle: workspaceHandle,
       projectHandle: projectHandle,
@@ -276,12 +340,16 @@ final class LocalMapAuthoringMutationApi
     required String operationId,
     String? confirmationToken,
     AuthoringTransactionPrecondition? precondition,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
   }) async {
     final result = await _session(projectHandle).applyMutation(
       planId: planId,
       operationId: operationId,
       confirmationToken: confirmationToken,
       precondition: precondition,
+      beforeReservation: beforeReservation,
+      preparationCheck: preparationCheck,
     );
     await _releasePresentationMediaStaging(projectHandle, result);
     return result;
@@ -301,6 +369,70 @@ final class LocalMapAuthoringMutationApi
         confirmationToken: confirmationToken,
       ))
           .toJson();
+
+  Future<Map<String, Object?>> resourcePackExportPayload(
+    ProjectHandle projectHandle,
+    StoredFilePayload payload, {
+    void Function()? checkCancelled,
+  }) {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    return session._projections.projectBinaryPayload(
+      payload,
+      checkCancelled: checkCancelled,
+    );
+  }
+
+  Future<bool> resourcePackReleaseExportPayload(
+    ProjectHandle projectHandle,
+    String ref,
+  ) =>
+      _sessions[projectHandle]?._projections.releasePayload(ref) ??
+      Future.value(false);
+
+  Future<AuthoringMutationResult> resourcePackHistory(
+    ProjectHandle projectHandle, {
+    required String operation,
+    required String entryId,
+    required String operationId,
+    required String expectedRevision,
+    String? expectedHeadEntryId,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
+  }) => _session(projectHandle).resourcePackHistory(
+    operation: operation,
+    entryId: entryId,
+    operationId: operationId,
+    expectedRevision: expectedRevision,
+    expectedHeadEntryId: expectedHeadEntryId,
+    beforeReservation: beforeReservation,
+    preparationCheck: preparationCheck,
+  );
+
+  Future<List<AuthoringRecoveryInspection>> resourcePackPending(
+    ProjectHandle projectHandle,
+  ) => _session(projectHandle)._recovery.inspect();
+
+  Future<bool> resourcePackRequiresJob(
+    ProjectHandle projectHandle, {
+    required String operation,
+    String? planId,
+    String? operationId,
+    String? entryId,
+  }) => _session(projectHandle).resourcePackRequiresJob(
+    operation: operation,
+    planId: planId,
+    operationId: operationId,
+    entryId: entryId,
+  );
+
+  Future<AuthoringMutationResult> resourcePackRecover(
+    ProjectHandle projectHandle, {
+    required String operationId,
+    void Function()? beforeRecovery,
+  }) =>
+      _session(projectHandle)
+          .recoverMutation(operationId, beforeRecovery: beforeRecovery);
 
   @override
   Future<AuthoringMutationResult> undoMutation(
@@ -463,6 +595,7 @@ final class LocalMapAuthoringMutationApi
 final class _LocalMapAuthoringSession {
   const _LocalMapAuthoringSession._({
     required this.projectId,
+    required this.initialRevision,
     required this.workspaceHandle,
     required this.projectHandle,
     required ProjectSnapshotLoader snapshotLoader,
@@ -474,6 +607,8 @@ final class _LocalMapAuthoringSession {
     required AuthoringConfirmationStore confirmations,
     required SecureAuthoringMutationExecutor executor,
     required AuthoringUndoService undoService,
+    required AuthoringRevisionRevertService revertService,
+    required AuthoringRecoveryService recovery,
     required AuthoringHistoryStore history,
     required SecureAuthoringRecoveryExecutor recoveryExecutor,
     required AuthoringPerformanceObserver? performanceObserver,
@@ -481,25 +616,29 @@ final class _LocalMapAuthoringSession {
     required LocalResourcePackStore projectionPayloadStore,
     required ResourcePackImportPreparer resourcePacks,
     required FileIdempotencyStore idempotencyStore,
-  })  : _snapshotLoader = snapshotLoader,
-        _dispatcher = dispatcher,
-        _actor = actor,
-        _plans = plans,
-        _planner = planner,
-        _policy = policy,
-        _confirmations = confirmations,
-        _executor = executor,
-        _undoService = undoService,
-        _history = history,
-        _recoveryExecutor = recoveryExecutor,
-        _performanceObserver = performanceObserver,
-        _projections = projections,
-        _projectionPayloadStore = projectionPayloadStore,
-        _resourcePacks = resourcePacks,
-        _idempotencyStore = idempotencyStore;
+  }) : _snapshotLoader = snapshotLoader,
+       _dispatcher = dispatcher,
+       _actor = actor,
+       _plans = plans,
+       _planner = planner,
+       _policy = policy,
+       _confirmations = confirmations,
+       _executor = executor,
+       _undoService = undoService,
+       _revertService = revertService,
+       _recovery = recovery,
+       _history = history,
+       _recoveryExecutor = recoveryExecutor,
+       _performanceObserver = performanceObserver,
+       _projections = projections,
+       _projectionPayloadStore = projectionPayloadStore,
+       _resourcePacks = resourcePacks,
+       _idempotencyStore = idempotencyStore;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
+    required List<String> resourcePackSourceRoots,
+    required String initialRevision,
     required String projectId,
     required WorkspaceHandle workspaceHandle,
     required ProjectHandle projectHandle,
@@ -584,17 +723,40 @@ final class _LocalMapAuthoringSession {
       mutationGuard: () => snapshotLoader.requireActiveProject(projectHandle),
     );
     final recoveryExecutor = SecureAuthoringRecoveryExecutor(
-      recover: recovery.resume,
+      recover: (operationId) async {
+        final found = await idempotencyStore.lookupOperation(
+          actorId: actor.actorId,
+          projectId: projectId,
+          operationId: operationId,
+          now: clock().toUtc(),
+        );
+        if (found?.completed?.receipt != null) {
+          final receipt = found!.completed!.receipt!;
+          final replay = await executor.inspectDurableReplay(
+            actor: actor,
+            projectId: projectId,
+            planId: receipt.extensions['planId'] as String,
+            operationId: operationId,
+            lookup: () async => found,
+            readHistory: (entryId) =>
+                history.get(projectId: projectId, entryId: entryId),
+            resolveAction: (id) => _resolveHistoryOrAction(dispatcher, id),
+          );
+          if (replay != null) return replay;
+        }
+        return recovery.resume(operationId);
+      },
       policy: policy,
       auditLog: audit,
       clock: clock,
       auditIdFactory: () => _secureIdentity('audit_'),
     );
     final projectionPayloadStore = LocalResourcePackStore(
-        cacheDirectory:
-            '${Directory.systemTemp.path}${Platform.pathSeparator}pokemap-authoring-projections',
-        allowedSourceRoots: const [],
-        clock: clock);
+      cacheDirectory:
+          '${Directory.systemTemp.path}${Platform.pathSeparator}pokemap-authoring-projections',
+      allowedSourceRoots: resourcePackSourceRoots,
+      clock: clock,
+    );
     final projections = AuthoringResultProjectionStore(
         store: projectionPayloadStore,
         scope: FileBackedPayloadScope(
@@ -609,6 +771,7 @@ final class _LocalMapAuthoringSession {
         probeResource: (path) =>
             snapshotLoader.probeResource(projectHandle, path));
     return _LocalMapAuthoringSession._(
+      initialRevision: initialRevision,
       resourcePacks: resourcePacks,
       idempotencyStore: idempotencyStore,
       projections: projections,
@@ -625,6 +788,16 @@ final class _LocalMapAuthoringSession {
       confirmations: confirmations,
       executor: executor,
       undoService: undoService,
+      revertService: AuthoringRevisionRevertService(
+        history: history,
+        blobs: blobs,
+        gateway: gateway,
+        planner: planner,
+        policy: policy,
+        executor: executor,
+        tokenFactory: _secureIdentity,
+      ),
+      recovery: recovery,
       history: history,
       recoveryExecutor: recoveryExecutor,
       performanceObserver: performanceObserver,
@@ -659,6 +832,7 @@ final class _LocalMapAuthoringSession {
     }
   }
 
+  final String initialRevision;
   final String projectId;
   final WorkspaceHandle workspaceHandle;
   final ProjectHandle projectHandle;
@@ -671,6 +845,8 @@ final class _LocalMapAuthoringSession {
   final AuthoringConfirmationStore _confirmations;
   final SecureAuthoringMutationExecutor _executor;
   final AuthoringUndoService _undoService;
+  final AuthoringRevisionRevertService _revertService;
+  final AuthoringRecoveryService _recovery;
   final AuthoringHistoryStore _history;
   final SecureAuthoringRecoveryExecutor _recoveryExecutor;
   final AuthoringPerformanceObserver? _performanceObserver;
@@ -700,6 +876,7 @@ final class _LocalMapAuthoringSession {
         message: 'Mutation planning requires an idempotency key.',
       );
     }
+    await _requireReconciled();
     final descriptor = _dispatcher.descriptor(request.actionId);
     if (descriptor.version != request.actionVersion) {
       throw AuthoringPlanException(
@@ -787,24 +964,29 @@ final class _LocalMapAuthoringSession {
     required String operationId,
     String? confirmationToken,
     AuthoringTransactionPrecondition? precondition,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
   }) async {
     final safePlanId = _safeIdentity(planId, 'planId');
     final safeOperationId = _safeIdentity(operationId, 'operationId');
     _snapshotLoader.requireActiveProject(projectHandle);
     final replay = await _executor.inspectDurableReplay(
-        actor: _actor,
+      actor: _actor,
+      projectId: projectId,
+      planId: safePlanId,
+      operationId: safeOperationId,
+      lookup: () => _idempotencyStore.lookupOperation(
+        actorId: _actor.actorId,
         projectId: projectId,
-        planId: safePlanId,
         operationId: safeOperationId,
-        lookup: () => _idempotencyStore.lookupOperation(
-            actorId: _actor.actorId,
-            projectId: projectId,
-            operationId: safeOperationId,
-            now: _plans.now),
-        readHistory: (entryId) =>
-            _history.get(projectId: projectId, entryId: entryId),
-        resolveAction: _dispatcher.descriptor);
+        now: _plans.now,
+      ),
+      readHistory: (entryId) =>
+          _history.get(projectId: projectId, entryId: entryId),
+      resolveAction: _dispatcher.descriptor,
+    );
     if (replay != null) return _mutationResult(replay);
+    await _requireReconciled();
     final plan = await _plans.resolveActive(safePlanId);
     _requireApplicablePlan(plan);
     _requireWorkspace(plan.request.workspaceHandle);
@@ -820,15 +1002,17 @@ final class _LocalMapAuthoringSession {
     if (plan.request.actionId == 'resource_pack.import') {
       if (plan.appliedPayloadReleased) {
         throw AuthoringPlanException(
-            code: 'plan.already_applied',
-            message:
-                'This import plan was applied under another operation identity.');
+          code: 'plan.already_applied',
+          message:
+              'This import plan was applied under another operation identity.',
+        );
       }
       _resourcePacks.certifyPlan(
-          plan: plan,
-          actorId: _actor.actorId,
-          projectId: projectId,
-          operationId: safeOperationId);
+        plan: plan,
+        actorId: _actor.actorId,
+        projectId: projectId,
+        operationId: safeOperationId,
+      );
     }
     final payloadWasReleased = plan.appliedPayloadReleased;
     final changes = payloadWasReleased ? null : plan.changeSet.changes;
@@ -857,10 +1041,13 @@ final class _LocalMapAuthoringSession {
             ? null
             : AuthoringConfirmationToken.fromWireValue(confirmationToken),
         precondition: _lockedResourcePrecondition(plan, precondition),
+        beforeReservation: beforeReservation,
+        preparationCheck: preparationCheck,
       );
       refreshUnavailable = plan.payloadCleanupFailed;
       try {
-        projected = !refreshUnavailable &&
+        projected =
+            !refreshUnavailable &&
                 receipt.status == AuthoringReceiptStatus.applied &&
                 changes != null &&
                 receipt.extensions['planId'] == plan.planId
@@ -885,14 +1072,194 @@ final class _LocalMapAuthoringSession {
     } finally {
       span?.finish();
     }
-    return _mutationResult(receipt,
-        snapshot: projected, refreshUnavailable: refreshUnavailable);
+    return _mutationResult(
+      receipt,
+      snapshot: projected,
+      refreshUnavailable: refreshUnavailable,
+    );
+  }
+
+  Future<void> _requireReconciled() async {
+    final pending = await _recovery.inspect();
+    if (pending.any(
+      (entry) =>
+          entry.disposition == AuthoringRecoveryDisposition.resumable ||
+          entry.disposition == AuthoringRecoveryDisposition.blocked,
+    )) {
+      throw const AuthoringRecoveryException(
+        'resource_pack.recovery_required',
+        'Reconcile the canonical pending transaction before editing this project.',
+      );
+    }
+  }
+
+  Future<bool> resourcePackRequiresJob({
+    required String operation,
+    String? planId,
+    String? operationId,
+    String? entryId,
+  }) async {
+    requireProjectionRead();
+    if (operation == 'undo') {
+      final entry = await _history.get(
+        projectId: projectId,
+        entryId: _safeIdentity(entryId!, 'entryId'),
+      );
+      return entry?.bulkCapability != null;
+    }
+    final found = await _idempotencyStore.lookupOperation(
+      actorId: _actor.actorId,
+      projectId: projectId,
+      operationId: _safeIdentity(operationId!, 'operationId'),
+      now: _plans.now,
+    );
+    if (found != null) {
+      if (found.scope.actionId == 'resource_pack.import') return true;
+      final receipt = found.completed?.receipt;
+      if (receipt != null) {
+        final entry = await _history.get(
+          projectId: projectId,
+          entryId: receipt.receiptId,
+        );
+        if (entry?.bulkCapability != null) return true;
+      }
+      return _recovery.isResourcePackOperation(_safeIdentity(operationId, 'operationId'));
+    }
+    if (operation == 'recover') {
+      return _recovery.isResourcePackOperation(
+        _safeIdentity(operationId, 'operationId'),
+      );
+    }
+    final plan = await _plans.resolveActive(_safeIdentity(planId!, 'planId'));
+    return plan.request.actionId == 'resource_pack.import' ||
+        plan.bulkCapability != null;
+  }
+
+  Future<AuthoringMutationResult> resourcePackHistory({
+    required String operation,
+    required String entryId,
+    required String operationId,
+    required String expectedRevision,
+    String? expectedHeadEntryId,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
+  }) async {
+    final safeOperation = _safeIdentity(operationId, 'operationId');
+    final found = await _idempotencyStore.lookupOperation(
+      actorId: _actor.actorId,
+      projectId: projectId,
+      operationId: safeOperation,
+      now: _plans.now,
+    );
+    if (found != null) {
+      final receipt = found.completed?.receipt;
+      if (receipt == null) {
+        throw const AuthoringRecoveryException(
+          'idempotency.recovery_required',
+          'This historical operation requires canonical recovery.',
+        );
+      }
+      final context = AuthoringHistoryContext.fromExtensions(
+        receipt.extensions,
+      );
+      if (receipt.actionId != 'history.$operation' ||
+          context.targetEntryId != entryId) {
+        throw const AuthoringHistoryException(
+          'history.replay_context_mismatch',
+          'The historical operation identity differs.',
+        );
+      }
+      final replay = await _executor.inspectDurableReplay(
+        actor: _actor,
+        projectId: projectId,
+        planId: receipt.extensions['planId'] as String,
+        operationId: safeOperation,
+        lookup: () async => found,
+        readHistory: (id) => _history.get(projectId: projectId, entryId: id),
+        resolveAction: (id) => _resolveHistoryOrAction(_dispatcher, id),
+      );
+      return _mutationResult(replay!);
+    }
+    await _requireReconciled();
+    final snapshot = await _loadSnapshot();
+    if (snapshot.revision != expectedRevision) {
+      throw const AuthoringHistoryException(
+        'history.project_stale',
+        'The expected project revision differs.',
+      );
+    }
+    final entry = await _history.get(
+      projectId: projectId,
+      entryId: _safeIdentity(entryId, 'entryId'),
+    );
+    if (entry == null || entry.bulkCapability == null) {
+      throw const AuthoringHistoryException(
+        'history.bulk_origin_required',
+        'A canonical pack history entry is required.',
+      );
+    }
+
+    final AuthoringPreparedHistoryMutation prepared;
+    if (operation == 'undo') {
+      prepared = await _undoService.planUndo(
+        actor: _actor,
+        projectId: projectId,
+        entryId: entryId,
+        snapshot: snapshot,
+        workspaceHandle: workspaceHandle.value,
+        idempotencyKey: safeOperation,
+        operationId: safeOperation,
+      );
+    } else if (operation == 'redo') {
+      prepared = await _undoService.planRedo(
+        actor: _actor,
+        projectId: projectId,
+        entryId: entryId,
+        snapshot: snapshot,
+        workspaceHandle: workspaceHandle.value,
+        idempotencyKey: safeOperation,
+        operationId: safeOperation,
+      );
+    } else if (operation == 'revert' && expectedHeadEntryId != null) {
+      prepared = await _revertService.planRevert(
+        actor: _actor,
+        projectId: projectId,
+        targetEntryId: entryId,
+        expectedHeadEntryId: _safeIdentity(
+          expectedHeadEntryId,
+          'expectedHeadEntryId',
+        ),
+        snapshot: snapshot,
+        workspaceHandle: workspaceHandle.value,
+        idempotencyKey: safeOperation,
+        operationId: safeOperation,
+      );
+    } else {
+      throw const AuthoringHistoryException(
+        'history.operation_invalid',
+        'Unsupported history operation.',
+      );
+    }
+    final receipt = await _undoService.apply(
+      prepared,
+      beforeReservation: beforeReservation,
+      preparationCheck: preparationCheck,
+    );
+    var refreshUnavailable = prepared.plan.payloadCleanupFailed;
+    try {
+      await prepared.plan.releaseAppliedPayload();
+    } on Object {
+      refreshUnavailable = true;
+      _snapshotLoader.invalidate(projectHandle);
+    }
+    return _mutationResult(receipt, refreshUnavailable: refreshUnavailable);
   }
 
   Future<AuthoringMutationResult> undoMutation({
     required String entryId,
     required String idempotencyKey,
   }) async {
+    await _requireReconciled();
     final snapshot = await _loadSnapshot();
     final prepared = await _undoService.planUndo(
       actor: _actor,
@@ -913,12 +1280,16 @@ final class _LocalMapAuthoringSession {
     return _mutationResult(receipt, refreshUnavailable: refreshUnavailable);
   }
 
-  Future<AuthoringMutationResult> recoverMutation(String operationId) async {
+  Future<AuthoringMutationResult> recoverMutation(
+    String operationId, {
+    void Function()? beforeRecovery,
+  }) async {
     final safeOperationId = _safeIdentity(operationId, 'operationId');
     final receipt = await _recoveryExecutor.recover(
       actor: _actor,
       projectId: projectId,
       operationId: safeOperationId,
+      beforeRecovery: beforeRecovery,
     );
     return _mutationResult(receipt);
   }
@@ -1125,7 +1496,19 @@ final AuthoringActor _localActor = AuthoringActor(
     AuthoringPermissionScope.assetRead,
     AuthoringPermissionScope.assetWrite,
     AuthoringPermissionScope.importRun,
+    AuthoringPermissionScope.exportRun,
     AuthoringPermissionScope.recoveryApply,
     AuthoringPermissionScope.renderRun,
   ],
 );
+
+AuthoringActionDescriptor _resolveHistoryOrAction(
+  MapMutationDispatcher dispatcher,
+  String id,
+) {
+  if (id == 'history.undo' || id == 'history.redo') {
+    return AuthoringUndoService.descriptor(id);
+  }
+  if (id == 'history.revert') return AuthoringRevisionRevertService.descriptor;
+  return dispatcher.descriptor(id);
+}

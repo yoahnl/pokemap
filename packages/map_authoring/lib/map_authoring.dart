@@ -225,3 +225,8 @@ export 'src/domains/assets/resource_pack_projection.dart';
 
 export 'src/domains/assets/resource_pack_actions.dart';
 export 'src/domains/assets/resource_pack_import_preparer.dart';
+
+export 'src/api/resource_pack_transfer_api.dart';
+export 'src/application/resource_pack_job_service.dart';
+
+export 'src/api/local_resource_pack_transfer_api.dart';

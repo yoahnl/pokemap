@@ -244,11 +244,12 @@ void main() {
           },
         );
 
-        expect(
-          result.status,
-          AuthoringResultStatus.success,
-          reason: resourceKind,
-        );
+        if (resourcePackTemporaryKinds.contains(resourceKind)) {
+          expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
+          expect(result.error?.details['domainCode'], 'worker.command_unsupported');
+        } else {
+          expect(result.status, AuthoringResultStatus.success, reason: resourceKind);
+        }
       }
     });
 

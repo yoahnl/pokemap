@@ -61,6 +61,10 @@ Future<void> main(List<String> arguments) async {
     policy: policy,
     snapshotLoader: snapshots,
     artifactStore: artifacts,
+    resourcePackSourceRoots: [
+      ...options.allowedRoots,
+      ...options.artifactRoots,
+    ],
     tiledImageCollectionRasterCodec:
         const CliPngTiledImageCollectionRasterCodec(),
   );
@@ -77,9 +81,14 @@ Future<void> main(List<String> arguments) async {
       return;
     }
   }
+  final resourcePacks = LocalResourcePackTransferApi(
+    mutations: mutations,
+    snapshotLoader: snapshots,
+  );
   final worker = JsonlWorker(
     api: api,
     mutations: mutations,
+    resourcePacks: resourcePacks,
     projectCreation: ProjectCreationBootstrapApi(
       policy: policy,
       creation: const LocalProjectCreationService(),
@@ -105,6 +114,8 @@ Future<void> main(List<String> arguments) async {
   } on Object {
     stderr.writeln('The JSONL input stream failed unexpectedly.');
     exitCode = AuthoringCliExitCodes.ioError;
+  } finally {
+    await worker.close();
   }
 }
 

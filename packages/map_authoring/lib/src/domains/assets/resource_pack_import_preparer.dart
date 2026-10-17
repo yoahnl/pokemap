@@ -1,5 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
+
+import '../../infrastructure/local_resource_pack_store.dart';
+
 import 'dart:math';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -29,6 +35,13 @@ final class ResourcePackImportException implements Exception {
 }
 
 enum ResourcePackPreparedImportStatus { ready, alreadyInstalled, conflict }
+
+final class ResourcePackInspectedArchive {
+  ResourcePackInspectedArchive._(this._owner, this.payload, this.inspection);
+  final ResourcePackImportPreparer _owner;
+  final StoredFilePayload payload;
+  final ResourcePackInspection inspection;
+}
 
 final class ResourcePackImportSelection {
   ResourcePackImportSelection._(this.handle, this.revision, this.inspection,
@@ -153,19 +166,87 @@ final class ResourcePackImportPreparer {
   int get preparedCount => _prepared.length;
   int get planInventoryCount => _planInventories.length;
 
-  Future<ResourcePackImportSelection> select(
-      {required String archiveHandle,
-      required Iterable<ResourcePackRef> roots,
-      Iterable<String> smartTilePatternIds = const []}) async {
+  Future<T> _sourceWorker<T>(
+    String handle,
+    FutureOr<T> Function(RandomAccessPackageSource) read,
+  ) {
+    final local = store;
+    return local is LocalResourcePackStore
+        ? local.withSourceInIsolate(scope: scope, handle: handle, read: read)
+        : store.withSource(scope: scope, handle: handle, read: read);
+  }
+
+  Future<ResourcePackInspectedArchive> inspectArchive(
+    String archiveHandle, {
+    ResourcePackInspection Function(RandomAccessPackageSource)? inspector,
+  }) async {
+    _checkOpen();
+    final lease = await store.retain(scope: scope, handle: archiveHandle);
+    try {
+      final securityPolicy = policy;
+      final inspect =
+          inspector ??
+          (source) =>
+              ResourcePackInspector(policy: securityPolicy)
+                  .inspectSourceSync(source);
+      final inspection = await _sourceWorker(archiveHandle, inspect);
+      _checkOpen();
+      if (inspection.archiveRawSha256 != lease.payload.rawSha256) {
+        _fail('archive_changed', 'The certified archive identity differs.');
+      }
+      return ResourcePackInspectedArchive._(this, lease.payload, inspection);
+    } finally {
+      await store.release(scope: scope, leaseId: lease.leaseId);
+    }
+  }
+
+  Future<ResourcePackImportSelection> selectInspected({
+    required ResourcePackInspectedArchive proof,
+    required Iterable<ResourcePackRef> roots,
+    Iterable<String> smartTilePatternIds = const [],
+  }) async {
+    if (!identical(proof._owner, this)) {
+      _fail(
+        'inspection_owner_invalid',
+        'The inspection belongs to another session.',
+      );
+    }
+    return _select(
+      archiveHandle: proof.payload.handle,
+      roots: roots,
+      smartTilePatternIds: smartTilePatternIds,
+      proof: proof,
+    );
+  }
+
+  Future<ResourcePackImportSelection> select({
+    required String archiveHandle,
+    required Iterable<ResourcePackRef> roots,
+    Iterable<String> smartTilePatternIds = const [],
+  }) => _select(
+    archiveHandle: archiveHandle,
+    roots: roots,
+    smartTilePatternIds: smartTilePatternIds,
+  );
+
+  Future<ResourcePackImportSelection> _select({
+    required String archiveHandle,
+    required Iterable<ResourcePackRef> roots,
+    Iterable<String> smartTilePatternIds = const [],
+    ResourcePackInspectedArchive? proof,
+  }) async {
     _checkOpen();
     await collectExpired();
     final lease = await store.retain(scope: scope, handle: archiveHandle);
     try {
-      final inspection = await store.withSource(
-          scope: scope,
-          handle: archiveHandle,
-          read: (source) =>
-              ResourcePackInspector(policy: policy).inspectSourceSync(source));
+      final certified = proof ?? await inspectArchive(archiveHandle);
+      if (certified.payload.handle != lease.payload.handle ||
+          certified.payload.rawSha256 != lease.payload.rawSha256 ||
+          certified.payload.byteLength != lease.payload.byteLength) {
+        _fail('archive_changed', 'The certified archive binding differs.');
+      }
+      await _sourceWorker(archiveHandle, _verifiedSource);
+      final inspection = certified.inspection;
       final selected = roots.toList()
         ..sort((a, b) => a.identity.compareTo(b.identity));
       final patterns = smartTilePatternIds.toList()..sort();
@@ -199,12 +280,14 @@ final class ResourcePackImportPreparer {
     }
   }
 
-  Future<ResourcePackPreparedImport> prepare(
-      {required String selectionHandle,
-      required String selectionRevision,
-      required String expectedRevision,
-      ResourcePackConflictPolicy conflictPolicy =
-          ResourcePackConflictPolicy.preserveProject}) async {
+  Future<ResourcePackPreparedImport> prepare({
+    required String selectionHandle,
+    required String selectionRevision,
+    required String expectedRevision,
+    ResourcePackConflictPolicy conflictPolicy =
+        ResourcePackConflictPolicy.preserveProject,
+    void Function()? checkCancelled,
+  }) async {
     _checkOpen();
     await collectExpired();
     final selection = _selections[selectionHandle];
@@ -214,6 +297,7 @@ final class ResourcePackImportPreparer {
     if (selection.revision != selectionRevision) {
       _fail('selection_stale', 'The immutable selection revision differs.');
     }
+    checkCancelled?.call();
     final snapshot = await loadSnapshot();
     if (snapshot.revision != expectedRevision) {
       _fail('project_stale', 'The target project revision differs.');
@@ -269,7 +353,7 @@ final class ResourcePackImportPreparer {
         ? AssetCatalog()
         : AssetCatalog.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(assetCatalogBytes)) as Map));
-    final projection = ResourcePackImportProjection(
+    var projection = ResourcePackImportProjection(
         inspection: inspection,
         closure: closure,
         copyOrdinal: ordinal,
@@ -283,7 +367,7 @@ final class ResourcePackImportPreparer {
         }
       }
     }
-    projection.project();
+    projection = await Isolate.run(_projectionWorker(projection));
     final leases = <FileBackedPayloadLease>[];
     try {
       leases.add(await store.retain(
@@ -303,81 +387,65 @@ final class ResourcePackImportPreparer {
         ...neededLicenses
       };
       final staged = <String, StoredFilePayload>{};
+      checkCancelled?.call();
+      final certifiedEntries = await _sourceWorker(
+        selection._archiveLease.payload.handle,
+        _archiveEntriesWorker(inspection, policy),
+      );
+      checkCancelled?.call();
       await store.withSource(
-          scope: scope,
-          handle: selection._archiveLease.payload.handle,
-          read: (source) async {
-            final certified =
-                ResourcePackInspector(policy: policy).inspectSourceSync(source);
-            if (certified.archiveRawSha256 != inspection.archiveRawSha256 ||
-                CanonicalJson.encode(certified.catalog.toJson()) !=
-                    CanonicalJson.encode(inspection.catalog.toJson())) {
-              _fail('archive_changed',
-                  'The inspected archive changed before preparation.');
+        scope: scope,
+        handle: selection._archiveLease.payload.handle,
+        read: (source) async {
+          final entries = certifiedEntries;
+          final inventory = {
+            for (final file in inspection.manifest.content.files)
+              file.path: file,
+          };
+          for (final path in archivePaths.toList()..sort()) {
+            checkCancelled?.call();
+            final entry = entries[path];
+            final descriptor = inventory[path];
+            if (entry == null || descriptor == null) {
+              _fail(
+                'archive_inventory_invalid',
+                'A prepared source is absent from the certified archive.',
+              );
             }
-            final allowedPaths = {
-              'manifest.json',
-              inspection.manifest.content.catalog.path,
-              ...inspection.manifest.content.files.map((f) => f.path)
-            };
-            final table = RandomAccessZipStructureReader(
-                    const GamePackageSecurityPolicy(),
-                    entryNameValidator: (name) {
-              if (!allowedPaths.contains(name)) {
-                _fail('archive_inventory_invalid',
-                    'A ZIP name is outside the certified inventory.');
-              }
-            },
-                    maxTotalEntries: policy.maxZipEntries,
-                    readChunkBytes: policy.maxChunkBytes)
-                .read(source);
-            final entries = {
-              for (final entry in table.entries) entry.name: entry
-            };
-            final inventory = {
-              for (final file in inspection.manifest.content.files)
-                file.path: file
-            };
-            for (final path in archivePaths.toList()..sort()) {
-              final entry = entries[path];
-              final descriptor = inventory[path];
-              if (entry == null || descriptor == null) {
-                _fail('archive_inventory_invalid',
-                    'A prepared source is absent from the certified archive.');
-              }
-              final lease = await store.stage(
-                  scope: scope,
-                  chunks: _chunks(source, entry.dataOffset, entry.size,
-                      policy.maxChunkBytes),
-                  byteLength: descriptor.byteLength,
-                  expectedRawSha256: descriptor.rawSha256);
-              leases.add(lease);
-              staged[path] = lease.payload;
-            }
-          });
-      final filesById = {
-        for (final file in inspection.catalog.files)
-          projection.mapping[resourcePackNativeKey('file', file.id)]: file
-      };
-      await projection.certifyBorders(snapshot.manifest,
-          (tileset, assetId) async {
-        final binding = filesById[assetId];
-        if (binding == null) {
-          _fail('border_source_missing',
-              'A Border source is outside the selected closure.');
-        }
-        return _readStored(staged[binding.archivePath]!);
-      }, (tileset, assetId) async {
-        final binding =
-            inspection.catalog.files.where((f) => f.id == assetId).firstOrNull;
-        if (binding == null || !staged.containsKey(binding.archivePath)) {
-          _fail('border_source_missing',
-              'A portable Border source is outside the selected closure.');
-        }
-        return _readStored(staged[binding.archivePath]!);
-      });
-      final conflicts =
-          _definitionConflicts(snapshot.manifest, projection, previous);
+            final lease = await store.stage(
+              scope: scope,
+              chunks: _chunks(
+                source,
+                entry.dataOffset,
+                entry.size,
+                policy.maxChunkBytes,
+              ),
+              byteLength: descriptor.byteLength,
+              expectedRawSha256: descriptor.rawSha256,
+              checkCancelled: checkCancelled,
+            );
+            leases.add(lease);
+            staged[path] = lease.payload;
+          }
+        },
+      );
+      checkCancelled?.call();
+      projection = await _sourceWorker(
+        selection._archiveLease.payload.handle,
+        _borderWorker(
+          projection,
+          snapshot.manifest,
+          inspection,
+          certifiedEntries,
+          policy.maxChunkBytes,
+        ),
+      );
+      checkCancelled?.call();
+      final conflicts = _definitionConflicts(
+        snapshot.manifest,
+        projection,
+        previous,
+      );
       final records = <AssetRecord>[...assets.records];
       final outputs = <_Output>[];
       final newBlobs = <String>{};
@@ -469,6 +537,7 @@ final class ResourcePackImportPreparer {
         _fail('project_stale', 'The project changed during preparation.');
       }
       _checkOpen();
+      checkCancelled?.call();
       final handle = _next('prepared');
       _prepared[handle] = value;
       leases.clear();
@@ -572,18 +641,6 @@ final class ResourcePackImportPreparer {
               _chunks(source, 0, source.length, policy.maxChunkBytes),
               storageKey: path,
               byteLength: payload.byteLength));
-  Future<List<int>> _readStored(StoredFilePayload payload) => store.withSource(
-      scope: scope,
-      handle: payload.handle,
-      read: (source) async {
-        final bytes = <int>[];
-        await for (final chunk
-            in _chunks(source, 0, source.length, policy.maxChunkBytes)) {
-          bytes.addAll(chunk);
-        }
-        return bytes;
-      });
-
   Future<AuthoringMutationDraft> buildDraft(
       AuthoringPlanningContext context, String handle) async {
     _checkOpen();
@@ -1123,3 +1180,98 @@ ProjectManifest _merge(
         installation
       ]));
 }
+
+bool _verifiedSource(RandomAccessPackageSource source) => true;
+
+Map<String, dynamic> Function(RandomAccessPackageSource) _archiveEntriesWorker(
+  ResourcePackInspection inspection,
+  ResourcePackSecurityPolicy policy,
+) => (source) {
+  final certified = ResourcePackInspector(policy: policy)
+      .inspectSourceSync(source);
+  if (certified.archiveRawSha256 != inspection.archiveRawSha256) {
+    _fail(
+      'archive_changed',
+      'The inspected archive changed before preparation.',
+    );
+  }
+  final allowed = {
+    'manifest.json',
+    inspection.manifest.content.catalog.path,
+    ...inspection.manifest.content.files.map((file) => file.path),
+  };
+  return {
+    for (final entry in RandomAccessZipStructureReader(
+      const GamePackageSecurityPolicy(),
+      entryNameValidator: (name) {
+        if (!allowed.contains(name)) {
+          _fail('archive_inventory_invalid', 'ZIP inventory differs.');
+        }
+      },
+      maxTotalEntries: policy.maxZipEntries,
+      readChunkBytes: policy.maxChunkBytes,
+    ).read(source).entries)
+      entry.name: entry,
+  };
+};
+
+ResourcePackImportProjection Function() _projectionWorker(
+  ResourcePackImportProjection projection,
+) => () {
+  projection.project();
+  return projection;
+};
+
+Future<ResourcePackImportProjection> Function(RandomAccessPackageSource)
+_borderWorker(
+  ResourcePackImportProjection projection,
+  ProjectManifest target,
+  ResourcePackInspection inspection,
+  Map<String, dynamic> entries,
+  int chunkBytes,
+) => (source) async {
+  List<int> read(String path) {
+    final entry = entries[path];
+    if (entry == null) {
+      _fail(
+        'border_source_missing',
+        'A Border source is outside the certified inventory.',
+      );
+    }
+    final bytes = BytesBuilder(copy: false);
+    for (var offset = 0; offset < (entry.size as int); offset += chunkBytes) {
+      bytes.add(
+        source.readAtSync(
+          (entry.dataOffset as int) + offset,
+          min(chunkBytes, (entry.size as int) - offset),
+        ),
+      );
+    }
+    return bytes.takeBytes();
+  }
+
+  final mapped = {
+    for (final file in inspection.catalog.files)
+      projection.mapping[resourcePackNativeKey('file', file.id)]: file,
+  };
+  await projection.certifyBorders(
+    target,
+    (tileset, assetId) async {
+      final binding = mapped[assetId];
+      if (binding == null) {
+        _fail('border_source_missing', 'A mapped Border source is absent.');
+      }
+      return read(binding.archivePath);
+    },
+    (tileset, assetId) async {
+      final binding = inspection.catalog.files
+          .where((file) => file.id == assetId)
+          .firstOrNull;
+      if (binding == null) {
+        _fail('border_source_missing', 'A portable Border source is absent.');
+      }
+      return read(binding.archivePath);
+    },
+  );
+  return projection;
+};

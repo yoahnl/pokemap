@@ -1,3 +1,4 @@
+import { resourcePackResult } from "./resource_packs.js";
 import { type McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
@@ -107,7 +108,7 @@ export function registerReadOnlyTools(
       annotations: readOnlyAnnotations,
     },
     async ({ projectHandle, ...request }) =>
-      authoringResult(() =>
+      (request.resourceKind.startsWith("resourcePack") ? resourcePackResult : authoringResult)(() =>
         authoring.request("query", { projectHandle, request }),
       ),
   );

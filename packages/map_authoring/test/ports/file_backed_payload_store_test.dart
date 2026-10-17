@@ -43,6 +43,46 @@ void main() {
   Future<File> source(String name, List<int> bytes) =>
       File('${sources.path}/$name').writeAsBytes(bytes);
 
+  test(
+    'immediate job pin survives owner release and expiry until settlement',
+    () async {
+      final owner = await store.stageFile(
+        scope: scope,
+        sourcePath: (await source('queued', [1, 2, 3])).path,
+      );
+      final pin = store.retainForJob(
+        scope: scope,
+        handle: owner.payload.handle,
+      );
+      await store.release(scope: scope, leaseId: owner.leaseId);
+      now = now.add(Duration(days: 1));
+      await store.collectExpired();
+      expect(
+        await store.withSource(
+          scope: scope,
+          handle: pin.payload.handle,
+          read: (source) => source.readAtSync(0, 3),
+        ),
+        [1, 2, 3],
+      );
+      expect(
+        () => store.retainForJob(scope: other, handle: pin.payload.handle),
+        throwsA(isA<FileBackedPayloadException>()),
+      );
+      await store.release(scope: scope, leaseId: pin.leaseId);
+      now = now.add(Duration(days: 1));
+      await store.collectExpired();
+      await expectLater(
+        store.withSource(
+          scope: scope,
+          handle: pin.payload.handle,
+          read: (source) => source.length,
+        ),
+        throwsA(isA<FileBackedPayloadException>()),
+      );
+    },
+  );
+
   test('stages a stable private snapshot with a raw digest and bounded reads',
       () async {
     final file = await source('pack', [1, 2, 3, 4, 5]);

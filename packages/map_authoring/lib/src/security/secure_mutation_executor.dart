@@ -82,8 +82,7 @@ final class SecureAuthoringMutationExecutor {
           history.projectId != projectId ||
           history.planId != planId ||
           history.operationId != operationId ||
-          canonicalAuthoringJson(history.receipt.toJson()) !=
-              canonicalAuthoringJson(receipt.toJson()) ||
+          !_matchesCanonicalHistoryReceipt(receipt, history.receipt) ||
           (action.id == 'resource_pack.import' &&
               history.bulkCapability == null)) {
         throw const AuthoringAuthorizationException(
@@ -193,6 +192,8 @@ final class SecureAuthoringMutationExecutor {
     required String operationId,
     AuthoringConfirmationToken? confirmationToken,
     AuthoringTransactionPrecondition? precondition,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
   }) async {
     late final AuthoringAuthorizationDecision authorization;
     AuthoringReceipt? replay;
@@ -305,6 +306,8 @@ final class SecureAuthoringMutationExecutor {
         scope: scope,
         operationId: operationId,
         precondition: precondition,
+        beforeReservation: beforeReservation,
+        preparationCheck: preparationCheck,
       );
     } on Object catch (error, stackTrace) {
       await _appendAudit(
@@ -420,4 +423,31 @@ AuthoringPermissionScope _securityPermissionForDescriptor(
     AuthoringPermission.secretUse => AuthoringPermissionScope.secretUse,
     AuthoringPermission.recoveryApply => AuthoringPermissionScope.recoveryApply,
   };
+}
+
+bool _matchesCanonicalHistoryReceipt(
+  AuthoringReceipt receipt,
+  AuthoringReceipt historical,
+) {
+  if (canonicalAuthoringJson(receipt.toJson()) ==
+      canonicalAuthoringJson(historical.toJson())) {
+    return true;
+  }
+  if (receipt.status != AuthoringReceiptStatus.recovered ||
+      historical.status != AuthoringReceiptStatus.applied ||
+      receipt.extensions['recoveryOutcome'] != 'resumed') {
+    return false;
+  }
+  final normalized = Map<String, Object?>.from(receipt.toJson());
+  final extensions = Map<String, Object?>.from(receipt.extensions)
+    ..remove('recoveryOutcome');
+  normalized['status'] = historical.status.name;
+  normalized['createdAtUtc'] = historical.createdAtUtc;
+  if (extensions.isEmpty) {
+    normalized.remove('extensions');
+  } else {
+    normalized['extensions'] = extensions;
+  }
+  return canonicalAuthoringJson(normalized) ==
+      canonicalAuthoringJson(historical.toJson());
 }

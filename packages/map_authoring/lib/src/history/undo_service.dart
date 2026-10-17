@@ -53,6 +53,12 @@ final class AuthoringPreparedHistoryMutation {
 
 /// Plans undo and redo as ordinary authorized forward transactions.
 final class AuthoringUndoService {
+  static AuthoringActionDescriptor descriptor(String id) {
+    if (id == 'history.undo') return _historyAction(id, 'Undo a history entry');
+    if (id == 'history.redo') return _historyAction(id, 'Redo a history entry');
+    throw ArgumentError.value(id, 'id');
+  }
+
   const AuthoringUndoService({
     required AuthoringHistoryStore history,
     required AuthoringContentBlobStore blobs,
@@ -112,6 +118,7 @@ final class AuthoringUndoService {
     required ProjectSnapshot snapshot,
     required String workspaceHandle,
     required String idempotencyKey,
+    String? operationId,
   }) async {
     final action = _historyAction('history.undo', 'Undo a history entry');
     final requestId = _validatedToken('request_');
@@ -133,6 +140,7 @@ final class AuthoringUndoService {
       request: request,
       snapshot: snapshot,
       buildChanges: (snapshot) => _reverseChangeSet(entry, snapshot),
+      requestedOperationId: operationId,
     );
   }
 
@@ -143,6 +151,7 @@ final class AuthoringUndoService {
     required ProjectSnapshot snapshot,
     required String workspaceHandle,
     required String idempotencyKey,
+    String? operationId,
   }) async {
     final action = _historyAction('history.redo', 'Redo a history entry');
     final requestId = _validatedToken('request_');
@@ -186,6 +195,7 @@ final class AuthoringUndoService {
       request: request,
       snapshot: snapshot,
       buildChanges: (snapshot) => _forwardChangeSet(entry, snapshot),
+      requestedOperationId: operationId,
       precondition: () => _requireHistoryHead(
         projectId: projectId,
         entryId: latest.entryId,
@@ -199,6 +209,8 @@ final class AuthoringUndoService {
   Future<AuthoringReceipt> apply(
     AuthoringPreparedHistoryMutation prepared, {
     AuthoringConfirmationToken? confirmationToken,
+    void Function()? beforeReservation,
+    void Function()? preparationCheck,
   }) {
     return _executor.apply(
       actor: prepared.actor,
@@ -210,6 +222,8 @@ final class AuthoringUndoService {
       operationId: prepared.operationId,
       confirmationToken: confirmationToken,
       precondition: prepared.precondition,
+      beforeReservation: beforeReservation,
+      preparationCheck: preparationCheck,
     );
   }
 
@@ -360,6 +374,7 @@ final class AuthoringUndoService {
     required Future<AuthoringChangeSet> Function(ProjectSnapshot snapshot)
         buildChanges,
     AuthoringTransactionPrecondition? precondition,
+    String? requestedOperationId,
   }) async {
     final plan = await _planner.plan(
       request: request,
@@ -369,7 +384,7 @@ final class AuthoringUndoService {
         preview: const {'historyForwardTransaction': true},
       ),
     );
-    final operationId = _validatedToken('operation_');
+    final operationId = requestedOperationId ?? _validatedToken('operation_');
     await bindCanonicalBulkHistoryPlan(
         history: _history,
         plan: plan,

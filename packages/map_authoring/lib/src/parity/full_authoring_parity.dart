@@ -1,3 +1,4 @@
+import '../api/resource_pack_transfer_api.dart';
 import '../application/map_mutation_dispatcher.dart';
 import '../registry/resource_kind_registry.dart';
 
@@ -512,7 +513,10 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if (actionId == 'resource_pack.import') {
     return const {
       AuthoringTransport.directApi:
-          'test/domains/assets/resource_pack_transaction_test.dart',
+          'test/application/resource_pack_transfer_api_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_resource_pack_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_pack_stdio.test.ts',
     };
   }
   if (actionId.startsWith('gameplay_zone.dive.')) {
@@ -1250,6 +1254,44 @@ AuthoringResourceParity _resourceParity(
   String owner, {
   required Set<String> queryableResourceKinds,
 }) {
+  if (resourcePackTemporaryKinds.contains(kind)) {
+    return AuthoringResourceParity(
+      resourceKind: kind,
+      canonicalOwnerKind: kind,
+      cells: {
+        for (final capability in AuthoringParityCapability.values)
+          capability:
+              const {
+                AuthoringParityCapability.inventory,
+                AuthoringParityCapability.read,
+                AuthoringParityCapability.fidelity,
+                AuthoringParityCapability.safety,
+                AuthoringParityCapability.agentUx,
+                AuthoringParityCapability.contract,
+              }.contains(capability)
+              ? (capability == AuthoringParityCapability.read &&
+                        !queryableResourceKinds.contains(kind)
+                    ? AuthoringParityCell.missing(
+                        capability: capability,
+                        justification:
+                            'The temporary pack query kind is unpublished.',
+                      )
+                    : AuthoringParityCell.supported(
+                        capability: capability,
+                        evidence: const [
+                          'api/resource_pack_transfer_api.dart',
+                          'test/application/resource_pack_transfer_api_test.dart',
+                          'test/tooling/jsonl_resource_pack_flow_test.dart',
+                          '../../tools/pokemap_mcp/test/resource_pack_stdio.test.ts',
+                        ],
+                      ))
+              : AuthoringParityCell.notApplicable(
+                  capability: capability,
+                  justification: 'Session-owned transfer views are temporary. Durable mutations, replay and history use resource_pack.import; Studio remains PARTIAL until P10/P11.',
+                ),
+      },
+    );
+  }
   final derived = kind == 'gamePackage';
   final sandbox = kind == 'gameSave';
   final visual = _visualResources.contains(kind);
@@ -1800,10 +1842,20 @@ const _semanticOwners = <String, String>{
   'itemUsage': 'itemCatalog',
   'itemReadiness': 'itemCatalog',
   'gameSave': 'sandboxPlayerState',
+  'resourcePackJob': 'resourcePackJob',
+  'resourcePackInspection': 'resourcePackInspection',
+  'resourcePackEntry': 'resourcePackEntry',
+  'resourcePackSelection': 'resourcePackSelection',
+  'resourcePackPreview': 'resourcePackPreview',
   'gamePackage': 'project',
 };
 
 const _requiredDirectReadResourceKinds = <String>{
+  'resourcePackJob',
+  'resourcePackInspection',
+  'resourcePackEntry',
+  'resourcePackSelection',
+  'resourcePackPreview',
   ..._resourceLibraryMetadataKinds,
   'element',
   'model3d',

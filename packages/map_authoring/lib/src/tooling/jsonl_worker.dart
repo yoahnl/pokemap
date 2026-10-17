@@ -1,3 +1,6 @@
+import '../api/resource_pack_transfer_api.dart';
+import '../application/resource_pack_job_service.dart';
+import '../ports/file_backed_payload_store.dart';
 import '../domains/assets/resource_pack_import_preparer.dart';
 import '../transactions/file_idempotency_store.dart';
 import 'dart:async';
@@ -56,17 +59,19 @@ final class JsonlWorker {
   JsonlWorker({
     required AuthoringReadApiPort api,
     AuthoringMutationApiPort? mutations,
+    ResourcePackTransferApiPort? resourcePacks,
     ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
     ProjectCreationBootstrapApiPort? projectCreation,
     GamePackageExportApiPort? gameExport,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
     this.gameExportTimeout = const Duration(minutes: 2),
-  })  : _api = api,
-        _mutations = mutations,
-        _projectBootstrap = projectBootstrap,
-        _projectCreation = projectCreation,
-        _gameExport = gameExport {
+  }) : _api = api,
+       _mutations = mutations,
+       _resourcePacks = resourcePacks,
+       _projectBootstrap = projectBootstrap,
+       _projectCreation = projectCreation,
+       _gameExport = gameExport {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -90,14 +95,28 @@ final class JsonlWorker {
     }
   }
 
+  final Set<WorkspaceHandle> _openedWorkspaces = {};
+  Future<void>? _closing;
   final AuthoringReadApiPort _api;
   final AuthoringMutationApiPort? _mutations;
+  final ResourcePackTransferApiPort? _resourcePacks;
   final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
   final ProjectCreationBootstrapApiPort? _projectCreation;
   final GamePackageExportApiPort? _gameExport;
   final int maxInputBytes;
   final Duration commandTimeout;
   final Duration gameExportTimeout;
+
+  Future<void> close() => _closing ??= _closeWorkspaces();
+
+  Future<void> _closeWorkspaces() async {
+    for (final workspace in _openedWorkspaces.toList()) {
+      await _resourcePacks?.closeTransferWorkspace(workspace);
+      await _mutations?.detachWorkspace(workspace);
+      await _api.close(workspace);
+      _openedWorkspaces.remove(workspace);
+    }
+  }
 
   Future<String> processLine(String line) async {
     var requestId = 'invalid';
@@ -113,9 +132,12 @@ final class JsonlWorker {
       }
       final decoded = _decodeRequestObject(line);
       final rawId = decoded['id'];
-      if (rawId is String && rawId.trim().isNotEmpty) {
-        requestId = rawId.trim();
+      if (rawId is! String || rawId.trim().isEmpty ||
+          utf8.encode(rawId).length > 128) {
+        throw const _WorkerRequestException('worker.request_id_invalid',
+            'The correlation identity must contain between 1 and 128 UTF-8 bytes.');
       }
+      requestId = rawId.trim();
       rejectUnknownContractKeys(decoded, const {'id', 'command', 'args'});
       requestId = requireContractString(decoded['id'], 'id');
       final command = requireContractString(decoded['command'], 'command');
@@ -233,6 +255,21 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: AuthoringErrorCode.invalidRequest,
+        domainCode: error.code,
+        message: error.message,
+      );
+    } on ResourcePackTransferException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.invalidRequest,
+        domainCode: error.code,
+        message: error.message,
+        details: error.details,
+      );
+    } on FileBackedPayloadException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
         domainCode: error.code,
         message: error.message,
       );
@@ -437,6 +474,12 @@ final class JsonlWorker {
     Map<String, dynamic> args, {
     bool Function()? isCancelled,
   }) async {
+    if (_closing != null) {
+      throw const _WorkerRequestException(
+        'worker.closed',
+        'The worker is closing.',
+      );
+    }
     switch (command) {
       case 'describe':
         rejectUnknownContractKeys(args, const {});
@@ -447,7 +490,17 @@ final class JsonlWorker {
             requireContractString(args['projectRoot'], 'args.projectRoot');
         final opened = await _api.open(projectRoot);
         final mutations = _mutations;
-        if (mutations == null) return opened;
+        if (mutations == null) {
+          _openedWorkspaces.add(
+            WorkspaceHandle(
+              requireContractString(
+                opened['workspaceHandle'],
+                'workspaceHandle',
+              ),
+            ),
+          );
+          return opened;
+        }
         final workspaceHandle = WorkspaceHandle(
           requireContractString(
             opened['workspaceHandle'],
@@ -467,7 +520,16 @@ final class JsonlWorker {
           await _api.close(workspaceHandle);
           rethrow;
         }
-        return Map.unmodifiable({...opened, 'readOnly': false});
+        _openedWorkspaces.add(workspaceHandle);
+        final pending = await _resourcePacks?.transfer(
+          projectHandle,
+          verb: 'recovery_status',
+        );
+        return Map.unmodifiable({
+          ...opened,
+          'readOnly': pending?['recoveryRequired'] == true,
+          if (pending != null) 'resourcePackRecovery': pending,
+        });
       case 'project_bootstrap_inspect':
         rejectUnknownContractKeys(args, const {'projectRoot'});
         return _bootstrapApi().inspect(
@@ -509,21 +571,38 @@ final class JsonlWorker {
             'args.confirmation',
           ),
         );
+      case 'resource_pack':
+        rejectUnknownContractKeys(args, const {
+          'projectHandle',
+          'verb',
+          'input',
+        });
+        final packs = _resourcePacks;
+        if (packs == null) throw const _UnsupportedWorkerCommand();
+        return packs.transfer(
+          ProjectHandle(
+            requireContractString(args['projectHandle'], 'projectHandle'),
+          ),
+          verb: requireContractString(args['verb'], 'verb'),
+          input: _jsonObject(args['input'], 'input'),
+        );
       case 'query':
         rejectUnknownContractKeys(
           args,
           const {'projectHandle', 'request'},
         );
-        final request = _jsonObject(args['request'], 'args.request');
-        return _api.query(
-          ProjectHandle(
-            requireContractString(
-              args['projectHandle'],
-              'args.projectHandle',
-            ),
-          ),
-          AuthoringQueryRequest.fromJson(request),
+        final request = AuthoringQueryRequest.fromJson(
+          _jsonObject(args['request'], 'args.request'),
         );
+        final project = ProjectHandle(
+          requireContractString(args['projectHandle'], 'args.projectHandle'),
+        );
+        if (resourcePackTemporaryKinds.contains(request.resourceKind)) {
+          final packs = _resourcePacks;
+          if (packs == null) throw const _UnsupportedWorkerCommand();
+          return packs.queryTransfer(project, request);
+        }
+        return _api.query(project, request);
       case 'validate':
         rejectUnknownContractKeys(
           args,
@@ -548,6 +627,8 @@ final class JsonlWorker {
             'args.workspaceHandle',
           ),
         );
+        _openedWorkspaces.remove(workspaceHandle);
+        await _resourcePacks?.closeTransferWorkspace(workspaceHandle);
         await _mutations?.detachWorkspace(workspaceHandle);
         return _api.close(workspaceHandle);
       case 'game_export':
@@ -605,6 +686,15 @@ final class JsonlWorker {
             'confirmationToken',
           },
         );
+        await _resourcePacks?.requireSynchronousOperationAllowed(
+          _projectHandle(args),
+          operation: 'apply',
+          planId: requireContractString(args['planId'], 'args.planId'),
+          operationId: requireContractString(
+            args['operationId'],
+            'args.operationId',
+          ),
+        );
         return _mutationApi().apply(
           _projectHandle(args),
           planId: requireContractString(args['planId'], 'args.planId'),
@@ -619,6 +709,11 @@ final class JsonlWorker {
         rejectUnknownContractKeys(
           args,
           const {'projectHandle', 'entryId', 'idempotencyKey'},
+        );
+        await _resourcePacks?.requireSynchronousOperationAllowed(
+          _projectHandle(args),
+          operation: 'undo',
+          entryId: requireContractString(args['entryId'], 'args.entryId'),
         );
         return _mutationApi().undo(
           _projectHandle(args),
@@ -649,6 +744,14 @@ final class JsonlWorker {
         rejectUnknownContractKeys(
           args,
           const {'projectHandle', 'operationId'},
+        );
+        await _resourcePacks?.requireSynchronousOperationAllowed(
+          _projectHandle(args),
+          operation: 'recover',
+          operationId: requireContractString(
+            args['operationId'],
+            'args.operationId',
+          ),
         );
         return _mutationApi().recover(
           _projectHandle(args),
@@ -690,94 +793,97 @@ final class JsonlWorker {
     if (mutations == null &&
         bootstrap == null &&
         gameExport == null &&
-        creation == null) {
+        creation == null &&
+        _resourcePacks == null) {
       return read;
     }
     final mutation = mutations?.describeMutations();
-    final commands = <Map<String, Object?>>[
-      for (final command in read['commands']! as List)
-        Map<String, Object?>.from(command as Map),
+    final commands =
+        <Map<String, Object?>>[
+          for (final command in read['commands']! as List)
+            Map<String, Object?>.from(command as Map),
+          if (mutation != null)
+            for (final command in mutation['commands']! as List)
+              Map<String, Object?>.from(command as Map),
+          if (bootstrap != null)
+            const {
+              'id': 'project_bootstrap_inspect',
+              'summary': 'Inspect a project before opening it.',
+            },
+          if (bootstrap != null)
+            const {
+              'id': 'project_bootstrap_repair',
+              'summary': 'Repair a missing explicit Pokemon ruleset.',
+            },
+          if (creation != null)
+            const {
+              'id': 'project_create_preview',
+              'actionId': 'project.create',
+              'summary': 'Preview a new project inside a configured parent root without writing.',
+              'templates': ['empty', 'playable'],
+              'tileSizes': [16, 32, 48],
+              'dimensions': ['twoD', 'threeD'],
+              'defaultDimension': 'twoD',
+              'mapInstanceRetentionPolicy': {
+                'schemaVersion': 1,
+                'dimension': 'twoD',
+                'templates': ['empty'],
+                'fields': [
+                  'viewportWidthTiles',
+                  'viewportHeightTiles',
+                  'marginTiles',
+                  'clampViewportToMapIds',
+                ],
+                'integerMaximum': 2147483647,
+                'confirmationBinding': 'exactPolicy',
+              },
+              'threeDTemplates': ['empty'],
+              'spatialCamera': {
+                'mode': 'fixed',
+                'fields': [
+                  'pitchDegrees',
+                  'yawDegrees',
+                  'fieldOfViewDegrees',
+                  'distance',
+                ],
+              },
+            },
+          if (creation != null)
+            const {
+              'id': 'project_create',
+              'actionId': 'project.create',
+              'summary': 'Create the exact previewed new project after opaque confirmation.',
+              'undoable': false,
+              'replacesExisting': false,
+            },
+          if (_resourcePacks != null)
+            const {
+              'id': 'resource_pack',
+              'summary': 'Run scoped asynchronous native pack transfers.',
+            },
+          if (gameExport != null)
+            const {
+              'id': 'game_export',
+              'summary': 'Build and write an .avelunegame package for local testing or certified publication.',
+              'modes': ['publication', 'localTest'],
+              'defaultMode': 'publication',
+            },
+        ]..sort(
+          (left, right) =>
+              (left['id']! as String).compareTo(right['id']! as String),
+        );
+    return freezeContractJsonObject({
+      ...read,
+      'protocol': 'pokemap.authoring.v1',
+      'readOnly': false,
+      'commands': commands,
+      if (_resourcePacks != null)
+        'resourcePackTransfer': resourcePackTransferContract,
+      if (mutation != null) 'mutationActions': mutation['actions'],
       if (mutation != null)
-        for (final command in mutation['commands']! as List)
-          Map<String, Object?>.from(command as Map),
-      if (bootstrap != null)
-        const {
-          'id': 'project_bootstrap_inspect',
-          'summary': 'Inspect a project before opening it.',
-        },
-      if (bootstrap != null)
-        const {
-          'id': 'project_bootstrap_repair',
-          'summary': 'Repair a missing explicit Pokemon ruleset.',
-        },
-      if (creation != null)
-        const {
-          'id': 'project_create_preview',
-          'actionId': 'project.create',
-          'summary':
-              'Preview a new project inside a configured parent root without writing.',
-          'templates': ['empty', 'playable'],
-          'tileSizes': [16, 32, 48],
-          'dimensions': ['twoD', 'threeD'],
-          'defaultDimension': 'twoD',
-          'mapInstanceRetentionPolicy': {
-            'schemaVersion': 1,
-            'dimension': 'twoD',
-            'templates': ['empty'],
-            'fields': [
-              'viewportWidthTiles',
-              'viewportHeightTiles',
-              'marginTiles',
-              'clampViewportToMapIds'
-            ],
-            'integerMaximum': 2147483647,
-            'confirmationBinding': 'exactPolicy',
-          },
-          'threeDTemplates': ['empty'],
-          'spatialCamera': {
-            'mode': 'fixed',
-            'fields': [
-              'pitchDegrees',
-              'yawDegrees',
-              'fieldOfViewDegrees',
-              'distance'
-            ]
-          },
-        },
-      if (creation != null)
-        const {
-          'id': 'project_create',
-          'actionId': 'project.create',
-          'summary':
-              'Create the exact previewed new project after opaque confirmation.',
-          'undoable': false,
-          'replacesExisting': false,
-        },
-      if (gameExport != null)
-        const {
-          'id': 'game_export',
-          'summary':
-              'Build and write an .avelunegame package for local testing or certified publication.',
-          'modes': ['publication', 'localTest'],
-          'defaultMode': 'publication',
-        },
-    ]..sort(
-        (left, right) =>
-            (left['id']! as String).compareTo(right['id']! as String),
-      );
-    return freezeContractJsonObject(
-      {
-        ...read,
-        'protocol': 'pokemap.authoring.v1',
-        'readOnly': false,
-        'commands': commands,
-        if (mutation != null) 'mutationActions': mutation['actions'],
-        if (mutation != null)
-          'multiFileGuarantee': mutation['multiFileGuarantee'],
-        if (mutation != null) 'fullParity': mutation['fullParity'],
-      },
-      field: 'describe',
-    );
+        'multiFileGuarantee': mutation['multiFileGuarantee'],
+      if (mutation != null) 'fullParity': mutation['fullParity'],
+    }, field: 'describe');
   }
 }
 

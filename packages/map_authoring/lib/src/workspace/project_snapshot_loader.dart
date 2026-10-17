@@ -1,4 +1,5 @@
 import '../transactions/local_authoring_payload.dart';
+import '../support/authoring_fingerprint.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
@@ -382,6 +383,20 @@ final class ProjectSnapshotLoader {
             resourceRevision: observed.resourceRevision,
             contentDigest: observed.contentDigest));
   }
+
+  Future<String> resourcePackManifestRevision(
+    ProjectHandle projectHandle,
+  ) async {
+    final bytes = await _handles
+        .resolveProject(projectHandle)
+        .readBytes('project.json');
+    return computeAuthoringBytesFingerprint(bytes, logicalName: 'project.json');
+  }
+
+  Stream<List<int>> openResourceStream(
+    ProjectHandle projectHandle,
+    String storageKey,
+  ) => _handles.resolveProject(projectHandle).openRead(storageKey);
 
   Future<List<int>?> readRetainedAssetBlob(
     ProjectHandle projectHandle,
