@@ -685,7 +685,7 @@ final class _ProjectionBuilder {
           'nativeFieldObstacle': {
             ...fieldObstacleBindings[event.identity]!.toJson(),
             'nativeActivation': 'intrinsicTypedObjectAfterAuthorityReadyAndNoEventMatch',
-            'nativeExecutionQualified': true,
+            'nativeExecutionQualified': !fieldObstacleBindings[event.identity]!.pendingCatalogCompanion,
           },
         if (gaps.isEmpty && _isNativeCenterPc(event))
           'nativeCenterService': {
@@ -1075,6 +1075,12 @@ final class _ProjectionBuilder {
       'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedFieldObstacles': eventEvidence.any((row) => row.containsKey('nativeFieldObstacle')),
+      'pendingCatalogCompanions': [
+        for (final event in analysis.events)
+          if (gapsByEvent[event.identity]?.isEmpty == true &&
+              fieldObstacleBindings[event.identity]?.pendingCatalogCompanion == true)
+            fieldObstacleBindings[event.identity]!.catalogCompanionRequest(_key(event, 'anchor'))!,
+      ],
       'usedPickupBindingKeys': usedPickupBindingKeys.toList()..sort(),
     };
     final artifact = NativeArtifact(
@@ -1839,7 +1845,8 @@ final class _ProjectionBuilder {
   Set<String> _fieldObstacleGaps(SourceEventDefinition event) {
     final binding = fieldObstacleBindings[event.identity];
     if (binding == null) return {fieldObstacleRefusals[event.identity] ?? 'sourceFieldObstacleBindingsMissing'};
-    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event,
+        nativeMapId: maps[event.sourceMapId]?.id)) {
       return {'sourceFieldObstacleSourceBindingInvalid'};
     }
     final map = maps[event.sourceMapId]!;

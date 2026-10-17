@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_event_execution_context.dart';
@@ -34,7 +35,9 @@ final class SourceEventStudyComposition {
 }
 
 final class SourceEventStudyComposer {
-  const SourceEventStudyComposer();
+  const SourceEventStudyComposer({this.nativeEncounterQualification});
+
+  final NativeEncounterCatalogQualification? nativeEncounterQualification;
 
   Future<SourceEventStudyComposition?> compose({
     required NormalizedSourceProject source,
@@ -300,6 +303,8 @@ final class SourceEventStudyComposer {
       fieldObstacles = await const SourceFieldObstacleBindingResolver().read(
           source: source, analysis: analysis, files: recording,
           sourceMapIds: nativeMaps.keys.toSet(),
+          nativeEncounterQualification: nativeEncounterQualification,
+          nativeMapIds: {for (final entry in nativeMaps.entries) entry.key: entry.value.id},
           limits: limits, cancellation: cancellation);
       if (fieldObstacles != null) {
         fieldBindingEvidence.add({'status': 'attested', ...fieldObstacles.evidence});

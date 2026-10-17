@@ -6,8 +6,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
 import 'native_project_writer.dart';
+import 'native_encounter_catalog_bindings.dart';
 
-enum SourceRockSmashEncounterStatus { absent, requiredUnqualified }
+enum SourceRockSmashEncounterStatus { absent, requiredUnqualified, requiredQualified }
 
 final class SourceFieldObstacleBindingUnavailable implements Exception {
   const SourceFieldObstacleBindingUnavailable(this.reason);
@@ -22,7 +23,9 @@ final class SourceFieldObstacleBinding {
     required this.profileHash, required this.sourceRegion,
     required this.badgePolicyRegion, required this.sourceBadgeIndex,
     required this.nativeBadge, required this.nativeElement,
-    required this.rockSmashEncounterStatus});
+    required this.rockSmashEncounterStatus,
+    _NativeRockSmashEncounterBinding? nativeRockSmashEncounterBinding})
+      : _nativeRockSmashEncounterBinding = nativeRockSmashEncounterBinding;
 
   final ConverterId eventIdentity;
   final int sourceMapId, sourceEventId, x, y;
@@ -32,6 +35,30 @@ final class SourceFieldObstacleBinding {
   final BadgeDefinition nativeBadge;
   final ProjectElementEntry nativeElement;
   final SourceRockSmashEncounterStatus? rockSmashEncounterStatus;
+  final _NativeRockSmashEncounterBinding? _nativeRockSmashEncounterBinding;
+
+  String? get nativeRockSmashEncounterTableId => _nativeRockSmashEncounterBinding?.tableId;
+  bool get pendingCatalogCompanion => _nativeRockSmashEncounterBinding != null;
+
+  Map<String, Object?>? catalogCompanionRequest(String entityId) {
+    final binding = _nativeRockSmashEncounterBinding;
+    if (binding == null) return null;
+    return {
+      'sourceEventIdentity': eventIdentity.value,
+      'sourceMapId': sourceMapId,
+      'actionId': 'entity.set_interactive_encounter',
+      'parameters': {
+        'mapId': binding.nativeMapId,
+        'entityId': entityId,
+        'interactiveEncounter': MapEntityInteractiveEncounterData(
+          encounterTableId: binding.tableId,
+          trigger: InteractiveEncounterTrigger.afterRockSmash,
+          reusePolicy: InteractiveEncounterReusePolicy.oncePerMapInstance,
+        ).toJson(),
+      },
+      'binding': toJson(),
+    };
+  }
 
   FieldObstacleKind get nativeKind => switch (program.obstacleKind) {
     SourceFieldObstacleKind.cutTree => FieldObstacleKind.cutTree,
@@ -41,7 +68,7 @@ final class SourceFieldObstacleBinding {
 
   bool isBoundToEvent({required NormalizedSourceProject source,
       required SourceEventAnalysis analysis,
-      required SourceEventDefinition event}) =>
+      required SourceEventDefinition event, String? nativeMapId}) =>
       source.snapshot.canonicalHash == sourceSnapshotHash &&
       source.canonicalHash == normalizationHash &&
       analysis.profile.canonicalHash == profileHash &&
@@ -53,7 +80,10 @@ final class SourceFieldObstacleBinding {
       canonicalJsonOf((event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).toJson()) ==
           canonicalJsonOf(program.toJson()) &&
       (nativeKind != FieldObstacleKind.rockSmashRock ||
-          rockSmashEncounterStatus == SourceRockSmashEncounterStatus.absent);
+          rockSmashEncounterStatus == SourceRockSmashEncounterStatus.absent ||
+          rockSmashEncounterStatus == SourceRockSmashEncounterStatus.requiredQualified &&
+              _nativeRockSmashEncounterBinding?.isBoundTo(
+                  source: source, sourceMapId: sourceMapId, nativeMapId: nativeMapId) == true);
 
   MapEntity createNativeEntity(String entityId) => MapEntity(
       id: entityId, name: nativeElement.name, kind: MapEntityKind.custom,
@@ -73,6 +103,10 @@ final class SourceFieldObstacleBinding {
     'initialPlayerBadgeGranted': false, 'initialPlayerAbilityUnlocked': false,
     'nativeRequiresNonFaintedPokemon': true, 'nativeResetPolicy': 'mapInstance',
     'rockSmashEncounterStatus': rockSmashEncounterStatus?.name,
+    'nativeRockSmashEncounterTableId': nativeRockSmashEncounterTableId,
+    'nativeRockSmashEncounterBinding': _nativeRockSmashEncounterBinding?.toJson(),
+    'pendingCatalogCompanion': pendingCatalogCompanion,
+    'nativeExecutionQualified': !pendingCatalogCompanion,
     'fullSourceFieldObstacleParityQualified': false,
     'audioSourceParity': false, 'sourceScriptsExecuted': 0,
   };
@@ -121,6 +155,8 @@ final class SourceFieldObstacleBindingResolver {
     required SourceEventAnalysis analysis,
     required SourceFilePort files,
     Set<int>? sourceMapIds,
+    NativeEncounterCatalogQualification? nativeEncounterQualification,
+    Map<int, String>? nativeMapIds,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -198,6 +234,7 @@ final class SourceFieldObstacleBindingResolver {
       }
     }
     final smashStatuses = <int, SourceRockSmashEncounterStatus>{};
+    final nativeSmashBindings = <int, _NativeRockSmashEncounterBinding>{};
     if (events.any((event) =>
         (event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
             SourceFieldObstacleKind.rockSmashRock && !refusals.containsKey(event.identity))) {
@@ -219,11 +256,55 @@ final class SourceFieldObstacleBindingResolver {
             presentMaps.add(entry.identity!.sourceMapId!);
           }
         }
+        if (nativeEncounterQualification != null &&
+            nativeEncounterQualification.admitsAutomaticSource(source.snapshot) &&
+            nativeMapIds != null && nativeMapIds.isNotEmpty &&
+            nativeMapIds.length <= 8 &&
+            nativeMapIds.keys.every((mapId) => source.maps.any((map) => map.map.sourceMapId == mapId)) &&
+            nativeMapIds.values.every((mapId) => mapId.trim().isNotEmpty && mapId.trim() == mapId) &&
+            nativeMapIds.values.toSet().length == nativeMapIds.length) {
+          final catalogPbs = await const SourcePbsParser().read(
+              snapshot: source.snapshot, files: _FieldObstacleWitnessFiles(source, exact),
+              families: const {SourcePbsFamily.species, SourcePbsFamily.encounters},
+              cancellation: cancellation);
+          try {
+            final native = await const NativeEncounterCatalogBindings().bind(
+                snapshot: source.snapshot, source: catalogPbs,
+                files: _FieldObstacleWitnessFiles(source, exact), nativeMapIds: nativeMapIds,
+                sourceMapNames: {for (final map in source.maps) map.map.sourceMapId: map.map.name},
+                qualification: nativeEncounterQualification,
+                ratePolicy: NativeEncounterRatePolicy.adaptSourceBasePercentToNativeConstantChance,
+                fishingRatePolicy: NativeEncounterFishingRatePolicy.adaptSourceBaseFishingBiteChanceToNativeTable,
+                cancellation: cancellation);
+            for (final mapId in presentMaps) {
+              final tableId = native.tableIdsBySourceMethod[mapId]?['RockSmash'];
+              final table = native.tables.where((table) => table.id == tableId).singleOrNull;
+              final rows = (native.evidence['tables'] as List).cast<Map>().where((row) =>
+                  row['method'] == 'RockSmash' && row['nativeTableId'] == tableId &&
+                  (row['sourceIdentity'] as Map)['sourceMapId'] == mapId &&
+                  (row['sourceIdentity'] as Map)['namespace'] == source.snapshot.logicalProjectNamespace.value &&
+                  row['nativeMapId'] == nativeMapIds[mapId]).toList();
+              if (tableId == null || table == null || rows.length != 1 ||
+                  table.encounterKind != EncounterKind.special || table.entries.isEmpty) {
+                continue;
+              }
+              nativeSmashBindings[mapId] = _NativeRockSmashEncounterBinding(
+                  source: source, sourceMapId: mapId, nativeMapId: nativeMapIds[mapId]!,
+                  table: table, tableBinding: Map<String, Object?>.from(rows.single),
+                  qualification: nativeEncounterQualification,
+                  sourcePbsHash: catalogPbs.canonicalHash);
+            }
+          } on ContractError catch (error) {
+            if (!error.code.startsWith('native_encounter.')) rethrow;
+          }
+        }
         for (final event in events) {
           final program = event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode;
           if (program.obstacleKind != SourceFieldObstacleKind.rockSmashRock) continue;
           final status = presentMaps.contains(event.sourceMapId)
-              ? SourceRockSmashEncounterStatus.requiredUnqualified
+              ? nativeSmashBindings.containsKey(event.sourceMapId)
+                  ? SourceRockSmashEncounterStatus.requiredQualified
+                  : SourceRockSmashEncounterStatus.requiredUnqualified
               : SourceRockSmashEncounterStatus.absent;
           smashStatuses[event.sourceMapId] = status;
           if (status == SourceRockSmashEncounterStatus.requiredUnqualified) {
@@ -325,8 +406,10 @@ final class SourceFieldObstacleBindingResolver {
           normalizationHash:source.canonicalHash,profileHash:analysis.profile.canonicalHash,
           sourceRegion:policy.$1,badgePolicyRegion:policy.$2,sourceBadgeIndex:policy.$3,
           nativeBadge:badge,nativeElement:elements[program.obstacleKind]!,
-          rockSmashEncounterStatus:smashStatuses[event.sourceMapId]);
-      if (!binding.isBoundToEvent(source:source,analysis:analysis,event:event)) {
+          rockSmashEncounterStatus:smashStatuses[event.sourceMapId],
+          nativeRockSmashEncounterBinding: program.obstacleKind == SourceFieldObstacleKind.rockSmashRock
+              ? nativeSmashBindings[event.sourceMapId] : null);
+      if (!binding.isBoundToEvent(source:source,analysis:analysis,event:event,nativeMapId:nativeMapIds?[event.sourceMapId])) {
         throw const SourceFieldObstacleBindingUnavailable('event_binding_unqualified');
       }
       bindings[event.identity] = binding;
@@ -337,6 +420,8 @@ final class SourceFieldObstacleBindingResolver {
           'kind':'sourceFieldObstacleBindings','version':1,
           'sourceFiles':[for(final file in witnesses.values) file.toJson()],
           'events':[for(final binding in bindings.values) binding.toJson()],
+          'pendingCatalogCompanions':[for(final binding in bindings.values)
+            if(binding.pendingCatalogCompanion) binding.toJson()],
           'refusals':[for(final entry in refusals.entries)
             {'sourceEventIdentity':entry.key.value,'reason':entry.value}],
           'rockSmashEncounters':[for(final entry in smashStatuses.entries)
@@ -348,6 +433,51 @@ final class SourceFieldObstacleBindingResolver {
           'sourcePixelsResampled':false,'audioSourceParity':false,'sourceScriptsExecuted':0,
         });
   }
+}
+
+final class _NativeRockSmashEncounterBinding {
+  _NativeRockSmashEncounterBinding({
+    required NormalizedSourceProject source,
+    required this.sourceMapId,
+    required this.nativeMapId,
+    required ProjectEncounterTable table,
+    required Map<String, Object?> tableBinding,
+    required this.qualification,
+    required Sha256Hash sourcePbsHash,
+  }) : sourceSnapshotHash = source.snapshot.canonicalHash,
+       normalizationHash = source.canonicalHash,
+       tableId = table.id,
+       encodedEvidence = canonicalJsonOf({
+         'sourceSnapshotHash': source.snapshot.canonicalHash.value,
+         'normalizationHash': source.canonicalHash.value,
+         'sourcePbsHash': sourcePbsHash.value,
+         'sourceMapId': sourceMapId,
+         'nativeMapId': nativeMapId,
+         'nativeTableId': table.id,
+         'nativeTableHash': canonicalHashOf(table.toJson()).value,
+         'nativeTable': table.toJson(),
+         'tableBinding': tableBinding,
+         'qualification': qualification.evidence,
+         'nativeTrigger': 'afterRockSmash',
+         'nativeReusePolicy': 'oncePerMapInstance',
+         'nativeExecutionQualified': false,
+         'pendingCatalogCompanion': true,
+       });
+
+  final int sourceMapId;
+  final String nativeMapId, tableId, encodedEvidence;
+  final Sha256Hash sourceSnapshotHash, normalizationHash;
+  final NativeEncounterCatalogQualification qualification;
+
+  bool isBoundTo({required NormalizedSourceProject source,
+      required int sourceMapId, required String? nativeMapId}) =>
+      source.snapshot.canonicalHash == sourceSnapshotHash &&
+      source.canonicalHash == normalizationHash &&
+      this.sourceMapId == sourceMapId && this.nativeMapId == nativeMapId &&
+      qualification.admitsAutomaticSource(source.snapshot);
+
+  Map<String, Object?> toJson() =>
+      (jsonDecode(encodedEvidence) as Map).cast<String, Object?>();
 }
 
 final class _FieldObstacleWitnessFiles implements SourceFilePort {
