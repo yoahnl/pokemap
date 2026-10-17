@@ -691,12 +691,14 @@ final class SourceDirectedJumpStudyComposer {
       }
     }
     if (candidates.isEmpty) return finish();
-    final minimumActions = 3 +
-        {
-          for (final list in candidates.values)
-            for (final j in list) j.key
-        }.length +
-        candidates.values.fold<int>(0, (n, list) => n + list.length + 2);
+    final minimumActions = 1 +
+        3 *
+            {
+              for (final list in candidates.values)
+                for (final j in list) j.key
+            }.length +
+        candidates.values.fold<int>(
+            0, (n, list) => n + 2 * list.map((j) => j.key).toSet().length);
     if (minimumActions > limits.maxMutations) {
       throw const NativeWriteException('jumps.quota.mutations',
           'Directed Border actions exceed the explicit mutation budget');
@@ -766,7 +768,7 @@ final class SourceDirectedJumpStudyComposer {
     }
     final categoryId = _id(
         'ac15-ledge-category', source.snapshot.logicalProjectNamespace.value);
-    final catalogId = _id('ac15-ledge-blueprint', [...glyphs.keys].join(':'));
+    String catalogIdFor(String key) => _id('ac15-ledge-blueprint', key);
     final category =
         ProjectElementCategory(id: categoryId, name: 'Rebords source');
     final elements = [
@@ -786,7 +788,8 @@ final class SourceDirectedJumpStudyComposer {
     ];
     if (project.elementCategories.any((c) => c.id == categoryId) ||
         project.elements.any((e) => elements.any((g) => g.id == e.id)) ||
-        project.borderCatalog.recordById(catalogId) != null) {
+        glyphs.keys.any((key) =>
+            project.borderCatalog.recordById(catalogIdFor(key)) != null)) {
       throw const NativeWriteException('jumps.identity_conflict',
           'Source Border identities already exist in the native context');
     }
@@ -812,7 +815,7 @@ final class SourceDirectedJumpStudyComposer {
             parameters: parameters,
             limits: limits);
     resourceMutations.add(action(
-        '$catalogId-category',
+        '$categoryId-category',
         'element_category.upsert',
         resourceRefs,
         [categoryId],
@@ -821,24 +824,25 @@ final class SourceDirectedJumpStudyComposer {
       resourceMutations.add(action(element.id, 'element.upsert', resourceRefs,
           [element.id], {'element': element.toJson()}));
     }
-    final definition = BorderBlueprintDraftDefinition(
-        name: 'Rebords source sud',
-        previewSeed: BorderSignedInt64.fromInt(0),
-        template: BorderBlueprintTemplate.ledgeLine,
-        sortOrder: 0,
-        categoryId: categoryId,
-        defaults: BorderGenerationParams(
-            irregularityPermille: 0,
-            detailDensityPermille: 0,
-            variationPermille: 1000,
-            maxOverlapPx: 0,
-            gapTolerancePx: 0,
-            depthRows: 1,
-            allowAutoRotation: false),
-        jumpBehavior: BorderJumpBehavior(
-            side: BorderLineSide.primary, durationMs: 500, peakHeightPx: 24),
-        primitives: [
-          for (final g in glyphs.values)
+    for (final g in glyphs.values) {
+      final catalogId = catalogIdFor(g.jump.key);
+      final definition = BorderBlueprintDraftDefinition(
+          name: 'Rebords source sud',
+          previewSeed: BorderSignedInt64.fromInt(0),
+          template: BorderBlueprintTemplate.ledgeLine,
+          sortOrder: 0,
+          categoryId: categoryId,
+          defaults: BorderGenerationParams(
+              irregularityPermille: 0,
+              detailDensityPermille: 0,
+              variationPermille: 1000,
+              maxOverlapPx: 0,
+              gapTolerancePx: 0,
+              depthRows: 1,
+              allowAutoRotation: false),
+          jumpBehavior: BorderJumpBehavior(
+              side: BorderLineSide.primary, durationMs: 500, peakHeightPx: 24),
+          primitives: [
             BorderPrimitiveDraft(
                 id: g.jump.key,
                 sourceElementId: g.elementId,
@@ -849,23 +853,22 @@ final class SourceDirectedJumpStudyComposer {
                 transforms: BorderTransformPolicy(
                     allowFlipX: false, allowedQuarterTurns: [0]),
                 currentMetrics: g.preparation.metrics)
-        ]);
-    final record = BorderBlueprintRecord(
-        id: catalogId,
-        draft: BorderBlueprintDraft(baseRevision: 0, definition: definition));
-    for (final mutation in [
-      action(
-          '$catalogId-draft', 'border.blueprint.draft.upsert', resourceRefs, [
-        catalogId
-      ], {
-        'record': encodeBorderBlueprintRecordJson(record, formatVersion: 7)
-      }),
-      action('$catalogId-publish', 'border.blueprint.publish', resourceRefs, [
-        catalogId
-      ], {
-        'blueprintId': catalogId,
-        'primitiveSources': [
-          for (final g in glyphs.values)
+          ]);
+      final record = BorderBlueprintRecord(
+          id: catalogId,
+          draft: BorderBlueprintDraft(baseRevision: 0, definition: definition));
+      for (final mutation in [
+        action(
+            '$catalogId-draft', 'border.blueprint.draft.upsert', resourceRefs, [
+          catalogId
+        ], {
+          'record': encodeBorderBlueprintRecordJson(record, formatVersion: 7)
+        }),
+        action('$catalogId-publish', 'border.blueprint.publish', resourceRefs, [
+          catalogId
+        ], {
+          'blueprintId': catalogId,
+          'primitiveSources': [
             {
               'primitiveId': g.jump.key,
               'frames': [
@@ -883,28 +886,30 @@ final class SourceDirectedJumpStudyComposer {
                 }
               ]
             }
-        ],
-        'groundSources': [],
-        'acceptedWarningCodes': []
-      }),
-    ]) {
-      final replay = await replaySourceBorderMutation(
-          project: manifest,
-          resources: borderResources,
-          maps: {for (final m in maps.values) m.id: m},
-          mutation: mutation,
-          artifacts: artifacts.values,
-          limits: limits,
-          cancellation: cancellation);
-      manifest = replay.project;
-      borderResources = replay.resources;
-      resourceMutations.add(mutation);
+          ],
+          'groundSources': [],
+          'acceptedWarningCodes': []
+        }),
+      ]) {
+        final replay = await replaySourceBorderMutation(
+            project: manifest,
+            resources: borderResources,
+            maps: const {},
+            mutation: mutation,
+            artifacts: artifacts.values,
+            limits: limits,
+            cancellation: cancellation);
+        manifest = replay.project;
+        borderResources = replay.resources;
+        resourceMutations.add(mutation);
+      }
     }
     evidence['glyphs'] = [
       for (final g in glyphs.values)
         {
           'crop': g.jump.crop.toJson(),
           'primitiveId': g.jump.key,
+          'blueprintId': catalogIdFor(g.jump.key),
           'elementId': g.elementId,
           'snapshotId': g.preparation.snapshot.id,
           'snapshotFingerprint': g.preparation.snapshot.contentFingerprint,
@@ -917,7 +922,8 @@ final class SourceDirectedJumpStudyComposer {
       final jumps = candidates[id] ?? [];
       if (jumps.isEmpty) continue;
       final layerId = _id('ac15-ledge-layer', source.mapIdentity(id).value);
-      final featureId = _id('ac15-ledge-feature', source.mapIdentity(id).value);
+      String featureIdFor(String key) =>
+          _id('ac15-ledge-feature', '${source.mapIdentity(id).value}:$key');
       final emptyLayer = MapLayer.border(
           id: layerId,
           name: 'Rebords source Z1',
@@ -950,80 +956,86 @@ final class SourceDirectedJumpStudyComposer {
           List<_Jump> entries) async {
         var map = seedMap(entries);
         final local = <NativeMutation>[];
-        final geometry = BorderStrokeGeometry(
-            alignment: BorderStrokeAlignment.gridEdges,
-            strokes: _strokes(entries, source.mapIdentity(id).value));
-        final refs = [
-          source.mapIdentity(id),
-          ...dataRefs,
-          ...{for (final j in entries) j.crop.imageFileId}
-        ];
-        Future<void> apply(String suffix, String actionId,
-            Map<String, Object?> parameters) async {
-          final mutation = action('$featureId-$suffix', actionId, refs, [
-            map.id
-          ], {
-            'mapId': map.id,
-            'layerId': layerId,
-            'featureId': featureId,
-            ...parameters
-          });
-          final replay = await replaySourceBorderMutation(
-              project: manifest,
-              resources: borderResources,
-              maps: {map.id: map},
-              mutation: mutation,
-              artifacts: artifacts.values,
-              limits: limits,
-              cancellation: cancellation);
-          map = replay.maps[map.id]!;
-          local.add(mutation);
+        final byGlyph = <String, List<_Jump>>{};
+        for (final entry in entries) {
+          (byGlyph[entry.key] ??= []).add(entry);
         }
-
-        await apply('create', 'border_layer.feature_create', {
-          'name': 'Rebords source',
-          'blueprintId': catalogId,
-          'seed': '0',
-          'geometry':
-              encodeBorderFeatureGeometryJson(geometry, formatVersion: 3),
-          'lineSide': 'primary'
-        });
-        final feature = map.layers
-            .whereType<BorderLayer>()
-            .singleWhere((l) => l.id == layerId)
-            .content
-            .features
-            .single;
-        final request = BorderResolutionRequest(
-            mapSize: map.size,
-            tileSizePx: const GridSize(width: 32, height: 32),
-            blueprintId: catalogId,
-            blueprintRevision:
-                manifest.borderCatalog.recordById(catalogId)!.latestPublished!,
-            feature: feature,
-            visualSnapshots: manifest.borderCatalog.visualSnapshots,
-            resolverVersion: borderResolverVersion);
-        final edges = <GridPos, List<LedgeLineEdgePlacementEvidence>>{};
-        for (final edge in resolveLedgeLineBorderWithEvidence(request).edges) {
-          edges.putIfAbsent(edge.expectedCarrierCell, () => []).add(edge);
-        }
-        for (final j in entries) {
-          final edge = edges[GridPos(x: j.x, y: j.y)] ?? [];
-          if (edge.length != 1) {
-            throw const NativeWriteException('jumps.border_owner',
-                'Source unit edge must resolve one exact canonical carrier');
+        for (final group in byGlyph.entries) {
+          final featureId = featureIdFor(group.key);
+          final catalogId = catalogIdFor(group.key);
+          final geometry = BorderStrokeGeometry(
+              alignment: BorderStrokeAlignment.gridEdges,
+              strokes: _strokes(group.value, source.mapIdentity(id).value));
+          final refs = [
+            source.mapIdentity(id),
+            ...dataRefs,
+            ...{for (final j in group.value) j.crop.imageFileId}
+          ];
+          Future<void> apply(String suffix, String actionId,
+              Map<String, Object?> parameters) async {
+            final mutation = action('$featureId-$suffix', actionId, refs, [
+              map.id
+            ], {
+              'mapId': map.id,
+              'layerId': layerId,
+              'featureId': featureId,
+              ...parameters
+            });
+            final replay = await replaySourceBorderMutation(
+                project: manifest,
+                resources: borderResources,
+                maps: {map.id: map},
+                mutation: mutation,
+                artifacts: artifacts.values,
+                limits: limits,
+                cancellation: cancellation);
+            map = replay.maps[map.id]!;
+            local.add(mutation);
           }
-          await apply('replacement-${j.x}-${j.y}',
-              'border_layer.feature_set_replacement', {
-            'slotKey': edge.single.finalPlacement.slotKey,
-            'primitiveId': j.key
+
+          await apply('create', 'border_layer.feature_create', {
+            'name': 'Rebords source',
+            'blueprintId': catalogId,
+            'seed': '0',
+            'geometry':
+                encodeBorderFeatureGeometryJson(geometry, formatVersion: 3),
+            'lineSide': 'primary'
+          });
+          final feature = map.layers
+              .whereType<BorderLayer>()
+              .singleWhere((l) => l.id == layerId)
+              .content
+              .features
+              .singleWhere((feature) => feature.id == featureId);
+          final request = BorderResolutionRequest(
+              mapSize: map.size,
+              tileSizePx: const GridSize(width: 32, height: 32),
+              blueprintId: catalogId,
+              blueprintRevision: manifest.borderCatalog
+                  .recordById(catalogId)!
+                  .latestPublished!,
+              feature: feature,
+              visualSnapshots: manifest.borderCatalog.visualSnapshots,
+              resolverVersion: borderResolverVersion);
+          final edges = <GridPos, List<LedgeLineEdgePlacementEvidence>>{};
+          for (final edge
+              in resolveLedgeLineBorderWithEvidence(request).edges) {
+            edges.putIfAbsent(edge.expectedCarrierCell, () => []).add(edge);
+          }
+          for (final j in group.value) {
+            final edge = edges[GridPos(x: j.x, y: j.y)] ?? [];
+            if (edge.length != 1 ||
+                edge.single.finalPlacement.primitiveId != j.key) {
+              throw const NativeWriteException('jumps.border_owner',
+                  'Source unit edge must resolve one exact canonical carrier');
+            }
+          }
+          await apply('materialize', 'border_layer.materialize_apply', {
+            'tileWidthPx': 32,
+            'tileHeightPx': 32,
+            'resolverVersion': borderResolverVersion
           });
         }
-        await apply('materialize', 'border_layer.materialize_apply', {
-          'tileWidthPx': 32,
-          'tileHeightPx': 32,
-          'resolverVersion': borderResolverVersion
-        });
         return (map: map, actions: local);
       }
 
@@ -1049,7 +1061,7 @@ final class SourceDirectedJumpStudyComposer {
         if (start.worldStaticObstaclesCollidePlayerCollisionRect() ||
             result is! Jumped ||
             result.plan.binding.owner.layerId != layerId ||
-            result.plan.binding.owner.featureId != featureId ||
+            result.plan.binding.owner.featureId != featureIdFor(j.key) ||
             result.plan.viaPos != GridPos(x: j.x, y: j.y) ||
             result.plan.landingPos != GridPos(x: j.x, y: j.y + 1)) {
           j.row['nativeStatus'] = 'preservedOnly';
@@ -1073,7 +1085,8 @@ final class SourceDirectedJumpStudyComposer {
         j.row.addAll({
           'nativeStatus': 'imported',
           'layerId': layerId,
-          'featureId': featureId,
+          'featureId': featureIdFor(j.key),
+          'blueprintId': catalogIdFor(j.key),
           'primitiveId': j.key,
           'sourceZ': 1,
           'sourceTileId': j.crop.sourceTileId,

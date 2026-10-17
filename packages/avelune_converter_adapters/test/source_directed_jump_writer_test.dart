@@ -5,7 +5,6 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart'
     hide PixelSize;
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
@@ -48,21 +47,19 @@ void main() {
             .single
             .content
             .features
-            .single
-            .materialization!
-            .placements,
+            .expand((feature) => feature.materialization!.placements),
         hasLength(3));
   }, skip: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null);
   test(
-      'writer rejects an exact-source replacement changed to another valid primitive',
+      'writer rejects an exact-source feature changed to another valid glyph blueprint',
       () async {
     final f = await jumpFixture();
     final draft = (await const SourceSemanticStudyComposer().compose(
         source: f.base.draft!.source, base: f.base, files: f.fixture.files))!;
-    final replacements = draft.mutations
-        .where((m) => m.actionId == 'border_layer.feature_set_replacement')
+    final features = draft.mutations
+        .where((m) => m.actionId == 'border_layer.feature_create')
         .toList();
-    final changed = replacements.first;
+    final changed = features.first;
     final tampered = NativeProjectDraft(
         source: draft.source,
         projectName: draft.projectName,
@@ -82,7 +79,7 @@ void main() {
                   targetEntityIds: m.targetEntityIds,
                   parameters: {
                     ...m.parameters,
-                    'primitiveId': replacements.last.parameters['primitiveId']
+                    'blueprintId': features.last.parameters['blueprintId']
                   })
             else
               m
@@ -146,9 +143,7 @@ void main() {
                 .single
                 .content
                 .features
-                .single
-                .materialization!
-                .placements,
+                .expand((feature) => feature.materialization!.placements),
             hasLength(3));
         expect(native.manifest.borderCatalog.visualSnapshots, hasLength(3));
         final catalog = AssetCatalog.fromJson(jsonDecode(
@@ -162,7 +157,8 @@ void main() {
             .where((entry) => entry.actionId == 'tileset.import_image')) {
           final artifact = rebound.artifacts.singleWhere(
               (entry) => entry.handle == mutation.parameters['artifactHandle']);
-          final record = catalog.require('image_${mutation.parameters['tilesetId']}');
+          final record =
+              catalog.require('image_${mutation.parameters['tilesetId']}');
           expect(record.artifact, artifact.reference);
           expect(
               await File('${receipt.projectPath}/${record.logicalPath}')
@@ -178,7 +174,8 @@ void main() {
         for (final snapshot in native.manifest.borderCatalog.visualSnapshots) {
           final path = snapshot.frames.single.relativeAssetPath;
           final record = catalog.findByLogicalPath(path)!;
-          final bytes = await File('${receipt.projectPath}/$path').readAsBytes();
+          final bytes =
+              await File('${receipt.projectPath}/$path').readAsBytes();
           expect(ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png'),
               record.artifact);
           expect(
@@ -443,7 +440,6 @@ void main() {
       await output.delete(recursive: true);
     }
   }, skip: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null);
-
 }
 
 typedef _BorderPublication = ({

@@ -308,8 +308,8 @@ void main() {
         expect(native.manifest.settings.defaultPlayerCharacterId,
             native.manifest.characters.single.id);
         expect(
-            native.manifest.borderCatalog.records.single.latestPublished!
-                .definition.primitives,
+            native.manifest.borderCatalog.records.expand(
+                (record) => record.latestPublished!.definition.primitives),
             hasLength(3));
         final ledgeMap =
             native.maps.singleWhere((map) => map.id == draft.mapIds[98]);
@@ -318,9 +318,7 @@ void main() {
             .single
             .content
             .features
-            .single
-            .materialization!
-            .placements;
+            .expand((feature) => feature.materialization!.placements);
         expect(placements, hasLength(3));
         expect(placements.map((placement) => placement.topLeftWorldPx), [
           const BorderPixelPos(x: 32, y: 64),
@@ -386,19 +384,19 @@ void main() {
               receipt.assetHashes.map((id, hash) => MapEntry(id, hash.value))
         }))).value;
         expect(unchangedDraftHash,
-            'e4c2a9eca96eca1bd8a33f1523ea80fda582e21b8c14d83170ec20957d8a4602',
+            'a424dd6d4cadf31a7b9b62c6a07adbda30ecd51c7ef9d5a8e43a329b90413589',
             reason: 'Mutation contents, internal order, artifacts and evidence '
-                'match the compact occlusion atlas fixture');
+                'match the compact occlusion atlas and grouped ledge fixture');
         expect(nativeHash,
-            '73f63dd7546ecc7893f94d75a10c6bc0f2b09fe8ca3284b9ec9ca060ca7a6d89',
+            '3cf9097d0af43d686b0745d8515f7cf7335fba2419f295df5b22859981cf6bd2',
             reason: 'Strictly reopened native resources match the packed atlas '
-                'fixture');
-        expect(draft.mutations.length, lessThan(46));
+                'and grouped ledge fixture');
+        expect(draft.mutations.length, lessThan(51));
         expect(
             draft.mutations.length +
                 batchRows.values
                     .fold<int>(0, (sum, entries) => sum + entries.length - 1),
-            46);
+            51);
       } finally {
         opener.closeWorkspace(opened.workspaceHandle);
       }

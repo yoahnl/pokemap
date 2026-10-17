@@ -18,6 +18,7 @@ typedef JumpFixture = ({
 });
 Future<JumpFixture> jumpFixture(
     {int passage = 7,
+    int runLength = 3,
     List<LiteralFixtureEvent> events = const [],
     bool includeEventSystem = false,
     bool lowerTransparentPixel = false,
@@ -37,9 +38,11 @@ Future<JumpFixture> jumpFixture(
   }
   if (lowerTransparentPixel) atlas.setPixelRgba(1, 56, 0, 0, 0, 0);
   if (upperOpaquePixel) atlas.setPixelRgba(1, 33, 7, 11, 13, 255);
-  final middle = List<int>.filled(25, 0);
-  for (var x = 1; x <= 3; x++) {
-    middle[10 + x] = 391 + x;
+  final width = runLength + 2;
+  final cellCount = width * 5;
+  final middle = List<int>.filled(cellCount, 0);
+  for (var x = 1; x <= runLength; x++) {
+    middle[width * 2 + x] = 392 + (x - 1) % 3;
   }
   final fixture = await LiteralTileFixture.create(
     includeEventSystem: includeEventSystem,
@@ -88,9 +91,13 @@ Future<JumpFixture> jumpFixture(
     maps: [
       LiteralFixtureMap(
           id: 98,
-          width: 5,
+          width: width,
           height: 5,
-          layers: [List.filled(25, 384), middle, List.filled(25, 0)],
+          layers: [
+            List.filled(cellCount, 384),
+            middle,
+            List.filled(cellCount, 0)
+          ],
           events: events)
     ],
     tilesets: [
@@ -158,24 +165,88 @@ void main() {
   void qualified(String name, Future<void> Function() body) =>
       test(name, body, skip: scripts == null);
   qualified(
+      'long mixed source ledges use actions per glyph without per-cell replacement',
+      () async {
+    final f = await jumpFixture(runLength: 60);
+    const limits = NativeWriteLimits(maxMutations: 20);
+    final result = await composeJump(f, limits: limits);
+    expect(result.evidence['importedJumpCount'], 60);
+    expect(result.mutations.length, 16);
+    expect(result.mapMutations.map((m) => m.actionId), [
+      for (var i = 0; i < 3; i++) ...[
+        'border_layer.feature_create',
+        'border_layer.materialize_apply'
+      ]
+    ]);
+    final map = result.nativeMaps[98]!;
+    final features =
+        map.layers.whereType<BorderLayer>().single.content.features;
+    expect(features, hasLength(3));
+    expect(features.every((feature) => feature.overrides.isEmpty), isTrue);
+    final bindings = bindMaterializedBorderJumpFaces(
+        map: map,
+        project: result.project,
+        tileSize: const PixelSize(width: 32, height: 32));
+    expect(bindings.length, 60);
+    for (var x = 1; x <= 60; x++) {
+      final world = GameplayWorldState.initial(
+          map: map,
+          project: result.project,
+          playerPos: GridPos(x: x, y: 1),
+          tileWidth: 32,
+          tileHeight: 32);
+      final jumped = stepGameplayWorld(
+              world, const MoveIntent(Direction.south, pixelsPerStep: 32))
+          as Jumped;
+      final feature = features.singleWhere(
+          (feature) => feature.id == jumped.plan.binding.owner.featureId);
+      final primitive = result.project.borderCatalog
+          .recordById(feature.blueprintId)!
+          .latestPublished!
+          .definition
+          .primitives
+          .single;
+      final element = result.project.elements
+          .singleWhere((element) => element.id == primitive.sourceElementId);
+      expect(element.frames.single.source,
+          TilesetSourceRect(x: (x - 1) % 3, y: 1));
+      final reverse = stepGameplayWorld(
+          world.withPlayer(GameplayPlayerState.fromGridSpawn(
+              cell: GridPos(x: x, y: 3),
+              facing: Direction.north,
+              tileWidthPx: 32,
+              tileHeightPx: 32,
+              mapWidthCells: map.size.width,
+              mapHeightCells: map.size.height)),
+          const MoveIntent(Direction.north, pixelsPerStep: 32));
+      expect(reverse, isA<Blocked>());
+    }
+    await expectLater(
+        composeJump(f, limits: const NativeWriteLimits(maxMutations: 15)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'jumps.quota.mutations')));
+  });
+  qualified(
       'three original source variants become canonical Borders with exact owners and pixels',
       () async {
     final f = await jumpFixture();
     final result = await composeJump(f);
     expect(result.evidence['importedJumpCount'], 3);
     expect(result.project.borderCatalog.formatVersion, 7);
-    final revision =
-        result.project.borderCatalog.records.single.latestPublished!;
+    expect(result.project.borderCatalog.records, hasLength(3));
+    final revisions = result.project.borderCatalog.records
+        .map((record) => record.latestPublished!)
+        .toList();
+    final revision = revisions.first;
     expect(revision.definition.template, BorderBlueprintTemplate.ledgeLine);
     expect(revision.definition.jumpBehavior!.side, BorderLineSide.primary);
-    expect(revision.definition.primitives, hasLength(3));
+    expect(revisions.every((r) => r.definition.primitives.length == 1), isTrue);
     expect(
         result.mutations.map((m) => m.actionId),
         containsAllInOrder([
           'border.blueprint.draft.upsert',
           'border.blueprint.publish',
           'border_layer.feature_create',
-          'border_layer.feature_set_replacement',
           'border_layer.materialize_apply'
         ]));
     expect(result.mutations.any((m) => m.actionId == 'gameplay_zone.create'),
@@ -233,12 +304,14 @@ void main() {
           .single
           .content
           .features
-          .single;
+          .singleWhere(
+              (feature) => feature.id == step.plan.binding.owner.featureId);
       final placement = feature.materialization!.placements
           .singleWhere((p) => p.id == step.plan.binding.owner.placementId);
       expect(placement.transform.quarterTurns, 0);
       expect(placement.transform.flipX, false);
-      final primitive = revision.definition.primitives
+      final primitive = revisions
+          .expand((r) => r.definition.primitives)
           .singleWhere((p) => p.id == placement.primitiveId);
       final sourceElement = result.project.elements
           .singleWhere((e) => e.id == primitive.sourceElementId);
@@ -257,8 +330,8 @@ void main() {
     expect(result.evidence['importedJumpCount'], 3);
     final glyph = (result.evidence['glyphs'] as List)
         .singleWhere((g) => (g['crop'] as Map)['sourceTileId'] == 392) as Map;
-    final primitive = result.project.borderCatalog.records.single
-        .latestPublished!.definition.primitives
+    final primitive = result.project.borderCatalog.records
+        .expand((record) => record.latestPublished!.definition.primitives)
         .singleWhere((p) => p.id == glyph['primitiveId']);
     final mask = [
       for (var y = 0; y < 32; y++)
@@ -277,8 +350,8 @@ void main() {
     expect(result.evidence['importedJumpCount'], 3);
     final glyph = (result.evidence['glyphs'] as List)
         .singleWhere((g) => (g['crop'] as Map)['sourceTileId'] == 392) as Map;
-    final primitive = result.project.borderCatalog.records.single
-        .latestPublished!.definition.primitives
+    final primitive = result.project.borderCatalog.records
+        .expand((record) => record.latestPublished!.definition.primitives)
         .singleWhere((p) => p.id == glyph['primitiveId']);
     final mask = [
       for (var y = 0; y < 32; y++)
@@ -290,8 +363,12 @@ void main() {
         BorderPixelRect(x: 0, y: 1, width: 32, height: 31));
     expect(primitive.anchorPx, const BorderPixelPos(x: 16, y: 31));
     final map = result.nativeMaps[98]!;
-    final feature =
-        map.layers.whereType<BorderLayer>().single.content.features.single;
+    final feature = map.layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .singleWhere((feature) => feature.blueprintId == glyph['blueprintId']);
     final placement = feature.materialization!.placements
         .singleWhere((p) => p.primitiveId == primitive.id);
     expect(placement.topLeftWorldPx, const BorderPixelPos(x: 32, y: 64));
@@ -350,8 +427,8 @@ void main() {
           .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
       expect(native.loadDiagnostics, isEmpty);
       final map = native.mapById(draft.mapIds[98]!)!;
-      final primitive = native.manifest.borderCatalog.records.single
-          .latestPublished!.definition.primitives
+      final primitive = native.manifest.borderCatalog.records
+          .expand((record) => record.latestPublished!.definition.primitives)
           .singleWhere((p) => p.publishedMetrics.opaqueBounds.y == 1);
       final snapshot = native.manifest.borderCatalog.visualSnapshots
           .singleWhere((s) => s.id == primitive.visualSnapshotId);
