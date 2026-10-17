@@ -377,6 +377,7 @@ final class ProjectSnapshotLoader {
     return _LoadedProjectResource(
         relativePath: path,
         identity: identity,
+        observedIdentity: before,
         stored: ProjectStoredResource(
             byteLength: observed.byteLength,
             rawSha256: observed.rawSha256,
@@ -387,16 +388,16 @@ final class ProjectSnapshotLoader {
   Future<String> resourcePackManifestRevision(
     ProjectHandle projectHandle,
   ) async {
-    final bytes = await _handles
-        .resolveProject(projectHandle)
-        .readBytes('project.json');
+    final bytes =
+        await _handles.resolveProject(projectHandle).readBytes('project.json');
     return computeAuthoringBytesFingerprint(bytes, logicalName: 'project.json');
   }
 
   Stream<List<int>> openResourceStream(
     ProjectHandle projectHandle,
     String storageKey,
-  ) => _handles.resolveProject(projectHandle).openRead(storageKey);
+  ) =>
+      _handles.resolveProject(projectHandle).openRead(storageKey);
 
   Future<List<int>?> readRetainedAssetBlob(
     ProjectHandle projectHandle,
@@ -1079,6 +1080,12 @@ final class ProjectSnapshotLoader {
       for (final resource in resources) {
         identities[resource.relativePath] ??=
             await access.readResourceIdentity(resource.relativePath);
+        if (resource.observedIdentity != null &&
+            identities[resource.relativePath] != resource.observedIdentity) {
+          throw const ProjectSnapshotException(
+              'project.changed_during_snapshot',
+              'A certified resource changed before its snapshot was retained.');
+        }
       }
     }
     final identityKey = cache == null ||
@@ -1434,12 +1441,14 @@ final class _LoadedProjectResource {
     required this.identity,
     this.bytes,
     this.stored,
+    this.observedIdentity,
   });
 
   final String relativePath;
   final String identity;
   final ProjectResourceBytes? bytes;
   final ProjectStoredResource? stored;
+  final ProjectResourceIdentity? observedIdentity;
   int get byteLength => stored?.byteLength ?? bytes!.typedBytes.length;
 }
 

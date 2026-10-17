@@ -214,7 +214,8 @@ final class LocalProjectFileReader
         relativePath: relativePath,
         byteLength: stat.size,
         modifiedAtMicros: stat.modified.microsecondsSinceEpoch,
-        changedAtMicros: stat.changed.microsecondsSinceEpoch,
+        changedAtMicros:
+            Platform.isWindows ? null : stat.changed.microsecondsSinceEpoch,
       );
     } on FileSystemException {
       return null;
@@ -252,7 +253,8 @@ final class LocalProjectFileReader
           relativePath: canonicalRelativePath,
           byteLength: stat.size,
           modifiedAtMicros: stat.modified.microsecondsSinceEpoch,
-          changedAtMicros: stat.changed.microsecondsSinceEpoch,
+          changedAtMicros:
+              Platform.isWindows ? null : stat.changed.microsecondsSinceEpoch,
         ),
       );
     } on WorkspaceAccessException {

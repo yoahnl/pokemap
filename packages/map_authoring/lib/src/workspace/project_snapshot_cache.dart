@@ -397,6 +397,11 @@ final class ProjectSnapshotCache {
       final resourceIdentity = resourceIdentitiesByStorageKey[expected.key];
       final descriptor = entry.snapshot.storedResources[resourceIdentity];
       if (descriptor != null) {
+        if (descriptor.contentDigest != null &&
+            expected.value.changedAtMicros != null) {
+          final observed = await _readIdentity(access, expected.key);
+          return observed == expected.value;
+        }
         try {
           final observed = await inspectAuthoringPayload(
               access.openRead(expected.key),
