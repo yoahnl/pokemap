@@ -166,7 +166,7 @@ final class ConverterStudySettings {
           'workflow.destination.invalid', 'Invalid project name or folder.');
     }
     if (selectedSourceMapIds.isEmpty ||
-        selectedSourceMapIds.length > writeLimits.maxMutations ||
+        selectedSourceMapIds.length > writeLimits.maxMaps ||
         selectedSourceMapIds.length > normalizationLimits.maxMaps ||
         dependencyDecisions.length > writeLimits.maxMutations) {
       throw const ConverterWorkflowFailure('workflow.quota.selection',
@@ -1452,7 +1452,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
           }
         }
         if (wanted.length > settings.normalizationLimits.maxMaps ||
-            wanted.length > settings.writeLimits.maxMutations ||
+            wanted.length > settings.writeLimits.maxMaps ||
             !wanted.every(_availableMapIds(snapshot).contains)) {
           throw const ConverterWorkflowFailure('workflow.selection.invalid',
               'The selected or included map is missing or exceeds the budget.');

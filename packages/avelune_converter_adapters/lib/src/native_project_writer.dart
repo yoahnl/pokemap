@@ -49,12 +49,15 @@ final class NativeWriteLimits {
   final int maxMapCells;
   final ContractLimits jsonLimits;
 
+  int get maxMaps => maxMutations.clamp(1, 2048);
+  int get maxEntityReferences => maxMutations.clamp(1, 2048);
+
   void validate() => _validate();
 
   void _validate() {
     final values = [
       (maxArtifacts, 1024),
-      (maxMutations, 2048),
+      (maxMutations, 16384),
       (maxArtifactBytes, 67108864),
       (maxTotalArtifactBytes, 268435456),
       (maxTotalDraftJsonBytes, 268435456),
@@ -223,8 +226,8 @@ final class NativeMutation {
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits._validate();
-    if (sourceEntityIds.length > limits.maxMutations ||
-        targetEntityIds.length > limits.maxMutations) {
+    if (sourceEntityIds.length > limits.maxEntityReferences ||
+        targetEntityIds.length > limits.maxEntityReferences) {
       throw const NativeWriteException(
           'native.quota.references', 'Mutation reference budget exceeded');
     }
@@ -302,7 +305,7 @@ final class NativeProjectDraft {
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits._validate();
-    if (mapIds.length > limits.maxMutations ||
+    if (mapIds.length > limits.maxMaps ||
         artifacts.length + sourceArtifacts.length > limits.maxArtifacts ||
         nativeLogicalMutationCount(mutations) > limits.maxMutations) {
       final uniqueArtifacts = {
@@ -315,7 +318,7 @@ final class NativeProjectDraft {
           'totalArtifacts=${artifacts.length + sourceArtifacts.length}, '
           'uniqueArtifacts=$uniqueArtifacts, maxArtifacts=${limits.maxArtifacts}; '
           'mutations=${nativeLogicalMutationCount(mutations)}, maxMutations=${limits.maxMutations}; '
-          'maps=${mapIds.length}, maxMaps=${limits.maxMutations}.');
+          'maps=${mapIds.length}, maxMaps=${limits.maxMaps}.');
     }
     var total = 0;
     for (final artifact in [...artifacts, ...sourceArtifacts]) {
@@ -454,8 +457,8 @@ final class NativeProjectDraft {
   final mutationHashes = <String>[];
   for (var index = 0; index < mutations.length; index++) {
     final mutation = mutations[index];
-    if (mutation.sourceEntityIds.length > limits.maxMutations ||
-        mutation.targetEntityIds.length > limits.maxMutations) {
+    if (mutation.sourceEntityIds.length > limits.maxEntityReferences ||
+        mutation.targetEntityIds.length > limits.maxEntityReferences) {
       throw const NativeWriteException(
           'native.quota.references', 'Mutation reference budget exceeded');
     }
@@ -475,7 +478,7 @@ void _validateNativeDraftBinding(
   if (draft.artifacts.length + draft.sourceArtifacts.length >
           limits.maxArtifacts ||
       nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
-      draft.mapIds.length > limits.maxMutations) {
+      draft.mapIds.length > limits.maxMaps) {
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
   }
@@ -1115,7 +1118,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   if (draft.artifacts.length + draft.sourceArtifacts.length >
           limits.maxArtifacts ||
       nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
-      draft.mapIds.length > limits.maxMutations) {
+      draft.mapIds.length > limits.maxMaps) {
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
   }
@@ -1164,8 +1167,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         !_sameIds(mutation.targetEntityIds, operation.targetEntityIds) ||
         !operation.evidenceRefs.contains(draft.bindingEvidence) ||
         mutation.sourceEntityIds.isEmpty ||
-        mutation.sourceEntityIds.length > limits.maxMutations ||
-        mutation.targetEntityIds.length > limits.maxMutations) {
+        mutation.sourceEntityIds.length > limits.maxEntityReferences ||
+        mutation.targetEntityIds.length > limits.maxEntityReferences) {
       throw const NativeWriteException('native.operation.binding',
           'Native operation differs from its exact approved action, references or draft evidence');
     }

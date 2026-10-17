@@ -20,7 +20,25 @@ const sourceCatalogStudyWriteLimits = NativeWriteLimits(
   jsonLimits: ContractLimits(maxTextCodeUnits: 8388608),
 );
 
+const _sourceWorldStudyWriteLimits = NativeWriteLimits(
+  maxArtifacts: 1024,
+  maxMutations: 16384,
+  maxArtifactBytes: 67108864,
+  maxTotalArtifactBytes: 268435456,
+  maxTotalDraftJsonBytes: 268435456,
+  maxImagePixels: 16777216,
+  maxTotalImagePixels: 33554432,
+  maxMapCells: 4194304,
+  jsonLimits: ContractLimits(
+    maxDepth: 64,
+    maxNodes: 4000000,
+    maxStringCodeUnits: 1048576,
+    maxTextCodeUnits: 16777216,
+  ),
+);
+
 NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
+  if (selectedMapCount > 8) return _sourceWorldStudyWriteLimits;
   final mapCount = selectedMapCount.clamp(1, 8);
   return NativeWriteLimits(
     maxArtifacts:

@@ -94,8 +94,8 @@ NativeMutation? _makeBatch(List<Map<String, Object?>> components,
     }
     values.add(value);
   }
-  if (owners.length > limits.maxMutations ||
-      targets.length > limits.maxMutations ||
+  if (owners.length > limits.maxEntityReferences ||
+      targets.length > limits.maxEntityReferences ||
       (contract.$3.isEmpty && components.length * 2 + 1 > 500)) {
     return null;
   }
