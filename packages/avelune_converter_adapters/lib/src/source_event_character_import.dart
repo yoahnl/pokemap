@@ -40,9 +40,9 @@ final class SourceEventCharacterImport {
   String get assetId => 'image_$tilesetId';
   List<int> get outputBytes => artifact.bytes;
   int get nativeFrameWidthPx => 64;
-  int get nativeFrameHeightPx => 64;
+  int get nativeFrameHeightPx => character.frameHeight * 32;
   int get sourceOffsetXPx => 32 - frameWidthPx ~/ 2;
-  int get sourceOffsetYPx => 64 - frameHeightPx;
+  int get sourceOffsetYPx => nativeFrameHeightPx - frameHeightPx;
   int get depthOffsetPx => frameHeightPx > 32 ? 31 : 0;
   List<NativeArtifact> get artifacts => List.unmodifiable([artifact]);
   EntityFacing get facing => _facing(sourceDirection);
@@ -79,12 +79,12 @@ final class SourceEventCharacterImport {
           'rawSha256': artifact.rawSha256.value,
           'byteLength': outputBytes.length,
           'sheetWidth': 256,
-          'sheetHeight': 256,
+          'sheetHeight': nativeFrameHeightPx * 4,
           'frameWidthPx': nativeFrameWidthPx,
           'frameHeightPx': nativeFrameHeightPx,
           'sourceOffsetXPx': sourceOffsetXPx,
           'sourceOffsetYPx': sourceOffsetYPx,
-          'policy': 'transparent64PixelFramesRmxpOriginBottomAligned',
+          'policy': nativeFrameHeightPx == 64 ? 'transparent64PixelFramesRmxpOriginBottomAligned' : 'exactSourceElevator64x96FramesRmxpOriginBottomAligned',
           'requiredBy': 'overworldActorMinimumTwoTileFrame',
         },
         'initialFrame': {
@@ -198,7 +198,15 @@ final class SourceEventCharacterImporter {
           'The source character bytes differ from the attested snapshot.');
     }
     final bytes = Uint8List.fromList(rawBytes).asUnmodifiableView();
-    final (width, height) = _geometry(bytes, path, limits);
+    final exactElevator = charsetName == 'OBJ_FRLG_Elevator' &&
+        entry.sha256!.value ==
+            '03da059a831fb0a5e326f272fb3f7f2978cf33c47fc707c16cf3f0dcf8629bee';
+    final (width, height) =
+        _geometry(bytes, path, limits, exactElevator: exactElevator);
+    final nativeHeight = height == 320 ? 96 : 64;
+    if (limits.maxImagePixels < 256 * nativeHeight * 4) {
+      throw ContractError('source.event_character.image_limit', path, 'The native character atlas exceeds its image quota.');
+    }
     final outputBytes = _nativePixels(bytes, width, height, path);
     cancel.check();
     if (outputBytes.length > limits.maxArtifactBytes ||
@@ -230,7 +238,7 @@ final class SourceEventCharacterImporter {
       name: '$charsetName · pattern $sourcePattern',
       tilesetId: tilesetId,
       frameWidth: 2,
-      frameHeight: 2,
+      frameHeight: nativeHeight ~/ 32,
       tags: const ['sourceImported', 'sourceStaticEventCharacter'],
       animations: [
         for (final direction in const [2, 4, 6, 8])
@@ -243,9 +251,9 @@ final class SourceEventCharacterImporter {
               CharacterAnimationFrame(
                 source: TilesetSourceRect(
                   x: sourcePattern * 64,
-                  y: _row(direction) * 64,
+                  y: _row(direction) * nativeHeight,
                   width: 64,
-                  height: 64,
+                  height: nativeHeight,
                 ),
                 durationMs: 150,
               ),
@@ -337,7 +345,7 @@ int _row(int direction) => switch (direction) {
       _ => throw StateError('An admitted RMXP direction is required.'),
     };
 
-(int, int) _geometry(Uint8List bytes, String path, NativeWriteLimits limits) {
+(int, int) _geometry(Uint8List bytes, String path, NativeWriteLimits limits, {bool exactElevator = false}) {
   late final (int, int) dimensions;
   try {
     dimensions =
@@ -351,7 +359,8 @@ int _row(int direction) => switch (direction) {
         'The source character must be a bounded static PNG.');
   }
   final (width, height) = dimensions;
-  if (width % 4 != 0 || height % 4 != 0 || width > 256 || height > 256) {
+  if (width % 4 != 0 || height % 4 != 0 || width > 256 ||
+      (height > 256 && !(exactElevator && width == 128 && height == 320))) {
     throw ContractError('source.event_character.sheet_geometry', path,
         'The source must contain four columns and four rows with frames at most 64 pixels.');
   }
@@ -376,10 +385,11 @@ List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
   final frameWidth = width ~/ 4;
   final frameHeight = height ~/ 4;
   final offsetX = 32 - frameWidth ~/ 2;
-  final offsetY = 64 - frameHeight;
+  final nativeHeight = height == 320 ? 96 : 64;
+  final offsetY = nativeHeight - frameHeight;
   final raster = image.Image(
     width: 256,
-    height: 256,
+    height: nativeHeight * 4,
     numChannels: 4,
     format: source.format == image.Format.uint16
         ? image.Format.uint16
@@ -391,7 +401,7 @@ List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
         for (var x = 0; x < frameWidth; x++) {
           final pixel =
               source.getPixel(column * frameWidth + x, row * frameHeight + y);
-          raster.setPixelRgba(column * 64 + offsetX + x, row * 64 + offsetY + y,
+          raster.setPixelRgba(column * 64 + offsetX + x, row * nativeHeight + offsetY + y,
               pixel.r, pixel.g, pixel.b, pixel.a);
         }
       }
