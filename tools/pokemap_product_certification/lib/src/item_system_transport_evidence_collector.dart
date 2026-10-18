@@ -372,7 +372,7 @@ Future<List<Map<String, Object?>>> _runEditor(Directory source) async {
         operationId: 'cert-editor-${action.slug}',
         confirmationToken: confirmationToken,
       );
-      revision = applied.snapshotRevision;
+      revision = (await queries.open(fixture.project.path)).snapshotRevision;
       final receipt = applied.receipt.toJson();
       _requireObservedReceipt(receipt, action.actionId, observedReceiptIds);
       pairs.add(

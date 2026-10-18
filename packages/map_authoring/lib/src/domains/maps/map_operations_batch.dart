@@ -49,6 +49,12 @@ final class MapOperationsActions {
         'maxMapCells': maxMapCells,
         'receiptPayload': 'bounded_summary',
         'tileLayerEncoding': 'tile_palette_v1',
+        'layerIdentityReorder': {
+          'kind': 'layer.reorder_by_id',
+          'parameters': ['layerId', 'newIndex'],
+          'identity': 'unique exact map-local layer ID',
+          'newIndex': 'insertion index from 0 to layer count',
+        },
         'tileLayerAddParameters': <String>[
           'kind',
           'layerKind',

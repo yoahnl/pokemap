@@ -31,6 +31,7 @@ final class MapLayerOperations {
     'layer.remove',
     'layer.rename',
     'layer.reorder',
+    'layer.reorder_by_id',
     'layer.set_opacity',
     'layer.set_purpose',
     'layer.set_visibility',
@@ -56,6 +57,7 @@ final class MapLayerOperations {
         'layer.move' => _move(map, operation),
         'layer.rename' => _rename(map, operation),
         'layer.reorder' => _reorder(map, operation),
+        'layer.reorder_by_id' => _reorderById(map, operation),
         'layer.set_opacity' => _setOpacity(map, operation),
         'layer.set_purpose' => _setPurpose(map, operation),
         'layer.set_visibility' => _setVisibility(map, operation),
@@ -157,6 +159,30 @@ final class MapLayerOperations {
       touchedLayerIds: [layerId],
       metadata: const {'effect': 'moved'},
     );
+  }
+
+  MapOperationStepResult _reorderById(
+    MapData map,
+    Map<String, Object?> operation,
+  ) {
+    _only(operation, const {'kind', 'layerId', 'newIndex'});
+    final layerId = _string(operation, 'layerId');
+    final indices = [
+      for (var index = 0; index < map.layers.length; index++)
+        if (map.layers[index].id == layerId) index,
+    ];
+    if (indices.length != 1) {
+      throw _invalid('layerId', 'one unique existing layer ID');
+    }
+    final newIndex = _int(operation, 'newIndex');
+    if (newIndex < 0 || newIndex > map.layers.length) {
+      throw _invalid('newIndex', 'an insertion index from 0 to layer count');
+    }
+    return _reorder(map, {
+      'kind': 'layer.reorder',
+      'oldIndex': indices.single,
+      'newIndex': newIndex,
+    });
   }
 
   MapOperationStepResult _reorder(

@@ -217,7 +217,7 @@ final class DialoguedPreSessionTransportParity {
         operationId: 'cin083-editor-$index',
       );
       applied.add(result.receipt.actionId);
-      revision = result.snapshotRevision;
+      revision = (await queries.open(projectRoot.path)).snapshotRevision;
     }
     return applied;
   }
@@ -234,16 +234,21 @@ final class DialoguedPreSessionTransportParity {
     }
     final actionsFile = File(p.join(projectRoot.parent.path, 'mcp-actions.json'))
       ..writeAsStringSync(
-        jsonEncode(<Object?>[
-          for (final step in steps)
-            <String, Object?>{
-              'actionId': step.actionId,
-              'parameters': step.parameters,
-            },
-        ]),
+        jsonEncode(<String, Object?>{
+          'schemaVersion': 1,
+          'id': 'dialogued-pre-session',
+          'validation': 'project',
+          'actions': <Object?>[
+            for (final step in steps)
+              <String, Object?>{
+                'actionId': step.actionId,
+                'parameters': step.parameters,
+              },
+          ],
+        }),
         flush: true,
       );
-    final projectOut = p.join(projectRoot.parent.path, 'mcp-project.json');
+    final projectOut = p.join(projectRoot.parent.path, 'mcp-project');
     // `node`, never Platform.resolvedExecutable: inside a flutter test that
     // resolves to flutter_tester, which happily accepts a .js path and then
     // hangs forever instead of failing.
@@ -263,7 +268,8 @@ final class DialoguedPreSessionTransportParity {
     }
     // The runner works on its own copy, so the project it produced replaces
     // this transport's workspace before the comparison reads it.
-    await File(projectOut).copy(p.join(projectRoot.path, 'project.json'));
+    await projectRoot.delete(recursive: true);
+    await _copyDirectory(Directory(projectOut), projectRoot);
     final summary = jsonDecode(result.stdout as String) as Map<String, dynamic>;
     return <String>[
       for (final id in summary['appliedActionIds']! as List) id as String,
@@ -294,4 +300,18 @@ final class _FixedProjectRoot implements EditorProjectRootLocator {
 
   @override
   Future<String> locateForResource(String resourcePath) async => path;
+}
+
+Future<void> _copyDirectory(Directory source, Directory target) async {
+  await target.create(recursive: true);
+  await for (final entry in source.list(followLinks: false)) {
+    final path = p.join(target.path, p.basename(entry.path));
+    if (entry is Directory) {
+      await _copyDirectory(entry, Directory(path));
+    } else if (entry is File) {
+      await entry.copy(path);
+    } else {
+      throw StateError('Unsupported project entry: ${entry.path}');
+    }
+  }
 }
