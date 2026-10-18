@@ -167,6 +167,11 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                               snapshot: service,
                               onCommand: command,
                             ),
+                            RuntimeWorldServiceKind.pokemonGift =>
+                              PlayerPokemonGiftOverlay(
+                                snapshot: service,
+                                onCommand: command,
+                              ),
                             RuntimeWorldServiceKind.textInput =>
                               PlayerTextInputOverlay(
                                 snapshot: service,
