@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
 
@@ -36,6 +37,7 @@ void main() {
       }
     }
     final fixture = await LiteralTileFixture.create(
+        interpretationProfile: fixtureSourceInterpretationProfile,
         scriptsBytes:
             await File(Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS']!)
                 .readAsBytes(),
@@ -76,6 +78,7 @@ void main() {
               .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
         });
     final source = await const RmxpSourceNormalizer().normalize(
+        interpretationProfile: fixtureSourceInterpretationProfile,
         snapshot: fixture.snapshot,
         files: fixture.files,
         selectedMapIds: {98, 100, 101},
