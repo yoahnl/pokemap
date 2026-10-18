@@ -162,7 +162,7 @@ class _ProjectCreationDialogState extends State<ProjectCreationDialog> {
                     const SizedBox(height: 24),
                     Expanded(
                       child: SingleChildScrollView(
-                        key: const ValueKey('creation-content-scroll'),
+                        key: ValueKey('creation-content-scroll-${controller.step}'),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [

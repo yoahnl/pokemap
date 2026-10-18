@@ -10,7 +10,8 @@ const requestSchema = z.object({
   name: z.string().min(1),
   folderName: z.string().min(1),
   parentPath: z.string().min(1).refine(isAbsolute, "parentPath must be absolute"),
-  template: z.enum(["empty", "playable", "clairbois"]).optional(),
+  template: z.enum(["empty", "playable", "catalogue"]).optional(),
+  templateId: z.string().min(1).optional(),
   dimension: z.enum(["twoD", "threeD"]).optional(),
   spatialCamera: z.object({
     mode: z.literal("fixed"),
@@ -36,9 +37,22 @@ export function registerProjectCreationTools(
   server: McpServer,
   authoring: AuthoringGateway,
 ): void {
+  server.registerTool("pokemap_project_templates", {
+    title: "List verified project templates",
+    description: "List the explicitly configured project template catalogue, including immutable source revisions, checksums and geometry. Does not download or create a project.",
+    inputSchema: z.object({}).strict(),
+    outputSchema: toolEnvelopeSchema,
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  }, async () => authoringResult(() => authoring.request("project_templates", {})));
+
   server.registerTool("pokemap_project_create_preview", {
     title: "Preview a new Avelune project",
-    description: "Preview a new exclusively 2D or 3D project under a configured parent root. 3D uses the empty template with an initial spatial map and fixed camera; 2D also supports playable or Clairbois templates. Writes nothing; returns confirmation bound to the exact request and destination.",
+    description: "Preview a new exclusively 2D or 3D project under a configured parent root. 3D uses the empty template with an initial spatial map and fixed camera; 2D also supports playable or an explicitly selected catalogue templateId. Writes nothing; returns confirmation bound to the exact request, source descriptor and destination.",
     inputSchema: z.object({ request: requestSchema }).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: {

@@ -172,6 +172,7 @@ export 'src/transactions/revision_set.dart';
 export 'src/transactions/transaction_journal.dart';
 export 'src/workspace/project_open_service.dart';
 export 'src/workspace/project_creation_contracts.dart';
+export 'src/workspace/project_template_catalog.dart';
 export 'src/workspace/project_creation_bootstrap_api.dart';
 export 'src/workspace/local_project_creation_service.dart';
 export 'src/workspace/project_pokemon_ruleset_bootstrap_service.dart';

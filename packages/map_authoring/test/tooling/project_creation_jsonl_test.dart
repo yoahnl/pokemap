@@ -43,6 +43,59 @@ void main() {
         'mapHeight': 18
       };
 
+  test(
+      'JSONL discovers arbitrary catalogue entries and binds their explicit selection',
+      () async {
+    final source = jsonDecode(
+            await File('assets/project_templates.v1.json').readAsString())
+        as Map<String, dynamic>;
+    final base =
+        Map<String, dynamic>.from((source['templates'] as List).single as Map);
+    final catalog = ProjectTemplateCatalog.fromJson({
+      'schemaVersion': 1,
+      'templates': [
+        for (final id in ['alpha', 'beta']) {...base, 'id': id, 'label': id},
+      ]
+    });
+    final bytes =
+        await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
+            .readAsBytes();
+    final host = worker(
+        service: LocalProjectCreationService(
+            templateCatalog: catalog, readTemplate: (_) async => bytes));
+    final listed = await _request(host, 'project_templates', {});
+    expect(listed.status, AuthoringResultStatus.success);
+    expect(
+        (listed.data['templates'] as List).map((item) => (item as Map)['id']),
+        ['alpha', 'beta']);
+    final args = {
+      'name': 'Catalogue',
+      'folderName': 'catalogue',
+      'parentPath': root.path,
+      'template': 'catalogue',
+      'templateId': 'alpha'
+    };
+    final preview =
+        await _request(host, 'project_create_preview', {'request': args});
+    expect(preview.status, AuthoringResultStatus.success,
+        reason: preview.toJson().toString());
+    expect((preview.data['request'] as Map)['tileSize'], 32);
+    expect(
+        preview.data['templateDescriptor'], catalog.require('alpha').toJson());
+    final changed = await _request(host, 'project_create', {
+      'request': {...args, 'templateId': 'beta'},
+      'confirmation': preview.data['confirmation']
+    });
+    expect(changed.status, AuthoringResultStatus.failure);
+    expect(await root.list().toList(), isEmpty);
+    final created = await _request(host, 'project_create',
+        {'request': args, 'confirmation': preview.data['confirmation']});
+    expect(created.status, AuthoringResultStatus.success,
+        reason: created.toJson().toString());
+    expect(created.data['projectName'], 'Catalogue');
+  });
+
+
   test('JSONL preserves a typed retention policy and binds its confirmation', () async {
     final host = worker();
     final retention = MapInstanceRetentionPolicy(viewportWidthTiles: 16,

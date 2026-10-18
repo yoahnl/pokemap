@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:avelune_studio/presentation/features/project_creation/project_creation_dialog.dart';
 import 'package:avelune_studio/presentation/features/project_creation/project_creation_steps.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_choice_card.dart';
 import 'package:avelune_studio/presentation/features/home/studio_home_projects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -81,7 +82,12 @@ void main() {
           await fixture.next();
           await tester.pumpAndSettle();
           await captureM3Widget(tester, key, 'model-$label');
-          await tester.tap(find.text('Projet vide'));
+          final emptyTemplate = find.byKey(const ValueKey('creation-template-empty'));
+          await Scrollable.ensureVisible(tester.element(emptyTemplate));
+          await tester.pumpAndSettle();
+          await tester.tap(emptyTemplate);
+          await tester.pump();
+          expect(tester.widget<StudioChoiceCard>(emptyTemplate).selected, isTrue);
           await fixture.next();
           await tester.tap(find.byKey(const ValueKey('creation-grid-48')));
           await pumpIo(tester, frames: 6);

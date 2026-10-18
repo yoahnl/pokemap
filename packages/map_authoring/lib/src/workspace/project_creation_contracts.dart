@@ -1,6 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
+import 'project_template_catalog.dart';
 
-enum ProjectCreationTemplate { empty, playable, clairbois }
+enum ProjectCreationTemplate { empty, playable, catalogue }
 
 enum ProjectCreationPhase {
   validating,
@@ -23,6 +24,7 @@ final class ProjectCreationRequest {
     required this.folderName,
     required this.parentPath,
     this.template = ProjectCreationTemplate.playable,
+    this.templateId,
     this.dimension = ProjectDimension.twoD,
     this.spatialCamera,
     this.mapInstanceRetentionPolicy,
@@ -35,6 +37,7 @@ final class ProjectCreationRequest {
   final String folderName;
   final String parentPath;
   final ProjectCreationTemplate template;
+  final String? templateId;
   final ProjectDimension dimension;
   final SpatialCameraProfile? spatialCamera;
   final MapInstanceRetentionPolicy? mapInstanceRetentionPolicy;
@@ -67,8 +70,10 @@ final class ProjectCreationRequest {
 
   void validateGeometry() {
     if (mapInstanceRetentionPolicy != null &&
-        (dimension != ProjectDimension.twoD || template != ProjectCreationTemplate.empty)) {
-      throw const FormatException('La conservation des cartes exige un projet 2D vide.');
+        (dimension != ProjectDimension.twoD ||
+            template != ProjectCreationTemplate.empty)) {
+      throw const FormatException(
+          'La conservation des cartes exige un projet 2D vide.');
     }
     if (dimension == ProjectDimension.threeD &&
         template != ProjectCreationTemplate.empty) {
@@ -77,10 +82,15 @@ final class ProjectCreationRequest {
     if (dimension == ProjectDimension.twoD && spatialCamera != null) {
       throw const FormatException("Une caméra 3D exige un projet 3D.");
     }
-    if (template == ProjectCreationTemplate.clairbois &&
-        (tileSize != 32 || mapWidth != 32 || mapHeight != 26)) {
+    if (template == ProjectCreationTemplate.catalogue) {
+      if (templateId == null ||
+          templateId!.isEmpty ||
+          templateId!.trim() != templateId) {
+        throw const FormatException('Choisissez un modèle du catalogue.');
+      }
+    } else if (templateId != null) {
       throw const FormatException(
-          'Clairbois utilise une grille de 32 × 32 pixels et une carte de 32 × 26 cases.');
+          'Un identifiant de modèle exige le catalogue.');
     }
     if (!const [16, 32, 48].contains(tileSize)) {
       throw const FormatException('La grille doit être 16, 32 ou 48 pixels.');
@@ -116,6 +126,7 @@ final class ProjectCreationException implements Exception {
 }
 
 abstract interface class ProjectCreationPort {
+  ProjectTemplateCatalog get templateCatalog;
   Future<List<int>?> preview(ProjectCreationRequest request);
   Future<String> validateDestination(ProjectCreationRequest request);
   Future<ProjectCreationReceipt> create(

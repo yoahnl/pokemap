@@ -543,6 +543,11 @@ final class JsonlWorker {
         return _bootstrapApi().inspect(
           requireContractString(args['projectRoot'], 'args.projectRoot'),
         );
+      case 'project_templates':
+        rejectUnknownContractKeys(args, const {});
+        final creation = _projectCreation;
+        if (creation == null) throw const _UnsupportedWorkerCommand();
+        return creation.templates();
       case 'project_create_preview':
         rejectUnknownContractKeys(args, const {'request'});
         final creation = _projectCreation;
@@ -858,10 +863,16 @@ final class JsonlWorker {
             },
           if (creation != null)
             const {
+              'id': 'project_templates',
+              'summary': 'List explicitly configured verified project templates.',
+            },
+          if (creation != null)
+            const {
               'id': 'project_create_preview',
               'actionId': 'project.create',
               'summary': 'Preview a new project inside a configured parent root without writing.',
-              'templates': ['empty', 'playable'],
+              'templates': ['empty', 'playable', 'catalogue'],
+              'catalogueSelection': 'explicitTemplateId',
               'tileSizes': [16, 32, 48],
               'dimensions': ['twoD', 'threeD'],
               'defaultDimension': 'twoD',

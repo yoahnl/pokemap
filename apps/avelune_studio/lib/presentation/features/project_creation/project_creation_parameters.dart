@@ -17,7 +17,9 @@ class ProjectCreationParameters extends StatelessWidget {
     if (state.dimension == ProjectDimension.threeD) {
       return _spatialParameters(context);
     }
-    final clairbois = state.template == ProjectCreationTemplate.clairbois;
+    final selected = state.selectedTemplate;
+    final catalogue = selected != null;
+    final playable = state.template == ProjectCreationTemplate.playable;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -27,8 +29,8 @@ class ProjectCreationParameters extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          clairbois
-              ? 'Clairbois est prêt à explorer. Ses cartes et ses ressources utilisent une grille native de 32 × 32 pixels.'
+          catalogue
+              ? selected.description
               : 'Configurez les bases de votre aventure.',
         ),
         const SizedBox(height: 24),
@@ -45,13 +47,13 @@ class ProjectCreationParameters extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
-            for (final size in clairbois ? [32] : [16, 32, 48])
+            for (final size in catalogue ? [selected.tileSize] : [16, 32, 48])
               SizedBox(
                 width: 180,
                 child: StudioChoiceCard(
                   key: ValueKey('creation-grid-$size'),
                   title: '$size × $size px',
-                  description: clairbois
+                  description: catalogue
                       ? 'Grille du modèle'
                       : 'Pixels par case',
                   icon: Icons.grid_4x4,
@@ -65,35 +67,35 @@ class ProjectCreationParameters extends StatelessWidget {
         const SizedBox(height: 20),
         StudioPanel(
           compact: true,
-          title: clairbois ? 'Votre copie de Clairbois' : 'Options',
+          title: catalogue ? 'Votre copie de ${selected.label}' : 'Options',
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                clairbois ? Icons.check_circle : Icons.remove_circle_outline,
+            if (catalogue)
+              Text(
+                'Modèle ${selected.label}\n${selected.mapWidth} × ${selected.mapHeight} cases. Les cartes restent éditables après création.',
+              )
+            else ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  playable ? Icons.check_circle : Icons.remove_circle_outline,
+                ),
+                title: const Text('Personnage et point de départ'),
+                subtitle: Text(
+                  playable ? 'Inclus dans le projet jouable.' : 'Aucun personnage ni point de départ dans le projet vide.',
+                ),
               ),
-              title: const Text('Personnage et point de départ'),
-              subtitle: Text(
-                clairbois
-                    ? 'Inclus avec un dialogue et les passages entre les deux cartes.'
-                    : 'Aucun personnage ni point de départ dans le projet vide.',
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.lock_outline),
+                title: Text('Pokémon désactivés'),
+                subtitle: Text(
+                  'Exploration sans équipe ni catalogue Pokémon initialisé.',
+                ),
               ),
-            ),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.lock_outline),
-              title: Text('Pokémon désactivés'),
-              subtitle: Text(
-                'Exploration sans équipe ni catalogue Pokémon initialisé.',
-              ),
-            ),
-            if (clairbois)
-              const Text(
-                'Village : 32 × 26 cases · Maison : 12 × 10 cases.\nLes cartes restent éditables après création.',
-              ),
+            ],
           ],
         ),
-        if (!clairbois) ...[
+        if (!catalogue) ...[
           const SizedBox(height: 12),
           ExpansionTile(
             key: const ValueKey('creation-map-settings'),
@@ -170,7 +172,7 @@ class ProjectCreationParameters extends StatelessWidget {
           title: 'Caméra du jeu · angle fixe',
           children: [
             const Text(
-              'Le cadrage initial rappelle les jeux DS. Vous pourrez ajuster la caméra sur chaque carte. La vue libre de l’éditeur reste indépendante.',
+              'Vous pourrez ajuster la caméra sur chaque carte. La vue libre de l’éditeur reste indépendante.',
             ),
             const SizedBox(height: 12),
             field(

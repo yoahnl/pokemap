@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring.dart';
 
@@ -85,13 +86,31 @@ Future<void> main(List<String> arguments) async {
     mutations: mutations,
     snapshotLoader: snapshots,
   );
+  final packageLibrary = await Isolate.resolvePackageUri(
+      Uri.parse('package:map_authoring/map_authoring.dart'));
+  if (packageLibrary == null) {
+    stderr
+        .writeln('Unable to locate the configured project template catalogue.');
+    exitCode = AuthoringCliExitCodes.config;
+    return;
+  }
+  late final ProjectTemplateCatalog templates;
+  try {
+    templates = ProjectTemplateCatalog.fromJson(jsonDecode(await File.fromUri(
+            packageLibrary.resolve('../assets/project_templates.v1.json'))
+        .readAsString()));
+  } on Object {
+    stderr.writeln('Unable to load the configured project template catalogue.');
+    exitCode = AuthoringCliExitCodes.config;
+    return;
+  }
   final worker = JsonlWorker(
     api: api,
     mutations: mutations,
     resourcePacks: resourcePacks,
     projectCreation: ProjectCreationBootstrapApi(
       policy: policy,
-      creation: const LocalProjectCreationService(),
+      creation: LocalProjectCreationService(templateCatalog: templates),
     ),
     projectBootstrap: ProjectPokemonRulesetBootstrapService(
       policy: policy,

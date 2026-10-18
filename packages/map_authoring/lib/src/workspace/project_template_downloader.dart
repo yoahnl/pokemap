@@ -4,25 +4,19 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 
 import 'project_creation_contracts.dart';
+import 'project_template_catalog.dart';
 
-final class ClairboisProjectTemplate {
-  const ClairboisProjectTemplate({this.read});
+final class ProjectTemplateDownloader {
+  const ProjectTemplateDownloader({this.read});
   final Future<List<int>> Function(Uri)? read;
 
-  static const revision = 'e3d3766ed80d34b6b451ad4d0cd5647d6373c230';
-  static final archiveUri = Uri.parse(
-      'https://codeload.github.com/yoahnl/avelune-template-clairbois/zip/$revision');
-  static final previewUri = Uri.parse(
-      'https://raw.githubusercontent.com/yoahnl/avelune-template-clairbois/$revision/preview/village.png');
-  static const _archiveHash =
-      'ba60603d627d91b2c41d8f502ae4d3818774e3f00c000b3610316dc767a4942f';
-  static const _previewHash =
-      'a14d950e16aeeb6857c6318390132fb2349f2b057976ae099c0f5c8c9c6c254b';
+  Future<List<int>> preview(ProjectTemplateDescriptor template) =>
+      _verified(template.previewUri, template.previewSha256);
 
-  Future<List<int>> preview() => _verified(previewUri, _previewHash);
-
-  Future<List<int>> download({bool Function()? isCancelled}) =>
-      _verified(archiveUri, _archiveHash, isCancelled: isCancelled);
+  Future<List<int>> download(ProjectTemplateDescriptor template,
+          {bool Function()? isCancelled}) =>
+      _verified(template.archiveUri, template.archiveSha256,
+          isCancelled: isCancelled);
 
   Future<List<int>> _verified(Uri uri, String hash,
       {bool Function()? isCancelled}) async {
@@ -34,7 +28,7 @@ final class ClairboisProjectTemplate {
       if (bytes.length > 16 * 1024 * 1024 ||
           sha256.convert(bytes).toString() != hash) {
         throw const ProjectCreationException('project.template_integrity',
-            'Le téléchargement de Clairbois est incomplet ou ne correspond pas au modèle attendu. Réessayez.');
+            'Le téléchargement est incomplet ou ne correspond pas au modèle attendu. Réessayez.');
       }
       return bytes;
     } on ProjectCreationCancelled {
@@ -43,7 +37,7 @@ final class ClairboisProjectTemplate {
       rethrow;
     } on Object {
       throw const ProjectCreationException('project.template_download',
-          'Clairbois n’a pas pu être téléchargé depuis GitHub. Vérifiez votre connexion puis réessayez. Aucun projet n’a été créé.');
+          'Le modèle n’a pas pu être téléchargé. Vérifiez votre connexion puis réessayez. Aucun projet n’a été créé.');
     }
   }
 }

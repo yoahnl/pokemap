@@ -1,8 +1,22 @@
+import 'dart:convert';
+
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
+import 'package:map_authoring/map_authoring_project_creation.dart';
 
 import 'package:avelune_studio/app/studio_bootstrap.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const StudioBootstrap());
+  final catalog = await loadStudioProjectTemplateCatalog();
+  runApp(StudioBootstrap(templateCatalog: catalog));
 }
+
+Future<ProjectTemplateCatalog> loadStudioProjectTemplateCatalog() async =>
+    ProjectTemplateCatalog.fromJson(
+      jsonDecode(
+        await rootBundle.loadString(
+          '../../packages/map_authoring/assets/project_templates.v1.json',
+        ),
+      ),
+    );

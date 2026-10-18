@@ -120,7 +120,8 @@ void main() {
       final release = Zone.root.run(() => Completer<void>());
       final service = _ObservedCreationPort(
         LocalProjectCreationService(
-          clairbois: offlineClairbois,
+          templateCatalog: fixtureTemplateCatalog,
+          readTemplate: readClairboisFixture,
           checkpoint: (point, _) async {
             if (point == ProjectCreationCheckpoint.beforeReservation) {
               reached.complete();
@@ -180,6 +181,8 @@ void main() {
 class _ObservedCreationPort implements ProjectCreationPort {
   _ObservedCreationPort(this.delegate);
   final ProjectCreationPort delegate;
+  @override
+  ProjectTemplateCatalog get templateCatalog => delegate.templateCatalog;
   final completed = Zone.root.run(() => Completer<void>());
   @override
   Future<List<int>?> preview(ProjectCreationRequest request) =>

@@ -7,7 +7,6 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -1329,10 +1328,10 @@ void main() {
     final network = _NetworkTrap();
     final templateCalls = <Uri>[];
     final creation = LocalProjectCreationService(
-      clairbois: ClairboisProjectTemplate(read: (uri) async {
+      readTemplate: (uri) async {
         templateCalls.add(uri);
         throw StateError('Template network trap');
-      }),
+      },
     );
     final receipt = await HttpOverrides.runZoned(
         () => NativeProjectWriter(creation: creation)
@@ -1351,10 +1350,10 @@ void main() {
     final approval = approveNativeFixtureDraft(fixture.draft,
         bindingEvidence: 'native-draft-sha256:${'0' * 64}');
     final creation = LocalProjectCreationService(
-      clairbois: ClairboisProjectTemplate(read: (uri) async {
+      readTemplate: (uri) async {
         templateCalls.add(uri);
         throw StateError('Template network trap');
-      }),
+      },
     );
     await expectLater(
         HttpOverrides.runZoned(
@@ -2152,6 +2151,8 @@ NativeProjectDraft _replaceLibraryPng(NativeProjectDraft draft,
 }
 
 final class _RecordingCreation implements ProjectCreationPort {
+  @override
+  ProjectTemplateCatalog get templateCatalog => delegate.templateCatalog;
   final requests = <ProjectCreationRequest>[];
   final delegate = const LocalProjectCreationService();
 

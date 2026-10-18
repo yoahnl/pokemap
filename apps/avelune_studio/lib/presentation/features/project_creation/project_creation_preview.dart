@@ -4,7 +4,6 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/project_creation/application/project_creation_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import 'package:map_authoring/map_authoring_project_creation.dart';
 
 class ProjectCreationPreview extends StatelessWidget {
   const ProjectCreationPreview({super.key, required this.controller});
@@ -42,8 +41,8 @@ class ProjectCreationPreview extends StatelessWidget {
                 ? controller.dimension == ProjectDimension.threeD
                       ? 'Une carte 3D de ${controller.width} × ${controller.height} cases, avec un terrain plat et une caméra fixe.'
                       : 'Une base propre, sans carte initiale.'
-                : controller.template == ProjectCreationTemplate.clairbois
-                ? 'Clairbois · 2 cartes, un dialogue et les ressources du projet. Copie indépendante en 32 × 32.'
+                : controller.selectedTemplate != null
+                ? '${controller.selectedTemplate!.label} · ${controller.selectedTemplate!.description}'
                 : 'La carte et le personnage réellement inclus dans ce modèle.'),
       ),
       if (controller.previewError != null)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring_project_creation.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/project_creation/application/project_creation_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_choice_card.dart';
@@ -22,7 +23,8 @@ class ProjectCreationSteps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = controller;
-    final playable = state.template != ProjectCreationTemplate.empty;
+    final playable = state.template == ProjectCreationTemplate.playable;
+    final selected = state.selectedTemplate;
     final spatial = state.dimension == ProjectDimension.threeD;
     Widget field(String label, String value, ValueChanged<String> changed) =>
         StudioDraftField(
@@ -105,53 +107,50 @@ class ProjectCreationSteps extends StatelessWidget {
               ],
             ),
           if (!spatial)
-            LayoutBuilder(
-              builder: (context, bounds) {
-                Widget card(
-                  bool selected,
-                  ProjectCreationTemplate template,
-                  String title,
-                  String description,
-                  IconData icon,
-                ) => StudioChoiceCard(
-                  title: title,
-                  description: description,
-                  icon: icon,
-                  selected: selected,
-                  onPressed: () => state.setTemplate(template),
-                );
-                final cards = [
-                  card(
-                    playable,
-                    ProjectCreationTemplate.clairbois,
-                    'Petit projet jouable',
-                    'Clairbois : un village, de l’eau, des falaises et une maison à explorer.\n'
-                        'Copie téléchargée depuis GitHub à la création. Grille 32 × 32 · connexion requise.',
-                    Icons.landscape_outlined,
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width: 280,
+                  child: StudioChoiceCard(
+                    key: const ValueKey('creation-template-playable'),
+                    title: 'Petit projet jouable',
+                    description: 'Une carte simple, un personnage et un point de départ pour construire votre aventure.',
+                    icon: Icons.landscape_outlined,
+                    selected: playable,
+                    onPressed: () =>
+                        state.setTemplate(ProjectCreationTemplate.playable),
                   ),
-                  card(
-                    !playable,
-                    ProjectCreationTemplate.empty,
-                    'Projet vide',
-                    'Un manifeste et une structure propres, sans carte ni personnage.\n'
-                        'À compléter avant de jouer.',
-                    Icons.grid_on_outlined,
+                ),
+                SizedBox(
+                  width: 280,
+                  child: StudioChoiceCard(
+                    key: const ValueKey('creation-template-empty'),
+                    title: 'Projet vide',
+                    description: 'Un manifeste et une structure propres, sans carte ni personnage. À compléter avant de jouer.',
+                    icon: Icons.grid_on_outlined,
+                    selected: state.template == ProjectCreationTemplate.empty,
+                    onPressed: () =>
+                        state.setTemplate(ProjectCreationTemplate.empty),
                   ),
-                ];
-                if (bounds.maxWidth < 550) {
-                  return Column(
-                    children: [cards[0], const SizedBox(height: 12), cards[1]],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: cards[0]),
-                    const SizedBox(width: 12),
-                    Expanded(child: cards[1]),
-                  ],
-                );
-              },
+                ),
+                for (final descriptor in state.port.templateCatalog.templates)
+                  SizedBox(
+                    width: 280,
+                    child: StudioChoiceCard(
+                      key: ValueKey(
+                        'creation-template-catalogue-${descriptor.id}',
+                      ),
+                      title: descriptor.label,
+                      description: descriptor.description,
+                      icon: Icons.download_outlined,
+                      selected: state.templateId == descriptor.id,
+                      onPressed: () =>
+                          state.setCatalogueTemplate(descriptor.id),
+                    ),
+                  ),
+              ],
             ),
         ],
       ),
@@ -192,11 +191,12 @@ class ProjectCreationSteps extends StatelessWidget {
               Text(
                 spatial
                     ? 'Projet 3D · terrain par paliers · caméra fixe'
-                    : '${playable ? 'Petit projet jouable' : 'Projet vide'} · ${state.tileSize} × ${state.tileSize} px par case',
+                    : '${selected?.label ?? (playable ? 'Petit projet jouable' : 'Projet vide')} · ${state.tileSize} × ${state.tileSize} px par case',
               ),
               Text(
-                '${state.width} × ${state.height} cases · '
-                '${playable ? 'Personnage inclus' : 'Sans personnage'} · Pokémon désactivés',
+                selected != null
+                    ? 'Géométrie du modèle : ${state.width} × ${state.height} cases. Son contenu est fourni par le catalogue.'
+                    : '${state.width} × ${state.height} cases · ${playable ? 'Personnage inclus' : 'Sans personnage'} · Pokémon désactivés',
               ),
               const SizedBox(height: 12),
               const Text(

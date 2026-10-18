@@ -39,15 +39,20 @@ test("real MCP/JSONL bootstrap previews, confirms, creates and independently ope
     const listed = (await client.listTools()).tools.map((tool) => tool.name);
     assert.ok(listed.includes("pokemap_project_create_preview"));
     assert.ok(listed.includes("pokemap_project_create"));
+    assert.ok(listed.includes("pokemap_project_templates"));
     const catalog = await call("pokemap_describe");
     const commands = catalog.commands as JsonRecord[];
     assert.ok(commands.some((item) => item.id === "project_create_preview"));
     assert.ok(commands.some((item) => item.id === "project_create" && item.undoable === false));
-    const clairbois = await call("pokemap_project_create_preview", {
-      request: { name: "Clairbois MCP", folderName: "clairbois", parentPath: root, template: "clairbois" },
+    const templates = await call("pokemap_project_templates");
+    const selected = record((templates.templates as JsonRecord[])[0]);
+    assert.equal(typeof selected.id, "string");
+    const previewedTemplate = await call("pokemap_project_create_preview", {
+      request: { name: "Catalogue MCP", folderName: "catalogue", parentPath: root, template: "catalogue", templateId: selected.id },
     });
-    assert.equal(record(clairbois.request).tileSize, 32);
-    assert.ok((clairbois.writes as string[]).includes("maps/maison.json"));
+    assert.equal(record(previewedTemplate.request).tileSize, record(selected.geometry).tileSize);
+    assert.deepEqual(previewedTemplate.templateDescriptor, selected);
+    assert.deepEqual(previewedTemplate.writes, selected.projectPaths);
     assert.deepEqual(await readdir(root), []);
     for (const tileSize of [16, 32, 48]) {
       const request = { name: "Projet MCP", folderName: `game-${tileSize}`, parentPath: root,

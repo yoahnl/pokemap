@@ -10,30 +10,36 @@ import '../transactions/journaled_transaction.dart';
 import 'project_creation_contracts.dart';
 import 'project_creation_kit.dart';
 import 'project_creation_transaction.dart';
-import 'clairbois_project_template.dart';
-import 'clairbois_template_archive.dart';
+import 'project_template_downloader.dart';
+import 'project_template_archive.dart';
+import 'project_template_catalog.dart';
 
 final class LocalProjectCreationService implements ProjectCreationPort {
   const LocalProjectCreationService({
     this.checkpoint,
     this.faultInjector,
-    this.clairbois = const ClairboisProjectTemplate(),
+    this.templateCatalog = const ProjectTemplateCatalog.empty(),
+    this.readTemplate,
   });
-  final ClairboisProjectTemplate clairbois;
+  @override
+  final ProjectTemplateCatalog templateCatalog;
+  final Future<List<int>> Function(Uri)? readTemplate;
   final Future<void> Function(ProjectCreationCheckpoint, String)? checkpoint;
   final AuthoringTransactionFaultInjector? faultInjector;
 
   @override
   Future<List<int>?> preview(ProjectCreationRequest request) {
     request.validateGeometry();
-    return request.template == ProjectCreationTemplate.clairbois
-        ? clairbois.preview()
+    final descriptor = _descriptor(request);
+    return descriptor != null
+        ? ProjectTemplateDownloader(read: readTemplate).preview(descriptor)
         : Isolate.run(() => buildProjectCreationPreviewPng(request));
   }
 
   @override
   Future<String> validateDestination(ProjectCreationRequest request) async {
     request.validate();
+    _descriptor(request);
     if (!p.isAbsolute(request.parentPath)) {
       throw const ProjectCreationException('project.destination_absolute',
           'Le dossier parent doit être un chemin absolu.');
@@ -69,18 +75,20 @@ final class LocalProjectCreationService implements ProjectCreationPort {
             'La destination confirmée a changé. Préparez la création à nouveau.');
       }
       _requireActive(isCancelled);
-      if (request.template == ProjectCreationTemplate.clairbois) {
+      final descriptor = _descriptor(request);
+      if (descriptor != null) {
         onPhase?.call(ProjectCreationPhase.downloading);
       }
-      final downloaded = request.template == ProjectCreationTemplate.clairbois
-          ? await clairbois.download(isCancelled: isCancelled)
+      final downloaded = descriptor != null
+          ? await ProjectTemplateDownloader(read: readTemplate)
+              .download(descriptor, isCancelled: isCancelled)
           : null;
       _requireActive(isCancelled);
       onPhase?.call(ProjectCreationPhase.preparing);
       final kit = downloaded == null
           ? await Isolate.run(() => buildProjectCreationKit(request))
-          : await Isolate.run(
-              () => prepareClairboisCreationKit(downloaded, request));
+          : await Isolate.run(() =>
+              prepareTemplateCreationKit(downloaded, request, descriptor!));
       _requireActive(isCancelled);
       await checkpoint?.call(
           ProjectCreationCheckpoint.beforeReservation, target);
@@ -124,6 +132,18 @@ final class LocalProjectCreationService implements ProjectCreationPort {
               : 'La création a échoué. Le dossier réservé est conservé pour récupération : $reservedPath. $error',
           residualPath: reservedPath);
     }
+  }
+
+  ProjectTemplateDescriptor? _descriptor(ProjectCreationRequest request) {
+    if (request.template != ProjectCreationTemplate.catalogue) return null;
+    final descriptor = templateCatalog.require(request.templateId!);
+    if (descriptor.tileSize != request.tileSize ||
+        descriptor.mapWidth != request.mapWidth ||
+        descriptor.mapHeight != request.mapHeight) {
+      throw const FormatException(
+          'La géométrie doit correspondre au modèle sélectionné.');
+    }
+    return descriptor;
   }
 }
 

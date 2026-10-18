@@ -26,7 +26,7 @@ void main() {
     'Clairbois fixes its grid and preserves the empty project settings',
     () async {
       final state = ProjectCreationController(
-        const LocalProjectCreationService(clairbois: offlineClairbois),
+        offlineProjectCreation,
       );
       state.setTemplate(ProjectCreationTemplate.empty);
       state.change(() {
@@ -34,7 +34,7 @@ void main() {
         state.width = '24';
         state.height = '18';
       });
-      state.setTemplate(ProjectCreationTemplate.clairbois);
+      state.setCatalogueTemplate('clairbois');
       expect((state.tileSize, state.width, state.height), (32, '32', '26'));
       state.setTemplate(ProjectCreationTemplate.empty);
       expect((state.tileSize, state.width, state.height), (48, '24', '18'));
@@ -50,15 +50,19 @@ void main() {
       final release = Completer<void>();
       final state = ProjectCreationController(
         LocalProjectCreationService(
-          clairbois: ClairboisProjectTemplate(
-            read: (uri) async {
-              reached.complete();
-              await release.future;
-              return readClairboisFixture(uri);
-            },
-          ),
+          templateCatalog: fixtureTemplateCatalog,
+          readTemplate: (uri) async {
+            reached.complete();
+            await release.future;
+            return readClairboisFixture(uri);
+          },
         ),
       )..setName('Copie annulée');
+      state.template = ProjectCreationTemplate.catalogue;
+      state.templateId = 'clairbois';
+      state.tileSize = clairboisDescriptor.tileSize;
+      state.width = '${clairboisDescriptor.mapWidth}';
+      state.height = '${clairboisDescriptor.mapHeight}';
       state.parentPath = parent.path;
       final pending = state.create();
       await reached.future;

@@ -74,7 +74,7 @@ class ProjectCreationWorkspaceFixture {
           creationPort: _CreationIo(
             tester,
             creationPort ??
-                const LocalProjectCreationService(clairbois: offlineClairbois),
+                offlineProjectCreation,
             bridgeCreate,
           ),
           chooseCreationParent: () async => parent.path,
@@ -154,6 +154,8 @@ class _CreationIo implements ProjectCreationPort {
   _CreationIo(this.tester, this.delegate, this.bridgeCreate);
   final WidgetTester tester;
   final ProjectCreationPort delegate;
+  @override
+  ProjectTemplateCatalog get templateCatalog => delegate.templateCatalog;
   final bool bridgeCreate;
   Future<T> _run<T>(Future<T> Function() action) async {
     final result = await WidgetResourcePort.serial(tester, () async {

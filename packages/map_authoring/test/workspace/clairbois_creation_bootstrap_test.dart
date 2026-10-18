@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:test/test.dart';
@@ -13,16 +14,18 @@ void main() {
         allowedRootPaths: [parent.path],
         fileReader: LocalProjectFileReader(),
       ),
-      creation: const LocalProjectCreationService(),
+      creation: LocalProjectCreationService(
+          templateCatalog: ProjectTemplateCatalog.fromJson(jsonDecode(
+              await File('assets/project_templates.v1.json').readAsString()))),
     );
     final preview = await api.preview({
       'name': 'Mon village',
       'folderName': 'mon-village',
       'parentPath': parent.path,
-      'template': 'clairbois',
+      'template': 'catalogue',
+      'templateId': 'clairbois',
     });
-    expect(preview['writes'],
-        containsAll(['maps/first-map.json', 'maps/maison.json']));
+    expect(preview['writes'], containsAll(['maps/', 'dialogues/']));
     expect(preview['request'], containsPair('tileSize', 32));
     expect(await parent.list().toList(), isEmpty);
   });

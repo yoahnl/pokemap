@@ -8,9 +8,10 @@ import '../contracts/artifact_ref.dart';
 import '../domains/assets/asset_store.dart';
 import 'project_creation_contracts.dart';
 import 'project_creation_kit.dart';
+import 'project_template_catalog.dart';
 
-ProjectCreationKit prepareClairboisCreationKit(
-    List<int> bytes, ProjectCreationRequest request) {
+ProjectCreationKit prepareTemplateCreationKit(List<int> bytes,
+    ProjectCreationRequest request, ProjectTemplateDescriptor descriptor) {
   request.validate();
   final archive = ZipDecoder().decodeBytes(bytes, verify: true);
   final files = <String, List<int>>{};
@@ -39,11 +40,8 @@ ProjectCreationKit prepareClairboisCreationKit(
     if (path.isEmpty || parts.skip(1).any((part) => part.isEmpty)) {
       throw const FormatException('Invalid template path');
     }
-    if (path != 'project.json' &&
-        path != 'asset-provenance.json' &&
-        !path.startsWith('assets/') &&
-        !path.startsWith('maps/') &&
-        !path.startsWith('dialogues/')) {
+    if (!descriptor.projectPaths.any((allowed) =>
+        allowed.endsWith('/') ? path.startsWith(allowed) : path == allowed)) {
       continue;
     }
     total += file.size;
@@ -52,19 +50,36 @@ ProjectCreationKit prepareClairboisCreationKit(
     }
     files[path] = file.content;
   }
+  for (final declared in descriptor.projectPaths) {
+    if (!files.keys.any((path) => declared.endsWith('/')
+        ? path.startsWith(declared)
+        : path == declared)) {
+      throw FormatException('Missing declared template path: $declared');
+    }
+  }
   Map<String, dynamic> document(String path) =>
       jsonDecode(utf8.decode(files[path] ??
               (throw FormatException('Missing template document: $path'))))
           as Map<String, dynamic>;
   final manifest = ProjectManifest.fromJson(document('project.json'))
       .copyWith(name: request.name.trim());
-  if (manifest.settings.tileWidth != 32 || manifest.settings.tileHeight != 32) {
-    throw const FormatException('Invalid Clairbois grid');
+  if (manifest.settings.dimension != request.dimension ||
+      manifest.settings.tileWidth != request.tileSize ||
+      manifest.settings.tileHeight != request.tileSize) {
+    throw const FormatException('Template grid does not match its descriptor');
   }
   final maps = [
     for (final entry in manifest.maps)
       MapData.fromJson(document(_path(entry.relativePath))),
   ];
+  final initial =
+      maps.where((map) => map.id == manifest.newGame.startMapId).toList();
+  if (initial.length != 1 ||
+      initial.single.size.width != request.mapWidth ||
+      initial.single.size.height != request.mapHeight) {
+    throw const FormatException(
+        'Template start map does not match its descriptor');
+  }
   ProjectValidator.validate(manifest, maps: maps);
   for (final map in maps) {
     MapValidator.validate(map, projectDialogueContext: manifest);
@@ -77,8 +92,15 @@ ProjectCreationKit prepareClairboisCreationKit(
       throw FormatException('Missing template resource: $reference');
     }
   }
-  final catalog = AssetCatalog.fromJson(document(assetCatalogStorageKey));
-  for (final asset in catalog.records) {
+  if (!files.containsKey(assetCatalogStorageKey) &&
+      files.keys.any((path) => path.startsWith('assets/'))) {
+    throw const FormatException(
+        'Template asset files require their canonical inventory.');
+  }
+  final catalog = files.containsKey(assetCatalogStorageKey)
+      ? AssetCatalog.fromJson(document(assetCatalogStorageKey))
+      : null;
+  for (final asset in catalog?.records ?? const <AssetRecord>[]) {
     for (final path in [
       asset.logicalPath,
       assetBlobStorageKey(asset.artifact)

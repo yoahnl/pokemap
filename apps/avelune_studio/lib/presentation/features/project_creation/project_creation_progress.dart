@@ -25,7 +25,7 @@ class ProjectCreationProgress extends StatelessWidget {
         for (final entry in const {
           ProjectCreationPhase.validating: 'Vérification de la destination',
           ProjectCreationPhase.downloading:
-              'Téléchargement de Clairbois depuis GitHub',
+              'Téléchargement du modèle sélectionné',
           ProjectCreationPhase.preparing:
               'Préparation du modèle et des ressources',
           ProjectCreationPhase.writing: 'Écriture du projet',
@@ -33,7 +33,7 @@ class ProjectCreationProgress extends StatelessWidget {
           ProjectCreationPhase.completed: 'Projet prêt à ouvrir',
         }.entries)
           if (entry.key != ProjectCreationPhase.downloading ||
-              state.template == ProjectCreationTemplate.clairbois)
+              state.template == ProjectCreationTemplate.catalogue)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(

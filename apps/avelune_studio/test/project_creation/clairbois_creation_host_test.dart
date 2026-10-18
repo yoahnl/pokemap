@@ -38,12 +38,11 @@ void main() {
       await host.mount(
         captureKey: key,
         creationPort: LocalProjectCreationService(
-          clairbois: ClairboisProjectTemplate(
-            read: (uri) async {
-              urls.add(uri);
-              return readClairboisFixture(uri);
-            },
-          ),
+          templateCatalog: fixtureTemplateCatalog,
+          readTemplate: (uri) async {
+            urls.add(uri);
+            return readClairboisFixture(uri);
+          },
         ),
       );
       await tester.tap(find.text('Nouveau projet'));
@@ -53,11 +52,14 @@ void main() {
         'Mon Clairbois',
       );
       await host.next();
-      await tester.tap(find.text('Petit projet jouable'));
+      final chosenTemplate = find.byKey(const ValueKey('creation-template-catalogue-clairbois'));
+      await Scrollable.ensureVisible(tester.element(chosenTemplate));
+      await tester.pumpAndSettle();
+      await tester.tap(chosenTemplate);
       await pumpIo(tester, frames: 8);
       expect(find.textContaining('Clairbois'), findsWidgets);
       expect(
-        urls.where((uri) => uri == ClairboisProjectTemplate.archiveUri),
+        urls.where((uri) => uri == clairboisDescriptor.archiveUri),
         isEmpty,
       );
       await captureM3Widget(tester, key, 'clairbois-model');
@@ -74,7 +76,7 @@ void main() {
       }
       await pumpIo(tester, frames: 30);
       expect(
-        urls.where((uri) => uri == ClairboisProjectTemplate.archiveUri).length,
+        urls.where((uri) => uri == clairboisDescriptor.archiveUri).length,
         1,
       );
       final session = host.session.state.project!;

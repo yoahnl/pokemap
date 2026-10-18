@@ -44,9 +44,16 @@ import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/shell/studio_workspace_host.dart';
 
 class StudioBootstrap extends StatelessWidget {
-  const StudioBootstrap({super.key, this.debugSession});
+  const StudioBootstrap({
+    super.key,
+    this.debugSession,
+    this.templateCatalog = const ProjectTemplateCatalog.empty(),
+    this.readTemplate,
+  });
 
   final ProjectSessionController? debugSession;
+  final ProjectTemplateCatalog templateCatalog;
+  final Future<List<int>> Function(Uri)? readTemplate;
 
   @override
   Widget build(BuildContext context) => ProviderScope(
@@ -56,7 +63,10 @@ class StudioBootstrap extends StatelessWidget {
           (ref) => NativeResourcePackExportSink(),
         ),
       projectCreationPortProvider.overrideWithValue(
-        const LocalProjectCreationService(),
+        LocalProjectCreationService(
+          templateCatalog: templateCatalog,
+          readTemplate: readTemplate,
+        ),
       ),
       projectCreationPickerProvider.overrideWithValue(
         const NativeProjectCreationPicker().choose,

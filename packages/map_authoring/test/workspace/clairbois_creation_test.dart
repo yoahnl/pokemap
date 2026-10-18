@@ -16,10 +16,13 @@ import 'package:test/test.dart';
 void main() {
   late Directory parent;
   late List<int> archive;
+  late ProjectTemplateCatalog templates;
   setUp(() async {
     parent = await Directory.systemTemp.createTemp('clairbois-creation-');
     archive = await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
         .readAsBytes();
+    templates = ProjectTemplateCatalog.fromJson(jsonDecode(
+        await File('assets/project_templates.v1.json').readAsString()));
   });
   tearDown(() => parent.delete(recursive: true));
   ProjectCreationRequest request([String folder = 'mon-village']) =>
@@ -27,14 +30,15 @@ void main() {
         name: 'Mon village indépendant',
         folderName: folder,
         parentPath: parent.path,
-        template: ProjectCreationTemplate.clairbois,
+        template: ProjectCreationTemplate.catalogue,
+        templateId: 'clairbois',
         tileSize: 32,
         mapWidth: 32,
         mapHeight: 26,
       );
   LocalProjectCreationService service(Future<List<int>> Function(Uri) read) =>
       LocalProjectCreationService(
-          clairbois: ClairboisProjectTemplate(read: read));
+          templateCatalog: templates, readTemplate: read);
 
   test('verified GitHub archive is copied, renamed and independently reopened',
       () async {
@@ -45,7 +49,7 @@ void main() {
       return archive;
     });
     final receipt = await creator.create(request(), onPhase: phases.add);
-    expect(urls, [ClairboisProjectTemplate.archiveUri]);
+    expect(urls, [templates.require('clairbois').archiveUri]);
     expect(phases, contains(ProjectCreationPhase.downloading));
     final manifest = ProjectManifest.fromJson(jsonDecode(
             await File('${receipt.projectPath}/project.json').readAsString())

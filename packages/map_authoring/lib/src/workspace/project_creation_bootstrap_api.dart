@@ -8,6 +8,7 @@ import 'project_creation_contracts.dart';
 import 'workspace_policy.dart';
 
 abstract interface class ProjectCreationBootstrapApiPort {
+  Future<Map<String, Object?>> templates();
   Future<Map<String, Object?>> preview(Map<String, dynamic> request);
   Future<Map<String, Object?>> create(Map<String, dynamic> request,
       {required String confirmation, bool Function()? isCancelled});
@@ -29,6 +30,10 @@ final class ProjectCreationBootstrapApi
   final AuthoringConfirmationStore _confirmations;
 
   @override
+  Future<Map<String, Object?>> templates() async =>
+      _creation.templateCatalog.toJson();
+
+  @override
   Future<Map<String, Object?>> preview(Map<String, dynamic> request) async {
     final prepared = await _prepare(request);
     _confirmations.pruneExpired();
@@ -38,6 +43,10 @@ final class ProjectCreationBootstrapApi
       'actionVersion': 1,
       'projectPath': prepared.destination,
       'request': prepared.wire,
+      if (prepared.request.templateId != null)
+        'templateDescriptor': _creation.templateCatalog
+            .require(prepared.request.templateId!)
+            .toJson(),
       'confirmation': token.wireValue,
       'undoable': false,
       'replacesExisting': false,
@@ -45,15 +54,10 @@ final class ProjectCreationBootstrapApi
           ? ['project.json', 'maps/first-map.json']
           : prepared.request.template == ProjectCreationTemplate.empty
               ? ['project.json']
-              : prepared.request.template == ProjectCreationTemplate.clairbois
-                  ? [
-                      'project.json',
-                      'maps/first-map.json',
-                      'maps/maison.json',
-                      'dialogues/bienvenue.yarn',
-                      'assets/**',
-                      'asset-provenance.json'
-                    ]
+              : prepared.request.template == ProjectCreationTemplate.catalogue
+                  ? _creation.templateCatalog
+                      .require(prepared.request.templateId!)
+                      .projectPaths
                   : [
                       'project.json',
                       'maps/first-map.json',
@@ -94,6 +98,7 @@ final class ProjectCreationBootstrapApi
       'folderName',
       'parentPath',
       'template',
+      'templateId',
       'tileSize',
       'mapWidth',
       'mapHeight',
@@ -101,6 +106,11 @@ final class ProjectCreationBootstrapApi
       'mapInstanceRetentionPolicy',
       'spatialCamera'
     });
+    final templateId =
+        wire['templateId'] == null ? null : _string(wire['templateId']);
+    final descriptor = wire['template'] == 'catalogue' && templateId != null
+        ? _creation.templateCatalog.require(templateId)
+        : null;
     final request = ProjectCreationRequest(
       name: _string(wire['name']),
       folderName: _string(wire['folderName']),
@@ -108,9 +118,10 @@ final class ProjectCreationBootstrapApi
       template: switch (wire['template']) {
         null || 'playable' => ProjectCreationTemplate.playable,
         'empty' => ProjectCreationTemplate.empty,
-        'clairbois' => ProjectCreationTemplate.clairbois,
+        'catalogue' => ProjectCreationTemplate.catalogue,
         _ => throw const FormatException('Invalid project template.')
       },
+      templateId: templateId,
       dimension: switch (wire['dimension']) {
         null || 'twoD' => ProjectDimension.twoD,
         'threeD' => ProjectDimension.threeD,
@@ -120,16 +131,14 @@ final class ProjectCreationBootstrapApi
           ? null
           : SpatialCameraProfile.fromJson(
               Map<String, dynamic>.from(wire['spatialCamera'] as Map)),
-      mapInstanceRetentionPolicy: !wire.containsKey('mapInstanceRetentionPolicy')
-          ? null
-          : MapInstanceRetentionPolicy.fromJson(
-              Map<String, dynamic>.from(wire['mapInstanceRetentionPolicy'] as Map)),
-      tileSize:
-          _integer(wire['tileSize'], wire['template'] == 'clairbois' ? 32 : 16),
-      mapWidth:
-          _integer(wire['mapWidth'], wire['template'] == 'clairbois' ? 32 : 20),
-      mapHeight: _integer(
-          wire['mapHeight'], wire['template'] == 'clairbois' ? 26 : 15),
+      mapInstanceRetentionPolicy:
+          !wire.containsKey('mapInstanceRetentionPolicy')
+              ? null
+              : MapInstanceRetentionPolicy.fromJson(Map<String, dynamic>.from(
+                  wire['mapInstanceRetentionPolicy'] as Map)),
+      tileSize: _integer(wire['tileSize'], descriptor?.tileSize ?? 16),
+      mapWidth: _integer(wire['mapWidth'], descriptor?.mapWidth ?? 20),
+      mapHeight: _integer(wire['mapHeight'], descriptor?.mapHeight ?? 15),
     );
     request.validate();
     final canonicalParent =
@@ -139,6 +148,7 @@ final class ProjectCreationBootstrapApi
         folderName: request.folderName,
         parentPath: canonicalParent,
         template: request.template,
+        templateId: request.templateId,
         dimension: request.dimension,
         spatialCamera: request.spatialCamera,
         mapInstanceRetentionPolicy: request.mapInstanceRetentionPolicy,
@@ -155,17 +165,20 @@ final class ProjectCreationBootstrapApi
       'folderName': request.folderName,
       'parentPath': request.parentPath,
       'template': request.template.name,
+      if (templateId != null) 'templateId': templateId,
       'dimension': request.dimension.name,
       if (request.spatialCamera != null)
         'spatialCamera': request.spatialCamera!.toJson(),
       if (request.mapInstanceRetentionPolicy != null)
-        'mapInstanceRetentionPolicy': request.mapInstanceRetentionPolicy!.toJson(),
+        'mapInstanceRetentionPolicy':
+            request.mapInstanceRetentionPolicy!.toJson(),
       'tileSize': request.tileSize,
       'mapWidth': request.mapWidth,
       'mapHeight': request.mapHeight,
     };
     final fingerprint = computeAuthoringJsonFingerprint({
       'request': normalized,
+      if (descriptor != null) 'templateDescriptor': descriptor.toJson(),
       'parent': canonicalParent,
       'target': destination
     }, logicalName: 'project-creation-confirmation.json');
