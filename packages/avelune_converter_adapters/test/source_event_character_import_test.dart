@@ -101,6 +101,32 @@ Matcher _code(String value) =>
     isA<ContractError>().having((error) => error.code, 'code', value);
 
 void main() {
+  test('imports tall four-direction atlases from two arbitrary projects', () async {
+    for (final entry in [('aurora-panel', 128, 320), ('clockwork-sign', 192, 352)]) {
+      final fixture = _fixture(charsetName: entry.$1, namespace: entry.$1,
+        width: entry.$2, height: entry.$3);
+      final imported = await _read(fixture, charsetName: entry.$1);
+      expect(imported.nativeFrameHeightPx, 96);
+      expect(imported.frameHeightPx, entry.$3 ~/ 4);
+      expect(imported.sourceOffsetYPx, 96 - entry.$3 ~/ 4);
+      final before = image.decodePng(Uint8List.fromList(imported.imageBytes))!;
+      final after = image.decodePng(Uint8List.fromList(imported.outputBytes))!;
+      expect((after.width, after.height), (256, 384));
+      for (var row = 0; row < 4; row++) {
+        for (var column = 0; column < 4; column++) {
+          for (var y = 0; y < imported.frameHeightPx; y++) {
+            for (var x = 0; x < imported.frameWidthPx; x++) {
+              final a = before.getPixel(column * imported.frameWidthPx + x,
+                row * imported.frameHeightPx + y);
+              final b = after.getPixel(column * 64 + imported.sourceOffsetXPx + x,
+                row * 96 + imported.sourceOffsetYPx + y);
+              expect([b.r, b.g, b.b, b.a], [a.r, a.g, a.b, a.a]);
+            }
+          }
+        }
+      }
+    }
+  });
   test('preserves the PNG and selects the exact fixed source pattern',
       () async {
     final fixture = _fixture();

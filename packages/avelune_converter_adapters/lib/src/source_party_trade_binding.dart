@@ -1,25 +1,7 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_psdk_trainer_bundle.dart';
-
-enum SourcePartyTradeVisualPolicy { strictSource, nativeWoman2ForExactGuard }
-
-final class SourcePartyTradeVisualAdaptation {
-  const SourcePartyTradeVisualAdaptation._(this.actualSourceFile);
-  final SourceFileEntry actualSourceFile;
-  String get requestedGraphic => 'NPC_FRLG_WOMAN_2_FORMAL';
-  String get actualCharsetName => 'NPC_FRLG_WOMAN_2';
-  Map<String, Object?> toJson() => {
-        'kind': 'explicitNativePresentationAdaptation',
-        'rule': 'kanto102Event7NativeWoman2',
-        'requestedGraphic': requestedGraphic,
-        'actualCharsetName': actualCharsetName,
-        'actualSourceFile': actualSourceFile.toJson(),
-        'sourceVisualParity': false,
-        'sourceOriginalGraphicRestored': false,
-        'sourceRenamedOrModified': false,
-      };
-}
+import 'source_character_presentation_binding.dart';
 
 final class SourcePartyTradeBinding {
   SourcePartyTradeBinding._({
@@ -36,7 +18,7 @@ final class SourcePartyTradeBinding {
 
   final SourcePartyTradeProgramNode program;
   final int sourceMapId, sourceEventId;
-  final SourcePartyTradeVisualAdaptation? visualAdaptation;
+  final SourceCharacterPresentationBinding? visualAdaptation;
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash;
   final Sha256Hash nativeEvolutionRulesHash;
   final Map<String, Object?> evidence;
@@ -119,9 +101,7 @@ final class SourcePartyTradeBindingResolver {
       required SourceEventAnalysis analysis,
       required int sourceMapId,
       required int sourceEventId,
-      NativePsdkCatalog? nativeCatalog,
-      SourcePartyTradeVisualPolicy visualPolicy =
-          SourcePartyTradeVisualPolicy.strictSource}) {
+      NativePsdkCatalog? nativeCatalog}) {
     if (!analysis.profile.isQualified ||
         analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
         analysis.profile.normalizationHash != source.canonicalHash) {
@@ -137,25 +117,11 @@ final class SourcePartyTradeBindingResolver {
     }
     final program =
         event.pages.single.body.nodes.single as SourcePartyTradeProgramNode;
-    SourcePartyTradeVisualAdaptation? visual;
-    if (visualPolicy ==
-            SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard &&
-        !source.snapshot.entries.any((entry) =>
-            sourcePathCollisionKey(entry.relativePath) ==
-            sourcePathCollisionKey(
-                'Graphics/Characters/NPC_FRLG_WOMAN_2_FORMAL.png'))) {
-      final candidates = source.snapshot.entries
-          .where((entry) =>
-              entry.relativePath == 'Graphics/Characters/NPC_FRLG_WOMAN_2.png')
-          .toList();
-      if (candidates.length != 1 ||
-          candidates.single.kind != SourceNodeKind.file ||
-          candidates.single.sha256?.value !=
-              'a668f4c81d1605536afd1770adb6ef33d4d47eb12392ef9e9e323c8d9c076e95') {
-        return null;
-      }
-      visual = SourcePartyTradeVisualAdaptation._(candidates.single);
-    }
+    final presentation = resolveSourceCharacterPresentation(
+        snapshot: source.snapshot,
+        profile: source.interpretationProfile,
+        charsetName: event.pages.single.graphic?.characterName ?? '');
+    final visual = presentation?.substitution == null ? null : presentation;
     final native = nativeCatalog ?? NativePsdkTrainerBundle.builtin();
     final rules = <String, Object?>{};
     for (final entry in native.evolutionsBySpeciesId.entries.toList()
@@ -186,7 +152,8 @@ final class SourcePartyTradeBindingResolver {
           'normalizationHash': source.canonicalHash.value,
           'sourceProfileHash': analysis.profile.canonicalHash.value,
           'sourceProgram': program.toJson(),
-          'visualPolicy': visualPolicy.name,
+          'visualPolicy':
+              visual == null ? 'strictSource' : 'declaredProfileSubstitution',
           if (visual != null) 'visualAdaptation': visual.toJson(),
           'sourceVisualParity': false,
           'nativeEvolutionRulesHash': rulesHash.value,

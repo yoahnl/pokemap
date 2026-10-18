@@ -122,10 +122,10 @@ Map<String, Object?> _item(String symbol,
       ...patch
     };
 
-const _audioPath = 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1).wav';
+const _audioPath = 'Audio/ME/neutral-item.wav';
 const _machineAudioPath =
-    'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2)).wav';
-const _skinPath = 'Graphics/Windowskins/speech hgss 1.png';
+    'Audio/ME/neutral-machine.wav';
+const _skinPath = 'Graphics/Windowskins/neutral-panel.png';
 const _iconPath = 'Graphics/Icons/bagPocket2.png';
 
 List<int> _dump(Object? value) => [4, 8, ..._value(value)];
@@ -169,6 +169,8 @@ final class _Fixture {
 Future<_Fixture> _fixture(
     {List<int>? scripts,
     int region = 1,
+    int presentationRegion = 1,
+    bool includePresentationBindings = true,
     bool dark = false,
     bool transparent = false,
     bool activeBgm = false,
@@ -210,7 +212,7 @@ scriptsBytes: scripts, extraFiles: {
     if (!missingAudio)
       (machine ? _machineAudioPath : _audioPath): audioBytes ?? _wav(),
     if (duplicateAudio)
-      'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1).ogg': _wav(),
+      'Audio/ME/neutral-item.ogg': _wav(),
   });
   final bytes = {...original.sourceBytes};
   if (activeBgm || unknownBgm) {
@@ -243,15 +245,32 @@ scriptsBytes: scripts, extraFiles: {
       profileEvidence: original.snapshot.profileEvidence,
       state: SourceScanState.complete);
   final files = LiteralFixtureFiles(snapshot, bytes);
-  final source = await const RmxpSourceNormalizer()
-      .normalize(snapshot: snapshot, files: files);
+  Map<String, Object?> pin(String path, List<int> fallback) => {
+    'relativePath': path, 'sha256': literalFixtureHash(bytes[path] ?? fallback).value};
+  final presentationProfile = SourceInterpretationProfile.fromJson({
+    ...fixtureSourceInterpretationProfile.toJson(),
+    if (includePresentationBindings) 'presentationBindings': {
+      'characterSubstitutions': [], 'routedDoorPatterns': [],
+      'pickupFeedbackByRegion': [{
+        'regionId': presentationRegion,
+        'windowskinPinnedAsset': pin(_skinPath, _png(skinWidth, skinHeight)),
+        'iconsByPocket': {
+          '2': pin(_iconPath, _png(18, 32)),
+          '4': pin('Graphics/Icons/bagPocket4.png', _png(18, 32)),
+        },
+        'audioByItemKind': {
+          'item': pin(_audioPath, _wav()),
+          'machine': pin(_machineAudioPath, _wav()),
+        },
+      }],
+    },
+  });
+  final source = await const RmxpSourceNormalizer().normalize(
+      snapshot: snapshot, files: files, interpretationProfile: presentationProfile);
   final items = await const SourceEventItemBindingResolver().read(
-      snapshot: snapshot,
-      files: files,
+      snapshot: snapshot, files: files,
       symbols: machine ? ['TM101'] : ['BURNHEAL', 'ETHER'],
-      eventProfile: SourceEventProfile.forProject(source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-));
+      eventProfile: SourceEventProfile.forProject(source));
   files.reads.clear();
   return _Fixture(source, files, items);
 }
@@ -573,7 +592,7 @@ Future<_GiverFixture> _rodFixture(SourceMapMusicOracle oracle,
       if (ordinaryDialogue) 'Graphics/Characters/B.png': _png(128, 192),
       'Graphics/Icons/bagPocket8.png': _png(18, 32),
       _skinPath: _png(96, 48),
-      'Audio/ME/FRLG Fanfare - Item Key (Fanfare! Key Item).wav': _wav(),
+      'Audio/ME/neutral-key.wav': _wav(),
       if (sourceSoundPlacement != null)
         'Audio/SE/ItemGet.wav': malformedSound ? [1, 2, 3] : _wav(),
     },
@@ -743,6 +762,32 @@ Future<
 }
 
 void main() {
+  test('pickup presentation uses explicit independent region profiles', () async {
+    for (final region in [7, 42]) {
+      final fixture = await _fixture(scripts: syntheticInterpretationArchive,
+          region: region, presentationRegion: region);
+      final result = await _read(fixture);
+      expect(result.iconFile.relativePath, _iconPath);
+      expect(result.audioFile.relativePath, _audioPath);
+      expect(result.windowskinFile.relativePath, _skinPath);
+      expect(result.artifacts.first.bytes, fixture.files.bytes[_iconPath]);
+      expect(result.artifacts.last.bytes, fixture.files.bytes[_audioPath]);
+      expect(result.evidence['sourceRegion'], region);
+    }
+  });
+  test('pickup presentation has no implicit region or asset defaults', () async {
+    final absent = await _fixture(scripts: syntheticInterpretationArchive,
+        includePresentationBindings: false);
+    await expectLater(_read(absent), _unavailable('pickup.feedback.region_unconfigured'));
+    final mismatched = await _fixture(scripts: syntheticInterpretationArchive,
+        region: 9, presentationRegion: 8);
+    await expectLater(_read(mismatched), _unavailable('pickup.feedback.region_unconfigured'));
+  });
+  test('pickup presentation rereads and rejects changed pinned bytes', () async {
+    final fixture = await _fixture(scripts: syntheticInterpretationArchive);
+    fixture.files.overrides[_iconPath] = [1, 2, 3];
+    await expectLater(_read(fixture), _contract('source.pickup_feedback.source_changed'));
+  });
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   List<int>? scripts;
   SourceMapMusicOracle? musicOracle;
@@ -1634,10 +1679,10 @@ interpretationProfile: fixtureSourceInterpretationProfile,
               .colorArgb,
           0xfff8f8f8);
     });
-    test('refuses regions outside the bounded region1 contract', () async {
+    test('refuses regions without a declared presentation binding', () async {
       final f = await _fixture(scripts: scripts, region: 0);
       await expectLater(
-          _read(f), _unavailable('pickup.feedback.region_unsupported'));
+          _read(f), _unavailable('pickup.feedback.region_unconfigured'));
     });
     test('missing metadata is a quarantinable source dependency', () async {
       final f = await _fixture(scripts: scripts, missingMetadata: true);

@@ -76,8 +76,9 @@ final class SourceHealingDisplayBinding {
             entry.byteLength == file.byteLength))) {
       return false;
     }
-    final maps =
-        source.maps.where((map) => map.map.sourceMapId == program.sourceMapId).toList();
+    final maps = source.maps
+        .where((map) => map.map.sourceMapId == program.sourceMapId)
+        .toList();
     if (maps.length != 1) {
       return false;
     }
@@ -118,7 +119,9 @@ final class SourceHealingDisplayBindingResolver {
     cancellation?.check();
     limits.validate();
     final events = analysis.events
-        .where((event) => event.sourceMapId == sourceMapId && event.sourceEventId == sourceEventId)
+        .where((event) =>
+            event.sourceMapId == sourceMapId &&
+            event.sourceEventId == sourceEventId)
         .toList();
     if (events.isEmpty) {
       return null;
@@ -161,21 +164,27 @@ final class SourceHealingDisplayBindingResolver {
       throw const SourceHealingDisplayBindingUnavailable(
           'event_binding_unqualified');
     }
-    if (limits.maxArtifacts < 2 ||
-        limits.maxMutations < 9 ||
-        limits.maxImagePixels < 256 * 192 ||
-        limits.maxTotalImagePixels < 2 * 256 * 192) {
+    final presentation =
+        source.interpretationProfile?.presentationBindings?.healingDisplay;
+    if (presentation == null) {
+      throw const SourceHealingDisplayBindingUnavailable(
+          'presentation_bindings_missing');
+    }
+    final sheets = presentation.sheets;
+    final totalPixels = sheets.fold<int>(
+        0, (total, sheet) => total + sheet.pixelWidth * sheet.pixelHeight);
+    if (limits.maxArtifacts < sheets.length ||
+        limits.maxMutations < sheets.length + 7 ||
+        sheets.any((sheet) =>
+            sheet.pixelWidth * sheet.pixelHeight > limits.maxImagePixels) ||
+        totalPixels > limits.maxTotalImagePixels) {
       throw const NativeWriteException('events.healing_display.quota',
           'Healing display native assets exceed the configured budget.');
     }
-    const hashes = [
-      '1ff2dd7e2836708834f4e34bf820251d9829bcfa8b35c4af4b21116e75608209',
-      'f44799bc293ab69576f1c35dc6f7cca6b5bc1ac16e4aac8db0015e3e275116d1'
-    ];
     final admitted = <SourceFileEntry>[];
     var total = 0;
-    for (var sheet = 1; sheet <= 2; sheet++) {
-      final path = 'Graphics/Characters/OBJ_FRLG_Healing$sheet.png';
+    for (final sheet in sheets) {
+      final path = sheet.asset.relativePath;
       final matches = source.snapshot.entries
           .where((entry) =>
               sourcePathCollisionKey(entry.relativePath) ==
@@ -184,7 +193,7 @@ final class SourceHealingDisplayBindingResolver {
       if (matches.length != 1 ||
           matches.single.relativePath != path ||
           matches.single.kind != SourceNodeKind.file ||
-          matches.single.sha256?.value != hashes[sheet - 1]) {
+          matches.single.sha256 != sheet.asset.sha256) {
         throw const SourceHealingDisplayBindingUnavailable(
             'source_image_unqualified');
       }
@@ -197,7 +206,8 @@ final class SourceHealingDisplayBindingResolver {
       admitted.add(matches.single);
     }
     final artifacts = <NativeArtifact>[];
-    for (final file in admitted) {
+    for (var index = 0; index < admitted.length; index++) {
+      final file = admitted[index], sheet = sheets[index];
       cancellation?.check();
       final bytes = await files.read(file.fileId);
       cancellation?.check();
@@ -211,8 +221,8 @@ final class SourceHealingDisplayBindingResolver {
       final dimensions =
           decodeRasterImageDimensions(bytes, mediaType: 'image/png');
       if (dimensions == null ||
-          dimensions.width != 256 ||
-          dimensions.height != 192) {
+          dimensions.width != sheet.pixelWidth ||
+          dimensions.height != sheet.pixelHeight) {
         throw const SourceHealingDisplayBindingUnavailable(
             'source_image_unqualified');
       }
@@ -225,24 +235,27 @@ final class SourceHealingDisplayBindingResolver {
       'sourceIdentity': events.single.identity.value
     }).value.substring(0, 24);
     final tilesets = [
-      for (var sheet = 1; sheet <= 2; sheet++)
+      for (var sheet = 1; sheet <= sheets.length; sheet++)
         'source_healing_sheet_${sheet}_$namespace'
     ];
     final category = ProjectElementCategory(
         id: 'source_healing_display_$namespace', name: 'Boules de soin');
     final elements = [
-      for (var count = 1; count <= 6; count++)
+      for (final variant in presentation.variants)
         ProjectElementEntry(
-            id: 'source_healing_${count}_$namespace',
-            name: 'Boules de soin ($count Pokémon)',
-            tilesetId: tilesets[count <= 3 ? 0 : 1],
+            id: 'source_healing_${variant.count}_$namespace',
+            name: 'Soin (${variant.count} membres)',
+            tilesetId: tilesets[variant.sheetIndex],
             categoryId: category.id,
             frames: [
-              for (var column = 0; column < 4; column++)
+              for (final frame in variant.frames)
                 TilesetVisualFrame(
-                    source:
-                        TilesetSourceRect(x: column, y: (count - 1) % 3 + 1),
-                    durationMs: 125)
+                    source: TilesetSourceRect(
+                        x: frame.x,
+                        y: frame.y,
+                        width: frame.width,
+                        height: frame.height),
+                    durationMs: frame.durationMs)
             ])
     ];
     NativeMutation mutation(String id, String action, List<String> targets,
@@ -267,7 +280,7 @@ final class SourceHealingDisplayBindingResolver {
         artifacts: artifacts,
         files: admitted,
         mutations: [
-          for (var sheet = 0; sheet < 2; sheet++)
+          for (var sheet = 0; sheet < sheets.length; sheet++)
             mutation('sheet_${sheet + 1}', 'tileset.import_image', [
               tilesets[sheet],
               'image_${tilesets[sheet]}'
@@ -275,8 +288,8 @@ final class SourceHealingDisplayBindingResolver {
               'artifactHandle': artifacts[sheet].handle,
               'tilesetId': tilesets[sheet],
               'name': 'Boules de soin ${sheet + 1}',
-              'tileWidth': 64,
-              'tileHeight': 48
+              'tileWidth': sheets[sheet].tileWidth,
+              'tileHeight': sheets[sheet].tileHeight
             }),
           mutation('category', 'element_category.upsert', [category.id],
               {'category': category.toJson()}),
@@ -301,11 +314,11 @@ final class SourceHealingDisplayBindingResolver {
           'nativeDisplayCount': 'actualPartyMembersIncludingFainted',
           'nativeDisplayLifetime':
               'acceptedApplyingBeforeAtomicPartyHealAndCheckpoint',
-          'nativePresentationMilliseconds': 2900,
-          'nativeFrameMilliseconds': 125,
-          'nativeFrameSize': [64, 48],
+          'sourcePresentationMilliseconds': program.sourceWaitMilliseconds,
+          'nativePresentationPolicy': 'runtimeHealService',
+          'declaredPresentation': presentation.toJson(),
           'nativeAnchor': 'bottomCenterOfOriginalSourceCell',
-          'sourceVariable6Executed': false,
+          'sourceVariableExecuted': false,
           'sourcePixelsResampled': false,
           'sourcePlacementBallShakeSoundsImported': false,
           'nativeRecoveryMusic': 'existingCompletionSceneOnce',

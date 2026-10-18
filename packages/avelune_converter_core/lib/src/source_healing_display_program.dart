@@ -51,8 +51,6 @@ final class SourceHealingDisplayProgram {
         'sourceVariableId': sourceVariableId,
         'sourceCount': 'pokemon_count_excluding_eggs_including_fainted',
         'sourceWaitMilliseconds': sourceWaitMilliseconds,
-        'sourceFrameMilliseconds': 125,
-        'sourceFrameSize': [64, 48],
         'sourceAnchor': 'bottomCenter',
         'sourceNurseEventId': sourceNurseEventId,
         'sourceProgramRecognized': true,

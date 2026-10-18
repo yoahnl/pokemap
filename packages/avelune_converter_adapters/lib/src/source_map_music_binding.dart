@@ -297,8 +297,8 @@ final class SourceMapMusicResolver {
         'kind': 'sourceMapMusicBinding',
         'version': 1,
         'profile': policy == SourceMapMusicPolicy.nativeAuthoredVolume
-            ? 'kanto-native-authored-audio-v1'
-            : 'kanto-mkxp-z-2.4.2-c9378cf-static-audio-v1',
+            ? 'source-native-authored-audio-v1'
+            : 'source-mkxp-z-2.4.2-c9378cf-static-audio-v1',
         'policy': policy.name,
         'sourceEngineGainQualified':
             policy == SourceMapMusicPolicy.sourceEngineGain,

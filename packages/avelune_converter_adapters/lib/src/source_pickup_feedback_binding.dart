@@ -119,8 +119,7 @@ final class SourcePickupFeedbackResolver {
         (item.isKeyItem &&
             (helper != SourceItemGrantHelper.receiveItem ||
                 item.sourcePocketIndex != 8)) ||
-        (item.isMachine && item.sourcePocketIndex != 4) ||
-        item.sourceSymbol == 'DNASPLICERS') {
+        (item.isMachine && item.sourcePocketIndex != 4)) {
       _unavailable('item_unsupported');
     }
     if (RegExp(r'[\\<>\x00-\x1f]').hasMatch(item.portionName)) {
@@ -260,44 +259,34 @@ final class SourcePickupFeedbackResolver {
       _unavailable('metadata_invalid');
     }
     final region = _integer(document, position.elements.first)!;
-    if (region != 1) _unavailable('region_unsupported');
+    final presentation = source.interpretationProfile?.presentationBindings;
+    final regionBindings = presentation?.pickupFeedbackByRegion
+        .where((binding) => binding.regionId == region).toList() ?? [];
+    if (regionBindings.length != 1) _unavailable('region_unconfigured');
+    final feedback = regionBindings.single;
     final metadataReference = metadataArchive.reference(
         fileId: metadataFile.fileId, nodeId: metadataNodeId);
     metadataArchive.seal();
 
-    final iconFile =
-        entry('Graphics/Icons/bagPocket${item.sourcePocketIndex}.png', 'icon');
-    final skinFile = entry('Graphics/Windowskins/speech hgss 1.png', 'skin');
-    final audioBase = item.isKeyItem
-        ? 'Audio/ME/FRLG Fanfare - Item Key (Fanfare! Key Item)'
-        : item.isMachine
-            ? 'Audio/ME/FRLG Fanfare - Item Machine (Fanfare! Item Obtained (Version 2))'
-            : 'Audio/ME/FRLG Fanfare - Item (Fanfare Item Get 1)';
-    const mediaTypes = {
-      'ogg': 'audio/ogg',
-      'wav': 'audio/wav',
-      'mp3': 'audio/mpeg',
-      'flac': 'audio/flac'
-    };
-    final audioMatches = <(SourceFileEntry, String, String)>[];
-    for (final ext in mediaTypes.entries) {
-      final path = '$audioBase.${ext.key}';
-      final candidates = snapshot.entries
-          .where((value) =>
-              sourcePathCollisionKey(value.relativePath) ==
-              sourcePathCollisionKey(path))
-          .toList();
-      if (candidates.length > 1 ||
-          (candidates.isNotEmpty && candidates.single.relativePath != path)) {
-        _unavailable('audio_ambiguous');
-      }
-      if (candidates.isNotEmpty) {
-        audioMatches.add((entry(path, 'audio'), ext.key, ext.value));
-      }
+    SourceFileEntry pinnedEntry(SourcePresentationAssetPin pin, String family) {
+      final file = entry(pin.relativePath, family);
+      if (file.sha256 != pin.sha256) _unavailable('${family}_pin_mismatch');
+      return file;
     }
-    if (audioMatches.isEmpty) _unavailable('audio_missing');
-    if (audioMatches.length != 1) _unavailable('audio_ambiguous');
-    final (audioFile, audioExtension, audioMediaType) = audioMatches.single;
+
+    final iconPin = feedback.iconsByPocket[item.sourcePocketIndex];
+    if (iconPin == null) _unavailable('icon_unconfigured');
+    final audioKind = item.isKeyItem ? 'keyItem' : item.isMachine ? 'machine' : 'item';
+    final audioPin = feedback.audioByItemKind[audioKind];
+    if (audioPin == null) _unavailable('audio_unconfigured');
+    final iconFile = pinnedEntry(iconPin, 'icon');
+    final skinFile = pinnedEntry(feedback.windowskinPinnedAsset, 'skin');
+    final audioFile = pinnedEntry(audioPin, 'audio');
+    const mediaTypes = {'ogg': 'audio/ogg', 'wav': 'audio/wav',
+        'mp3': 'audio/mpeg', 'flac': 'audio/flac'};
+    final audioExtension = audioFile.relativePath.split('.').last.toLowerCase();
+    final audioMediaType = mediaTypes[audioExtension];
+    if (audioMediaType == null) _unavailable('audio_unsupported');
     final iconBytes = await read(iconFile, 1048576);
     final skinBytes = await read(skinFile, 1048576);
     final audioBytes = await read(audioFile, 16777216);
@@ -371,10 +360,10 @@ final class SourcePickupFeedbackResolver {
             'assetId': audioAssetId,
             'mediaId': mediaId,
             'label': item.isKeyItem
-                ? 'FRLG key item obtained'
+                ? 'Source key item obtained'
                 : item.isMachine
-                    ? 'FRLG machine found'
-                    : 'FRLG item found',
+                    ? 'Source machine found'
+                    : 'Source item found',
             'logicalPath': logicalAudioPath
           },
           limits: limits),
@@ -538,37 +527,8 @@ final class SourcePickupFeedbackResolver {
                 'mediaType': artifact.reference.mediaType
               }
           ],
-          'oracle': {
-            'archiveHash': source.interpretationProfile?.scriptsArchiveHash.value,
-            'receiveItem': {
-              'section': 241,
-              'lines': [725, 762]
-            },
-            'keyItemMusic': {
-              'section': 0,
-              'lines': [117, 129]
-            },
-            'itemBall': {
-              'section': 241,
-              'lines': [668, 719]
-            },
-            'skin': {
-              'section': 79,
-              'lines': [283, 374]
-            },
-            'freshOptions': {
-              'section': 307,
-              'lines': [20, 30]
-            },
-            'advance': {
-              'section': 88,
-              'lines': [612, 629]
-            },
-            'icon': {
-              'section': 87,
-              'lines': [519, 565]
-            }
-          },
+          'presentationBinding': feedback.toJson(),
+          'rubySemanticsAutomaticallyCertified': false,
         });
   }
 }

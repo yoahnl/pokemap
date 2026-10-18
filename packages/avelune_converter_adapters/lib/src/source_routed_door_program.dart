@@ -19,7 +19,7 @@ final class SourceRoutedDoorProgram {
         sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
         _departureGraphic = event.pages[event.pages.length - 2].graphic!,
         _arrivalGraphic = event.pages.last.graphic!,
-        nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event),
+        nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event, source),
         _fingerprint = _fingerprintOf(event);
 
   final int sourceMapId, sourceEventId, targetSourceMapId;
@@ -42,7 +42,7 @@ final class SourceRoutedDoorProgram {
       analysis.profile.canonicalHash == profileHash &&
       source.archive.files[event.sourceFileId]?.contentHash == sourceFileHash &&
       event.identity == eventIdentity &&
-      _isRoutedDoor(event) &&
+      _isRoutedDoor(event, source) &&
       _fingerprintOf(event) == _fingerprint;
 
   Map<String, Object?> toJson() => {
@@ -86,13 +86,13 @@ Map<ConverterId, SourceRoutedDoorProgram> sourceRoutedDoorPrograms(
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};
   }
-  final possible = analysis.events.where(_isRoutedDoor).toList();
+  final possible = analysis.events.where((event) => _isRoutedDoor(event, source)).toList();
   if (possible.isEmpty) return const {};
   final expected = {
     for (final event in SourceEventAnalyzer.forProject(source, profile: profile)
         .analyze()
         .events
-        .where(_isRoutedDoor))
+        .where((event) => _isRoutedDoor(event, source)))
       event.identity: _fingerprintOf(event),
   };
   return Map.unmodifiable({
@@ -117,7 +117,7 @@ bool _route(SourceEventNode node, int target, List<int> codes) =>
     canonicalJsonOf(node.steps.map((step) => step.sourceCode).toList()) ==
         canonicalJsonOf(codes);
 
-bool _isRoutedDoor(SourceEventDefinition event) {
+bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) {
   if (event.isQuarantined || !const {2, 3}.contains(event.pages.length)) {
     return false;
   }
@@ -158,7 +158,7 @@ bool _isRoutedDoor(SourceEventDefinition event) {
       return false;
     }
   }
-  final stableDepartureSkin = _usesStableDepartureDoorSkin(event);
+  final stableDepartureSkin = _usesStableDepartureDoorSkin(event, source);
   String? visual;
   for (var index = 0; index < event.pages.length; index++) {
     final page = event.pages[index];
@@ -254,7 +254,7 @@ bool _isRoutedDoor(SourceEventDefinition event) {
           route[1] is SourceMoveRouteBarrierNode;
 }
 
-bool _usesStableDepartureDoorSkin(SourceEventDefinition event) {
+bool _usesStableDepartureDoorSkin(SourceEventDefinition event, NormalizedSourceProject source) {
   if (event.pages.length != 2) return false;
   final departure = event.pages.first.graphic;
   final arrival = event.pages.last.graphic;
@@ -263,14 +263,19 @@ bool _usesStableDepartureDoorSkin(SourceEventDefinition event) {
       departure.characterName != arrival.characterName) {
     return false;
   }
-  return switch ((
-    departure.characterName,
-    departure.pattern,
-    arrival.pattern
-  )) {
-    ('OBJ_FRLG_Doors1', 3, 1) || ('OBJ_FRLG_Doors4', 1, 0) => true,
-    _ => false,
-  };
+  final bindings = source.interpretationProfile?.presentationBindings?.routedDoorPatterns;
+  if (bindings == null) return false;
+  final matches = bindings.where((binding) =>
+      binding.charset == departure.characterName &&
+      binding.departurePattern == departure.pattern &&
+      binding.arrivalPattern == arrival.pattern).toList();
+  if (matches.length != 1) return false;
+  final binding = matches.single;
+  final path = 'Graphics/Characters/${binding.charset}.png';
+  final files = source.snapshot.entries.where((entry) =>
+      sourcePathCollisionKey(entry.relativePath) == sourcePathCollisionKey(path)).toList();
+  return files.length == 1 && files.single.relativePath == path &&
+      files.single.kind == SourceNodeKind.file && files.single.sha256 == binding.sha256;
 }
 
 Object? _node(SourceEventNode node) => switch (node) {

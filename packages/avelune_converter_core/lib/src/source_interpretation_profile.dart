@@ -8,7 +8,8 @@ final class SourceInterpretationProfile {
       this.scriptsArchiveHash,
       this.capabilities,
       this.sections,
-      this.declaredPrograms);
+      this.declaredPrograms,
+      this.presentationBindings);
 
   static const jsonLimits = ContractLimits(
       maxDepth: 32,
@@ -32,7 +33,8 @@ final class SourceInterpretationProfile {
       'scriptsArchive',
       'capabilities',
       'sections',
-      'declaredPrograms'
+      'declaredPrograms',
+      'presentationBindings'
     });
     _require(
         json['kind'] == 'sourceInterpretationProfile' &&
@@ -143,7 +145,10 @@ final class SourceInterpretationProfile {
         Sha256Hash(_interpretationString(archive['sha256'])),
         Set.unmodifiable(capabilities),
         Map.unmodifiable(sections),
-        List.unmodifiable(programs));
+        List.unmodifiable(programs),
+        json.containsKey('presentationBindings')
+            ? SourcePresentationBindings.fromJson(json['presentationBindings'])
+            : null);
   }
 
   final ConverterId profileId;
@@ -152,6 +157,7 @@ final class SourceInterpretationProfile {
   final Set<String> capabilities;
   final Map<String, Map<String, Object?>> sections;
   final List<SourceDeclaredProgramBinding> declaredPrograms;
+  final SourcePresentationBindings? presentationBindings;
 
   bool supports(String capability) => capabilities.contains(capability);
   bool matchesArchive(Sha256Hash? observed) => observed == scriptsArchiveHash;
@@ -182,6 +188,8 @@ final class SourceInterpretationProfile {
         'capabilities': capabilities.toList()..sort(),
         'sections': sections,
         'declaredPrograms': declaredPrograms.map((p) => p.toJson()).toList(),
+        if (presentationBindings != null)
+          'presentationBindings': presentationBindings!.toJson(),
       };
   late final Sha256Hash canonicalHash =
       canonicalHashOf(toJson(), limits: jsonLimits);

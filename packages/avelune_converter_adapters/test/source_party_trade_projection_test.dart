@@ -86,9 +86,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           .resolve(sourceMapId: 102, sourceEventId: 7, source: source, analysis: analysis)!;
       adaptedBinding = const SourcePartyTradeBindingResolver().resolve(
           sourceMapId: 102, sourceEventId: 7, source: source,
-          analysis: analysis,
-          visualPolicy:
-              SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard)!;
+          analysis: analysis)!;
       imported = await const SourceEventCharacterImporter().read(
           snapshot: source.snapshot,
           files: fixture.$2,
@@ -232,9 +230,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
             .analyze();
         final decision = const SourcePartyTradeBindingResolver().resolve(
             sourceMapId: 102, sourceEventId: 7, source: changed,
-            analysis: changedAnalysis,
-            visualPolicy:
-                SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard);
+            analysis: changedAnalysis);
         expect(decision, isNotNull);
         expect(decision!.visualAdaptation, isNull);
       });

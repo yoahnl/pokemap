@@ -18,6 +18,7 @@ import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
 import 'source_event_sound_binding.dart';
 import 'source_event_character_import.dart';
+import 'source_character_presentation_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_trainer_event_bindings.dart';
@@ -377,8 +378,7 @@ final class SourceEventStudyComposer {
     for (final event in selectedEvents) {
       final binding = const SourcePartyTradeBindingResolver().resolve(source: source,
           analysis: analysis, sourceMapId: event.sourceMapId, sourceEventId: event.sourceEventId,
-          nativeCatalog: nativeEncounterQualification?.bundle ?? nativeTrainerCatalog,
-          visualPolicy: SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard);
+          nativeCatalog: nativeEncounterQualification?.bundle ?? nativeTrainerCatalog);
       if (binding != null) partyTrade[event.identity] = binding;
       if (event.pages.expand((p) => p.body.nodes).any((node) => node is SourceTownMapProgramNode)) {
         try {
@@ -465,10 +465,13 @@ final class SourceEventStudyComposer {
             pattern: graphic.pattern,
             direction: graphic.direction);
         if (!visited.add(key)) continue;
-        final visualAdaptation = partyTrade[event.identity] != null &&
-                partyTrade[event.identity]!.isBoundToEvent(source: source, analysis: analysis, event: event)
-            ? partyTrade[event.identity]!.visualAdaptation : null;
+        final presentation = resolveSourceCharacterPresentation(snapshot: source.snapshot,
+            profile: source.interpretationProfile, charsetName: graphic.characterName);
+        final visualAdaptation = presentation?.substitution == null ? null : presentation;
         try {
+          if (presentation == null) {
+            throw const NativeWriteException('events.character.presentation_unavailable', 'Character presentation has no exact source asset or declared substitution.');
+          }
           final imported = await const SourceEventCharacterImporter().read(
               snapshot: source.snapshot,
               files: recording,

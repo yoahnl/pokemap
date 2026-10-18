@@ -16,6 +16,7 @@ import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_field_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
+import 'source_character_presentation_binding.dart';
 import 'source_healing_display_binding.dart';
 import 'source_npc_fixed_route_binding.dart';
 import 'source_external_warp_binding.dart';
@@ -803,7 +804,7 @@ final class _ProjectionBuilder {
               binding.sourceDirection != graphic.direction ||
               file?.sha256 != binding.sourceFileHash ||
               file?.relativePath !=
-                  'Graphics/Characters/${graphic.characterName}.png') {
+                  resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath) {
             gaps.add('characterBindingMissing');
           }
         }
@@ -1096,7 +1097,7 @@ final class _ProjectionBuilder {
             'nativeSceneCreated': false,
             'adaptedCommands': {
               'sourcePages': [for (final page in event.pages) page.rawDataRef!.toJson()],
-              'sourceControl': 'sourceVariable6PageSelection',
+              'sourceControl': 'declaredSourceVariablePageSelection',
               'nativeControl': 'ephemeralActualPartyCountDuringAcceptedNativeHeal',
               'scope': 'presentation',
               'sourceRawPreserved': true,
@@ -2006,7 +2007,7 @@ final class _ProjectionBuilder {
       if (checkCharacterBindings && (binding == null || binding.characterId.trim().isEmpty ||
           binding.sourceSnapshotHash != sourceSnapshotHash || binding.sourcePattern != graphic.pattern ||
           binding.sourceDirection != graphic.direction || file?.sha256 != binding.sourceFileHash ||
-          file?.relativePath != 'Graphics/Characters/${graphic.characterName}.png'))
+          file?.relativePath != resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath))
         'characterBindingMissing',
     };
   }
@@ -2064,7 +2065,7 @@ final class _ProjectionBuilder {
             character.sourcePattern != graphic.pattern ||
             character.sourceDirection != graphic.direction ||
             file?.sha256 != character.sourceFileHash ||
-            file?.relativePath != 'Graphics/Characters/${graphic.characterName}.png') {
+            file?.relativePath != resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath) {
           gaps.add('characterBindingMissing');
         }
       }
@@ -2188,7 +2189,7 @@ final class _ProjectionBuilder {
         final file = source.snapshot.entries.where((file) => file.fileId == character?.sourceFileId).firstOrNull;
         if (character == null || character.characterId.trim().isEmpty || character.sourceSnapshotHash != sourceSnapshotHash ||
             character.sourcePattern != graphic.pattern || character.sourceDirection != graphic.direction || file?.sha256 != character.sourceFileHash ||
-            file?.relativePath != 'Graphics/Characters/${graphic.characterName}.png') { gaps.add('characterBindingMissing'); }
+            file?.relativePath != resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath) { gaps.add('characterBindingMissing'); }
       }
     }
     if (binding.programs.expand((program) => program.textGroups.values.expand((texts) => texts)).any((text) {
@@ -2253,7 +2254,7 @@ final class _ProjectionBuilder {
           characterName: graphic.characterName, pattern: graphic.pattern, direction: graphic.direction)];
       final file = source.snapshot.entries.where((entry) => entry.fileId == character?.sourceFileId).firstOrNull;
       final visual = binding.visualAdaptation;
-      final expectedPath = visual?.actualSourceFile.relativePath ?? 'Graphics/Characters/${graphic.characterName}.png';
+      final expectedPath = visual?.actualSourceFile.relativePath ?? resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath;
       if (character == null || character.characterId.trim().isEmpty || character.sourceSnapshotHash != sourceSnapshotHash ||
           character.sourcePattern != graphic.pattern || character.sourceDirection != graphic.direction || file?.sha256 != character.sourceFileHash ||
           file?.relativePath != expectedPath || (visual != null &&
@@ -2709,7 +2710,7 @@ final class _ProjectionBuilder {
             binding.sourceDirection != graphic.direction ||
             file?.sha256 != binding.sourceFileHash ||
             file?.relativePath !=
-                'Graphics/Characters/${graphic.characterName}.png') {
+                resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath) {
           gaps.add('characterBindingMissing');
         }
       }

@@ -476,7 +476,7 @@ final class SourceDirectedJumpStudyComposer {
       'normalizedSourceHash': source.canonicalHash.value,
       'sourceProfile': resolver.profile.toJson(),
       'sourceProfileQualified': resolver.profile.isQualified,
-      'scope': 'kantoStaticSouthLedgeLine32',
+      'scope': 'sourceDeclaredStaticSouthLedges',
       'nativeTemplate': 'ledgeLine',
       'nativeResolverVersion': borderResolverVersion,
       'sourceEventStateQualified': false,

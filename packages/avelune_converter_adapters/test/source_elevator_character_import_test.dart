@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
-import 'package:crypto/crypto.dart' as crypto;
 import 'package:image/image.dart' as image;
 import 'package:test/test.dart';
 
@@ -19,29 +18,6 @@ final class _OverrideFiles implements SourceFilePort {
       id == fileId ? List.of(bytes) : original.read(id);
 }
 
-SourceSnapshot _replacingSnapshot(
-        SourceSnapshot original, SourceFileEntry entry, List<int> bytes) =>
-    SourceSnapshot(
-        logicalProjectNamespace: original.logicalProjectNamespace,
-        policyHash: original.policyHash,
-        entries: [
-          for (final current in original.entries)
-            current.fileId == entry.fileId
-                ? SourceFileEntry(
-                    fileId: current.fileId,
-                    relativePath: current.relativePath,
-                    kind: current.kind,
-                    byteLength: bytes.length,
-                    sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
-                    format: current.format,
-                    family: current.family)
-                : current
-        ],
-        diagnostics: original.diagnostics,
-        excludedPaths: original.excludedPaths,
-        profileEvidence: original.profileEvidence,
-        state: original.state);
-
 void main() {
   final root = Platform.environment['AVELUNE_STATIC_DOOR_SOURCE_ROOT'];
   final snapshot = Platform.environment['AVELUNE_STATIC_DOOR_SNAPSHOT'];
@@ -49,7 +25,7 @@ void main() {
           .environment['AVELUNE_STATIC_DOOR_SUPPLEMENTAL_ROOTS']
           ?.split('|') ??
       const <String>[];
-  group('exact bounded source elevator charset', () {
+  group('historical tall source charset fixture', () {
     late NormalizedSourceProject source;
     late SourceFilePort files;
     setUpAll(() async {
@@ -105,7 +81,7 @@ void main() {
       expect(4 * 32 + 32 - 96 + imported.sourceOffsetYPx, 4 * 32 + 32 - 80);
     });
 
-    test('unattested tall pixels and unchanged native image quotas are refused',
+    test('changed source pixels and native image quotas are refused',
         () async {
       final entry = source.snapshot.entries.singleWhere((entry) =>
           entry.relativePath == 'Graphics/Characters/OBJ_FRLG_Elevator.png');
@@ -115,13 +91,13 @@ void main() {
       final changed = image.encodePng(raster);
       await expectLater(
           const SourceEventCharacterImporter().read(
-              snapshot: _replacingSnapshot(source.snapshot, entry, changed),
+              snapshot: source.snapshot,
               files: _OverrideFiles(files, entry.fileId, changed),
               charsetName: 'OBJ_FRLG_Elevator',
               sourcePattern: 0,
               sourceDirection: 2),
           throwsA(isA<ContractError>().having((error) => error.code, 'code',
-              'source.event_character.sheet_geometry')));
+              'source.event_character.source_changed')));
       await expectLater(
           const SourceEventCharacterImporter().read(
               snapshot: source.snapshot,

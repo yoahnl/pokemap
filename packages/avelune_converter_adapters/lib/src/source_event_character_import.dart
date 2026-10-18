@@ -84,7 +84,7 @@ final class SourceEventCharacterImport {
           'frameHeightPx': nativeFrameHeightPx,
           'sourceOffsetXPx': sourceOffsetXPx,
           'sourceOffsetYPx': sourceOffsetYPx,
-          'policy': nativeFrameHeightPx == 64 ? 'transparent64PixelFramesRmxpOriginBottomAligned' : 'exactSourceElevator64x96FramesRmxpOriginBottomAligned',
+          'policy': nativeFrameHeightPx == 64 ? 'transparent64PixelFramesRmxpOriginBottomAligned' : 'transparent64x96PixelFramesRmxpOriginBottomAligned',
           'requiredBy': 'overworldActorMinimumTwoTileFrame',
         },
         'initialFrame': {
@@ -105,9 +105,7 @@ final class SourceEventCharacterImport {
         'sourceDepthOffsetPx': depthOffsetPx,
         'sourceDepthOracle': {
           'archive': 'Data/Scripts.rxdata',
-          'sectionIndex': 44,
           'section': 'Game_Character',
-          'lines': [331, 342],
           'sourceProfileQualificationRequired': true,
         },
         'targetDepthProjectionQualified': false,
@@ -198,12 +196,8 @@ final class SourceEventCharacterImporter {
           'The source character bytes differ from the attested snapshot.');
     }
     final bytes = Uint8List.fromList(rawBytes).asUnmodifiableView();
-    final exactElevator = charsetName == 'OBJ_FRLG_Elevator' &&
-        entry.sha256!.value ==
-            '03da059a831fb0a5e326f272fb3f7f2978cf33c47fc707c16cf3f0dcf8629bee';
-    final (width, height) =
-        _geometry(bytes, path, limits, exactElevator: exactElevator);
-    final nativeHeight = height == 320 ? 96 : 64;
+    final (width, height) = _geometry(bytes, path, limits);
+    final nativeHeight = height > 256 ? 96 : 64;
     if (limits.maxImagePixels < 256 * nativeHeight * 4) {
       throw ContractError('source.event_character.image_limit', path, 'The native character atlas exceeds its image quota.');
     }
@@ -345,7 +339,7 @@ int _row(int direction) => switch (direction) {
       _ => throw StateError('An admitted RMXP direction is required.'),
     };
 
-(int, int) _geometry(Uint8List bytes, String path, NativeWriteLimits limits, {bool exactElevator = false}) {
+(int, int) _geometry(Uint8List bytes, String path, NativeWriteLimits limits) {
   late final (int, int) dimensions;
   try {
     dimensions =
@@ -360,9 +354,9 @@ int _row(int direction) => switch (direction) {
   }
   final (width, height) = dimensions;
   if (width % 4 != 0 || height % 4 != 0 || width > 256 ||
-      (height > 256 && !(exactElevator && width == 128 && height == 320))) {
+      height > 384) {
     throw ContractError('source.event_character.sheet_geometry', path,
-        'The source must contain four columns and four rows with frames at most 64 pixels.');
+        'The source must contain four columns and four rows with frames at most 64 by 96 pixels.');
   }
   try {
     const NativePngValidator().validate(bytes, limits: limits);
@@ -385,7 +379,7 @@ List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
   final frameWidth = width ~/ 4;
   final frameHeight = height ~/ 4;
   final offsetX = 32 - frameWidth ~/ 2;
-  final nativeHeight = height == 320 ? 96 : 64;
+  final nativeHeight = height > 256 ? 96 : 64;
   final offsetY = nativeHeight - frameHeight;
   final raster = image.Image(
     width: 256,
