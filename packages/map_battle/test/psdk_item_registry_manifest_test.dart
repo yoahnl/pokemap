@@ -1,9 +1,28 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/data/generated/psdk_item_effect_manifest.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('PSDK item effect manifest', () {
+    test('newly declared Johto held effects have executable registry entries',
+        () {
+      final registry = ItemEffectRegistry();
+      for (final effectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+        expect(itemSystemV1CapabilityTruth.supportsHeldEffect(effectId), isTrue,
+            reason: effectId);
+        expect(registry.supportsHeldEffect(effectId), isTrue, reason: effectId);
+        expect(registry.create(effectId, owner: psdkPlayerSlot),
+            isA<BattleItemEffect>(),
+            reason: effectId);
+      }
+      expect(registry.supportsHeldEffect('never_registered_effect'), isFalse);
+      expect(
+          itemSystemV1CapabilityTruth
+              .supportsHeldEffect('never_registered_effect'),
+          isFalse);
+    });
+
     test('tracks PSDK item registrations and local held-item checks', () {
       final ids = psdkItemEffectManifest.map((entry) => entry.itemId);
 

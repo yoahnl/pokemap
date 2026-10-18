@@ -102,6 +102,10 @@ void main() {
       final result = engine.submit(const BattleDecision.flee());
 
       expect(result.outcome?.kind, BattleEngineOutcomeKind.fled);
+      final holder = result.state.battlerAt(psdkPlayerSlot);
+      expect(holder.heldItemId, 'smoke_ball');
+      expect(holder.itemConsumed, isFalse);
+      expect(holder.consumedItemId, isNull);
       expect(
         result.timeline.events
             .whereType<BattleFleeAttemptTimelineEvent>()

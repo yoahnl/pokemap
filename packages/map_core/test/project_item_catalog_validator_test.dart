@@ -176,6 +176,31 @@ void main() {
       );
     });
 
+    for (final heldEffectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+      test('item system V1 accepts proven held effect $heldEffectId', () {
+        final report = validateProjectItemCatalog(
+          ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'authored-item',
+                displayName: 'Authored item',
+                pocketId: 'held',
+                heldEffectId: heldEffectId,
+              ),
+            ],
+          ),
+          capabilityTruth: itemSystemV1CapabilityTruth,
+        );
+
+        expect(report.hasBlockingDiagnostics, isFalse);
+        expect(
+          report.assessmentFor('authored-item')!.readiness,
+          ItemCapabilityReadiness.runtimeReady,
+        );
+      });
+    }
+
     test('blocks duplicate item ids and invalid ratios', () {
       final report = validateProjectItemCatalog(
         ProjectItemCatalog(

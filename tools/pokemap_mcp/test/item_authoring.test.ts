@@ -86,6 +86,11 @@ const itemMutationScenarios = [
     slug: "item-set-held-effect",
     parameters: { itemId: "potion", heldEffectId: "leftovers" },
   },
+  ...["lum_berry", "sitrus_berry", "smoke_ball"].map((heldEffectId) => ({
+    actionId: "item.set_held_effect",
+    slug: `item-set-held-${heldEffectId}`,
+    parameters: { itemId: "potion", heldEffectId },
+  })),
   {
     actionId: "item.set_capture_effect",
     slug: "item-set-capture-effect",
@@ -171,6 +176,13 @@ test("MCP describes queries and mutates canonical items", async () => {
     const mutationActions = (description.mutationActions as JsonRecord[])
       .map((descriptor) => String(descriptor.id))
       .filter((id) => id.startsWith("item."));
+    const heldDescriptor = (description.mutationActions as JsonRecord[])
+      .find((descriptor) => descriptor.id === "item.set_held_effect");
+    assert.ok(heldDescriptor);
+    const heldEffects = record(heldDescriptor.extensions).heldEffectIds as string[];
+    for (const effectId of ["lum_berry", "sitrus_berry", "smoke_ball"]) {
+      assert.ok(heldEffects.includes(effectId), effectId);
+    }
     assert.deepEqual(mutationActions.sort(), [
       "item.clone",
       "item.create",
@@ -263,6 +275,20 @@ test("MCP describes queries and mutates canonical items", async () => {
       });
       snapshotRevision = String(queried.snapshotRevision);
       assert.equal(snapshotRevision, appliedRevision);
+      if (scenario.actionId === "item.set_held_effect") {
+        const definition = (queried.items as JsonRecord[])
+          .find((item) => item.id === "potion");
+        assert.equal(definition?.heldEffectId,
+          record(scenario.parameters).heldEffectId);
+        const readiness = await toolData(client, "pokemap_query", {
+          projectHandle,
+          resourceKind: "itemReadiness",
+          operation: "get",
+          view: "detail",
+          ids: ["potion"],
+        });
+        assert.equal(record((readiness.items as JsonRecord[])[0]).ready, true);
+      }
       const validation = await toolData(client, "pokemap_validate", {
         projectHandle,
       });

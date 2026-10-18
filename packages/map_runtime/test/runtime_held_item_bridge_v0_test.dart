@@ -287,6 +287,132 @@ void main() {
       );
     });
 
+    for (final effectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+      test(
+        'proven held effect $effectId survives its real lifecycle write-back',
+        () {
+          final itemId = 'authored-$effectId';
+          final catalog = ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: itemId,
+                displayName: 'Authored held item',
+                pocketId: 'held-items',
+                heldEffectId: effectId,
+              ),
+            ],
+          );
+          expect(
+            validateProjectItemCatalog(
+              catalog,
+              capabilityTruth: itemSystemV1CapabilityTruth,
+            ).hasBlockingDiagnostics,
+            isFalse,
+          );
+          final itemCatalog = ItemCatalogSnapshot.fromCatalog(catalog);
+          expect(
+            resolveRuntimeHeldItemEffect(
+              itemCatalog: itemCatalog,
+              itemId: itemId,
+            ).status,
+            RuntimeHeldItemSupportStatus.supported,
+          );
+          final setup = PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+            player: _combatant(id: 'player_0', heldItemId: effectId),
+            opponent: _combatant(id: 'opponent_0'),
+            rngSeeds: _rngSeeds,
+          );
+          final initial = PsdkBattleState.fromSetup(setup);
+          final gameState = GameState(
+            saveId: 'held-lifecycle-$effectId',
+            party: PlayerParty(
+              members: [
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'hardy',
+                  abilityId: 'overgrow',
+                  heldItemId: itemId,
+                ),
+              ],
+            ),
+            bag: const Bag(
+              entries: [BagEntry(itemId: 'spare-potion', quantity: 2)],
+            ),
+          );
+          final context = _context(lineupIndices: const [0]);
+          final untouched = writePlayerPsdkHeldItemsBackToPartySlots(
+            gameState: gameState,
+            context: context,
+            psdkState: initial,
+            itemCatalog: itemCatalog,
+          );
+          expect(untouched.party.members.single.heldItemId, itemId);
+          final PsdkBattleState after;
+          if (effectId == 'lum_berry') {
+            after = const BattleStatusChangeHandler()
+                .applyMajorStatus(
+                  context: BattleHandlerContext(
+                    state: initial,
+                    rng: BattleRngStreams.fromPsdkSeeds(_rngSeeds),
+                    turn: 1,
+                    user: psdkOpponentSlot,
+                  ),
+                  target: psdkPlayerSlot,
+                  moveId: 'poison_probe',
+                  status: PsdkBattleMajorStatus.poison,
+                )
+                .state;
+            expect(after.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+          } else if (effectId == 'sitrus_berry') {
+            after = const BattleEndTurnHandler()
+                .resolveEndTurn(
+                  BattleHandlerContext(
+                    state: initial.updateBattler(
+                      psdkPlayerSlot,
+                      (holder) => holder.copyWith(currentHp: 40),
+                    ),
+                    rng: BattleRngStreams.fromPsdkSeeds(_rngSeeds),
+                    turn: 1,
+                    user: psdkPlayerSlot,
+                  ),
+                )
+                .state;
+            expect(after.battlerAt(psdkPlayerSlot).currentHp, 60);
+          } else {
+            final fled = BattleEngine.fromPsdk(setup: setup)
+                .submit(const BattleDecision.flee());
+            expect(fled.outcome!.kind, BattleEngineOutcomeKind.fled);
+            after = fled.state.psdkState;
+          }
+          final consumed = effectId != 'smoke_ball';
+          final holder = after.battlerAt(psdkPlayerSlot);
+          expect(holder.itemConsumed, consumed);
+          expect(holder.consumedItemId, consumed ? effectId : null);
+          final updated = writePlayerPsdkHeldItemsBackToPartySlots(
+            gameState: untouched,
+            context: context,
+            psdkState: after,
+            itemCatalog: itemCatalog,
+          );
+          expect(
+            updated.party.members.single.heldItemId,
+            consumed ? '' : itemId,
+          );
+          expect(updated.bag, gameState.bag);
+          expect(
+            writePlayerPsdkHeldItemsBackToPartySlots(
+              gameState: updated,
+              context: context,
+              psdkState: after,
+              itemCatalog: itemCatalog,
+            ),
+            updated,
+          );
+        },
+      );
+    }
+
     test('writes unchanged, consumed, removed and received items explicitly',
         () {
       final psdkState = PsdkBattleState.fromSetup(
@@ -555,7 +681,9 @@ const _rngSeeds = PsdkBattleRngSeeds(
   generic: 4,
 );
 
-RuntimeActiveBattleContext _context() {
+RuntimeActiveBattleContext _context({
+  List<int> lineupIndices = const [0, 1, 2, 3],
+}) {
   return RuntimeActiveBattleContext.withLineupMapping(
     request: const TrainerBattleStartRequest(
       requestId: 'held-item-battle',
@@ -571,6 +699,6 @@ RuntimeActiveBattleContext _context() {
       playerPos: GridPos(x: 1, y: 1),
     ),
     playerPartyIndex: 0,
-    playerPartySlotIndicesByLineupIndex: const <int>[0, 1, 2, 3],
+    playerPartySlotIndicesByLineupIndex: lineupIndices,
   );
 }

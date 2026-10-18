@@ -252,6 +252,78 @@ void main() {
       }
     });
 
+    for (final heldEffectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+      test('proven held effect $heldEffectId is authorable and runtime ready',
+          () async {
+        final scenario = _ItemMutationScenario('item.set_held_effect', {
+          'itemId': 'potion',
+          'heldEffectId': heldEffectId,
+        });
+        for (final jsonl in [false, true]) {
+          final harness = await _ItemTransportHarness.create(
+              'proven-held-$heldEffectId-$jsonl');
+          addTearDown(harness.dispose);
+          final result = jsonl
+              ? await harness.executeJsonl(scenario)
+              : await harness.executeDirect(scenario);
+          expect(
+            ProjectItemCatalog.fromJson(result.catalog)
+                .entries
+                .singleWhere((item) => item.id == 'potion')
+                .heldEffectId,
+            heldEffectId,
+          );
+          final opened = await _request(harness.worker, 'open',
+              args: {'projectRoot': harness.root.path});
+          final projectHandle = opened.data['projectHandle'] as String;
+          final readiness = await _query(
+            harness.worker,
+            projectHandle: projectHandle,
+            request: AuthoringQueryRequest(
+              resourceKind: 'itemReadiness',
+              operation: AuthoringQueryOperation.get,
+              ids: ['potion'],
+              view: AuthoringQueryView.detail,
+            ),
+          );
+          expect(readiness.status, AuthoringResultStatus.success);
+          expect((readiness.data['items'] as List).single,
+              containsPair('ready', true));
+          final catalog = await _query(
+            harness.worker,
+            projectHandle: projectHandle,
+            request: AuthoringQueryRequest(
+              resourceKind: 'itemCatalog',
+              operation: AuthoringQueryOperation.get,
+              ids: ['items'],
+              view: AuthoringQueryView.detail,
+            ),
+          );
+          expect((catalog.data['items'] as List).single,
+              containsPair('blockingDiagnosticCount', 0));
+          final described = await _request(harness.worker, 'describe');
+          final descriptor = (described.data['mutationActions'] as List)
+              .cast<Map>()
+              .singleWhere((action) => action['id'] == 'item.set_held_effect');
+          expect(jsonEncode(descriptor), contains(heldEffectId));
+
+          const unsupported = _ItemMutationScenario('item.set_held_effect', {
+            'itemId': 'potion',
+            'heldEffectId': 'never_registered_effect',
+          });
+          final refusal = jsonl
+              ? await harness.refuseJsonl(unsupported)
+              : await harness.refuseDirect(unsupported);
+          expect(refusal.beforeCatalog, refusal.afterCatalog);
+          if (jsonl) {
+            expect(refusal.result!.status, AuthoringResultStatus.failure);
+          } else {
+            expect(refusal.error, isA<ItemCatalogAuthoringException>());
+          }
+        }
+      });
+    }
+
     test('executes every mutation through direct API and JSONL', () async {
       final executedByTransport = <String, Set<String>>{
         'direct': <String>{},

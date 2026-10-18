@@ -131,7 +131,13 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
       effect: ProjectItemEffectCapability.revive,
     ),
   },
-  supportedHeldEffectIds: <String>{'leftovers', 'prevent_evolution'},
+  supportedHeldEffectIds: <String>{
+    'leftovers',
+    'lum_berry',
+    'prevent_evolution',
+    'sitrus_berry',
+    'smoke_ball',
+  },
   supportsCapture: true,
   supportsMoveMachines: true,
 );
