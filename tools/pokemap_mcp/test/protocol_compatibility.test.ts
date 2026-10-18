@@ -117,7 +117,7 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
   );
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ["dist/src/index.js", "--root", projectRoot],
+    args: [process.env.POKEMAP_TEST_MCP_ENTRY ?? "dist/src/index.js", "--root", projectRoot],
     cwd: process.cwd(),
     stderr: "pipe",
   });
@@ -144,8 +144,15 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
         "pokemap_plan",
         "pokemap_apply",
         "pokemap_history",
+        "pokemap_recovery_status",
         "pokemap_recovery",
+        "pokemap_game_export_profile_read",
+        "pokemap_game_export_profile_validate",
+        "pokemap_game_export_profile_save",
         "pokemap_game_export",
+        "pokemap_project_create_preview",
+        "pokemap_project_create",
+        "pokemap_resource_pack",
         "pokemap_render",
         "pokemap_playtest",
         "pokemap_job",

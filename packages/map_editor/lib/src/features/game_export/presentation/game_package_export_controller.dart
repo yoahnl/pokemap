@@ -212,6 +212,7 @@ final class GamePackageExportController extends ChangeNotifier {
   final String _localGameId;
 
   GamePackageExportSnapshot _snapshot;
+  String? _profileRevision;
   bool _disposed = false;
 
   GamePackageExportSnapshot get snapshot => _snapshot;
@@ -258,7 +259,9 @@ final class GamePackageExportController extends ChangeNotifier {
     if (_snapshot.status != GamePackageExportStatus.idle) return;
     _publish(_snapshot.copyWith(status: GamePackageExportStatus.loading));
     try {
-      final profile = await profileStore.load();
+      final saved = await profileStore.read();
+      final profile = saved.profile;
+      _profileRevision = saved.profileRevision;
       _publish(
         _snapshot.copyWith(
           status: GamePackageExportStatus.ready,
@@ -310,7 +313,9 @@ final class GamePackageExportController extends ChangeNotifier {
       ),
     );
     try {
-      await profileStore.save(profile);
+      final saved = await profileStore.save(profile,
+          expectedProfileRevision: _profileRevision);
+      _profileRevision = saved.profileRevision;
       final artifact = await exportService.exportToFile(
         projectRoot: projectRoot,
         profile: profile,
@@ -365,7 +370,9 @@ final class GamePackageExportController extends ChangeNotifier {
       ),
     );
     try {
-      await profileStore.save(profile);
+      final saved = await profileStore.save(profile,
+          expectedProfileRevision: _profileRevision);
+      _profileRevision = saved.profileRevision;
       final artifact = await exportService.build(
         projectRoot: projectRoot,
         profile: profile,
@@ -538,6 +545,9 @@ final class GamePackageExportController extends ChangeNotifier {
   }
 
   String _safeMessage(GamePackageExportException error) => switch (error.code) {
+    'exportProfileStale' => 'Le profil d’export a changé. Rechargez-le avant de réessayer.',
+    'exportProfilePathUnsafe' => 'Le profil d’export doit être un fichier local du projet, sans lien symbolique.',
+    'exportProfileReferenceInvalid' => 'La référence « ${error.path ?? 'inconnue'} » doit désigner un fichier présent dans le projet, sans lien symbolique.',
     'invalidGameId' =>
       'Renseignez un identifiant stable, par exemple games.studio.auteur.jeu.',
     'invalidGameVersion' =>

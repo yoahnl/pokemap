@@ -50,6 +50,7 @@ final class StudioGameExportController implements StudioGameExportPort {
   @override
   StudioExportStage stage = StudioExportStage.idle;
   GamePackageExportProfile? profile;
+  String? _profileRevision;
   @override
   StudioGameExportMetadata? get metadata => profile == null
       ? null
@@ -94,9 +95,11 @@ final class StudioGameExportController implements StudioGameExportPort {
   @override
   Future<void> load() async {
     try {
-      profile = await GamePackageExportProfileStore(
+      final saved = await GamePackageExportProfileStore(
         projectRoot: projectRoot,
-      ).load();
+      ).read();
+      profile = saved.profile;
+      _profileRevision = saved.profileRevision;
       _profileLoadFailed = false;
     } on Object catch (failure) {
       _profileLoadFailed = true;
@@ -198,6 +201,11 @@ final class StudioGameExportController implements StudioGameExportPort {
           'Le projet a changé pendant la préparation des images. Relancez l’export.',
         );
       }
+      final profileStore = GamePackageExportProfileStore(projectRoot: projectRoot);
+      final profileSnapshot = await profileStore.validate(profile);
+      if (_profileRevision != null && _profileRevision != profileSnapshot.profileRevision) {
+        throw const GamePackageExportException(code: 'exportProfileStale', message: 'Le profil d’export a changé. Rechargez-le avant de continuer.');
+      }
       final before = await readFingerprints(root);
       if (!_valid(operation, isCurrentProject)) return false;
       stage = StudioExportStage.building;
@@ -248,9 +256,10 @@ final class StudioGameExportController implements StudioGameExportPort {
       }
       this.profile = profile;
       try {
-        await GamePackageExportProfileStore(
-          projectRoot: projectRoot,
-        ).save(profile);
+        final saved = await profileStore.save(profile,
+          expectedProfileRevision: profileSnapshot.profileRevision,
+          expectedContextRevision: profileSnapshot.contextRevision);
+        _profileRevision = saved.profileRevision;
       } on Object catch (failure) {
         if (!_valid(operation, isCurrentProject)) return false;
         warning = [

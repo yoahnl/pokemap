@@ -1,76 +1,235 @@
+import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
-import 'game_package_export_profile.dart';
+import '../../ports/project_file_reader.dart';
+import '../../ports/game_package_export_profile_api_port.dart';
+import '../../support/authoring_fingerprint.dart';
 
 final class GamePackageExportProfileStore {
   const GamePackageExportProfileStore({required this.projectRoot});
 
   final Directory projectRoot;
+  static final Map<String, Future<void>> _writers = {};
 
-  File get profileFile => File(
-        p.join(projectRoot.path, '.pokemap', 'export-profile-v1.json'),
-      );
+  File get profileFile =>
+      File(p.join(projectRoot.path, '.pokemap', 'export-profile-v1.json'));
 
   Future<GamePackageExportProfile?> load() async {
-    final file = profileFile;
-    if (!await file.exists()) return null;
+    await _checkSidecar();
+    return await profileFile.exists()
+        ? GamePackageExportProfile.decodeUtf8(await profileFile.readAsBytes())
+        : null;
+  }
+
+  Future<GamePackageExportProfileSnapshot> read() async {
+    await _checkSidecar();
+    final bytes =
+        await profileFile.exists() ? await profileFile.readAsBytes() : null;
+    final profile =
+        bytes == null ? null : GamePackageExportProfile.decodeUtf8(bytes);
+    return GamePackageExportProfileSnapshot(
+        profile: profile,
+        profileRevision: _profileRevision(bytes),
+        contextRevision: await _contextRevision(profile));
+  }
+
+  Future<GamePackageExportProfileSnapshot> validate(
+      GamePackageExportProfile profile) async {
+    await _checkSidecar();
+    final bytes =
+        await profileFile.exists() ? await profileFile.readAsBytes() : null;
+    return GamePackageExportProfileSnapshot(
+        profile: profile,
+        profileRevision: _profileRevision(bytes),
+        contextRevision: await _contextRevision(profile));
+  }
+
+  Future<GamePackageExportProfileSnapshot> save(
+    GamePackageExportProfile profile, {
+    String? expectedProfileRevision,
+    String? expectedContextRevision,
+  }) async {
+    final baseline = await validate(profile);
+    final profileRevision = expectedProfileRevision ?? baseline.profileRevision;
+    final contextRevision = expectedContextRevision ?? baseline.contextRevision;
+    return _withWriteLock(() async {
+      final current = await validate(profile);
+      _requireRevisions(current, profileRevision, contextRevision);
+      await _checkSidecar();
+      await profileFile.parent.create();
+      final temporaryDirectory =
+          await profileFile.parent.createTemp('export-profile-');
+      final temporary = File(p.join(temporaryDirectory.path, 'profile.json'));
+      final encoded = CanonicalJson.encodeUtf8(profile.toJson());
+      try {
+        await temporary.writeAsBytes(encoded, flush: true);
+        if (GamePackageExportProfile.decodeUtf8(
+                await temporary.readAsBytes()) !=
+            profile) {
+          throw const GamePackageExportException(
+              code: 'exportProfileWriteFailed',
+              message: 'The export profile changed during persistence.');
+        }
+        _requireRevisions(
+            await validate(profile), profileRevision, contextRevision);
+        await temporary.rename(profileFile.path);
+        return GamePackageExportProfileSnapshot(
+            profile: profile,
+            profileRevision: _profileRevision(encoded),
+            contextRevision: contextRevision);
+      } finally {
+        await temporaryDirectory.delete(recursive: true);
+      }
+    });
+  }
+
+  Future<T> _withWriteLock<T>(Future<T> Function() operation) async {
+    final root = await projectRoot.resolveSymbolicLinks();
+    final previous = _writers[root] ?? Future<void>.value();
+    final release = Completer<void>();
+    _writers[root] = release.future;
+    await previous;
     try {
-      return GamePackageExportProfile.decodeUtf8(await file.readAsBytes());
-    } on GamePackageExportException {
-      rethrow;
-    } on Object catch (error) {
-      throw GamePackageExportException(
-        code: 'exportProfileReadFailed',
-        path: file.path,
-        message: 'The saved export profile could not be read.',
-        cause: error,
-      );
+      await _checkSidecar();
+      await profileFile.parent.create();
+      final lock =
+          await File('${profileFile.path}.lock').open(mode: FileMode.append);
+      var acquired = false;
+      try {
+        await lock.lock(FileLock.exclusive);
+        acquired = true;
+        return await operation();
+      } finally {
+        try {
+          if (acquired) await lock.unlock();
+        } finally {
+          await lock.close();
+        }
+      }
+    } finally {
+      release.complete();
+      if (identical(_writers[root], release.future)) _writers.remove(root);
     }
   }
 
-  Future<void> save(GamePackageExportProfile profile) async {
-    final target = profileFile;
-    final parent = target.parent;
-    await parent.create(recursive: true);
-    final token = '${DateTime.now().microsecondsSinceEpoch}-$pid';
-    final temporary = File('${target.path}.$token.tmp');
-    final backup = File('${target.path}.backup');
-    var backedUp = false;
-    try {
-      await temporary.writeAsBytes(
-        CanonicalJson.encodeUtf8(profile.toJson()),
-        flush: true,
-      );
-      final roundTrip =
-          GamePackageExportProfile.decodeUtf8(await temporary.readAsBytes());
-      if (roundTrip != profile) {
-        throw const GamePackageExportException(
-          code: 'exportProfileWriteFailed',
-          message: 'The export profile changed during persistence.',
-        );
-      }
-      if (await target.exists()) {
-        if (await backup.exists()) await backup.delete();
-        await target.rename(backup.path);
-        backedUp = true;
-      }
-      await temporary.rename(target.path);
-      if (backedUp && await backup.exists()) await backup.delete();
-    } on Object catch (error) {
-      if (!await target.exists() && backedUp && await backup.exists()) {
-        await backup.rename(target.path);
-      }
-      if (await temporary.exists()) await temporary.delete();
-      if (error is GamePackageExportException) rethrow;
-      throw GamePackageExportException(
-        code: 'exportProfileWriteFailed',
-        path: target.path,
-        message: 'The export profile could not be written atomically.',
-        cause: error,
-      );
+  void _requireRevisions(GamePackageExportProfileSnapshot current,
+      String profileRevision, String contextRevision) {
+    if (current.profileRevision != profileRevision ||
+        current.contextRevision != contextRevision) {
+      throw const GamePackageExportException(
+          code: 'exportProfileStale',
+          message:
+              'The export profile or its declared context changed. Read and validate again.');
     }
+  }
+
+  String _profileRevision(List<int>? bytes) => bytes == null
+      ? 'absent'
+      : computeAuthoringBytesFingerprint(bytes,
+          logicalName: 'export-profile-v1.json');
+
+  Future<void> _checkSidecar() async {
+    for (final entry in [
+      Directory(p.join(projectRoot.path, '.pokemap')),
+      profileFile,
+      File('${profileFile.path}.lock')
+    ]) {
+      final type = await FileSystemEntity.type(entry.path, followLinks: false);
+      if (type != FileSystemEntityType.notFound &&
+          type !=
+              (entry is Directory
+                  ? FileSystemEntityType.directory
+                  : FileSystemEntityType.file)) {
+        throw const GamePackageExportException(
+            code: 'exportProfilePathUnsafe',
+            message:
+                'The export profile must use its exact project-local regular sidecar.');
+      }
+    }
+  }
+
+  Future<String> _contextRevision(GamePackageExportProfile? profile) async {
+    final paths = <String>{'project.json'};
+    final projectFile = await _safeReference('project.json');
+    final manifest = ProjectManifest.fromJson(
+        (jsonDecode(await projectFile.readAsString()) as Map)
+            .cast<String, dynamic>());
+    if (manifest.newGame.enabled) {
+      final maps = manifest.maps
+          .where((entry) => entry.id == manifest.newGame.startMapId)
+          .toList();
+      if (maps.length != 1) {
+        throw const GamePackageExportException(
+            code: 'exportProfileReferenceInvalid',
+            message: 'The project needs one valid configured start map.');
+      }
+      final mapFile = await _safeReference(maps.single.relativePath);
+      final map = MapData.fromJson(
+          (jsonDecode(await mapFile.readAsString()) as Map)
+              .cast<String, dynamic>());
+      if (map.id != maps.single.id) {
+        throw const GamePackageExportException(
+            code: 'exportProfileReferenceInvalid',
+            message:
+                'The configured start map must match its declared identity.');
+      }
+      paths.add(maps.single.relativePath);
+    }
+    if (profile != null) {
+      paths.addAll([
+        profile.iconPath,
+        profile.coverPath,
+        profile.heroPath,
+        profile.titleMusicPath,
+        profile.licensePath,
+        profile.creditsPath
+      ].whereType<String>());
+    }
+    final ordered = paths.toList()..sort();
+    final fingerprint = NarrativeProjectFingerprintBuilder();
+    for (final path in ordered) {
+      final file = await _safeReference(path);
+      fingerprint.startEntry(
+          relativePath: path, byteLength: await file.length());
+      await for (final bytes in file.openRead()) {
+        fingerprint.addBytes(bytes);
+      }
+      fingerprint.endEntry();
+    }
+    return fingerprint.close();
+  }
+
+  Future<File> _safeReference(String path) async {
+    final segments = validateProjectRelativePath(path);
+    if (segments.join('/') != path || segments.first.startsWith('.')) {
+      throw GamePackageExportException(
+          code: 'exportProfileReferenceInvalid',
+          path: path,
+          message:
+              'Profile references must be canonical project-relative asset paths.');
+    }
+    var current = projectRoot.path;
+    for (var i = 0; i < segments.length; i++) {
+      current = p.join(current, segments[i]);
+      final type = await FileSystemEntity.type(current, followLinks: false);
+      if (type !=
+          (i == segments.length - 1
+              ? FileSystemEntityType.file
+              : FileSystemEntityType.directory)) {
+        throw GamePackageExportException(
+            code: type == FileSystemEntityType.notFound
+                ? 'missingProjectFile'
+                : 'exportProfileReferenceInvalid',
+            path: path,
+            message:
+                'A declared export profile reference is missing or unsafe.');
+      }
+    }
+    return File(current);
   }
 }

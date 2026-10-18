@@ -19,6 +19,7 @@ import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/distribution/game_package_export_api.dart';
+import '../domains/distribution/game_package_export_profile_api.dart';
 import '../domains/distribution/game_package_export_profile.dart';
 import '../domains/gameplay/character_studio/character_studio_action_support.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
@@ -63,6 +64,7 @@ final class JsonlWorker {
     ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
     ProjectCreationBootstrapApiPort? projectCreation,
     GamePackageExportApiPort? gameExport,
+    GamePackageExportProfileApiPort? exportProfiles,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
     this.gameExportTimeout = const Duration(minutes: 2),
@@ -71,7 +73,8 @@ final class JsonlWorker {
        _resourcePacks = resourcePacks,
        _projectBootstrap = projectBootstrap,
        _projectCreation = projectCreation,
-       _gameExport = gameExport {
+       _gameExport = gameExport,
+       _exportProfiles = exportProfiles {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -103,6 +106,7 @@ final class JsonlWorker {
   final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
   final ProjectCreationBootstrapApiPort? _projectCreation;
   final GamePackageExportApiPort? _gameExport;
+  final GamePackageExportProfileApiPort? _exportProfiles;
   final int maxInputBytes;
   final Duration commandTimeout;
   final Duration gameExportTimeout;
@@ -652,6 +656,24 @@ final class JsonlWorker {
           ),
         ))
             .toJson();
+      case 'game_export_profile_read':
+      case 'game_export_profile_validate':
+      case 'game_export_profile_save':
+        final profiles = _exportProfiles ?? (throw const _UnsupportedWorkerCommand());
+        final readOnly = command == 'game_export_profile_read';
+        final save = command == 'game_export_profile_save';
+        rejectUnknownContractKeys(args, {
+          'projectRoot', if (!readOnly) 'profile',
+          if (save) 'expectedProfileRevision', if (save) 'expectedContextRevision',
+        });
+        final root = requireContractString(args['projectRoot'], 'args.projectRoot');
+        if (readOnly) return (await profiles.read(projectRoot: root)).toJson();
+        final profile = GamePackageExportProfile.fromJson(args['profile']);
+        if (!save) return (await profiles.validate(projectRoot: root, profile: profile)).toJson();
+        return (await profiles.save(projectRoot: root, profile: profile,
+          expectedProfileRevision: requireContractString(args['expectedProfileRevision'], 'args.expectedProfileRevision'),
+          expectedContextRevision: requireContractString(args['expectedContextRevision'], 'args.expectedContextRevision'),
+        )).toJson();
       case 'plan':
         rejectUnknownContractKeys(args, const {'projectHandle', 'request'});
         final request = _jsonObject(args['request'], 'args.request');
@@ -811,6 +833,7 @@ final class JsonlWorker {
     if (mutations == null &&
         bootstrap == null &&
         gameExport == null &&
+        _exportProfiles == null &&
         creation == null &&
         _resourcePacks == null) {
       return read;
@@ -886,6 +909,19 @@ final class JsonlWorker {
               'modes': ['publication', 'localTest'],
               'defaultMode': 'publication',
             },
+          if (_exportProfiles != null)
+            for (final operation in ['read', 'validate', 'save'])
+              {
+                'id': 'game_export_profile_$operation',
+                'summary': 'Canonical persisted export profile $operation.',
+                'path': '.pokemap/export-profile-v1.json',
+                'profileSchemaVersion': 1,
+                'readOnly': operation != 'save',
+                'expectedRevisions': operation == 'save'
+                    ? ['expectedProfileRevision', 'expectedContextRevision'] : [],
+                'contextScope': 'project.json, enabled new-game start map, declared profile assets',
+                'contextGuarantee': 'freshPreimageCheckBeforeProfileRename;notMultiFileAtomic',
+              },
         ]..sort(
           (left, right) =>
               (left['id']! as String).compareTo(right['id']! as String),

@@ -99,6 +99,7 @@ Future<void> main(List<String> arguments) async {
       writer: const LocalProjectManifestBootstrapWriter(),
     ),
     gameExport: gameExport,
+    exportProfiles: LocalGamePackageExportProfileApi(policy: policy),
     commandTimeout: options.commandTimeout,
     gameExportTimeout: options.gameExportTimeout,
     maxInputBytes: options.maxInputBytes,

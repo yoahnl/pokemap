@@ -71,6 +71,39 @@ void main() {
     destinationExists: destinationExists,
   );
 
+  test('a concurrent saved profile is preserved and blocks a stale Studio draft', () async {
+    final store = GamePackageExportProfileStore(projectRoot: source.directory);
+    await store.save(profile);
+    final owner = controller();
+    addTearDown(owner.dispose);
+    await owner.load();
+    final concurrent = profile.copyWith(title: 'Concurrent profile');
+    await store.save(concurrent);
+    final bytes = await store.profileFile.readAsBytes();
+    expect(await run(owner), isFalse);
+    expect(owner.error, contains('profil d’export a changé'));
+    expect(await output.exists(), isFalse);
+    expect(await store.profileFile.readAsBytes(), bytes);
+  });
+
+  test('Studio saves after writing and preserves a profile changed during export', () async {
+    final store = GamePackageExportProfileStore(projectRoot: source.directory);
+    final original = profile.copyWith(title: 'Before export');
+    final concurrent = profile.copyWith(title: 'Concurrent during write');
+    await store.save(original);
+    final owner = controller(write: (artifact, file) async {
+      expect(await store.load(), original);
+      await const CanonicalGamePackageExportService().writeArtifactToFile(artifact: artifact, outputFile: file);
+      await store.save(concurrent);
+    });
+    addTearDown(owner.dispose);
+    await owner.load();
+    expect(await run(owner), isTrue);
+    expect(owner.warning, contains('profil d’export n’a pas été mémorisé'));
+    expect(await store.load(), concurrent);
+    expect(await output.exists(), isTrue);
+  });
+
   test(
     'invalid preparation preserves the draft and creates no package',
     () async {

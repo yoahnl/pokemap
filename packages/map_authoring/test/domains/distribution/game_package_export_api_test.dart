@@ -12,6 +12,45 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'canonical profile authoring persists the metadata used by the next export',
+      () async {
+    final root = await _createPlayableProject();
+    final outputRoot =
+        await Directory.systemTemp.createTemp('profile-export-output-');
+    addTearDown(() => root.delete(recursive: true));
+    addTearDown(() => outputRoot.delete(recursive: true));
+    final profiles = await LocalGamePackageExportProfileApi.create(
+        allowedProjectRoots: [root.path]);
+    final candidate = _profile()
+        .copyWith(title: 'Persisted authoring title', gameVersion: '2.3.4');
+    final checked =
+        await profiles.validate(projectRoot: root.path, profile: candidate);
+    await profiles.save(
+        projectRoot: root.path,
+        profile: candidate,
+        expectedProfileRevision: checked.profileRevision,
+        expectedContextRevision: checked.contextRevision);
+    final projectBytes =
+        await File(p.join(root.path, 'project.json')).readAsBytes();
+    final exports = await LocalGamePackageExportApi.create(
+        allowedProjectRoots: [root.path],
+        allowedExportRoots: [outputRoot.path],
+        exportService: CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection));
+    final output = File(p.join(outputRoot.path, 'profile.avelunegame'));
+    final receipt =
+        await exports.export(projectRoot: root.path, outputPath: output.path);
+    expect(receipt.title, candidate.title);
+    expect(receipt.gameVersion, '2.3.4');
+    final archive =
+        ZipDecoder().decodeBytes(await output.readAsBytes(), verify: true);
+    expect(archive.files.where((entry) => entry.name.contains('.pokemap')),
+        isEmpty);
+    expect(await File(p.join(root.path, 'project.json')).readAsBytes(),
+        projectBytes);
+    expect((await profiles.read(projectRoot: root.path)).profile, candidate);
+  });
   test('exports provisioned capture sprites and their exact project reference',
       () async {
     final projectRoot = await _createPlayableProject();

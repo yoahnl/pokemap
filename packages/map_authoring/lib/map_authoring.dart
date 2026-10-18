@@ -116,6 +116,7 @@ export 'src/domains/project/capability_truth_adapter.dart';
 export 'src/domains/project/readiness_actions.dart';
 export 'src/domains/distribution/package_actions.dart';
 export 'src/domains/distribution/game_package_export_api.dart';
+export 'src/domains/distribution/game_package_export_profile_api.dart';
 export 'src/domains/distribution/game_package_export_profile.dart';
 export 'src/domains/distribution/game_package_export_profile_store.dart';
 export 'src/domains/distribution/game_package_export_service.dart';

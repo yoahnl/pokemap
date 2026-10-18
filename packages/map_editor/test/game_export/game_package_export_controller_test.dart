@@ -9,6 +9,24 @@ import 'package:path/path.dart' as p;
 import 'game_export_test_fixture.dart';
 
 void main() {
+  test('a stale editor export preserves the concurrent profile and writes no package', () async {
+    final root = await createAuthorProject();
+    addTearDown(() => root.delete(recursive: true));
+    final store = GamePackageExportProfileStore(projectRoot: root);
+    final original = neutralExportProfile();
+    await store.save(original);
+    final controller = GamePackageExportController(projectRoot: root, projectName: 'Profile CAS', profileStore: store);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await store.save(original.copyWith(title: 'Concurrent editor profile'));
+    final bytes = await store.profileFile.readAsBytes();
+    final output = File(p.join(root.path, 'stale.avelunegame'));
+    await controller.export(profile: original, outputFile: output);
+    expect(controller.snapshot.status, GamePackageExportStatus.error);
+    expect(controller.snapshot.errorCode, 'exportProfileStale');
+    expect(await output.exists(), isFalse);
+    expect(await store.profileFile.readAsBytes(), bytes);
+  });
   test(
     'loads a draft, exports and queues the same certified package',
     () async {
@@ -116,6 +134,7 @@ void main() {
 
       expect(controller.snapshot.status, GamePackageExportStatus.error);
       expect(controller.snapshot.errorCode, 'gameplayReadinessFailed');
+      expect(await GamePackageExportProfileStore(projectRoot: root).load(), neutralExportProfile());
       expect(
         controller.snapshot.gameplayReadinessReport?.byCode(
           'exportNewGameDisabled',
