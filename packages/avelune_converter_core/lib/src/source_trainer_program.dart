@@ -111,82 +111,26 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       };
 }
 
-const _sourceTrainerNames = {
-  (98, 1): ('Bugcatcher Brent Trainer(2)', 2),
-  (98, 2): ('Bugcatcher Conner Trainer(3)', 3),
-  (98, 6): ('Hiker Jeremy Trainer(4)', 4),
-  (98, 7): ('Hiker Alan Trainer(1)', 1),
-  (98, 8): ('Hiker Brice Trainer(1)', 1),
-  (98, 9): ('Picnicker Alicia Trainer(3)', 3),
-  (98, 10): ('Picnicker Caitlin Trainer(4)', 4),
-  (98, 11): ('Camper Chris Trainer(3)', 3),
-  (98, 12): ('Camper Drew Trainer(5)', 5),
-  (100, 11): ('Picnicker Heidi Trainer(2)', 2),
-  (100, 12): ('Pokemaniac Mark Trainer(5)', 5),
-};
-
-const _sourceTrainerPageHashes = {
-  (98, 1, 0):
-      '06e8b117c7a5fcc0de492200f3411ed655c7bbded7c726cd80082a311c49d176',
-  (98, 1, 1):
-      '85fb30d2e36c54908bd08d627f85e92dafb9b0e76f8e5233ddc36d71715fc2ea',
-  (98, 2, 0):
-      '5de99252c4ed6abc882c5872716064ff1b2c482e42e465576f5c32647c81789e',
-  (98, 2, 1):
-      'e3f95bff05ded2c93601d6bb6965659129c5efc313f53450398bfec14ac303e3',
-  (98, 6, 0):
-      'c502c106fdda0150d07ef703ce9a8fd9ce743134363632ddc5a1147c326b99c5',
-  (98, 6, 1):
-      'd5acb7535a7265c0756aeb28fe2e374c73b7e9cc56ae8568580a2f59c75eb408',
-  (98, 7, 0):
-      '24ae9eb5c14c51e988f434cb438db11474484a9f765b0427a9c5d1f2c2d42030',
-  (98, 7, 1):
-      'c37334eb9bbd09627e2a7fb342f23a736bc85228605f19dbd8378a3a190b65cf',
-  (98, 8, 0):
-      'ef6150f87d0209934f9527e6a685df557e1f74b24c7852bec856b9d8934f3f09',
-  (98, 8, 1):
-      'f07b7a6b63bcc534d3d9f51dcd177e4f4a16d0df783841ae843a48db09762f92',
-  (98, 9, 0):
-      '732fcfa14ecfbf51742dc17b6c3c9dcbcc2d07c08f14b270fd4837737ea3fa6c',
-  (98, 9, 1):
-      '948643261e6e84641e551eb777b3e1823d2bc0a8a3c65fff1fc9c74ed48280bc',
-  (98, 10, 0):
-      'ffed37c479ee6e1beb9c18ae4721b8b9918ff0a6129c3d1abb5d935e9dc06487',
-  (98, 10, 1):
-      '4217f91f35fc35c813dc015076d0b160555fae07fd8c8f0ce46b75a33a12a746',
-  (98, 11, 0):
-      '50b25827ad413e602efbf4100345ef8a26cef99a67fb29d453148cefe3535109',
-  (98, 11, 1):
-      '003cdf2dc1df38d14a4a423883550a80cd2ce4599756df30f4a04b1c38e55b45',
-  (98, 12, 0):
-      '3fa6b274e66c734246b5b8ee468e763699b891e0ce1f7c58804fc87efe2be0f3',
-  (98, 12, 1):
-      '96757d83553fe09bcd6f5e2bf1f5508b84a43d8a927338bb4b5bfb68d2494b43',
-  (100, 11, 0):
-      '03f11f42cd4922a2a8f6ba4454148d64435f9a76781b00b5f6f2fa6f45baf936',
-  (100, 11, 1):
-      'def08d7955b5b9298c2a983bfead1ce6d1091ca0effcce504c3082c1d84bc264',
-  (100, 12, 0):
-      '5ffb93cc4da8624e70d57d2a11c63ddc98c74ee95ccd08fb000ae59157d635f9',
-  (100, 12, 1):
-      'ebe6f9e7e973bb0fc4a2f5be507b193ecbbccc15dc26133b46828f15623ee6d4',
-};
-
 String _sourceTrainerPath(int mapId) =>
     'Data/Map${mapId.toString().padLeft(3, '0')}.rxdata';
 
 SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
-  final manifest = _sourceTrainerNames[(mapId, event.sourceEventId)];
+  final distanceMatch =
+      RegExp(r'^[^()\r\n]*\bTrainer\(([0-9]{1,3})\)$', caseSensitive: false)
+          .firstMatch(event.name);
   if (!analyzer._isQualified ||
-      manifest == null ||
-      event.name != manifest.$1 ||
+      distanceMatch == null ||
       event.pages.length != 2 ||
       event.pages[0].originalPageIndex != 0 ||
       event.pages[1].originalPageIndex != 1) {
     return null;
   }
   try {
+    final distance = int.parse(distanceMatch[1]!);
+    if (distance < 1 || !_sourceTrainerEventContext(analyzer, mapId, event)) {
+      return null;
+    }
     final values = <Map<String, Object?>>[];
     final references = <SourcePreservedData>[];
     final hashes = <Sha256Hash>[];
@@ -196,6 +140,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
       if (reference == null) return null;
       final file = analyzer.project.archive.files[reference.fileId]!;
       if (file.entry.relativePath != path) return null;
+      _SourceTrainerRawFields(file.document).validate(reference.nodeId);
       final value =
           _SourceCenterPageValue(file.document).read(reference.nodeId);
       if (value is! Map<String, Object?> ||
@@ -205,12 +150,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
         return null;
       }
       final hash = canonicalHashOf(value);
-      if (hash.value !=
-          _sourceTrainerPageHashes[(
-            mapId,
-            event.sourceEventId,
-            candidate.originalPageIndex
-          )]) {
+      if (!_sourceTrainerPageMetadata(value, candidate.originalPageIndex)) {
         return null;
       }
       final candidateLocator = _eventLocator(
@@ -256,10 +196,21 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
       references.add(reference);
       hashes.add(hash);
     }
+    final firstMetadata = Map.of(values[0])
+      ..remove('condition')
+      ..remove('trigger')
+      ..remove('list');
+    final secondMetadata = Map.of(values[1])
+      ..remove('condition')
+      ..remove('trigger')
+      ..remove('list');
+    if (canonicalJsonOf(firstMetadata) != canonicalJsonOf(secondMetadata)) {
+      return null;
+    }
     final encounter = _SourceTrainerProgramCursor(values[0]['list'] as List);
     final intro = encounter.literal(355);
-    final introMatch =
-        RegExp(r'^pbTrainerIntro\(:([A-Z0-9_]+)\)$').firstMatch(intro);
+    final introMatch = RegExp(r'^pbTrainerIntro\(:([A-Z_][A-Z0-9_]{0,127})\)$')
+        .firstMatch(intro);
     if (introMatch == null) return null;
     encounter.expect(355, 0, const ['pbNoticePlayer(get_self)']);
     final challenge = encounter.texts();
@@ -270,9 +221,11 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     final battleMatch =
-        RegExp(r'^TrainerBattle\.start\(:([A-Z0-9_]+), "([A-Za-z]+)"\)$')
+        RegExp(r'^TrainerBattle\.start\(:([A-Z_][A-Z0-9_]{0,127}), (.+)\)$')
             .firstMatch(battle[1] as String);
     if (battleMatch == null || battleMatch[1] != introMatch[1]) return null;
+    final trainerName = _sourceTrainerLiteralName(battleMatch[2]!);
+    if (trainerName == null) return null;
     encounter.expect(123, 1, const ['A', 0]);
     encounter.expect(0, 1, const []);
     encounter.expect(412, 0, const []);
@@ -316,8 +269,8 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
               ? SourceTrainerProgramKind.encounter
               : SourceTrainerProgramKind.afterWin,
           trainerType: battleMatch[1]!,
-          trainerName: battleMatch[2]!,
-          detectionDistance: manifest.$2,
+          trainerName: trainerName,
+          detectionDistance: distance,
           defeatedFactId: analyzer.selfFactId(mapId, event.sourceEventId, 'A'),
           challengeLines: challenge,
           afterWinLines: afterLines,
@@ -332,7 +285,282 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     ]);
   } on FormatException {
     return null;
+  } on TypeError {
+    return null;
   }
+}
+
+bool _sourceTrainerEventContext(
+    SourceEventAnalyzer analyzer, int mapId, SourceEvent event) {
+  final reference = analyzer._reference(event.pages.first.rawDataRef);
+  if (reference == null) return false;
+  final file = analyzer.project.archive.files[reference.fileId]!;
+  if (file.entry.relativePath != _sourceTrainerPath(mapId)) return false;
+  final document = file.document;
+  final root = _eventFields(document, document.rootId, 'RPG::Map');
+  final events = document.node(_eventField(root, '@events'));
+  if (events.kind != MarshalKind.hash ||
+      events.defaultValue != null ||
+      events.extensions.isNotEmpty ||
+      events.userClass != null ||
+      events.instanceVariables.isNotEmpty) {
+    return false;
+  }
+  final matches = events.pairs
+      .where((pair) => _eventInt(document, pair.key) == event.sourceEventId)
+      .toList();
+  if (matches.length != 1) return false;
+  final fields = _eventFields(document, matches.single.value, 'RPG::Event');
+  if (!_sourceTrainerKeys(
+          fields, const {'@id', '@name', '@x', '@y', '@pages'}) ||
+      _eventInt(document, _eventField(fields, '@id')) != event.sourceEventId ||
+      _eventLiteralText(document, _eventField(fields, '@name')) != event.name ||
+      _eventInt(document, _eventField(fields, '@x')) != event.x ||
+      _eventInt(document, _eventField(fields, '@y')) != event.y) {
+    return false;
+  }
+  final pages = document.node(_eventField(fields, '@pages'));
+  if (pages.kind != MarshalKind.array ||
+      pages.elements.length != 2 ||
+      pages.extensions.isNotEmpty ||
+      pages.userClass != null ||
+      pages.instanceVariables.isNotEmpty) {
+    return false;
+  }
+  for (final (index, page) in event.pages.indexed) {
+    final raw = analyzer._reference(page.rawDataRef);
+    final locator = _eventLocator(
+        file.entry.relativePath, mapId, event.sourceEventId, index);
+    if (raw == null ||
+        raw.fileId != reference.fileId ||
+        raw.nodeId != pages.elements[index] ||
+        canonicalJsonOf(raw.locator?.toJson()) !=
+            canonicalJsonOf(locator.toJson())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+final class _SourceTrainerRawFields {
+  _SourceTrainerRawFields(this.document);
+  final MarshalDocument document;
+  final active = <int>{};
+  var nodes = 0;
+
+  void validate(int id, [int depth = 0]) {
+    if (++nodes > 4096 || depth > 32 || !active.add(id)) {
+      throw const FormatException();
+    }
+    try {
+      final node = document.node(id);
+      if (node.extensions.isNotEmpty || node.userClass != null) {
+        throw const FormatException();
+      }
+      if (node.kind == MarshalKind.object) {
+        final expected = switch (node.className) {
+          'RPG::Event::Page' => const {
+              '@condition',
+              '@graphic',
+              '@move_type',
+              '@move_speed',
+              '@move_frequency',
+              '@move_route',
+              '@walk_anime',
+              '@step_anime',
+              '@direction_fix',
+              '@through',
+              '@always_on_top',
+              '@trigger',
+              '@list',
+            },
+          'RPG::Event::Page::Condition' => const {
+              '@switch1_valid',
+              '@switch2_valid',
+              '@variable_valid',
+              '@self_switch_valid',
+              '@switch1_id',
+              '@switch2_id',
+              '@variable_id',
+              '@variable_value',
+              '@self_switch_ch',
+            },
+          'RPG::Event::Page::Graphic' => const {
+              '@tile_id',
+              '@character_name',
+              '@character_hue',
+              '@direction',
+              '@pattern',
+              '@opacity',
+              '@blend_type',
+            },
+          'RPG::MoveRoute' => const {'@repeat', '@skippable', '@list'},
+          'RPG::MoveCommand' => const {'@code', '@parameters'},
+          'RPG::EventCommand' => const {'@code', '@indent', '@parameters'},
+          _ => throw const FormatException(),
+        };
+        final fields = _eventFields(document, id, node.className!);
+        if (!_sourceTrainerKeys(fields, expected)) {
+          throw const FormatException();
+        }
+        for (final pair in node.instanceVariables) {
+          final key = document.node(pair.key);
+          if (key.extensions.isNotEmpty ||
+              key.userClass != null ||
+              key.instanceVariables.isNotEmpty) {
+            throw const FormatException();
+          }
+          validate(pair.value, depth + 1);
+        }
+      } else if (node.kind == MarshalKind.array) {
+        if (node.elements.length > 128 || node.instanceVariables.isNotEmpty) {
+          throw const FormatException();
+        }
+        for (final child in node.elements) {
+          validate(child, depth + 1);
+        }
+      } else if (!const {
+            MarshalKind.nil,
+            MarshalKind.boolean,
+            MarshalKind.integer,
+            MarshalKind.string
+          }.contains(node.kind) ||
+          node.kind != MarshalKind.string &&
+              node.instanceVariables.isNotEmpty) {
+        throw const FormatException();
+      }
+    } finally {
+      active.remove(id);
+    }
+  }
+}
+
+bool _sourceTrainerKeys(Map fields, Set<String> keys) =>
+    fields.length == keys.length && fields.keys.every(keys.contains);
+
+bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
+  if (!_sourceTrainerKeys(page, const {
+    '__class__',
+    'condition',
+    'graphic',
+    'move_type',
+    'move_speed',
+    'move_frequency',
+    'move_route',
+    'walk_anime',
+    'step_anime',
+    'direction_fix',
+    'through',
+    'always_on_top',
+    'trigger',
+    'list'
+  })) {
+    return false;
+  }
+  final condition = page['condition'];
+  if (canonicalJsonOf(condition) !=
+      canonicalJsonOf({
+        '__class__': 'RPG::Event::Page::Condition',
+        'switch1_valid': false,
+        'switch2_valid': false,
+        'variable_valid': false,
+        'self_switch_valid': index == 1,
+        'switch1_id': 1,
+        'switch2_id': 1,
+        'variable_id': 1,
+        'variable_value': 0,
+        'self_switch_ch': 'A',
+      })) {
+    return false;
+  }
+  final graphic = page['graphic'];
+  if (graphic is! Map ||
+      !_sourceTrainerKeys(graphic, const {
+        '__class__',
+        'tile_id',
+        'character_name',
+        'character_hue',
+        'direction',
+        'pattern',
+        'opacity',
+        'blend_type'
+      }) ||
+      graphic['__class__'] != 'RPG::Event::Page::Graphic' ||
+      graphic['tile_id'] != 0 ||
+      graphic['character_name'] is! String ||
+      (graphic['character_name'] as String).isEmpty ||
+      graphic['character_hue'] != 0 ||
+      !const [2, 4, 6, 8].contains(graphic['direction']) ||
+      graphic['pattern'] != 0 ||
+      graphic['opacity'] != 255 ||
+      graphic['blend_type'] != 0) {
+    return false;
+  }
+  if (!const [0, 1, 2, 3].contains(page['move_type']) ||
+      !const [1, 2, 3, 4, 5, 6].contains(page['move_speed']) ||
+      !const [1, 2, 3, 4, 5, 6].contains(page['move_frequency']) ||
+      page['walk_anime'] != true ||
+      page['step_anime'] != false ||
+      page['direction_fix'] != false ||
+      page['through'] != false ||
+      page['always_on_top'] != false ||
+      !(index == 0 ? const [2] : const [0, 2]).contains(page['trigger'])) {
+    return false;
+  }
+  final route = page['move_route'];
+  if (route is! Map ||
+      !_sourceTrainerKeys(
+          route, const {'__class__', 'repeat', 'skippable', 'list'}) ||
+      route['__class__'] != 'RPG::MoveRoute' ||
+      route['repeat'] != true ||
+      route['skippable'] != false ||
+      route['list'] is! List) {
+    return false;
+  }
+  final steps = route['list'] as List;
+  if (steps.isEmpty || steps.length > 128) return false;
+  for (final (stepIndex, step) in steps.indexed) {
+    if (step is! Map ||
+        !_sourceTrainerKeys(step, const {'__class__', 'code', 'parameters'}) ||
+        step['__class__'] != 'RPG::MoveCommand' ||
+        step['parameters'] is! List ||
+        (step['parameters'] as List).isNotEmpty ||
+        step['code'] is! int) {
+      return false;
+    }
+    final code = step['code'] as int;
+    if (stepIndex == steps.length - 1
+        ? code != 0
+        : !(code >= 1 && code <= 13 || code >= 16 && code <= 26)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+String? _sourceTrainerLiteralName(String literal) {
+  if (literal.length < 3 || literal.length > 258) return null;
+  final quote = literal[0];
+  if ((quote != '"' && quote != "'") || literal[literal.length - 1] != quote) {
+    return null;
+  }
+  final name = StringBuffer();
+  for (var index = 1; index < literal.length - 1; index++) {
+    var character = literal[index];
+    if (character == r'\') {
+      if (++index >= literal.length - 1) return null;
+      character = literal[index];
+      if (character != quote && character != r'\') return null;
+    } else if (character == quote ||
+        character == '#' ||
+        character.codeUnitAt(0) < 32 ||
+        character.codeUnitAt(0) == 127) {
+      return null;
+    }
+    name.write(character);
+  }
+  final value = name.toString();
+  return value.trim().isEmpty || value.length > 128 ? null : value;
 }
 
 final class _SourceTrainerProgramCursor {
