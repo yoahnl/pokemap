@@ -117,6 +117,12 @@ final class LiteralFixtureSymbol {
   final String value;
 }
 
+final class LiteralFixtureUserDefined {
+  const LiteralFixtureUserDefined(this.name, this.bytes);
+  final String name;
+  final List<int> bytes;
+}
+
 List<int> literalFixtureMarshal(Object? value) => _Marshal().dump(value);
 
 final class LiteralFixtureTileset {
@@ -201,6 +207,7 @@ final class LiteralTileFixture {
     SourceInterpretationProfile? interpretationProfile,
     Map<String, List<int>> extraFiles = const {},
     bool includeEventSystem = false,
+    List<String?> switchNames = const [null, 'Original door opened', 'Original reward consumed'],
     List<String?> variableNames = const [null, 'Original count'],
   }) async {
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
@@ -211,7 +218,7 @@ final class LiteralTileFixture {
         'Data/Scripts.rxdata': List<int>.unmodifiable(scriptsBytes),
       if (includeEventSystem)
         'Data/System.rxdata': _Marshal().dump(_Object('RPG::System', {
-          '@switches': [null, 'Original door opened', 'Original reward consumed'],
+          '@switches': switchNames,
           '@variables': variableNames,
         })),
       'README.md':
@@ -481,6 +488,9 @@ final class _Marshal {
   }
 
   List<int> _value(Object? value) {
+    if (value is LiteralFixtureUserDefined) {
+      return [0x75, ..._symbol(value.name), ..._integer(value.bytes.length), ...value.bytes];
+    }
     if (value is LiteralFixtureSymbol) return _symbol(value.value);
     if (value is LiteralFixtureObject) {
       return _value(_Object(value.name, value.fields));

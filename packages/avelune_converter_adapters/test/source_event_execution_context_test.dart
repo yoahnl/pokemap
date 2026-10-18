@@ -49,7 +49,7 @@ void main() {
       expect(context.isQualified, isFalse);
       expect(
           context.refusals, contains('sourceAutomaticCommonEventUnsupported'));
-      expect(context.refusals, contains('sourcePluginRouteContextUnsupported'));
+      expect(context.refusals, isNot(contains('sourcePluginRouteContextUnsupported')));
     }, skip: scriptsPath == null);
   }
 

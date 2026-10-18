@@ -46,7 +46,7 @@ void main() {
             analysis: selected(definition, null),
             nativeMaps: {102: map},
             characterBindings: characters ?? adaptedCharacters,
-            partyTradeBinding: adaptedBinding);
+            partyTradeBinding: {source.eventIdentity(102, 7): adaptedBinding});
 
     SourceEventProjection project(
             {bool bind = true,
@@ -57,7 +57,7 @@ void main() {
             source: source,
             analysis: selected(definition, profile),
             nativeMaps: {102: nativeMap ?? map},
-            partyTradeBinding: bind ? binding : null);
+            partyTradeBinding: {if (bind) source.eventIdentity(102, 7): binding});
     List<SourceEventDefinition> candidates(
             {bool bind = true,
             SourceEventDefinition? definition,
@@ -67,7 +67,7 @@ void main() {
             source: source,
             analysis: selected(definition, profile),
             nativeMaps: {102: nativeMap ?? map},
-            partyTradeBinding: bind ? binding : null);
+            partyTradeBinding: {if (bind) source.eventIdentity(102, 7): binding});
     Map evidence(SourceEventProjection projection) =>
         (projection.semanticEvidence['events'] as List).single as Map;
     setUpAll(() async {
@@ -83,9 +83,9 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       event = full.eventAt(102, 7)!;
       analysis = selected(event, full.profile);
       binding = const SourcePartyTradeBindingResolver()
-          .resolve(source: source, analysis: analysis)!;
+          .resolve(sourceMapId: 102, sourceEventId: 7, source: source, analysis: analysis)!;
       adaptedBinding = const SourcePartyTradeBindingResolver().resolve(
-          source: source,
+          sourceMapId: 102, sourceEventId: 7, source: source,
           analysis: analysis,
           visualPolicy:
               SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard)!;
@@ -231,7 +231,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
 ))
             .analyze();
         final decision = const SourcePartyTradeBindingResolver().resolve(
-            source: changed,
+            sourceMapId: 102, sourceEventId: 7, source: changed,
             analysis: changedAnalysis,
             visualPolicy:
                 SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard);

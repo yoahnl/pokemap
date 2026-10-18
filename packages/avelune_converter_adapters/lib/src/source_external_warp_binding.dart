@@ -60,11 +60,11 @@ final class SourceExternalWarpBinding {
         !_externalEventMatchesSource(source, analysis.profile, event) ||
         event.isQuarantined ||
         event.pages.isEmpty ||
-        event.pages.first.body.nodes.singleOrNull is! SourceWarpNode) {
+        event.pages.expand((page) => page.body.nodes).whereType<SourceWarpNode>().where((node) => node.originalProgram != null).singleOrNull == null) {
       return false;
     }
     final program = programs[event.identity];
-    final node = event.pages.first.body.nodes.single as SourceWarpNode;
+    final node = event.pages.expand((page) => page.body.nodes).whereType<SourceWarpNode>().singleWhere((node) => node.originalProgram != null);
     if (program == null ||
         !program.matches(node) ||
         !_filesMatch(source) ||
@@ -124,7 +124,7 @@ final class SourceExternalWarpBindingResolver {
     final programs = <ConverterId, SourceExternalWarpProgram>{};
     for (final event in analysis.events) {
       if (event.isQuarantined || event.pages.isEmpty) continue;
-      final node = event.pages.first.body.nodes.singleOrNull;
+      final node = event.pages.expand((page) => page.body.nodes).whereType<SourceWarpNode>().where((node) => node.originalProgram != null).singleOrNull;
       if (node is! SourceWarpNode || node.originalProgram == null) continue;
       final map = source.maps
           .where((map) => map.map.sourceMapId == event.sourceMapId)

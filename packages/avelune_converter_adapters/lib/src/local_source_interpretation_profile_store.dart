@@ -20,13 +20,13 @@ final class LocalSourceInterpretationProfileStore {
     }
     final file = File(filePath);
     final before = await file.stat();
-    if (before.size > 131072) {
+    if (before.size > SourceInterpretationProfile.maxEncodedBytes) {
       throw ContractError('interpretation_profile.quota', r'$',
           'The selected profile exceeds its byte budget.');
     }
     final bytes = <int>[];
     await for (final chunk in file.openRead()) {
-      if (bytes.length + chunk.length > 131072) {
+      if (bytes.length + chunk.length > SourceInterpretationProfile.maxEncodedBytes) {
         throw ContractError('interpretation_profile.quota', r'$',
             'The selected profile exceeds its byte budget.');
       }

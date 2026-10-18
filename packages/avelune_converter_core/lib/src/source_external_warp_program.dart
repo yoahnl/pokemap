@@ -23,6 +23,12 @@ final class SourceExternalWarpProgram {
     required this.templateHash,
     required this.span,
     this.illustrationName,
+    required this.declaredProgram,
+    required this.fadeOutMs,
+    required this.transferDelayMs,
+    required this.revealMs,
+    required this.illustrationHoldMs,
+    required this.illustrationFadeMs,
   });
 
   final int sourceMapId, sourceEventId, targetSourceMapId, x, y, direction;
@@ -32,11 +38,9 @@ final class SourceExternalWarpProgram {
   final SourcePreservedData rawDataRef;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
   final SourceEventSpan span;
-  int get fadeOutMs => 300;
-  int get transferDelayMs => 400;
-  int get revealMs => 300;
-  int? get illustrationHoldMs => illustrationName == null ? null : 1000;
-  int? get illustrationFadeMs => illustrationName == null ? null : 1500;
+  final SourceDeclaredProgramMatch declaredProgram;
+  final int fadeOutMs, transferDelayMs, revealMs;
+  final int? illustrationHoldMs, illustrationFadeMs;
 
   bool matches(SourceWarpNode node) =>
       node.targetSourceMapId == targetSourceMapId &&
@@ -62,9 +66,9 @@ final class SourceExternalWarpProgram {
         SourceEventAnalyzer.forProject(source, profile: profile),
         sourceMapId,
         event,
-        event.pages.first,
-        _eventLocator(
-            'Data/Map$sourceMapId.rxdata', sourceMapId, sourceEventId, 0));
+        event.pages.singleWhere((p) => p.rawDataRef == rawDataRef.id),
+        _eventLocator(_sourceTrainerPath(sourceMapId), sourceMapId,
+            sourceEventId, rawDataRef.locator!.pageIndex));
     if (rebuilt?.nodes.singleOrNull
         case SourceWarpNode(:final originalProgram?)) {
       return canonicalJsonOf(originalProgram.toJson()) ==
@@ -98,6 +102,7 @@ final class SourceExternalWarpProgram {
         'profileHash': profileHash.value,
         'templateHash': templateHash.value,
         'sourceScriptsExecuted': 0,
+        'recognition': declaredProgram.toJson(),
         'nativeExecutionQualified': false,
         'sourcePresentationParityQualified': false,
         'requiresNativeBindings': [
@@ -109,84 +114,176 @@ final class SourceExternalWarpProgram {
             'caveEscapeStateDecision'
         ],
         'sourceOracle': {
-          '034':
-              'ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561',
-          '253':
-              '33c94f0f652a4a57528201a6d8ca785bd7217f2befa476a27d2eaf4d58129072',
+          'declaredBindingHash': declaredProgram.binding.canonicalHash.value,
           'toneStartsWithoutWaiting': true,
-          'pictureFadeStartsWithWorldReveal': true,
+          'pictureFadeStartsWithWorldReveal': true
         },
       };
 }
 
-const _externalWarpTemplates = <(int, int), String>{
-  (100, 6): '29e20a8233a4edffaf1bd3d8d12005d3735714482a48e7926e086db043b9fc04',
-  (100, 7): '15df4ccb4cde2ee6957d8349c0892f00ff9777a26f62209b85a489852eef0379',
-  (100, 13): 'f30e435bf1951437c0b488f57c86657af9aa267f2243fabaff050dd730b85353',
-  (166, 1): 'bcc51d391a854141cecd195f020cc485bf7647da309fbe42ef5f175f1f6f6d69',
-  (205, 2): 'ce98f79e50456115e2a09262024d70dc1ef2092e91bf38af4f06a8ead3c6e186',
-  (205, 4): '4dc189fb9dde46e8d09b9df534c5eade46bc6a0db35edaa914b8cd95a8f075f6',
-};
-
 SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
-  final expected = _externalWarpTemplates[(mapId, event.sourceEventId)];
-  if (!analyzer._isQualified ||
-      expected == null ||
-      page.originalPageIndex != 0 ||
-      event.pages.isEmpty ||
-      !identical(page, event.pages.first) &&
-          canonicalJsonOf(page.toJson()) !=
-              canonicalJsonOf(event.pages.first.toJson())) {
+  final match = matchSourceDeclaredProgram(
+      source: analyzer.project,
+      profile: analyzer.profile,
+      sourceMapId: mapId,
+      event: event,
+      families: const {SourceDeclaredProgramFamily.externalWarp});
+  if (match == null || match.pageRoles[page.originalPageIndex] != 'program') {
     return null;
   }
   try {
-    final rawEvent = _externalWarpRawEvent(analyzer, mapId, event);
-    if (rawEvent == null || canonicalHashOf(rawEvent.value).value != expected) {
+    final presentation = SourceExternalWarpPresentation.values
+        .singleWhere((v) => v.name == match.binding.parameters['presentation']);
+    final expected = switch (presentation) {
+      SourceExternalWarpPresentation.fade => const [250, 223, 106, 201, 223, 0],
+      SourceExternalWarpPresentation.illustrated => const [
+          250,
+          223,
+          106,
+          201,
+          231,
+          106,
+          223,
+          232,
+          106,
+          235,
+          0
+        ],
+      SourceExternalWarpPresentation.caveEntrance => const [
+          250,
+          223,
+          106,
+          231,
+          355,
+          201,
+          106,
+          223,
+          232,
+          106,
+          235,
+          0
+        ],
+      SourceExternalWarpPresentation.caveExit => const [
+          250,
+          223,
+          106,
+          355,
+          201,
+          223,
+          0
+        ],
+    };
+    if (canonicalJsonOf(page.commands.map((c) => c.code).toList()) !=
+            canonicalJsonOf(expected) ||
+        page.commands.any((c) => c.indent != 0)) {
       return null;
     }
-    final reference = analyzer._reference(page.rawDataRef)!;
+    final reference = match.references[page.originalPageIndex]!;
     final parser = _SourceEventParser(analyzer, page.commands, locator, mapId,
         event.sourceEventId, analyzer._switchNames(), reference);
     final sound = parser._soundEffect();
-    if (sound is! SourceSoundEffectNode ||
-        sound.name != 'Exit Door' ||
-        sound.volume != 80 ||
-        sound.pitch != 100) {
-      return null;
-    }
-    final indices =
-        page.commands.indexed.where((row) => row.$2.code == 201).toList();
-    if (indices.length != 1) {
-      return null;
-    }
-    final parameters = page.commands[indices.single.$1].parameters;
-    final target = parameters[1] as int,
-        x = parameters[2] as int,
-        y = parameters[3] as int,
-        direction = parameters[4] as int;
+    if (sound is! SourceSoundEffectNode) return null;
+    final transfer = page.commands.singleWhere((c) => c.code == 201).parameters;
+    if (transfer.length != 6 || transfer.any((v) => v is! int)) return null;
+    final target = transfer[1] as int,
+        x = transfer[2] as int,
+        y = transfer[3] as int,
+        direction = transfer[4] as int;
     final destination = analyzer.project.maps
-        .where((map) => map.map.sourceMapId == target)
+        .where((m) => m.map.sourceMapId == target)
         .singleOrNull;
     if (destination == null ||
-        parameters[0] != 0 ||
-        parameters[5] != 1 ||
-        !const [2, 4, 6, 8].contains(direction) ||
+        transfer[0] != 0 ||
+        transfer[5] != 1 ||
+        !const {2, 4, 6, 8}.contains(direction) ||
         x < 0 ||
         y < 0 ||
         x >= destination.map.width ||
         y >= destination.map.height) {
       return null;
     }
-    final presentation = switch ((mapId, event.sourceEventId)) {
-      (100, 7) => SourceExternalWarpPresentation.caveEntrance,
-      (166, 1) => SourceExternalWarpPresentation.caveExit,
-      (100, _) => SourceExternalWarpPresentation.illustrated,
-      _ => SourceExternalWarpPresentation.fade,
-    };
+    final values = match.pageValues[page.originalPageIndex]!['list'] as List;
+    List params(int code) =>
+        (values.singleWhere((v) => (v as Map)['code'] == code)
+            as Map)['parameters'] as List;
+    final tones = values
+        .where((v) => (v as Map)['code'] == 223)
+        .map((v) => (v as Map)['parameters'] as List)
+        .toList();
+    final waits = values
+        .where((v) => (v as Map)['code'] == 106)
+        .map((v) => (v as Map)['parameters'] as List)
+        .toList();
+    if (tones.length != 2 ||
+        tones.any((p) =>
+            p.length != 2 ||
+            p[0] is! Map ||
+            p[1] is! int ||
+            (p[1] as int) < 0 ||
+            (p[1] as int) > 1200) ||
+        waits.any((p) =>
+            p.length != 1 ||
+            p.single is! int ||
+            (p.single as int) < 0 ||
+            (p.single as int) > 1200)) {
+      return null;
+    }
+    for (final (index, requiredChannels) in [
+      const [-255.0, -255.0, -255.0, 0.0],
+      const [0.0, 0.0, 0.0, 0.0]
+    ].indexed) {
+      final tone = tones[index][0] as Map;
+      if (tone['__class__'] != 'Tone' || tone['marshalPayload'] is! String) {
+        return null;
+      }
+      final bytes = base64Decode(tone['marshalPayload'] as String);
+      if (bytes.length != 32) return null;
+      final data = ByteData.sublistView(Uint8List.fromList(bytes));
+      if ([for (var i = 0; i < 4; i++) data.getFloat64(i * 8, Endian.little)]
+          .indexed
+          .any((r) => r.$2 != requiredChannels[r.$1])) {
+        return null;
+      }
+    }
+    final script = values
+        .where((v) => (v as Map)['code'] == 355)
+        .map((v) => ((v as Map)['parameters'] as List).single)
+        .singleOrNull;
+    if (script !=
+        (presentation == SourceExternalWarpPresentation.caveEntrance
+            ? 'pbCaveEntrance'
+            : presentation == SourceExternalWarpPresentation.caveExit
+                ? 'pbCaveExit'
+                : null)) {
+      return null;
+    }
+    String? illustration;
+    int? hold, fade;
+    if (presentation == SourceExternalWarpPresentation.illustrated ||
+        presentation == SourceExternalWarpPresentation.caveEntrance) {
+      final picture = params(231), move = params(232), erase = params(235);
+      if (picture.length != 10 ||
+          picture[0] != 1 ||
+          picture[1] is! String ||
+          canonicalJsonOf(picture.sublist(2)) != '[0,0,0,0,100,100,255,0]' ||
+          move.length != 10 ||
+          move[0] != 1 ||
+          move[1] is! int ||
+          (move[1] as int) < 0 ||
+          (move[1] as int) > 1200 ||
+          canonicalJsonOf(move.sublist(2)) != '[0,0,0,0,100,100,0,0]' ||
+          canonicalJsonOf(erase) != '[1]' ||
+          waits.length != 3) {
+        return null;
+      }
+      illustration = picture[1] as String;
+      hold = (waits[1].single as int) * 50;
+      fade = (move[1] as int) * 50;
+    }
     final span = SourceEventSpan(
-        firstCommandIndex: 0,
-        lastCommandIndex: page.commands.length - 1,
+        firstCommandIndex: page.commands.first.originalIndex,
+        lastCommandIndex: page.commands.last.originalIndex,
         locator: locator);
     final program = SourceExternalWarpProgram._(
         sourceMapId: mapId,
@@ -200,13 +297,15 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
         rawDataRef: reference,
         sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
         profileHash: analyzer.profile.canonicalHash,
-        templateHash: canonicalHashOf(rawEvent.value),
+        templateHash: canonicalHashOf(match.pageValues[page.originalPageIndex]),
         span: span,
-        illustrationName: switch (presentation) {
-          SourceExternalWarpPresentation.illustrated => 'dpic_powerplant',
-          SourceExternalWarpPresentation.caveEntrance => 'dpic_rocktunnel',
-          _ => null,
-        });
+        declaredProgram: match,
+        illustrationName: illustration,
+        fadeOutMs: (tones[0][1] as int) * 50,
+        transferDelayMs: (waits.first.single as int) * 50,
+        revealMs: (tones[1][1] as int) * 50,
+        illustrationHoldMs: hold,
+        illustrationFadeMs: fade);
     return SourceEventBlock(span: span, nodes: [
       SourceWarpNode(span,
           targetSourceMapId: target,
@@ -219,6 +318,8 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
   } on FormatException {
     return null;
   } on TypeError {
+    return null;
+  } on StateError {
     return null;
   }
 }
@@ -233,7 +334,7 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
     return null;
   }
   final file = analyzer.project.archive.files[reference.fileId]!;
-  if (file.entry.relativePath != 'Data/Map$mapId.rxdata') {
+  if (file.entry.relativePath != _sourceTrainerPath(mapId)) {
     return null;
   }
   final document = file.document;
@@ -324,7 +425,7 @@ final class _ExternalWarpRawValue {
   final active = <int>{};
   var count = 0;
   Object? read(int id, [int depth = 0]) {
-    if (++count > 4096 || depth > 32 || !active.add(id)) {
+    if (++count > 32768 || depth > 32 || !active.add(id)) {
       throw const FormatException();
     }
     try {
@@ -351,7 +452,7 @@ final class _ExternalWarpRawValue {
           }
           return text;
         case MarshalKind.array:
-          if (node.elements.length > 128) {
+          if (node.elements.length > 256) {
             throw const FormatException();
           }
           return [for (final child in node.elements) read(child, depth + 1)];

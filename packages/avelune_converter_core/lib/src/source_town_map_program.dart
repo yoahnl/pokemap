@@ -26,8 +26,8 @@ final class SourceTownMapProgramNode extends SourceEventNode {
         sourceMapId,
         event,
         page,
-        _eventLocator('Data/Map102.rxdata', sourceMapId, event.sourceEventId,
-            page.originalPageIndex));
+        _eventLocator(_sourceTrainerPath(sourceMapId), sourceMapId,
+            event.sourceEventId, page.originalPageIndex));
     return block != null &&
         block.nodes.length == 1 &&
         canonicalJsonOf(
@@ -45,13 +45,17 @@ final class SourceTownMapProgramNode extends SourceEventNode {
         'profileHash': profileHash.value,
         'templateHash': templateHash.value,
         'sourceProgramRecognized': true,
+        'recognition': {
+          'mode': 'parsedProgram',
+          'grammar': 'literalTextAndCompleteMapDisplayCall'
+        },
         'nativeExecutionQualified': false,
         'fullSourceTownMapParityQualified': false,
         'sourceScriptsExecuted': 0,
         'requiredGameplayBindings': [
           'sourceRegionalMapCatalog',
           'nativeOpenRegionalMapAwaitClose',
-          'sourceStaticTwoCellFootprint'
+          'sourceStaticActionFootprint'
         ]
       };
 }
@@ -59,11 +63,7 @@ final class SourceTownMapProgramNode extends SourceEventNode {
 SourceEventBlock? _sourceTownMapProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
   if (!analyzer._isQualified ||
-      mapId != 102 ||
-      event.sourceEventId != 6 ||
-      event.name != 'Town Map size(2,1)' ||
       event.pages.length != 1 ||
-      page.originalPageIndex != 0 ||
       page.triggerCode != 0 ||
       page.commands.length != 3) {
     return null;
@@ -74,7 +74,7 @@ SourceEventBlock? _sourceTownMapProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     final file = analyzer.project.archive.files[reference.fileId]!;
-    if (file.entry.relativePath != 'Data/Map102.rxdata') {
+    if (file.entry.relativePath != _sourceTrainerPath(mapId)) {
       return null;
     }
     final value = _SourceCenterPageValue(file.document).read(reference.nodeId);
@@ -82,8 +82,19 @@ SourceEventBlock? _sourceTownMapProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     final hash = canonicalHashOf(value);
-    if (hash.value !=
-        '5ff4ebec50692255f1c0ffdcf16dfc510f9ecf43c14861c6c31a18493a71aa39') {
+    final commands = value['list'];
+    if (commands is! List ||
+        commands.length != 3 ||
+        (commands[0] as Map)['code'] != 101 ||
+        (commands[1] as Map)['code'] != 355 ||
+        (commands[2] as Map)['code'] != 0 ||
+        commands.any((c) => (c as Map)['indent'] != 0) ||
+        canonicalJsonOf((commands[1] as Map)['parameters']) !=
+            '["pbShowMap"]' ||
+        canonicalJsonOf((commands[2] as Map)['parameters']) != '[]' ||
+        (commands[0] as Map)['parameters'] is! List ||
+        ((commands[0] as Map)['parameters'] as List).length != 1 ||
+        ((commands[0] as Map)['parameters'] as List).single is! String) {
       return null;
     }
     final condition = analyzer._reference(page.conditionsDataRef);
@@ -127,7 +138,7 @@ SourceEventBlock? _sourceTownMapProgramBlock(SourceEventAnalyzer analyzer,
                   firstCommandIndex: 0,
                   lastCommandIndex: 0,
                   locator: page.commands.first.sourceLocator),
-              'A Town Map.'),
+              ((commands[0] as Map)['parameters'] as List).single as String),
           rawDataRef: reference,
           sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
           profileHash: analyzer.profile.canonicalHash,

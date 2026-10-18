@@ -81,7 +81,7 @@ void main() {
             source: source,
             analysis: overrideAnalysis ?? analysis,
             nativeMaps: overrideMaps ?? maps,
-            townMapBinding: bind ? binding : null);
+            townMapBinding: {if (bind) source.eventIdentity(102, 6): binding});
     setUpAll(() async {
       final fixture = await readOriginalTownMapSource(
           archivePath: archive!, sourceRoot: root!);
@@ -96,7 +96,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           profile: full.profile, events: [event], diagnostics: const []);
       maps = _nativeMaps(source);
       binding = await const SourceTownMapBindingResolver().read(
-          source: source,
+          sourceMapId: 102, source: source,
           files: fixture.$2,
           nativeMapIds: {
             for (final entry in maps.entries) entry.key: entry.value.id

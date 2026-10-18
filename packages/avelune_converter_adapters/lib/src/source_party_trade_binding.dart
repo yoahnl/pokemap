@@ -24,6 +24,8 @@ final class SourcePartyTradeVisualAdaptation {
 final class SourcePartyTradeBinding {
   SourcePartyTradeBinding._({
     required this.program,
+    required this.sourceMapId,
+    required this.sourceEventId,
     required this.sourceSnapshotHash,
     required this.normalizationHash,
     required this.profileHash,
@@ -33,6 +35,7 @@ final class SourcePartyTradeBinding {
   });
 
   final SourcePartyTradeProgramNode program;
+  final int sourceMapId, sourceEventId;
   final SourcePartyTradeVisualAdaptation? visualAdaptation;
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash;
   final Sha256Hash nativeEvolutionRulesHash;
@@ -48,16 +51,16 @@ final class SourcePartyTradeBinding {
         analysis.profile.canonicalHash != profileHash ||
         !analysis.profile.isQualified ||
         event.isQuarantined ||
-        event.sourceMapId != 102 ||
-        event.sourceEventId != 7 ||
-        event.identity != source.eventIdentity(102, 7) ||
+        event.sourceMapId != sourceMapId ||
+        event.sourceEventId != sourceEventId ||
+        event.identity != source.eventIdentity(sourceMapId, sourceEventId) ||
         event.pages.length != 1) {
       return false;
     }
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
             .analyze()
-            .eventAt(102, 7);
+            .eventAt(sourceMapId, sourceEventId);
     if (expected == null ||
         expected.isQuarantined ||
         expected.pages.length != 1 ||
@@ -96,14 +99,14 @@ final class SourcePartyTradeBinding {
       return false;
     }
     final rawEvent = source.maps
-        .singleWhere((map) => map.map.sourceMapId == 102)
+        .singleWhere((map) => map.map.sourceMapId == sourceMapId)
         .map
         .events
-        .singleWhere((event) => event.sourceEventId == 7);
+        .singleWhere((event) => event.sourceEventId == sourceEventId);
     return program.isBoundToSourceEvent(
         source: source,
         profile: analysis.profile,
-        sourceMapId: 102,
+        sourceMapId: sourceMapId,
         event: rawEvent);
   }
 }
@@ -114,6 +117,9 @@ final class SourcePartyTradeBindingResolver {
   SourcePartyTradeBinding? resolve(
       {required NormalizedSourceProject source,
       required SourceEventAnalysis analysis,
+      required int sourceMapId,
+      required int sourceEventId,
+      NativePsdkCatalog? nativeCatalog,
       SourcePartyTradeVisualPolicy visualPolicy =
           SourcePartyTradeVisualPolicy.strictSource}) {
     if (!analysis.profile.isQualified ||
@@ -121,7 +127,7 @@ final class SourcePartyTradeBindingResolver {
         analysis.profile.normalizationHash != source.canonicalHash) {
       return null;
     }
-    final event = analysis.eventAt(102, 7);
+    final event = analysis.eventAt(sourceMapId, sourceEventId);
     if (event == null ||
         event.isQuarantined ||
         event.pages.length != 1 ||
@@ -150,7 +156,7 @@ final class SourcePartyTradeBindingResolver {
       }
       visual = SourcePartyTradeVisualAdaptation._(candidates.single);
     }
-    final native = NativePsdkTrainerBundle.builtin();
+    final native = nativeCatalog ?? NativePsdkTrainerBundle.builtin();
     final rules = <String, Object?>{};
     for (final entry in native.evolutionsBySpeciesId.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key))) {
@@ -167,6 +173,8 @@ final class SourcePartyTradeBindingResolver {
     final rulesHash = canonicalHashOf(rules);
     final binding = SourcePartyTradeBinding._(
         program: program,
+        sourceMapId: sourceMapId,
+        sourceEventId: sourceEventId,
         sourceSnapshotHash: source.snapshot.canonicalHash,
         normalizationHash: source.canonicalHash,
         profileHash: analysis.profile.canonicalHash,

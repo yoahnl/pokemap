@@ -950,7 +950,7 @@ void main() {
     expect(row.rawDataRef.binaryLocation.graphPath, contains('[2]'));
     expect(row.toJson()['nativeOffset'], 0);
     expect(row.toJson()['sourceDirection'], 'E');
-    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v5');
+    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v6');
   });
 
   test(

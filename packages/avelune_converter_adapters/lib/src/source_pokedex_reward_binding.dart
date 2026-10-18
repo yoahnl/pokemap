@@ -3,10 +3,16 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import 'source_event_item_bindings.dart';
+import 'native_psdk_catalog.dart';
+import 'native_psdk_trainer_bundle.dart';
+import 'native_source_species_bindings.dart';
 
 final class SourcePokedexRewardBinding {
   SourcePokedexRewardBinding._(
       {required this.range,
+      required this.sourceMapId,
+      required this.sourceEventId,
+      required this.speciesEvidence,
       required this.item,
       required this.archive,
       required this.itemArchive,
@@ -18,6 +24,8 @@ final class SourcePokedexRewardBinding {
       : programs = List.unmodifiable(programs);
 
   final PokedexSpeciesRange range;
+  final int sourceMapId, sourceEventId;
+  final Map<String, Object?> speciesEvidence;
   final SourceEventItemBinding item;
   final SourceArchive archive, itemArchive;
   final Sha256Hash sourceSnapshotHash,
@@ -34,23 +42,23 @@ final class SourcePokedexRewardBinding {
         source.snapshot.canonicalHash != sourceSnapshotHash ||
         source.canonicalHash != normalizationHash ||
         analysis.profile.canonicalHash != profileHash ||
-        event.sourceMapId != 102 ||
-        event.sourceEventId != 10 ||
+        event.sourceMapId != sourceMapId ||
+        event.sourceEventId != sourceEventId ||
         canonicalHashOf(_eventFingerprint(event)) != eventHash) {
       return false;
     }
-    final maps = source.maps.where((map) => map.map.sourceMapId == 102);
+    final maps = source.maps.where((map) => map.map.sourceMapId == sourceMapId);
     if (maps.length != 1) {
       return false;
     }
     final originals =
-        maps.single.map.events.where((event) => event.sourceEventId == 10);
+        maps.single.map.events.where((event) => event.sourceEventId == sourceEventId);
     return originals.length == 1 &&
         programs.length == 2 &&
         programs.every((program) => program.isBoundToSourceEvent(
             source: source,
             profile: analysis.profile,
-            sourceMapId: 102,
+            sourceMapId: sourceMapId,
             event: originals.single));
   }
 
@@ -61,24 +69,10 @@ final class SourcePokedexRewardBinding {
         'normalizationHash': normalizationHash.value,
         'profileHash': profileHash.value,
         'eventHash': eventHash.value,
-        'sourceDexIndex': 1,
+        'sourceDexIndex': programs.first.sourceDexIndex,
         'nativeScope': range.key,
         'sourceRegionalDexFile': archive.files.values.single.entry.toJson(),
-        'referenceSourceFileHash': _referenceRegionalDexHash,
-        'sourceFileMatchesReference':
-            archive.files.values.single.contentHash.value ==
-                _referenceRegionalDexHash,
-        'referenceMappingHash':
-            '6dd419e2ee9bfa31eae4549a1a2a0329249d21f7b113d6f91e29b9e8d688e347',
-        'referenceAuthority': 'psdkTestProjectCanonicalNationalDex',
-        'regionalSpecies': [
-          for (var index = 0; index < _sourceSymbols.length; index++)
-            {
-              'sourceSymbol': _sourceSymbols[index],
-              'nativeId': _nativeIds[index],
-              'nationalDex': index + 1
-            }
-        ],
+        'speciesIdentityEvidence': speciesEvidence,
         'sourcePrograms': programs.map((program) => program.toJson()).toList(),
         'sourceItemCatalog': item.toJson(),
         'nativeGrantScope': 'nativeAtomicUnitBagGrant',
@@ -97,6 +91,9 @@ final class SourcePokedexRewardBindingResolver {
       {required NormalizedSourceProject source,
       required SourceEventAnalysis analysis,
       required SourceFilePort files,
+      required int sourceMapId,
+      required int sourceEventId,
+      NativePsdkCatalog? nativeCatalog,
       ScanCancellation? cancellation}) async {
     cancellation?.check();
     if (source.snapshot.state != SourceScanState.complete ||
@@ -108,7 +105,7 @@ final class SourcePokedexRewardBindingResolver {
     if (!analysis.profile.isQualified) {
       return null;
     }
-    final event = analysis.eventAt(102, 10);
+    final event = analysis.eventAt(sourceMapId, sourceEventId);
     if (event == null ||
         event.isQuarantined ||
         event.pages.length != 2 ||
@@ -120,10 +117,11 @@ final class SourcePokedexRewardBindingResolver {
     final programs = event.pages
         .map((page) => page.body.nodes.single as SourcePokedexRewardProgramNode)
         .toList();
+    if (programs.where((p) => p.pickup != null).length != 1 || programs.firstWhere((p) => p.pickup != null).pickup!.quantity != 1) return null;
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
             .analyze()
-            .eventAt(102, 10);
+            .eventAt(sourceMapId, sourceEventId);
     if (expected == null ||
         canonicalJsonOf(_eventFingerprint(expected)) !=
             canonicalJsonOf(_eventFingerprint(event))) {
@@ -174,29 +172,43 @@ final class SourcePokedexRewardBindingResolver {
     final document = file.document;
     final root = document.node(document.rootId);
     if (root.kind != MarshalKind.array ||
-        root.elements.length < 2 ||
+        root.elements.length <= programs.first.sourceDexIndex ||
         root.elements.length > 32) {
       return null;
     }
-    final region = document.node(root.elements[1]);
-    if (region.kind != MarshalKind.array ||
-        region.elements.length != _sourceSymbols.length) {
+    final region = document.node(root.elements[programs.first.sourceDexIndex]);
+    if (region.kind != MarshalKind.array || region.elements.isEmpty || region.elements.length > 2048) return null;
+    final symbols = <String>[];
+    for (final nodeId in region.elements) {
+      final species = document.node(nodeId);
+      if (species.kind != MarshalKind.symbol || species.name == null || symbols.contains(species.name)) return null;
+      symbols.add(species.name!);
+    }
+    final catalog = nativeCatalog ?? NativePsdkCatalogManifest.builtin();
+    final pbs = await const SourcePbsParser().read(snapshot: source.snapshot, files: files, families: const {SourcePbsFamily.species}, cancellation: cancellation);
+    final NativeSourceSpeciesBindingResult identities;
+    try {
+      identities = await const NativeSourceSpeciesBindings().bind(snapshot: source.snapshot,
+          source: pbs, files: files, nativeCatalog: catalog,
+          requestedSourceSymbols: symbols, cancellation: cancellation);
+    } on ContractError catch (error) {
+      if (['quota', 'limit', 'changed', 'hash'].any(error.code.contains)) rethrow;
       return null;
     }
-    for (var index = 0; index < _sourceSymbols.length; index++) {
-      final species = document.node(region.elements[index]);
-      if (species.kind != MarshalKind.symbol ||
-          species.name != _sourceSymbols[index]) {
-        return null;
-      }
+    final dexNumbers = <int>{};
+    for (final row in identities.rows) {
+      final species = catalog.speciesById[row['nativeSpeciesId']];
+      if (species == null || row['nativeForm'] != 0 || species.nationalDex < 1 || !dexNumbers.add(species.nationalDex)) return null;
     }
+    final orderedDex = dexNumbers.toList()..sort();
+    if (orderedDex.isEmpty || orderedDex.last - orderedDex.first + 1 != orderedDex.length) return null;
     archive.seal();
     final SourceEventItemBindings items;
     try {
       items = await const SourceEventItemBindingResolver().read(
           snapshot: source.snapshot,
           files: files,
-          symbols: const ['EVERSTONE'],
+          symbols: [programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol],
           eventProfile: analysis.profile,
           cancellation: cancellation);
     } on ContractError catch (error) {
@@ -205,7 +217,7 @@ final class SourcePokedexRewardBindingResolver {
       }
       return null;
     }
-    final item = items.bindings['EVERSTONE'];
+    final item = items.bindings[programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol];
     if (item == null ||
         !item.pickupQualified ||
         item.isKeyItem ||
@@ -214,7 +226,10 @@ final class SourcePokedexRewardBindingResolver {
       return null;
     }
     final binding = SourcePokedexRewardBinding._(
-        range: PokedexSpeciesRange(firstNationalDex: 1, lastNationalDex: 151),
+        range: PokedexSpeciesRange(firstNationalDex: orderedDex.first, lastNationalDex: orderedDex.last),
+        sourceMapId: sourceMapId,
+        sourceEventId: sourceEventId,
+        speciesEvidence: identities.evidence,
         item: item,
         archive: archive,
         itemArchive: items.archive,
@@ -230,314 +245,6 @@ final class SourcePokedexRewardBindingResolver {
   }
 }
 
-const _referenceRegionalDexHash =
-    '2fa70db52a28bff5eb4565a87b9344da48f0610e2da1bfff948343fecaa121ea';
-const _sourceSymbols = [
-  "BULBASAUR",
-  "IVYSAUR",
-  "VENUSAUR",
-  "CHARMANDER",
-  "CHARMELEON",
-  "CHARIZARD",
-  "SQUIRTLE",
-  "WARTORTLE",
-  "BLASTOISE",
-  "CATERPIE",
-  "METAPOD",
-  "BUTTERFREE",
-  "WEEDLE",
-  "KAKUNA",
-  "BEEDRILL",
-  "PIDGEY",
-  "PIDGEOTTO",
-  "PIDGEOT",
-  "RATTATA",
-  "RATICATE",
-  "SPEAROW",
-  "FEAROW",
-  "EKANS",
-  "ARBOK",
-  "PIKACHU",
-  "RAICHU",
-  "SANDSHREW",
-  "SANDSLASH",
-  "NIDORANfE",
-  "NIDORINA",
-  "NIDOQUEEN",
-  "NIDORANmA",
-  "NIDORINO",
-  "NIDOKING",
-  "CLEFAIRY",
-  "CLEFABLE",
-  "VULPIX",
-  "NINETALES",
-  "JIGGLYPUFF",
-  "WIGGLYTUFF",
-  "ZUBAT",
-  "GOLBAT",
-  "ODDISH",
-  "GLOOM",
-  "VILEPLUME",
-  "PARAS",
-  "PARASECT",
-  "VENONAT",
-  "VENOMOTH",
-  "DIGLETT",
-  "DUGTRIO",
-  "MEOWTH",
-  "PERSIAN",
-  "PSYDUCK",
-  "GOLDUCK",
-  "MANKEY",
-  "PRIMEAPE",
-  "GROWLITHE",
-  "ARCANINE",
-  "POLIWAG",
-  "POLIWHIRL",
-  "POLIWRATH",
-  "ABRA",
-  "KADABRA",
-  "ALAKAZAM",
-  "MACHOP",
-  "MACHOKE",
-  "MACHAMP",
-  "BELLSPROUT",
-  "WEEPINBELL",
-  "VICTREEBEL",
-  "TENTACOOL",
-  "TENTACRUEL",
-  "GEODUDE",
-  "GRAVELER",
-  "GOLEM",
-  "PONYTA",
-  "RAPIDASH",
-  "SLOWPOKE",
-  "SLOWBRO",
-  "MAGNEMITE",
-  "MAGNETON",
-  "FARFETCHD",
-  "DODUO",
-  "DODRIO",
-  "SEEL",
-  "DEWGONG",
-  "GRIMER",
-  "MUK",
-  "SHELLDER",
-  "CLOYSTER",
-  "GASTLY",
-  "HAUNTER",
-  "GENGAR",
-  "ONIX",
-  "DROWZEE",
-  "HYPNO",
-  "KRABBY",
-  "KINGLER",
-  "VOLTORB",
-  "ELECTRODE",
-  "EXEGGCUTE",
-  "EXEGGUTOR",
-  "CUBONE",
-  "MAROWAK",
-  "HITMONLEE",
-  "HITMONCHAN",
-  "LICKITUNG",
-  "KOFFING",
-  "WEEZING",
-  "RHYHORN",
-  "RHYDON",
-  "CHANSEY",
-  "TANGELA",
-  "KANGASKHAN",
-  "HORSEA",
-  "SEADRA",
-  "GOLDEEN",
-  "SEAKING",
-  "STARYU",
-  "STARMIE",
-  "MRMIME",
-  "SCYTHER",
-  "JYNX",
-  "ELECTABUZZ",
-  "MAGMAR",
-  "PINSIR",
-  "TAUROS",
-  "MAGIKARP",
-  "GYARADOS",
-  "LAPRAS",
-  "DITTO",
-  "EEVEE",
-  "VAPOREON",
-  "JOLTEON",
-  "FLAREON",
-  "PORYGON",
-  "OMANYTE",
-  "OMASTAR",
-  "KABUTO",
-  "KABUTOPS",
-  "AERODACTYL",
-  "SNORLAX",
-  "ARTICUNO",
-  "ZAPDOS",
-  "MOLTRES",
-  "DRATINI",
-  "DRAGONAIR",
-  "DRAGONITE",
-  "MEWTWO",
-  "MEW"
-];
-const _nativeIds = [
-  "bulbasaur",
-  "ivysaur",
-  "venusaur",
-  "charmander",
-  "charmeleon",
-  "charizard",
-  "squirtle",
-  "wartortle",
-  "blastoise",
-  "caterpie",
-  "metapod",
-  "butterfree",
-  "weedle",
-  "kakuna",
-  "beedrill",
-  "pidgey",
-  "pidgeotto",
-  "pidgeot",
-  "rattata",
-  "raticate",
-  "spearow",
-  "fearow",
-  "ekans",
-  "arbok",
-  "pikachu",
-  "raichu",
-  "sandshrew",
-  "sandslash",
-  "nidoranf",
-  "nidorina",
-  "nidoqueen",
-  "nidoranm",
-  "nidorino",
-  "nidoking",
-  "clefairy",
-  "clefable",
-  "vulpix",
-  "ninetales",
-  "jigglypuff",
-  "wigglytuff",
-  "zubat",
-  "golbat",
-  "oddish",
-  "gloom",
-  "vileplume",
-  "paras",
-  "parasect",
-  "venonat",
-  "venomoth",
-  "diglett",
-  "dugtrio",
-  "meowth",
-  "persian",
-  "psyduck",
-  "golduck",
-  "mankey",
-  "primeape",
-  "growlithe",
-  "arcanine",
-  "poliwag",
-  "poliwhirl",
-  "poliwrath",
-  "abra",
-  "kadabra",
-  "alakazam",
-  "machop",
-  "machoke",
-  "machamp",
-  "bellsprout",
-  "weepinbell",
-  "victreebel",
-  "tentacool",
-  "tentacruel",
-  "geodude",
-  "graveler",
-  "golem",
-  "ponyta",
-  "rapidash",
-  "slowpoke",
-  "slowbro",
-  "magnemite",
-  "magneton",
-  "farfetch_d",
-  "doduo",
-  "dodrio",
-  "seel",
-  "dewgong",
-  "grimer",
-  "muk",
-  "shellder",
-  "cloyster",
-  "gastly",
-  "haunter",
-  "gengar",
-  "onix",
-  "drowzee",
-  "hypno",
-  "krabby",
-  "kingler",
-  "voltorb",
-  "electrode",
-  "exeggcute",
-  "exeggutor",
-  "cubone",
-  "marowak",
-  "hitmonlee",
-  "hitmonchan",
-  "lickitung",
-  "koffing",
-  "weezing",
-  "rhyhorn",
-  "rhydon",
-  "chansey",
-  "tangela",
-  "kangaskhan",
-  "horsea",
-  "seadra",
-  "goldeen",
-  "seaking",
-  "staryu",
-  "starmie",
-  "mr_mime",
-  "scyther",
-  "jynx",
-  "electabuzz",
-  "magmar",
-  "pinsir",
-  "tauros",
-  "magikarp",
-  "gyarados",
-  "lapras",
-  "ditto",
-  "eevee",
-  "vaporeon",
-  "jolteon",
-  "flareon",
-  "porygon",
-  "omanyte",
-  "omastar",
-  "kabuto",
-  "kabutops",
-  "aerodactyl",
-  "snorlax",
-  "articuno",
-  "zapdos",
-  "moltres",
-  "dratini",
-  "dragonair",
-  "dragonite",
-  "mewtwo",
-  "mew"
-];
 Map<String, Object?> _eventFingerprint(SourceEventDefinition event) => {
       'identity': event.identity.value,
       'sourceMapId': event.sourceMapId,

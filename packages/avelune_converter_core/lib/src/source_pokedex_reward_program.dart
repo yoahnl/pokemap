@@ -21,7 +21,12 @@ final class SourcePokedexRewardProgramNode extends SourceEventNode {
       required this.sourceSnapshotHash,
       required this.profileHash,
       required this.templateHash,
-      required this.pickup})
+      required this.pickup,
+      required this.declaredProgram,
+      required this.sourceDexIndex,
+      required this.minimumCount,
+      required this.sourceSeenVariableId,
+      required this.sourceOwnedVariableId})
       : textGroups = Map<SourcePokedexRewardTextGroup,
             List<SourceTextNode>>.unmodifiable({
           for (final entry in textGroups.entries)
@@ -36,12 +41,18 @@ final class SourcePokedexRewardProgramNode extends SourceEventNode {
   final List<SourcePreservedData> sourcePageRefs;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
   final SourcePickupNode? pickup;
-  int get sourceDexIndex => 1;
-  int get minimumCount => 20;
-  int get sourceSeenVariableId => 1;
-  int get sourceOwnedVariableId => 2;
+  final SourceDeclaredProgramMatch declaredProgram;
+  final int sourceDexIndex,
+      minimumCount,
+      sourceSeenVariableId,
+      sourceOwnedVariableId;
   List<String> get choiceLabels => kind == SourcePokedexRewardProgramKind.offer
-      ? const ['YES', 'NO']
+      ? List<String>.from((_declaredCommand(
+              declaredProgram,
+              'offer',
+              declaredProgram
+                  .binding.parameters['choiceCommandIndex'])['parameters']
+          as List)[0] as List)
       : const [];
   int? get cancelType =>
       kind == SourcePokedexRewardProgramKind.offer ? 2 : null;
@@ -69,8 +80,8 @@ final class SourcePokedexRewardProgramNode extends SourceEventNode {
         sourceMapId,
         event,
         pages.single,
-        _eventLocator('Data/Map102.rxdata', sourceMapId, event.sourceEventId,
-            pages.single.originalPageIndex));
+        _eventLocator(_sourceTrainerPath(sourceMapId), sourceMapId,
+            event.sourceEventId, pages.single.originalPageIndex));
     return block != null &&
         block.nodes.length == 1 &&
         canonicalJsonOf((block.nodes.single as SourcePokedexRewardProgramNode)
@@ -103,6 +114,7 @@ final class SourcePokedexRewardProgramNode extends SourceEventNode {
         'profileHash': profileHash.value,
         'templateHash': templateHash.value,
         'sourceProgramRecognized': true,
+        'recognition': declaredProgram.toJson(),
         'nativeExecutionQualified': false,
         'fullSourceRewardParityQualified': false,
         'sourceScriptsExecuted': 0,
@@ -117,156 +129,98 @@ final class SourcePokedexRewardProgramNode extends SourceEventNode {
       };
 }
 
-const _sourcePokedexRewardPageHashes = {
-  0: 'b8fc27642cdce79dbfdb40d8a1eaabd3ea2855bae59b889145834de1c025939e',
-  1: '5195473ef77bdc2095b131dec8c7a0e89b13f1198051f915956f144ed696ddb9',
-};
-
 SourceEventBlock? _sourcePokedexRewardProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
-  if (!analyzer._isQualified ||
-      mapId != 102 ||
-      event.sourceEventId != 10 ||
-      event.name != 'Everstone Aide' ||
-      event.pages.length != 2 ||
-      event.pages[0].originalPageIndex != 0 ||
-      event.pages[1].originalPageIndex != 1) {
-    return null;
-  }
+  final match = matchSourceDeclaredProgram(
+      source: analyzer.project,
+      profile: analyzer.profile,
+      sourceMapId: mapId,
+      event: event,
+      families: const {SourceDeclaredProgramFamily.pokedexReward});
+  if (match == null) return null;
   try {
-    final values = <Map<String, Object?>>[];
-    final references = <SourcePreservedData>[];
-    final hashes = <Sha256Hash>[];
-    const path = 'Data/Map102.rxdata';
-    for (final candidate in event.pages) {
-      final reference = analyzer._reference(candidate.rawDataRef);
-      if (reference == null) {
-        return null;
-      }
-      final file = analyzer.project.archive.files[reference.fileId]!;
-      if (file.entry.relativePath != path) {
-        return null;
-      }
-      final value =
-          _SourceCenterPageValue(file.document).read(reference.nodeId);
-      if (value is! Map<String, Object?> ||
-          value['list'] is! List ||
-          (value['list'] as List).length != candidate.commands.length ||
-          candidate.commands.isEmpty) {
-        return null;
-      }
-      final hash = canonicalHashOf(value);
-      if (hash.value !=
-          _sourcePokedexRewardPageHashes[candidate.originalPageIndex]) {
-        return null;
-      }
-      final candidateLocator = _eventLocator(
-          path, mapId, event.sourceEventId, candidate.originalPageIndex);
-      final condition = analyzer._reference(candidate.conditionsDataRef);
-      if (condition == null ||
-          condition.fileId != reference.fileId ||
-          condition.nodeId !=
-              _eventField(
-                  _eventFields(
-                      file.document, reference.nodeId, 'RPG::Event::Page'),
-                  '@condition') ||
-          canonicalJsonOf(condition.locator?.toJson()) !=
-              canonicalJsonOf(candidateLocator.toJson()) ||
-          candidate.triggerCode != value['trigger']) {
-        return null;
-      }
-      final parser = _SourceEventParser(
-          analyzer,
-          candidate.commands,
-          candidateLocator,
-          mapId,
-          event.sourceEventId,
-          analyzer._switchNames(),
-          reference);
-      for (var index = 0; index < candidate.commands.length; index++) {
-        final command = candidate.commands[index];
-        if (command.originalIndex != index) {
-          return null;
-        }
-        final parameters =
-            parser._rawFacingParameters(command, command.parameters.length);
-        for (var slot = 0; slot < parameters.length; slot++) {
-          final normalized = command.parameters[slot];
-          if (normalized is Map && normalized.containsKey('preservedDataRef')) {
-            parser._facingReference(command, slot, parameters[slot]);
-          } else if (canonicalJsonOf(normalized) !=
-              canonicalJsonOf(_SourceCenterPageValue(file.document)
-                  .read(parameters[slot]))) {
-            return null;
-          }
-        }
-      }
-      values.add(value);
-      references.add(reference);
-      hashes.add(hash);
+    final parameters = match.binding.parameters;
+    final offer = match.binding.pages['offer']!;
+    List params(String key) =>
+        _declaredCommand(match, 'offer', parameters[key])['parameters'] as List;
+    RegExpMatch? count(String key, String kind) => RegExp(
+            '^pbSet\\(([1-9][0-9]*),\\\$player\\.pokedex\\.${kind}_count\\(([0-9]+)\\)\\)\$')
+        .firstMatch(params(key).single as String);
+    final seen = count('seenCommandIndex', 'seen'),
+        owned = count('ownedCommandIndex', 'owned');
+    final threshold = params('thresholdCommandIndex');
+    final reward = params('rewardCommandIndex');
+    final gift = reward.length == 2 && reward[0] == 12 && reward[1] is String
+        ? RegExp(
+                r'^pbReceiveItem\(:([A-Z][A-Z0-9_]*)(?:,[ ]*([1-9][0-9]*))?\)$')
+            .firstMatch(reward[1] as String)
+        : null;
+    if (seen == null ||
+        owned == null ||
+        seen[2] != owned[2] ||
+        seen[1] == owned[1] ||
+        threshold.length != 5 ||
+        threshold[0] != 1 ||
+        threshold[1] != int.parse(owned[1]!) ||
+        threshold[2] != 0 ||
+        threshold[3] is! int ||
+        (threshold[3] as int) < 0 ||
+        threshold[4] != 1 ||
+        gift == null) {
+      return null;
     }
-    final rawCommands = values[page.originalPageIndex]['list'] as List;
-    SourceTextNode text(int start) {
-      var end = start;
-      final command = rawCommands[start] as Map;
-      if (command['code'] != 101) throw const FormatException();
-      var text = (command['parameters'] as List).single as String;
-      while (end + 1 < rawCommands.length &&
-          (rawCommands[end + 1] as Map)['code'] == 401) {
-        final continuation = ((rawCommands[++end] as Map)['parameters'] as List)
-            .single as String;
-        if (continuation.isNotEmpty && !text.endsWith(' ')) text += ' ';
-        text += continuation;
-      }
-      return SourceTextNode(
-          SourceEventSpan(
-              firstCommandIndex: start,
-              lastCommandIndex: end,
-              locator: page.commands[start].sourceLocator),
-          text);
-    }
-
-    final offer = page.originalPageIndex == 0;
+    final completed = match.binding.pages['afterReward']!['condition'] as Map;
+    final letter = completed['self_switch_ch'];
+    final writes = (offer['list'] as List).cast<Map>().where((c) => c['code'] == 123).toList();
+    if (completed['self_switch_valid'] != true || !const {'A','B','C','D'}.contains(letter) || writes.length != 1 || canonicalJsonOf(writes.single['parameters']) != canonicalJsonOf([letter, 0])) return null;
+    final role = match.pageRoles[page.originalPageIndex]!;
+    final groups = Map<String, Object?>.from(
+        (parameters['textGroups'] as Map)[role] as Map);
     final span = SourceEventSpan(
-        firstCommandIndex: 0,
+        firstCommandIndex: page.commands.first.originalIndex,
         lastCommandIndex: page.commands.last.originalIndex,
         locator: locator);
     return SourceEventBlock(span: span, nodes: [
       SourcePokedexRewardProgramNode._(span,
-          kind: offer
+          kind: role == 'offer'
               ? SourcePokedexRewardProgramKind.offer
               : SourcePokedexRewardProgramKind.afterReward,
+          declaredProgram: match,
+          sourceDexIndex: int.parse(owned[2]!),
+          minimumCount: threshold[3] as int,
+          sourceSeenVariableId: int.parse(seen[1]!),
+          sourceOwnedVariableId: int.parse(owned[1]!),
           textGroups: {
-            if (offer) ...{
-              SourcePokedexRewardTextGroup.greeting: [
-                for (final index in [0, 1, 3, 6, 7, 8]) text(index)
-              ],
-              SourcePokedexRewardTextGroup.eligible: [text(15), text(17)],
-              SourcePokedexRewardTextGroup.insufficient: [text(37), text(39)],
-              SourcePokedexRewardTextGroup.refused: [text(44), text(45)],
-            },
-            SourcePokedexRewardTextGroup.explanation: [
-              for (final index in offer ? [24, 26, 28, 30] : [0, 2, 4, 6])
-                text(index)
-            ],
+            for (final entry in groups.entries)
+              SourcePokedexRewardTextGroup.values
+                  .singleWhere((g) => g.name == entry.key): [
+                for (final index in entry.value as List)
+                  _declaredText(match, role, index as int)
+              ]
           },
-          rewardFactId: analyzer.selfFactId(mapId, event.sourceEventId, 'A'),
-          rawDataRef: references[page.originalPageIndex],
-          sourcePageRefs: references,
+          rewardFactId: analyzer.selfFactId(mapId, event.sourceEventId, letter as String),
+          rawDataRef: match.references[page.originalPageIndex]!,
+          sourcePageRefs: match.references.values.toList(),
           sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
           profileHash: analyzer.profile.canonicalHash,
-          templateHash: hashes[page.originalPageIndex],
-          pickup: offer
+          templateHash:
+              canonicalHashOf(match.pageValues[page.originalPageIndex]),
+          pickup: role == 'offer'
               ? SourcePickupNode(
                   SourceEventSpan(
-                      firstCommandIndex: 18,
-                      lastCommandIndex: 18,
-                      locator: page.commands[18].sourceLocator),
-                  sourceSymbol: 'EVERSTONE',
-                  quantity: 1)
+                      firstCommandIndex:
+                          parameters['rewardCommandIndex'] as int,
+                      lastCommandIndex: parameters['rewardCommandIndex'] as int,
+                      locator: page
+                          .commands[parameters['rewardCommandIndex'] as int]
+                          .sourceLocator),
+                  sourceSymbol: gift[1]!,
+                  quantity: gift[2] == null ? 1 : int.parse(gift[2]!))
               : null)
     ]);
   } on FormatException {
+    return null;
+  } on TypeError {
     return null;
   }
 }

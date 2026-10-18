@@ -704,7 +704,7 @@ void main() {
       expect(writes, hasLength(1));
       expect(writes.single['factId'], analyzer.selfFactId(205, 14, 'A'));
       expect(writes.single['factId'], isNot(analyzer.selfFactId(1, 1, 'A')));
-      expect(proof['refusals'], contains('sourceDormancyControllerWriterExecutable'));
+      expect(proof['refusals'], isNot(contains('sourceDormancyControllerWriterExecutable')));
     });
     test('requires the exact qualified source profile', () async {
       final source = await _events([_page([_command(355, ['pbSetSelfSwitch(2, "A", true)'])])],
@@ -1627,11 +1627,22 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         isTrue);
   });
 
+  test('temporary switch letters follow exact calls and metadata at arbitrary switch identities', () async {
+    for(final letter in const ['A','B','C','D']) {
+      final page = _withCondition(_page([_command(355,['setTempSwitchOn("$letter")']),_command(0,[])]),
+        {'@switch1_valid':true,'@switch1_id':1});
+      final project = await _events([page],switches:[null,'s:tsOff?("$letter")']);
+      final event = _analyzer(project).analyze().requireEvent(1,1);
+      expect(event.isQuarantined,isFalse);
+      expect(event.pages.single.condition.children.single.tempSwitchLetter,letter);
+      expect((event.pages.single.body.nodes.single as SourceTempSwitchNode).letter,letter);
+    }
+  });
+
   test('door IR only recognizes exact TempSwitch and onEvent literals',
       () async {
     for (final literal in [
       's:tsOff?("A") ',
-      's:tsOff?("B")',
       's:tsOff?(\'A\')',
       's:tsOff?("A"); dangerous()'
     ]) {
@@ -1659,7 +1670,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     }
     for (final script in [
       'setTempSwitchOn("A") ',
-      'setTempSwitchOn("B")',
+      'setTempSwitchOn("E")',
       'setTempSwitchOn("A"); dangerous()'
     ]) {
       final project = await _events([
@@ -1975,30 +1986,14 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     expect(project.archive.canonicalHash, before);
   });
 
-  test('static event profile attests facing and native interaction oracles',
-      () async {
-    final profile =
-        SourceEventProfile.forProject(await _events([_page([])]),
-interpretationProfile: fixtureSourceInterpretationProfile,
-);
+  test('static event profile retains explicitly selected inert witnesses', () async {
+    final profile = SourceEventProfile.forProject(await _events([_page([])]),
+        interpretationProfile: fixtureSourceInterpretationProfile);
     final json = profile.toJson();
     expect(json['profile'], 'rmxp-static-events-v1');
-    expect(
-        json['oracleSections'],
-        containsPair('039',
-            '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d'));
-    expect(
-        json['oracleSections'],
-        containsPair('044',
-            '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9'));
-    expect(
-        json['oracleSections'],
-        containsPair('079',
-            'eacf78724bf5ab978b4b74d73149e3e556906d8f63d0ed380310bdddae7a6dad'));
-    expect(
-        json['oracleSections'],
-        containsPair('088',
-            '82abdb33dfad9d735c4342ca63fa72483b1a34bb01bd2a1e034b03afa8207ec3'));
+    expect(json['oracleSections'], {
+      'Interpreter': crypto.sha256.convert(syntheticInterpretationSection).toString()
+    });
   });
 
   final rejectedRoutes = <String, Object?>{

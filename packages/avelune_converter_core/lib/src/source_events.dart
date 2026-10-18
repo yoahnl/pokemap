@@ -172,7 +172,7 @@ final class SourceEventProfile {
   bool get isQualified =>
       interpretationProfile?.supports('events') == true &&
       interpretationProfile!.matchesArchive(scriptsArchiveHash);
-  Sha256Hash get canonicalHash => canonicalHashOf(toJson());
+  late final Sha256Hash canonicalHash = canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
         'profile': 'rmxp-static-events-v1',
         'interpretationProfile': interpretationProfile?.toJson(),
@@ -242,7 +242,7 @@ final class SourceEventCondition {
           comparisonOperator != null && comparisonOperator! >= 0 && comparisonOperator! <= 5,
         SourceEventConditionKind.pickup => pickup != null,
         SourceEventConditionKind.itemPresence => sourceItemSymbol != null,
-        SourceEventConditionKind.tempSwitch => tempSwitchLetter == 'A',
+        SourceEventConditionKind.tempSwitch => const {'A','B','C','D'}.contains(tempSwitchLetter),
         SourceEventConditionKind.playerOnEvent => true,
         SourceEventConditionKind.playerFacing =>
           const [2, 4, 6, 8].contains(sourceDirection),
@@ -656,9 +656,9 @@ final class SourcePlayerVisibilityNode extends SourceEventNode {
 }
 
 final class SourceTempSwitchNode extends SourceEventNode {
-  const SourceTempSwitchNode(super.span, {required this.profileHash});
+  const SourceTempSwitchNode(super.span, {required this.profileHash, required this.letter});
   final Sha256Hash profileHash;
-  String get letter => 'A';
+  final String letter;
   bool get value => true;
   Map<String, Object?> toJson() => {
         'kind': 'tempSwitch',
@@ -1066,10 +1066,11 @@ final class SourceEventAnalyzer {
       return _unqualifiedEventCondition('events.missing_switch_name');
     }
     if (names[id]!.startsWith('s:')) {
-      if (_isQualified && id == 22 && names[id] == 's:tsOff?("A")') {
+      final temporary = RegExp(r'^s:tsOff\?\("([A-D])"\)$').firstMatch(names[id]!);
+      if (_isQualified && temporary != null) {
         return SourceEventCondition(
             kind: SourceEventConditionKind.tempSwitch,
-            tempSwitchLetter: 'A',
+            tempSwitchLetter: temporary[1]!,
             expectedValue: !value);
       }
       return _unqualifiedEventCondition('events.dynamic_switch_name');
@@ -1653,16 +1654,15 @@ final class _SourceEventParser {
           index++;
         } while (index < commands.length &&
             [355, 655].contains(commands[index].code));
-        if (analyzer._isQualified &&
-            index == first + 1 &&
-            script == 'setTempSwitchOn("A")\n') {
+        final temporaryCall = RegExp(r'^setTempSwitchOn\("([A-D])"\)\n$').firstMatch(script);
+        if (analyzer._isQualified && index == first + 1 && temporaryCall != null) {
           final raw = _rawFacingParameters(command, 1);
           final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
-          if (_routeText(doc, raw.single) != 'setTempSwitchOn("A")') {
+          if (_routeText(doc, raw.single) != script.substring(0, script.length - 1)) {
             throw const FormatException();
           }
           return SourceTempSwitchNode(_span(first, first),
-              profileHash: analyzer.profile.canonicalHash);
+              profileHash: analyzer.profile.canonicalHash, letter: temporaryCall[1]!);
         }
         if (analyzer._isQualified && index == first + 1) {
           final literal = _string(command.parameters.single);

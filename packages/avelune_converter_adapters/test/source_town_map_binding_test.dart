@@ -17,7 +17,7 @@ void main() {
     fixture.files.reads.clear();
     await expectLater(
         const SourceTownMapBindingResolver().read(
-            source: fixture.source,
+            sourceMapId: 102, source: fixture.source,
             files: fixture.files,
             nativeMapIds: const {102: 'native-center'}),
         throwsA(isA<SourceTownMapBindingUnavailable>()
@@ -57,7 +57,7 @@ void main() {
           {NativeWriteLimits limits = const NativeWriteLimits(),
           Map<int, String> mapIds = const {102: 'native-center'}}) =>
       const SourceTownMapBindingResolver().read(
-          source: fixture.source,
+          sourceMapId: 102, source: fixture.source,
           files: fixture.files,
           nativeMapIds: mapIds,
           limits: limits);
@@ -172,7 +172,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           });
       await expectLater(
           const SourceTownMapBindingResolver().read(
-              source: forged.source,
+              sourceMapId: 102, source: forged.source,
               files: forged.files,
               nativeMapIds: const {102: 'native-center'}),
           throwsA(isA<SourceTownMapBindingUnavailable>().having(

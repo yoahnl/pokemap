@@ -90,6 +90,7 @@ Future<NormalizedSourceProject> _source(String folder,
       ],
       state: SourceScanState.values.byName(input['state'] as String));
   return const RmxpSourceNormalizer().normalize(
+      interpretationProfile: fixtureSourceInterpretationProfile,
       snapshot: snapshot,
       files: _Files(bytes),
       selectedMapIds: {102},
@@ -128,7 +129,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
 ))
               .analyze(),
       nativeMaps: {102: native},
-      centerRecoveryBinding: centerRecoveryBinding,
+      centerRecoveryBinding: {if (centerRecoveryBinding != null) centerRecoveryBinding.eventIdentity: centerRecoveryBinding},
       characterBindings: {
         if (bindNurse)
           for (final file in source.snapshot.entries.where((file) =>
@@ -370,7 +371,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       test('nurse native scene follows $decision without source side effects',
           () async {
         final recovery = await const SourceCenterRecoveryResolver().read(
-            source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+            sourceMapId: 102, sourceEventId: 2, source: source, files: _OriginalAudioFiles(source, sourceRoot!));
         final result = _project(source,
             bindNurse: true,
             nativeCounter: true,
@@ -452,7 +453,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         'nurse refuses missing recovery music, native counter collision and character binding',
         () async {
       final recovery = await const SourceCenterRecoveryResolver().read(
-          source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+          sourceMapId: 102, sourceEventId: 2, source: source, files: _OriginalAudioFiles(source, sourceRoot!));
       for (final entry in [
         (
           _project(source, bindNurse: true, nativeCounter: true),
@@ -481,7 +482,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         'nurse refuses source and native footprints covering its counter or anchor',
         () async {
       final recovery = await const SourceCenterRecoveryResolver().read(
-          source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+          sourceMapId: 102, sourceEventId: 2, source: source, files: _OriginalAudioFiles(source, sourceRoot!));
       final analysis = SourceEventAnalyzer.forProject(source,
               profile: SourceEventProfile.forProject(source,
 interpretationProfile: fixtureSourceInterpretationProfile,
@@ -540,7 +541,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         'nurse source consent opens native heal through the attested south counter',
         () async {
       final recovery = await const SourceCenterRecoveryResolver().read(
-          source: source, files: _OriginalAudioFiles(source, sourceRoot!));
+          sourceMapId: 102, sourceEventId: 2, source: source, files: _OriginalAudioFiles(source, sourceRoot!));
       final result = _project(source,
           bindNurse: true,
           nativeCounter: true,

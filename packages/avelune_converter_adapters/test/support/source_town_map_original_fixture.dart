@@ -61,7 +61,7 @@ Future<(NormalizedSourceProject, SourceFilePort)> readOriginalTownMapSource(
   }
   final files = _OriginalTownMapFiles(sourceRoot, snapshot);
   final source = await const RmxpSourceNormalizer().normalize(
-      interpretationProfile: fixtureSourceInterpretationProfile,
+      interpretationProfile: externalOracleInterpretationProfile(),
       snapshot: snapshot,
       files: files,
       selectedMapIds: {102},

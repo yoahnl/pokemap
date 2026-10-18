@@ -93,6 +93,7 @@ Future<NormalizedSourceProject> _source(String folder,
       ],
       state: SourceScanState.values.byName(input['state'] as String));
   return const RmxpSourceNormalizer().normalize(
+      interpretationProfile: fixtureSourceInterpretationProfile,
       snapshot: snapshot,
       files: _Files(bytes),
       selectedMapIds: {102},
@@ -135,7 +136,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         () async {
       final files = _SourceFiles(source, root!);
       final result = await const SourceHealingDisplayBindingResolver()
-          .read(source: source, analysis: analysis, files: files);
+          .read(sourceMapId: 102, sourceEventId: 4, source: source, analysis: analysis, files: files);
       expect(result, isNotNull);
       final binding = result!;
       expect(binding.elements, hasLength(6));
@@ -187,7 +188,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     });
     test('exact admitted image and operation budgets remain usable', () async {
       final binding = await const SourceHealingDisplayBindingResolver().read(
-          source: source,
+          sourceMapId: 102, sourceEventId: 4, source: source,
           analysis: analysis,
           files: _SourceFiles(source, root!),
           limits: const NativeWriteLimits(
@@ -211,14 +212,14 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       final files = _SourceFiles(changed, root!);
       await expectLater(
           const SourceHealingDisplayBindingResolver()
-              .read(source: changed, analysis: changedAnalysis, files: files),
+              .read(sourceMapId: 102, sourceEventId: 4, source: changed, analysis: changedAnalysis, files: files),
           throwsA(isA<SourceHealingDisplayBindingUnavailable>()
               .having((e) => e.reason, 'reason', 'source_image_unqualified')));
       expect(files.reads, isEmpty);
     });
     test('binding lists and nested evidence are immutable', () async {
       final binding = (await const SourceHealingDisplayBindingResolver().read(
-          source: source,
+          sourceMapId: 102, sourceEventId: 4, source: source,
           analysis: analysis,
           files: _SourceFiles(source, root!)))!;
       expect(() => binding.elements.clear(), throwsUnsupportedError);
@@ -240,7 +241,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           diagnostics: []);
       expect(
           await const SourceHealingDisplayBindingResolver()
-              .read(source: source, analysis: other, files: files),
+              .read(sourceMapId: 102, sourceEventId: 4, source: source, analysis: other, files: files),
           isNull);
       expect(files.reads, isEmpty);
     });
@@ -274,7 +275,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         final files = _SourceFiles(source, root!);
         await expectLater(
             const SourceHealingDisplayBindingResolver()
-                .read(source: source, analysis: other, files: files),
+                .read(sourceMapId: 102, sourceEventId: 4, source: source, analysis: other, files: files),
             throwsA(isA<SourceHealingDisplayBindingUnavailable>()));
         expect(files.reads, isEmpty);
       }
@@ -293,7 +294,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         final files = _SourceFiles(source, root!);
         await expectLater(
             const SourceHealingDisplayBindingResolver().read(
-                source: source,
+                sourceMapId: 102, sourceEventId: 4, source: source,
                 analysis: analysis,
                 files: files,
                 limits: limit),
@@ -305,7 +306,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     test('split image budget admits both healing sheets at the exact individual limit', () async {
       final files = _SourceFiles(source, root!);
       final result = await const SourceHealingDisplayBindingResolver().read(
-        source: source, analysis: analysis, files: files,
+        sourceMapId: 102, sourceEventId: 4, source: source, analysis: analysis, files: files,
         limits: const NativeWriteLimits(maxImagePixels: 49152, maxTotalImagePixels: 98304));
       expect(result!.artifacts, hasLength(2));
     });
@@ -316,7 +317,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       test('changed actual image bytes are refused $path', () async {
         await expectLater(
             const SourceHealingDisplayBindingResolver().read(
-                source: source,
+                sourceMapId: 102, sourceEventId: 4, source: source,
                 analysis: analysis,
                 files: _SourceFiles(source, root!, changedPath: path)),
             throwsA(isA<ContractError>().having((e) => e.code, 'code',
@@ -340,7 +341,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         final files = _SourceFiles(changed, root!);
         await expectLater(
             const SourceHealingDisplayBindingResolver()
-                .read(source: changed, analysis: changedAnalysis, files: files),
+                .read(sourceMapId: 102, sourceEventId: 4, source: changed, analysis: changedAnalysis, files: files),
             throwsA(isA<SourceHealingDisplayBindingUnavailable>().having(
                 (e) => e.reason, 'reason', 'source_program_unqualified')));
         expect(files.reads, isEmpty);

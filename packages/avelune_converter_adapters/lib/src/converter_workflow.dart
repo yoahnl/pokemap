@@ -2096,7 +2096,8 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 5,
+      'version': 6,
+      'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {
         'qualification': 'exact-source-full-pbs-selected-map-scope-v2',
         'catalogManifestHash': NativePsdkCatalogManifest.builtinManifestHash,

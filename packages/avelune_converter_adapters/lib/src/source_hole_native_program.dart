@@ -5,6 +5,7 @@ final class SourceHoleNativeProgram {
     NormalizedSourceProject source,
     SourceEventAnalysis analysis,
     SourceEventDefinition event,
+    this.declaredProgramBinding,
   )   : sourceMapId = event.sourceMapId,
         sourceEventId = event.sourceEventId,
         eventIdentity = event.identity,
@@ -34,6 +35,7 @@ final class SourceHoleNativeProgram {
   final SourceWarpNode warp;
   final SourceSoundEffectNode fallingSound, landingSound;
   final List<SourceWaitNode> waits;
+  final SourceDeclaredProgramMatch declaredProgramBinding;
 
   bool isBoundTo({
     required NormalizedSourceProject source,
@@ -58,6 +60,7 @@ final class SourceHoleNativeProgram {
         'eventIdentity': eventIdentity.value,
         'sourceMapId': sourceMapId,
         'sourceEventId': sourceEventId,
+        'declaredProgramBinding': declaredProgramBinding.toJson(),
         'targetSourceMapId': warp.targetSourceMapId,
         'targetPosition': [warp.x, warp.y],
         'sourceDirection': warp.direction,
@@ -94,8 +97,7 @@ const sourceHoleNativePolicyEvidence = <String, Object?>{
   'sourceScriptsExecuted': 0,
 };
 
-bool isSourceHoleNativeIdentity(SourceEventDefinition event) =>
-    _identities[event.sourceMapId]?.contains(event.sourceEventId) == true;
+bool isSourceHoleNativeIdentity(SourceEventDefinition event) => _shape(event);
 
 Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
   required NormalizedSourceProject source,
@@ -107,16 +109,6 @@ Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
   if (!profile.isQualified ||
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};
-  }
-  final maps = {for (final ir in source.maps) ir.map.sourceMapId: ir};
-  for (final id in selected.map((event) => event.sourceMapId).toSet()) {
-    final ir = maps[id];
-    if (ir == null ||
-        source.archive.files[ir.map.sourceFileId]?.contentHash.value !=
-            _sourceHashes[id] ||
-        canonicalHashOf(ir.toJson()).value != _normalizedHashes[id]) {
-      return const {};
-    }
   }
   final authority = SourceEventAnalyzer.forProject(
     source,
@@ -137,17 +129,36 @@ Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
         !_shape(event)) {
       continue;
     }
+    final maps = source.maps
+        .where((ir) => ir.map.sourceMapId == event.sourceMapId)
+        .toList();
+    if (maps.length != 1) continue;
+    final rawEvents = maps.single.map.events
+        .where((candidate) => candidate.sourceEventId == event.sourceEventId)
+        .toList();
+    if (rawEvents.length != 1) continue;
+    final declared = matchSourceDeclaredProgram(
+        source: source,
+        profile: profile,
+        sourceMapId: event.sourceMapId,
+        event: rawEvents.single,
+        families: const {SourceDeclaredProgramFamily.hole});
+    if (declared == null ||
+        !_opacityRoutesAreSafe(declared.pageValues.values.single)) {
+      continue;
+    }
     programs[event.identity] = SourceHoleNativeProgram._(
       source,
       analysis,
       event,
+      declared,
     );
   }
   return Map.unmodifiable(programs);
 }
 
 bool _shape(SourceEventDefinition event) {
-  if (event.name != 'Hole' || event.pages.length != 1) return false;
+  if (event.pages.length != 1) return false;
   final page = event.pages.single;
   final image = page.graphic;
   if (page.triggerCode != 1 ||
@@ -192,12 +203,14 @@ bool _shape(SourceEventDefinition event) {
   final dark = nodes[5] as SourceToneNode;
   final clear = nodes[11] as SourceToneNode;
   final warp = nodes[7] as SourceWarpNode;
-  return falling.name == 'Falling Object' &&
-      falling.volume == 80 &&
-      falling.pitch == 100 &&
-      landing.name == 'Landing Object' &&
-      landing.volume == 80 &&
-      landing.pitch == 100 &&
+  return falling.volume >= 0 &&
+      falling.volume <= 100 &&
+      falling.pitch >= 50 &&
+      falling.pitch <= 150 &&
+      landing.volume >= 0 &&
+      landing.volume <= 100 &&
+      landing.pitch >= 50 &&
+      landing.pitch <= 150 &&
       (nodes[4] as SourceWaitNode).durationTicks == 4 &&
       (nodes[6] as SourceWaitNode).durationTicks == 8 &&
       dark.red == -255 &&
@@ -212,6 +225,50 @@ bool _shape(SourceEventDefinition event) {
       clear.durationTicks == 6 &&
       warp.direction == 0 &&
       !warp.fade;
+}
+
+bool _opacityRoutesAreSafe(Map<String, Object?> page) {
+  final commands = page['list'];
+  if (commands is! List || commands.length != 14) return false;
+  for (final (index, opacity) in [(0, 0), (8, 255)]) {
+    final command = commands[index];
+    final continuation = commands[index + 1];
+    if (command is! Map || continuation is! Map) return false;
+    final parameters = command['parameters'];
+    final continued = continuation['parameters'];
+    if (parameters is! List ||
+        parameters.length != 2 ||
+        parameters.first != -1 ||
+        continued is! List ||
+        continued.length != 1) {
+      return false;
+    }
+    final route = parameters.last;
+    if (route is! Map ||
+        route['__class__'] != 'RPG::MoveRoute' ||
+        route['repeat'] != false ||
+        route['skippable'] is! bool) {
+      return false;
+    }
+    final steps = route['list'];
+    if (steps is! List || steps.length != 2) return false;
+    final expected = {
+      '__class__': 'RPG::MoveCommand',
+      'code': 42,
+      'parameters': [opacity]
+    };
+    final terminator = {
+      '__class__': 'RPG::MoveCommand',
+      'code': 0,
+      'parameters': <Object?>[]
+    };
+    if (canonicalJsonOf(steps.first) != canonicalJsonOf(expected) ||
+        canonicalJsonOf(steps.last) != canonicalJsonOf(terminator) ||
+        canonicalJsonOf(continued.single) != canonicalJsonOf(expected)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({
@@ -255,9 +312,9 @@ String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({
               for (final node in page.body.nodes)
                 switch (node) {
                   SourceAnnotationNode() => node.toJson(),
-        SourceVariableSetNode() => node.toJson(),
-        SourceExitEventNode() => node.toJson(),
-        SourceUnknownNode() => {
+                  SourceVariableSetNode() => node.toJson(),
+                  SourceExitEventNode() => node.toJson(),
+                  SourceUnknownNode() => {
                       'type': 'unknown',
                       'span': node.span.toJson(),
                       'command': node.command.toJson(),
@@ -291,28 +348,3 @@ String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({
           },
       ],
     });
-
-const _identities = <int, Set<int>>{
-  204: {19},
-  361: {2},
-  362: {1, 2, 3, 4},
-  363: {1, 2, 3, 4},
-  364: {1, 2, 3, 4},
-  365: {1, 2, 3, 4},
-};
-const _sourceHashes = {
-  204: '1a1a2ec369e063c59469a0d596006956610d615e2e3e29dde94f4ec27b028614',
-  361: '90017d261caf12b17d766720a2fb2c47bafaa9ae2e8748d905a0829758f3e6c9',
-  362: 'd296afc5b2a215300eaad144d29704ffd710af6738aa907604db6768d19f83f1',
-  363: '98239c3583e7423a8785f7b5ec05ff91e33f8f422d793486df2218d011989487',
-  364: '4bd46519db69e0494ba995539a36a2023717a570154ba052df1b67c8972f2cc5',
-  365: 'bd141cd185a6a2c36feb7cdb76a00bb1608cf7dd1875d85c9893c7e26b16b3f6',
-};
-const _normalizedHashes = {
-  204: '3685810de5491228027c6577bd6538b1a6d9b1fa18eacb695a111f1d80e03438',
-  361: '12a57fd0ead7c3f9ebcd20fe097533f09fe7add181d094f80bc026c7b1c7535d',
-  362: 'ecd3eccc243a47ac425730c8614459f469cff112c50e51d5910442d20ed77d34',
-  363: '0a5dd368585d0e94f065d63e7a83489278e29fbac5992d4d09ae2ab57bad7009',
-  364: 'b64f93c55e2979e8a342fcc16bc7f8b119c208453c42cd121908ef19253df196',
-  365: '2a6ee3689817a236b96004836174ac0c7c46bc49c8a4297b6c7a5f9c8ecb7971',
-};

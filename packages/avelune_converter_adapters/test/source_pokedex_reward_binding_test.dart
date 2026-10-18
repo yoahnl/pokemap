@@ -93,6 +93,7 @@ Future<(NormalizedSourceProject, SourceFilePort)> _source(
       ],
       state: SourceScanState.values.byName(input['state'] as String));
   final source = await const RmxpSourceNormalizer().normalize(
+      interpretationProfile: fixtureSourceInterpretationProfile,
       snapshot: snapshot,
       files: files,
       selectedMapIds: {102},
@@ -122,7 +123,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     test('attests exact 151-species regional scope and ordinary source item',
         () async {
       final binding = await const SourcePokedexRewardBindingResolver()
-          .read(source: source, analysis: analysis, files: files);
+          .read(sourceMapId: 102, sourceEventId: 10, source: source, analysis: analysis, files: files);
       expect(binding, isNotNull);
       expect(binding!.range.firstNationalDex, 1);
       expect(binding.range.lastNationalDex, 151);
@@ -136,7 +137,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           isTrue);
       expect(binding.toJson()['sourceScriptsExecuted'], 0);
       expect(binding.toJson()['fullSourceRewardParityQualified'], isFalse);
-      expect(binding.toJson()['regionalSpecies'], hasLength(151));
+      expect((binding.toJson()['speciesIdentityEvidence'] as Map)['mappingCount'], 151);
       expect(binding.archive.files, hasLength(1));
       expect(binding.itemArchive.files, hasLength(1));
     });
@@ -144,7 +145,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       final fixture = await _source(archive!, root!, changedDex: true);
       expect(
           await const SourcePokedexRewardBindingResolver().read(
-              source: fixture.$1,
+              sourceMapId: 102, sourceEventId: 10, source: fixture.$1,
               analysis: analyze(fixture.$1),
               files: fixture.$2),
           isNull);
@@ -153,7 +154,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         () async {
       final fixture = await _source(archive!, root!, unrelatedDex: true);
       final binding = await const SourcePokedexRewardBindingResolver().read(
-          source: fixture.$1, analysis: analyze(fixture.$1), files: fixture.$2);
+          sourceMapId: 102, sourceEventId: 10, source: fixture.$1, analysis: analyze(fixture.$1), files: fixture.$2);
       expect(binding, isNotNull);
       expect(binding!.toJson()['sourceFileMatchesReference'], isFalse);
     });
@@ -163,7 +164,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         final fixture = await _source(archive!, root!, omitPath: path);
         expect(
             await const SourcePokedexRewardBindingResolver().read(
-                source: fixture.$1,
+                sourceMapId: 102, sourceEventId: 10, source: fixture.$1,
                 analysis: analyze(fixture.$1),
                 files: fixture.$2),
             isNull);
@@ -180,14 +181,14 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       }, root!);
       await expectLater(
           const SourcePokedexRewardBindingResolver()
-              .read(source: source, analysis: analysis, files: altered),
+              .read(sourceMapId: 102, sourceEventId: 10, source: source, analysis: analysis, files: altered),
           throwsA(isA<ContractError>().having(
               (e) => e.code, 'code', 'events.pokedex_reward.source_changed')));
     });
     test('another event and changed profile cannot reuse the reward binding',
         () async {
       final binding = (await const SourcePokedexRewardBindingResolver()
-          .read(source: source, analysis: analysis, files: files))!;
+          .read(sourceMapId: 102, sourceEventId: 10, source: source, analysis: analysis, files: files))!;
       expect(
           binding.isBoundToEvent(
               source: source,

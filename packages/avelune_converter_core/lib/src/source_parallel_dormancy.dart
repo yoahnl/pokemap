@@ -7,22 +7,21 @@ final class SourceParallelDormancyAudit {
       this.profileHash,
       List<String> refusals,
       Map<String, Object?> proof,
-      Map<int, SourcePreservedData> controllerPages)
+      Map<(int, int, int), SourcePreservedData> controllerPages)
       : refusals = List.unmodifiable(refusals),
         _proof = canonicalJsonOf(proof),
         _controllerPages = Map.unmodifiable(controllerPages);
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash;
   final List<String> refusals;
   final String _proof;
-  final Map<int, SourcePreservedData> _controllerPages;
+  final Map<(int, int, int), SourcePreservedData> _controllerPages;
   bool get isQualified => refusals.isEmpty;
   bool permitsDormantParallelPage(
           int mapId, int eventId, SourceEventPage page) =>
       isQualified &&
-      mapId == 205 &&
-      page.originalPageIndex == 0 &&
       page.triggerCode == 4 &&
-      page.rawDataRef == _controllerPages[eventId]?.id;
+      page.rawDataRef ==
+          _controllerPages[(mapId, eventId, page.originalPageIndex)]?.id;
   Map<String, Object?> toJson() => {
         'kind': 'closedSourceParallelDormancy',
         'version': 1,
@@ -31,105 +30,107 @@ final class SourceParallelDormancyAudit {
         'profileHash': profileHash.value,
         'qualified': isQualified,
         'refusals': refusals,
-        ...jsonDecode(_proof) as Map<String, dynamic>,
+        ...jsonDecode(_proof) as Map<String, dynamic>
       };
 }
-
-const _dormancyEventTemplates = {
-  6: 'b1ea08cc7bc3e054a7bc2eb54646e42c99572ff1c22fa50c453a6264cfd70713',
-  13: '4e1df4164e2cbc94605fc38a34a4b691c48628696b5ac79eea02b11699934108',
-  14: 'fe09e11560beda43eb89e7a9ea7fe99c87ff01fb90a2b23018f40f92a62e23e0',
-  15: 'e8a1f2c30439a37ca98bde17de8d807357e927da3aacb55f6d31b923fbe8f7a9',
-};
 
 SourceParallelDormancyAudit auditSourceParallelDormancy(
     {required NormalizedSourceProject source,
     required SourceEventProfile profile}) {
   final refusals = <String>{};
-  final controllerPages = <int, SourcePreservedData>{};
+  final controllerPages = <(int, int, int), SourcePreservedData>{};
   final witnesses = <Map<String, Object?>>[];
-  final projected = <String>[];
-  final quarantined = <String>[];
+  final projected = <String>[], quarantined = <String>[];
   final writes = <Map<String, Object?>>[];
   final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
   if (!analyzer._isQualified ||
       !source.canPlan ||
-      source.snapshot.state != SourceScanState.complete) {
+      source.snapshot.state != SourceScanState.complete ||
+      profile.canonicalHash !=
+          SourceEventProfile.forProject(source).canonicalHash) {
     refusals.add('sourceDormancyProfileUnqualified');
   }
   final analysis = analyzer.analyze();
-  final targets = {
-    for (final id in [14, 15]) analyzer.selfFactId(205, id, 'A')
-  };
-  final maps = {for (final map in source.maps) map.map.sourceMapId: map.map};
-  for (final expected in _dormancyEventTemplates.entries) {
-    final event = maps[205]
-        ?.events
-        .where((event) => event.sourceEventId == expected.key)
-        .singleOrNull;
-    final analyzed = analysis.events
-        .where((event) =>
-            event.sourceMapId == 205 && event.sourceEventId == expected.key)
-        .singleOrNull;
+  final targets = <String>{};
+  for (final event in analysis.events
+      .where((event) => event.pages.any((page) => page.triggerCode == 4))) {
     try {
-      final raw =
-          event == null ? null : _externalWarpRawEvent(analyzer, 205, event);
-      if (raw == null ||
-          canonicalHashOf(raw.value).value != expected.value ||
-          analyzed == null ||
-          !analyzed.isQuarantined) {
-        refusals.add('sourceDormancyTemplateUnqualified:${expected.key}');
-        continue;
-      }
-      if (expected.key >= 14) {
-        if (analyzed.pages.length != 2 ||
-            analyzed.pages.first.triggerCode != 4 ||
-            analyzed.pages.last.triggerCode != 0 ||
-            analyzed.pages.last.body.nodes.isNotEmpty) {
-          refusals
-              .add('sourceDormancyControllerGuardUnqualified:${expected.key}');
-          continue;
+      final rawMap = source.maps
+          .where((map) => map.map.sourceMapId == event.sourceMapId)
+          .singleOrNull;
+      final rawEvent = rawMap?.map.events
+          .where((raw) => raw.sourceEventId == event.sourceEventId)
+          .singleOrNull;
+      final raw = rawEvent == null
+          ? null
+          : _externalWarpRawEvent(analyzer, event.sourceMapId, rawEvent);
+      String? guard(SourceEventPageAnalysis page) {
+        final condition = page.condition;
+        if (condition.kind != SourceEventConditionKind.all ||
+            condition.children.length != 1) {
+          return null;
         }
-        for (final (index, letter) in ['A', 'B'].indexed) {
-          final condition = SourceEventCondition(
-              kind: SourceEventConditionKind.all,
-              children: [
-                SourceEventCondition(
-                    kind: SourceEventConditionKind.selfSwitch,
-                    factId: analyzer.selfFactId(205, expected.key, letter)),
-              ]);
-          if (canonicalJsonOf(analyzed.pages[index].condition.toJson()) !=
-              canonicalJsonOf(condition.toJson())) {
-            refusals.add(
-                'sourceDormancyControllerGuardUnqualified:${expected.key}');
+        final child = condition.children.single;
+        if (child.kind != SourceEventConditionKind.selfSwitch ||
+            !child.expectedValue) {
+          return null;
+        }
+        for (final letter in ['A', 'B', 'C', 'D']) {
+          if (child.factId ==
+              analyzer.selfFactId(
+                  event.sourceMapId, event.sourceEventId, letter)) {
+            return child.factId;
           }
         }
-        controllerPages[expected.key] = raw.reference;
+        return null;
       }
+
+      if (raw == null ||
+          !event.isQuarantined ||
+          event.pages.length != 2 ||
+          event.pages.first.triggerCode != 4 ||
+          event.pages.last.triggerCode != 0 ||
+          !event.pages.last.isEmpty ||
+          guard(event.pages.first) == null ||
+          guard(event.pages.last) == null ||
+          guard(event.pages.first) == guard(event.pages.last)) {
+        refusals.add(
+            'sourceDormancyControllerGuardUnqualified:${event.sourceMapId}:${event.sourceEventId}');
+        continue;
+      }
+      final page = event.pages.first;
+      final reference = page.rawDataRef;
+      if (reference == null) {
+        refusals.add('sourceDormancyControllerReferenceUnavailable');
+        continue;
+      }
+      targets.add(guard(page)!);
+      controllerPages[(
+        event.sourceMapId,
+        event.sourceEventId,
+        page.originalPageIndex
+      )] = reference;
       witnesses.add({
-        'sourceMapId': 205,
-        'sourceEventId': expected.key,
-        'wholeRawEventHash': expected.value,
-        'rawPage': raw.reference.toJson(),
+        'sourceMapId': event.sourceMapId,
+        'sourceEventId': event.sourceEventId,
+        'wholeRawEventHash': canonicalHashOf(raw.value).value,
+        'rawPage': reference.toJson(),
         'quarantinedWholeEvent': true,
-        'diagnostics': [
-          for (final page in analyzed.pages)
-            ...page.body.diagnostics.map((d) => d.toJson())
-        ]
+        'guardFactId': guard(page)
       });
     } on FormatException {
-      refusals.add('sourceDormancyTemplateUnqualified:${expected.key}');
+      refusals.add('sourceDormancyControllerUnqualified');
     } on TypeError {
-      refusals.add('sourceDormancyTemplateUnqualified:${expected.key}');
+      refusals.add('sourceDormancyControllerUnqualified');
     }
   }
   for (final event in analysis.events) {
     try {
       for (final page in event.pages.where((page) => page.triggerCode == 4)) {
-        if (event.sourceMapId != 205 ||
-            !const [14, 15].contains(event.sourceEventId) ||
-            page.originalPageIndex != 0 ||
-            page.rawDataRef?.id != controllerPages[event.sourceEventId]?.id) {
+        final key =
+            (event.sourceMapId, event.sourceEventId, page.originalPageIndex);
+        if (!controllerPages.containsKey(key) ||
+            page.rawDataRef?.id != controllerPages[key]?.id) {
           refusals.add('sourceDormancyUnexpectedParallel');
         }
       }
@@ -154,31 +155,33 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
   if (targetWrites.isNotEmpty) {
     refusals.add('sourceDormancyControllerWriterExecutable');
   }
-  if (controllerPages.length != 2) {
-    refusals.add('sourceDormancyControllersIncomplete');
-  }
   return SourceParallelDormancyAudit._(
       source.snapshot.canonicalHash,
       source.canonicalHash,
       profile.canonicalHash,
       refusals.toList()..sort(),
       {
-        'controllerEventIds': [14, 15],
+        'controllerPages': [
+          for (final key in controllerPages.keys)
+            {
+              'sourceMapId': key.$1,
+              'sourceEventId': key.$2,
+              'pageIndex': key.$3
+            }
+        ],
         'controllerGuardFactIds': targets.toList()..sort(),
-        'sourceExternalWriterEventIds': [6, 13],
         'nativeControllerExecution': false,
-        'nativeElectrodeExecution': false,
-        'nativeSourceWritesToControllerA': targetWrites,
+        'nativeSourceWritesToControllerGuards': targetWrites,
         'potentiallyProjectableEvents': projected..sort(),
         'quarantinedWholeEvents': quarantined..sort(),
         'nativeWriteSet': writes,
         'nativeWriteSetSemantics': 'conservativeMayWriteUpperBound',
         'wholeRawEventWitnesses': witnesses,
-        'freshInitialControllerA': false,
+        'freshInitialControllerGuards': false,
         'initialFactsImported': false,
         'opaqueQuarantinedCommandsExecuted': false,
         'proofBoundary':
-            'freshWholeEventQuarantineAndExhaustiveTypedNativeWriteClosure',
+            'freshWholeEventQuarantineAndExhaustiveTypedNativeWriteClosure'
       },
       controllerPages);
 }
@@ -236,7 +239,9 @@ void _auditSourceFactWriteBlock(
       case SourceSelfSwitchNode(:final factId, :final letter, :final value):
         if (!const ['A', 'B', 'C', 'D'].contains(letter) ||
             !analyzer.project.maps.any((map) => map.map.events.any((target) =>
-                factId == analyzer.selfFactId(map.map.sourceMapId, target.sourceEventId, letter)))) {
+                factId ==
+                analyzer.selfFactId(
+                    map.map.sourceMapId, target.sourceEventId, letter)))) {
           throw const FormatException();
         }
         write(factId, value);

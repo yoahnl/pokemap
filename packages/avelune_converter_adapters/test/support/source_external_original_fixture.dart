@@ -67,7 +67,7 @@ Future<({NormalizedSourceProject source, ExternalOriginalFiles files})>
   final files = ExternalOriginalFiles(snapshot, root,
       supplementalRoots: supplementalRoots);
   final source = await const RmxpSourceNormalizer().normalize(
-      interpretationProfile: fixtureSourceInterpretationProfile,
+      interpretationProfile: externalOracleInterpretationProfile(),
       snapshot: snapshot,
       files: files,
       selectedMapIds: selectedMapIds,

@@ -89,6 +89,7 @@ Future<NormalizedSourceProject> _source(String folder,
       ],
       state: SourceScanState.values.byName(input['state'] as String));
   return const RmxpSourceNormalizer().normalize(
+      interpretationProfile: fixtureSourceInterpretationProfile,
       snapshot: snapshot,
       files: _Files(bytes),
       selectedMapIds: {102},
@@ -125,7 +126,7 @@ void main() {
         () async {
       final files = _AudioFiles(source, sourceRoot!);
       final binding = await const SourceCenterRecoveryResolver()
-          .read(source: source, files: files);
+          .read(sourceMapId: 102, sourceEventId: 2, source: source, files: files);
       expect(files.reads,
           ['Audio/ME/FRLG Misc - Pokemon Recovery (Pokemon Recovery).ogg']);
       expect(binding.artifact.rawSha256, binding.audioFile.sha256);
@@ -152,7 +153,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       final files = _AudioFiles(source, sourceRoot!);
       await expectLater(
           const SourceCenterRecoveryResolver().read(
-              source: source,
+              sourceMapId: 102, sourceEventId: 2, source: source,
               files: files,
               limits: const NativeWriteLimits(maxArtifactBytes: 1)),
           throwsA(isA<NativeWriteException>().having(
@@ -164,14 +165,14 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       final files = _AudioFiles(source, sourceRoot!, changed: true);
       await expectLater(
           const SourceCenterRecoveryResolver()
-              .read(source: source, files: files),
+              .read(sourceMapId: 102, sourceEventId: 2, source: source, files: files),
           throwsA(isA<ContractError>().having((error) => error.code, 'code',
               'source.center_recovery.audio_changed')));
     });
 
     test('binding refuses an unqualified or stale event profile', () async {
       final binding = await const SourceCenterRecoveryResolver()
-          .read(source: source, files: _AudioFiles(source, sourceRoot!));
+          .read(sourceMapId: 102, sourceEventId: 2, source: source, files: _AudioFiles(source, sourceRoot!));
       expect(
           binding.isBoundTo(
               source,
@@ -190,7 +191,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       final files = _AudioFiles(changed, sourceRoot!);
       await expectLater(
           const SourceCenterRecoveryResolver()
-              .read(source: changed, files: files),
+              .read(sourceMapId: 102, sourceEventId: 2, source: changed, files: files),
           throwsA(isA<SourceCenterRecoveryBindingUnavailable>().having(
               (error) => error.reason,
               'reason',

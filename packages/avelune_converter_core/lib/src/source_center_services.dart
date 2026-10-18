@@ -15,9 +15,11 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
       required this.rawDataRef,
       required this.sourceSnapshotHash,
       required this.profileHash,
-      required this.templateHash});
+      required this.templateHash,
+      required this.declaredProgram});
 
   final SourceCenterServiceProgramKind kind;
+  final SourceDeclaredProgramMatch declaredProgram;
   final SourcePreservedData rawDataRef;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
 
@@ -41,8 +43,8 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
         sourceMapId,
         event,
         pages.single,
-        _eventLocator('Data/Map102.rxdata', sourceMapId, event.sourceEventId,
-            pages.single.originalPageIndex));
+        _eventLocator(_sourceTrainerPath(sourceMapId), sourceMapId,
+            event.sourceEventId, pages.single.originalPageIndex));
     if (block == null || block.nodes.length != 1) return false;
     final node = block.nodes.single as SourceCenterServiceProgramNode;
     return node.kind == kind &&
@@ -65,42 +67,45 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
       kind == SourceCenterServiceProgramKind.nurseRecovery;
   bool get isPc => nativeOperation == SourceCenterNativeOperation.openPc;
   int? get sourceHealingOpcode => isPc ? null : 314;
-  List<String> get choiceLabels =>
-      requiresAcceptance ? const ['Yes', 'No'] : const [];
-  int? get cancelType => requiresAcceptance ? 2 : null;
-  String? get recoveryMusicName =>
-      isPc ? null : 'FRLG Misc - Pokemon Recovery (Pokemon Recovery)';
-  int? get recoveryMusicVolume => isPc ? null : 100;
-  int? get recoveryMusicPitch => isPc ? null : 100;
-
-  List<String> get greetingLines => switch (kind) {
-        SourceCenterServiceProgramKind.nurseChoice => const [
-            r'\rHello, and welcome to the Pokémon Center.',
-            r'\rWe restore your tired Pokémon to full health.',
-            r'\rWould you like to rest your Pokémon?',
-          ],
-        SourceCenterServiceProgramKind.nurseRecovery => const [
-            r'\rFirst, you should restore your Pokémon to full health.',
-          ],
-        _ => const [],
-      };
-  List<String> get acceptanceLines => requiresAcceptance
-      ? const [r"\rOK, I'll take your Pokémon for a few seconds."]
+  String? get pcSelfSwitchLetter => isPc ? (declaredProgram.binding.pages['open']!['condition'] as Map)['self_switch_ch'] as String : null;
+  String get _role => declaredProgram.pageRoles[rawDataRef.locator!.pageIndex]!;
+  Map<String, Object?> get _parameters => declaredProgram.binding.parameters;
+  List<String> get choiceLabels => requiresAcceptance
+      ? List<String>.from((_declaredCommand(declaredProgram, _role,
+          _parameters['choiceCommandIndex'])['parameters'] as List)[0] as List)
       : const [];
-  List<String> get completionLines => switch (kind) {
-        SourceCenterServiceProgramKind.nurseChoice => const [
-            r'\rThank you for waiting.',
-            r"\rWe've restored your Pokémon to full health.",
-            r'\rWe hope to see you again!',
-          ],
-        SourceCenterServiceProgramKind.nurseRecovery => const [
-            r'\rYour Pokémon have been healed to perfect health.',
-            r'\rWe hope you excel!',
-          ],
-        _ => const [],
-      };
-  List<String> get refusalLines =>
-      requiresAcceptance ? const [r'\rWe hope to see you again!'] : const [];
+  int? get cancelType => requiresAcceptance ? 2 : null;
+  Map? get _music => isPc
+      ? null
+      : (_declaredCommand(
+              declaredProgram,
+              _role,
+              (_parameters['recoveryMusicCommandIndices']
+                  as Map)[_role])['parameters'] as List)
+          .single as Map;
+  String? get recoveryMusicName => _music?['name'] as String?;
+  int? get recoveryMusicVolume => _music?['volume'] as int?;
+  int? get recoveryMusicPitch => _music?['pitch'] as int?;
+  int? get recoveryWaitTicks => isPc
+      ? null
+      : (_declaredCommand(
+              declaredProgram,
+              _role,
+              (_parameters['recoveryWaitCommandIndices']
+                  as Map)[_role])['parameters'] as List)
+          .single as int;
+  List<String> _texts(String group) => isPc
+      ? const []
+      : [
+          for (final index in (((_parameters['textGroups'] as Map)[_role]
+                  as Map)[group] as List? ??
+              const []))
+            _declaredText(declaredProgram, _role, index as int).text
+        ];
+  List<String> get greetingLines => _texts('greeting');
+  List<String> get acceptanceLines => _texts('acceptance');
+  List<String> get completionLines => _texts('completion');
+  List<String> get refusalLines => _texts('refusal');
 
   List<String> get requiredGameplayBindings => isPc
       ? const ['nativePcService', 'collapseSourcePcSelfSwitchCycle']
@@ -111,7 +116,7 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
           if (clearsStartingOver) 'nativeRecoveryActivationAndReset',
         ];
   List<String> get adaptedSourceEffects => isPc
-      ? const ['sourcePcSelfSwitchAActivationAndReset']
+      ? ['sourcePcSelfSwitch${pcSelfSwitchLetter}ActivationAndReset']
       : [
           'sourcePokeCenterVisitCounter',
           'sourceHealingBallVariableAndGraphicAnimation',
@@ -131,7 +136,7 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
         'sourceHealingOpcode': sourceHealingOpcode,
         'setsHealingCheckpointBeforeChoice': setsHealingCheckpoint,
         'sourcePcActivation':
-            isPc ? 'selfAOnThenAutorunOpenPcThenSelfAOff' : null,
+            isPc ? 'self${pcSelfSwitchLetter}OnThenAutorunOpenPcThenSelf${pcSelfSwitchLetter}Off' : null,
         'choiceLabels': choiceLabels,
         'cancelType': cancelType,
         'greetingLines': greetingLines,
@@ -144,126 +149,81 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
                 'name': recoveryMusicName,
                 'volume': recoveryMusicVolume,
                 'pitch': recoveryMusicPitch,
-                'sourceWaitTicks': 58,
+                'sourceWaitTicks': recoveryWaitTicks,
                 'ticksPerSecond': 20,
               },
         'requiredGameplayBindings': requiredGameplayBindings,
         'adaptedSourceEffects': adaptedSourceEffects,
         'sourceProgramRecognized': true,
+        'recognition': declaredProgram.toJson(),
         'nativeExecutionQualified': false,
         'fullSourceServiceParityQualified': false,
         'sourceScriptsExecuted': 0,
       };
 }
 
-const _sourceCenterPageHashes = {
-  (2, 0): '9ef52310577a6487366f5dcf57096dcde7800cfaf8cef9c52303b6e0357502bd',
-  (2, 1): '9fd43df6ef10f8b589a128dd9a6c18eeaf9a9908c2193b521b3d091151b421ee',
-  (3, 0): 'c17a19ee17c3ef2f3733888ed95c5703c09e2b26875f28da9759c359cd610c8d',
-  (3, 1): '0457cfd6de1511774fc525ca073f0cd6730de58d69132edfca453618434f4bfd',
-};
-
 SourceEventBlock? _sourceCenterServiceBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
-  if (!analyzer._isQualified ||
-      mapId != 102 ||
-      event.pages.length != 2 ||
-      !const [2, 3].contains(event.sourceEventId) ||
-      event.name != (event.sourceEventId == 2 ? 'Nurse' : 'PC')) {
-    return null;
+  final match = matchSourceDeclaredProgram(
+      source: analyzer.project,
+      profile: analyzer.profile,
+      sourceMapId: mapId,
+      event: event,
+      families: const {
+        SourceDeclaredProgramFamily.centerNurse,
+        SourceDeclaredProgramFamily.centerPc
+      });
+  if (match == null || page.commands.isEmpty) return null;
+  final kind = switch (match.pageRoles[page.originalPageIndex]) {
+    'choice' => SourceCenterServiceProgramKind.nurseChoice,
+    'recovery' => SourceCenterServiceProgramKind.nurseRecovery,
+    'activation' => SourceCenterServiceProgramKind.pcActivation,
+    'open' => SourceCenterServiceProgramKind.pcOpen,
+    _ => null,
+  };
+  if (kind == null) return null;
+  final span = SourceEventSpan(
+      firstCommandIndex: page.commands.first.originalIndex,
+      lastCommandIndex: page.commands.last.originalIndex,
+      locator: locator);
+  return SourceEventBlock(span: span, nodes: [
+    SourceCenterServiceProgramNode._(span,
+        kind: kind,
+        rawDataRef: match.references[page.originalPageIndex]!,
+        sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
+        profileHash: analyzer.profile.canonicalHash,
+        declaredProgram: match,
+        templateHash: canonicalHashOf(match.pageValues[page.originalPageIndex]))
+  ]);
+}
+
+Map<String, Object?> _declaredCommand(
+    SourceDeclaredProgramMatch match, String role, Object? index) {
+  final values = match.pageValues[match.indexForRole(role)]!['list'] as List;
+  return Map<String, Object?>.from(values[index as int] as Map);
+}
+
+SourceTextNode _declaredText(
+    SourceDeclaredProgramMatch match, String role, int index) {
+  final values = match.pageValues[match.indexForRole(role)]!['list'] as List;
+  final command = values[index] as Map;
+  if (command['code'] != 101) throw const FormatException();
+  var text = (command['parameters'] as List).single as String;
+  var last = index;
+  while (last + 1 < values.length && (values[last + 1] as Map)['code'] == 401) {
+    final next =
+        ((values[++last] as Map)['parameters'] as List).single as String;
+    if (next.isNotEmpty && !text.endsWith(' ')) text += ' ';
+    text += next;
   }
-  try {
-    final hashes = <int, Sha256Hash>{};
-    for (final candidate in event.pages) {
-      final reference = analyzer._reference(candidate.rawDataRef);
-      if (reference == null ||
-          hashes.containsKey(candidate.originalPageIndex)) {
-        return null;
-      }
-      final file = analyzer.project.archive.files[reference.fileId]!;
-      if (file.entry.relativePath != 'Data/Map102.rxdata') return null;
-      final value =
-          _SourceCenterPageValue(file.document).read(reference.nodeId);
-      if (value is! Map ||
-          value['list'] is! List ||
-          (value['list'] as List).length != candidate.commands.length) {
-        return null;
-      }
-      final hash = canonicalHashOf(value);
-      if (hash.value !=
-          _sourceCenterPageHashes[(
-            event.sourceEventId,
-            candidate.originalPageIndex
-          )]) {
-        return null;
-      }
-      final candidateLocator = _eventLocator('Data/Map102.rxdata', mapId,
-          event.sourceEventId, candidate.originalPageIndex);
-      final condition = analyzer._reference(candidate.conditionsDataRef);
-      if (condition == null ||
-          condition.fileId != reference.fileId ||
-          condition.nodeId !=
-              _eventField(
-                  _eventFields(
-                      file.document, reference.nodeId, 'RPG::Event::Page'),
-                  '@condition') ||
-          canonicalJsonOf(condition.locator?.toJson()) !=
-              canonicalJsonOf(candidateLocator.toJson())) {
-        return null;
-      }
-      final parser = _SourceEventParser(
-          analyzer,
-          candidate.commands,
-          candidateLocator,
-          mapId,
-          event.sourceEventId,
-          analyzer._switchNames(),
-          reference);
-      if (candidate.triggerCode != value['trigger']) return null;
-      for (var index = 0; index < candidate.commands.length; index++) {
-        final command = candidate.commands[index];
-        if (command.originalIndex != index) return null;
-        final parameters =
-            parser._rawFacingParameters(command, command.parameters.length);
-        for (var slot = 0; slot < parameters.length; slot++) {
-          final normalized = command.parameters[slot];
-          if (normalized is Map && normalized.containsKey('preservedDataRef')) {
-            parser._facingReference(command, slot, parameters[slot]);
-          } else if (canonicalJsonOf(normalized) !=
-              canonicalJsonOf(_SourceCenterPageValue(file.document)
-                  .read(parameters[slot]))) {
-            return null;
-          }
-        }
-      }
-      hashes[candidate.originalPageIndex] = hash;
-    }
-    if (!hashes.keys.toSet().containsAll({0, 1}) || page.commands.isEmpty) {
-      return null;
-    }
-    final reference = analyzer._reference(page.rawDataRef)!;
-    final first = page.commands.first, last = page.commands.last;
-    final span = SourceEventSpan(
-        firstCommandIndex: first.originalIndex,
-        lastCommandIndex: last.originalIndex,
-        locator: locator);
-    final kind = switch ((event.sourceEventId, page.originalPageIndex)) {
-      (2, 0) => SourceCenterServiceProgramKind.nurseChoice,
-      (2, 1) => SourceCenterServiceProgramKind.nurseRecovery,
-      (3, 0) => SourceCenterServiceProgramKind.pcActivation,
-      _ => SourceCenterServiceProgramKind.pcOpen,
-    };
-    return SourceEventBlock(span: span, nodes: [
-      SourceCenterServiceProgramNode._(span,
-          kind: kind,
-          rawDataRef: reference,
-          sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
-          profileHash: analyzer.profile.canonicalHash,
-          templateHash: hashes[page.originalPageIndex]!),
-    ]);
-  } on FormatException {
-    return null;
-  }
+  final page = match.references[match.indexForRole(role)]!;
+  return SourceTextNode(
+      SourceEventSpan(
+          firstCommandIndex: index,
+          lastCommandIndex: last,
+          locator: SourceLocator._(Map.unmodifiable(
+              {...page.locator!.toJson(), 'commandIndex': index}))),
+      text);
 }
 
 final class _SourceCenterPageValue {

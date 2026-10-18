@@ -102,9 +102,9 @@ DialogueLineFeedback? _staticSourceTextFeedback(String source) {
   return DialogueLineFeedback(segments: segments);
 }
 
-DialogueLineFeedback? _pokedexRewardTextFeedback(String source, PokedexSpeciesRange range) =>
+DialogueLineFeedback? _pokedexRewardTextFeedback(String source, PokedexSpeciesRange range, int ownedVariableId) =>
     _staticSourceTextFeedback(source.replaceAll(r'\PN', '{{ player_name }}')
-        .replaceAll(r'\v[2]', range.dialoguePlaceholder));
+        .replaceAll('\\v[$ownedVariableId]', range.dialoguePlaceholder));
 
 const _sourceSignWindowControl = r'\w[signskin]';
 
@@ -175,15 +175,7 @@ List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
   final stairs = stairPrograms ?? sourceStairPrograms(source: source, analysis: analysis);
   final elevators = elevatorPrograms ?? sourceElevatorPrograms(source: source, analysis: analysis);
   return List.unmodifiable(analysis.events.where((event) =>
-    analysis.profile.isQualified && (!isSourceElevatorFamilyEvent(event) || elevators.containsKey(event.identity)) && (_hasOriginalDoorMapHash(source, event) || routed.containsKey(event.identity) || stairs.containsKey(event.identity) || elevators.containsKey(event.identity))));
-}
-
-bool _hasOriginalDoorMapHash(NormalizedSourceProject source, SourceEventDefinition event) {
-  final hash = source.archive.files[event.sourceFileId]?.contentHash.value;
-  return ((event.sourceMapId == 100 && event.sourceEventId == 8 &&
-        hash == '3a101f07319e797c0021212ce5e6adc5344128eaff4b1ea2c4712219289c47a0') ||
-       (event.sourceMapId == 102 && event.sourceEventId == 1 &&
-        hash == '85bf6e82ae6c6271b30546297f6d9bbd2f472b32f1e0e2ac383a3c6248315ce7'));
+    analysis.profile.isQualified && (!isSourceElevatorFamilyEvent(event, source: source, profile: analysis.profile) || elevators.containsKey(event.identity)) && (routed.containsKey(event.identity) || stairs.containsKey(event.identity) || elevators.containsKey(event.identity))));
 }
 
 Map<SourceEventNode, Set<int>> _sourceMapScopes(SourceEventBlock block, int ownerMapId) {
@@ -316,15 +308,15 @@ final class SourceEventProjector {
     Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventItemBinding> itemBindings = const {},
     Map<String, SourceEventSoundBinding> soundBindings = const {},
-    SourceCenterRecoveryBinding? centerRecoveryBinding,
+    Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding = const {},
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
-    SourcePokedexRewardBinding? pokedexRewardBinding,
-    SourceTownMapBinding? townMapBinding,
+    Map<ConverterId, SourcePokedexRewardBinding> pokedexRewardBinding = const {},
+    Map<ConverterId, SourceTownMapBinding> townMapBinding = const {},
     Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
     Map<ConverterId, String> fieldObstacleRefusals = const {},
-    SourcePartyTradeBinding? partyTradeBinding,
+    Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
-    SourceHealingDisplayBinding? healingDisplayBinding,
+    Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
@@ -364,15 +356,15 @@ final class SourceEventProjector {
       Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventItemBinding> itemBindings = const {},
       Map<String, SourceEventSoundBinding> soundBindings = const {},
-      SourceCenterRecoveryBinding? centerRecoveryBinding,
+      Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding = const {},
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
-    SourcePokedexRewardBinding? pokedexRewardBinding,
-    SourceTownMapBinding? townMapBinding,
+    Map<ConverterId, SourcePokedexRewardBinding> pokedexRewardBinding = const {},
+    Map<ConverterId, SourceTownMapBinding> townMapBinding = const {},
     Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
     Map<ConverterId, String> fieldObstacleRefusals = const {},
-    SourcePartyTradeBinding? partyTradeBinding,
+    Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
-    SourceHealingDisplayBinding? healingDisplayBinding,
+    Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
@@ -596,10 +588,7 @@ final class _ProjectionBuilder {
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
-        sourceSnapshotHash = source.snapshot.canonicalHash, originalDoorIdentities = {
-          for (final event in analysis.events)
-            if (analysis.profile.isQualified && _hasOriginalDoorMapHash(source, event)) event.identity,
-        } {
+        sourceSnapshotHash = source.snapshot.canonicalHash {
     if (analysis.events.map((event) => event.identity).toSet().length != analysis.events.length ||
         analysis.events.map((event) => (event.sourceMapId, event.sourceEventId)).toSet().length != analysis.events.length) {
       throw const NativeWriteException('events.source.binding', 'Source event identities must be unique.');
@@ -701,7 +690,6 @@ final class _ProjectionBuilder {
         _sourceControlAnalyzer.selfFactId(event.sourceMapId, event.sourceEventId, letter): event,
   };
   final Map<int, MapData> maps;
-  final Set<ConverterId> originalDoorIdentities;
   final Map<ConverterId, SourceStaticDoorProgram> staticDoorPrograms;
   final Map<ConverterId, SourceRoutedDoorProgram> routedDoorPrograms;
   final Map<ConverterId, SourceEventExecutionContext> routedDoorContexts;
@@ -712,7 +700,7 @@ final class _ProjectionBuilder {
   final Map<ConverterId, SourceElevatorProgram> elevatorPrograms;
   final Map<ConverterId, SourceEventExecutionContext> elevatorContexts;
   final qualifiedElevatorContexts = <ConverterId>{};
-  final _elevatorGapCache = <bool, Set<String>>{};
+  final _elevatorGapCache = <(bool, Sha256Hash), Set<String>>{};
   final Map<ConverterId, SourceStairProgram> stairPrograms;
   final Map<ConverterId, SourceEventExecutionContext> stairContexts;
   final qualifiedStairContexts = <ConverterId>{};
@@ -722,13 +710,13 @@ final class _ProjectionBuilder {
   final Map<String, SourcePickupFeedbackBinding> pickupBindings;
   final Map<String, SourceEventItemBinding> itemBindings;
   final Map<String, SourceEventSoundBinding> soundBindings;
-  final SourceCenterRecoveryBinding? centerRecoveryBinding;
+  final Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding;
   final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
-  final SourcePokedexRewardBinding? pokedexRewardBinding;
-  final SourceTownMapBinding? townMapBinding;
-  final SourcePartyTradeBinding? partyTradeBinding;
+  final Map<ConverterId, SourcePokedexRewardBinding> pokedexRewardBinding;
+  final Map<ConverterId, SourceTownMapBinding> townMapBinding;
+  final Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding;
   final Map<String, SourcePokemonGiftBinding> pokemonGiftBindings;
-  final SourceHealingDisplayBinding? healingDisplayBinding;
+  final Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding;
   final SourceExternalWarpBinding? externalWarpBinding;
   final Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings;
   final Map<ConverterId, String> fieldObstacleRefusals;
@@ -765,11 +753,12 @@ final class _ProjectionBuilder {
     SourceEventDefinition event, {
     required bool checkCharacterBindings,
   }) {
-    final cached = _elevatorGapCache[checkCharacterBindings];
+    final program = elevatorPrograms[event.identity]!;
+    final cacheKey = (checkCharacterBindings, program.familyHash);
+    final cached = _elevatorGapCache[cacheKey];
     if (cached != null) return cached;
     final gaps = <String>{};
-    _elevatorGapCache[checkCharacterBindings] = gaps;
-    final program = elevatorPrograms[event.identity]!;
+    _elevatorGapCache[cacheKey] = gaps;
     if (!program.requiredEventIdentities.every(
       (identity) =>
           _selectedEventIdentities.contains(identity) &&
@@ -782,16 +771,11 @@ final class _ProjectionBuilder {
     if (!maps.keys.toSet().containsAll(program.requiredSourceMapIds)) {
       gaps.add('sourceElevatorMapsMissing');
     }
-    if ([
-      'Entering Door',
-      'Exit Door',
-      'Elevator moving',
-      'Elevator end',
-    ].any((name) => _sound(name) == null)) {
+    if (program.sourceSoundNames.any((name) => _sound(name) == null)) {
       gaps.add('sourceSoundBindingMissing');
     }
     if (gaps.isNotEmpty) return gaps;
-    for (final member in elevatorPrograms.values) {
+    for (final member in elevatorPrograms.values.where((member) => member.familyHash == program.familyHash)) {
       final owner = analysis.events.singleWhere(
         (candidate) => candidate.identity == member.eventIdentity,
       );
@@ -854,19 +838,17 @@ final class _ProjectionBuilder {
     }
     return gaps;
   }
-  bool _isExternalWarpFamily(SourceEventDefinition event) => const {
-    (100, 6), (100, 7), (100, 13), (166, 1), (205, 2), (205, 4)
-  }.contains((event.sourceMapId, event.sourceEventId));
+  bool _isExternalWarpFamily(SourceEventDefinition event) => event.pages.expand((p) => p.body.nodes).whereType<SourceWarpNode>().any((n) => n.originalProgram != null);
 
   bool _isSourceTransition(SourceEventDefinition event) =>
       warpTilePrograms.programs.containsKey(event.identity) ||
-      originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event) ||
+      _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
       (warpTilePrograms.programs.containsKey(event.identity) && retentionPolicy != null) ||
       qualifiedHoleContexts.contains(event.identity) || qualifiedElevatorContexts.contains(event.identity) || qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
-      ((originalDoorIdentities.contains(event.identity) || _isExternalWarpFamily(event)) &&
+      (_isExternalWarpFamily(event) &&
         executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null && executionContext?.holeIdentity == null && executionContext?.elevatorIdentity == null);
 
   SourceEventExecutionContext? _eventExecutionContext(SourceEventDefinition event) =>
@@ -1101,12 +1083,12 @@ final class _ProjectionBuilder {
             'nativeCaveAdditionalPreludeMs': _externalWarpPresentation(_externalWarpProgram(event)!).hasCaveEffect
                 ? SceneWarpPresentation.caveBandsMs + SceneWarpPresentation.caveFillMs + SceneWarpPresentation.cavePauseMs : 0,
             'sourceRawPreserved': true,
-            'sourceArrivalAutorunPagesPreserved': event.pages.skip(1)
+            'sourceArrivalAutorunPagesPreserved': event.pages.where((page) => !page.body.nodes.whereType<SourceWarpNode>().any((node) => node.originalProgram != null))
                 .map((page) => page.rawDataRef!.toJson()).toList(),
           },
         if (gaps.isEmpty && _isHealingDisplayFamily(event))
           'nativeHealingDisplay': {
-            ...healingDisplayBinding!.evidence,
+            ...healingDisplayBinding[event.identity]!.evidence,
             'nativeEntityId': _key(event, 'anchor'),
             'nativeExecutionQualified': true,
             'nativeActivation': 'acceptedNurseServiceApplyingOnly',
@@ -1159,10 +1141,10 @@ final class _ProjectionBuilder {
             'sourceStatsExecuted': false,
             'sourcePokerusDialogueExecuted': false,
             'sourceHealingBallsAnimationQualified': false,
-            'nativeHealingDisplayEntityId': _healingDisplayEntityId,
+            'nativeHealingDisplayEntityId': _healingDisplayEntityId(event),
             'sourceNurseMovementQualified': false,
             'sourceSilentWaitBeforeCompletionParityQualified': false,
-            'recoveryMusic': centerRecoveryBinding!.evidence,
+            'recoveryMusic': centerRecoveryBinding[event.identity]!.evidence,
             'sourceScriptsExecuted': 0,
             'fullSourceServiceParityQualified': false,
           },
@@ -1204,34 +1186,34 @@ final class _ProjectionBuilder {
           'nativePokemonGift': _pokemonGiftBinding(event)!.evidence,
         if (gaps.isEmpty && _isPokedexRewardFamily(event))
           'nativePokedexReward': {
-            ...pokedexRewardBinding!.toJson(),
+            ...pokedexRewardBinding[event.identity]!.toJson(),
             'nativeExecutionQualified': true,
             'nativeActivation': 'reusableNpcInteractAtSourceAnchor',
-            'sourceCountAuthority': 'regionalDexIndex1ExactCanonicalNationalRange',
+            'sourceCountAuthority': 'declaredRegionalDexExactCanonicalNationalRange',
             'nativeCountAuthority': 'historicalCaughtCanonicalSpecies',
             'sourceVariableWritesExecuted': false,
             'sourcePlayerNameControl': r'\PN',
             'nativePlayerNameVariable': '{{ player_name }}',
-            'sourceOwnedCountControl': r'\v[2]',
-            'nativeOwnedCountVariable': pokedexRewardBinding!.range.dialoguePlaceholder,
+            'sourceOwnedCountControl': r'\v[' '${pokedexRewardBinding[event.identity]!.programs.first.sourceOwnedVariableId}]',
+            'nativeOwnedCountVariable': pokedexRewardBinding[event.identity]!.range.dialoguePlaceholder,
             'sourceRewardFactTiming': 'afterSuccessfulNativeGrantAndExplanation',
             'sourceAfterInteractionFacing': 'nativeNpcInteractionVisualFacing',
             'persistentFacingCertified': false,
           },
         if (gaps.isEmpty && _isPartyTradeFamily(event))
           'nativePartyTrade': {
-            ...partyTradeBinding!.evidence,
+            ...partyTradeBinding[event.identity]!.evidence,
             'nativeExecutionQualified': true,
-            'nativeActivation': 'sourceAnchorNpcInteractAndWestFacing',
+            'nativeActivation': 'sourceAnchorNpcInteractAndDeclaredPlayerFacing',
             'nativeCommand': 'openPartyTrade',
             'nativeCloseContract': 'awaitNativeTradeScreenClose',
           },
         if(gaps.isEmpty && _isTownMapFamily(event))
           'nativeTownMap': {
-            ...townMapBinding!.evidence,
+            ...townMapBinding[event.identity]!.evidence,
             'sourceProgram':_townMapProgram(event)!.toJson(),
             'nativeExecutionQualified':true,
-            'sourceFootprint':{'width':2,'height':1},
+            'sourceFootprint':{'width':_townMapWidth(event),'height':1},
             'nativeActivation':'entityInteractAcrossSourceFootprint',
             'nativeCloseContract':'awaitRegionalMapScreenClose',
             'sourceScriptsExecuted':0,
@@ -1271,8 +1253,8 @@ final class _ProjectionBuilder {
                     'span': page.body.nodes.single.span.toJson(),
                     'rawDataRefs': [page.rawDataRef!.toJson()],
                     'nativeContract': 'nativeOwnPartySelectionTradeEvolutionAndSingleCommit',
-                    'equivalenceScope': ['sourceIntroAndRefusal', 'playerFacingWest', 'twoOwnPartySelections', 'sameIndividualBranch', 'firstIndividualOnlyEvolution', 'partnerAndPartyOrderPreserved', 'cancelWithoutMutation'],
-                    'adaptedSourceEffects': partyTradeBinding!.program.toJson()['adaptedSourceEffects'],
+                    'equivalenceScope': ['sourceIntroAndRefusal', 'declaredPlayerFacing', 'twoOwnPartySelections', 'sameIndividualBranch', 'firstIndividualOnlyEvolution', 'partnerAndPartyOrderPreserved', 'cancelWithoutMutation'],
+                    'adaptedSourceEffects': partyTradeBinding[event.identity]!.program.toJson()['adaptedSourceEffects'],
                     'sourceScriptsExecuted': 0,
                     'fullSourceTradePresentationParityQualified': false,
                   },
@@ -1282,7 +1264,7 @@ final class _ProjectionBuilder {
                     'span':page.body.nodes.single.span.toJson(),
                     'rawDataRefs':[page.rawDataRef!.toJson()],
                     'nativeContract':'sourceRegionalMapAndAwaitableNativeScreen',
-                    'sourceFootprint':{'width':2,'height':1},
+                    'sourceFootprint':{'width':_townMapWidth(event),'height':1},
                     'equivalenceScope':['sourceText','frontActionAcrossFootprint','regionalMapData','awaitClose'],
                     'nativePresentation':'aveluneRegionalMapReadOnly2D',
                     'sourceScriptsExecuted':0,
@@ -1377,7 +1359,7 @@ final class _ProjectionBuilder {
     final ownersByFact = <String, Set<ConverterId>>{};
     for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty)) {
       final ids = <String>{};
-      if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(10), _elevatorVariableKey(11)]);
+      if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(elevatorPrograms[event.identity]!.currentFloorVariableId), _elevatorVariableKey(elevatorPrograms[event.identity]!.selectionVariableId)]);
       ids.addAll(_warpTileFactIds(event));
       for (final page in event.pages) {
         _collectFacts(page.condition, ids);
@@ -1906,54 +1888,46 @@ final class _ProjectionBuilder {
         index < layer.collisions.length && layer.collisions[index]);
   }
 
-  bool _isNativeCenterPc(SourceEventDefinition event) {
-    if (!analysis.profile.isQualified || event.isQuarantined ||
-        event.sourceMapId != 102 || event.sourceEventId != 3 ||
-        event.name != 'PC' || event.pages.length != 2 ||
-        event.pages[0].originalPageIndex != 0 ||
-        event.pages[1].originalPageIndex != 1 ||
-        event.identity != source.eventIdentity(102, 3)) {
+  bool _isNativeCenterPc(SourceEventDefinition event) => _matchesCenterProgram(event, isPc: true);
+
+  bool _matchesCenterProgram(SourceEventDefinition event, {required bool isPc}) {
+    if (!analysis.profile.isQualified || event.isQuarantined || event.pages.length != 2 ||
+        event.identity != source.eventIdentity(event.sourceMapId, event.sourceEventId)) {
       return false;
     }
-    final originalMap = source.maps.singleWhere((map) => map.map.sourceMapId == 102).map;
-    if (event.sourceFileId != originalMap.sourceFileId) return false;
-    final original = originalMap.events.singleWhere((candidate) => candidate.sourceEventId == 3);
-    if (event.x != original.x || event.y != original.y) return false;
+    final original = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    final map = source.maps.where((m) => m.map.sourceMapId == event.sourceMapId).singleOrNull;
+    final raw = map?.map.events.where((e) => e.sourceEventId == event.sourceEventId).singleOrNull;
+    if (original == null || raw == null || original.isQuarantined ||
+        original.sourceFileId != event.sourceFileId || original.x != event.x || original.y != event.y ||
+        original.name != event.name || original.pages.length != event.pages.length) {
+      return false;
+    }
+    final kinds = <SourceCenterServiceProgramKind>{};
     for (final page in event.pages) {
-      if (page.body.nodes.length != 1) return false;
+      final expected = original.pages.where((p) => p.originalPageIndex == page.originalPageIndex).singleOrNull;
+      if (expected == null || page.body.nodes.length != 1) return false;
       final program = page.body.nodes.single;
-      if (program is! SourceCenterServiceProgramNode || !program.isPc ||
-          !program.isBoundToSourceEvent(source: source, profile: analysis.profile,
-              sourceMapId: event.sourceMapId, event: original)) {
+      if (program is! SourceCenterServiceProgramNode || program.isPc != isPc ||
+          !kinds.add(program.kind) || !program.isBoundToSourceEvent(source: source,
+            profile: analysis.profile, sourceMapId: event.sourceMapId, event: raw) ||
+          page.rawDataRef?.id != program.rawDataRef.id ||
+          canonicalJsonOf(page.sourcePage.toJson()) != canonicalJsonOf(expected.sourcePage.toJson()) ||
+          canonicalJsonOf(page.condition.toJson()) != canonicalJsonOf(expected.condition.toJson())) {
         return false;
       }
-      final expectedKind = page.originalPageIndex == 0
-          ? SourceCenterServiceProgramKind.pcActivation
-          : SourceCenterServiceProgramKind.pcOpen;
-      final expectedCondition = page.originalPageIndex == 0
-          ? SourceEventCondition(kind: SourceEventConditionKind.always)
-          : SourceEventCondition(kind: SourceEventConditionKind.all, children: [
-              SourceEventCondition(kind: SourceEventConditionKind.selfSwitch,
-                  factId: 'source:${source.snapshot.logicalProjectNamespace.value}:map:102:event:3:self:A'),
-            ]);
       final graphic = page.graphic;
-      if (program.kind != expectedKind ||
-          page.rawDataRef?.id != program.rawDataRef.id ||
-          canonicalJsonOf(page.sourcePage.toJson()) != canonicalJsonOf(
-              original.pages[page.originalPageIndex].toJson()) ||
-          canonicalJsonOf(page.condition.toJson()) != canonicalJsonOf(
-              expectedCondition.toJson()) ||
-          graphic == null || graphic.characterName.isNotEmpty ||
-          graphic.tileId != (page.originalPageIndex == 0 ? 0 : 647) ||
-          graphic.hue != 0 || graphic.direction != 2 || graphic.pattern != 0 ||
-          graphic.opacity != 255 || graphic.blendType != 0 ||
-          graphic.moveType != 0 || graphic.moveSpeed != 3 ||
-          graphic.moveFrequency != 3 || !graphic.walkAnime || graphic.stepAnime ||
-          graphic.directionFix || graphic.through || graphic.alwaysOnTop) {
+      final action = program.kind == SourceCenterServiceProgramKind.pcActivation ||
+          program.kind == SourceCenterServiceProgramKind.nurseChoice;
+      if (page.triggerCode != (action ? 0 : 3) || graphic == null || graphic.moveType != 0 ||
+          graphic.hue != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
+          graphic.through || graphic.alwaysOnTop) {
         return false;
       }
     }
-    return true;
+    return kinds.containsAll(isPc
+      ? const {SourceCenterServiceProgramKind.pcActivation, SourceCenterServiceProgramKind.pcOpen}
+      : const {SourceCenterServiceProgramKind.nurseChoice, SourceCenterServiceProgramKind.nurseRecovery});
   }
 
   Set<String> _nativeCenterPcGaps(SourceEventDefinition event) {
@@ -1969,52 +1943,7 @@ final class _ProjectionBuilder {
     };
   }
 
-  bool _isNativeCenterNurse(SourceEventDefinition event) {
-    if (!analysis.profile.isQualified || event.isQuarantined ||
-        event.sourceMapId != 102 || event.sourceEventId != 2 ||
-        event.name != 'Nurse' || event.pages.length != 2 ||
-        event.pages[0].originalPageIndex != 0 || event.pages[1].originalPageIndex != 1 ||
-        event.identity != source.eventIdentity(102, 2)) {
-      return false;
-    }
-    final originalMap = source.maps.singleWhere((map) => map.map.sourceMapId == 102).map;
-    final original = originalMap.events.singleWhere((candidate) => candidate.sourceEventId == 2);
-    if (event.sourceFileId != originalMap.sourceFileId ||
-        event.x != original.x || event.y != original.y) {
-      return false;
-    }
-    for (final page in event.pages) {
-      if (page.body.nodes.length != 1) return false;
-      final program = page.body.nodes.single;
-      final expectedCondition = page.originalPageIndex == 0
-          ? SourceEventCondition(kind: SourceEventConditionKind.always)
-          : SourceEventCondition(kind: SourceEventConditionKind.all, children: [
-              SourceEventCondition(kind: SourceEventConditionKind.globalSwitch,
-                  factId: 'source:${source.snapshot.logicalProjectNamespace.value}:switch:1'),
-            ]);
-      final graphic = page.graphic;
-      if (page.triggerCode != (page.originalPageIndex == 0 ? 0 : 3) ||
-          program is! SourceCenterServiceProgramNode || program.isPc ||
-          program.kind != (page.originalPageIndex == 0
-              ? SourceCenterServiceProgramKind.nurseChoice
-              : SourceCenterServiceProgramKind.nurseRecovery) ||
-          !program.isBoundToSourceEvent(source: source, profile: analysis.profile,
-              sourceMapId: 102, event: original) ||
-          page.rawDataRef?.id != program.rawDataRef.id ||
-          canonicalJsonOf(page.sourcePage.toJson()) !=
-              canonicalJsonOf(original.pages[page.originalPageIndex].toJson()) ||
-          canonicalJsonOf(page.condition.toJson()) != canonicalJsonOf(expectedCondition.toJson()) ||
-          graphic == null || graphic.characterName != 'NPC_FRLG_NURSE' ||
-          graphic.tileId != 0 || graphic.hue != 0 || graphic.direction != 2 ||
-          graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
-          graphic.moveType != 0 || graphic.moveSpeed != 3 || graphic.moveFrequency != 3 ||
-          !graphic.walkAnime || graphic.stepAnime || graphic.directionFix ||
-          graphic.through || graphic.alwaysOnTop) {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool _isNativeCenterNurse(SourceEventDefinition event) => _matchesCenterProgram(event, isPc: false);
 
   bool _sourceCounterCellOccupied(SourceEventDefinition owner, int x, int y) {
     for (final candidate in _sourceContextEvents.where((candidate) =>
@@ -2068,16 +1997,16 @@ final class _ProjectionBuilder {
         characterName: graphic.characterName, pattern: graphic.pattern, direction: graphic.direction)];
     final file = source.snapshot.entries.where((entry) => entry.fileId == binding?.sourceFileId).firstOrNull;
     return {
-      if (centerRecoveryBinding?.isBoundTo(source, analysis.profile) != true)
+      if (centerRecoveryBinding[event.identity]?.isBoundTo(source, analysis.profile) != true || centerRecoveryBinding[event.identity]?.eventIdentity != event.identity)
         'sourceCenterRecoveryBindingMissing',
       if (_nurseCounterSides(event).isEmpty) 'counterInteractionReachUnsupported',
       if (maps[event.sourceMapId]!.entities.any((entity) =>
           resolveEntityCollisionCells(entity).contains(GridPos(x: event.x, y: event.y))))
         'sourceCenterNurseAnchorOccupied',
       if (checkCharacterBindings && (binding == null || binding.characterId.trim().isEmpty ||
-          binding.sourceSnapshotHash != sourceSnapshotHash || binding.sourcePattern != 0 ||
-          binding.sourceDirection != 2 || file?.sha256 != binding.sourceFileHash ||
-          file?.relativePath != 'Graphics/Characters/NPC_FRLG_NURSE.png'))
+          binding.sourceSnapshotHash != sourceSnapshotHash || binding.sourcePattern != graphic.pattern ||
+          binding.sourceDirection != graphic.direction || file?.sha256 != binding.sourceFileHash ||
+          file?.relativePath != 'Graphics/Characters/${graphic.characterName}.png'))
         'characterBindingMissing',
     };
   }
@@ -2159,13 +2088,12 @@ final class _ProjectionBuilder {
       SourceEventAnalyzer.forProject(source,profile:analysis.profile).analyze();
 
   bool _isTownMapFamily(SourceEventDefinition event) =>
-      (event.sourceMapId==102 && event.sourceEventId==6) || event.pages
+      event.pages
           .expand((page)=>page.body.nodes).any((node)=>node is SourceTownMapProgramNode);
 
   SourceTownMapProgramNode? _townMapProgram(SourceEventDefinition event) {
-    if(!analysis.profile.isQualified || event.isQuarantined || event.sourceMapId!=102 || event.sourceEventId!=6 ||
-        event.pages.length!=1 || event.name!='Town Map size(2,1)' || event.identity!=source.eventIdentity(102,6)) { return null; }
-    final original=_townMapSourceAnalysis.eventAt(102,6);
+    if(!analysis.profile.isQualified || event.isQuarantined || event.pages.length!=1 || event.identity!=source.eventIdentity(event.sourceMapId,event.sourceEventId)) { return null; }
+    final original=_townMapSourceAnalysis.eventAt(event.sourceMapId,event.sourceEventId);
     if(original==null || original.pages.length!=1 || original.sourceFileId!=event.sourceFileId ||
         original.x!=event.x || original.y!=event.y ||
         canonicalJsonOf(original.locator.toJson())!=canonicalJsonOf(event.locator.toJson())) { return null; }
@@ -2177,9 +2105,9 @@ final class _ProjectionBuilder {
         canonicalJsonOf(page.locator.toJson())!=canonicalJsonOf(expected.locator.toJson()) ||
         canonicalJsonOf(page.condition.toJson())!=canonicalJsonOf(expected.condition.toJson())) { return null; }
     final program=page.body.nodes.single as SourceTownMapProgramNode;
-    final rawMap=source.maps.singleWhere((map)=>map.map.sourceMapId==102).map;
-    final rawEvent=rawMap.events.singleWhere((event)=>event.sourceEventId==6);
-    if(!program.isBoundToSourceEvent(source:source,profile:analysis.profile,sourceMapId:102,event:rawEvent)) { return null; }
+    final rawMap=source.maps.singleWhere((map)=>map.map.sourceMapId==event.sourceMapId).map;
+    final rawEvent=rawMap.events.singleWhere((raw)=>raw.sourceEventId==event.sourceEventId);
+    if(!program.isBoundToSourceEvent(source:source,profile:analysis.profile,sourceMapId:event.sourceMapId,event:rawEvent)) { return null; }
     final graphic=page.graphic;
     if(graphic==null || graphic.tileId!=0 || graphic.characterName.isNotEmpty || graphic.hue!=0 ||
         graphic.direction!=2 || graphic.pattern!=0 || graphic.opacity!=255 || graphic.blendType!=0 ||
@@ -2189,22 +2117,32 @@ final class _ProjectionBuilder {
     return program;
   }
 
+  int _townMapWidth(SourceEventDefinition event) {
+    final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false).allMatches(event.name).toList();
+    if (sizes.isEmpty) return 1;
+    if (sizes.length != 1 || sizes.single[2] != '1') return 0;
+    final width = int.tryParse(sizes.single[1]!);
+    return width != null && width >= 1 && width <= 2 ? width : 0;
+  }
+
   Set<String> _townMapGaps(SourceEventDefinition event) {
-    final binding=townMapBinding;
+    final binding=townMapBinding[event.identity];
     if(binding==null) { return {'sourceTownMapBindingsMissing'}; }
     if(!binding.isBoundTo(source,analysis.profile,{for(final entry in maps.entries)entry.key:entry.value.id})) {
       return {'sourceTownMapCatalogBindingInvalid'};
     }
     if(_townMapProgram(event)==null) { return {'sourceTownMapSourceBindingInvalid'}; }
+    final width = _townMapWidth(event);
+    if (width == 0) return {'sourceTownMapFootprintUnqualified'};
     final map=maps[event.sourceMapId]!;
     if(map.spatialScene!=null || map.version==ProjectVersion.v9) { return {'sourceTownMapSpatialUnsupported'}; }
-    if(event.x<0 || event.y<0 || event.x+2>map.size.width || event.y>=map.size.height) { return {'eventPositionInvalid'}; }
+    if(event.x<0 || event.y<0 || event.x+width>map.size.width || event.y>=map.size.height) { return {'eventPositionInvalid'}; }
     final contact=semanticResolver.resolveStaticActionFootprint(event:event,page:event.pages.single,
-      mapEvents:_townMapSourceAnalysis.events,width:2,height:1);
+      mapEvents:_townMapSourceAnalysis.events,width:width,height:1);
     if(contact.kind!=SourceEventTouchKind.front || contact.reason!='stationaryFootprintTilesBlocked') {
       return {'sourceTownMapFootprintUnqualified'};
     }
-    for(var dx=0;dx<2;dx++) {
+    for(var dx=0;dx<width;dx++) {
       final index=event.y*map.size.width+event.x+dx;
       if(!map.layers.whereType<CollisionLayer>().any((layer)=>index<layer.collisions.length && layer.collisions[index])) {
         return {'sourceTownMapNativeCollisionUnqualified'};
@@ -2217,11 +2155,10 @@ final class _ProjectionBuilder {
   }
 
   bool _isPokedexRewardFamily(SourceEventDefinition event) =>
-      (event.sourceMapId == 102 && event.sourceEventId == 10) ||
       event.pages.expand((page) => page.body.nodes).any((node) => node is SourcePokedexRewardProgramNode);
 
   Set<String> _pokedexRewardGaps(SourceEventDefinition event, {required bool checkCharacterBindings}) {
-    final binding = pokedexRewardBinding;
+    final binding = pokedexRewardBinding[event.identity];
     if (binding == null) return {'sourcePokedexRewardBindingsMissing'};
     if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
       return {'sourcePokedexRewardSourceBindingInvalid'};
@@ -2240,33 +2177,32 @@ final class _ProjectionBuilder {
     for (final page in event.pages) {
       final graphic = page.graphic;
       if (page.sourcePage.triggerCode != 0 || graphic == null || graphic.moveType != 0 ||
-          graphic.tileId != 0 || graphic.characterName != 'NPC_FRLG_SCIENTIST' || graphic.hue != 0 ||
-          graphic.direction != 2 || graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
+          graphic.tileId != 0 || graphic.characterName.isEmpty || graphic.characterName != event.pages.first.graphic?.characterName || graphic.hue != 0 ||
+          graphic.direction != event.pages.first.graphic?.direction || graphic.pattern != event.pages.first.graphic?.pattern || graphic.opacity != 255 || graphic.blendType != 0 ||
           !graphic.walkAnime || graphic.stepAnime || graphic.directionFix || graphic.through || graphic.alwaysOnTop) {
         gaps.add('sourcePokedexRewardGraphicUnsupported');
       }
-      if (checkCharacterBindings) {
+      if (checkCharacterBindings && graphic != null) {
         final character = characterBindings[sourceEventCharacterBindingKey(
-          characterName:'NPC_FRLG_SCIENTIST',pattern:0,direction:2)];
+          characterName:graphic.characterName,pattern:graphic.pattern,direction:graphic.direction)];
         final file = source.snapshot.entries.where((file) => file.fileId == character?.sourceFileId).firstOrNull;
         if (character == null || character.characterId.trim().isEmpty || character.sourceSnapshotHash != sourceSnapshotHash ||
-            character.sourcePattern != 0 || character.sourceDirection != 2 || file?.sha256 != character.sourceFileHash ||
-            file?.relativePath != 'Graphics/Characters/NPC_FRLG_SCIENTIST.png') { gaps.add('characterBindingMissing'); }
+            character.sourcePattern != graphic.pattern || character.sourceDirection != graphic.direction || file?.sha256 != character.sourceFileHash ||
+            file?.relativePath != 'Graphics/Characters/${graphic.characterName}.png') { gaps.add('characterBindingMissing'); }
       }
     }
     if (binding.programs.expand((program) => program.textGroups.values.expand((texts) => texts)).any((text) {
-      final feedback = _pokedexRewardTextFeedback(text.text,binding.range);
+      final feedback = _pokedexRewardTextFeedback(text.text,binding.range,binding.programs.first.sourceOwnedVariableId);
       return feedback == null || feedback.plainText.trim().isEmpty;
     })) { gaps.add('sourcePokedexRewardTextControlUnsupported'); }
     return gaps;
   }
 
   bool _isPartyTradeFamily(SourceEventDefinition event) =>
-      (event.sourceMapId == 102 && event.sourceEventId == 7) ||
       event.pages.expand((page) => page.body.nodes).any((node) => node is SourcePartyTradeProgramNode);
 
   Set<String> _partyTradeGaps(SourceEventDefinition event, {required bool checkCharacterBindings}) {
-    final binding = partyTradeBinding;
+    final binding = partyTradeBinding[event.identity];
     if (binding == null) return {'sourcePartyTradeBindingsMissing'};
     if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
       return {'sourcePartyTradeSourceBindingInvalid'};
@@ -2288,14 +2224,15 @@ final class _ProjectionBuilder {
         (passage.status == SourcePassageStatus.blocked) != _nativeSolidAt(event)) {
       gaps.add('sourcePartyTradeAnchorPassageUnqualified');
     }
-    final approachX = event.x + 1;
+    final offset = switch (binding.program.sourceFacingDirection) {2 => (0,-1), 4 => (1,0), 6 => (-1,0), 8 => (0,1), _ => (0,0)};
+    final approachX = event.x + offset.$1, approachY = event.y + offset.$2;
     final approach = semanticResolver.resolveConnectionEntryTile(
-        semanticResolver.cellAt(event.sourceMapId, approachX, event.y));
-    final approachIndex = event.y * map.size.width + approachX;
-    if (approachX >= map.size.width || approach.status != SourcePassageStatus.allowed ||
+        semanticResolver.cellAt(event.sourceMapId, approachX, approachY));
+    final approachIndex = approachY * map.size.width + approachX;
+    if (approachX < 0 || approachY < 0 || approachX >= map.size.width || approachY >= map.size.height || approach.status != SourcePassageStatus.allowed ||
         collisionLayers.any((layer) => approachIndex >= layer.collisions.length || layer.collisions[approachIndex]) ||
-        map.entities.any((entity) => resolveEntityCollisionCells(entity).contains(GridPos(x: approachX, y: event.y))) ||
-        _sourceCounterCellOccupied(event, approachX, event.y)) {
+        map.entities.any((entity) => resolveEntityCollisionCells(entity).contains(GridPos(x: approachX, y: approachY))) ||
+        _sourceCounterCellOccupied(event, approachX, approachY)) {
       gaps.add('sourcePartyTradeFacingApproachUnqualified');
     }
     if (map.entities.any((entity) => resolveEntityCollisionCells(entity).contains(GridPos(x: event.x, y: event.y))) ||
@@ -2305,20 +2242,20 @@ final class _ProjectionBuilder {
     final page = event.pages.single;
     final graphic = page.graphic;
     if (page.triggerCode != 0 || graphic == null || graphic.moveType != 0 || graphic.tileId != 0 ||
-        graphic.characterName != 'NPC_FRLG_WOMAN_2_FORMAL' || graphic.hue != 0 || graphic.direction != 6 ||
-        graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 || graphic.moveSpeed != 3 ||
+        graphic.characterName.isEmpty || graphic.hue != 0 || _sourceFacingDirection(graphic.direction) == null ||
+        graphic.pattern < 0 || graphic.pattern > 3 || graphic.opacity != 255 || graphic.blendType != 0 || graphic.moveSpeed != 3 ||
         graphic.moveFrequency != 3 || !graphic.walkAnime || graphic.stepAnime || graphic.directionFix ||
         graphic.through || graphic.alwaysOnTop || page.condition.kind != SourceEventConditionKind.always) {
       gaps.add('sourcePartyTradeGraphicUnsupported');
     }
-    if (checkCharacterBindings) {
+    if (checkCharacterBindings && graphic != null) {
       final character = characterBindings[sourceEventCharacterBindingKey(
-          characterName: 'NPC_FRLG_WOMAN_2_FORMAL', pattern: 0, direction: 6)];
+          characterName: graphic.characterName, pattern: graphic.pattern, direction: graphic.direction)];
       final file = source.snapshot.entries.where((entry) => entry.fileId == character?.sourceFileId).firstOrNull;
       final visual = binding.visualAdaptation;
-      final expectedPath = visual?.actualSourceFile.relativePath ?? 'Graphics/Characters/NPC_FRLG_WOMAN_2_FORMAL.png';
+      final expectedPath = visual?.actualSourceFile.relativePath ?? 'Graphics/Characters/${graphic.characterName}.png';
       if (character == null || character.characterId.trim().isEmpty || character.sourceSnapshotHash != sourceSnapshotHash ||
-          character.sourcePattern != 0 || character.sourceDirection != 6 || file?.sha256 != character.sourceFileHash ||
+          character.sourcePattern != graphic.pattern || character.sourceDirection != graphic.direction || file?.sha256 != character.sourceFileHash ||
           file?.relativePath != expectedPath || (visual != null &&
             (character.sourceFileId != visual.actualSourceFile.fileId || character.sourceFileHash != visual.actualSourceFile.sha256))) {
         gaps.add('characterBindingMissing');
@@ -2371,20 +2308,25 @@ final class _ProjectionBuilder {
   }
 
   bool _isHealingDisplayFamily(SourceEventDefinition event) =>
-      event.sourceMapId == 102 && event.sourceEventId == 4;
+      healingDisplayBinding.containsKey(event.identity) ||
+      source.maps.where((m) => m.map.sourceMapId == event.sourceMapId).any((m) =>
+        m.map.events.where((e) => e.sourceEventId == event.sourceEventId).any((e) =>
+          resolveSourceHealingDisplayProgram(source: source, profile: analysis.profile,
+            sourceMapId: event.sourceMapId, event: e) != null));
 
-  String? get _healingDisplayEntityId {
-    final binding = healingDisplayBinding;
-    if (binding == null || gapsByEvent[binding.eventIdentity]?.isEmpty != true) {
-      return null;
-    }
-    final event = analysis.events.where((event) => event.identity == binding.eventIdentity).single;
+  String? _healingDisplayEntityId(SourceEventDefinition nurse) {
+    final candidates = healingDisplayBinding.values.where((binding) =>
+        binding.program.sourceMapId == nurse.sourceMapId &&
+        binding.program.sourceNurseEventId == nurse.sourceEventId &&
+        gapsByEvent[binding.eventIdentity]?.isEmpty == true).toList();
+    if (candidates.length != 1) return null;
+    final event = analysis.events.singleWhere((event) => event.identity == candidates.single.eventIdentity);
     return _key(event, 'anchor');
   }
 
   Set<String> _healingDisplayGaps(SourceEventDefinition event,
       {required bool checkCharacterBindings}) {
-    final binding = healingDisplayBinding;
+    final binding = healingDisplayBinding[event.identity];
     if (binding == null) return {'sourceHealingDisplayBindingMissing'};
     if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
       return {'sourceHealingDisplaySourceBindingInvalid'};
@@ -2410,7 +2352,7 @@ final class _ProjectionBuilder {
       return {'sourceHealingDisplayAnchorOccupied'};
     }
     final nurses = analysis.events.where((candidate) =>
-        candidate.sourceMapId == 102 && candidate.sourceEventId == 2).toList();
+        candidate.sourceMapId == event.sourceMapId && candidate.sourceEventId == binding.program.sourceNurseEventId).toList();
     if (nurses.length != 1 || !_isNativeCenterNurse(nurses.single) ||
         _nativeCenterNurseGaps(nurses.single,
             checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
@@ -2616,7 +2558,7 @@ final class _ProjectionBuilder {
       {bool checkCharacterBindings = true}) {
     if (isSourceHoleNativeIdentity(event)) return _holeGaps(event);
     if (elevatorPrograms.containsKey(event.identity)) return _elevatorGaps(event, checkCharacterBindings: checkCharacterBindings);
-    if (analysis.profile.isQualified && isSourceElevatorFamilyEvent(event)) {
+    if (analysis.profile.isQualified && isSourceElevatorFamilyEvent(event, source: source, profile: analysis.profile)) {
       return {'sourceElevatorCompleteFamilyBindingMissing'};
     }
     if (warpTilePrograms.refusals[event.identity] case final reason?) return {reason};
@@ -2639,9 +2581,6 @@ final class _ProjectionBuilder {
         }
       }
       return const {};
-    }
-    if (const {166, 205}.contains(event.sourceMapId) && !_isExternalWarpFamily(event)) {
-      return {'sourceExternalMapScopeExcluded'};
     }
     if (_isExternalWarpFamily(event)) {
       final externalGaps = _externalWarpGaps(event);
@@ -3254,7 +3193,7 @@ final class _ProjectionBuilder {
 
   void _projectEvent(SourceEventDefinition event) {
     if (elevatorPrograms.containsKey(event.identity)) {
-      for (final variable in [10, 11]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
+      for (final variable in [elevatorPrograms[event.identity]!.currentFloorVariableId, elevatorPrograms[event.identity]!.selectionVariableId]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
     }
     final warpTile = warpTilePrograms.programs[event.identity];
     if (warpTile != null) {
@@ -3263,12 +3202,12 @@ final class _ProjectionBuilder {
       }
     }
     if (_isHealingDisplayFamily(event)) {
-      if (gapsByEvent[event.identity]?.isEmpty != true || healingDisplayBinding == null) {
+      if (gapsByEvent[event.identity]?.isEmpty != true || !healingDisplayBinding.containsKey(event.identity)) {
         throw const NativeWriteException('events.healing_display.binding_missing',
             'The healing display requires its exact source program, assets and admitted native nurse.');
       }
       final map = maps[event.sourceMapId]!;
-      final object = healingDisplayBinding!.createNativeEntity(_key(event, 'anchor'))
+      final object = healingDisplayBinding[event.identity]!.createNativeEntity(_key(event, 'anchor'))
           .copyWith(properties: {'sourceEventIdentity': event.identity.value});
       maps[event.sourceMapId] = map.copyWith(entities: [...map.entities, object]);
       mutations.add(_mutation('entity.upsert', object.id,
@@ -3295,7 +3234,9 @@ final class _ProjectionBuilder {
     final nativeCenterPc = _isNativeCenterPc(event);
     final nativeCenterNurse = _isNativeCenterNurse(event);
     final trainer = _hasTrainerProgram(event) ? trainerBindings[event.identity] : null;
-    final projectedPages = nativeCenterPc || nativeCenterNurse ? [event.pages.first] : event.pages;
+    final projectedPages = nativeCenterPc || nativeCenterNurse ? [event.pages.singleWhere((p) =>
+        (p.body.nodes.single as SourceCenterServiceProgramNode).kind == (nativeCenterPc
+          ? SourceCenterServiceProgramKind.pcActivation : SourceCenterServiceProgramKind.nurseChoice))] : event.pages;
     final factIds = <String>{};
     for (final page in projectedPages) {
       _collectFacts(page.condition, factIds);
@@ -3307,7 +3248,7 @@ final class _ProjectionBuilder {
     }
     final map = maps[event.sourceMapId]!;
     final entityId = _key(event, 'anchor');
-    final graphic = event.pages.first.graphic!;
+    final graphic = projectedPages.first.graphic!;
     final character = characterBindings[sourceEventCharacterBindingKey(
         characterName: graphic.characterName,
         pattern: graphic.pattern,
@@ -3319,7 +3260,7 @@ final class _ProjectionBuilder {
         pos: GridPos(x: event.x, y: event.y),
         size: (_supportsStaticWideInteraction(event) ||
             (_supportsStaticSign(event) && _staticSignWidth(event) == 2) ||
-            _isTownMapFamily(event))
+            (_isTownMapFamily(event) && _townMapWidth(event) == 2))
             ? const GridSize(width: 2, height: 1)
             : const GridSize(width: 1, height: 1),
         blocksMovement: character != null && !graphic.through,
@@ -3433,7 +3374,7 @@ final class _ProjectionBuilder {
       final guard = _all([
         if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.controller)
           for (final bound in [(NarrativeFactOperator.greaterThanOrEqual, 1), (NarrativeFactOperator.lessThanOrEqual, elevatorPrograms[event.identity]!.maximumFloor)])
-            _Guard.expression(NarrativeEventConditionExpression.leaf(NarrativeEventCondition.factValue(_elevatorFact(10).id, operator: bound.$1, expectedValue: NarrativeValue.integer(bound.$2)))),
+            _Guard.expression(NarrativeEventConditionExpression.leaf(NarrativeEventCondition.factValue(_elevatorFact(elevatorPrograms[event.identity]!.currentFloorVariableId).id, operator: bound.$1, expectedValue: NarrativeValue.integer(bound.$2)))),
         _pageGuard(event, page.condition),
         _not(_any(projectedPages
             .skip(index + 1)
@@ -3501,7 +3442,7 @@ final class _ProjectionBuilder {
     final program = warpTilePrograms.programs[event.identity];
     if (program == null) return const {};
     return {program.selfSourceId(source),
-      if (!program.isActivation) for (var id = 1; id <= 3; id++) program.variableSourceId(id, source)};
+      if (!program.isActivation) for (final id in program.sourcePositionVariableIds) program.variableSourceId(id, source)};
   }
 
   Map<String, Object?> _warpTileAudioEvidence(SourceWarpTileNativeProgram program, int pageIndex) {
@@ -3634,48 +3575,8 @@ final class _SceneBuilder {
   }
 
   String _elevator(SourceElevatorProgram program, String next) {
-    if (program.role == SourceElevatorRole.door) {
-      if (page.originalPageIndex != 0) return _block(page.body, next);
-      return _integerFact(
-        10,
-        program.floor!,
-        _block(
-          SourceEventBlock(
-            nodes: page.body.nodes.skip(1).toList(),
-            span: page.body.span,
-          ),
-          next,
-        ),
-      );
-    }
-    if (program.role == SourceElevatorRole.exit) {
-      final warps = sourceElevatorNodes(event)
-          .whereType<SourceWarpNode>()
-          .toList();
-      final body = page.body.nodes;
-      final revealed = _block(
-        SourceEventBlock(nodes: [body.last], span: page.body.span),
-        next,
-      );
-      var branch = _block(
-        SourceEventBlock(nodes: [warps.last], span: page.body.span),
-        revealed,
-      );
-      for (var index = warps.length - 2; index >= 0; index--) {
-        branch = _integerCondition(
-          10,
-          program.maximumFloor - index,
-          _block(
-            SourceEventBlock(nodes: [warps[index]], span: page.body.span),
-            revealed,
-          ),
-          branch,
-        );
-      }
-      return _block(
-        SourceEventBlock(nodes: body.take(3).toList(), span: page.body.span),
-        branch,
-      );
+    if (program.role == SourceElevatorRole.door || program.role == SourceElevatorRole.exit) {
+      return _block(page.body, next);
     }
     if (program.role != SourceElevatorRole.controller) {
       throw const NativeWriteException(
@@ -3683,7 +3584,7 @@ final class _SceneBuilder {
         'Only attested elevator programs may build a scene',
       );
     }
-    final finish = _elevatorSound('Elevator end', next);
+    final finish = _elevatorSound(program.finalSoundName, program, next);
     final routes = sourceElevatorNodes(event)
         .whereType<SourceForcedMoveRouteNode>()
         .toList();
@@ -3692,7 +3593,7 @@ final class _SceneBuilder {
       if (current == target) return finish;
       return memo.putIfAbsent((current, target), () {
         final following = current + (target > current ? 1 : -1);
-        var step = _integerFact(10, following, journey(following, target));
+        var step = _integerFact(program.currentFloorVariableId, following, journey(following, target));
         step = _interactive(
           SceneInteractiveCommand.waitForActorRoutes(
             mapId: projection.maps[event.sourceMapId]!.id,
@@ -3700,8 +3601,8 @@ final class _SceneBuilder {
           step,
         );
         final directionRoutes = target > current
-            ? routes.take(3)
-            : routes.skip(3);
+            ? routes.take(program.sourceActorIds.length)
+            : routes.skip(program.sourceActorIds.length);
         for (final route in directionRoutes.toList().reversed) {
           final owner = projection.analysis.eventAt(
             event.sourceMapId,
@@ -3734,16 +3635,11 @@ final class _SceneBuilder {
             step,
           );
         }
-        return _elevatorSound('Elevator moving', step);
+        return _elevatorSound(program.movementSoundName, program, step);
       });
     }
 
-    final script = page.body.nodes.whereType<SourceScriptNode>().first.script;
-    final literals = RegExp(r'_I\("([^"\n]*)"\)')
-        .allMatches(script)
-        .map((match) => match.group(1)!)
-        .toList();
-    final labels = literals.skip(1).toList();
+    final labels = program.floorLabels;
     final empty = SourceEventBlock(nodes: const [], span: page.body.span);
     final choice = SourceChoiceNode(
       page.body.span,
@@ -3760,21 +3656,21 @@ final class _SceneBuilder {
         final target = program.maximumFloor - index;
         final route = target == 0 ? finish : journey(current, target);
         targets[index] = _integerFact(
-          11,
+          program.selectionVariableId,
           index,
-          _integerFact(11, target, route),
+          _integerFact(program.selectionVariableId, target, route),
         );
       }
       final menu = _dialogue(
         page.body.span,
-        literals.first,
+        program.question,
         choice,
         finish,
         choiceTargets: targets,
         dialogueKey: 'elevator_$current',
         defaultChoiceIndex: program.maximumFloor - current,
       );
-      dispatch = _integerCondition(10, current, menu, dispatch);
+      dispatch = _integerCondition(program.currentFloorVariableId, current, menu, dispatch);
     }
     return dispatch;
   }
@@ -3812,15 +3708,15 @@ final class _SceneBuilder {
     return condition;
   }
 
-  String _elevatorSound(String name, String next) {
+  String _elevatorSound(String? name, SourceElevatorProgram program, String next) {
+    if (name == null) return next;
     final sound = projection._sound(name)!;
-    return _interactive(
-      SceneInteractiveCommand.playSoundEffect(
-        mediaAssetId: sound.mediaId,
-        volume: sound.gainForVolume(80),
-      ),
-      next,
-    );
+    final candidates = sourceElevatorNodes(program.event).whereType<SourceSoundEffectNode>().where((node) => node.name == name).toList();
+    if (candidates.isEmpty || candidates.map((node) => node.volume).toSet().length != 1 || candidates.any((node) => node.pitch != 100)) {
+      throw const NativeWriteException('events.elevator.audio', 'Elevator audio requires one exact typed source cue.');
+    }
+    return _interactive(SceneInteractiveCommand.playSoundEffect(mediaAssetId: sound.mediaId,
+        volume: sound.gainForVolume(candidates.first.volume)), next);
   }
   String _warpTile(SourceWarpTileNativeProgram program, String end) {
     String consequence(SceneConsequence value, String next) {
@@ -3830,10 +3726,11 @@ final class _SceneBuilder {
     }
     String variables(int y, String next) {
       final values = [event.sourceMapId, event.x, y];
-      for (var id = 3; id >= 1; id--) {
+      for (var index = program.sourcePositionVariableIds.length - 1; index >= 0; index--) {
+        final id = program.sourcePositionVariableIds[index];
         next = consequence(SceneConsequence.setFactValue(
             factId: sourceEventIntegerVariableBindingId(program.variableSourceId(id, projection.source)),
-            value: NarrativeValue.integer(values[id - 1])), next);
+            value: NarrativeValue.integer(values[index])), next);
       }
       return next;
     }
@@ -3848,15 +3745,15 @@ final class _SceneBuilder {
           mediaAssetId: binding.mediaId, volume: binding.gainForVolume(node.volume)), next);
     }
     if (program.isActivation) return _fact(program.selfSourceId(projection.source), true, end);
-    if (page.originalPageIndex == 1) {
+    if (page.originalPageIndex == program.arrivalPageIndex) {
       final cleanup = _fact(program.selfSourceId(projection.source), false,
           consequence(SceneConsequence.setMapEventInstanceBoolean(
               mapId: projection.maps[event.sourceMapId]!.id,
-              eventId: projection._key(event, 'anchor'), key: 'A', value: true), end));
+              eventId: projection._key(event, 'anchor'), key: program.tempSwitchLetter, value: true), end));
       final branch = _node(SceneConditionPayload(conditionSource:
           SceneConditionSource.playerAtEntityAnchor(mapId: projection.maps[event.sourceMapId]!.id,
               entityId: projection._key(event, 'anchor'))));
-      _edge(branch, 'true', variables(event.y - 6, sound(cleanup)), SceneEdgeKind.conditionTrue);
+      _edge(branch, 'true', variables(event.y + program.arrivalYOffset, sound(cleanup)), SceneEdgeKind.conditionTrue);
       _edge(branch, 'false', cleanup, SceneEdgeKind.conditionFalse);
       return branch;
     }
@@ -3936,7 +3833,7 @@ final class _SceneBuilder {
                     _ => EntityFacing.north,
                   },
                   durationMs: 250, initialCollisionOwnerEntityId:
-                    player && !through && ((event.sourceMapId == 100 && event.sourceEventId == 8) || ((projection.qualifiedRoutedDoorContexts.contains(event.identity) || projection.qualifiedElevatorContexts.contains(event.identity)) && event.pages.first.graphic!.characterName.isNotEmpty))
+                    player && !through && (((projection.qualifiedRoutedDoorContexts.contains(event.identity) || projection.qualifiedElevatorContexts.contains(event.identity)) && event.pages.first.graphic!.characterName.isNotEmpty))
                       ? projection._key(event, 'anchor') : null));
               case SourceMoveRouteStepKind.wait:
                 steps.add(SceneActorRouteStep.wait(durationMs: step.durationTicks! * 50));
@@ -4084,7 +3981,7 @@ final class _SceneBuilder {
   }
 
   String _pokedexReward(SourcePokedexRewardProgramNode program, String next) {
-    final binding = projection.pokedexRewardBinding;
+    final binding = projection.pokedexRewardBinding[event.identity];
     if (binding == null || !binding.isBoundToEvent(source: projection.source,analysis: projection.analysis,event:event)) {
       throw const NativeWriteException('events.pokedex_reward.bindings_missing',
         'The complete source reward requires its qualified native data bindings.');
@@ -4093,7 +3990,7 @@ final class _SceneBuilder {
       {SourceChoiceNode? choice, Map<int,String>? targets}) {
       final texts = program.texts(group);
       return _dialogue(texts.first.span,null,choice,continuation,
-        feedbackLines:[for(final text in texts) _pokedexRewardTextFeedback(text.text,binding.range)!],
+        feedbackLines:[for(final text in texts) _pokedexRewardTextFeedback(text.text,binding.range,binding.programs.first.sourceOwnedVariableId)!],
         choiceTargets:targets);
     }
     if (program.kind == SourcePokedexRewardProgramKind.afterReward) {
@@ -4103,7 +4000,7 @@ final class _SceneBuilder {
     final marked = _fact(program.rewardFactId,true,next);
     final explanation = dialogue(SourcePokedexRewardTextGroup.explanation,marked);
     final grant = _node(SceneActionPayload.consequence(SceneConsequence.giveItem(
-      itemId:binding.item.definition.id,quantity:1)));
+      itemId:binding.item.definition.id,quantity:program.pickup!.quantity)));
     _edge(grant,'completed',explanation,SceneEdgeKind.actionCompleted);
     final eligible = dialogue(SourcePokedexRewardTextGroup.eligible,grant);
     final insufficient = dialogue(SourcePokedexRewardTextGroup.insufficient,next);
@@ -4171,7 +4068,7 @@ final class _SceneBuilder {
 
   String _partyTrade(SourcePartyTradeProgramNode program, String next) {
     if (projection.gapsByEvent[event.identity]?.isEmpty != true ||
-        projection.partyTradeBinding == null || !projection.partyTradeBinding!.isBoundToEvent(
+        !projection.partyTradeBinding.containsKey(event.identity) || !projection.partyTradeBinding[event.identity]!.isBoundToEvent(
           source: projection.source, analysis: projection.analysis, event: event)) {
       throw const NativeWriteException('events.party_trade.bindings_missing',
           'Source party trade requires its qualified native bindings');
@@ -4183,35 +4080,32 @@ final class _SceneBuilder {
     final choice = SourceChoiceNode(program.span, cancelType: program.cancelType, branches: [
       for (final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1, label.$2, empty),
     ]);
-    final offered = _dialogue(SourceEventSpan(firstCommandIndex: 1, lastCommandIndex: 3,
-        locator: program.span.locator), null, choice, next,
+    final offered = _dialogue(program.span, null, choice, next,
         feedbackLines: [for (final text in program.greetingLines) _staticSourceTextFeedback(text.text)!],
         choiceTargets: {0: trade, 1: refused});
     final condition = _node(SceneConditionPayload(conditionSource: SceneConditionSource.playerFacing(
-        direction: EntityFacing.west, expected: true)));
+        direction: _sourceFacingDirection(program.sourceFacingDirection)!, expected: true)));
     _edge(condition, 'true', offered, SceneEdgeKind.conditionTrue);
     _edge(condition, 'false', next, SceneEdgeKind.conditionFalse);
     return condition;
   }
 
   String _centerNurse(SourceCenterServiceProgramNode program, String next) {
-    SourceEventSpan span(int first, int last) => SourceEventSpan(
-        firstCommandIndex: first, lastCommandIndex: last, locator: program.span.locator);
     final completedLines = [for (final text in program.completionLines)
       _staticSourceTextFeedback(text)!];
-    completedLines[0] = projection.centerRecoveryBinding!.recoveryFeedback(
+    completedLines[0] = projection.centerRecoveryBinding[event.identity]!.recoveryFeedback(
         cueId: projection._key(event, 'recovery_music'), line: completedLines.first);
-    final completed = _dialogue(span(57, 65), null, null, next,
+    final completed = _dialogue(program.span, null, null, next,
         feedbackLines: completedLines);
     final heal = _interactive(SceneInteractiveCommand.openHeal(requiresConfirmation: false,
-        displayEntityId: projection._healingDisplayEntityId), completed);
-    final accepted = _dialogue(span(12, 12), program.acceptanceLines.join('\n'), null, heal);
-    final refused = _dialogue(span(70, 70), program.refusalLines.join('\n'), null, next);
+        displayEntityId: projection._healingDisplayEntityId(event)), completed);
+    final accepted = _dialogue(program.span, program.acceptanceLines.join('\n'), null, heal);
+    final refused = _dialogue(program.span, program.refusalLines.join('\n'), null, next);
     final empty = SourceEventBlock(nodes: const [], span: program.span);
-    final choice = SourceChoiceNode(span(10, 72), cancelType: program.cancelType!, branches: [
+    final choice = SourceChoiceNode(program.span, cancelType: program.cancelType!, branches: [
       for (final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1, label.$2, empty),
     ]);
-    return _dialogue(span(7, 9), null, choice, next,
+    return _dialogue(program.span, null, choice, next,
         feedbackLines: [for (final text in program.greetingLines) _staticSourceTextFeedback(text)!],
         choiceTargets: {0: accepted, 1: refused});
   }

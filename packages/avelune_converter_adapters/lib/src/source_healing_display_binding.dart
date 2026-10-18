@@ -40,7 +40,7 @@ final class SourceHealingDisplayBinding {
       id: id,
       name: 'Boules de soin',
       kind: MapEntityKind.custom,
-      pos: const GridPos(x: 7, y: 4),
+      pos: GridPos(x: program.x, y: program.y),
       blocksMovement: false,
       healingDisplay: MapEntityHealingDisplayData(
           variantElementIds: elements.map((element) => element.id).toList()));
@@ -56,12 +56,12 @@ final class SourceHealingDisplayBinding {
         source.canonicalHash != normalizationHash ||
         analysis.profile.canonicalHash != profileHash ||
         event.identity != eventIdentity ||
-        event.sourceMapId != 102 ||
-        event.sourceEventId != 4 ||
+        event.sourceMapId != program.sourceMapId ||
+        event.sourceEventId != program.sourceEventId ||
         analysis.events
                 .where((candidate) =>
-                    candidate.sourceMapId == 102 &&
-                    candidate.sourceEventId == 4)
+                    candidate.sourceMapId == program.sourceMapId &&
+                    candidate.sourceEventId == program.sourceEventId)
                 .length !=
             1 ||
         analysis.events
@@ -77,25 +77,25 @@ final class SourceHealingDisplayBinding {
       return false;
     }
     final maps =
-        source.maps.where((map) => map.map.sourceMapId == 102).toList();
+        source.maps.where((map) => map.map.sourceMapId == program.sourceMapId).toList();
     if (maps.length != 1) {
       return false;
     }
     final events = maps.single.map.events
-        .where((event) => event.sourceEventId == 4)
+        .where((event) => event.sourceEventId == program.sourceEventId)
         .toList();
     if (events.length != 1 ||
         !program.isBoundToSourceEvent(
             source: source,
             profile: analysis.profile,
-            sourceMapId: 102,
+            sourceMapId: program.sourceMapId,
             event: events.single)) {
       return false;
     }
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
             .analyze()
-            .eventAt(102, 4);
+            .eventAt(program.sourceMapId, program.sourceEventId);
     return expected != null &&
         event.pages.every(
             (page) => page.body.nodes.isEmpty && page.diagnostics.isEmpty) &&
@@ -109,6 +109,8 @@ final class SourceHealingDisplayBindingResolver {
   Future<SourceHealingDisplayBinding?> read({
     required NormalizedSourceProject source,
     required SourceEventAnalysis analysis,
+    required int sourceMapId,
+    required int sourceEventId,
     required SourceFilePort files,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
@@ -116,7 +118,7 @@ final class SourceHealingDisplayBindingResolver {
     cancellation?.check();
     limits.validate();
     final events = analysis.events
-        .where((event) => event.sourceMapId == 102 && event.sourceEventId == 4)
+        .where((event) => event.sourceMapId == sourceMapId && event.sourceEventId == sourceEventId)
         .toList();
     if (events.isEmpty) {
       return null;
@@ -130,17 +132,17 @@ final class SourceHealingDisplayBindingResolver {
       throw const SourceHealingDisplayBindingUnavailable('source_unqualified');
     }
     final maps =
-        source.maps.where((map) => map.map.sourceMapId == 102).toList();
+        source.maps.where((map) => map.map.sourceMapId == sourceMapId).toList();
     final originals = maps.length == 1
         ? maps.single.map.events
-            .where((event) => event.sourceEventId == 4)
+            .where((event) => event.sourceEventId == sourceEventId)
             .toList()
         : <SourceEvent>[];
     final program = originals.length == 1
         ? resolveSourceHealingDisplayProgram(
             source: source,
             profile: analysis.profile,
-            sourceMapId: 102,
+            sourceMapId: sourceMapId,
             event: originals.single)
         : null;
     if (program == null) {
@@ -150,7 +152,7 @@ final class SourceHealingDisplayBindingResolver {
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
             .analyze()
-            .eventAt(102, 4);
+            .eventAt(sourceMapId, sourceEventId);
     if (expected == null ||
         events.single.pages.any((page) =>
             page.body.nodes.isNotEmpty || page.diagnostics.isNotEmpty) ||
@@ -219,7 +221,8 @@ final class SourceHealingDisplayBindingResolver {
     }
     final namespace = canonicalHashOf({
       'namespace': source.snapshot.logicalProjectNamespace.value,
-      'kind': 'sourceHealingDisplay'
+      'kind': 'sourceHealingDisplay',
+      'sourceIdentity': events.single.identity.value
     }).value.substring(0, 24);
     final tilesets = [
       for (var sheet = 1; sheet <= 2; sheet++)
@@ -285,8 +288,8 @@ final class SourceHealingDisplayBindingResolver {
           'kind': 'sourceHealingDisplayBinding',
           'version': 1,
           'sourceEventIdentity': events.single.identity.value,
-          'sourceMapId': 102,
-          'sourceEventId': 4,
+          'sourceMapId': sourceMapId,
+          'sourceEventId': sourceEventId,
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
           'normalizationHash': source.canonicalHash.value,
           'profileHash': analysis.profile.canonicalHash.value,

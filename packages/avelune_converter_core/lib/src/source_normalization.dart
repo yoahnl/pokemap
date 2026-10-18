@@ -433,7 +433,7 @@ final class NormalizedSourceProject {
   Map<String, Object?> _normalizedJson() => {
         'schemaVersion': '1.0',
         'kind': 'normalizedSourceProject',
-        'extractorVersion': 'rmxp-normalization-v5',
+        'extractorVersion': 'rmxp-normalization-v6',
         'interpretationProfile': interpretationProfile?.toJson(),
         'connections':
             connections.map((connection) => connection.toJson()).toList(),

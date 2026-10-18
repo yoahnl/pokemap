@@ -1,17 +1,25 @@
 part of '../avelune_converter_core.dart';
 
 final class SourceInterpretationProfile {
-  SourceInterpretationProfile._(this.profileId, this.scriptsRelativePath,
-      this.scriptsArchiveHash, this.capabilities, this.sections);
+  static const maxEncodedBytes = 2097152;
+  SourceInterpretationProfile._(
+      this.profileId,
+      this.scriptsRelativePath,
+      this.scriptsArchiveHash,
+      this.capabilities,
+      this.sections,
+      this.declaredPrograms);
+
+  static const jsonLimits = ContractLimits(
+      maxDepth: 32,
+      maxNodes: 131072,
+      maxStringCodeUnits: 512,
+      maxTextCodeUnits: 2097152);
 
   factory SourceInterpretationProfile.fromJson(Object? input) {
-    const limits = ContractLimits(
-        maxDepth: 8,
-        maxNodes: 8192,
-        maxStringCodeUnits: 256,
-        maxTextCodeUnits: 131072);
+    const limits = jsonLimits;
     final encoded = canonicalJsonOf(input, limits: limits);
-    if (utf8.encode(encoded).length > 131072) {
+    if (utf8.encode(encoded).length > maxEncodedBytes) {
       throw ContractError('interpretation_profile.quota', r'$',
           'Source interpretation profile exceeds its byte budget.');
     }
@@ -23,11 +31,13 @@ final class SourceInterpretationProfile {
       'semanticsId',
       'scriptsArchive',
       'capabilities',
-      'sections'
+      'sections',
+      'declaredPrograms'
     });
     _require(
         json['kind'] == 'sourceInterpretationProfile' &&
-            json['schemaVersion'] == 1 &&
+            json['schemaVersion'] is int &&
+            json['schemaVersion'] == 2 &&
             json['semanticsId'] == 'rmxp-essentials-static-v1',
         'interpretation_profile.schema',
         r'$',
@@ -112,12 +122,28 @@ final class SourceInterpretationProfile {
           r'$',
           'Each capability requires its script witnesses.');
     }
+    final rawPrograms = json['declaredPrograms'] ?? const [];
+    _require(
+        rawPrograms is List && rawPrograms.length <= 256,
+        'declared_program.quota',
+        r'$',
+        'Declared program bindings must be bounded.');
+    final programs = (rawPrograms as List)
+        .map(SourceDeclaredProgramBinding.fromJson)
+        .toList();
+    _require(
+        programs.map((p) => p.id).toSet().length == programs.length &&
+            (programs.isEmpty || capabilities.contains('events')),
+        'declared_program.duplicate',
+        r'$',
+        'Declared programs require unique IDs and the explicit event capability.');
     return SourceInterpretationProfile._(
         ConverterId(_interpretationString(json['profileId'])),
         path,
         Sha256Hash(_interpretationString(archive['sha256'])),
         Set.unmodifiable(capabilities),
-        Map.unmodifiable(sections));
+        Map.unmodifiable(sections),
+        List.unmodifiable(programs));
   }
 
   final ConverterId profileId;
@@ -125,6 +151,7 @@ final class SourceInterpretationProfile {
   final Sha256Hash scriptsArchiveHash;
   final Set<String> capabilities;
   final Map<String, Map<String, Object?>> sections;
+  final List<SourceDeclaredProgramBinding> declaredPrograms;
 
   bool supports(String capability) => capabilities.contains(capability);
   bool matchesArchive(Sha256Hash? observed) => observed == scriptsArchiveHash;
@@ -145,7 +172,7 @@ final class SourceInterpretationProfile {
       });
   Map<String, Object?> toJson() => {
         'kind': 'sourceInterpretationProfile',
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'profileId': profileId.value,
         'semanticsId': 'rmxp-essentials-static-v1',
         'scriptsArchive': {
@@ -154,8 +181,10 @@ final class SourceInterpretationProfile {
         },
         'capabilities': capabilities.toList()..sort(),
         'sections': sections,
+        'declaredPrograms': declaredPrograms.map((p) => p.toJson()).toList(),
       };
-  late final Sha256Hash canonicalHash = canonicalHashOf(toJson());
+  late final Sha256Hash canonicalHash =
+      canonicalHashOf(toJson(), limits: jsonLimits);
 
   Future<void> verifySource(
       {required SourceSnapshot snapshot,

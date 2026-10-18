@@ -129,8 +129,8 @@ void main() {
             source: composition.draft.source,
             analysis: sourceAnalysis ?? analysis,
             nativeMaps: {102: nativeMap ?? cleanMap},
-            healingDisplayBinding: bind ? binding : null,
-            centerRecoveryBinding: bindRecovery ? recovery : null,
+            healingDisplayBinding: {if (bind) binding.eventIdentity: binding},
+            centerRecoveryBinding: {if (bindRecovery) recovery.eventIdentity: recovery},
             characterBindings: bindNurse ? getCharacters() : const {});
     Map displayEvidence(SourceEventProjection projection) =>
         (projection.semanticEvidence['events'] as List).cast<Map>().singleWhere(
@@ -158,9 +158,9 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           diagnostics: const []);
       final files = _SourceFiles(source, root);
       binding = (await const SourceHealingDisplayBindingResolver()
-          .read(source: source, analysis: analysis, files: files))!;
+          .read(sourceMapId: 102, sourceEventId: 4, source: source, analysis: analysis, files: files))!;
       recovery = await const SourceCenterRecoveryResolver()
-          .read(source: source, files: files);
+          .read(sourceMapId: 102, sourceEventId: 2, source: source, files: files);
       nurseCharacter = await const SourceEventCharacterImporter().read(
           snapshot: source.snapshot,
           files: files,
@@ -336,9 +336,9 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       expect(changed.snapshot.canonicalHash,
           isNot(original.snapshot.canonicalHash));
       final display = (await const SourceHealingDisplayBindingResolver()
-          .read(source: changed, analysis: changedAnalysis, files: files))!;
+          .read(sourceMapId: 102, sourceEventId: 4, source: changed, analysis: changedAnalysis, files: files))!;
       final recovery = await const SourceCenterRecoveryResolver()
-          .read(source: changed, files: files);
+          .read(sourceMapId: 102, sourceEventId: 2, source: changed, files: files);
       final character = await const SourceEventCharacterImporter().read(
           snapshot: changed.snapshot,
           files: files,
@@ -349,8 +349,8 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           source: changed,
           analysis: changedAnalysis,
           nativeMaps: {102: cleanMap},
-          healingDisplayBinding: display,
-          centerRecoveryBinding: recovery,
+          healingDisplayBinding: {display.eventIdentity: display},
+          centerRecoveryBinding: {recovery.eventIdentity: recovery},
           characterBindings: {
             sourceEventCharacterBindingKey(
                 characterName: 'NPC_FRLG_NURSE',
@@ -373,8 +373,8 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           source: composition.draft.source,
           analysis: analysis,
           nativeMaps: {102: cleanMap},
-          healingDisplayBinding: binding,
-          centerRecoveryBinding: recovery);
+          healingDisplayBinding: {binding.eventIdentity: binding},
+          centerRecoveryBinding: {recovery.eventIdentity: recovery});
       expect(candidates.map((event) => event.sourceEventId), [2]);
       final result = project();
       expect(result.facts, isEmpty);

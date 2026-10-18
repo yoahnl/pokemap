@@ -89,7 +89,7 @@ Future<NormalizedSourceProject> readOriginalCutSource(String folder,
       ],
       state: SourceScanState.values.byName(input['state'] as String));
   return const RmxpSourceNormalizer().normalize(
-      interpretationProfile: fixtureSourceInterpretationProfile,
+      interpretationProfile: externalOracleInterpretationProfile(),
       snapshot: snapshot,
       files: _Files(bytes),
       selectedMapIds: selectedMapIds,
@@ -108,8 +108,10 @@ final class CutSourceFiles implements SourceFilePort {
         source.snapshot.entries.singleWhere((entry) => entry.fileId == id);
     reads.add(entry.relativePath);
     final explicitScripts = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
-    final sourcePath = entry.relativePath == 'Data/Scripts.rxdata' && explicitScripts != null
-        ? explicitScripts : '$root/${entry.relativePath}';
+    final sourcePath =
+        entry.relativePath == 'Data/Scripts.rxdata' && explicitScripts != null
+            ? explicitScripts
+            : '$root/${entry.relativePath}';
     final bytes = await File(sourcePath).readAsBytes();
     if (entry.relativePath == changedPath) bytes[bytes.length - 1] ^= 1;
     return bytes;

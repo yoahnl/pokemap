@@ -197,7 +197,7 @@ void main() {
             nativeMaps: overrideMaps ?? maps,
             characterBindings:
                 bindCharacter ? _characters(source, analysis) : const {},
-            pokedexRewardBinding: bindReward ? binding : null);
+            pokedexRewardBinding: {if (bindReward) source.eventIdentity(102, 10): binding});
     setUpAll(() async {
       final fixture = await _source(archive!, root!);
       source = fixture.$1;
@@ -212,7 +212,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           events: [event],
           diagnostics: full.diagnostics);
       binding = (await const SourcePokedexRewardBindingResolver()
-          .read(source: source, analysis: analysis, files: fixture.$2))!;
+          .read(sourceMapId: 102, sourceEventId: 10, source: source, analysis: analysis, files: fixture.$2))!;
       maps = _nativeMaps(source);
       projection = project();
     });

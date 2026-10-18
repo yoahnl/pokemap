@@ -13,6 +13,15 @@ void main() {
     root = Directory(await created.resolveSymbolicLinks());
   });
   tearDown(() async => root.delete(recursive: true));
+  test('selected complete declared corpus is read within the measured bounded file quota', () async {
+    final file = File('${root.path}/complete-profile.json');
+    await file.writeAsString(canonicalJsonOf(fixtureSourceInterpretationProfile.toJson(), limits: SourceInterpretationProfile.jsonLimits));
+    final selected = await const LocalSourceInterpretationProfileStore().read(file.path);
+    expect(selected.declaredPrograms, hasLength(171));
+    expect(selected.canonicalHash, fixtureSourceInterpretationProfile.canonicalHash);
+    await file.writeAsBytes(List.filled(SourceInterpretationProfile.maxEncodedBytes + 1, 32));
+    await expectLater(const LocalSourceInterpretationProfileStore().read(file.path), throwsA(isA<ContractError>().having((e) => e.code, 'code', 'interpretation_profile.quota')));
+  });
   test('selected JSON profile has exact immutable canonical identity',
       () async {
     final file = File('${root.path}/profile.json');

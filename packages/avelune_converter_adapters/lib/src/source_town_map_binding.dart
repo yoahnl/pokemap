@@ -15,6 +15,7 @@ final class SourceTownMapBinding {
     required this.normalizationHash,
     required this.profileHash,
     required this.nativeMapId,
+    required this.sourceMapId,
     required this.catalog,
     required this.artifact,
     required List<SourceFileEntry> files,
@@ -26,6 +27,7 @@ final class SourceTownMapBinding {
 
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash;
   final String nativeMapId;
+  final int sourceMapId;
   final ProjectRegionalMapCatalog catalog;
   final NativeArtifact artifact;
   final List<NativeMutation> mutations;
@@ -37,7 +39,7 @@ final class SourceTownMapBinding {
       sourceSnapshotHash == source.snapshot.canonicalHash &&
       normalizationHash == source.canonicalHash &&
       profileHash == profile.canonicalHash &&
-      nativeMapIds[102] == nativeMapId &&
+      nativeMapIds[sourceMapId] == nativeMapId &&
       _files.every((file) => source.snapshot.entries.any((current) =>
           current.fileId == file.fileId &&
           current.relativePath == file.relativePath &&
@@ -53,6 +55,7 @@ final class SourceTownMapBindingResolver {
     required NormalizedSourceProject source,
     required SourceFilePort files,
     required Map<int, String> nativeMapIds,
+    required int sourceMapId,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -64,10 +67,10 @@ final class SourceTownMapBindingResolver {
         !profile.isQualified) {
       throw const SourceTownMapBindingUnavailable('source_unqualified');
     }
-    final nativeMapId = nativeMapIds[102];
+    final nativeMapId = nativeMapIds[sourceMapId];
     if (nativeMapId == null ||
         !RegExp(r'^[A-Za-z0-9][A-Za-z0-9_.-]*$').hasMatch(nativeMapId) ||
-        !source.maps.any((map) => map.map.sourceMapId == 102)) {
+        !source.maps.any((map) => map.map.sourceMapId == sourceMapId)) {
       throw const SourceTownMapBindingUnavailable('native_map_unbound');
     }
     final admittedFiles = <SourceFileEntry>[];
@@ -108,8 +111,8 @@ final class SourceTownMapBindingResolver {
     final (metadataFile, metadataBytes) =
         await readFile('Data/map_metadata.dat', 1048576);
     final metadata = _decode(metadataBytes, metadataFile.relativePath);
-    final map = _record(metadata, 102, 'GameData::MapMetadata');
-    if (_integer(_field(metadata, map, '@id')) != 102 ||
+    final map = _record(metadata, sourceMapId, 'GameData::MapMetadata');
+    if (_integer(_field(metadata, map, '@id')) != sourceMapId ||
         _field(metadata, map, '@town_map_size').kind != MarshalKind.nil) {
       throw const SourceTownMapBindingUnavailable(
           'dynamic_map_position_unsupported');
@@ -162,6 +165,21 @@ final class SourceTownMapBindingResolver {
         label: label,
         imagePath: logicalPath,
         sampling: ProjectMenuImageSampling.pixelArt);
+    final associatedMaps = <(int,int), List<String>>{};
+    final metadataRoot = metadata.node(metadata.rootId);
+    for (final binding in nativeMapIds.entries) {
+      final records = metadataRoot.pairs.where((pair) => metadata.node(pair.key).kind == MarshalKind.integer && metadata.node(pair.key).integerValue == BigInt.from(binding.key)).toList();
+      if (records.length != 1) continue;
+      final record = metadata.node(records.single.value);
+      if (record.kind != MarshalKind.object || record.className != 'GameData::MapMetadata') continue;
+      if (_integer(_field(metadata, record, '@id')) != binding.key) _invalid('map_identity');
+      final positionNode = _field(metadata, record, '@town_map_position');
+      if (_field(metadata, record, '@town_map_size').kind != MarshalKind.nil || positionNode.kind != MarshalKind.array || positionNode.elements.length != 3) continue;
+      final values = positionNode.elements.map(metadata.node).toList();
+      if (values.any((value) => value.kind != MarshalKind.integer) || values.first.integerValue != BigInt.from(regionNumber)) continue;
+      final key = (values[1].integerValue!.toInt(), values[2].integerValue!.toInt());
+      (associatedMaps[key] ??= []).add(binding.value);
+    }
     final points = <ProjectRegionPointOfInterest>[];
     final coordinates = <(int, int)>{};
     var currentCount = 0;
@@ -199,7 +217,7 @@ final class SourceTownMapBindingResolver {
           u: (x * 16 - 8) / width,
           v: (y * 16 - 8) / height,
           discovery: ProjectRegionPointDiscovery.always,
-          mapIds: current ? [nativeMapId] : const [],
+          mapIds: (associatedMaps[(x,y)] ?? const <String>[]).toList()..sort(),
           sortOrder: points.length));
     }
     if (currentCount != 1) _invalid('current_point');
@@ -241,6 +259,7 @@ final class SourceTownMapBindingResolver {
         normalizationHash: profile.normalizationHash,
         profileHash: profile.canonicalHash,
         nativeMapId: nativeMapId,
+        sourceMapId: sourceMapId,
         catalog: catalog,
         artifact: artifact,
         files: admittedFiles,
@@ -251,7 +270,7 @@ final class SourceTownMapBindingResolver {
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
           'normalizationHash': profile.normalizationHash.value,
           'profileHash': profile.canonicalHash.value,
-          'sourceMapId': 102,
+          'sourceMapId': sourceMapId,
           'nativeMapId': nativeMapId,
           'sourceRegionId': regionNumber,
           'nativeRegionId': regionId,
@@ -277,20 +296,10 @@ final class SourceTownMapBindingResolver {
           'coordinatePolicy':
               'sourcePointCenter(x*16-8,y*16-8)/sourceImageSize',
           'sourceOracle': {
-            'schema': {
-              'sha256':
-                  'd90e49b28b477f2b332a9d4943e730fc8f05f05d9a5dbd2c4e9ae01e2a205f13',
-              'lines': '1-19'
-            },
-            'regionMap': {
-              'sha256':
-                  '67a4511fb1c48f2533a7a930a615f4d0dc9be8d8ed4a19fa67bece3968856c13',
-              'currentRegion': '77-94',
-              'pointCenter': '165-170',
-              'wallMapVisibility': '184-190,212-219',
-              'cancelAndFly': '294-311',
-              'pbShowMap': '348-354'
-            },
+            'interpretationProfileHash': profile.interpretationProfile!.canonicalHash.value,
+            'format': 'typedGameDataTownMapAndStaticMapMetadataPosition',
+            'recognizedCall': 'completeLiteralPbShowMap',
+            'associationScope': 'representedMapsWithStaticAttestedRegionalCoordinates',
           },
         });
   }

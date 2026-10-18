@@ -12,16 +12,6 @@ import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'native_mutation_batches.dart';
 
-const _mapExecutionAuditHashes = {
-  21: '2c410c2da4334afa802a6eb2351ee8f76df1c9006396339ce8ca511bf4794dc4',
-  83: '024b7c4179bc2b13e4bcd20ca1660c028a444477cf3b4051cf549c349d51f6b0',
-  98: 'b6761d596c30bf7fc7119cbc422ac9a01e910a77c0a4a3da597eb8e4be59b620',
-  100: '3a101f07319e797c0021212ce5e6adc5344128eaff4b1ea2c4712219289c47a0',
-  102: '85bf6e82ae6c6271b30546297f6d9bbd2f472b32f1e0e2ac383a3c6248315ce7',
-  166: '495202cfa479c7e587622b33697097f4605d7b182b3db897fea1d75572e786b2',
-  205: '6c458934f8de561e7de27615d1100e109794771477408c0afb391561ebd950f6',
-};
-
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
 
@@ -38,9 +28,12 @@ final class SourceEventExecutionContext {
     this.staticDoorIdentity,
     this.routedDoorIdentity,
     this.routedSourceMapId,
-    this.stairIdentity, this.stairSourceMapId, this.stairTargetMapId,
+    this.stairIdentity,
+    this.stairSourceMapId,
+    this.stairTargetMapId,
     this.holeIdentity,
-    this.elevatorIdentity, this.elevatorSourceMapId,
+    this.elevatorIdentity,
+    this.elevatorSourceMapId,
   })  : mapIds = Map.unmodifiable(mapIds),
         _mapHashes = Map.unmodifiable(mapHashes),
         refusals = List.unmodifiable(refusals),
@@ -50,8 +43,15 @@ final class SourceEventExecutionContext {
   final Sha256Hash normalizationHash;
   final Sha256Hash sourceProfileHash;
   final Sha256Hash? baseDraftHash;
-  final ConverterId? staticDoorIdentity, routedDoorIdentity, stairIdentity, holeIdentity, elevatorIdentity;
-  final int? routedSourceMapId, stairSourceMapId, stairTargetMapId, elevatorSourceMapId;
+  final ConverterId? staticDoorIdentity,
+      routedDoorIdentity,
+      stairIdentity,
+      holeIdentity,
+      elevatorIdentity;
+  final int? routedSourceMapId,
+      stairSourceMapId,
+      stairTargetMapId,
+      elevatorSourceMapId;
   final Map<int, String> mapIds;
   final List<String> refusals;
   final Map<int, Sha256Hash> _mapHashes;
@@ -62,12 +62,18 @@ final class SourceEventExecutionContext {
   bool supportsRouteBarrierOnSourceMap(int sourceMapId,
           {ConverterId? eventIdentity}) =>
       isQualified &&
-      staticDoorIdentity == null && holeIdentity == null &&
-      (elevatorIdentity != null ? eventIdentity == elevatorIdentity && sourceMapId == elevatorSourceMapId : stairIdentity != null ? eventIdentity == stairIdentity &&
-          {stairSourceMapId, stairTargetMapId}.contains(sourceMapId) : routedDoorIdentity != null
-          ? eventIdentity == routedDoorIdentity &&
-              sourceMapId == routedSourceMapId
-          : const {100, 102}.contains(sourceMapId)) &&
+      staticDoorIdentity == null &&
+      holeIdentity == null &&
+      (elevatorIdentity != null
+          ? eventIdentity == elevatorIdentity &&
+              sourceMapId == elevatorSourceMapId
+          : stairIdentity != null
+              ? eventIdentity == stairIdentity &&
+                  {stairSourceMapId, stairTargetMapId}.contains(sourceMapId)
+              : routedDoorIdentity != null
+                  ? eventIdentity == routedDoorIdentity &&
+                      sourceMapId == routedSourceMapId
+                  : mapIds.containsKey(sourceMapId)) &&
       mapIds.containsKey(sourceMapId);
 
   bool isBoundTo(NormalizedSourceProject source, SourceEventProfile profile,
@@ -104,9 +110,15 @@ final class SourceEventExecutionContext {
           'routedDoorIdentity': routedDoorIdentity!.value,
         if (routedSourceMapId != null) 'routedSourceMapId': routedSourceMapId,
         if (holeIdentity != null) 'holeIdentity': holeIdentity!.value,
-        if (stairIdentity != null) ...{'stairIdentity': stairIdentity!.value,
-          'stairSourceMapId': stairSourceMapId, 'stairTargetMapId': stairTargetMapId},
-        if (elevatorIdentity != null) ...{'elevatorIdentity': elevatorIdentity!.value, 'elevatorSourceMapId': elevatorSourceMapId},
+        if (stairIdentity != null) ...{
+          'stairIdentity': stairIdentity!.value,
+          'stairSourceMapId': stairSourceMapId,
+          'stairTargetMapId': stairTargetMapId
+        },
+        if (elevatorIdentity != null) ...{
+          'elevatorIdentity': elevatorIdentity!.value,
+          'elevatorSourceMapId': elevatorSourceMapId
+        },
         'mapIds': {
           for (final entry in mapIds.entries) '${entry.key}': entry.value
         },
@@ -205,11 +217,18 @@ final class SourceEventExecutionContextResolver {
     ScanCancellation? cancellation,
   }) async {
     cancellation?.check();
-    if (programs.isEmpty && routedPrograms.isEmpty && stairPrograms.isEmpty && holePrograms.isEmpty && elevatorPrograms.isEmpty) return const {};
+    if (programs.isEmpty &&
+        routedPrograms.isEmpty &&
+        stairPrograms.isEmpty &&
+        holePrograms.isEmpty &&
+        elevatorPrograms.isEmpty) {
+      return const {};
+    }
     base.validateResourceBudget(limits: limits);
     final hashes = Map<int, Sha256Hash>.unmodifiable({
       for (final entry in nativeMaps.entries)
-        entry.key: canonicalHashOf(jsonDecode(jsonEncode(entry.value.toJson()))),
+        entry.key:
+            canonicalHashOf(jsonDecode(jsonEncode(entry.value.toJson()))),
     });
     final composition = base.compositionEvidence['composition'];
     final compositionHash = composition is Map
@@ -223,7 +242,13 @@ final class SourceEventExecutionContextResolver {
     final witnesses = <String, Map<String, Object?>>{};
     final retained = <String, Future<NormalizedSourceProject>>{};
     final retainedAnalyses = <String, SourceEventAnalysis>{};
-    for (final identity in {...programs.keys, ...routedPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys}) {
+    for (final identity in {
+      ...programs.keys,
+      ...routedPrograms.keys,
+      ...stairPrograms.keys,
+      ...holePrograms.keys,
+      ...elevatorPrograms.keys
+    }) {
       final staticProgram = programs[identity];
       final routedProgram = routedPrograms[identity];
       final stair = stairPrograms[identity];
@@ -235,7 +260,10 @@ final class SourceEventExecutionContextResolver {
           (stair != null && stair.eventIdentity != identity) ||
           (hole != null && hole.eventIdentity != identity) ||
           (elevator != null && elevator.eventIdentity != identity) ||
-          [staticProgram, routedProgram, stair, hole, elevator].where((program) => program != null).length != 1) {
+          [staticProgram, routedProgram, stair, hole, elevator]
+                  .where((program) => program != null)
+                  .length !=
+              1) {
         throw const NativeWriteException('events.source.binding',
             'Static transfer context keys require exact source identities');
       }
@@ -291,12 +319,22 @@ final class SourceEventExecutionContextResolver {
     final snapshotHash = source.snapshot.canonicalHash;
     final normalizationHash = source.canonicalHash;
     final staticTransfer = staticDoorProgram != null;
-    final localTransfer = staticTransfer || routedDoorProgram != null || stairProgram != null || holeProgram != null || elevatorProgram != null;
+    final localTransfer = staticTransfer ||
+        routedDoorProgram != null ||
+        stairProgram != null ||
+        holeProgram != null ||
+        elevatorProgram != null;
     SourceEventAnalysis? freshAnalysis = authoritativeSourceAnalysis;
-    final sourceMapId =
-        staticDoorProgram?.sourceMapId ?? routedDoorProgram?.sourceMapId ?? stairProgram?.sourceMapId ?? holeProgram?.sourceMapId ?? elevatorProgram?.sourceMapId;
+    final sourceMapId = staticDoorProgram?.sourceMapId ??
+        routedDoorProgram?.sourceMapId ??
+        stairProgram?.sourceMapId ??
+        holeProgram?.sourceMapId ??
+        elevatorProgram?.sourceMapId;
     final targetMapId = staticDoorProgram?.targetSourceMapId ??
-        routedDoorProgram?.targetSourceMapId ?? stairProgram?.targetSourceMapId ?? holeProgram?.warp.targetSourceMapId ?? elevatorProgram?.targetSourceMapId;
+        routedDoorProgram?.targetSourceMapId ??
+        stairProgram?.targetSourceMapId ??
+        holeProgram?.warp.targetSourceMapId ??
+        elevatorProgram?.targetSourceMapId;
     if (routedDoorProgram != null) {
       final authoritative = freshAnalysis ??=
           SourceEventAnalyzer.forProject(source, profile: profile).analyze();
@@ -320,39 +358,68 @@ final class SourceEventExecutionContextResolver {
     if (stairProgram != null) {
       final authoritative = freshAnalysis ??=
           SourceEventAnalyzer.forProject(source, profile: profile).analyze();
-      final event = authoritative.events.where((event) => event.identity == stairProgram.eventIdentity).singleOrNull;
-      if (staticTransfer || routedDoorProgram != null || event == null ||
-          !stairProgram.isBoundTo(source: source, analysis: authoritative, event: event)) {
+      final event = authoritative.events
+          .where((event) => event.identity == stairProgram.eventIdentity)
+          .singleOrNull;
+      if (staticTransfer ||
+          routedDoorProgram != null ||
+          event == null ||
+          !stairProgram.isBoundTo(
+              source: source, analysis: authoritative, event: event)) {
         refusals.add('sourceStairProgramBindingInvalid');
       }
-      if (nativeMaps.values.any((map) => map.triggers.isNotEmpty ||
-          map.entities.any((entity) => entity.npc != null || entity.properties.containsKey('sourceEventIdentity')))) {
+      if (nativeMaps.values.any((map) =>
+          map.triggers.isNotEmpty ||
+          map.entities.any((entity) =>
+              entity.npc != null ||
+              entity.properties.containsKey('sourceEventIdentity')))) {
         refusals.add('sourceForcedRouteActorSetUnsupported');
       }
     }
     if (holeProgram != null) {
       final authoritative = freshAnalysis ??=
           SourceEventAnalyzer.forProject(source, profile: profile).analyze();
-      final event = authoritative.events.where((event) => event.identity == holeProgram.eventIdentity).singleOrNull;
-      if (staticTransfer || routedDoorProgram != null || stairProgram != null || event == null ||
-          !holeProgram.isBoundTo(source: source, analysis: authoritative, event: event)) {
+      final event = authoritative.events
+          .where((event) => event.identity == holeProgram.eventIdentity)
+          .singleOrNull;
+      if (staticTransfer ||
+          routedDoorProgram != null ||
+          stairProgram != null ||
+          event == null ||
+          !holeProgram.isBoundTo(
+              source: source, analysis: authoritative, event: event)) {
         refusals.add('sourceHoleProgramBindingInvalid');
       }
-      if (nativeMaps.values.any((map) => map.triggers.isNotEmpty ||
-          map.entities.any((entity) => entity.npc != null || entity.properties.containsKey('sourceEventIdentity')))) {
+      if (nativeMaps.values.any((map) =>
+          map.triggers.isNotEmpty ||
+          map.entities.any((entity) =>
+              entity.npc != null ||
+              entity.properties.containsKey('sourceEventIdentity')))) {
         refusals.add('sourceHoleActorSetUnsupported');
       }
     }
     if (elevatorProgram != null) {
-      final authoritative = freshAnalysis ??= SourceEventAnalyzer.forProject(source, profile: profile).analyze();
-      final event = authoritative.events.where((event) => event.identity == elevatorProgram.eventIdentity).singleOrNull;
-      if (staticTransfer || routedDoorProgram != null || stairProgram != null || event == null ||
-          !elevatorProgram.isBoundTo(source: source, analysis: authoritative, event: event) ||
-          !nativeMaps.keys.toSet().containsAll(elevatorProgram.requiredSourceMapIds)) {
+      final authoritative = freshAnalysis ??=
+          SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+      final event = authoritative.events
+          .where((event) => event.identity == elevatorProgram.eventIdentity)
+          .singleOrNull;
+      if (staticTransfer ||
+          routedDoorProgram != null ||
+          stairProgram != null ||
+          event == null ||
+          !elevatorProgram.isBoundTo(
+              source: source, analysis: authoritative, event: event) ||
+          !nativeMaps.keys
+              .toSet()
+              .containsAll(elevatorProgram.requiredSourceMapIds)) {
         refusals.add('sourceElevatorProgramBindingInvalid');
       }
-      if (nativeMaps.values.any((map) => map.triggers.isNotEmpty ||
-          map.entities.any((entity) => entity.npc != null || entity.properties.containsKey('sourceEventIdentity')))) {
+      if (nativeMaps.values.any((map) =>
+          map.triggers.isNotEmpty ||
+          map.entities.any((entity) =>
+              entity.npc != null ||
+              entity.properties.containsKey('sourceEventIdentity')))) {
         refusals.add('sourceForcedRouteActorSetUnsupported');
       }
     }
@@ -392,8 +459,20 @@ final class SourceEventExecutionContextResolver {
           source.snapshot.excludedPaths.where(_isPluginPath).toList(),
     };
     final pluginInventoryHash = canonicalHashOf(pluginInventory);
-    if (pluginInventoryHash.value !=
-        '40dd5e2e763f4f1ea6ed5a2a8eab7f57501e6c26ed85573b41914fc0380515b0') {
+    if (source.snapshot.excludedPaths.any((path) {
+      final excluded = sourcePathCollisionKey(path);
+      return ['Data/PluginScripts.rxdata', 'Data/CommonEvents.rxdata']
+          .any((witness) {
+        final key = sourcePathCollisionKey(witness);
+        return key == excluded || key.startsWith('$excluded/');
+      });
+    })) {
+      refusals.add('sourceExecutionWitnessUnavailable');
+    }
+    if (source.snapshot.entries.any((entry) =>
+            _isPluginPath(entry.relativePath) &&
+            entry.kind != SourceNodeKind.directory) ||
+        source.snapshot.excludedPaths.any(_isPluginPath)) {
       refusals.add('sourcePluginInventoryUnsupported');
     }
     if (base == null) {
@@ -466,8 +545,7 @@ final class SourceEventExecutionContextResolver {
         source.snapshot.state != SourceScanState.complete) {
       refusals.add('sourceExecutionProfileUnqualified');
     }
-    if ((!localTransfer &&
-            !nativeMaps.keys.toSet().containsAll(const {100, 102})) ||
+    if (nativeMaps.isEmpty ||
         (localTransfer &&
             !nativeMaps.keys.toSet().containsAll({sourceMapId, targetMapId})) ||
         (localTransfer &&
@@ -476,10 +554,17 @@ final class SourceEventExecutionContextResolver {
             .any((map) => map.spatialScene != null || map.events.isNotEmpty)) {
       refusals.add('sourceExecutionMapsUnavailable');
     }
+    if (nativeMaps.values.any((map) =>
+        map.triggers.isNotEmpty ||
+        map.entities.any((entity) =>
+            entity.npc != null ||
+            entity.properties.containsKey('sourceEventIdentity')))) {
+      refusals.add('sourceForcedRouteActorSetUnsupported');
+    }
     final representedMapIds =
         source.maps.map((map) => map.map.sourceMapId).toSet();
-    final activeMapIds =
-        elevatorProgram?.requiredSourceMapIds ?? (localTransfer ? {sourceMapId!, targetMapId!} : representedMapIds);
+    final activeMapIds = elevatorProgram?.requiredSourceMapIds ??
+        (localTransfer ? {sourceMapId!, targetMapId!} : representedMapIds);
     if (canonicalJsonOf(representedMapIds.toList()..sort()) !=
         canonicalJsonOf(nativeMaps.keys.toList()..sort())) {
       refusals.add('sourceExecutionMapsUnavailable');
@@ -496,36 +581,34 @@ final class SourceEventExecutionContextResolver {
     if (!source.connectionsExtracted) {
       refusals.add('sourceExecutionConnectionsUnavailable');
     }
-    if (!localTransfer &&
-        attestedMapIds.any((id) => !_mapExecutionAuditHashes.containsKey(id))) {
-      refusals.add('sourceMapAutonomyContextUnsupported');
-    }
     final connectionsEntry = source.snapshot.entries
         .where((entry) => entry.relativePath == 'Data/map_connections.dat')
         .firstOrNull;
     final witnesses = <Map<String, Object?>>[];
     for (final expected in {
-      'Data/Scripts.rxdata': source.interpretationProfile?.scriptsArchiveHash.value,
-      'Data/PluginScripts.rxdata':
-          'f390bd7fb8c034267c8341500f257b8ab1aaaef204c4c88477c81b39806ce9bb',
-      if (!localTransfer)
-        'Data/Map100.rxdata':
-            '3a101f07319e797c0021212ce5e6adc5344128eaff4b1ea2c4712219289c47a0',
-      if (!localTransfer)
-        'Data/Map102.rxdata':
-            '85bf6e82ae6c6271b30546297f6d9bbd2f472b32f1e0e2ac383a3c6248315ce7',
-      'Data/CommonEvents.rxdata':
-          'bce4047ee1779de25f2e8fd087ea4f90dae513eecb8ead734743d1b37ee78cda',
+      'Data/Scripts.rxdata':
+          source.interpretationProfile?.scriptsArchiveHash.value,
+      for (final path in [
+        'Data/PluginScripts.rxdata',
+        'Data/CommonEvents.rxdata'
+      ])
+        if (source.snapshot.entries.any((entry) =>
+            sourcePathCollisionKey(entry.relativePath) ==
+            sourcePathCollisionKey(path)))
+          path: source.snapshot.entries
+                  .where((entry) => entry.relativePath == path)
+                  .firstOrNull
+                  ?.sha256
+                  ?.value ??
+              '',
       'Data/map_connections.dat': connectionsEntry?.sha256?.value ?? '',
       for (final id in attestedMapIds.toList()..sort())
-        _mapSourcePath(id): localTransfer
-            ? source.snapshot.entries
-                    .where((entry) => entry.relativePath == _mapSourcePath(id))
-                    .firstOrNull
-                    ?.sha256
-                    ?.value ??
-                ''
-            : _mapExecutionAuditHashes[id] ?? '',
+        _mapSourcePath(id): source.snapshot.entries
+                .where((entry) => entry.relativePath == _mapSourcePath(id))
+                .firstOrNull
+                ?.sha256
+                ?.value ??
+            '',
     }.entries) {
       cancellation?.check();
       final matches = source.snapshot.entries
@@ -550,7 +633,11 @@ final class SourceEventExecutionContextResolver {
       if (cached?['automaticCommonEventsManual'] == false) {
         refusals.add('sourceAutomaticCommonEventUnsupported');
       }
+      if (cached?['pluginArchiveEmpty'] == false) {
+        refusals.add('sourcePluginRouteContextUnsupported');
+      }
       bool? manualCommonEvents;
+      bool? pluginArchiveEmpty;
       if (cached == null) {
         final bytes = await files.read(entry.fileId);
         cancellation?.check();
@@ -565,12 +652,22 @@ final class SourceEventExecutionContextResolver {
             refusals.add('sourceAutomaticCommonEventUnsupported');
           }
         }
+        if (expected.key == 'Data/PluginScripts.rxdata') {
+          pluginArchiveEmpty = _emptyPluginArchive(bytes);
+          if (!pluginArchiveEmpty) {
+            refusals.add('sourcePluginRouteContextUnsupported');
+          }
+        }
       }
       final witness = <String, Object?>{
         'fileId': entry.fileId.value,
         'relativePath': entry.relativePath,
         'byteLength': entry.byteLength,
         'sha256': entry.sha256!.value,
+        if (pluginArchiveEmpty != null ||
+            cached?.containsKey('pluginArchiveEmpty') == true)
+          'pluginArchiveEmpty':
+              pluginArchiveEmpty ?? cached!['pluginArchiveEmpty'],
         if (manualCommonEvents != null ||
             cached?.containsKey('automaticCommonEventsManual') == true)
           'automaticCommonEventsManual':
@@ -583,10 +680,8 @@ final class SourceEventExecutionContextResolver {
     final unrepresentedRetainedMapIds =
         retainedMapIds.difference(representedMapIds);
     if (unrepresentedRetainedMapIds.isNotEmpty &&
-        unrepresentedRetainedMapIds.every((id) =>
-            (localTransfer || _mapExecutionAuditHashes.containsKey(id)) &&
-            witnesses
-                .any((entry) => entry['relativePath'] == _mapSourcePath(id)))) {
+        unrepresentedRetainedMapIds.every((id) => witnesses
+            .any((entry) => entry['relativePath'] == _mapSourcePath(id)))) {
       final cacheKey = (unrepresentedRetainedMapIds.toList()..sort()).join(',');
       final pending = retainedCache?[cacheKey] ??
           const RmxpSourceNormalizer().normalize(
@@ -594,6 +689,7 @@ final class SourceEventExecutionContextResolver {
               files: files,
               selectedMapIds: unrepresentedRetainedMapIds,
               includeEventSystem: true,
+              interpretationProfile: source.interpretationProfile,
               cancellation: cancellation);
       retainedCache?[cacheKey] = pending;
       retainedSource = await pending;
@@ -607,10 +703,9 @@ final class SourceEventExecutionContextResolver {
     } else if (unrepresentedRetainedMapIds.isNotEmpty) {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
-    final dormancy = activeMapIds.contains(205)
-        ? auditSourceParallelDormancy(source: source, profile: profile)
-        : null;
-    if (dormancy != null && !dormancy.isQualified) {
+    final dormancy =
+        auditSourceParallelDormancy(source: source, profile: profile);
+    if (!dormancy.isQualified) {
       refusals.add('sourceParallelDormancyUnqualified');
     }
     final pages = [
@@ -622,7 +717,7 @@ final class SourceEventExecutionContextResolver {
     ];
     if (pages.any((entry) =>
         entry.$3.triggerCode == 4 &&
-        dormancy?.permitsDormantParallelPage(entry.$1, entry.$2, entry.$3) !=
+        dormancy.permitsDormantParallelPage(entry.$1, entry.$2, entry.$3) !=
             true)) {
       refusals.add('sourceParallelEventUnsupported');
     }
@@ -631,7 +726,7 @@ final class SourceEventExecutionContextResolver {
       refusals.add('sourceMapAutonomyContextUnsupported');
     }
     final autonomy = <Map<String, Object?>>[];
-    if (localTransfer) {
+    {
       for (final project in [
         source,
         if (retainedSource != null) retainedSource
@@ -658,7 +753,9 @@ final class SourceEventExecutionContextResolver {
             if (graphic == null ||
                 archive == null ||
                 (!_staticAutonomySafe(archive.document, graphic) &&
-                    elevatorProgram?.permitsDormantStoredRoute(project, event, page) != true)) {
+                    elevatorProgram?.permitsDormantStoredRoute(
+                            project, event, page) !=
+                        true)) {
               refusals.add('sourceMapAutonomyContextUnsupported');
             }
             autonomy.add({
@@ -684,88 +781,101 @@ final class SourceEventExecutionContextResolver {
         'followers': 'newGameDeclaredEmpty',
         'scope': {
           'sourceMapIds': activeMapIds.toList()..sort(),
-          'pages': holeProgram != null ? ['${holeProgram.sourceMapId}/${holeProgram.sourceEventId}/all'] : elevatorProgram != null ? ['complete34EventElevatorFamily'] : stairProgram != null ? ['${stairProgram.sourceMapId}/${stairProgram.sourceEventId}/all'] : routedDoorProgram != null
-              ? [
-                  '${routedDoorProgram.sourceMapId}/${routedDoorProgram.sourceEventId}/all'
-                ]
-              : staticDoorProgram == null
-                  ? ['100/8/0', '100/8/1', '102/1/0']
-                  : [
-                      '${staticDoorProgram.sourceMapId}/${staticDoorProgram.sourceEventId}/0'
-                    ]
+          'pages': holeProgram != null
+              ? ['${holeProgram.sourceMapId}/${holeProgram.sourceEventId}/all']
+              : elevatorProgram != null
+                  ? elevatorProgram.requiredEventIdentities
+                      .map((id) => id.value)
+                      .toList()
+                  : stairProgram != null
+                      ? [
+                          '${stairProgram.sourceMapId}/${stairProgram.sourceEventId}/all'
+                        ]
+                      : routedDoorProgram != null
+                          ? [
+                              '${routedDoorProgram.sourceMapId}/${routedDoorProgram.sourceEventId}/all'
+                            ]
+                          : staticDoorProgram == null
+                              ? ['allRepresentedSourceEvents']
+                              : [
+                                  '${staticDoorProgram.sourceMapId}/${staticDoorProgram.sourceEventId}/0'
+                                ]
         },
         if (routedDoorProgram != null || stairProgram != null)
           'forcedRouteActorClosure': {
-            'programIdentity': (routedDoorProgram?.eventIdentity ?? stairProgram!.eventIdentity).value,
+            'programIdentity': (routedDoorProgram?.eventIdentity ??
+                    stairProgram!.eventIdentity)
+                .value,
             'sourceMapId': sourceMapId,
             'player': 'freshNativePlayerWithoutFollowers',
             'eventAnchorId': 'ac13_${canonicalHashOf({
                   'namespace': source.snapshot.logicalProjectNamespace.value,
                   'mapId': sourceMapId,
-                  'eventId': routedDoorProgram?.sourceEventId ?? stairProgram!.sourceEventId,
+                  'eventId': routedDoorProgram?.sourceEventId ??
+                      stairProgram!.sourceEventId,
                   'role': 'anchor'
                 }).value.substring(0, 24)}',
             'baseForcedActors': [],
             'baseAutomaticEvents': [],
             'barrierScope': 'allForcedNativeRoutesOnExactActiveMap',
-            'routeProducers':
-                stairProgram == null ? 'onlyBoundCompleteProgramsWithBarrierAfterEveryRoute' : 'boundStairMotionWithBarrierAndExactPostTransferFlagRestore',
+            'routeProducers': stairProgram == null
+                ? 'onlyBoundCompleteProgramsWithBarrierAfterEveryRoute'
+                : 'boundStairMotionWithBarrierAndExactPostTransferFlagRestore',
             if (stairProgram != null) 'stairProgram': stairProgram.toJson(),
             'retainedMaps': 'noParallelOrScriptedAutonomousRouteProducers',
             'temporaryStateLifetime':
                 'nativeMapEventInstanceResetAndRetainedInstancePreservation',
           },
         if (holeProgram != null) 'nativeHolePresentation': holeProgram.toJson(),
-        if (elevatorProgram != null) ...{'elevatorProgram': elevatorProgram.toJson(),
-          'elevatorForcedRouteActorClosure': {'sourceMapId': elevatorProgram.sourceMapId, 'allowedEventActors': [3, 4, 5],
-            'scope': 'closed34EventFamilyOnExact18Maps', 'storedStationaryRoutes': 'dormantUnlessExplicitlyForced',
-            'storedRouteOracle': '044:918-931', 'sourceGlobalBarrierOracle': '033:106-114'}},
-        'sourceContextProfile': holeProgram != null ? 'kanto-hole-native-local-fresh-v1' : elevatorProgram != null ? 'kanto-complete-elevator-family-native-v1' : stairProgram != null ? 'kanto-stair-local-fresh-v1' : routedDoorProgram != null
-            ? 'kanto-routed-door-local-fresh-v1'
-            : staticTransfer
-                ? 'kanto-static-transfer-fresh-v1'
-                : 'kanto-original-door-fresh-v1',
-        'sourcePluginContext': 'exactCompiledPluginsWithFreshEmptyFollowers',
+        if (elevatorProgram != null) ...{
+          'elevatorProgram': elevatorProgram.toJson(),
+          'elevatorForcedRouteActorClosure': {
+            'sourceMapId': elevatorProgram.sourceMapId,
+            'allowedEventActors': elevatorProgram.sourceActorIds.toList()
+              ..sort(),
+            'scope': 'completeDeclaredElevatorFamily',
+            'storedStationaryRoutes': 'dormantUnlessExplicitlyForced',
+            'storedRouteOracle': '044:918-931',
+            'sourceGlobalBarrierOracle': '033:106-114'
+          }
+        },
+        'sourceContextProfile': holeProgram != null
+            ? 'declared-hole-native-local-fresh-v1'
+            : elevatorProgram != null
+                ? 'declared-complete-elevator-family-native-v1'
+                : stairProgram != null
+                    ? 'declared-stair-local-fresh-v1'
+                    : routedDoorProgram != null
+                        ? 'declared-routed-door-local-fresh-v1'
+                        : staticTransfer
+                            ? 'declared-static-transfer-fresh-v1'
+                            : 'declared-original-door-fresh-v1',
+        'sourcePluginContext': 'freshEmptyPluginArchiveAndNoPluginFiles',
         'pluginInventoryHash': pluginInventoryHash.value,
         'commonEvents': 'manualOnly',
-        'parallelEvents': dormancy == null
-            ? 'noneOnRepresentedMaps'
-            : 'wholeEventQuarantinedWithClosedNativeWriterSet',
-        if (dormancy != null) 'parallelDormancy': dormancy.toJson(),
+        'parallelEvents': 'wholeEventQuarantinedWithClosedNativeWriterSet',
+        'parallelDormancy': dormancy.toJson(),
         'sourceMapExecutionScope': {
           'activeSourceMapIds': activeMapIds.toList()..sort(),
           'retainedOnlySourceMapIds': retainedMapIds.toList()..sort(),
           'attestedSourceMapIds': attestedMapIds.toList()..sort(),
           'retention': 'directNeighboursOfActiveMapsFromFreshSourceHistory',
         },
-        'mapAutonomyAudit': localTransfer
-            ? {
-                'profile': 'kanto-static-transfer-local-autonomy-v1',
-                'pages': autonomy,
-                'automaticCommonEvents': 'refused',
-                'parallelEvents': 'refusedUnlessExistingClosedDormancyProof',
-                'customRouteCodes': [0, 1, 2, 3, 4, 16, 17, 18, 19, 24],
-                'customRouteScripts': 'refused',
-                'autoruns':
-                    'serialMainInterpreterCannotOverlapExecutingStaticProgram',
-                'globalRouteBarrier': routedDoorProgram == null && stairProgram == null && elevatorProgram == null
-                    ? 'notUsedByAttestedProgram'
-                    : 'exactProgramLocalNativeActorClosure',
-                'ambientMovementParityQualified': false,
-              }
-            : {
-                'profile': 'kanto-attested-map-fresh-door-autonomy-v2',
-                'observationSha256':
-                    '1f704997de836250169e7d01f1b19fb212f38caa05330916465eb1a0cc41bc38',
-                'mapHashes': {
-                  for (final id in attestedMapIds.toList()..sort())
-                    '$id': _mapExecutionAuditHashes[id]
-                },
-                'customPatrolScript45Count': 0,
-                'customPatrolCodes': [0, 1, 2, 3, 4, 17, 19, 24],
-                'unrepresentedAutoruns':
-                    'serialMainInterpreterWithKnownFreshConditionalGuards',
-              },
+        'mapAutonomyAudit': {
+          'profile': 'declared-fresh-local-autonomy-v1',
+          'pages': autonomy,
+          'automaticCommonEvents': 'refused',
+          'parallelEvents': 'refusedUnlessClosedDormancyProof',
+          'customRouteCodes': [0, 1, 2, 3, 4, 16, 17, 18, 19, 24],
+          'customRouteScripts': 'refused',
+          'autoruns': 'serialMainInterpreterCannotOverlapExecutingProgram',
+          'globalRouteBarrier': routedDoorProgram == null &&
+                  stairProgram == null &&
+                  elevatorProgram == null
+              ? 'notUsedByAttestedProgram'
+              : 'exactProgramLocalNativeActorClosure',
+          'ambientMovementParityQualified': false,
+        },
         'witnesses': witnesses,
         'oracle': {
           'freshState': '027:76-80;031:39-57',
@@ -785,8 +895,10 @@ final class SourceEventExecutionContextResolver {
         staticDoorIdentity: staticDoorProgram?.eventIdentity,
         routedDoorIdentity: routedDoorProgram?.eventIdentity,
         routedSourceMapId: routedDoorProgram?.sourceMapId,
-        elevatorIdentity: elevatorProgram?.eventIdentity, elevatorSourceMapId: elevatorProgram?.sourceMapId,
-        stairIdentity: stairProgram?.eventIdentity, stairSourceMapId: stairProgram?.sourceMapId,
+        elevatorIdentity: elevatorProgram?.eventIdentity,
+        elevatorSourceMapId: elevatorProgram?.sourceMapId,
+        stairIdentity: stairProgram?.eventIdentity,
+        stairSourceMapId: stairProgram?.sourceMapId,
         stairTargetMapId: stairProgram?.targetSourceMapId,
         mapIds: {
           for (final entry in nativeMaps.entries) entry.key: entry.value.id
@@ -794,8 +906,8 @@ final class SourceEventExecutionContextResolver {
         mapHashes: nativeMapHashes ??
             {
               for (final entry in nativeMaps.entries)
-                entry.key:
-                    canonicalHashOf(jsonDecode(jsonEncode(entry.value.toJson())))
+                entry.key: canonicalHashOf(
+                    jsonDecode(jsonEncode(entry.value.toJson())))
             },
         refusals: refusals.toList()..sort(),
         proof: proof);
@@ -918,6 +1030,21 @@ bool _commonEventsAreManual(List<int> bytes) {
           document.node(triggers.single.value).kind == MarshalKind.integer &&
           document.node(triggers.single.value).integerValue == BigInt.zero;
     });
+  } on BinaryDecodeError {
+    return false;
+  }
+}
+
+bool _emptyPluginArchive(List<int> bytes) {
+  try {
+    final document = const MarshalDecoder()
+        .decode(bytes, sourcePath: 'Data/PluginScripts.rxdata');
+    final root = document.node(document.rootId);
+    return root.kind == MarshalKind.array &&
+        root.elements.isEmpty &&
+        root.extensions.isEmpty &&
+        root.userClass == null &&
+        root.instanceVariables.isEmpty;
   } on BinaryDecodeError {
     return false;
   }

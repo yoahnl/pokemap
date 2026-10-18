@@ -15,6 +15,9 @@ final class SourceCenterRecoveryBinding {
     required this.normalizationHash,
     required this.profileHash,
     required this.audioFile,
+    required this.eventIdentity,
+    required this.waitTicks,
+    required this.volume,
     required this.mediaId,
     required this.artifact,
     required this.mutation,
@@ -23,6 +26,8 @@ final class SourceCenterRecoveryBinding {
 
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash;
   final SourceFileEntry audioFile;
+  final ConverterId eventIdentity;
+  final int waitTicks, volume;
   final String mediaId;
   final NativeArtifact artifact;
   final NativeMutation mutation;
@@ -44,11 +49,11 @@ final class SourceCenterRecoveryBinding {
       DialogueLineFeedback(
         segments: line.segments,
         revealIntervalMicros: line.revealIntervalMicros,
-        advance: DialogueLineAdvancePolicy.autoAfterReveal(2900000),
+        advance: DialogueLineAdvancePolicy.autoAfterReveal(waitTicks * 50000),
         audioCue: DialogueAudioCue(
             mediaAssetId: mediaId,
             cueId: cueId,
-            volume: 0.8,
+            volume: volume / 100,
             role: DialogueAudioCueRole.musicEffect,
             bgmInterruption:
                 DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 0)),
@@ -61,6 +66,8 @@ final class SourceCenterRecoveryResolver {
   Future<SourceCenterRecoveryBinding> read({
     required NormalizedSourceProject source,
     required SourceFilePort files,
+    required int sourceMapId,
+    required int sourceEventId,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -73,7 +80,7 @@ final class SourceCenterRecoveryResolver {
     }
     final nurse = SourceEventAnalyzer.forProject(source, profile: profile)
         .analyze()
-        .eventAt(102, 2);
+        .eventAt(sourceMapId, sourceEventId);
     if (nurse == null ||
         nurse.isQuarantined ||
         nurse.pages.length != 2 ||
@@ -84,8 +91,18 @@ final class SourceCenterRecoveryResolver {
       throw const SourceCenterRecoveryBindingUnavailable(
           'source_program_unqualified');
     }
-    const name = 'FRLG Misc - Pokemon Recovery (Pokemon Recovery)';
-    const base = 'Audio/ME/$name';
+    final programs = nurse.pages.map((page) => page.body.nodes.single as SourceCenterServiceProgramNode).toList();
+    final names = programs.map((program) => program.recoveryMusicName).toSet();
+    final waits = programs.map((program) => program.recoveryWaitTicks).toSet();
+    final volumes = programs.map((program) => program.recoveryMusicVolume).toSet();
+    if (names.length != 1 || names.single == null || waits.length != 1 || waits.single == null || volumes.length != 1 || volumes.single == null || programs.any((p) => p.recoveryMusicPitch != 100)) {
+      throw const SourceCenterRecoveryBindingUnavailable('source_music_unsupported');
+    }
+    final name = names.single!;
+    if (name.isEmpty || name.contains('/') || name.contains('\\') || name == '..') {
+      throw const SourceCenterRecoveryBindingUnavailable('source_music_path_invalid');
+    }
+    final base = 'Audio/ME/$name';
     final matches = source.snapshot.entries.where((entry) {
       final key = sourcePathCollisionKey(entry.relativePath);
       final expected = sourcePathCollisionKey(base);
@@ -158,6 +175,9 @@ final class SourceCenterRecoveryResolver {
         normalizationHash: source.canonicalHash,
         profileHash: profile.canonicalHash,
         audioFile: audio,
+        eventIdentity: nurse.identity,
+        waitTicks: waits.single!,
+        volume: volumes.single!,
         mediaId: mediaId,
         artifact: artifact,
         mutation: mutation,
@@ -173,15 +193,15 @@ final class SourceCenterRecoveryResolver {
                   .toJson()
           ],
           'sourceOpcode': 249,
-          'sourceVolume': 100,
+          'sourceVolume': volumes.single,
           'sourcePitch': 100,
-          'sourceWaitTicks': 58,
+          'sourceWaitTicks': waits.single,
           'sourceTicksPerSecond': 20,
-          'nativeFeedbackAdvanceDelayMicros': 2900000,
+          'nativeFeedbackAdvanceDelayMicros': waits.single! * 50000,
           'nativeRecoveryCueWithFirstCompletionLine': true,
           'sourceSilentWaitBeforeCompletionParityQualified': false,
           'nativeAudioRole': 'musicEffect',
-          'nativeAudioGain': 0.8,
+          'nativeAudioGain': volumes.single! / 100,
           'sourceAudioGainParityQualified': false,
           'sourceNurseAndBallAnimationParityQualified': false,
           'sourceScriptsExecuted': 0,
