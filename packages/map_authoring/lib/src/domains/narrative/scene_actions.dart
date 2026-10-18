@@ -285,6 +285,14 @@ final class SceneActions {
           'forms': 'deduplicateNationalNumber',
           'unresolvedSpecies': 'refuse',
         },
+        'trainerDefeated': {
+          'sourceKind': 'trainerDefeated',
+          'sourceId': 'projectTrainerId',
+          'operators': ['isTrue', 'isFalse'],
+          'runtimeSource': 'storyFlags.activeFlags:trainer_defeated:<trainerId>',
+          'projectDimensions': ['twoD', 'threeD'],
+          'staticEncounters': 'refused',
+        },
         'playerFacing': {
           'sourceKind': 'playerFacing',
           'sourceId': ['north', 'south', 'east', 'west'],

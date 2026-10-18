@@ -6,6 +6,7 @@ import '../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
+import '../application/scene_runtime/scene_trainer_defeated_condition.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/scene_runtime/scene_interactive_pokemon_gift.dart';
 
@@ -67,6 +68,10 @@ final class SpatialSceneCallbacks
     final source = intent.conditionSource;
     if (source == null) throw StateError('The Scene condition is missing.');
     final state = readGameState();
+    if (source.sourceKind == SceneConditionSourceKind.trainerDefeated) {
+      return evaluateSceneTrainerDefeatedCondition(source: source, gameState: state)
+          ? 'true' : 'false';
+    }
     if (source.sourceKind == SceneConditionSourceKind.badge) {
       return evaluateSceneBadgeCondition(source: source, gameState: state)
           ? 'true'

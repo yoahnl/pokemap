@@ -25,6 +25,7 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     'storyStepCompletion': 'Étape d’histoire',
     'consumedEvent': 'Interaction déjà jouée',
     'playerFacing': 'Orientation du joueur',
+    'trainerDefeated': 'Dresseur vaincu',
     'pokedexCaughtCount': 'Pokédex : espèces capturées',
   };
   static const operators = {
@@ -108,6 +109,13 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
       'south': 'Sud',
       'east': 'Est',
       'west': 'Ouest',
+    },
+    'trainerDefeated' => {
+      for (final battle in buildBattlePublicContracts(widget.project))
+        if (battle.battleKind == BattlePublicContractKind.trainer &&
+            battle.status == LinkedAssetContractStatus.available &&
+            widget.project.trainers.where((trainer) => trainer.id == battle.trainerId).length == 1)
+          battle.trainerId: battle.label,
     },
     'fact' => {for (final value in widget.project.facts) value.id: value.label},
     'storyStepCompletion' => {
@@ -338,6 +346,8 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
                 ? 'État de l’étape'
                 : _family == 'playerFacing'
                 ? 'Regarde dans cette direction'
+                : _family == 'trainerDefeated'
+                ? 'Dresseur déjà vaincu'
                 : 'Déjà jouée',
             value: '$_boolean',
             options: _family == 'storyStepCompletion'

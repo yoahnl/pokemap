@@ -95,6 +95,7 @@ import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
+import '../../application/scene_runtime/scene_trainer_defeated_condition.dart';
 import '../../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
 import '../../application/scene_runtime/scene_sound_effect_playback_port.dart';
 import '../../application/scene_runtime/scene_world_tone_controller.dart';
@@ -13636,6 +13637,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           )
           ? 'true'
           : 'false';
+    }
+
+    if (source.sourceKind == SceneConditionSourceKind.trainerDefeated) {
+      return evaluateSceneTrainerDefeatedCondition(source: source, gameState: gameState)
+          ? 'true' : 'false';
     }
 
     if (source.sourceKind == SceneConditionSourceKind.playerFacing) {

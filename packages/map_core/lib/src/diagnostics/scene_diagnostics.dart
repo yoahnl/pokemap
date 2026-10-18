@@ -40,6 +40,7 @@ enum SceneDiagnosticCode {
   conditionFactRefUnknown,
   conditionMapEntityRefUnknown,
   conditionBadgeRefUnknown,
+  conditionTrainerRefUnknown,
   conditionWorldRuleRefUnknown,
   conditionUnsupportedDimension,
   consequenceUnknownFact,
@@ -680,6 +681,20 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               suggestedFixLabel: 'Choisir un Fact existant dans la registry.',
             ),
           );
+        }
+        if (source.sourceKind == SceneConditionSourceKind.trainerDefeated &&
+            (project.trainers.where((trainer) => trainer.id == source.sourceId).length != 1 ||
+             contracts.battles.where((battle) =>
+                 battle.trainerId == source.sourceId &&
+                 battle.battleKind == BattlePublicContractKind.trainer &&
+                 battle.status == LinkedAssetContractStatus.available).length != 1)) {
+          diagnostics.add(SceneDiagnostic(
+            code: SceneDiagnosticCode.conditionTrainerRefUnknown,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La condition doit référencer un dresseur unique du projet, hors rencontre statique.',
+            sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un dresseur existant.',
+          ));
         }
         if (source.sourceKind == SceneConditionSourceKind.badge &&
             !badgeIds.contains(source.sourceId)) {
@@ -2239,10 +2254,10 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.storyStepCompletion ||
     SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.badge ||
+    SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.consumedEvent => true,
     SceneConditionSourceKind.storyStepActive ||
     SceneConditionSourceKind.partyState ||
-    SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
@@ -2275,12 +2290,12 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
           source.operator == SceneConditionOperator.isFalse,
     SceneConditionSourceKind.storyStepCompletion =>
       source.operator == SceneConditionOperator.equals,
+    SceneConditionSourceKind.trainerDefeated => source.trainerDefeatedExpected != null,
     SceneConditionSourceKind.badge => source.badgeOwnershipExpected != null,
     SceneConditionSourceKind.inventoryItem =>
       source.inventoryQuantityThreshold != null,
     SceneConditionSourceKind.storyStepActive ||
     SceneConditionSourceKind.partyState ||
-    SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||

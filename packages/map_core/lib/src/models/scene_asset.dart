@@ -107,6 +107,13 @@ final class SceneConditionSource {
     this.mapId,
     this.key,
   }) {
+    if (sourceKind == SceneConditionSourceKind.trainerDefeated &&
+        (sourceId.isEmpty || sourceId.trim() != sourceId ||
+         operator == SceneConditionOperator.equals || field != null ||
+         value != null || mapId != null || key != null ||
+         factOperator != null || expectedFactValue != null)) {
+      throw ArgumentError('Trainer victory conditions require a canonical trainer ID and boolean operator.');
+    }
     _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
     if (sourceKind == SceneConditionSourceKind.pokedexCaughtCount &&
         (PokedexSpeciesRange.tryFromKey(sourceId) == null ||
@@ -217,6 +224,24 @@ final class SceneConditionSource {
         throw FormatException(error.message?.toString() ?? 'Invalid Pokédex count condition.');
       }
     }
+    if (kind == SceneConditionSourceKind.trainerDefeated) {
+      const fields = {'sourceKind', 'sourceId', 'operator', 'label', 'debugTechnicalLabel'};
+      final id = json['sourceId'];
+      if (json.keys.any((field) => !fields.contains(field)) ||
+          id is! String || id.isEmpty || id.trim() != id) {
+        throw const FormatException('Trainer victory conditions require a canonical trainer ID without incompatible fields.');
+      }
+      try {
+        return SceneConditionSource(
+          sourceKind: kind, sourceId: id,
+          operator: _readEnum(SceneConditionOperator.values, json['operator'], 'conditionSource.operator'),
+          label: _readOptionalString(json, 'label'),
+          debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
+        );
+      } on ArgumentError catch (error) {
+        throw FormatException(error.message?.toString() ?? 'Invalid trainer victory condition.');
+      }
+    }
     if (kind == SceneConditionSourceKind.playerFacing) {
       const fields = {'sourceKind', 'sourceId', 'operator', 'label',
         'debugTechnicalLabel'};
@@ -308,6 +333,23 @@ final class SceneConditionSource {
 
   int? get pokedexMinimumCaughtCount =>
       sourceKind == SceneConditionSourceKind.pokedexCaughtCount ? int.tryParse(value ?? '') : null;
+
+  factory SceneConditionSource.trainerDefeated({
+    required String trainerId,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.trainerDefeated,
+    sourceId: trainerId,
+    operator: expected ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  bool? get trainerDefeatedExpected =>
+      sourceKind == SceneConditionSourceKind.trainerDefeated
+          ? operator == SceneConditionOperator.isTrue : null;
 
   factory SceneConditionSource.playerFacing({
     required EntityFacing direction,

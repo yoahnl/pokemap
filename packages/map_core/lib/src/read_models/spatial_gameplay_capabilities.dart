@@ -48,6 +48,7 @@ abstract final class SpatialGameplayCapabilities {
     CinematicTimelineStepKind.marker,
   };
   static const conditionSources = <SceneConditionSourceKind>{
+    SceneConditionSourceKind.trainerDefeated,
     SceneConditionSourceKind.badge,
     SceneConditionSourceKind.inventoryItem,
     SceneConditionSourceKind.fact,

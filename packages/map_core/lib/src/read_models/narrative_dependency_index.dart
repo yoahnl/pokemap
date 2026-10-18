@@ -2629,6 +2629,9 @@ final class _NarrativeDependencyIndexBuilder {
       return;
     }
     final target = switch (source.sourceKind) {
+      SceneConditionSourceKind.trainerDefeated => NarrativeDependencyKey.synthetic(
+        sourceKind: 'battle', sourceId: 'trainer:${source.sourceId}',
+      ),
       SceneConditionSourceKind.badge => NarrativeDependencyKey(
         NarrativeDependencyTargetKind.badge,
         source.sourceId,
@@ -2665,6 +2668,7 @@ final class _NarrativeDependencyIndexBuilder {
       ),
     };
     final usesCanonicalResolution =
+        source.sourceKind == SceneConditionSourceKind.trainerDefeated ||
         source.sourceKind == SceneConditionSourceKind.badge ||
         source.sourceKind == SceneConditionSourceKind.inventoryItem ||
         source.sourceKind == SceneConditionSourceKind.fact ||
