@@ -368,6 +368,32 @@ final class NativeMutation {
       };
 }
 
+void _validateNativeDraftCollectionBudget({
+  required int mapCount,
+  required List<NativeMutation> mutations,
+  required Map<String, Object?> compositionEvidence,
+  required NativeWriteLimits limits,
+}) {
+  final logicalMutations = nativeLogicalMutationCount(mutations);
+  if (mapCount <= limits.maxMaps && logicalMutations <= limits.maxMutations) {
+    return;
+  }
+  final inferredStage = const [
+    'assetLibrary',
+    'sourceCatalogs',
+    'sourceEvents',
+    'sourceSemantics',
+    'composition',
+  ].firstWhere(compositionEvidence.containsKey, orElse: () => 'unspecified');
+  throw NativeWriteException(
+    'native.quota.draft',
+    'Draft map or mutation budget exceeded: inferredStage=$inferredStage, '
+    'maps=$mapCount/${limits.maxMaps}, '
+    'logicalMutations=$logicalMutations/${limits.maxMutations}, '
+    'mutationEnvelopes=${mutations.length}',
+  );
+}
+
 final class NativeProjectDraft {
   factory NativeProjectDraft({
     required NormalizedSourceProject source,
@@ -387,11 +413,8 @@ final class NativeProjectDraft {
     limits._validate();
     validateNativeArtifactCount(
         artifacts: artifacts, sourceArtifacts: sourceArtifacts, limits: limits);
-    if (mapIds.length > limits.maxMaps ||
-        nativeLogicalMutationCount(mutations) > limits.maxMutations) {
-      throw const NativeWriteException(
-          'native.quota.draft', 'Draft map or mutation budget exceeded');
-    }
+    _validateNativeDraftCollectionBudget(mapCount: mapIds.length,
+        mutations: mutations, compositionEvidence: compositionEvidence, limits: limits);
     var total = 0;
     for (final artifact in [...artifacts, ...sourceArtifacts]) {
       total += artifact.bytes.length;
@@ -556,11 +579,9 @@ void _validateNativeDraftBinding(
     NativeProjectDraft draft, NativeWriteLimits limits) {
   validateNativeArtifactCount(artifacts: draft.artifacts,
       sourceArtifacts: draft.sourceArtifacts, limits: limits);
-  if (nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
-      draft.mapIds.length > limits.maxMaps) {
-    throw const NativeWriteException(
-        'native.quota.draft', 'Draft collection budget exceeded');
-  }
+  _validateNativeDraftCollectionBudget(mapCount: draft.mapIds.length,
+      mutations: draft.mutations, compositionEvidence: draft.compositionEvidence,
+      limits: limits);
   final metadata = Map<String, Object?>.from(draft._binding)
     ..remove('compositionEvidenceHash')
     ..remove('mutationHashes');
@@ -1193,11 +1214,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   validateNativeArtifactCount(artifacts: draft.artifacts,
       sourceArtifacts: draft.sourceArtifacts, limits: limits);
-  if (nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
-      draft.mapIds.length > limits.maxMaps) {
-    throw const NativeWriteException(
-        'native.quota.draft', 'Draft collection budget exceeded');
-  }
+  _validateNativeDraftCollectionBudget(mapCount: draft.mapIds.length,
+      mutations: draft.mutations, compositionEvidence: draft.compositionEvidence,
+      limits: limits);
   _validateNativeDraftBinding(draft, limits);
   final wantedMaps = {
     ...plan.selectedSourceMapIds,
