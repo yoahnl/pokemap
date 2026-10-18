@@ -6,7 +6,6 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -127,6 +126,154 @@ List<int> _paintOriginalAtlasPixel(MapData map, image.Image atlas, int cell,
 }
 
 void main() {
+  test(
+      'local palettes contain only each layer source tiles with exact shared references',
+      () async {
+    final maps = [
+      LiteralFixtureMap(id: 1, layers: [
+        [391, 0, 391],
+        [48, 384, 0],
+        [0, 0, 0]
+      ]),
+      LiteralFixtureMap(id: 8, layers: [
+        [392, 392, 0],
+        [0, 49, 0],
+        [0, 0, 393]
+      ])
+    ];
+    final scriptsPath = Platform.environment['AVELUNE_AUTOTILE_SCRIPTS_PATH'];
+    final scriptsBytes =
+        scriptsPath == null ? null : await File(scriptsPath).readAsBytes();
+    final water =
+        OriginalAutotileFixture.simple(frameCount: scriptsPath == null ? 1 : 3);
+    Future<LiteralTileFixture> fixture({bool reverse = false}) =>
+        LiteralTileFixture.create(
+          maps: maps,
+          scriptsBytes: scriptsBytes,
+          tilesets: [
+            LiteralFixtureTileset(
+                id: 1,
+                autotileNames: ['OriginalWater'],
+                passages: {391: 7},
+                priorities: {392: 2},
+                terrainTags: {391: 1})
+          ],
+          reverseManifest: reverse,
+          autotilePngs: {'OriginalWater': water.pngBytes},
+        );
+    final original = await fixture();
+    final result = await _compose(original, selected: [8, 1]);
+    final repeated =
+        await _compose(await fixture(reverse: true), selected: [1, 8]);
+    expect(result.canWrite, isTrue,
+        reason: result.diagnostics.map((d) => d.toJson()).toString());
+    expect(result.compositionHash, repeated.compositionHash);
+    for (final sourceMap in maps) {
+      for (var z = 0; z < 3; z++) {
+        final sourceCells = sourceMap.layers[z];
+        final ids = sourceCells.where((tile) => tile != 0).toSet().toList()
+          ..sort();
+        final native = _layerFor(result, sourceMap.id, z);
+        expect(native.palette, hasLength(ids.length));
+        expect(native.cells.toSet().difference({0}),
+            {for (var i = 1; i <= ids.length; i++) i});
+        for (var index = 0; index < sourceCells.length; index++) {
+          final tile = sourceCells[index];
+          if (tile == 0) {
+            expect(native.cells[index], 0);
+            continue;
+          }
+          expect(native.cells[index], ids.indexOf(tile) + 1);
+          final crop = result.crops.singleWhere((c) => c.sourceTileId == tile);
+          expect(
+              native.palette[native.cells[index] - 1],
+              TileLayerPaletteEntry(
+                  tilesetId: crop.nativeTilesetId,
+                  localTileId: crop.nativeLocalTileId));
+          expect(crop.nativeLocalTileId, tile < 384 ? tile % 48 : tile - 384);
+        }
+      }
+    }
+    final imports = result.draft!.mutations
+        .where((m) => m.actionId == 'tileset.import_image');
+    expect(imports, hasLength(2));
+    expect(imports.map((m) => m.parameters['tilesetId']).toSet(),
+        {result.tilesetIds[1], result.autotiles.single.nativeTilesetId});
+    final regular = result.draft!.artifacts.singleWhere((a) =>
+        a.rawSha256 ==
+        literalFixtureHash(
+            original.sourceBytes['Graphics/Tilesets/OriginalAtlas1.png']!));
+    expect(regular.bytes,
+        original.sourceBytes['Graphics/Tilesets/OriginalAtlas1.png']);
+    expect(
+        result.autotiles.single.tileAnimations.isNotEmpty, scriptsPath != null);
+    final ledge = result.crops.singleWhere((c) => c.sourceTileId == 391);
+    expect((ledge.passage, ledge.priority, ledge.terrainTag), (7, 0, 1));
+    expect(result.crops.singleWhere((c) => c.sourceTileId == 392).priority, 2);
+    expect(result.crops.every((c) => !c.toJson().containsKey('paletteCell')),
+        isTrue);
+    expect(result.draft!.compositionEvidence['version'], 2);
+  });
+
+  test(
+      'local palette map save envelopes stay below one MiB after global palette amplification',
+      () async {
+    const count = 2000;
+    final atlas = image.Image(width: 256, height: 16000, numChannels: 4);
+    final fixture = await LiteralTileFixture.create(
+      maps: [
+        for (var id = 1; id <= 2; id++)
+          LiteralFixtureMap(id: id, width: 50, height: 40, layers: [
+            List.generate(count, (i) => 384 + (id - 1) * count + i),
+            List.filled(count, 0),
+            List.filled(count, 0)
+          ])
+      ],
+      tilesets: [
+        LiteralFixtureTileset(
+            id: 1, metadataTileCount: 4384, png: image.encodePng(atlas))
+      ],
+    );
+    final result = await _compose(fixture, selected: [1, 2]);
+    expect(result.canWrite, isTrue);
+    int envelopeBytes(
+            Map<String, Object?> parameters, NativeMutation mutation) =>
+        utf8
+            .encode(canonicalAuthoringJson(AuthoringRequest(
+              requestId: '${List.filled(256, 'r').join()}:native:32767',
+              actionId: mutation.actionId,
+              actionVersion: mutation.actionVersion,
+              workspaceHandle: List.filled(256, 'w').join(),
+              expectedRevision: List.filled(256, 'e').join(),
+              idempotencyKey: mutation.operationId.value,
+              parameters: parameters,
+            ).toJson()))
+            .length;
+    final globalPalette = [
+      for (final crop in result.crops)
+        TileLayerPaletteEntry(
+            tilesetId: crop.nativeTilesetId,
+            localTileId: crop.nativeLocalTileId)
+    ];
+    for (final mutation
+        in result.draft!.mutations.where((m) => m.actionId == 'map.save')) {
+      final map = MapData.fromJson(
+          Map<String, dynamic>.from(mutation.parameters['map'] as Map));
+      final oldShape = map.copyWith(layers: [
+        for (final layer in map.layers.cast<TileLayer>())
+          layer.copyWith(palette: globalPalette, cells: [
+            for (final cell in layer.cells)
+              cell == 0 ? 0 : globalPalette.indexOf(layer.palette[cell - 1]) + 1
+          ])
+      ]);
+      final before = envelopeBytes({'map': oldShape.toJson()}, mutation);
+      final after = envelopeBytes(mutation.parameters, mutation);
+      expect(before, greaterThan(1048576));
+      expect(after, lessThan(1048576));
+      expect(after, lessThan(before ~/ 4));
+    }
+  });
+
   test('split image budget admits two logical atlases below the separate total',
       () async {
     final fixture = await LiteralTileFixture.create(
@@ -1189,7 +1336,12 @@ void main() {
     }
   });
 
-  for (final contradiction in ['mapIds', 'tilesetIds', 'sourceArchiveHash']) {
+  for (final contradiction in [
+    'version',
+    'mapIds',
+    'tilesetIds',
+    'sourceArchiveHash'
+  ]) {
     test(
         'recomputed contradictory $contradiction provenance refuses a freshly admitted plan',
         () async {
@@ -1203,6 +1355,9 @@ void main() {
                 as Map<String, dynamic>;
         final record = evidence['composition'] as Map<String, dynamic>;
         switch (contradiction) {
+          case 'version':
+            evidence['version'] = 1;
+            record['version'] = 1;
           case 'mapIds':
             (record['mapIds'] as Map)['1'] = 'false_mapping';
           case 'tilesetIds':
@@ -1224,7 +1379,7 @@ void main() {
             throwsA(isA<NativeWriteException>().having(
                 (error) => error.code,
                 'code',
-                contradiction == 'sourceArchiveHash'
+                const {'version', 'sourceArchiveHash'}.contains(contradiction)
                     ? 'native.composition.evidence'
                     : 'native.composition.contents')));
         expect(stages, isNot(contains(NativeWriteStage.stageCreated)));

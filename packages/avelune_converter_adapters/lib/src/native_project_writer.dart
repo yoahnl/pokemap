@@ -3007,13 +3007,13 @@ void _verifyLiteralCompositionBinding(
           raw is! Map<String, Object?> ||
           raw['playableCertified'] != false)) {
     throw const NativeWriteException('native.composition.mode',
-        'Literal tile composition v1 is an uncertified study staging project');
+        'Literal tile composition v2 is an uncertified study staging project');
   }
   if (evidence['kind'] != 'literalTileComposition' ||
-      evidence['version'] != 1 ||
+      evidence['version'] != 2 ||
       raw is! Map<String, Object?> ||
       raw['kind'] != 'literalTileComposition' ||
-      raw['version'] != 1 ||
+      raw['version'] != 2 ||
       evidence['compositionHash'] !=
           canonicalHashOf(raw, limits: limits.jsonLimits).value ||
       raw['sourceSnapshotHash'] != plan.sourceSnapshotHash.value ||

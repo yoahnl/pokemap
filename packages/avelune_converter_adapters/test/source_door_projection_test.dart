@@ -242,7 +242,7 @@ NativeProjectDraft _freshBase(
         ],
         compositionEvidence: {
           'kind': 'literalTileComposition',
-          'version': 1,
+          'version': 2,
           'compositionHash':
               canonicalHashOf({'kind': 'freshContextFixture'}).value,
           'composition': {'kind': 'freshContextFixture'},

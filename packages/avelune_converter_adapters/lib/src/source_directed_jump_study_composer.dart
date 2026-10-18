@@ -471,7 +471,7 @@ final class SourceDirectedJumpStudyComposer {
     var borderResources = SourceBorderReplayResources();
     final evidence = <String, Object?>{
       'kind': 'sourceDirectedJumpStudy',
-      'version': 2,
+      'version': 3,
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
       'normalizedSourceHash': source.canonicalHash.value,
       'sourceProfile': resolver.profile.toJson(),
@@ -641,16 +641,27 @@ final class SourceDirectedJumpStudyComposer {
                 .whereType<TileLayer>()
                 .where((l) => l.id == provenance.nativeLayerId)
                 .toList();
+            final ownedLayer = base.nativeMaps[id]?.layers
+                .whereType<TileLayer>()
+                .where((l) => l.id == provenance.nativeLayerId)
+                .toList();
             final index = y * original.width + x;
+            final paletteCell =
+                layer.length == 1 && index < layer.single.cells.length
+                    ? layer.single.cells[index]
+                    : 0;
             if (layer.length != 1 ||
-                layer.single.cells[index] != crop.paletteCell ||
+                ownedLayer == null ||
+                ownedLayer.length != 1 ||
+                index >= ownedLayer.single.cells.length ||
+                paletteCell != ownedLayer.single.cells[index] ||
                 crop.priority != 0 ||
                 crop.terrainTag != 1 ||
                 crop.passage != 7 ||
                 crop.autotileSlot != null ||
-                crop.paletteCell <= 0 ||
-                crop.paletteCell > layer.single.palette.length ||
-                layer.single.palette[crop.paletteCell - 1] !=
+                paletteCell <= 0 ||
+                paletteCell > layer.single.palette.length ||
+                layer.single.palette[paletteCell - 1] !=
                     TileLayerPaletteEntry(
                         tilesetId: crop.nativeTilesetId,
                         localTileId: crop.nativeLocalTileId) ||

@@ -384,11 +384,11 @@ void main() {
               receipt.assetHashes.map((id, hash) => MapEntry(id, hash.value))
         }))).value;
         expect(unchangedDraftHash,
-            'a424dd6d4cadf31a7b9b62c6a07adbda30ecd51c7ef9d5a8e43a329b90413589',
+            '477aa52b3b59c990b8e0c183484a9ebd0fe435f358dac872615dbdf36df9bdd3',
             reason: 'Mutation contents, internal order, artifacts and evidence '
                 'match the compact occlusion atlas and grouped ledge fixture');
         expect(nativeHash,
-            '3cf9097d0af43d686b0745d8515f7cf7335fba2419f295df5b22859981cf6bd2',
+            'd10862b0d592205b1ae945cf544bfd0a44cc2c2d0c499ec6bd50ffba82a0fa1e',
             reason: 'Strictly reopened native resources match the packed atlas '
                 'and grouped ledge fixture');
         expect(draft.mutations.length, lessThan(51));

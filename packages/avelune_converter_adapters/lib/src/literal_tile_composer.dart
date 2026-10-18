@@ -90,7 +90,6 @@ final class LiteralTileCrop {
     required this.sourceTileId,
     required this.nativeTilesetId,
     required this.nativeLocalTileId,
-    required this.paletteCell,
     required this.imageFileId,
     required this.imageSha256,
     required this.x,
@@ -107,7 +106,6 @@ final class LiteralTileCrop {
   final int sourceTileId;
   final String nativeTilesetId;
   final int nativeLocalTileId;
-  final int paletteCell;
   final ConverterId imageFileId;
   final Sha256Hash imageSha256;
   final int x;
@@ -126,7 +124,6 @@ final class LiteralTileCrop {
         'sourceTileId': sourceTileId,
         'nativeTilesetId': nativeTilesetId,
         'nativeLocalTileId': nativeLocalTileId,
-        'paletteCell': paletteCell,
         'imageFileId': imageFileId.value,
         'imageSha256': imageSha256.value,
         'x': x,
@@ -980,25 +977,20 @@ final class _LiteralCompositionRun {
   }
 
   void composeMaps() {
-    final palettes = <int, List<TileLayerPaletteEntry>>{};
-    final paletteCells = <int, Map<int, int>>{};
+    final tileReferences = <int, Map<int, TileLayerPaletteEntry>>{};
     for (final id in usedTiles.keys.toList()..sort()) {
       final tileset = sourceTileset(id)!;
       final tileIds = usedTiles[id]!.toList()..sort();
       final atlas = atlasArtifacts[id]!;
       final nativeId = tilesetIds[id]!;
-      palettes[id] = List.unmodifiable([
+      tileReferences[id] = {
         for (final tile in tileIds)
-          tile >= 384
+          tile: tile >= 384
               ? TileLayerPaletteEntry(
                   tilesetId: nativeId, localTileId: tile - 384)
               : TileLayerPaletteEntry(
                   tilesetId: autotiles[(id, tile ~/ 48 - 1)]!.nativeTilesetId,
                   localTileId: tile % 48),
-      ]);
-      paletteCells[id] = {
-        for (var index = 0; index < tileIds.length; index++)
-          tileIds[index]: index + 1,
       };
       for (var index = 0; index < tileIds.length; index++) {
         final tile = tileIds[index];
@@ -1009,7 +1001,6 @@ final class _LiteralCompositionRun {
             sourceTileId: tile,
             nativeTilesetId: autotile?.nativeTilesetId ?? nativeId,
             nativeLocalTileId: localId,
-            paletteCell: index + 1,
             imageFileId: autotile?.sourceFileId ?? atlasEntries[id]!.fileId,
             imageSha256: autotile?.sourceFileHash ?? atlas.rawSha256,
             nativeImageSha256: autotile?.artifact.rawSha256,
@@ -1093,12 +1084,21 @@ final class _LiteralCompositionRun {
       final layers = <MapLayer>[];
       for (var z = 0; z < 3; z++) {
         final layerId = '${nativeId}_z$z';
-        final cells = List<int>.unmodifiable(input.cells[z].map((tile) =>
-            tile == 0 ? 0 : paletteCells[map.sourceTilesetId]![tile]!));
+        final tileIds =
+            input.cells[z].where((tile) => tile != 0).toSet().toList()..sort();
+        final paletteCells = {
+          for (var index = 0; index < tileIds.length; index++)
+            tileIds[index]: index + 1,
+        };
+        final cells = List<int>.unmodifiable(
+            input.cells[z].map((tile) => tile == 0 ? 0 : paletteCells[tile]!));
         layers.add(MapLayer.tile(
             id: layerId,
             name: 'Source Z $z',
-            palette: palettes[map.sourceTilesetId]!,
+            palette: [
+              for (final tile in tileIds)
+                tileReferences[map.sourceTilesetId]![tile]!,
+            ],
             cells: cells));
         provenance.add(LiteralLayerProvenance(
             sourceMapId: id,
@@ -1153,7 +1153,7 @@ final class _LiteralCompositionRun {
       ..sort((a, b) => a.handle.compareTo(b.handle));
     final record = {
       'kind': 'literalTileComposition',
-      'version': 1,
+      'version': 2,
       'sourceSnapshotHash': snapshotHash.value,
       'logicalProjectNamespace': source.snapshot.logicalProjectNamespace.value,
       'normalizedSourceHash': sourceHash.value,
@@ -1218,7 +1218,7 @@ final class _LiteralCompositionRun {
             mutations: mutations,
             compositionEvidence: {
               'kind': 'literalTileComposition',
-              'version': 1,
+              'version': 2,
               'compositionHash': hash.value,
               'composition': record
             },

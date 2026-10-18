@@ -417,7 +417,7 @@ final class SourceEventExecutionContextResolver {
       if (base.compositionEvidence.keys.any((key) =>
               const {'kind', 'version', 'compositionHash'}.contains(key)) &&
           (base.compositionEvidence['kind'] != 'literalTileComposition' ||
-              base.compositionEvidence['version'] != 1 ||
+              base.compositionEvidence['version'] != 2 ||
               composition is! Map ||
               base.compositionEvidence['compositionHash'] !=
                   (baseCompositionHash ??

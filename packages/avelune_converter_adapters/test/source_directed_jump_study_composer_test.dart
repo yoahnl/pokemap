@@ -165,6 +165,57 @@ void main() {
   void qualified(String name, Future<void> Function() body) =>
       test(name, body, skip: scripts == null);
   qualified(
+      'local ledge indices retain exact ownership away from the global first tile',
+      () async {
+    final f = await jumpFixture();
+    final layer = f.base.nativeMaps[98]!.layers
+        .whereType<TileLayer>()
+        .singleWhere((l) => l.name == 'Source Z 1');
+    expect(layer.cells.sublist(11, 14), [1, 2, 3]);
+    expect(layer.palette.map((p) => p.localTileId), [8, 9, 10]);
+    final result = await composeJump(f);
+    expect(result.evidence['importedJumpCount'], 3);
+    expect(result.evidence['version'], 3);
+  });
+  qualified(
+      'local ledge attestation rejects forged palette references and indices',
+      () async {
+    final f = await jumpFixture();
+    final map = f.base.nativeMaps[98]!;
+    final layer = map.layers
+        .whereType<TileLayer>()
+        .singleWhere((l) => l.name == 'Source Z 1');
+    final palette = layer.palette.toList();
+    final reference = palette[layer.cells[11] - 1];
+    final wrongTile = palette.toList()
+      ..[layer.cells[11] - 1] =
+          TileLayerPaletteEntry(tilesetId: reference.tilesetId, localTileId: 0);
+    final wrongTileset = palette.toList()
+      ..[layer.cells[11] - 1] = TileLayerPaletteEntry(
+          tilesetId: 'forged-atlas', localTileId: reference.localTileId);
+    final reordered = palette.reversed.toList();
+    final recoded =
+        layer.cells.map((c) => c == 0 ? 0 : palette.length - c + 1).toList();
+    for (final forged in [
+      layer.copyWith(palette: wrongTile),
+      layer.copyWith(palette: wrongTileset),
+      layer.copyWith(palette: reordered, cells: recoded),
+      for (final cell in [0, -1, palette.length + 1])
+        layer.copyWith(cells: layer.cells.toList()..[11] = cell),
+      layer.copyWith(cells: layer.cells.take(11).toList()),
+    ]) {
+      await expectLater(
+          composeJump(f, maps: {
+            98: map.copyWith(layers: [
+              for (final original in map.layers)
+                if (original.id == layer.id) forged else original
+            ])
+          }),
+          throwsA(isA<NativeWriteException>().having((e) => e.code, 'code',
+              anyOf('jumps.native_glyph', 'jumps.native_references'))));
+    }
+  });
+  qualified(
       'long mixed source ledges use actions per glyph without per-cell replacement',
       () async {
     final f = await jumpFixture(runLength: 60);
