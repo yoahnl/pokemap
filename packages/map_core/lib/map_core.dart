@@ -28,3 +28,4 @@ export 'src/models/pokedex_species_range.dart';
 export 'src/models/pokemon_trade_evolution.dart';
 export 'src/models/map_entity_healing_display.dart';
 export 'src/operations/map_healing_display.dart';
+export 'src/catalog_storage/catalog_storage.dart';

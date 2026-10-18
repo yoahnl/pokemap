@@ -1,6 +1,8 @@
 /// Local desktop composition surface for PokeMap authoring clients.
 library;
 
+export 'src/catalog_storage/catalog_storage_store.dart';
+
 export 'src/domains/distribution/game_package_export_profile_api.dart';
 export 'src/domains/distribution/game_package_export_profile_store.dart';
 
