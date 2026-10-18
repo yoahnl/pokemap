@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:avelune_converter_adapters/src/source_event_evidence.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -156,7 +158,13 @@ void main() {
         expect(proof['nativeMapId'], mapIds[154]);
         expect(proof['nativeTable'], table.toJson());
         expect(proof['nativeTableHash'], canonicalHashOf(table.toJson()).value);
-        expect(proof['qualification'], qualification.evidence);
+        expect(
+            proof['qualificationEvidenceHash'],
+            canonicalHashOf(qualification.evidence,
+                    limits: nativePsdkCatalogShardJsonLimits)
+                .value);
+        expect(proof.containsKey('qualification'), isFalse);
+        expect(proof['version'], 2);
         expect((proof['tableBinding'] as Map)['method'], 'RockSmash');
         expect(binding.toJson()['nativeExecutionQualified'], isFalse);
         expect(binding.toJson()['pendingCatalogCompanion'], isTrue);
@@ -425,11 +433,84 @@ void main() {
           .firstWhere((binding) => binding.pendingCatalogCompanion);
       final proof = binding.toJson()['nativeRockSmashEncounterBinding'] as Map;
       (proof['nativeTable'] as Map)['id'] = 'forged';
-      (proof['qualification'] as Map)['bundleSha256'] = 'forged';
+      proof['qualificationEvidenceHash'] = 'forged';
       final next = binding.toJson()['nativeRockSmashEncounterBinding'] as Map;
       expect((next['nativeTable'] as Map)['id'],
           binding.nativeRockSmashEncounterTableId);
-      expect(next['qualification'], qualification.evidence);
+      expect(
+          next['qualificationEvidenceHash'],
+          canonicalHashOf(qualification.evidence,
+                  limits: nativePsdkCatalogShardJsonLimits)
+              .value);
     });
+
+    test('84 distinct companion owners pack without copied world qualification',
+        () async {
+      final worldFiles = _Files(source,
+          [root!, scriptsRoot!, root.replaceFirst(' - Kanto', ' - Hoenn')]);
+      final pbs = await const SourcePbsParser()
+          .read(snapshot: source.snapshot, files: worldFiles);
+      final allMaps = source.snapshot.entries
+          .where((entry) =>
+              RegExp(r'^Data/Map\d+\.rxdata$').hasMatch(entry.relativePath))
+          .map((entry) => int.parse(
+              RegExp(r'Map(\d+)').firstMatch(entry.relativePath)!.group(1)!))
+          .toList();
+      final world = await NativeEncounterCatalogQualification.prepare(
+          snapshot: source.snapshot,
+          source: pbs,
+          files: worldFiles,
+          nativeCatalog: NativePsdkCatalogManifest.builtin(),
+          selectedSourceMapIds: allMaps);
+      expect(world.sourceMappings.length, greaterThan(100));
+      expect(world.wildCases.length, greaterThan(1000));
+      final fields =
+          await resolve(release: world, targets: mapIds, witnesses: worldFiles);
+      final originals = fields.byEventIdentity.values
+          .where((binding) => binding.pendingCatalogCompanion)
+          .toList();
+      expect(originals, isNotEmpty);
+      final requests = [
+        for (var i = 0; i < 84; i++)
+          originals[i % originals.length]
+              .catalogCompanionRequest('native-owner-$i')!
+      ];
+      expect(
+          requests
+              .map((request) => (request['parameters'] as Map)['entityId'])
+              .toSet(),
+          hasLength(84));
+      for (final request in requests) {
+        final proof = ((request['binding']
+            as Map)['nativeRockSmashEncounterBinding'] as Map);
+        expect(
+            proof['qualificationEvidenceHash'],
+            canonicalHashOf(world.evidence,
+                    limits: nativePsdkCatalogShardJsonLimits)
+                .value);
+        expect(proof.containsKey('qualification'), isFalse);
+      }
+      final payload = <String, Object?>{
+        'fieldObstacles': [for (final request in requests) request['binding']],
+        'fieldObstacleBindings': [
+          for (final request in requests) request['binding']
+        ],
+        'pendingCatalogCompanions': requests,
+      };
+      final limits = sourceCatalogStudyWriteLimitsFor(allMaps.length);
+      final packed = SourceEventEvidenceArtifacts.pack(payload, limits: limits);
+      final packedRoot = jsonDecode(utf8.decode(packed.root.bytes)) as Map;
+      final restored = packedRoot['kind'] == 'sourceEventProjectionChunks'
+          ? utf8.decode([
+                  for (final descriptor in packedRoot['chunks'] as List)
+                ...base64Decode((jsonDecode(utf8.decode(packed.chunks
+                    .singleWhere(
+                        (chunk) => chunk.handle == descriptor['artifactHandle'])
+                    .bytes)) as Map)['bytesBase64'] as String)
+            ])
+          : utf8.decode(packed.root.bytes);
+      expect(restored,
+          canonicalJsonOf(payload, limits: limits.artifactEvidenceJsonLimits));
+    }, timeout: const Timeout(Duration(minutes: 3)));
   }, skip: skip, timeout: const Timeout(Duration(minutes: 2)));
 }

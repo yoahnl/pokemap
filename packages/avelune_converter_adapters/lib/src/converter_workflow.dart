@@ -13,6 +13,7 @@ import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_catalog_study_composer.dart';
 import 'native_encounter_catalog_bindings.dart';
+import 'native_psdk_catalog.dart';
 import 'local_asset_proposer.dart';
 import 'supplemented_source_tree.dart';
 import 'native_project_writer.dart';
@@ -145,7 +146,8 @@ final class ConverterStudySettings {
     NativeWriteLimits? writeLimits,
   }) {
     writeLimits ??=
-        sourceCatalogStudyWriteLimitsFor(selectedSourceMapIds.length);
+        sourceCatalogStudyWriteLimitsFor(selectedSourceMapIds.length,
+            includeNativeCatalog: true);
     writeLimits.validate();
     _validateNormalizationLimits(normalizationLimits);
     _workflowPath(parentPath);
@@ -1634,10 +1636,10 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 outputMode: settings.assetOutputMode,
                 limits: settings.writeLimits,
                 cancellation: relay.cancellation);
-        final encounterCandidate = NativeEncounterCatalogQualification.builtinKantoV1();
-        final encounters = settings.selectedSourceMapIds.length <= 8 &&
-                encounterCandidate.admitsAutomaticSource(snapshot)
-            ? encounterCandidate : null;
+        final encounters = await NativeEncounterCatalogQualification.prepareAutomatic(
+            source: normalized, files: files,
+            selectedSourceMapIds: settings.selectedSourceMapIds,
+            cancellation: relay.cancellation);
         final semantic = await SourceSemanticStudyComposer(
             includeNativeSurfTraversal: encounters != null).compose(
             source: normalized,
@@ -2079,7 +2081,14 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 4,
+      'version': 5,
+      'nativeEncounters': {
+        'qualification': 'exact-source-full-pbs-selected-map-scope-v2',
+        'catalogManifestHash': NativePsdkCatalogManifest.builtinManifestHash,
+        'rockSmashProof': 'qualification-evidence-sha256-v2',
+        'defaultBudget': _writeLimitsJson(sourceCatalogStudyWriteLimitsFor(1,
+            includeNativeCatalog: true)),
+      },
       'atlasImageBindings': 'explicit-snapshot-file-sha256-v1',
       'converterVersion': _converterVersion,
       'sourceFormat': 'rmxp-marshal-4.8',

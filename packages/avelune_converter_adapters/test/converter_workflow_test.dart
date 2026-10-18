@@ -13,8 +13,140 @@ import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
 import 'support/original_autotile_fixture.dart';
 import 'support/source_map_music_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 
 void main() {
+  test(
+      'native catalog rules invalidate the former one-map recipe before reading source',
+      () async {
+    const oldRules =
+        'dc428ce48e94f7c62cac4af0c44e26738fb56bde9c4f56912b0cb9a4eee18054';
+    final harness = await _WorkflowHarness.create();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [1], writeLimits: sourceCatalogStudyWriteLimitsFor(1)));
+      await harness.workflow.prepareStudy();
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      expect(recipe.settings.writeLimits.maxArtifacts, 512);
+      expect(recipe.rulesHash.value, isNot(oldRules));
+      final body = {...recipe.toJson(), 'rulesHash': oldRules}
+        ..remove('canonicalHash');
+      final stale = ConverterStudyPlanRecipe.fromJson({
+        ...body,
+        'canonicalHash':
+            canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+                .value
+      });
+      final fresh = ConverterWorkflow();
+      try {
+        await expectLater(fresh.restoreStudyPlanRecipe(stale),
+            _throwsWorkflow('workflow.recipe.stale'));
+        expect(fresh.state.snapshot, isNull);
+        expect(fresh.state.prepared, isNull);
+      } finally {
+        await fresh.dispose();
+      }
+    } finally {
+      await harness.close();
+    }
+  });
+  test(
+      'ordinary one-map settings admit native catalog while explicit source-only limits stay exact',
+      () {
+    final small = sourceCatalogStudyWriteLimitsFor(1);
+    ConverterStudySettings settings({NativeWriteLimits? limits}) =>
+        ConverterStudySettings(
+            projectName: 'One map',
+            parentPath: '/private/tmp',
+            folderName: 'one-map',
+            selectedSourceMapIds: [98],
+            writeLimits: limits,
+            profileAcknowledgement: SourceStudyAcknowledgement(
+                sourceSnapshotHash: Sha256Hash('0' * 64),
+                profileEvidenceHash: Sha256Hash('1' * 64),
+                humanConfirmed: true,
+                reason: 'Bounded test'));
+    expect(settings().writeLimits.maxArtifacts, 2048);
+    expect(settings().writeLimits.maxMutations, 16384);
+    expect(identical(settings(limits: small).writeLimits, small), isTrue);
+    expect((small.maxArtifacts, small.maxMutations), (512, 1024));
+    expect(const NativeWriteLimits().maxArtifacts, 32);
+  });
+
+  final catalogScripts = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  test(
+      'one-map default workflow admits the full automatic catalog with distinct media',
+      () async {
+    final catalog = NativePsdkCatalogManifest.builtin();
+    final nativeFiles = nativeMediaSourceFiles(catalog, sourceSymbols: const {
+      'farfetch_d': 'FARFETCHD',
+      'mr_mime': 'MRMIME',
+      'nidoranf': 'NIDORANfE',
+      'nidoranm': 'NIDORANmA',
+      'porygon_z': 'PORYGONZ',
+    });
+    final pngEntries = nativeFiles.entries
+        .where((entry) => entry.key.startsWith('Graphics/Pokemon/'))
+        .toList();
+    expect(pngEntries.map((entry) => literalFixtureHash(entry.value)).toSet(),
+        hasLength(pngEntries.length));
+    final harness = await _WorkflowHarness.create(
+        scriptsBytes: await File(catalogScripts!).readAsBytes(),
+        includeEventSystem: true,
+        maps: [
+          LiteralFixtureMap(id: 98, layers: [
+            [384, 384, 384],
+            [0, 0, 0],
+            [0, 0, 0]
+          ])
+        ],
+        tilesets: [
+          LiteralFixtureTileset(id: 1, terrainTags: {384: 2})
+        ],
+        extraFiles: {
+          ...nativeFiles,
+          'PBS/encounters.txt':
+              utf8.encode('[98]\nLand,11\n100,RATTATA,14,14\n'),
+          'Data/items.dat': await File.fromUri(
+                  File(catalogScripts).parent.uri.resolve('items.dat'))
+              .readAsBytes(),
+          'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = NativePlayer\n'),
+          'Graphics/Characters/NativePlayer.png': image
+              .encodePng(image.Image(width: 128, height: 128, numChannels: 4)),
+        });
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      final settings = ConverterStudySettings(
+          projectName: 'Native one-map study',
+          parentPath: harness.output.path,
+          folderName: 'native-one-map',
+          selectedSourceMapIds: [98],
+          profileAcknowledgement: SourceStudyAcknowledgement(
+              sourceSnapshotHash: snapshot.canonicalHash,
+              profileEvidenceHash: snapshot.profile.evidenceHash,
+              humanConfirmed: true,
+              reason: 'Controlled one-map native study'));
+      harness.workflow.updateSettings(settings);
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue);
+      final draft = prepared.nativeDraft!;
+      expect(draft.mapIds, hasLength(1));
+      expect(draft.artifacts.length + draft.sourceArtifacts.length,
+          greaterThan(512));
+      expect(draft.artifacts.length + draft.sourceArtifacts.length,
+          lessThanOrEqualTo(settings.writeLimits.maxArtifacts));
+      expect(prepared.settings.writeLimits.maxMutations, 16384);
+      final evidence = (draft.compositionEvidence['sourceCatalogs']
+          as Map)['projection'] as Map;
+      expect(evidence['nativeEncounterBindings'], isA<Map>());
+      expect(evidence['nativeMediaSpeciesBindings'], isA<Map>());
+    } finally {
+      await harness.close();
+    }
+  },
+      skip: catalogScripts == null,
+      timeout: const Timeout(Duration(minutes: 6)));
   test('catalogue image budget keeps PNG cap and declares an exact aggregate quota', () {
     for (final count in [1, 2, 5, 8]) {
       final limits = sourceCatalogStudyWriteLimitsFor(count);

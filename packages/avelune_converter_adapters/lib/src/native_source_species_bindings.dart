@@ -8,6 +8,67 @@ import 'native_psdk_trainer_bundle.dart';
 final class NativeSourceSpeciesBindings {
   const NativeSourceSpeciesBindings();
 
+  Future<NativeSourceSpeciesBindingResult> bindNativeBases({
+    required SourceSnapshot snapshot,
+    required SourcePbsProject source,
+    required SourceFilePort files,
+    required NativePsdkCatalog nativeCatalog,
+    required Iterable<String> requestedNativeBaseIds,
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    final requested = <String>{};
+    final symbols = <String>[];
+    for (final id in requestedNativeBaseIds) {
+      cancellation?.check();
+      final native = nativeCatalog.speciesById[id];
+      if (requested.length >= 2048 ||
+          !requested.add(id) ||
+          native == null ||
+          native.forms.formId != '0' ||
+          native.names['en'] == null) {
+        _invalid('native_base_source_identity', id,
+            'Media requires unique bounded canonical native bases with English names.');
+      }
+      _canonicalNative(id, native);
+      final candidates = source.entries.where((entry) {
+        if (entry.family != SourcePbsFamily.species ||
+            entry.identity?.form != 0) {
+          return false;
+        }
+        final names = entry.fieldsNamed('Name');
+        return names.length == 1 &&
+            names.single.values.length == 1 &&
+            _orthography(names.single.values.single) ==
+                _orthography(native.names['en']!);
+      }).toList();
+      if (candidates.length != 1 ||
+          candidates.single.identity?.sourceSymbol == null) {
+        _invalid('native_base_source_identity', id,
+            'Native media requires exactly one authored source base with its English name.');
+      }
+      symbols.add(candidates.single.identity!.sourceSymbol!);
+    }
+    final result = await bind(
+        snapshot: snapshot,
+        source: source,
+        files: files,
+        nativeCatalog: nativeCatalog,
+        requestedSourceSymbols: symbols,
+        cancellation: cancellation);
+    final inverse = <String>{};
+    if (result.rows.length != requested.length ||
+        result.rows.any((row) =>
+            row['sourceForm'] != 0 ||
+            row['nativeForm'] != 0 ||
+            !requested.contains(row['nativeBaseId']) ||
+            !inverse.add(row['nativeBaseId'] as String))) {
+      _invalid('native_base_source_identity', r'$',
+          'Media source identities require a unique exact source base for every native base.');
+    }
+    return result;
+  }
+
   Future<NativeSourceSpeciesBindingResult> bind({
     required SourceSnapshot snapshot,
     required SourcePbsProject source,

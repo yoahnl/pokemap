@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import 'native_psdk_trainer_bundle.dart';
+import 'generated/native_psdk_catalog_data.dart';
 
 const nativePsdkCatalogShardJsonLimits = ContractLimits(
   maxNodes: 2000000,
@@ -47,6 +48,23 @@ final class NativePsdkCatalogLimits {
 }
 
 final class NativePsdkCatalogManifest implements NativePsdkCatalog {
+  static const builtinManifestHash = nativePsdkCatalogManifestHash;
+
+  factory NativePsdkCatalogManifest.builtin() {
+    final catalog = NativePsdkCatalogManifest.fromJson(
+        (jsonDecode(nativePsdkCatalogManifestJson) as Map)
+            .cast<String, dynamic>(),
+        shards: {
+          for (final entry in nativePsdkCatalogShardJson.entries)
+            entry.key: (jsonDecode(entry.value) as Map).cast<String, Object?>()
+        });
+    if (canonicalHashOf(catalog.toJson()).value !=
+        nativePsdkCatalogManifestHash) {
+      _invalid('builtin_manifest');
+    }
+    return catalog;
+  }
+
   NativePsdkCatalogManifest._({
     required this.shards,
     required this.speciesById,

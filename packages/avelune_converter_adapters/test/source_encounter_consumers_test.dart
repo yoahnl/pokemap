@@ -164,6 +164,9 @@ void main() {
     'map',
     'normalization',
     'parameters',
+    'qualificationHash',
+    'qualificationVersion',
+    'sourcePbsHash',
     'duplicate'
   ]) {
     test('refuses substituted companion $changed', () {
@@ -180,6 +183,12 @@ void main() {
           proof['normalizationHash'] = '0' * 64;
         case 'parameters':
           (row['parameters'] as Map)['interactiveEncounter'] = null;
+        case 'qualificationHash':
+          proof['qualificationEvidenceHash'] = '0' * 64;
+        case 'qualificationVersion':
+          proof['version'] = 1;
+        case 'sourcePbsHash':
+          proof['sourcePbsHash'] = '0' * 64;
         case 'duplicate':
           rows.add(row);
       }

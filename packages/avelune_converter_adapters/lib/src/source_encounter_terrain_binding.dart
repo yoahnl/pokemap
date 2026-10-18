@@ -32,7 +32,7 @@ final class SourceEncounterTerrainBinding {
     }
     final maps = {for (final ir in source.maps) ir.map.sourceMapId: ir};
     if (nativeMapIds.isEmpty ||
-        nativeMapIds.length > 8 ||
+        nativeMapIds.length > 2048 ||
         nativeMapIds.values.toSet().length != nativeMapIds.length ||
         nativeMapIds.entries.any((entry) =>
             !maps.containsKey(entry.key) ||

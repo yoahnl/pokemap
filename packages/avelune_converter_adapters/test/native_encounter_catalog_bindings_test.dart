@@ -16,6 +16,7 @@ import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 
 List<int> _symbol(String text) => [58, text.length + 5, ...utf8.encode(text)];
 List<int> _compiled(String symbol) => [
@@ -213,16 +214,8 @@ void main() {
     expect(result.evidence['sourceSpeciesFieldDataUsed'], isFalse);
   });
 
-  Map<String, List<int>> nativeMedia() {
-    final png =
-        image.encodePng(image.Image(width: 1, height: 1, numChannels: 4));
-    return {
-      for (final species in qualification.bundle.speciesById.values)
-        if (species.forms.formId == '0')
-          for (final direction in ['Front', 'Back'])
-            'Graphics/Pokemon/$direction/${species.id.toUpperCase()}.png': png,
-    };
-  }
+  Map<String, List<int>> nativeMedia() =>
+      nativeMediaSourceFiles(qualification.bundle);
 
   test('keeps pinned qualification intact after mutable bundle models escape',
       () async {

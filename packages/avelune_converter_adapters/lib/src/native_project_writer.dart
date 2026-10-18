@@ -2614,7 +2614,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     final release = catalogRaw is Map ? catalogRaw['nativeEncounterRelease'] : null;
     final nativeEncounters = release == null ? null
         : NativeEncounterCatalogQualification.fromArtifacts(
-            evidence: Map<String, Object?>.from(release as Map), artifacts: draft.artifacts);
+            evidence: Map<String, Object?>.from(release as Map), artifacts: draft.artifacts,
+            limits: limits);
     if (includeSurf && nativeEncounters == null) {
       throw const FormatException('Surf traversal requires its exact native encounter release');
     }
@@ -2646,7 +2647,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     }
     if (eventRaw != null) {
       eventComposition = await SourceEventStudyComposer(
-          nativeEncounterQualification: includeSurf ? nativeEncounters : null).compose(
+          nativeEncounterQualification: nativeEncounters).compose(
           source: draft.source,
           base: regenerated,
           files: _WitnessSourceFiles(files),
@@ -2661,10 +2662,16 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     }
     final preceding = eventComposition?.draft ?? regenerated;
     if (catalogRaw != null) {
+      final automaticEncounters = (catalogRaw as Map).containsKey('automaticNativeEncounters')
+          ? catalogRaw['automaticNativeEncounters'] : true;
+      if (automaticEncounters is! bool) {
+        throw const FormatException('Encounter preparation policy must be a boolean');
+      }
       catalogComposition = await SourceCatalogStudyComposer(
+              automaticNativeEncounters: automaticEncounters,
               nativeEncounterQualification: nativeEncounters,
               includeNativeEncounterConsumers:
-                  (catalogRaw as Map)['includeNativeEncounterConsumers'] == true)
+                  catalogRaw['includeNativeEncounterConsumers'] == true)
           .compose(
               source: draft.source,
           base: preceding,

@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_adapters/src/source_encounter_terrain_binding.dart';
+import 'package:avelune_converter_adapters/src/source_encounter_consumers.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
@@ -61,18 +65,25 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     List<_Record> records,
     {String? pbs,
     String forms = '',
+    List<LiteralFixtureMap>? maps,
+    List<LiteralFixtureTileset>? tilesets,
+    List<int>? scriptsBytes,
     String encounters = '[001]\nLand,11\n100,RATTATA,14,17\n',
     List<int>? compiled}) async {
-  final fixture = await LiteralTileFixture.create(extraFiles: {
-    'PBS/encounters.txt': utf8.encode(encounters),
-    'Data/species.dat': compiled ?? _compiled(records),
-    'PBS/pokemon.txt': utf8.encode(pbs ??
-        [
-          for (final row in records.where((r) => r.form == 0))
-            '[${row.base}]\nName = ${row.name}\n',
-        ].join()),
-    if (forms.isNotEmpty) 'PBS/pokemon_forms.txt': utf8.encode(forms),
-  });
+  final fixture = await LiteralTileFixture.create(
+      maps: maps,
+      tilesets: tilesets,
+      scriptsBytes: scriptsBytes,
+      extraFiles: {
+        'PBS/encounters.txt': utf8.encode(encounters),
+        'Data/species.dat': compiled ?? _compiled(records),
+        'PBS/pokemon.txt': utf8.encode(pbs ??
+            [
+              for (final row in records.where((r) => r.form == 0))
+                '[${row.base}]\nName = ${row.name}\n',
+            ].join()),
+        if (forms.isNotEmpty) 'PBS/pokemon_forms.txt': utf8.encode(forms),
+      });
   final source = await const SourcePbsParser()
       .read(snapshot: fixture.snapshot, files: fixture.files);
   return (fixture: fixture, pbs: source);
@@ -168,6 +179,37 @@ Future<NativeEncounterCatalogQualification> _prepare(
         selectedSourceMapIds: maps,
         cancellation: cancellation);
 
+Future<({NormalizedSourceProject source, SourceFilePort files})>
+    _profileProject(LiteralTileFixture fixture) async {
+  final snapshot = SourceSnapshot(
+      logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
+      policyHash: fixture.snapshot.policyHash,
+      entries: [
+        ...fixture.snapshot.entries,
+        if (!fixture.snapshot.entries
+            .any((entry) => entry.relativePath == 'Data/Scripts.rxdata'))
+          SourceFileEntry(
+              fileId: ConverterId('profile-scripts'),
+              relativePath: 'Data/Scripts.rxdata',
+              kind: SourceNodeKind.file,
+              byteLength: 1,
+              sha256: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+              format: 'ruby-marshal',
+              family: 'data')
+      ],
+      diagnostics: [],
+      excludedPaths: [],
+      profileEvidence: fixture.snapshot.profileEvidence,
+      state: SourceScanState.complete);
+  final files = LiteralFixtureFiles(snapshot, fixture.sourceBytes);
+  final source = await const RmxpSourceNormalizer().normalize(
+      snapshot: snapshot,
+      files: files,
+      selectedMapIds:
+          fixture.source.maps.map((map) => map.map.sourceMapId).toSet());
+  return (source: source, files: files);
+}
+
 Matcher _code(String code) =>
     throwsA(isA<ContractError>().having((e) => e.code, 'code', code));
 
@@ -240,6 +282,148 @@ NativeEncounterReleaseArtifacts _rewritePortableFile(
 }
 
 void main() {
+  test('consumers reject a different valid qualification fingerprint',
+      () async {
+    final fixture =
+        await _source(const [_Record('RATTATA', 'RATTATA', 'Rattata')]);
+    final project = await _profileProject(fixture.fixture);
+    final pbs = await const SourcePbsParser()
+        .read(snapshot: project.source.snapshot, files: project.files);
+    Future<NativeEncounterCatalogQualification> qualify(List<int> maps) =>
+        NativeEncounterCatalogQualification.prepare(
+            snapshot: project.source.snapshot,
+            source: pbs,
+            files: project.files,
+            nativeCatalog: _catalog([_native('rattata', 'Rattata')]),
+            selectedSourceMapIds: maps);
+    final first = await qualify([1]);
+    final second = await qualify([1, 2]);
+    expect(first.evidenceHash, isNot(second.evidenceHash));
+    final catalog = await const NativeEncounterCatalogBindings().bind(
+        snapshot: project.source.snapshot,
+        source: pbs,
+        files: project.files,
+        nativeMapIds: {1: 'native-one'},
+        qualification: first,
+        ratePolicy: NativeEncounterRatePolicy
+            .adaptSourceBasePercentToNativeConstantChance);
+    expect(
+        () => SourceEncounterConsumers.bind(
+            source: project.source,
+            nativeMapIds: {1: 'native-one'},
+            tables: catalog.tables,
+            catalogEvidence: catalog.evidence,
+            qualification: second,
+            pendingCompanions: [],
+            precedingMutations: []),
+        throwsA(isA<NativeWriteException>().having((error) => error.code,
+            'code', 'encounter_consumers.catalog_binding')));
+  });
+  test(
+      'automatic project reports unsupported source species instead of falling back to V1',
+      () async {
+    final fixture = await _source(
+        const [_Record('REEDLING', 'REEDLING', 'Reedling')],
+        encounters: '[1]\nLand,11\n100,REEDLING,14,14\n');
+    final project = await _profileProject(fixture.fixture);
+    await expectLater(
+        NativeEncounterCatalogQualification.prepareAutomatic(
+            source: project.source,
+            files: project.files,
+            selectedSourceMapIds: [1]),
+        throwsA(isA<ContractError>().having(
+            (error) => error.code, 'code', startsWith('native_species.'))));
+  });
+  test(
+      'automatic project qualification skips unqualified and absent selected encounters',
+      () async {
+    final fixture =
+        await _source(const [_Record('RATTATA', 'RATTATA', 'Rattata')]);
+    expect(
+        await NativeEncounterCatalogQualification.prepareAutomatic(
+            source: fixture.fixture.source,
+            files: fixture.fixture.files,
+            selectedSourceMapIds: [1]),
+        isNull);
+    final project = await _profileProject(fixture.fixture);
+    expect(
+        await NativeEncounterCatalogQualification.prepareAutomatic(
+            source: project.source,
+            files: project.files,
+            selectedSourceMapIds: [2]),
+        isNull);
+  });
+
+  final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  for (final fishing in [false, true]) {
+    test(
+        'automatic full PBS qualification binds nine maps to native terrain fishing=$fishing',
+        () async {
+      final fixture = await _source(
+          const [_Record('RATTATA', 'RATTATA', 'Rattata')],
+          scriptsBytes: fishing ? await File(scriptsPath!).readAsBytes() : null,
+          maps: [
+            for (var id = 1; id <= 9; id++)
+              LiteralFixtureMap(id: id, layers: [
+                [384, 385, 386],
+                [0, 0, 0],
+                [0, 0, 0]
+              ])
+          ],
+          tilesets: [
+            LiteralFixtureTileset(
+                id: 1, terrainTags: {384: 2, 385: 7}, passages: {385: 15})
+          ],
+          encounters: [
+            for (var id = 1; id <= 9; id++)
+              '[$id]\nLand,11\n100,RATTATA,14,14\nWater,10\n100,RATTATA,14,14\n${fishing ? 'OldRod,100\n100,RATTATA,14,14\n' : ''}RockSmash,20\n100,RATTATA,14,14\n'
+          ].join());
+      final project = await _profileProject(fixture.fixture);
+      final maps = {for (var id = 1; id <= 9; id++) id: 'native-$id'};
+      final pbs = await const SourcePbsParser()
+          .read(snapshot: project.source.snapshot, files: project.files);
+      final qualification =
+          (await NativeEncounterCatalogQualification.prepareAutomatic(
+              source: project.source,
+              files: project.files,
+              selectedSourceMapIds: maps.keys))!;
+      expect(qualification.isGeneric, isTrue);
+      expect(qualification.evidence['sourcePbsHash'], pbs.canonicalHash.value);
+      final binding = await const NativeEncounterCatalogBindings().bind(
+          snapshot: project.source.snapshot,
+          source: pbs,
+          files: project.files,
+          nativeMapIds: maps,
+          qualification: qualification,
+          ratePolicy: NativeEncounterRatePolicy
+              .adaptSourceBasePercentToNativeConstantChance,
+          fishingRatePolicy: NativeEncounterFishingRatePolicy
+              .adaptSourceBaseFishingBiteChanceToNativeTable);
+      expect(binding.tables, hasLength(fishing ? 36 : 27));
+      final terrain = const SourceEncounterTerrainBinding().bind(
+          source: project.source,
+          nativeMapIds: maps,
+          tableIdsBySourceMethod: binding.tableIdsBySourceMethod);
+      expect(terrain.zonesBySourceMapId, hasLength(9));
+      for (final zones in terrain.zonesBySourceMapId.values) {
+        expect(
+            zones
+                .where((zone) => zone.kind == GameplayZoneKind.encounter)
+                .map((zone) => zone.encounter!.encounterKind)
+                .toSet(),
+            {
+              EncounterKind.walk,
+              EncounterKind.surf,
+              if (fishing) EncounterKind.oldRod
+            });
+      }
+      expect(terrain.evidence['ignoredInteractiveMethods'], hasLength(9));
+    },
+        skip: fishing && scriptsPath == null
+            ? 'Requires the exact inert source fishing oracle.'
+            : false);
+  }
+
   test('qualifies and binds more than eight selected original source maps',
       () async {
     final source = await _source(
@@ -472,6 +656,7 @@ void main() {
       expect(restored.evidence, qualification.evidence);
       expect(restored.wildCases, qualification.wildCases);
       expect(restored.bundle.toJson(), qualification.bundle.toJson());
+      expect(restored.evidenceHash, qualification.evidenceHash);
       expect((await _bindPrepared(source, restored)).evidence,
           (await _bindPrepared(source, qualification)).evidence);
       expect(

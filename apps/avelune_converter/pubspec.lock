@@ -312,6 +312,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  map_battle:
+    dependency: transitive
+    description:
+      path: "../../packages/map_battle"
+      relative: true
+    source: path
+    version: "0.1.0"
   map_core:
     dependency: "direct main"
     description:

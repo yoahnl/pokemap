@@ -14,6 +14,29 @@ import 'support/source_catalog_preservation.dart';
 import 'support/native_writer_fixture.dart';
 
 void main() {
+  test('source-only study refuses an explicit active encounter release',
+      () async {
+    final fixture = await LiteralTileFixture.create();
+    final literal = await const LiteralTileComposer().compose(
+        source: fixture.source,
+        files: fixture.files,
+        selectedSourceMapIds: [1],
+        projectName: 'Conflicting study policy',
+        parentPath: '/private/tmp',
+        folderName: 'unused');
+    await expectLater(
+        SourceCatalogStudyComposer(
+                automaticNativeEncounters: false,
+                nativeEncounterQualification:
+                    NativeEncounterCatalogQualification.builtinKantoV1())
+            .compose(
+                source: fixture.source,
+                base: literal.draft!,
+                files: fixture.files),
+        throwsA(isA<NativeWriteException>().having(
+            (error) => error.code, 'code', 'catalogs.encounters.policy')));
+  });
+
   test('PBS alone cannot qualify an unattested literal study', () async {
     final fixture = await LiteralTileFixture.create(extraFiles: {
       'PBS/pokemon.txt': utf8.encode('[ORIGINAL]\nName = Original\n'),
@@ -51,6 +74,54 @@ void main() {
     tearDownAll(() async {
       await temporary.delete(recursive: true);
     });
+
+    test('explicit source-only study records its encounter preparation policy',
+        () {
+      final evidence =
+          composition.draft.compositionEvidence['sourceCatalogs'] as Map;
+      expect(evidence['automaticNativeEncounters'], isFalse);
+    });
+
+    test('public default composer diagnoses unsupported source encounters',
+        () async {
+      final fixture = composition.sourceFixture;
+      final literal = await const LiteralTileComposer().compose(
+          source: fixture.source,
+          files: fixture.files,
+          selectedSourceMapIds: const [98],
+          projectName: 'Unsupported automatic encounters',
+          parentPath: temporary.path,
+          folderName: 'unsupported-default',
+          limits: ac14CatalogReferenceLimits);
+      final semantic = await const SourceSemanticStudyComposer().compose(
+          source: fixture.source,
+          base: literal,
+          files: fixture.files,
+          limits: ac14CatalogReferenceLimits);
+      expect(semantic, isNotNull);
+      await expectLater(
+          const SourceCatalogStudyComposer().compose(
+              source: fixture.source,
+              base: semantic!,
+              files: fixture.files,
+              limits: ac14CatalogReferenceLimits),
+          throwsA(isA<ContractError>().having((error) => error.code, 'code',
+                      'native_species.native_base_identity')));
+    });
+
+    for (final value in [true, 'false', null]) {
+      test('forged automatic encounter policy $value refuses before staging',
+          () async {
+        final evidence =
+            jsonDecode(jsonEncode(composition.draft.compositionEvidence))
+                as Map<String, dynamic>;
+        (evidence['sourceCatalogs'] as Map)['automaticNativeEncounters'] =
+            value;
+        await _refuseBeforeStage(
+            _copyDraft(composition.draft, evidence: evidence),
+            'native.semantics.regeneration');
+      });
+    }
 
     const ignoredTrainerCalls = {
       'double expression interpolation':

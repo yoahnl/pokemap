@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 
 void main() {
   for (final domain in [
@@ -93,13 +94,10 @@ void main() {
     }
     final catalog = NativePsdkCatalogManifest.compose(
         [NativePsdkTrainerBundle.fromJson(raw)]);
-    final png = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==');
     final fixture = await LiteralTileFixture.create(extraFiles: {
+      ...nativeMediaSourceFiles(catalog),
       'PBS/trainers.txt':
           utf8.encode('[TEST,Unqualified]\nPokemon = SPECIES_A,1\n'),
-      for (final side in ['Front', 'Back'])
-        'Graphics/Pokemon/$side/SPECIES_A.png': png,
     });
     final pbs = await const SourcePbsParser()
         .read(snapshot: fixture.snapshot, files: fixture.files);
@@ -123,12 +121,8 @@ void main() {
   });
 
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
-  final sourceRoot =
-      Platform.environment['AVELUNE_KANTO_NATIVE_TRAINER_SOURCE_ROOT'];
-  final compiledSpeciesPath =
-      Platform.environment['AVELUNE_KANTO_COMPILED_SPECIES'];
   test(
-      'composer publishes an injected catalog without applying the old automatic encounter release',
+      'composer publishes an injected catalog without preparing automatic encounters',
       () async {
     final raw = _json(_shard(
             [NativePsdkCatalogRequest(baseId: 'species_a', form: 0, level: 1)])
@@ -143,26 +137,20 @@ void main() {
     }
     final catalog = NativePsdkCatalogManifest.compose(
         [NativePsdkTrainerBundle.fromJson(raw)]);
-    final png = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==');
     final fixture = await LiteralTileFixture.create(
       scriptsBytes: await File(scriptsPath!).readAsBytes(),
       includeEventSystem: true,
       extraFiles: {
+        ...nativeMediaSourceFiles(catalog),
         'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = NativePlayer\n'),
         'Graphics/Characters/NativePlayer.png': image
             .encodePng(image.Image(width: 128, height: 128, numChannels: 4)),
         'PBS/encounters.txt':
-            await File('$sourceRoot/PBS/encounters.txt').readAsBytes(),
-        'Data/species.dat': await File(compiledSpeciesPath!).readAsBytes(),
-        for (final side in ['Front', 'Back'])
-          'Graphics/Pokemon/$side/SPECIES_A.png': png,
+            utf8.encode('[1]\nLand,11\n100,UNSUPPORTED_NATIVE,14\n'),
       },
     );
     expect(
-        NativeEncounterCatalogQualification.builtinKantoV1()
-            .admitsAutomaticSource(fixture.snapshot),
-        isTrue);
+        SourceEventProfile.kantoForProject(fixture.source).isQualified, isTrue);
     const limits = NativeWriteLimits(maxArtifacts: 128);
     final literal = await const LiteralTileComposer().compose(
         source: fixture.source,
@@ -212,12 +200,7 @@ void main() {
                 limits: limits),
         throwsA(isA<ContractError>().having((e) => e.code, 'code',
             'native_catalog.encounter_qualification_identity')));
-  },
-      skip: scriptsPath == null ||
-              sourceRoot == null ||
-              compiledSpeciesPath == null
-          ? 'Requires exact read-only Kanto source, scripts and compiled species oracles.'
-          : false);
+  }, skip: scriptsPath == null);
 
   test('publishes a composite without admitting unqualified trainers',
       () async {
@@ -235,13 +218,10 @@ void main() {
     }
     final catalog = NativePsdkCatalogManifest.compose(
         [NativePsdkTrainerBundle.fromJson(raw)]);
-    final png = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==');
     final fixture = await LiteralTileFixture.create(extraFiles: {
+      ...nativeMediaSourceFiles(catalog),
       'PBS/trainers.txt':
           utf8.encode('[TEST,Unqualified]\nPokemon = SPECIES_A,1\n'),
-      for (final side in ['Front', 'Back'])
-        'Graphics/Pokemon/$side/SPECIES_A.png': png,
     });
     final pbs = await const SourcePbsParser()
         .read(snapshot: fixture.snapshot, files: fixture.files);

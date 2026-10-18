@@ -19,6 +19,70 @@ import '../../../packages/avelune_converter_adapters/test/support/literal_tile_f
 
 void main() {
   testWidgets(
+    'one-map native budget survives resource review and session save',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      final store = LocalReviewSessionStore(
+        rootPath: '${source.root.path}/sessions',
+      );
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        await tester.pumpWidget(
+          ConverterApp(
+            workflow: source.workflow,
+            sessionStore: store,
+            initialSourcePath: source.sourcePath,
+            initialParentPath: source.output.path,
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('analyse-project')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.snapshot != null &&
+              !source.workflow.state.isBusy,
+        );
+        await tester.ensureVisible(find.byKey(const ValueKey('select-map-1')));
+        await tester.tap(find.byKey(const ValueKey('select-map-1')));
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('prepare-study')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.prepared != null &&
+              !source.workflow.state.isBusy,
+        );
+        expect(source.workflow.state.prepared!.settings.selectedSourceMapIds, [1]);
+        await _showResources(tester);
+        final panel = tester.widget<ConverterAssetReviewPanel>(
+          find.byType(ConverterAssetReviewPanel),
+        );
+        expect(panel.limits.maxArtifacts, 2048);
+        expect(panel.limits.maxMutations, 16384);
+        await tester.tap(find.text('Analyse'));
+        await tester.pump();
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('save-review-session')),
+        );
+        await tester.tap(find.byKey(const ValueKey('save-review-session')));
+        await _waitFor(
+          tester,
+          () => find.text('Session enregistrée').evaluate().isNotEmpty,
+        );
+        final saved = (await tester.runAsync(store.list))!.single;
+        expect(saved.resumeSettings.writeLimits.maxArtifacts, 2048);
+        expect(saved.resumeSettings.writeLimits.maxMutations, 16384);
+        await tester.runAsync(source.expectSourceUnchanged);
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
+  testWidgets(
     'cold provenance refusal cannot be replaced through prepare save or retry',
     (tester) async {
       final source = (await tester.runAsync(_OriginalSource.create))!;

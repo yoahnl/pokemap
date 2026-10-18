@@ -259,12 +259,18 @@ final class SourceFieldObstacleBindingResolver {
         if (nativeEncounterQualification != null &&
             nativeEncounterQualification.admitsAutomaticSource(source.snapshot) &&
             nativeMapIds != null && nativeMapIds.isNotEmpty &&
-            nativeMapIds.length <= 8 &&
+            nativeMapIds.length <= (nativeEncounterQualification.isGeneric ? 2048 : 8) &&
+            nativeEncounterQualification.admitsSourceScope(source.snapshot, nativeMapIds.keys) &&
             nativeMapIds.keys.every((mapId) => source.maps.any((map) => map.map.sourceMapId == mapId)) &&
             nativeMapIds.values.every((mapId) => mapId.trim().isNotEmpty && mapId.trim() == mapId) &&
             nativeMapIds.values.toSet().length == nativeMapIds.length) {
-          final catalogPbs = await const SourcePbsParser().read(
+          final catalogPbs = nativeEncounterQualification.isGeneric
+              ? await const SourcePbsParser().read(
+                  snapshot: source.snapshot, files: _FieldObstacleWitnessFiles(source, exact),
+                  profile: SourcePbsProfile.essentials21_1, cancellation: cancellation)
+              : await const SourcePbsParser().read(
               snapshot: source.snapshot, files: _FieldObstacleWitnessFiles(source, exact),
+              profile: SourcePbsProfile.essentials21_1,
               families: const {SourcePbsFamily.species, SourcePbsFamily.encounters},
               cancellation: cancellation);
           try {
@@ -448,6 +454,8 @@ final class _NativeRockSmashEncounterBinding {
        normalizationHash = source.canonicalHash,
        tableId = table.id,
        encodedEvidence = canonicalJsonOf({
+         'kind': 'nativeRockSmashEncounterBinding',
+         'version': 2,
          'sourceSnapshotHash': source.snapshot.canonicalHash.value,
          'normalizationHash': source.canonicalHash.value,
          'sourcePbsHash': sourcePbsHash.value,
@@ -457,7 +465,7 @@ final class _NativeRockSmashEncounterBinding {
          'nativeTableHash': canonicalHashOf(table.toJson()).value,
          'nativeTable': table.toJson(),
          'tableBinding': tableBinding,
-         'qualification': qualification.evidence,
+         'qualificationEvidenceHash': qualification.evidenceHash.value,
          'nativeTrigger': 'afterRockSmash',
          'nativeReusePolicy': 'oncePerMapInstance',
          'nativeExecutionQualified': false,
@@ -474,7 +482,8 @@ final class _NativeRockSmashEncounterBinding {
       source.snapshot.canonicalHash == sourceSnapshotHash &&
       source.canonicalHash == normalizationHash &&
       this.sourceMapId == sourceMapId && this.nativeMapId == nativeMapId &&
-      qualification.admitsAutomaticSource(source.snapshot);
+      qualification.admitsAutomaticSource(source.snapshot) &&
+      qualification.admitsSourceScope(source.snapshot, [sourceMapId]);
 
   Map<String, Object?> toJson() =>
       (jsonDecode(encodedEvidence) as Map).cast<String, Object?>();

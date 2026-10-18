@@ -162,6 +162,36 @@ final class NativeEncounterCatalogQualification {
     return _generic(encoded, context, cancellation);
   }
 
+  static Future<NativeEncounterCatalogQualification?> prepareAutomatic({
+    required NormalizedSourceProject source,
+    required SourceFilePort files,
+    required Iterable<int> selectedSourceMapIds,
+    SourcePbsProject? pbs,
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    if (!SourceEventProfile.kantoForProject(source).isQualified) return null;
+    final maps = _selectedMaps(selectedSourceMapIds);
+    final catalogSource = pbs ??
+        await const SourcePbsParser().read(
+            snapshot: source.snapshot,
+            files: files,
+            profile: SourcePbsProfile.essentials21_1,
+            cancellation: cancellation);
+    if (!catalogSource.entries.any((entry) =>
+        entry.family == SourcePbsFamily.encounters &&
+        maps.contains(entry.identity?.sourceMapId))) {
+      return null;
+    }
+    return prepare(
+        snapshot: source.snapshot,
+        source: catalogSource,
+        files: files,
+        nativeCatalog: NativePsdkCatalogManifest.builtin(),
+        selectedSourceMapIds: maps,
+        cancellation: cancellation);
+  }
+
   bool admitsSourceScope(
       SourceSnapshot snapshot, Iterable<int> selectedSourceMapIds,
       {SourcePbsProject? source}) {
@@ -398,6 +428,9 @@ final class NativeEncounterCatalogQualification {
   final Map<String, List<int>>? _catalogFiles;
 
   bool get isGeneric => _catalogFiles != null;
+
+  late final Sha256Hash evidenceHash =
+      canonicalHashOf(evidence, limits: _qualificationLimits);
 
   NativePsdkCatalog get bundle => isGeneric
       ? _restoreCatalog(_catalogFiles!)

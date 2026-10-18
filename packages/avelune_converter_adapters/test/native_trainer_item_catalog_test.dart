@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
-import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 
 void main() {
   late LiteralTileFixture fixture;
@@ -16,17 +16,12 @@ void main() {
 
   setUpAll(() async {
     bundle = NativePsdkTrainerBundle.builtin();
-    final png =
-        image.encodePng(image.Image(width: 3, height: 3, numChannels: 4));
     fixture = await LiteralTileFixture.create(extraFiles: {
+      ...nativeMediaSourceFiles(bundle),
       'PBS/trainers.txt': utf8.encode(
           '[FRLG_BUGCATCHER,Brent]\nPokemon = BEEDRILL,19\nPokemon = BEEDRILL,19\n'),
       'PBS/items.txt': utf8.encode(
           '[SOURCEVALID]\nName = Source valid\nPocket = 1\nPrice = 50\n'),
-      for (final species in bundle.speciesById.values
-          .where((species) => species.forms.isBaseForm))
-        for (final side in ['Front', 'Back'])
-          'Graphics/Pokemon/$side/${species.id.toUpperCase()}.png': png,
     });
     source = await const SourcePbsParser()
         .read(snapshot: fixture.snapshot, files: fixture.files);

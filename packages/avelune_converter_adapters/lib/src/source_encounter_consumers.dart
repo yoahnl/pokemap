@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'native_project_writer.dart';
 import 'source_encounter_terrain_binding.dart';
+import 'native_psdk_catalog.dart';
 
 final class SourceEncounterConsumers {
   const SourceEncounterConsumers._(this.zones, this.companions, this.evidence);
@@ -25,8 +26,9 @@ final class SourceEncounterConsumers {
   }) {
     if (catalogEvidence['sourceSnapshotHash'] !=
             source.snapshot.canonicalHash.value ||
-        canonicalJsonOf(catalogEvidence['qualification']) !=
-            canonicalJsonOf(qualification.evidence)) {
+        canonicalHashOf(catalogEvidence['qualification'],
+                limits: nativePsdkCatalogShardJsonLimits) !=
+            qualification.evidenceHash) {
       _invalid('catalog_binding');
     }
     final rows = (catalogEvidence['tables'] as List).cast<Map>();
@@ -100,15 +102,18 @@ final class SourceEncounterConsumers {
           binding['normalizationHash'] != source.canonicalHash.value ||
           binding['pendingCatalogCompanion'] != true ||
           binding['nativeExecutionQualified'] != false ||
+          proof['kind'] != 'nativeRockSmashEncounterBinding' ||
+          proof['version'] != 2 ||
           proof['sourceSnapshotHash'] != source.snapshot.canonicalHash.value ||
           proof['normalizationHash'] != source.canonicalHash.value ||
+          proof['sourcePbsHash'] != catalogEvidence['sourcePbsHash'] ||
           proof['nativeMapId'] != nativeMapIds[sourceMapId] ||
           proof['sourceMapId'] != sourceMapId ||
           table == null ||
           methods[sourceMapId]?['RockSmash'] != tableId ||
           matching.length != 1 ||
-          canonicalJsonOf(proof['qualification']) !=
-              canonicalJsonOf(qualification.evidence) ||
+          proof['qualificationEvidenceHash'] !=
+              qualification.evidenceHash.value ||
           canonicalJsonOf(proof['nativeTable']) !=
               canonicalJsonOf(table.toJson()) ||
           proof['nativeTableHash'] != canonicalHashOf(table.toJson()).value ||

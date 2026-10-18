@@ -282,7 +282,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
       writeLimits:
           previous?.writeLimits ??
           _importedSettings?.writeLimits ??
-          sourceCatalogStudyWriteLimitsFor(_selectedMaps.length),
+          sourceCatalogStudyWriteLimitsFor(
+            _selectedMaps.length,
+            includeNativeCatalog: true,
+          ),
       profileAcknowledgement: snapshot == null || keepAcknowledgement
           ? previousAcknowledgement
           : LocalReviewProfileAcknowledgement(
@@ -1908,7 +1911,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
           prepared?.settings.writeLimits ??
           _storedReview?.resumeSettings.writeLimits ??
           _importedSettings?.writeLimits ??
-          sourceCatalogStudyWriteLimitsFor(_selectedMaps.length),
+          sourceCatalogStudyWriteLimitsFor(
+            _selectedMaps.length,
+            includeNativeCatalog: true,
+          ),
       outputMode: _assetOutputMode,
       enabled: !_busy && _reviewSourceVerified && _sourceMatches,
       session: session,

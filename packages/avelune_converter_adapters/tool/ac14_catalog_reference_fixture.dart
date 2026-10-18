@@ -217,11 +217,13 @@ ${includeBrokenReferences ? '[CAMPER,Incomplete]\nItems = ORIGINALCURE\n' : ''}'
             '@id': _Symbol(symbol),
             '@species': _Symbol(symbol),
             '@form': 0,
+            '@real_name': 'Shared name',
           }),
         const _Symbol('REEDLING_1'): const _Object('GameData::Species', {
           '@id': _Symbol('REEDLING_1'),
           '@species': _Symbol('REEDLING'),
           '@form': 1,
+          '@real_name': 'Shared name',
         }),
       }),
     },
@@ -248,7 +250,9 @@ ${includeBrokenReferences ? '[CAMPER,Incomplete]\nItems = ORIGINALCURE\n' : ''}'
       base: semantic!,
       files: fixture.files,
       limits: limits);
-  final catalogs = await const SourceCatalogStudyComposer().compose(
+  final catalogs =
+      await const SourceCatalogStudyComposer(automaticNativeEncounters: false)
+          .compose(
     source: fixture.source,
     base: events?.draft ?? semantic,
     files: fixture.files,

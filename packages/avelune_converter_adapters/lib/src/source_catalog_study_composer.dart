@@ -38,8 +38,11 @@ const _sourceWorldStudyWriteLimits = NativeWriteLimits(
   ),
 );
 
-NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
-  if (selectedMapCount > 8) return _sourceWorldStudyWriteLimits;
+NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount,
+    {bool includeNativeCatalog = false}) {
+  if (includeNativeCatalog || selectedMapCount > 8) {
+    return _sourceWorldStudyWriteLimits;
+  }
   final mapCount = selectedMapCount.clamp(1, 8);
   return NativeWriteLimits(
     maxArtifacts:
@@ -70,10 +73,12 @@ final class SourceCatalogStudyComposer {
           NativeTrainerMovePolicy.nativeAveluneDefaults,
       this.nativeEncounterQualification,
       this.nativeTrainerCatalog,
+      this.automaticNativeEncounters = true,
       this.includeNativeEncounterConsumers = false});
   final NativeTrainerMovePolicy nativeTrainerMovePolicy;
   final NativeEncounterCatalogQualification? nativeEncounterQualification;
   final NativePsdkCatalog? nativeTrainerCatalog;
+  final bool automaticNativeEncounters;
   final bool includeNativeEncounterConsumers;
 
   Future<SourceCatalogStudyComposition?> compose({
@@ -85,6 +90,10 @@ final class SourceCatalogStudyComposer {
   }) async {
     cancellation?.check();
     limits.validate();
+    if (!automaticNativeEncounters && nativeEncounterQualification != null) {
+      throw const NativeWriteException('catalogs.encounters.policy',
+          'An explicit native encounter release requires active encounter preparation.');
+    }
     final profile = SourceEventProfile.kantoForProject(source);
     if (!profile.isQualified ||
         !base.compositionEvidence.containsKey('sourceSemantics') ||
@@ -123,15 +132,15 @@ final class SourceCatalogStudyComposer {
           r'$',
           'An explicit native catalog requires its exact encounter qualification identity.');
     }
-    final encounterCandidate = nativeEncounterQualification ??
-        (nativeTrainerCatalog == null
-            ? NativeEncounterCatalogQualification.builtinKantoV1()
+    final encounters = nativeEncounterQualification ??
+        (automaticNativeEncounters && nativeTrainerCatalog == null
+            ? await NativeEncounterCatalogQualification.prepareAutomatic(
+                source: source,
+                files: recording,
+                pbs: pbs,
+                selectedSourceMapIds: base.mapIds.keys,
+                cancellation: cancellation)
             : null);
-    final encounters = nativeEncounterQualification != null ||
-            (encounterCandidate?.admitsAutomaticSource(source.snapshot) ??
-                false)
-        ? encounterCandidate
-        : null;
     final encounterRelease = encounters?.artifacts(limits: limits);
     final selection = _catalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
@@ -478,6 +487,7 @@ final class SourceCatalogStudyComposer {
       'normalizedSourceHash': source.canonicalHash.value,
       'pbsProfile': pbs.profile.name,
       'pbsHash': pbs.canonicalHash.value,
+      'automaticNativeEncounters': automaticNativeEncounters,
       'profile': profile.toJson(),
       if (nativeTrainerCatalog != null && nativeEncounterQualification == null)
         'automaticEncounterReleaseSuppressedForExplicitCatalog': true,

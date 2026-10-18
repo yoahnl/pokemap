@@ -9,6 +9,7 @@ import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
+import 'native_source_species_bindings.dart';
 
 enum SourceCatalogDocumentKind { catalog, species, learnset, evolution, media }
 
@@ -202,6 +203,7 @@ final class _Run {
   final defaults = <Map<String, Object?>>[];
   final preservation = <Map<String, Object?>>[];
   Map<String, Object?> dexEvidence = {};
+  NativeSourceSpeciesBindingResult? nativeMediaSpeciesBindings;
   ConverterId get namespace => source.snapshot.logicalProjectNamespace;
   SourcePbsIdentity identity(SourcePbsFamily family, String symbol,
           {int form = 0}) =>
@@ -594,6 +596,11 @@ final class _Run {
             },
           if (nativeBinding != null)
             'nativeTrainerBindings': nativeBinding.evidence,
+          if (nativeMediaSpeciesBindings case final binding?)
+            'nativeMediaSpeciesBindings': {
+              'evidence': binding.evidence,
+              'mappings': binding.rows,
+            },
           if (encounterBinding != null)
             'nativeEncounterBindings': {
               ...encounterBinding.evidence,
@@ -728,6 +735,35 @@ final class _Run {
       }
     }
     final mediaEvidence = <Map<String, Object?>>[];
+    final sourceBases = <String>{};
+    for (final target in targets) {
+      if (bundle.fallbackMedia.containsKey(target)) continue;
+      final match =
+          RegExp(r'^assets/pokemon/native/([a-z0-9_]+)_(front|back)\.png$')
+              .firstMatch(target);
+      if (match == null || match[1]!.contains('_form')) {
+        throw ContractError('native_trainer.media_binding', target,
+            'A native form requires its attested PSDK media.');
+      }
+      sourceBases.add(match[1]!);
+    }
+    final byNativeBase = <String, Map<String, Object?>>{};
+    String? speciesBindingHash;
+    if (sourceBases.isNotEmpty) {
+      final binding = await const NativeSourceSpeciesBindings().bindNativeBases(
+          snapshot: source.snapshot,
+          source: pbs,
+          files: files,
+          nativeCatalog: bundle,
+          requestedNativeBaseIds: sourceBases.toList()..sort(),
+          cancellation: cancel);
+      nativeMediaSpeciesBindings = binding;
+      byNativeBase.addEntries(binding.rows
+          .map((row) => MapEntry(row['nativeBaseId'] as String, row)));
+      speciesBindingHash = canonicalHashOf(binding.evidence,
+              limits: nativePsdkCatalogShardJsonLimits)
+          .value;
+    }
     var staticMediaOracleVerified = false;
     const staticMediaOraclePath =
         'Plugins/[DBK_009] Animated Pokemon System/[008] Deluxe Bitmap.rb';
@@ -756,7 +792,7 @@ final class _Run {
               'A native form requires its attested PSDK media.');
         }
         final sourcePath =
-            'Graphics/Pokemon/${match[2] == 'front' ? 'Front' : 'Back'}/${match[1]!.toUpperCase()}.png';
+            'Graphics/Pokemon/${match[2] == 'front' ? 'Front' : 'Back'}/${byNativeBase[match[1]]!['sourceSymbol']}.png';
         final sourceFile = source.snapshot.entries
             .where((entry) => entry.relativePath == sourcePath)
             .singleOrNull;
@@ -780,6 +816,9 @@ final class _Run {
           'provider': 'essentialsSourceMedia',
           'fileId': owner.value,
           'sourcePath': sourcePath,
+          'sourceSymbol': byNativeBase[match[1]]!['sourceSymbol'],
+          'nativeBaseId': match[1],
+          'sourceSpeciesBindingHash': speciesBindingHash,
           'sha256': sourceFile.sha256!.value
         };
       }

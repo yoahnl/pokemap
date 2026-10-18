@@ -29,6 +29,10 @@ final class _SourceFiles implements SourceFilePort {
 }
 
 Future<void> main(List<String> args) async {
+  if (args.isNotEmpty && args.first == '--embed-catalog') {
+    await _embedCatalog(args.sublist(1));
+    return;
+  }
   final sharded = args.isNotEmpty && args.first == '--catalog-shards';
   final generic =
       sharded || (args.isNotEmpty && args.first == '--catalog-requests');
@@ -189,6 +193,72 @@ Future<void> main(List<String> args) async {
     'natures': bundle.catalogs['natures']!.entries.length,
     'sources': (bundle.evidence['sources'] as List).length,
     'bundleHash': canonicalHashOf(json).value,
+    'sourceScriptsExecuted': 0,
+  }));
+}
+
+Future<void> _embedCatalog(List<String> paths) async {
+  if (paths.length != 3) {
+    throw ArgumentError(
+        'Expected --embed-catalog manifest, shard directory, Dart output.');
+  }
+  final manifest = File(paths[0]);
+  if (await manifest.length() > 65536) {
+    throw StateError('Native manifest exceeds its input limit.');
+  }
+  final raw = jsonDecode(await manifest.readAsString());
+  if (raw is! Map<String, dynamic> ||
+      raw['shards'] is! List ||
+      (raw['shards'] as List).isEmpty ||
+      (raw['shards'] as List).length > 128) {
+    throw StateError('An exact bounded native catalog manifest is required.');
+  }
+  final shards = <String, Map<String, Object?>>{};
+  var totalBytes = 0;
+  final root = await Directory(paths[1]).resolveSymbolicLinks();
+  for (final hash in raw['shards'] as List) {
+    if (hash is! String || !RegExp(r'^[a-f0-9]{64}$').hasMatch(hash)) {
+      throw StateError('Native shard identity is invalid.');
+    }
+    final file = File('$root/$hash.json');
+    final resolved = await file.resolveSymbolicLinks();
+    final size = await file.length();
+    totalBytes += size;
+    if (!resolved.startsWith('$root/') ||
+        size > 33554432 ||
+        totalBytes > 134217728) {
+      throw StateError(
+          'Native catalog exceeds its admitted root or input limit.');
+    }
+    final shard = jsonDecode(await file.readAsString());
+    if (shard is! Map<String, dynamic>) {
+      throw StateError('Native shard must be an object.');
+    }
+    shards[hash] = shard;
+  }
+  final catalog = NativePsdkCatalogManifest.fromJson(raw, shards: shards);
+  String literal(Object? document,
+          {ContractLimits limits = const ContractLimits()}) =>
+      canonicalJsonOf(document, limits: limits).replaceAll("'", r'\u0027');
+  final output = StringBuffer()
+    ..writeln(
+        "const nativePsdkCatalogManifestHash = '${canonicalHashOf(catalog.toJson()).value}';")
+    ..writeln(
+        "const nativePsdkCatalogManifestJson = r'''${literal(catalog.toJson())}''';")
+    ..writeln('const nativePsdkCatalogShardJson = <String, String>{');
+  for (final entry in catalog.shards.entries) {
+    output.writeln(
+        "'${entry.key}': r'''${literal(entry.value.toJson(), limits: nativePsdkCatalogShardJsonLimits)}''',");
+  }
+  output.writeln('};');
+  final target = File(paths[2]);
+  await target.parent.create(recursive: true);
+  await target.writeAsString(output.toString());
+  stdout.writeln(jsonEncode({
+    'manifestHash': canonicalHashOf(catalog.toJson()).value,
+    'shards': catalog.shards.length,
+    'species': catalog.speciesById.length,
+    'moves': catalog.movesById.length,
     'sourceScriptsExecuted': 0,
   }));
 }
