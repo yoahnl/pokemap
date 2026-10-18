@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -33,7 +34,13 @@ final class AuthoringQueryException implements Exception {
 
 /// Deterministic generic reads over one immutable [ProjectSnapshot].
 final class ProjectQueryService {
-  const ProjectQueryService();
+  const ProjectQueryService({
+    this.onEventV2CatalogBuilt,
+    this.onEventV2ValidationBuilt,
+  });
+
+  final void Function()? onEventV2CatalogBuilt;
+  final void Function(String eventId)? onEventV2ValidationBuilt;
 
   AuthoringQueryPage query(
     ProjectSnapshot snapshot,
@@ -63,7 +70,12 @@ final class ProjectQueryService {
     var records = worldGraphActionRecords ??
         itemActionRecords ??
         characterStudioRecords ??
-        _records(snapshot, request);
+        _records(
+          snapshot,
+          request,
+          onEventV2CatalogBuilt: onEventV2CatalogBuilt,
+          onEventV2ValidationBuilt: onEventV2ValidationBuilt,
+        );
     records = _applyOperation(records, request);
     records = records
         .where((record) => _matchesFilters(record.detail, request.filters))
@@ -656,8 +668,10 @@ AuthoringQueryPage? _queryMapRegion(
 
 List<_QueryRecord> _records(
   ProjectSnapshot snapshot,
-  AuthoringQueryRequest request,
-) {
+  AuthoringQueryRequest request, {
+  void Function()? onEventV2CatalogBuilt,
+  void Function(String eventId)? onEventV2ValidationBuilt,
+}) {
   switch (request.resourceKind) {
     case 'resourceLibraryCatalog':
       final catalog = snapshot.manifest.resourceLibraryCatalog;
@@ -1134,14 +1148,11 @@ List<_QueryRecord> _records(
           ),
       ];
     case 'eventV2':
-      return [
-        for (final record in snapshot.manifest.eventRegistry?.records ??
-            const <NarrativeEventRecord>[])
-          _QueryRecord(
-            summary: _eventV2Summary(record),
-            detail: _eventV2Detail(snapshot, record),
-          ),
-      ];
+      return _eventV2Records(
+        snapshot,
+        onCatalogBuilt: onEventV2CatalogBuilt,
+        onValidationBuilt: onEventV2ValidationBuilt,
+      );
     case 'fact':
       return [
         for (final fact in snapshot.manifest.facts)
@@ -2058,30 +2069,87 @@ Map<String, Object?> _eventV2Summary(NarrativeEventRecord record) => {
       if (record.enabledOrNull != null) 'enabled': record.enabledOrNull,
     };
 
+List<_QueryRecord> _eventV2Records(
+  ProjectSnapshot snapshot, {
+  void Function()? onCatalogBuilt,
+  void Function(String eventId)? onValidationBuilt,
+}) {
+  NarrativeEventProjectCatalog? catalog;
+  NarrativeEventProjectCatalog catalogForValidation() {
+    final existing = catalog;
+    if (existing != null) return existing;
+    final built = buildNarrativeEventProjectCatalog(
+      project: snapshot.manifest,
+      maps: snapshot.maps,
+    );
+    catalog = built;
+    onCatalogBuilt?.call();
+    return built;
+  }
+
+  return [
+    for (final record in snapshot.manifest.eventRegistry?.records ??
+        const <NarrativeEventRecord>[])
+      _QueryRecord(
+        summary: _eventV2Summary(record),
+        detail: _eventV2Detail(
+          snapshot,
+          record,
+          catalogForValidation: catalogForValidation,
+          onValidationBuilt: onValidationBuilt,
+        ),
+      ),
+  ];
+}
+
 Map<String, Object?> _eventV2Detail(
   ProjectSnapshot snapshot,
-  NarrativeEventRecord record,
-) {
-  final registry = snapshot.manifest.eventRegistry!;
-  final catalog = buildNarrativeEventProjectCatalog(
-    project: snapshot.manifest,
-    maps: snapshot.maps,
-  );
-  final validation = buildNarrativeEventValidationReportSubset(
-    registry: registry,
-    catalog: catalog,
-    eventIds: {record.id},
-  );
-  return {
-    ...record.toJson(),
-    'id': record.id,
-    'name': record.when(
-      draft: (draft) => draft.name,
-      configured: (definition, _) => definition.name,
-    ),
-    'resourceKind': 'eventV2',
-    'validation': validation.toDebugJson(),
-  };
+  NarrativeEventRecord record, {
+  required NarrativeEventProjectCatalog Function() catalogForValidation,
+  void Function(String eventId)? onValidationBuilt,
+}) =>
+    _EventV2DetailMap({
+      ...record.toJson(),
+      'id': record.id,
+      'name': record.when(
+        draft: (draft) => draft.name,
+        configured: (definition, _) => definition.name,
+      ),
+      'resourceKind': 'eventV2',
+    }, () {
+      final validation = buildNarrativeEventValidationReportSubset(
+        registry: snapshot.manifest.eventRegistry!,
+        catalog: catalogForValidation(),
+        eventIds: {record.id},
+      );
+      onValidationBuilt?.call(record.id);
+      return validation.toDebugJson();
+    });
+
+final class _EventV2DetailMap extends MapBase<String, Object?> {
+  _EventV2DetailMap(this._base, this._buildValidation);
+
+  final Map<String, Object?> _base;
+  final Map<String, Object?> Function() _buildValidation;
+  Map<String, Object?>? _validation;
+
+  @override
+  Iterable<String> get keys => [..._base.keys, 'validation'];
+
+  @override
+  Object? operator [](Object? key) =>
+      key == 'validation' ? _validation ??= _buildValidation() : _base[key];
+
+  @override
+  void operator []=(String key, Object? value) =>
+      throw UnsupportedError('Event query detail is read-only.');
+
+  @override
+  void clear() => throw UnsupportedError('Event query detail is read-only.');
+
+  @override
+  Object? remove(Object? key) =>
+      throw UnsupportedError('Event query detail is read-only.');
 }
 
 Map<String, Object?> _factSummary(NarrativeFactDefinition fact) => {
