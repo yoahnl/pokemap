@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "moves",
+  "provenance": {
+    "sourceProject": "Bourg Palette — essai natif",
+    "sourceCatalog": "data/pokemon/catalogs/moves.json",
+    "sourceCatalogSha256": "f33a0c49ffae66c3839e0e2cf568b9a9987d32e3a04d2933e2e4eaa9c30f162c",
+    "changes": "Only the eight status effect kinds and identifiers are corrected; other fields and probabilities are preserved."
+  },
+  "entries": [
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 75
+      },
+      "basePower": 0,
+      "category": "status",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 100,
+          "kind": "apply_status",
+          "statusId": "poison",
+          "targetScope": "target"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "protect",
+        "mirror",
+        "powder"
+      ],
+      "generation": 4,
+      "id": "poison_powder",
+      "name": "Poison Powder",
+      "names": {
+        "en": "Poison Powder",
+        "fr": "Poudre Toxik"
+      },
+      "noPpBoosts": false,
+      "pp": 35,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "poison",
+      "unsupportedReasons": [
+        "psdk_method:s_status"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 75
+      },
+      "basePower": 0,
+      "category": "status",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 100,
+          "kind": "apply_status",
+          "statusId": "paralysis",
+          "targetScope": "target"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "protect",
+        "mirror",
+        "powder"
+      ],
+      "generation": 4,
+      "id": "stun_spore",
+      "name": "Stun Spore",
+      "names": {
+        "en": "Stun Spore",
+        "fr": "Para-Spore"
+      },
+      "noPpBoosts": false,
+      "pp": 30,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "grass",
+      "unsupportedReasons": [
+        "psdk_method:s_status"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 75
+      },
+      "basePower": 0,
+      "category": "status",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 100,
+          "kind": "apply_status",
+          "statusId": "sleep",
+          "targetScope": "target"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "protect",
+        "mirror",
+        "powder"
+      ],
+      "generation": 4,
+      "id": "sleep_powder",
+      "name": "Sleep Powder",
+      "names": {
+        "en": "Sleep Powder",
+        "fr": "Poudre Dodo"
+      },
+      "noPpBoosts": false,
+      "pp": 15,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "grass",
+      "unsupportedReasons": [
+        "psdk_method:s_status"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "basePower": 60,
+      "category": "physical",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 30,
+          "kind": "apply_volatile_status",
+          "targetScope": "target",
+          "volatileStatusId": "flinch"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "contact",
+        "protect",
+        "mirror",
+        "bite"
+      ],
+      "generation": 4,
+      "id": "bite",
+      "name": "Bite",
+      "names": {
+        "en": "Bite",
+        "fr": "Morsure"
+      },
+      "noPpBoosts": false,
+      "pp": 25,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "dark",
+      "unsupportedReasons": [
+        "psdk_method:s_basic"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "basePower": 0,
+      "category": "status",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 100,
+          "kind": "apply_volatile_status",
+          "targetScope": "target",
+          "volatileStatusId": "confusion"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "protect",
+        "mirror"
+      ],
+      "generation": 4,
+      "id": "confuse_ray",
+      "name": "Confuse Ray",
+      "names": {
+        "en": "Confuse Ray",
+        "fr": "Onde Folie"
+      },
+      "noPpBoosts": false,
+      "pp": 10,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "ghost",
+      "unsupportedReasons": [
+        "psdk_method:s_status"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 70
+      },
+      "basePower": 20,
+      "category": "special",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 40,
+          "kind": "apply_status",
+          "statusId": "poison",
+          "targetScope": "target"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "protect",
+        "mirror"
+      ],
+      "generation": 4,
+      "id": "smog",
+      "name": "Smog",
+      "names": {
+        "en": "Smog",
+        "fr": "Purédpois"
+      },
+      "noPpBoosts": false,
+      "pp": 20,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "poison",
+      "unsupportedReasons": [
+        "psdk_method:s_basic"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "basePower": 65,
+      "category": "special",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 30,
+          "kind": "apply_status",
+          "statusId": "poison",
+          "targetScope": "target"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "protect",
+        "mirror"
+      ],
+      "generation": 4,
+      "id": "sludge",
+      "name": "Sludge",
+      "names": {
+        "en": "Sludge",
+        "fr": "Détritus"
+      },
+      "noPpBoosts": false,
+      "pp": 20,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "poison",
+      "unsupportedReasons": [
+        "psdk_method:s_basic"
+      ]
+    },
+    {
+      "accuracy": {
+        "kind": "percent",
+        "value": 90
+      },
+      "basePower": 80,
+      "category": "physical",
+      "critRatio": 1,
+      "description": "",
+      "effects": [
+        {
+          "chance": 10,
+          "kind": "apply_volatile_status",
+          "targetScope": "target",
+          "volatileStatusId": "flinch"
+        }
+      ],
+      "engineSupportLevel": "structured_partial",
+      "flags": [
+        "contact",
+        "protect",
+        "mirror",
+        "bite"
+      ],
+      "generation": 4,
+      "id": "hyper_fang",
+      "name": "Hyper Fang",
+      "names": {
+        "en": "Hyper Fang",
+        "fr": "Croc de Mort"
+      },
+      "noPpBoosts": false,
+      "pp": 15,
+      "priority": 0,
+      "shortDescription": "",
+      "source": "HGSS factual values; native PSDK behavior projection",
+      "sourceRefs": {
+        "showdownHooksPresent": [],
+        "showdownMoveId": null
+      },
+      "target": "adjacentFoe",
+      "type": "normal",
+      "unsupportedReasons": [
+        "psdk_method:s_basic"
+      ]
+    }
+  ]
+}
