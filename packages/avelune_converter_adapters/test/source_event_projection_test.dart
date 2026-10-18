@@ -444,6 +444,7 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     _RubyObject? tileset,
     Map<int, _RubyObject>? extraEvents,
     List<Object?>? commonEvents,
+    List<int>? commonEventBytes,
     bool attestedScripts = false}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages, name: eventName), ...?extraEvents}),
@@ -453,6 +454,7 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
   if (commonEvents != null) {
     data['Data/CommonEvents.rxdata'] = _MarshalFixture().dump(commonEvents);
   }
+  if (commonEventBytes != null) data['Data/CommonEvents.rxdata'] = commonEventBytes;
   if (attestedScripts) {
     data['Data/Scripts.rxdata'] =
         await File(Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS']!)
@@ -1052,15 +1054,15 @@ void main() {
       }
     }
     for (final trigger in [0, 2]) {
-      test('inventoried unread common events refuse numeric admission trigger $trigger', () async {
+      test('malformed common events refuse numeric admission trigger $trigger', () async {
         final source = await _events([_page([
           _command(122, [7, 7, 0, 0, 3]), _command(0, []),
         ])], attestedScripts: true, commonEvents: [null, _RubyObject('RPG::CommonEvent', {
           '@id': 1, '@name': 'Opaque common event', '@trigger': trigger,
-          '@switch_id': 1, '@list': [_command(355, [r'$game_variables[7] = []']), _command(0, [])],
+          '@switch_id': 1, '@list': 'malformed',
         })]);
         expect(source.snapshot.entries.any((entry) => entry.relativePath == 'Data/CommonEvents.rxdata'), isTrue);
-        expect(source.archive.files.values.any((entry) => entry.entry.relativePath == 'Data/CommonEvents.rxdata'), isFalse);
+        expect(source.archive.files.values.any((entry) => entry.entry.relativePath == 'Data/CommonEvents.rxdata'), isTrue);
         final result = _projectEvents(source);
         expect(result.scenes, isEmpty);
         expect(result.facts, isEmpty);
@@ -1078,6 +1080,98 @@ void main() {
       expect(result.facts, isEmpty);
       expect(jsonEncode(result.semanticEvidence), contains('sourceVariableRubyCensusIncomplete'));
     });
+    for (final trigger in [0, 1, 2]) {
+      for (final target in [1, 7]) {
+        test('common event census isolates static writer target $target trigger $trigger', () async {
+          final source = await _events([_page([
+            _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+          ])], attestedScripts: true, commonEvents: [null, null, _RubyObject('RPG::CommonEvent', {
+            '@id': 2, '@name': 'Common', '@trigger': trigger, '@switch_id': 1,
+            '@list': [_command(355, ['\$game_variables[$target] = "ON"']), _command(0, [])],
+          })]);
+          final result = _projectEvents(source);
+          expect(result.facts, hasLength(target == 1 ? 1 : 0));
+          expect(result.scenes, hasLength(target == 1 ? 1 : 0));
+          expect(jsonEncode(result.semanticEvidence), isNot(contains('sourceVariableRubyCensusIncomplete')));
+        });
+      }
+    }
+    for (final commands in <List<_RubyObject>>[
+      [_command(122, [7, 7, 0, 0, 2])],
+      [_command(122, [7, 8, 0, 1, 2])],
+      [_command(103, [7, 2])], [_command(105, [7])],
+      [_command(355, [r'$game_variables[target] = []'])],
+      [_command(355, [r'variables = $game_variables'])],
+      [_command(111, [12, r'pbGet(7).replace([])'])],
+      [_command(355, [r'pbSet(']), _command(655, ['7, [])'])],
+      [_command(122, ['dynamic', 7, 0, 0, 2])],
+    ]) {
+      test('common event census refuses unconverted writer ${jsonEncode(commands.map((c) => c.fields).toList())}', () async {
+        final result = _projectEvents(await _events([_page([
+          _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+        ])], attestedScripts: true, commonEvents: [null, _RubyObject('RPG::CommonEvent', {
+          '@id': 1, '@name': 'Common', '@trigger': 0, '@switch_id': 1,
+          '@list': [...commands, _command(0, [])],
+        })]));
+        expect(result.facts, isEmpty);
+        expect(result.scenes, isEmpty);
+      });
+    }
+    test('common event census resolves invocation coverage without executing calls', () async {
+      final result = _projectEvents(await _events([_page([
+        _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+      ])], attestedScripts: true, commonEvents: [null, _RubyObject('RPG::CommonEvent', {
+        '@id': 1, '@name': 'Recursive inert call', '@trigger': 0, '@switch_id': 1,
+        '@list': [_command(117, [1]), _command(108, [r'$game_variables[7] = []']),
+          _command(408, [r'pbSet(7, [])']), _command(0, [])],
+      })], extraEvents: {2: _event(2, [_page([_command(117, [1]), _command(0, [])])])}));
+      expect(result.facts, hasLength(1));
+      expect(result.scenes, hasLength(1));
+      expect(result.registry.records.where((r) => r.definitionOrNull == null), hasLength(1));
+      expect(jsonEncode(result.semanticEvidence), isNot(contains('sourceVariableRubyCensusIncomplete')));
+    });
+    test('common event census real archive isolates ON OFF variable from independent fixture variable', () async {
+      final bytes = await File('${File(scriptsPath!).parent.path}/CommonEvents.rxdata').readAsBytes();
+      expect(bytes, hasLength(7300));
+      expect(_hash(bytes).value, 'bce4047ee1779de25f2e8fd087ea4f90dae513eecb8ead734743d1b37ee78cda');
+      for (final id in [1, 7]) {
+        final result = _projectEvents(await _events([_page([
+          _command(122, [id, id, 0, 0, 3]), _command(0, []),
+        ])], attestedScripts: true, commonEventBytes: bytes));
+        expect(result.facts, hasLength(id == 7 ? 1 : 0));
+        expect(result.scenes, hasLength(id == 7 ? 1 : 0));
+        expect(jsonEncode(result.semanticEvidence), isNot(contains('sourceVariableRubyCensusIncomplete')));
+      }
+    });
+    for (final code in [103, 105, 122]) {
+      test('common event census static writer $code preserves unrelated variable', () async {
+        final result = _projectEvents(await _events([_page([
+          _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+        ])], attestedScripts: true, commonEvents: [null, _RubyObject('RPG::CommonEvent', {
+          '@id': 1, '@name': 'Static writer', '@trigger': 0, '@switch_id': 1,
+          '@list': [_command(code, code == 122 ? [8, 8, 0, 0, 2] : code == 103 ? [8, 2] : [8]), _command(0, [])],
+        })]));
+        expect(result.facts, hasLength(1));
+        expect(result.scenes, hasLength(1));
+      });
+    }
+    for (final code in [209, 509]) {
+      for (final entry in [(r'$game_variables[7].replace([])', false),
+          (r'$game_variables[target] = []', false), (r'$game_variables[8] = []', true)]) {
+        test('common event census route $code isolates observed target ${entry.$1}', () async {
+          final move = _RubyObject('RPG::MoveCommand', {'@code': 45, '@parameters': [entry.$1]});
+          final result = _projectEvents(await _events([_page([
+            _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+          ])], attestedScripts: true, commonEvents: [null, _RubyObject('RPG::CommonEvent', {
+            '@id': 1, '@name': 'Route', '@trigger': 0, '@switch_id': 1,
+            '@list': [_command(code, code == 509 ? [move] : [0,
+              _RubyObject('RPG::MoveRoute', {'@list': [move]})]), _command(0, [])],
+          })]));
+          expect(result.facts, hasLength(entry.$2 ? 1 : 0));
+          expect(result.scenes, hasLength(entry.$2 ? 1 : 0));
+        });
+      }
+    }
     test('an incomplete variable census does not disable annotations and invocation exit', () async {
       final source = await _events([_page([
         _command(108, ['annotation']), _command(115, []), _command(0, []),

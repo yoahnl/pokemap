@@ -474,6 +474,76 @@ List<Object?> _routeConnections() => [
     ];
 
 void main() {
+  group('common event archive census', () {
+    Future<NormalizedSourceProject> normalize(_Files files, {bool include = true,
+        SourceNormalizationLimits limits = const SourceNormalizationLimits()}) =>
+        const RmxpSourceNormalizer().normalize(snapshot: files.snapshot, files: files,
+            includeEventSystem: include, limits: limits);
+    Map<String, List<int>> input() => _project()..['Data/CommonEvents.rxdata'] =
+        _MarshalFixture().dump([null, _RubyObject('RPG::CommonEvent', {
+          '@id': 1, '@name': 'Inert', '@trigger': 0, '@switch_id': 1,
+          '@list': [_command(355, [r'$game_variables[1] = "ON"']), _command(0, [])],
+        })]);
+    test('requested inventoried bytes are archived once and bind normalization hash', () async {
+      final files = _source(input());
+      final omitted = await normalize(files, include: false);
+      expect(files.reads, isNot(contains('Data/CommonEvents.rxdata')));
+      final included = await normalize(files);
+      expect(included.canPlan, isTrue);
+      final archived = included.archive.files.values.singleWhere(
+          (file) => file.entry.relativePath == 'Data/CommonEvents.rxdata');
+      expect(archived.rawBytes, files.bytes['Data/CommonEvents.rxdata']);
+      expect(archived.contentHash, _hash(archived.rawBytes));
+      expect(files.reads.where((path) => path == 'Data/CommonEvents.rxdata'), hasLength(1));
+      expect(included.archive.canonicalHash, isNot(omitted.archive.canonicalHash));
+      expect(included.canonicalHash, isNot(omitted.canonicalHash));
+      expect(SourceArchive.fromJson(included.archive.toJson()).canonicalHash,
+          included.archive.canonicalHash);
+    });
+    test('absence is legitimate when event system is requested', () async {
+      final result = await normalize(_source(_project()));
+      expect(result.canPlan, isTrue);
+      expect(result.diagnostics.where((d) => d.locator.file == 'Data/CommonEvents.rxdata'), isEmpty);
+    });
+    test('changed inventoried bytes block before archive admission', () async {
+      final files = _source(input());
+      files.replacements['Data/CommonEvents.rxdata'] = [4, 8, 48];
+      final result = await normalize(files);
+      _blocked(result, file: 'Data/CommonEvents.rxdata');
+      expect(result.diagnostics.map((d) => d.code), contains('normalization.source_changed'));
+    });
+    test('malformed Marshal blocks requested common event extraction', () async {
+      final files = _source(input()..['Data/CommonEvents.rxdata'] = [4, 8, 255]);
+      _blocked(await normalize(files), file: 'Data/CommonEvents.rxdata');
+    });
+    test('planned common event bytes count before reading', () async {
+      final files = _source(input());
+      final baseline = await normalize(files, include: false);
+      files.reads.clear();
+      final result = await normalize(files, limits: SourceNormalizationLimits(
+          maxTotalBytes: baseline.archive.files.values.fold(0, (n, file) => n + file.rawBytes.length)));
+      _blocked(result);
+      expect(files.reads, isEmpty);
+    });
+    test('common event commands share the normalization command budget', () async {
+      final result = await normalize(_source(input()),
+          limits: const SourceNormalizationLimits(maxCommands: 1));
+      _blocked(result, file: 'Data/CommonEvents.rxdata');
+      expect(result.diagnostics.map((d) => d.code), contains('normalization.quota.commands'));
+    });
+    test('common event parameters share the normalization parameter budget', () async {
+      final data = input()..['Data/CommonEvents.rxdata'] = _MarshalFixture().dump([
+        null, _RubyObject('RPG::CommonEvent', {'@id': 1, '@name': 'Bounded',
+          '@trigger': 0, '@switch_id': 1, '@list': [
+            _command(355, ['first()']), _command(355, ['second()']), _command(0, []),
+          ]}),
+      ]);
+      final result = await normalize(_source(data),
+          limits: const SourceNormalizationLimits(maxParameterNodes: 1));
+      _blocked(result, file: 'Data/CommonEvents.rxdata');
+      expect(result.diagnostics.map((d) => d.code), contains('normalization.quota.parameters'));
+    });
+  });
   group('sealed source digests', () {
     test('normalized digest is reused and equals the uncached JSON oracle',
         () async {

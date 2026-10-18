@@ -182,6 +182,9 @@ final class SourceEventStudyComposer {
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
+      for (final file in source.archive.files.values)
+        if (sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata')
+          file.entry.relativePath,
       for (final program in warpTilePrograms.programs.values)
         source.snapshot.entries.singleWhere((entry) => entry.fileId == program.event.sourceFileId).relativePath,
       for (final event in selectedEvents)

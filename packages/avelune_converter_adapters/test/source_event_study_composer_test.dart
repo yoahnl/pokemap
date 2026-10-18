@@ -349,13 +349,19 @@ void main() {
   test(
       'qualified pages survive canonical native write and reject altered actions',
       () async {
+    final commonBytes = await File('${File(scriptsPath!).parent.path}/CommonEvents.rxdata').readAsBytes();
+    expect(commonBytes, hasLength(7300));
+    expect(literalFixtureHash(commonBytes).value,
+        'bce4047ee1779de25f2e8fd087ea4f90dae513eecb8ead734743d1b37ee78cda');
     final temporary =
         await Directory.systemTemp.createTemp('ac13-events-writer-');
     addTearDown(() => temporary.delete(recursive: true));
     final fixture = await LiteralTileFixture.create(
-        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        scriptsBytes: await File(scriptsPath).readAsBytes(),
         includeEventSystem: true,
+        variableNames: [null, ...List.filled(7, 'Original count')],
         extraFiles: {
+          'Data/CommonEvents.rxdata': commonBytes,
           'PBS/metadata.txt':
               utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
           'Graphics/Characters/OriginalPlayer.png': image
@@ -375,8 +381,8 @@ void main() {
                   commands: [
                     LiteralFixtureEventCommand(108, ['Original annotation']),
                     LiteralFixtureEventCommand(408, ['Original continuation']),
-                    LiteralFixtureEventCommand(122, [1, 1, 0, 0, 2]),
-                    LiteralFixtureEventCommand(111, [1, 1, 0, 2, 0]),
+                    LiteralFixtureEventCommand(122, [7, 7, 0, 0, 2]),
+                    LiteralFixtureEventCommand(111, [1, 7, 0, 2, 0]),
                     LiteralFixtureEventCommand(115, [], indent: 1),
                     LiteralFixtureEventCommand(412, []),
                     LiteralFixtureEventCommand(101, ['Bienvenue']),
@@ -434,6 +440,19 @@ void main() {
     final composed = (await const SourceEventStudyComposer().compose(
         source: fixture.source, base: semantic, files: fixture.files))!;
     final draft = composed.draft;
+    final commonWitnesses = ((draft.compositionEvidence['sourceEvents'] as Map)['witnesses'] as List)
+        .cast<Map>().where((w) => w['relativePath'] == 'Data/CommonEvents.rxdata').toList();
+    expect(commonWitnesses, hasLength(1));
+    final commonWitness = commonWitnesses.single;
+    expect(commonWitness['byteLength'], 7300);
+    final commonChunks = commonWitness['chunks'] as List;
+    expect(commonChunks, hasLength(1));
+    final commonChunkHandle = (commonChunks.single as Map)['artifactHandle'] as String;
+    final commonImports = draft.mutations.where((mutation) =>
+        (mutation.parameters['usages'] as List?)?.contains('converter.sourceEventBytes') == true &&
+        mutation.parameters['artifactHandle'] == commonChunkHandle).toList();
+    expect(commonImports, hasLength(1));
+    expect(commonImports.single.sourceEntityIds, [ConverterId(commonWitness['fileId'] as String)]);
     expect(composed.projection.allEnabledOriginalEventsHaveExecutionContext, isTrue);
     expect((draft.compositionEvidence['sourceEvents'] as Map)['aiCalls'], 0);
     expect(
@@ -491,17 +510,19 @@ void main() {
           await File('${receipt.projectPath}/${companion.logicalPath}')
               .readAsString()) as Map;
       final sourceFiles = preserved['preservedSourceFiles'] as List;
-      final sourceMap = sourceFiles.cast<Map>().singleWhere(
-          (entry) => entry['relativePath'] == 'Data/Map001.rxdata');
-      final reconstructed = <int>[];
-      for (final chunk in sourceMap['chunks'] as List) {
-        final data = jsonDecode(await File(
-                '${receipt.projectPath}/${(chunk as Map)['logicalPath']}')
-            .readAsString()) as Map;
-        reconstructed.addAll(base64Decode(data['bytesBase64'] as String));
+      for (final sourcePath in ['Data/Map001.rxdata', 'Data/CommonEvents.rxdata']) {
+        final sourceMap = sourceFiles.cast<Map>().singleWhere(
+            (entry) => entry['relativePath'] == sourcePath);
+        final reconstructed = <int>[];
+        for (final chunk in sourceMap['chunks'] as List) {
+          final data = jsonDecode(await File(
+                  '${receipt.projectPath}/${(chunk as Map)['logicalPath']}')
+              .readAsString()) as Map;
+          reconstructed.addAll(base64Decode(data['bytesBase64'] as String));
+        }
+        expect(reconstructed, fixture.sourceBytes[sourcePath]);
+        expect(literalFixtureHash(reconstructed).value, sourceMap['rawSha256']);
       }
-      expect(reconstructed, fixture.sourceBytes['Data/Map001.rxdata']);
-      expect(literalFixtureHash(reconstructed).value, sourceMap['rawSha256']);
     } finally {
       opener.closeWorkspace(opened.workspaceHandle);
     }
@@ -531,6 +552,28 @@ void main() {
             .toList());
     final alteredApproval = approveNativeFixtureDraft(altered);
     final stages = <NativeWriteStage>[];
+    final commonArtifact = draft.artifacts.singleWhere((a) => a.handle == commonChunkHandle);
+    final rawCommon = jsonDecode(utf8.decode(commonArtifact.bytes)) as Map<String, Object?>;
+    final tamperedCommon = NativeArtifact(bytes: utf8.encode(canonicalJsonOf({
+      ...rawCommon, 'bytesBase64': base64Encode([...commonBytes]..[0] = 0),
+    })), mediaType: 'application/json');
+    for (final replacement in <NativeArtifact?>[null, tamperedCommon]) {
+      List<NativeArtifact> alter(List<NativeArtifact> artifacts) => [
+        for (final artifact in artifacts)
+          if (artifact.handle != commonChunkHandle) artifact
+          else if (replacement != null) replacement,
+      ];
+      final changedCommon = NativeProjectDraft(source: draft.source,
+          projectName: draft.projectName, parentPath: draft.parentPath,
+          folderName: draft.folderName, mapIds: draft.mapIds,
+          artifacts: alter(draft.artifacts), sourceArtifacts: alter(draft.sourceArtifacts),
+          compositionEvidence: draft.compositionEvidence, mutations: draft.mutations);
+      final changedApproval = approveNativeFixtureDraft(changedCommon);
+      await expectLater(NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+          .write(changedApproval.plan, changedApproval.context, changedCommon),
+          throwsA(isA<NativeWriteException>()));
+      expect(stages, isEmpty);
+    }
     await expectLater(
         NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
             .write(alteredApproval.plan, alteredApproval.context, altered),

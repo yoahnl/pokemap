@@ -200,6 +200,7 @@ final class LiteralTileFixture {
     List<int>? scriptsBytes,
     Map<String, List<int>> extraFiles = const {},
     bool includeEventSystem = false,
+    List<String?> variableNames = const [null, 'Original count'],
   }) async {
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
     final sourceTilesets = tilesets ?? [LiteralFixtureTileset(id: 1)];
@@ -210,7 +211,7 @@ final class LiteralTileFixture {
       if (includeEventSystem)
         'Data/System.rxdata': _Marshal().dump(_Object('RPG::System', {
           '@switches': [null, 'Original door opened', 'Original reward consumed'],
-          '@variables': [null, 'Original count'],
+          '@variables': variableNames,
         })),
       'README.md':
           utf8.encode('Original controlled Pokemon Essentials v21.1 fixture\n'),

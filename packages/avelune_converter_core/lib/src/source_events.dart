@@ -1,5 +1,138 @@
 part of '../avelune_converter_core.dart';
 
+final class _SourceOpaqueCommandReader {
+  _SourceOpaqueCommandReader(this.document, {this.commandLimit = 2000000,
+      this.parameterLimit = 4000000});
+  final MarshalDocument document;
+  final int commandLimit, parameterLimit;
+  final texts = <String>[];
+  final variableWrites = <int>{};
+  bool dynamicVariableWrite = false;
+  int commandCount = 0;
+  int parameterCount = 0;
+
+  int plain(int id, MarshalKind kind) {
+    final node = document.node(id);
+    if (node.kind != kind || node.extensions.isNotEmpty ||
+        node.userClass != null || node.instanceVariables.isNotEmpty) {
+      throw const FormatException();
+    }
+    return id;
+  }
+
+  int integer(int id) => _eventInt(document, plain(id, MarshalKind.integer));
+  List<int> array(int id) => document.node(plain(id, MarshalKind.array)).elements;
+
+  void movement(int id) {
+    final fields = _eventFields(document, id, 'RPG::MoveCommand');
+    if (integer(_eventField(fields, '@code')) != 45) return;
+    final parameters = array(_eventField(fields, '@parameters'));
+    if (parameters.length != 1) throw const FormatException();
+    texts.add(_eventLiteralText(document, parameters.single));
+  }
+
+  void route(int id) {
+    final fields = _eventFields(document, id, 'RPG::MoveRoute');
+    for (final step in array(_eventField(fields, '@list'))) {
+      movement(step);
+    }
+  }
+
+  void commands(int id, {bool collectWriters = false}) {
+    final list = array(id);
+    commandCount += list.length;
+    if (commandCount > commandLimit) {
+      throw ContractError('normalization.quota.commands', document.node(id).location.sourcePath,
+          'Command quota exceeded');
+    }
+    for (final command in list) {
+      final fields = _eventFields(document, command, 'RPG::EventCommand');
+      final code = integer(_eventField(fields, '@code'));
+      if (!collectWriters && !const {103, 105, 111, 117, 122, 209, 355, 509, 655}.contains(code)) continue;
+      final parameters = array(_eventField(fields, '@parameters'));
+      if (collectWriters) {
+        final indent = integer(_eventField(fields, '@indent'));
+        if (indent < 0 || indent > 1024 || parameters.length > 4096) throw const FormatException();
+        for (final parameter in parameters) {
+          countParameter(parameter, <int>{}, 0);
+        }
+      }
+      switch (code) {
+        case 209:
+          if (parameters.length != 2) throw const FormatException();
+          route(parameters[1]);
+        case 509:
+          if (parameters.length != 1) throw const FormatException();
+          movement(parameters.single);
+        case 355:
+        case 655:
+          if (parameters.length != 1) throw const FormatException();
+          texts.add(_eventLiteralText(document, parameters.single));
+        case 111:
+          if (parameters.isEmpty) throw const FormatException();
+          if (integer(parameters.first) == 12) {
+            if (parameters.length != 2) throw const FormatException();
+            texts.add(_eventLiteralText(document, parameters[1]));
+          }
+        case 103:
+        case 105:
+        case 122:
+          if (!collectWriters) continue;
+          try {
+            if (parameters.length < (code == 122 || code == 103 ? 2 : 1)) {
+              throw const FormatException();
+            }
+            final first = integer(parameters.first);
+            final last = code == 122 ? integer(parameters[1]) : first;
+            if (first < 0 || last < first || last > 5000 || (code == 122 && first == 0)) {
+              throw const FormatException();
+            }
+            for (var target = first; target <= last; target++) {
+              if (target > 0) variableWrites.add(target);
+            }
+          } on FormatException {
+            dynamicVariableWrite = true;
+          }
+        case 117:
+          if (collectWriters && (parameters.length != 1 || integer(parameters.single) < 1)) {
+            throw const FormatException();
+          }
+      }
+    }
+  }
+
+  void countParameter(int id, Set<int> active, int depth) {
+    if (++parameterCount > parameterLimit || depth >= 64) {
+      throw ContractError('normalization.quota.parameters', document.node(id).location.sourcePath,
+          'Parameter census quota exceeded');
+    }
+    final node = document.node(id);
+    if (node.kind != MarshalKind.array || !active.add(id)) return;
+    for (final child in node.elements) {
+      countParameter(child, active, depth + 1);
+    }
+    active.remove(id);
+  }
+
+  void commonEvents() {
+    final entries = array(document.rootId);
+    for (var index = 0; index < entries.length; index++) {
+      final id = entries[index];
+      if (document.node(id).kind == MarshalKind.nil) {
+        plain(id, MarshalKind.nil);
+        continue;
+      }
+      final fields = _eventFields(document, id, 'RPG::CommonEvent');
+      final trigger = integer(_eventField(fields, '@trigger'));
+      if (index == 0 || integer(_eventField(fields, '@id')) != index ||
+          trigger < 0 || trigger > 2 || integer(_eventField(fields, '@switch_id')) < 0) {
+        throw const FormatException();
+      }
+      commands(_eventField(fields, '@list'), collectWriters: true);
+    }
+  }
+}
+
 enum SourceEventConditionKind {
   always,
   all,
@@ -851,66 +984,47 @@ final class SourceEventAnalyzer {
           entry.kind == SourceNodeKind.file);
 
   ({List<String> texts, bool complete}) observeOpaquePageRuby(SourceEventPage page) {
-    final texts = <String>[];
+    final reference = _reference(page.rawDataRef);
+    if (reference == null) return (texts: const [], complete: false);
+    final reader = _SourceOpaqueCommandReader(project.archive.files[reference.fileId]!.document);
     try {
-      final reference = _reference(page.rawDataRef);
-      if (reference == null) throw const FormatException();
-      final document = project.archive.files[reference.fileId]!.document;
-      int plain(int id, MarshalKind kind) {
-        final node = document.node(id);
-        if (node.kind != kind || node.extensions.isNotEmpty ||
-            node.userClass != null || node.instanceVariables.isNotEmpty) {
-          throw const FormatException();
-        }
-        return id;
+      final fields = _eventFields(reader.document, reference.nodeId, 'RPG::Event::Page');
+      if (reader.integer(_eventField(fields, '@move_type')) == 3) {
+        reader.route(_eventField(fields, '@move_route'));
       }
-      int integer(int id) => _eventInt(document, plain(id, MarshalKind.integer));
-      List<int> array(int id) => document.node(plain(id, MarshalKind.array)).elements;
-      void movement(int id) {
-        final fields = _eventFields(document, id, 'RPG::MoveCommand');
-        if (integer(_eventField(fields, '@code')) != 45) return;
-        final parameters = array(_eventField(fields, '@parameters'));
-        if (parameters.length != 1) throw const FormatException();
-        texts.add(_eventLiteralText(document, parameters.single));
-      }
-      void route(int id) {
-        final fields = _eventFields(document, id, 'RPG::MoveRoute');
-        for (final step in array(_eventField(fields, '@list'))) {
-          movement(step);
-        }
-      }
-      final fields = _eventFields(document, reference.nodeId, 'RPG::Event::Page');
-      if (integer(_eventField(fields, '@move_type')) == 3) {
-        route(_eventField(fields, '@move_route'));
-      }
-      for (final command in array(_eventField(fields, '@list'))) {
-        final fields = _eventFields(document, command, 'RPG::EventCommand');
-        final code = integer(_eventField(fields, '@code'));
-        if (!const {111, 209, 355, 509, 655}.contains(code)) continue;
-        final parameters = array(_eventField(fields, '@parameters'));
-        switch (code) {
-          case 209:
-            if (parameters.length != 2) throw const FormatException();
-            route(parameters[1]);
-          case 509:
-            if (parameters.length != 1) throw const FormatException();
-            movement(parameters.single);
-          case 355:
-          case 655:
-            if (parameters.length != 1) throw const FormatException();
-            texts.add(_eventLiteralText(document, parameters.single));
-          case 111:
-            if (parameters.isEmpty) throw const FormatException();
-            if (integer(parameters.first) == 12) {
-              if (parameters.length != 2) throw const FormatException();
-              texts.add(_eventLiteralText(document, parameters[1]));
-            }
-        }
-      }
-      return (texts: List.unmodifiable(texts), complete: true);
+      reader.commands(_eventField(fields, '@list'));
+      return (texts: List.unmodifiable(reader.texts), complete: true);
     } on FormatException {
-      return (texts: List.unmodifiable(texts), complete: false);
+      return (texts: List.unmodifiable(reader.texts), complete: false);
     }
+  }
+
+  ({List<String> texts, Set<int> variableWrites, bool dynamicVariableWrite,
+      bool present, bool complete}) observeOpaqueCommonEventRuby() {
+    final entries = project.snapshot.entries.where((entry) =>
+        sourcePathCollisionKey(entry.relativePath) == 'data/commonevents.rxdata').toList();
+    if (entries.isEmpty) {
+      return (texts: const [], variableWrites: const {}, dynamicVariableWrite: false,
+          present: false, complete: true);
+    }
+    if (entries.length == 1) {
+      final file = project.archive.files[entries.single.fileId];
+      if (file != null && _admitted(file)) {
+        final reader = _SourceOpaqueCommandReader(file.document);
+        try {
+          reader.commonEvents();
+          return (texts: List.unmodifiable(reader.texts),
+              variableWrites: Set.unmodifiable(reader.variableWrites),
+              dynamicVariableWrite: reader.dynamicVariableWrite, present: true, complete: true);
+        } on FormatException {
+          return (texts: List.unmodifiable(reader.texts),
+              variableWrites: Set.unmodifiable(reader.variableWrites),
+              dynamicVariableWrite: true, present: true, complete: false);
+        }
+      }
+    }
+    return (texts: const [], variableWrites: const {}, dynamicVariableWrite: true,
+        present: true, complete: false);
   }
 
   List<String?>? _switchNames() => _systemNames('@switches');

@@ -536,6 +536,7 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     bool includeSystem = true,
     List<Object?> switches = const ['', 'Ready', 's:dangerous()'],
     List<Object?>? variables,
+    List<Object?>? commonEvents,
     Map<int, _RubyObject>? extraEvents}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages), ...?extraEvents}),
@@ -545,6 +546,9 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     data['Data/System.rxdata'] = _MarshalFixture()
         .dump(_RubyObject('RPG::System', {'@switches': switches,
           '@variables': variables ?? List.filled(128, '')}));
+  }
+  if (commonEvents != null) {
+    data['Data/CommonEvents.rxdata'] = _MarshalFixture().dump(commonEvents);
   }
   return _normalize(_source(data), includeEventSystem: includeSystem);
 }
@@ -626,6 +630,69 @@ _RubyObject _strengthPage() => _page([
     ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
 
 void main() {
+  group('common event inert census', () {
+    _RubyObject common(List<_RubyObject> commands, {int id = 1, int trigger = 0}) =>
+        _RubyObject('RPG::CommonEvent', {'@id': id, '@name': 'Inert',
+          '@trigger': trigger, '@switch_id': 1, '@list': commands});
+    for (final trigger in [0, 1, 2]) {
+      test('sparse lists include every trigger $trigger and retain scripts without execution', () async {
+        final source = await _events([], commonEvents: [null, null, common([
+          _command(108, [r'$game_variables[7] = []']),
+          _command(408, [r'pbSet(7, [])']),
+          _command(355, ['pbSet(']), _command(655, ['1, "ON")']),
+          _command(111, [12, 'predicate()']), _command(117, [2]),
+          _command(122, [3, 4, 0, 0, 7]),
+          _command(103, [5, 2]), _command(105, [6]), _command(0, []),
+        ], id: 2, trigger: trigger)]);
+        final observed = _analyzer(source).observeOpaqueCommonEventRuby();
+        expect(observed.complete, isTrue);
+        expect(observed.present, isTrue);
+        expect(observed.dynamicVariableWrite, isFalse);
+        expect(observed.variableWrites, {3, 4, 5, 6});
+        expect(observed.texts.join('\n'), 'pbSet(\n1, "ON")\npredicate()');
+        expect(() => observed.texts.clear(), throwsUnsupportedError);
+        expect(() => observed.variableWrites.clear(), throwsUnsupportedError);
+      });
+    }
+    test('routes use the same inert script collector as pages', () async {
+      final source = await _events([], commonEvents: [null, common([
+        ..._forcedRoute([_moveCommand(45, parameters: ['route_script()'])]), _command(0, []),
+      ])]);
+      final observed = _analyzer(source).observeOpaqueCommonEventRuby();
+      expect(observed.complete, isTrue);
+      expect(observed.texts, everyElement('route_script()'));
+      expect(observed.texts, isNotEmpty);
+    });
+    test('inventoried source excluded from archive remains incomplete', () async {
+      final source = await _events([], includeSystem: false,
+          commonEvents: [null, common([_command(0, [])])]);
+      final observed = _analyzer(source).observeOpaqueCommonEventRuby();
+      expect(observed.present, isTrue);
+      expect(observed.complete, isFalse);
+    });
+    test('dynamic writer ranges do not invent static identities', () async {
+      final source = await _events([], commonEvents: [null, common([
+        _command(122, ['target', 7, 0, 0, 3]), _command(0, []),
+      ])]);
+      final observed = _analyzer(source).observeOpaqueCommonEventRuby();
+      expect(observed.complete, isTrue);
+      expect(observed.dynamicVariableWrite, isTrue);
+      expect(observed.variableWrites, isEmpty);
+    });
+    for (final record in [
+      common([_command(355, [3])]),
+      common([_command(117, [])]),
+      common([_command(0, [])], id: 2),
+      common([_command(0, [])], trigger: 3),
+    ]) {
+      test('malformed common envelope ${record.fields} remains incomplete', () async {
+        final source = await _events([], commonEvents: [null, record]);
+        expect(source.canPlan, isFalse);
+        expect(_analyzer(source).observeOpaqueCommonEventRuby().complete, isFalse);
+        expect(source.diagnostics.map((d) => d.code), contains('normalization.invalid_common_events'));
+      });
+    }
+  });
   group('generic source numeric control', () {
     test('annotations between text continuations and choices do not split dialogue', () async {
       final source = await _events([_page([

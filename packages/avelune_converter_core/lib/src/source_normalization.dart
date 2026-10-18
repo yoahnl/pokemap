@@ -862,6 +862,7 @@ final class _SourceNormalizationRun {
         'Data/MapInfos.rxdata',
         'Data/Tilesets.rxdata',
         if (includeEventSystem) 'Data/System.rxdata',
+        if (includeEventSystem) 'Data/CommonEvents.rxdata',
         if (includeConnections) 'Data/map_connections.dat'
       ])
         if (byPath[sourcePathCollisionKey(path)] != null)
@@ -901,6 +902,28 @@ final class _SourceNormalizationRun {
           await load(systemEntry);
         } on Object catch (error) {
           failure(error, locator(systemEntry.relativePath));
+        }
+      }
+      final commonEntry = byPath[sourcePathCollisionKey('Data/CommonEvents.rxdata')];
+      if (commonEntry != null) {
+        try {
+          final file = await load(commonEntry);
+          final reader = _SourceOpaqueCommandReader(file.document,
+              commandLimit: limits.maxCommands - commands,
+              parameterLimit: limits.maxParameterNodes - parameterNodes);
+          reader.commonEvents();
+          _require(reader.commandCount <= limits.maxCommands - commands,
+              'normalization.quota.commands', commonEntry.relativePath,
+              'Command quota exceeded');
+          commands += reader.commandCount;
+          parameterNodes += reader.parameterCount;
+        } on ContractError catch (error) {
+          failure(error, locator(commonEntry.relativePath));
+        } on FormatException {
+          diagnostic('normalization.invalid_common_events', locator(commonEntry.relativePath),
+              'Common event commands require complete inert RPG data');
+        } on Object catch (error) {
+          failure(error, locator(commonEntry.relativePath));
         }
       }
     }

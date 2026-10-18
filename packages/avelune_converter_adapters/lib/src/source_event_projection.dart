@@ -2458,9 +2458,12 @@ final class _ProjectionBuilder {
       }
     }
     final switchRuby = sourceReader.observeOpaqueSwitchRuby();
-    _incompleteVariableRubyCensus = !switchRuby.complete || source.snapshot.entries.any(
-        (entry) => sourcePathCollisionKey(entry.relativePath) == 'data/commonevents.rxdata');
+    final commonRuby = sourceReader.observeOpaqueCommonEventRuby();
+    _incompleteVariableRubyCensus = !switchRuby.complete || !commonRuby.complete;
+    _dynamicVariableWriter = commonRuby.dynamicVariableWrite;
+    writes.addAll(commonRuby.variableWrites);
     script(switchRuby.texts.join('\n'));
+    script(commonRuby.texts.join('\n'));
     for (final map in source.maps) {
       for (final event in map.map.events) {
         if (exempt.contains(source.eventIdentity(map.map.sourceMapId, event.sourceEventId))) continue;
@@ -2485,7 +2488,7 @@ final class _ProjectionBuilder {
               } else if (target >= 1 && target <= 5000) {
                 writes.add(target);
               }
-            } else if (command.code == 117) {
+            } else if (command.code == 117 && (!commonRuby.present || !commonRuby.complete)) {
               _incompleteVariableRubyCensus = true;
             }
           }
