@@ -136,6 +136,11 @@ void main() {
     expect(planned.code, 0, reason: planned.err);
     final recipe = await const LocalStudyPlanStore().read(planPath);
     expect(await Directory('${output.path}/native-study').exists(), isFalse);
+    expect(recipe.settings.writeLimits.maxArtifacts, 4096);
+    expect(recipe.settings.writeLimits.maxMutations, 16384);
+    final restored = ConverterStudyPlanRecipe.fromJson(jsonDecode(planned.out));
+    expect(restored.canonicalHash, recipe.canonicalHash);
+    expect(restored.settings.writeLimits.maxArtifacts, 4096);
     expect(jsonDecode(planned.out)['approvedPlanHash'],
         recipe.approvedPlanHash.value);
     final converted = await invoke([

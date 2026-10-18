@@ -28,6 +28,8 @@ import 'source_catalog_projection.dart';
 import 'native_source_event_atlas_admission.dart';
 import 'native_mutation_batches.dart';
 
+const nativeMaxUniqueArtifacts = 4096;
+
 final class NativeWriteLimits {
   const NativeWriteLimits({
     this.maxArtifacts = 32,
@@ -72,7 +74,7 @@ final class NativeWriteLimits {
 
   void _validate() {
     final values = [
-      (maxArtifacts, 2048),
+      (maxArtifacts, nativeMaxUniqueArtifacts),
       (maxMutations, 16384),
       (maxArtifactBytes, 67108864),
       (maxTotalArtifactBytes, 268435456),
@@ -496,6 +498,10 @@ final class NativeProjectDraft {
   final int validatedJsonByteLength;
   final Map<String, Object?> _binding;
   String get bindingEvidence => 'native-draft-sha256:${canonicalHash.value}';
+  int get uniqueArtifactCount => {
+        for (final artifact in artifacts) artifact.handle,
+        for (final artifact in sourceArtifacts) artifact.handle,
+      }.length;
 
   void validateResourceBudget({
     NativeWriteLimits limits = const NativeWriteLimits(),

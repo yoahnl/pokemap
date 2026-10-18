@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
@@ -19,7 +20,9 @@ void main() {
 
   NativeProjectDraft artifactDraft(int nativeCount, int sourceCount,
       {NativeWriteLimits? limits}) {
-    final artifact = NativeArtifact(bytes: [1, 2, 3]);
+    final blobs = List.generate(nativeCount + sourceCount,
+        (index) => NativeArtifact(bytes: utf8.encode('{"id":$index}'),
+            mediaType: 'application/json'));
     return NativeProjectDraft(
         source: fixture.source,
         projectName: fixture.draft.projectName,
@@ -27,20 +30,20 @@ void main() {
         folderName: fixture.draft.folderName,
         sourceRootPath: fixture.draft.sourceRootPath,
         mapIds: fixture.draft.mapIds,
-        artifacts: List.filled(nativeCount, artifact),
-        sourceArtifacts: List.filled(sourceCount, artifact),
+        artifacts: blobs.take(nativeCount).toList(),
+        sourceArtifacts: blobs.skip(nativeCount).toList(),
         mutations: fixture.draft.mutations,
         limits: limits ?? sourceCatalogStudyWriteLimitsFor(383));
   }
 
   test('world artifact ceiling counts every native and source entry exactly',
       () {
-    for (final split in [(2048, 0), (0, 2048), (1024, 1024), (593, 596)]) {
+    for (final split in [(4096, 0), (0, 4096), (2048, 2048), (593, 596)]) {
       final draft = artifactDraft(split.$1, split.$2);
       expect(draft.artifacts.length, split.$1);
       expect(draft.sourceArtifacts.length, split.$2);
     }
-    for (final split in [(2049, 0), (0, 2049), (1024, 1025)]) {
+    for (final split in [(4097, 0), (0, 4097), (2048, 2049)]) {
       expect(
           () => artifactDraft(split.$1, split.$2),
           throwsA(isA<NativeWriteException>()
@@ -60,6 +63,22 @@ void main() {
                 maxArtifacts: 2048, maxTotalArtifactBytes: 3566)),
         throwsA(isA<NativeWriteException>()
             .having((error) => error.code, 'code', 'native.quota.artifact')));
+  });
+
+  test('draft plan counts union handles separately from source witnesses', () {
+    final output = NativeArtifact(bytes: [1]);
+    final witness = NativeArtifact(bytes: [2]);
+    final draft = NativeProjectDraft(
+        source: fixture.source,
+        projectName: fixture.draft.projectName,
+        parentPath: fixture.draft.parentPath,
+        folderName: fixture.draft.folderName,
+        mapIds: fixture.draft.mapIds,
+        artifacts: [output],
+        sourceArtifacts: [output, witness],
+        mutations: fixture.draft.mutations);
+    expect(draft.uniqueArtifactCount, 2);
+    expect(draft.sourceArtifacts.length, 2);
   });
 
   test('smaller artifact writer budget rejects before staging', () async {
@@ -87,7 +106,7 @@ void main() {
       expect(limits.maxMutations, 16384);
       expect(limits.maxTotalDraftJsonBytes, 268435456);
       expect(limits.maxTotalArtifactBytes, 268435456);
-      expect(limits.maxArtifacts, 2048);
+      expect(limits.maxArtifacts, 4096);
       expect(limits.maxImagePixels, 16777216);
       expect(limits.maxTotalImagePixels, 33554432);
       expect(limits.validate, returnsNormally);
@@ -221,13 +240,15 @@ void main() {
   test(
       'world workflow settings retain exact serialized limits and reject excess maps',
       () {
-    ConverterStudySettings settings(int maps) => ConverterStudySettings(
+    ConverterStudySettings settings(int maps, {NativeWriteLimits? limits}) =>
+        ConverterStudySettings(
         projectName: 'World capacity',
         parentPath: '/private/tmp/world-capacity',
         folderName: 'world',
         selectedSourceMapIds: [
           for (var index = 1; index <= maps; index++) index
         ],
+        writeLimits: limits,
         profileAcknowledgement: SourceStudyAcknowledgement(
             sourceSnapshotHash: Sha256Hash('0' * 64),
             profileEvidenceHash: Sha256Hash('1' * 64),
@@ -236,7 +257,7 @@ void main() {
     final world = settings(383);
     final json = world.toJson();
     expect((json['writeLimits'] as Map)['maxMutations'], 16384);
-    expect((json['writeLimits'] as Map)['maxArtifacts'], 2048);
+    expect((json['writeLimits'] as Map)['maxArtifacts'], 4096);
     expect((json['writeLimits'] as Map)['maxTotalDraftJsonBytes'], 268435456);
     expect(world.canonicalHash, settings(383).canonicalHash);
     final resume = LocalReviewResumeSettings(
@@ -247,7 +268,7 @@ void main() {
         writeLimits: world.writeLimits);
     final restoredResume = LocalReviewResumeSettings.fromJson(resume.toJson());
     expect(restoredResume.toJson(), resume.toJson());
-    expect(restoredResume.writeLimits.maxArtifacts, 2048);
+    expect(restoredResume.writeLimits.maxArtifacts, 4096);
     final recipe = ConverterStudyPlanRecipe(
         sessionId: ConverterId('world-capacity-session'),
         sessionRevision: 3,
@@ -267,7 +288,32 @@ void main() {
         converterVersion: 'world-capacity-test');
     final restoredRecipe = ConverterStudyPlanRecipe.fromJson(recipe.toJson());
     expect(restoredRecipe.toJson(), recipe.toJson());
-    expect(restoredRecipe.settings.writeLimits.maxArtifacts, 2048);
+    expect(restoredRecipe.settings.writeLimits.maxArtifacts, 4096);
+    for (final count in [32, 512, 1024, 2048]) {
+      final explicit = settings(383,
+          limits: NativeWriteLimits(maxArtifacts: count, maxMutations: 16384));
+      expect(explicit.writeLimits.maxArtifacts, count);
+      final body = recipe.toJson()
+        ..remove('canonicalHash')
+        ..['settings'] = explicit.toJson()
+        ..['settingsHash'] = explicit.canonicalHash.value;
+      final explicitRecipe = ConverterStudyPlanRecipe.fromJson({
+        ...body,
+        'canonicalHash': canonicalHashOf(body,
+                limits: ConverterStudyPlanRecipe.jsonLimits)
+            .value,
+      });
+      expect(explicitRecipe.settings.writeLimits.maxArtifacts, count);
+      expect(
+          LocalReviewResumeSettings.fromJson(LocalReviewResumeSettings(
+                  sourceRootPath: fixture.sourceRootPath,
+                  destinationParentPath: explicit.parentPath,
+                  projectName: explicit.projectName,
+                  folderName: explicit.folderName,
+                  writeLimits: explicit.writeLimits)
+              .toJson()).writeLimits.maxArtifacts,
+          count);
+    }
     expect(
         () => settings(2049),
         throwsA(isA<ConverterWorkflowFailure>().having(

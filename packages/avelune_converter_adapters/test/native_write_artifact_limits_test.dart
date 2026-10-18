@@ -47,11 +47,11 @@ void main() {
             .having((error) => error.code, 'code', 'native.quota.image')));
   });
 
-  test('draft entry refusal reports measured counts and unique artifacts',
+  test('draft unique blob refusal reports measured role and union counts',
       () async {
     final fixture =
         await LiteralTileFixture.create(maps: [LiteralFixtureMap(id: 1)]);
-    final artifact = NativeArtifact(bytes: [1, 2, 3]);
+    final artifacts = List.generate(4, (index) => NativeArtifact(bytes: [index]));
     expect(
         () => NativeProjectDraft(
             source: fixture.source,
@@ -59,8 +59,8 @@ void main() {
             parentPath: '/private/tmp/native-draft-budget',
             folderName: 'measured-quota',
             mapIds: const {1: 'map-one'},
-            artifacts: [artifact, artifact],
-            sourceArtifacts: [artifact, artifact],
+            artifacts: artifacts.take(2).toList(),
+            sourceArtifacts: artifacts.skip(2).toList(),
             mutations: const [],
             limits: const NativeWriteLimits(maxArtifacts: 3)),
         throwsA(isA<NativeWriteException>()
@@ -68,9 +68,9 @@ void main() {
             .having(
                 (error) => error.message,
                 'message',
-                'Draft entry budget exceeded: artifacts=2, sourceArtifacts=2, '
-                    'totalArtifacts=4, uniqueArtifacts=1, maxArtifacts=3; '
-                    'mutations=0, maxMutations=256; maps=1, maxMaps=256.')));
+                'Unique artifact budget exceeded: artifacts=2, '
+                    'sourceArtifacts=2, derivedArtifacts=0, '
+                    'uniqueArtifacts=4, maxArtifacts=3')));
   });
 
   test('allows an explicit bounded 512 artifact native catalogue study', () {
@@ -113,7 +113,7 @@ void main() {
     expect(limits.maxMapCells, 1048576);
   });
 
-  for (final count in [-1, 0, 2049, 1000000]) {
+  for (final count in [-1, 0, 4097, 1000000]) {
     test('refuses an invalid artifact count $count', () {
       expect(
           NativeWriteLimits(maxArtifacts: count).validate,

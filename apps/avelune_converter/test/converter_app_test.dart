@@ -57,8 +57,25 @@ void main() {
         final panel = tester.widget<ConverterAssetReviewPanel>(
           find.byType(ConverterAssetReviewPanel),
         );
-        expect(panel.limits.maxArtifacts, 2048);
+        expect(panel.limits.maxArtifacts, 4096);
         expect(panel.limits.maxMutations, 16384);
+        await tester.tap(find.text('Export'));
+        await tester.pump();
+        final prepared = source.workflow.state.prepared!;
+        final draft = prepared.nativeDraft!;
+        final uniqueHandles = {
+          for (final artifact in [...draft.artifacts, ...draft.sourceArtifacts])
+            artifact.handle
+        };
+        expect(
+          find.text(
+            'Plan : ${uniqueHandles.length} ressources uniques / 4096, '
+            '${draft.sourceArtifacts.length} témoins source, '
+            '${draft.mutations.length} opérations / 16384, '
+            '${draft.validatedJsonByteLength} octets / ${prepared.settings.writeLimits.maxTotalDraftJsonBytes}.',
+          ),
+          findsOneWidget,
+        );
         await tester.tap(find.text('Analyse'));
         await tester.pump();
         await tester.ensureVisible(
@@ -70,7 +87,7 @@ void main() {
           () => find.text('Session enregistrée').evaluate().isNotEmpty,
         );
         final saved = (await tester.runAsync(store.list))!.single;
-        expect(saved.resumeSettings.writeLimits.maxArtifacts, 2048);
+        expect(saved.resumeSettings.writeLimits.maxArtifacts, 4096);
         expect(saved.resumeSettings.writeLimits.maxMutations, 16384);
         await tester.runAsync(source.expectSourceUnchanged);
         expect(tester.takeException(), isNull);

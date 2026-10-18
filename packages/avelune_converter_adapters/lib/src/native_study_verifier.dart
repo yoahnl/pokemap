@@ -34,6 +34,20 @@ final class NativeStudyVerification {
 final class NativeStudyVerifier {
   const NativeStudyVerifier({this.snapshotLoadProfileSink});
 
+  static const maxLogicalAssetRecords = 16384;
+
+  static void validateInventory(
+      {required int logicalAssetCount, required int mapCount}) {
+    if (logicalAssetCount > maxLogicalAssetRecords) {
+      throw _failed('Native study verification has $logicalAssetCount logical '
+          'asset records, exceeding its $maxLogicalAssetRecords record scope.');
+    }
+    if (mapCount > 4096) {
+      throw _failed('Native study verification has $mapCount maps, '
+          'exceeding its 4096 map scope.');
+    }
+  }
+
   final ProjectSnapshotLoadProfileSink? snapshotLoadProfileSink;
 
   Future<NativeStudyVerification> verify(
@@ -74,10 +88,9 @@ final class NativeStudyVerifier {
       final catalog = AssetCatalog.fromJson(jsonDecode(
               utf8.decode(snapshot.resourceBytes(assetCatalogResourceIdentity)))
           as Map<String, dynamic>);
-      if (catalog.records.length > 512 || snapshot.maps.length > 4096) {
-        throw _failed(
-            'Native study verification inventory exceeds its bounded scope.');
-      }
+      validateInventory(
+          logicalAssetCount: catalog.records.length,
+          mapCount: snapshot.maps.length);
       final access = handles.resolveProject(opened.projectHandle);
       var total = 0;
       final identities = <String, ProjectResourceIdentity>{};

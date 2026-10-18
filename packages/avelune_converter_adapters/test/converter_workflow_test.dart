@@ -21,7 +21,7 @@ void main() {
       'native catalog rules invalidate the former one-map recipe before reading source',
       () async {
     const oldRules =
-        'dc428ce48e94f7c62cac4af0c44e26738fb56bde9c4f56912b0cb9a4eee18054';
+        '7b839640d596715fdb01465a101ccf5c8188a6464eb3cc3f494724a9aa97928b';
     final harness = await _WorkflowHarness.create();
     try {
       final snapshot = await harness.workflow.scanSource(harness.selection);
@@ -68,7 +68,7 @@ void main() {
                 profileEvidenceHash: Sha256Hash('1' * 64),
                 humanConfirmed: true,
                 reason: 'Bounded test'));
-    expect(settings().writeLimits.maxArtifacts, 2048);
+    expect(settings().writeLimits.maxArtifacts, 4096);
     expect(settings().writeLimits.maxMutations, 16384);
     expect(identical(settings(limits: small).writeLimits, small), isTrue);
     expect((small.maxArtifacts, small.maxMutations), (512, 1024));
@@ -359,10 +359,9 @@ void main() {
       expect(prepared.assetCandidates, hasLength(288));
       expect(prepared.assetProposalDiagnostics, isEmpty);
       expect(prepared.reviewSet!.segments.keys, [1, 8]);
-      expect(prepared.settings.writeLimits.maxArtifacts, 1024);
-      expect(prepared.settings.writeLimits.maxMutations, 2048);
-      expect(prepared.settings.writeLimits.maxTotalArtifactBytes,
-          sourceCatalogStudyWriteLimits.maxTotalArtifactBytes);
+      expect(prepared.settings.writeLimits.maxArtifacts, 4096);
+      expect(prepared.settings.writeLimits.maxMutations, 16384);
+      expect(prepared.settings.writeLimits.maxTotalArtifactBytes, 268435456);
       const boundedLimits = NativeWriteLimits(maxArtifacts: 128);
       harness.workflow.updateSettings(
           harness.settings(snapshot, writeLimits: boundedLimits));

@@ -2180,7 +2180,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         if (prepared.nativeDraft case final draft?) ...[
           const SizedBox(height: 8),
           Text(
-            'Plan : ${draft.artifacts.length + draft.sourceArtifacts.length} fichiers / ${prepared.settings.writeLimits.maxArtifacts}, '
+            'Plan : ${draft.uniqueArtifactCount} ressources uniques / ${prepared.settings.writeLimits.maxArtifacts}, '
+            '${draft.sourceArtifacts.length} témoins source, '
             '${draft.mutations.length} opérations / ${prepared.settings.writeLimits.maxMutations}, '
             '${draft.validatedJsonByteLength} octets / ${prepared.settings.writeLimits.maxTotalDraftJsonBytes}.',
           ),
