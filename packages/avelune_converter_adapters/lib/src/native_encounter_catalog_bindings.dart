@@ -3,6 +3,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import 'native_encounter_catalog_qualification.dart';
+import 'native_source_species_bindings.dart';
 
 export 'native_encounter_catalog_qualification.dart';
 
@@ -31,6 +32,7 @@ final class NativeEncounterCatalogBindings {
     Map<int, String> sourceMapNames = const {},
     ScanCancellation? cancellation,
   }) async {
+    cancellation?.check();
     if (ratePolicy == NativeEncounterRatePolicy.unresolved) {
       _invalid('rate_policy_required',
           'Native table probability requires an explicit source base percent adaptation policy.');
@@ -38,7 +40,11 @@ final class NativeEncounterCatalogBindings {
     if (source.sourceSnapshotHash != snapshot.canonicalHash ||
         source.logicalProjectNamespace != snapshot.logicalProjectNamespace ||
         source.profile != SourcePbsProfile.essentials21_1 ||
-        nativeMapIds.length > 8 ||
+        nativeMapIds.length > (qualification.isGeneric ? 2048 : 8) ||
+        nativeMapIds.keys.any((id) => id < 1) ||
+        nativeMapIds.values.any((id) => id.trim().isEmpty || id.length > 192) ||
+        !qualification.admitsSourceScope(snapshot, nativeMapIds.keys,
+            source: source) ||
         nativeMapIds.values.toSet().length != nativeMapIds.length) {
       _invalid('source_binding',
           'Native encounters require their exact PBS source and bounded selected map identities.');
@@ -54,64 +60,93 @@ final class NativeEncounterCatalogBindings {
       _invalid('compiled_species',
           'A bounded exact compiled species SET witness is required.');
     }
-    final bytes = await files.read(witness.fileId);
-    cancellation?.check();
-    if (bytes.length != witness.byteLength ||
-        crypto.sha256.convert(bytes).toString() != witness.sha256!.value) {
-      _invalid('compiled_species_changed',
-          'Compiled species bytes differ from the source snapshot.');
-    }
-    final compiled =
-        const MarshalDecoder().decode(bytes, sourcePath: witness.relativePath);
-    final root = compiled.node(compiled.rootId);
     final baseSymbols = <String>{};
-    String? symbol(MarshalNode? node) =>
-        node?.kind == MarshalKind.symbol ? node!.text().text : null;
-    if (root.kind != MarshalKind.hash) {
-      _invalid('compiled_species',
-          'Compiled species requires a typed GameData::Species SET.');
-    }
-    for (final pair in root.pairs) {
-      final key = compiled.node(pair.key), value = compiled.node(pair.value);
-      final fields = {
-        for (final field in value.instanceVariables)
-          symbol(compiled.node(field.key)): compiled.node(field.value)
-      };
-      final form = fields['@form'];
-      final id = symbol(fields['@id']);
-      final species = symbol(fields['@species']);
-      if (value.kind != MarshalKind.object ||
-          value.className != 'GameData::Species' ||
-          symbol(key) != id ||
-          species == null ||
-          form?.kind != MarshalKind.integer ||
-          form!.integerValue! < BigInt.zero ||
-          (form.integerValue == BigInt.zero &&
-              (id != species || !baseSymbols.add(species)))) {
-        _invalid('compiled_species',
-            'Compiled species SET identities are invalid or ambiguous.');
-      }
-    }
     final mappings = <String, Map<String, Object?>>{};
-    for (final mapping in qualification.sourceMappings) {
-      final sourceSymbol = mapping['sourceSymbol'];
-      final rawSymbol = mapping['rawNativeDbSymbol'];
-      final nativeId = mapping['nativeSpeciesId'];
-      final species = native.speciesById[nativeId];
-      if (sourceSymbol is! String ||
-          rawSymbol is! String ||
-          rawSymbol.toUpperCase() != sourceSymbol ||
-          mapping['form'] != 0 ||
-          mapping['nativeBaseId'] != rawSymbol ||
-          species == null ||
-          species.id != rawSymbol ||
-          species.forms.formId != '0' ||
-          species.forms.baseFormId != rawSymbol ||
-          mappings.containsKey(sourceSymbol)) {
+    if (qualification.isGeneric) {
+      final resolved = await const NativeSourceSpeciesBindings().bind(
+          snapshot: snapshot,
+          source: source,
+          files: files,
+          nativeCatalog: native,
+          requestedSourceSymbols: qualification.sourceMappings
+              .map((row) => row['sourceSymbol'] as String),
+          cancellation: cancellation);
+      if (canonicalJsonOf(resolved.rows,
+                  limits: const ContractLimits(
+                      maxNodes: 2000000, maxTextCodeUnits: 33554432)) !=
+              canonicalJsonOf(qualification.sourceMappings,
+                  limits: const ContractLimits(
+                      maxNodes: 2000000, maxTextCodeUnits: 33554432)) ||
+          canonicalJsonOf(resolved.evidence,
+                  limits: const ContractLimits(
+                      maxNodes: 2000000, maxTextCodeUnits: 33554432)) !=
+              canonicalJsonOf(qualification.evidence['speciesBindingEvidence'],
+                  limits: const ContractLimits(
+                      maxNodes: 2000000, maxTextCodeUnits: 33554432)) ||
+          !qualification.admitsSourceScope(snapshot, nativeMapIds.keys,
+              source: source)) {
         _invalid('species_identity',
-            'Source symbols require exact attested raw native dbSymbol identities at form zero.');
+            'Generic mappings must match fresh exact source identity resolution.');
       }
-      mappings[sourceSymbol] = mapping;
+      mappings.addAll(resolved.mappings);
+    } else {
+      final bytes = await files.read(witness.fileId);
+      cancellation?.check();
+      if (bytes.length != witness.byteLength ||
+          crypto.sha256.convert(bytes).toString() != witness.sha256!.value) {
+        _invalid('compiled_species_changed',
+            'Compiled species bytes differ from the source snapshot.');
+      }
+      final compiled = const MarshalDecoder()
+          .decode(bytes, sourcePath: witness.relativePath);
+      final root = compiled.node(compiled.rootId);
+      String? symbol(MarshalNode? node) =>
+          node?.kind == MarshalKind.symbol ? node!.text().text : null;
+      if (root.kind != MarshalKind.hash) {
+        _invalid('compiled_species',
+            'Compiled species requires a typed GameData::Species SET.');
+      }
+      for (final pair in root.pairs) {
+        final key = compiled.node(pair.key), value = compiled.node(pair.value);
+        final fields = {
+          for (final field in value.instanceVariables)
+            symbol(compiled.node(field.key)): compiled.node(field.value)
+        };
+        final form = fields['@form'];
+        final id = symbol(fields['@id']);
+        final species = symbol(fields['@species']);
+        if (value.kind != MarshalKind.object ||
+            value.className != 'GameData::Species' ||
+            symbol(key) != id ||
+            species == null ||
+            form?.kind != MarshalKind.integer ||
+            form!.integerValue! < BigInt.zero ||
+            (form.integerValue == BigInt.zero &&
+                (id != species || !baseSymbols.add(species)))) {
+          _invalid('compiled_species',
+              'Compiled species SET identities are invalid or ambiguous.');
+        }
+      }
+      for (final mapping in qualification.sourceMappings) {
+        final sourceSymbol = mapping['sourceSymbol'];
+        final rawSymbol = mapping['rawNativeDbSymbol'];
+        final nativeId = mapping['nativeSpeciesId'];
+        final species = native.speciesById[nativeId];
+        if (sourceSymbol is! String ||
+            rawSymbol is! String ||
+            rawSymbol.toUpperCase() != sourceSymbol ||
+            mapping['form'] != 0 ||
+            mapping['nativeBaseId'] != rawSymbol ||
+            species == null ||
+            species.id != rawSymbol ||
+            species.forms.formId != '0' ||
+            species.forms.baseFormId != rawSymbol ||
+            mappings.containsKey(sourceSymbol)) {
+          _invalid('species_identity',
+              'Source symbols require exact attested raw native dbSymbol identities at form zero.');
+        }
+        mappings[sourceSymbol] = mapping;
+      }
     }
     final tables = <ProjectEncounterTable>[];
     final rows = <Map<String, Object?>>[];
@@ -124,17 +159,23 @@ final class NativeEncounterCatalogBindings {
             nativeMapIds.containsKey(entry.identity?.sourceMapId))
         .toList()
       ..sort((a, b) => a.identity!.key.compareTo(b.identity!.key));
+    final seenMaps = <int>{};
     for (final entry in selected) {
       cancellation?.check();
       final identity = entry.identity!;
       if (entry.isBlocked ||
           source.lookup(identity) == null ||
-          identity.version != 0) {
+          identity.version != 0 ||
+          !seenMaps.add(identity.sourceMapId!)) {
         _invalid('table_identity',
             'Native encounter tables require unique version-zero source entries.');
       }
       final methods = <String, SourcePbsEncounterMethod>{};
       for (final method in entry.methods) {
+        if (methods.containsKey(method.name)) {
+          _invalid(
+              'table_identity', 'Selected encounter methods must be unique.');
+        }
         methods[method.name] = method;
       }
       for (final method in methods.values) {
@@ -190,12 +231,18 @@ final class NativeEncounterCatalogBindings {
           final speciesKey = SourcePbsIdentity(
               namespace: source.logicalProjectNamespace,
               family: SourcePbsFamily.species,
-              sourceSymbol: slot.species);
+              sourceSymbol: qualification.isGeneric
+                  ? (mapping?['sourceBaseSymbol'] as String?)
+                  : slot.species,
+              form: qualification.isGeneric
+                  ? ((mapping?['sourceForm'] as int?) ?? 0)
+                  : 0);
           final sourceSpecies = source.entries
               .where((entry) => entry.identity?.key == speciesKey.key)
               .singleOrNull;
           if (mapping == null ||
-              !baseSymbols.contains(slot.species) ||
+              (!qualification.isGeneric &&
+                  !baseSymbols.contains(slot.species)) ||
               sourceSpecies == null) {
             _invalid('species_identity',
                 'Every encounter species requires unique exact native, PBS header and compiled form-zero SET identities: ${slot.species}.');
@@ -212,9 +259,14 @@ final class NativeEncounterCatalogBindings {
           for (var level = slot.minimumLevel;
               level <= slot.maximumLevel;
               level++) {
-            final key = '$nativeId|0|$level';
+            final key = qualification.isGeneric
+                ? '${mapping['nativeBaseId']}|${mapping['nativeForm']}|$level'
+                : '$nativeId|0|$level';
             final proof = qualification.wildCases[key];
-            if (proof == null || proof['sourceSymbol'] != slot.species) {
+            if (proof == null ||
+                (qualification.isGeneric
+                    ? !(proof['sourceSymbols'] as List).contains(slot.species)
+                    : proof['sourceSymbol'] != slot.species)) {
               _invalid('tuple_unqualified',
                   'An inclusive encounter level has no exact qualified native defaults: $key');
             }
@@ -232,9 +284,12 @@ final class NativeEncounterCatalogBindings {
           slotRows.add({
             'sourceLocator': slot.locator.toJson(),
             'sourceSpeciesSymbol': slot.species,
-            'sourceSpeciesHeaderLocator': sourceSpecies.headerLocator.toJson(),
+            'sourceSpeciesHeaderLocator': qualification.isGeneric
+                ? mapping['sourceLocator']
+                : sourceSpecies.headerLocator.toJson(),
+            if (qualification.isGeneric) 'sourceSpeciesMapping': mapping,
             'nativeSpeciesId': nativeId,
-            'nativeForm': 0,
+            'nativeForm': qualification.isGeneric ? mapping['nativeForm'] : 0,
             'minLevel': slot.minimumLevel,
             'maxLevel': slot.maximumLevel,
             'weight': slot.weight,
@@ -278,6 +333,11 @@ final class NativeEncounterCatalogBindings {
         });
       }
     }
+    if (!qualification.admitsSourceScope(snapshot, nativeMapIds.keys,
+        source: source)) {
+      _invalid(
+          'source_binding', 'The source changed while binding encounters.');
+    }
     return NativeEncounterCatalogBindingResult(
         tables: tables,
         unqualifiedMethods: unqualified,
@@ -292,9 +352,13 @@ final class NativeEncounterCatalogBindings {
             'relativePath': witness.relativePath,
             'sha256': witness.sha256!.value,
             'byteLength': witness.byteLength,
-            'mappingPolicy': 'formZeroSymbolSetOnlyNoOrdinalMapping'
+            'mappingPolicy': qualification.isGeneric
+                ? 'exactCompiledPbsNativeNameAndFormEvidence'
+                : 'formZeroSymbolSetOnlyNoOrdinalMapping'
           },
-          'identityPolicy': 'attestedRawNativeDbSymbolUppercaseEqualsPbsSymbol',
+          'identityPolicy': qualification.isGeneric
+              ? 'freshExactSourceSpeciesBindings'
+              : 'attestedRawNativeDbSymbolUppercaseEqualsPbsSymbol',
           'movePolicy': 'nativeAveluneDefaultsAtEveryInclusiveLevel',
           'nativeAbilityPolicy': 'speciesPrimary',
           'sourceSpeciesFieldDataUsed': false,
