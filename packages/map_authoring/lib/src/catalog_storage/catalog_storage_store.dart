@@ -62,13 +62,66 @@ final class CatalogStorageStore {
   final ProjectFileReader _reader;
   final TransactionFileGateway _gateway;
   final CatalogStorageLimits _limits;
+  TransactionFileGateway get gateway => _gateway;
+  CatalogStorageLimits get limits => _limits;
   late final Future<String> _canonicalProjectRoot =
       _reader.canonicalizeDirectory(projectRoot);
 
   Future<PublishedCatalogSnapshot?> openSnapshot() async {
+    if (await _requireLocalPath('catalog/IDENTITY.json', allowMissing: true)) {
+      throw const CatalogStorageException('catalog.lease_required',
+          'Open a leased snapshot for a managed catalog.');
+    }
     final head = await _readHead();
     if (head == null) return null;
     return _openRoot(head);
+  }
+
+  static List<int> encodeHead(CatalogObjectReference root) => _headBytes(root);
+
+  Future<CatalogObjectReference?> readHead() => _readHead();
+
+  Future<List<int>> readObject(CatalogObjectReference reference) =>
+      _readBounded(_objectPath(reference.sha256), reference.byteLength);
+
+  Future<PublishedCatalogSnapshot> openRoot(CatalogObjectReference root) =>
+      _openRoot(root);
+
+  Future<void> publishObjectsUnderLock(Map<String, List<int>> objects) async {
+    for (final entry in objects.entries) {
+      _requireDigest(entry.key);
+      if (_sha256(entry.value) != entry.key) {
+        throw const CatalogStorageException('catalog.build_corrupt',
+            'A prepared object does not match its content address.');
+      }
+    }
+    final operationId = _operationId();
+    try {
+      for (final entry in objects.entries) {
+        final path = _objectPath(entry.key);
+        final existing = await _gateway.readResourceRevision(path);
+        if (existing == null) {
+          await _gateway.stagePayload(
+              operationId: operationId,
+              storageKey: path,
+              kind: TransactionPayloadKind.after,
+              bytes: entry.value);
+          await _gateway.promoteStaged(
+              operationId: operationId,
+              storageKey: path,
+              kind: TransactionPayloadKind.after,
+              expectedCurrentRevision: null);
+        }
+        final bytes = await _readBounded(path, entry.value.length);
+        if (_sha256(bytes) != entry.key) {
+          throw const CatalogStorageException('catalog.object_corrupt',
+              'A published catalog object failed verification.');
+        }
+        await _gateway.deleteTransaction(operationId);
+      }
+    } finally {
+      await _gateway.deleteTransaction(operationId);
+    }
   }
 
   Future<PublishedCatalogSnapshot> publish(
@@ -96,6 +149,18 @@ final class CatalogStorageStore {
       }
     }
     return _gateway.withExclusiveWriteLock(() async {
+      if (await _requireLocalPath('catalog/IDENTITY.json',
+          allowMissing: true)) {
+        throw const CatalogStorageException('catalog.editing_required',
+            'Managed catalogs must be changed through an editing transaction.');
+      }
+      for (final journal in await _gateway.listJournals()) {
+        if (journal.entries
+            .any((entry) => entry.storageKey == headStorageKey)) {
+          throw const CatalogStorageException('catalog.recovery_required',
+              'Recover the pending catalog transaction before publication.');
+        }
+      }
       final previous = await _readHead();
       if (previous?.sha256 != expectedRootRevision) {
         throw const CatalogStorageException('catalog.revision_conflict',

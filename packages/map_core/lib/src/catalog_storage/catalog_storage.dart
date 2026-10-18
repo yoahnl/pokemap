@@ -311,6 +311,41 @@ final class CatalogDefinitionPage {
 typedef CatalogObjectReader =
     Future<List<int>> Function(CatalogObjectReference reference);
 
+final class CatalogStoragePatch {
+  CatalogStoragePatch._(
+    this.beforeRoot,
+    this.root,
+    this.definitionCount,
+    Map<String, List<int>> objects,
+    this._limits,
+    this._storedBytes,
+  ) : objects = Map.unmodifiable(
+        objects.map(
+          (key, value) => MapEntry(key, List<int>.unmodifiable(value)),
+        ),
+      );
+
+  final CatalogObjectReference beforeRoot;
+  final CatalogObjectReference root;
+  final int definitionCount;
+  final Map<String, List<int>> objects;
+  final CatalogStorageLimits _limits;
+  final int _storedBytes;
+  bool get isEmpty => beforeRoot == root;
+
+  Future<CatalogSnapshot> nextSnapshot({
+    required CatalogObjectReader readObject,
+  }) async {
+    final snapshot = await CatalogSnapshot.open(
+      root: root,
+      readObject: readObject,
+      limits: _limits,
+    );
+    snapshot._validatedStoredBytes = _storedBytes;
+    return snapshot;
+  }
+}
+
 final class CatalogSnapshot {
   CatalogSnapshot._(
     this.root,
@@ -352,6 +387,65 @@ final class CatalogSnapshot {
   final CatalogStorageLimits limits;
   final int definitionCount;
   final _Node? _index;
+  int? _validatedStoredBytes;
+
+  Future<CatalogStoragePatch> patch({
+    Iterable<CatalogDefinitionUnit> upserts = const [],
+    Iterable<CatalogDefinitionKey> removals = const [],
+  }) async {
+    final changed = <CatalogDefinitionKey, CatalogDefinitionUnit?>{};
+    for (final unit in upserts) {
+      if (changed.containsKey(unit.key) ||
+          changed.length >= limits.maxDefinitions ||
+          unit.references.length > limits.maxReferencesPerUnit) {
+        throw const FormatException(
+          'catalog.patch: duplicate key or reference limit',
+        );
+      }
+      changed[unit.key] = unit;
+    }
+    var removalCount = 0;
+    for (final key in removals) {
+      if (changed.containsKey(key) || ++removalCount > limits.maxDefinitions) {
+        throw const FormatException('catalog.patch: duplicate mutation key');
+      }
+      changed[key] = null;
+    }
+    if (_validatedStoredBytes == null) {
+      await validate();
+    }
+    final dependencies = <CatalogDefinitionKey>{};
+    for (final unit in changed.values.whereType<CatalogDefinitionUnit>()) {
+      for (final key in unit.references) {
+        if ((changed.containsKey(key) && changed[key] == null) ||
+            (!changed.containsKey(key) &&
+                dependencies.add(key) &&
+                await lookup(key) == null)) {
+          throw const FormatException('catalog.patch: missing dependency');
+        }
+      }
+    }
+    if (changed.values.any((unit) => unit == null)) {
+      final entries = await _collect(
+        after: null,
+        take: limits.maxDefinitions + 1,
+      );
+      for (final entry in entries) {
+        if (changed.containsKey(entry.key)) {
+          continue;
+        }
+        final unit = await _unit(entry);
+        if (unit.references.any(
+          (key) => changed.containsKey(key) && changed[key] == null,
+        )) {
+          throw const FormatException(
+            'catalog.patch: removed dependency remains referenced',
+          );
+        }
+      }
+    }
+    return _CatalogPatchBuilder(this).build(changed);
+  }
 
   Future<CatalogDefinitionUnit?> lookup(CatalogDefinitionKey key) async {
     final index = _index;
@@ -471,11 +565,22 @@ final class CatalogSnapshot {
   }
 
   Future<void> validate() async {
+    await objectReferences();
+  }
+
+  Future<List<CatalogObjectReference>> objectReferences() async {
+    await _read(root, _readObject, limits, limits.maxIndexBytes);
     var bytes = root.byteLength;
-    final objects = <String>{root.sha256};
+    final objects = <String, CatalogObjectReference>{root.sha256: root};
     void admit(CatalogObjectReference ref) {
-      if (objects.add(ref.sha256)) {
+      final existing = objects[ref.sha256];
+      if (existing == null) {
+        objects[ref.sha256] = ref;
         bytes += ref.byteLength;
+      } else if (existing != ref) {
+        throw const FormatException(
+          'catalog.validate: conflicting object reference',
+        );
       }
       if (bytes > limits.maxStoredBytes) {
         throw const FormatException('catalog.validate: total byte limit');
@@ -503,6 +608,8 @@ final class CatalogSnapshot {
         throw const FormatException('catalog.validate: missing dependency');
       }
     }
+    _validatedStoredBytes = bytes;
+    return List.unmodifiable(objects.values);
   }
 
   Future<CatalogDefinitionUnit> _unit(CatalogIndexEntry entry) async {
@@ -615,6 +722,276 @@ final class CatalogSnapshot {
       await visit(_index);
     }
     return found;
+  }
+}
+
+final class _CatalogPatchBuilder {
+  _CatalogPatchBuilder(this.snapshot);
+
+  final CatalogSnapshot snapshot;
+  final _objects = <String, List<int>>{};
+  final _removed = <String, CatalogObjectReference>{};
+  CatalogStorageLimits get limits => snapshot.limits;
+
+  CatalogObjectReference _put(Map<String, Object?> value, int maxBytes) {
+    _freeze(value, limits);
+    final bytes = _encode(value);
+    if (bytes.length > maxBytes) {
+      throw const FormatException('catalog.patch: object byte limit');
+    }
+    final reference = CatalogObjectReference(
+      sha256: crypto.sha256.convert(bytes).toString(),
+      byteLength: bytes.length,
+    );
+    _objects[reference.sha256] = bytes;
+    return reference;
+  }
+
+  _Node _leaf(List<CatalogIndexEntry> entries) {
+    final reference = _put({
+      'type': 'leaf',
+      'version': 1,
+      'entries': entries.map((entry) => entry.toJson()).toList(),
+    }, limits.maxIndexBytes);
+    return _Node(
+      entries.first.key,
+      entries.last.key,
+      entries.length,
+      0,
+      reference,
+    );
+  }
+
+  _Node _branch(List<_Node> children) {
+    final height = children.first.height + 1;
+    if (height > limits.maxIndexDepth) {
+      throw const FormatException('catalog.patch: index depth');
+    }
+    final reference = _put({
+      'type': 'branch',
+      'version': 1,
+      'children': children.map((child) => child.toJson()).toList(),
+    }, limits.maxIndexBytes);
+    return _Node(
+      children.first.first,
+      children.last.last,
+      children.fold(0, (sum, child) => sum + child.count),
+      height,
+      reference,
+    );
+  }
+
+  List<_Node> _leaves(List<CatalogIndexEntry> entries) => [
+    for (var i = 0; i < entries.length; i += limits.indexPageSize)
+      _leaf(
+        entries.sublist(i, (i + limits.indexPageSize).clamp(0, entries.length)),
+      ),
+  ];
+
+  List<_Node> _branches(List<_Node> children) => [
+    for (var i = 0; i < children.length; i += limits.indexPageSize)
+      _branch(
+        children.sublist(
+          i,
+          (i + limits.indexPageSize).clamp(0, children.length),
+        ),
+      ),
+  ];
+
+  Future<List<_Node>> _apply(
+    _Node? node,
+    Map<CatalogDefinitionKey, CatalogDefinitionUnit?> changes,
+  ) async {
+    if (changes.isEmpty) {
+      return node == null ? [] : [node];
+    }
+    if (node == null || node.height == 0) {
+      final entries = <CatalogDefinitionKey, CatalogIndexEntry>{};
+      if (node != null) {
+        final json = await _read(
+          node.reference,
+          snapshot._readObject,
+          limits,
+          limits.maxIndexBytes,
+        );
+        _envelope(json, 'leaf', {'entries'});
+        for (final item in _list(json['entries'], limits.indexPageSize)) {
+          final value = _map(item);
+          _keys(value, {'key', 'reference'});
+          final key = CatalogDefinitionKey.fromJson(_map(value['key']));
+          entries[key] = CatalogIndexEntry(
+            key: key,
+            reference: CatalogObjectReference.fromJson(
+              _map(value['reference']),
+            ),
+          );
+        }
+      }
+      var modified = false;
+      for (final mutation in changes.entries) {
+        final previous = entries[mutation.key];
+        final unit = mutation.value;
+        if (unit == null) {
+          if (previous != null) {
+            _removed[previous.reference.sha256] = previous.reference;
+            entries.remove(mutation.key);
+            modified = true;
+          }
+        } else {
+          final reference = _put(unit.toJson(), limits.maxUnitBytes);
+          if (previous?.reference != reference) {
+            if (previous != null) {
+              _removed[previous.reference.sha256] = previous.reference;
+            }
+            entries[mutation.key] = CatalogIndexEntry(
+              key: mutation.key,
+              reference: reference,
+            );
+            modified = true;
+          } else {
+            _objects.remove(reference.sha256);
+          }
+        }
+      }
+      if (!modified) {
+        return node == null ? [] : [node];
+      }
+      if (node != null) {
+        _removed[node.reference.sha256] = node.reference;
+      }
+      final ordered = entries.keys.toList()..sort();
+      return _leaves(ordered.map((key) => entries[key]!).toList());
+    }
+    final json = await _read(
+      node.reference,
+      snapshot._readObject,
+      limits,
+      limits.maxIndexBytes,
+    );
+    _envelope(json, 'branch', {'children'});
+    final children = _list(
+      json['children'],
+      limits.indexPageSize,
+    ).map((value) => _Node.fromJson(_map(value), limits)).toList();
+    final partitioned =
+        <int, Map<CatalogDefinitionKey, CatalogDefinitionUnit?>>{};
+    for (final mutation in changes.entries) {
+      var index = children.indexWhere(
+        (child) => mutation.key.compareTo(child.last) <= 0,
+      );
+      if (index < 0) {
+        index = children.length - 1;
+      }
+      (partitioned[index] ??= {})[mutation.key] = mutation.value;
+    }
+    final next = <_Node>[];
+    var modified = false;
+    for (var index = 0; index < children.length; index++) {
+      final replacements = await _apply(
+        children[index],
+        partitioned[index] ?? {},
+      );
+      next.addAll(replacements);
+      if (replacements.length != 1 ||
+          replacements.single.reference != children[index].reference) {
+        modified = true;
+      }
+    }
+    if (!modified) {
+      return [node];
+    }
+    _removed[node.reference.sha256] = node.reference;
+    return _branches(next);
+  }
+
+  Future<CatalogStoragePatch> build(
+    Map<CatalogDefinitionKey, CatalogDefinitionUnit?> changes,
+  ) async {
+    var nodes = await _apply(snapshot._index, changes);
+    while (nodes.length > 1) {
+      nodes = _branches(nodes);
+    }
+    var index = nodes.isEmpty ? null : nodes.single;
+    while (index != null &&
+        index.height > 0 &&
+        _objects.containsKey(index.reference.sha256)) {
+      final json = _map(
+        jsonDecode(utf8.decode(_objects[index.reference.sha256]!)),
+      );
+      final children = _list(json['children'], limits.indexPageSize);
+      if (children.length != 1) {
+        break;
+      }
+      index = _Node.fromJson(_map(children.single), limits);
+    }
+    final count = index?.count ?? 0;
+    if (count > limits.maxDefinitions) {
+      throw const FormatException('catalog.patch: definition limit');
+    }
+    if (index?.reference == snapshot._index?.reference) {
+      return CatalogStoragePatch._(
+        snapshot.root,
+        snapshot.root,
+        snapshot.definitionCount,
+        {},
+        limits,
+        snapshot._validatedStoredBytes!,
+      );
+    }
+    final root = _put({
+      'type': 'root',
+      'version': 1,
+      'definitionCount': count,
+      'index': index?.toJson(),
+    }, limits.maxIndexBytes);
+    _removed[snapshot.root.sha256] = snapshot.root;
+    final reachable = <String, List<int>>{};
+    void visit(CatalogObjectReference reference) {
+      final bytes = _objects[reference.sha256];
+      if (bytes == null || reachable.containsKey(reference.sha256)) {
+        return;
+      }
+      reachable[reference.sha256] = bytes;
+      final json = _map(jsonDecode(utf8.decode(bytes)));
+      if (json['type'] == 'root') {
+        if (json['index'] != null) {
+          visit(_Node.fromJson(_map(json['index']), limits).reference);
+        }
+      } else if (json['type'] == 'branch') {
+        for (final child in _list(json['children'], limits.indexPageSize)) {
+          visit(_Node.fromJson(_map(child), limits).reference);
+        }
+      } else if (json['type'] == 'leaf') {
+        for (final entry in _list(json['entries'], limits.indexPageSize)) {
+          visit(
+            CatalogObjectReference.fromJson(_map(_map(entry)['reference'])),
+          );
+        }
+      }
+    }
+
+    visit(root);
+    final removedBytes = _removed.values.fold(
+      0,
+      (sum, ref) => sum + ref.byteLength,
+    );
+    final addedBytes = reachable.values.fold(
+      0,
+      (sum, bytes) => sum + bytes.length,
+    );
+    final storedBytes =
+        snapshot._validatedStoredBytes! - removedBytes + addedBytes;
+    if (storedBytes > limits.maxStoredBytes) {
+      throw const FormatException('catalog.patch: total byte limit');
+    }
+    return CatalogStoragePatch._(
+      snapshot.root,
+      root,
+      count,
+      reachable,
+      limits,
+      storedBytes,
+    );
   }
 }
 

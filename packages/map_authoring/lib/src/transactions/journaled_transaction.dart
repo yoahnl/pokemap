@@ -450,7 +450,8 @@ final class JournaledAuthoringTransaction {
         }
         final journal = await _gateway.readJournal(operationId);
         if (journal == null ||
-            journal.status != AuthoringTransactionStatus.committed ||
+            (journal.status != AuthoringTransactionStatus.committed &&
+                journal.status != AuthoringTransactionStatus.compensated) ||
             journal.operationId != operationId ||
             journal.planId != planId ||
             journal.scope.storageKey != scope.storageKey ||

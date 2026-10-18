@@ -32,6 +32,21 @@ void main() {
     expect(await _stagingDirectories(project), isEmpty);
   });
 
+  test('publishes immutable units under an existing lock without changing head',
+      () async {
+    final old = await store.publish(_build('old'), expectedRootRevision: null);
+    final next = _build('new');
+    await store.gateway.withExclusiveWriteLock(() async {
+      await store.publishObjectsUnderLock(next.objects);
+      expect(await store.readHead(), old.snapshot.root);
+      final pinned = await store.openRoot(next.root);
+      expect((await pinned.snapshot.lookup(_key('a')))!.payload['name'], 'new');
+      expect(await store.readObject(next.root), next.objects[next.root.sha256]);
+    });
+    expect((await store.openSnapshot())!.rootRevision, old.rootRevision);
+    expect(CatalogStorageStore.encodeHead(next.root).length, lessThan(4096));
+  });
+
   test('an old snapshot never observes the new head', () async {
     final old = await store.publish(_build('old'), expectedRootRevision: null);
     final next = await store.publish(_build('new'),
@@ -484,6 +499,7 @@ final class _FaultGateway implements TransactionFileGateway {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       switch (invocation.memberName) {
+        #listJournals => delegate.listJournals(),
         #readResource =>
           delegate.readResource(invocation.positionalArguments[0] as String),
         #stagePayload => delegate.stagePayload(

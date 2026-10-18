@@ -2,6 +2,8 @@
 library;
 
 export 'src/catalog_storage/catalog_storage_store.dart';
+export 'src/catalog_storage/catalog_editing_session.dart';
+export 'src/catalog_storage/catalog_generation_retention.dart';
 
 export 'src/domains/distribution/game_package_export_profile_api.dart';
 export 'src/domains/distribution/game_package_export_profile_store.dart';

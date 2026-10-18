@@ -7,6 +7,8 @@
 library;
 
 export 'src/catalog_storage/catalog_storage_store.dart';
+export 'src/catalog_storage/catalog_editing_session.dart';
+export 'src/catalog_storage/catalog_generation_retention.dart';
 
 export 'src/api/authoring_read_api.dart';
 export 'src/api/authoring_read_contracts.dart';
