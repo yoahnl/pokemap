@@ -20,6 +20,7 @@ import '../models/project_manifest.dart';
 import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
+import '../models/items/project_item_definition.dart';
 import '../models/rail_journey.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
@@ -268,6 +269,9 @@ class ProjectValidator {
     _validateProjectDialogues(manifest);
     _validateNewGameConfig(manifest);
     _validateTrainers(manifest);
+    if (itemCatalog != null) {
+      validateTrainerBallItemReferences(manifest.trainers, itemCatalog: itemCatalog);
+    }
     _validateCharacters(manifest);
     _validateSettings(manifest.settings);
     _validatePokemonRuleset(manifest.pokemon);
@@ -2152,6 +2156,57 @@ class ProjectValidator {
     }
   }
 
+  static void validateTrainerBallItemReferences(
+    Iterable<ProjectTrainerEntry> trainers, {
+    ProjectItemCatalog? itemCatalog,
+  }) {
+    final itemsById = <String, List<ProjectItemDefinition>>{};
+    for (final item in itemCatalog?.entries ?? const <ProjectItemDefinition>[]) {
+      (itemsById[item.id] ??= []).add(item);
+    }
+    for (final trainer in trainers) {
+      for (var i = 0; i < trainer.team.length; i++) {
+        final ballItemId = trainer.team[i].ballItemId;
+        if (ballItemId == null) continue;
+        _validateTrainerBallItemId(trainer.id, i, ballItemId);
+        if (itemCatalog == null) {
+          throw ValidationException(
+            'Trainer ${trainer.id} team[$i] ballItemId requires the project item catalogue',
+            code: 'trainer.ball_item_catalog_missing',
+          );
+        }
+        final matches = itemsById[ballItemId] ?? const <ProjectItemDefinition>[];
+        if (matches.isEmpty) {
+          throw ValidationException(
+            'Trainer ${trainer.id} team[$i] ballItemId "$ballItemId" does not exist in the project item catalogue',
+            code: 'trainer.ball_item_unknown',
+          );
+        }
+        if (matches.length != 1) {
+          throw ValidationException(
+            'Trainer ${trainer.id} team[$i] ballItemId "$ballItemId" is ambiguous in the project item catalogue',
+            code: 'trainer.ball_item_ambiguous',
+          );
+        }
+        if (matches.single.capture == null) {
+          throw ValidationException(
+            'Trainer ${trainer.id} team[$i] ballItemId "$ballItemId" must reference a capture item',
+            code: 'trainer.ball_item_not_capture',
+          );
+        }
+      }
+    }
+  }
+
+  static void _validateTrainerBallItemId(String trainerId, int index, String value) {
+    if (value.isEmpty || value.trim() != value) {
+      throw ValidationException(
+        'Trainer $trainerId team[$index] ballItemId must be a nonblank exact item id',
+        code: 'trainer.ball_item_id_invalid',
+      );
+    }
+  }
+
   static void _validateTrainers(ProjectManifest manifest) {
     final elementIds = manifest.elements.map((e) => e.id).toSet();
     final characterIds = manifest.characters.map((c) => c.id).toSet();
@@ -2323,6 +2378,9 @@ class ProjectValidator {
       }
       for (var i = 0; i < trainer.team.length; i++) {
         final pokemon = trainer.team[i];
+        if (pokemon.ballItemId case final ballItemId?) {
+          _validateTrainerBallItemId(id, i, ballItemId);
+        }
         if (pokemon.speciesId.trim().isEmpty) {
           throw ValidationException('Trainer $id team[$i] has empty speciesId');
         }

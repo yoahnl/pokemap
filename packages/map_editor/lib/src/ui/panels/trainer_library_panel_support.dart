@@ -69,6 +69,7 @@ class _TrainerPokemonDraft {
     required this.level,
     required this.moves,
     required this.heldItemId,
+    required this.ballItemId,
     required this.formId,
     required this.gender,
     required this.shiny,
@@ -78,6 +79,7 @@ class _TrainerPokemonDraft {
   final int? level;
   final List<String> moves;
   final String? heldItemId;
+  final String? ballItemId;
   final String? formId;
   final String? gender;
   final bool shiny;

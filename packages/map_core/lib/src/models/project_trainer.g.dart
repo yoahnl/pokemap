@@ -31,6 +31,7 @@ _ProjectTrainerPokemonEntry _$ProjectTrainerPokemonEntryFromJson(
       (json['moves'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
   heldItemId: json['heldItemId'] as String?,
+  ballItemId: json['ballItemId'] as String?,
   abilityId: json['abilityId'] as String?,
   formId: json['formId'] as String?,
   gender: json['gender'] as String?,
@@ -44,6 +45,7 @@ Map<String, dynamic> _$ProjectTrainerPokemonEntryToJson(
   'level': instance.level,
   'moves': instance.moves,
   'heldItemId': instance.heldItemId,
+  'ballItemId': ?instance.ballItemId,
   'abilityId': instance.abilityId,
   'formId': instance.formId,
   'gender': instance.gender,

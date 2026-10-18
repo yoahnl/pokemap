@@ -466,6 +466,18 @@ final class JsonlWorker {
           _withoutNarrativeTraces(_safeDetails(error.details))! as Map,
         )..remove('domainCode'),
       );
+    } on ValidationException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code ?? 'validation.failed',
+        message: const AuthoringOutputRedactor().redact(error.message)! as String,
+        remediation: error.remediation.map(
+          (value) => const AuthoringOutputRedactor().redact(value)! as String,
+        ),
+        details: Map<String, Object?>.from(_safeDetails(error.details))
+          ..remove('domainCode'),
+      );
     } on Object {
       result = _failure(
         requestId,

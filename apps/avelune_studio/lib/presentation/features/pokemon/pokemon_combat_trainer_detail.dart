@@ -34,8 +34,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
     if (draft == null) {
       return const PokemonEmptyState(
         title: 'Sélectionnez un dresseur',
-        description:
-            'Créez sa fiche, puis placez un PNJ ou un événement dans Carte et Histoire.',
+        description: 'Créez sa fiche, puis placez un PNJ ou un événement dans Carte et Histoire.',
       );
     }
     final trainer = draft.current;
@@ -153,6 +152,18 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
     int indexInTeam,
   ) {
     final pokemon = trainer.team[indexInTeam];
+    final itemCounts = <String, int>{};
+    for (final item
+        in index.itemCatalog?.entries ?? const <ProjectItemDefinition>[]) {
+      itemCounts[item.id] = (itemCounts[item.id] ?? 0) + 1;
+    }
+    final ballOptions = <String, String>{
+      '': 'Aucune Ball',
+      for (final item
+          in index.itemCatalog?.entries ?? const <ProjectItemDefinition>[])
+        if (item.capture != null && itemCounts[item.id] == 1)
+          item.id: item.displayName,
+    };
     final species = index.entries
         .where((value) => value.id == pokemon.speciesId)
         .firstOrNull;
@@ -214,6 +225,18 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                       ),
                     ),
                   ),
+                SizedBox(
+                  width: 190,
+                  child: StudioSelect(
+                    key: ValueKey('${trainer.id}:$indexInTeam:ball'),
+                    label: 'Ball de présentation',
+                    value: pokemon.ballItemId ?? '',
+                    options: ballOptions,
+                    onChanged: (id) => change(
+                      pokemon.copyWith(ballItemId: id.isEmpty ? null : id),
+                    ),
+                  ),
+                ),
                 IconButton(
                   tooltip: 'Retirer de l’équipe',
                   onPressed: () => combat.editTrainer(

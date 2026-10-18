@@ -63,26 +63,21 @@ Future<Map<String, String>> loadPokemonAbilityNames({
   }
 }
 
-Future<Map<String, String>> loadPokemonItems({
+Future<ProjectItemCatalog?> loadPokemonItemCatalog({
   required ProjectFileReader reader,
   required String projectRoot,
   required ProjectPokemonConfig config,
 }) async {
   final path = config.catalogFiles['items'];
-  if (path == null || path.isEmpty) return const {};
+  if (path == null || path.isEmpty) return null;
   try {
     final bytes = await reader.readBytes(
       projectRoot: projectRoot,
       relativePath: path,
     );
     final raw = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-    final entries = raw['entries'] as List? ?? const [];
-    return Map.unmodifiable({
-      for (final entry in entries.whereType<Map>())
-        if (entry['id'] is String)
-          entry['id'] as String: '${entry['displayName'] ?? entry['id']}',
-    });
+    return decodeProjectItemCatalog(raw);
   } on Object {
-    return const {};
+    return null;
   }
 }

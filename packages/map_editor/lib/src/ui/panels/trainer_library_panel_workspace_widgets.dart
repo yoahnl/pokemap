@@ -769,6 +769,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
           speciesController: _pokemonSpeciesController,
           levelController: _pokemonLevelController,
           itemController: _pokemonItemController,
+          ballController: _pokemonBallController,
           formController: _pokemonFormController,
           genderController: _pokemonGenderController,
           moveControllers: _pokemonMoveControllers,

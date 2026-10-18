@@ -198,7 +198,8 @@ final class CampaignContentActions {
         final value = _decode(kind, _object(parameters, 'value'));
         final id = _contentId(value);
         before = _jsonForId(context.snapshot.manifest, kind, id);
-        projected = upsert(context.snapshot.manifest, kind, value);
+        projected = upsert(context.snapshot.manifest, kind, value,
+          itemCatalog: context.snapshot.itemCatalog);
         after = _contentJson(value);
         path = '/${_manifestField(kind)}/$id';
       }
@@ -217,8 +218,15 @@ final class CampaignContentActions {
   ProjectManifest upsert(
     ProjectManifest project,
     CampaignContentKind kind,
-    Object value,
+    Object value, {
+    ProjectItemCatalog? itemCatalog,
+  }
   ) {
+    if (kind == CampaignContentKind.trainer) {
+      ProjectValidator.validateTrainerBallItemReferences(
+        [value as ProjectTrainerEntry], itemCatalog: itemCatalog,
+      );
+    }
     final id = _contentId(value);
     final projected = switch (kind) {
       CampaignContentKind.encounterTable => project.copyWith(
@@ -322,6 +330,17 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'campaignContent'],
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
+      extensions: id == 'campaign.trainer.upsert'
+          ? const {
+              'trainerPokemonBall': {
+                'field': 'value.team[].ballItemId',
+                'defaultPolicy': 'none',
+                'referenceKind': 'itemDefinition',
+                'requiredCapability': 'capture',
+                'allowedEncounterKindsRestrictPresentation': false,
+              },
+            }
+          : const {},
       guarantees: const [
         AuthoringGuarantee.dryRun,
         AuthoringGuarantee.idempotent,
@@ -357,9 +376,27 @@ Object _decode(CampaignContentKind kind, Map<String, dynamic> json) =>
         ProjectEncounterTable.fromJson(json),
       CampaignContentKind.shop => ShopDefinition.fromJson(json),
       CampaignContentKind.badge => BadgeDefinition.fromJson(json),
-      CampaignContentKind.trainer => ProjectTrainerEntry.fromJson(json),
+      CampaignContentKind.trainer => _trainerFromJson(json),
       CampaignContentKind.character => ProjectCharacterEntry.fromJson(json),
     };
+
+ProjectTrainerEntry _trainerFromJson(Map<String, dynamic> json) {
+  final team = json['team'];
+  if (team is List) {
+    for (var i = 0; i < team.length; i++) {
+      final member = team[i];
+      if (member is! Map) continue;
+      final ballItemId = member['ballItemId'];
+      if (ballItemId != null && ballItemId is! String) {
+        throw ValidationException(
+          'Trainer team[$i].ballItemId must be a string or null',
+          code: 'trainer.ball_item_id_invalid',
+        );
+      }
+    }
+  }
+  return ProjectTrainerEntry.fromJson(json);
+}
 
 String _contentId(Object value) => switch (value) {
       ProjectEncounterTable value => value.id,

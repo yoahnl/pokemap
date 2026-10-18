@@ -23,9 +23,6 @@ import 'battle_overlay_component.dart';
 /// 4. `start_actor_send_animation` — la Ball du joueur est lancée en arc, son
 ///    Pokémon grandit, et « Vas-y, Z ! » l'accompagne.
 ///
-/// Chaque brique a son repli : sans planche de Ball chargeable on retombe sur
-/// le glissement historique, et sans image de dresseur le Pokémon adverse
-/// glisse comme un sauvage. L'intro ne casse jamais.
 BattleAnimationPlan buildBattleIntroAnimationPlan({
   required BattleSession session,
   required double slideDistancePx,
@@ -56,7 +53,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   ];
 
   // 1. L'entrée de l'adversaire.
-  final enemyEntersAsTrainer = enemyBallItemId != null;
+  final enemyEntersAsTrainer = session.setup.isTrainerBattle;
   if (enemyEntersAsTrainer && hasEnemyTrainerSprite) {
     steps.add(
       EnemyTrainerIntroStep(
@@ -106,13 +103,15 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
           ),
         );
       }
-      steps.add(
-        PlayBallSequenceStep(
-          side: BattleSideId.enemy,
-          kind: BattleBallSequenceKind.sendOutHeld,
-          ballItemId: enemyBallItemId,
-        ),
-      );
+      if (enemyBallItemId != null) {
+        steps.add(
+          PlayBallSequenceStep(
+            side: BattleSideId.enemy,
+            kind: BattleBallSequenceKind.sendOutHeld,
+            ballItemId: enemyBallItemId,
+          ),
+        );
+      }
       steps.add(
         const CombatantMotionStep(
           side: BattleSideId.enemy,

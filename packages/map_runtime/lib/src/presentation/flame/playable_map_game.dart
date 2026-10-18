@@ -88,6 +88,8 @@ import '../../application/runtime_psdk_battle_session_adapter.dart';
 import '../../application/runtime_psdk_battle_setup_mapper.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/runtime_trainer_lifecycle_policy.dart';
+import '../../application/runtime_trainer_battle_image.dart';
+import '../../application/runtime_trainer_ball_items.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../../application/scene_runtime/cinematic_runtime_playback_controller.dart';
@@ -9417,6 +9419,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       final ballResolver = BattleCombatantBallResolver.fromParty(
         gameState: _battleRuntimeGameState,
         lineupPartyIndices: playerLineup.lineupPartyIndices,
+        enemyLineupBallItemIdsByIndex: resolveRuntimeTrainerBallItems(
+          request: request,
+          manifest: _bundle.manifest,
+        ),
       );
       final captureSpriteResolver = RuntimeCaptureSpriteResolver(
         projectRootDirectory: _bundle.projectRootDirectory,
@@ -10426,47 +10432,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// jamais en jeu. Le portrait est une image de la donnée, déjà résolue par
   /// le Character Studio.
   Future<RuntimeUiImageLease?> _loadTrainerBattleImage(String trainerId) async {
-    final trainer = _findTrainerEntry(_bundle.manifest, trainerId);
-    final relativePath = trainer?.battleSpriteRelativePath?.trim() ?? '';
-    if (relativePath.isNotEmpty) {
-      final image = await _decodeProjectImage(
-        p.normalize(p.join(_bundle.projectRootDirectory, relativePath)),
-        label: 'trainer battle sprite ($trainerId)',
-      );
-      if (image != null) return image;
-    }
-    final characterId = trainer?.characterId?.trim() ?? '';
-    if (characterId.isEmpty) return null;
-    // Le catalogue d'assets n'est chargé que par le préchargement des
-    // dialogues : un combat sans dialogue d'introduction laisserait le
-    // résolveur muet.
-    await _dialoguePortraitResolver.ensureCatalogLoaded(characterIds: {characterId});
-    final portrait = _dialoguePortraitResolver.resolve(
-      characterId: characterId,
-      portraitStateId: _trainerBattlePortraitStateId,
+    return loadRuntimeTrainerBattleImage(
+      bundle: _bundle,
+      trainerId: trainerId,
+      portraitResolver: _dialoguePortraitResolver,
+      isCurrent: () => !_isRemoved,
     );
-    if (portrait == null) return null;
-    return _decodeProjectImage(
-      portrait.absoluteFilePath,
-      label: 'trainer portrait fallback ($trainerId, $characterId)',
-    );
-  }
-
-  /// L'état de portrait utilisé quand un dresseur n'a pas d'artwork de
-  /// combat : celui que tout personnage du Character Studio porte.
-  static const String _trainerBattlePortraitStateId = 'neutre';
-
-  Future<RuntimeUiImageLease?> _decodeProjectImage(
-    String absolutePath, {
-    required String label,
-  }) async {
-    try {
-      return await loadRuntimeUiImageFromFilePath(absolutePath,
-        resourceBudget: _bundle.resourceBudget, isCurrent: () => !_isRemoved);
-    } on Object catch (error) {
-      debugPrint('[battle] $label unavailable ($absolutePath): $error');
-      return null;
-    }
   }
 
   /// Pose une décision post-combat dans le panneau de la scène et attend le

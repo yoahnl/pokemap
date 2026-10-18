@@ -5,6 +5,7 @@ import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../models/trainer_field_update.dart';
 import '../ports/project_workspace.dart';
+import 'load_pokemon_items_catalog_use_case.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers internes
@@ -349,6 +350,13 @@ class DeleteTrainerUseCase {
 // Use cases — équipe Pokémon
 // ---------------------------------------------------------------------------
 
+Future<void> _validateTrainerBalls(ProjectWorkspace workspace, ProjectTrainerEntry trainer) async {
+  final catalogue = trainer.team.any((pokemon) => pokemon.ballItemId != null)
+      ? (await const LoadPokemonItemsCatalogUseCase().execute(workspace)).canonicalCatalog
+      : null;
+  ProjectValidator.validateTrainerBallItemReferences([trainer], itemCatalog: catalogue);
+}
+
 class AddTrainerPokemonUseCase {
   AddTrainerPokemonUseCase(this._repo);
 
@@ -362,6 +370,7 @@ class AddTrainerPokemonUseCase {
     required int level,
     List<String> moves = const [],
     String? heldItemId,
+    String? ballItemId,
     String? formId,
     String? gender,
     bool shiny = false,
@@ -384,12 +393,14 @@ class AddTrainerPokemonUseCase {
       heldItemId: heldItemId?.trim().isEmpty == true
           ? null
           : heldItemId?.trim(),
+      ballItemId: ballItemId,
       formId: formId?.trim().isEmpty == true ? null : formId?.trim(),
       gender: gender?.trim().isEmpty == true ? null : gender?.trim(),
       shiny: shiny,
     );
     final trainer = project.trainers[index];
     final updatedTrainer = trainer.copyWith(team: [...trainer.team, pokemon]);
+    await _validateTrainerBalls(workspace, updatedTrainer);
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
     trainers[index] = updatedTrainer;
     final updated = project.copyWith(trainers: trainers);
@@ -413,6 +424,8 @@ class UpdateTrainerPokemonUseCase {
     int? level,
     List<String>? moves,
     TrainerFieldUpdate<String> heldItemId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> ballItemId =
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> formId = const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> gender = const TrainerFieldUpdate<String>.keep(),
@@ -449,6 +462,9 @@ class UpdateTrainerPokemonUseCase {
         heldItemId: (v == null || v.isEmpty) ? null : v,
       );
     }
+    if (!ballItemId.isKeep) {
+      updatedPokemon = updatedPokemon.copyWith(ballItemId: ballItemId.valueOrNull);
+    }
     if (!formId.isKeep) {
       final v = formId.valueOrNull?.trim();
       updatedPokemon = updatedPokemon.copyWith(
@@ -464,6 +480,7 @@ class UpdateTrainerPokemonUseCase {
     final team = List<ProjectTrainerPokemonEntry>.from(trainer.team);
     team[pokemonIndex] = updatedPokemon;
     final updatedTrainer = trainer.copyWith(team: team);
+    await _validateTrainerBalls(workspace, updatedTrainer);
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
     trainers[trainerIndex] = updatedTrainer;
     final updated = project.copyWith(trainers: trainers);

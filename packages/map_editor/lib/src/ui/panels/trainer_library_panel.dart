@@ -142,6 +142,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _pokemonSpeciesController = TextEditingController();
   final _pokemonLevelController = TextEditingController(text: '1');
   final _pokemonItemController = TextEditingController();
+  final _pokemonBallController = TextEditingController();
   final _pokemonFormController = TextEditingController();
   final _pokemonGenderController = TextEditingController();
   late final List<TextEditingController> _pokemonMoveControllers =
@@ -194,6 +195,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _pokemonSpeciesController.dispose();
     _pokemonLevelController.dispose();
     _pokemonItemController.dispose();
+    _pokemonBallController.dispose();
     _pokemonFormController.dispose();
     _pokemonGenderController.dispose();
     for (final controller in _pokemonMoveControllers) {
@@ -1295,6 +1297,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _pokemonSpeciesController.clear();
     _pokemonLevelController.text = '1';
     _pokemonItemController.clear();
+    _pokemonBallController.clear();
     _pokemonFormController.clear();
     _pokemonGenderController.clear();
     _clearTextControllers(_pokemonMoveControllers);
@@ -1325,6 +1328,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _pokemonSpeciesController.text = pokemon.speciesId;
       _pokemonLevelController.text = pokemon.level.toString();
       _pokemonItemController.text = pokemon.heldItemId ?? '';
+      _pokemonBallController.text = pokemon.ballItemId ?? '';
       _pokemonFormController.text = pokemon.formId ?? '';
       _pokemonGenderController.text = pokemon.gender ?? '';
       for (var i = 0; i < _pokemonMoveControllers.length; i++) {
@@ -1382,6 +1386,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
             level: draft.level!,
             moves: draft.moves,
             heldItemId: draft.heldItemId,
+            ballItemId: draft.ballItemId,
             formId: draft.formId,
             gender: draft.gender,
             shiny: draft.shiny,
@@ -1393,6 +1398,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
             level: draft.level!,
             moves: draft.moves,
             heldItemId: draft.heldItemId,
+            ballItemId: draft.ballItemId,
             formId: draft.formId,
             gender: draft.gender,
             shiny: draft.shiny,
@@ -1442,6 +1448,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
           .where((value) => value.isNotEmpty)
           .toList(growable: false),
       heldItemId: _normalizeOptionalField(_pokemonItemController.text),
+      ballItemId: _normalizeOptionalField(_pokemonBallController.text),
       formId: _normalizeOptionalField(_pokemonFormController.text),
       gender: _normalizeOptionalField(_pokemonGenderController.text),
       shiny: _pokemonShiny,

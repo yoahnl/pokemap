@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_combat_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -86,6 +87,16 @@ void main() {
       await tester.tap(movePicker);
       await pumpIo(tester);
       await tester.tap(find.text('Charge').last);
+      await pumpIo(tester);
+      final ballPicker = find.byKey(const ValueKey('chef_gare:0:ball'));
+      await tester.ensureVisible(ballPicker);
+      final ballSelect = tester.widget<StudioSelect>(ballPicker);
+      expect(ballSelect.options.keys, ['', 'poke-ball']);
+      expect(
+        workspace.combat!.trainer!.current.team.single.toJson()['ballItemId'],
+        isNull,
+      );
+      ballSelect.onChanged!('poke-ball');
       await pumpIo(tester);
       await tester.tap(find.text('Enregistrer').last);
       await pumpIo(tester);
@@ -187,6 +198,7 @@ void main() {
       );
       expect(table.entries.single.speciesId, 'bulbasaur');
       expect(trainer.team.single.speciesId, 'bulbasaur');
+      expect(trainer.team.single.toJson()['ballItemId'], 'poke-ball');
       expect(
         map.entities
             .singleWhere((value) => value.id == 'combat-guide')

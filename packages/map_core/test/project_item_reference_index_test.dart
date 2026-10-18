@@ -142,6 +142,7 @@ void main() {
               speciesId: 'trainer-species',
               level: 5,
               heldItemId: itemId,
+              ballItemId: itemId,
             ),
           ],
         ),
@@ -191,7 +192,7 @@ void main() {
     );
     final references = index.referencesFor(' target-item ');
 
-    expect(references, hasLength(17));
+    expect(references, hasLength(18));
     expect(
       references.map((reference) => reference.kind).toSet(),
       ProjectItemReferenceKind.values.toSet(),
@@ -207,6 +208,7 @@ void main() {
         'scenarios[scenario-items].nodes[0].payload.params.itemId',
         'shops[shop-items].states[0].entries[0].itemId',
         'trainers[trainer-items].rewardItemGrants[0].itemId',
+        'trainers[trainer-items].team[0].ballItemId',
         'maps[map-items].entities[0].item.gameItemId',
         'itemCatalog.entries[0].machine',
         evolution.editablePath,
@@ -216,7 +218,7 @@ void main() {
       references.every((reference) => reference.editablePath.isNotEmpty),
       isTrue,
     );
-    expect(index.blockingReferencesFor(itemId), hasLength(16));
+    expect(index.blockingReferencesFor(itemId), hasLength(17));
     expect(
       references
           .singleWhere(

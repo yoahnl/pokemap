@@ -1094,6 +1094,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   void onRemove() {
+    if (_ballImagesDisposed) return;
     _ballImagesDisposed = true;
     _presentationGeneration++;
     _animationRunner?.cancel(notify: false);
@@ -1666,7 +1667,7 @@ class BattleOverlayComponent extends PositionComponent {
       // Parité `show_team_info` : les barres entrent APRÈS l'annonce.
       _teamInfoRevealed = false;
 
-      if (enemyUsesBall) {
+      if (_session.setup.isTrainerBattle) {
         // Parité `enemy_sprites` : dans un combat de DRESSEUR, le Pokémon
         // adverse ne glisse pas — c'est le dresseur qui entre, puis sort en
         // lançant sa Ball. Le Pokémon attend caché.
@@ -1684,7 +1685,7 @@ class BattleOverlayComponent extends PositionComponent {
         );
       }
       final introTrainerImage = _introTrainerImage;
-      if (enemyUsesBall && introTrainerImage != null) {
+      if (_session.setup.isTrainerBattle && introTrainerImage != null) {
         final sprite = BattleIntroTrainerComponent(
           image: introTrainerImage,
           spriteRect: layout.enemySpriteRect,

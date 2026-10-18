@@ -52,6 +52,13 @@ extension PokemonCombatValidation on PokemonCombatController {
     }
     final selectedTrainer = trainer?.current;
     if (selectedTrainer != null) {
+      try {
+        ProjectValidator.validateTrainerBallItemReferences([
+          selectedTrainer,
+        ], itemCatalog: index.itemCatalog);
+      } on ValidationException catch (failure) {
+        return failure.toString();
+      }
       if (selectedTrainer.team.isEmpty) return 'Ajoutez un Pokémon à l’équipe.';
       for (final pokemon in selectedTrainer.team) {
         if (pokemon.moves.isEmpty) {

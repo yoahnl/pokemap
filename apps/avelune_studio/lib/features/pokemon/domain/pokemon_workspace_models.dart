@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core_domain.dart';
+
 enum PokemonWorkspaceView { pokedex, moves, items, shops, combats }
 
 enum PokemonDetailSection { overview, forms, learnset, evolution, media }
@@ -128,10 +130,9 @@ final class PokemonSpeciesDraft {
   }) {
     final previous = _current[family];
     final before = previous == null ? null : jsonEncode(previous);
-    final next =
-        (jsonDecode(before ?? jsonEncode(initial ?? <String, dynamic>{}))
-                as Map)
-            .cast<String, dynamic>();
+    final next = (jsonDecode(
+      before ?? jsonEncode(initial ?? <String, dynamic>{}),
+    ) as Map).cast<String, dynamic>();
     change(next);
     if (jsonEncode(next) == before) return;
     _pushHistory(_undo, _PokemonDraftHistoryEntry(family, before));
@@ -251,6 +252,7 @@ final class PokemonWorkspaceIndex {
     required this.moves,
     required this.types,
     required this.items,
+    this.itemCatalog,
     this.locale = 'fr',
     this.abilityNames = const {},
   });
@@ -260,6 +262,7 @@ final class PokemonWorkspaceIndex {
   final PokemonMovesCatalogView moves;
   final List<String> types;
   final Map<String, String> items;
+  final ProjectItemCatalog? itemCatalog;
   final String locale;
   final Map<String, String> abilityNames;
 }

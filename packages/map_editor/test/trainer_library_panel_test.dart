@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -197,6 +199,8 @@ void main() {
     (tester) async {
       final repository = _FakeProjectRepository();
       const workspace = _FakeWorkspace();
+      final itemCatalog = await const LoadPokemonItemsCatalogUseCase().execute(workspace);
+      expect(itemCatalog.isAvailable, isTrue, reason: itemCatalog.message);
       final container = ProviderContainer(
         overrides: [
           projectRepositoryProvider.overrideWithValue(repository),
@@ -328,6 +332,16 @@ void main() {
       ]);
       heldItemPicker.onChanged('leftovers');
       await tester.pumpAndSettle();
+      final ballPicker = tester.widget<PokeMapDropdownField<String>>(
+        find.byKey(const Key('trainer-library-pokemon-ball-dropdown-button')),
+      );
+      expect(ballPicker.items.map((item) => item.label), <String>[
+        'Aucune Ball',
+        'Orbe lunaire',
+      ]);
+      expect(ballPicker.value, '');
+      ballPicker.onChanged('lunar_orb');
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
           const Key('trainer-library-pokemon-form-suggestion-blossom'),
@@ -353,9 +367,26 @@ void main() {
       expect(pokemon.level, 12);
       expect(pokemon.moves, <String>['tackle', 'growl']);
       expect(pokemon.heldItemId, 'leftovers');
+      expect(pokemon.toJson()['ballItemId'], 'lunar_orb');
       expect(pokemon.formId, 'blossom');
       expect(pokemon.gender, 'female');
       expect(pokemon.shiny, isFalse);
+      final pokemonRow = find.byKey(Key('trainer-library-pokemon-row-${trainer.id}-0'));
+      tester.widget<CupertinoButton>(
+        find.descendant(of: pokemonRow, matching: find.byType(CupertinoButton)).first,
+      ).onPressed!.call();
+      await settleTrainerUi(tester);
+      final existingBallPicker = tester.widget<PokeMapDropdownField<String>>(
+        find.byKey(const Key('trainer-library-pokemon-ball-dropdown-button')),
+      );
+      expect(existingBallPicker.value, 'lunar_orb');
+      existingBallPicker.onChanged('');
+      await settleTrainerUi(tester);
+      tester.widget<CupertinoButton>(savePokemonButton).onPressed!.call();
+      await settleTrainerUi(tester);
+      final cleared = container.read(editorNotifierProvider).project!.trainers.single.team.single;
+      expect(cleared.ballItemId, isNull);
+      expect(cleared.heldItemId, 'leftovers');
       expect(
         find.byKey(Key('trainer-library-pokemon-row-${trainer.id}-0')),
         findsOneWidget,
@@ -528,6 +559,7 @@ void main() {
         'Sélectionner un objet du catalogue',
         'Leftovers',
         'Oran Berry',
+        'Orbe lunaire',
       ]);
       expect(
         rewardItemPicker.items.map((item) => item.label),
@@ -2131,6 +2163,16 @@ class _FakeWorkspace implements ProjectWorkspace {
       "pocketId": "held_items",
       "buyPrice": 200,
       "heldEffectId": "leftovers"
+    },
+    {
+      "id": "lunar_orb",
+      "displayName": "Orbe lunaire",
+      "pocketId": "balls",
+      "capture": {
+        "rateNumerator": 1,
+        "rateDenominator": 1,
+        "allowedEncounterKinds": ["walk"]
+      }
     }
   ]
 }
@@ -2160,7 +2202,7 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<void> ensureDirectoryExists(String path) async {}
 
   @override
-  Future<bool> fileExists(String path) async => path == _itemCatalogPath;
+  Future<bool> fileExists(String path) async => path == _itemCatalogPath || path == projectManifestPath;
 
   @override
   String getMapPath(String mapId) => '$projectRootValue/$mapId.json';
@@ -2184,6 +2226,13 @@ class _FakeWorkspace implements ProjectWorkspace {
 
   @override
   Future<String> readTextFile(String path) async {
+    if (path == projectManifestPath) {
+      return jsonEncode(const ProjectManifest(
+        name: 'Trainer fixture', maps: [], tilesets: [],
+        pokemon: ProjectPokemonConfig(enabled: true, ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          catalogFiles: {'items': 'data/pokemon/catalogs/items.json'}),
+      ).toJson());
+    }
     if (path == _itemCatalogPath) {
       if (itemCatalogError != null) {
         throw itemCatalogError!;

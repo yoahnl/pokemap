@@ -23,6 +23,8 @@ import '../application/runtime_pokemon_species_loader.dart';
 import '../application/runtime_post_battle_decision_coordinator.dart';
 import '../application/runtime_psdk_battle_session_adapter.dart';
 import '../application/runtime_psdk_battle_setup_mapper.dart';
+import '../application/runtime_trainer_battle_image.dart';
+import '../application/runtime_trainer_ball_items.dart';
 import '../infrastructure/battle_transition_image_loader.dart';
 import '../presentation/flame/battle_background_resolver.dart';
 import '../presentation/flame/battle_bag_item_icon_resolver.dart';
@@ -328,6 +330,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       final balls = BattleCombatantBallResolver.fromParty(
         gameState: _working!,
         lineupPartyIndices: lineup.lineupPartyIndices,
+        enemyLineupBallItemIdsByIndex: resolveRuntimeTrainerBallItems(
+          request: request,
+          manifest: bundle.manifest,
+        ),
       );
       late final BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
@@ -377,6 +383,24 @@ final class SpatialBattleRuntime extends ChangeNotifier {
             _useMedicine(action, entry, targetMoveIndex: moveIndex),
         medicineBattleState: _engine!.createLegacyWriteBackState,
       );
+      if (request is TrainerBattleStartRequest) {
+        final trainerImage = await loadRuntimeTrainerBattleImage(
+          bundle: bundle,
+          trainerId: request.trainerId,
+          isCurrent: () => _current(generation),
+        );
+        if (!_current(generation)) {
+          trainerImage?.dispose();
+          overlay.onRemove();
+          return;
+        }
+        if (trainerImage != null) {
+          overlay.prepareIntroTrainerVisual(
+            trainerImage.image,
+            onRelease: trainerImage.dispose,
+          );
+        }
+      }
       battleOverlay = overlay;
       notifyListeners();
       final cancelled = _completion!.future.then<void>((_) {});
@@ -800,7 +824,12 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     _resumed = null;
     phase = SpatialBattlePhase.idle;
     _setBattleSnapshot(null);
-    battleOverlay?.removeFromParent();
+    final overlay = battleOverlay;
+    if (overlay != null) {
+      final needsImmediateRemoval = !overlay.isMounted;
+      overlay.removeFromParent();
+      if (needsImmediateRemoval) overlay.onRemove();
+    }
     postBattleOverlay?.removeFromParent();
     entryTransition?.removeFromParent();
     exitTransition?.removeFromParent();

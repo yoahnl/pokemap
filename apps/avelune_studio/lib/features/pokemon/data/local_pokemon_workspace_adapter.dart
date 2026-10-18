@@ -158,7 +158,7 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
       config: manifest.pokemon,
       entries: entries,
     );
-    final items = await loadPokemonItems(
+    final itemCatalog = await loadPokemonItemCatalog(
       reader: _reader,
       projectRoot: session.directoryPath,
       config: manifest.pokemon,
@@ -181,7 +181,12 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
               diagnostics: [...moves.diagnostics, language.diagnostic!],
             ),
       types: types,
-      items: items,
+      items: {
+        for (final item
+            in itemCatalog?.entries ?? const <ProjectItemDefinition>[])
+          item.id: item.displayName,
+      },
+      itemCatalog: itemCatalog,
       locale: language.locale,
       abilityNames: abilityNames,
     );

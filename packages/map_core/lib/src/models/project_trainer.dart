@@ -88,6 +88,7 @@ abstract class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
     /// IDs de capacités (ordre libre, max 4 recommandé — non enforced).
     @Default([]) List<String> moves,
     String? heldItemId,
+    @JsonKey(includeIfNull: false) String? ballItemId,
 
     /// Override d'ability authoré — BETA-TRN-003.
     ///

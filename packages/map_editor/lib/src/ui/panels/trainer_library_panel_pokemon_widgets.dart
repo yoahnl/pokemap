@@ -34,6 +34,14 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
       return match == null ? '$moveId (?)' : match.name;
     }).toList(growable: false);
     final heldItemId = pokemon.heldItemId?.trim();
+    final ballItemId = pokemon.ballItemId;
+    final ballLabel = ballItemId == null
+        ? null
+        : itemCatalogView.canonicalCatalog?.entries
+                .where((definition) => definition.id == ballItemId)
+                .map((definition) => definition.displayName)
+                .firstOrNull ??
+            'Référence indisponible';
     final resolvedItemLabel = heldItemId == null || heldItemId.isEmpty
         ? null
         : itemCatalogView.canonicalCatalog?.entries
@@ -148,6 +156,10 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                   style: TextStyle(fontSize: 11, color: subtle),
                 ),
               ],
+              if (ballLabel != null) ...[
+                const SizedBox(height: 4),
+                Text('Ball : $ballLabel', style: TextStyle(fontSize: 11, color: subtle)),
+              ],
               if ((pokemon.gender ?? '').trim().isNotEmpty ||
                   pokemon.shiny) ...[
                 const SizedBox(height: 4),
@@ -176,6 +188,7 @@ class _TrainerPokemonEditorCard extends StatefulWidget {
     required this.speciesController,
     required this.levelController,
     required this.itemController,
+    required this.ballController,
     required this.formController,
     required this.genderController,
     required this.moveControllers,
@@ -192,6 +205,7 @@ class _TrainerPokemonEditorCard extends StatefulWidget {
   final TextEditingController speciesController;
   final TextEditingController levelController;
   final TextEditingController itemController;
+  final TextEditingController ballController;
   final TextEditingController formController;
   final TextEditingController genderController;
   final List<TextEditingController> moveControllers;
@@ -235,6 +249,10 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
       oldWidget.itemController.removeListener(_onDraftFieldChanged);
       widget.itemController.addListener(_onDraftFieldChanged);
     }
+    if (oldWidget.ballController != widget.ballController) {
+      oldWidget.ballController.removeListener(_onDraftFieldChanged);
+      widget.ballController.addListener(_onDraftFieldChanged);
+    }
     if (oldWidget.formController != widget.formController) {
       oldWidget.formController.removeListener(_onDraftFieldChanged);
       widget.formController.addListener(_onDraftFieldChanged);
@@ -264,6 +282,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
     widget.speciesController.addListener(_onDraftFieldChanged);
     widget.levelController.addListener(_onDraftFieldChanged);
     widget.itemController.addListener(_onDraftFieldChanged);
+    widget.ballController.addListener(_onDraftFieldChanged);
     widget.formController.addListener(_onDraftFieldChanged);
     widget.genderController.addListener(_onDraftFieldChanged);
     for (final controller in widget.moveControllers) {
@@ -275,6 +294,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
     widget.speciesController.removeListener(_onDraftFieldChanged);
     widget.levelController.removeListener(_onDraftFieldChanged);
     widget.itemController.removeListener(_onDraftFieldChanged);
+    widget.ballController.removeListener(_onDraftFieldChanged);
     widget.formController.removeListener(_onDraftFieldChanged);
     widget.genderController.removeListener(_onDraftFieldChanged);
     for (final controller in widget.moveControllers) {
@@ -642,6 +662,20 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                       allowEmpty: true,
                       onChanged: (value) => setState(() {
                         widget.itemController.text = value ?? '';
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    ItemCapabilityPicker(
+                      fieldKey: const Key('trainer-library-pokemon-ball-dropdown-button'),
+                      label: 'Ball de présentation',
+                      definitions: widget.references.itemDefinitions,
+                      requirement: ItemCapabilityRequirement.capture,
+                      value: widget.ballController.text,
+                      enabled: widget.references.isItemCatalogAvailable,
+                      allowEmpty: true,
+                      emptyLabel: 'Aucune Ball',
+                      onChanged: (value) => setState(() {
+                        widget.ballController.text = value ?? '';
                       }),
                     ),
                     const SizedBox(height: 6),
