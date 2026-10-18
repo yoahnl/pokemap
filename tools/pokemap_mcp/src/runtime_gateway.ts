@@ -407,6 +407,7 @@ function createLocalRenderExecutor(
   options: RenderExecutorOptions,
 ): RenderExecutor {
   return async (projectRoot, request) => {
+    const traceId = randomUUID();
     const temporaryRoot = await mkdtemp(join(tmpdir(), "pokemap-render-"));
     const requestPath = join(temporaryRoot, "request.json");
     const responsePath = join(temporaryRoot, "response.json");
@@ -445,6 +446,13 @@ function createLocalRenderExecutor(
           "render.worker_failed",
           "The Flutter map render worker did not complete successfully.",
           true,
+          ["Use the trace id and worker diagnostic when reporting this failure."],
+          {
+            traceId,
+            exitCode: execution.signal ? null : execution.exitCode,
+            signal: execution.signal,
+            workerDiagnostic: renderWorkerDiagnostic(execution),
+          },
         );
       }
       decoded = decodeRecord(
@@ -481,6 +489,63 @@ function createLocalRenderExecutor(
       decoded.blob,
     );
     return { data: decoded.data, artifacts: [decoded.artifact] };
+  };
+}
+
+const workerDiagnosticMaxBytes = 16 * 1024;
+
+interface ProcessExecutionResult {
+  stdout: string;
+  stderr: string;
+  stdoutBytes: number;
+  stderrTruncated: boolean;
+  exitCode: number;
+  signal: NodeJS.Signals | null;
+}
+
+function renderWorkerDiagnostic(execution: ProcessExecutionResult): JsonRecord {
+  const causes = [
+    {
+      pattern: /unable to load asset|assetnotfoundexception|asset_not_found/iu,
+      cause: "asset_load_failed",
+      summary: "The worker reported that a required asset could not be loaded.",
+    },
+    {
+      pattern: /failed to compile|compilation failed|compiler failed|could not resolve the package/iu,
+      cause: "compilation_failed",
+      summary: "The worker reported a Dart compilation failure.",
+    },
+    {
+      pattern: /out of memory|heap space|allocation failed/iu,
+      cause: "memory_exhausted",
+      summary: "The worker reported an allocation or memory limit failure.",
+    },
+    {
+      pattern: /some tests failed|test failed|exception caught by flutter test framework/iu,
+      cause: "test_failed",
+      summary: "The Flutter test worker reported a failed test.",
+    },
+  ];
+  for (const [source, output, truncated] of [
+    ["stderr", execution.stderr, execution.stderrTruncated],
+    ["stdout", execution.stdout.slice(-workerDiagnosticMaxBytes),
+      execution.stdoutBytes > workerDiagnosticMaxBytes],
+  ] as const) {
+    for (const candidate of causes) {
+      if (candidate.pattern.test(output)) {
+        return { cause: candidate.cause, summary: candidate.summary, source, truncated };
+      }
+    }
+  }
+  return {
+    cause: execution.signal ? "worker_terminated" : "unclassified_worker_failure",
+    summary: execution.signal
+      ? "The render worker was terminated by a process signal."
+      : "The worker output did not identify a recognized failure cause.",
+    source: execution.stderr.length > 0 ? "stderr"
+      : execution.stdout.length > 0 ? "stdout" : "process",
+    truncated: execution.stderr.length > 0 ? execution.stderrTruncated
+      : execution.stdoutBytes > workerDiagnosticMaxBytes,
   };
 }
 
@@ -709,7 +774,7 @@ async function runProcess(
   input?: string,
   signal?: AbortSignal,
   timeoutMs = 30_000,
-): Promise<{ stdout: string; exitCode: number }> {
+): Promise<ProcessExecutionResult> {
   return new Promise((resolveResult, reject) => {
     const grouped = process.platform !== "win32";
     const child = spawn(command, args, {
@@ -719,6 +784,8 @@ async function runProcess(
     });
     const stdout: Buffer[] = [];
     let stdoutBytes = 0;
+    let stderr = Buffer.alloc(0);
+    let stderrBytes = 0;
     let settled = false;
     let abortTimer: NodeJS.Timeout | undefined;
     const kill = (processSignal: NodeJS.Signals) => {
@@ -776,7 +843,14 @@ async function runProcess(
       }
       stdout.push(chunk);
     });
-    child.stderr.resume();
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderrBytes += chunk.length;
+      const tail = chunk.subarray(-workerDiagnosticMaxBytes);
+      stderr = Buffer.concat([
+        stderr.subarray(-Math.max(0, workerDiagnosticMaxBytes - tail.length)),
+        tail,
+      ]).subarray(-workerDiagnosticMaxBytes);
+    });
     child.once("error", () =>
       finish(() =>
         reject(
@@ -787,14 +861,18 @@ async function runProcess(
         ),
       ),
     );
-    child.once("close", (code) =>
+    child.once("close", (code, processSignal) =>
       finish(() => {
         if (signal?.aborted) {
           reject(new PokeMapToolError("job.cancelled", "The runtime job was cancelled."));
         } else {
           resolveResult({
             stdout: Buffer.concat(stdout).toString("utf8").trim(),
+            stderr: stderr.toString("utf8").trim(),
+            stdoutBytes,
+            stderrTruncated: stderrBytes > workerDiagnosticMaxBytes,
             exitCode: code ?? 3,
+            signal: processSignal,
           });
         }
       }),
