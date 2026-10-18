@@ -175,4 +175,3 @@ def partition_static_glb(data, groups):
     if sorted(index for row in result.values() for index in row['sourcePrimitiveIndices']) != list(range(len(document['meshes'][0]['primitives']))):
         raise ValueError('Partition dropped or duplicated an original primitive')
     return result
-

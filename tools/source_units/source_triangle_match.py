@@ -102,4 +102,3 @@ def source_triangles_match(first, second, tolerance=1e-6):
     return bool(first and second) and all(covered_triangle(surface, triangle, target, tolerance)
                                          for source, target in [(first, second), (second, first)]
                                          for surface, triangle in source)
-

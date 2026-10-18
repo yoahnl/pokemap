@@ -424,5 +424,3 @@ def convert_dae(data, texture_members, *, units_per_cell):
         'clips': [{key: value for key, value in clip.items() if key != 'keys'} for clip in parsed_clips],
     }
     return glb, receipt
-
-

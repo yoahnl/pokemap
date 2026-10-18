@@ -136,7 +136,7 @@ class MaterialReactionTests(unittest.TestCase):
         self.assertEqual(visibility_times[-1], [1.5])
         self.assertEqual(clip['durationSeconds'], 1.5)
         self.assertEqual(clip['tracks'][0]['times'], [frame / 30 for frame in range(45)] + [1.5])
-    
+
     def test_base_geometry_and_pixels_remain_separate_from_original_reaction(self):
         base, reaction, png = fixture()
         samples = [[1, 1, 0, 1, 0, 0], [1, 1, 0, 1, 0.25, -0.125], [1, 1, 0, 1, 0, 0]]
@@ -161,20 +161,20 @@ class MaterialReactionTests(unittest.TestCase):
         self.assertEqual(proof['addedTriangles'], 1)
         view = after['bufferViews'][after['images'][-1]['bufferView']]
         self.assertEqual(target[view['byteOffset']:view['byteOffset'] + view['byteLength']], png)
-    
+
     def test_refuses_an_already_animated_base(self):
         base, reaction, png = fixture()
         document, binary = read_glb(base)
         document['animations'] = [{'name': 'existing'}]
         with self.assertRaisesRegex(ValueError, 'static base'):
             attach_material_reaction(GlbWriter(document, binary).finish(), reaction, png, [[1, 1, 0, 1, 0, 0]] * 3, 60, source_units_per_cell=16, matrix_mode=0, label='Synthetic reaction')
-    
+
     def test_refuses_invalid_clock_and_samples(self):
         base, reaction, png = fixture()
         for fps, samples in [(0, [[1, 1, 0, 1, 0, 0]] * 3), (float('nan'), [[1, 1, 0, 1, 0, 0]] * 3), (60, [[1, 1, 0, 1, 0, 0]]), (60, [[1, 1, 0, 1, float('nan'), 0]] * 3)]:
             with self.assertRaises(ValueError):
                 attach_material_reaction(base, reaction, png, samples, fps, source_units_per_cell=16, matrix_mode=0, label='Synthetic reaction')
-    
+
     def test_refuses_a_source_hierarchy_transform(self):
         base, reaction, png = fixture()
         document, binary = read_glb(reaction)
@@ -184,4 +184,3 @@ class MaterialReactionTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

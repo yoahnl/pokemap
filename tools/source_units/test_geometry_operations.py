@@ -126,7 +126,7 @@ class GeometryOperationsTest(unittest.TestCase):
         triangle = [[0, 0, 0, 0, 0, 1, 1, 1], [1, 0, 0, 1, 0, 1, 1, 1], [0, 0, 1, 0, 1, 1, 1, 1]]
         with self.assertRaisesRegex(ValueError, 'material'):
             module.validate_unit([(surface, triangle)], {'materials': ['wood'], 'maxSize': [2, 4, 2]})
-    
+
     def test_support_preserves_visual_offset_and_source_orientation(self):
         module = self.module()
         surface = module.Surface('sector', 'mesh', 'foliage', 'grass.png', ['WRAP', 'WRAP'], 1, [], True)
@@ -135,7 +135,7 @@ class GeometryOperationsTest(unittest.TestCase):
         self.assertEqual(result['sourceAnchorCells'], [19.5, 1.125, 4.5])
         self.assertEqual(result['supportAnchorLocal'], [0, -0.125, 0])
         self.assertEqual(result['normals'], [[0, 1, 0]])
-    
+
     def test_clipping_preserves_uv_phase_and_color(self):
         module = self.module()
         surface = module.Surface('sector', 'mesh', 'rail', 'fence.png', ['CLAMP', 'WRAP'], 1, [], True)
@@ -144,7 +144,7 @@ class GeometryOperationsTest(unittest.TestCase):
         self.assertTrue(entries)
         self.assertEqual(min((v[4] for _, t in entries for v in t)), 3)
         self.assertTrue(all((v[5:] == [0.2, 0.4, 0.6] for _, t in entries for v in t)))
-    
+
     def test_deduplication_does_not_hide_non_affine_source_vertex_color(self):
         module = self.module()
         surface = module.Surface('sector', 'mesh', 'wood', 'tree.png', ['WRAP', 'WRAP'], 1, [], True)
@@ -156,7 +156,7 @@ class GeometryOperationsTest(unittest.TestCase):
         flat = [(surface, [a, b, c]), (surface, [a, c, d])]
         shaded = [(surface, [a, b, center]), (surface, [b, c, center]), (surface, [c, d, center]), (surface, [d, a, center])]
         self.assertNotEqual(module.geometry_identity(flat), module.geometry_identity(shaded))
-    
+
     def paint_surface(self, module, material, height, color=(0, 100, 0, 255)):
         positions = [[0, height, 0], [0, height, 1], [1, height, 1], [1, height, 0]]
         vertices = [[*position, position[0], position[2], 1, 1, 1] for position in positions]
@@ -164,10 +164,10 @@ class GeometryOperationsTest(unittest.TestCase):
         stream = module.BytesIO()
         module.Image.new('RGBA', (2, 2), color).save(stream, format='PNG')
         return (surface, stream.getvalue())
-    
+
     def paint_frame(self):
         return {'sourceToNativeTranslation': [0, -0.25, 0], 'width': 1, 'depth': 1, 'levelHeight': 0.25}
-    
+
     def test_ground_motifs_do_not_raise_support_or_change_their_source_geometry(self):
         module = self.module()
         for material in ['print-a', 'print-b', 'print-c', 'print-d', 'print-e', 'print-f']:
@@ -183,7 +183,7 @@ class GeometryOperationsTest(unittest.TestCase):
                 area = next((row for row in module.source_areas(scene, self.paint_frame()) if row['material'] == material))
                 self.assertEqual(area['sourceTriangles'], decal.triangles)
                 self.assertEqual(scene, original)
-    
+
     def test_ground_motif_without_underlying_support_remains_unclassified(self):
         module = self.module()
         decal, png = self.paint_surface(module, 'print-c', 1.1875)
@@ -193,14 +193,14 @@ class GeometryOperationsTest(unittest.TestCase):
         self.assertEqual(recipe['sourceNativeHeights'], [None])
         self.assertEqual(recipe['missingSupportCells'], 1)
         self.assertTrue(module.source_areas(scene, self.paint_frame()))
-    
+
     def test_ground_motif_cannot_promote_transparent_ground_to_support(self):
         module = self.module()
         ground, ground_png = self.paint_surface(module, 'copper', 1, (0, 100, 0, 0))
         decal, decal_png = self.paint_surface(module, 'print-e', 1.1875)
         scene = {'id': 'dataset-one', 'surfaces': [ground, decal], 'textures': {ground.texture: ground_png, decal.texture: decal_png}}
         self.assertEqual(module.paint_recipe(scene, self.paint_frame())['heightLevels'], [None])
-    
+
     def test_ground_support_keeps_a_real_higher_platform(self):
         module = self.module()
         ground, ground_png = self.paint_surface(module, 'copper', 1)
@@ -210,7 +210,7 @@ class GeometryOperationsTest(unittest.TestCase):
         recipe = module.paint_recipe(scene, self.paint_frame())
         self.assertEqual(recipe['heightLevels'], [19])
         self.assertEqual(recipe['sourceCellSamples'][0]['material'], 'marble')
-    
+
     def test_ground_support_keeps_source_slope_interpolation(self):
         module = self.module()
         ground, png = self.paint_surface(module, 'copper', 1)
@@ -221,14 +221,14 @@ class GeometryOperationsTest(unittest.TestCase):
         recipe = module.paint_recipe(scene, self.paint_frame())
         self.assertEqual(recipe['sourceNativeHeights'], [1.25])
         self.assertEqual(recipe['heightLevels'], [5])
-    
+
     def test_native_blob_gate_uses_the_core_cardinal_and_corner_bit_contract(self):
         module = self.semantic_module()
         self.assertEqual(module.blob_mask(240), 0)
         self.assertEqual(module.blob_mask(49), 1)
         self.assertEqual(module.blob_mask(51), 35)
         self.assertEqual(len({module.blob_mask(mask) for mask in range(256)}), 47)
-    
+
     def test_equal_neighbor_masks_with_different_source_contours_remain_ambiguous(self):
         module = self.semantic_module()
         image = module.extraction.Image.new('RGBA', (16, 16), (1, 2, 3, 255))
@@ -241,7 +241,7 @@ class GeometryOperationsTest(unittest.TestCase):
         self.assertEqual(case['status'], 'ambiguous_source_geometry_or_uv')
         self.assertTrue(analysis['missingMasks'])
         self.assertEqual(len(analysis['draftRules'][0]['candidates']), 1)
-    
+
     def test_periodic_native_frame_preserves_original_pixels_and_map_phase(self):
         module = self.semantic_module()
         image = module.extraction.Image.new('RGBA', (64, 64))
@@ -252,7 +252,7 @@ class GeometryOperationsTest(unittest.TestCase):
         result = module.pattern_image(image, mapping, [17, -0.25, 25])
         self.assertEqual(result.getpixel((0, 0)), (48, 48, 0, 255))
         self.assertEqual(result.getpixel((16, 16)), (0, 0, 0, 255))
-    
+
     def test_cliff_face_detection_rejects_sloped_trapezoid_extent(self):
         module = self.supplementary_module('borders')
         extraction = module.extraction
@@ -265,7 +265,7 @@ class GeometryOperationsTest(unittest.TestCase):
         self.assertEqual(faces[0]['sourceArea'], 6)
         clipped = module.clip_face(faces[0], 0.5, 1.5)
         self.assertEqual(extraction.entries_bounds(clipped), [0.5, 0, 0, 1.5, 3, 0])
-    
+
     def test_cliff_socket_follows_actual_recipe_levels_without_moving_source_wall(self):
         module = self.supplementary_module('borders')
         frame = {'sourceToNativeTranslation': [0, -0.25, 0], 'width': 4, 'depth': 4, 'levelHeight': 0.25, 'nativePaint': {'heightLevels': [12] * 16}}
@@ -278,7 +278,7 @@ class GeometryOperationsTest(unittest.TestCase):
         self.assertAlmostEqual(3 - anchor['y'], 1.75)
         self.assertAlmostEqual(1 - anchor['z'], 1.2)
         self.assertEqual(runs[0]['expectedNativeMaximumY'], 5.5)
-    
+
     def test_water_partial_unit_uses_cell_pivot_without_changing_uv(self):
         module = self.water_module()
         extraction = module.extraction
@@ -309,7 +309,7 @@ class GeometryOperationsTest(unittest.TestCase):
             start = view.get('byteOffset', 0) + accessor.get('byteOffset', 0)
             uvs = [module.struct.unpack_from('<ff', binary, start + index * view.get('byteStride', 8)) for index in range(accessor['count'])]
             self.assertEqual(uvs, [(0, 1), (0.0625, 1), (0, 1.125)])
-    
+
     def test_guardrail_cell_clipping_keeps_boundary_planes_once(self):
         module = self.supplementary_module('cell_geometry')
         extraction = module.extraction
@@ -318,7 +318,7 @@ class GeometryOperationsTest(unittest.TestCase):
         cells = module.cell_entries({'surfaces': [surface]}, {'sourceToNativeTranslation': [0, 0, 0], 'width': 3, 'depth': 3}, materials=['rail'], component_materials=[], omit_flat_materials=[])
         self.assertEqual({key[:2] for key in cells}, {(1, 0), (1, 1)})
         self.assertAlmostEqual(sum((module.area(entries) for entries in cells.values())), 2)
-    
+
     def test_relief_profiles_accept_source_extrusions_and_reject_cut_triangular_faces(self):
         module = self.supplementary_module('relief')
         extraction = module.extraction
@@ -327,7 +327,7 @@ class GeometryOperationsTest(unittest.TestCase):
         entries = [(surface, [a, b, c]), (surface, [a, c, d])]
         self.assertEqual(module.profile_axis(entries), 0)
         self.assertIsNone(module.profile_axis(entries[:1]))
-    
+
     def test_strict_relief_sampler_proof_detects_uv_and_vertex_color_differences(self):
         module = self.supplementary_module('relief')
         extraction = module.extraction
@@ -343,4 +343,3 @@ class GeometryOperationsTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

@@ -191,5 +191,3 @@ def retarget_material_texture(data, model_name, material_name, texture, palette)
     if len(changes) != 2:
         raise ValueError('Original model texture bindings were not found')
     return bytes(output), changes
-
-

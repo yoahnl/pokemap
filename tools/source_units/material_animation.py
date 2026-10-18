@@ -211,4 +211,3 @@ def animated_material_document(document, binary, recipe, context, sources, fps, 
     clip = {'name': clip_name, 'durationSeconds': max(track['durationSeconds'] for track in tracks), 'tracks': tracks}
     output.setdefault('extras', {})['aveluneMaterialAnimations'] = {'schemaVersion': 1, 'clips': [clip]}
     return output, evidence, unsupported
-
