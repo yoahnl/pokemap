@@ -68,6 +68,26 @@ void main() {
     final companionMutation = draft.mutations.singleWhere((m) =>
         (m.parameters['usages'] as List?)?.contains('converter.sourceEvents') ==
         true);
+    final globalOwners = [
+      for (var mapId = 1; mapId <= 4; mapId++)
+        fixture.snapshot.entries
+            .singleWhere(
+              (entry) => entry.relativePath == 'Data/Map00$mapId.rxdata',
+            )
+            .fileId
+            .value,
+    ]..sort();
+    final projectionImports = draft.mutations.where(
+      (mutation) =>
+          (mutation.parameters['usages'] as List?)?.contains(
+            'converter.sourceEventProjectionBytes',
+          ) ==
+          true,
+    );
+    expect(projectionImports, isNotEmpty);
+    for (final mutation in [companionMutation, ...projectionImports]) {
+      expect(mutation.sourceEntityIds.map((id) => id.value), globalOwners);
+    }
     final companion = draft.artifacts.singleWhere(
         (a) => a.handle == companionMutation.parameters['artifactHandle']);
     final index = jsonDecode(utf8.decode(companion.bytes)) as Map;

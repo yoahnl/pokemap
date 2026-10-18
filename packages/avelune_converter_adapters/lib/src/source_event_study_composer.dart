@@ -617,6 +617,7 @@ final class SourceEventStudyComposer {
     }
     final preservedArtifacts = <String, NativeArtifact>{};
     final preservedMutations = <NativeMutation>[];
+    final preservedArtifactOwners = <String, Set<ConverterId>>{};
     final preservedFiles = <Map<String, Object?>>[];
     for (final witness in recording.evidence
         .where((entry) => preservedFileIds.contains(entry['fileId']))) {
@@ -665,22 +666,10 @@ final class SourceEventStudyComposer {
           'assetId': id,
           'logicalPath': logicalPath
         });
-        if (preservedArtifacts.containsKey(artifact.handle)) continue;
-        preservedArtifacts[artifact.handle] = artifact;
-        preservedMutations.add(NativeMutation(
-            operationId:
-                ConverterId('ac13_source_chunk_${artifact.rawSha256.value}'),
-            actionId: 'asset.import',
-            sourceEntityIds: owners,
-            targetEntityIds: [ConverterId(id)],
-            parameters: {
-              'artifactHandle': artifact.handle,
-              'assetId': id,
-              'logicalPath': logicalPath,
-              'tags': ['preserved-source-bytes'],
-              'usages': ['converter.sourceEventBytes'],
-            },
-            limits: limits));
+        preservedArtifacts.putIfAbsent(artifact.handle, () => artifact);
+        preservedArtifactOwners
+            .putIfAbsent(artifact.handle, () => <ConverterId>{})
+            .add(ConverterId(witness['fileId'] as String));
       }
       final preserved = Map<String, Object?>.from(witness)
         ..remove('artifactHandle');
@@ -689,6 +678,26 @@ final class SourceEventStudyComposer {
         'encoding': 'canonicalJsonBase64Chunks',
         'chunks': chunks
       });
+    }
+    for (final artifact in preservedArtifacts.values) {
+      final id =
+          'ac13_source_chunk_${artifact.rawSha256.value.substring(0, 24)}';
+      final chunkOwners = preservedArtifactOwners[artifact.handle]!.toList()
+        ..sort((a, b) => a.value.compareTo(b.value));
+      preservedMutations.add(NativeMutation(
+          operationId:
+              ConverterId('ac13_source_chunk_${artifact.rawSha256.value}'),
+          actionId: 'asset.import',
+          sourceEntityIds: chunkOwners,
+          targetEntityIds: [ConverterId(id)],
+          parameters: {
+            'artifactHandle': artifact.handle,
+            'assetId': id,
+            'logicalPath': 'assets/converter/$id.json',
+            'tags': ['preserved-source-bytes'],
+            'usages': ['converter.sourceEventBytes'],
+          },
+          limits: limits));
     }
     final companionPacking = SourceEventEvidenceArtifacts.pack({
       ...projection.semanticEvidence,

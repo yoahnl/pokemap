@@ -29,6 +29,235 @@ void main() {
         isNull);
   });
 
+  test(
+    'source byte chunks retain only their exact sorted witness owners',
+    () async {
+      final temporary = await Directory.systemTemp.createTemp(
+        'ac13-chunk-owners-',
+      );
+      addTearDown(() => temporary.delete(recursive: true));
+      final fixture = await LiteralTileFixture.create(
+        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        includeEventSystem: true,
+        extraFiles: {
+          'PBS/metadata.txt': utf8.encode(
+            '[1]\nWalkCharset = OriginalPlayer\n',
+          ),
+          'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+            image.Image(width: 128, height: 192, numChannels: 4),
+          ),
+        },
+        maps: [
+          for (final mapId in [3, 2, 1])
+            LiteralFixtureMap(
+              id: mapId,
+              events: [
+                LiteralFixtureEvent(
+                  id: 1,
+                  x: 0,
+                  y: 0,
+                  pages: [
+                    LiteralFixtureEventPage(
+                      commands: [
+                        LiteralFixtureEventCommand(101, [
+                          mapId == 3 ? 'Unique witness' : 'Shared witness',
+                        ]),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+        ],
+      );
+      final sourceHash = fixture.source.canonicalHash;
+      final snapshotHash = fixture.snapshot.canonicalHash;
+      final literal = await const LiteralTileComposer().compose(
+        source: fixture.source,
+        files: fixture.files,
+        selectedSourceMapIds: [1, 2, 3],
+        projectName: 'Chunk owners',
+        parentPath: temporary.path,
+        folderName: 'chunk-owners',
+      );
+      final semantic = (await const SourceSemanticStudyComposer().compose(
+        source: fixture.source,
+        base: literal,
+        files: fixture.files,
+      ))!;
+      final composed = (await const SourceEventStudyComposer().compose(
+        source: fixture.source,
+        base: semantic,
+        files: fixture.files,
+      ))!;
+      final draft = composed.draft;
+      bool hasUsage(NativeMutation mutation, String usage) =>
+          (mutation.parameters['usages'] as List?)?.contains(usage) == true;
+      final companion = draft.mutations.singleWhere(
+        (mutation) => hasUsage(mutation, 'converter.sourceEvents'),
+      );
+      final evidence = jsonDecode(
+        utf8.decode(
+          draft.artifacts
+              .singleWhere(
+                (a) => a.handle == companion.parameters['artifactHandle'],
+              )
+              .bytes,
+        ),
+      ) as Map;
+      final preserved = (evidence['preservedSourceFiles'] as List).cast<Map>();
+      final expectedOwners = <String, Set<String>>{};
+      for (final witness in preserved) {
+        final restored = <int>[];
+        for (final chunk in witness['chunks'] as List) {
+          final handle = chunk['artifactHandle'] as String;
+          expectedOwners
+              .putIfAbsent(handle, () => {})
+              .add(witness['fileId'] as String);
+          final artifact = draft.artifacts.singleWhere(
+            (a) => a.handle == handle,
+          );
+          final raw = jsonDecode(utf8.decode(artifact.bytes)) as Map;
+          expect(raw['kind'], 'sourceSemanticByteChunk');
+          expect(raw['version'], 1);
+          expect(raw['offset'], restored.length);
+          expect(chunk['offset'], restored.length);
+          final bytes = base64Decode(raw['bytesBase64'] as String);
+          expect(chunk['byteLength'], bytes.length);
+          restored.addAll(bytes);
+        }
+        expect(restored, fixture.sourceBytes[witness['relativePath']]);
+        expect(restored.length, witness['byteLength']);
+        expect(literalFixtureHash(restored).value, witness['rawSha256']);
+      }
+      final imports = draft.mutations
+          .where((mutation) => hasUsage(mutation, 'converter.sourceEventBytes'))
+          .toList();
+      expect(imports.length, expectedOwners.length);
+      for (final mutation in imports) {
+        final handle = mutation.parameters['artifactHandle'] as String;
+        final expected = expectedOwners[handle]!.toList()..sort();
+        expect(mutation.sourceEntityIds.map((id) => id.value), expected);
+        final artifact = draft.artifacts.singleWhere((a) => a.handle == handle);
+        final id =
+            'ac13_source_chunk_${artifact.rawSha256.value.substring(0, 24)}';
+        expect(
+          mutation.operationId.value,
+          'ac13_source_chunk_${artifact.rawSha256.value}',
+        );
+        expect(mutation.targetEntityIds, [ConverterId(id)]);
+        expect(mutation.parameters, {
+          'artifactHandle': handle,
+          'assetId': id,
+          'logicalPath': 'assets/converter/$id.json',
+          'tags': ['preserved-source-bytes'],
+          'usages': ['converter.sourceEventBytes'],
+        });
+      }
+      String fileId(String path) => fixture.snapshot.entries
+          .singleWhere((entry) => entry.relativePath == path)
+          .fileId
+          .value;
+      final sharedOwners = [
+        fileId('Data/Map001.rxdata'),
+        fileId('Data/Map002.rxdata'),
+      ]..sort();
+      expect(
+        imports.where(
+          (mutation) =>
+              mutation.sourceEntityIds.map((id) => id.value).join(',') ==
+              sharedOwners.join(','),
+        ),
+        hasLength(1),
+      );
+      for (final path in ['Data/Map003.rxdata', 'Data/System.rxdata']) {
+        expect(
+          imports.where(
+            (mutation) =>
+                mutation.sourceEntityIds
+                        .map((id) => id.value)
+                        .toList()
+                        .length ==
+                    1 &&
+                mutation.sourceEntityIds.single.value == fileId(path),
+          ),
+          hasLength(1),
+        );
+      }
+      final globalOwners = [
+        for (var id = 1; id <= 3; id++) fileId('Data/Map00$id.rxdata'),
+      ]..sort();
+      expect(companion.sourceEntityIds.map((id) => id.value), globalOwners);
+      for (final mutation in draft.mutations.where(
+        (mutation) =>
+            hasUsage(mutation, 'converter.sourceEventProjectionBytes'),
+      )) {
+        expect(mutation.sourceEntityIds.map((id) => id.value), globalOwners);
+      }
+      expect(fixture.source.canonicalHash, sourceHash);
+      expect(fixture.snapshot.canonicalHash, snapshotHash);
+      final approval = approveNativeFixtureDraft(draft);
+      final receipt = await NativeProjectWriter().write(
+        approval.plan,
+        approval.context,
+        draft,
+      );
+      expect(receipt.verified, isTrue);
+      for (final mutation in [...imports, companion]) {
+        final artifact = draft.artifacts.singleWhere(
+          (a) => a.handle == mutation.parameters['artifactHandle'],
+        );
+        expect(
+          await File(
+            '${receipt.projectPath}/${mutation.parameters['logicalPath']}',
+          ).readAsBytes(),
+          artifact.bytes,
+        );
+      }
+      final shared = imports.singleWhere(
+        (mutation) => mutation.sourceEntityIds.length == 2,
+      );
+      final unrelated = ConverterId(fileId('Data/Map003.rxdata'));
+      for (final owners in [
+        [shared.sourceEntityIds.first, unrelated],
+        [shared.sourceEntityIds.first],
+        [...shared.sourceEntityIds, unrelated],
+      ]) {
+        final forged = NativeProjectDraft(
+          source: draft.source,
+          projectName: draft.projectName,
+          parentPath: draft.parentPath,
+          folderName: draft.folderName,
+          mapIds: draft.mapIds,
+          artifacts: draft.artifacts,
+          sourceArtifacts: draft.sourceArtifacts,
+          compositionEvidence: draft.compositionEvidence,
+          mutations: [
+            for (final mutation in draft.mutations)
+              mutation == shared
+                  ? copyNativeFixtureMutation(mutation, sourceEntityIds: owners)
+                  : mutation,
+          ],
+        );
+        final forgedApproval = approveNativeFixtureDraft(forged);
+        final stages = <NativeWriteStage>[];
+        await expectLater(
+          NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+              .write(forgedApproval.plan, forgedApproval.context, forged),
+          throwsA(
+            isA<NativeWriteException>().having(
+              (e) => e.code,
+              'code',
+              'native.semantics.regeneration',
+            ),
+          ),
+        );
+        expect(stages, isEmpty);
+      }
+    },
+    skip: scriptsPath == null || !Platform.isMacOS,
+  );
+
   test('missing NPC sprite quarantines its whole event and preserves the map',
       () async {
     final temporary =
