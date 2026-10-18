@@ -76,6 +76,10 @@ final class SpatialExplorationSession {
   final _resolver = CharacterAnimationSourceResolver();
   late SpatialEntityVisualPlan _entityVisuals;
   bool Function(String mapId, MapEntity entity)? entityIsPresent;
+  MapEntity? Function(String mapId, MapEntity entity)? entityProjection;
+  GameState Function()? presentationStateProvider;
+  final Map<String, ({EntityFacing declaration, EntityFacing? override, SpatialActorRuntimeState? state})>
+      _presentationFacingStates = {};
   bool _disposed = false;
   late Future<RuntimeMapBundle> Function(String) _loadMap;
   late SpatialWarpController _warps;
@@ -133,6 +137,8 @@ final class SpatialExplorationSession {
                 : worldStateProvider?.call().actorState(source.map.id, id);
       },
     );
+    movement.entityProjection = (entity) => entityProjection == null ? entity :
+      entityProjection!(source.map.id, entity);
     if (_preparedMaps.containsKey(bundle.map.id)) {
       _preparedMaps[bundle.map.id] = _capturePrepared();
       _trimPreparedMaps();
@@ -369,6 +375,8 @@ final class SpatialExplorationSession {
           worldStateProvider: worldStateProvider,
           loadMap: loadMap,
           knownMaps: knownMaps);
+    MapEntity? Function(String mapId, MapEntity entity)? entityProjection,
+    GameState Function()? presentationStateProvider,
 
   static Future<SpatialExplorationSession> _load(
     RuntimeMapBundle bundle, {
@@ -379,6 +387,8 @@ final class SpatialExplorationSession {
     bool Function(String mapId, MapEntity entity)? entityIsPresent,
     SpatialWorldState Function()? worldStateProvider,
     Future<RuntimeMapBundle> Function(String)? loadMap,
+          entityProjection: entityProjection,
+          presentationStateProvider: presentationStateProvider,
     _SpatialActorAssets? sharedAssets,
     bool validateSpawn = true,
     Iterable<MapData> knownMaps = const [],
@@ -390,6 +400,8 @@ final class SpatialExplorationSession {
     }
     final connectionDirections = <MapConnectionDirection>{};
     if (bundle.map.connections.any((connection) =>
+    MapEntity? Function(String mapId, MapEntity entity)? entityProjection,
+    GameState Function()? presentationStateProvider,
         !connectionDirections.add(connection.direction))) {
       throw StateError('Plusieurs voisines sur un bord 3D ne sont pas prises en charge.');
     }
@@ -427,6 +439,15 @@ final class SpatialExplorationSession {
     final movement = SpatialMovementController.fromMap(
         map: bundle.map,
         models: bundle.manifest.models3d,
+    for (final entity in bundle.map.entities) {
+      for (final variant in entity.presentation?.variants ?? const <MapEntityPresentationVariant>[]) {
+        final id = variant.characterId;
+        if (id == null) continue;
+        final matching = bundle.manifest.characters.where((entry) => entry.id == id).toList();
+        if (matching.length != 1) throw StateError('Personnage de variante absent : $id');
+        characters.add(matching.single);
+      }
+    }
         arrival: arrival,
         spatialArrival: spatialArrival,
         entityPresencePredicate: (entity) =>
@@ -444,6 +465,8 @@ final class SpatialExplorationSession {
         character,
         movement,
         assets,
+        entityProjection: (entity) => entityProjection == null ? entity :
+          entityProjection(bundle.map.id, entity),
         sharedAssets == null,
         {for (final map in knownMaps) map.id: map});
     final images = assets.images;
@@ -451,6 +474,8 @@ final class SpatialExplorationSession {
       final paths = bundle.runtimeImageAbsolutePathsById;
       final ids = {
         ...entityVisuals.imageIds,
+    movement.entityProjection = (entity) => entityProjection == null ? entity :
+      entityProjection(bundle.map.id, entity);
         for (final actor in characters)
           for (final animation in actor.animations)
             if (animation.sourceAssetId case final asset?
@@ -484,6 +509,8 @@ final class SpatialExplorationSession {
         for (final animation in actor.animations) {
           if (animation.frames.isEmpty) {
             throw StateError('Animation du héros vide.');
+      session.entityProjection = entityProjection;
+      session.presentationStateProvider = presentationStateProvider;
           }
           for (final frame in animation.frames) {
             final resolved = session._resolve(animation, frame, actor: actor);
@@ -641,7 +668,8 @@ final class SpatialExplorationSession {
       bool present(MapEntity entity) =>
           entityIsPresent?.call(id, entity) ?? true;
       final visuals = {
-        for (final entity in source.map.entities.where(
+        for (final entity in source.map.entities.map((entity) => entityProjection == null
+            ? entity : entityProjection!(id, entity)).whereType<MapEntity>().where(
             (entity) => entity.kind == MapEntityKind.npc && present(entity)))
           'npc:${entity.id}': npcFrame(entity, sourceBundle: source),
         ...prepared.visuals.frames(
@@ -651,6 +679,10 @@ final class SpatialExplorationSession {
       };
       for (final entry in visuals.entries) {
         final visual = entry.value;
+      for (final entity in source.map.entities.where((entity) => entity.presentation != null)) {
+        _presentationFacingFor(entity, source,
+          worldStateProvider?.call().actorState(source.map.id, entity.id));
+      }
         result['$id:${entry.key}'] = SpatialActorVisual(
             x: visual.x + offset.dx,
             y: visual.y,
@@ -687,10 +719,12 @@ final class SpatialExplorationSession {
                 clip.state == (pose?.motion ?? CharacterAnimationState.idle))
             .firstOrNull ??
         actor.animations.firstWhere((clip) =>
+    final presentationFacing = _presentationFacingFor(entity, source, saved);
             clip.direction == facing &&
             clip.state == CharacterAnimationState.walk);
     final duration =
         animation.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs);
+        presentationFacing ??
     var elapsed = ((pose?.animationSeconds ?? 0) * 1000).floor();
     elapsed =
         animation.loop ? elapsed % duration : elapsed.clamp(0, duration - 1);
@@ -703,7 +737,8 @@ final class SpatialExplorationSession {
       elapsed -= frame.durationMs;
     }
     final resolved = _resolve(animation, selected, actor: actor);
-    final x = saved?.x ?? entity.pos.x + .5, z = saved?.z ?? entity.pos.y + .5;
+    final x = (saved?.x ?? entity.pos.x + .5) + (entity.size.width - 1) / 2;
+    final z = (saved?.z ?? entity.pos.y + .5) + entity.size.height - 1;
     return SpatialActorVisual(
         x: x,
         z: z,
@@ -725,6 +760,22 @@ final class SpatialExplorationSession {
   }
 
   Future<void> restoreGameState(GameState state,
+  EntityFacing? _presentationFacingFor(MapEntity entity, RuntimeMapBundle source,
+      SpatialActorRuntimeState? saved) {
+    final state = presentationStateProvider?.call();
+    if (entity.presentation == null || state == null) return null;
+    final variant = resolveMapEntityPresentation(project: source.manifest,
+      gameState: state, map: source.map, entity: entity);
+    if (variant == null) return null;
+    final key = '${source.map.id}/${entity.id}';
+    final previous = _presentationFacingStates[key];
+    final changed = previous != null && previous.declaration != variant.facing;
+    final override = changed ? variant.facing :
+      previous?.state == saved ? previous?.override : null;
+    _presentationFacingStates[key] = (declaration: variant.facing, override: override, state: saved);
+    return override;
+  }
+
       {bool compensatePendingScene = false}) async {
     if (_disposed) throw StateError('The spatial session is closed.');
     final position = state.playerSpatialPosition ??
@@ -763,6 +814,8 @@ final class SpatialExplorationSession {
       try {
         await _validateSavedPosition();
       } on Object {
+          entityProjection: (entity) => entityProjection == null ? entity :
+            entityProjection!(source.map.id, entity),
         movement = previousMovement;
         attachWorldStateProviders();
         rethrow;
@@ -903,6 +956,8 @@ final class SpatialExplorationSession {
         candidate.dispose();
       }
     });
+          entityProjection: entityProjection,
+          presentationStateProvider: presentationStateProvider,
     try {
       return await future;
     } finally {
@@ -1034,6 +1089,8 @@ final class SpatialExplorationSession {
       _imageIds = candidate._imageIds;
       _assets.owners[_assetOwner] = _imageIds;
       final preparedNeighbors = Map.of(candidate._preparedMaps);
+          entityProjection: entityProjection,
+          presentationStateProvider: presentationStateProvider,
       final preparedOrigins = Map.of(candidate._mapOrigins);
       candidate.dispose();
       candidate = null;

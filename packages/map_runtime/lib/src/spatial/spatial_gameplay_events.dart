@@ -307,7 +307,7 @@ final class SpatialGameplayEvents {
     final state = _readGameState();
     final position = state.playerSpatialPosition;
     if (position == null) return null;
-    final map = _map;
+    final map = projectMapEntityPresentations(project: project, gameState: state, map: _map);
     return findSpatialEntityInteraction(
       scene: map.spatialScene!,
       entities: map.entities.where((entity) => entityIsPresent(map.id, entity)),
@@ -339,6 +339,13 @@ final class SpatialGameplayEvents {
           map: map,
         )
         .isMapEntityVisible(entity, defaultVisible: present);
+  }
+
+  MapEntity? projectEntity(String mapId, MapEntity entity, {GameState? gameStateOverride}) {
+    final map = mapsById[mapId];
+    if (map == null) return null;
+    return projectMapEntityPresentation(project: project,
+      gameState: gameStateOverride ?? _readGameState(), map: map, entity: entity);
   }
 
   SpatialModelInstance? get modelInteractionTarget {
@@ -472,6 +479,7 @@ final class SpatialGameplayEvents {
     return GameplayWorldState.initial(
       map: map,
       project: project,
+      gameState: state,
       playerPos: state.playerPosition,
       playerFacing: player.facing,
       tileWidth: settings.tileWidth,

@@ -27,6 +27,9 @@ export 'src/models/pokedex_species_range.dart';
 
 export 'src/models/pokemon_trade_evolution.dart';
 export 'src/models/map_entity_healing_display.dart';
+export 'src/models/map_entity_presentation.dart';
+export 'src/projection/map_entity_presentation_projection.dart';
+export 'src/operations/narrative_condition_expression_evaluator.dart';
 export 'src/operations/map_healing_display.dart';
 export 'src/catalog_storage/catalog_storage.dart';
 

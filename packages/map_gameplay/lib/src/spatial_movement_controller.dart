@@ -85,6 +85,7 @@ final class SpatialMovementController {
     required Iterable<ProjectModel3dEntry> models,
     Iterable<MapEntity> entities = const [],
     bool Function(MapEntity entity)? entityPresencePredicate,
+    MapEntity? Function(MapEntity entity)? entityProjection,
     SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
   }) : this._(
@@ -92,6 +93,7 @@ final class SpatialMovementController {
           models: models,
           entities: entities,
           entityPresencePredicate: entityPresencePredicate,
+          entityProjection: entityProjection,
           modelStateProvider: modelStateProvider,
           actorStateProvider: actorStateProvider,
           spawn: scene.navigation.spawn,
@@ -108,6 +110,7 @@ final class SpatialMovementController {
     String? preferredSpawnId,
     bool validateSpawn = true,
     bool Function(MapEntity entity)? entityPresencePredicate,
+    MapEntity? Function(MapEntity entity)? entityProjection,
     SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
   }) {
@@ -147,6 +150,7 @@ final class SpatialMovementController {
       entities:
           map.entities.where((entity) => entity.kind != MapEntityKind.spawn),
       entityPresencePredicate: entityPresencePredicate,
+      entityProjection: entityProjection,
       modelStateProvider: modelStateProvider,
       actorStateProvider: actorStateProvider,
       spawn: SpatialSpawn(x: position.x, z: position.z),
@@ -167,6 +171,7 @@ final class SpatialMovementController {
     required Iterable<ProjectModel3dEntry> models,
     required Iterable<MapEntity> entities,
     required bool Function(MapEntity entity)? entityPresencePredicate,
+    required this.entityProjection,
     required this.modelStateProvider,
     required this.actorStateProvider,
     required SpatialSpawn spawn,
@@ -294,6 +299,8 @@ final class SpatialMovementController {
   void setEntityPresencePredicate(bool Function(MapEntity entity)? predicate) {
     _entityPresencePredicate = predicate;
   }
+
+  MapEntity? Function(MapEntity entity)? entityProjection;
 
   bool canTraverseActor(double fromX, double fromZ, double toX, double toZ,
       {String? ignoredEntityId,
@@ -679,7 +686,9 @@ final class SpatialMovementController {
         return true;
       }
     }
-    for (final entity in entities.where((entity) => entity.blocksMovement)) {
+    for (final sourceEntity in entities) {
+      final entity = entityProjection == null ? sourceEntity : entityProjection!(sourceEntity);
+      if (entity == null || !entity.blocksMovement) continue;
       if (entity.id == ignoredEntityId) continue;
       if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;
       final footprint = resolveEntityCollisionRectPx(entity,

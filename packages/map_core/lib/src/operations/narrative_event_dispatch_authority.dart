@@ -15,6 +15,7 @@ import '../projection/world_rule_projection.dart';
 import '../read_models/narrative_event_validation_read_model.dart';
 import 'narrative_event_registry_codec.dart';
 import 'narrative_fact_runtime.dart';
+import 'narrative_condition_expression_evaluator.dart';
 
 enum NarrativeEventDispatchAuthorityBlockReason {
   invalidRegistry,
@@ -543,52 +544,15 @@ final class NarrativeEventDispatchAuthorityReady
     }
 
     var leafIndex = 0;
-    _ConditionExpressionEvaluation evaluateExpression(
-      NarrativeEventConditionExpression expression,
-    ) {
-      switch (expression) {
-        case NarrativeEventConditionLeaf(:final condition):
-          final trace = evaluateLeaf(condition, leafIndex++);
-          traces.add(trace);
-          return _ConditionExpressionEvaluation(
-            passed: trace.passed,
-            unavailable: trace.reason ==
-                NarrativeEventSimulationReason.runtimeReferenceUnavailable,
-          );
-        case NarrativeEventConditionAll(:final children):
-          var passed = true;
-          var unavailable = false;
-          for (final child in children) {
-            final result = evaluateExpression(child);
-            passed = passed && result.passed;
-            unavailable = unavailable || result.unavailable;
-          }
-          return _ConditionExpressionEvaluation(
-            passed: passed && !unavailable,
-            unavailable: unavailable,
-          );
-        case NarrativeEventConditionAny(:final children):
-          var passed = false;
-          var unavailable = false;
-          for (final child in children) {
-            final result = evaluateExpression(child);
-            passed = passed || result.passed;
-            unavailable = unavailable || result.unavailable;
-          }
-          return _ConditionExpressionEvaluation(
-            passed: passed,
-            unavailable: !passed && unavailable,
-          );
-        case NarrativeEventConditionNot(:final child):
-          final result = evaluateExpression(child);
-          return _ConditionExpressionEvaluation(
-            passed: result.unavailable ? false : !result.passed,
-            unavailable: result.unavailable,
-          );
-      }
-    }
-
-    final expressionResult = evaluateExpression(definition.conditionExpression);
+    final expressionResult = evaluateNarrativeConditionExpression(
+      definition.conditionExpression,
+      evaluateLeaf: (condition) {
+        final trace = evaluateLeaf(condition, leafIndex++);
+        traces.add(trace);
+        return NarrativeConditionEvaluation(passed: trace.passed,
+          unavailable: trace.reason == NarrativeEventSimulationReason.runtimeReferenceUnavailable);
+      },
+    );
     if (expressionResult.passed) {
       return _NarrativeEventCandidateEvaluation(null, traces);
     }
@@ -685,16 +649,6 @@ final class _NarrativeEventCandidateEvaluation {
 
   final NarrativeEventDispatchReason? reason;
   final List<NarrativeEventSimulationConditionTrace> conditions;
-}
-
-final class _ConditionExpressionEvaluation {
-  const _ConditionExpressionEvaluation({
-    required this.passed,
-    required this.unavailable,
-  });
-
-  final bool passed;
-  final bool unavailable;
 }
 
 enum _NarrativeEventWorldRuleState { none, enabled, disabled, hidden }

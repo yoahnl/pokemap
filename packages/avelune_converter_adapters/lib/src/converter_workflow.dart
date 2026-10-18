@@ -2271,6 +2271,7 @@ const _nativeStudyActions = [
   'campaign.encounter_table.upsert',
   'campaign.badge.upsert',
   'entity.set_field_obstacle',
+  'entity.set_presentation',
   'entity.set_interactive_encounter',
   'gameplay_zone.create',
   'campaign.trainer.upsert',
@@ -2350,6 +2351,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'Canonical campaign.badge.upsert and entity.set_field_obstacle preserve Settings-derived locked field definitions and typed native objects through strict original-source approval without granting player progress.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/source_cut_workflow_admission_test.dart',
+                },
+              if (action == 'entity.set_presentation')
+                {
+                  'type': 'test',
+                  'summary':
+                      'EV03 source-bound active-page variants preserve a single event owner, character bindings, initial facing, solid/through state, source-sized footprints and proven front/overlap interaction using canonical conditional presentation authoring. Unknown graphics, scripts and spatial counter reach remain refused.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_event_pages_ev02_test.dart:EV03 page variants switch graphics, solid state and overlap semantics on one owner',
                 },
               if (action == 'map.audio.update')
                 {

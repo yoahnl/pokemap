@@ -10,6 +10,62 @@ import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('conditional spatial sprites preserve saved pose and apply only changed facing declarations', () async {
+    final root = await Directory.systemTemp.createTemp('spatial-presentations-');
+    addTearDown(() => root.delete(recursive: true));
+    final path = '${root.path}/actors.png';
+    await File(path).writeAsBytes(img.encodePng(img.Image(width: 128, height: 32)));
+    final character = ProjectCharacterEntry(id: 'actor', name: 'Actor', tilesetId: 'unused', animations: [
+      for (final direction in EntityFacing.values)
+        for (final state in [CharacterAnimationState.idle, CharacterAnimationState.walk])
+          CharacterAnimation(state: state, direction: direction, sourceAssetId: 'actors', frames: [
+            CharacterAnimationFrame(source: TilesetSourceRect(x: direction.index * 32, y: 0, width: 32, height: 32), durationMs: 100),
+          ]),
+    ]);
+    final condition = NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('changed', true));
+    final owner = MapEntity(id: 'npc', kind: MapEntityKind.npc, pos: const GridPos(x: 4, y: 2),
+      size: const GridSize(width: 2, height: 2),
+      npc: const MapEntityNpcData(characterId: 'actor', facing: EntityFacing.north),
+      presentation: MapEntityPresentation(variants: [
+        MapEntityPresentationVariant(id: 'changed', condition: condition, characterId: 'actor',
+          facing: EntityFacing.west, blocksMovement: false, size: const GridSize(width: 2, height: 2)),
+        MapEntityPresentationVariant(id: 'base', condition: NarrativeEventConditionExpression.not(condition),
+          characterId: 'actor', facing: EntityFacing.north, blocksMovement: true,
+          size: const GridSize(width: 2, height: 2)),
+      ]));
+    final map = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9,
+      size: const GridSize(width: 8, height: 8), entities: [owner],
+      spatialScene: MapSpatialScene(width: 8, depth: 8,
+        navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4))));
+    final project = ProjectManifest(name: 'Test', version: ProjectVersion.v9,
+      settings: const ProjectSettings(dimension: ProjectDimension.threeD, defaultPlayerCharacterId: 'actor'),
+      maps: const [], tilesets: const [], characters: [character],
+      facts: [NarrativeFactDefinition(id: 'changed', label: 'Changed')]);
+    var state = GameState(saveId: 'save', spatialWorldState: const SpatialWorldState.empty().setActorState(
+      'map', 'npc', SpatialActorRuntimeState(x: 4.5, z: 2.5, facing: EntityFacing.east)));
+    final session = await SpatialExplorationSession.load(RuntimeMapBundle(manifest: project, map: map,
+      projectRootDirectory: root.path, tilesetAbsolutePathsById: const {},
+      characterAnimationAbsolutePathsByAssetId: {'actors': path}),
+      entityProjection: (mapId, entity) => projectMapEntityPresentation(project: project, gameState: state, map: map, entity: entity),
+      presentationStateProvider: () => state, worldStateProvider: () => state.spatialWorldState);
+    addTearDown(session.dispose);
+    Rect rect(EntityFacing facing) => Rect.fromLTWH(facing.index * 32, 0, 32, 32);
+    expect(session.frames(0)['map:npc:npc']!.frame, rect(EntityFacing.east));
+    state = state.copyWith(storyFlags: const StoryFlags(activeFlags: {'changed'}));
+    expect(session.frames(0)['map:npc:npc']!.frame, rect(EntityFacing.west));
+    expect(session.frames(0)['map:npc:npc']!.frame, rect(EntityFacing.west));
+    expect(session.frames(0)['map:npc:npc']!.x, 5);
+    expect(session.frames(0)['map:npc:npc']!.z, 3.5);
+    state = GameState.fromJson(state.toJson());
+    expect(session.frames(0)['map:npc:npc']!.z, 3.5);
+    expect(state.spatialWorldState.actorState('map', 'npc')!.z, 2.5);
+    expect(state.spatialWorldState.actorState('map', 'npc')!.x, 4.5);
+    state = state.copyWith(spatialWorldState: state.spatialWorldState.setActorState('map', 'npc',
+      SpatialActorRuntimeState(x: 4.5, z: 2.5, facing: EntityFacing.south)));
+    expect(session.frames(0)['map:npc:npc']!.frame, rect(EntityFacing.south));
+    state = state.copyWith(storyFlags: const StoryFlags());
+    expect(session.frames(0)['map:npc:npc']!.frame, rect(EntityFacing.north));
+  });
   test(
       'native exploration resolves dedicated character assets and authored frame timing',
       () async {

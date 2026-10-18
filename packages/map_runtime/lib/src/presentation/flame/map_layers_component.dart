@@ -880,6 +880,7 @@ class MapLayersComponent extends PositionComponent {
     final entityCandidates = _entitySpatialIndex.query(_fieldObstacleMotions.isEmpty ? visibleRect : visibleRect?.inflate(math.max(cw, ch)));
     _activeRenderCounter?.entityCandidateVisits += entityCandidates.length;
     for (final entity in entityCandidates) {
+      if (entity.presentation != null) continue;
       if (!shouldRenderMapEntityVisual(entity)) {
         continue;
       }

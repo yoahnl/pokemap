@@ -1333,6 +1333,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'map.audio.update',
           'campaign.badge.upsert',
           'entity.set_field_obstacle',
+          'entity.set_presentation',
           'regionalMap.region.upsert',
           'regionalMap.poi.upsert',
         }.contains(mutation.actionId);
@@ -2146,6 +2147,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       case 'fact.create':
       case 'fact.update':
       case 'entity.upsert':
+      case 'entity.set_presentation':
       case 'trigger.create':
       case 'warp.create':
       case 'dialogue.create':

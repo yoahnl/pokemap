@@ -34,11 +34,26 @@ MapEntity? findSpatialEntityInteraction({
 }) {
   MapEntity? result;
   var nearest = double.infinity;
-  for (final entity in entities) {
-    if (entity.kind == MapEntityKind.spawn) continue;
+  final candidates = entities.toList();
+  final overlapping = candidates.where((entity) {
+    if (entity.interactionMode != MapEntityInteractionMode.overlap) return false;
     final state = actorStateProvider?.call(entity.id);
-    final dx = (state?.x ?? entity.pos.x + .5) - x,
-        dz = (state?.z ?? entity.pos.y + .5) - z;
+    final left = state == null ? entity.pos.x.toDouble() : state.x - .5;
+    final top = state == null ? entity.pos.y.toDouble() : state.z - .5;
+    return x >= left && x < left + entity.size.width && z >= top && z < top + entity.size.height;
+  }).toList();
+  if (overlapping.isNotEmpty) return overlapping.length == 1 ? overlapping.single : null;
+  for (final entity in candidates) {
+    if (entity.kind == MapEntityKind.spawn) continue;
+    if (entity.interactionMode == MapEntityInteractionMode.overlap) continue;
+    final state = actorStateProvider?.call(entity.id);
+    final anchorX = state?.x ?? entity.pos.x + .5;
+    final anchorZ = state?.z ?? entity.pos.y + .5;
+    final targetX = entity.presentation == null ? anchorX :
+      x.clamp(anchorX, anchorX + entity.size.width - 1);
+    final targetZ = entity.presentation == null ? anchorZ :
+      z.clamp(anchorZ, anchorZ + entity.size.height - 1);
+    final dx = targetX - x, dz = targetZ - z;
     final (forward, lateral) = switch (facing) {
       EntityFacing.north => (-dz, dx.abs()),
       EntityFacing.south => (dz, dx.abs()),

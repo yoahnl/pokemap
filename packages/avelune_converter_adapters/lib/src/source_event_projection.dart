@@ -680,8 +680,6 @@ final class _ProjectionBuilder {
   final NormalizedSourceProject source;
   final SourceSemanticResolver semanticResolver;
   final Sha256Hash sourceSnapshotHash;
-  late final Map<String, SourceFileEntry?> _snapshotEntriesByPath =
-      _indexSnapshotEntries();
   final SourceEventAnalysis analysis;
   late final SourceWarpTileNativePrograms warpTilePrograms =
       sourceWarpTileNativePrograms(source: source, analysis: analysis);
@@ -1418,6 +1416,7 @@ final class _ProjectionBuilder {
       'event_v2.registry_mode.set': 0,
       'fact.create': 1,
       'entity.upsert': 2,
+      'entity.set_presentation': 2,
       'entity.set_field_obstacle': 2,
       'trigger.create': 2,
       'warp.create': 3,
@@ -1829,26 +1828,7 @@ final class _ProjectionBuilder {
         index < layer.collisions.length && layer.collisions[index]);
   }
 
-  Map<String, SourceFileEntry?> _indexSnapshotEntries() {
-    final entries = <String, SourceFileEntry?>{};
-    for (final entry in source.snapshot.entries) {
-      final key = sourcePathCollisionKey(entry.relativePath);
-      entries[key] = entries.containsKey(key) ? null : entry;
-    }
-    return entries;
-  }
 
-  String _graphicByteIdentity(String name) {
-    final expectedPath = 'Graphics/Characters/$name.png';
-    final expectedKey = sourcePathCollisionKey(expectedPath);
-    final entry = _snapshotEntriesByPath[expectedKey];
-    if (entry == null || entry.relativePath != expectedPath ||
-        entry.kind != SourceNodeKind.file || entry.sha256 == null) {
-      return name;
-    }
-    return canonicalJsonOf({'sha256': entry.sha256!.value,
-        'byteLength': entry.byteLength});
-  }
 
   bool _isItemGiver(SourceEventDefinition event) => event.pages.any((page) =>
       _hasReceiveItem(page.body));
@@ -2619,7 +2599,6 @@ final class _ProjectionBuilder {
       gaps.add('sourceFixedRouteCounterReachUnqualified');
     }
     final staticSign = _supportsStaticSign(event);
-    final staticWideInteraction = _supportsStaticWideInteraction(event);
     if (_isSourceTransition(event) && !_eventExecutionContextQualified(event)) {
       final context = _eventExecutionContext(event);
       gaps.addAll(context?.refusals.isNotEmpty == true
@@ -2631,21 +2610,18 @@ final class _ProjectionBuilder {
     if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
     if (event.isQuarantined) gaps.add('sourceQuarantined');
     if (event.pages.isEmpty) gaps.add('sourcePagesMissing');
-    final size = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
-        .firstMatch(event.name);
-    if (size != null &&
-        (int.tryParse(size.group(1)!) != 1 ||
-            int.tryParse(size.group(2)!) != 1) && !staticWideInteraction && !staticSign) {
-      gaps.add('eventFootprintUnsupported');
-    }
+    final footprint = _eventFootprint(event);
     final map = maps[event.sourceMapId]!;
     if (event.x < 0 ||
         event.y < 0 ||
-        event.x >= map.size.width ||
+        footprint.width <= 0 || footprint.height <= 0 ||
+        footprint.width > 64 || footprint.height > 64 ||
+        event.y - footprint.height + 1 < 0 ||
+        event.x + footprint.width > map.size.width ||
         event.y >= map.size.height) {
       gaps.add('eventPositionInvalid');
+      return gaps;
     }
-    String? previousGraphic;
     for (final page in event.pages) {
       _conditionGaps(event, page.condition, gaps);
       _blockGaps(event, page.body, gaps, checkCharacterBindings: checkCharacterBindings);
@@ -2685,24 +2661,6 @@ final class _ProjectionBuilder {
                   graphic.directionFix))) {
         gaps.add('pageGraphicContractUnsupported');
       }
-      final signature = canonicalJsonOf({
-        'tileId': graphic.tileId,
-        'character': _isItemGiver(event)
-            ? _graphicByteIdentity(graphic.characterName)
-            : graphic.characterName,
-        'direction': graphic.direction,
-        'through': graphic.through,
-        'pattern': routedDoorPrograms.containsKey(event.identity) && graphic.characterName.isEmpty ? null
-            : routedDoorPrograms[event.identity]?.nativeStableDepartureDoorSkin == true
-                ? event.pages.first.graphic!.pattern : graphic.pattern,
-        'walkAnime': graphic.walkAnime
-      });
-      if (previousGraphic != null &&
-          previousGraphic != signature &&
-          _consumedPickupFact(event) == null) {
-        gaps.add('pageGraphicChanges');
-      }
-      previousGraphic = signature;
       if (checkCharacterBindings && graphic.characterName.isNotEmpty) {
         final binding = characterBindings[sourceEventCharacterBindingKey(
             characterName: graphic.characterName,
@@ -2728,14 +2686,11 @@ final class _ProjectionBuilder {
         gaps.add('triggerContractUnsupported');
       }
       if (page.triggerCode == 0 && !page.isEmpty) {
-        if ((graphic.characterName.isEmpty || graphic.through) &&
-            !RegExp('hiddenitem', caseSensitive: false).hasMatch(event.name) &&
-            !staticWideInteraction) {
+        if (_eventAction(event, page).kind == SourceEventTouchKind.unqualified &&
+            _fixedRouteBindings(event) == null) {
           gaps.add('interactionFootprintUnsupported');
         }
-        if (_hasAdjacentSourceCounter(event) &&
-            (_fixedRouteBindings(event) == null ||
-                _fixedRouteCounterSides(event) == null)) {
+        if (_hasAdjacentSourceCounter(event) && _eventCounterSides(event) == null) {
           gaps.add('counterInteractionReachUnsupported');
         }
       }
@@ -2753,15 +2708,6 @@ final class _ProjectionBuilder {
           }
         }
       }
-    }
-    final hasBase = event.pages.any((p) =>
-        p.condition.isQualified &&
-        p.condition.evaluate() == true &&
-        _conditionGuardSafe(p.condition));
-    if (!hasBase &&
-        !(event.pages.length == 1 &&
-            _simpleFact(event.pages.single.condition) != null)) {
-      gaps.add('pagePresenceExpressionUnsupported');
     }
     gaps.addAll(_sourceControlGaps(event));
     return gaps;
@@ -2826,11 +2772,15 @@ final class _ProjectionBuilder {
         .map;
     final tileset = source.tilesets
         .singleWhere((entry) => entry.sourceTilesetId == map.sourceTilesetId);
+    final footprint = _eventFootprint(event);
+    if (footprint.width < 1 || footprint.height < 1 || footprint.width > 64 || footprint.height > 64) return false;
     for (final position in [
-      (event.x - 1, event.y),
-      (event.x + 1, event.y),
-      (event.x, event.y - 1),
-      (event.x, event.y + 1),
+      for (var y = event.y - footprint.height + 1; y <= event.y; y++) ...[
+        (event.x - 1, y), (event.x + footprint.width, y),
+      ],
+      for (var x = event.x; x < event.x + footprint.width; x++) ...[
+        (x, event.y - footprint.height), (x, event.y + 1),
+      ],
     ]) {
       if (position.$1 < 0 ||
           position.$2 < 0 ||
@@ -2848,13 +2798,54 @@ final class _ProjectionBuilder {
     return false;
   }
 
-  bool _conditionGuardSafe(SourceEventCondition condition) =>
-      switch (condition.kind) {
-        SourceEventConditionKind.always => true,
-        SourceEventConditionKind.all =>
-          condition.children.every(_conditionGuardSafe),
-        _ => false,
-      };
+  GridSize _eventFootprint(SourceEventDefinition event) {
+    final match = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false).firstMatch(event.name);
+    return match == null ? const GridSize(width: 1, height: 1) :
+      GridSize(width: int.tryParse(match.group(1)!) ?? 0, height: int.tryParse(match.group(2)!) ?? 0);
+  }
+
+  SourceEventTouchResolution _eventAction(SourceEventDefinition event, SourceEventPageAnalysis page) {
+    final graphic = page.graphic;
+    if (graphic != null && (graphic.characterName.isNotEmpty && !graphic.through ||
+        RegExp('hiddenitem', caseSensitive: false).hasMatch(event.name))) {
+      return SourceEventTouchResolution(kind: SourceEventTouchKind.front, reason: 'blockingCharacter');
+    }
+    final size = _eventFootprint(event);
+    return semanticResolver.resolveEventActionFootprint(event: event, page: page,
+      mapEvents: _sourceContextEvents, width: size.width, height: size.height);
+  }
+
+  List<EntityFacing>? _eventCounterSides(SourceEventDefinition event) {
+    if (_fixedRouteBindings(event) != null) return _fixedRouteCounterSides(event);
+    if (event.pages.any((page) => page.graphic?.moveType != 0)) return null;
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) return null;
+    final size = _eventFootprint(event);
+    if (size.width < 1 || size.height < 1 || size.width > 64 || size.height > 64) return null;
+    final sides = <EntityFacing>{};
+    final boundary = [
+      for (var x = event.x; x < event.x + size.width; x++) ...[
+        (EntityFacing.north, x, event.y - size.height),
+        (EntityFacing.south, x, event.y + 1),
+      ],
+      for (var y = event.y - size.height + 1; y <= event.y; y++) ...[
+        (EntityFacing.west, event.x - 1, y),
+        (EntityFacing.east, event.x + size.width, y),
+      ],
+    ];
+    for (final side in boundary) {
+      final x = side.$2, y = side.$3;
+      if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) continue;
+      final cell = semanticResolver.cellAt(event.sourceMapId, x, y);
+      if (!semanticResolver.resolveCell(cell).counter) continue;
+      final blocked = map.layers.whereType<CollisionLayer>().any((layer) =>
+        y * map.size.width + x < layer.collisions.length && layer.collisions[y * map.size.width + x]);
+      if (!blocked || semanticResolver.resolveConnectionEntryTile(cell).status != SourcePassageStatus.blocked) return null;
+      sides.add(side.$1);
+    }
+    return List.unmodifiable(sides);
+  }
+
 
   SourceEventCondition? _simpleFact(SourceEventCondition condition) =>
       condition.kind == SourceEventConditionKind.all &&
@@ -3123,34 +3114,6 @@ final class _ProjectionBuilder {
         binding?.sourceSymbol == symbol && binding!.pickupQualified ? binding : null;
   }
 
-  SourceEventCondition? _consumedPickupFact(SourceEventDefinition event) {
-    if (event.pages.length != 2 ||
-        !_conditionGuardSafe(event.pages.first.condition) ||
-        !event.pages.last.isEmpty ||
-        event.pages.last.graphic?.tileId != 0 ||
-        event.pages.last.graphic?.characterName != '' ||
-        event.pages.first.body.nodes.length != 1) {
-      return null;
-    }
-    final condition = _simpleFact(event.pages.last.condition);
-    final node = event.pages.first.body.nodes.single;
-    if (condition?.kind != SourceEventConditionKind.selfSwitch ||
-        condition?.expectedValue != true ||
-        node is! SourceConditionalNode ||
-        node.condition.kind != SourceEventConditionKind.pickup ||
-        node.condition.pickup?.quantity != 1 ||
-        node.whenFalse.nodes.isNotEmpty ||
-        node.whenTrue.nodes.length != 1) {
-      return null;
-    }
-    final mark = node.whenTrue.nodes.single;
-    if (mark is! SourceSelfSwitchNode ||
-        !mark.value ||
-        mark.factId != condition!.factId) {
-      return null;
-    }
-    return condition;
-  }
 
   void _collectFacts(SourceEventCondition condition, Set<String> ids) {
     if (condition.factId != null) ids.add(condition.factId!);
@@ -3258,16 +3221,43 @@ final class _ProjectionBuilder {
         characterName: graphic.characterName,
         pattern: graphic.pattern,
         direction: graphic.direction)];
+    NarrativeEventConditionExpression pageExpression(int index) {
+      final guard = _all([
+        _pageGuard(event, projectedPages[index].condition),
+        _not(_any(projectedPages.skip(index + 1)
+          .map((page) => _pageGuard(event, page.condition)).toList())),
+      ]);
+      return guard.expression ?? NarrativeEventConditionExpression.all(const []);
+    }
+    final variants = <MapEntityPresentationVariant>[];
+    for (var index = 0; index < projectedPages.length; index++) {
+      final page = projectedPages[index];
+      final pageGraphic = page.graphic!;
+      final boundCharacter = pageGraphic.characterName.isEmpty ? null :
+        characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
+          pattern: pageGraphic.pattern, direction: pageGraphic.direction)];
+      final guard = _all([_pageGuard(event, page.condition),
+        _not(_any(projectedPages.skip(index + 1).map((value) => _pageGuard(event, value.condition)).toList()))]);
+      if (guard.constant == false) continue;
+      variants.add(MapEntityPresentationVariant(id: 'page_${page.originalPageIndex}',
+        condition: pageExpression(index), characterId: boundCharacter?.characterId,
+        interactionMode: _eventAction(event, page).kind == SourceEventTouchKind.enter
+          ? MapEntityInteractionMode.overlap : MapEntityInteractionMode.front,
+        facing: switch (pageGraphic.direction) {
+          4 => EntityFacing.west, 6 => EntityFacing.east, 8 => EntityFacing.north,
+          _ => EntityFacing.south,
+        }, blocksMovement: boundCharacter != null && !pageGraphic.through,
+        size: _eventFootprint(event),
+        counterInteractionSides: _eventCounterSides(event) ?? const []));
+    }
     final entity = MapEntity(
         id: entityId,
         name: _name(event),
         kind: character == null ? MapEntityKind.custom : MapEntityKind.npc,
-        pos: GridPos(x: event.x, y: event.y),
-        size: (_supportsStaticWideInteraction(event) ||
-            (_supportsStaticSign(event) && _staticSignWidth(event) == 2) ||
-            (_isTownMapFamily(event) && _townMapWidth(event) == 2))
-            ? const GridSize(width: 2, height: 1)
-            : const GridSize(width: 1, height: 1),
+        pos: GridPos(x: event.x, y: event.y - _eventFootprint(event).height + 1),
+        size: _eventFootprint(event),
+        presentation: variants.isEmpty ? null : MapEntityPresentation(variants: variants.reversed.toList()),
+        counterInteractionSides: _eventCounterSides(event) ?? const [],
         blocksMovement: character != null && !graphic.through,
         npc: character == null
             ? null
@@ -3288,6 +3278,8 @@ final class _ProjectionBuilder {
                 }),
         properties: {
           'sourceEventIdentity': event.identity.value,
+          'sourceEventAnchorX': '${event.x}',
+          'sourceEventAnchorY': '${event.y}',
           if (character != null && !graphic.through) ...{
             mapEntityCollisionWidthProperty: '1',
             mapEntityCollisionHeightProperty: '1',
@@ -3336,52 +3328,13 @@ final class _ProjectionBuilder {
         entity.id,
         [event.identity, event.sourceFileId],
         [map.id, entity.id],
-        {'mapId': map.id, 'entity': entity.toJson()}));
-    if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.actor) return;
-    final consumed = _consumedPickupFact(event);
-    final presence = consumed == null
-        ? (!_conditionGuardSafe(event.pages.first.condition) &&
-                event.pages.length == 1
-            ? _simpleFact(event.pages.single.condition)
-            : null)
-        : SourceEventCondition(
-            kind: SourceEventConditionKind.selfSwitch,
-            factId: consumed.factId,
-            expectedValue: false);
-    if (presence != null) {
-      final condition = presence;
-      for (final present in [false, true]) {
-        final rule = addWorldRule(
-                const ProjectManifest(
-                    name: 'Source event projection',
-                    maps: [],
-                    tilesets: []).copyWith(facts: factsById.values.toList()),
-                label: 'Source presence ${_key(event, 'presence_$present')}',
-                source: WorldRuleSource(
-                    kind: WorldRuleSourceKind.fact,
-                    sourceId: sourceEventFactBindingId(condition.factId!),
-                    predicate: present == condition.expectedValue
-                        ? WorldRuleSourcePredicate.isTrue
-                        : WorldRuleSourcePredicate.isFalse),
-                target: WorldRuleTarget(
-                    kind: WorldRuleTargetKind.mapEntity,
-                    mapId: map.id,
-                    entityId: entityId),
-                effect: WorldRuleEffect(
-                    kind: present
-                        ? WorldRuleEffectKind.entityVisible
-                        : WorldRuleEffectKind.entityHidden),
-                maps: maps.values.toList())
-            .createdRule;
-        worldRules.add(rule);
-        mutations.add(_mutation(
-            'world_rule.create',
-            rule.id,
-            [event.identity, event.sourceFileId],
-            [rule.id, map.id, entityId],
-            {'rule': rule.toJson()}));
-      }
+        {'mapId': map.id, 'entity': entity.copyWith(presentation: null).toJson()}));
+    if (entity.presentation != null) {
+      mutations.add(_mutation('entity.set_presentation', '${entity.id}_presentation',
+        [event.identity, event.sourceFileId], [map.id, entity.id],
+        {'mapId': map.id, 'entityId': entity.id, 'presentation': entity.presentation!.toJson()}));
     }
+    if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.actor) return;
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
       final guard = _all([

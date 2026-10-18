@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flame/components.dart' show Vector2;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
@@ -6,6 +7,18 @@ import 'package:map_runtime/src/presentation/flame/flame_character_custom_animat
 import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
 
 void main() {
+  test('conditional actors center wider footprints without changing their grid anchor', () {
+    for (final conditional in [false, true]) {
+      final actor = OverworldActorComponent(character: _character(), tileImages: const {},
+        tileWidth: 16, tileHeight: 16, cellWidth: 32, cellHeight: 32,
+        centerOnFootprint: conditional);
+      actor.configureGridPlacement(pos: const GridPos(x: 3, y: 3),
+        footprint: const GridSize(width: 4, height: 2), mapOrigin: Vector2.zero());
+      expect(actor.gridPos, const GridPos(x: 3, y: 3));
+      expect(actor.position.x, conditional ? 128 : 96);
+      expect(actor.position.y + actor.size.y, 160);
+    }
+  });
   test('Flame actor plays custom pixels then restores Base', () {
     const clip = CharacterCustomAnimationClip(
       definitionId: 'wave',

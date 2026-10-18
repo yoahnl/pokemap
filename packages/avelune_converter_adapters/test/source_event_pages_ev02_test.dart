@@ -12,7 +12,7 @@ import 'support/literal_tile_fixture.dart';
 
 Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
     List<LiteralFixtureEventPage> pages,
-    {List<String?> switchNames = const [null, 'Gate']}) async {
+    {List<String?> switchNames = const [null, 'Gate'], String eventName = 'Original event'}) async {
   final fixture = await LiteralTileFixture.create(
     interpretationProfile: syntheticSourceInterpretationProfile,
     scriptsBytes: syntheticInterpretationArchive,
@@ -27,7 +27,7 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
     },
     maps: [
       LiteralFixtureMap(id: 1, events: [
-        LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: pages),
+        LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: pages, name: eventName),
       ]),
     ],
   );
@@ -41,7 +41,7 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
 
 SourceEventProjection _project(
         ({LiteralTileFixture fixture, SourceEventAnalysis analysis}) source,
-        {MapInstanceRetentionPolicy? retentionPolicy}) =>
+        {MapInstanceRetentionPolicy? retentionPolicy, bool uniqueCharacters = false}) =>
     const SourceEventProjector().project(
       source: source.fixture.source,
       analysis: source.analysis,
@@ -63,7 +63,7 @@ SourceEventProjection _project(
                   pattern: graphic.pattern,
                   direction: graphic.direction):
               SourceEventCharacterBinding(
-                  characterId: 'fixture-character',
+                  characterId: uniqueCharacters ? 'fixture-${graphic.characterName}' : 'fixture-character',
                   sourceSnapshotHash: source.fixture.snapshot.canonicalHash,
                   sourceFileId: source.fixture.snapshot.entries
                       .singleWhere((file) =>
@@ -82,6 +82,49 @@ SourceEventProjection _project(
     );
 
 void main() {
+  for (final name in ['Npc size(999999999999999999999999999999,1)',
+    'Npc size(1000000000,1000000000)', 'Npc size(2147483647,2147483647)',
+    'Npc size(0,1)', 'Npc size(1,0)', 'Npc size(65,1)']) {
+    test('EV03 malformed dimensions quarantine the event safely: $name', () async {
+      final source = await _source(const [LiteralFixtureEventPage(characterName: 'A',
+        commands: [LiteralFixtureEventCommand(101, ['Text'])])], eventName: name);
+      final result = _project(source);
+      expect(result.nativeMaps[1]!.entities, isEmpty);
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(jsonEncode(result.semanticEvidence['events']), contains('eventPositionInvalid'));
+    });
+  }
+  test('EV03 follows the source first size tag without combining later tags', () async {
+    final source = await _source(const [LiteralFixtureEventPage(characterName: 'A',
+      commands: [LiteralFixtureEventCommand(101, ['Text'])])], eventName: 'Npc size(1,1) size(0,0)');
+    expect(_project(source).nativeMaps[1]!.entities.single.size, const GridSize(width: 1, height: 1));
+  });
+  test('EV03 page variants switch graphics, solid state and overlap semantics on one owner', () async {
+    final source = await _source(const [
+      LiteralFixtureEventPage(characterName: 'A', commands: [LiteralFixtureEventCommand(101, ['Base'])]),
+      LiteralFixtureEventPage(characterName: 'B', direction: 4, through: true, globalSwitch: 1,
+        commands: [LiteralFixtureEventCommand(101, ['Changed'])]),
+    ]);
+    final result = _project(source, uniqueCharacters: true);
+    final map = result.nativeMaps[1]!;
+    expect(map.entities, hasLength(1), reason: jsonEncode(result.semanticEvidence['events']));
+    final owner = map.entities.single;
+    expect(owner.presentation!.variants.map((variant) => variant.id), ['page_1', 'page_0']);
+    expect(result.mutations.any((mutation) => mutation.actionId == 'entity.set_presentation'), isTrue);
+    final project = ProjectManifest(name: 'Test', maps: const [], tilesets: const [], facts: result.facts,
+      characters: const [ProjectCharacterEntry(id: 'fixture-A', name: 'A', tilesetId: 'actors'),
+        ProjectCharacterEntry(id: 'fixture-B', name: 'B', tilesetId: 'actors')]);
+    for (final changed in [false, true, false]) {
+      final state = GameState(saveId: 'save', narrativeFactRuntimeState: NarrativeFactRuntimeState(
+        overridesByFactId: {result.facts.single.id: changed}));
+      final entity = projectMapEntityPresentations(project: project, gameState: state, map: map).entities.single;
+      expect(entity.id, owner.id);
+      expect(entity.npc!.characterId, changed ? 'fixture-B' : 'fixture-A');
+      expect(entity.npc!.facing, changed ? EntityFacing.west : EntityFacing.south);
+      expect(entity.blocksMovement, !changed);
+      expect(entity.interactionMode, changed ? MapEntityInteractionMode.overlap : MapEntityInteractionMode.front);
+    }
+  });
   for (final mode in ['On', 'Off']) {
     for (final letter in ['A', 'B', 'C', 'D']) {
       test('literal ts$mode $letter qualifies pages and both branch polarities',

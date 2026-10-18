@@ -14,7 +14,15 @@ final class RuntimeWorldRuleProjectionHook {
       maps: [map],
       mapId: map.id,
     );
-    return RuntimeWorldRuleProjectionState.fromResolvedEffects(effects);
+    final projected = <String, MapEntity>{};
+    final absent = <String>{};
+    for (final entity in map.entities.where((entity) => entity.presentation != null)) {
+      final value = projectMapEntityPresentation(project: project, gameState: gameState,
+        map: map, entity: entity);
+      if (value == null) { absent.add(entity.id); } else { projected[entity.id] = value; }
+    }
+    return RuntimeWorldRuleProjectionState.fromResolvedEffects(effects,
+      entityPresentationOverrides: projected, absentPresentationEntityIds: absent);
   }
 }
 
@@ -29,6 +37,8 @@ final class RuntimeWorldRuleProjectionState {
     Set<String> hiddenNarrativeEventIds = const <String>{},
     Set<String> enabledNarrativeEventIds = const <String>{},
     Map<String, String> npcDialogueOverrides = const <String, String>{},
+    Map<String, MapEntity> entityPresentationOverrides = const {},
+    Set<String> absentPresentationEntityIds = const {},
   })  : hiddenEntityIds = Set<String>.unmodifiable(hiddenEntityIds),
         visibleEntityIds = Set<String>.unmodifiable(visibleEntityIds),
         disabledEventIds = Set<String>.unmodifiable(disabledEventIds),
@@ -41,7 +51,9 @@ final class RuntimeWorldRuleProjectionState {
         enabledNarrativeEventIds =
             Set<String>.unmodifiable(enabledNarrativeEventIds),
         npcDialogueOverrides =
-            Map<String, String>.unmodifiable(npcDialogueOverrides);
+            Map<String, String>.unmodifiable(npcDialogueOverrides),
+        entityPresentationOverrides = Map.unmodifiable(entityPresentationOverrides),
+        absentPresentationEntityIds = Set.unmodifiable(absentPresentationEntityIds);
 
   const RuntimeWorldRuleProjectionState.empty()
       : hiddenEntityIds = const <String>{},
@@ -52,11 +64,14 @@ final class RuntimeWorldRuleProjectionState {
         disabledNarrativeEventIds = const <String>{},
         hiddenNarrativeEventIds = const <String>{},
         enabledNarrativeEventIds = const <String>{},
-        npcDialogueOverrides = const <String, String>{};
+        npcDialogueOverrides = const <String, String>{},
+        entityPresentationOverrides = const {}, absentPresentationEntityIds = const {};
 
   factory RuntimeWorldRuleProjectionState.fromResolvedEffects(
-    List<WorldRuleResolvedEffect> effects,
-  ) {
+    List<WorldRuleResolvedEffect> effects, {
+    Map<String, MapEntity> entityPresentationOverrides = const {},
+    Set<String> absentPresentationEntityIds = const {},
+  }) {
     final hiddenEntityIds = <String>{};
     final visibleEntityIds = <String>{};
     final disabledEventIds = <String>{};
@@ -148,6 +163,8 @@ final class RuntimeWorldRuleProjectionState {
       hiddenNarrativeEventIds: hiddenNarrativeEventIds,
       enabledNarrativeEventIds: enabledNarrativeEventIds,
       npcDialogueOverrides: npcDialogueOverrides,
+      entityPresentationOverrides: entityPresentationOverrides,
+      absentPresentationEntityIds: absentPresentationEntityIds,
     );
   }
 
@@ -160,6 +177,11 @@ final class RuntimeWorldRuleProjectionState {
   final Set<String> hiddenNarrativeEventIds;
   final Set<String> enabledNarrativeEventIds;
   final Map<String, String> npcDialogueOverrides;
+  final Map<String, MapEntity> entityPresentationOverrides;
+  final Set<String> absentPresentationEntityIds;
+
+  MapEntity? resolveEntity(MapEntity entity) => absentPresentationEntityIds.contains(entity.id)
+    ? null : entityPresentationOverrides[entity.id] ?? entity;
 
   bool get isEmpty =>
       hiddenEntityIds.isEmpty &&
@@ -170,12 +192,13 @@ final class RuntimeWorldRuleProjectionState {
       disabledNarrativeEventIds.isEmpty &&
       hiddenNarrativeEventIds.isEmpty &&
       enabledNarrativeEventIds.isEmpty &&
-      npcDialogueOverrides.isEmpty;
+      npcDialogueOverrides.isEmpty && entityPresentationOverrides.isEmpty && absentPresentationEntityIds.isEmpty;
 
   bool isMapEntityVisible(
     MapEntity entity, {
     bool defaultVisible = true,
   }) {
+    if (absentPresentationEntityIds.contains(entity.id)) return false;
     if (hiddenEntityIds.contains(entity.id)) {
       return false;
     }

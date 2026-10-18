@@ -28,6 +28,8 @@ String eventConditionLabel(
   narrativeEventConsumed: (id, expected) =>
       '${records.where((r) => r.id == id).map(eventName).firstOrNull ?? 'Événement absent : $id'} '
       '${expected ? 'a déjà été joué' : 'n’a pas encore été joué'}',
+  mapEventInstanceBoolean: (mapId, eventId, key, expected) =>
+    'Mémoire locale $key ${expected ? 'active' : 'inactive'}',
 );
 
 String eventExpressionLabel(

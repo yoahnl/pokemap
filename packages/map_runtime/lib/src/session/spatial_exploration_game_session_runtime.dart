@@ -816,6 +816,11 @@ final class SpatialExplorationGameSessionRuntime
                       : _gameplay?.projectedSceneGameState ??
                           _sceneStateReader?.call()) ?? true,
           characterId: state.trainerProfile.avatarCharacterId);
+          entityProjection: (mapId, entity) => _gameplay?.projectEntity(mapId, entity,
+            gameStateOverride: _stopped || _disposed ? _gameState :
+              _gameplay?.projectedSceneGameState ?? _sceneStateReader?.call()),
+          presentationStateProvider: () => _gameplay?.projectedSceneGameState ??
+            _sceneStateReader?.call() ?? _gameState!,
       if (_disposed || _stopped || generation != _loadGeneration) {
         loaded.dispose();
         throw StateError('Exploration closed while loading.');

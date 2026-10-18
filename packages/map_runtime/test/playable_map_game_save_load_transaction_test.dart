@@ -12,6 +12,37 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame transactional load', () {
+    for (final savedSolid in [false, true]) {
+      test('presentation preflight uses saved solid=$savedSolid instead of running facts', () async {
+        final saved = _targetState().copyWith(storyFlags: StoryFlags(activeFlags: savedSolid ? {'solid'} : {}));
+        final running = _sourceState().copyWith(storyFlags: StoryFlags(activeFlags: savedSolid ? {} : {'solid'}));
+        final repository = _MemoryGameSaveRepository(saved);
+        RuntimeMapBundle bundle(String id) {
+          final base = _bundle(id);
+          final condition = NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('solid', true));
+          return base.copyWith(manifest: base.manifest.copyWith(facts: [
+            NarrativeFactDefinition(id: 'solid', label: 'Solid'),
+          ]), map: base.map.copyWith(entities: [...base.map.entities,
+            if (id == _targetMapId) MapEntity(id: 'owner', kind: MapEntityKind.custom,
+              pos: const GridPos(x: 2, y: 2), presentation: MapEntityPresentation(variants: [
+                MapEntityPresentationVariant(id: 'solid', condition: condition, blocksMovement: true),
+                MapEntityPresentationVariant(id: 'through', condition: NarrativeEventConditionExpression.not(condition), blocksMovement: false),
+              ])),
+          ]));
+        }
+        final game = _game(repository: repository, sourceState: running, sourceBundle: bundle(_sourceMapId),
+          runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async => bundle(mapId));
+        await _load(game);
+        final before = game.gameStateSnapshot;
+        expect(await game.loadGame(), !savedSolid);
+        if (savedSolid) {
+          _expectSourceRuntimePreserved(game, before);
+        } else {
+          expect(game.gameStateSnapshot.currentMapId, _targetMapId);
+          expect(game.gameStateSnapshot.storyFlags, saved.storyFlags);
+        }
+      });
+    }
     test('commits a fully prepared valid save', () async {
       final repository = _MemoryGameSaveRepository(_targetState());
       final game = _game(
@@ -152,11 +183,13 @@ _TestPlayableMapGame _game({
   required GameSaveRepository repository,
   RuntimeMapBundleLoader? runtimeMapBundleLoader,
   Future<void> Function()? beforeLoadCommitCompletion,
+  GameState? sourceState,
+  RuntimeMapBundle? sourceBundle,
 }) {
   return _TestPlayableMapGame(
-    bundle: _bundle(_sourceMapId),
+    bundle: sourceBundle ?? _bundle(_sourceMapId),
     projectFilePath: '/tmp/load_transaction/project.json',
-    saveData: saveDataFromGameState(_sourceState()),
+    saveData: saveDataFromGameState(sourceState ?? _sourceState()),
     saveRepository: repository,
     runtimeMapBundleLoader: runtimeMapBundleLoader,
     beforeLoadCommitCompletion: beforeLoadCommitCompletion,

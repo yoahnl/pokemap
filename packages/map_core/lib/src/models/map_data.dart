@@ -9,6 +9,7 @@ import 'map_entity_payloads.dart';
 import 'map_entity_field_obstacle.dart';
 import 'map_entity_interactive_encounter.dart';
 import 'map_entity_healing_display.dart';
+import 'map_entity_presentation.dart';
 import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
@@ -492,16 +493,32 @@ abstract class MapEntity with _$MapEntity {
     @JsonKey(includeIfNull: false) MapEntityFieldObstacleData? fieldObstacle,
     @JsonKey(includeIfNull: false) MapEntityHealingDisplayData? healingDisplay,
     @JsonKey(includeIfNull: false) MapEntityInteractiveEncounterData? interactiveEncounter,
+    @JsonKey(includeIfNull: false) MapEntityPresentation? presentation,
+    @Default(<EntityFacing>[]) List<EntityFacing> counterInteractionSides,
+    @Default(MapEntityInteractionMode.front) MapEntityInteractionMode interactionMode,
     MapEntityEditorVisual? editorVisual,
     @Default(true) bool blocksMovement,
     @Default({}) Map<String, String> properties,
   }) = _MapEntity;
 
   factory MapEntity.fromJson(Map<String, dynamic> json) => _$MapEntityFromJson(
-    _checkedHealingDisplayEntityJson(
+    _checkedEntityPresentationJson(_checkedHealingDisplayEntityJson(
       _checkedInteractiveEncounterEntityJson(_checkedFieldObstacleEntityJson(migrateMapEntityJson(json))),
-    ),
+    )),
   );
+}
+
+Map<String, dynamic> _checkedEntityPresentationJson(Map<String, dynamic> json) {
+  if (json['presentation'] == null) return json;
+  final raw = json['presentation'];
+  if (raw is! Map || raw.keys.any((key) => key is! String) ||
+      !const ['npc', 'custom'].contains(json['kind']) ||
+      const ['sign', 'item', 'spawn', 'fieldObstacle', 'healingDisplay', 'interactiveEncounter']
+        .any((key) => json[key] != null)) {
+    throw const FormatException('Presentation requires a native NPC or custom event owner.');
+  }
+  MapEntityPresentation.fromJson(Map<String, dynamic>.from(raw));
+  return json;
 }
 
 Map<String, dynamic> _checkedInteractiveEncounterEntityJson(Map<String, dynamic> json) {

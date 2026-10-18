@@ -78,9 +78,9 @@ void main() {
     expect((result as SignInteracted).entity.id, 'front');
   });
 
-  test('counter reach refuses large footprints, non NPCs and absent NPCs', () {
+  test('counter reach supports wide footprints and refuses unconfigured or absent owners', () {
     expect(_interact(size: const GridSize(width: 2, height: 1)),
-        isA<NothingToInteract>());
+        isA<NpcInteracted>());
     expect(_interact(kind: MapEntityKind.custom), isA<NothingToInteract>());
     expect(_interact(present: false), isA<NothingToInteract>());
     expect(_interact(entityPresent: false), isA<NothingToInteract>());

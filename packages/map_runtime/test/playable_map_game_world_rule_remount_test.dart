@@ -16,6 +16,78 @@ const _sceneIds = ['hide', 'show', 'explicit-absent', 'explicit-present'];
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final solid in [false, true]) {
+    testWidgets('first connected destination instance projects temporary collision solid=$solid before commit', (tester) async {
+      await tester.runAsync(() async {
+        final game = await _mount(tester, presentationMode: solid ? 'connectionSolid' : 'connectionThrough');
+        expect(game.gameStateSnapshot.mapInstanceWorldState.instanceRef('neighbor'), isNull);
+        game.debugSetPlayerStateForTest(position: const GridPos(x: 7, y: 3), facing: Direction.east);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+        game.update(0);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+        for (var i = 0; i < 300; i++) {
+          game.update(.02);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(game.gameStateSnapshot.currentMapId, solid ? 'main' : 'neighbor');
+        expect(game.debugPlayerGridPosition, solid ? const GridPos(x: 7, y: 3) : const GridPos(x: 0, y: 3));
+        expect(game.gameStateSnapshot.mapInstanceWorldState.instanceRef('neighbor'), solid ? isNull : isNotNull);
+      });
+    });
+  }
+
+  testWidgets('a custom presentation owner loses its actor when a World Rule hides it', (tester) async {
+    await tester.runAsync(() async {
+      final game = await _mount(tester, presentationMode: 'customOwner');
+      _expectActor(game, 'main', present: true);
+      await _execute(game, 'hide');
+      _expectActor(game, 'main', present: false);
+      await _expectCollision(game, blocked: false);
+      await _execute(game, 'show');
+      _expectActor(game, 'main', present: true);
+      await _expectCollision(game, blocked: true);
+    });
+  });
+
+  testWidgets('presentation changes remount the same owner and retain pose until declared facing changes', (tester) async {
+    await tester.runAsync(() async {
+      final game = await _mount(tester, presentationMode: 'variants');
+      final original = _actors(game, 'main').single;
+      expect(original.character.id, 'npc-main');
+      original.restoreBase(EntityFacing.east);
+      await _execute(game, 'show');
+      expect(identical(_actors(game, 'main').single, original), isTrue);
+      expect(original.facing, EntityFacing.east);
+      await _execute(game, 'hide');
+      final changed = _actors(game, 'main').single;
+      expect(changed.character.id, 'alternate-main');
+      expect(changed.gridPos, original.gridPos);
+      expect(changed.facing, EntityFacing.west);
+      await _expectCollision(game, blocked: false);
+      await _execute(game, 'show');
+      expect(_actors(game, 'main').single.character.id, 'npc-main');
+      expect(_actors(game, 'main').single.facing, EntityFacing.south);
+      await _expectCollision(game, blocked: true);
+    });
+  });
+
+  testWidgets('no active presentation removes the actor and save reload restores its page', (tester) async {
+    await tester.runAsync(() async {
+      final game = await _mount(tester, presentationMode: 'presence');
+      _expectActor(game, 'main', present: true);
+      await _execute(game, 'hide');
+      _expectActor(game, 'main', present: false);
+      await _expectCollision(game, blocked: false);
+      final saved = SaveData.fromJson(jsonDecode(jsonEncode(saveDataFromGameState(game.gameStateSnapshot))));
+      await tester.pumpWidget(const SizedBox.shrink());
+      final restored = await _mount(tester, presentationMode: 'presence', saveData: saved);
+      _expectActor(restored, 'main', present: false);
+      await _execute(restored, 'show');
+      _expectActor(restored, 'main', present: true);
+      await _expectCollision(restored, blocked: true);
+    });
+  });
+
   testWidgets('World Rule cycles remount one actor and restore its collision', (
     tester,
   ) async {
@@ -106,7 +178,7 @@ void main() {
 List<OverworldActorComponent> _actors(PlayableMapGame game, String mapId) =>
     game.world.children
         .whereType<OverworldActorComponent>()
-        .where((actor) => actor.character.id == 'npc-$mapId')
+        .where((actor) => actor.character.id == 'npc-$mapId' || actor.character.id == 'alternate-$mapId')
         .toList();
 
 void _expectActor(PlayableMapGame game, String mapId, {required bool present}) {
@@ -193,8 +265,10 @@ Future<PlayableMapGame> _mount(
   WidgetTester tester, {
   bool initiallyHidden = false,
   SaveData? saveData,
+  String? presentationMode,
 }) async {
-  final bundle = _bundle('main');
+  RuntimeMapBundle load(String id) => _presentationBundle(id, presentationMode);
+  final bundle = load('main');
   final game = PlayableMapGame(
     bundle: bundle,
     projectFilePath: '/tmp/world-rule-remount/project.json',
@@ -212,7 +286,7 @@ Future<PlayableMapGame> _mount(
     runtimeMapBundleLoader: ({
       required projectFilePath,
       required mapId,
-    }) async => _bundle(mapId),
+    }) async => load(mapId),
     runtimeTilesetImageLoader:
         (paths, {transparentColorByTilesetId = const {}}) async {
           final recorder = ui.PictureRecorder();
@@ -257,6 +331,39 @@ Future<PlayableMapGame> _mount(
   expect(game.debugIsMapLoaded('neighbor'), isTrue);
   await _settle(game);
   return game;
+}
+
+RuntimeMapBundle _presentationBundle(String id, String? mode) {
+  final bundle = _bundle(id);
+  if (mode == null) return bundle;
+  final temporaryConnection = mode == 'connectionSolid' || mode == 'connectionThrough';
+  final condition = NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('hidden', true));
+  return bundle.copyWith(manifest: bundle.manifest.copyWith(
+    settings: temporaryConnection ? bundle.manifest.settings.copyWith(mapInstanceRetentionPolicy:
+      MapInstanceRetentionPolicy(viewportWidthTiles: 1, viewportHeightTiles: 1, marginTiles: 0)) : bundle.manifest.settings,
+    scenes: mode == 'customOwner' ? bundle.manifest.scenes.take(2).toList() : bundle.manifest.scenes,
+    eventRegistry: mode == 'customOwner' ? NarrativeEventRegistry(schemaVersion: 1,
+      mode: EventSystemMode.v2Only, records: bundle.manifest.eventRegistry!.records.take(2).toList(), legacyClaims: const []) : bundle.manifest.eventRegistry,
+    worldRules: mode == 'customOwner' ? bundle.manifest.worldRules : [], characters: [
+    ...bundle.manifest.characters,
+    for (final mapId in ['main', 'neighbor'])
+      ProjectCharacterEntry(id: 'alternate-$mapId', name: 'Alternate', tilesetId: 'actors'),
+  ]),
+    map: bundle.map.copyWith(entities: [for (final entity in bundle.map.entities)
+      if (entity.kind != MapEntityKind.npc) entity else
+        entity.copyWith(kind: mode == 'customOwner' ? MapEntityKind.custom : entity.kind,
+          pos: temporaryConnection && id == 'neighbor' ? const GridPos(x: 0, y: 3) : entity.pos,
+          npc: mode == 'customOwner' ? null : entity.npc,
+          presentation: MapEntityPresentation(variants: [
+          if (mode == 'variants') MapEntityPresentationVariant(id: 'changed', condition: condition,
+            characterId: 'alternate-$id', blocksMovement: false, facing: EntityFacing.west),
+          MapEntityPresentationVariant(id: 'base', condition: temporaryConnection && id == 'neighbor'
+            ? NarrativeEventConditionExpression.leaf(NarrativeEventCondition.mapEventInstanceBoolean(
+                mapId: id, eventId: entity.id, key: 'A', expectedValue: false)) : mode == 'customOwner'
+            ? NarrativeEventConditionExpression.all([]) : NarrativeEventConditionExpression.not(condition),
+            characterId: entity.npc!.characterId, blocksMovement: temporaryConnection && id == 'neighbor' ? mode == 'connectionSolid' : true),
+        ])),
+    ]));
 }
 
 RuntimeMapBundle _bundle(String mapId) => RuntimeMapBundle(

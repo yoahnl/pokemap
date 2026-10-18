@@ -1603,7 +1603,7 @@ void main() {
           _graphicEntry('A', hash: sameHash),
           _graphicEntry('B', hash: changed.hash, length: changed.length),
         ]);
-        expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), contains('pageGraphicChanges'));
+        expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), contains('characterBindingMissing'));
       });
     }
 
@@ -1614,7 +1614,7 @@ void main() {
           if (fallback == 'wrong case') _graphicEntry('b', hash: sameHash),
           if (fallback == 'directory') _graphicEntry('B', kind: SourceNodeKind.directory),
         ]);
-        expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), contains('pageGraphicChanges'));
+        expect(jsonEncode(_projectGiverGraphics(source).semanticEvidence), contains('characterBindingMissing'));
       });
     }
 
@@ -1627,7 +1627,7 @@ void main() {
       final source = await _graphicSource([
         _graphicEntry('A', hash: sameHash), _graphicEntry('B', hash: sameHash),
       ]);
-      expect(jsonEncode(_projectEvents(source).semanticEvidence), contains('pageGraphicChanges'));
+      expect(jsonEncode(_projectEvents(source).semanticEvidence), contains('characterBindingMissing'));
     });
 
     for (final kind in [SourceNodeKind.link, SourceNodeKind.special]) {
@@ -1646,7 +1646,7 @@ void main() {
         _graphicEntry('A', hash: sameHash), _graphicEntry('B', hash: _hash([9, 8, 7, 6])),
       ]);
       expect(jsonEncode(_projectGiverGraphics(first).semanticEvidence), isNot(contains('pageGraphicChanges')));
-      expect(jsonEncode(_projectGiverGraphics(changed).semanticEvidence), contains('pageGraphicChanges'));
+      expect(jsonEncode(_projectGiverGraphics(changed).semanticEvidence), contains('characterBindingMissing'));
       expect(jsonEncode(_projectGiverGraphics(first).semanticEvidence), isNot(contains('pageGraphicChanges')));
     });
 
@@ -2470,17 +2470,17 @@ void main() {
         contains('sourceTerrainBumpUnqualified'));
   }, skip: scriptsPath == null);
   test(
-      'source event size directives do not qualify with a smaller native footprint',
+      'source event size directives retain the exact native footprint',
       () async {
     final result = _projectEvents(await _events([
       _page([
         _command(101, ['Large actor'])
       ])
     ], eventName: 'Npc size(2,1)'));
-    expect(result.registry.records.single.definitionOrNull, isNull);
-    expect(result.nativeMaps[1]!.entities, isEmpty);
-    expect(jsonEncode(result.semanticEvidence),
-        contains('eventFootprintUnsupported'));
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    expect(result.nativeMaps[1]!.entities.single.size, const GridSize(width: 2, height: 1));
+    expect(result.nativeMaps[1]!.entities.single.presentation!.variants.single.size,
+      const GridSize(width: 2, height: 1));
   });
   test(
       'empty source event graphics do not block the player under the attested oracle',
@@ -2836,7 +2836,7 @@ void main() {
           {'@self_switch_valid': true})
     ]));
     expect(result.registry.records.single.definitionOrNull, isNotNull);
-    expect(result.worldRules, hasLength(2));
+    expect(result.worldRules, isEmpty);
     final map = result.nativeMaps[1]!;
     final project = ProjectManifest(
         name: 'Presence',
@@ -2846,18 +2846,18 @@ void main() {
               id: map.id, name: map.name, relativePath: 'maps/${map.id}.json')
         ],
         facts: result.facts,
-        worldRules: result.worldRules);
+        worldRules: result.worldRules,
+        characters: [ProjectCharacterEntry(id: map.entities.single.npc!.characterId!,
+          name: 'Character', tilesetId: 'actors')]);
     expect(
         diagnoseWorldRules(project, maps: result.nativeMaps.values.toList())
             .hasErrors,
         isFalse);
-    expect(result.worldRules.map((r) => r.effect.kind).toSet(),
-        {WorldRuleEffectKind.entityHidden, WorldRuleEffectKind.entityVisible});
-    expect(
-        result.worldRules
-            .map((r) => r.source.resolvedExpectedFactValue.boolValue)
-            .toSet(),
-        {false, true});
+    expect(projectMapEntityPresentations(project: project, gameState: const GameState(saveId: 'save'),
+      map: map).entities, isEmpty);
+    expect(projectMapEntityPresentations(project: project, gameState: GameState(saveId: 'save',
+      narrativeFactRuntimeState: NarrativeFactRuntimeState(overridesByFactId: {result.facts.single.id: true})),
+      map: map).entities.single.id, map.entities.single.id);
   });
 
   test(

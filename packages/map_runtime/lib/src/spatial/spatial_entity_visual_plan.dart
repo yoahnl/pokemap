@@ -22,6 +22,7 @@ final class SpatialEntityVisualPlan {
     };
     final entries = <_SpatialEntityVisualEntry>[];
     for (final entity in map.entities) {
+      if (entity.presentation != null) continue;
       if (entity.kind == MapEntityKind.npc &&
           (entity.npc?.characterId?.trim().isNotEmpty ?? false)) {
         continue;

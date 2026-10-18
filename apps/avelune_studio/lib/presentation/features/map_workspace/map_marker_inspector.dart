@@ -8,6 +8,7 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'healing_display_controls.dart';
 import 'interactive_encounter_controls.dart';
+import 'entity_presentation_controls.dart';
 
 class MapMarkerInspector extends StatefulWidget {
   const MapMarkerInspector({
@@ -97,6 +98,9 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        EntityPresentationControls(entity: entity, project: widget.project,
+          mapId: widget.document.current.id, mapSize: widget.document.current.size,
+          onChanged: (value) => _change(() => _commands.setPresentation(entity.id, value))),
         Text(
           spawn != null
               ? 'Point d’apparition'

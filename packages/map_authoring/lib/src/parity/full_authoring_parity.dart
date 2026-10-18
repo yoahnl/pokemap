@@ -612,6 +612,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi:
           'test/domains/maps/npc_counter_interaction_transport_test.dart',
+  if (actionId == 'entity.set_presentation') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/entity_presentation_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/entity_presentation_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/entity_presentation_controls_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/entity_presentation_stdio.test.ts',
+    };
+  }
       AuthoringTransport.cli:
           'test/domains/maps/npc_counter_interaction_transport_test.dart',
       AuthoringTransport.editor:
@@ -1504,6 +1512,9 @@ String _contractTestFor(String actionId) {
     if (rule.prefixes.any(actionId.startsWith)) return rule.testPath;
   }
   throw StateError('No PMCP-085 contract evidence for $actionId');
+  if (actionId == 'entity.set_presentation') {
+    return 'test/domains/maps/entity_presentation_actions_test.dart';
+  }
 }
 
 final class _ContractEvidenceRule {

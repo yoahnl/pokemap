@@ -15,6 +15,21 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final solid in [false, true]) {
+    testWidgets('first destination instance applies temporary presentation solid=$solid before warp commit', (tester) async {
+      await tester.runAsync(() async {
+        final game = await _mount(tester, targetTemporarySolid: solid);
+        expect(game.gameStateSnapshot.mapInstanceWorldState.instanceRef('target'), isNull);
+        var done = false;
+        final execution = game.debugExecuteSceneInteractiveCommand(_command()).whenComplete(() => done = true);
+        await _until(game, () => done);
+        expect(await execution, solid ? 'blocked' : 'completed');
+        expect(game.gameStateSnapshot.currentMapId, solid ? 'source' : 'target');
+        expect(game.gameStateSnapshot.mapInstanceWorldState.instanceRef('target'), solid ? isNull : isNotNull);
+      });
+    });
+  }
+
   testWidgets('Player owns one presentation through transfer and reveal', (
     tester,
   ) async {
@@ -544,6 +559,7 @@ Future<PlayableMapGame> _mount(
   bool returnWarp = false,
   Completer<void>? preparationGate,
   Completer<void>? preparationEntered,
+  bool? targetTemporarySolid,
 }) async {
   final targetImage = transferGate != null || failTransfer;
   final dir = await Directory.systemTemp.createTemp(
@@ -559,14 +575,21 @@ Future<PlayableMapGame> _mount(
         layers: [
           TileLayer(id: 'objects', name: 'Objects', cells: List.filled(25, 0)),
         ],
-        entities: const [
-          MapEntity(
+        entities: [
+          const MapEntity(
             id: 'spawn',
             kind: MapEntityKind.spawn,
             pos: GridPos(x: 1, y: 1),
             blocksMovement: false,
             spawn: MapEntitySpawnData(role: EntitySpawnRole.playerStart),
           ),
+          if (id == 'target' && targetTemporarySolid != null)
+            MapEntity(id: 'local-owner', kind: MapEntityKind.custom, pos: const GridPos(x: 2, y: 2),
+              presentation: MapEntityPresentation(variants: [
+                MapEntityPresentationVariant(id: 'initial', blocksMovement: targetTemporarySolid,
+                  condition: NarrativeEventConditionExpression.leaf(
+                    NarrativeEventCondition.mapEventInstanceBoolean(mapId: 'target', eventId: 'local-owner', key: 'A', expectedValue: false))),
+              ])),
         ],
         placedElements: [
           if (id == 'target' && targetImage)
@@ -593,7 +616,9 @@ Future<PlayableMapGame> _mount(
   final command = _command(illustrated: illustrated);
   final manifest = ProjectManifest(
     name: 'Player presentation',
-    settings: const ProjectSettings(tileWidth: 32, tileHeight: 32),
+    settings: ProjectSettings(tileWidth: 32, tileHeight: 32,
+      mapInstanceRetentionPolicy: targetTemporarySolid == null ? null :
+        MapInstanceRetentionPolicy(viewportWidthTiles: 5, viewportHeightTiles: 5, marginTiles: 0)),
     maps: [
       for (final map in maps)
         ProjectMapEntry(

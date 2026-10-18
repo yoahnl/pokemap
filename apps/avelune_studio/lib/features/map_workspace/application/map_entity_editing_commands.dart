@@ -191,6 +191,10 @@ class MapEntityEditingCommands {
       document.commit(const EntityActions().setHealingDisplay(
         document.current, project: project, entityId: id, healingDisplay: display));
 
+  void setPresentation(String id, MapEntityPresentation? presentation) =>
+    document.commit(const EntityActions().setPresentation(document.current,
+      project: project, entityId: id, presentation: presentation));
+
   void setBlocking(String id, {required bool blocks}) => document.commit(
     updateEntityOnMap(document.current, entityId: id, blocksMovement: blocks),
   );

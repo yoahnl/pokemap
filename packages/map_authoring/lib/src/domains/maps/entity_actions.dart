@@ -108,6 +108,24 @@ final class EntityActions {
       },
     ),
     AuthoringActionDescriptor(
+      id: 'entity.set_presentation', version: 1,
+      summary: 'Set or clear conditional native character, collision, footprint and counter reach variants',
+      inputSchemaId: 'schema.entity.set_presentation.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low, resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
+      extensions: const {'semanticIds': true, 'rawTilesetRequired': false,
+        'presentation': {'schemaVersion': 1, 'selection': 'firstMatchingVariant',
+          'noMatchingVariant': 'absent', 'entityKinds': ['npc', 'custom'],
+          'conditionExpressionKinds': ['leaf', 'all', 'any', 'not'],
+          'parameters': ['mapId', 'entityId', 'presentation'],
+          'variantFields': ['id', 'condition', 'characterId', 'facing', 'interactionMode', 'blocksMovement',
+            'size', 'counterInteractionSides'], 'maximumVariants': 256,
+          'counterReachMapMode': '2d', 'clearValue': null}},
+    ),
+    AuthoringActionDescriptor(
       id: 'entity.set_interactive_encounter', version: 1,
       summary: 'Set or clear a native Headbutt or after Rock Smash encounter',
       inputSchemaId: 'schema.entity.set_interactive_encounter.input.v1',
@@ -321,6 +339,15 @@ final class EntityActions {
     }
   }
 
+  MapData setPresentation(MapData map, {required ProjectManifest project,
+    required String entityId, required MapEntityPresentation? presentation}) {
+    final entity = _entityById(map, entityId).copyWith(presentation: presentation);
+    final updated = map.copyWith(entities: [for (final value in map.entities)
+      if (value.id == entityId) entity else value]);
+    if (presentation != null) _assertPresentationTarget(updated, project, entity);
+    return updated;
+  }
+
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
@@ -342,6 +369,7 @@ final class EntityActions {
       'entity.set_visual' =>
         const {'entityId', 'payload'},
       'entity.set_field_obstacle' => const {'entityId', 'fieldObstacle'},
+      'entity.set_presentation' => const {'entityId', 'presentation'},
       'entity.set_interactive_encounter' => const {'entityId', 'interactiveEncounter'},
       'entity.set_healing_display' => const {'entityId', 'healingDisplay'},
       'entity.set_blocks_movement' => const {'entityId', 'blocksMovement'},
@@ -556,6 +584,12 @@ final class EntityActions {
               project: context.manifest,
               entityId: parameters.string('entityId'),
               fieldObstacle: obstacle);
+        case 'entity.set_presentation':
+          if (!parameters.contains('presentation')) throw invalidSemanticField('presentation', 'a typed payload or explicit null');
+          final raw = parameters.value('presentation');
+          updated = setPresentation(context.map, project: context.manifest,
+            entityId: parameters.string('entityId'), presentation: raw == null ? null :
+              MapEntityPresentation.fromJson(_object(raw, 'presentation').cast<String, dynamic>()));
         case 'entity.set_interactive_encounter':
           if (!parameters.contains('interactiveEncounter')) throw invalidSemanticField('interactiveEncounter', 'a typed payload or explicit null');
           final raw = parameters.value('interactiveEncounter');
@@ -745,12 +779,28 @@ final class EntityActions {
     for (final entity in updated.entities.where((entity) => entity.interactiveEncounter != null)) {
       _assertInteractiveEncounterTarget(updated, context.manifest, entity);
     }
+    for (final entity in updated.entities.where((entity) => entity.presentation != null)) {
+      _assertPresentationTarget(updated, context.manifest, entity);
+    }
 
     return context.draftMap(
       after: updated,
       operation: actionId,
       changedItems: changedItems,
     );
+  }
+}
+
+void _assertPresentationTarget(MapData map, ProjectManifest project, MapEntity entity) {
+  final errors = validateMapEntityPresentation(project: project, map: map, entity: entity);
+  if (!const [MapEntityKind.npc, MapEntityKind.custom].contains(entity.kind) ||
+      entity.sign != null || entity.item != null || entity.spawn != null ||
+      entity.fieldObstacle != null || entity.healingDisplay != null || entity.interactiveEncounter != null ||
+      errors.isNotEmpty ||
+      (map.spatialScene != null && entity.presentation!.variants.any((variant) => variant.counterInteractionSides.isNotEmpty))) {
+    throw semanticFailure('entity.presentation_invalid',
+      'Presentation requires one NPC or custom owner, valid references and in-bounds footprints.',
+      details: {'errors': errors});
   }
 }
 

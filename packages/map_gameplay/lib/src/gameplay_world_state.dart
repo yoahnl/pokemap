@@ -93,7 +93,9 @@ class GameplayWorldState {
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate,
+    GameState? gameState,
   }) {
+    map = _projectEntityPresentations(map, project, gameState);
     map = applyMovingPlatformWorldStateToMap(map: map,
         worldState: movingPlatformWorldState,
         tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
@@ -209,7 +211,9 @@ class GameplayWorldState {
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate,
+    GameState? gameState,
   }) {
+    map = _projectEntityPresentations(map, project, gameState);
     map = applyMovingPlatformWorldStateToMap(map: map,
         worldState: movingPlatformWorldState,
         tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
@@ -836,6 +840,26 @@ class GameplayWorldState {
     );
   }
 
+  GameplayWorldState withEntityPresentations({
+    required ProjectManifest project,
+    required GameState gameState,
+    required MapData sourceMap,
+  }) {
+    if (!sourceMap.entities.any((entity) => entity.presentation != null)) return this;
+    final currentById = {for (final entity in map.entities) entity.id: entity};
+    final source = sourceMap.copyWith(entities: [
+      for (final entity in sourceMap.entities)
+        if (currentById[entity.id] case final current?)
+          entity.copyWith(pos: current.pos)
+        else entity,
+    ]);
+    return GameplayWorldState.initial(map: source, project: project,
+      gameState: gameState, movingPlatformWorldState: movingPlatformWorldState,
+      playerPos: player.pos, tileWidth: _tileWidth, tileHeight: _tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate).withPlayer(player);
+  }
+
   GameplayWorldState withEntityFacing(String entityId, EntityFacing facing) {
     final matching = <int>[
       for (var index = 0; index < map.entities.length; index++)
@@ -1347,6 +1371,14 @@ Map<int, List<MapEntity>> _buildBlockingEntityByPos(
     for (final entry in result.entries)
       entry.key: List<MapEntity>.unmodifiable(entry.value),
   });
+}
+
+MapData _projectEntityPresentations(MapData map, ProjectManifest? project, GameState? state) {
+  if (!map.entities.any((entity) => entity.presentation != null)) return map;
+  if (project == null || state == null) {
+    return map.copyWith(entities: map.entities.where((entity) => entity.presentation == null).toList());
+  }
+  return projectMapEntityPresentations(project: project, gameState: state, map: map);
 }
 
 Map<int, MapEntity> _buildEntityByPos(

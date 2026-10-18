@@ -388,6 +388,22 @@ _MapEntity _$MapEntityFromJson(Map<String, dynamic> json) => _MapEntity(
       : MapEntityInteractiveEncounterData.fromJson(
           json['interactiveEncounter'] as Map<String, dynamic>,
         ),
+  presentation: json['presentation'] == null
+      ? null
+      : MapEntityPresentation.fromJson(
+          json['presentation'] as Map<String, dynamic>,
+        ),
+  counterInteractionSides:
+      (json['counterInteractionSides'] as List<dynamic>?)
+          ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
+          .toList() ??
+      const <EntityFacing>[],
+  interactionMode:
+      $enumDecodeNullable(
+        _$MapEntityInteractionModeEnumMap,
+        json['interactionMode'],
+      ) ??
+      MapEntityInteractionMode.front,
   editorVisual: json['editorVisual'] == null
       ? null
       : MapEntityEditorVisual.fromJson(
@@ -415,6 +431,12 @@ Map<String, dynamic> _$MapEntityToJson(_MapEntity instance) =>
       'fieldObstacle': ?instance.fieldObstacle?.toJson(),
       'healingDisplay': ?instance.healingDisplay?.toJson(),
       'interactiveEncounter': ?instance.interactiveEncounter?.toJson(),
+      'presentation': ?instance.presentation?.toJson(),
+      'counterInteractionSides': instance.counterInteractionSides
+          .map((e) => _$EntityFacingEnumMap[e]!)
+          .toList(),
+      'interactionMode':
+          _$MapEntityInteractionModeEnumMap[instance.interactionMode]!,
       'editorVisual': instance.editorVisual?.toJson(),
       'blocksMovement': instance.blocksMovement,
       'properties': instance.properties,
@@ -426,6 +448,18 @@ const _$MapEntityKindEnumMap = {
   MapEntityKind.item: 'item',
   MapEntityKind.spawn: 'spawn',
   MapEntityKind.custom: 'custom',
+};
+
+const _$EntityFacingEnumMap = {
+  EntityFacing.north: 'north',
+  EntityFacing.south: 'south',
+  EntityFacing.east: 'east',
+  EntityFacing.west: 'west',
+};
+
+const _$MapEntityInteractionModeEnumMap = {
+  MapEntityInteractionMode.front: 'front',
+  MapEntityInteractionMode.overlap: 'overlap',
 };
 
 _MapWarp _$MapWarpFromJson(Map<String, dynamic> json) => _MapWarp(
@@ -464,13 +498,6 @@ const _$MapWarpTriggerModeEnumMap = {
   MapWarpTriggerMode.onEnter: 'on_enter',
   MapWarpTriggerMode.onBump: 'on_bump',
   MapWarpTriggerMode.sceneOnly: 'scene_only',
-};
-
-const _$EntityFacingEnumMap = {
-  EntityFacing.north: 'north',
-  EntityFacing.south: 'south',
-  EntityFacing.east: 'east',
-  EntityFacing.west: 'west',
 };
 
 _WarpTriggerPadding _$WarpTriggerPaddingFromJson(Map<String, dynamic> json) =>

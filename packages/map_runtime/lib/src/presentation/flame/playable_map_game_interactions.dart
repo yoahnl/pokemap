@@ -755,6 +755,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       state,
     );
     final nextWorld = GameplayWorldState.initial(
+      gameState: _gameState,
       map: projected.map,
       movingPlatformWorldState: state.movingPlatformWorldState,
       project: projected.manifest,

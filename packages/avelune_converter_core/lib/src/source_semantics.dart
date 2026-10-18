@@ -623,6 +623,63 @@ final class SourceSemanticResolver {
     };
   }
 
+  SourceEventTouchResolution resolveEventActionFootprint({
+    required SourceEventDefinition event,
+    required SourceEventPageAnalysis page,
+    required Iterable<SourceEventDefinition> mapEvents,
+    required int width,
+    required int height,
+  }) {
+    SourceEventTouchResolution refused(String reason) => SourceEventTouchResolution(
+      kind: SourceEventTouchKind.unqualified, reason: reason);
+    final map = _maps[event.sourceMapId];
+    final graphic = page.graphic;
+    if (!profile.isQualified || event.isQuarantined || !page.condition.isQualified ||
+        !event.pages.contains(page) || !_plainTouchPage(page) || map == null ||
+        width < 1 || width > 64 || height < 1 || height > 64 ||
+        event.x < 0 || event.y - height + 1 < 0 ||
+        event.x + width > map.width || event.y >= map.height ||
+        graphic == null || graphic.tileId != 0 || graphic.moveType != 0) {
+      return refused('sourceActionFootprintUnqualified');
+    }
+    if (graphic.characterName.isNotEmpty && !graphic.through ||
+        RegExp('hiddenitem', caseSensitive: false).hasMatch(event.name)) {
+      return SourceEventTouchResolution(kind: SourceEventTouchKind.front,
+        reason: 'blockingCharacterOrHiddenItem');
+    }
+    final candidates = mapEvents.where((candidate) => candidate.sourceMapId == event.sourceMapId).toList();
+    if (candidates.where((candidate) => candidate.identity == event.identity).length != 1) {
+      return refused('eventSetBinding');
+    }
+    for (final candidate in candidates) {
+      for (final other in candidate.pages) {
+        final image = other.graphic;
+        if (image == null || !_plainTouchPage(other)) return refused('tileEventStateUnqualified');
+        if (image.tileId > 0 && !image.through &&
+            (image.moveType != 0 ||
+             candidate.x >= event.x && candidate.x < event.x + width &&
+             candidate.y > event.y - height && candidate.y <= event.y)) {
+          return refused('tileEventStateUnqualified');
+        }
+      }
+    }
+    SourcePassageStatus? status;
+    for (var y = event.y - height + 1; y <= event.y; y++) {
+      for (var x = event.x; x < event.x + width; x++) {
+        final passage = _resolveStationaryPlayerTiles(map.cellAt(x, y),
+          context: const SourceSemanticContext());
+        if (passage.status == SourcePassageStatus.unqualified ||
+            status != null && status != passage.status) {
+          return refused('sourceActionFootprintMixedOrUnknownPassage');
+        }
+        status = passage.status;
+      }
+    }
+    return SourceEventTouchResolution(
+      kind: status == SourcePassageStatus.allowed ? SourceEventTouchKind.enter : SourceEventTouchKind.front,
+      reason: status == SourcePassageStatus.allowed ? 'stationaryActionFootprintAllowed' : 'stationaryActionFootprintBlocked');
+  }
+
   SourceEventTouchResolution resolveStaticActionFootprint({
     required SourceEventDefinition event,
     required SourceEventPageAnalysis page,

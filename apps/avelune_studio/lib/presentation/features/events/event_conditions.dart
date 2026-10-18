@@ -13,11 +13,14 @@ class EventConditions extends StatelessWidget {
     required this.facts,
     required this.records,
     required this.onChanged,
+    this.mapId,
+    this.entityId,
   });
   final NarrativeEventConditionExpression expression;
   final List<NarrativeFactDefinition> facts;
   final List<NarrativeEventRecord> records;
   final ValueChanged<NarrativeEventConditionExpression> onChanged;
+  final String? mapId, entityId;
 
   @override
   Widget build(BuildContext context) =>
@@ -56,6 +59,7 @@ class EventConditions extends StatelessWidget {
         facts: facts,
         records: records,
         initial: initial,
+        mapId: mapId, entityId: entityId,
       );
       if (selected == null || !context.mounted) return;
       final leaf = NarrativeEventConditionExpression.leaf(selected);
@@ -149,6 +153,7 @@ class EventConditions extends StatelessWidget {
                       context,
                       facts: facts,
                       records: records,
+                      mapId: mapId, entityId: entityId,
                     );
                     if (condition != null && context.mounted) {
                       replace(
@@ -173,6 +178,7 @@ class EventConditions extends StatelessWidget {
                   context,
                   facts: facts,
                   records: records,
+                  mapId: mapId, entityId: entityId,
                 );
                 if (condition != null && context.mounted) {
                   replace(

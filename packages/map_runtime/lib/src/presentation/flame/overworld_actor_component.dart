@@ -15,6 +15,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     required double cellWidth,
     required double cellHeight,
     EntityFacing facing = EntityFacing.south,
+    this.centerOnFootprint = false,
     CharacterAnimationState animState = CharacterAnimationState.idle,
     void Function(CharacterAnimationSourceDiagnostic diagnostic)?
         onSourceDiagnostic,
@@ -39,6 +40,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
         );
 
   final ProjectCharacterEntry character;
+  final bool centerOnFootprint;
   final Map<String, RuntimeTilesetImage> tileImages;
   final int _tileWidth;
   final int _tileHeight;
@@ -284,7 +286,9 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     final topY = pos.y + _entityFootprint.height - _frameHeightTiles;
     final extraWidthTiles =
         math.max(0, _frameWidthTiles - _entityFootprint.width);
-    final offsetX = -(extraWidthTiles * _cellWidth) / 2;
+    final offsetX = centerOnFootprint
+      ? (_entityFootprint.width - _frameWidthTiles) * _cellWidth / 2
+      : -(extraWidthTiles * _cellWidth) / 2;
     return Vector2(
       _mapOrigin.x + pos.x * _cellWidth + offsetX,
       _mapOrigin.y + topY * _cellHeight,

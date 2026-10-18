@@ -112,6 +112,7 @@ String _stepLabel(CinematicTimelineStepKind kind) => switch (kind) {
   CinematicTimelineStepKind.wait => 'Attendre',
   CinematicTimelineStepKind.camera => 'Déplacer la caméra',
   CinematicTimelineStepKind.actorMove => 'Déplacer un acteur',
+  CinematicTimelineStepKind.actorJump => 'Saut',
   CinematicTimelineStepKind.actorFace => 'Orienter un acteur',
   CinematicTimelineStepKind.actorEmote => 'Émotion',
   CinematicTimelineStepKind.actorAnimation => 'Animation de personnage',

@@ -3965,6 +3965,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final explicitPresence = sceneNpcPresenceOverride(
         gameState,
         mapId: mapId,
+      final presentation = _resolveWorldRuleProjectionForMap(mapId, manifest,
+        gameStateOverride: gameState, mapOverride: mapOverride);
+      if (presentation?.absentPresentationEntityIds.contains(npcEntity.id) == true) return false;
         entityId: npcEntity.id,
       );
       if (explicitPresence != null) {
@@ -4088,6 +4091,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _world = _world.withNpcMapPresencePredicate(
       _npcPresencePredicateFor(_bundle.manifest),
     );
+    _world = _world.withEntityPresentations(project: _bundle.manifest,
+      gameState: _gameState, sourceMap: _bundle.map);
+    _refreshNpcPresentationActors();
     _world = _world.withMapEntityPresencePredicate(
       _mapEntityPresencePredicateFor(_bundle.manifest),
     );
@@ -4109,20 +4115,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final npcPred = _npcPresencePredicateFor(loaded.bundle.manifest);
       final mapId = loaded.bundle.map.id;
       final toRemove = <String>[];
-      for (final entity in loaded.bundle.map.entities) {
-        if (entity.kind != MapEntityKind.npc) {
+      final projection = _resolveWorldRuleProjectionForMap(mapId, loaded.bundle.manifest);
+      final sources = {for (final entity in loaded.bundle.map.entities) entity.id: entity};
+      for (final id in loaded.npcActorByEntityId.keys) {
+        final source = sources[id];
+        final entity = source == null ? null : projection?.resolveEntity(source) ??
+          (projection == null ? source : null);
+        if (entity != null && entity.kind == MapEntityKind.npc && npcPred(mapId, entity)) {
           continue;
         }
-        final charId = resolveNpcCharacterId(entity, loaded.bundle.manifest);
-        if (charId == null || charId.isEmpty) {
-          continue;
-        }
-        if (npcPred(mapId, entity)) {
-          continue;
-        }
-        if (loaded.npcActorByEntityId.containsKey(entity.id)) {
-          toRemove.add(entity.id);
-        }
+        toRemove.add(id);
       }
       for (final rawId in toRemove) {
         final id = rawId.trim();
@@ -4160,7 +4162,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         originCellX: loaded.originCellX,
         originCellY: loaded.originCellY,
       );
-      for (final entity in loaded.bundle.map.entities) {
+      for (final sourceEntity in loaded.bundle.map.entities) {
+        final entity = _resolveWorldRuleProjectionForMap(loaded.bundle.map.id,
+          loaded.bundle.manifest)?.resolveEntity(sourceEntity);
+        if (entity == null || _pendingPresentationRemounts.contains('${loaded.bundle.map.id}/${entity.id}')) continue;
         if (entity.kind != MapEntityKind.npc ||
             !npcPred(loaded.bundle.map.id, entity) ||
             loaded.npcActorByEntityId.containsKey(entity.id)) {
@@ -4176,12 +4181,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           tileImages: loaded.tileImagesById,
           tileWidth: loaded.bundle.manifest.settings.tileWidth,
           tileHeight: loaded.bundle.manifest.settings.tileHeight,
+          centerOnFootprint: entity.presentation != null,
           cellWidth: loaded.bundle.cellWidth,
           cellHeight: loaded.bundle.cellHeight,
-          facing: entity.npc?.facing ?? EntityFacing.south,
+          facing: _remountedNpcFacings.remove('${loaded.bundle.map.id}/${entity.id}') ??
+            entity.npc?.facing ?? EntityFacing.south,
         );
         actor.configureGridPlacement(
-          pos: entity.pos,
+          pos: _runtimeNpcPositions[entity.id] ?? entity.pos,
           footprint: entity.size,
           mapOrigin: mapOrigin,
           snapToGrid: true,
@@ -4191,7 +4198,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _npcActors.add(actor);
         world.add(actor);
         if (loaded.bundle.map.id == _activeMapId) {
-          _runtimeNpcPositions[entity.id] = entity.pos;
+          _runtimeNpcPositions[entity.id] = actor.gridPos ?? entity.pos;
           _scriptedEntityMovementController?.trackEntity(
             entity.id,
             entity.pos);
@@ -4203,6 +4210,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _purgeMountedNpcActorForEntity({
     required String entityId,
     required _LoadedPlayableMap loaded,
+  final Set<String> _pendingPresentationRemounts = {};
+  final Map<String, MapEntity> _lastNpcPresentations = {};
+  final Map<String, EntityFacing> _lastNpcDeclaredFacings = {};
+  final Map<String, EntityFacing> _remountedNpcFacings = {};
+
+  void _refreshNpcPresentationActors() {
+    for (final loaded in _loadedMapsById.values) {
+      final projection = _resolveWorldRuleProjectionForMap(loaded.bundle.map.id, loaded.bundle.manifest);
+      for (final source in loaded.bundle.map.entities.where((entity) => entity.presentation != null)) {
+        final key = '${loaded.bundle.map.id}/${source.id}';
+        final next = projection?.resolveEntity(source);
+        final previous = _lastNpcPresentations[key];
+        if (next != null) _lastNpcPresentations[key] = next;
+        final declaredFacing = resolveMapEntityPresentation(project: loaded.bundle.manifest,
+          gameState: _gameState, map: loaded.bundle.map, entity: source)?.facing;
+        final previousFacing = _lastNpcDeclaredFacings[key];
+        final facingChanged = previousFacing != null && declaredFacing != null && previousFacing != declaredFacing;
+        if (declaredFacing != null) _lastNpcDeclaredFacings[key] = declaredFacing;
+        final actor = loaded.npcActorByEntityId[source.id];
+        if (actor == null) {
+          if (facingChanged) _remountedNpcFacings[key] = declaredFacing;
+          continue;
+        }
+        if (next?.npc?.characterId == actor.character.id && next?.size == previous?.size) {
+          if (facingChanged) actor.restoreBase(declaredFacing);
+          continue;
+        }
+        _runtimeNpcPositions[source.id] = actor.gridPos ?? next?.pos ?? source.pos;
+        _remountedNpcFacings[key] = facingChanged ? declaredFacing : actor.facing;
+        actor.setGameplayVisible(false);
+        _pendingPresentationRemounts.add(key);
+        _purgeMountedNpcActorForEntity(entityId: source.id, loaded: loaded);
+        unawaited(actor.removed.then((_) {
+          _pendingPresentationRemounts.remove(key);
+          if (_isRemoved || !_loadedMapsById.values.contains(loaded)) return;
+          _mountNewlyPresentNpcActorsOnLoadedMaps();
+        }));
+      }
+    }
+  }
+
   }) {
     final actor = loaded.npcActorByEntityId.remove(entityId);
     if (actor != null) {
@@ -4252,18 +4300,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     loaded.foregroundLayers.npcMapPresencePredicate = npcPred;
     loaded.backgroundLayers.mapEntityPresencePredicate = entityPred;
     loaded.foregroundLayers.mapEntityPresencePredicate = entityPred;
-    for (final entity in loaded.bundle.map.entities) {
-      if (entity.kind != MapEntityKind.npc) {
-        continue;
-      }
-      final present = npcPred(loaded.bundle.map.id, entity);
+    final projection = _resolveWorldRuleProjectionForMap(loaded.bundle.map.id, loaded.bundle.manifest);
+    for (final source in loaded.bundle.map.entities) {
+      final actor = loaded.npcActorByEntityId[source.id];
+      if (actor == null) continue;
+      final entity = projection?.resolveEntity(source) ?? (projection == null ? source : null);
+      final present = entity != null && entity.kind == MapEntityKind.npc &&
+        npcPred(loaded.bundle.map.id, entity);
       // Trace "source de vérité -> rendu" :
       // on journalise la décision finale de présence pour chaque PNJ afin de
       // diagnostiquer rapidement un cas "la règle existe mais l'acteur reste visible".
       debugPrint(
-        '[step_studio_trace] npc_presence_applied map=${loaded.bundle.map.id} entity=${entity.id} present=$present',
+        '[step_studio_trace] npc_presence_applied map=${loaded.bundle.map.id} entity=${source.id} present=$present',
       );
-      loaded.npcActorByEntityId[entity.id]?.setGameplayVisible(present);
+      actor.setGameplayVisible(present);
     }
   }
 
@@ -4777,6 +4827,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                   ?.gameState.movingPlatformWorldState ??
               _gameState.movingPlatformWorldState,
+          gameState: _gameState,
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
@@ -4798,6 +4849,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                   ?.gameState.movingPlatformWorldState ??
               _gameState.movingPlatformWorldState,
+          gameState: _gameState,
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
@@ -4823,6 +4875,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             movingPlatformWorldState: _gameState.movingPlatformWorldState,
             project: _bundle.manifest,
             tileWidth: _bundle.manifest.settings.tileWidth,
+            gameState: _gameState,
             tileHeight: _bundle.manifest.settings.tileHeight,
             npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
             mapEntityPresencePredicate:
@@ -4840,6 +4893,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                     ?.gameState.movingPlatformWorldState ??
                 _gameState.movingPlatformWorldState,
+            gameState: _gameState,
             map: _bundle.map,
             playerPos: const GridPos(x: 0, y: 0),
             project: _bundle.manifest,
@@ -8036,6 +8090,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileWidth: _bundle.manifest.settings.tileWidth,
       tileHeight: _bundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+      gameState: _gameState,
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(_bundle.manifest,
       ),
@@ -8354,6 +8409,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileWidth: _bundle.manifest.settings.tileWidth,
       tileHeight: _bundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+      gameState: _gameState,
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(_bundle.manifest,
       ),
@@ -8801,6 +8857,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileWidth: _bundle.manifest.settings.tileWidth,
       tileHeight: _bundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+      gameState: _gameState,
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(_bundle.manifest,
       ),
@@ -14173,6 +14230,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         _loadedMapsById[_activeMapId] = _LoadedPlayableMap(
           bundle: _bundle,
+        gameState: _gameState,
           originCellX: activeLoaded.originCellX,
           originCellY: activeLoaded.originCellY,
           backgroundLayers: activeLoaded.backgroundLayers,
@@ -15191,6 +15249,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'on ${newBundle.map.id}.',
         );
       }
+        gameState: loadedState,
     } catch (e, st) {
       debugPrint('[load] failed to prepare restored world: $e\n$st');
       _showNotification(
@@ -15588,8 +15647,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'warp',
         'revalidateBorderBeforeSwap',
         () => prepareBorderRuntimeBundle(_projectMovingPlatformBundle(
+      final destinationState = transitionState.copyWith(mapInstanceWorldState: nextInstances,
+        currentMapId: newBundle.map.id, playerPosition: warp.targetPos);
           newBundle,
-          transitionState.copyWith(mapInstanceWorldState: nextInstances),
+          destinationState,
         )),
       );
       if (!_isWithinMapBounds(newBundle.map, warp.targetPos)) {
@@ -15601,9 +15662,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'warp',
         'worldInitial',
         () => GameplayWorldState.initial(
-          movingPlatformWorldState: _activeNarrativeSceneWorkingSession
-                  ?.gameState.movingPlatformWorldState ??
-              _gameState.movingPlatformWorldState,
+          gameState: destinationState,
+          movingPlatformWorldState: destinationState.movingPlatformWorldState,
           map: newBundle.map,
           playerPos: warp.targetPos,
           playerFacing: arrivalFacing?.asDirection ?? sourceFacing,
@@ -15612,7 +15672,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           project: newBundle.manifest,
           tileWidth: newBundle.manifest.settings.tileWidth,
           tileHeight: newBundle.manifest.settings.tileHeight,
-          npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
+          npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest,
+            gameStateOverride: destinationState, mapOverride: newBundle.map),
           mapEntityPresencePredicate:
               _mapEntityPresencePredicateFor(newBundle.manifest,
           ),
@@ -15644,6 +15705,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           tileImagesById: newImages,
           borderAssets: newBorderAssets,
           originCellX: 0,
+                gameStateOverride: destinationState, mapOverride: newBundle.map,
           originCellY: 0,
         ),
       );
@@ -15941,6 +16003,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileWidth: tileWidth,
         tileHeight: tileHeight,
         npcMapPresencePredicate: _npcPresencePredicateFor(project),
+      gameState: _gameState,
         mapEntityPresencePredicate: _mapEntityPresencePredicateFor(project),
       );
       if (!spawnWorld.isBlocked(spawn.pos.x, spawn.pos.y)) {
@@ -15960,6 +16023,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             playerFacing: fallbackFacing,
             project: project,
             tileWidth: tileWidth,
+        gameState: _gameState,
             tileHeight: tileHeight,
             npcMapPresencePredicate: _npcPresencePredicateFor(project),
             mapEntityPresencePredicate: _mapEntityPresencePredicateFor(project),
@@ -15981,6 +16045,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<void> _handleConnection(TriggeredConnection connection) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld ||
         _blocksOverworldForMapActivationWork) {
+            gameState: _gameState,
       debugPrint(
         '[connection] ignored: flow=${_flowPhase.name} '
         'loadActivationWork=$_isLoadActivationWorkInFlight '
@@ -16072,11 +16137,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   allocateId: _allocateMapInstanceId,
                 );
       final targetBundle = _projectMovingPlatformBundle(target.bundle,
-          transitionState.copyWith(mapInstanceWorldState: nextInstances));
+          destinationState);
       final newWorld = GameplayWorldState.initial(
-        movingPlatformWorldState: _activeNarrativeSceneWorkingSession
-                ?.gameState.movingPlatformWorldState ??
-            _gameState.movingPlatformWorldState,
+        gameState: destinationState,
+        movingPlatformWorldState: destinationState.movingPlatformWorldState,
         map: targetBundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
@@ -16100,6 +16164,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         _player.syncState(_world.player, snapToGrid: true);
         _showNotification('Connection blocked');
+      final destinationState = transitionState.copyWith(mapInstanceWorldState: nextInstances,
+        currentMapId: target.bundle.map.id, playerPosition: targetPos);
         return;
       }
       final targetInstance = nextInstances.instanceRef(targetBundle.map.id);
@@ -16115,9 +16181,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       target.bundle = targetBundle;
       _bundle = target.bundle;
       _world = newWorld;
+              gameStateOverride: destinationState, mapOverride: targetBundle.map,
       _previousMapId = _activeMapId;
       _activeMapId = target.bundle.map.id;
       _syncRuntimeMusic();
+              gameStateOverride: destinationState, mapOverride: targetBundle.map,
       final targetOriginPx = _originPixelsOf(target);
       for (final entity in targetBundle.map.entities) {
         if (entity.kind != MapEntityKind.npc) continue;
@@ -16659,7 +16727,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final originPx =
         _originPixels(originCellX: originCellX, originCellY: originCellY,
     );
-    for (final entity in preparedBundle.map.entities) {
+    for (final sourceEntity in preparedBundle.map.entities) {
+      final entity = _resolveWorldRuleProjectionForMap(preparedBundle.map.id,
+        preparedBundle.manifest, mapOverride: preparedBundle.map)?.resolveEntity(sourceEntity);
+      if (entity == null) continue;
       if (entity.kind != MapEntityKind.npc) continue;
       if (!npcPred(preparedBundle.map.id, entity)) {
         // Pas de création d'acteur si la règle runtime dit "absent".
@@ -16703,6 +16774,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       backgroundLayers: backgroundLayers,
       foregroundLayers: foregroundLayers,
       actorOcclusionLayers: actorOcclusionLayers,
+        centerOnFootprint: entity.presentation != null,
       smartTileAnimationController: smartTileAnimationController,
       occlusionPatches: occlusionPatches,
       npcActors: npcActors,
@@ -16717,6 +16789,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<_LoadedPlayableMap?> _ensureConnectionTargetLoaded({
     required _LoadedPlayableMap source,
     required TriggeredConnection connection,
+      if (sourceEntity.presentation != null) {
+        _lastNpcPresentations['${preparedBundle.map.id}/${entity.id}'] = entity;
+        _lastNpcDeclaredFacings['${preparedBundle.map.id}/${entity.id}'] =
+          resolveMapEntityPresentation(project: preparedBundle.manifest,
+            gameState: _gameState, map: preparedBundle.map, entity: sourceEntity)!.facing;
+      }
   }) async {
     final targetMapId = connection.targetMapId;
     final existing = _loadedMapsById[targetMapId];

@@ -750,12 +750,17 @@ MapConnectionDirection _connectionDirectionForMove(Direction direction) {
 }
 
 GameplayStepResult _resolveInteract(GameplayWorldState world) {
+  final overlap = world.entityAt(world.player.pos.x, world.player.pos.y);
+  if (overlap?.interactionMode == MapEntityInteractionMode.overlap) {
+    return overlap!.kind == MapEntityKind.npc
+      ? NpcInteracted(world, overlap) : EntityInteracted(world, overlap);
+  }
   final facing = world.player.facing;
   final tx = world.player.pos.x + facing.dx;
   final ty = world.player.pos.y + facing.dy;
   final entity = world.entityAt(tx, ty);
 
-  if (entity != null) {
+  if (entity != null && entity.interactionMode == MapEntityInteractionMode.front) {
     return switch (entity.kind) {
       MapEntityKind.npc => NpcInteracted(world, entity),
       MapEntityKind.sign => SignInteracted(world, entity),
@@ -773,14 +778,20 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
   };
   if (world.map.spatialScene == null &&
       world.map.version != ProjectVersion.v9 &&
-      across != null && across.kind == MapEntityKind.npc &&
-      across.npc != null && across.size.width == 1 && across.size.height == 1 &&
-      across.npc!.counterInteractionSides.contains(counterSide) &&
+      across != null &&
+      across.interactionMode == MapEntityInteractionMode.front &&
+      (across.counterInteractionSides.contains(counterSide) ||
+       across.kind == MapEntityKind.npc &&
+       across.npc?.counterInteractionSides.contains(counterSide) == true) &&
       world.isCellCenterBlockedLegacyForGridIndexedSystems(tx, ty) &&
       world.map.entities.where((candidate) =>
-          resolveEntityCollisionCells(candidate).contains(across.pos))
+          resolveEntityCollisionCells(candidate).contains(GridPos(x: tx + facing.dx, y: ty + facing.dy)) &&
+          (world.mapEntityPresencePredicate?.call(world.map.id, candidate) ?? true) &&
+          (candidate.kind != MapEntityKind.npc ||
+            (world.npcMapPresencePredicate?.call(world.map.id, candidate) ?? true)))
           .length == 1) {
-    return NpcInteracted(world, across);
+    return across.kind == MapEntityKind.npc
+        ? NpcInteracted(world, across) : EntityInteracted(world, across);
   }
 
   final actionBehavior = world.placedElementBehaviorOnActionAt(tx, ty);

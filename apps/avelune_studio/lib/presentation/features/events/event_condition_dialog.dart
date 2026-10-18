@@ -10,10 +10,13 @@ Future<NarrativeEventCondition?> chooseEventCondition(
   required List<NarrativeFactDefinition> facts,
   required List<NarrativeEventRecord> records,
   NarrativeEventCondition? initial,
+  String? mapId,
+  String? entityId,
 }) => showDialog<NarrativeEventCondition>(
   context: context,
   builder: (_) =>
-      _ConditionDialog(facts: facts, records: records, initial: initial),
+      _ConditionDialog(facts: facts, records: records, initial: initial,
+        mapId: mapId, entityId: entityId),
 );
 
 class _ConditionDialog extends StatefulWidget {
@@ -21,10 +24,13 @@ class _ConditionDialog extends StatefulWidget {
     required this.facts,
     required this.records,
     this.initial,
+    this.mapId,
+    this.entityId,
   });
   final List<NarrativeFactDefinition> facts;
   final List<NarrativeEventRecord> records;
   final NarrativeEventCondition? initial;
+  final String? mapId, entityId;
   @override
   State<_ConditionDialog> createState() => _ConditionDialogState();
 }
@@ -36,11 +42,14 @@ class _ConditionDialogState extends State<_ConditionDialog> {
   bool _boolean = true;
   final _text = TextEditingController();
   String? _error;
+  String? _mapId, _entityId;
   NarrativeFactDefinition? get _fact =>
       widget.facts.where((f) => f.id == _id).firstOrNull;
   @override
   void initState() {
     super.initState();
+    _mapId = widget.mapId;
+    _entityId = widget.entityId;
     widget.initial?.whenTyped<void>(
       fact: (id, operator, value) {
         _id = id;
@@ -55,6 +64,10 @@ class _ConditionDialogState extends State<_ConditionDialog> {
         _kind = 'event';
         _id = id;
         _boolean = expected;
+      },
+      mapEventInstanceBoolean: (mapId, eventId, key, expected) {
+        _kind = 'instance'; _mapId = mapId; _entityId = eventId;
+        _id = key; _boolean = expected;
       },
     );
   }
@@ -82,7 +95,10 @@ class _ConditionDialogState extends State<_ConditionDialog> {
       }
       Navigator.pop(
         context,
-        _kind == 'event'
+        _kind == 'instance'
+            ? NarrativeEventCondition.mapEventInstanceBoolean(mapId: _mapId!,
+              eventId: _entityId!, key: id, expectedValue: _boolean)
+            : _kind == 'event'
             ? NarrativeEventCondition.narrativeEventConsumed(id, _boolean)
             : NarrativeEventCondition.factValue(
                 id,
@@ -111,9 +127,10 @@ class _ConditionDialogState extends State<_ConditionDialog> {
             StudioSelect(
               label: 'Condition sur',
               value: _kind,
-              options: const {
+              options: {
                 'fact': 'Un état du monde',
                 'event': 'Un événement déjà joué',
+                if (_mapId != null && _entityId != null) 'instance': 'Une mémoire locale de cet élément',
               },
               onChanged: (value) => setState(() {
                 _kind = value;
@@ -123,9 +140,11 @@ class _ConditionDialogState extends State<_ConditionDialog> {
             ),
             const SizedBox(height: 16),
             StudioSelect(
-              label: _kind == 'fact' ? 'État' : 'Événement',
+              label: _kind == 'fact' ? 'État' : _kind == 'instance' ? 'Mémoire locale' : 'Événement',
               value: _id,
-              options: _kind == 'fact'
+              options: _kind == 'instance' ? {
+                for (final key in {'A', 'B', 'C', 'D', ?_id}) key: 'Mémoire $key',
+              } : _kind == 'fact'
                   ? {for (final f in widget.facts) f.id: '${f.label} · ${f.id}'}
                   : {
                       for (final r in widget.records)
@@ -155,7 +174,7 @@ class _ConditionDialogState extends State<_ConditionDialog> {
               ),
               const SizedBox(height: 16),
             ],
-            if (_kind == 'event' ||
+            if (_kind == 'event' || _kind == 'instance' ||
                 _fact?.valueKind == NarrativeValueKind.boolean)
               StudioSelect(
                 label: _kind == 'event' ? 'Déjà joué' : 'Valeur attendue',

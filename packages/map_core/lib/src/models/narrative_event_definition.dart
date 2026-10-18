@@ -1217,6 +1217,10 @@ NarrativeEventConditionExpression _legacyAndExpression(
   ]);
 }
 
+NarrativeEventConditionExpression validateNarrativeEventConditionExpression(
+  NarrativeEventConditionExpression expression,
+) => _validatedExpression(expression, allowEmptyRootAll: true);
+
 NarrativeEventConditionExpression _validatedExpression(
   NarrativeEventConditionExpression expression, {
   required bool allowEmptyRootAll,
