@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -75,7 +76,9 @@ void main() {
       source = fixture.$1;
       files = fixture.$2;
       final full = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       event = full.eventAt(102, 7)!;
       analysis = selected(event, full.profile);
@@ -223,7 +226,9 @@ void main() {
             selectedMapIds: {102},
             includeEventSystem: true);
         final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final decision = const SourcePartyTradeBindingResolver().resolve(
             source: changed,
@@ -423,8 +428,10 @@ void main() {
               ]);
         }
         final profile = failure == 'profile'
-            ? SourceEventProfile.kantoForProject(source,
-                scriptsArchiveHash: Sha256Hash('0' * 64))
+            ? SourceEventProfile.forProject(source,
+                scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+)
             : null;
         expect(
             candidates(

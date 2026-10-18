@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -473,9 +474,11 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
 SourceEventAnalyzer _analyzer(NormalizedSourceProject project,
         {String? scriptsHash}) =>
     SourceEventAnalyzer.forProject(project,
-        profile: SourceEventProfile.kantoForProject(project,
+        profile: SourceEventProfile.forProject(project,
             scriptsArchiveHash: Sha256Hash(
-                scriptsHash ?? SourceEventProfile.kantoScriptsArchiveSha256)));
+                scriptsHash ?? fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
 
 _RubyObject _withCondition(_RubyObject page, Map<String, Object?> values) {
   (page.fields['@condition'] as _RubyObject).fields.addAll(values);

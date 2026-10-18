@@ -61,3 +61,5 @@ export 'src/source_elevator_program.dart';
 export 'src/source_warp_tile_native_program.dart';
 
 export 'src/source_pokemon_gift_binding.dart';
+
+export 'src/local_source_interpretation_profile_store.dart';

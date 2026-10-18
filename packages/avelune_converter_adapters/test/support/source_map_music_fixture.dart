@@ -1,3 +1,4 @@
+import '../../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -51,7 +52,8 @@ final class SourceMapMusicFixture {
     Map<String, List<int>> filePatches = const {},
     List<SourceFileEntry> additionalEntries = const [],
   }) async {
-    final original = await LiteralTileFixture.create(
+    final original = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       namespace: namespace,
       scriptsBytes: oracle.scriptsBytes,
       maps: maps ??
@@ -100,6 +102,7 @@ final class SourceMapMusicFixture {
     final files = LiteralFixtureFiles(snapshot, bytes);
     final source = await const RmxpSourceNormalizer().normalize(
         snapshot: snapshot,
+        interpretationProfile: fixtureSourceInterpretationProfile,
         files: files,
         includeEventSystem: includeEventSystem);
     files.reads.clear();

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/src/source_encounter_terrain_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -652,7 +653,7 @@ Future<NormalizedSourceProject> _source(
             kind: SourceNodeKind.file,
             byteLength: 1,
             sha256: Sha256Hash(qualified
-                ? SourceSemanticProfile.kantoScriptsArchiveSha256
+                ? fixtureSourceInterpretationProfile.scriptsArchiveHash.value
                 : 'e' * 64),
             format: 'ruby-marshal',
             family: 'data')
@@ -698,12 +699,14 @@ int _nodes(Object? value) => switch (value) {
     };
 
 SourceSemanticResolver _resolver() => SourceSemanticResolver(
-        profile: SourceSemanticProfile.kantoPlayerWalk(
+        profile: SourceSemanticProfile(
       scriptsArchiveHash:
-          Sha256Hash(SourceSemanticProfile.kantoScriptsArchiveSha256),
+          Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
       sourceSnapshotHash: Sha256Hash('a' * 64),
       sourceSelectionHash: Sha256Hash('b' * 64),
-    ));
+
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
 
 SourceSemanticTile _tile(int z,
         {int terrain = 0, int passage = 0, int priority = 0, int id = 384}) =>

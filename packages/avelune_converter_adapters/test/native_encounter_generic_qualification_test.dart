@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_encounter_terrain_binding.dart';
@@ -73,6 +74,7 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
   final fixture = await LiteralTileFixture.create(
       maps: maps,
       tilesets: tilesets,
+      interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
       scriptsBytes: scriptsBytes,
       extraFiles: {
         'PBS/encounters.txt': utf8.encode(encounters),
@@ -181,30 +183,26 @@ Future<NativeEncounterCatalogQualification> _prepare(
 
 Future<({NormalizedSourceProject source, SourceFilePort files})>
     _profileProject(LiteralTileFixture fixture) async {
+  final hasScripts = fixture.sourceBytes.containsKey('Data/Scripts.rxdata');
+  final bytes = {...fixture.sourceBytes,
+    if (!hasScripts) 'Data/Scripts.rxdata': syntheticInterpretationArchive};
+  final profile = hasScripts ? fixtureSourceInterpretationProfile : syntheticSourceInterpretationProfile;
   final snapshot = SourceSnapshot(
       logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
       policyHash: fixture.snapshot.policyHash,
       entries: [
         ...fixture.snapshot.entries,
-        if (!fixture.snapshot.entries
-            .any((entry) => entry.relativePath == 'Data/Scripts.rxdata'))
-          SourceFileEntry(
-              fileId: ConverterId('profile-scripts'),
-              relativePath: 'Data/Scripts.rxdata',
-              kind: SourceNodeKind.file,
-              byteLength: 1,
-              sha256: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
-              format: 'ruby-marshal',
-              family: 'data')
-      ],
-      diagnostics: [],
-      excludedPaths: [],
-      profileEvidence: fixture.snapshot.profileEvidence,
-      state: SourceScanState.complete);
-  final files = LiteralFixtureFiles(snapshot, fixture.sourceBytes);
+        if (!hasScripts) SourceFileEntry(fileId: ConverterId('profile-scripts'),
+          relativePath: 'Data/Scripts.rxdata', kind: SourceNodeKind.file,
+          byteLength: syntheticInterpretationArchive.length, sha256: profile.scriptsArchiveHash,
+          format: 'ruby-marshal', family: 'data')
+      ], diagnostics: [], excludedPaths: [],
+      profileEvidence: fixture.snapshot.profileEvidence, state: SourceScanState.complete);
+  final files = LiteralFixtureFiles(snapshot, bytes);
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: snapshot,
       files: files,
+      interpretationProfile: profile,
       selectedMapIds:
           fixture.source.maps.map((map) => map.map.sourceMapId).toSet());
   return (source: source, files: files);
@@ -391,6 +389,7 @@ void main() {
       expect(qualification.evidence['sourcePbsHash'], pbs.canonicalHash.value);
       final binding = await const NativeEncounterCatalogBindings().bind(
           snapshot: project.source.snapshot,
+          interpretationProfile: project.source.interpretationProfile,
           source: pbs,
           files: project.files,
           nativeMapIds: maps,

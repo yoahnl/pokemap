@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -340,7 +341,9 @@ Future<void> _realOracle(String studyPath) async {
   expect(files.reads['Data/trainers.dat'], 1);
   expect(files.reads['Data/species.dat'], 1);
   final analysis = SourceEventAnalyzer.forProject(normalized,
-          profile: SourceEventProfile.kantoForProject(normalized))
+          profile: SourceEventProfile.forProject(normalized,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
       .analyze();
   final eventBindings = await const SourceTrainerEventBindingResolver()
       .read(source: normalized, analysis: analysis, files: files);

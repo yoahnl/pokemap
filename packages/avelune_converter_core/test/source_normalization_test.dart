@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -949,7 +950,7 @@ void main() {
     expect(row.rawDataRef.binaryLocation.graphPath, contains('[2]'));
     expect(row.toJson()['nativeOffset'], 0);
     expect(row.toJson()['sourceDirection'], 'E');
-    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v4');
+    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v5');
   });
 
   test(
@@ -1549,9 +1550,11 @@ void main() {
     expect(result.maps.single.map.layers.first.cells,
         [384, 385, 386, 387, 388, 389]);
     final analysis = SourceEventAnalyzer.forProject(result,
-            profile: SourceEventProfile.kantoForProject(result,
+            profile: SourceEventProfile.forProject(result,
                 scriptsArchiveHash: Sha256Hash(
-                    SourceEventProfile.kantoScriptsArchiveSha256)))
+                    fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();
     expect(analysis.events.single.isQuarantined, isTrue);
     final invalidGraphic = analysis.diagnostics.singleWhere(

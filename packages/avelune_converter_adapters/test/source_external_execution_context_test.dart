@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -56,14 +57,18 @@ void main() {
     test('five original maps qualify with dormant opaque Electrode controllers',
         () async {
       final audit = auditSourceParallelDormancy(
-          source: source, profile: SourceEventProfile.kantoForProject(source));
+          source: source, profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
       expect(audit.isQualified, true, reason: audit.refusals.toString());
       final result = await const SourceEventExecutionContextResolver()
           .read(source: source, base: base, nativeMaps: maps, files: files);
       expect(result.isQualified, true, reason: result.refusals.toString());
       expect(
           result.isBoundTo(
-              source, SourceEventProfile.kantoForProject(source), maps),
+              source, SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+), maps),
           true);
       expect(result.supportsRouteBarrierOnSourceMap(100), true);
       expect(result.supportsRouteBarrierOnSourceMap(102), true);
@@ -79,7 +84,9 @@ void main() {
     test(
         'closed native writes remain local and both Centre door programs remain recognized',
         () async {
-      final profile = SourceEventProfile.kantoForProject(source);
+      final profile = SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
       final audit =
           auditSourceParallelDormancy(source: source, profile: profile);
       expect(audit.isQualified, true, reason: audit.refusals.toString());
@@ -125,7 +132,9 @@ void main() {
             isNot(source.snapshot.canonicalHash));
         final audit = auditSourceParallelDormancy(
             source: changed.source,
-            profile: SourceEventProfile.kantoForProject(changed.source));
+            profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
         expect(audit.isQualified, false, reason: mutation);
         expect(audit.refusals, isNotEmpty);
         if (mutation == 'thirdParallel') {
@@ -174,7 +183,9 @@ void main() {
           await reattestExecutionVariant(source, files, 'thirdParallel');
       expect(
           context.isBoundTo(changed.source,
-              SourceEventProfile.kantoForProject(changed.source), maps),
+              SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+), maps),
           false);
       final changedBase = NativeProjectDraft(
           source: changed.source,

@@ -574,6 +574,7 @@ final class _Run {
     final encounterBinding = encounterQualification == null
         ? null
         : await const NativeEncounterCatalogBindings().bind(
+            interpretationProfile: source.interpretationProfile,
             snapshot: source.snapshot,
             source: pbs,
             files: files,

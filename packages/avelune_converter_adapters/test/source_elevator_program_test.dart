@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -57,7 +58,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       programs = sourceElevatorPrograms(source: source, analysis: analysis);
       temporary = await Directory.systemTemp.createTemp('elevator-complete-');

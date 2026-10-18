@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -130,7 +131,9 @@ void main() {
       expect(binding.artifact.rawSha256, binding.audioFile.sha256);
       expect(binding.mutation.actionId, 'scene.dialogue.audioMedia.import');
       expect(
-          binding.isBoundTo(source, SourceEventProfile.kantoForProject(source)),
+          binding.isBoundTo(source, SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+)),
           isTrue);
       final feedback = binding.recoveryFeedback(
           cueId: 'recovery',
@@ -172,8 +175,10 @@ void main() {
       expect(
           binding.isBoundTo(
               source,
-              SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64))),
+              SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+)),
           isFalse);
     });
 

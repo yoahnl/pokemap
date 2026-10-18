@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -147,7 +148,7 @@ void main() {
         scriptsBytes: [4, 8, 48]);
     addTearDown(source.close);
     final profile = await const LiteralAutotileComposer()
-        .inspectProfile(snapshot: source.snapshot, files: source.files);
+        .inspectProfile(interpretationProfile: fixtureSourceInterpretationProfile, snapshot: source.snapshot, files: source.files);
     expect(profile.clockAttested, isFalse);
     expect(profile.extendedAttested, isFalse);
     expect(profile.sourceSnapshotHash, source.snapshot.canonicalHash);
@@ -164,7 +165,7 @@ void main() {
           scriptsBytes: await File(scriptsPath!).readAsBytes());
       addTearDown(source.close);
       final profile = await const LiteralAutotileComposer()
-          .inspectProfile(snapshot: source.snapshot, files: source.files);
+          .inspectProfile(interpretationProfile: fixtureSourceInterpretationProfile, snapshot: source.snapshot, files: source.files);
       expect(profile.clockAttested, isTrue);
       expect(profile.extendedAttested, isTrue);
       expect(profile.baseFrameDurationMs, 250);
@@ -217,7 +218,7 @@ void main() {
         scriptsBytes: await File(scriptsPath!).readAsBytes());
     addTearDown(source.close);
     final profile = await const LiteralAutotileComposer()
-        .inspectProfile(snapshot: source.snapshot, files: source.files);
+        .inspectProfile(interpretationProfile: fixtureSourceInterpretationProfile, snapshot: source.snapshot, files: source.files);
     final result = await _compose(source, profile: profile);
     expect(result.frameDurationMs, 200);
     expect(
@@ -232,7 +233,7 @@ void main() {
         scriptsBytes: await File(scriptsPath!).readAsBytes());
     addTearDown(source.close);
     final profile = await const LiteralAutotileComposer()
-        .inspectProfile(snapshot: source.snapshot, files: source.files);
+        .inspectProfile(interpretationProfile: fixtureSourceInterpretationProfile, snapshot: source.snapshot, files: source.files);
     final result = await _compose(source, profile: profile);
     expect(result.frameDurationMs, isNull);
     expect(result.tileAnimations, isEmpty);
@@ -250,7 +251,7 @@ void main() {
           scriptsBytes: await File(scriptsPath!).readAsBytes());
       addTearDown(source.close);
       final profile = await const LiteralAutotileComposer()
-          .inspectProfile(snapshot: source.snapshot, files: source.files);
+          .inspectProfile(interpretationProfile: fixtureSourceInterpretationProfile, snapshot: source.snapshot, files: source.files);
       final result = await _compose(source, profile: profile);
       expect(result.frameDurationMs, 200);
       expect(result.animationVerified, isTrue);

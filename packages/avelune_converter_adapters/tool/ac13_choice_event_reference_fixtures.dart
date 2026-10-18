@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -100,7 +101,8 @@ Future<void> main(List<String> args) async {
   await nativeParent.create();
   final withCancel = _commands(cancellable: true);
   final withoutCancel = _commands(cancellable: false);
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       namespace: _namespace,
       sourceRootPath: source.path,
       scriptsBytes: archiveBytes,
@@ -154,6 +156,7 @@ Future<void> main(List<String> args) async {
     _require(snapshot.state == SourceScanState.complete,
         'The original RMXP fixture scan must complete');
     workflow.updateSettings(ConverterStudySettings(
+        interpretationProfile: fixtureSourceInterpretationProfile,
         projectName: 'EVT04 original choice and cancellation',
         parentPath: nativeParent.path,
         folderName: 'published-choice-reference',

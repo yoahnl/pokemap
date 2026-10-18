@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -137,7 +138,8 @@ void main() {
     }
     final catalog = NativePsdkCatalogManifest.compose(
         [NativePsdkTrainerBundle.fromJson(raw)]);
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       scriptsBytes: await File(scriptsPath!).readAsBytes(),
       includeEventSystem: true,
       extraFiles: {
@@ -150,7 +152,9 @@ void main() {
       },
     );
     expect(
-        SourceEventProfile.kantoForProject(fixture.source).isQualified, isTrue);
+        SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+).isQualified, isTrue);
     const limits = NativeWriteLimits(maxArtifacts: 128);
     final literal = await const LiteralTileComposer().compose(
         source: fixture.source,

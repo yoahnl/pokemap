@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:image/image.dart' as image;
 import 'package:map_gameplay/map_gameplay.dart';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -187,7 +188,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       door = analysis.eventAt(27, 17)!;
       maps = _maps(source);
@@ -271,7 +274,9 @@ void main() {
       final fixture = await readExternalOriginalSource(root!, snapshot,
           selectedMapIds: ids, supplementalRoots: supplementalRoots);
       final parsed = SourceEventAnalyzer.forProject(fixture.source,
-              profile: SourceEventProfile.kantoForProject(fixture.source))
+              profile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final selected =
           sourceRoutedDoorPrograms(source: fixture.source, analysis: parsed);
@@ -561,7 +566,9 @@ void main() {
           return _integer(bytes, _field(document, graphic, field), value);
         });
         final parsed = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(
             sourceRoutedDoorPrograms(source: changed.source, analysis: parsed)
@@ -644,7 +651,9 @@ void main() {
             limits: limits);
         expect(events, isNotNull);
         final parsed = SourceEventAnalyzer.forProject(fixture.source,
-                profile: SourceEventProfile.kantoForProject(fixture.source))
+                profile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final event = parsed.eventAt(selected.$2, selected.$3)!;
         final scenes = events!.projection.scenes

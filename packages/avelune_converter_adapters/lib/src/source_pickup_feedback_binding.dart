@@ -113,7 +113,7 @@ final class SourcePickupFeedbackResolver {
       throw ContractError('source.pickup_feedback.item_binding', r'$',
           'Pickup feedback requires an item from the exact complete source snapshot.');
     }
-    final profile = SourceEventProfile.kantoForProject(source);
+    final profile = SourceEventProfile.forProject(source);
     if (!profile.isQualified) _unavailable('profile_unqualified');
     if (!item.pickupQualified ||
         (item.isKeyItem &&
@@ -539,7 +539,7 @@ final class SourcePickupFeedbackResolver {
               }
           ],
           'oracle': {
-            'archiveHash': SourceEventProfile.kantoScriptsArchiveSha256,
+            'archiveHash': source.interpretationProfile?.scriptsArchiveHash.value,
             'receiveItem': {
               'section': 241,
               'lines': [725, 762]

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
@@ -185,7 +186,8 @@ Future<_Fixture> _fixture(
     List<int>? iconBytes,
     List<int>? audioBytes}) async {
   final original =
-      await LiteralTileFixture.create(scriptsBytes: scripts, extraFiles: {
+      await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+scriptsBytes: scripts, extraFiles: {
     'Data/items.dat': _dump({
       for (final symbol in machine ? ['TM101'] : ['BURNHEAL', 'ETHER'])
         _Symbol(symbol): _Object('GameData::Item', _item(symbol, patch: patch))
@@ -247,7 +249,9 @@ Future<_Fixture> _fixture(
       snapshot: snapshot,
       files: files,
       symbols: machine ? ['TM101'] : ['BURNHEAL', 'ETHER'],
-      eventProfile: SourceEventProfile.kantoForProject(source));
+      eventProfile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
   files.reads.clear();
   return _Fixture(source, files, items);
 }
@@ -334,7 +338,9 @@ Future<_Fixture> _musicFixture(SourceMapMusicOracle oracle,
       snapshot: fixture.snapshot,
       files: fixture.files,
       symbols: ['ETHER'],
-      eventProfile: SourceEventProfile.kantoForProject(fixture.source));
+      eventProfile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
   return _Fixture(fixture.source, fixture.files, items);
 }
 
@@ -943,7 +949,9 @@ void main() {
         final fixture = await _rodFixture(musicOracle!,
             sourceFacing: true, nonstationaryPlacement: placement);
         final analysis = SourceEventAnalyzer.forProject(fixture.source,
-                profile: SourceEventProfile.kantoForProject(fixture.source))
+                profile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(analysis.events.every((event) => !event.isQuarantined), isTrue);
         if (placement == 'yesMove') {
@@ -1383,7 +1391,9 @@ void main() {
             snapshot: fixture.source.snapshot,
             files: fixture.files,
             symbols: ['OLDROD'],
-            eventProfile: SourceEventProfile.kantoForProject(fixture.source));
+            eventProfile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
         fixture.files.reads.clear();
         await expectLater(
             const SourcePickupFeedbackResolver().read(
@@ -1510,7 +1520,9 @@ void main() {
       final projection = const SourceEventProjector().project(
           source: fixture.source,
           analysis: SourceEventAnalyzer.forProject(fixture.source,
-                  profile: SourceEventProfile.kantoForProject(fixture.source))
+                  profile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
               .analyze(),
           nativeMaps: {
             49: MapData.fromJson(Map<String, dynamic>.from(literal

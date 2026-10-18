@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -41,7 +42,9 @@ void main() {
         size: const GridSize(width: 3, height: 1),
         layers: [],
         gameplayZones: const [_zone]);
-    final profile = SourceEventProfile.kantoForProject(fixture.source);
+    final profile = SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
     final resolver = const SourceEventExecutionContextResolver();
     final context = await resolver.read(
         source: fixture.source,
@@ -143,7 +146,9 @@ void main() {
                 .toList());
     final source = fixture.source;
     final analysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.kantoForProject(source))
+            profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();
     final maps = {
       for (final entry in source.maps)

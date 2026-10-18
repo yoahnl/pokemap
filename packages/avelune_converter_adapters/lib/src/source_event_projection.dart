@@ -688,7 +688,7 @@ final class _ProjectionBuilder {
       sourceWarpTileNativePrograms(source: source, analysis: analysis);
   late final SourceEventAnalysis _authoritativeSourceAnalysis =
       SourceEventAnalyzer.forProject(source,
-          profile: SourceEventProfile.kantoForProject(source)).analyze();
+          profile: SourceEventProfile.forProject(source)).analyze();
   List<SourceEventDefinition> get _sourceContextEvents => _authoritativeSourceAnalysis.events;
   late final Set<ConverterId> _selectedEventIdentities =
       analysis.events.map((event) => event.identity).toSet();
@@ -2557,7 +2557,7 @@ final class _ProjectionBuilder {
     }
     final requiresScriptProfile = _requiresSourceControlScriptProfile(event) ||
         expected != null && _requiresSourceControlScriptProfile(expected);
-    if ((requiresScriptProfile && !SourceEventProfile.kantoForProject(source).isQualified) ||
+    if ((requiresScriptProfile && !SourceEventProfile.forProject(source).isQualified) ||
         expected == null || _sourceControlFingerprint(expected) != _sourceControlFingerprint(event)) {
       return {_hasSourceSelfSwitchControl(event) || (expected != null && _hasSourceSelfSwitchControl(expected)) ||
           _hasSourceSelfSwitchScript(event) || (expected != null && _hasSourceSelfSwitchScript(expected))

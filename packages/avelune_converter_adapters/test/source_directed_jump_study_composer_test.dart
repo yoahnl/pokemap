@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:io';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart'
@@ -44,7 +45,8 @@ Future<JumpFixture> jumpFixture(
   for (var x = 1; x <= runLength; x++) {
     middle[width * 2 + x] = 392 + (x - 1) % 3;
   }
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
     includeEventSystem: includeEventSystem,
     scriptsBytes:
         await File(Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS']!)

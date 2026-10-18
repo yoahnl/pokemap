@@ -32,6 +32,7 @@ Future<int> runConverterCli(List<String> arguments,
         splitCommas: false,
         help: 'Association explicite Référence=PNG source du même dossier.')
     ..addOption('name', help: 'Nom du projet natif.')
+    ..addOption('interpretation-profile', help: 'Profil JSON explicite des scripts source ; absent : étude littérale.')
     ..addOption('mode', defaultsTo: 'study', allowed: ['study'])
     ..addOption('plan',
         help: 'Nouveau fichier .json de recette, hors source et projet natif.')
@@ -75,7 +76,7 @@ Future<int> runConverterCli(List<String> arguments,
     out.writeln('Avelune Converter — étude locale hors ligne\n'
         'scan --source SOURCE --namespace ID --offline [--json]\n'
         'plan --source SOURCE --namespace ID --maps 1,2 --name NOM '
-        '--destination DEST --plan RECETTE.json --ack-profile --offline\n'
+        '--destination DEST --plan RECETTE.json --ack-profile [--interpretation-profile PROFIL.json] --offline\n'
         'convert --plan RECETTE.json --approve-plan SHA256 --offline\n'
         'verify --project DEST --offline\n'
         'Les chemins sont absolus. Code 0 d’étude ne certifie pas un jeu complet.\n');
@@ -209,6 +210,8 @@ Future<int> runConverterCli(List<String> arguments,
         return 0;
       }
       workflow.updateSettings(ConverterStudySettings(
+          interpretationProfile: command['interpretation-profile'] == null ? null :
+            await const LocalSourceInterpretationProfileStore().read(command['interpretation-profile'] as String),
           imageBindings: [
             for (final raw in command['atlas-binding'] as List<String>)
               _sourceImageBinding(raw, snapshot),
@@ -397,7 +400,8 @@ int converterCliExitCode(String code) {
       code == 'workflow.incomplete') {
     return 3;
   }
-  if (code == 'workflow.recipe.invalid' ||
+  if (code.startsWith('interpretation_profile.') ||
+      code == 'workflow.recipe.invalid' ||
       code == 'workflow.recipe.store_invalid' ||
       code == 'workflow.recipe.quota' ||
       code == 'workflow.destination.invalid' ||

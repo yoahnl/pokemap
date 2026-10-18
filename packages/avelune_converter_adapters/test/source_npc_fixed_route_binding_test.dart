@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/source_npc_fixed_route_binding.dart';
@@ -17,7 +18,9 @@ void main() {
     setUpAll(() async {
       source = await _readSource(archive!, sourceRoot!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       resolver = SourceNpcFixedRouteBindingResolver.forProject(source);
     });
@@ -123,8 +126,10 @@ void main() {
       expect(
           binding.isBoundToPage(
               source: source,
-              profile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64)),
+              profile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
               event: event,
               page: page),
           isFalse);
@@ -201,7 +206,9 @@ void main() {
           original.entry.relativePath: bytes,
         });
         final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(
             oldBinding.isBoundToPage(

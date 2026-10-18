@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
@@ -17,6 +18,21 @@ import 'support/native_media_source_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 
 void main() {
+  test('selected profile mismatch refuses preparation before native staging', () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+        interpretationProfile: syntheticSourceInterpretationProfile));
+      await expectLater(harness.workflow.prepareStudy(),
+        throwsA(isA<ConverterWorkflowFailure>().having((e) => e.code, 'code',
+          'interpretation_profile.source_mismatch')));
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+    } finally { await harness.close(); }
+  }, skip: !Platform.isMacOS);
+
   test(
       'closed self-switch qualification invalidates prior recursive recipes',
       () async {
@@ -316,7 +332,7 @@ void main() {
         ),
       );
       final json = settings.toJson();
-      expect(json['version'], 5);
+      expect(json['version'], 6);
       final write = json['writeLimits'] as Map;
       expect(write['maxImagePixels'], 16777216);
       expect(write['maxTotalImagePixels'], 33554432);
@@ -2506,8 +2522,10 @@ final class _WorkflowHarness {
           SourceNormalizationLimits normalizationLimits =
               const SourceNormalizationLimits(),
           NativeWriteLimits writeLimits = const NativeWriteLimits(),
-          ConverterAssetReviewSet? reviewSet}) =>
+          ConverterAssetReviewSet? reviewSet,
+          SourceInterpretationProfile? interpretationProfile}) =>
       ConverterStudySettings(
+        interpretationProfile: interpretationProfile ?? fixture.source.interpretationProfile,
         reviewSet: reviewSet,
         projectName: projectName ?? 'Controlled original workflow study',
         parentPath: parentPath ?? output.path,
@@ -2560,7 +2578,8 @@ final class _WorkflowHarness {
         tilesets: tilesets,
         autotilePngs: autotilePngs,
         contradictoryProfile: contradictoryProfile,
-        scriptsBytes: scriptsBytes,
+        interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
+      scriptsBytes: scriptsBytes,
         includeEventSystem: includeEventSystem,
         extraFiles: extraFiles,
       );

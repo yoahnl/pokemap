@@ -149,68 +149,52 @@ enum SourceEventConditionKind {
 }
 
 final class SourceEventProfile {
-  SourceEventProfile.kanto({
-    required this.scriptsArchiveHash,
-    required this.sourceSnapshotHash,
-    required this.normalizationHash,
-  });
+  SourceEventProfile(
+      {required this.scriptsArchiveHash,
+      required this.sourceSnapshotHash,
+      required this.normalizationHash,
+      this.interpretationProfile});
 
-  factory SourceEventProfile.kantoForProject(NormalizedSourceProject project,
-          {Sha256Hash? scriptsArchiveHash}) =>
-      SourceEventProfile.kanto(
-        scriptsArchiveHash: scriptsArchiveHash ?? _eventScriptsHash(project),
-        sourceSnapshotHash: project.snapshot.canonicalHash,
-        normalizationHash: project.canonicalHash,
-      );
+  factory SourceEventProfile.forProject(NormalizedSourceProject project,
+          {Sha256Hash? scriptsArchiveHash,
+          SourceInterpretationProfile? interpretationProfile}) =>
+      SourceEventProfile(
+          scriptsArchiveHash: scriptsArchiveHash ?? _eventScriptsHash(project),
+          sourceSnapshotHash: project.snapshot.canonicalHash,
+          normalizationHash: project.canonicalHash,
+          interpretationProfile:
+              interpretationProfile ?? project.interpretationProfile);
 
-  static const kantoScriptsArchiveSha256 =
-      '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
+  final SourceInterpretationProfile? interpretationProfile;
   final Sha256Hash? scriptsArchiveHash;
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash normalizationHash;
   bool get isQualified =>
-      scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
+      interpretationProfile?.supports('events') == true &&
+      interpretationProfile!.matchesArchive(scriptsArchiveHash);
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-events-static-v6',
+        'profile': 'rmxp-static-events-v1',
+        'interpretationProfile': interpretationProfile?.toJson(),
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
         'scope': 'staticEventPagesAndCommands',
+        'qualificationScope':
+            'declaredStaticContractAndRecognizedCommandStructure',
+        'unknownRubyPolicy': 'preserveAndQuarantine',
         'doorTiming': {
           'playerStepMs': 250,
           'movementContext': 'atFoot',
           'faceSemantics': 'routePassYield',
-          'globalRouteBarrierScope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
-          'sourceExecutionContext': 'freshNativeProjectWithoutImportedSourceFollowers',
-          'nativeTimingQualification': 'required',
+          'globalRouteBarrierScope':
+              'allRepresentedForcedRoutesOnTheActiveNativeMap',
+          'sourceExecutionContext':
+              'freshNativeProjectWithoutImportedSourceFollowers',
+          'nativeTimingQualification': 'required'
         },
-        'oracleSections': {
-          '032': '2ddbb7198dd0445142cf76c44b32ae8f983c11ec1230c6179d46808854356fe1',
-          '033':
-              'b2f4c542a1542a5908d1208b87eae05d8b6f6ec0d26df1835871595842ed0355',
-          '034':
-              'ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561',
-          '039':
-              '30a4141354d5580f777306d6d0ecdbb706c411ff445aec44afeb55f2c1f7dc0d',
-          '043': 'bba3deeae94afff918edfcde6d251748498f44f59655fc9ce32aa42f304d98c6',
-          '044':
-              '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9',
-          '045':
-              '8c11fb7f170df5ca2aff17725e1dbed031c94deebabdbbae69dd926e24acafa7',
-          '046': '7159cc172004da46b72a51b7d009df24de7a297bdb09599de31a4b5116dab373',
-          '055': '94d61f95de05effb31a464526f894f1a31882400e50f7b6e7a99629e0ae093ca',
-          '079':
-              'eacf78724bf5ab978b4b74d73149e3e556906d8f63d0ed380310bdddae7a6dad',
-          '088':
-              '82abdb33dfad9d735c4342ca63fa72483b1a34bb01bd2a1e034b03afa8207ec3',
-          '127':
-              'b280015f15e892754c90728bdbf23a77c280ebb86413cb51c64793e0b997757a',
-          '241':
-              'c96fe00962737e464754800079f8b1c43a9d2d88ea446c0357211e40383093b6',
-          '270':
-              '1ec9a83206e82546b286d5524b764942795119ac0b26e26049b9ac66dbbaf2aa',
-        },
+        'oracleSections': interpretationProfile?.eventOracleSections ??
+            const <String, Object?>{},
       };
 }
 

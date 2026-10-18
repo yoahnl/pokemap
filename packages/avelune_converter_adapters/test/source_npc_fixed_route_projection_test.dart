@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
@@ -33,7 +34,9 @@ void main() {
       final input = await readFixedRouteSource(archive!, root!);
       source = input.$1;
       final full = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       analysis = SourceEventAnalysis(
           profile: full.profile,

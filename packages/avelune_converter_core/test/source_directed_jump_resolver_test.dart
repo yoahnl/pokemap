@@ -1,17 +1,20 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
+import 'support/interpretation_profile_fixture.dart';
 
 Sha256Hash _hash(String value) => Sha256Hash(List.filled(64, value).join());
 
 SourceSemanticResolver _resolver({bool qualified = true}) =>
     SourceSemanticResolver(
-      profile: SourceSemanticProfile.kantoPlayerWalk(
+      profile: SourceSemanticProfile(
         scriptsArchiveHash: qualified
-            ? Sha256Hash(SourceSemanticProfile.kantoScriptsArchiveSha256)
+            ? Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value)
             : _hash('c'),
         sourceSnapshotHash: _hash('a'),
         sourceSelectionHash: _hash('b'),
-      ),
+
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
     );
 
 SourceSemanticTile _tile(int z,

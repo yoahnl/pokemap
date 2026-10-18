@@ -1,3 +1,4 @@
+import '../../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -66,6 +67,7 @@ Future<({NormalizedSourceProject source, ExternalOriginalFiles files})>
   final files = ExternalOriginalFiles(snapshot, root,
       supplementalRoots: supplementalRoots);
   final source = await const RmxpSourceNormalizer().normalize(
+      interpretationProfile: fixtureSourceInterpretationProfile,
       snapshot: snapshot,
       files: files,
       selectedMapIds: selectedMapIds,

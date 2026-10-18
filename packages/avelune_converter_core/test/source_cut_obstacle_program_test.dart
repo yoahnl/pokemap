@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -102,7 +103,9 @@ void main() {
     setUpAll(() async {
       source = await _source(archive!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
     test('all five exact source trees become typed closed programmes', () {
@@ -133,8 +136,10 @@ void main() {
     });
     test('an unqualified script profile cannot recognize Cut programmes', () {
       final rejected = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64)))
+              profile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       for (final key in _trees) {
         expect(rejected.eventAt(key.$1, key.$2)!.isQuarantined, isTrue);
@@ -211,7 +216,9 @@ void main() {
         final changed =
             await _source(archive!, before: mutation.$1, after: mutation.$2);
         final result = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(result.eventAt(98, 3)!.isQuarantined, isTrue);
         expect(

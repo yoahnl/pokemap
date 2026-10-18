@@ -9,12 +9,14 @@ final class SourcePartyTradeProgramNode extends SourceEventNode {
     required this.sourceSnapshotHash,
     required this.profileHash,
     required this.templateHash,
+    required this.interpretationProfile,
   }) : greetingLines = List.unmodifiable(greetingLines);
 
   final List<SourceTextNode> greetingLines;
   final SourceTextNode refusalLine;
   final SourcePreservedData rawDataRef;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
+  final SourceInterpretationProfile? interpretationProfile;
   int get sourceFacingDirection => 4;
   List<String> get choiceLabels => const ['YES', 'NO'];
   int get cancelType => 2;
@@ -74,12 +76,8 @@ final class SourcePartyTradeProgramNode extends SourceEventNode {
           'nativeSingleCommitAfterConfirmation'
         ],
         'sourceOracle': {
-          'archiveSha256':
-              '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d',
-          '324_UI_Trading':
-              'd21968157e1745d5cfa5e252ee733637c60513fb77dbe22b9760a1e247a7e1e6',
-          '273_Pokemon':
-              '2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec',
+          'archiveSha256': interpretationProfile?.scriptsArchiveHash.value,
+          'sections': interpretationProfile?.eventOracleSections,
         },
         'adaptedSourceEffects': {
           'temporaryPokemonVariables': 'nativeIndividualIdentity',
@@ -200,6 +198,7 @@ SourceEventBlock? _sourcePartyTradeProgramBlock(SourceEventAnalyzer analyzer,
         firstCommandIndex: 0, lastCommandIndex: 29, locator: locator);
     return SourceEventBlock(span: span, nodes: [
       SourcePartyTradeProgramNode._(span,
+          interpretationProfile: analyzer.profile.interpretationProfile,
           greetingLines: [text(1), text(2)],
           refusalLine: text(24),
           rawDataRef: reference,

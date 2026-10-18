@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -92,7 +93,9 @@ void main() {
           supplementalRoots: supplemental);
       source = fixture.source;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       maps = _maps(source);
       programs = sourceHoleNativePrograms(source: source, analysis: analysis);

@@ -155,8 +155,6 @@ final class LiteralAutotileComposition {
 final class LiteralAutotileComposer {
   const LiteralAutotileComposer();
 
-  static String get attestedArchiveSha256 => _scriptsHash;
-
   static int? attestedFrameDurationMs(String sourceName) {
     final suffix =
         RegExp(r'\[[ \t\n\r\f\v]*([0-9]+)[ \t\n\r\f\v]*\][ \t\n\r\f\v]*$')
@@ -170,6 +168,7 @@ final class LiteralAutotileComposer {
   Future<LiteralAutotileProfile> inspectProfile({
     required SourceSnapshot snapshot,
     required SourceFilePort files,
+    SourceInterpretationProfile? interpretationProfile,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -179,6 +178,17 @@ final class LiteralAutotileComposer {
       throw const LiteralAutotileFailure('autotile.snapshot.incomplete',
           'Autotile inspection requires a complete source snapshot');
     }
+    if (interpretationProfile == null || !interpretationProfile.supports('autotiles')) {
+      return LiteralAutotileProfile.unverified(sourceSnapshotHash: snapshot.canonicalHash);
+    }
+    final scriptPins = <(int, String, String)>[];
+    for (final role in const ['TilemapRenderer', 'AutotileExpander', 'TileDrawingHelper']) {
+      final pin = interpretationProfile.sections['autotiles.$role'];
+      if (pin == null) {
+        throw const LiteralAutotileFailure('autotile.profile.sections', 'Selected autotile interpretation lacks its structural witnesses');
+      }
+      scriptPins.add((pin['index'] as int, pin['name'] as String? ?? role, pin['sha256'] as String));
+    }
     final entries = snapshot.entries.where((entry) =>
         sourcePathCollisionKey(entry.relativePath) == 'data/scripts.rxdata');
     if (entries.length != 1) {
@@ -187,7 +197,7 @@ final class LiteralAutotileComposer {
     }
     final entry = entries.single;
     if (entry.kind != SourceNodeKind.file ||
-        entry.sha256?.value != _scriptsHash) {
+        entry.sha256 != interpretationProfile.scriptsArchiveHash) {
       return LiteralAutotileProfile.unverified(
           sourceSnapshotHash: snapshot.canonicalHash);
     }
@@ -213,7 +223,7 @@ final class LiteralAutotileComposer {
     }
     final facts = <String, Object?>{};
     var totalExpanded = 0;
-    for (final specification in _scriptPins) {
+    for (final specification in scriptPins) {
       cancellation?.check();
       if (specification.$1 >= root.elements.length) {
         throw const LiteralAutotileFailure(
@@ -496,7 +506,8 @@ final class LiteralAutotileComposer {
       'variantCount': 48,
       'localTileIdRule': 'frame*48+storedVariant',
       'neighborhoodRecomputed': false,
-      'patternSha256': _scriptPins[2].$3,
+      'patternSha256': (profile.provenance['sections'] as Map?)?['TileDrawingHelper'] is Map
+          ? ((profile.provenance['sections'] as Map)['TileDrawingHelper'] as Map)['sha256'] : null,
       'patternReference': 'TileDrawingHelper:5-18',
       'geometryReference': 'AutotileExpander:9-65',
       'sourceProfile': profile.provenance,
@@ -618,25 +629,6 @@ Uint8List _chunk(String type, List<int> data) {
   return output;
 }
 
-const _scriptsHash =
-    '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
-const _scriptPins = [
-  (
-    72,
-    'TilemapRenderer',
-    '321f334b2eeee0f1fa45d16f52117feb7ea765e17643b88c09a69285ada4bdef'
-  ),
-  (
-    74,
-    'AutotileExpander',
-    'c40587686d2176794b79aa926e0adc5fdb67db102dd6f14a7e54a1618635e597'
-  ),
-  (
-    75,
-    'TileDrawingHelper',
-    '2a94034ce77b68faeb8c7620e4a9cf2ceea81580992db7c86424cc3b63393bc7'
-  ),
-];
 const _extended = {1: (0, 128), 2: (32, 128), 4: (32, 160), 8: (0, 160)};
 const _quarters = [
   [27, 28, 33, 34],

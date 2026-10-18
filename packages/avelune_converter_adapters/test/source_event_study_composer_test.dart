@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -17,7 +18,8 @@ void main() {
   test('foreign self-switch survives canonical mutation write and strict reopen', () async {
     final temporary = await Directory.systemTemp.createTemp('foreign-self-switch-native-');
     addTearDown(() => temporary.delete(recursive: true));
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       scriptsBytes: await File(scriptsPath!).readAsBytes(), includeEventSystem: true,
       extraFiles: {
         'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
@@ -63,7 +65,9 @@ void main() {
       expect(native.loadDiagnostics, isEmpty);
       expect(native.manifest.facts.single.toJson(), factMutation.parameters['fact']);
       final expected = sourceEventFactBindingId(SourceEventAnalyzer.forProject(fixture.source,
-        profile: SourceEventProfile.kantoForProject(fixture.source)).selfFactId(2, 1, 'A'));
+        profile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+)).selfFactId(2, 1, 'A'));
       final set = native.manifest.scenes.expand((scene) => scene.graph.nodes)
           .map((node) => node.payload).whereType<SceneActionPayload>()
           .map((payload) => payload.consequence).whereType<SceneSetFactConsequence>().single;
@@ -108,7 +112,8 @@ void main() {
         'ac13-chunk-owners-',
       );
       addTearDown(() => temporary.delete(recursive: true));
-      final fixture = await LiteralTileFixture.create(
+      final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         includeEventSystem: true,
         extraFiles: {
@@ -335,7 +340,8 @@ void main() {
     final temporary =
         await Directory.systemTemp.createTemp('ac13-missing-npc-');
     addTearDown(() => temporary.delete(recursive: true));
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         includeEventSystem: true,
         extraFiles: {
@@ -428,7 +434,8 @@ void main() {
     final temporary =
         await Directory.systemTemp.createTemp('ac13-events-writer-');
     addTearDown(() => temporary.delete(recursive: true));
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath).readAsBytes(),
         includeEventSystem: true,
         variableNames: [null, ...List.filled(7, 'Original count')],

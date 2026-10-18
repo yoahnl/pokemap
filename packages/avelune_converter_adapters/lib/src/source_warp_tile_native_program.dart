@@ -36,7 +36,7 @@ final class SourceWarpTileNativeProgram {
 
   String selfSourceId(NormalizedSourceProject source) =>
       SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source))
           .selfFactId(event.sourceMapId,
               target?.sourceEventId ?? event.sourceEventId, 'A');
 
@@ -135,7 +135,7 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
             for (final event in selected) event.identity: reason,
           }));
   if (selected.isEmpty) return refuse('sourceWarpTileOutsideScope');
-  final profile = SourceEventProfile.kantoForProject(source);
+  final profile = SourceEventProfile.forProject(source);
   if (!profile.isQualified ||
       profile.canonicalHash != analysis.profile.canonicalHash ||
       _mapHashes.keys.any((id) => !source.selectedSourceMapIds.contains(id))) {

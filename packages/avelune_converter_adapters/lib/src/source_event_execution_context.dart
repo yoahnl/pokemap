@@ -217,7 +217,7 @@ final class SourceEventExecutionContextResolver {
         : null;
     final baseMutations = expandNativeMutationBatches(base, limits).toList();
     final authoritativeSourceAnalysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.kantoForProject(source))
+            profile: SourceEventProfile.forProject(source))
         .analyze();
     final result = <ConverterId, SourceEventExecutionContext>{};
     final witnesses = <String, Map<String, Object?>>{};
@@ -285,7 +285,7 @@ final class SourceEventExecutionContextResolver {
     Map<String, SourceEventAnalysis>? retainedAnalysisCache,
   }) async {
     cancellation?.check();
-    final profile = SourceEventProfile.kantoForProject(source);
+    final profile = SourceEventProfile.forProject(source);
     final refusals = <String>{};
     final proof = <String, Object?>{};
     final snapshotHash = source.snapshot.canonicalHash;
@@ -505,7 +505,7 @@ final class SourceEventExecutionContextResolver {
         .firstOrNull;
     final witnesses = <Map<String, Object?>>[];
     for (final expected in {
-      'Data/Scripts.rxdata': SourceEventProfile.kantoScriptsArchiveSha256,
+      'Data/Scripts.rxdata': source.interpretationProfile?.scriptsArchiveHash.value,
       'Data/PluginScripts.rxdata':
           'f390bd7fb8c034267c8341500f257b8ab1aaaef204c4c88477c81b39806ce9bb',
       if (!localTransfer)
@@ -641,12 +641,12 @@ final class SourceEventExecutionContextResolver {
         final SourceEventAnalysis analysis;
         if (identical(project, source)) {
           analysis = freshAnalysis ??= SourceEventAnalyzer.forProject(project,
-                  profile: SourceEventProfile.kantoForProject(project))
+                  profile: SourceEventProfile.forProject(project))
               .analyze();
         } else {
           analysis = retainedAnalysisCache?[cacheKey] ??
               SourceEventAnalyzer.forProject(project,
-                      profile: SourceEventProfile.kantoForProject(project))
+                      profile: SourceEventProfile.forProject(project))
                   .analyze();
           retainedAnalysisCache?[cacheKey] = analysis;
         }

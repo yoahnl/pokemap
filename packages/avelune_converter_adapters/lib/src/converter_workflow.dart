@@ -136,6 +136,7 @@ final class ConverterStudySettings {
     required String folderName,
     required List<int> selectedSourceMapIds,
     required SourceStudyAcknowledgement profileAcknowledgement,
+    SourceInterpretationProfile? interpretationProfile,
     List<LiteralDependencyDecision> dependencyDecisions = const [],
     List<SourceImageBinding> imageBindings = const [],
     bool allowFirstFrameAutotiles = false,
@@ -208,6 +209,7 @@ final class ConverterStudySettings {
         folderName,
         List.unmodifiable(ids),
         profileAcknowledgement,
+        interpretationProfile,
         List.unmodifiable(decisions),
         bindings,
         allowFirstFrameAutotiles,
@@ -223,6 +225,7 @@ final class ConverterStudySettings {
       this.folderName,
       this.selectedSourceMapIds,
       this.profileAcknowledgement,
+      this.interpretationProfile,
       this.dependencyDecisions,
       this.imageBindings,
       this.allowFirstFrameAutotiles,
@@ -236,6 +239,7 @@ final class ConverterStudySettings {
   final String folderName;
   final List<int> selectedSourceMapIds;
   final SourceStudyAcknowledgement profileAcknowledgement;
+  final SourceInterpretationProfile? interpretationProfile;
   final List<LiteralDependencyDecision> dependencyDecisions;
   final List<SourceImageBinding> imageBindings;
   final bool allowFirstFrameAutotiles;
@@ -248,12 +252,13 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 5,
+        'version': 6,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
         'selectedSourceMapIds': selectedSourceMapIds,
         'profileAcknowledgement': profileAcknowledgement.toJson(),
+        'interpretationProfile': interpretationProfile?.toJson(),
         'dependencyDecisions':
             dependencyDecisions.map((value) => value.toJson()).toList(),
         'imageBindings': imageBindings.map((value) => value.toJson()).toList(),
@@ -1467,6 +1472,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             cancellation: relay.cancellation,
             selectedMapIds: wanted,
             imageBindings: settings.imageBindings,
+            interpretationProfile: settings.interpretationProfile,
             includeEventSystem: true,
             includeConnections: snapshot.entries.any((entry) =>
                 entry.kind == SourceNodeKind.file &&
@@ -2106,9 +2112,9 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'assetLibrary':
           'map-segmented-human-reviewed-static-parts-with-original-png-witnesses',
       'assetPlacements': 'attested-static-priority-elements',
-      'sourceSemantics': 'kanto-profile-walking-cardinal-closed-unqualified',
+      'sourceSemantics': 'explicit-profile-static-walking-cardinal-v1',
       'sourceDirectedJumps':
-          'kanto-static-south-ledgeline32-v2-exact-source-replay-with-event-footprint-exclusion',
+          'explicit-profile-static-south-ledgeline32-v3-exact-source-replay-with-event-footprint-exclusion',
       'sourceConnections':
           'compiled-complete-graph-unique-opposing-selected-edges',
       'sourcePlayer': 'attested-original-pixels-padded-without-resampling',

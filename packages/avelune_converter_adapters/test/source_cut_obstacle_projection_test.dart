@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/source_field_obstacle_binding.dart';
@@ -60,7 +61,9 @@ void main() {
     setUpAll(() async {
       source = await readOriginalCutSource(archive!);
       final full = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       analysis = full;
       expect(analysis.events.where((event) => event.pages

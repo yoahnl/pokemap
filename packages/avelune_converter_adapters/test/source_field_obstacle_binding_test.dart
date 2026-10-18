@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart'
@@ -591,7 +592,9 @@ void main() {
       source = original.source;
       originalFiles = original.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       bindings = (await const SourceFieldObstacleBindingResolver()
           .read(source: source, analysis: analysis, files: originalFiles))!;
@@ -816,7 +819,9 @@ void main() {
           selectedMapIds: const {98, 154, 245, 274},
           overrideBytes: {'Data/Scripts.rxdata': scripts, ...overrides});
       final analyzed = SourceEventAnalyzer.forProject(variant.source,
-              profile: SourceEventProfile.kantoForProject(variant.source))
+              profile: SourceEventProfile.forProject(variant.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       return (await const SourceFieldObstacleBindingResolver().read(
           source: variant.source, analysis: analyzed, files: variant.files))!;
@@ -1189,7 +1194,9 @@ void main() {
             'PBS/map_metadata.txt': utf8.encode(changed)
           });
       final analyzed = SourceEventAnalyzer.forProject(variant.source,
-              profile: SourceEventProfile.kantoForProject(variant.source))
+              profile: SourceEventProfile.forProject(variant.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final result = (await const SourceFieldObstacleBindingResolver().read(
           source: variant.source, analysis: analyzed, files: variant.files))!;
@@ -1225,7 +1232,9 @@ void main() {
             'PBS/map_metadata.txt': utf8.encode(changed)
           });
       final analyzed = SourceEventAnalyzer.forProject(variant.source,
-              profile: SourceEventProfile.kantoForProject(variant.source))
+              profile: SourceEventProfile.forProject(variant.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final result = (await const SourceFieldObstacleBindingResolver().read(
           source: variant.source, analysis: analyzed, files: variant.files))!;

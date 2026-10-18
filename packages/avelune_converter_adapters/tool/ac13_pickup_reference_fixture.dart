@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -51,7 +52,7 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
       'The source archive exceeds the bounded profile');
   final archiveBytes = await scripts.readAsBytes();
   final archiveHash = _hash(archiveBytes);
-  _require(archiveHash == SourceEventProfile.kantoScriptsArchiveSha256,
+  _require(archiveHash == fixtureSourceInterpretationProfile.scriptsArchiveHash.value,
       'The pickup oracle requires the exact attested Kanto archive');
   final parent = outputParentPath == null
       ? Directory.systemTemp
@@ -103,7 +104,8 @@ Future<Ac13PickupReferenceFixture> buildAc13PickupReferenceFixture({
     iconPath: _iconPng(),
     audioPath: _wav(),
   };
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
     namespace: _namespace,
     sourceRootPath: sourceRoot.path,
     scriptsBytes: archiveBytes,

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:image/image.dart' as image;
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -253,7 +254,9 @@ void main() {
           supplementalRoots: supplemental);
       source = fixture.source;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       programs = sourceStairPrograms(source: source, analysis: analysis);
     });
@@ -375,7 +378,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       maps = _maps(source);
       programs = sourceStairPrograms(source: source, analysis: analysis);
@@ -550,7 +555,8 @@ void main() {
       }
       final archive = source.snapshot.entries
           .singleWhere((entry) => entry.relativePath == 'Data/Scripts.rxdata');
-      final fixture = await LiteralTileFixture.create(
+      final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
           includeEventSystem: true,
           scriptsBytes: await files.read(archive.fileId),
           extraFiles: {
@@ -623,7 +629,9 @@ void main() {
         return _integer(bytes, _field(document, step, '@code'), 38);
       });
       final fresh = SourceEventAnalyzer.forProject(changed.source,
-              profile: SourceEventProfile.kantoForProject(changed.source))
+              profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final event = fresh.eventAt(7, 2)!;
       expect(event.isQuarantined, true);
@@ -687,7 +695,9 @@ void main() {
           limits: limits);
       expect(events, isNotNull);
       final parsed = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       for (final pair in journey.events) {
         final event = parsed.eventAt(pair.$1, pair.$2)!;

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -106,7 +107,9 @@ void main() {
       source = fixture.$1;
       files = fixture.$2;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       bindings = await const SourceTrainerEventBindingResolver()
           .read(source: source, analysis: analysis, files: files);
@@ -167,8 +170,10 @@ void main() {
               analysis: analysis,
               event: analysis.eventAt(98, 2)!),
           isFalse);
-      final badProfile = SourceEventProfile.kantoForProject(source,
-          scriptsArchiveHash: Sha256Hash('0' * 64));
+      final badProfile = SourceEventProfile.forProject(source,
+          scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
       final badAnalysis =
           SourceEventAnalyzer.forProject(source, profile: badProfile).analyze();
       expect(
@@ -235,7 +240,9 @@ void main() {
           additionalHeader: 'Items = POTION');
       final changed = fixture.$1;
       final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-              profile: SourceEventProfile.kantoForProject(changed))
+              profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final result = await const SourceTrainerEventBindingResolver()
           .read(source: changed, analysis: changedAnalysis, files: fixture.$2);
@@ -252,7 +259,9 @@ void main() {
           await _source(archive!, sourceRoot!, unrelatedRosterChange: true);
       final changed = fixture.$1;
       final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-              profile: SourceEventProfile.kantoForProject(changed))
+              profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final result = await const SourceTrainerEventBindingResolver()
           .read(source: changed, analysis: changedAnalysis, files: fixture.$2);

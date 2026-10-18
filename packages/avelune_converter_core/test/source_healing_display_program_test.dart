@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -99,7 +100,9 @@ void main() {
     late SourceEvent event;
     setUpAll(() async {
       source = await _source(archive!);
-      profile = SourceEventProfile.kantoForProject(source);
+      profile = SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
       event = source.maps
           .singleWhere((map) => map.map.sourceMapId == 102)
           .map
@@ -193,8 +196,10 @@ void main() {
       });
     }
     test('an unqualified script profile never authorizes a visual program', () {
-      final unqualified = SourceEventProfile.kantoForProject(source,
-          scriptsArchiveHash: Sha256Hash('0' * 64));
+      final unqualified = SourceEventProfile.forProject(source,
+          scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
       expect(
           resolveSourceHealingDisplayProgram(
               source: source,
@@ -223,7 +228,9 @@ void main() {
         expect(
             resolveSourceHealingDisplayProgram(
                 source: changed,
-                profile: SourceEventProfile.kantoForProject(changed),
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
                 sourceMapId: 102,
                 event: changedEvent),
             isNull);

@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -414,7 +415,8 @@ void main() {
       final output =
           await Directory.systemTemp.createTemp('ac15-native-connection-');
       try {
-        final fixture = await LiteralTileFixture.create(
+        final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
             scriptsBytes: scripts,
             includeEventSystem: true,
             maps: [
@@ -572,7 +574,8 @@ Future<_Fixture> _fixture(List<List<Object>>? rows,
     List<LiteralFixtureTileset>? tilesets,
     Map<int, List<LiteralFixtureEvent>> events = const {}}) async {
   final scriptPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       scriptsBytes:
           scriptPath == null ? null : await File(scriptPath).readAsBytes(),
       tilesets: tilesets,

@@ -1,3 +1,4 @@
+import '../../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -88,6 +89,7 @@ Future<NormalizedSourceProject> readOriginalCutSource(String folder,
       ],
       state: SourceScanState.values.byName(input['state'] as String));
   return const RmxpSourceNormalizer().normalize(
+      interpretationProfile: fixtureSourceInterpretationProfile,
       snapshot: snapshot,
       files: _Files(bytes),
       selectedMapIds: selectedMapIds,

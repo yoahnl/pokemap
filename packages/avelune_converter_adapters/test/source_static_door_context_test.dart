@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -175,7 +176,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       maps = _maps(source);
       door = analysis.eventAt(7, 1)!;
@@ -323,7 +326,9 @@ void main() {
           return [...bytes.take(bytes.length - 1), bytes.last ^ 1];
         });
         final parsed = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final staticPrograms =
             sourceStaticDoorPrograms(source: changed.source, analysis: parsed);
@@ -365,7 +370,9 @@ void main() {
           return _integer(bytes, _field(document, step, '@code'), 45);
         });
         final actual = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final exactDoor = actual.eventAt(7, 1)!;
         final safeGraphic = actual.events
@@ -485,7 +492,9 @@ void main() {
           return result;
         });
         final parsed = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final staticPrograms =
             sourceStaticDoorPrograms(source: changed.source, analysis: parsed);

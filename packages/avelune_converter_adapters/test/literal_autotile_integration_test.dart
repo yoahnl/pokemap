@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -173,7 +174,8 @@ void main() {
   final scriptsPath = Platform.environment['AVELUNE_AUTOTILE_SCRIPTS_PATH'];
   test('AUTO-02 attested native pipeline writes all 48 three-frame timelines',
       () async {
-    final attested = await LiteralTileFixture.create(
+    final attested = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         sourceRootPath: '${root.path}/attested-source',
         maps: [
           LiteralFixtureMap(id: 1, width: 8, height: 6, layers: [

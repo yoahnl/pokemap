@@ -118,7 +118,7 @@ final class SourceExternalWarpBindingResolver {
     if (!source.canPlan ||
         source.snapshot.state != SourceScanState.complete ||
         analysis.profile.canonicalHash !=
-            SourceEventProfile.kantoForProject(source).canonicalHash) {
+            SourceEventProfile.forProject(source).canonicalHash) {
       throw const SourceExternalWarpBindingUnavailable('source_unqualified');
     }
     final programs = <ConverterId, SourceExternalWarpProgram>{};

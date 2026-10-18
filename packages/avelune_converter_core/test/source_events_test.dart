@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -556,9 +557,11 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
 SourceEventAnalyzer _analyzer(NormalizedSourceProject project,
         {String? scriptsHash}) =>
     SourceEventAnalyzer.forProject(project,
-        profile: SourceEventProfile.kantoForProject(project,
+        profile: SourceEventProfile.forProject(project,
             scriptsArchiveHash: Sha256Hash(
-                scriptsHash ?? SourceEventProfile.kantoScriptsArchiveSha256)));
+                scriptsHash ?? fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
 
 _RubyObject _withCondition(_RubyObject page, Map<String, Object?> values) {
   (page.fields['@condition'] as _RubyObject).fields.addAll(values);
@@ -1284,9 +1287,11 @@ void main() {
         sourceDirection: 8).isQualified, isFalse);
   });
   test('original door profile declares a map scoped route barrier and fresh followers', () {
-    final profile = SourceEventProfile.kanto(
-      scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
-      sourceSnapshotHash: Sha256Hash('a' * 64), normalizationHash: Sha256Hash('b' * 64));
+    final profile = SourceEventProfile(
+      scriptsArchiveHash: Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+      sourceSnapshotHash: Sha256Hash('a' * 64), normalizationHash: Sha256Hash('b' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
     final timing = profile.toJson()['doorTiming'] as Map;
     expect(timing['globalRouteBarrierScope'], 'allRepresentedForcedRoutesOnTheActiveNativeMap');
     expect(timing['sourceExecutionContext'], 'freshNativeProjectWithoutImportedSourceFollowers');
@@ -1390,7 +1395,7 @@ void main() {
         greaterThan(branch.span.lastCommandIndex));
     expect([branch.span.lastCommandIndex, setter.span.firstCommandIndex],
         [25, 26]);
-    expect(result.profile.toJson()['profile'], 'kanto-events-static-v6');
+    expect(result.profile.toJson()['profile'], 'rmxp-static-events-v1');
     expect(project.canonicalHash, before);
     expect(project.archive.canonicalHash, archive);
   });
@@ -1915,11 +1920,17 @@ void main() {
       _command(106, [8]), _command(0, []),
     ])]);
     for (final profile in [
-      SourceEventProfile.kantoForProject(project, scriptsArchiveHash: _hash([9])),
-      SourceEventProfile.kanto(scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
-          sourceSnapshotHash: _hash([9]), normalizationHash: project.canonicalHash),
-      SourceEventProfile.kanto(scriptsArchiveHash: Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
-          sourceSnapshotHash: project.snapshot.canonicalHash, normalizationHash: _hash([9])),
+      SourceEventProfile.forProject(project, scriptsArchiveHash: _hash([9]),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+      SourceEventProfile(scriptsArchiveHash: Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+          sourceSnapshotHash: _hash([9]), normalizationHash: project.canonicalHash,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+      SourceEventProfile(scriptsArchiveHash: Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+          sourceSnapshotHash: project.snapshot.canonicalHash, normalizationHash: _hash([9]),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
     ]) {
       final page = SourceEventAnalyzer.forProject(project, profile: profile)
           .analyze().requireEvent(1, 1).pages.single;
@@ -1967,9 +1978,11 @@ void main() {
   test('static event profile attests facing and native interaction oracles',
       () async {
     final profile =
-        SourceEventProfile.kantoForProject(await _events([_page([])]));
+        SourceEventProfile.forProject(await _events([_page([])]),
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
     final json = profile.toJson();
-    expect(json['profile'], 'kanto-events-static-v6');
+    expect(json['profile'], 'rmxp-static-events-v1');
     expect(
         json['oracleSections'],
         containsPair('039',
@@ -2177,18 +2190,24 @@ void main() {
       () async {
     final project = await _events([_page(_facingCommands())]);
     for (final profile in [
-      SourceEventProfile.kantoForProject(project,
-          scriptsArchiveHash: Sha256Hash('a' * 64)),
-      SourceEventProfile.kanto(
+      SourceEventProfile.forProject(project,
+          scriptsArchiveHash: Sha256Hash('a' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+      SourceEventProfile(
           scriptsArchiveHash:
-              Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+              Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
           sourceSnapshotHash: _hash([9]),
-          normalizationHash: project.canonicalHash),
-      SourceEventProfile.kanto(
+          normalizationHash: project.canonicalHash,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+      SourceEventProfile(
           scriptsArchiveHash:
-              Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+              Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
           sourceSnapshotHash: project.snapshot.canonicalHash,
-          normalizationHash: _hash([9])),
+          normalizationHash: _hash([9]),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
     ]) {
       final page = SourceEventAnalyzer.forProject(project, profile: profile)
           .analyze()
@@ -2650,7 +2669,9 @@ void main() {
     expect(profile.normalizationHash, project.canonicalHash);
     expect(
         _analyzer(project, scriptsHash: 'a' * 64).profile.isQualified, isFalse);
-    expect(SourceEventProfile.kantoForProject(project).isQualified, isFalse);
+    expect(SourceEventProfile.forProject(project,
+interpretationProfile: fixtureSourceInterpretationProfile,
+).isQualified, isFalse);
   });
 
   test('System is optional and retained only for requested event studies',
@@ -2978,11 +2999,13 @@ void main() {
             .requireEvent(1, 1)
             .isQuarantined,
         isTrue);
-    final wrong = SourceEventProfile.kanto(
+    final wrong = SourceEventProfile(
         scriptsArchiveHash:
-            Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+            Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
         sourceSnapshotHash: _hash([9]),
-        normalizationHash: project.canonicalHash);
+        normalizationHash: project.canonicalHash,
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
     expect(
         SourceEventAnalyzer.forProject(project, profile: wrong)
             .analyze()

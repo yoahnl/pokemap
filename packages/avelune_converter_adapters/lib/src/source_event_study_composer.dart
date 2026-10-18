@@ -72,7 +72,7 @@ final class SourceEventStudyComposer {
       throw ContractError('native_catalog.encounter_qualification_identity', r'$',
           'Trainer events require the exact active encounter catalog.');
     }
-    final profile = SourceEventProfile.kantoForProject(source);
+    final profile = SourceEventProfile.forProject(source);
     if (!profile.isQualified ||
         !base.compositionEvidence.containsKey('sourceSemantics')) {
       return null;
@@ -973,7 +973,7 @@ Future<({MapInstanceRetentionPolicy policy, Map<String, Object?> evidence})>
   cancellation?.check();
   final entries = source.snapshot.entries.where((entry) =>
     sourcePathCollisionKey(entry.relativePath) == 'data/map_metadata.dat').toList();
-  if (!SourceEventProfile.kantoForProject(source).isQualified || entries.length != 1 ||
+  if (!SourceEventProfile.forProject(source).isQualified || entries.length != 1 ||
       entries.single.relativePath != 'Data/map_metadata.dat') {
     throw const NativeWriteException('events.retention.metadata',
       'Map retention requires the exact source map metadata');

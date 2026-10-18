@@ -158,8 +158,8 @@ final class SourceMapMusicResolver {
     if (document.node(autoplayId).booleanValue == false) return null;
     if (limits.maxArtifacts < 1 || limits.maxMutations < 2) _quota();
     final scripts = entry('Data/Scripts.rxdata', 'profile_unqualified');
-    if (scripts.sha256!.value != SourceEventProfile.kantoScriptsArchiveSha256 ||
-        !SourceEventProfile.kantoForProject(source).isQualified) {
+    if (scripts.sha256!.value != source.interpretationProfile?.scriptsArchiveHash.value ||
+        !SourceEventProfile.forProject(source).isQualified) {
       _unavailable('profile_unqualified');
     }
     await read(scripts);
@@ -353,7 +353,7 @@ final class SourceMapMusicResolver {
         'importBeforeMaps': true,
         'mapMutationAfterMapSave': true,
         'sourceOracle': {
-          'scriptsArchiveHash': SourceEventProfile.kantoScriptsArchiveSha256,
+          'scriptsArchiveHash': source.interpretationProfile?.scriptsArchiveHash.value,
           'settings': {
             'section': 0,
             'sha256':

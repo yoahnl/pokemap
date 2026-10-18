@@ -16,6 +16,7 @@ final class SourceNpcFixedRouteBinding {
     required this.sourceSnapshotHash,
     required this.normalizationHash,
     required this.profileHash,
+    required this.sourceScriptsHash,
     required this.sourceMapId,
     required this.sourceEventId,
     required this.sourcePageIndex,
@@ -32,6 +33,7 @@ final class SourceNpcFixedRouteBinding {
       eventHash,
       pageHash;
   final int sourceMapId, sourceEventId, sourcePageIndex;
+  final Sha256Hash? sourceScriptsHash;
 
   bool isBoundToPage({
     required NormalizedSourceProject source,
@@ -82,7 +84,7 @@ final class SourceNpcFixedRouteBinding {
         'sourceScriptsExecuted': 0,
         'oracle': {
           'scriptsArchiveSha256':
-              SourceSemanticProfile.kantoScriptsArchiveSha256,
+              sourceScriptsHash?.value,
           'section': 44,
           'sha256':
               '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9',
@@ -96,7 +98,7 @@ final class SourceNpcFixedRouteBinding {
 
 final class SourceNpcFixedRouteBindingResolver {
   SourceNpcFixedRouteBindingResolver.forProject(this.source)
-      : _profile = SourceEventProfile.kantoForProject(source);
+      : _profile = SourceEventProfile.forProject(source);
 
   final NormalizedSourceProject source;
   final SourceEventProfile _profile;
@@ -242,6 +244,7 @@ final class SourceNpcFixedRouteBindingResolver {
     );
     assertValidMapEntityNpcMovementConfig(movement);
     return SourceNpcFixedRouteBinding._(
+      sourceScriptsHash: _profile.scriptsArchiveHash,
       nativeMovement: movement,
       initialFacing: switch (graphic.direction) {
         2 => EntityFacing.south,

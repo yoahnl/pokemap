@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -122,7 +123,9 @@ SourceEventProjection _project(NormalizedSourceProject source,
       source: source,
       analysis: analysis ??
           SourceEventAnalyzer.forProject(source,
-                  profile: SourceEventProfile.kantoForProject(source))
+                  profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
               .analyze(),
       nativeMaps: {102: native},
       centerRecoveryBinding: centerRecoveryBinding,
@@ -307,7 +310,9 @@ void main() {
         'PC program refuses changed analyzed raw, condition and graphic witnesses',
         () {
       final analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final original = analysis.eventAt(102, 3)!;
       final page = original.pages.first;
@@ -478,7 +483,9 @@ void main() {
       final recovery = await const SourceCenterRecoveryResolver().read(
           source: source, files: _OriginalAudioFiles(source, sourceRoot!));
       final analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final book = analysis.eventAt(102, 5)!;
       final movedBook = SourceEventDefinition(

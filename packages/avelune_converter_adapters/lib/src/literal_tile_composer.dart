@@ -889,6 +889,7 @@ final class _LiteralCompositionRun {
     }
     const composer = LiteralAutotileComposer();
     final profile = await composer.inspectProfile(
+        interpretationProfile: source.interpretationProfile,
         snapshot: source.snapshot,
         files: files,
         limits: limits,

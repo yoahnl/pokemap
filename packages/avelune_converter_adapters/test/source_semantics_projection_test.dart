@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/src/source_semantics_projection.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
@@ -509,12 +510,14 @@ SourcePlayerCharacterImport _playerForFixture(LiteralTileFixture fixture) {
 }
 
 SourceSemanticResolver _resolver() => SourceSemanticResolver(
-      profile: SourceSemanticProfile.kantoPlayerWalk(
+      profile: SourceSemanticProfile(
         scriptsArchiveHash:
-            Sha256Hash(SourceSemanticProfile.kantoScriptsArchiveSha256),
+            Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
         sourceSnapshotHash: Sha256Hash(List.filled(64, 'a').join()),
         sourceSelectionHash: Sha256Hash(List.filled(64, 'b').join()),
-      ),
+
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
     );
 
 GameplayWorldState _collisionWorld(

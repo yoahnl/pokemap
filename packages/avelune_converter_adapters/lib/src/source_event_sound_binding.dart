@@ -49,7 +49,7 @@ final class SourceEventSoundResolver {
   }) async {
     cancellation?.check();
     limits.validate();
-    if (!SourceEventProfile.kantoForProject(source).isQualified ||
+    if (!SourceEventProfile.forProject(source).isQualified ||
         source.snapshot.state != SourceScanState.complete) {
       _unavailable('profile_unqualified');
     }
@@ -170,7 +170,7 @@ final class SourceEventSoundResolver {
         evidence: _freeze({
           'sourceAudioFile': audio.toJson(),
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
-          'sourceScriptsHash': SourceEventProfile.kantoScriptsArchiveSha256,
+          'sourceScriptsHash': source.interpretationProfile?.scriptsArchiveHash.value,
           'policy': policy.name,
           'sourceEngineGainQualified':
               policy == SourceEventSoundPolicy.sourceEngineGain,

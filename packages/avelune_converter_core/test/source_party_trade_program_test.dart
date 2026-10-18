@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -99,7 +100,9 @@ void main() {
     setUpAll(() async {
       source = await _source(archive!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
     test('the complete guard page becomes one typed inert native trade program',
@@ -174,8 +177,10 @@ void main() {
     });
     test('an unqualified source profile refuses the entire guard', () {
       final result = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64)))
+              profile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       expect(result.eventAt(102, 7)!.isQuarantined, true);
     });
@@ -196,7 +201,9 @@ void main() {
         final changed =
             await _source(archive!, before: mutation.$1, after: mutation.$2);
         final result = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(result.eventAt(102, 7)!.isQuarantined, true);
       });

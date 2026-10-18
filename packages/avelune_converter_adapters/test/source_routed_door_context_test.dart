@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:map_gameplay/map_gameplay.dart';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -183,7 +184,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       maps = _maps(source);
       door = analysis.eventAt(6, 2)!;
@@ -335,7 +338,9 @@ void main() {
         return _integer(bytes, _field(document, step, '@code'), 45);
       });
       final actual = SourceEventAnalyzer.forProject(changed.source,
-              profile: SourceEventProfile.kantoForProject(changed.source))
+              profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final forged = SourceEventAnalysis(
           profile: actual.profile,
@@ -364,7 +369,9 @@ void main() {
           (document, bytes) => _integer(
               bytes, _field(document, _page(document, 15, 0), '@trigger'), 4));
       final parsed = SourceEventAnalyzer.forProject(changed.source,
-              profile: SourceEventProfile.kantoForProject(changed.source))
+              profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final selected =
           sourceRoutedDoorPrograms(source: changed.source, analysis: parsed);
@@ -395,7 +402,9 @@ void main() {
             18);
       });
       final parsed = SourceEventAnalyzer.forProject(changed.source,
-              profile: SourceEventProfile.kantoForProject(changed.source))
+              profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       expect(
           sourceRoutedDoorPrograms(source: changed.source, analysis: parsed)
@@ -414,7 +423,9 @@ void main() {
               code);
         });
         final parsed = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(
             sourceRoutedDoorPrograms(source: changed.source, analysis: parsed)
@@ -430,7 +441,9 @@ void main() {
         return _integer(bytes, _field(document, graphic, '@pattern'), 3);
       });
       final parsed = SourceEventAnalyzer.forProject(changed.source,
-              profile: SourceEventProfile.kantoForProject(changed.source))
+              profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       expect(parsed.eventAt(6, 2)!.isQuarantined, false);
       expect(
@@ -450,7 +463,9 @@ void main() {
         return _integer(bytes, _field(document, graphic, '@pattern'), 3);
       });
       final parsed = SourceEventAnalyzer.forProject(changed.source,
-              profile: SourceEventProfile.kantoForProject(changed.source))
+              profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final event = parsed.eventAt(15, 23)!;
       expect(event.pages, hasLength(2));
@@ -568,7 +583,9 @@ void main() {
             selectedMapIds: scenario.maps,
             supplementalRoots: supplementalRoots);
         final before = SourceEventAnalyzer.forProject(fixture.source,
-                profile: SourceEventProfile.kantoForProject(fixture.source))
+                profile: SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final original =
             before.eventAt(scenario.ownerMap, scenario.ownerEvent)!;
@@ -607,7 +624,9 @@ void main() {
           return result;
         });
         final actual = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final bound = actual.eventAt(scenario.ownerMap, scenario.ownerEvent)!;
         final forged = SourceEventAnalysis(

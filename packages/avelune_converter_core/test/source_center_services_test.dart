@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -100,7 +101,9 @@ void main() {
     setUpAll(() async {
       source = await _source(archive!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
 
@@ -170,8 +173,10 @@ void main() {
     test('an unqualified profile does not recognize native center programs',
         () {
       final rejected = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64)))
+              profile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       for (final eventId in [2, 3]) {
         expect(rejected.eventAt(102, eventId)!.isQuarantined, isTrue);
@@ -200,7 +205,9 @@ void main() {
           .singleWhere((event) => event.sourceEventId == 3);
       final program = analysis.eventAt(102, 3)!.pages.first.body.nodes.single
           as SourceCenterServiceProgramNode;
-      final profile = SourceEventProfile.kantoForProject(source);
+      final profile = SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
       expect(
           program.isBoundToSourceEvent(
               source: source,
@@ -234,7 +241,9 @@ void main() {
         final changed =
             await _source(archive!, before: mutation.$1, after: mutation.$2);
         final result = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final event = result.eventAt(102, mutation.$3)!;
         expect(event.isQuarantined, isTrue);

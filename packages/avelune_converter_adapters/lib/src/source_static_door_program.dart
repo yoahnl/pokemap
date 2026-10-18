@@ -59,7 +59,7 @@ final class SourceStaticDoorProgram {
 Map<ConverterId, SourceStaticDoorProgram> sourceStaticDoorPrograms(
     {required NormalizedSourceProject source,
     required SourceEventAnalysis analysis}) {
-  final profile = SourceEventProfile.kantoForProject(source);
+  final profile = SourceEventProfile.forProject(source);
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
     throw const NativeWriteException('events.source.binding',

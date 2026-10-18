@@ -125,7 +125,7 @@ final class SourceHealingDisplayBindingResolver {
         source.snapshot.state != SourceScanState.complete ||
         !analysis.profile.isQualified ||
         analysis.profile.canonicalHash !=
-            SourceEventProfile.kantoForProject(source).canonicalHash ||
+            SourceEventProfile.forProject(source).canonicalHash ||
         events.length != 1) {
       throw const SourceHealingDisplayBindingUnavailable('source_unqualified');
     }

@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -56,10 +57,11 @@ void main() {
   }
 
   ConverterStudyPlanRecipe connectionRecipe(int maxConnections,
-      {NativeWriteLimits writeLimits = const NativeWriteLimits()}) {
+      {NativeWriteLimits writeLimits = const NativeWriteLimits(), SourceInterpretationProfile? interpretationProfile}) {
     final sourceHash = Sha256Hash('1' * 64);
     final profileHash = Sha256Hash('2' * 64);
     final settings = ConverterStudySettings(
+        interpretationProfile: interpretationProfile,
         projectName: 'Original connection quota study',
         parentPath: output.path,
         folderName: 'original-study',
@@ -90,6 +92,16 @@ void main() {
         rulesHash: Sha256Hash('8' * 64),
         converterVersion: 'original-quota-fixture');
   }
+
+  test('selected interpretation is persisted and invalidates the exact recipe hash', () {
+    final literal = connectionRecipe(2);
+    final selected = connectionRecipe(2, interpretationProfile: syntheticSourceInterpretationProfile);
+    final reopened = ConverterStudyPlanRecipe.fromJson(jsonDecode(selected.encode()));
+    expect(reopened.settings.interpretationProfile!.canonicalHash, syntheticSourceInterpretationProfile.canonicalHash);
+    expect(reopened.canonicalHash, selected.canonicalHash);
+    expect(selected.canonicalHash, isNot(literal.canonicalHash));
+    expect(selected.settingsHash, isNot(literal.settingsHash));
+  });
 
   for (final initiallyShared in [false, true]) {
     for (final afterApproval in [false, true]) {
@@ -169,7 +181,7 @@ void main() {
           await prepare(supplementalRootPaths: [first.path, second.path]);
       final snapshot = original.state.snapshot!;
       final recipe = original.exportStudyPlanRecipe();
-      expect(recipe.toJson()['version'], 8);
+      expect(recipe.toJson()['version'], 9);
       expect(recipe.sourceSelection.supplementalRootPaths,
           [first.path, second.path]);
       expect(recipe.sharedSourceFiles.single.referenceRootPath, second.path);
@@ -325,7 +337,7 @@ void main() {
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 5);
+    expect((recipe.toJson()['settings'] as Map)['version'], 6);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -339,7 +351,7 @@ void main() {
     await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
-    expect(decoded.toJson()['version'], 8);
+    expect(decoded.toJson()['version'], 9);
     expect(decoded.sourceSelection.supplementalRootPaths, [shared.path]);
     expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
@@ -602,8 +614,8 @@ void main() {
       'maxStringCodeUnits': 1048576,
       'maxTextCodeUnits': 25165824,
     });
-    expect(settings['version'], 5);
-    expect(recipe.toJson()['version'], 8);
+    expect(settings['version'], 6);
+    expect(recipe.toJson()['version'], 9);
   });
 
   test('aggregate image budget recipe preserves explicit boundaries and hashes',
@@ -616,7 +628,7 @@ void main() {
       expect(decoded.settings.writeLimits.maxImagePixels, 16777216);
       expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
       expect(decoded.canonicalHash, recipe.canonicalHash);
-      expect((recipe.toJson()['settings'] as Map)['version'], 5);
+      expect((recipe.toJson()['settings'] as Map)['version'], 6);
     }
     final low = connectionRecipe(2,
         writeLimits: const NativeWriteLimits(maxTotalImagePixels: 16777216));
@@ -698,8 +710,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('ordered source recipe emits breaking version 8', () {
-    expect(connectionRecipe(2).toJson()['version'], 8);
+  test('ordered source recipe emits breaking version 9', () {
+    expect(connectionRecipe(2).toJson()['version'], 9);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

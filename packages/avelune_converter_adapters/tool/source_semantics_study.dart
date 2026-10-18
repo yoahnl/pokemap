@@ -160,15 +160,23 @@ Future<(Directory, Directory)> validateFreshStudyDirectories(
 
 Future<void> main(List<String> args) async {
   require(
-      args.length == 6 && args.last == '--approved-study',
+      args.length == 7 && args.last == '--approved-study',
       'Expected source root, fresh destination parent, fresh evidence directory, '
-      'comma-separated map IDs, project name, --approved-study');
+      'comma-separated map IDs, project name, explicit interpretation profile JSON, --approved-study');
   final sourceRoot = await Directory(args[0]).resolveSymbolicLinks();
   final (destination, evidence) =
       await validateFreshStudyDirectories(sourceRoot, args[1], args[2]);
   final mapIds = args[3].split(',').map(int.parse).toList()..sort();
   require(mapIds.isNotEmpty && mapIds.toSet().length == mapIds.length,
       'Unique source map IDs are required');
+  final interpretationProfile = await const LocalSourceInterpretationProfileStore().read(args[5]);
+  final tree = await MacOsSourceTree.open(sourceRoot);
+  try {
+    final snapshot = await SourceScanner().scan(source: tree,
+      logicalProjectNamespace: ConverterId('source-semantic-study'));
+    final files = await SnapshotSourceFiles.bind(source: tree, snapshot: snapshot);
+    await interpretationProfile.verifySource(snapshot: snapshot, files: files);
+  } finally { await tree.close(); }
   await destination.create(recursive: true);
   await evidence.create(recursive: true);
   require(
@@ -211,6 +219,7 @@ Future<void> main(List<String> args) async {
     record['availableSourceMapCount'] =
         workflow.state.availableSourceMapIds.length;
     workflow.updateSettings(ConverterStudySettings(
+        interpretationProfile: interpretationProfile,
         projectName: args[4],
         parentPath: destination.path,
         folderName: 'Projet converti',

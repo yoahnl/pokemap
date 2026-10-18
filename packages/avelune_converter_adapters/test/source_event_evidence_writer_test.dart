@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -23,7 +24,8 @@ void main() {
     final temporary =
         await Directory.systemTemp.createTemp('ac13-evidence-writer-');
     addTearDown(() => temporary.delete(recursive: true));
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         includeEventSystem: true,
         extraFiles: {

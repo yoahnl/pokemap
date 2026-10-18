@@ -1,3 +1,5 @@
+import '../../../packages/avelune_converter_core/test/support/interpretation_profile_fixture.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -49,6 +51,33 @@ void main() {
         '--offline',
         '--json'
       ];
+
+  test('CLI explicitly selects persists and replays a source interpretation profile', () async {
+    final profile = SourceInterpretationProfile.fromJson({
+      ...syntheticSourceInterpretationProfile.toJson(), 'capabilities': ['events']});
+    fixture = await LiteralTileFixture.create(sourceRootPath: '${root.path}/profile-source',
+      scriptsBytes: syntheticInterpretationArchive, interpretationProfile: profile, includeEventSystem: true);
+    final file = File('${root.path}/selected-profile.json');
+    await file.writeAsString(jsonEncode(profile.toJson()));
+    final planned = await invoke([...planArgs(), '--interpretation-profile', await file.resolveSymbolicLinks()]);
+    expect(planned.code, 0, reason: planned.err);
+    final recipe = await const LocalStudyPlanStore().read(planPath);
+    expect(recipe.settings.interpretationProfile!.canonicalHash, profile.canonicalHash);
+    await file.delete();
+    final converted = await invoke(['convert', '--plan', planPath, '--approve-plan',
+      recipe.approvedPlanHash.value, '--offline', '--json']);
+    expect(converted.code, 0, reason: converted.err);
+    expect(jsonDecode(converted.out)['sourceUnchanged'], isTrue);
+  }, skip: !Platform.isMacOS);
+  test('CLI rejects a mismatched selected profile without writing a plan or native project', () async {
+    final file = File('${root.path}/selected-profile.json');
+    await file.writeAsString(jsonEncode(syntheticSourceInterpretationProfile.toJson()));
+    final planned = await invoke([...planArgs(), '--interpretation-profile', await file.resolveSymbolicLinks()]);
+    expect(planned.code, 2, reason: planned.err);
+    expect(planned.err, contains('interpretation_profile.source_mismatch'));
+    expect(await File(planPath).exists(), isFalse);
+    expect(await output.list().toList(), isEmpty);
+  }, skip: !Platform.isMacOS);
 
   test('CLI plans and publishes an explicit missing atlas image binding',
       () async {

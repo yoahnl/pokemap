@@ -205,7 +205,7 @@ final class SourceFieldObstacleBindingResolver {
     }
 
     final scripts = await exact('Data/Scripts.rxdata',
-        hash: SourceEventProfile.kantoScriptsArchiveSha256);
+        hash: source.interpretationProfile?.scriptsArchiveHash.value);
     final settings = _fieldSettings(scripts);
     final metadata = _fieldMapRegions(utf8.decode(await exact('PBS/map_metadata.txt')));
     final refusals = <ConverterId, String>{};
@@ -275,6 +275,7 @@ final class SourceFieldObstacleBindingResolver {
               cancellation: cancellation);
           try {
             final native = await const NativeEncounterCatalogBindings().bind(
+            interpretationProfile: source.interpretationProfile,
                 snapshot: source.snapshot, source: catalogPbs,
                 files: _FieldObstacleWitnessFiles(source, exact), nativeMapIds: nativeMapIds,
                 sourceMapNames: {for (final map in source.maps) map.map.sourceMapId: map.map.name},

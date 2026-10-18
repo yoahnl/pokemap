@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -281,7 +282,9 @@ Future<NormalizedSourceProject> trainerSource({
 
 SourceEventAnalysis analyzeTrainerSource(NormalizedSourceProject source) =>
     SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.kantoForProject(source,
+            profile: SourceEventProfile.forProject(source,
                 scriptsArchiveHash:
-                    Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256)))
+                    Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();

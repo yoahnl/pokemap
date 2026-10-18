@@ -82,49 +82,31 @@ final class SourceSemanticContext {
 }
 
 final class SourceSemanticProfile {
-  SourceSemanticProfile.kantoPlayerWalk({
-    required this.scriptsArchiveHash,
-    required this.sourceSnapshotHash,
-    required this.sourceSelectionHash,
-  });
+  SourceSemanticProfile(
+      {required this.scriptsArchiveHash,
+      required this.sourceSnapshotHash,
+      required this.sourceSelectionHash,
+      this.interpretationProfile});
 
-  static const kantoScriptsArchiveSha256 =
-      '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
-
+  final SourceInterpretationProfile? interpretationProfile;
   final Sha256Hash? scriptsArchiveHash;
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash sourceSelectionHash;
-
   bool get isQualified =>
-      scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
+      interpretationProfile?.supports('walking') == true &&
+      interpretationProfile!.matchesArchive(scriptsArchiveHash);
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
-
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-player-walk-static-v1',
+        'profile': 'rmxp-static-player-walk-v1',
+        'interpretationProfile': interpretationProfile?.toJson(),
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'sourceSelectionHash': sourceSelectionHash.value,
         'qualified': isQualified,
-        'oracle': {
-          'Game_Map': {
-            'sectionIndex': 42,
-            'sha256':
-                '2e31060a4dc0ac036fecc510735f8a70f8cb8c7f33291b572e489e89c4f5b7f9',
-            'lines': [142, 247],
-          },
-          'Game_Character': {
-            'sectionIndex': 44,
-            'sha256':
-                '0cb6a5149f998c053055d3c7726d557fe1a1368fcabe14bb4a7c159f09a686b9',
-            'lines': [237, 257],
-          },
-          'TerrainTag': {
-            'sectionIndex': 113,
-            'sha256':
-                '6bcfb146b4ec27576d2c616392e4aa14f1f9baa135db85ac02b33e0139e7382e',
-            'lines': [27, 205],
-          },
-        },
+        'qualificationScope':
+            'declaredStaticContractAndRecognizedCommandStructure',
+        'oracle':
+            interpretationProfile?.walkingOracles ?? const <String, Object?>{},
       };
 }
 
@@ -402,7 +384,8 @@ final class SourceSemanticResolver {
             entry.kind == SourceNodeKind.file &&
             sourcePathCollisionKey(entry.relativePath) == 'data/scripts.rxdata')
         .toList();
-    final profile = SourceSemanticProfile.kantoPlayerWalk(
+    final profile = SourceSemanticProfile(
+      interpretationProfile: project.interpretationProfile,
       scriptsArchiveHash:
           scriptEntries.length == 1 ? scriptEntries.single.sha256 : null,
       sourceSnapshotHash: project.snapshot.canonicalHash,

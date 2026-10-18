@@ -1,3 +1,4 @@
+import '../../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
@@ -57,7 +58,8 @@ Future<SourceCatalogStudyComposition> composeNativeCatalogQuarantineFixture({
     'FRLG_HIKER,Lucas',
     'FRLG_PICNICKER,Dana',
   ];
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
     namespace: 'native-catalog-quarantine',
     scriptsBytes: await File('$sourceRoot/Data/Scripts.rxdata').readAsBytes(),
     includeEventSystem: true,

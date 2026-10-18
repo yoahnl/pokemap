@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -241,7 +242,9 @@ void main() {
       final fixture = await _source(archive!, sourceRoot!);
       source = fixture.$1;
       final full = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       analysis = SourceEventAnalysis(
           profile: full.profile,
@@ -706,7 +709,9 @@ void main() {
             await _source(archive!, sourceRoot!, loseTextOverride: text);
         final changed = fixture.$1;
         final full = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final changedAnalysis = SourceEventAnalysis(
             profile: full.profile,

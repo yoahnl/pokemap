@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -91,7 +92,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final resolver = SourceSemanticResolver.forProject(source);
       maps = {
@@ -399,7 +402,9 @@ void main() {
         expect(changed.source.snapshot.canonicalHash,
             isNot(source.snapshot.canonicalHash));
         final analyzed = SourceEventAnalyzer.forProject(changed.source,
-                profile: SourceEventProfile.kantoForProject(changed.source))
+                profile: SourceEventProfile.forProject(changed.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final event = analyzed.eventAt(pair.$1, pair.$2)!;
         expect(event.isQuarantined, true);

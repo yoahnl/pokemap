@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -47,6 +48,7 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source({
 }) async {
   final fixture = await LiteralTileFixture.create(
       maps: [LiteralFixtureMap(id: 98)],
+      interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
       scriptsBytes: scriptsBytes,
       includeEventSystem: scriptsBytes != null,
       extraFiles: {
@@ -82,6 +84,7 @@ void main() {
           NativeEncounterFishingRatePolicy fishingRatePolicy =
               NativeEncounterFishingRatePolicy.unresolved}) =>
       const NativeEncounterCatalogBindings().bind(
+        interpretationProfile: source.fixture.source.interpretationProfile,
         snapshot: source.fixture.snapshot,
         source: source.pbs,
         files: source.fixture.files,

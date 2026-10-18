@@ -1,3 +1,4 @@
+import '../../../packages/avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -18,6 +19,33 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('source interpretation selection is explicit and clearable', (tester) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    final profile = File('${source.root.path}/selected-profile.json');
+    await tester.runAsync(() => profile.writeAsString(jsonEncode(syntheticSourceInterpretationProfile.toJson())));
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await tester.pumpWidget(ConverterApp(workflow: source.workflow,
+        initialSourcePath: source.sourcePath, initialParentPath: source.output.path,
+        pathPicker: (kind) async => kind == ConverterPathKind.interpretationProfileFile ? profile.path : null));
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(tester, () => source.workflow.state.snapshot != null && !source.workflow.state.isBusy);
+      final choose = find.byKey(const ValueKey('choose-interpretation-profile'));
+      await tester.ensureVisible(choose);
+      await tester.tap(choose);
+      await _waitFor(tester, () => find.text('Profil de scripts sélectionné : synthetic-static-profile').evaluate().isNotEmpty);
+      expect(find.byKey(const ValueKey('clear-interpretation-profile')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('clear-interpretation-profile')));
+      await tester.tap(find.byKey(const ValueKey('clear-interpretation-profile')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('clear-interpretation-profile')), findsNothing);
+      expect(find.textContaining('Sans profil de scripts : étude littérale'), findsOneWidget);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(source.close);
+    }
+  });
+
   testWidgets(
     'one-map native budget survives resource review and session save',
     (tester) async {
@@ -2475,7 +2503,8 @@ final class _OriginalSource {
       final output = await Directory('${root.path}/output').create();
       final fixture = await LiteralTileFixture.create(
         sourceRootPath: '${root.path}/$sourceSuffix',
-        scriptsBytes: scriptsBytes,
+        interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
+      scriptsBytes: scriptsBytes,
         includeEventSystem: includeEventSystem,
         extraFiles: extraFiles,
         tilesets: tilesets,

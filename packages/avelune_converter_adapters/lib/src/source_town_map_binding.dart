@@ -58,7 +58,7 @@ final class SourceTownMapBindingResolver {
   }) async {
     limits.validate();
     cancellation?.check();
-    final profile = SourceEventProfile.kantoForProject(source);
+    final profile = SourceEventProfile.forProject(source);
     if (!source.canPlan ||
         source.snapshot.state != SourceScanState.complete ||
         !profile.isQualified) {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
@@ -153,7 +154,9 @@ SourceEventProjection _project(
     source: source,
     analysis: analysis ??
         SourceEventAnalyzer.forProject(source,
-                profile: SourceEventProfile.kantoForProject(source))
+                profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze(),
     nativeMaps: _maps(source, includeSolidTerrain: includeSolidTerrain),
     soundBindings: sounds,
@@ -375,7 +378,9 @@ void main() {
     });
 
     test('profile is a new exact-hash contract with at-foot timing oracle', () {
-      final profile = SourceEventProfile.kantoForProject(source);
+      final profile = SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
       expect(profile.toJson()['profile'], 'kanto-events-static-v6');
       final timing = profile.toJson()['doorTiming'] as Map;
       expect(timing['playerStepMs'], 250);
@@ -407,10 +412,14 @@ void main() {
       expect((json['proof'] as Map)['followers'], 'newGameDeclaredEmpty');
       expect(
           context.isBoundTo(
-              source, SourceEventProfile.kantoForProject(source), maps),
+              source, SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+), maps),
           isTrue);
       expect(
-          context.isBoundTo(source, SourceEventProfile.kantoForProject(source),
+          context.isBoundTo(source, SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
               {100: maps[100]!}),
           isFalse);
       final altered = {
@@ -419,7 +428,9 @@ void main() {
       };
       expect(
           context.isBoundTo(
-              source, SourceEventProfile.kantoForProject(source), altered),
+              source, SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+), altered),
           isFalse);
       (json['proof'] as Map)['origin'] = 'forged';
       expect(
@@ -616,7 +627,9 @@ void main() {
     ]) {
       test('route barrier map scope handles $scenario after transfer', () {
         final analysis = SourceEventAnalyzer.forProject(source,
-                profile: SourceEventProfile.kantoForProject(source))
+                profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final door = analysis.eventAt(100, 8)!;
         final page = door.pages.first;
@@ -710,7 +723,9 @@ void main() {
           .where((scene) =>
               scene.metadata['sourceEventIdentity'] ==
               SourceEventAnalyzer.forProject(source,
-                      profile: SourceEventProfile.kantoForProject(source))
+                      profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
                   .analyze()
                   .eventAt(100, 8)!
                   .identity
@@ -851,7 +866,9 @@ void main() {
         () {
       final resolver = SourceSemanticResolver.forProject(source);
       final analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final exit = analysis.eventAt(102, 1)!;
       final originalCell = resolver.cellAt(102, 9, 11);
@@ -891,7 +908,9 @@ void main() {
         () {
       final resolver = SourceSemanticResolver.forProject(source);
       final analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final exit = analysis.eventAt(102, 1)!;
       final cell = resolver.cellAt(102, 9, 11);
@@ -941,7 +960,9 @@ void main() {
         'unqualified page and overlapping tile pages quarantine the whole exit',
         () {
       final analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final exit = analysis.eventAt(102, 1)!;
       final tileEvent = analysis.events.singleWhere((event) =>
@@ -1022,7 +1043,9 @@ void main() {
               as Map)['sourceExecutionContext'] as Map;
       expect(execution['qualified'], isTrue);
       expect(execution['sourceProfileHash'],
-          SourceEventProfile.kantoForProject(source).canonicalHash.value);
+          SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+).canonicalHash.value);
       expect(
           execution['baseDraftHash'], isNot(events.draft.canonicalHash.value));
       final explicitSmall = NativeWriteLimits(

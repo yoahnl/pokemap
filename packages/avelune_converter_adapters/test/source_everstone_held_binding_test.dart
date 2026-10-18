@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -26,7 +27,9 @@ void main() {
           snapshot: source.snapshot,
           files: files,
           symbols: ['EVERSTONE', 'HARDSTONE'],
-          eventProfile: SourceEventProfile.kantoForProject(source));
+          eventProfile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
       final binding = items.bindings['EVERSTONE']!;
       expect(binding.definition.id, startsWith('source-item-'));
       expect(binding.definition.heldEffectId,
@@ -48,8 +51,10 @@ void main() {
               snapshot: source.snapshot,
               files: files,
               symbols: ['EVERSTONE'],
-              eventProfile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64))),
+              eventProfile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+)),
           throwsA(isA<ContractError>()));
     });
     test(

@@ -30,6 +30,7 @@ final class NativeEncounterCatalogBindings {
     NativeEncounterFishingRatePolicy fishingRatePolicy =
         NativeEncounterFishingRatePolicy.unresolved,
     Map<int, String> sourceMapNames = const {},
+    SourceInterpretationProfile? interpretationProfile,
     ScanCancellation? cancellation,
   }) async {
     cancellation?.check();
@@ -214,7 +215,7 @@ final class NativeEncounterCatalogBindings {
         }
         if (isFishing) {
           fishingOracle ??=
-              await _readFishingOracle(snapshot, files, cancellation);
+              await _readFishingOracle(snapshot, files, interpretationProfile, cancellation);
         }
         final rate = isFishing ? 20 + 25 * rodType : method.stepChance!;
         if (rate < 0 ||
@@ -410,49 +411,28 @@ Never _invalid(String code, String message) =>
     throw ContractError('native_encounter.$code', r'$', message);
 
 Future<Map<String, Object?>> _readFishingOracle(SourceSnapshot snapshot,
-    SourceFilePort files, ScanCancellation? cancellation) async {
-  const hash =
-      '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
-  final entry = snapshot.entries
-      .where((entry) => entry.relativePath == 'Data/Scripts.rxdata')
-      .singleOrNull;
-  if (entry == null ||
-      entry.kind != SourceNodeKind.file ||
-      entry.byteLength != 1080290 ||
-      entry.sha256?.value != hash) {
-    _invalid('fishing_oracle',
-        'Native fishing adaptation requires the exact inert source fishing and item-effect oracles.');
+    SourceFilePort files, SourceInterpretationProfile? profile,
+    ScanCancellation? cancellation) async {
+  const roles = ['encounters.Overworld_Fishing', 'encounters.Item_Effects'];
+  if (profile == null || !profile.supports('encounters') ||
+      roles.any((role) => !profile.sections.containsKey(role))) {
+    _invalid('fishing_oracle', 'Native fishing adaptation requires explicit source fishing and item-effect witnesses.');
   }
-  final bytes = await files.read(entry.fileId);
-  cancellation?.check();
-  if (bytes.length != entry.byteLength ||
-      crypto.sha256.convert(bytes).toString() != hash) {
-    _invalid('fishing_oracle_changed',
-        'Fishing oracle bytes differ from the admitted source archive.');
-  }
+  await profile.verifySource(snapshot: snapshot, files: files, cancellation: cancellation);
+  final entry = snapshot.entries.singleWhere((entry) => entry.relativePath == profile.scriptsRelativePath);
   return {
     'archive': {
       'fileId': entry.fileId.value,
       'relativePath': entry.relativePath,
-      'sha256': hash,
+      'sha256': profile.scriptsArchiveHash.value,
       'byteLength': entry.byteLength
     },
-    'scripts': [
-      {
-        'index': 245,
-        'name': 'Overworld_Fishing',
-        'uncompressedSha256':
-            '0c49fbc54451e9e3e503c33ead66010e93d1a398849a244f4b67cfb0a4490618',
-        'lines': [30, 31, 32, 33, 34, 35, 48, 55]
-      },
-      {
-        'index': 264,
-        'name': 'Item_Effects',
-        'uncompressedSha256':
-            '9f5bb1a5663c6ca9d34fc256f577a7918f5def7e76b2426a37116348af0bf1bc',
-        'lines': [280, 315]
-      },
-    ],
+    'scripts': [for (final role in roles) {
+      'index': profile.sections[role]!['index'],
+      'name': profile.sections[role]!['name'] ?? role.substring(11),
+      'uncompressedSha256': profile.sections[role]!['sha256'],
+      if (profile.sections[role]!.containsKey('lines')) 'lines': profile.sections[role]!['lines'],
+    }],
     'rodTypes': {'OldRod': 1, 'GoodRod': 2, 'SuperRod': 3},
     'sourceBaseBitePercentFormula': '20 + 25 * rodType',
     'sourcePbsStepChanceUsedForFishing': false,

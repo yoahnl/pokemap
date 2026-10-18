@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -147,7 +148,9 @@ void main() {
               const NativeWriteLimits(maxArtifacts: 512, maxMutations: 2048));
       final source = composition.draft.source;
       final full = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       analysis = SourceEventAnalysis(
           profile: full.profile,
@@ -323,7 +326,9 @@ void main() {
       final (changed, files) = await _sourceWithOverlappingBookshelf(
           original, _SourceFiles(original, root!));
       final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-              profile: SourceEventProfile.kantoForProject(changed))
+              profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final book = changedAnalysis.eventAt(102, 5)!;
       expect((book.x, book.y), (6, 4));

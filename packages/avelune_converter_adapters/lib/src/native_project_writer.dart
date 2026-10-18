@@ -3278,8 +3278,8 @@ void _verifyAutotileProvenance(
         .where((entry) => entry.fileId.value == profile['sourceFileId']);
     if (sourceClock.length != 1 ||
         sourceClock.single.sha256?.value != profile['sourceFileHash'] ||
-        profile['sourceFileHash'] !=
-            LiteralAutotileComposer.attestedArchiveSha256 ||
+        draft.source.interpretationProfile?.supports('autotiles') != true ||
+        profile['sourceFileHash'] != draft.source.interpretationProfile?.scriptsArchiveHash.value ||
         sourceClock.single.relativePath != profile['sourceFilePath'] ||
         sourcePathCollisionKey(sourceClock.single.relativePath) !=
             'data/scripts.rxdata' ||

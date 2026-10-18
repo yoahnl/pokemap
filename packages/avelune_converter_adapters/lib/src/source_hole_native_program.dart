@@ -103,7 +103,7 @@ Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
 }) {
   final selected = analysis.events.where(isSourceHoleNativeIdentity).toList();
   if (selected.isEmpty) return const {};
-  final profile = SourceEventProfile.kantoForProject(source);
+  final profile = SourceEventProfile.forProject(source);
   if (!profile.isQualified ||
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};

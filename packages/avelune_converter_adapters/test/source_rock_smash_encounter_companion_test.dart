@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -78,7 +79,9 @@ void main() {
           overrideBytes: {'Data/Scripts.rxdata': scripts});
       source = original.source;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       files = _Files(source, [root, scriptsRoot!]);
       qualification = NativeEncounterCatalogQualification.builtinKantoV1();
@@ -136,6 +139,7 @@ void main() {
             SourcePbsFamily.species
           });
       final catalog = await const NativeEncounterCatalogBindings().bind(
+        interpretationProfile: source.interpretationProfile,
           snapshot: source.snapshot,
           source: pbs,
           files: files,
@@ -315,7 +319,9 @@ void main() {
           selectedMapIds: mapIds.keys.toSet(),
           overrideBytes: {'Data/Scripts.rxdata': scripts, ...overrides});
       final analyzed = SourceEventAnalyzer.forProject(variant.source,
-              profile: SourceEventProfile.kantoForProject(variant.source))
+              profile: SourceEventProfile.forProject(variant.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       return (await const SourceFieldObstacleBindingResolver().read(
           source: variant.source,
@@ -383,7 +389,9 @@ void main() {
           selectedMapIds: mapIds.keys.toSet(),
           includeEventSystem: true);
       final analyzed = SourceEventAnalyzer.forProject(normalized,
-              profile: SourceEventProfile.kantoForProject(normalized))
+              profile: SourceEventProfile.forProject(normalized,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final result = (await const SourceFieldObstacleBindingResolver().read(
           source: normalized,

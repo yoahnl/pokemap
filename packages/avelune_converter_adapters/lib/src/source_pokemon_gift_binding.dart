@@ -90,7 +90,7 @@ final class SourcePokemonGiftBindingResolver {
     var helperQualified = false;
     if (scripts.length == 1 &&
         scripts.single.sha256?.value ==
-            SourceEventProfile.kantoScriptsArchiveSha256) {
+            source.interpretationProfile?.scriptsArchiveHash.value) {
       cancellation?.check();
       try {
         final bytes = await files.read(scripts.single.fileId);
@@ -173,7 +173,7 @@ final class SourcePokemonGiftBindingResolver {
           'nativeDefaultMoveIds': moves,
           'nicknameMaxGraphemes': 10,
           'helperOracle': {
-            'archiveSha256': SourceEventProfile.kantoScriptsArchiveSha256,
+            'archiveSha256': source.interpretationProfile?.scriptsArchiveHash.value,
             'module': 'Utilities_Pokemon',
             'moduleIndex': 363,
             'moduleSha256':

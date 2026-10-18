@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -177,7 +178,8 @@ void main() {
             x, y, x, y * 7, x ~/ 32 * 37, (x + y) % 3 == 0 ? 0 : 127);
       }
     }
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         extraFiles: {
           'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = PackingPlayer\n'),

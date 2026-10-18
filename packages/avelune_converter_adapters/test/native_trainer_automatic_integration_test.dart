@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -44,7 +45,8 @@ void main() {
           .encode('$overridden\n[ARBITRARY,Grunt,40]\nPokemon = RATTATA,16\n');
       final sprite = image.Image(width: 128, height: 128, numChannels: 4);
       image.fill(sprite, color: image.ColorRgba8(80, 90, 110, 255));
-      fixture = await LiteralTileFixture.create(
+      fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
           scriptsBytes: await File(scripts!).readAsBytes(),
           includeEventSystem: true,
           maps: [

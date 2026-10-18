@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -60,6 +61,7 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source({
       tilesets: [
         LiteralFixtureTileset(id: 1, passages: {386: 15}, terrainTags: {386: 7})
       ],
+      interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
       scriptsBytes: scriptsBytes,
       includeEventSystem: scriptsBytes != null,
       extraFiles: {

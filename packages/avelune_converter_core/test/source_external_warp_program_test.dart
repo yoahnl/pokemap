@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
@@ -35,7 +36,9 @@ void main() {
       source = (await readExternalOriginalSource(root!, snapshot!)).source;
       expect(source.canPlan, isTrue);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
     for (final pair in [
@@ -117,7 +120,9 @@ void main() {
         expect(changed.snapshot.canonicalHash,
             isNot(source.snapshot.canonicalHash));
         final result = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(result.eventAt(row.$1, row.$2)!.isQuarantined, isTrue);
         expect(
@@ -192,8 +197,10 @@ void main() {
         expect(
             program.isBoundToSourceEvent(
                 source: source,
-                profile: SourceEventProfile.kantoForProject(source,
-                    scriptsArchiveHash: Sha256Hash('0' * 64)),
+                profile: SourceEventProfile.forProject(source,
+                    scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
                 event: original),
             isFalse);
       }

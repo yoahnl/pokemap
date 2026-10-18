@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -124,7 +125,9 @@ void main() {
     setUpAll(() async {
       source = await _source(archive!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
     test(
@@ -201,7 +204,9 @@ void main() {
         () async {
       final changed = await _source(archive!, imageHash: '0' * 64);
       final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-              profile: SourceEventProfile.kantoForProject(changed))
+              profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final files = _SourceFiles(changed, root!);
       await expectLater(
@@ -255,8 +260,10 @@ void main() {
           pages: current.pages);
       for (final other in [
         SourceEventAnalysis(
-            profile: SourceEventProfile.kantoForProject(source,
-                scriptsArchiveHash: Sha256Hash('0' * 64)),
+            profile: SourceEventProfile.forProject(source,
+                scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
             events: analysis.events,
             diagnostics: []),
         SourceEventAnalysis(profile: analysis.profile, events: [
@@ -326,7 +333,9 @@ void main() {
         final changed =
             await _source(archive!, before: mutation.$1, after: mutation.$2);
         final changedAnalysis = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final files = _SourceFiles(changed, root!);
         await expectLater(

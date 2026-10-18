@@ -11,6 +11,7 @@ enum ConverterPathKind {
   supplementalFolder,
   destinationParent,
   planFile,
+  interpretationProfileFile,
 }
 
 typedef ConverterPathPicker = Future<String?> Function(ConverterPathKind kind);
@@ -25,12 +26,12 @@ Future<LocalReviewSessionStore> openConverterReviewSessionStore() async {
 }
 
 Future<String?> pickConverterPath(ConverterPathKind kind) async {
-  if (kind == ConverterPathKind.planFile) {
+  if (kind == ConverterPathKind.planFile || kind == ConverterPathKind.interpretationProfileFile) {
     return _pickPlanWithParentAccess(() async {
       final selection = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
-        dialogTitle: 'Charger un plan de conversion local',
+        dialogTitle: kind == ConverterPathKind.planFile ? 'Charger un plan de conversion local' : 'Choisir un profil de scripts source',
       );
       return selection?.files.single.path;
     });

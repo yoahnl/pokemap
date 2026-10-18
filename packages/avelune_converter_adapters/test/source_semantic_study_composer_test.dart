@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -105,7 +106,8 @@ void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
   test('intermediate source maps do not consume the final draft JSON budget',
       () async {
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         extraFiles: {
           'PBS/metadata.txt':
@@ -156,7 +158,7 @@ void main() {
   test('player authoring finishes before native atlas imports', () async {
     final scripts = await File(scriptsPath!).readAsBytes();
     expect(literalFixtureHash(scripts).value,
-        SourceSemanticProfile.kantoScriptsArchiveSha256);
+        fixtureSourceInterpretationProfile.scriptsArchiveHash.value);
     final atlas = image.Image(width: 256, height: 64, numChannels: 4);
     for (var y = 0; y < 32; y++) {
       for (var x = 0; x < 32; x++) {
@@ -175,7 +177,8 @@ void main() {
       ..[12] = 393
       ..[13] = 394;
     final fixture =
-        await LiteralTileFixture.create(scriptsBytes: scripts, extraFiles: {
+        await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+scriptsBytes: scripts, extraFiles: {
       'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'
           'RunCharset = OriginalRun\nCycleCharset = OriginalCycle\n'),
       'Graphics/Characters/OriginalPlayer.png':
@@ -384,11 +387,11 @@ void main() {
               receipt.assetHashes.map((id, hash) => MapEntry(id, hash.value))
         }))).value;
         expect(unchangedDraftHash,
-            '477aa52b3b59c990b8e0c183484a9ebd0fe435f358dac872615dbdf36df9bdd3',
+            '36157de779fdd2985f370a2a7581b3c1bc9869f43685a84447c24e20a8a5ef1a',
             reason: 'Mutation contents, internal order, artifacts and evidence '
-                'match the compact occlusion atlas and grouped ledge fixture');
+                'match the explicit interpretation, compact atlas and grouped ledge fixture');
         expect(nativeHash,
-            'd10862b0d592205b1ae945cf544bfd0a44cc2c2d0c499ec6bd50ffba82a0fa1e',
+            'fa5aa1bb3bf8031441e877e52518fa3d8f9e5bc8892ec1bbda269c6eff624894',
             reason: 'Strictly reopened native resources match the packed atlas '
                 'and grouped ledge fixture');
         expect(draft.mutations.length, lessThan(51));
@@ -411,9 +414,10 @@ void main() {
       () async {
     final scripts = await File(scriptsPath!).readAsBytes();
     expect(literalFixtureHash(scripts).value,
-        SourceSemanticProfile.kantoScriptsArchiveSha256);
+        fixtureSourceInterpretationProfile.scriptsArchiveHash.value);
     final fixture =
-        await LiteralTileFixture.create(scriptsBytes: scripts, autotilePngs: {
+        await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+scriptsBytes: scripts, autotilePngs: {
       'OriginalWater':
           image.encodePng(image.Image(width: 96, height: 128, numChannels: 4))
     }, extraFiles: {

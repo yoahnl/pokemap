@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -23,7 +24,7 @@ Future<void> main(List<String> arguments) async {
   }
   final scripts = await File(arguments[4]).readAsBytes();
   if (literalFixtureHash(scripts).value !=
-      LiteralAutotileComposer.attestedArchiveSha256) {
+      fixtureSourceInterpretationProfile.scriptsArchiveHash.value) {
     throw StateError(
         'This qualification requires the pinned source clock archive.');
   }
@@ -32,7 +33,8 @@ Future<void> main(List<String> arguments) async {
       await Directory(parent).createTemp('ac07-original-qualification-');
   final sourcePath = '${root.path}/original-source';
   final raster = OriginalAutotileFixture.standard();
-  await LiteralTileFixture.create(
+  await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       namespace: 'original-ac07-literal-qualification',
       sourceRootPath: sourcePath,
       scriptsBytes: scripts,
@@ -59,7 +61,7 @@ Future<void> main(List<String> arguments) async {
     final files =
         await SnapshotSourceFiles.bind(source: tree, snapshot: snapshot);
     final normalized = await const RmxpSourceNormalizer()
-        .normalize(snapshot: snapshot, files: files);
+        .normalize(snapshot: snapshot, files: files, interpretationProfile: fixtureSourceInterpretationProfile);
     final composition = await const LiteralTileComposer().compose(
         source: normalized,
         files: files,

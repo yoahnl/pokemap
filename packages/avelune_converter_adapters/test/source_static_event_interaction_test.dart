@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
@@ -13,7 +14,8 @@ Future<NormalizedSourceProject> _source({
   int trigger = 0,
   List<LiteralFixtureEvent> extraEvents = const [],
 }) async {
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       scriptsBytes: await File(Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS']!)
           .readAsBytes(),
       includeEventSystem: true,
@@ -38,7 +40,9 @@ Future<NormalizedSourceProject> _source({
 
 SourceEventAnalysis _analysis(NormalizedSourceProject source) =>
     SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.kantoForProject(source))
+            profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();
 
 SourceEventTouchResolution _resolve(NormalizedSourceProject source,

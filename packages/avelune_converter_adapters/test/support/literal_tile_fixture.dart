@@ -198,6 +198,7 @@ final class LiteralTileFixture {
     bool reverseManifest = false,
     Map<String, List<int>> autotilePngs = const {},
     List<int>? scriptsBytes,
+    SourceInterpretationProfile? interpretationProfile,
     Map<String, List<int>> extraFiles = const {},
     bool includeEventSystem = false,
     List<String?> variableNames = const [null, 'Original count'],
@@ -332,7 +333,7 @@ final class LiteralTileFixture {
     }
     final files = LiteralFixtureFiles(snapshot, frozenBytes);
     final source = await const RmxpSourceNormalizer().normalize(
-        snapshot: snapshot, files: files, selectedMapIds: selectedMapIds,
+        snapshot: snapshot, files: files, interpretationProfile: interpretationProfile, selectedMapIds: selectedMapIds,
         includeEventSystem: includeEventSystem);
     files.reads.clear();
     return LiteralTileFixture._(

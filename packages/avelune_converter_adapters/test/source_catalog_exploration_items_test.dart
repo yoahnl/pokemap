@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -113,7 +114,8 @@ Future<
         {bool qualify = true, String? omitSymbol}) async {
   final qualification = NativeEncounterCatalogQualification.builtinKantoV1();
   final png = image.encodePng(image.Image(width: 1, height: 1, numChannels: 4));
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       scriptsBytes: scripts,
       includeEventSystem: true,
       maps: [

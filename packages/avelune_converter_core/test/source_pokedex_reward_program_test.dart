@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -99,7 +100,9 @@ void main() {
     setUpAll(() async {
       source = await _source(archive!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
     test('complete two-page source reward has one typed program per page', () {
@@ -175,7 +178,9 @@ void main() {
             before: r'pbSet(2,$player.pokedex.owned_count(1))',
             after: r'pbSet(2,$player.pokedex.owned_count(' + suffix);
         final rejected = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze()
             .eventAt(102, 10)!;
         expect(rejected.isQuarantined, isTrue);
@@ -188,8 +193,10 @@ void main() {
     }
     test('wrong script archive cannot admit the reward program', () {
       final rejected = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64)))
+              profile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze()
           .eventAt(102, 10)!;
       expect(rejected.isQuarantined, isTrue);

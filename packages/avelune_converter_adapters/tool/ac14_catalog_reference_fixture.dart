@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -67,7 +68,7 @@ Future<Ac14CatalogReferenceComposition> composeAc14CatalogReferenceFixture({
   _require(archiveStat.size > 0 && archiveStat.size <= 16 * 1024 * 1024,
       'The archive exceeds its bounded profile');
   final scripts = await archive.readAsBytes();
-  _require(_hash(scripts) == SourceEventProfile.kantoScriptsArchiveSha256,
+  _require(_hash(scripts) == fixtureSourceInterpretationProfile.scriptsArchiveHash.value,
       'The source profile requires the exact inert Kanto archive');
   final parent = outputParentPath == null
       ? Directory.systemTemp
@@ -88,7 +89,8 @@ Future<Ac14CatalogReferenceComposition> composeAc14CatalogReferenceFixture({
             'OriginalUnknown${index.toString().padLeft(2, '0')} = ${List.filled(16384, 'x').join()}\n'
         ].join()
       : '';
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
     namespace: ac14CatalogReferenceNamespace,
     sourceRootPath: sourceRoot.path,
     scriptsBytes: scripts,
@@ -347,7 +349,7 @@ Future<Ac14CatalogReferenceFixture> buildAc14CatalogReferenceFixture({
       'The original source must remain unchanged');
   _require(
       _hash(await File(sourceScriptsPath).readAsBytes()) ==
-          SourceEventProfile.kantoScriptsArchiveSha256,
+          fixtureSourceInterpretationProfile.scriptsArchiveHash.value,
       'The external inert archive must remain unchanged after native writing');
   final projectFilePath = path.join(receipt.projectPath, 'project.json');
   final evidence = <String, Object?>{
@@ -357,7 +359,7 @@ Future<Ac14CatalogReferenceFixture> buildAc14CatalogReferenceFixture({
     'sourceRootPath': composition.sourceFixture.sourceRootPath,
     'sourceSnapshotHash':
         composition.sourceFixture.snapshot.canonicalHash.value,
-    'sourceScriptsArchiveHash': SourceEventProfile.kantoScriptsArchiveSha256,
+    'sourceScriptsArchiveHash': fixtureSourceInterpretationProfile.scriptsArchiveHash.value,
     'sourceHashesBefore': composition.sourceHashes,
     'sourceHashesAfter': sourceHashesAfter,
     'nativeHashes': await ac14CatalogDirectoryHashes(receipt.projectPath),

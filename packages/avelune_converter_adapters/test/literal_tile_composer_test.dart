@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -149,7 +150,8 @@ void main() {
     Future<LiteralTileFixture> fixture({bool reverse = false}) =>
         LiteralTileFixture.create(
           maps: maps,
-          scriptsBytes: scriptsBytes,
+          interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
+      scriptsBytes: scriptsBytes,
           tilesets: [
             LiteralFixtureTileset(
                 id: 1,
@@ -797,9 +799,11 @@ void main() {
         stored.toJson());
     expect(stored.targetSourceMapId, isNull);
     final analysis = SourceEventAnalyzer.forProject(fixture.source,
-            profile: SourceEventProfile.kantoForProject(fixture.source,
+            profile: SourceEventProfile.forProject(fixture.source,
                 scriptsArchiveHash:
-                    Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256)))
+                    Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();
     expect(
         analysis.events

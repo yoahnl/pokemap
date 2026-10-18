@@ -137,6 +137,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   AssetOutputMode _assetOutputMode = AssetOutputMode.sharedAtlas;
   PreparedStudy? _reviewPreview;
   ConverterStudySettings? _importedSettings;
+  SourceInterpretationProfile? _interpretationProfile;
   StreamSubscription<ConverterWorkflowEvent>? _subscription;
   int _step = 0;
   int? _previewMap;
@@ -264,6 +265,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
             snapshot.profile.evidenceHash &&
         previousAcknowledgement?.humanConfirmed == _studyAcknowledged;
     return LocalReviewResumeSettings(
+      interpretationProfile: _interpretationProfile,
       sourceRootPath: savedSource?.sourceRootPath ?? _sourceRoot,
       supplementalRootPaths:
           savedSource?.supplementalRootPaths ?? _supplementalRootPaths,
@@ -545,6 +547,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _loadingSession = true;
       _storedReview = stored;
+      _interpretationProfile = settings.interpretationProfile;
       _importedSettings = null;
       _reviewSet = stored.reviewSet;
       _reviewMapId = null;
@@ -695,6 +698,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _decisions.clear();
       _imageBindings.clear();
       _importedSettings = null;
+      _interpretationProfile = null;
       _assetOutputMode = AssetOutputMode.sharedAtlas;
       _dirty = true;
       _studyAcknowledged = false;
@@ -774,6 +778,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     final snapshot = _state.snapshot!;
     final ids = _selectedMaps.toList()..sort();
     return ConverterStudySettings(
+      interpretationProfile: _interpretationProfile,
       imageBindings: _imageBindings,
       projectName: _name.text.trim(),
       parentPath: _parent.text.trim(),
@@ -799,6 +804,28 @@ class _ConverterWindowState extends State<ConverterWindow> {
           _storedReview?.resumeSettings.writeLimits ??
           _importedSettings?.writeLimits,
     );
+  }
+
+  Future<void> _chooseInterpretationProfile() => _run(() async {
+    final selected = await widget.pathPicker(ConverterPathKind.interpretationProfileFile);
+    if (selected == null || !mounted) return;
+    final profile = await const LocalSourceInterpretationProfileStore().read(selected);
+    if (!mounted) return;
+    _workflow.invalidatePrepared();
+    setState(() {
+      _interpretationProfile = profile;
+      _dirty = true;
+      _reviewPreview = null;
+    });
+  });
+
+  void _clearInterpretationProfile() {
+    _workflow.invalidatePrepared();
+    setState(() {
+      _interpretationProfile = null;
+      _dirty = true;
+      _reviewPreview = null;
+    });
   }
 
   Future<void> _prepareCurrent() async {
@@ -906,6 +933,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       setState(() {
         _sessionGeneration++;
         _importedSettings = recipe.settings;
+        _interpretationProfile = recipe.settings.interpretationProfile;
         _imageBindings
           ..clear()
           ..addAll(recipe.settings.imageBindings);
@@ -1612,6 +1640,18 @@ class _ConverterWindowState extends State<ConverterWindow> {
               _profileLabel(snapshot.profile),
               tone: StudioTone.warning,
             ),
+            const SizedBox(height: 12),
+            Text(_interpretationProfile == null
+                ? 'Sans profil de scripts : étude littérale, sans adaptation des événements ni des règles de déplacement.'
+                : 'Profil de scripts sélectionné : ${_interpretationProfile!.profileId.value}'),
+            const SizedBox(height: 8),
+            StudioButton(key: const ValueKey('choose-interpretation-profile'),
+              label: 'Choisir un profil de scripts', secondary: true,
+              onPressed: _busy ? null : _chooseInterpretationProfile),
+            if (_interpretationProfile != null)
+              StudioButton(key: const ValueKey('clear-interpretation-profile'),
+                label: 'Revenir à l’étude littérale', secondary: true,
+                onPressed: _busy ? null : _clearInterpretationProfile),
             const SizedBox(height: 12),
             StudioToggleRow(
               key: const ValueKey('acknowledge-study'),

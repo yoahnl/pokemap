@@ -104,7 +104,7 @@ final class SourceCatalogStudyComposer {
       throw const NativeWriteException('catalogs.encounters.policy',
           'An explicit native encounter release requires active encounter preparation.');
     }
-    final profile = SourceEventProfile.kantoForProject(source);
+    final profile = SourceEventProfile.forProject(source);
     if (!profile.isQualified ||
         !base.compositionEvidence.containsKey('sourceSemantics') ||
         !source.snapshot.entries.any((entry) =>

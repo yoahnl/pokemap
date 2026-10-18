@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -108,7 +109,9 @@ void main() {
     late SourceEventAnalysis analysis;
     SourceEventAnalysis analyze(NormalizedSourceProject value) =>
         SourceEventAnalyzer.forProject(value,
-                profile: SourceEventProfile.kantoForProject(value))
+                profile: SourceEventProfile.forProject(value,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
     setUpAll(() async {
       final fixture = await _source(archive!, root!);
@@ -192,8 +195,10 @@ void main() {
               event: analysis.eventAt(102, 6)!),
           isFalse);
       final badAnalysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source,
-                  scriptsArchiveHash: Sha256Hash('0' * 64)))
+              profile: SourceEventProfile.forProject(source,
+                  scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       expect(
           binding.isBoundToEvent(

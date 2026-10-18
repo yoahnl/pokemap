@@ -170,7 +170,10 @@ final class NativeEncounterCatalogQualification {
     ScanCancellation? cancellation,
   }) async {
     cancellation?.check();
-    if (!SourceEventProfile.kantoForProject(source).isQualified) return null;
+    if (source.interpretationProfile?.supports('encounters') != true ||
+        source.interpretationProfile?.matchesArchive(SourceEventProfile.forProject(source).scriptsArchiveHash) != true) {
+      return null;
+    }
     final maps = _selectedMaps(selectedSourceMapIds);
     final catalogSource = pbs ??
         await const SourcePbsParser().read(

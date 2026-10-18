@@ -125,7 +125,7 @@ Map<ConverterId, SourceStairProgram> sourceStairPrograms(
     throw const NativeWriteException('events.source.binding',
         'Stair programs require the exact normalized source');
   }
-  final profile = SourceEventProfile.kantoForProject(source);
+  final profile = SourceEventProfile.forProject(source);
   if (!profile.isQualified ||
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};

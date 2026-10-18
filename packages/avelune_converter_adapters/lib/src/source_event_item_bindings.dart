@@ -81,6 +81,7 @@ final class SourceEventItemBinding {
     required this.sourceConsumable,
     required this.sourceSnapshotHash,
     required this.pickupQualified,
+    required this.interpretationProfile,
     required this.useParity,
     required List<String> useGaps,
   })  : fieldReferences = Map.unmodifiable(fieldReferences),
@@ -102,6 +103,7 @@ final class SourceEventItemBinding {
   final bool sourceConsumable;
   final Sha256Hash sourceSnapshotHash;
   final bool pickupQualified;
+  final SourceInterpretationProfile? interpretationProfile;
   final SourceEventItemUseParity useParity;
   final List<String> useGaps;
   bool get fullPickupParityQualified => false;
@@ -145,7 +147,7 @@ final class SourceEventItemBinding {
             'sourceSymbol': sourceSymbol,
             'nativeEffectId': definition.heldEffectId,
             'physicalItemId': definition.id,
-            'sourceOracle': {'archiveSha256': '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d',
+            'sourceOracle': {'archiveSha256': interpretationProfile?.scriptsArchiveHash.value,
               '273_Pokemon': '2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec', 'lines': '1036-1037'},
             'evolutionScope': ['trade', 'levelUp', 'itemUse'],
             'nativeCombatPolicy': 'explicitPassiveNeutral',
@@ -209,7 +211,7 @@ final class SourceEventItemBindings {
               '1ec9a83206e82546b286d5524b764942795119ac0b26e26049b9ac66dbbaf2aa',
         },
         'explorationPolicy': {
-          'sourceScriptsArchive': SourceEventProfile.kantoScriptsArchiveSha256,
+          'sourceScriptsArchive': eventProfile?.scriptsArchiveHash?.value,
           'itemEffectsSection': 264,
           'itemEffectsSectionHash':
               '9f5bb1a5663c6ca9d34fc256f577a7918f5def7e76b2426a37116348af0bf1bc',
@@ -549,6 +551,7 @@ final class SourceEventItemBindingResolver {
               archive.reference(fileId: entry.fileId, nodeId: fields[field]!);
         }
         bindings[symbol] = SourceEventItemBinding._(
+            interpretationProfile: eventProfile?.interpretationProfile,
           sourceSymbol: symbol,
           definition: definition,
           itemReference:

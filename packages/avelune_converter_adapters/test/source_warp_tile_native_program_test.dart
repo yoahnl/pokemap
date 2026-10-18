@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_sound_binding.dart';
@@ -159,7 +160,9 @@ void main() {
         }));
       }
       final full = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       if (Platform.environment['AVELUNE_WARP_EVIDENCE_ROOT']
           case final evidenceRoot?) {

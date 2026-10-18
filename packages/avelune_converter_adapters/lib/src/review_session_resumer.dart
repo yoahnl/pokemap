@@ -142,6 +142,7 @@ final class ConverterReviewSessionResumer {
         folderName: folderName ?? saved.folderName,
         selectedSourceMapIds: session.selectedSourceMapIds,
         profileAcknowledgement: acknowledgement,
+        interpretationProfile: saved.interpretationProfile,
         dependencyDecisions: decisions,
         imageBindings: saved.imageBindings,
         allowFirstFrameAutotiles: saved.allowFirstFrameAutotiles,

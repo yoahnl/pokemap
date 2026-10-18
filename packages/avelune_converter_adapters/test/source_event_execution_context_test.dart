@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -32,7 +33,8 @@ void main() {
   for (final trigger in [1, 2]) {
     test('automatic common event trigger $trigger refuses the source context',
         () async {
-      final fixture = await LiteralTileFixture.create(
+      final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
           scriptsBytes: await File(scriptsPath!).readAsBytes(),
           includeEventSystem: true,
           extraFiles: {
@@ -52,7 +54,8 @@ void main() {
   }
 
   test('parallel map event refuses the source execution context', () async {
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         includeEventSystem: true,
         maps: [
@@ -83,7 +86,8 @@ void main() {
 
   test('ordinary quarantined events do not require an original door context',
       () async {
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         includeEventSystem: true,
         maps: [
@@ -103,7 +107,9 @@ void main() {
     final result = const SourceEventProjector().project(
         source: source,
         analysis: SourceEventAnalyzer.forProject(source,
-                profile: SourceEventProfile.kantoForProject(source))
+                profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze(),
         nativeMaps: {
           1: MapData(

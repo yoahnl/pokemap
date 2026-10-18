@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -439,7 +440,9 @@ void main() {
     expect(source.maps, isNotEmpty,
         reason: source.diagnostics.map((d) => d.toJson()).toString());
     final analysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.kantoForProject(source))
+            profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();
     final projection = const SourceEventProjector().project(
         source: source,

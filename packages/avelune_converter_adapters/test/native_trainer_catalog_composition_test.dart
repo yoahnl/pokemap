@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -101,7 +102,8 @@ void main() {
       }
     }
     final keys = (bundle.evidence['sourceTrainerKeys'] as List).cast<String>();
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         namespace: 'native-kanto-trainer-composition',
         scriptsBytes:
             await File('$sourceRoot/Data/Scripts.rxdata').readAsBytes(),

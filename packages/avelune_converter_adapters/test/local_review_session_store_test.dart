@@ -262,12 +262,12 @@ void main() {
         _error('session.store.document'));
   });
 
-  test('shared source store emits breaking version 7', () {
+  test('shared source store emits breaking version 8', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 7);
+    expect(stored.toJson()['version'], 8);
   });
 
   test('aggregate image budget resume survives exact disk reopen', () async {
@@ -285,7 +285,7 @@ void main() {
     expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
-    expect(loaded.toJson()['version'], 7);
+    expect(loaded.toJson()['version'], 8);
   });
 
   test('aggregate image budget resume boundaries alter envelope hashes', () {

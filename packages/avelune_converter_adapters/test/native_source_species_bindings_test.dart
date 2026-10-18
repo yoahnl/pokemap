@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:image/image.dart' as image;
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -84,6 +85,7 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     List<int>? scriptsBytes,
     List<LiteralFixtureMap>? maps}) async {
   final fixture = await LiteralTileFixture.create(
+      interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
       scriptsBytes: scriptsBytes,
       maps: maps,
       includeEventSystem: maps != null,
@@ -602,7 +604,9 @@ void main() {
       source = await fixture();
       analysis = SourceEventAnalyzer.forProject(source.fixture.source,
               profile:
-                  SourceEventProfile.kantoForProject(source.fixture.source))
+                  SourceEventProfile.forProject(source.fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       event = analysis.eventAt(17, 9)!;
       catalog = _catalog([_native('clockbird', 'Clockbird')]);
@@ -631,7 +635,9 @@ void main() {
           false);
       final other = await fixture(mapId: 59);
       final otherAnalysis = SourceEventAnalyzer.forProject(other.fixture.source,
-              profile: SourceEventProfile.kantoForProject(other.fixture.source))
+              profile: SourceEventProfile.forProject(other.fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final otherBindings = await const SourcePokemonGiftBindingResolver().read(
           source: other.fixture.source,
@@ -654,7 +660,9 @@ void main() {
       ]) {
         final a = SourceEventAnalyzer.forProject(variant.fixture.source,
                 profile:
-                    SourceEventProfile.kantoForProject(variant.fixture.source))
+                    SourceEventProfile.forProject(variant.fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final result = await const SourcePokemonGiftBindingResolver().read(
             source: variant.fixture.source,
@@ -729,10 +737,12 @@ void main() {
               event: wrongRawEvent),
           false);
       final stale = SourceEventAnalysis(
-          profile: SourceEventProfile.kanto(
+          profile: SourceEventProfile(
               scriptsArchiveHash: analysis.profile.scriptsArchiveHash,
               sourceSnapshotHash: Sha256Hash('f' * 64),
-              normalizationHash: source.fixture.source.canonicalHash),
+              normalizationHash: source.fixture.source.canonicalHash,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
           events: [event],
           diagnostics: []);
       expect(

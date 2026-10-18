@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/native_source_event_atlas_admission.dart';
@@ -19,7 +20,9 @@ void main() {
       final original = await readExternalOriginalSource(root!, snapshot!);
       final source = original.source;
       final analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       final warps = (await const SourceExternalWarpBindingResolver().read(
           source: source,

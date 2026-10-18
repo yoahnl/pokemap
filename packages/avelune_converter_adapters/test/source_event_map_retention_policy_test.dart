@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -67,7 +68,8 @@ void main() {
   });
 
   Future<LiteralTileFixture> fixture(List<int> root) =>
-      LiteralTileFixture.create(scriptsBytes: scripts, extraFiles: {
+      LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+scriptsBytes: scripts, extraFiles: {
         'Data/map_metadata.dat': [4, 8, ...root]
       });
 
@@ -220,7 +222,8 @@ void main() {
 
   test('sealed original map metadata remains valid', () async {
     final bytes = await File('$sourceRoot/Data/map_metadata.dat').readAsBytes();
-    final input = await LiteralTileFixture.create(
+    final input = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: scripts, extraFiles: {'Data/map_metadata.dat': bytes});
     final policy = await sourceEventMapRetentionPolicy(
         source: input.source,

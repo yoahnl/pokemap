@@ -172,7 +172,7 @@ Map<ConverterId, SourceElevatorProgram> sourceElevatorPrograms(
     throw const NativeWriteException('events.source.binding',
         'Elevators require the exact normalized source');
   }
-  final profile = SourceEventProfile.kantoForProject(source);
+  final profile = SourceEventProfile.forProject(source);
   if (!profile.isQualified ||
       profile.canonicalHash != analysis.profile.canonicalHash ||
       _mapHashes.entries.any((entry) =>

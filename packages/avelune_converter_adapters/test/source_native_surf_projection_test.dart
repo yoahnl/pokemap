@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/src/literal_tile_composer.dart';
 import 'package:avelune_converter_adapters/src/source_player_character_import.dart';
@@ -144,7 +145,7 @@ void main() {
       () async {
     final scripts = await File(scriptsPath!).readAsBytes();
     expect(literalFixtureHash(scripts).value,
-        SourceSemanticProfile.kantoScriptsArchiveSha256);
+        fixtureSourceInterpretationProfile.scriptsArchiveHash.value);
     final input = await _input(scripts: scripts);
     final draft = (await const SourceSemanticStudyComposer(
             includeNativeSurfTraversal: true)
@@ -192,7 +193,8 @@ Future<SourceSemanticsProjection> _project(NormalizedSourceProject source,
 
 Future<(NormalizedSourceProject, LiteralTileComposition, SourceFilePort)>
     _input({List<int>? scripts}) async {
-  final fixture = await LiteralTileFixture.create(scriptsBytes: scripts, maps: [
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+scriptsBytes: scripts, maps: [
     LiteralFixtureMap(id: 9, width: 4, height: 3, layers: [
       [384, 386, 386, 384, 384, 386, 386, 384, 384, 386, 386, 384],
       List.filled(12, 0),
@@ -218,7 +220,7 @@ Future<(NormalizedSourceProject, LiteralTileComposition, SourceFilePort)>
                 kind: SourceNodeKind.file,
                 byteLength: 1,
                 sha256:
-                    Sha256Hash(SourceSemanticProfile.kantoScriptsArchiveSha256),
+                    Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
                 format: 'ruby-marshal',
                 family: 'data')
           ],
@@ -266,11 +268,13 @@ SourcePlayerCharacterImport _player(NormalizedSourceProject source) {
 }
 
 SourceSemanticResolver _resolver() => SourceSemanticResolver(
-    profile: SourceSemanticProfile.kantoPlayerWalk(
+    profile: SourceSemanticProfile(
         scriptsArchiveHash:
-            Sha256Hash(SourceSemanticProfile.kantoScriptsArchiveSha256),
+            Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
         sourceSnapshotHash: Sha256Hash('a' * 64),
-        sourceSelectionHash: Sha256Hash('b' * 64)));
+        sourceSelectionHash: Sha256Hash('b' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+));
 
 SourceSemanticCell _cell(int x,
         {required int terrain, int passage = 0, int width = 2}) =>

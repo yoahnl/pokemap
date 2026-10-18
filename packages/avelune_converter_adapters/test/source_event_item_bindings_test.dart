@@ -7,6 +7,7 @@ import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'support/literal_tile_fixture.dart';
 
@@ -160,12 +161,14 @@ final class _Files implements SourceFilePort {
       excludedPaths: [],
       profileEvidence: [],
       state: SourceScanState.complete);
-  final profile = SourceEventProfile.kanto(
+  final profile = SourceEventProfile(
       scriptsArchiveHash:
-          Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+          Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
       sourceSnapshotHash: snapshot.canonicalHash,
       normalizationHash:
-          canonicalHashOf({'fixture': 'static-oracle-contract'}));
+          canonicalHashOf({'fixture': 'static-oracle-contract'}),
+interpretationProfile: fixtureSourceInterpretationProfile,
+);
   return (
     snapshot: snapshot,
     files: _Files({
@@ -258,7 +261,8 @@ void main() {
     late LiteralTileFixture fixture;
 
     setUpAll(() async {
-      fixture = await LiteralTileFixture.create(
+      fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
           scriptsBytes: await File(scriptsPath!).readAsBytes(),
           includeEventSystem: true,
           extraFiles: {

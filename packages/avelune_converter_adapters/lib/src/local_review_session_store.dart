@@ -156,6 +156,7 @@ final class LocalReviewResumeSettings {
     required String destinationParentPath,
     required String projectName,
     required String folderName,
+    SourceInterpretationProfile? interpretationProfile,
     bool allowFirstFrameAutotiles = false,
     LocalReviewProfileAcknowledgement? profileAcknowledgement,
     List<LocalReviewDependencyDecision> dependencyDecisions = const [],
@@ -214,6 +215,7 @@ final class LocalReviewResumeSettings {
             folderName,
             allowFirstFrameAutotiles,
             profileAcknowledgement,
+            interpretationProfile,
             List.unmodifiable(dependencyDecisions),
             bindings,
             sourceScanPolicy ?? SourceScanPolicy(),
@@ -230,6 +232,7 @@ final class LocalReviewResumeSettings {
       this.folderName,
       this.allowFirstFrameAutotiles,
       this.profileAcknowledgement,
+      this.interpretationProfile,
       this.dependencyDecisions,
       this.imageBindings,
       this.sourceScanPolicy,
@@ -248,6 +251,7 @@ final class LocalReviewResumeSettings {
           'folderName',
           'allowFirstFrameAutotiles',
           'profileAcknowledgement',
+          'interpretationProfile',
           'dependencyDecisions',
           'imageBindings',
           'sourceScanPolicy',
@@ -258,6 +262,7 @@ final class LocalReviewResumeSettings {
         _requireStore(dependencies.length <= 2048, 'session.store.quota',
             'Too many dependency receipts.');
         return LocalReviewResumeSettings(
+          interpretationProfile: json['interpretationProfile'] == null ? null : SourceInterpretationProfile.fromJson(json['interpretationProfile']),
           sourceRootPath: _string(json['sourceRootPath']),
           supplementalRootPaths:
               _list(json['supplementalRootPaths']).map(_string).toList(),
@@ -292,6 +297,7 @@ final class LocalReviewResumeSettings {
   final String folderName;
   final bool allowFirstFrameAutotiles;
   final LocalReviewProfileAcknowledgement? profileAcknowledgement;
+  final SourceInterpretationProfile? interpretationProfile;
   final List<LocalReviewDependencyDecision> dependencyDecisions;
   final List<SourceImageBinding> imageBindings;
   final SourceScanPolicy sourceScanPolicy;
@@ -308,6 +314,7 @@ final class LocalReviewResumeSettings {
         'folderName': folderName,
         'allowFirstFrameAutotiles': allowFirstFrameAutotiles,
         'profileAcknowledgement': profileAcknowledgement?.toJson(),
+        'interpretationProfile': interpretationProfile?.toJson(),
         'dependencyDecisions':
             dependencyDecisions.map((item) => item.toJson()).toList(),
         'imageBindings': imageBindings.map((item) => item.toJson()).toList(),
@@ -367,7 +374,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 7,
+            json['kind'] == 'localReviewSession' && json['version'] == 8,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -389,7 +396,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 7,
+        'version': 8,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),

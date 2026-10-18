@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -169,13 +170,14 @@ Future<void> main() async {
       'Source archive size is outside the bounded profile');
   final archiveBytes = await scripts.readAsBytes();
   final archiveHash = _hash(archiveBytes);
-  _require(archiveHash == SourceEventProfile.kantoScriptsArchiveSha256,
+  _require(archiveHash == fixtureSourceInterpretationProfile.scriptsArchiveHash.value,
       'The event oracle requires the exact attested Kanto archive');
   final root = await Directory.systemTemp.createTemp('ac13-event-reference-');
   final sourceRoot = Directory(path.join(root.path, 'original-source'));
   final destination =
       await Directory(path.join(root.path, 'native-output')).create();
-  final fixture = await LiteralTileFixture.create(
+  final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
       namespace: _namespace,
       sourceRootPath: sourceRoot.path,
       scriptsBytes: archiveBytes,
@@ -196,6 +198,7 @@ Future<void> main() async {
     _require(snapshot.state == SourceScanState.complete,
         'The original source scan must complete');
     workflow.updateSettings(ConverterStudySettings(
+        interpretationProfile: fixtureSourceInterpretationProfile,
         projectName: 'Original event runtime reference',
         parentPath: destination.path,
         folderName: 'converted-reference',

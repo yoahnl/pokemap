@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -499,18 +500,24 @@ void main() {
       () async {
     final source = await trainerSource();
     for (final profile in [
-      SourceEventProfile.kantoForProject(source,
-          scriptsArchiveHash: Sha256Hash('0' * 64)),
-      SourceEventProfile.kanto(
+      SourceEventProfile.forProject(source,
+          scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+      SourceEventProfile(
           scriptsArchiveHash:
-              Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+              Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
           sourceSnapshotHash: Sha256Hash('0' * 64),
-          normalizationHash: source.canonicalHash),
-      SourceEventProfile.kanto(
+          normalizationHash: source.canonicalHash,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+      SourceEventProfile(
           scriptsArchiveHash:
-              Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+              Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
           sourceSnapshotHash: source.snapshot.canonicalHash,
-          normalizationHash: Sha256Hash('0' * 64)),
+          normalizationHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
     ]) {
       _expectRejected(
           SourceEventAnalyzer.forProject(source, profile: profile).analyze(),
@@ -731,7 +738,9 @@ void main() {
     setUpAll(() async {
       source = await _source(archive!);
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
     });
 
@@ -878,13 +887,17 @@ void main() {
 
     test('unqualified and mismatched profiles cannot recognize trainers', () {
       for (final profile in [
-        SourceEventProfile.kantoForProject(source,
-            scriptsArchiveHash: Sha256Hash('0' * 64)),
-        SourceEventProfile.kanto(
+        SourceEventProfile.forProject(source,
+            scriptsArchiveHash: Sha256Hash('0' * 64),
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
+        SourceEventProfile(
             scriptsArchiveHash:
-                Sha256Hash(SourceEventProfile.kantoScriptsArchiveSha256),
+                Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
             sourceSnapshotHash: Sha256Hash('0' * 64),
-            normalizationHash: source.canonicalHash),
+            normalizationHash: source.canonicalHash,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
       ]) {
         final result =
             SourceEventAnalyzer.forProject(source, profile: profile).analyze();
@@ -910,7 +923,9 @@ void main() {
         final changed =
             await _source(archive!, before: mutation.$1, after: mutation.$2);
         final result = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final rejected = _trainerIds
             .where((id) => result.eventAt(id.$1, id.$2)!.isQuarantined);
@@ -934,7 +949,9 @@ void main() {
         final changed =
             await _source(archive!, before: mutation.$1, after: mutation.$2);
         final result = SourceEventAnalyzer.forProject(changed,
-                profile: SourceEventProfile.kantoForProject(changed))
+                profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         final node = _program(result.eventAt(98, 1)!.pages.first);
         expect(
@@ -956,7 +973,9 @@ void main() {
       final changed =
           await _source(archive!, branchParameter: 1, parameterValue: 1);
       final result = SourceEventAnalyzer.forProject(changed,
-              profile: SourceEventProfile.kantoForProject(changed))
+              profile: SourceEventProfile.forProject(changed,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       _expectRejected(result, 98, 1);
     });

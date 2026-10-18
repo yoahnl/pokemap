@@ -378,6 +378,7 @@ final class NormalizedSourceProject {
     required List<int> selectedSourceMapIds,
     required List<int> unprocessedSourceMapIds,
     required this.archive,
+    this.interpretationProfile,
   })  : maps = List.unmodifiable(maps),
         connections = List.unmodifiable(connections),
         mapHierarchy = List.unmodifiable(mapHierarchy),
@@ -407,6 +408,7 @@ final class NormalizedSourceProject {
   final List<SourceNormalizationDiagnostic> diagnostics;
   final List<NormalizedPreservedParameter> preservedParameterRefs;
   final SourceArchive archive;
+  final SourceInterpretationProfile? interpretationProfile;
   final List<int> selectedSourceMapIds;
   final List<int> unprocessedSourceMapIds;
 
@@ -431,7 +433,8 @@ final class NormalizedSourceProject {
   Map<String, Object?> _normalizedJson() => {
         'schemaVersion': '1.0',
         'kind': 'normalizedSourceProject',
-        'extractorVersion': 'rmxp-normalization-v4',
+        'extractorVersion': 'rmxp-normalization-v5',
+        'interpretationProfile': interpretationProfile?.toJson(),
         'connections':
             connections.map((connection) => connection.toJson()).toList(),
         'connectionsState': connectionsState.name,
@@ -494,13 +497,18 @@ final class RmxpSourceNormalizer {
     bool includeEventSystem = false,
     bool includeConnections = false,
     List<SourceImageBinding> imageBindings = const [],
+    SourceInterpretationProfile? interpretationProfile,
   }) async {
     limits._validate();
     final token = cancellation ?? ScanCancellation();
     token.check();
     _require(imageBindings.length <= 256, 'normalization.image_binding.invalid',
         r'$', 'Too many atlas image bindings');
-    return _SourceNormalizationRun(
+    if (interpretationProfile != null) {
+      await interpretationProfile.verifySource(
+          snapshot: snapshot, files: files, cancellation: token);
+    }
+    final normalized = await _SourceNormalizationRun(
             snapshot,
             files,
             limits,
@@ -510,6 +518,23 @@ final class RmxpSourceNormalizer {
             includeConnections,
             List.unmodifiable(imageBindings))
         .run();
+    if (interpretationProfile == null) return normalized;
+    return NormalizedSourceProject._(
+        snapshot: normalized.snapshot,
+        sourceProfileId: normalized.sourceProfileId,
+        maps: normalized.maps,
+        connections: normalized.connections,
+        connectionsState: normalized.connectionsState,
+        connectionsFileId: normalized.connectionsFileId,
+        mapHierarchy: normalized.mapHierarchy,
+        tilesets: normalized.tilesets,
+        eventImages: normalized.eventImages,
+        diagnostics: normalized.diagnostics,
+        preservedParameterRefs: normalized.preservedParameterRefs,
+        selectedSourceMapIds: normalized.selectedSourceMapIds,
+        unprocessedSourceMapIds: normalized.unprocessedSourceMapIds,
+        archive: normalized.archive,
+        interpretationProfile: interpretationProfile);
   }
 }
 
@@ -904,7 +929,8 @@ final class _SourceNormalizationRun {
           failure(error, locator(systemEntry.relativePath));
         }
       }
-      final commonEntry = byPath[sourcePathCollisionKey('Data/CommonEvents.rxdata')];
+      final commonEntry =
+          byPath[sourcePathCollisionKey('Data/CommonEvents.rxdata')];
       if (commonEntry != null) {
         try {
           final file = await load(commonEntry);
@@ -912,15 +938,19 @@ final class _SourceNormalizationRun {
               commandLimit: limits.maxCommands - commands,
               parameterLimit: limits.maxParameterNodes - parameterNodes);
           reader.commonEvents();
-          _require(reader.commandCount <= limits.maxCommands - commands,
-              'normalization.quota.commands', commonEntry.relativePath,
+          _require(
+              reader.commandCount <= limits.maxCommands - commands,
+              'normalization.quota.commands',
+              commonEntry.relativePath,
               'Command quota exceeded');
           commands += reader.commandCount;
           parameterNodes += reader.parameterCount;
         } on ContractError catch (error) {
           failure(error, locator(commonEntry.relativePath));
         } on FormatException {
-          diagnostic('normalization.invalid_common_events', locator(commonEntry.relativePath),
+          diagnostic(
+              'normalization.invalid_common_events',
+              locator(commonEntry.relativePath),
               'Common event commands require complete inert RPG data');
         } on Object catch (error) {
           failure(error, locator(commonEntry.relativePath));

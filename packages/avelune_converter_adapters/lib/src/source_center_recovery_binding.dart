@@ -66,7 +66,7 @@ final class SourceCenterRecoveryResolver {
   }) async {
     cancellation?.check();
     limits.validate();
-    final profile = SourceEventProfile.kantoForProject(source);
+    final profile = SourceEventProfile.forProject(source);
     if (!profile.isQualified ||
         source.snapshot.state != SourceScanState.complete) {
       throw const SourceCenterRecoveryBindingUnavailable('source_unqualified');

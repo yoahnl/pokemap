@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/source_town_map_binding.dart';
@@ -32,7 +33,8 @@ void main() {
   }
   late LiteralTileFixture fixture;
   setUpAll(() async {
-    fixture = await LiteralTileFixture.create(
+    fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         namespace: 'town-map-binding',
         maps: [LiteralFixtureMap(id: 102)],
         includeEventSystem: true,
@@ -100,13 +102,17 @@ void main() {
     expect(
         binding.isBoundTo(
             fixture.source,
-            SourceEventProfile.kantoForProject(fixture.source),
+            SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
             const {102: 'native-center'}),
         isTrue);
     expect(
         binding.isBoundTo(
             fixture.source,
-            SourceEventProfile.kantoForProject(fixture.source),
+            SourceEventProfile.forProject(fixture.source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+),
             const {102: 'another-center'}),
         isFalse);
     expect(binding.evidence['sourceWallMap'], isTrue);
@@ -148,7 +154,8 @@ void main() {
             .every((entry) => changed[index + entry.$1] == entry.$2));
     changed[at] = 27;
     for (final missingImage in [false, true]) {
-      final forged = await LiteralTileFixture.create(
+      final forged = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
           namespace: 'attested-town-map-negative',
           maps: [LiteralFixtureMap(id: 102)],
           includeEventSystem: true,

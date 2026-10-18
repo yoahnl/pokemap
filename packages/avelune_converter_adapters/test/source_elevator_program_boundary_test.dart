@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -142,7 +143,9 @@ void main() {
       source = fixture.source;
       files = fixture.files;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.kantoForProject(source))
+              profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
           .analyze();
       doors = analysis.events
           .where((event) => event.name == 'Elevator door')
@@ -373,7 +376,9 @@ void main() {
             includeEventSystem: true,
             includeConnections: true);
         final current = SourceEventAnalyzer.forProject(variant,
-                profile: SourceEventProfile.kantoForProject(variant))
+                profile: SourceEventProfile.forProject(variant,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
             .analyze();
         expect(sourceElevatorPrograms(source: variant, analysis: current),
             isEmpty);

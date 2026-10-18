@@ -1,3 +1,4 @@
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -189,7 +190,8 @@ void main() {
         await Directory.systemTemp.createTemp('ac13-record-batch-');
     addTearDown(() => temporary.delete(recursive: true));
     const limits = NativeWriteLimits(maxArtifacts: 256, maxMutations: 1024);
-    final fixture = await LiteralTileFixture.create(
+    final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+
         scriptsBytes: await File(scriptsPath!).readAsBytes(),
         includeEventSystem: true,
         extraFiles: {

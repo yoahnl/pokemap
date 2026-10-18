@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_encounter_consumers.dart';
@@ -55,7 +56,9 @@ void main() {
     final files = _Files(source, [root, scriptsRoot]);
     qualification = NativeEncounterCatalogQualification.builtinKantoV1();
     final analysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.kantoForProject(source))
+            profile: SourceEventProfile.forProject(source,
+interpretationProfile: fixtureSourceInterpretationProfile,
+))
         .analyze();
     final fields = (await const SourceFieldObstacleBindingResolver().read(
         source: source,
@@ -76,6 +79,7 @@ void main() {
         files: files,
         families: const {SourcePbsFamily.species, SourcePbsFamily.encounters});
     catalog = await const NativeEncounterCatalogBindings().bind(
+        interpretationProfile: source.interpretationProfile,
         snapshot: source.snapshot,
         source: pbs,
         files: files,
