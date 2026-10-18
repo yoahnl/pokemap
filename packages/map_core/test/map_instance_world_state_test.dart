@@ -6,7 +6,7 @@ void main() {
     'round-trips the empty typed instance state with its explicit schema',
     () {
       const state = MapInstanceWorldState.empty();
-      expect(state.toJson(), {'schemaVersion': 5, 'instancesByMapId': {}});
+      expect(state.toJson(), {'schemaVersion': 6, 'instancesByMapId': {}});
       expect(MapInstanceWorldState.fromJson(state.toJson()), state);
     },
   );
@@ -118,14 +118,14 @@ void main() {
     );
     expect(
       () => MapInstanceWorldState.fromJson({
-        'schemaVersion': 5,
+        'schemaVersion': 6,
         'instancesByMapId': {
           'source': {
             'instanceId': 'same',
             'consumedInteractiveEncounterEntityIds': <String>[],
             'clearedFieldObstacleIds': <String>[],
             'fieldObstaclePositions': {},
-            'npcPositions': {},
+            'npcPoses': {},
             'strengthActive': false,
             'illuminatedZoneIds': <String>[],
             'eventBooleans': {},
@@ -135,7 +135,7 @@ void main() {
             'consumedInteractiveEncounterEntityIds': <String>[],
             'clearedFieldObstacleIds': <String>[],
             'fieldObstaclePositions': {},
-            'npcPositions': {},
+            'npcPoses': {},
             'strengthActive': false,
             'illuminatedZoneIds': <String>[],
             'eventBooleans': {},
@@ -148,26 +148,27 @@ void main() {
 
   for (final json in <Map<String, dynamic>>[
     {},
-    {'schemaVersion': 5},
-    {'schemaVersion': 5.0, 'instancesByMapId': {}},
+    {'schemaVersion': 6},
+    {'schemaVersion': 6.0, 'instancesByMapId': {}},
     {'schemaVersion': 3, 'instancesByMapId': {}},
-    {'schemaVersion': 5, 'instancesByMapId': null},
-    {'schemaVersion': 5, 'instancesByMapId': {}, 'unknown': true},
+    {'schemaVersion': 5, 'instancesByMapId': {}},
+    {'schemaVersion': 6, 'instancesByMapId': null},
+    {'schemaVersion': 6, 'instancesByMapId': {}, 'unknown': true},
     {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'instancesByMapId': {
         'source': {'instanceId': 'source-1'},
       },
     },
     {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
           'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
-          'npcPositions': {},
+          'npcPoses': {},
           'strengthActive': false,
           'illuminatedZoneIds': <String>[],
           'eventBooleans': {},
@@ -176,14 +177,14 @@ void main() {
       },
     },
     {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
           'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
-          'npcPositions': {},
+          'npcPoses': {},
           'strengthActive': false,
           'illuminatedZoneIds': <String>[],
           'eventBooleans': {
@@ -193,14 +194,14 @@ void main() {
       },
     },
     {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'instancesByMapId': {
         'source': {
           'instanceId': 'source-1',
           'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
-          'npcPositions': {},
+          'npcPoses': {},
           'strengthActive': false,
           'illuminatedZoneIds': <String>[],
           'eventBooleans': {
@@ -210,14 +211,14 @@ void main() {
       },
     },
     {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'instancesByMapId': {
         'source': {
           'instanceId': ' source-1',
           'consumedInteractiveEncounterEntityIds': <String>[],
           'clearedFieldObstacleIds': <String>[],
           'fieldObstaclePositions': {},
-          'npcPositions': {},
+          'npcPoses': {},
           'strengthActive': false,
           'illuminatedZoneIds': <String>[],
           'eventBooleans': {},

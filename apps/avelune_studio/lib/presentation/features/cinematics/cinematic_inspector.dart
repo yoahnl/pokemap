@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
@@ -184,6 +185,25 @@ class CinematicInspector extends StatelessWidget {
           }
         },
       ),
+    StudioSelect(
+      label: 'À la fin',
+      value: asset.actorCompletionPolicy.name,
+      options: const {
+        'keepFinal': 'Conserver la pose',
+        'restoreInitial': 'Restaurer la pose de départ',
+      },
+      onChanged: (value) => _edit(
+        asset,
+        (a) => setCinematicActorCompletionPolicy(
+          _project(a),
+          cinematicId: a.id,
+          policy: CinematicActorCompletionPolicy.values.byName(value),
+        ).cinematic,
+      ),
+    ),
+    const Text(
+      'La pose comprend la position et l’orientation. Une annulation restaure toujours la pose de départ.',
+    ),
     StudioCommitField(
       key: ValueKey('cinematic-notes-${asset.id}'),
       label: 'Notes de mise en scène',

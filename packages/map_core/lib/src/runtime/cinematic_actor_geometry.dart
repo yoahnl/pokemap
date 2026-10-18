@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/map_data.dart';
+import '../models/geometry.dart';
 import '../models/project_manifest.dart';
 
 ({double x, double y}) cinematicEntityFocusPoint({
@@ -29,4 +30,21 @@ import '../models/project_manifest.dart';
     x: entity.pos.x + entity.size.width / 2,
     y: entity.pos.y + entity.size.height / 2,
   );
+}
+
+GridPos? cinematicEntityGridPositionForFocus({
+  required MapEntity entity,
+  required ProjectManifest project,
+  required double focusX,
+  required double focusY,
+}) {
+  if (!focusX.isFinite || !focusY.isFinite) return null;
+  final current = cinematicEntityFocusPoint(entity: entity, project: project);
+  final x = focusX - (current.x - entity.pos.x);
+  final y = focusY - (current.y - entity.pos.y);
+  if (!x.isFinite || !y.isFinite || x < 0 || y < 0 ||
+      x != x.truncateToDouble() || y != y.truncateToDouble()) {
+    return null;
+  }
+  return GridPos(x: x.toInt(), y: y.toInt());
 }

@@ -4,6 +4,70 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('cleanup failure prevents final pose publication', () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(CinematicAsset.fromJson({
+      ...base.toJson(), 'actorCompletionPolicy': 'keepFinal',
+    }));
+    host.throwWhenClearingDialogue = true;
+    controller.update(const Duration(milliseconds: 100));
+    expect((await completion).success, isFalse);
+    expect(host.poseCommitCount, 0);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+  });
+
+  test('failed final pose publication restores actors and releases ownership', () async {
+    final host = _FakeHost()..throwWhenCommittingPoses = true;
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final asset = CinematicAsset.fromJson({
+      ...base.toJson(), 'actorCompletionPolicy': 'keepFinal',
+    });
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(asset);
+    controller.update(const Duration(milliseconds: 100));
+    expect((await completion).success, isFalse);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    expect(host.actors['hero']!.facing, EntityFacing.north);
+    expect(host.inputLocked, isFalse);
+    expect(controller.isPlaying, isFalse);
+  });
+
+  test('old snapshots cannot restore actors in a replacement activation', () async {
+    final host = _FakeHost();
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(_visualAsset(steps: [_actorMoveStep()]));
+    controller.update(const Duration(milliseconds: 50));
+    host.activation = Object();
+    host.actors['hero']!.setFocusPoint(Vector2(7, 8));
+    controller.cancel();
+    await completion;
+    expect(host.actors['hero']!.focusPoint, Vector2(7, 8));
+    expect(host.poseCommitCount, 0);
+  });
+
+  test('keepFinal retains actor position and facing after successful playback',
+      () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final asset = CinematicAsset.fromJson({
+      ...base.toJson(),
+      'actorCompletionPolicy': 'keepFinal',
+    });
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(asset);
+    controller.update(const Duration(milliseconds: 100));
+    expect((await completion).success, isTrue);
+    expect(host.actors['hero']!.focusPoint, Vector2(100, 40));
+    expect(host.actors['hero']!.facing, EntityFacing.east);
+    expect(host.inputLocked, isFalse);
+  });
+
   for (final target in [
     (facing: EntityFacing.north, x: 20.0, y: 40.0),
     (facing: EntityFacing.south, x: 20.0, y: 0.0),
@@ -354,7 +418,21 @@ void main() {
   });
 }
 
-final class _FakeHost implements FlameCinematicRuntimeHost {
+final class _FakeHost implements FlameCinematicRuntimeHost, FlameCinematicPoseRuntimeHost {
+  Object activation = Object();
+  bool throwWhenCommittingPoses = false;
+  int poseCommitCount = 0;
+  @override
+  Object get cinematicActivationToken => activation;
+
+  @override
+  void validateCinematicActorPoses(Map<CinematicActorBinding, FlameCinematicActorPose> poses) {}
+
+  @override
+  void commitCinematicActorPoses(Map<CinematicActorBinding, FlameCinematicActorPose> poses) {
+    if (throwWhenCommittingPoses) throw StateError('Pose publication failed.');
+    poseCommitCount++;
+  }
   bool ready = true;
   bool inputLocked = false;
   int inputUnlockCount = 0;
@@ -549,6 +627,7 @@ CinematicAsset _visualAsset({
 }) {
   return CinematicAsset(
     id: 'cinematic_port',
+    actorCompletionPolicy: CinematicActorCompletionPolicy.restoreInitial,
     title: 'Port cinematic',
     mapId: 'map_port',
     requiredActors: <CinematicActorRef>[

@@ -12,6 +12,8 @@ export 'src/fishing_action.dart';
 export 'src/dive_action.dart';
 export 'src/cut_obstacle_action.dart';
 export 'src/field_obstacle_action.dart';
+export 'src/npc_instance_pose_projection.dart';
+export 'src/cinematic_actor_pose_commit.dart';
 
 export 'src/actor_route_executor.dart';
 export 'src/actor_route_motion.dart';

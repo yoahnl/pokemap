@@ -1,9 +1,120 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/scene_runtime/cinematic_runtime_playback_controller.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.dart';
 
 void main() {
   group('CinematicRuntimePlaybackController', () {
+    for (final termination in CinematicRuntimeTermination.values) {
+      test(
+        'owns the session until ${termination.name} restoration settles',
+        () async {
+          final sink = _AsyncRestorationSink();
+          final controller = CinematicRuntimePlaybackController(sink: sink);
+          addTearDown(() {
+            if (!sink.restoration.isCompleted) sink.restoration.complete();
+            controller.cancel();
+          });
+          final asset = _asset(
+            steps: [_step(CinematicTimelineStepKind.wait, durationMs: 10)],
+          );
+          final completion = controller.play(asset);
+          switch (termination) {
+            case CinematicRuntimeTermination.completed:
+              controller.update(const Duration(milliseconds: 10));
+            case CinematicRuntimeTermination.cancelled:
+              expect(controller.cancel(), isTrue);
+            case CinematicRuntimeTermination.failed:
+              sink.throwOnUpdate = true;
+              controller.update(const Duration(milliseconds: 1));
+          }
+          SceneCinematicRuntimeAwaitableResult? rejected;
+          unawaited(controller.play(asset).then((result) => rejected = result));
+          await Future<void>.value();
+          expect(
+            rejected?.errorCode,
+            SceneCinematicRuntimeAwaitableErrorCode.alreadyPlaying,
+          );
+          expect(controller.isPlaying, isTrue);
+          expect(controller.currentStep, isNull);
+          expect(sink.preflightCalls, 1);
+          final events = List<String>.of(sink.events);
+          controller.update(const Duration(seconds: 1));
+          expect(controller.cancel(), isFalse);
+          expect(controller.cancel(), isFalse);
+          expect(sink.events, events);
+          expect(sink.restoreCalls, 1);
+          expect(sink.events.last, 'restore:${termination.name}');
+          sink.restoration.complete();
+          final result = await completion;
+          expect(result.errorCode, switch (termination) {
+            CinematicRuntimeTermination.completed => null,
+            CinematicRuntimeTermination.cancelled =>
+              SceneCinematicRuntimeAwaitableErrorCode.cancelled,
+            CinematicRuntimeTermination.failed =>
+              SceneCinematicRuntimeAwaitableErrorCode.sinkFailure,
+          });
+          expect(controller.isPlaying, isFalse);
+          sink.throwOnUpdate = false;
+          final replay = controller.play(asset);
+          expect(controller.isPlaying, isTrue);
+          expect(sink.preflightCalls, 2);
+          controller.update(const Duration(milliseconds: 10));
+          expect((await replay).success, isTrue);
+          expect(sink.restoreCalls, 2);
+          expect(controller.isPlaying, isFalse);
+        },
+      );
+    }
+
+    test(
+      'failed asynchronous restoration releases ownership exactly once',
+      () async {
+        final sink = _AsyncRestorationSink();
+        final controller = CinematicRuntimePlaybackController(sink: sink);
+        addTearDown(() {
+          if (!sink.restoration.isCompleted) sink.restoration.complete();
+          controller.cancel();
+        });
+        final asset = _asset(
+          steps: [_step(CinematicTimelineStepKind.wait, durationMs: 10)],
+        );
+        final completion = controller.play(asset);
+        expect(controller.cancel(), isTrue);
+        SceneCinematicRuntimeAwaitableResult? rejected;
+        unawaited(controller.play(asset).then((result) => rejected = result));
+        await Future<void>.value();
+        expect(
+          rejected?.errorCode,
+          SceneCinematicRuntimeAwaitableErrorCode.alreadyPlaying,
+        );
+        expect(controller.isPlaying, isTrue);
+        expect(controller.cancel(), isFalse);
+        controller.update(const Duration(seconds: 1));
+        expect(sink.restoreCalls, 1);
+        sink.restoration.completeError(StateError('restoration rejected'));
+        final result = await completion;
+        expect(
+          result.errorCode,
+          SceneCinematicRuntimeAwaitableErrorCode.sinkFailure,
+        );
+        expect(result.message, contains('restoration rejected'));
+        expect(controller.isPlaying, isFalse);
+        expect(controller.cancel(), isFalse);
+        expect(sink.restoreCalls, 1);
+        sink.restoration = Completer<void>()..complete();
+        final replay = controller.play(asset);
+        expect(sink.preflightCalls, 2);
+        controller.update(const Duration(milliseconds: 10));
+        expect((await replay).success, isTrue);
+        expect(controller.isPlaying, isFalse);
+        expect(sink.restoreCalls, 2);
+      },
+    );
+
     test('implements the existing awaitable cinematic player port', () async {
       final sink = _RecordingSink();
       final controller = CinematicRuntimePlaybackController(sink: sink);
@@ -323,6 +434,17 @@ final class _RecordingSink implements CinematicRuntimePlaybackSink {
   void restore(CinematicRuntimeTermination termination) {
     restoreCalls++;
     events.add('restore:${termination.name}');
+  }
+}
+
+final class _AsyncRestorationSink extends _RecordingSink
+    implements CinematicRuntimeAsyncRestorationSink {
+  Completer<void> restoration = Completer<void>();
+
+  @override
+  Future<void> restoreAsync(CinematicRuntimeTermination termination) {
+    super.restore(termination);
+    return restoration.future;
   }
 }
 

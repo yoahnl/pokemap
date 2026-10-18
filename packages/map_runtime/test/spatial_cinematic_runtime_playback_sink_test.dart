@@ -6,6 +6,23 @@ import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtim
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('restoreInitial rolls actor pose back even after successful playback',
+      () async {
+    final host = _Host();
+    final initial = host.pose;
+    final asset = CinematicAsset.fromJson({
+      ..._asset().toJson(),
+      'actorCompletionPolicy': 'restoreInitial',
+    });
+    final controller = host.controller();
+    final completion = controller.play(asset);
+    controller.update(const Duration(seconds: 1));
+    expect((await completion).success, isTrue);
+    expect(host.pose, initial);
+    expect(host.committed, isEmpty);
+    expect(host.locked, isFalse);
+  });
+
   test(
     'preserve facing survives every segment and commits the same pose',
     () async {

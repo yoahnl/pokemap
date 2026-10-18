@@ -35,6 +35,27 @@ abstract interface class FlameCinematicMotionActorHandle
   void setMotion(EntityFacing facing, CharacterAnimationState state);
 }
 
+final class FlameCinematicActorPose {
+  const FlameCinematicActorPose({
+    required this.focusX,
+    required this.focusY,
+    required this.facing,
+  });
+
+  final double focusX, focusY;
+  final EntityFacing facing;
+}
+
+abstract interface class FlameCinematicPoseRuntimeHost {
+  Object get cinematicActivationToken;
+
+  void validateCinematicActorPoses(
+      Map<CinematicActorBinding, FlameCinematicActorPose> poses);
+
+  void commitCinematicActorPoses(
+      Map<CinematicActorBinding, FlameCinematicActorPose> poses);
+}
+
 abstract interface class FlameCinematicCharacterAnimationActorHandle
     implements
         FlameCinematicRuntimeActorHandle,
@@ -190,6 +211,22 @@ final class FlameCinematicRuntimePlaybackSink
     for (final step in asset.timeline.steps) {
       final failure = _preflightStep(asset, step);
       if (failure != null) return failure;
+    }
+    if (asset.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal &&
+        (asset.stageContext?.actorBindings.isNotEmpty ?? false)) {
+      final poseHost = host;
+      if (poseHost is! FlameCinematicPoseRuntimeHost) {
+        return const CinematicRuntimeSinkPreflightResult.rejected(
+          message: 'The runtime cannot persist cinematic actor poses.',
+        );
+      }
+      try {
+        (poseHost as FlameCinematicPoseRuntimeHost).validateCinematicActorPoses(_predictedActorPoses(asset));
+      } catch (error) {
+        return CinematicRuntimeSinkPreflightResult.rejected(
+          message: 'Cinematic final actor pose is invalid: $error',
+        );
+      }
     }
     return const CinematicRuntimeSinkPreflightResult.ready();
   }
@@ -350,7 +387,7 @@ final class FlameCinematicRuntimePlaybackSink
 
   @override
   void restore(CinematicRuntimeTermination termination) {
-    _restoreVisualState();
+    _restoreVisualState(termination);
     final checkpointFuture = _mediaCheckpointFuture;
     final pendingOperation = _pendingMediaOperation;
     final port = mediaPlaybackPort;
@@ -375,18 +412,12 @@ final class FlameCinematicRuntimePlaybackSink
     final port = mediaPlaybackPort;
     Object? firstError;
     StackTrace? firstStackTrace;
-    try {
-      _restoreVisualState();
-    } catch (error, stackTrace) {
-      firstError = error;
-      firstStackTrace = stackTrace;
-    }
     if (checkpointFuture != null && port != null) {
       try {
         await pendingOperation;
-      } catch (_) {
-        // The command error is already reported by the active step. Continue
-        // with rollback so no loop or FX survives it.
+      } catch (error, stackTrace) {
+        firstError = error;
+        firstStackTrace = stackTrace;
       }
       try {
         await port.restore(await checkpointFuture);
@@ -397,12 +428,19 @@ final class FlameCinematicRuntimePlaybackSink
     }
     _mediaCheckpointFuture = null;
     _pendingMediaOperation = null;
+    try {
+      _restoreVisualState(firstError == null
+          ? termination : CinematicRuntimeTermination.failed);
+    } catch (error, stackTrace) {
+      firstError ??= error;
+      firstStackTrace ??= stackTrace;
+    }
     if (firstError != null) {
       Error.throwWithStackTrace(firstError, firstStackTrace!);
     }
   }
 
-  void _restoreVisualState() {
+  void _restoreVisualState(CinematicRuntimeTermination termination) {
     final snapshot = _snapshot;
     Object? firstError;
     StackTrace? firstStackTrace;
@@ -421,9 +459,20 @@ final class FlameCinematicRuntimePlaybackSink
     attempt(() => host.showCinematicActorEmote(null, null));
     attempt(() => host.setCinematicFadeOpacity(null));
     attempt(() => _characterAnimationController?.dispose());
-    if (snapshot != null) {
+    final poseHost = host;
+    final current = snapshot != null && snapshot.mapId == host.activeMapId &&
+        (poseHost is! FlameCinematicPoseRuntimeHost ||
+            snapshot.activationToken == (poseHost as FlameCinematicPoseRuntimeHost).cinematicActivationToken);
+    if (snapshot != null && current) {
+      final keepFinal = termination == CinematicRuntimeTermination.completed &&
+          firstError == null &&
+          snapshot.asset.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal;
       for (final actorSnapshot in snapshot.actors.values) {
-        attempt(() => actorSnapshot.restore());
+        if (!keepFinal || firstError != null) {
+          attempt(() => actorSnapshot.restore());
+        } else {
+          attempt(() => actorSnapshot.actor.setFacing(actorSnapshot.actor.facing));
+        }
       }
       attempt(() => host.cameraPosition = snapshot.cameraPosition.clone());
       attempt(
@@ -432,6 +481,25 @@ final class FlameCinematicRuntimePlaybackSink
       );
     }
     attempt(() => host.setCinematicInputLocked(false));
+    if (snapshot != null && current) {
+      if (termination == CinematicRuntimeTermination.completed &&
+          snapshot.asset.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal &&
+          firstError == null && poseHost is FlameCinematicPoseRuntimeHost) {
+        attempt(() => (poseHost as FlameCinematicPoseRuntimeHost).commitCinematicActorPoses({
+          for (final binding in snapshot.asset.stageContext?.actorBindings ?? const <CinematicActorBinding>[])
+            binding: FlameCinematicActorPose(
+              focusX: _requireActor(binding.actorId).focusPoint.x,
+              focusY: _requireActor(binding.actorId).focusPoint.y,
+              facing: _requireActor(binding.actorId).facing,
+            ),
+        }));
+      }
+      if (firstError != null) {
+        for (final actorSnapshot in snapshot.actors.values) {
+          attempt(actorSnapshot.restore);
+        }
+      }
+    }
 
     _snapshot = null;
     _playbackCameraPosition = null;
@@ -551,6 +619,57 @@ final class FlameCinematicRuntimePlaybackSink
     }
   }
 
+  Map<CinematicActorBinding, FlameCinematicActorPose> _predictedActorPoses(
+      CinematicAsset asset) {
+    final bindings = asset.stageContext?.actorBindings ?? const <CinematicActorBinding>[];
+    final poses = <String, FlameCinematicActorPose>{
+      for (final binding in bindings)
+        binding.actorId: FlameCinematicActorPose(
+          focusX: _resolveActor(binding)!.focusPoint.x,
+          focusY: _resolveActor(binding)!.focusPoint.y,
+          facing: _resolveActor(binding)!.facing,
+        ),
+    };
+    for (final placement in asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]) {
+      final point = _initialPlacement(asset, placement);
+      final pose = poses[placement.actorId];
+      if (point == null || pose == null) continue;
+      poses[placement.actorId] = FlameCinematicActorPose(
+        focusX: point.x, focusY: point.y,
+        facing: bindings.any((binding) => binding.actorId == placement.actorId && binding.kind == CinematicActorBindingKind.player)
+            ? EntityFacing.south : pose.facing,
+      );
+    }
+    final width = (project?.settings.tileWidth ?? 1) * (project?.settings.displayScale ?? 1);
+    final height = (project?.settings.tileHeight ?? 1) * (project?.settings.displayScale ?? 1);
+    for (final step in asset.timeline.steps) {
+      final pose = poses[step.actorId];
+      if (pose == null) continue;
+      if (step.kind == CinematicTimelineStepKind.actorFace) {
+        poses[step.actorId!] = FlameCinematicActorPose(
+          focusX: pose.focusX, focusY: pose.focusY, facing: _entityFacingOf(step));
+      } else if (step.kind == CinematicTimelineStepKind.actorMove) {
+        final route = _movementRoute(asset, step)!;
+        var target = route.last;
+        final targetBinding = asset.stageContext?.movementTargetBindings
+            .where((binding) => binding.targetId == step.targetId).firstOrNull;
+        if (targetBinding?.kind == CinematicMovementTargetBindingKind.mapEntity) {
+          final binding = bindings.where((binding) => binding.kind == CinematicActorBindingKind.mapEntity &&
+              binding.mapEntityId == targetBinding!.sourceId).firstOrNull;
+          final targetPose = poses[binding?.actorId];
+          if (targetPose != null) target = Vector2(targetPose.focusX, targetPose.focusY);
+        }
+        final previous = route.length > 1 ? route[route.length - 2] : Vector2(pose.focusX, pose.focusY);
+        final facing = cinematicTimelineActorFacingModeOf(step) == CinematicTimelineActorFacingMode.preserve
+            ? pose.facing
+            : _facingBetween(Vector2(previous.x / width, previous.y / height),
+                Vector2(target.x / width, target.y / height), pose.facing);
+        poses[step.actorId!] = FlameCinematicActorPose(focusX: target.x, focusY: target.y, facing: facing);
+      }
+    }
+    return {for (final binding in bindings) binding: poses[binding.actorId]!};
+  }
+
   void _beginSession(CinematicAsset asset) {
     final actors = <String, FlameCinematicRuntimeActorHandle>{};
     final actorSnapshots = <String, _ActorVisualSnapshot>{};
@@ -569,6 +688,10 @@ final class FlameCinematicRuntimePlaybackSink
     _actors =
         Map<String, FlameCinematicRuntimeActorHandle>.unmodifiable(actors);
     _snapshot = _CinematicRuntimeVisualSnapshot(
+      asset: asset,
+      mapId: host.activeMapId,
+      activationToken: host is FlameCinematicPoseRuntimeHost
+          ? (host as FlameCinematicPoseRuntimeHost).cinematicActivationToken : null,
       cameraPosition: host.cameraPosition.clone(),
       cameraVisibleGameSize: host.cameraVisibleGameSize?.clone(),
       actors: Map<String, _ActorVisualSnapshot>.unmodifiable(actorSnapshots),
@@ -1003,6 +1126,9 @@ SceneCinematicRuntimeAwaitableErrorCode _runtimeErrorCodeFor(
 
 final class _CinematicRuntimeVisualSnapshot {
   const _CinematicRuntimeVisualSnapshot({
+    required this.asset,
+    required this.mapId,
+    required this.activationToken,
     required this.cameraPosition,
     required this.cameraVisibleGameSize,
     required this.actors,
@@ -1011,6 +1137,9 @@ final class _CinematicRuntimeVisualSnapshot {
   final Vector2 cameraPosition;
   final Vector2? cameraVisibleGameSize;
   final Map<String, _ActorVisualSnapshot> actors;
+  final CinematicAsset asset;
+  final String mapId;
+  final Object? activationToken;
 }
 
 final class _ActorVisualSnapshot {

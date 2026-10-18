@@ -31,6 +31,66 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets(
+    'completion policy picker preserves the policy through manual route edits',
+    (tester) async {
+      _setLargeSurface(tester);
+      final project = _project(cinematics: [_actorMovementCinematic()]);
+      var latest = project;
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        'cinematic_actor_move',
+        onProjectChanged: (value) => latest = value,
+      );
+      final restore = find.byKey(
+        const ValueKey('cinematic-builder-completion-policy-restoreInitial'),
+      );
+      final keep = find.byKey(
+        const ValueKey('cinematic-builder-completion-policy-keepFinal'),
+      );
+      expect(restore, findsOneWidget);
+      for (final entry in [
+        (restore, CinematicActorCompletionPolicy.restoreInitial),
+        (keep, CinematicActorCompletionPolicy.keepFinal),
+        (restore, CinematicActorCompletionPolicy.restoreInitial),
+      ]) {
+        await tester.ensureVisible(entry.$1);
+        await tester.tap(entry.$1);
+        await tester.pumpAndSettle();
+        expect(latest.cinematics.single.actorCompletionPolicy, entry.$2);
+      }
+      final add = find.byKey(
+        const ValueKey('cinematic-builder-palette-actorMove-button'),
+      );
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      final manual = find.byKey(
+        const ValueKey('cinematic-builder-actor-move-path-mode-manual'),
+      );
+      await tester.ensureVisible(manual);
+      await tester.tap(manual);
+      await tester.pumpAndSettle();
+      expect(
+        cinematicTimelineActorPathModeOf(
+          latest.cinematics.single.timeline.steps.last,
+        ),
+        CinematicTimelineActorPathMode.manual,
+      );
+      expect(
+        latest.cinematics.single.actorCompletionPolicy,
+        CinematicActorCompletionPolicy.restoreInitial,
+      );
+      expect(
+        CinematicAsset.fromJson(latest.cinematics.single.toJson())
+            .actorCompletionPolicy,
+        CinematicActorCompletionPolicy.restoreInitial,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   testWidgets('facing mode picker updates the canonical actor move', (
     tester,
   ) async {

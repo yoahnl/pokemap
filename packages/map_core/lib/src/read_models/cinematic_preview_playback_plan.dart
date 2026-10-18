@@ -868,6 +868,7 @@ final class CinematicPreviewPlaybackFrame {
 final class CinematicPreviewPlaybackPlan {
   CinematicPreviewPlaybackPlan._({
     required this.cinematicId,
+    required this.actorCompletionPolicy,
     required this.totalDurationMs,
     required this.executableDurationMs,
     required List<CinematicPreviewPlaybackTimelineItem> timelineItems,
@@ -924,6 +925,7 @@ final class CinematicPreviewPlaybackPlan {
         _stageBounds = stageBounds;
 
   final String cinematicId;
+  final CinematicActorCompletionPolicy actorCompletionPolicy;
   final int totalDurationMs;
   final int executableDurationMs;
   final List<CinematicPreviewPlaybackTimelineItem> timelineItems;
@@ -1243,6 +1245,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
 
   return CinematicPreviewPlaybackPlan._(
     cinematicId: cinematic.id,
+    actorCompletionPolicy: cinematic.actorCompletionPolicy,
     totalDurationMs: timeLayout.totalDurationMs,
     executableDurationMs: timelineItems
         .where((item) => item.kind != CinematicTimelineStepKind.marker)
@@ -1401,6 +1404,13 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
       case CinematicTimelineStepKind.fx:
       case CinematicTimelineStepKind.marker:
         break;
+    }
+  }
+
+  if (clampedTimeMs == plan.totalDurationMs &&
+      plan.actorCompletionPolicy == CinematicActorCompletionPolicy.restoreInitial) {
+    for (final track in plan.actorTracks) {
+      posesByActorId[track.actorId] = track.initialPose;
     }
   }
 

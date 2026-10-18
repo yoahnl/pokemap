@@ -353,6 +353,8 @@ export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
         FlameCinematicMotionActorHandle,
         FlameCinematicCharacterAnimationActorHandle,
         FlameCinematicRuntimeHost,
+        FlameCinematicActorPose,
+        FlameCinematicPoseRuntimeHost,
         FlameCinematicRuntimePlaybackSink;
 export 'src/presentation/flame/flame_cinematic_media_playback_adapter.dart'
     show

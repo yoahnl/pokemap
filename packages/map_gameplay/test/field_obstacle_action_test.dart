@@ -81,7 +81,7 @@ void main() {
       final scope = state.instanceRef('route')!;
       state = state
           .moveFieldObstacle(scope, 'rock', const GridPos(x: 3, y: 1))
-          .setNpcPositions(scope, {
+          .setNpcPoses(scope, _npcPoses({
         invalid == 'missing'
             ? 'ghost'
             : invalid == 'wrongKind'
@@ -94,7 +94,7 @@ void main() {
                     : 4,
             y: invalid == 'rockOverlap' ? 1 : 2),
         if (invalid == 'npcOverlap') 'other': const GridPos(x: 4, y: 2),
-      });
+      }));
       expect(
           () => applyFieldObstacleWorldStateToMap(
               map: map, instances: state, instance: scope),
@@ -116,7 +116,7 @@ void main() {
     var state = ready(FieldAbility.strength).mapInstanceWorldState;
     final scope = state.instanceRef('route')!;
     state = state
-        .setNpcPositions(scope, const {'walker': GridPos(x: 4, y: 2)})
+        .setNpcPoses(scope, _npcPoses(const {'walker': GridPos(x: 4, y: 2)}))
         .activateStrength(scope)
         .moveFieldObstacle(scope, 'rock', const GridPos(x: 3, y: 1));
     final restored = MapInstanceWorldState.fromJson(state.toJson());
@@ -273,7 +273,7 @@ void main() {
             .toList());
     state = state
         .clearFieldObstacle(scope, 'rock')
-        .setNpcPositions(scope, const {'npc': GridPos(x: 1, y: 2)});
+        .setNpcPoses(scope, _npcPoses(const {'npc': GridPos(x: 1, y: 2)}));
     final second = applyFieldObstacleWorldStateToMap(
         map: movedNpc,
         authoringMap: authored,
@@ -547,3 +547,8 @@ void main() {
         isNull);
   });
 }
+
+Map<String, MapInstanceNpcPose> _npcPoses(Map<String, GridPos> positions) => {
+  for (final entry in positions.entries)
+    entry.key: MapInstanceNpcPose(position: entry.value, facing: EntityFacing.south),
+};

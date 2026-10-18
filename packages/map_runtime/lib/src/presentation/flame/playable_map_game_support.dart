@@ -1,7 +1,8 @@
 part of 'playable_map_game.dart';
 
 final class _PlayableMapCinematicRuntimeHost
-    implements FlameCinematicRuntimeHost, FlameCinematicFxHost {
+    implements FlameCinematicRuntimeHost, FlameCinematicFxHost,
+        FlameCinematicPoseRuntimeHost {
   _PlayableMapCinematicRuntimeHost(this._game);
 
   final PlayableMapGame _game;
@@ -24,6 +25,24 @@ final class _PlayableMapCinematicRuntimeHost
 
   @override
   String get activeMapId => _game._activeMapId;
+
+  @override
+  Object get cinematicActivationToken =>
+      _game._currentMapActivationId ?? _game._activeMapId;
+
+  @override
+  void validateCinematicActorPoses(
+    Map<CinematicActorBinding, FlameCinematicActorPose> poses,
+  ) {
+    _game._prepareCinematicActorPoses(poses);
+  }
+
+  @override
+  void commitCinematicActorPoses(
+    Map<CinematicActorBinding, FlameCinematicActorPose> poses,
+  ) {
+    _game._commitCinematicActorPoses(poses);
+  }
 
   @override
   Vector2 get cameraPosition => _game._pixelCamera.position;

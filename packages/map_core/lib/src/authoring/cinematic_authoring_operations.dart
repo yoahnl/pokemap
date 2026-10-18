@@ -842,6 +842,15 @@ CinematicAssetAuthoringResult updateCinematicAsset(
   );
 }
 
+CinematicAssetAuthoringResult setCinematicActorCompletionPolicy(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicActorCompletionPolicy policy,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  return updateCinematicAsset(project, cinematic.copyWith(actorCompletionPolicy: policy));
+}
+
 CinematicAssetRemovalResult removeCinematicAsset(
   ProjectManifest project,
   String cinematicId,
@@ -3099,6 +3108,7 @@ CinematicAsset _copyCinematicWithTimeline(
     requiredActors: cinematic.requiredActors,
     movementTargets: cinematic.movementTargets,
     stageContext: cinematic.stageContext,
+    actorCompletionPolicy: cinematic.actorCompletionPolicy,
     timeline: timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -3120,6 +3130,7 @@ CinematicAsset _copyCinematicWithActors(
     requiredActors: requiredActors,
     movementTargets: cinematic.movementTargets,
     stageContext: cinematic.stageContext,
+    actorCompletionPolicy: cinematic.actorCompletionPolicy,
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -3141,6 +3152,7 @@ CinematicAsset _copyCinematicWithMovementTargets(
     requiredActors: cinematic.requiredActors,
     movementTargets: movementTargets,
     stageContext: cinematic.stageContext,
+    actorCompletionPolicy: cinematic.actorCompletionPolicy,
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -3162,6 +3174,7 @@ CinematicAsset _copyCinematicWithStageMap(
     requiredActors: cinematic.requiredActors,
     movementTargets: cinematic.movementTargets,
     stageContext: cinematic.stageContext,
+    actorCompletionPolicy: cinematic.actorCompletionPolicy,
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -3183,6 +3196,7 @@ CinematicAsset _copyCinematicWithStageContext(
     requiredActors: cinematic.requiredActors,
     movementTargets: cinematic.movementTargets,
     stageContext: stageContext,
+    actorCompletionPolicy: cinematic.actorCompletionPolicy,
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,

@@ -97,7 +97,7 @@ final class CinematicActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'cinematic.upsert',
-      'Create or update a cinematic; actorMove metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
+      'Create or update a cinematic; actorCompletionPolicy accepts keepFinal (default) or restoreInitial; actorMove metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
       resourceKinds: const ['project', 'cinematic'],
     ),
     narrativeActionDescriptor(

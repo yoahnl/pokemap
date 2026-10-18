@@ -250,7 +250,7 @@ void main() {
         .illuminateZone(scope, 'cave')
         .activateStrength(scope)
         .moveFieldObstacle(scope, 'boulder', const GridPos(x: 4, y: 4))
-        .setNpcPositions(scope, const {'npc': GridPos(x: 5, y: 5)});
+        .setNpcPoses(scope, _npcPoses(const {'npc': GridPos(x: 5, y: 5)}));
     final restored = MapInstanceWorldState.fromJson(state.toJson());
     expect(restored.isInteractiveEncounterConsumed(scope, 'tree'), isTrue);
     expect(
@@ -408,3 +408,8 @@ class CountingRandom implements Random {
 PixelOffset _pixel(GameplayWorldState world) => PixelOffset(
     x: world.player.playerPositionPx.leftPx,
     y: world.player.playerPositionPx.topPx);
+
+Map<String, MapInstanceNpcPose> _npcPoses(Map<String, GridPos> positions) => {
+  for (final entry in positions.entries)
+    entry.key: MapInstanceNpcPose(position: entry.value, facing: EntityFacing.south),
+};

@@ -19,18 +19,18 @@ void main() {
       );
       final scope = state.instanceRef('route')!;
       state = state
-          .setNpcPositions(scope, const {'walker': GridPos(x: 4, y: 2)})
+          .setNpcPoses(scope, {'walker': MapInstanceNpcPose(position: const GridPos(x: 4, y: 2), facing: EntityFacing.west)})
           .activateStrength(scope)
           .moveFieldObstacle(scope, 'rock', const GridPos(x: 3, y: 1))
           .clearFieldObstacle(scope, 'tree')
           .setEventBoolean(scope, 'door', 'A', true);
       final restored = MapInstanceWorldState.fromJson(state.toJson());
       expect(restored, state);
-      expect(restored.instancesByMapId['route']!.npcPositions, {
-        'walker': const GridPos(x: 4, y: 2),
+      expect(restored.instancesByMapId['route']!.npcPoses, {
+        'walker': MapInstanceNpcPose(position: const GridPos(x: 4, y: 2), facing: EntityFacing.west),
       });
       expect(
-        () => restored.instancesByMapId['route']!.npcPositions.clear(),
+        () => restored.instancesByMapId['route']!.npcPoses.clear(),
         throwsUnsupportedError,
       );
     },
@@ -72,14 +72,14 @@ void main() {
     test('typed position wire refuses malformed $position', () {
       expect(
         () => MapInstanceWorldState.fromJson({
-          'schemaVersion': 5,
+          'schemaVersion': 6,
           'instancesByMapId': {
             'route': {
               'instanceId': 'r1',
               'consumedInteractiveEncounterEntityIds': <String>[],
               'clearedFieldObstacleIds': [],
               'eventBooleans': {},
-              'npcPositions': {},
+              'npcPoses': {},
               'strengthActive': true,
               'illuminatedZoneIds': <String>[],
               'fieldObstaclePositions': {'rock': position},
@@ -161,10 +161,10 @@ void main() {
     },
   );
   test(
-    'instance state v5 persists cleared obstacles alongside event booleans',
+    'instance state v6 persists cleared obstacles alongside event booleans',
     () {
       final json = <String, dynamic>{
-        'schemaVersion': 5,
+        'schemaVersion': 6,
         'instancesByMapId': {
           'route': {
             'instanceId': 'route-1',
@@ -176,7 +176,7 @@ void main() {
             'fieldObstaclePositions': {
               'boulder': {'x': 3, 'y': 1},
             },
-            'npcPositions': {},
+            'npcPoses': {},
             'strengthActive': true,
             'illuminatedZoneIds': <String>[],
           },
@@ -252,7 +252,7 @@ void main() {
     test('instance v5 rejects malformed cleared obstacle identities $raw', () {
       expect(
         () => MapInstanceWorldState.fromJson({
-          'schemaVersion': 5,
+          'schemaVersion': 6,
           'instancesByMapId': {
             'route': {
               'instanceId': 'route-1',
@@ -260,7 +260,7 @@ void main() {
               'consumedInteractiveEncounterEntityIds': <String>[],
               'clearedFieldObstacleIds': raw,
               'fieldObstaclePositions': {},
-              'npcPositions': {},
+              'npcPoses': {},
               'strengthActive': false,
               'illuminatedZoneIds': <String>[],
             },

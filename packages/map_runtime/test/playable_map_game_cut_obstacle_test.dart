@@ -312,7 +312,7 @@ void main() {
             );
           }
           if (corruption.startsWith('npc')) {
-            instances = instances.setNpcPositions(scope, {
+            instances = instances.setNpcPoses(scope, _npcPoses({
               corruption == 'npcMissing'
                   ? 'ghost'
                   : corruption == 'npcType'
@@ -321,7 +321,7 @@ void main() {
                 x: corruption == 'npcBounds' ? 5 : 4,
                 y: 2,
               ),
-            });
+            }));
           }
           if (corruption == 'wrongKind') {
             instances = instances.clearFieldObstacle(scope, 'tree');
@@ -1236,3 +1236,8 @@ Future<void> _moveWalker(PlayableMapGame game) async {
   await _tickUntil(game, () => finished);
   expect(await movement, 'completed');
 }
+
+Map<String, MapInstanceNpcPose> _npcPoses(Map<String, GridPos> positions) => {
+  for (final entry in positions.entries)
+    entry.key: MapInstanceNpcPose(position: entry.value, facing: EntityFacing.south),
+};

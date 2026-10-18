@@ -86,7 +86,9 @@ final class CinematicRuntimePlaybackController
 
   CinematicTimelineStep? get currentStep {
     final session = _session;
-    if (session == null || session.stepIndex >= session.steps.length) {
+    if (session == null ||
+        session.terminating ||
+        session.stepIndex >= session.steps.length) {
       return null;
     }
     return session.steps[session.stepIndex];
@@ -151,6 +153,7 @@ final class CinematicRuntimePlaybackController
     var remaining = delta;
     while (_session != null) {
       final session = _session!;
+      if (session.terminating) return;
       if (!session.stepBegun) {
         _beginCurrentStepOrComplete();
         if (_session == null || !_session!.stepBegun) return;
@@ -208,7 +211,7 @@ final class CinematicRuntimePlaybackController
   }
 
   bool cancel({String message = 'Cinematic playback was cancelled.'}) {
-    if (_session == null) return false;
+    if (_session == null || _session!.terminating) return false;
     _terminate(
       SceneCinematicRuntimeAwaitableResult.failed(
         errorCode: SceneCinematicRuntimeAwaitableErrorCode.cancelled,
@@ -222,6 +225,7 @@ final class CinematicRuntimePlaybackController
   void _beginCurrentStepOrComplete() {
     while (_session != null) {
       final session = _session!;
+      if (session.terminating) return;
       if (session.stepIndex >= session.steps.length) {
         _terminate(
           const SceneCinematicRuntimeAwaitableResult.completed(),
@@ -274,19 +278,21 @@ final class CinematicRuntimePlaybackController
     CinematicRuntimeTermination termination,
   ) {
     final session = _session;
-    if (session == null) return;
-    _session = null;
+    if (session == null || session.terminating) return;
+    session.terminating = true;
     if (sink is CinematicRuntimeAsyncRestorationSink) {
       Future.sync(
         () => (sink as CinematicRuntimeAsyncRestorationSink)
             .restoreAsync(termination),
       ).then(
         (_) {
+          _session = null;
           if (!session.completer.isCompleted) {
             session.completer.complete(result);
           }
         },
         onError: (Object error) {
+          _session = null;
           if (!session.completer.isCompleted) {
             session.completer.complete(
               SceneCinematicRuntimeAwaitableResult.failed(
@@ -308,6 +314,7 @@ final class CinematicRuntimePlaybackController
         message: 'Cinematic sink restoration failed: $error',
       );
     } finally {
+      _session = null;
       if (!session.completer.isCompleted) {
         session.completer.complete(finalResult);
       }
@@ -328,6 +335,7 @@ final class _CinematicRuntimeSession {
   int stepIndex = 0;
   Duration stepElapsed = Duration.zero;
   bool stepBegun = false;
+  bool terminating = false;
 }
 
 const _supportedKinds = <CinematicTimelineStepKind>{

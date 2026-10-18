@@ -127,9 +127,9 @@ void main() {
       );
     },
   );
-  test('instance state5 persists consumed encounters and rejects state4', () {
+  test('instance state6 persists consumed encounters and rejects older states', () {
     final json = {
-      'schemaVersion': 5,
+      'schemaVersion': 6,
       'instancesByMapId': {
         'route': {
           ...MapInstanceRuntimeState(instanceId: 'r1').toJson(),
@@ -141,6 +141,13 @@ void main() {
     expect(
       () => MapInstanceWorldState.fromJson({
         'schemaVersion': 4,
+        'instancesByMapId': {},
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => MapInstanceWorldState.fromJson({
+        'schemaVersion': 5,
         'instancesByMapId': {},
       }),
       throwsFormatException,

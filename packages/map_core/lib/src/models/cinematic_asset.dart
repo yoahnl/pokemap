@@ -20,6 +20,8 @@ enum CinematicTimelineStepKind {
   marker,
 }
 
+enum CinematicActorCompletionPolicy { keepFinal, restoreInitial }
+
 enum CinematicStageBackdropMode { none, projectMap }
 
 enum CinematicActorBindingKind { player, mapEntity, cinematicOnly, unbound }
@@ -53,6 +55,7 @@ final class CinematicAsset {
         const <CinematicMovementTargetRef>[],
     this.stageContext,
     required this.timeline,
+    this.actorCompletionPolicy = CinematicActorCompletionPolicy.keepFinal,
     String? notes,
     Map<String, String> metadata = const <String, String>{},
   })  : id = _requireTrimmed(id, 'CinematicAsset.id'),
@@ -100,6 +103,9 @@ final class CinematicAsset {
         'stageContext',
         CinematicStageContext.fromJson,
       ),
+      actorCompletionPolicy: json.containsKey('actorCompletionPolicy')
+          ? _readEnum(CinematicActorCompletionPolicy.values, json['actorCompletionPolicy'], 'actorCompletionPolicy')
+          : CinematicActorCompletionPolicy.keepFinal,
       timeline:
           _readOptionalObject(json, 'timeline', CinematicTimeline.fromJson) ??
               CinematicTimeline(),
@@ -119,6 +125,7 @@ final class CinematicAsset {
   final List<CinematicMovementTargetRef> movementTargets;
   final CinematicStageContext? stageContext;
   final CinematicTimeline timeline;
+  final CinematicActorCompletionPolicy actorCompletionPolicy;
   final String? notes;
   final Map<String, String> metadata;
 
@@ -134,6 +141,7 @@ final class CinematicAsset {
     List<CinematicMovementTargetRef>? movementTargets,
     Object? stageContext = _cinematicCopyUnset,
     CinematicTimeline? timeline,
+    CinematicActorCompletionPolicy? actorCompletionPolicy,
     Object? notes = _cinematicCopyUnset,
     Map<String, String>? metadata,
   }) {
@@ -158,6 +166,7 @@ final class CinematicAsset {
           ? this.stageContext
           : stageContext as CinematicStageContext?,
       timeline: timeline ?? this.timeline,
+      actorCompletionPolicy: actorCompletionPolicy ?? this.actorCompletionPolicy,
       notes:
           identical(notes, _cinematicCopyUnset) ? this.notes : notes as String?,
       metadata: metadata ?? this.metadata,
@@ -178,6 +187,7 @@ final class CinematicAsset {
             movementTargets.map((target) => target.toJson()).toList(),
         'stageContext': stageContext?.toJson(),
         'timeline': timeline.toJson(),
+        'actorCompletionPolicy': actorCompletionPolicy.name,
         'notes': notes,
         'metadata': metadata,
       });
@@ -197,6 +207,7 @@ final class CinematicAsset {
           _listEquals(other.movementTargets, movementTargets) &&
           other.stageContext == stageContext &&
           other.timeline == timeline &&
+          other.actorCompletionPolicy == actorCompletionPolicy &&
           other.notes == notes &&
           _mapEquals(other.metadata, metadata);
 
@@ -213,6 +224,7 @@ final class CinematicAsset {
         Object.hashAll(movementTargets),
         stageContext,
         timeline,
+        actorCompletionPolicy,
         notes,
         _mapHash(metadata),
       );

@@ -410,7 +410,11 @@ final class SpatialCinematicRuntimePlaybackSink
 
     var current = false;
     attempt(() => current = identical(activeMap(), snapshot.map));
-    if (current && termination == CinematicRuntimeTermination.completed) {
+    if (current) attempt(() => writeCamera(snapshot.camera));
+    attempt(() => setInputLocked(false));
+    if (current && termination == CinematicRuntimeTermination.completed &&
+        failure == null &&
+        snapshot.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal) {
       attempt(() => onCompletedPoses(Map.unmodifiable({
             for (final binding in snapshot.actors.keys)
               binding: _terminalPose(binding, _actor(binding)),
@@ -418,13 +422,12 @@ final class SpatialCinematicRuntimePlaybackSink
     }
     if (current &&
         (termination != CinematicRuntimeTermination.completed ||
+            snapshot.actorCompletionPolicy == CinematicActorCompletionPolicy.restoreInitial ||
             failure != null)) {
       for (final entry in snapshot.actors.entries) {
         attempt(() => writeActor(entry.key, entry.value));
       }
     }
-    attempt(() => writeCamera(snapshot.camera));
-    attempt(() => setInputLocked(false));
     _prepared = null;
     if (failure != null) Error.throwWithStackTrace(failure!, stack!);
   }
@@ -437,7 +440,7 @@ final class SpatialCinematicRuntimePlaybackSink
     _current(asset);
     _snapshot = _SpatialCinematicSnapshot(prepared.map, readCamera(), {
       for (final binding in prepared.bindings.values) binding: _actor(binding),
-    });
+    }, asset.actorCompletionPolicy);
     setInputLocked(true);
     for (final entry in prepared.initial.entries) {
       writeActor(entry.key, entry.value);
@@ -701,8 +704,9 @@ final class _SpatialCinematicPreparation {
 }
 
 final class _SpatialCinematicSnapshot {
-  const _SpatialCinematicSnapshot(this.map, this.camera, this.actors);
+  const _SpatialCinematicSnapshot(this.map, this.camera, this.actors, this.actorCompletionPolicy);
   final MapData map;
   final SpatialCinematicCameraPose? camera;
   final Map<CinematicActorBinding, SpatialCinematicActorPose> actors;
+  final CinematicActorCompletionPolicy actorCompletionPolicy;
 }

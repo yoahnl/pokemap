@@ -171,6 +171,7 @@ import 'warp_presentation_overlay_component.dart';
 import 'warp_presentation_renderer.dart';
 
 part 'playable_map_game_support.dart';
+part 'playable_map_game_cinematic_poses.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_repel.dart';
 part 'playable_map_game_bicycle.dart';
@@ -3904,8 +3905,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _gameState = _captureGameStateFromWorld(mapIdOverride: mapIdOverride);
   }
 
-  bool _usesInstanceNpcPositions(String mapId) => _world.map.id == mapId &&
-      (_runtimeBundleByMapId[mapId] ?? _bundle).map.entities.any((entity) => entity.fieldObstacle != null);
+  bool _usesInstanceNpcPositions(String mapId) => _world.map.id == mapId;
 
   MapInstanceWorldState _captureInstanceNpcPositions(MapInstanceWorldState state, String mapId) {
     final instance = state.instanceRef(mapId);
@@ -3913,10 +3913,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return state;
     }
     final authored = (_runtimeBundleByMapId[mapId] ?? _bundle).map;
-    final initial = {for (final entity in authored.entities) entity.id: entity.pos};
-    return state.setNpcPositions(instance, {
+    final initial = {for (final entity in authored.entities) entity.id: entity};
+    return state.setNpcPoses(instance, {
       for (final entity in _world.map.entities)
-        if (entity.kind == MapEntityKind.npc && entity.npc != null && initial[entity.id] != entity.pos) entity.id: entity.pos,
+        if (entity.kind == MapEntityKind.npc && entity.npc != null &&
+            (initial[entity.id]?.pos != entity.pos ||
+                initial[entity.id]?.npc?.facing != entity.npc!.facing))
+          entity.id: MapInstanceNpcPose(position: entity.pos, facing: entity.npc!.facing),
     });
   }
 

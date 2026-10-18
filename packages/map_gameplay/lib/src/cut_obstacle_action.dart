@@ -4,6 +4,7 @@ import 'field_action.dart';
 import 'field_ability_gate.dart';
 import 'direction.dart';
 import 'gameplay_world_state.dart';
+import 'npc_instance_pose_projection.dart';
 
 enum CutObstacleBlockReason {
   invalidTarget,
@@ -192,11 +193,6 @@ MapData applyFieldObstacleWorldStateToMap(
         'Field obstacle projection requires matching authored map geometry.');
   }
   final saved = instances.instancesByMapId[map.id]!;
-  if (saved.npcPositions.isNotEmpty &&
-      ((map.spatialScene != null || map.version == ProjectVersion.v9) ||
-          !source.entities.any((entity) => entity.fieldObstacle != null))) {
-    throw StateError('Saved NPC positions require a 2D field obstacle map.');
-  }
   MapEntity entityFor(String id) {
     final matches = source.entities.where((entity) => entity.id == id).toList();
     if (matches.length != 1 || matches.single.fieldObstacle == null) {
@@ -245,46 +241,31 @@ MapData applyFieldObstacleWorldStateToMap(
           'Saved boulder ${entry.key} has an incompatible position.');
     }
   }
-  for (final entry in saved.npcPositions.entries) {
-    final matches =
-        source.entities.where((entity) => entity.id == entry.key).toList();
-    if (matches.length != 1 ||
-        matches.single.kind != MapEntityKind.npc ||
-        matches.single.npc == null ||
-        entry.value.x < 0 ||
-        entry.value.y < 0 ||
-        entry.value.x + matches.single.size.width > map.size.width ||
-        entry.value.y + matches.single.size.height > map.size.height) {
-      throw StateError(
-          'Saved NPC ${entry.key} has an incompatible identity or position.');
-    }
-  }
   final candidates = authoringMap == null
       ? map.entities
       : [
           ...map.entities.where((entity) => entity.fieldObstacle == null),
           ...source.entities.where((entity) => entity.fieldObstacle != null),
         ];
-  final authoredNpcPositions = {
-    for (final entity in source.entities)
-      if (entity.kind == MapEntityKind.npc) entity.id: entity.pos
-  };
   final entities = [
     for (final entity in candidates)
       if (!saved.clearedFieldObstacleIds.contains(entity.id))
         saved.fieldObstaclePositions.containsKey(entity.id)
             ? entity.copyWith(pos: saved.fieldObstaclePositions[entity.id]!)
-            : entity.kind == MapEntityKind.npc &&
-                    authoredNpcPositions.containsKey(entity.id)
-                ? entity.copyWith(
-                    pos: saved.npcPositions[entity.id] ??
-                        authoredNpcPositions[entity.id]!)
-                : entity,
+            : entity,
   ];
-  final projected = map.copyWith(entities: entities);
+  final projected = applyNpcInstancePosesToMap(
+    map: map.copyWith(entities: entities),
+    authoringMap: source,
+    instances: instances,
+    instance: instance,
+    project: project,
+    movingPlatformWorldState: movingPlatformWorldState,
+    npcMapPresencePredicate: npcMapPresencePredicate,
+    mapEntityPresencePredicate: mapEntityPresencePredicate,
+  );
   for (final id in {
-    ...saved.fieldObstaclePositions.keys,
-    ...saved.npcPositions.keys
+    ...saved.fieldObstaclePositions.keys
   }) {
     final entity = entities.singleWhere((entity) => entity.id == id);
     if (entity.kind == MapEntityKind.npc &&
@@ -294,7 +275,7 @@ MapData applyFieldObstacleWorldStateToMap(
     }
     final world = GameplayWorldState.initial(
       map: projected.copyWith(
-          entities: entities.where((entity) => entity.id != id).toList()),
+          entities: projected.entities.where((entity) => entity.id != id).toList()),
       playerPos: const GridPos(x: 0, y: 0),
       movingPlatformWorldState: movingPlatformWorldState,
       project: project,

@@ -3,8 +3,9 @@ import 'package:freezed_annotation/freezed_annotation.dart'
 import 'package:meta/meta.dart' show immutable;
 
 import 'geometry.dart';
+import 'enums.dart';
 
-const currentMapInstanceWorldStateSchemaVersion = 5;
+const currentMapInstanceWorldStateSchemaVersion = 6;
 const _collectionEquality = DeepCollectionEquality();
 
 Object? readMapInstanceWorldStateJson(Map<dynamic, dynamic> json, String key) {
@@ -35,6 +36,32 @@ final class MapInstanceRef {
 }
 
 @immutable
+final class MapInstanceNpcPose {
+  MapInstanceNpcPose({required GridPos position, required this.facing})
+      : position = _position(position);
+
+  final GridPos position;
+  final EntityFacing facing;
+
+  factory MapInstanceNpcPose.fromJson(Map<String, dynamic> json) {
+    _keys(json, {'position', 'facing'});
+    final position = _readPositions({'pose': json['position']}, 'position')['pose']!;
+    final facingName = json['facing'];
+    final facing = EntityFacing.values.where((value) => value.name == facingName).firstOrNull;
+    if (facing == null) throw const FormatException('NPC facing must be a canonical cardinal direction.');
+    return MapInstanceNpcPose(position: position, facing: facing);
+  }
+
+  Map<String, dynamic> toJson() => {'position': position.toJson(), 'facing': facing.name};
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is MapInstanceNpcPose && other.position == position && other.facing == facing;
+
+  @override
+  int get hashCode => Object.hash(position, facing);
+}
+
+@immutable
 final class MapInstanceRuntimeState {
   MapInstanceRuntimeState({
     required String instanceId,
@@ -43,16 +70,16 @@ final class MapInstanceRuntimeState {
     Set<String> consumedInteractiveEncounterEntityIds = const {},
     Set<String> illuminatedZoneIds = const {},
     Map<String, GridPos> fieldObstaclePositions = const {},
-    Map<String, GridPos> npcPositions = const {},
+    Map<String, MapInstanceNpcPose> npcPoses = const {},
     this.strengthActive = false,
   }) : instanceId = _identity(instanceId, 'instanceId'),
        fieldObstaclePositions = Map.unmodifiable({
          for (final entry in fieldObstaclePositions.entries)
            _identity(entry.key, 'fieldObstacleId'): _position(entry.value),
        }),
-       npcPositions = Map.unmodifiable({
-         for (final entry in npcPositions.entries)
-           _identity(entry.key, 'npcId'): _position(entry.value),
+       npcPoses = Map.unmodifiable({
+         for (final entry in npcPoses.entries)
+           _identity(entry.key, 'npcId'): entry.value,
        }),
        illuminatedZoneIds = Set.unmodifiable(
          illuminatedZoneIds.map((id) => _identity(id, 'zoneId')),
@@ -75,7 +102,7 @@ final class MapInstanceRuntimeState {
   final Set<String> consumedInteractiveEncounterEntityIds;
   final Set<String> illuminatedZoneIds;
   final Map<String, GridPos> fieldObstaclePositions;
-  final Map<String, GridPos> npcPositions;
+  final Map<String, MapInstanceNpcPose> npcPoses;
   final bool strengthActive;
 
   factory MapInstanceRuntimeState.fromJson(Map<String, dynamic> json) {
@@ -86,14 +113,17 @@ final class MapInstanceRuntimeState {
       'consumedInteractiveEncounterEntityIds',
       'illuminatedZoneIds',
       'fieldObstaclePositions',
-      'npcPositions',
+      'npcPoses',
       'strengthActive',
     });
     final positions = _readPositions(
       json['fieldObstaclePositions'],
       'fieldObstaclePositions',
     );
-    final npcPositions = _readPositions(json['npcPositions'], 'npcPositions');
+    final npcPoses = <String, MapInstanceNpcPose>{
+      for (final entry in _object(json['npcPoses'], 'npcPoses').entries)
+        entry.key: MapInstanceNpcPose.fromJson(_object(entry.value, 'npcPoses.${entry.key}')),
+    };
     if (json['strengthActive'] is! bool) {
       throw const FormatException('strengthActive must be a boolean.');
     }
@@ -139,7 +169,7 @@ final class MapInstanceRuntimeState {
         illuminatedZoneIds: illuminated.cast<String>().toSet(),
         eventBooleans: booleans,
         fieldObstaclePositions: positions,
-        npcPositions: npcPositions,
+        npcPoses: npcPoses,
         strengthActive: json['strengthActive'] as bool,
         clearedFieldObstacleIds: cleared.cast<String>().toSet(),
         consumedInteractiveEncounterEntityIds: consumed.cast<String>().toSet(),
@@ -160,9 +190,9 @@ final class MapInstanceRuntimeState {
         for (final id in fieldObstaclePositions.keys.toList()..sort())
           id: fieldObstaclePositions[id]!.toJson(),
       },
-      'npcPositions': {
-        for (final id in npcPositions.keys.toList()..sort())
-          id: npcPositions[id]!.toJson(),
+      'npcPoses': {
+        for (final id in npcPoses.keys.toList()..sort())
+          id: npcPoses[id]!.toJson(),
       },
       'strengthActive': strengthActive,
       'eventBooleans': {
@@ -186,7 +216,7 @@ final class MapInstanceRuntimeState {
             other.illuminatedZoneIds,
             illuminatedZoneIds,
           ) &&
-          _collectionEquality.equals(other.npcPositions, npcPositions) &&
+          _collectionEquality.equals(other.npcPoses, npcPoses) &&
           _collectionEquality.equals(
             other.fieldObstaclePositions,
             fieldObstaclePositions,
@@ -203,7 +233,7 @@ final class MapInstanceRuntimeState {
     _collectionEquality.hash(consumedInteractiveEncounterEntityIds),
     strengthActive,
     _collectionEquality.hash(fieldObstaclePositions),
-    _collectionEquality.hash(npcPositions),
+    _collectionEquality.hash(npcPoses),
     _collectionEquality.hash(eventBooleans),
     _collectionEquality.hash(clearedFieldObstacleIds),
     _collectionEquality.hash(illuminatedZoneIds),
@@ -286,7 +316,7 @@ final class MapInstanceWorldState {
           instanceId: instance.instanceId,
           consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
-          npcPositions: instance.npcPositions,
+          npcPoses: instance.npcPoses,
           fieldObstaclePositions: instance.fieldObstaclePositions,
           strengthActive: instance.strengthActive,
           clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
@@ -318,7 +348,7 @@ final class MapInstanceWorldState {
           instanceId: instance.instanceId,
           consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
-          npcPositions: instance.npcPositions,
+          npcPoses: instance.npcPoses,
           fieldObstaclePositions: instance.fieldObstaclePositions,
           strengthActive: instance.strengthActive,
           eventBooleans: instance.eventBooleans,
@@ -345,7 +375,7 @@ final class MapInstanceWorldState {
         consumedInteractiveEncounterEntityIds: {...instance.consumedInteractiveEncounterEntityIds, entityId},
         eventBooleans: instance.eventBooleans, clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
         illuminatedZoneIds: instance.illuminatedZoneIds, fieldObstaclePositions: instance.fieldObstaclePositions,
-        npcPositions: instance.npcPositions, strengthActive: instance.strengthActive,
+        npcPoses: instance.npcPoses, strengthActive: instance.strengthActive,
       ),
     });
   }
@@ -372,7 +402,7 @@ final class MapInstanceWorldState {
           instanceId: instance.instanceId,
           consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: {...instance.illuminatedZoneIds, zoneId},
-          npcPositions: instance.npcPositions,
+          npcPoses: instance.npcPoses,
           fieldObstaclePositions: instance.fieldObstaclePositions,
           clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
           eventBooleans: instance.eventBooleans,
@@ -395,7 +425,7 @@ final class MapInstanceWorldState {
           instanceId: instance.instanceId,
           consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
-          npcPositions: instance.npcPositions,
+          npcPoses: instance.npcPoses,
           eventBooleans: instance.eventBooleans,
           clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
           fieldObstaclePositions: instance.fieldObstaclePositions,
@@ -421,7 +451,7 @@ final class MapInstanceWorldState {
           instanceId: instance.instanceId,
           consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
-          npcPositions: instance.npcPositions,
+          npcPoses: instance.npcPoses,
           eventBooleans: instance.eventBooleans,
           clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
           fieldObstaclePositions: {
@@ -434,12 +464,12 @@ final class MapInstanceWorldState {
     );
   }
 
-  MapInstanceWorldState setNpcPositions(
+  MapInstanceWorldState setNpcPoses(
     MapInstanceRef scope,
-    Map<String, GridPos> positions,
+    Map<String, MapInstanceNpcPose> poses,
   ) {
     final instance = _currentInstance(scope);
-    if (_collectionEquality.equals(instance.npcPositions, positions)) {
+    if (_collectionEquality.equals(instance.npcPoses, poses)) {
       return this;
     }
     return MapInstanceWorldState(
@@ -449,7 +479,7 @@ final class MapInstanceWorldState {
           instanceId: instance.instanceId,
           consumedInteractiveEncounterEntityIds: instance.consumedInteractiveEncounterEntityIds,
           illuminatedZoneIds: instance.illuminatedZoneIds,
-          npcPositions: positions,
+          npcPoses: poses,
           fieldObstaclePositions: instance.fieldObstaclePositions,
           clearedFieldObstacleIds: instance.clearedFieldObstacleIds,
           strengthActive: instance.strengthActive,

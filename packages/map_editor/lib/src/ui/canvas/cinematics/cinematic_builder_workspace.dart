@@ -1086,6 +1086,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             dialogues: widget.dialogues,
                             mediaAssets: widget.cinematicMediaAssets,
                             stageMapSourceCatalog: widget.stageMapSourceCatalog,
+                            onCompletionPolicy:
+                                widget.onUpdateCinematicAsset == null
+                                    ? null
+                                    : _setActorCompletionPolicy,
                             selectedStep: selectedStep,
                             selectedStepIndex: selectedStepIndex,
                             startExpanded: widget.startExpanded,
@@ -1399,12 +1403,24 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
           requiredActors: widget.asset.requiredActors,
           movementTargets: widget.asset.movementTargets,
           timeline: widget.asset.timeline,
+          actorCompletionPolicy: widget.asset.actorCompletionPolicy,
           stageContext: widget.asset.stageContext ?? CinematicStageContext(),
           notes: widget.asset.notes,
           metadata: widget.asset.metadata,
         ),
       ],
     );
+  }
+
+  Future<void> _setActorCompletionPolicy(
+    CinematicActorCompletionPolicy policy,
+  ) async {
+    final result = setCinematicActorCompletionPolicy(
+      _createDummyProject(),
+      cinematicId: widget.asset.id,
+      policy: policy,
+    );
+    await _updateCinematic(result.cinematic);
   }
 
   Future<void> _updateCinematic(CinematicAsset updatedCinematic) async {
@@ -1597,6 +1613,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             requiredActors: widget.asset.requiredActors,
             movementTargets: widget.asset.movementTargets,
             timeline: widget.asset.timeline,
+            actorCompletionPolicy: widget.asset.actorCompletionPolicy,
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
             notes: widget.asset.notes,
             metadata: widget.asset.metadata,
@@ -1636,6 +1653,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             requiredActors: widget.asset.requiredActors,
             movementTargets: widget.asset.movementTargets,
             timeline: widget.asset.timeline,
+            actorCompletionPolicy: widget.asset.actorCompletionPolicy,
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
             notes: widget.asset.notes,
             metadata: widget.asset.metadata,
@@ -1675,6 +1693,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             requiredActors: widget.asset.requiredActors,
             movementTargets: widget.asset.movementTargets,
             timeline: widget.asset.timeline,
+            actorCompletionPolicy: widget.asset.actorCompletionPolicy,
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
             notes: widget.asset.notes,
             metadata: widget.asset.metadata,
@@ -6349,6 +6368,7 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.onRemoveManualPathWaypoint,
     required this.onReorderManualPathWaypoint,
     required this.readiness,
+    this.onCompletionPolicy,
     this.actorSpritePreviewPlan,
     this.tilesets,
     this.selectedStagePointId,
@@ -6359,6 +6379,7 @@ class _InspectorPlaceholder extends StatefulWidget {
     this.mapHeight,
   });
 
+  final ValueChanged<CinematicActorCompletionPolicy>? onCompletionPolicy;
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
@@ -6542,6 +6563,41 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (_tabIndex == 0) ...[
+                    const _SectionTitle(
+                      title: 'À la fin',
+                      subtitle: 'Position et orientation des acteurs',
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final policy in CinematicActorCompletionPolicy.values)
+                          _InlineControlAction(
+                            label: policy == CinematicActorCompletionPolicy.keepFinal
+                                ? 'Conserver la pose'
+                                : 'Restaurer la pose de départ',
+                            button: PokeMapButton(
+                              key: ValueKey('cinematic-builder-completion-policy-${policy.name}'),
+                              onPressed: widget.onCompletionPolicy == null
+                                  ? null
+                                  : () => widget.onCompletionPolicy!(policy),
+                              variant: PokeMapButtonVariant.secondary,
+                              size: PokeMapButtonSize.small,
+                              isSelected: widget.asset.actorCompletionPolicy == policy,
+                              leading: const Icon(CupertinoIcons.person_crop_circle, size: 12),
+                              child: const SizedBox.shrink(),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const _MutedText(
+                      'La pose comprend la position et l’orientation. Une annulation restaure toujours la pose de départ.',
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   if (_tabIndex == 0)
                     _StageContextEditor(
                       entry: widget.entry,
