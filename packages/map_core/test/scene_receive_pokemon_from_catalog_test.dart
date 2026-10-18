@@ -64,7 +64,7 @@ void main() {
       expect(descriptor.fgLotId, 'FG-103');
       expect(
         descriptor.parameters.map((p) => p.id),
-        wire.keys.where((k) => k != 'kind'),
+        [...wire.keys.where((k) => k != 'kind'), 'moveIds'],
       );
     },
   );

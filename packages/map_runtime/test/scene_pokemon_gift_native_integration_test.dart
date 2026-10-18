@@ -10,17 +10,37 @@ import 'package:map_runtime/src/application/narrative_scene_runtime_execution.da
 import 'support/scene_catalog_pokemon_gift_fixture.dart';
 
 void main() {
-  for (final eventV2 in [false, true]) {
+  for (final (eventV2, forced) in [
+    for (final eventV2 in [false, true])
+      for (final forced in [false, true]) (eventV2, forced),
+  ]) {
     for (final destination in ['party', 'pc', 'noCapacity']) {
       test(
-        'native gift V2=$eventV2 destination=$destination with default End commits business suffix and preserves one-shot on noCapacity',
+        'native gift forced=$forced V2=$eventV2 destination=$destination commits suffix and preserves one-shot on noCapacity',
         () async {
           final root = await Directory.systemTemp.createTemp(
             'native-gift-host-',
           );
           addTearDown(() => root.delete(recursive: true));
           final config = await writeSceneCatalogPokemonGiftFixture(root);
-          final scene = _scene();
+          if (forced) {
+            final file = File('${root.path}/custom/moves.json');
+            final document =
+                jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+            (document['entries'] as List<dynamic>).addAll([
+              for (final entry in {'swift-gift': 5, 'echo-gift': 7}.entries)
+                PokemonMove(
+                  id: entry.key,
+                  name: entry.key,
+                  type: 'steel',
+                  category: PokemonMoveCategory.physical,
+                  accuracy: const PokemonMoveAccuracy.percent(value: 100),
+                  pp: entry.value,
+                ).toJson(),
+            ]);
+            await file.writeAsString(jsonEncode(document));
+          }
+          final scene = _scene(forced: forced);
           final project = ProjectManifest(
             name: 'Gift integration',
             maps: [],
@@ -203,6 +223,10 @@ void main() {
             );
             expect(retry.party.members.last.speciesId, 'clockbird');
             expect(
+              retry.party.members.last.knownMoveIds,
+              forced ? ['swift-gift', 'echo-gift'] : ['tick', 'tock'],
+            );
+            expect(
               retry.appliedPokemonGrantOperationIds,
               contains('scene:gift:run:receive'),
             );
@@ -236,7 +260,16 @@ void main() {
                 : committed.pokemonStorage.storedPokemon.single;
             expect(granted, shown);
             expect(granted.nickname, 'Pendule');
-            expect(granted.knownMoveIds, ['tick', 'tock']);
+            expect(
+              granted.knownMoveIds,
+              forced ? ['swift-gift', 'echo-gift'] : ['tick', 'tock'],
+            );
+            expect(
+              granted.currentPpByMoveId,
+              forced
+                  ? {'swift-gift': 5, 'echo-gift': 7}
+                  : {'tick': 13, 'tock': 19},
+            );
             expect(
               committed.progression.caughtSpeciesIds,
               contains('clockbird'),
@@ -341,7 +374,7 @@ Future<GameState> _execute(
   return result.updatedGameState!;
 }
 
-SceneAsset _scene() => SceneAsset(
+SceneAsset _scene({bool forced = false}) => SceneAsset(
   id: 'gift',
   name: 'Gift',
   graph: SceneGraph(
@@ -363,6 +396,7 @@ SceneAsset _scene() => SceneAsset(
             speciesId: 'clockbird',
             formId: 'bronze',
             level: 7,
+            moveIds: forced ? ['swift-gift', 'echo-gift'] : null,
             nicknamePolicy: ScenePokemonGiftNicknamePolicy.offer,
             nicknameMaxGraphemes: 10,
             pokedexPresentationPolicy: ScenePokemonGiftPokedexPresentationPolicy
@@ -387,10 +421,7 @@ SceneAsset _scene() => SceneAsset(
             SceneConsequence.giveMoney(amount: 50),
           ),
         ),
-        SceneNode(
-          id: 'end-$port',
-          kind: SceneNodeKind.end,
-        ),
+        SceneNode(id: 'end-$port', kind: SceneNodeKind.end),
       ],
     ],
     edges: [

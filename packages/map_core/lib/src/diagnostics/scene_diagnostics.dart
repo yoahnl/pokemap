@@ -68,6 +68,7 @@ enum SceneDiagnosticCode {
   commandUnsupportedDimension,
   commandPokemonCatalogUnavailable,
   commandPokemonCatalogDeferred,
+  commandPokemonMoveRefUnknown,
   commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
   commandInvalidWarpPresentation,
@@ -761,6 +762,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           railJourneyIds: railJourneyIds,
           mapsById: mapsById,
           modelsById: {for (final model in project.models3d) model.id: model},
+          availableMoveIds: availableMoveIds,
           diagnostics: diagnostics,
         );
       case SceneStartPayload():
@@ -1167,10 +1169,13 @@ void _diagnoseActionConsequenceAgainstProject(
   required Set<String> railJourneyIds,
   required Map<String, MapData> mapsById,
   required Map<String, ProjectModel3dEntry> modelsById,
+  required Set<String>? availableMoveIds,
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
-  if (interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand) {
+  final catalogConsequence = payload.consequence;
+  if (interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand ||
+      catalogConsequence is SceneGivePokemonFromCatalogConsequence) {
     diagnostics.add(SceneDiagnostic(
       code: project.pokemon.enabled ? SceneDiagnosticCode.commandPokemonCatalogDeferred : SceneDiagnosticCode.commandPokemonCatalogUnavailable,
       severity: project.pokemon.enabled ? SceneDiagnosticSeverity.info : SceneDiagnosticSeverity.error,
@@ -1180,6 +1185,23 @@ void _diagnoseActionConsequenceAgainstProject(
       sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
       suggestedFixLabel: project.pokemon.enabled ? 'Vérifier le catalogue local puis tester le cadeau dans le Player.' : 'Activer et configurer le catalogue Pokémon du projet.',
     ));
+    final moveIds = switch (interactiveCommand) {
+      SceneReceivePokemonFromCatalogInteractiveCommand(:final moveIds) => moveIds,
+      _ => (catalogConsequence as SceneGivePokemonFromCatalogConsequence).moveIds,
+    };
+    if (availableMoveIds != null) {
+      for (final moveId in moveIds ?? const <String>[]) {
+        if (!availableMoveIds.contains(moveId)) {
+          diagnostics.add(SceneDiagnostic(
+            code: SceneDiagnosticCode.commandPokemonMoveRefUnknown,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La capacité imposée $moveId est absente du catalogue actif.',
+            sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir une capacité dans le catalogue du projet.',
+          ));
+        }
+      }
+    }
   }
 
   if (interactiveCommand is SceneOpenHealInteractiveCommand &&

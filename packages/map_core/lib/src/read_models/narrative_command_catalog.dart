@@ -292,6 +292,7 @@ final class NarrativeCommandCatalog {
           _parameter('nicknamePolicy', 'Proposer un surnom', NarrativeCommandParameterKind.pokemonGiftNicknamePolicy),
           _parameter('nicknameMaxGraphemes', 'Longueur maximale du surnom', NarrativeCommandParameterKind.integer),
           _parameter('pokedexPresentationPolicy', 'Présenter le Pokédex', NarrativeCommandParameterKind.pokemonGiftPokedexPolicy),
+          _parameter('moveIds', 'Capacités imposées', NarrativeCommandParameterKind.text, required: false),
         ],
         isPersistent: true,
       ),
@@ -303,6 +304,7 @@ final class NarrativeCommandCatalog {
           _parameter('speciesId', 'Espèce', NarrativeCommandParameterKind.species),
           _parameter('formId', 'Forme', NarrativeCommandParameterKind.speciesForm),
           _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
+          _parameter('moveIds', 'Capacités imposées', NarrativeCommandParameterKind.text, required: false),
         ],
       ),
       consequence(

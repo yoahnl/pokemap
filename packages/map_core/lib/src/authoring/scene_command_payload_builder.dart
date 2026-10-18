@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../models/scene_warp_presentation.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -17,11 +19,6 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
   required String commandId,
   required Map<String, String> parameters,
 }) {
-  if (commandId == NarrativeCommandIds.givePokemonFromCatalog &&
-      (parameters.length != 3 ||
-          parameters.keys.any((key) => !const {'speciesId', 'formId', 'level'}.contains(key)))) {
-    throw const FormatException('Catalog gift parameters must be speciesId, formId and level only.');
-  }
   int integer(String id, {int fallback = 1}) =>
       int.tryParse(parameters[id] ?? '') ?? fallback;
   return switch (commandId) {
@@ -74,18 +71,13 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       ),
     ),
     NarrativeCommandIds.receivePokemonFromCatalog => SceneActionPayload.interactive(
-      SceneInteractiveCommand.fromJson({
-        'kind': commandId,
-        for (final entry in parameters.entries)
-          entry.key: const {'level', 'nicknameMaxGraphemes'}.contains(entry.key)
-              ? int.tryParse(entry.value) : entry.value,
-      }),
+      SceneReceivePokemonFromCatalogInteractiveCommand.fromJson(
+        _catalogGiftParameters(commandId, parameters),
+      ),
     ),
     NarrativeCommandIds.givePokemonFromCatalog => SceneActionPayload.consequence(
-      SceneConsequence.givePokemonFromCatalog(
-        speciesId: parameters['speciesId']!,
-        formId: parameters['formId']!,
-        level: int.parse(parameters['level']!),
+      SceneGivePokemonFromCatalogConsequence.fromJson(
+        _catalogGiftParameters(commandId, parameters),
       ),
     ),
     NarrativeCommandIds.giveConfiguredStarter => SceneActionPayload.consequence(
@@ -244,6 +236,26 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       'commandId',
       'An unsupported Narrative command cannot produce a Scene payload.',
     ),
+  };
+}
+Map<String, dynamic> _catalogGiftParameters(
+  String commandId,
+  Map<String, String> parameters,
+) {
+  if (parameters.containsKey('kind')) {
+    throw const FormatException('Gift parameters cannot replace the command kind.');
+  }
+  return {
+  'kind': commandId,
+  for (final entry in parameters.entries)
+    entry.key: switch (entry.key) {
+      'level' || 'nicknameMaxGraphemes' => int.tryParse(entry.value),
+      'moveIds' => switch (jsonDecode(entry.value)) {
+        final List<dynamic> values => values,
+        _ => throw const FormatException('Imposed gift moves must be a JSON list.'),
+      },
+      _ => entry.value,
+    },
   };
 }
 

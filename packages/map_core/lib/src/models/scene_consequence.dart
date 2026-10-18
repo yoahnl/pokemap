@@ -4,6 +4,7 @@ import 'enums.dart';
 import 'narrative_value.dart';
 import 'project_presentation_profile.dart';
 import 'scene_finish_game_contract.dart';
+import 'scene_pokemon_gift_moves.dart';
 
 enum SceneConsequenceKind {
   setFact,
@@ -122,6 +123,7 @@ abstract base class SceneConsequence {
     required String speciesId,
     required String formId,
     required int level,
+    List<String>? moveIds,
   }) = SceneGivePokemonFromCatalogConsequence;
 
   factory SceneConsequence.healParty({
@@ -814,15 +816,17 @@ final class SceneGivePokemonFromCatalogConsequence extends SceneConsequence {
     required String speciesId,
     required String formId,
     required this.level,
+    List<String>? moveIds,
   }) : speciesId = speciesId.trim(),
-       formId = formId.trim() {
+       formId = formId.trim(),
+       moveIds = readScenePokemonGiftMoveIds(moveIds) {
     if (this.speciesId.isEmpty || this.formId.isEmpty || level < 1 || level > 100) {
       throw const FormatException('Catalog gift requires species, form and a level between 1 and 100.');
     }
   }
 
   factory SceneGivePokemonFromCatalogConsequence.fromJson(Map<String, dynamic> json) {
-    const fields = {'kind', 'speciesId', 'formId', 'level'};
+    const fields = {'kind', 'speciesId', 'formId', 'level', 'moveIds'};
     if (json.keys.any((field) => !fields.contains(field)) ||
         json['kind'] != 'givePokemonFromCatalog' || json['level'] is! int) {
       throw const FormatException('Invalid catalog gift fields.');
@@ -831,12 +835,14 @@ final class SceneGivePokemonFromCatalogConsequence extends SceneConsequence {
       speciesId: _readRequiredString(json, 'speciesId'),
       formId: _readRequiredString(json, 'formId'),
       level: json['level'] as int,
+      moveIds: readScenePokemonGiftMoveIds(json['moveIds']),
     );
   }
 
   final String speciesId;
   final String formId;
   final int level;
+  final List<String>? moveIds;
 
   @override
   SceneConsequenceKind get kind => SceneConsequenceKind.givePokemonFromCatalog;
@@ -847,15 +853,17 @@ final class SceneGivePokemonFromCatalogConsequence extends SceneConsequence {
     'speciesId': speciesId,
     'formId': formId,
     'level': level,
+    if (moveIds != null) 'moveIds': moveIds,
   };
 
   @override
   bool operator ==(Object other) => identical(this, other) ||
       other is SceneGivePokemonFromCatalogConsequence &&
-      other.speciesId == speciesId && other.formId == formId && other.level == level;
+      other.speciesId == speciesId && other.formId == formId && other.level == level &&
+      scenePokemonGiftMoveIdsEqual(other.moveIds, moveIds);
 
   @override
-  int get hashCode => Object.hash(speciesId, formId, level);
+  int get hashCode => Object.hash(speciesId, formId, level, moveIds == null ? null : Object.hashAll(moveIds!));
 }
 
 @immutable

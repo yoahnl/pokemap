@@ -53,7 +53,9 @@ final class RuntimeScenePokemonCatalog {
         .generate(
           seed: seed,
           species: entry.species,
-          learnset: entry.learnset,
+          learnset: consequence.moveIds == null
+              ? entry.learnset
+              : WildPokemonGenerationLearnset(startingMoves: consequence.moveIds!),
           maxPpByMoveId: entry.maxPpByMoveId,
           level: consequence.level,
           ruleset: ruleset,
@@ -91,7 +93,12 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
         gift,
     for (final node in scene?.graph.nodes ?? const <SceneNode>[])
       if (node.payload case SceneActionPayload(interactiveCommand: final SceneReceivePokemonFromCatalogInteractiveCommand gift))
-        SceneGivePokemonFromCatalogConsequence(speciesId: gift.speciesId, formId: gift.formId, level: gift.level),
+        SceneGivePokemonFromCatalogConsequence(
+          speciesId: gift.speciesId,
+          formId: gift.formId,
+          level: gift.level,
+          moveIds: gift.moveIds,
+        ),
   ];
   if (gifts.isEmpty) return null;
   final resolvedSpeciesLoader = speciesLoader ?? RuntimePokemonSpeciesLoader();
@@ -141,6 +148,8 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
     final moveIds = {
       ...learnset.startingMoves,
       ...learnset.relearnMoves,
+      for (final gift in gifts)
+        if (gift.speciesId == speciesId) ...?gift.moveIds,
       for (final move in learnset.levelUp)
         if (move.level <= level) move.moveId,
     };

@@ -412,7 +412,9 @@ _PreviewConsequenceResult _previewConsequence({
       );
     case SceneGivePokemonFromCatalogConsequence():
       before = 'party=${state.partyMemberCount}';
-      after = '${consequence.speciesId} (${consequence.formId}) niv. ${consequence.level}, équipe ou PC';
+      final moveSummary = consequence.moveIds == null
+          ? '' : ', capacités imposées : ${consequence.moveIds!.join(', ')}';
+      after = '${consequence.speciesId} (${consequence.formId}) niv. ${consequence.level}, équipe ou PC$moveSummary';
       next = _copyConsequenceState(state, partyMemberCount: state.partyMemberCount < 6 ? state.partyMemberCount + 1 : state.partyMemberCount);
     case SceneGiveConfiguredStarterConsequence():
       before = 'party=${state.partyMemberCount}';

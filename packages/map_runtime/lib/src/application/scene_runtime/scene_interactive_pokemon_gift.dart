@@ -104,6 +104,7 @@ Future<ScenePokemonGiftPreparation> receiveScenePokemonFromCatalog({
     speciesId: command.speciesId,
     formId: command.formId,
     level: command.level,
+    moveIds: command.moveIds,
   );
   if (state.appliedPokemonGrantOperationIds.contains(operationId)) {
     final owned = [

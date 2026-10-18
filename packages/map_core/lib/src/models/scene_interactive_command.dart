@@ -6,6 +6,7 @@ import 'moving_platform.dart';
 import 'enums.dart';
 import 'scene_actor_route.dart';
 import 'scene_warp_presentation.dart';
+import 'scene_pokemon_gift_moves.dart';
 
 enum SceneInteractiveCommandKind {
   giveItem,
@@ -59,6 +60,7 @@ abstract base class SceneInteractiveCommand {
     required ScenePokemonGiftNicknamePolicy nicknamePolicy,
     required int nicknameMaxGraphemes,
     required ScenePokemonGiftPokedexPresentationPolicy pokedexPresentationPolicy,
+    List<String>? moveIds,
   }) = SceneReceivePokemonFromCatalogInteractiveCommand;
 
   factory SceneInteractiveCommand.warp({
@@ -1232,8 +1234,10 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
     required this.nicknamePolicy,
     required this.nicknameMaxGraphemes,
     required this.pokedexPresentationPolicy,
+    List<String>? moveIds,
   }) : speciesId = speciesId.trim(),
-       formId = formId.trim() {
+       formId = formId.trim(),
+       moveIds = readScenePokemonGiftMoveIds(moveIds) {
     if (this.speciesId.isEmpty ||
         this.formId.isEmpty ||
         level < 1 ||
@@ -1258,8 +1262,8 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
       'nicknameMaxGraphemes',
       'pokedexPresentationPolicy',
     };
-    if (json.length != fields.length ||
-        json.keys.any((key) => !fields.contains(key)) ||
+    if (fields.any((field) => !json.containsKey(field)) ||
+        json.keys.any((key) => key != 'moveIds' && !fields.contains(key)) ||
         json['kind'] != 'receivePokemonFromCatalog' ||
         json['level'] is! int ||
         json['nicknameMaxGraphemes'] is! int) {
@@ -1280,6 +1284,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
         'pokedexPresentationPolicy',
         ScenePokemonGiftPokedexPresentationPolicy.values,
       ),
+      moveIds: readScenePokemonGiftMoveIds(json['moveIds']),
     );
   }
 
@@ -1289,6 +1294,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
   final ScenePokemonGiftNicknamePolicy nicknamePolicy;
   final int nicknameMaxGraphemes;
   final ScenePokemonGiftPokedexPresentationPolicy pokedexPresentationPolicy;
+  final List<String>? moveIds;
 
   @override
   SceneInteractiveCommandKind get kind =>
@@ -1306,6 +1312,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
     'nicknamePolicy': nicknamePolicy.name,
     'nicknameMaxGraphemes': nicknameMaxGraphemes,
     'pokedexPresentationPolicy': pokedexPresentationPolicy.name,
+    if (moveIds != null) 'moveIds': moveIds,
   };
 
   @override
@@ -1316,7 +1323,8 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
       other.level == level &&
       other.nicknamePolicy == nicknamePolicy &&
       other.nicknameMaxGraphemes == nicknameMaxGraphemes &&
-      other.pokedexPresentationPolicy == pokedexPresentationPolicy;
+      other.pokedexPresentationPolicy == pokedexPresentationPolicy &&
+      scenePokemonGiftMoveIdsEqual(other.moveIds, moveIds);
 
   @override
   int get hashCode => Object.hash(
@@ -1326,5 +1334,6 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
     nicknamePolicy,
     nicknameMaxGraphemes,
     pokedexPresentationPolicy,
+    moveIds == null ? null : Object.hashAll(moveIds!),
   );
 }

@@ -177,6 +177,7 @@ final class SceneEventRuntimeHook {
             speciesId: command.speciesId,
             formId: command.formId,
             level: command.level,
+            moveIds: command.moveIds,
           );
           final operationId = scenePokemonGrantOperationId(
             sceneId: sceneId,
