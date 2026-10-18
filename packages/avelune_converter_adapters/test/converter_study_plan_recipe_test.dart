@@ -169,7 +169,7 @@ void main() {
           await prepare(supplementalRootPaths: [first.path, second.path]);
       final snapshot = original.state.snapshot!;
       final recipe = original.exportStudyPlanRecipe();
-      expect(recipe.toJson()['version'], 7);
+      expect(recipe.toJson()['version'], 8);
       expect(recipe.sourceSelection.supplementalRootPaths,
           [first.path, second.path]);
       expect(recipe.sharedSourceFiles.single.referenceRootPath, second.path);
@@ -325,7 +325,7 @@ void main() {
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 4);
+    expect((recipe.toJson()['settings'] as Map)['version'], 5);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -339,7 +339,7 @@ void main() {
     await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
-    expect(decoded.toJson()['version'], 7);
+    expect(decoded.toJson()['version'], 8);
     expect(decoded.sourceSelection.supplementalRootPaths, [shared.path]);
     expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
@@ -527,6 +527,85 @@ void main() {
     expect(await output.list().toList(), isEmpty);
   }, skip: !Platform.isMacOS);
 
+  test('plan budget recipe and resume preserve default custom and world limits',
+      () {
+    final policies = [
+      const NativeWriteLimits(),
+      const NativeWriteLimits(
+          jsonLimits: ContractLimits(maxTextCodeUnits: 4000)),
+      const NativeWriteLimits(
+          jsonLimits: ContractLimits(maxTextCodeUnits: 4000),
+          planJsonLimits: ContractLimits(
+              maxDepth: 8,
+              maxNodes: 300,
+              maxStringCodeUnits: 500,
+              maxTextCodeUnits: 6000)),
+      sourceCatalogStudyWriteLimitsFor(1),
+      sourceCatalogStudyWriteLimitsFor(383),
+    ];
+    final hashes = <Sha256Hash>{};
+    for (final limits in policies) {
+      final recipe = connectionRecipe(2, writeLimits: limits);
+      final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+      expect(decoded.toJson(), recipe.toJson());
+      expect(decoded.settings.writeLimits.planJsonLimits.maxTextCodeUnits,
+          limits.planJsonLimits.maxTextCodeUnits);
+      expect(decoded.settings.writeLimits.jsonLimits.maxTextCodeUnits,
+          limits.jsonLimits.maxTextCodeUnits);
+      hashes.add(recipe.settings.canonicalHash);
+      final resume = LocalReviewResumeSettings(
+          sourceRootPath: fixture.sourceRootPath!,
+          destinationParentPath: output.path,
+          projectName: 'Original plan policy',
+          folderName: 'plan-policy',
+          writeLimits: limits);
+      final restored = LocalReviewResumeSettings.fromJson(resume.toJson());
+      expect(restored.toJson(), resume.toJson());
+      expect(restored.writeLimits.planJsonLimits.maxTextCodeUnits,
+          limits.planJsonLimits.maxTextCodeUnits);
+    }
+    expect(hashes, hasLength(policies.length));
+  });
+
+  for (final legacy in ['recipe', 'settings', 'missing-plan']) {
+    test('plan budget rejects resigned legacy $legacy', () {
+      final recipe = connectionRecipe(2);
+      final body = jsonDecode(recipe.encode()) as Map<String, Object?>;
+      body.remove('canonicalHash');
+      if (legacy == 'recipe') body['version'] = 7;
+      final settings = body['settings'] as Map<String, Object?>;
+      if (legacy == 'settings') settings['version'] = 4;
+      if (legacy == 'missing-plan') {
+        (settings['writeLimits'] as Map).remove('planJsonLimits');
+      }
+      body['settingsHash'] = canonicalHashOf(settings).value;
+      expect(
+          () => ConverterStudyPlanRecipe.fromJson({
+                ...body,
+                'canonicalHash': canonicalHashOf(body,
+                        limits: ConverterStudyPlanRecipe.jsonLimits)
+                    .value
+              }),
+          throwsA(isA<ConverterWorkflowFailure>().having(
+              (error) => error.code, 'code', 'workflow.recipe.invalid')));
+    });
+  }
+
+  test('world aggregate plan budget is explicit and bound into the recipe', () {
+    final recipe =
+        connectionRecipe(2, writeLimits: sourceCatalogStudyWriteLimitsFor(383));
+    final settings = recipe.toJson()['settings'] as Map;
+    final write = settings['writeLimits'] as Map;
+    expect(write['planJsonLimits'], {
+      'maxDepth': 64,
+      'maxNodes': 4000000,
+      'maxStringCodeUnits': 1048576,
+      'maxTextCodeUnits': 25165824,
+    });
+    expect(settings['version'], 5);
+    expect(recipe.toJson()['version'], 8);
+  });
+
   test('aggregate image budget recipe preserves explicit boundaries and hashes',
       () {
     for (final total in [1, 16777216, 33554432]) {
@@ -537,7 +616,7 @@ void main() {
       expect(decoded.settings.writeLimits.maxImagePixels, 16777216);
       expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
       expect(decoded.canonicalHash, recipe.canonicalHash);
-      expect((recipe.toJson()['settings'] as Map)['version'], 4);
+      expect((recipe.toJson()['settings'] as Map)['version'], 5);
     }
     final low = connectionRecipe(2,
         writeLimits: const NativeWriteLimits(maxTotalImagePixels: 16777216));
@@ -563,7 +642,7 @@ void main() {
             .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
   });
 
-  for (final value in [null, true, 0, -1, 33554433, 2.5, '2']) {
+  for (final value in [null, true, 0, -1, 41943041, 2.5, '2']) {
     test('aggregate image budget recipe refuses resigned invalid total $value',
         () {
       expect(
@@ -619,8 +698,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('ordered source recipe emits breaking version 7', () {
-    expect(connectionRecipe(2).toJson()['version'], 7);
+  test('ordered source recipe emits breaking version 8', () {
+    expect(connectionRecipe(2).toJson()['version'], 8);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

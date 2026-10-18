@@ -228,12 +228,46 @@ void main() {
         _error('session.store.document'));
   });
 
-  test('shared source store emits breaking version 6', () {
+  for (final world in [false, true]) {
+    test('plan budget resume survives exact disk reopen world=$world',
+        () async {
+      final limits = world
+          ? sourceCatalogStudyWriteLimitsFor(383)
+          : const NativeWriteLimits(
+              planJsonLimits: ContractLimits(maxTextCodeUnits: 200000));
+      final custom = LocalReviewResumeSettings(
+          sourceRootPath: source.path,
+          destinationParentPath: destination.path,
+          projectName: settings.projectName,
+          folderName: settings.folderName,
+          writeLimits: limits);
+      final created = await store().create(
+          reviewSet: _reviewSet(_session(), writeLimits: limits),
+          resumeSettings: custom);
+      final loaded = (await store().load(created.reviewSet.sessionId))!;
+      expect(loaded.resumeSettings.toJson(), custom.toJson());
+      expect(loaded.resumeSettings.writeLimits.planJsonLimits.maxTextCodeUnits,
+          limits.planJsonLimits.maxTextCodeUnits);
+      expect(loaded.canonicalHash, created.canonicalHash);
+    });
+  }
+
+  test('plan budget store refuses prior version 6', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 6);
+    expect(
+        () => StoredReviewSession.fromJson({...stored.toJson(), 'version': 6}),
+        _error('session.store.document'));
+  });
+
+  test('shared source store emits breaking version 7', () {
+    final stored = StoredReviewSession(
+        reviewSet: _reviewSet(_session()),
+        resumeSettings: settings,
+        storedRevision: 1);
+    expect(stored.toJson()['version'], 7);
   });
 
   test('aggregate image budget resume survives exact disk reopen', () async {
@@ -251,7 +285,7 @@ void main() {
     expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
-    expect(loaded.toJson()['version'], 6);
+    expect(loaded.toJson()['version'], 7);
   });
 
   test('aggregate image budget resume boundaries alter envelope hashes', () {
@@ -296,7 +330,7 @@ void main() {
     expect(await file.readAsString(), prior);
   });
 
-  for (final total in [null, true, 0, -1, 33554433, 2.5, '2']) {
+  for (final total in [null, true, 0, -1, 41943041, 2.5, '2']) {
     test('aggregate image budget resume refuses invalid total $total', () {
       expect(
           () => LocalReviewResumeSettings.fromJson(

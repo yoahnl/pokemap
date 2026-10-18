@@ -26,7 +26,7 @@ void main() {
             .having((error) => error.code, 'code', 'native.invalid_limits')));
   });
 
-  for (final pixels in [-1, 0, 33554433, 1000000000]) {
+  for (final pixels in [-1, 0, 41943041, 1000000000]) {
     test('aggregate image budget refuses invalid total $pixels', () {
       expect(
           NativeWriteLimits(maxTotalImagePixels: pixels).validate,

@@ -248,7 +248,7 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 4,
+        'version': 5,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
@@ -762,7 +762,7 @@ final class ConverterWorkflow {
         ...prepared.previewPlan!.toJson(),
         'state': 'ready',
         'approvedByHuman': true,
-      }, limits: prepared.settings.writeLimits.jsonLimits);
+      }, limits: prepared.settings.writeLimits.planJsonLimits);
 
   StudyApproval approvePrepared({
     required int sessionRevision,
@@ -1971,6 +1971,12 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits limits) => {
       'maxImagePixels': limits.maxImagePixels,
       'maxTotalImagePixels': limits.maxTotalImagePixels,
       'maxMapCells': limits.maxMapCells,
+      'planJsonLimits': {
+        'maxDepth': limits.planJsonLimits.maxDepth,
+        'maxNodes': limits.planJsonLimits.maxNodes,
+        'maxStringCodeUnits': limits.planJsonLimits.maxStringCodeUnits,
+        'maxTextCodeUnits': limits.planJsonLimits.maxTextCodeUnits,
+      },
       'jsonLimits': {
         'maxDepth': limits.jsonLimits.maxDepth,
         'maxNodes': limits.jsonLimits.maxNodes,
@@ -2595,7 +2601,7 @@ ConversionPlan? _previewPlan(
     ],
     'findings': findings,
     'approvedByHuman': false,
-  }, limits: settings.writeLimits.jsonLimits);
+  }, limits: settings.writeLimits.planJsonLimits);
 }
 
 Map<String, Object?>? _planLocator(

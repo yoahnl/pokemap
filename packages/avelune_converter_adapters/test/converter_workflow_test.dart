@@ -75,6 +75,71 @@ void main() {
     expect(const NativeWriteLimits().maxArtifacts, 32);
   });
 
+  test('explicit plan quota is enforced by preview admission', () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          writeLimits: const NativeWriteLimits(
+              planJsonLimits: ContractLimits(maxTextCodeUnits: 1))));
+      await expectLater(
+          harness.workflow.prepareStudy(), _throwsWorkflow('json.textQuota'));
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.workflow.state.approval, isNull);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  test('distinct plan quota survives prepare recipe restore and approval',
+      () async {
+    final harness = await _WorkflowHarness.create(maps: [
+      for (var id = 1; id <= 16; id++)
+        LiteralFixtureMap(id: id, width: 1, height: 1, layers: const [
+          [0],
+          [0],
+          [0]
+        ])
+    ]);
+    final fresh = ConverterWorkflow();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      const limits = NativeWriteLimits(
+          maxArtifacts: 512,
+          maxMutations: 1024,
+          jsonLimits: ContractLimits(maxTextCodeUnits: 24000),
+          planJsonLimits: ContractLimits(maxTextCodeUnits: 300000));
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [for (var id = 1; id <= 16; id++) id],
+          writeLimits: limits));
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue);
+      expect(
+          () => ConversionPlan.fromJson(prepared.previewPlan!.toJson(),
+              limits: limits.jsonLimits),
+          throwsA(isA<ContractError>()
+              .having((error) => error.code, 'code', 'json.textQuota')));
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+      final restored = await fresh.restoreStudyPlanRecipe(decoded);
+      expect(restored.previewPlan!.canonicalHash,
+          prepared.previewPlan!.canonicalHash);
+      expect(restored.settings.writeLimits.jsonLimits.maxTextCodeUnits, 24000);
+      expect(restored.settings.writeLimits.planJsonLimits.maxTextCodeUnits,
+          300000);
+      final approval = fresh.approvePrepared(
+          sessionRevision: restored.sessionRevision,
+          preparationHash: restored.preparationHash,
+          humanConfirmed: true);
+      expect(approval.approvedPlan.state, PlanState.ready);
+      expect(approval.approvedPlanHash, recipe.approvedPlanHash);
+      expect(approval.approvedPlan.canonicalHash, recipe.approvedPlanHash);
+    } finally {
+      await fresh.dispose();
+      await harness.close();
+    }
+  });
+
   final catalogScripts = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   test(
       'one-map default workflow prepares and writes the shared versioned trainer qualification',
@@ -181,7 +246,7 @@ void main() {
         ),
       );
       final json = settings.toJson();
-      expect(json['version'], 4);
+      expect(json['version'], 5);
       final write = json['writeLimits'] as Map;
       expect(write['maxImagePixels'], 16777216);
       expect(write['maxTotalImagePixels'], 33554432);

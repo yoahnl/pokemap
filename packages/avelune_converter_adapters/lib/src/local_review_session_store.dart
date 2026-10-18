@@ -367,7 +367,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 6,
+            json['kind'] == 'localReviewSession' && json['version'] == 7,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -389,7 +389,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 6,
+        'version': 7,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),
@@ -1141,6 +1141,7 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits value) => {
       'maxImagePixels': value.maxImagePixels,
       'maxTotalImagePixels': value.maxTotalImagePixels,
       'maxMapCells': value.maxMapCells,
+      'planJsonLimits': _contractLimitsJson(value.planJsonLimits),
       'jsonLimits': _contractLimitsJson(value.jsonLimits),
     };
 
@@ -1155,6 +1156,7 @@ NativeWriteLimits _readWriteLimits(Object? value) {
     'maxImagePixels',
     'maxTotalImagePixels',
     'maxMapCells',
+    'planJsonLimits',
     'jsonLimits'
   });
   return NativeWriteLimits(
@@ -1166,5 +1168,6 @@ NativeWriteLimits _readWriteLimits(Object? value) {
       maxImagePixels: _integer(json['maxImagePixels']),
       maxTotalImagePixels: _integer(json['maxTotalImagePixels']),
       maxMapCells: _integer(json['maxMapCells']),
+      planJsonLimits: _readContractLimits(json['planJsonLimits']),
       jsonLimits: _readContractLimits(json['jsonLimits']));
 }

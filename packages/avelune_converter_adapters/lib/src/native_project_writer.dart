@@ -42,7 +42,8 @@ final class NativeWriteLimits {
     this.maxTotalImagePixels = 16777216,
     this.maxMapCells = 1048576,
     this.jsonLimits = const ContractLimits(),
-  });
+    ContractLimits? planJsonLimits,
+  }) : _planJsonLimits = planJsonLimits;
 
   final int maxArtifacts;
   final int maxMutations;
@@ -53,6 +54,9 @@ final class NativeWriteLimits {
   final int maxTotalImagePixels;
   final int maxMapCells;
   final ContractLimits jsonLimits;
+  final ContractLimits? _planJsonLimits;
+
+  ContractLimits get planJsonLimits => _planJsonLimits ?? jsonLimits;
 
   ContractLimits get artifactEvidenceJsonLimits =>
       _aggregateEvidenceJsonLimits(maxTotalArtifactBytes);
@@ -81,12 +85,16 @@ final class NativeWriteLimits {
       (maxTotalArtifactBytes, 268435456),
       (maxTotalDraftJsonBytes, 268435456),
       (maxImagePixels, 16777216),
-      (maxTotalImagePixels, 33554432),
+      (maxTotalImagePixels, 41943040),
       (maxMapCells, 4194304),
       (jsonLimits.maxDepth, 64),
       (jsonLimits.maxNodes, 4000000),
       (jsonLimits.maxStringCodeUnits, 1048576),
       (jsonLimits.maxTextCodeUnits, 16777216),
+      (planJsonLimits.maxDepth, 64),
+      (planJsonLimits.maxNodes, 4000000),
+      (planJsonLimits.maxStringCodeUnits, 1048576),
+      (planJsonLimits.maxTextCodeUnits, 25165824),
     ];
     if (values.any((entry) => entry.$1 <= 0 || entry.$1 > entry.$2)) {
       throw const NativeWriteException(
