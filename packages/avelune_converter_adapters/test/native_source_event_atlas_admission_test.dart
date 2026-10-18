@@ -31,7 +31,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           policy:
               SourceExternalWarpPolicy.nativeTransitionsWithoutEscapeState))!;
       final healing = (await const SourceHealingDisplayBindingResolver()
-          .read(source: source, analysis: analysis, files: original.files))!;
+          .read(sourceMapId: 102, sourceEventId: 4, source: source, analysis: analysis, files: original.files))!;
       expect(warps.artifacts, hasLength(2));
       expect(healing.artifacts, hasLength(2));
       regenerated = NativeProjectDraft(
