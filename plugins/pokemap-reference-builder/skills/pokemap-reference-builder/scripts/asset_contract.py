@@ -6,9 +6,9 @@ import sys
 import zlib
 from pathlib import Path
 
+from visual_profile import STYLE_PROFILE_UNSET, DEFAULT_CELL_SIZE, require_cell_size, require_style_profile
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-CELL_SIZE = 32
 MAX_CELLS = 64
 STATUS_VALUES = {"proposed", "approved", "imported", "verified"}
 
@@ -20,17 +20,21 @@ def create_contract(
     png: str | None,
     alpha_policy: str,
     style_references: list[str],
+    *, cell_size_px=DEFAULT_CELL_SIZE, style_profile=STYLE_PROFILE_UNSET, provenance="custom",
 ) -> dict:
+    cell_size = require_cell_size(cell_size_px)
     value = {
+        "cellSizePx": cell_size,
+        "styleProfile": require_style_profile(style_profile),
         "id": asset_id,
         "status": "proposed",
         "widthCells": width_cells,
         "heightCells": height_cells,
-        "pixelWidth": width_cells * CELL_SIZE,
-        "pixelHeight": height_cells * CELL_SIZE,
+        "pixelWidth": width_cells * cell_size,
+        "pixelHeight": height_cells * cell_size,
         "anchor": {"x": width_cells // 2, "y": height_cells - 1},
         "collisionCells": [],
-        "provenance": "custom_hgss_compatible",
+        "provenance": provenance,
         "alphaPolicy": alpha_policy,
         "styleReferences": style_references,
     }
@@ -209,6 +213,18 @@ def validate_cell(value: object, path: str, width: int, height: int, errors: lis
 
 def validate_contract(contract: dict, base_directory: Path | None = None) -> tuple[list[str], dict | None]:
     errors: list[str] = []
+    try:
+        cell_size = require_cell_size(contract.get("cellSizePx"))
+    except ValueError as error:
+        errors.append(str(error))
+        cell_size = DEFAULT_CELL_SIZE
+    try:
+        if "styleProfile" not in contract or contract["styleProfile"] is None:
+            raise ValueError("styleProfile: required")
+        style_profile = require_style_profile(contract["styleProfile"])
+    except ValueError as error:
+        errors.append(str(error))
+        style_profile = {"id": "invalid", "allowedProvenance": []}
     status = contract.get("status")
     if not isinstance(contract.get("id"), str) or not contract.get("id"):
         errors.append("id: required")
@@ -222,12 +238,12 @@ def validate_contract(contract: dict, base_directory: Path | None = None) -> tup
     if not isinstance(height, int) or isinstance(height, bool) or not 1 <= height <= MAX_CELLS:
         errors.append(f"heightCells: expected 1..{MAX_CELLS}")
         height = 0
-    pixel_width = width * CELL_SIZE
-    pixel_height = height * CELL_SIZE
+    pixel_width = width * cell_size
+    pixel_height = height * cell_size
     if contract.get("pixelWidth") != pixel_width:
-        errors.append("pixelWidth: must equal widthCells * 32")
+        errors.append(f"pixelWidth: must equal widthCells * {cell_size}")
     if contract.get("pixelHeight") != pixel_height:
-        errors.append("pixelHeight: must equal heightCells * 32")
+        errors.append(f"pixelHeight: must equal heightCells * {cell_size}")
     validate_cell(contract.get("anchor"), "anchor", width, height, errors)
     collisions = contract.get("collisionCells")
     if not isinstance(collisions, list):
@@ -235,8 +251,8 @@ def validate_contract(contract: dict, base_directory: Path | None = None) -> tup
         collisions = []
     for index, cell in enumerate(collisions):
         validate_cell(cell, f"collisionCells[{index}]", width, height, errors)
-    if contract.get("provenance") != "custom_hgss_compatible":
-        errors.append("provenance: must be custom_hgss_compatible")
+    if contract.get("provenance") not in style_profile["allowedProvenance"]:
+        errors.append("provenance: not declared in styleProfile.allowedProvenance")
     alpha_policy = contract.get("alphaPolicy")
     if alpha_policy not in {"required", "optional"}:
         errors.append("alphaPolicy: expected required or optional")
@@ -244,14 +260,12 @@ def validate_contract(contract: dict, base_directory: Path | None = None) -> tup
     if not isinstance(references, list) or any(not isinstance(value, str) or not value for value in references):
         errors.append("styleReferences: expected an array of non-empty strings")
         references = []
-    if any("gba" in value.lower() for value in references):
-        errors.append("styleReferences: GBA references are forbidden")
     png_metadata = None
     source_png = contract.get("sourcePng")
     if status in {"approved", "imported", "verified"} and not source_png:
         errors.append("sourcePng: required after approval")
     if status in {"approved", "imported", "verified"} and not references:
-        errors.append("styleReferences: at least one HGSS/DS reference is required after approval")
+        errors.append("styleReferences: at least one visual reference is required after approval")
     if isinstance(source_png, str) and source_png:
         png_path = Path(source_png).expanduser()
         if not png_path.is_absolute() and base_directory is not None:
@@ -276,6 +290,9 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--png")
     init.add_argument("--alpha-policy", choices=["required", "optional"], default="required")
     init.add_argument("--style-reference", action="append", default=[])
+    init.add_argument("--cell-size", type=int, default=DEFAULT_CELL_SIZE)
+    init.add_argument("--style-profile")
+    init.add_argument("--provenance", default="custom")
     init.add_argument("--force", action="store_true")
     validate = subparsers.add_parser("validate")
     validate.add_argument("path")
@@ -296,6 +313,9 @@ def main(argv: list[str] | None = None) -> int:
                 args.png,
                 args.alpha_policy,
                 args.style_reference,
+                cell_size_px=args.cell_size,
+                style_profile=load_json(Path(args.style_profile)) if args.style_profile else STYLE_PROFILE_UNSET,
+                provenance=args.provenance,
             )
             output = Path(args.output).expanduser().resolve()
             write_json(output, contract, args.force)

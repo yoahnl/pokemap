@@ -96,7 +96,7 @@ class ReferenceBuilderCliTest(unittest.TestCase):
             resolution = root / "resolution.json"
 
             with contextlib.redirect_stdout(output):
-                index_exit = asset_main(["index", "--root", f"{assets}=hgss_ds", "--output", str(catalog)])
+                index_exit = asset_main(["index", "--root", f"{assets}=project", "--output", str(catalog)])
             self.assertEqual(index_exit, 0)
             with contextlib.redirect_stdout(output):
                 resolve_exit = asset_main(

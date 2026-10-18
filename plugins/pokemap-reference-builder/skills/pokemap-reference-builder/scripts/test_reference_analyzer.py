@@ -59,7 +59,7 @@ class ReferenceAnalyzerTest(unittest.TestCase):
                         "pixelHeight": 64,
                         "anchor": {"x": 1, "y": 1},
                         "collisionCells": [],
-                        "provenance": "custom_hgss_compatible",
+                        "provenance": "custom",
                         "alphaPolicy": "required",
                         "styleReferences": ["HGSS wooden bridge"],
                     }

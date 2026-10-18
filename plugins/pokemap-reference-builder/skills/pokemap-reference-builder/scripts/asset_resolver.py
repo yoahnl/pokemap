@@ -8,16 +8,14 @@ from pathlib import Path
 
 from PIL import Image
 
+from blueprint_tool import validate_blueprint
+from visual_profile import STYLE_PROFILE_UNSET, DEFAULT_CELL_SIZE, require_cell_size, require_style_profile
 
-CELL_SIZE = 32
-ELIGIBLE_PROVENANCE = {"hgss_ds", "custom_hgss_compatible"}
 IGNORED_TAGS = {
     "asset",
     "assets",
     "custom",
     "compatible",
-    "ds",
-    "hgss",
     "image",
     "images",
     "png",
@@ -34,15 +32,17 @@ def tokenize(values: list[str]) -> set[str]:
     return tokens
 
 
-def inspect_asset(path: Path, root: Path, provenance: str) -> dict:
+def inspect_asset(path: Path, root: Path, provenance: str, cell_size, style_profile) -> dict:
+    if path.is_symlink() or not path.resolve().is_relative_to(root):
+        raise ValueError("asset must remain inside the selected root")
     with Image.open(path) as source:
         image = source.convert("RGBA")
         alpha = image.getchannel("A")
         alpha_used = alpha.getextrema()[0] < 255
         colors = image.getcolors(maxcolors=65537)
         color_count = len(colors) if colors is not None else 65537
-        width_cells = image.width // CELL_SIZE if image.width % CELL_SIZE == 0 else None
-        height_cells = image.height // CELL_SIZE if image.height % CELL_SIZE == 0 else None
+        width_cells = image.width // cell_size if image.width % cell_size == 0 else None
+        height_cells = image.height // cell_size if image.height % cell_size == 0 else None
     relative = path.relative_to(root)
     tags = sorted(tokenize([str(relative.with_suffix(""))]))
     return {
@@ -57,11 +57,13 @@ def inspect_asset(path: Path, root: Path, provenance: str) -> dict:
         "alphaUsed": alpha_used,
         "colorCount": color_count,
         "tags": tags,
-        "eligible": provenance in ELIGIBLE_PROVENANCE and width_cells is not None and height_cells is not None,
+        "eligible": provenance in style_profile["allowedProvenance"] and width_cells is not None and height_cells is not None,
     }
 
 
-def index_assets(roots: list[dict]) -> dict:
+def index_assets(roots: list[dict], *, cell_size_px=DEFAULT_CELL_SIZE, style_profile=STYLE_PROFILE_UNSET) -> dict:
+    cell_size = require_cell_size(cell_size_px)
+    style_profile = require_style_profile(style_profile)
     assets = []
     normalized_roots = []
     for index, item in enumerate(roots):
@@ -79,7 +81,7 @@ def index_assets(roots: list[dict]) -> dict:
         normalized_roots.append({"path": str(root), "provenance": provenance})
         for path in sorted(root.rglob("*.png")):
             try:
-                assets.append(inspect_asset(path, root, provenance))
+                assets.append(inspect_asset(path, root, provenance, cell_size, style_profile))
             except (OSError, ValueError):
                 assets.append(
                     {
@@ -92,8 +94,9 @@ def index_assets(roots: list[dict]) -> dict:
                     }
                 )
     return {
-        "schemaVersion": 1,
-        "cellSizePx": CELL_SIZE,
+        "schemaVersion": 2,
+        "cellSizePx": cell_size,
+        "styleProfile": style_profile,
         "roots": normalized_roots,
         "assets": assets,
     }
@@ -127,6 +130,13 @@ def score_candidate(requirement: dict, candidate: dict) -> int | None:
 
 
 def resolve_missing_assets(blueprint: dict, catalog: dict, limit: int = 5) -> dict:
+    errors = validate_blueprint(blueprint)
+    if errors:
+        raise ValueError("Invalid blueprint: " + "; ".join(errors))
+    cell_size = require_cell_size(blueprint["cellSizePx"])
+    style_profile = require_style_profile(blueprint["styleProfile"])
+    if catalog.get("cellSizePx") != cell_size or catalog.get("styleProfile") != style_profile:
+        raise ValueError("Catalog grid and styleProfile must match the blueprint")
     if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
         raise ValueError("limit must be a positive integer")
     assets = catalog.get("assets")
@@ -143,6 +153,8 @@ def resolve_missing_assets(blueprint: dict, catalog: dict, limit: int = 5) -> di
         for candidate in assets:
             if not isinstance(candidate, dict):
                 continue
+            if candidate.get("provenance") not in style_profile["allowedProvenance"]:
+                continue
             score = score_candidate(requirement, candidate)
             if score is None:
                 continue
@@ -156,15 +168,16 @@ def resolve_missing_assets(blueprint: dict, catalog: dict, limit: int = 5) -> di
                 "semantic": requirement.get("semantic"),
                 "decision": decision,
                 "expectedCanvas": {
-                    "widthPx": requirement.get("widthCells", 0) * CELL_SIZE,
-                    "heightPx": requirement.get("heightCells", 0) * CELL_SIZE,
+                    "widthPx": requirement.get("widthCells", 0) * cell_size,
+                    "heightPx": requirement.get("heightCells", 0) * cell_size,
                 },
                 "candidates": selected if decision == "reuse" else [],
             }
         )
     return {
-        "schemaVersion": 1,
-        "cellSizePx": CELL_SIZE,
+        "schemaVersion": 2,
+        "cellSizePx": cell_size,
+        "styleProfile": style_profile,
         "resolutions": resolutions,
         "requiresHumanReview": True,
     }
@@ -176,6 +189,13 @@ def materialize_gap_workshop(
     output_directory: Path,
     force: bool = False,
 ) -> dict:
+    errors = validate_blueprint(blueprint)
+    if errors:
+        raise ValueError("Invalid blueprint: " + "; ".join(errors))
+    cell_size = require_cell_size(blueprint["cellSizePx"])
+    style_profile = require_style_profile(blueprint["styleProfile"])
+    if resolution_report.get("cellSizePx") != cell_size or resolution_report.get("styleProfile") != style_profile:
+        raise ValueError("Resolution grid and styleProfile must match the blueprint")
     requirements = blueprint.get("missingAssets")
     resolutions = resolution_report.get("resolutions")
     if not isinstance(requirements, list):
@@ -202,8 +222,9 @@ def materialize_gap_workshop(
         height = requirement.get("heightCells")
         if not isinstance(width, int) or not isinstance(height, int) or width < 1 or height < 1:
             raise ValueError(f"invalid footprint for {asset_id}")
-        Image.new("RGBA", (width * CELL_SIZE, height * CELL_SIZE), (0, 0, 0, 0)).save(canvas_path)
-        contract = {**requirement, "sourcePng": str(canvas_path)}
+        Image.new("RGBA", (width * cell_size, height * cell_size), (0, 0, 0, 0)).save(canvas_path)
+        contract = {**requirement, "cellSizePx": cell_size, "styleProfile": style_profile,
+                    "sourcePng": str(canvas_path)}
         write_json(contract_path, contract, force)
         assets.append(
             {
@@ -212,14 +233,15 @@ def materialize_gap_workshop(
                 "contract": str(contract_path),
                 "widthCells": width,
                 "heightCells": height,
-                "pixelWidth": width * CELL_SIZE,
-                "pixelHeight": height * CELL_SIZE,
+                "pixelWidth": width * cell_size,
+                "pixelHeight": height * cell_size,
                 "requiresHumanReview": True,
             }
         )
     return {
-        "schemaVersion": 1,
-        "cellSizePx": CELL_SIZE,
+        "schemaVersion": 2,
+        "cellSizePx": cell_size,
+        "styleProfile": style_profile,
         "assets": assets,
         "requiresHumanReview": True,
     }
@@ -258,6 +280,8 @@ def build_parser() -> argparse.ArgumentParser:
     index.add_argument("--root", action="append", required=True)
     index.add_argument("--output", required=True)
     index.add_argument("--force", action="store_true")
+    index.add_argument("--cell-size", type=int, default=DEFAULT_CELL_SIZE)
+    index.add_argument("--style-profile")
     resolve = subparsers.add_parser("resolve")
     resolve.add_argument("--blueprint", required=True)
     resolve.add_argument("--catalog", required=True)
@@ -278,7 +302,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "index":
             output = Path(args.output).expanduser().resolve()
-            result = index_assets([parse_root(value) for value in args.root])
+            result = index_assets([parse_root(value) for value in args.root],
+                                  cell_size_px=args.cell_size,
+                                  style_profile=load_json(Path(args.style_profile)) if args.style_profile else STYLE_PROFILE_UNSET)
         elif args.command == "resolve":
             output = Path(args.output).expanduser().resolve()
             blueprint = load_json(Path(args.blueprint).expanduser().resolve())

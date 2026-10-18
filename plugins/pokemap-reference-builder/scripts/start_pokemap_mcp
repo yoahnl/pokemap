@@ -1,11 +1,31 @@
 #!/bin/zsh
 set -euo pipefail
 
-repository_root="${POKEMAP_REPOSITORY_ROOT:-/Users/karim/Project/pokemonProject}"
-project_root="${POKEMAP_PROJECT_ROOT:-/Users/karim/Desktop/pokeMap Project/le_train_de_17h42}"
+if [[ -z "${POKEMAP_PROJECT_ROOT:-}" ]]; then
+  print -u2 "Select an absolute project directory with POKEMAP_PROJECT_ROOT."
+  exit 64
+fi
+if [[ -z "${POKEMAP_REPOSITORY_ROOT:-}" ]]; then
+  print -u2 "Select the engine checkout with POKEMAP_REPOSITORY_ROOT."
+  exit 64
+fi
+if [[ "$POKEMAP_PROJECT_ROOT" != /* || "$POKEMAP_REPOSITORY_ROOT" != /* ]]; then
+  print -u2 "Project and engine directories must be absolute."
+  exit 64
+fi
+if [[ ! -d "$POKEMAP_PROJECT_ROOT" || ! -d "$POKEMAP_REPOSITORY_ROOT" ]]; then
+  print -u2 "Selected project and engine directories must exist."
+  exit 66
+fi
+repository_root="$(cd -- "$POKEMAP_REPOSITORY_ROOT" && pwd -P)"
+project_root="$(cd -- "$POKEMAP_PROJECT_ROOT" && pwd -P)"
+if [[ "$project_root" == / || "$project_root" == "$HOME" || ! -f "$project_root/project.json" || -L "$project_root/project.json" ]]; then
+  print -u2 "POKEMAP_PROJECT_ROOT must select a project directory containing project.json."
+  exit 64
+fi
 server_path="$repository_root/tools/pokemap_mcp/dist/src/index.js"
 authoring_package="$repository_root/packages/map_authoring"
-dart_executable="${POKEMAP_DART_EXECUTABLE:-/opt/homebrew/bin/dart}"
+dart_executable="${POKEMAP_DART_EXECUTABLE:-$(command -v dart)}"
 
 if [[ ! -f "$server_path" ]]; then
   print -u2 "PokeMap MCP is not built at $server_path. Run npm run build in tools/pokemap_mcp."

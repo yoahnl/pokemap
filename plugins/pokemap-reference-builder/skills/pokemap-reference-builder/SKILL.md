@@ -61,7 +61,7 @@ These instructions add agent guidance, not new native schema fields or automatic
 
 Apply these rules to every new or adapted asset, including asset-only work. The selected patron supplies proportions and construction geometry; the user's approved visual reference supplies the palette, texture, architecture, lighting, and detail density. Do not impose the original PSDK colors or building style on new artwork.
 
-- Record the patron ID, exact canvas in pixels and 32 px cells, and the selected visual reference before creating the asset. Preserve pixel scale and silhouette readability. Export a PNG with real RGBA transparency; no opaque background, baked checkerboard, guide colors, or smoothing of the artwork.
+- Record the patron ID, exact canvas in pixels and cells at the selected project grid, and the selected visual reference before creating the asset. Preserve pixel scale and silhouette readability. Export a PNG with real RGBA transparency; no opaque background, baked checkerboard, guide colors, or smoothing of the artwork.
 - **Trees require a small round ground shadow in alpha at their base.** In top-down perspective it may read as a slightly flattened oval. Center it on the trunk's ground-contact point, place it behind the trunk, and keep it compact beneath the canopy. It must ground the tree without hiding the trunk base or becoming a large dark disk. A different shadow requires an explicit user direction.
 - **Props and buildings use a shadow fitted to their ground contact and the approved reference's light direction.** Do not apply the tree's round shadow to every object. For the station platform, preserve the requested south-facing lip and very small shadow on its east side when creating or adapting that family.
 - Use a dark tint consistent with the approved palette and genuinely translucent shadow pixels: alpha strictly between 0 and 255, with alpha 0 outside the silhouette/shadow. Match opacity and edge softness to the approved reference; record the chosen opacity instead of inventing a universal value. Keep the artwork itself crisp.
@@ -76,7 +76,7 @@ Obtain or infer:
 - the attached reference image;
 - the absolute PokeMap project root;
 - the target map ID or approval to create one;
-- map width and height in 32 px cells.
+- map width and height in cells at the selected project grid.
 
 If map dimensions are not explicit, propose them from the reference and viewport goal, then obtain approval before mutation. The native reconstruction workflow below supports exterior maps only; the interior HTML mode has its own read-only inputs and stopping point.
 
@@ -178,11 +178,12 @@ Every layer begins as `proposed`. Show the blueprint summary and unresolved bind
 
 ## Visual and provenance invariants
 
-Read [the HGSS/DS quality gates](references/hgss-ds-quality-gates.md) before binding assets or creating a missing asset.
+Declare a visual profile containing its `id` and explicit `allowedProvenance` list. Use the selected project's grid (`16`, `32`, or `48` px) consistently for blueprints, catalogs, asset contracts, and generated canvases. Supply a profile JSON with `--style-profile` and the grid with `--cell-size` to the command helpers. The default project profile allows only `project` and `custom` provenance; it does not infer an artistic universe from a filename.
 
-- Native cell size is exactly 32 px.
-- Accepted provenance is `hgss_ds` or `custom_hgss_compatible`.
-- Reject GBA assets and ambiguous mixed-generation sheets.
+For a deliberately selected HGSS/DS profile, consult [its source-specific quality gates](references/hgss-ds-quality-gates.md). Other profiles, including GBA or original art, are supported when explicitly declared. Do not mix undeclared sources or resize artwork to conceal a grid mismatch.
+
+- Reject assets whose provenance is absent from the selected profile.
+- Reject a catalog or resolution report whose grid or profile differs from its blueprint.
 - Forests use the canonical Environment capability as the natural-surface implementation. If the live product semantics do not satisfy the requested Surface Studio behavior, stop that family. Judge repetition against the approved reference and vegetation role: a regular background mass can be intentional, while an unintended scan-order grid needs repair. Do not replace Environment with unrelated repeated decoration.
 - Rivers use river water and river banks, never ocean water.
 - Do not create or apply Smart Borders unless the blueprint contains a separately approved `border` layer.
@@ -191,7 +192,7 @@ Read [the HGSS/DS quality gates](references/hgss-ds-quality-gates.md) before bin
 
 ## Missing asset workshop
 
-When no existing HGSS/DS resource satisfies an approved structure or prop:
+When no existing resource in the selected visual profile satisfies an approved structure or prop:
 
 1. Declare the footprint in cells with `scripts/asset_contract.py init`.
 2. Keep the candidate under `<project>/.pokemap/authoring/reference-builder/<operation-id>/assets/`.

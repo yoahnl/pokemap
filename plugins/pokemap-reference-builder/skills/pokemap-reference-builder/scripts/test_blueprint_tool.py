@@ -31,7 +31,7 @@ class BlueprintToolTest(unittest.TestCase):
                     "role": "primary",
                     "resourceId": resource_id,
                     "actionFamily": action_family,
-                    "provenance": "hgss_ds",
+                    "provenance": "project",
                 }
             ],
             "constraints": {},
@@ -65,12 +65,12 @@ class BlueprintToolTest(unittest.TestCase):
         errors = validate_blueprint(self.blueprint)
         self.assertTrue(any("explicitApproval" in error for error in errors))
 
-    def test_rejects_gba_provenance(self) -> None:
+    def test_rejects_provenance_outside_the_selected_profile(self) -> None:
         layer = self.layer("decoration", "tree", "placed_element", "element-gba-tree")
         layer["bindings"][0]["provenance"] = "gba"
         self.blueprint["layers"].append(layer)
         errors = validate_blueprint(self.blueprint)
-        self.assertTrue(any("GBA" in error or "hgss_ds" in error for error in errors))
+        self.assertTrue(any("styleProfile.allowedProvenance" in error for error in errors))
 
     def test_rejects_wrong_missing_asset_canvas(self) -> None:
         asset = {
@@ -82,7 +82,7 @@ class BlueprintToolTest(unittest.TestCase):
             "pixelHeight": 160,
             "anchor": {"x": 2, "y": 4},
             "collisionCells": [],
-            "provenance": "custom_hgss_compatible",
+            "provenance": "custom",
             "alphaPolicy": "required",
             "styleReferences": [],
         }
@@ -112,7 +112,7 @@ class BlueprintToolTest(unittest.TestCase):
             "pixelHeight": 64,
             "anchor": {"x": 1, "y": 1},
             "collisionCells": [],
-            "provenance": "custom_hgss_compatible",
+            "provenance": "custom",
             "alphaPolicy": "required",
             "styleReferences": [],
         }

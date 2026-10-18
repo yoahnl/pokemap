@@ -81,7 +81,7 @@ class AssetContractTest(unittest.TestCase):
             errors, _ = validate_contract(contract)
             self.assertTrue(any("transparent pixels" in error for error in errors))
 
-    def test_rejects_gba_style_reference(self) -> None:
+    def test_accepts_a_declared_style_reference_without_a_game_filter(self) -> None:
         contract = create_contract(
             "asset-custom-tree",
             2,
@@ -91,7 +91,7 @@ class AssetContractTest(unittest.TestCase):
             ["GBA tree sheet"],
         )
         errors, _ = validate_contract(contract)
-        self.assertTrue(any("GBA references" in error for error in errors))
+        self.assertEqual(errors, [])
 
 
 if __name__ == "__main__":

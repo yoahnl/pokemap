@@ -5,8 +5,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from visual_profile import STYLE_PROFILE_UNSET, DEFAULT_CELL_SIZE, require_cell_size, require_style_profile
 
-CELL_SIZE = 32
 FAMILY_ORDER = [
     "surface",
     "network",
@@ -17,7 +17,6 @@ FAMILY_ORDER = [
 ]
 LAYER_STATUSES = ["proposed", "approved", "applied", "verified"]
 ASSET_STATUSES = ["proposed", "approved", "imported", "verified"]
-PROVENANCE = {"hgss_ds", "custom_hgss_compatible"}
 ACTION_FAMILIES = {
     "environment",
     "smart_tile",
@@ -29,10 +28,12 @@ ACTION_FAMILIES = {
 GEOMETRY_KINDS = {"cells", "polygon", "polyline", "placement", "connection"}
 
 
-def create_blueprint(reference: str, map_id: str, name: str, width: int, height: int) -> dict:
+def create_blueprint(reference: str, map_id: str, name: str, width: int, height: int,
+                     *, cell_size_px=DEFAULT_CELL_SIZE, style_profile=STYLE_PROFILE_UNSET) -> dict:
     return {
-        "schemaVersion": 1,
-        "cellSizePx": CELL_SIZE,
+        "schemaVersion": 2,
+        "cellSizePx": require_cell_size(cell_size_px),
+        "styleProfile": require_style_profile(style_profile),
         "source": {
             "referenceImage": str(Path(reference).expanduser().resolve()),
             "role": "composition_reference",
@@ -124,7 +125,7 @@ def validate_geometry(value: object, path: str, width: int, height: int, errors:
             errors.append(f"{path}: placement exceeds map height")
 
 
-def validate_binding(value: object, path: str, errors: list[str]) -> dict:
+def validate_binding(value: object, path: str, errors: list[str], style_profile) -> dict:
     binding = require_object(value, path, errors)
     resource_id = binding.get("resourceId")
     action_family = binding.get("actionFamily")
@@ -135,14 +136,12 @@ def validate_binding(value: object, path: str, errors: list[str]) -> dict:
         errors.append(f"{path}.resourceId: required")
     if action_family not in ACTION_FAMILIES:
         errors.append(f"{path}.actionFamily: unsupported action family")
-    if provenance not in PROVENANCE:
-        errors.append(f"{path}.provenance: only hgss_ds or custom_hgss_compatible is accepted")
-    if "gba" in str(resource_id).lower() or "gba" in str(provenance).lower():
-        errors.append(f"{path}: GBA provenance is forbidden")
+    if provenance not in style_profile["allowedProvenance"]:
+        errors.append(f"{path}.provenance: not declared in styleProfile.allowedProvenance")
     return binding
 
 
-def validate_layer(value: object, path: str, width: int, height: int, errors: list[str]) -> str | None:
+def validate_layer(value: object, path: str, width: int, height: int, errors: list[str], style_profile) -> str | None:
     layer = require_object(value, path, errors)
     layer_id = layer.get("id")
     family = layer.get("family")
@@ -162,7 +161,7 @@ def validate_layer(value: object, path: str, width: int, height: int, errors: li
     validate_geometry(layer.get("geometry"), f"{path}.geometry", width, height, errors)
     bindings = require_list(layer.get("bindings"), f"{path}.bindings", errors)
     validated_bindings = [
-        validate_binding(binding, f"{path}.bindings[{index}]", errors)
+        validate_binding(binding, f"{path}.bindings[{index}]", errors, style_profile)
         for index, binding in enumerate(bindings)
     ]
     constraints = require_object(layer.get("constraints"), f"{path}.constraints", errors)
@@ -195,7 +194,7 @@ def validate_layer(value: object, path: str, width: int, height: int, errors: li
     return layer_id
 
 
-def validate_missing_asset(value: object, path: str, errors: list[str]) -> str | None:
+def validate_missing_asset(value: object, path: str, errors: list[str], cell_size, style_profile) -> str | None:
     asset = require_object(value, path, errors)
     asset_id = asset.get("id")
     status = asset.get("status")
@@ -204,18 +203,22 @@ def validate_missing_asset(value: object, path: str, errors: list[str]) -> str |
         asset_id = None
     if status not in ASSET_STATUSES:
         errors.append(f"{path}.status: unsupported status")
+    if "cellSizePx" in asset and asset["cellSizePx"] != cell_size:
+        errors.append(f"{path}.cellSizePx: must match blueprint")
+    if "styleProfile" in asset and asset["styleProfile"] != style_profile:
+        errors.append(f"{path}.styleProfile: must match blueprint")
     width = positive_int(asset.get("widthCells"), f"{path}.widthCells", errors, 64)
     height = positive_int(asset.get("heightCells"), f"{path}.heightCells", errors, 64)
-    if asset.get("pixelWidth") != width * CELL_SIZE:
-        errors.append(f"{path}.pixelWidth: must equal widthCells * 32")
-    if asset.get("pixelHeight") != height * CELL_SIZE:
-        errors.append(f"{path}.pixelHeight: must equal heightCells * 32")
+    if asset.get("pixelWidth") != width * cell_size:
+        errors.append(f"{path}.pixelWidth: must equal widthCells * {cell_size}")
+    if asset.get("pixelHeight") != height * cell_size:
+        errors.append(f"{path}.pixelHeight: must equal heightCells * {cell_size}")
     validate_cell(asset.get("anchor"), f"{path}.anchor", width, height, errors)
     collisions = require_list(asset.get("collisionCells"), f"{path}.collisionCells", errors)
     for index, cell in enumerate(collisions):
         validate_cell(cell, f"{path}.collisionCells[{index}]", width, height, errors)
-    if asset.get("provenance") != "custom_hgss_compatible":
-        errors.append(f"{path}.provenance: must be custom_hgss_compatible")
+    if asset.get("provenance") not in style_profile["allowedProvenance"]:
+        errors.append(f"{path}.provenance: not declared in styleProfile.allowedProvenance")
     if asset.get("alphaPolicy") not in {"required", "optional"}:
         errors.append(f"{path}.alphaPolicy: expected required or optional")
     semantic = asset.get("semantic")
@@ -231,16 +234,26 @@ def validate_missing_asset(value: object, path: str, errors: list[str]) -> str |
         if not isinstance(asset.get("sourcePng"), str) or not asset.get("sourcePng"):
             errors.append(f"{path}.sourcePng: required after approval")
         if not references:
-            errors.append(f"{path}.styleReferences: at least one HGSS/DS reference is required")
+            errors.append(f"{path}.styleReferences: at least one visual reference is required")
     return asset_id
 
 
 def validate_blueprint(document: dict) -> list[str]:
     errors: list[str] = []
-    if document.get("schemaVersion") != 1:
-        errors.append("schemaVersion: expected 1")
-    if document.get("cellSizePx") != CELL_SIZE:
-        errors.append("cellSizePx: expected 32")
+    if document.get("schemaVersion") != 2:
+        errors.append("schemaVersion: expected 2")
+    try:
+        cell_size = require_cell_size(document.get("cellSizePx"))
+    except ValueError as error:
+        errors.append(str(error))
+        cell_size = DEFAULT_CELL_SIZE
+    try:
+        if "styleProfile" not in document or document["styleProfile"] is None:
+            raise ValueError("styleProfile: required")
+        style_profile = require_style_profile(document["styleProfile"])
+    except ValueError as error:
+        errors.append(str(error))
+        style_profile = {"id": "invalid", "allowedProvenance": []}
     source = require_object(document.get("source"), "source", errors)
     if not isinstance(source.get("referenceImage"), str) or not source.get("referenceImage"):
         errors.append("source.referenceImage: required")
@@ -257,12 +270,12 @@ def validate_blueprint(document: dict) -> list[str]:
         errors.append("familyOrder: expected canonical family order")
     layers = require_list(document.get("layers"), "layers", errors)
     layer_ids = [
-        validate_layer(layer, f"layers[{index}]", width, height, errors)
+        validate_layer(layer, f"layers[{index}]", width, height, errors, style_profile)
         for index, layer in enumerate(layers)
     ]
     assets = require_list(document.get("missingAssets"), "missingAssets", errors)
     asset_ids = [
-        validate_missing_asset(asset, f"missingAssets[{index}]", errors)
+        validate_missing_asset(asset, f"missingAssets[{index}]", errors, cell_size, style_profile)
         for index, asset in enumerate(assets)
     ]
     identifiers = [identifier for identifier in layer_ids + asset_ids if identifier]
@@ -313,6 +326,8 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--name")
     init.add_argument("--width", required=True, type=int)
     init.add_argument("--height", required=True, type=int)
+    init.add_argument("--cell-size", type=int, default=DEFAULT_CELL_SIZE)
+    init.add_argument("--style-profile")
     init.add_argument("--force", action="store_true")
     validate = subparsers.add_parser("validate")
     validate.add_argument("path")
@@ -335,6 +350,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.name or args.map_id,
                 args.width,
                 args.height,
+                cell_size_px=args.cell_size,
+                style_profile=load_document(Path(args.style_profile)) if args.style_profile else STYLE_PROFILE_UNSET,
             )
             output = Path(args.output).expanduser().resolve()
             write_json(output, blueprint, args.force)

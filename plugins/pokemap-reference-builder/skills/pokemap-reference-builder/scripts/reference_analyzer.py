@@ -11,7 +11,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from blueprint_tool import CELL_SIZE, create_blueprint, validate_blueprint
+from blueprint_tool import create_blueprint, validate_blueprint
+from visual_profile import STYLE_PROFILE_UNSET, require_cell_size
 
 
 OVERLAY_COLORS = [
@@ -27,9 +28,7 @@ OVERLAY_COLORS = [
 def require_profile(profile: dict) -> tuple[int, int, int, list[dict]]:
     if profile.get("schemaVersion") != 1:
         raise ValueError("profile.schemaVersion must be 1")
-    cell_size = profile.get("cellSizePx")
-    if cell_size != CELL_SIZE:
-        raise ValueError(f"profile.cellSizePx must be {CELL_SIZE}")
+    cell_size = require_cell_size(profile.get("cellSizePx"))
     source_cell_size = profile.get("sourceCellSizePx", cell_size)
     if not isinstance(source_cell_size, int) or isinstance(source_cell_size, bool) or source_cell_size < 1:
         raise ValueError("profile.sourceCellSizePx must be a positive integer")
@@ -181,7 +180,8 @@ def analyze_reference(
         ]
         assignments[semantic] = [cell for cell, _ in kept_pairs]
         confidences[semantic] = [score for _, score in kept_pairs]
-    blueprint = create_blueprint(str(reference), map_id, name, width, height)
+    blueprint = create_blueprint(str(reference), map_id, name, width, height,
+                                 cell_size_px=cell_size, style_profile=profile.get("styleProfile", STYLE_PROFILE_UNSET))
     blueprint["source"]["sha256"] = hashlib.sha256(reference.read_bytes()).hexdigest()
     missing_assets = profile.get("missingAssets", [])
     if not isinstance(missing_assets, list) or any(not isinstance(asset, dict) for asset in missing_assets):

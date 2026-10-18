@@ -7,6 +7,7 @@
   "required": [
     "schemaVersion",
     "cellSizePx",
+    "styleProfile",
     "source",
     "map",
     "familyOrder",
@@ -15,8 +16,9 @@
     "review"
   ],
   "properties": {
-    "schemaVersion": {"const": 1},
-    "cellSizePx": {"const": 32},
+    "schemaVersion": {"const": 2},
+    "cellSizePx": {"enum": [16, 32, 48]},
+    "styleProfile": {"$ref": "#/$defs/styleProfile"},
     "source": {
       "type": "object",
       "additionalProperties": false,
@@ -60,6 +62,18 @@
     }
   },
   "$defs": {
+    "styleProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "allowedProvenance"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "allowedProvenance": {
+          "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 128}
+        }
+      }
+    },
     "cell": {
       "type": "object",
       "additionalProperties": false,
@@ -100,7 +114,7 @@
         "actionFamily": {
           "enum": ["environment", "smart_tile", "border_layer", "placed_element", "collision_layer", "connection"]
         },
-        "provenance": {"enum": ["hgss_ds", "custom_hgss_compatible"]}
+        "provenance": {"type": "string", "minLength": 1, "maxLength": 128}
       }
     },
     "constraints": {
@@ -154,11 +168,13 @@
         "status": {"enum": ["proposed", "approved", "imported", "verified"]},
         "widthCells": {"type": "integer", "minimum": 1, "maximum": 64},
         "heightCells": {"type": "integer", "minimum": 1, "maximum": 64},
-        "pixelWidth": {"type": "integer", "minimum": 32},
-        "pixelHeight": {"type": "integer", "minimum": 32},
+        "pixelWidth": {"type": "integer", "minimum": 1},
+        "pixelHeight": {"type": "integer", "minimum": 1},
+        "cellSizePx": {"enum": [16, 32, 48]},
+        "styleProfile": {"$ref": "#/$defs/styleProfile"},
         "anchor": {"$ref": "#/$defs/cell"},
         "collisionCells": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
-        "provenance": {"const": "custom_hgss_compatible"},
+        "provenance": {"type": "string", "minLength": 1, "maxLength": 128},
         "alphaPolicy": {"enum": ["required", "optional"]},
         "styleReferences": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "sourcePng": {"type": "string", "minLength": 1}

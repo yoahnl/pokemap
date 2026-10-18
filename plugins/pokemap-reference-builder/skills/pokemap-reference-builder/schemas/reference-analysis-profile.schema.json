@@ -7,7 +7,8 @@
   "required": ["schemaVersion", "cellSizePx", "classes"],
   "properties": {
     "schemaVersion": {"const": 1},
-    "cellSizePx": {"const": 32},
+    "cellSizePx": {"enum": [16, 32, 48]},
+    "styleProfile": {"$ref": "exterior-map-blueprint.schema.json#/$defs/styleProfile"},
     "sourceCellSizePx": {"type": "integer", "minimum": 1},
     "sampleInsetPx": {"type": "integer", "minimum": 0},
     "classes": {

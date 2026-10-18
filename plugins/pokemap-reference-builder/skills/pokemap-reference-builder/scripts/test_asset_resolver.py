@@ -26,7 +26,7 @@ class AssetResolverTest(unittest.TestCase):
             write_asset(root / "hgss_station_house_3x2.png", 96, 64)
             write_asset(root / "hgss_wood_bridge_wrong_size.png", 64, 64)
 
-            catalog = index_assets([{"path": str(root), "provenance": "hgss_ds"}])
+            catalog = index_assets([{"path": str(root), "provenance": "project"}])
             blueprint = create_blueprint("/reference.png", "map-test", "Map Test", 20, 20)
             blueprint["missingAssets"].append(
                 {
@@ -40,7 +40,7 @@ class AssetResolverTest(unittest.TestCase):
                     "pixelHeight": 64,
                     "anchor": {"x": 1, "y": 1},
                     "collisionCells": [],
-                    "provenance": "custom_hgss_compatible",
+                    "provenance": "custom",
                     "alphaPolicy": "required",
                     "styleReferences": ["HGSS wooden bridge"],
                 }
@@ -59,7 +59,7 @@ class AssetResolverTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_asset(root / "hgss_bridge_3x2.png", 96, 64)
-            catalog = index_assets([{"path": str(root), "provenance": "hgss_ds"}])
+            catalog = index_assets([{"path": str(root), "provenance": "project"}])
             blueprint = create_blueprint("/reference.png", "map-test", "Map Test", 20, 20)
             blueprint["missingAssets"].append(
                 {
@@ -73,7 +73,7 @@ class AssetResolverTest(unittest.TestCase):
                     "pixelHeight": 64,
                     "anchor": {"x": 2, "y": 1},
                     "collisionCells": [],
-                    "provenance": "custom_hgss_compatible",
+                    "provenance": "custom",
                     "alphaPolicy": "required",
                     "styleReferences": ["HGSS wooden bridge"],
                 }
@@ -109,12 +109,15 @@ class AssetResolverTest(unittest.TestCase):
                     "pixelHeight": 64,
                     "anchor": {"x": 2, "y": 1},
                     "collisionCells": [{"x": 0, "y": 1}, {"x": 3, "y": 1}],
-                    "provenance": "custom_hgss_compatible",
+                    "provenance": "custom",
                     "alphaPolicy": "required",
                     "styleReferences": ["HGSS wooden bridge"],
                 }
             )
-            resolutions = resolve_missing_assets(blueprint, {"assets": []})
+            resolutions = resolve_missing_assets(blueprint, {
+                "assets": [], "cellSizePx": blueprint["cellSizePx"],
+                "styleProfile": blueprint["styleProfile"],
+            })
 
             manifest = materialize_gap_workshop(blueprint, resolutions, root / "workshop")
 
