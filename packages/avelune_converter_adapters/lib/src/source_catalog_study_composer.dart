@@ -405,8 +405,12 @@ final class SourceCatalogStudyComposer {
         'nativeEncounterRelease': encounterRelease.evidence,
       'preservedSourceFiles': preservedFiles,
     };
-    final companionBytes = utf8
-        .encode(canonicalJsonOf(companionPayload, limits: limits.jsonLimits));
+    final companionBytes = utf8.encode(canonicalJsonOf(companionPayload,
+        limits: limits.artifactEvidenceJsonLimits));
+    if (companionBytes.length > limits.maxTotalArtifactBytes) {
+      throw const NativeWriteException('native.quota.artifact',
+          'Aggregate catalog evidence byte budget exceeded');
+    }
     final companionChunks = <Map<String, Object?>>[];
     for (var offset = 0;
         offset < companionBytes.length;
@@ -448,7 +452,8 @@ final class SourceCatalogStudyComposer {
           'kind': 'sourceCatalogProjectionChunks',
           'version': 1,
           'encoding': 'canonicalJsonBase64Chunks',
-          'sha256': canonicalHashOf(companionPayload, limits: limits.jsonLimits)
+          'sha256': canonicalHashOf(companionPayload,
+                  limits: limits.artifactEvidenceJsonLimits)
               .value,
           'byteLength': companionBytes.length,
           'chunks': companionChunks,

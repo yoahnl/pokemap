@@ -644,6 +644,52 @@ void main() {
         opened.close();
       }
     });
+    test('catalog companion exceeds record text quota and replays exact chunks',
+        () async {
+      const limits = NativeWriteLimits(
+          maxArtifacts: 128,
+          jsonLimits: ContractLimits(maxTextCodeUnits: 1048576));
+      final large = await composeAc14CatalogReferenceFixture(
+        sourceScriptsPath: scriptsPath!,
+        outputParentPath: temporary.path,
+        largeProjectionEvidence: true,
+        limits: limits,
+      );
+      final artifacts = large.draft.artifacts;
+      final companion = artifacts
+          .where((a) => a.reference.mediaType == 'application/json')
+          .map((a) => jsonDecode(utf8.decode(a.bytes)) as Map)
+          .singleWhere(
+              (value) => value['kind'] == 'sourceCatalogProjectionChunks');
+      final bytes = <int>[];
+      for (final descriptor in companion['chunks'] as List) {
+        expect(descriptor['offset'], bytes.length);
+        final chunk = artifacts
+            .singleWhere((a) => a.handle == descriptor['artifactHandle']);
+        final payload = jsonDecode(utf8.decode(chunk.bytes)) as Map;
+        final part = base64Decode(payload['bytesBase64'] as String);
+        expect(part.length, descriptor['byteLength']);
+        bytes.addAll(part);
+      }
+      final restored = jsonDecode(utf8.decode(bytes)) as Map<String, Object?>;
+      expect(
+          () => canonicalJsonOf(restored, limits: limits.jsonLimits),
+          throwsA(isA<ContractError>()
+              .having((e) => e.code, 'code', 'json.textQuota')));
+      expect(restored['projection'], large.catalogs.projection.toJson());
+      expect(bytes.length, companion['byteLength']);
+      expect(nativeFixtureHash(bytes).value, companion['sha256']);
+      expect(
+          artifacts
+              .where((a) => a.reference.mediaType == 'application/json')
+              .every((a) => a.bytes.length <= 1048576),
+          isTrue);
+      final approval = approveNativeFixtureDraft(large.draft);
+      final receipt = await const NativeProjectWriter()
+          .write(approval.plan, approval.context, large.draft, limits: limits);
+      expect(receipt.verified, isTrue);
+    });
+
     test('local native conversion preserves over sixty bounded components',
         () async {
       const limits =

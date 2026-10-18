@@ -189,7 +189,7 @@ void main() {
         _reassemble(packed.artifacts), utf8.encode(canonicalJsonOf(evidence)));
   });
 
-  test('packing honors explicit large text limit and refuses effective quotas',
+  test('packing honors aggregate byte budgets and refuses effective quotas',
       () {
     final evidence = {'rows': List.filled(5000, 'source' * 150)};
     expect(() => canonicalJsonOf(evidence), throwsA(isA<ContractError>()));
@@ -208,10 +208,94 @@ void main() {
             limits: const NativeWriteLimits(
                 maxArtifactBytes: 4096, maxTotalArtifactBytes: 4096)),
         throwsA(isA<NativeWriteException>()));
+    final defaults = SourceEventEvidenceArtifacts.pack(evidence,
+        limits: const NativeWriteLimits());
+    expect(_reassemble(defaults.artifacts), _reassemble(packed.artifacts));
+  });
+
+  test(
+      'aggregate evidence exceeding record text quotas roundtrips in bounded chunks',
+      () {
+    final evidence = {'rows': List.filled(17, 'x' * 1000000)};
     expect(
-        () => SourceEventEvidenceArtifacts.pack(evidence,
-            limits: const NativeWriteLimits()),
-        throwsA(isA<ContractError>()));
+        () => canonicalJsonOf(evidence, limits: _limits.jsonLimits),
+        throwsA(isA<ContractError>()
+            .having((e) => e.code, 'code', 'json.textQuota')));
+    final packed = SourceEventEvidenceArtifacts.pack(evidence, limits: _limits);
+    expect(packed.artifacts.every((a) => a.bytes.length <= 1048576), isTrue);
+    expect(jsonDecode(utf8.decode(_reassemble(packed.artifacts))), evidence);
+  });
+
+  test('aggregate artifact budgets use exact UTF-8 and escaped canonical bytes',
+      () {
+    final evidence = {'rows': List.filled(8000, 'é🌲\n\t"' * 20)};
+    final original =
+        SourceEventEvidenceArtifacts.pack(evidence, limits: _limits);
+    final bytes =
+        original.artifacts.fold<int>(0, (sum, a) => sum + a.bytes.length);
+    final exact = SourceEventEvidenceArtifacts.pack(evidence,
+        limits: NativeWriteLimits(
+            maxArtifacts: original.artifacts.length,
+            maxTotalArtifactBytes: bytes));
+    expect(exact.artifacts.map((a) => a.handle),
+        original.artifacts.map((a) => a.handle));
+    for (final limits in [
+      NativeWriteLimits(maxTotalArtifactBytes: bytes - 1),
+      NativeWriteLimits(maxArtifacts: original.artifacts.length - 1),
+      const NativeWriteLimits(maxTotalArtifactBytes: 1024),
+    ]) {
+      expect(
+          () => SourceEventEvidenceArtifacts.pack(evidence, limits: limits),
+          throwsA(isA<NativeWriteException>()
+              .having((e) => e.code, 'code', 'native.quota.artifact')));
+    }
+  });
+
+  test('aggregate text beyond its derived byte bound refuses deterministically',
+      () {
+    const limits = NativeWriteLimits(
+        maxTotalArtifactBytes: 8192,
+        jsonLimits: ContractLimits(maxTextCodeUnits: 4096));
+    expect(
+        () => SourceEventEvidenceArtifacts.pack(
+            {'rows': List.filled(9, 'x' * 1024)}, limits: limits),
+        throwsA(isA<ContractError>()
+            .having((e) => e.code, 'code', 'json.textQuota')));
+  });
+
+  test('aggregate evidence retains individual string depth and node quotas',
+      () {
+    for (final entry in [
+      (
+        {
+          'rows': ['x' * 1025]
+        },
+        const ContractLimits(maxStringCodeUnits: 1024),
+        'json.textQuota'
+      ),
+      (
+        {
+          'rows': [
+            [
+              ['x']
+            ]
+          ]
+        },
+        const ContractLimits(maxDepth: 2),
+        'json.quota'
+      ),
+      (
+        {'rows': List.filled(10, 'x')},
+        const ContractLimits(maxNodes: 5),
+        'json.quota'
+      ),
+    ]) {
+      expect(
+          () => SourceEventEvidenceArtifacts.pack(entry.$1,
+              limits: NativeWriteLimits(jsonLimits: entry.$2)),
+          throwsA(
+              isA<ContractError>().having((e) => e.code, 'code', entry.$3)));
+    }
   });
 
   test('cancelled packing emits no artifact set', () {

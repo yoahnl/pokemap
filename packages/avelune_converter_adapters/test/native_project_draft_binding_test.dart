@@ -64,6 +64,90 @@ void main() {
         isNot(original.canonicalHash));
   });
 
+  test('aggregate composition evidence binds beyond record text quotas', () {
+    final evidence = <String, Object?>{
+      'rows': List.filled(10, 'é🌲\n"' * 100000)
+    };
+    expect(() => canonicalJsonOf(evidence), throwsA(isA<ContractError>()));
+    final original = draft([], evidence: evidence);
+    original.validateResourceBudget();
+    expect(draft([], evidence: evidence).canonicalHash, original.canonicalHash);
+    (evidence['rows'] as List)[0] = 'altered';
+    expect(draft([], evidence: evidence).canonicalHash,
+        isNot(original.canonicalHash));
+    expect(
+        (original.compositionEvidence['rows'] as List).first, isNot('altered'));
+    expect(() => (original.compositionEvidence['rows'] as List)[0] = 'altered',
+        throwsUnsupportedError);
+    expect(
+        () => original.validateResourceBudget(
+            limits: NativeWriteLimits(
+                maxTotalDraftJsonBytes: original.validatedJsonByteLength - 1)),
+        throwsA(isA<NativeWriteException>()
+            .having((e) => e.code, 'code', 'native.quota.draft_json')));
+  });
+
+  test(
+      'aggregate evidence retains caller structural and individual string limits',
+      () {
+    for (final entry in [
+      (
+        {
+          'rows': ['x' * 1025]
+        },
+        const ContractLimits(maxStringCodeUnits: 1024),
+        'json.textQuota'
+      ),
+      (
+        {
+          'rows': [
+            [
+              ['x']
+            ]
+          ]
+        },
+        const ContractLimits(maxDepth: 2),
+        'json.quota'
+      ),
+      (
+        {'rows': List.filled(10, 'x')},
+        const ContractLimits(maxNodes: 5),
+        'json.quota'
+      ),
+    ]) {
+      expect(
+          () => draft([],
+              evidence: entry.$1,
+              limits: NativeWriteLimits(jsonLimits: entry.$2)),
+          throwsA(
+              isA<ContractError>().having((e) => e.code, 'code', entry.$3)));
+    }
+  });
+
+  test('large aggregate evidence rechecks caller bytes before staging',
+      () async {
+    final original = draft(fixture.draft.mutations,
+        evidence: {'rows': List.filled(7, 'p' * 700000)});
+    final approval = approveNativeFixtureDraft(original);
+    final stages = <NativeWriteStage>[];
+    var allocated = false;
+    await expectLater(
+        NativeProjectWriter(
+          checkpoint: (stage, _, __) => stages.add(stage),
+          stagingFactory: () async {
+            allocated = true;
+            throw StateError(
+                'Aggregate evidence must be checked before staging');
+          },
+        ).write(approval.plan, approval.context, original,
+            limits: NativeWriteLimits(
+                maxTotalDraftJsonBytes: original.validatedJsonByteLength - 1)),
+        throwsA(isA<NativeWriteException>()
+            .having((e) => e.code, 'code', 'native.quota.draft_json')));
+    expect(stages, isEmpty);
+    expect(allocated, isFalse);
+  });
+
   test('ordered record bindings retain all action metadata and evidence', () {
     final original = draft([
       record(0, {'value': 'original'})

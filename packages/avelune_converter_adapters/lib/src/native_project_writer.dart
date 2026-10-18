@@ -49,6 +49,20 @@ final class NativeWriteLimits {
   final int maxMapCells;
   final ContractLimits jsonLimits;
 
+  ContractLimits get artifactEvidenceJsonLimits =>
+      _aggregateEvidenceJsonLimits(maxTotalArtifactBytes);
+  ContractLimits get draftEvidenceJsonLimits =>
+      _aggregateEvidenceJsonLimits(maxTotalDraftJsonBytes);
+
+  ContractLimits _aggregateEvidenceJsonLimits(int maxBytes) => ContractLimits(
+        maxDepth: jsonLimits.maxDepth,
+        maxNodes: jsonLimits.maxNodes,
+        maxStringCodeUnits: jsonLimits.maxStringCodeUnits,
+        maxTextCodeUnits: maxBytes > jsonLimits.maxTextCodeUnits
+            ? maxBytes
+            : jsonLimits.maxTextCodeUnits,
+      );
+
   int get maxMaps => maxMutations.clamp(1, 2048);
   int get maxEntityReferences => maxMutations.clamp(1, 2048);
 
@@ -336,7 +350,8 @@ final class NativeProjectDraft {
           'A complete plannable normalized source is required');
     }
     final normalizedHash = source.canonicalHash;
-    canonicalJsonOf(compositionEvidence, limits: limits.jsonLimits);
+    canonicalJsonOf(compositionEvidence,
+        limits: limits.draftEvidenceJsonLimits);
     final frozenComposition =
         _freezeNativeJson(compositionEvidence) as Map<String, Object?>;
     final metadata = <String, Object?>{
@@ -442,9 +457,11 @@ final class NativeProjectDraft {
         List<NativeMutation> mutations,
         NativeWriteLimits limits) {
   var totalBytes = 0;
-  Sha256Hash bindRecord(Object? value) {
-    final bytes =
-        utf8.encode(canonicalJsonOf(value, limits: limits.jsonLimits));
+  Sha256Hash bindRecord(Object? value, {bool aggregateEvidence = false}) {
+    final bytes = utf8.encode(canonicalJsonOf(value,
+        limits: aggregateEvidence
+            ? limits.draftEvidenceJsonLimits
+            : limits.jsonLimits));
     totalBytes += bytes.length;
     if (totalBytes > limits.maxTotalDraftJsonBytes) {
       throw const NativeWriteException('native.quota.draft_json',
@@ -453,7 +470,7 @@ final class NativeProjectDraft {
     return Sha256Hash(sha256.convert(bytes).toString());
   }
 
-  final evidenceHash = bindRecord(compositionEvidence);
+  final evidenceHash = bindRecord(compositionEvidence, aggregateEvidence: true);
   final mutationHashes = <String>[];
   for (var index = 0; index < mutations.length; index++) {
     final mutation = mutations[index];
@@ -2678,9 +2695,9 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   final artifacts = {
     for (final artifact in draft.artifacts) artifact.handle: artifact
   };
-  if (canonicalJsonOf(evidence, limits: limits.jsonLimits) !=
+  if (canonicalJsonOf(evidence, limits: limits.draftEvidenceJsonLimits) !=
           canonicalJsonOf(expected.compositionEvidence,
-              limits: limits.jsonLimits) ||
+              limits: limits.draftEvidenceJsonLimits) ||
       !_sameOrderedNativeMutations(
           actual, expected.mutations, limits.jsonLimits) ||
       expected.artifacts.any((artifact) =>

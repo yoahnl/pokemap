@@ -17,8 +17,12 @@ final class SourceEventEvidenceArtifacts {
       {required NativeWriteLimits limits, ScanCancellation? cancellation}) {
     limits.validate();
     cancellation?.check();
-    final bytes =
-        utf8.encode(canonicalJsonOf(evidence, limits: limits.jsonLimits));
+    final bytes = utf8.encode(
+        canonicalJsonOf(evidence, limits: limits.artifactEvidenceJsonLimits));
+    if (bytes.length > limits.maxTotalArtifactBytes) {
+      throw const NativeWriteException('native.quota.artifact',
+          'Aggregate event evidence byte budget exceeded');
+    }
     final byteLimit =
         limits.maxArtifactBytes < 1048576 ? limits.maxArtifactBytes : 1048576;
     if (bytes.length <= byteLimit) {
