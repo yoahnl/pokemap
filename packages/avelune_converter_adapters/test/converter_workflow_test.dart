@@ -69,7 +69,7 @@ void main() {
                 humanConfirmed: true,
                 reason: 'Bounded test'));
     expect(settings().writeLimits.maxArtifacts, 4096);
-    expect(settings().writeLimits.maxMutations, 16384);
+    expect(settings().writeLimits.maxMutations, 32768);
     expect(identical(settings(limits: small).writeLimits, small), isTrue);
     expect((small.maxArtifacts, small.maxMutations), (512, 1024));
     expect(const NativeWriteLimits().maxArtifacts, 32);
@@ -425,7 +425,7 @@ void main() {
       expect(prepared.assetProposalDiagnostics, isEmpty);
       expect(prepared.reviewSet!.segments.keys, [1, 8]);
       expect(prepared.settings.writeLimits.maxArtifacts, 4096);
-      expect(prepared.settings.writeLimits.maxMutations, 16384);
+      expect(prepared.settings.writeLimits.maxMutations, 32768);
       expect(prepared.settings.writeLimits.maxTotalArtifactBytes, 268435456);
       const boundedLimits = NativeWriteLimits(maxArtifacts: 128);
       harness.workflow.updateSettings(
@@ -612,15 +612,23 @@ void main() {
     try {
       final prepared = await harness.prepare();
       final recipe = harness.workflow.exportStudyPlanRecipe();
-      const oldCapabilities =
-          '02fbf8f2710951323e1f2a13224b1639199c3d9919cda94a59514a6e42c6a2fe';
+      final priorCapabilities = TargetCapabilities.fromJson({
+        ...prepared.targetCapabilities.toJson(),
+        'capabilities': [
+          for (final capability in prepared.targetCapabilities.capabilities)
+            if (capability.capabilityId.value !=
+                'native.study.gameplay_zone.create')
+              capability.toJson()
+        ]
+      });
+      final oldCapabilities = priorCapabilities.canonicalHash.value;
       const oldRules =
           '1da5525feefde10379b96ec84882e41e9e4d52c6405980e8058ef77a4344173a';
       expect(prepared.targetCapabilities.canonicalHash.value,
           isNot(oldCapabilities));
       expect(recipe.rulesHash.value, isNot(oldRules));
       expect(
-          prepared.targetCapabilities.capabilities.any((capability) =>
+          priorCapabilities.capabilities.any((capability) =>
               capability.capabilityId.value ==
               'native.study.gameplay_zone.create'),
           isFalse);
@@ -629,8 +637,13 @@ void main() {
               capability.capabilityId.value ==
               'native.study.border_layer.unknown'),
           isFalse);
-      for (final action in ['element.batch_upsert', 'asset.import_batch']) {
-        final capability = prepared.targetCapabilities.capabilities.singleWhere((entry) => entry.capabilityId.value == 'native.study.$action');
+      for (final action in [
+        'gameplay_zone.create',
+        'element.batch_upsert',
+        'asset.import_batch'
+      ]) {
+        final capability = prepared.targetCapabilities.capabilities.singleWhere(
+            (entry) => entry.capabilityId.value == 'native.study.$action');
         expect(capability.status, CapabilityStatus.supported);
         expect(capability.evidence, isNotEmpty);
       }
@@ -683,15 +696,33 @@ void main() {
               canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
                   .value
         });
-        final fresh = ConverterWorkflow();
+        final phases = <ConverterWorkflowPhase>[];
+        final fresh = ConverterWorkflow(checkpoint: (phase, _, __) {
+          phases.add(phase);
+        });
         try {
           await expectLater(fresh.restoreStudyPlanRecipe(stale),
               _throwsWorkflow('workflow.recipe.stale'));
+          expect(phases, isEmpty);
+          expect(fresh.state.source, isNull);
           expect(fresh.state.snapshot, isNull);
           expect(fresh.state.prepared, isNull);
         } finally {
           await fresh.dispose();
         }
+      }
+      final phases = <ConverterWorkflowPhase>[];
+      final current = ConverterWorkflow(checkpoint: (phase, _, __) {
+        phases.add(phase);
+      });
+      try {
+        await current.restoreStudyPlanRecipe(recipe);
+        expect(phases, contains(ConverterWorkflowPhase.scan));
+        expect(
+            current.state.snapshot!.canonicalHash, recipe.sourceSnapshotHash);
+        expect(current.state.prepared, isNotNull);
+      } finally {
+        await current.dispose();
       }
 
       expect(prepared.targetCapabilities.profileId.value,
@@ -1267,8 +1298,8 @@ void main() {
         final source = tileset.source! as ProjectRegularAtlasTilesetSource;
         final original = harness
             .fixture.sourceBytes['Graphics/Tilesets/OriginalAtlas1.png']!;
-        expect(
-            native.resourceBytes('assetLogical:${source.assetId}'), original);
+        expect(await native.readResourceBytes('assetLogical:${source.assetId}'),
+            original);
         expect(result.receipt.assetHashes[source.assetId],
             literalFixtureHash(original));
       } finally {

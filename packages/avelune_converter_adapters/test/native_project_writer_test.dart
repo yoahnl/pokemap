@@ -715,8 +715,9 @@ void main() {
 
   test('AC-08 shared library retains original atlas and literal maps',
       () async {
-    final (_, library, draft, approval) =
+    final (original, library, draft, approval) =
         await assetLibraryFixture(mode: AssetOutputMode.sharedAtlas);
+    final before = await _treeBytes(original.literalFixture.sourceRootPath!);
     final binding = library.candidateBindings.single;
     final png = library.artifacts.singleWhere(
         (artifact) => artifact.handle == binding.pngArtifactHandle);
@@ -725,12 +726,39 @@ void main() {
         .write(approval.plan, approval.context, draft);
     final opened = await _NativeProject.open(receipt.projectPath);
     try {
-      final snapshot = await opened.load();
+      final snapshot = await opened.snapshots
+          .load(opened.project, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(snapshot.loadDiagnostics, isEmpty);
       expect(snapshot.manifest.elements, hasLength(1));
       expect(snapshot.manifest.tilesets, hasLength(2));
+      final bytes = (await snapshot
+          .readResourceBytes('assetLogical:${binding.nativeImageAssetId}'))!;
+      expect(bytes, png.bytes);
+      expect(bytes, original.pngBytes);
+      expect(nativeFixtureHash(bytes), png.rawSha256);
+      expect(receipt.assetHashes[binding.nativeImageAssetId], png.rawSha256);
+      final element = snapshot.manifest.elements.single;
+      expect(element.tilesetId, binding.nativeTilesetId);
+      final frame = element.frames.single;
+      expect(frame.tilesetId, isEmpty);
+      expect(frame.source.toJson(), binding.record['nativeSourceRect']);
       expect(
-          snapshot.resourceBytes('assetLogical:${binding.nativeImageAssetId}'),
-          png.bytes);
+          frame.source.toJson(), {'x': 0, 'y': 0, 'width': 2, 'height': 3});
+      final tileset = snapshot.manifest.tilesets
+          .singleWhere((entry) => entry.id == element.tilesetId);
+      final source = tileset.source! as ProjectRegularAtlasTilesetSource;
+      expect(source.assetId, binding.nativeImageAssetId);
+      expect((source.tileWidth, source.tileHeight), (32, 32));
+      final atlas = image.decodePng(Uint8List.fromList(bytes))!;
+      final crop = image.copyCrop(atlas,
+          x: frame.source.x * source.tileWidth,
+          y: frame.source.y * source.tileHeight,
+          width: frame.source.width * source.tileWidth,
+          height: frame.source.height * source.tileHeight);
+      final expected = image.copyCrop(image.decodePng(original.pngBytes)!,
+          x: 0, y: 0, width: 64, height: 96);
+      expect(crop.getBytes(order: image.ChannelOrder.rgba),
+          expected.getBytes(order: image.ChannelOrder.rgba));
       for (final mutation
           in draft.mutations.where((value) => value.actionId == 'map.save')) {
         final raw = mutation.parameters['map'] as Map;
@@ -739,6 +767,7 @@ void main() {
     } finally {
       await opened.close();
     }
+    expect(await _treeBytes(original.literalFixture.sourceRootPath!), before);
   });
 
   test('AC-08 missing and foreign source witnesses fail before staging',
@@ -972,19 +1001,52 @@ void main() {
 
   test('AC-08 logical companion drift after verification prevents success',
       () async {
-    final (_, library, draft, approval) = await assetLibraryFixture();
+    final (original, library, draft, approval) = await assetLibraryFixture();
+    final before = await _treeBytes(original.literalFixture.sourceRootPath!);
     final binding = library.candidateBindings.first;
-    var verified = false;
+    final companion = library.artifacts.singleWhere(
+        (artifact) => artifact.handle == binding.companionArtifactHandle);
+    final stages = <NativeWriteStage>[];
+    String? stagingPath;
+    String? tamperedPath;
+    NativeWriteReceipt? returnedReceipt;
+    final writing =
+        NativeProjectWriter(checkpoint: (stage, staging, projectPath) async {
+      stages.add(stage);
+      stagingPath ??= staging;
+      if (stage != NativeWriteStage.afterNativeVerify) return;
+      tamperedPath = '$projectPath/${binding.record['companionLogicalPath']}';
+      final file = File(tamperedPath!);
+      expect(await file.readAsBytes(), companion.bytes);
+      await file.writeAsString('{}');
+    }).write(approval.plan, approval.context, draft).then((receipt) {
+      returnedReceipt = receipt;
+      return receipt;
+    });
     await expectLater(
-        NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
-          if (stage != NativeWriteStage.afterNativeVerify) return;
-          verified = true;
-          await File('$projectPath/${binding.record['companionLogicalPath']}')
-              .writeAsString('{}');
-        }).write(approval.plan, approval.context, draft),
+        writing,
         throwsA(isA<NativeWriteException>()
-            .having((error) => error.code, 'code', 'native.verify.changed')));
-    expect(verified, isTrue);
+            .having((error) => error.code, 'code', 'native.write.failed')
+            .having(
+                (error) => error.message,
+                'cause',
+                'ProjectSnapshotException(project.asset_source_mismatch): '
+                    'A stored resource differs from its inspected content.')
+            .having(
+                (error) => error.stagingPath,
+                'stagingPath',
+                predicate<String?>(
+                    (value) => value != null && value == stagingPath))));
+    expect(stages.where((stage) => stage == NativeWriteStage.afterNativeVerify),
+        hasLength(1));
+    expect(stages.indexOf(NativeWriteStage.afterNativeVerify),
+        greaterThan(stages.indexOf(NativeWriteStage.beforeNativeVerify)));
+    expect(returnedReceipt, isNull);
+    expect(await File(tamperedPath!).readAsString(), '{}');
+    expect(await Directory(stagingPath!).exists(), isTrue);
+    expect(await Directory('${draft.parentPath}/${draft.folderName}').exists(),
+        isFalse);
+    expect(await _treeBytes(original.literalFixture.sourceRootPath!), before);
   });
 
   test('controlled source and admission are valid before the native writer',
