@@ -2270,6 +2270,7 @@ Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene, {S
     scene,
     snapshot.manifest,
     availableMoveIds: availableMoveIds,
+    availableItemIds: snapshot.itemCatalog?.entries.map((item) => item.id).toSet(),
     mapsById: {for (final map in snapshot.maps) map.id: map},
   );
   return {
@@ -2277,6 +2278,15 @@ Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene, {S
     'resourceKind': 'scene',
     'runtimeBuildable': buildSceneRuntimePlan(scene).canBuild,
     'diagnostics': [
+      for (final diagnostic in snapshot.loadDiagnostics)
+        if (diagnostic.resourceKind == 'itemCatalog')
+          {
+            ...diagnostic.toJson(),
+            'severity': 'error',
+            'message': diagnostic.code == 'project.item_catalog_missing'
+                ? 'The canonical item catalog is missing.'
+                : 'The canonical item catalog could not be loaded.',
+          },
       for (final item in report.diagnostics)
         {
           'code': item.code.name,

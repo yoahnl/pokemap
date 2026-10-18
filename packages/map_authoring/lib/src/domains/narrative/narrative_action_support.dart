@@ -54,10 +54,12 @@ AuthoringMutationDraft narrativeProjectDraft(
   final beforeInspection = inspector.inspect(
     project: snapshot.manifest,
     maps: snapshot.maps,
+    itemCatalog: snapshot.itemCatalog,
   );
   final afterInspection = inspector.inspect(
     project: projected,
     maps: snapshot.maps,
+    itemCatalog: snapshot.itemCatalog,
   );
   return AuthoringMutationDraft(
     projectedProject: projected,

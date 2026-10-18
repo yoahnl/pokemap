@@ -302,7 +302,11 @@ final class FactRuleActions {
         before: before,
         after: after,
         preview: const ModernNarrativeInspector()
-            .inspect(project: projected, maps: context.snapshot.maps)
+            .inspect(
+              project: projected,
+              maps: context.snapshot.maps,
+              itemCatalog: context.snapshot.itemCatalog,
+            )
             .toJson(),
       );
 }

@@ -277,7 +277,12 @@ NarrativeProjectValidationReport validateNarrativeProject(
       : _trimmedNonBlankIds(knownMoveIds);
 
   _appendLegacyNarrativeDiagnostics(project, maps, diagnostics);
-  _appendSceneDiagnostics(project, mapsById, diagnostics);
+  _appendSceneDiagnostics(
+    project,
+    mapsById,
+    diagnostics,
+    knownItemIds: knownItemIds,
+  );
   _appendPresentationTextReferenceDiagnostics(project, diagnostics);
   _appendSceneBattleReadinessDiagnostics(
     project,
@@ -567,13 +572,15 @@ void _appendLegacyNarrativeDiagnostics(
 void _appendSceneDiagnostics(
   ProjectManifest project,
   Map<String, MapData> mapsById,
-  List<NarrativeProjectDiagnostic> target,
-) {
+  List<NarrativeProjectDiagnostic> target, {
+  required Set<String>? knownItemIds,
+}) {
   for (final scene in project.scenes) {
     for (final diagnostic in diagnoseSceneAgainstProject(
       scene,
       project,
       mapsById: mapsById,
+      availableItemIds: knownItemIds,
     ).diagnostics) {
       final dialogueId =
           diagnostic.code == SceneDiagnosticCode.dialogueRefUnknown
@@ -594,7 +601,9 @@ void _appendSceneDiagnostics(
               ? NarrativeProjectDiagnosticDomain.scene
               : NarrativeProjectDiagnosticDomain.dialogue,
           message: diagnostic.message,
-          path: 'scenes.${scene.id}.${diagnostic.target.name}',
+          path: diagnostic.nodeId == null
+              ? 'scenes.${scene.id}.${diagnostic.target.name}'
+              : 'scenes.${scene.id}.${diagnostic.target.name}.${diagnostic.nodeId}',
           destination: dialogueId == null
               ? NarrativeProjectDiagnosticDestination.scene
               : NarrativeProjectDiagnosticDestination.dialogue,

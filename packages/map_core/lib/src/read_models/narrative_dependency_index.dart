@@ -2768,6 +2768,14 @@ final class _NarrativeDependencyIndexBuilder {
         path: '$path.stepId',
         criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
+    } else if (consequence case SceneGiveItemConsequence(:final itemId) ||
+        SceneTakeItemConsequence(:final itemId)) {
+      _usage(
+        target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, itemId),
+        owner: owner,
+        path: '$path.itemId',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      );
     }
   }
 
@@ -2854,6 +2862,9 @@ final class _NarrativeDependencyIndexBuilder {
             usage.target.sourceKind == 'legacyMapEvent';
         if (definitionCount > 1) {
           resolution = NarrativeDependencyResolution.ambiguous;
+        } else if (usage.target.kind == NarrativeDependencyTargetKind.item &&
+            itemCatalog == null) {
+          resolution = NarrativeDependencyResolution.unavailable;
         } else if (usage.resolution ==
             NarrativeDependencyResolution.unavailable) {
           resolution = NarrativeDependencyResolution.unavailable;
@@ -2898,7 +2909,9 @@ final class _NarrativeDependencyIndexBuilder {
               NarrativeDependencyResolution.ambiguous =>
                 '${usage.target} resolves to multiple definitions.',
               NarrativeDependencyResolution.unavailable =>
-                usage.target.kind == NarrativeDependencyTargetKind.media
+                usage.target.kind == NarrativeDependencyTargetKind.item
+                    ? '${usage.target} cannot be checked because the project item catalog is not loaded.'
+                    : usage.target.kind == NarrativeDependencyTargetKind.media
                     ? '${usage.target} is not a non-looping sound effect.'
                     : usage.resolution ==
                           NarrativeDependencyResolution.unavailable

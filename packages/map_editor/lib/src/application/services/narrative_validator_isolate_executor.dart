@@ -21,6 +21,7 @@ final class NarrativeValidatorWork {
     required Set<String>? knownSpeciesIds,
     required Set<String>? knownMoveIds,
     required this.requirePokemonCatalogs,
+    Set<String>? knownItemIds,
     this.activeMap,
   })  : projectRootPath = p.normalize(projectRootPath),
         kind = NarrativeValidatorWorkKind.projectReport,
@@ -31,7 +32,10 @@ final class NarrativeValidatorWork {
             : Set<String>.unmodifiable(knownSpeciesIds),
         knownMoveIds = knownMoveIds == null
             ? null
-            : Set<String>.unmodifiable(knownMoveIds);
+            : Set<String>.unmodifiable(knownMoveIds),
+        knownItemIds = knownItemIds == null
+            ? null
+            : Set<String>.unmodifiable(knownItemIds);
 
   NarrativeValidatorWork.multidimensional({
     required this.validationId,
@@ -44,6 +48,7 @@ final class NarrativeValidatorWork {
         kind = NarrativeValidatorWorkKind.multidimensionalReport,
         knownSpeciesIds = null,
         knownMoveIds = null,
+        knownItemIds = null,
         requirePokemonCatalogs = false;
 
   final String validationId;
@@ -55,6 +60,7 @@ final class NarrativeValidatorWork {
   final NarrativeProjectValidationReport? projectReport;
   final Set<String>? knownSpeciesIds;
   final Set<String>? knownMoveIds;
+  final Set<String>? knownItemIds;
   final bool requirePokemonCatalogs;
 }
 
@@ -490,6 +496,7 @@ Future<void> _runNarrativeValidation(
           maps: maps,
           knownSpeciesIds: work.knownSpeciesIds,
           knownMoveIds: work.knownMoveIds,
+          knownItemIds: work.knownItemIds,
           requirePokemonCatalogs: work.requirePokemonCatalogs,
         );
         Isolate.exit(command.resultPort, <Object?>[

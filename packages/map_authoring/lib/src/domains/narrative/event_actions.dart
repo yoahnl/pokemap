@@ -109,7 +109,11 @@ final class EventV2Actions {
         before: before?.name,
         after: projected.eventRegistry!.mode.name,
         preview: const ModernNarrativeInspector()
-            .inspect(project: projected, maps: context.snapshot.maps)
+            .inspect(
+              project: projected,
+              maps: context.snapshot.maps,
+              itemCatalog: context.snapshot.itemCatalog,
+            )
             .toJson(),
       );
     }
@@ -220,7 +224,11 @@ final class EventV2Actions {
       before: before?.toJson(),
       after: after?.toJson(),
       preview: const ModernNarrativeInspector()
-          .inspect(project: projected, maps: context.snapshot.maps)
+          .inspect(
+            project: projected,
+            maps: context.snapshot.maps,
+            itemCatalog: context.snapshot.itemCatalog,
+          )
           .toJson(),
     );
   }

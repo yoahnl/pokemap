@@ -19,12 +19,14 @@ class VerificationAnalysisRequest {
     this.reply,
     this.project,
     this.maps,
-    this.sources,
-  );
+    this.sources, {
+    this.itemCatalog,
+  });
   final SendPort reply;
   final ProjectManifest project;
   final List<MapData> maps;
   final List<VerificationDialogueSource> sources;
+  final ProjectItemCatalog? itemCatalog;
 }
 
 /// Runs the canonical validators in the spawned isolate. The interface isolate
@@ -34,6 +36,9 @@ void verificationAnalysisWorker(VerificationAnalysisRequest request) {
     final canonical = validateNarrativeProject(
       request.project,
       maps: request.maps,
+      knownItemIds: request.itemCatalog == null
+          ? null
+          : {for (final entry in request.itemCatalog!.entries) entry.id},
     );
     final validation = _withDialogueSources(canonical, request.sources);
     final symbolic = validation.symbolicReachability;
@@ -58,6 +63,7 @@ void verificationAnalysisWorker(VerificationAnalysisRequest request) {
         dependencies: buildNarrativeDependencyIndex(
           project: request.project,
           maps: request.maps,
+          itemCatalog: request.itemCatalog,
         ),
         physical: physical,
         isolateName: Isolate.current.debugName ?? verificationWorkerName,

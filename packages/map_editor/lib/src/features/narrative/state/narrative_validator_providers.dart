@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_authoring/map_authoring_local.dart'
+    show LocalProjectFileReader;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -13,30 +16,40 @@ class NarrativeValidatorPokemonCatalogSnapshot {
   NarrativeValidatorPokemonCatalogSnapshot({
     required Set<String>? speciesIds,
     required Set<String>? moveIds,
+    Set<String>? itemIds,
   })  : speciesIds = speciesIds == null
             ? null
             : Set<String>.unmodifiable(_normalizedIds(speciesIds)),
         moveIds = moveIds == null
             ? null
-            : Set<String>.unmodifiable(_normalizedIds(moveIds)) {
+            : Set<String>.unmodifiable(_normalizedIds(moveIds)),
+        itemIds = itemIds == null
+            ? null
+            : Set<String>.unmodifiable(_normalizedIds(itemIds)) {
     final sortedSpeciesIds = this.speciesIds == null
         ? null
         : (this.speciesIds!.toList(growable: false)..sort());
     final sortedMoveIds = this.moveIds == null
         ? null
         : (this.moveIds!.toList(growable: false)..sort());
+    final sortedItemIds = this.itemIds == null
+        ? null
+        : (this.itemIds!.toList(growable: false)..sort());
     fingerprint = narrativeEventBytesFingerprint(
       canonicalizeNarrativeEventJsonUtf8({
         'speciesCatalogAvailable': this.speciesIds != null,
         'speciesIds': sortedSpeciesIds ?? const <String>[],
         'moveCatalogAvailable': this.moveIds != null,
         'moveIds': sortedMoveIds ?? const <String>[],
+        'itemCatalogAvailable': this.itemIds != null,
+        'itemIds': sortedItemIds ?? const <String>[],
       }),
     );
   }
 
   final Set<String>? speciesIds;
   final Set<String>? moveIds;
+  final Set<String>? itemIds;
   late final String fingerprint;
 }
 
@@ -44,9 +57,13 @@ class NarrativeValidatorPokemonCatalogRequest {
   NarrativeValidatorPokemonCatalogRequest({
     required String projectRootPath,
     required this.pokemon,
+    this.requireItemCatalog = false,
   })  : projectRootPath = p.normalize(projectRootPath),
         configFingerprint = narrativeEventBytesFingerprint(
-          canonicalizeNarrativeEventJsonUtf8(pokemon.toJson()),
+          canonicalizeNarrativeEventJsonUtf8({
+            'pokemon': pokemon.toJson(),
+            'requireItemCatalog': requireItemCatalog,
+          }),
         );
 
   factory NarrativeValidatorPokemonCatalogRequest.fromValidationRequest(
@@ -55,11 +72,18 @@ class NarrativeValidatorPokemonCatalogRequest {
     return NarrativeValidatorPokemonCatalogRequest(
       projectRootPath: request.projectRootPath,
       pokemon: request.project.pokemon,
+      requireItemCatalog: buildNarrativeDependencyIndex(
+        project: request.project,
+        maps: request.activeMap == null ? const [] : [request.activeMap!],
+      ).usages.any(
+        (usage) => usage.target.kind == NarrativeDependencyTargetKind.item,
+      ),
     );
   }
 
   final String projectRootPath;
   final ProjectPokemonConfig pokemon;
+  final bool requireItemCatalog;
   final String configFingerprint;
 
   @override
@@ -247,20 +271,21 @@ typedef LoadNarrativeMultidimensionalExecution
 final narrativeValidatorPokemonCatalogLoaderProvider =
     Provider<LoadNarrativeValidatorPokemonCatalogSnapshot>((ref) {
   return (request) async {
-    if (!request.pokemon.enabled) {
-      return NarrativeValidatorPokemonCatalogSnapshot(
-        speciesIds: const <String>{},
-        moveIds: const <String>{},
-      );
-    }
-
     final workspace = ProjectFileSystem(request.projectRootPath);
     final reader = PokemonProjectDataReader();
-    final speciesFuture = _loadSpeciesIds(reader, workspace);
-    final movesFuture = _loadMoveIds(reader, workspace);
+    final speciesFuture = request.pokemon.enabled
+        ? _loadSpeciesIds(reader, workspace)
+        : Future<Set<String>?>.value(const <String>{});
+    final movesFuture = request.pokemon.enabled
+        ? _loadMoveIds(reader, workspace)
+        : Future<Set<String>?>.value(const <String>{});
+    final itemIds = request.requireItemCatalog
+        ? await _loadItemIds(workspace, request.pokemon)
+        : null;
     return NarrativeValidatorPokemonCatalogSnapshot(
       speciesIds: await speciesFuture,
       moveIds: await movesFuture,
+      itemIds: itemIds,
     );
   };
 });
@@ -294,6 +319,7 @@ final narrativeValidatorExecutionLoaderProvider =
         activeMap: request.activeMap,
         knownSpeciesIds: pokemonCatalogs.speciesIds,
         knownMoveIds: pokemonCatalogs.moveIds,
+        knownItemIds: pokemonCatalogs.itemIds,
         requirePokemonCatalogs: request.project.pokemon.enabled,
       ),
     );
@@ -480,6 +506,37 @@ Future<Set<String>?> _loadMoveIds(
     };
   } catch (_) {
     return null;
+  }
+}
+
+Future<Set<String>?> _loadItemIds(
+  ProjectFileSystem workspace,
+  ProjectPokemonConfig pokemon,
+) async {
+  final path = pokemon.catalogFiles['items']?.trim();
+  if (path == null || path.isEmpty) return null;
+  try {
+    final root = await Directory(workspace.projectRoot).resolveSymbolicLinks();
+    final bytes = await const LocalProjectFileReader().readBytes(
+      projectRoot: root,
+      relativePath: path,
+    );
+    final catalog = decodeProjectItemCatalog(jsonDecode(utf8.decode(bytes)));
+    final validation = validateProjectItemCatalog(
+      catalog,
+      capabilityTruth: itemSystemV1CapabilityTruth,
+    );
+    final blocking = validation.diagnostics
+        .where((diagnostic) => diagnostic.isBlocking)
+        .firstOrNull;
+    if (blocking != null) {
+      throw FormatException('${blocking.path} : ${blocking.message}');
+    }
+    return {for (final entry in catalog.entries) entry.id};
+  } on Object catch (failure) {
+    throw StateError(
+      'Catalogue des objets illisible ($path) : $failure',
+    );
   }
 }
 

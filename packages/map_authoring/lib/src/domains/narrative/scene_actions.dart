@@ -589,10 +589,20 @@ final class SceneActions {
     final rawScene = context.request.parameters['scene'];
     final targetId = context.request.parameters['sceneId'] ?? (rawScene is Map ? rawScene['id'] : null);
     final scenes = draft.projectedProject?.scenes.where((scene) =>
-        (scene.id == targetId || !context.snapshot.manifest.scenes.contains(scene)) && sceneNeedsPartyMoveCatalog(scene)).toList() ?? const <SceneAsset>[];
-    if (scenes.isNotEmpty) {
+        scene.id == targetId ||
+        !context.snapshot.manifest.scenes.contains(scene)).toList() ?? const <SceneAsset>[];
+    for (final scene in scenes) {
+      _validateScenePublication(
+        draft.projectedProject!,
+        maps: context.snapshot.maps,
+        scene: scene,
+        itemCatalog: context.snapshot.itemCatalog,
+      );
+    }
+    final moveScenes = scenes.where(sceneNeedsPartyMoveCatalog).toList();
+    if (moveScenes.isNotEmpty) {
       moveIds ??= await loadScenePartyMoveCatalog(context.snapshot);
-      for (final scene in scenes) {
+      for (final scene in moveScenes) {
         validateScenePartyMoves(scene, moveIds);
       }
     }
@@ -664,6 +674,7 @@ final class SceneActions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           scene: scene,
+          itemCatalog: context.snapshot.itemCatalog,
         );
         return narrativeProjectDraft(
           context.snapshot,
@@ -673,7 +684,11 @@ final class SceneActions {
           before: before?.toJson(),
           after: scene.toJson(),
           preview: const ModernNarrativeInspector()
-              .inspect(project: projected, maps: context.snapshot.maps)
+              .inspect(
+                project: projected,
+                maps: context.snapshot.maps,
+                itemCatalog: context.snapshot.itemCatalog,
+              )
               .toJson(),
         );
       case 'scene.delete':
@@ -705,7 +720,11 @@ final class SceneActions {
           path: '/scenes/$sceneId',
           before: before?.toJson(),
           preview: const ModernNarrativeInspector()
-              .inspect(project: projected, maps: context.snapshot.maps)
+              .inspect(
+                project: projected,
+                maps: context.snapshot.maps,
+                itemCatalog: context.snapshot.itemCatalog,
+              )
               .toJson(),
         );
       case 'scene.character_animation.set':
@@ -738,7 +757,11 @@ final class SceneActions {
           before: before?.toJson(),
           after: after?.toJson(),
           preview: const ModernNarrativeInspector()
-              .inspect(project: projected, maps: context.snapshot.maps)
+              .inspect(
+                project: projected,
+                maps: context.snapshot.maps,
+                itemCatalog: context.snapshot.itemCatalog,
+              )
               .toJson(),
         );
       case 'scene.preSession.create':
@@ -1058,7 +1081,11 @@ final class SceneActions {
           before: beforePayload,
           after: afterPayload,
           preview: const ModernNarrativeInspector()
-              .inspect(project: projected, maps: context.snapshot.maps)
+              .inspect(
+                project: projected,
+                maps: context.snapshot.maps,
+                itemCatalog: context.snapshot.itemCatalog,
+              )
               .toJson(),
         );
       default:
@@ -1442,6 +1469,7 @@ final class SceneActions {
     ProjectManifest project, {
     required List<MapData> maps,
     required SceneAsset scene,
+    ProjectItemCatalog? itemCatalog,
   }) {
     final exists = project.scenes.any((candidate) => candidate.id == scene.id);
     final projected = project.copyWith(
@@ -1452,9 +1480,25 @@ final class SceneActions {
             ]
           : [...project.scenes, scene],
     );
+    _validateScenePublication(
+      projected,
+      maps: maps,
+      scene: scene,
+      itemCatalog: itemCatalog,
+    );
+    return projected;
+  }
+
+  void _validateScenePublication(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required SceneAsset scene,
+    ProjectItemCatalog? itemCatalog,
+  }) {
     final diagnostics = diagnoseSceneAgainstProject(
       scene,
-      projected,
+      project,
+      availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
       mapsById: {for (final map in maps) map.id: map},
     );
     final runtimePlan = buildSceneRuntimePlan(scene);
@@ -1477,7 +1521,6 @@ final class SceneActions {
         },
       );
     }
-    return projected;
   }
 
   ProjectManifest createPreSessionScene(
@@ -2196,7 +2239,11 @@ AuthoringMutationDraft _preSessionProjectDraft(
     before: before?.toJson(),
     after: after?.toJson(),
     preview: const ModernNarrativeInspector()
-        .inspect(project: projected, maps: context.snapshot.maps)
+        .inspect(
+          project: projected,
+          maps: context.snapshot.maps,
+          itemCatalog: context.snapshot.itemCatalog,
+        )
         .toJson(),
   );
 }

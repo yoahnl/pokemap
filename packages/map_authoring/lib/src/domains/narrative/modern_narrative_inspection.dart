@@ -136,13 +136,16 @@ final class ModernNarrativeInspector {
   ModernNarrativeInspectionReport inspect({
     required ProjectManifest project,
     required List<MapData> maps,
+    ProjectItemCatalog? itemCatalog,
   }) {
     final diagnostics = <ModernNarrativeDiagnostic>[];
     final mapsById = {for (final map in maps) map.id: map};
+    final availableItemIds = itemCatalog?.entries.map((item) => item.id).toSet();
     for (final scene in project.scenes) {
       final report = diagnoseSceneAgainstProject(
         scene,
         project,
+        availableItemIds: availableItemIds,
         mapsById: mapsById,
       );
       for (final item in report.diagnostics) {
@@ -225,6 +228,7 @@ final class ModernNarrativeInspector {
     final dependencies = buildNarrativeDependencyIndex(
       project: project,
       maps: maps,
+      itemCatalog: itemCatalog,
     );
     for (final item in dependencies.issues) {
       diagnostics.add(

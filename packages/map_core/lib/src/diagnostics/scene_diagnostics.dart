@@ -44,6 +44,8 @@ enum SceneDiagnosticCode {
   conditionTrainerRefUnknown,
   conditionPartyMoveCatalogUnavailable,
   conditionPartyMoveRefUnknown,
+  conditionItemCatalogUnavailable,
+  conditionItemRefUnknown,
   conditionWorldRuleRefUnknown,
   conditionUnsupportedDimension,
   consequenceUnknownFact,
@@ -53,6 +55,8 @@ enum SceneDiagnosticCode {
   consequenceAmbiguousStoryStep,
   consequenceUnknownStarterOption,
   consequenceUnknownBadge,
+  consequenceItemCatalogUnavailable,
+  consequenceUnknownItem,
   consequenceUnknownNpc,
   consequenceInvalidPlayerAvatar,
   commandUnknownNpc,
@@ -71,6 +75,8 @@ enum SceneDiagnosticCode {
   commandPokemonCatalogUnavailable,
   commandPokemonCatalogDeferred,
   commandPokemonMoveRefUnknown,
+  commandItemCatalogUnavailable,
+  commandUnknownItem,
   commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
   commandInvalidWarpPresentation,
@@ -462,6 +468,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   ProjectManifest project, {
   Map<String, MapData> mapsById = const {},
   Set<String>? availableMoveIds,
+  Set<String>? availableItemIds,
 }) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
   final soundMediaById = <String, List<CinematicMediaAsset>>{};
@@ -649,6 +656,17 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
         if (source == null) {
           continue;
         }
+        if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
+          _diagnoseItemReference(
+            scene,
+            node,
+            itemId: source.sourceId,
+            availableItemIds: availableItemIds,
+            unavailableCode: SceneDiagnosticCode.conditionItemCatalogUnavailable,
+            unknownCode: SceneDiagnosticCode.conditionItemRefUnknown,
+            diagnostics: diagnostics,
+          );
+        }
         if (source.partyMoveId case final String moveId) {
           if (availableMoveIds == null || !availableMoveIds.contains(moveId)) {
             diagnostics.add(SceneDiagnostic(
@@ -765,6 +783,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           mapsById: mapsById,
           modelsById: {for (final model in project.models3d) model.id: model},
           availableMoveIds: availableMoveIds,
+          availableItemIds: availableItemIds,
           diagnostics: diagnostics,
         );
       case SceneStartPayload():
@@ -1174,10 +1193,22 @@ void _diagnoseActionConsequenceAgainstProject(
   required Map<String, MapData> mapsById,
   required Map<String, ProjectModel3dEntry> modelsById,
   required Set<String>? availableMoveIds,
+  required Set<String>? availableItemIds,
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
   final catalogConsequence = payload.consequence;
+  if (interactiveCommand case SceneGiveItemInteractiveCommand(:final itemId)) {
+    _diagnoseItemReference(
+      scene,
+      node,
+      itemId: itemId,
+      availableItemIds: availableItemIds,
+      unavailableCode: SceneDiagnosticCode.commandItemCatalogUnavailable,
+      unknownCode: SceneDiagnosticCode.commandUnknownItem,
+      diagnostics: diagnostics,
+    );
+  }
   if (interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand ||
       catalogConsequence is SceneGivePokemonFromCatalogConsequence) {
     diagnostics.add(SceneDiagnostic(
@@ -1620,8 +1651,17 @@ void _diagnoseActionConsequenceAgainstProject(
           ),
         );
       }
-    case SceneGiveItemConsequence():
-    case SceneTakeItemConsequence():
+    case SceneGiveItemConsequence(:final itemId):
+    case SceneTakeItemConsequence(:final itemId):
+      _diagnoseItemReference(
+        scene,
+        node,
+        itemId: itemId,
+        availableItemIds: availableItemIds,
+        unavailableCode: SceneDiagnosticCode.consequenceItemCatalogUnavailable,
+        unknownCode: SceneDiagnosticCode.consequenceUnknownItem,
+        diagnostics: diagnostics,
+      );
     case SceneGiveMoneyConsequence():
     case SceneGivePokemonConsequence():
     case SceneGivePokemonFromCatalogConsequence():
@@ -1707,6 +1747,37 @@ void _diagnoseActionConsequenceAgainstProject(
     case SceneFinishGameConsequence():
       break;
   }
+}
+
+void _diagnoseItemReference(
+  SceneAsset scene,
+  SceneNode node, {
+  required String itemId,
+  required Set<String>? availableItemIds,
+  required SceneDiagnosticCode unavailableCode,
+  required SceneDiagnosticCode unknownCode,
+  required List<SceneDiagnostic> diagnostics,
+}) {
+  if (itemId.trim().isEmpty || availableItemIds?.contains(itemId) == true) {
+    return;
+  }
+  diagnostics.add(
+    SceneDiagnostic(
+      code: availableItemIds == null ? unavailableCode : unknownCode,
+      severity: availableItemIds == null
+          ? SceneDiagnosticSeverity.warning
+          : SceneDiagnosticSeverity.error,
+      message: availableItemIds == null
+          ? 'Le catalogue des objets doit être chargé pour vérifier la référence $itemId.'
+          : 'L’objet $itemId est absent du catalogue actif du projet.',
+      sceneId: scene.id,
+      nodeId: node.id,
+      target: SceneDiagnosticTarget.node,
+      suggestedFixLabel: availableItemIds == null
+          ? 'Charger le catalogue des objets du projet.'
+          : 'Choisir un objet dans le catalogue du projet.',
+    ),
+  );
 }
 
 void _diagnosePorts(

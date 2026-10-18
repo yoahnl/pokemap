@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:map_authoring/map_authoring_local.dart'
+    show LocalProjectFileReader;
 import 'package:map_core/map_core_domain.dart';
 import 'package:path/path.dart' as p;
 
@@ -103,27 +105,35 @@ class LocalVerificationAdapter implements VerificationPort {
         );
       }
     });
-    unawaited(
-      Isolate.spawn(
-        verificationAnalysisWorker,
-        VerificationAnalysisRequest(replies.sendPort, project, maps, sources),
-        debugName: verificationWorkerName,
-        errorsAreFatal: true,
-        onError: replies.sendPort,
-        onExit: replies.sendPort,
-      ).then(
-        (spawned) {
-          if (settled) {
-            spawned.kill(priority: Isolate.immediate);
-            return;
-          }
-          worker = spawned;
-        },
-        onError: (Object error) => finish(
+    unawaited(() async {
+      try {
+        final itemCatalog = await _loadItemCatalog(project, maps);
+        if (settled) return;
+        final spawned = await Isolate.spawn(
+          verificationAnalysisWorker,
+          VerificationAnalysisRequest(
+            replies.sendPort,
+            project,
+            maps,
+            sources,
+            itemCatalog: itemCatalog,
+          ),
+          debugName: verificationWorkerName,
+          errorsAreFatal: true,
+          onError: replies.sendPort,
+          onExit: replies.sendPort,
+        );
+        if (settled) {
+          spawned.kill(priority: Isolate.immediate);
+          return;
+        }
+        worker = spawned;
+      } on Object catch (error) {
+        finish(
           () => completer.completeError(VerificationFailure(error.toString())),
-        ),
-      ),
-    );
+        );
+      }
+    }());
     return VerificationJob(
       result: completer.future,
       cancel: () => finish(() {
@@ -134,6 +144,41 @@ class LocalVerificationAdapter implements VerificationPort {
         );
       }),
     );
+  }
+
+  Future<ProjectItemCatalog?> _loadItemCatalog(
+    ProjectManifest project,
+    List<MapData> maps,
+  ) async {
+    final required = buildNarrativeDependencyIndex(project: project, maps: maps)
+        .usages
+        .any(
+          (usage) => usage.target.kind == NarrativeDependencyTargetKind.item,
+        );
+    final path = project.pokemon.catalogFiles['items']?.trim();
+    if (!required || path == null || path.isEmpty) return null;
+    try {
+      final bytes = await const LocalProjectFileReader().readBytes(
+        projectRoot: session.directoryPath,
+        relativePath: path,
+      );
+      final catalog = decodeProjectItemCatalog(jsonDecode(utf8.decode(bytes)));
+      final validation = validateProjectItemCatalog(
+        catalog,
+        capabilityTruth: itemSystemV1CapabilityTruth,
+      );
+      final blocking = validation.diagnostics
+          .where((diagnostic) => diagnostic.isBlocking)
+          .firstOrNull;
+      if (blocking != null) {
+        throw FormatException('${blocking.path} : ${blocking.message}');
+      }
+      return catalog;
+    } on Object catch (failure) {
+      throw VerificationFailure(
+        'Catalogue des objets illisible ($path) : $failure',
+      );
+    }
   }
 
   @override
