@@ -103,7 +103,7 @@ void main() {
     expect(large.validate, returnsNormally);
     for (final count in [9, 383, 2048]) {
       final limits = sourceCatalogStudyWriteLimitsFor(count);
-      expect(limits.maxMutations, 16384);
+      expect(limits.maxMutations, 32768);
       expect(limits.maxTotalDraftJsonBytes, 268435456);
       expect(limits.maxTotalArtifactBytes, 268435456);
       expect(limits.maxArtifacts, 4096);
@@ -119,7 +119,7 @@ void main() {
       expect(sourceCatalogStudyWriteLimitsFor(count).maxArtifacts, 1024);
     }
     expect(
-        const NativeWriteLimits(maxMutations: 16385).validate,
+        const NativeWriteLimits(maxMutations: 32769).validate,
         throwsA(isA<NativeWriteException>()
             .having((e) => e.code, 'code', 'native.invalid_limits')));
   });
@@ -256,7 +256,7 @@ void main() {
             reason: 'Bounded whole-world conversion capacity'));
     final world = settings(383);
     final json = world.toJson();
-    expect((json['writeLimits'] as Map)['maxMutations'], 16384);
+    expect((json['writeLimits'] as Map)['maxMutations'], 32768);
     expect((json['writeLimits'] as Map)['maxArtifacts'], 4096);
     expect((json['writeLimits'] as Map)['maxTotalDraftJsonBytes'], 268435456);
     expect(world.canonicalHash, settings(383).canonicalHash);

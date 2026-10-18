@@ -29,6 +29,7 @@ import 'native_source_event_atlas_admission.dart';
 import 'native_mutation_batches.dart';
 
 const nativeMaxUniqueArtifacts = 4096;
+const nativeMaxLogicalMutations = 32768;
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -75,7 +76,7 @@ final class NativeWriteLimits {
   void _validate() {
     final values = [
       (maxArtifacts, nativeMaxUniqueArtifacts),
-      (maxMutations, 16384),
+      (maxMutations, nativeMaxLogicalMutations),
       (maxArtifactBytes, 67108864),
       (maxTotalArtifactBytes, 268435456),
       (maxTotalDraftJsonBytes, 268435456),

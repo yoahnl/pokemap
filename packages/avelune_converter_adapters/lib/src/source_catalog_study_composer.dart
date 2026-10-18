@@ -25,7 +25,7 @@ const sourceCatalogStudyWriteLimits = NativeWriteLimits(
 
 const _sourceWorldStudyWriteLimits = NativeWriteLimits(
   maxArtifacts: nativeMaxUniqueArtifacts,
-  maxMutations: 16384,
+  maxMutations: nativeMaxLogicalMutations,
   maxArtifactBytes: 67108864,
   maxTotalArtifactBytes: 268435456,
   maxTotalDraftJsonBytes: 268435456,
