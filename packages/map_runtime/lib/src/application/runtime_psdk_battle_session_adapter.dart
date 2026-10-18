@@ -545,7 +545,8 @@ final class RuntimePsdkBattleSessionAdapter {
           effect: _toLegacyHpHealEffect(hpEffect),
         ),
       PsdkBattleStatusCureItemEffect() ||
-      PsdkBattleReviveItemEffect() =>
+      PsdkBattleReviveItemEffect() ||
+      PsdkBattlePpRestoreItemEffect() =>
         const BattleActionNone(),
     };
   }
@@ -559,7 +560,8 @@ final class RuntimePsdkBattleSessionAdapter {
             ? const BattleBagRestoreToFullHpHealEffect()
             : BattleBagFlatHpHealEffect(amount!),
       PsdkBattleStatusCureItemEffect() ||
-      PsdkBattleReviveItemEffect() =>
+      PsdkBattleReviveItemEffect() ||
+      PsdkBattlePpRestoreItemEffect() =>
         throw UnsupportedError(
           'PSDK battle runtime display only supports HP-heal item narration for now.',
         ),

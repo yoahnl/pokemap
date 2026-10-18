@@ -29,7 +29,77 @@ final class BattleItemActionHandler {
           action: action,
           effect: effect,
         ),
+      final PsdkBattlePpRestoreItemEffect effect => _restorePp(
+          context: context,
+          action: action,
+          effect: effect,
+        ),
     };
+  }
+
+  BattleHandlerResult _restorePp({
+    required BattleHandlerContext context,
+    required PsdkBattleItemAction action,
+    required PsdkBattlePpRestoreItemEffect effect,
+  }) {
+    final partyIndex = _targetPartyIndex(context: context, action: action);
+    final target = context.state.partyForBank(action.target.bank)[partyIndex];
+    if (effect.moveSlot < 0 || effect.moveSlot >= target.moves.length) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'invalid_move_slot',
+      );
+    }
+    final move = target.moves[effect.moveSlot];
+    if (move.currentPp >= move.pp) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'pp_full',
+      );
+    }
+    final requested = effect.restoreToFull ? move.pp : effect.amount!;
+    if (requested <= 0) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'invalid_pp_amount',
+      );
+    }
+    final amount = requested.clamp(0, move.pp - move.currentPp);
+    final remainingPp = move.currentPp + amount;
+    final restored = target.replaceMoveAt(
+      effect.moveSlot,
+      move.copyWith(currentPp: remainingPp),
+    );
+    return BattleHandlerResult(
+      state: context.state.replacePartyBattler(
+        bank: action.target.bank,
+        partyIndex: partyIndex,
+        battler: restored,
+      ),
+      rng: context.rng,
+      amount: amount,
+      events: <PsdkBattleEvent>[
+        _itemEvent(context, action, partyIndex),
+        PsdkBattleMovePpRestoredEvent(
+          turn: context.turn,
+          user: action.user,
+          target: action.target,
+          partyIndex: partyIndex,
+          itemId: action.itemId,
+          moveSlot: effect.moveSlot,
+          moveId: move.id,
+          beforePp: move.currentPp,
+          remainingPp: remainingPp,
+          amount: amount,
+        ),
+      ],
+    );
   }
 
   BattleHandlerResult _healHp({
@@ -199,11 +269,13 @@ final class BattleItemActionHandler {
     }
     final partyIndex = _targetPartyIndex(context: context, action: action);
     final target = context.state.partyForBank(action.target.bank)[partyIndex];
-    if (target.isFainted && action.effect is! PsdkBattleReviveItemEffect) {
+    if (target.isFainted &&
+        action.effect is! PsdkBattleReviveItemEffect &&
+        action.effect is! PsdkBattlePpRestoreItemEffect) {
       throw ArgumentError.value(
         action.target,
         'target',
-        'only revive items can target a fainted combatant',
+        'only revive and PP-restore items can target a fainted combatant',
       );
     }
   }

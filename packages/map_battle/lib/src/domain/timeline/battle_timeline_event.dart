@@ -43,6 +43,20 @@ sealed class BattleTimelineEvent {
         remainingPp: event.remainingPp,
       );
     }
+    if (event is PsdkBattleMovePpRestoredEvent) {
+      return BattleMovePpRestoredTimelineEvent(
+        turn: event.turn,
+        user: _fromPsdkSlot(event.user),
+        target: _fromPsdkSlot(event.target),
+        partyIndex: event.partyIndex,
+        itemId: event.itemId,
+        moveSlot: event.moveSlot,
+        moveId: event.moveId,
+        beforePp: event.beforePp,
+        remainingPp: event.remainingPp,
+        amount: event.amount,
+      );
+    }
     if (event is PsdkBattleMoveCalledEvent) {
       return BattleMoveCalledTimelineEvent(
         user: _fromPsdkSlot(event.user),
@@ -436,6 +450,59 @@ final class BattleMovePpSpentTimelineEvent extends BattleTimelineEvent {
       remainingPp: remainingPp,
     );
   }
+}
+
+final class BattleMovePpRestoredTimelineEvent extends BattleTimelineEvent {
+  const BattleMovePpRestoredTimelineEvent({
+    int? turn,
+    required this.user,
+    required this.target,
+    required this.partyIndex,
+    required this.itemId,
+    required this.moveSlot,
+    required this.moveId,
+    required this.beforePp,
+    required this.remainingPp,
+    required this.amount,
+  }) : super(kind: 'move_pp_restored', turn: turn);
+
+  final BattlePositionRef user;
+  final BattlePositionRef target;
+  final int partyIndex;
+  final String itemId;
+  final int moveSlot;
+  final String moveId;
+  final int beforePp;
+  final int remainingPp;
+  final int amount;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        ...baseJson(),
+        'user': _slotJson(user),
+        'target': _slotJson(target),
+        'partyIndex': partyIndex,
+        'itemId': itemId,
+        'moveSlot': moveSlot,
+        'moveId': moveId,
+        'beforePp': beforePp,
+        'remainingPp': remainingPp,
+        'amount': amount,
+      };
+
+  @override
+  PsdkBattleEvent toPsdkEvent() => PsdkBattleMovePpRestoredEvent(
+        turn: turn,
+        user: _toPsdkSlot(user),
+        target: _toPsdkSlot(target),
+        partyIndex: partyIndex,
+        itemId: itemId,
+        moveSlot: moveSlot,
+        moveId: moveId,
+        beforePp: beforePp,
+        remainingPp: remainingPp,
+        amount: amount,
+      );
 }
 
 final class BattleMoveCalledTimelineEvent extends BattleTimelineEvent {

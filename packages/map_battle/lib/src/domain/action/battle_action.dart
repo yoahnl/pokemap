@@ -122,6 +122,22 @@ final class PsdkBattleHpHealItemEffect extends PsdkBattleItemActionEffect {
   final bool restoreToFull;
 }
 
+final class PsdkBattlePpRestoreItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattlePpRestoreItemEffect.flat(
+    int amount, {
+    required this.moveSlot,
+  })  : amount = amount,
+        restoreToFull = false;
+
+  const PsdkBattlePpRestoreItemEffect.full({required this.moveSlot})
+      : amount = null,
+        restoreToFull = true;
+
+  final int moveSlot;
+  final int? amount;
+  final bool restoreToFull;
+}
+
 final class PsdkBattleStatusCureItemEffect extends PsdkBattleItemActionEffect {
   const PsdkBattleStatusCureItemEffect.only(
     Set<PsdkBattleMajorStatus> statuses,

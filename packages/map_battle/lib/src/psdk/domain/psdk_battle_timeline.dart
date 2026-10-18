@@ -115,6 +115,47 @@ class PsdkBattleMovePpSpentEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleMovePpRestoredEvent extends PsdkBattleEvent {
+  const PsdkBattleMovePpRestoredEvent({
+    this.turn,
+    required this.user,
+    required this.target,
+    required this.partyIndex,
+    required this.itemId,
+    required this.moveSlot,
+    required this.moveId,
+    required this.beforePp,
+    required this.remainingPp,
+    required this.amount,
+  }) : super(kind: 'move_pp_restored');
+
+  final int? turn;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final int partyIndex;
+  final String itemId;
+  final int moveSlot;
+  final String moveId;
+  final int beforePp;
+  final int remainingPp;
+  final int amount;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        if (turn != null) 'turn': turn,
+        'user': user.toJson(),
+        'target': target.toJson(),
+        'partyIndex': partyIndex,
+        'itemId': itemId,
+        'moveSlot': moveSlot,
+        'moveId': moveId,
+        'beforePp': beforePp,
+        'remainingPp': remainingPp,
+        'amount': amount,
+      };
+}
+
 class PsdkBattleMoveCalledEvent extends PsdkBattleEvent {
   const PsdkBattleMoveCalledEvent({
     required this.user,
