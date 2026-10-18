@@ -1626,6 +1626,23 @@ final class _SourceEventParser {
         }
         if (analyzer._isQualified && index == first + 1) {
           final literal = _string(command.parameters.single);
+          final gift = _SourcePokemonGiftLiteral(literal).parse();
+          if (gift != null) {
+            final raw = _rawFacingParameters(command, 1);
+            final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+            if (_eventLiteralText(doc, raw.single) != literal) {
+              throw const FormatException();
+            }
+            return SourcePokemonGiftNode._(
+              _span(first, first),
+              sourceSpeciesSymbol: gift.$1,
+              level: gift.$2,
+              rawDataRef: rawPage!,
+              sourceSnapshotHash: analyzer.profile.sourceSnapshotHash,
+              normalizationHash: analyzer.profile.normalizationHash,
+              profileHash: analyzer.profile.canonicalHash,
+            );
+          }
           final pickup = _SourcePickupLiteral(literal).parse(_span(first, first),
               helper: SourceItemGrantHelper.receiveItem);
           if (pickup != null) {

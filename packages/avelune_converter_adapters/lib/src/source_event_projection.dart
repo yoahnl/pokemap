@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_event_evidence.dart';
+import 'source_pokemon_gift_binding.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
@@ -322,6 +323,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
     Map<ConverterId, String> fieldObstacleRefusals = const {},
     SourcePartyTradeBinding? partyTradeBinding,
+    Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     SourceHealingDisplayBinding? healingDisplayBinding,
     SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
@@ -345,7 +347,7 @@ final class SourceEventProjector {
           'Character eligibility requires the exact normalized event source');
     }
     final builder = _ProjectionBuilder(
-        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts);
+        source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -369,6 +371,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
     Map<ConverterId, String> fieldObstacleRefusals = const {},
     SourcePartyTradeBinding? partyTradeBinding,
+    Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     SourceHealingDisplayBinding? healingDisplayBinding,
     SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
@@ -404,7 +407,7 @@ final class SourceEventProjector {
           'Unique native maps must match source dimensions without legacy events');
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
-            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts)
+            pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings)
         .build();
   }
 }
@@ -560,7 +563,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceRoutedDoorProgram>? routedPrograms, this.routedDoorContexts,
       Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts,
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
-      Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts)
+      Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings)
       : maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
         routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis),
@@ -694,6 +697,7 @@ final class _ProjectionBuilder {
   final SourcePokedexRewardBinding? pokedexRewardBinding;
   final SourceTownMapBinding? townMapBinding;
   final SourcePartyTradeBinding? partyTradeBinding;
+  final Map<String, SourcePokemonGiftBinding> pokemonGiftBindings;
   final SourceHealingDisplayBinding? healingDisplayBinding;
   final SourceExternalWarpBinding? externalWarpBinding;
   final Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings;
@@ -1166,6 +1170,8 @@ final class _ProjectionBuilder {
             },
             'sourceScriptsExecuted': 0,
           },
+        if (gaps.isEmpty && _pokemonGiftBinding(event) != null)
+          'nativePokemonGift': _pokemonGiftBinding(event)!.evidence,
         if (gaps.isEmpty && _isPokedexRewardFamily(event))
           'nativePokedexReward': {
             ...pokedexRewardBinding!.toJson(),
@@ -1514,6 +1520,7 @@ final class _ProjectionBuilder {
         },
       'usedTownMap': eventEvidence.any((row)=>row.containsKey('nativeTownMap')),
       'usedPartyTrade': eventEvidence.any((row) => row.containsKey('nativePartyTrade')),
+      'usedPokemonGifts': eventEvidence.any((row) => row.containsKey('nativePokemonGift')),
       'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedFieldObstacles': eventEvidence.any((row) => row.containsKey('nativeFieldObstacle')),
@@ -1687,8 +1694,16 @@ final class _ProjectionBuilder {
       (choice.cancelBranch == null ||
           _isStationaryItemGiverBlock(choice.cancelBranch!));
 
+  SourcePokemonGiftBinding? _pokemonGiftBinding(SourceEventDefinition event) {
+    final binding = pokemonGiftBindings[event.identity.value];
+    return binding != null && binding.isBoundToEvent(source: source, analysis: analysis, event: event) ? binding : null;
+  }
+
   bool _supportsInteractionFacing(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_pokemonGiftBinding(event) != null && maps[event.sourceMapId]!.spatialScene == null) {
+      return true;
+    }
     if (_isItemGiver(event) &&
         event.pages.length == 2 &&
         maps[event.sourceMapId]!.spatialScene == null &&
@@ -2952,6 +2967,12 @@ final class _ProjectionBuilder {
               _pickupBinding(event, node) == null) {
             gaps.add('sourceReceiveItemBindingMissing');
           }
+        case SourcePokemonGiftNode():
+          final binding = _pokemonGiftBinding(event);
+          if (binding == null || maps[event.sourceMapId]!.spatialScene != null ||
+              canonicalJsonOf(binding.program.toJson()) != canonicalJsonOf(node.toJson())) {
+            gaps.add('sourcePokemonGiftBindingsMissing');
+          }
         case SourceScriptNode():
         case SourceUnknownNode():
           gaps.add('sourceCommandUnqualified');
@@ -3859,6 +3880,8 @@ final class _SceneBuilder {
           }
         case SourceSelfSwitchNode(:final factId, :final value):
           next = _fact(factId, value, next);
+        case SourcePokemonGiftNode():
+          next = _pokemonGift(node, next);
         case SourcePickupNode():
           next = _receiveItem(node, next);
         case SourceConditionalNode(
@@ -3924,6 +3947,24 @@ final class _SceneBuilder {
       }
     }
     return next;
+  }
+
+  String _pokemonGift(SourcePokemonGiftNode program, String next) {
+    final binding = projection._pokemonGiftBinding(event);
+    if (projection.gapsByEvent[event.identity]?.isEmpty != true || binding == null ||
+        canonicalJsonOf(binding.program.toJson()) != canonicalJsonOf(program.toJson())) {
+      throw const NativeWriteException('events.pokemon_gift.bindings_missing',
+        'A source Pokemon gift requires its complete event and exact native catalogue binding.');
+    }
+    final command = SceneInteractiveCommand.receivePokemonFromCatalog(
+      speciesId: binding.nativeSpeciesId, formId: binding.nativeFormId, level: program.level,
+      nicknamePolicy: ScenePokemonGiftNicknamePolicy.offer, nicknameMaxGraphemes: 10,
+      pokedexPresentationPolicy: ScenePokemonGiftPokedexPresentationPolicy.whenNewAndPokedexVisible);
+    final action = _node(SceneActionPayload.interactive(command));
+    for (final port in command.outputPortIds) {
+      _edge(action, port, next, SceneEdgeKind.actionCompleted);
+    }
+    return action;
   }
 
   String _interactive(SceneInteractiveCommand command, String next) {

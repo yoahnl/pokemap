@@ -153,6 +153,20 @@ final class SourceCatalogStudyComposer {
     final sourceEvents = base.compositionEvidence['sourceEvents'];
     final nativePartyTrade =
         sourceEvents is Map && sourceEvents['partyTrade'] is Map;
+    final giftEvidence = sourceEvents is Map ? sourceEvents['pokemonGiftBindings'] : null;
+    final nativeGift = giftEvidence is Map && giftEvidence['activationQualified'] == true;
+    if (nativeGift) {
+      final bindings = giftEvidence['bindings'];
+      final catalogHash = canonicalHashOf(native.toJson(), limits: nativePsdkCatalogShardJsonLimits).value;
+      if (bindings is! List || bindings.isEmpty || bindings.any((binding) =>
+          binding is! Map || binding['catalogHash'] != catalogHash ||
+          binding['sourceSnapshotHash'] != source.snapshot.canonicalHash.value ||
+          binding['normalizationHash'] != source.canonicalHash.value ||
+          binding['profileHash'] != profile.canonicalHash.value)) {
+        throw const NativeWriteException('catalogs.pokemon_gift.binding',
+            'Active gifts require their exact shared native catalog and whole source event qualification.');
+      }
+    }
     final trainerQualification = nativeTrainerQualification ??
         (selection.trainers.isEmpty || !source.snapshot.entries.any(
                 (entry) => entry.relativePath == 'Data/trainers.dat')
@@ -256,7 +270,7 @@ final class SourceCatalogStudyComposer {
     }
     final nativeCatalogQualified =
         projection.evidence['nativeTrainerBindings'] is Map ||
-            projection.evidence['nativeEncounterBindings'] is Map;
+            projection.evidence['nativeEncounterBindings'] is Map || nativeGift;
     final hasData = nativeCatalogQualified && projection.documents.isNotEmpty;
     if (hasData &&
         !base.mutations.any((entry) =>
@@ -527,6 +541,7 @@ final class SourceCatalogStudyComposer {
         'automaticEncounterReleaseSuppressedForExplicitCatalog': true,
       'projectionHash': projection.canonicalHash.value,
       'projection': projection.evidence,
+      if (nativeGift) 'nativePokemonGiftCatalogHash': canonicalHashOf(native.toJson(), limits: nativePsdkCatalogShardJsonLimits).value,
       if (includeNativeEncounterConsumers) 'includeNativeEncounterConsumers': true,
       if (consumers != null) 'nativeEncounterConsumers': consumers.evidence,
       if (encounterRelease != null)
@@ -701,7 +716,11 @@ List<NativeMutation> _mergeCatalogMutations(
       if (mutation.actionId == 'campaign.trainer.upsert')
         (mutation.parameters['value'] as Map)['id'] as String: mutation
   };
+  final activations = catalogs.where((mutation) =>
+      mutation.actionId == 'pokemon.configuration.set_enabled' &&
+      mutation.parameters['enabled'] == true);
   final consumed = <String>{};
+  var requiresPokemonActivation = false;
   var insertionIndex = -1;
   for (var index = 0; index < base.length; index++) {
     final mutation = base[index];
@@ -713,6 +732,15 @@ List<NativeMutation> _mergeCatalogMutations(
     } else if (mutation.actionId == 'scene.upsert') {
       final scene = SceneAsset.fromJson(
           Map<String, dynamic>.from(mutation.parameters['scene'] as Map));
+      if (activations.isNotEmpty &&
+          scene.graph.nodes
+              .map((node) => node.payload)
+              .whereType<SceneActionPayload>()
+              .any((payload) => payload.interactiveCommand
+                  is SceneReceivePokemonFromCatalogInteractiveCommand)) {
+        requiresPokemonActivation = true;
+        if (insertionIndex < 0 || index < insertionIndex) insertionIndex = index;
+      }
       references.addAll(scene.graph.nodes
           .map((node) => node.payload)
           .whereType<SceneBattlePayload>()
@@ -733,7 +761,9 @@ List<NativeMutation> _mergeCatalogMutations(
   if (insertionIndex < 0) return [...base, ...catalogs];
   final promoted = {
     for (final entry in declarations.entries)
-      if (consumed.contains(entry.key)) entry.value.operationId
+      if (consumed.contains(entry.key)) entry.value.operationId,
+    if (requiresPokemonActivation)
+      for (final activation in activations) activation.operationId,
   };
   return [
     ...base.take(insertionIndex),

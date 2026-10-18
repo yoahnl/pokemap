@@ -2975,4 +2975,79 @@ void main() {
     expect(result.diagnostics.map((diagnostic) => diagnostic.code),
         contains('events.invalid_command_parameters'));
   });
+
+  group('literal Pokemon gifts', () {
+    for (final pair in [('LAPRAS', 25), ('BULBASAUR', 1), ('CLOCKBIRD', 100)]) {
+      test('preserves typed literal ${pair.$1} without executing source', () async {
+        final source = await _events([
+          _page([
+            _command(101, ['Before']),
+            _command(355, ['pbAddPokemon(:${pair.$1},${pair.$2})']),
+            _command(123, ['A', 0]),
+            _command(0, []),
+          ]),
+          _withCondition(_page([_command(101, ['After']), _command(0, [])]),
+              {'@self_switch_valid': true, '@self_switch_ch': 'A'}),
+        ]);
+        final before = source.archive.canonicalHash;
+        final event = _analyzer(source).analyze().requireEvent(1, 1);
+        final node = event.pages.first.body.nodes.whereType<SourcePokemonGiftNode>().single;
+        expect(node.sourceSpeciesSymbol, pair.$1);
+        expect(node.level, pair.$2);
+        expect(node.span.firstCommandIndex, 1);
+        expect(node.span.lastCommandIndex, 1);
+        expect(node.rawDataRef.contentHash, source.archive.files[node.rawDataRef.fileId]!.entry.sha256);
+        expect(node.sourceSnapshotHash, source.snapshot.canonicalHash);
+        expect(node.normalizationHash, source.canonicalHash);
+        expect(event.isQuarantined, false);
+        expect(event.pages.last.condition.kind, SourceEventConditionKind.all);
+        expect(source.archive.canonicalHash, before);
+      });
+    }
+    for (final script in [
+      'pbAddPokemon(pbGet(1),25)',
+      'pbAddPokemon(:LAPRAS,pbGet(3))',
+      'pbAddPokemon(:LAPRAS,0)',
+      'pbAddPokemon(:LAPRAS,101)',
+      'pbAddPokemon(:LAPRAS,025)',
+      'pbAddPokemon(:LAPRAS,25); danger()',
+      'pbAddPokemon(:LAPRAS,25)\ndanger()',
+      'pbAddPokemon\n(:LAPRAS,25)',
+      'pbAddPokemon\r(:LAPRAS,25)',
+      'pbAddPokemon(:LAPRAS,25,false)',
+      'pbAddToParty(:LAPRAS,25)',
+      'pbAddPokemon(:lapras,25)',
+      'pbAddPokemon(:LAPRAS,25) # partial',
+    ]) {
+      test('keeps unsupported complete program quarantined: $script', () async {
+        final source = await _events([_page([_command(355, [script]), _command(0, [])])]);
+        final page = _analyzer(source).analyze().requireEvent(1, 1).pages.single;
+        expect(page.isQuarantined, true);
+        expect(page.body.nodes.whereType<SourcePokemonGiftNode>(), isEmpty);
+      });
+    }
+    test('never recognizes a prefix of a grouped script', () async {
+      final source = await _events([_page([
+        _command(355, ['pbAddPokemon(:LAPRAS,25)']),
+        _command(655, ['danger()']),
+        _command(0, []),
+      ])]);
+      final page = _analyzer(source).analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, true);
+      expect(page.body.nodes.whereType<SourcePokemonGiftNode>(), isEmpty);
+    });
+    test('requires qualified profile and literal raw parameters', () async {
+      final source = await _events([_page([
+        _command(355, ['pbAddPokemon(:LAPRAS,25)']), _command(0, []),
+      ])]);
+      final page = _analyzer(source, scriptsHash: 'a' * 64).analyze().requireEvent(1, 1).pages.single;
+      expect(page.isQuarantined, true);
+      expect(page.body.nodes.whereType<SourcePokemonGiftNode>(), isEmpty);
+      final annotated = await _events([_page([
+        _command(355, [const _RubyAnnotation('pbAddPokemon(:LAPRAS,25)', extension: 'Evil')]),
+        _command(0, []),
+      ])]);
+      expect(_analyzer(annotated).analyze().requireEvent(1, 1).isQuarantined, true);
+    });
+  });
 }

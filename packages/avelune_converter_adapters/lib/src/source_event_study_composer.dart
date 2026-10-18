@@ -28,6 +28,7 @@ import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_field_obstacle_binding.dart';
 import 'source_party_trade_binding.dart';
+import 'source_pokemon_gift_binding.dart';
 import 'source_healing_display_binding.dart';
 import 'source_external_warp_binding.dart';
 import 'source_map_music_binding.dart';
@@ -40,11 +41,12 @@ final class SourceEventStudyComposition {
       {required this.draft,
       required this.projection,
       this.musicBindings = const {},
-      this.trainerQualification});
+      this.trainerQualification, this.pokemonGiftCatalog});
   final NativeProjectDraft draft;
   final SourceEventProjection projection;
   final Map<int, SourceMapMusicBinding> musicBindings;
   final NativeTrainerCatalogQualification? trainerQualification;
+  final NativePsdkCatalog? pokemonGiftCatalog;
 }
 
 final class SourceEventStudyComposer {
@@ -353,6 +355,14 @@ final class SourceEventStudyComposer {
         limits: limits, cancellation: cancellation);
     final pokedexReward = await const SourcePokedexRewardBindingResolver().read(
         source: source, analysis: analysis, files: recording, cancellation: cancellation);
+    final pokemonGiftCatalog = nativeEncounterQualification?.bundle ?? nativeTrainerCatalog ??
+        (selectedEvents.any((event) => event.pages.any((page) =>
+            page.body.nodes.whereType<SourcePokemonGiftNode>().isNotEmpty))
+          ? NativePsdkCatalogManifest.builtin() : null);
+    final pokemonGifts = await const SourcePokemonGiftBindingResolver().read(
+        source: source, analysis: analysis, files: recording,
+        nativeCatalog: pokemonGiftCatalog,
+        cancellation: cancellation);
     final partyTrade = const SourcePartyTradeBindingResolver().resolve(source: source, analysis: analysis,
         visualPolicy: SourcePartyTradeVisualPolicy.nativeWoman2ForExactGuard);
     SourceTownMapBinding? townMap;
@@ -414,6 +424,7 @@ final class SourceEventStudyComposer {
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
+            pokemonGiftBindings: pokemonGifts.byEventIdentity,
             healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -498,6 +509,7 @@ final class SourceEventStudyComposer {
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
+            pokemonGiftBindings: pokemonGifts.byEventIdentity,
             healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -563,6 +575,12 @@ final class SourceEventStudyComposer {
     if (usedHealingDisplay != null) {
       preservedFileIds.addAll((usedHealingDisplay.evidence['sourceImages'] as List)
           .cast<Map>().map((file) => file['fileId'] as String));
+    }
+    if (projection.semanticEvidence['usedPokemonGifts'] == true) {
+      for (final binding in pokemonGifts.byEventIdentity.values) {
+        preservedFileIds.addAll((binding.evidence['sourceFiles'] as List).cast<Map>()
+            .map((file) => file['fileId'] as String));
+      }
     }
     final systemFile = source.snapshot.entries
         .where((entry) => entry.relativePath == 'Data/System.rxdata')
@@ -835,6 +853,11 @@ final class SourceEventStudyComposer {
       'pokedexRewardBinding': pokedexReward?.toJson(),
       if(usedTownMap!=null)'townMap':usedTownMap.evidence,
       if (projection.semanticEvidence['usedPartyTrade'] == true) 'partyTrade': partyTrade!.evidence,
+      'pokemonGiftBindings': {
+        'bindings': [for (final binding in pokemonGifts.byEventIdentity.values) binding.evidence],
+        'refusals': pokemonGifts.refusals,
+        'activationQualified': projection.semanticEvidence['usedPokemonGifts'] == true,
+      },
       if (usedFieldObstacles != null) 'fieldObstacles': usedFieldObstacles.evidence,
       'fieldObstacleBindings': fieldBindingEvidence,
       'trainerBindings': {
@@ -868,6 +891,7 @@ final class SourceEventStudyComposer {
         projection: projection,
         musicBindings: Map.unmodifiable(musicBindings),
         trainerQualification: trainerBindings.qualification,
+        pokemonGiftCatalog: projection.semanticEvidence['usedPokemonGifts'] == true ? pokemonGiftCatalog : null,
         draft: NativeProjectDraft(
             source: source,
             projectName: base.projectName,

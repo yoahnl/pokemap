@@ -292,6 +292,7 @@ void _auditSourceFactWriteBlock(
       case SourceMoveRouteBarrierNode():
       case SourcePlayerVisibilityNode():
       case SourceTempSwitchNode():
+      case SourcePokemonGiftNode():
       case SourcePickupNode():
       case SourceCenterServiceProgramNode():
       case SourceTownMapProgramNode():

@@ -59,3 +59,5 @@ export 'src/source_stair_program.dart';
 export 'src/source_hole_native_program.dart';
 export 'src/source_elevator_program.dart';
 export 'src/source_warp_tile_native_program.dart';
+
+export 'src/source_pokemon_gift_binding.dart';

@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:image/image.dart' as image;
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/native_writer_fixture.dart';
 
 const _resolver = NativeSourceSpeciesBindings();
 
@@ -75,16 +80,31 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     List<_Record> records,
     {String? pbs,
     String forms = '',
-    List<int>? compiled}) async {
-  final fixture = await LiteralTileFixture.create(extraFiles: {
-    'Data/species.dat': compiled ?? _compiled(records),
-    'PBS/pokemon.txt': utf8.encode(pbs ??
-        [
-          for (final row in records.where((r) => r.form == 0))
-            '[${row.base}]\nName = ${row.name}\n',
-        ].join()),
-    if (forms.isNotEmpty) 'PBS/pokemon_forms.txt': utf8.encode(forms),
-  });
+    List<int>? compiled,
+    List<int>? scriptsBytes,
+    List<LiteralFixtureMap>? maps}) async {
+  final fixture = await LiteralTileFixture.create(
+      scriptsBytes: scriptsBytes,
+      maps: maps,
+      includeEventSystem: maps != null,
+      extraFiles: {
+        'Data/species.dat': compiled ?? _compiled(records),
+        if (maps != null) ...{
+          'Graphics/Characters/Original.png': literalFixtureAtlas(),
+          'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = Original\n'),
+          'PBS/encounters.txt': utf8.encode('[17]\nLand,21\n100,CLOCKBIRD,7\n'),
+          'Graphics/Pokemon/Front/CLOCKBIRD.png': image
+              .encodePng(image.Image(width: 64, height: 64, numChannels: 4)),
+          'Graphics/Pokemon/Back/CLOCKBIRD.png': image
+              .encodePng(image.Image(width: 64, height: 64, numChannels: 4)),
+        },
+        'PBS/pokemon.txt': utf8.encode(pbs ??
+            [
+              for (final row in records.where((r) => r.form == 0))
+                '[${row.base}]\nName = ${row.name}\n',
+            ].join()),
+        if (forms.isNotEmpty) 'PBS/pokemon_forms.txt': utf8.encode(forms),
+      });
   final source = await const SourcePbsParser()
       .read(snapshot: fixture.snapshot, files: fixture.files);
   return (fixture: fixture, pbs: source);
@@ -107,6 +127,7 @@ NativePsdkTrainerBundle _catalog(
         ...original,
         'id': row.id,
         'names': {'en': row.name},
+        'refs': {'learnset': row.id, 'evolution': row.id, 'media': row.id},
         'forms': {
           'baseFormId': row.base,
           'formId': '${row.form}',
@@ -534,4 +555,485 @@ void main() {
           _bind(source, catalog, ['A']), _code('catalog_integrity'));
     }
   });
+
+  final giftArchive = Platform.environment['AVELUNE_GIFT_SCRIPT_ARCHIVE'];
+  group('literal gift complete native binding', () {
+    late ({LiteralTileFixture fixture, SourcePbsProject pbs}) source;
+    late SourceEventAnalysis analysis;
+    late SourceEventDefinition event;
+    late NativePsdkTrainerBundle catalog;
+    late SourcePokemonGiftBindings bindings;
+    Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> fixture(
+            {bool extraPage = false,
+            bool badSuffix = false,
+            int mapId = 17}) async =>
+        _source(
+          const [_Record('CLOCKBIRD', 'CLOCKBIRD', 'Clockbird')],
+          scriptsBytes: await File(giftArchive!).readAsBytes(),
+          maps: [
+            LiteralFixtureMap(id: mapId, events: [
+              LiteralFixtureEvent(id: 9, x: 1, y: 0, pages: [
+                LiteralFixtureEventPage(characterName: 'Original', commands: [
+                  const LiteralFixtureEventCommand(101, ['Before']),
+                  const LiteralFixtureEventCommand(
+                      355, ['pbAddPokemon(:CLOCKBIRD,7)']),
+                  const LiteralFixtureEventCommand(123, ['A', 0]),
+                  if (badSuffix)
+                    const LiteralFixtureEventCommand(355, ['danger()']),
+                ]),
+                const LiteralFixtureEventPage(
+                    characterName: 'Original',
+                    selfSwitch: 'A',
+                    commands: [
+                      LiteralFixtureEventCommand(101, ['After'])
+                    ]),
+                if (extraPage)
+                  const LiteralFixtureEventPage(
+                      characterName: 'Original',
+                      selfSwitch: 'B',
+                      commands: [
+                        LiteralFixtureEventCommand(355, ['danger()'])
+                      ]),
+              ])
+            ])
+          ],
+        );
+    setUpAll(() async {
+      source = await fixture();
+      analysis = SourceEventAnalyzer.forProject(source.fixture.source,
+              profile:
+                  SourceEventProfile.kantoForProject(source.fixture.source))
+          .analyze();
+      event = analysis.eventAt(17, 9)!;
+      catalog = _catalog([_native('clockbird', 'Clockbird')]);
+      bindings = await const SourcePokemonGiftBindingResolver().read(
+          source: source.fixture.source,
+          analysis: analysis,
+          files: source.fixture.files,
+          nativeCatalog: catalog);
+    });
+    test(
+        'binds whole raw two-page stationary event independent of map and species',
+        () async {
+      expect(event.isQuarantined, false);
+      final binding = bindings.byEventIdentity[event.identity.value]!;
+      expect(binding.nativeSpeciesId, 'clockbird');
+      expect(binding.nativeFormId, '0');
+      expect(binding.program.level, 7);
+      expect(
+          binding.isBoundToEvent(
+              source: source.fixture.source, analysis: analysis, event: event),
+          true);
+      expect(binding.evidence['sourceScriptsExecuted'], 0);
+      expect(
+          (binding.evidence['presentationAdaptation']
+              as Map)['sourceDexFlagsMapped'],
+          false);
+      final other = await fixture(mapId: 59);
+      final otherAnalysis = SourceEventAnalyzer.forProject(other.fixture.source,
+              profile: SourceEventProfile.kantoForProject(other.fixture.source))
+          .analyze();
+      final otherBindings = await const SourcePokemonGiftBindingResolver().read(
+          source: other.fixture.source,
+          analysis: otherAnalysis,
+          files: other.fixture.files,
+          nativeCatalog: catalog);
+      expect(otherBindings.byEventIdentity, hasLength(1));
+      expect(
+          binding.isBoundToEvent(
+              source: other.fixture.source,
+              analysis: otherAnalysis,
+              event: otherAnalysis.eventAt(59, 9)!),
+          false);
+    });
+    test('never partially admits an unsupported suffix or a third page',
+        () async {
+      for (final variant in [
+        await fixture(extraPage: true),
+        await fixture(badSuffix: true)
+      ]) {
+        final a = SourceEventAnalyzer.forProject(variant.fixture.source,
+                profile:
+                    SourceEventProfile.kantoForProject(variant.fixture.source))
+            .analyze();
+        final result = await const SourcePokemonGiftBindingResolver().read(
+            source: variant.fixture.source,
+            analysis: a,
+            files: variant.fixture.files,
+            nativeCatalog: catalog);
+        expect(result.byEventIdentity, isEmpty);
+        expect(a.eventAt(17, 9)!.isQuarantined, true);
+      }
+    });
+    test('refuses missing native catalogue and changed helper source bytes',
+        () async {
+      final missing = await const SourcePokemonGiftBindingResolver().read(
+          source: source.fixture.source,
+          analysis: analysis,
+          files: source.fixture.files);
+      expect(missing.byEventIdentity, isEmpty);
+      expect(missing.refusals, isNotEmpty);
+      source.fixture.files.overrides['Data/Scripts.rxdata'] = [4, 8, 48];
+      try {
+        final changed = await const SourcePokemonGiftBindingResolver().read(
+            source: source.fixture.source,
+            analysis: analysis,
+            files: source.fixture.files,
+            nativeCatalog: catalog);
+        expect(changed.byEventIdentity, isEmpty);
+        expect(changed.refusals, isNotEmpty);
+      } finally {
+        source.fixture.files.overrides.clear();
+      }
+    });
+    test('rejects forged event and stale profile even with a genuine gift node',
+        () {
+      final binding = bindings.byEventIdentity[event.identity.value]!;
+      final forged = SourceEventDefinition(
+          sourceMapId: event.sourceMapId,
+          sourceEventId: event.sourceEventId,
+          sourceFileId: event.sourceFileId,
+          identity: event.identity,
+          name: 'Forged',
+          x: event.x,
+          y: event.y,
+          locator: event.locator,
+          pages: event.pages);
+      expect(
+          binding.isBoundToEvent(
+              source: source.fixture.source, analysis: analysis, event: forged),
+          false);
+      final page = event.pages.first;
+      final wrongRawPage = SourceEventPageAnalysis(
+          sourcePage: page.sourcePage,
+          locator: page.locator,
+          condition: page.condition,
+          graphic: page.graphic,
+          body: page.body,
+          rawDataRef: event.pages.last.rawDataRef,
+          diagnostics: page.diagnostics);
+      final wrongRawEvent = SourceEventDefinition(
+          sourceMapId: event.sourceMapId,
+          sourceEventId: event.sourceEventId,
+          sourceFileId: event.sourceFileId,
+          identity: event.identity,
+          name: event.name,
+          x: event.x,
+          y: event.y,
+          locator: event.locator,
+          pages: [wrongRawPage, event.pages.last]);
+      expect(
+          binding.isBoundToEvent(
+              source: source.fixture.source,
+              analysis: analysis,
+              event: wrongRawEvent),
+          false);
+      final stale = SourceEventAnalysis(
+          profile: SourceEventProfile.kanto(
+              scriptsArchiveHash: analysis.profile.scriptsArchiveHash,
+              sourceSnapshotHash: Sha256Hash('f' * 64),
+              normalizationHash: source.fixture.source.canonicalHash),
+          events: [event],
+          diagnostics: []);
+      expect(
+          binding.isBoundToEvent(
+              source: source.fixture.source, analysis: stale, event: event),
+          false);
+    });
+
+    test(
+        'refuses native gift without default moves and protects evidence from aliases',
+        () async {
+      final raw = (jsonDecode(jsonEncode(catalog.toJson())) as Map)
+          .cast<String, dynamic>();
+      for (final row in (raw['sourceLearnsets'] as List).cast<Map>()) {
+        row['startingMoves'] = [];
+        row['relearnMoves'] = [];
+        row['levelUp'] = [];
+      }
+      final empty = NativePsdkTrainerBundle.fromJson(raw);
+      final result = await const SourcePokemonGiftBindingResolver().read(
+          source: source.fixture.source,
+          analysis: analysis,
+          files: source.fixture.files,
+          nativeCatalog: empty);
+      expect(result.byEventIdentity, isEmpty);
+      expect(result.refusals.values,
+          contains('sourcePokemonGiftNativeMovesUnqualified'));
+      final binding = bindings.byEventIdentity[event.identity.value]!;
+      (binding.evidence['presentationAdaptation']
+          as Map)['sourcePresentationParity'] = true;
+      expect(
+          (binding.evidence['presentationAdaptation']
+              as Map)['sourcePresentationParity'],
+          false);
+    });
+    test('gift catalogue publishes without native encounter activation',
+        () async {
+      final literal = await const LiteralTileComposer().compose(
+          source: source.fixture.source,
+          files: source.fixture.files,
+          selectedSourceMapIds: [17],
+          projectName: 'Gift only',
+          parentPath: '/unused',
+          folderName: 'gift');
+      final semantic = (await const SourceSemanticStudyComposer().compose(
+          source: source.fixture.source,
+          base: literal,
+          files: source.fixture.files))!;
+      final composed =
+          (await SourceEventStudyComposer(nativeTrainerCatalog: catalog)
+              .compose(
+                  source: source.fixture.source,
+                  base: semantic,
+                  files: source.fixture.files))!;
+      expect(composed.projection.semanticEvidence['usedPokemonGifts'], true);
+      final complete = (await SourceCatalogStudyComposer(
+              automaticNativeEncounters: false,
+              nativeTrainerCatalog: composed.pokemonGiftCatalog)
+          .compose(
+              source: source.fixture.source,
+              base: composed.draft,
+              files: source.fixture.files))!;
+      expect(
+          complete.draft.mutations.any((m) =>
+              m.actionId == 'pokemon.configuration.set_enabled' &&
+              m.parameters['enabled'] == true),
+          true);
+      expect(
+          complete.draft.mutations
+              .where((m) => m.actionId == 'pokemon.documents.write')
+              .expand((m) => (m.parameters['documents'] as List).cast<Map>())
+              .any((d) =>
+                  d['actionId'] == 'pokemon.species.write' &&
+                  (d['parameters'] as Map)['relativePath'] ==
+                      'data/pokemon/species/clockbird.json'),
+          true);
+    });
+    test('catalogue publication rejects a different native gift catalogue',
+        () async {
+      final literal = await const LiteralTileComposer().compose(
+          source: source.fixture.source,
+          files: source.fixture.files,
+          selectedSourceMapIds: [17],
+          projectName: 'Gift only',
+          parentPath: '/unused',
+          folderName: 'gift');
+      final semantic = (await const SourceSemanticStudyComposer().compose(
+          source: source.fixture.source,
+          base: literal,
+          files: source.fixture.files))!;
+      final composed =
+          (await SourceEventStudyComposer(nativeTrainerCatalog: catalog)
+              .compose(
+                  source: source.fixture.source,
+                  base: semantic,
+                  files: source.fixture.files))!;
+      await expectLater(
+          SourceCatalogStudyComposer(
+                  automaticNativeEncounters: false,
+                  nativeTrainerCatalog: _catalog([_native('other', 'Other')]))
+              .compose(
+                  source: source.fixture.source,
+                  base: composed.draft,
+                  files: source.fixture.files),
+          throwsA(isA<NativeWriteException>()
+              .having((e) => e.code, 'code', 'catalogs.pokemon_gift.binding')));
+    });
+    test(
+        'canonical composition typed write and strict reopen preserve both pages and gift',
+        () async {
+      final output =
+          await Directory.systemTemp.createTemp('source-gift-writer-');
+      addTearDown(() => output.delete(recursive: true));
+      final literal = await const LiteralTileComposer().compose(
+          source: source.fixture.source,
+          files: source.fixture.files,
+          selectedSourceMapIds: [17],
+          projectName: 'Gift writer',
+          parentPath: output.path,
+          folderName: 'gift');
+      final semantic = (await const SourceSemanticStudyComposer().compose(
+          source: source.fixture.source,
+          base: literal,
+          files: source.fixture.files))!;
+      final qualification = await NativeEncounterCatalogQualification.prepare(
+          snapshot: source.fixture.snapshot,
+          source: source.pbs,
+          files: source.fixture.files,
+          nativeCatalog: catalog,
+          selectedSourceMapIds: [17]);
+      final composed = (await SourceEventStudyComposer(
+              nativeEncounterQualification: qualification)
+          .compose(
+              source: source.fixture.source,
+              base: semantic,
+              files: source.fixture.files))!;
+      expect(composed.projection.semanticEvidence['usedPokemonGifts'], true);
+      expect(canonicalHashOf(composed.pokemonGiftCatalog!.toJson()),
+          canonicalHashOf(qualification.bundle.toJson()));
+      final complete = (await SourceCatalogStudyComposer(
+              nativeEncounterQualification: qualification,
+              nativeTrainerCatalog: composed.pokemonGiftCatalog)
+          .compose(
+              source: source.fixture.source,
+              base: composed.draft,
+              files: source.fixture.files))!;
+      final giftPublication = complete.draft.mutations.indexWhere((m) =>
+          m.actionId == 'scene.upsert' &&
+          jsonEncode(m.parameters).contains('receivePokemonFromCatalog'));
+      final activation = complete.draft.mutations.indexWhere((m) =>
+          m.actionId == 'pokemon.configuration.set_enabled' &&
+          m.parameters['enabled'] == true);
+      expect(giftPublication, greaterThanOrEqualTo(0));
+      expect(activation, inInclusiveRange(0, giftPublication - 1),
+          reason:
+              'Catalogue activation must precede canonical gift Scene publication');
+      final changedScene = (jsonDecode(jsonEncode(
+              complete.draft.mutations[giftPublication].parameters)) as Map)
+          .cast<String, Object?>();
+      void alterGift(Object? value) {
+        if (value is Map) {
+          if (value['kind'] == 'receivePokemonFromCatalog') value['level'] = 8;
+          for (final child in value.values) {
+            alterGift(child);
+          }
+        } else if (value is List) {
+          for (final child in value) {
+            alterGift(child);
+          }
+        }
+      }
+
+      alterGift(changedScene);
+      final draft = complete.draft;
+      final altered = NativeProjectDraft(
+          source: draft.source,
+          projectName: draft.projectName,
+          parentPath: draft.parentPath,
+          folderName: draft.folderName,
+          sourceRootPath: draft.sourceRootPath,
+          mapIds: draft.mapIds,
+          artifacts: draft.artifacts,
+          sourceArtifacts: draft.sourceArtifacts,
+          mutations: [
+            for (var i = 0; i < draft.mutations.length; i++)
+              i == giftPublication
+                  ? copyNativeFixtureMutation(draft.mutations[i],
+                      parameters: changedScene)
+                  : draft.mutations[i]
+          ],
+          compositionEvidence: draft.compositionEvidence,
+          defaultMapWidth: draft.defaultMapWidth,
+          defaultMapHeight: draft.defaultMapHeight);
+      final rejected = approveNativeFixtureDraft(altered);
+      await expectLater(
+          NativeProjectWriter().write(rejected.plan, rejected.context, altered),
+          throwsA(isA<NativeWriteException>()
+              .having((e) => e.code, 'code', 'native.semantics.regeneration')));
+      expect(await Directory('${output.path}/gift').exists(), false);
+      final approval = approveNativeFixtureDraft(complete.draft);
+      final receipt = await NativeProjectWriter()
+          .write(approval.plan, approval.context, complete.draft);
+      expect(receipt.verified, true);
+      final handles = WorkspaceHandleStore();
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(receipt.projectPath);
+      try {
+        final reopened = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(reopened.loadDiagnostics, isEmpty);
+        final gifts = reopened.manifest.scenes
+            .expand((s) => s.graph.nodes)
+            .map((n) => n.payload)
+            .whereType<SceneActionPayload>()
+            .map((p) => p.interactiveCommand)
+            .whereType<SceneReceivePokemonFromCatalogInteractiveCommand>()
+            .toList();
+        expect(gifts, hasLength(1));
+        expect(gifts.single.speciesId, 'clockbird');
+        expect(gifts.single.nicknameMaxGraphemes, 10);
+        expect(
+            reopened.manifest.eventRegistry!.records
+                .where((r) => r.definitionOrNull != null),
+            hasLength(2));
+        expect(
+            await File(
+                    '${receipt.projectPath}/data/pokemon/species/clockbird.json')
+                .exists(),
+            true);
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+    });
+    test('projection joins all three ports to the source self-switch suffix',
+        () {
+      final map = MapData(
+          id: 'native-17',
+          name: 'Native',
+          size: const GridSize(width: 3, height: 1),
+          layers: [
+            MapLayer.collision(
+                id: 'base', name: 'Base', collisions: [false, false, false])
+          ]);
+      final file = source.fixture.snapshot.entries.singleWhere(
+          (e) => e.relativePath == 'Graphics/Characters/Original.png');
+      final characters = {
+        sourceEventCharacterBindingKey(
+                characterName: 'Original', pattern: 0, direction: 2):
+            SourceEventCharacterBinding(
+                characterId: 'native-original',
+                sourceSnapshotHash: source.fixture.snapshot.canonicalHash,
+                sourceFileId: file.fileId,
+                sourceFileHash: file.sha256!,
+                sourcePattern: 0,
+                sourceDirection: 2)
+      };
+      final projected = const SourceEventProjector().project(
+          source: source.fixture.source,
+          analysis: analysis,
+          nativeMaps: {17: map},
+          characterBindings: characters,
+          pokemonGiftBindings: bindings.byEventIdentity);
+      expect(projected.scenes, hasLength(2),
+          reason: '${projected.semanticEvidence}');
+      final scene = projected.scenes.singleWhere((s) => s.graph.nodes.any((n) =>
+          n.payload is SceneActionPayload &&
+          (n.payload as SceneActionPayload).interactiveCommand
+              is SceneReceivePokemonFromCatalogInteractiveCommand));
+      final node = scene.graph.nodes.singleWhere((n) =>
+          n.payload is SceneActionPayload &&
+          (n.payload as SceneActionPayload).interactiveCommand
+              is SceneReceivePokemonFromCatalogInteractiveCommand);
+      final command = (node.payload as SceneActionPayload).interactiveCommand!
+          as SceneReceivePokemonFromCatalogInteractiveCommand;
+      expect(command.nicknameMaxGraphemes, 10);
+      expect(command.nicknamePolicy, ScenePokemonGiftNicknamePolicy.offer);
+      final destinations =
+          scene.graph.edges.where((e) => e.fromNodeId == node.id).toList();
+      expect(destinations.map((e) => e.fromPortId).toSet(),
+          {'party', 'pc', 'noCapacity'});
+      expect(destinations.map((e) => e.toNodeId).toSet(), hasLength(1));
+      final suffix = scene.graph.nodes
+          .singleWhere((n) => n.id == destinations.first.toNodeId);
+      final write = (suffix.payload as SceneActionPayload).consequence!
+          as SceneSetFactConsequence;
+      expect(projected.facts.map((fact) => fact.id), contains(write.factId));
+      expect(write.value, true);
+      final unbound = const SourceEventProjector().project(
+          source: source.fixture.source,
+          analysis: analysis,
+          nativeMaps: {17: map},
+          characterBindings: characters);
+      expect(unbound.scenes, isEmpty);
+    });
+  },
+      skip: giftArchive == null
+          ? 'Exact source Scripts.rxdata oracle required'
+          : false);
 }

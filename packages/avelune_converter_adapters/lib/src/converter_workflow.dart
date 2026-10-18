@@ -1660,6 +1660,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             ? null
             : await SourceCatalogStudyComposer(nativeEncounterQualification: encounters,
                 nativeTrainerQualification: events?.trainerQualification,
+                nativeTrainerCatalog: events?.pokemonGiftCatalog,
                 includeNativeEncounterConsumers: encounters != null).compose(
                 source: normalized,
                 base: preceding,
