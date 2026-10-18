@@ -87,6 +87,54 @@ final class SourceCatalogProjection {
   final List<SourceCatalogDiagnostic> diagnostics;
   final Map<String, Object?> evidence;
   bool get hasBlockingDiagnostics => diagnostics.any((d) => d.blocking);
+  List<Map<String, Object?>> restoreSourceEntries(
+      {required SourcePbsProject pbs, ScanCancellation? cancellation}) {
+    cancellation?.check();
+    Never invalid() => throw ContractError(
+        'source.catalog.entry_reference',
+        r'$',
+        'Entry references require the exact PBS source, context and complete entry hash.');
+    if (evidence['kind'] != 'sourceCatalogProjection' ||
+        evidence['version'] != 2 ||
+        evidence['sourceSnapshotHash'] != pbs.sourceSnapshotHash.value ||
+        evidence['pbsHash'] != pbs.canonicalHash.value ||
+        evidence['namespace'] != pbs.logicalProjectNamespace.value ||
+        evidence['profile'] != pbs.profile.name ||
+        evidence['entries'] is! List) {
+      invalid();
+    }
+    final references = evidence['entries'] as List;
+    if (references.length > 16384) invalid();
+    final byLocator = <String, List<SourcePbsEntry>>{};
+    for (final entry in pbs.entries) {
+      cancellation?.check();
+      (byLocator[canonicalJsonOf(entry.headerLocator.toJson())] ??= [])
+          .add(entry);
+    }
+    final restored = <Map<String, Object?>>[];
+    for (final row in references) {
+      cancellation?.check();
+      if (row is! Map<String, Object?> || row['source'] is! Map) invalid();
+      final reference = row['source'] as Map;
+      if (reference['kind'] != 'sourcePbsEntryReference' ||
+          reference['version'] != 1 ||
+          reference['headerLocator'] is! Map ||
+          reference.length != 5) {
+        invalid();
+      }
+      final candidates = byLocator[canonicalJsonOf(reference['headerLocator'])];
+      if (candidates == null) invalid();
+      final encoded = canonicalJsonOf(reference);
+      final index = candidates.indexWhere(
+          (entry) => canonicalJsonOf(_pbsEntryReference(entry)) == encoded);
+      if (index < 0) invalid();
+      final entry = candidates.removeAt(index);
+      restored.add(
+          _freeze({...row, 'source': entry.toJson()}) as Map<String, Object?>);
+    }
+    return List.unmodifiable(restored);
+  }
+
   Map<String, Object?> toJson() => {
         'documents': documents.map((d) => d.toJson()).toList(),
         'mergedItemCatalog': mergedItemCatalog?.toJson(),
@@ -106,6 +154,19 @@ final class SourceCatalogProjection {
           maxStringCodeUnits: 1048576,
           maxTextCodeUnits: 33554432));
 }
+
+Map<String, Object?> _pbsEntryReference(SourcePbsEntry entry) => {
+      'kind': 'sourcePbsEntryReference',
+      'version': 1,
+      'identity': entry.identity?.toJson(),
+      'headerLocator': entry.headerLocator.toJson(),
+      'canonicalHash': canonicalHashOf(entry.toJson(),
+              limits: const ContractLimits(
+                  maxNodes: 2000000,
+                  maxStringCodeUnits: 65536,
+                  maxTextCodeUnits: 33554432))
+          .value,
+    };
 
 final class SourceCatalogProjector {
   const SourceCatalogProjector();
@@ -568,7 +629,7 @@ final class _Run {
         diagnostics: diagnostics,
         evidence: {
           'kind': 'sourceCatalogProjection',
-          'version': 1,
+          'version': 2,
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
           'normalizationHash': source.canonicalHash.value,
           'pbsHash': pbs.canonicalHash.value,
@@ -623,7 +684,7 @@ final class _Run {
           'entries': [
             for (final e in sorted)
               {
-                'source': e.toJson(),
+                'source': _pbsEntryReference(e),
                 'dataImported': !invalid.contains(e.identity!.key),
                 'mediaResolved': false,
                 'runtimeReady': false,

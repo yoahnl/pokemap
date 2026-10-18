@@ -106,7 +106,7 @@ void main() {
               files: fixture.files,
               limits: ac14CatalogReferenceLimits),
           throwsA(isA<ContractError>().having((error) => error.code, 'code',
-                      'native_species.native_base_identity')));
+              'native_species.native_base_identity')));
     });
 
     for (final value in [true, 'false', null]) {
@@ -117,6 +117,28 @@ void main() {
                 as Map<String, dynamic>;
         (evidence['sourceCatalogs'] as Map)['automaticNativeEncounters'] =
             value;
+        await _refuseBeforeStage(
+            _copyDraft(composition.draft, evidence: evidence),
+            'native.semantics.regeneration');
+      });
+    }
+
+    for (final field in [
+      'canonicalHash',
+      'identity',
+      'headerLocator',
+      'version'
+    ]) {
+      test('altered PBS entry reference $field refuses before staging',
+          () async {
+        final evidence =
+            jsonDecode(jsonEncode(composition.draft.compositionEvidence))
+                as Map<String, Object?>;
+        final projection =
+            (evidence['sourceCatalogs'] as Map)['projection'] as Map;
+        final reference =
+            ((projection['entries'] as List).first as Map)['source'] as Map;
+        reference[field] = field == 'version' ? 8 : 'altered';
         await _refuseBeforeStage(
             _copyDraft(composition.draft, evidence: evidence),
             'native.semantics.regeneration');
@@ -640,7 +662,7 @@ void main() {
           composition.sourceHashes);
     });
 
-    test('projection over one MiB preserves bounded unknown source fields',
+    test('compact projection restores over one MiB of bounded source fields',
         () async {
       const limits =
           NativeWriteLimits(maxArtifacts: 128, maxArtifactBytes: 1048576);
@@ -658,9 +680,13 @@ void main() {
           isTrue);
       final projection = large.catalogs.projection.toJson();
       final projectionBytes = utf8.encode(canonicalJsonOf(projection));
-      expect(projectionBytes.length, greaterThan(1048576));
+      expect(projectionBytes.length, lessThan(1048576));
       expect(_longestString(projection), lessThan(1048576));
-      final entries = large.catalogs.projection.evidence['entries'] as List;
+      final pbs = await const SourcePbsParser().read(
+          snapshot: large.sourceFixture.snapshot,
+          files: large.sourceFixture.files);
+      final entries = large.catalogs.projection.restoreSourceEntries(pbs: pbs);
+      expect(utf8.encode(canonicalJsonOf(entries)).length, greaterThan(1048576));
       final selected = entries.cast<Map>().singleWhere((entry) =>
           (entry['source'] as Map)['identity'] is Map &&
           ((entry['source'] as Map)['identity'] as Map)['sourceSymbol'] ==
@@ -715,7 +741,7 @@ void main() {
         opened.close();
       }
     });
-    test('catalog companion exceeds record text quota and replays exact chunks',
+    test('compact catalog chunks restore evidence past the record text quota',
         () async {
       const limits = NativeWriteLimits(
           maxArtifacts: 128,
@@ -743,8 +769,18 @@ void main() {
         bytes.addAll(part);
       }
       final restored = jsonDecode(utf8.decode(bytes)) as Map<String, Object?>;
+      expect(canonicalJsonOf(restored, limits: limits.jsonLimits),
+          utf8.decode(bytes));
+      final pbs = await const SourcePbsParser().read(
+          snapshot: large.sourceFixture.snapshot,
+          files: large.sourceFixture.files);
+      final expanded = {
+        ...restored,
+        'restoredSourceEntries':
+            large.catalogs.projection.restoreSourceEntries(pbs: pbs),
+      };
       expect(
-          () => canonicalJsonOf(restored, limits: limits.jsonLimits),
+          () => canonicalJsonOf(expanded, limits: limits.jsonLimits),
           throwsA(isA<ContractError>()
               .having((e) => e.code, 'code', 'json.textQuota')));
       expect(restored['projection'], large.catalogs.projection.toJson());

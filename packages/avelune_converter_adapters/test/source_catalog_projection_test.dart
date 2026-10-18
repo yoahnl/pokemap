@@ -215,6 +215,129 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
         ]));
 
 void main() {
+  test('attested PBS entry references fit without duplicating source fields',
+      () async {
+    final f = await _fixture(
+        pokemon: '${_species('RATTATA')}OriginalUnknown = ${'x' * 12000}\n');
+    final p = await _read(f,
+        limits:
+            const SourceCatalogProjectionLimits(maxEvidenceCodeUnits: 45000));
+    expect(p.evidence['version'], 2);
+    final references = (p.evidence['entries'] as List).cast<Map>();
+    expect(references, isNotEmpty);
+    expect(
+        references.every((row) =>
+            (row['source'] as Map)['kind'] == 'sourcePbsEntryReference'),
+        isTrue);
+    final restored = p.restoreSourceEntries(pbs: f.pbs);
+    for (var i = 0; i < restored.length; i++) {
+      final reference = references.elementAt(i)['source'] as Map;
+      final expected = f.pbs.entries.singleWhere((entry) =>
+          canonicalJsonOf(entry.headerLocator.toJson()) ==
+          canonicalJsonOf(reference['headerLocator']));
+      expect(restored[i]['source'], expected.toJson());
+    }
+    final rattata = restored.singleWhere((row) =>
+        ((row['source'] as Map)['identity'] as Map)['sourceSymbol'] ==
+        'RATTATA');
+    expect(
+        ((rattata['source'] as Map)['fields'] as List).cast<Map>().singleWhere(
+            (field) => field['key'] == 'OriginalUnknown')['rawValue'],
+        'x' * 12000);
+  });
+
+  test('PBS entry restoration refuses foreign PBS and altered references',
+      () async {
+    final f = await _fixture();
+    final p = await _read(f);
+    final foreign = await _fixture(namespace: 'foreign');
+    expect(() => p.restoreSourceEntries(pbs: foreign.pbs),
+        throwsA(_code('source.catalog.entry_reference')));
+    final changed =
+        await _fixture(pokemon: _species('RATTATA', moves: '1,TACKLE'));
+    expect(() => p.restoreSourceEntries(pbs: changed.pbs),
+        throwsA(_code('source.catalog.entry_reference')));
+    for (final field in [
+      'canonicalHash',
+      'identity',
+      'headerLocator',
+      'version'
+    ]) {
+      final evidence =
+          jsonDecode(jsonEncode(p.evidence)) as Map<String, Object?>;
+      final reference =
+          ((evidence['entries'] as List).first as Map)['source'] as Map;
+      reference[field] = field == 'version' ? 7 : 'altered';
+      expect(
+          () => SourceCatalogProjection(evidence: evidence)
+              .restoreSourceEntries(pbs: f.pbs),
+          throwsA(_code('source.catalog.entry_reference')));
+    }
+  });
+
+  test('entry restoration retains blocked duplicate locators and multiplicity',
+      () async {
+    final f =
+        await _fixture(pokemon: '${_species('RATTATA')}${_species('RATTATA')}');
+    final p = await _read(f);
+    final duplicates = f.pbs.entries
+        .where((entry) => entry.identity?.sourceSymbol == 'RATTATA')
+        .toList();
+    expect(duplicates, hasLength(2));
+    expect(duplicates.every((entry) => entry.isBlocked), isTrue);
+    final evidence = <String, Object?>{
+      ...p.evidence,
+      'entries': [
+        for (final entry in duplicates)
+          {
+            'source': {
+              'kind': 'sourcePbsEntryReference',
+              'version': 1,
+              'identity': entry.identity!.toJson(),
+              'headerLocator': entry.headerLocator.toJson(),
+              'canonicalHash': canonicalHashOf(entry.toJson()).value,
+            },
+            'dataImported': false,
+          }
+      ],
+    };
+    final restored = SourceCatalogProjection(evidence: evidence)
+        .restoreSourceEntries(pbs: f.pbs);
+    expect(restored.map((row) => row['source']),
+        duplicates.map((entry) => entry.toJson()));
+    expect((restored.first['source'] as Map)['headerLocator'],
+        isNot((restored.last['source'] as Map)['headerLocator']));
+    final rows = evidence['entries'] as List;
+    rows.add(rows.first);
+    expect(
+        () => SourceCatalogProjection(evidence: evidence)
+            .restoreSourceEntries(pbs: f.pbs),
+        throwsA(_code('source.catalog.entry_reference')));
+  });
+
+  test('entry restoration requires versioned context and honors cancellation',
+      () async {
+    final f = await _fixture();
+    final p = await _read(f);
+    for (final field in [
+      'version',
+      'profile',
+      'namespace',
+      'sourceSnapshotHash',
+      'pbsHash'
+    ]) {
+      final evidence = <String, Object?>{...p.evidence, field: 'altered'};
+      expect(
+          () => SourceCatalogProjection(evidence: evidence)
+              .restoreSourceEntries(pbs: f.pbs),
+          throwsA(_code('source.catalog.entry_reference')));
+    }
+    expect(
+        () => p.restoreSourceEntries(
+            pbs: f.pbs, cancellation: ScanCancellation()..cancel()),
+        throwsA(_code('source.cancelled')));
+  });
+
   test('duplicate source ability slots project unique native identities',
       () async {
     final f = await _fixture(
@@ -513,7 +636,7 @@ void main() {
         p.diagnostics
             .any((d) => d.code == 'source.catalog.trainer_field_unsupported'),
         true);
-    expect(jsonEncode(p.evidence), contains('IV'));
+    expect(jsonEncode(p.restoreSourceEntries(pbs: f.pbs)), contains('IV'));
   });
   test('source compiled bytes are hash bound and reject mutation', () async {
     final f = await _fixture();
