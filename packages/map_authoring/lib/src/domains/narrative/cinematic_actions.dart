@@ -97,7 +97,7 @@ final class CinematicActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'cinematic.upsert',
-      'Create or update a cinematic; actorCompletionPolicy accepts keepFinal (default) or restoreInitial; actorJump requires actorId/targetId, durationMs 200..30000 and metadata actor.jumpHeightCells >0 <=4; actorMove/actorJump metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
+      'Create or update a cinematic; optional step.parallelGroupId groups contiguous steps concurrently, rejects physical actor/camera-shake/dialogue/fade/global-emote/media-channel conflicts and differing actorMove/actorJump durations; markers remain ungrouped; actorCompletionPolicy accepts keepFinal (default) or restoreInitial; actorJump requires actorId/targetId, durationMs 200..30000 and metadata actor.jumpHeightCells >0 <=4; actorMove/actorJump metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
       resourceKinds: const ['project', 'cinematic'],
     ),
     narrativeActionDescriptor(
@@ -142,6 +142,7 @@ final class CinematicActions {
         });
         final cinematic = _decodeCinematic(
           narrativeObjectParameter(parameters, 'cinematic'),
+          mediaAssets: context.snapshot.manifest.cinematicMediaAssets,
         );
         cinematicId = cinematic.id;
         final updated = upsert(context.snapshot.manifest, cinematic: cinematic);
@@ -360,6 +361,9 @@ final class CinematicActions {
     }
     final step = buildCinematicCharacterCustomAnimationStep(
       id: targetId,
+      parallelGroupId: existingIndex < 0
+          ? null
+          : steps[existingIndex].parallelGroupId,
       command: command,
       label: label,
     );
@@ -406,9 +410,13 @@ CinematicAsset? _findCinematic(ProjectManifest project, String id) {
   return null;
 }
 
-CinematicAsset _decodeCinematic(Map<String, dynamic> json) {
+CinematicAsset _decodeCinematic(Map<String, dynamic> json, {
+  Iterable<CinematicMediaAsset> mediaAssets = const [],
+}) {
   try {
     final asset = CinematicAsset.fromJson(json);
+    final schedule = buildCinematicTimelineSchedule(asset, mediaAssets: mediaAssets);
+    if (!schedule.isValid) throw ArgumentError(schedule.issues.first.message);
     for (final step in asset.timeline.steps) {
       if (step.kind == CinematicTimelineStepKind.actorJump) {
         final error = cinematicTimelineActorJumpValidationErrorOf(asset, step);

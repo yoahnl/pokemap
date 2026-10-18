@@ -69,11 +69,21 @@ abstract interface class CinematicRuntimeAsyncRestorationSink {
   Future<void> restoreAsync(CinematicRuntimeTermination termination);
 }
 
-/// Sequential, wall-clock-free playback state machine for CinematicAsset V1.
-///
-/// The controller owns ordering and duration accounting only. A Flame adapter
-/// can implement [CinematicRuntimePlaybackSink] in a later lot without moving
-/// gameplay or rendering concerns into this application layer.
+abstract interface class CinematicRuntimeGroupPlaybackSink {
+  void beginGroup(List<CinematicRuntimeStepContext> contexts);
+}
+
+enum CinematicRuntimeSeekStatus {
+  applied, notPlaying, unsupportedTimeline, invalidPosition, cancelled, failed,
+}
+
+final class CinematicRuntimeSeekResult {
+  const CinematicRuntimeSeekResult(this.status, {this.message});
+  final CinematicRuntimeSeekStatus status;
+  final String? message;
+  bool get success => status == CinematicRuntimeSeekStatus.applied;
+}
+
 final class CinematicRuntimePlaybackController
     implements SceneCinematicRuntimePlayer {
   CinematicRuntimePlaybackController({required this.sink});
@@ -84,15 +94,99 @@ final class CinematicRuntimePlaybackController
 
   bool get isPlaying => _session != null;
 
-  CinematicTimelineStep? get currentStep {
+  bool get isPaused => _session?.paused ?? false;
+
+  List<CinematicTimelineStep> get currentSteps {
     final session = _session;
-    if (session == null ||
-        session.terminating ||
-        session.stepIndex >= session.steps.length) {
-      return null;
-    }
-    return session.steps[session.stepIndex];
+    if (session == null || session.terminating) return const [];
+    return List.unmodifiable(session.active.where((step) => !step.done)
+        .map((step) => step.member.step));
   }
+
+  CinematicTimelineStep? get currentStep => currentSteps.firstOrNull;
+
+  bool pause() {
+    final session = _session;
+    if (session == null || session.terminating || !_canResample(session.asset)) return false;
+    session.paused = true;
+    return true;
+  }
+
+  bool resume() {
+    final session = _session;
+    if (session == null || session.terminating) return false;
+    session.paused = false;
+    return true;
+  }
+
+  Future<CinematicRuntimeSeekResult> seek(Duration position) async {
+    final previous = _session;
+    if (previous == null || previous.terminating) {
+      return const CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.notPlaying);
+    }
+    if (!_canResample(previous.asset)) {
+      return const CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.unsupportedTimeline,
+          message: 'Dialogue, media and custom animations require real completion and cannot be resampled.');
+    }
+    final schedule = buildCinematicTimelineSchedule(previous.asset,
+        timing: CinematicTimelineScheduleTiming.runtime);
+    if (position.isNegative || position > Duration(milliseconds: schedule.totalDurationMs)) {
+      return const CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.invalidPosition);
+    }
+    previous.terminating = true;
+    previous.restoringForSeek = true;
+    try {
+      if (sink is CinematicRuntimeAsyncRestorationSink) {
+        await (sink as CinematicRuntimeAsyncRestorationSink)
+            .restoreAsync(CinematicRuntimeTermination.cancelled);
+      } else {
+        sink.restore(CinematicRuntimeTermination.cancelled);
+      }
+      if (previous.seekCancellationMessage != null) {
+        _session = null;
+        if (!previous.completer.isCompleted) {
+          previous.completer.complete(SceneCinematicRuntimeAwaitableResult.failed(
+              errorCode: SceneCinematicRuntimeAwaitableErrorCode.cancelled,
+              message: previous.seekCancellationMessage!));
+        }
+        return const CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.cancelled);
+      }
+      final preflight = sink.preflight(previous.asset);
+      if (!preflight.isReady) {
+        throw StateError(preflight.message ?? 'Cinematic seek preflight was rejected.');
+      }
+      final session = _CinematicRuntimeSession(previous.asset,
+          completer: previous.completer)..seeking = true;
+      _session = session;
+      _beginCurrentStepOrComplete();
+      _advance(position);
+      session.seeking = false;
+      session.paused = true;
+      if (!identical(_session, session) || session.terminating) {
+        return const CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.failed);
+      }
+      return const CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.applied);
+    } catch (error) {
+      final result = SceneCinematicRuntimeAwaitableResult.failed(
+          errorCode: SceneCinematicRuntimeAwaitableErrorCode.sinkFailure,
+          message: 'Cinematic seek failed: $error');
+      if (identical(_session, previous)) {
+        _session = null;
+        if (!previous.completer.isCompleted) previous.completer.complete(result);
+      } else {
+        _terminate(result, CinematicRuntimeTermination.failed);
+      }
+      return CinematicRuntimeSeekResult(CinematicRuntimeSeekStatus.failed,
+          message: '$error');
+    }
+  }
+
+  bool _canResample(CinematicAsset asset) => !asset.timeline.steps.any((step) =>
+      step.kind == CinematicTimelineStepKind.dialogueLine ||
+      step.kind == CinematicTimelineStepKind.actorAnimation ||
+      step.kind == CinematicTimelineStepKind.sound ||
+      step.kind == CinematicTimelineStepKind.music ||
+      step.kind == CinematicTimelineStepKind.fx);
 
   @override
   Future<SceneCinematicRuntimeAwaitableResult> playCinematic(
@@ -150,42 +244,48 @@ final class CinematicRuntimePlaybackController
     if (delta.isNegative) {
       throw ArgumentError.value(delta, 'delta', 'must not be negative');
     }
+    if (_session?.paused ?? false) return;
+    _advance(delta);
+  }
+
+  void _advance(Duration delta) {
     var remaining = delta;
     while (_session != null) {
       final session = _session!;
       if (session.terminating) return;
-      if (!session.stepBegun) {
+      if (session.active.isEmpty) {
         _beginCurrentStepOrComplete();
-        if (_session == null || !_session!.stepBegun) return;
+        if (_session == null || session.terminating || session.active.isEmpty) return;
       }
-
-      final step = session.steps[session.stepIndex];
-      final duration = _positiveDurationOf(step);
-      final stepRemaining =
-          duration == null ? remaining : duration - session.stepElapsed;
-      final applied = duration == null || remaining <= stepRemaining
-          ? remaining
-          : stepRemaining;
-      session.stepElapsed += applied;
-      final context = _contextFor(session, delta: applied);
-
-      try {
-        sink.updateStep(context);
-        final visuallyComplete = sink.isStepVisuallyComplete(context);
-        final durationComplete =
-            duration != null && session.stepElapsed >= duration;
-        final requiresSinkCompletion =
-            sink is CinematicRuntimeStepCompletionPolicy &&
-                (sink as CinematicRuntimeStepCompletionPolicy)
-                    .requiresSinkCompletion(context);
-        if (requiresSinkCompletion) {
-          if (!visuallyComplete || (duration != null && !durationComplete)) {
-            return;
-          }
-        } else if (!visuallyComplete && !durationComplete) {
-          return;
+      var applied = remaining;
+      var waitedExternally = false;
+      for (final active in session.active.where((step) => !step.done)) {
+        final duration = _positiveDurationOf(active.member.step);
+        if (duration != null && active.elapsed < duration) {
+          final boundary = duration - active.elapsed;
+          if (boundary < applied) applied = boundary;
+        } else if (duration == null || active.elapsed >= duration) {
+          waitedExternally = true;
         }
-        sink.endStep(context);
+      }
+      try {
+        for (final active in session.active.where((step) => !step.done)) {
+          active.elapsed += applied;
+          final context = _contextFor(session, active, delta: applied);
+          sink.updateStep(context);
+          final visuallyComplete = sink.isStepVisuallyComplete(context);
+          final duration = _positiveDurationOf(active.member.step);
+          final durationComplete = duration != null && active.elapsed >= duration;
+          final requiresSinkCompletion = sink is CinematicRuntimeStepCompletionPolicy &&
+              (sink as CinematicRuntimeStepCompletionPolicy).requiresSinkCompletion(context);
+          final complete = requiresSinkCompletion
+              ? visuallyComplete && (duration == null || durationComplete)
+              : visuallyComplete || durationComplete;
+          if (complete) {
+            sink.endStep(context);
+            active.done = true;
+          }
+        }
       } catch (error) {
         _terminate(
           SceneCinematicRuntimeAwaitableResult.failed(
@@ -196,21 +296,26 @@ final class CinematicRuntimePlaybackController
         );
         return;
       }
-
-      session.stepIndex++;
-      session.stepElapsed = Duration.zero;
-      session.stepBegun = false;
-      if (duration == null) {
-        remaining = Duration.zero;
-      } else {
-        remaining -= applied;
+      remaining -= applied;
+      if (session.active.any((step) => !step.done)) {
+        if (remaining > Duration.zero && applied > Duration.zero) continue;
+        return;
       }
+      session.active = [];
+      session.groupIndex++;
+      if (waitedExternally) remaining = Duration.zero;
       _beginCurrentStepOrComplete();
       if (remaining == Duration.zero) return;
     }
   }
 
   bool cancel({String message = 'Cinematic playback was cancelled.'}) {
+    final session = _session;
+    if (session != null && session.restoringForSeek) {
+      if (session.seekCancellationMessage != null) return false;
+      session.seekCancellationMessage = message;
+      return true;
+    }
     if (_session == null || _session!.terminating) return false;
     _terminate(
       SceneCinematicRuntimeAwaitableResult.failed(
@@ -226,23 +331,40 @@ final class CinematicRuntimePlaybackController
     while (_session != null) {
       final session = _session!;
       if (session.terminating) return;
-      if (session.stepIndex >= session.steps.length) {
+      if (session.groupIndex >= session.groups.length) {
+        if (session.seeking) return;
         _terminate(
           const SceneCinematicRuntimeAwaitableResult.completed(),
           CinematicRuntimeTermination.completed,
         );
         return;
       }
-      if (session.stepBegun) return;
-
-      final context = _contextFor(session, delta: Duration.zero);
+      if (session.active.isNotEmpty) return;
+      session.active = [for (final member in session.groups[session.groupIndex])
+        _CinematicRuntimeActiveStep(member)];
       try {
-        sink.beginStep(context);
-        session.stepBegun = true;
-        final visuallyComplete = sink.isStepVisuallyComplete(context);
-        final duration = _positiveDurationOf(context.step);
-        if (!visuallyComplete && duration != Duration.zero) return;
-        sink.endStep(context);
+        final contexts = [for (final active in session.active)
+          _contextFor(session, active, delta: Duration.zero)];
+        if (sink is CinematicRuntimeGroupPlaybackSink) {
+          (sink as CinematicRuntimeGroupPlaybackSink).beginGroup(contexts);
+        } else {
+          for (final context in contexts) { sink.beginStep(context); }
+        }
+        for (final active in session.active) {
+          final context = _contextFor(session, active, delta: Duration.zero);
+          final duration = _positiveDurationOf(context.step);
+          final visuallyComplete = sink.isStepVisuallyComplete(context);
+          final requiresCompletion = sink is CinematicRuntimeStepCompletionPolicy &&
+              (sink as CinematicRuntimeStepCompletionPolicy).requiresSinkCompletion(context);
+          final complete = requiresCompletion
+              ? visuallyComplete && (duration == null || duration == Duration.zero)
+              : visuallyComplete || duration == Duration.zero;
+          if (complete) {
+            sink.endStep(context);
+            active.done = true;
+          }
+        }
+        if (session.active.any((step) => !step.done)) return;
       } catch (error) {
         _terminate(
           SceneCinematicRuntimeAwaitableResult.failed(
@@ -254,21 +376,21 @@ final class CinematicRuntimePlaybackController
         return;
       }
 
-      session.stepIndex++;
-      session.stepElapsed = Duration.zero;
-      session.stepBegun = false;
+      session.groupIndex++;
+      session.active = [];
     }
   }
 
   CinematicRuntimeStepContext _contextFor(
-    _CinematicRuntimeSession session, {
+    _CinematicRuntimeSession session,
+    _CinematicRuntimeActiveStep active, {
     required Duration delta,
   }) {
     return CinematicRuntimeStepContext(
       asset: session.asset,
-      step: session.steps[session.stepIndex],
-      stepIndex: session.stepIndex,
-      elapsed: session.stepElapsed,
+      step: active.member.step,
+      stepIndex: active.member.stepIndex,
+      elapsed: active.elapsed,
       delta: delta,
     );
   }
@@ -323,19 +445,32 @@ final class CinematicRuntimePlaybackController
 }
 
 final class _CinematicRuntimeSession {
-  _CinematicRuntimeSession(this.asset)
-      : steps = asset.timeline.steps
-            .where((step) => step.kind != CinematicTimelineStepKind.marker)
-            .toList(growable: false),
-        completer = Completer<SceneCinematicRuntimeAwaitableResult>();
+  _CinematicRuntimeSession(this.asset, {
+    Completer<SceneCinematicRuntimeAwaitableResult>? completer,
+  }) : groups = buildCinematicTimelineSchedule(asset,
+            timing: CinematicTimelineScheduleTiming.runtime).groups
+        .map((group) => group.members.where((member) =>
+            member.step.kind != CinematicTimelineStepKind.marker).toList())
+        .where((members) => members.isNotEmpty).toList(growable: false),
+        completer = completer ?? Completer<SceneCinematicRuntimeAwaitableResult>();
 
   final CinematicAsset asset;
-  final List<CinematicTimelineStep> steps;
+  final List<List<CinematicTimelineScheduledStep>> groups;
   final Completer<SceneCinematicRuntimeAwaitableResult> completer;
-  int stepIndex = 0;
-  Duration stepElapsed = Duration.zero;
-  bool stepBegun = false;
+  int groupIndex = 0;
+  List<_CinematicRuntimeActiveStep> active = [];
+  bool paused = false;
+  bool seeking = false;
+  bool restoringForSeek = false;
+  String? seekCancellationMessage;
   bool terminating = false;
+}
+
+final class _CinematicRuntimeActiveStep {
+  _CinematicRuntimeActiveStep(this.member);
+  final CinematicTimelineScheduledStep member;
+  Duration elapsed = Duration.zero;
+  bool done = false;
 }
 
 const _supportedKinds = <CinematicTimelineStepKind>{
@@ -356,6 +491,12 @@ const _supportedKinds = <CinematicTimelineStepKind>{
 };
 
 SceneCinematicRuntimeAwaitableResult? _preflightAsset(CinematicAsset asset) {
+  final schedule = buildCinematicTimelineSchedule(asset,
+      timing: CinematicTimelineScheduleTiming.runtime);
+  if (!schedule.isValid) {
+    return _failure(SceneCinematicRuntimeAwaitableErrorCode.invalidStep,
+        schedule.issues.first.message);
+  }
   final context = asset.stageContext;
   final bindings = <String, CinematicActorBinding>{};
   for (final binding in context?.actorBindings ?? const []) {

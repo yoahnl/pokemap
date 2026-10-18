@@ -39,7 +39,7 @@ extension _CinematicTimelineGestures on _CinematicTimelineEditorState {
       key: ValueKey('cinematic-clip-${block.stepId}'),
       handleKey: ValueKey('cinematic-duration-${block.stepId}'),
       label:
-          '${step.label ?? cinematicActionLabel(step.kind)} · ${block.durationMs == null ? 'variable' : cinematicTime(block.durationMs!)}',
+          '${step.parallelGroupId == null ? '' : 'Ensemble · '}${step.label ?? cinematicActionLabel(step.kind)} · ${block.durationMs == null ? 'variable' : cinematicTime(block.durationMs!)}',
       accent: cinematicActionColor(context, block.kind),
       selected: widget.view.selection.contains(block.stepId),
       onSelect: () => select(block.stepId),

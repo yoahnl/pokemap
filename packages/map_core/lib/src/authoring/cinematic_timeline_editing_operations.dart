@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../models/cinematic_asset.dart';
 
 @immutable
@@ -86,11 +87,27 @@ CinematicTimelineEditResult duplicateCinematicTimelineSteps(
       original.lastIndexWhere((step) => selection.contains(step.id));
   final existing = {for (final step in original) step.id};
   final rewrites = <String, String>{};
+  final groups = <String, String>{};
+  final existingGroups = {
+    for (final step in cinematic.timeline.steps)
+      if (step.parallelGroupId != null) step.parallelGroupId!,
+  };
   final clones = <CinematicTimelineStep>[];
   for (final step in original.where((step) => selection.contains(step.id))) {
     final id = _freshStepId(step.id, existing);
     rewrites[step.id] = id;
-    clones.add(_cloneStep(step, id));
+    clones.add(
+      _cloneStep(
+        step,
+        id,
+        groupId: step.parallelGroupId == null
+            ? null
+            : groups.putIfAbsent(
+                step.parallelGroupId!,
+                () => _freshStepId(step.parallelGroupId!, existingGroups),
+              ),
+      ),
+    );
   }
   final steps = original.toList()..insertAll(lastIndex + 1, clones);
   return _result(cinematic, steps, idRewrites: rewrites);
@@ -120,11 +137,27 @@ CinematicTimelineEditResult pasteCinematicTimelineSteps(
   }
   final existing = {for (final step in steps) step.id};
   final rewrites = <String, String>{};
+  final groups = <String, String>{};
+  final existingGroups = {
+    for (final step in cinematic.timeline.steps)
+      if (step.parallelGroupId != null) step.parallelGroupId!,
+  };
   final clones = <CinematicTimelineStep>[];
   for (final step in clipboard.steps) {
     final id = _freshStepId(step.id, existing);
     rewrites[step.id] = id;
-    clones.add(_cloneStep(step, id));
+    clones.add(
+      _cloneStep(
+        step,
+        id,
+        groupId: step.parallelGroupId == null
+            ? null
+            : groups.putIfAbsent(
+                step.parallelGroupId!,
+                () => _freshStepId(step.parallelGroupId!, existingGroups),
+              ),
+      ),
+    );
   }
   steps.insertAll(insertionIndex, clones);
   return _result(cinematic, steps, idRewrites: rewrites);
@@ -168,15 +201,25 @@ CinematicTimelineEditResult _result(
   List<CinematicTimelineStep> steps, {
   Map<String, String> idRewrites = const {},
 }) {
+  final updated = previous.copyWith(timeline: CinematicTimeline(steps: steps));
+  final schedule = buildCinematicTimelineSchedule(updated);
+  if (!schedule.isValid) throw ArgumentError(schedule.issues.first.message);
   return CinematicTimelineEditResult(
     previousCinematic: previous,
-    cinematic: previous.copyWith(timeline: CinematicTimeline(steps: steps)),
+    cinematic: updated,
     idRewrites: idRewrites,
   );
 }
 
-CinematicTimelineStep _cloneStep(CinematicTimelineStep step, String id) =>
-    CinematicTimelineStep.fromJson({...step.toJson(), 'id': id});
+CinematicTimelineStep _cloneStep(
+  CinematicTimelineStep step,
+  String id, {
+  String? groupId,
+}) => CinematicTimelineStep.fromJson({
+  ...step.toJson(),
+  'id': id,
+  'parallelGroupId': ?groupId,
+});
 
 String _freshStepId(String sourceId, Set<String> existing) {
   final root = '${sourceId}_copy';
@@ -186,4 +229,41 @@ String _freshStepId(String sourceId, Set<String> existing) {
     candidate = '${root}_${suffix++}';
   }
   return candidate;
+}
+
+CinematicTimelineEditResult setCinematicTimelineParallelGroup(
+  CinematicAsset cinematic, {
+  required Set<String> stepIds,
+  required String? parallelGroupId,
+}) {
+  final selection = _validatedSelection(cinematic, stepIds);
+  final indices = [
+    for (var i = 0; i < cinematic.timeline.steps.length; i++)
+      if (selection.contains(cinematic.timeline.steps[i].id)) i,
+  ];
+  if (parallelGroupId != null &&
+      indices.last - indices.first + 1 != indices.length) {
+    throw ArgumentError('Parallel group members must be contiguous.');
+  }
+  final steps = [
+    for (final step in cinematic.timeline.steps)
+      if (!selection.contains(step.id))
+        step
+      else
+        _withParallelGroup(step, parallelGroupId),
+  ];
+  return _result(cinematic, steps);
+}
+
+CinematicTimelineStep _withParallelGroup(
+  CinematicTimelineStep step,
+  String? groupId,
+) {
+  final json = step.toJson();
+  if (groupId == null) {
+    json.remove('parallelGroupId');
+  } else {
+    json['parallelGroupId'] = groupId;
+  }
+  return CinematicTimelineStep.fromJson(json);
 }

@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../models/cinematic_asset.dart';
 import 'cinematic_timeline_lane_read_model.dart';
 
@@ -72,6 +73,7 @@ final class CinematicTimelineTimeBlock {
     required this.startMs,
     required this.endMs,
     this.durationMs,
+    this.parallelGroupId,
     required this.visualDurationMs,
     required this.durationSource,
     this.actorId,
@@ -91,6 +93,7 @@ final class CinematicTimelineTimeBlock {
   final int startMs;
   final int endMs;
   final int? durationMs;
+  final String? parallelGroupId;
   final int visualDurationMs;
   final CinematicTimelineVisualDurationSource durationSource;
   final String? actorId;
@@ -125,24 +128,18 @@ CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
   );
   final timings = <String, _StepTiming>{};
 
-  var currentMs = 0;
-  for (final entry in cinematic.timeline.steps.asMap().entries) {
-    final step = entry.value;
-    final visualDurationMs = _isInstantaneous(step)
-        ? 0
-        : _visualDurationMs(step.durationMs);
-    final durationSource = _isInstantaneous(step)
-        ? CinematicTimelineVisualDurationSource.instantaneous
-        : _durationSource(step.durationMs);
-    final startMs = currentMs;
-    final endMs = startMs + visualDurationMs;
+  final schedule = buildCinematicTimelineSchedule(cinematic);
+  final currentMs = schedule.totalDurationMs;
+  for (final member in schedule.steps) {
+    final step = member.step;
     timings[step.id] = _StepTiming(
-      startMs: startMs,
-      endMs: endMs,
-      visualDurationMs: visualDurationMs,
-      durationSource: durationSource,
+      startMs: member.startMs,
+      endMs: member.endMs,
+      visualDurationMs: member.durationMs,
+      durationSource: _isInstantaneous(step)
+          ? CinematicTimelineVisualDurationSource.instantaneous
+          : _durationSource(step.durationMs),
     );
-    currentMs = endMs;
   }
 
   final timeLanes = [
@@ -166,6 +163,7 @@ CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
                 startMs: timing.startMs,
                 endMs: timing.endMs,
                 durationMs: step.durationMs,
+                parallelGroupId: step.parallelGroupId,
                 visualDurationMs: timing.visualDurationMs,
                 durationSource: timing.durationSource,
                 actorId: step.actorId,
@@ -196,13 +194,6 @@ bool _isInstantaneous(CinematicTimelineStep step) =>
     step.kind == CinematicTimelineStepKind.actorFace ||
     step.kind == CinematicTimelineStepKind.marker ||
     (step.kind == CinematicTimelineStepKind.camera && step.durationMs == null);
-
-int _visualDurationMs(int? durationMs) {
-  if (durationMs != null && durationMs > 0) {
-    return durationMs;
-  }
-  return cinematicTimelineFallbackVisualDurationMs;
-}
 
 CinematicTimelineVisualDurationSource _durationSource(int? durationMs) {
   if (durationMs != null && durationMs > 0) {

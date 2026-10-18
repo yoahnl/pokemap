@@ -21,10 +21,12 @@ CinematicTimelineStep buildCinematicCharacterCustomAnimationStep({
   required String id,
   required CharacterCustomAnimationRuntimeCommand command,
   String? label,
+  String? parallelGroupId,
 }) {
   final playback = command.playback;
   return CinematicTimelineStep(
     id: id,
+    parallelGroupId: parallelGroupId,
     kind: CinematicTimelineStepKind.actorAnimation,
     label: label,
     actorId: command.actorId,

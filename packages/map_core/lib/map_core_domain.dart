@@ -317,6 +317,7 @@ export 'src/read_models/cinematic_media_catalog.dart';
 export 'src/runtime/cinematic_media_playback_contract.dart';
 export 'src/runtime/cinematic_media_preview_controller.dart';
 export 'src/runtime/cinematic_playback_preflight.dart';
+export 'src/runtime/cinematic_timeline_schedule.dart';
 export 'src/dialogue/runtime_dialogue_document.dart';
 export 'src/dialogue/yarn_dialogue_compiler.dart';
 export 'src/read_models/cinematic_timeline_time_layout_read_model.dart';

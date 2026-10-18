@@ -11,6 +11,7 @@ extension CinematicInspectorStep on CinematicInspector {
       icon: cinematicActionIcon(step.kind),
     ),
     Text(step.label ?? cinematicActionLabel(step.kind)),
+    ..._parallelFields(asset, step),
     if (cinematicDurationEditable(step))
       StudioCommitField(
         key: ValueKey('duration-${asset.id}-${step.id}'),
@@ -155,10 +156,72 @@ extension CinematicInspectorStep on CinematicInspector {
     if (isCinematicTimelineCommandStep(step)) ..._commandFields(asset, step),
     if (step.kind == CinematicTimelineStepKind.actorAnimation)
       ..._animationFields(asset, step),
-    const Text(
-      'Les pistes organisent une lecture séquentielle. Déplacer un bloc change son ordre de lecture.',
+    Text(
+      asset.timeline.steps.any((step) => step.parallelGroupId != null)
+          ? 'Les étapes d’un groupe partent ensemble ; la suite attend la fin du groupe.'
+          : 'Les pistes organisent une lecture séquentielle. Déplacer un bloc change son ordre de lecture.',
     ),
   ];
+
+  List<Widget> _parallelFields(
+    CinematicAsset asset,
+    CinematicTimelineStep step,
+  ) {
+    final index = asset.timeline.steps.indexWhere(
+      (value) => value.id == step.id,
+    );
+    final joined =
+        index > 0 &&
+        step.parallelGroupId != null &&
+        asset.timeline.steps[index - 1].parallelGroupId == step.parallelGroupId;
+    bool edit(CinematicAsset Function(CinematicAsset) change) =>
+        _edit(asset, (current) {
+          try {
+            return change(current);
+          } on ArgumentError {
+            throw ArgumentError(_parallelEditError);
+          }
+        });
+    return [
+      if (step.parallelGroupId != null)
+        const StudioBadge('Ensemble', tone: StudioTone.info),
+      StudioButton(
+        key: ValueKey('cinematic-parallel-join-${step.id}'),
+        label: 'En même temps que l’étape précédente',
+        secondary: true,
+        icon: Icons.link,
+        onPressed:
+            index <= 0 ||
+                joined ||
+                step.kind == CinematicTimelineStepKind.marker
+            ? null
+            : () => edit((current) => _joinParallel(current, step.id)),
+      ),
+      if (index <= 0)
+        const Text(
+          'La première étape ne peut pas être rattachée à une étape précédente.',
+        ),
+      const Text(
+        'Les déplacements et sauts d’un même groupe doivent avoir des durées identiques. Les durées ne sont pas ajustées automatiquement.',
+      ),
+      if (step.parallelGroupId != null) ...[
+        Text(
+          asset.timeline.steps
+              .where((value) => value.parallelGroupId == step.parallelGroupId)
+              .map((value) => value.label ?? cinematicActionLabel(value.kind))
+              .join(' + '),
+        ),
+        StudioButton(
+          key: ValueKey('cinematic-parallel-dissolve-${step.id}'),
+          label: 'Dissocier le groupe',
+          secondary: true,
+          icon: Icons.link_off,
+          onPressed: () =>
+              edit((current) => _dissolveParallel(current, step.id)),
+        ),
+      ],
+    ];
+  }
 
   List<Widget> _moveFields(CinematicAsset asset, CinematicTimelineStep step) {
     final jump = isCinematicTimelineActorJumpStep(step);
@@ -327,3 +390,53 @@ extension CinematicInspectorStep on CinematicInspector {
     );
   }
 }
+
+CinematicAsset _joinParallel(CinematicAsset asset, String stepId) {
+  final steps = asset.timeline.steps;
+  final index = steps.indexWhere((step) => step.id == stepId);
+  if (index <= 0) throw ArgumentError('Une étape précédente est nécessaire.');
+  final previous = steps[index - 1];
+  final current = steps[index];
+  final groups = {
+    if (previous.parallelGroupId != null) previous.parallelGroupId!,
+    if (current.parallelGroupId != null) current.parallelGroupId!,
+  };
+  final ids = {
+    previous.id,
+    current.id,
+    for (final step in steps)
+      if (groups.contains(step.parallelGroupId)) step.id,
+  };
+  final used = steps.map((step) => step.parallelGroupId).toSet();
+  var number = 1;
+  while (used.contains('parallel_$number')) {
+    number++;
+  }
+  final groupId =
+      previous.parallelGroupId ?? current.parallelGroupId ?? 'parallel_$number';
+  return setCinematicTimelineParallelGroup(
+    asset,
+    stepIds: ids,
+    parallelGroupId: groupId,
+  ).cinematic;
+}
+
+CinematicAsset _dissolveParallel(CinematicAsset asset, String stepId) {
+  final group = asset.timeline.steps
+      .firstWhere((step) => step.id == stepId)
+      .parallelGroupId;
+  if (group == null) {
+    return asset;
+  }
+  return setCinematicTimelineParallelGroup(
+    asset,
+    stepIds: {
+      for (final step in asset.timeline.steps)
+        if (step.parallelGroupId == group) step.id,
+    },
+    parallelGroupId: null,
+  ).cinematic;
+}
+
+const _parallelEditError =
+    'Impossible de regrouper ces étapes : les déplacements et sauts doivent avoir des durées identiques. Vérifiez aussi les acteurs, la caméra et les canaux audio.';

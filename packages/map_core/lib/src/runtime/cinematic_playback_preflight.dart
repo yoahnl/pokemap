@@ -1,3 +1,4 @@
+import 'cinematic_timeline_schedule.dart';
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_media_asset.dart';
@@ -14,6 +15,7 @@ enum CinematicPlaybackPreflightIssueKind {
   missingDialogue,
   missingMedia,
   mediaTypeMismatch,
+  invalidParallelGroup,
 }
 
 final class CinematicPlaybackPreflightIssue {
@@ -51,7 +53,16 @@ CinematicPlaybackPreflightReport preflightCinematicPlayback({
   String? activeMapId,
   CinematicPlaybackPreflightMode mode = CinematicPlaybackPreflightMode.preview,
 }) {
-  final issues = <CinematicPlaybackPreflightIssue>[];
+  final issues = <CinematicPlaybackPreflightIssue>[
+    for (final issue in buildCinematicTimelineSchedule(cinematic, mediaAssets: mediaAssets).issues)
+      for (final stepId in issue.stepIds)
+        CinematicPlaybackPreflightIssue(
+          kind: CinematicPlaybackPreflightIssueKind.invalidParallelGroup,
+          message: issue.message,
+          stepId: stepId,
+          referenceId: issue.parallelGroupId,
+        ),
+  ];
   final dialogueIds = dialogues.map((entry) => entry.id).toSet();
   final mediaById = <String, CinematicMediaAsset>{
     for (final media in mediaAssets) media.id: media,

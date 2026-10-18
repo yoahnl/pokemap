@@ -31,6 +31,49 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets('parallel audio rows preserve separate selectable clips', (tester) async {
+    _setLargeSurface(tester);
+    final asset = _actorMovementCinematic().copyWith(timeline: CinematicTimeline(steps: [
+      CinematicTimelineStep(id: 'sound', assetRef: 'sound-a', kind: CinematicTimelineStepKind.sound, durationMs: 500, parallelGroupId: 'audio'),
+      CinematicTimelineStep(id: 'music', assetRef: 'sound-b', kind: CinematicTimelineStepKind.sound, durationMs: 900, parallelGroupId: 'audio'),
+    ]));
+    await _pumpBuilderHarness(tester, _project(cinematics: [asset]), asset.id);
+    final sound = tester.getTopLeft(find.byKey(const ValueKey('cinematic-builder-time-visual-bar-sound')));
+    final music = tester.getTopLeft(find.byKey(const ValueKey('cinematic-builder-time-visual-bar-music')));
+    expect(sound.dx, music.dx);
+    expect(sound.dy, isNot(music.dy));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('parallel controls group two actors and dissolve without manual ids', (tester) async {
+    _setLargeSurface(tester);
+    var project = _project(cinematics: [_actorMovementCinematic()]);
+    project = addCinematicTimelineActorMoveStep(project, cinematicId: 'cinematic_actor_move', actorId: 'actor_professor', targetId: 'target_center', durationMs: 1000).updatedProject;
+    final second = addCinematicTimelineActorMoveStep(project, cinematicId: 'cinematic_actor_move', actorId: 'actor_rival', targetId: 'target_exit', durationMs: 1000);
+    project = second.updatedProject;
+    var latest = project;
+    await _pumpBuilderHarness(tester, project, 'cinematic_actor_move', onProjectChanged: (value) => latest = value);
+    final step = find.byKey(ValueKey('cinematic-builder-step-card-${second.step.id}'));
+    await tester.ensureVisible(step);
+    await tester.tap(step);
+    await tester.pumpAndSettle();
+    final join = find.byKey(const ValueKey('cinematic-builder-parallel-join'));
+    expect(join, findsOneWidget);
+    await tester.ensureVisible(join);
+    await tester.tap(join);
+    await tester.pumpAndSettle();
+    expect(latest.cinematics.single.timeline.steps.skip(1).map((s) => s.parallelGroupId).toSet().single, isNotNull);
+    expect(find.text('Ensemble'), findsWidgets);
+    final dissolve = find.byKey(const ValueKey('cinematic-builder-parallel-dissolve'));
+    await tester.ensureVisible(dissolve);
+    await tester.tap(dissolve);
+    await tester.pumpAndSettle();
+    expect(latest.cinematics.single.timeline.steps.every((s) => s.parallelGroupId == null), isTrue);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('jump palette and controls author a bounded canonical jump', (
     tester,
   ) async {

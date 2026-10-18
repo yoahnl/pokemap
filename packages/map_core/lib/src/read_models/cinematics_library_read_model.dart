@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../diagnostics/cinematic_diagnostics.dart';
 import '../models/cinematic_asset.dart';
 import '../models/project_manifest.dart';
@@ -480,8 +481,6 @@ CinematicTimelineSummary _summarizeTimeline(CinematicTimeline timeline) {
   final kinds = <String>{};
   final actors = <String>{};
   final previewLabels = <String>[];
-  var duration = 0;
-  var hasDuration = false;
 
   for (final step in timeline.steps) {
     kinds.add(step.kind.name);
@@ -492,16 +491,11 @@ CinematicTimelineSummary _summarizeTimeline(CinematicTimeline timeline) {
     if (previewLabels.length < 4) {
       previewLabels.add(step.label ?? step.id);
     }
-    final durationMs = step.durationMs;
-    if (durationMs != null && durationMs > 0) {
-      duration += durationMs;
-      hasDuration = true;
-    }
   }
 
   return CinematicTimelineSummary(
     stepCount: timeline.steps.length,
-    estimatedDurationMs: hasDuration ? duration : null,
+    estimatedDurationMs: estimateCinematicTimelineDeclaredDurationMs(timeline),
     stepKindLabels: (kinds.toList()..sort()),
     actorIds: (actors.toList()..sort()),
     previewLabels: previewLabels,

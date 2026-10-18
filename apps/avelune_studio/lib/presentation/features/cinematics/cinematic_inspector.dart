@@ -211,7 +211,9 @@ class CinematicInspector extends StatelessWidget {
       maxLines: 4,
       tryCommit: (value) => _edit(asset, (a) => a.copyWith(notes: value)),
     ),
-    Text('${asset.timeline.steps.length} étapes · lecture séquentielle'),
+    Text(
+      '${asset.timeline.steps.length} étapes · ${asset.timeline.steps.any((step) => step.parallelGroupId != null) ? 'groupes simultanés et étapes séquentielles' : 'lecture séquentielle'}',
+    ),
     const Text(
       'Sélectionnez un bloc pour régler son action, ou un acteur pour préparer sa pose.',
     ),

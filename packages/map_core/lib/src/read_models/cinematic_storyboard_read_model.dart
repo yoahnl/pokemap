@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 
@@ -37,11 +38,11 @@ final class CinematicStoryboardShot {
     required List<String> actorLabels,
     required List<String> stepIds,
     required List<CinematicStoryboardDiagnostic> diagnostics,
-  })  : actorLabels = List<String>.unmodifiable(actorLabels),
-        stepIds = List<String>.unmodifiable(stepIds),
-        diagnostics = List<CinematicStoryboardDiagnostic>.unmodifiable(
-          diagnostics,
-        );
+  }) : actorLabels = List<String>.unmodifiable(actorLabels),
+       stepIds = List<String>.unmodifiable(stepIds),
+       diagnostics = List<CinematicStoryboardDiagnostic>.unmodifiable(
+         diagnostics,
+       );
 
   final String id;
   final String label;
@@ -97,67 +98,83 @@ CinematicStoryboardReadModel buildCinematicStoryboardReadModel(
       point.id,
   };
   final drafts = <_ShotDraft>[];
+  final schedule = buildCinematicTimelineSchedule(cinematic);
   var elapsedMs = 0;
   _ShotDraft? current;
 
-  for (final step in cinematic.timeline.steps) {
-    final isBoundary = step.kind == CinematicTimelineStepKind.marker ||
-        step.kind == CinematicTimelineStepKind.camera ||
-        step.kind == CinematicTimelineStepKind.fade;
-    if (current == null || (isBoundary && current.stepIds.isNotEmpty)) {
-      current = _ShotDraft(
-        id: 'shot-${drafts.length + 1}',
-        label: _shotLabel(step, drafts.length + 1),
-        startMs: elapsedMs,
-      );
-      drafts.add(current);
-    } else if (step.kind == CinematicTimelineStepKind.marker &&
-        step.label != null) {
-      current.label = step.label!;
-    }
-
-    current.stepIds.add(step.id);
-    final durationMs = step.durationMs ?? 0;
-    current.durationMs += durationMs < 0 ? 0 : durationMs;
-    elapsedMs += durationMs < 0 ? 0 : durationMs;
-
-    final actorId = step.actorId;
-    if (actorId != null) {
-      final actorLabel = actorLabels[actorId];
-      if (actorLabel == null) {
-        current.diagnostics.add(CinematicStoryboardDiagnostic.missingActor);
-      } else {
-        current.actorLabels.add(actorLabel);
+  for (final group in schedule.groups) {
+    CinematicTimelineStep? boundary;
+    for (final entry in group.members) {
+      if (entry.step.kind == CinematicTimelineStepKind.camera) {
+        boundary = entry.step;
+        break;
+      }
+      if (entry.step.kind == CinematicTimelineStepKind.fade ||
+          entry.step.kind == CinematicTimelineStepKind.marker) {
+        boundary ??= entry.step;
       }
     }
-    final targetId = step.targetId;
-    if (targetId != null && !targetIds.contains(targetId)) {
-      current.diagnostics
-          .add(CinematicStoryboardDiagnostic.missingMovementTarget);
-    }
-    if (step.kind == CinematicTimelineStepKind.camera) {
-      current.cameraFraming = _cameraFraming(step, actorLabels);
-      final targetKind =
-          step.metadata[cinematicTimelineCameraTargetKindMetadataKey];
-      if (targetKind == 'actor') {
-        final targetActor =
-            step.metadata[cinematicTimelineCameraTargetActorIdMetadataKey];
-        if (targetActor == null || !actorLabels.containsKey(targetActor)) {
+    for (final member in group.members) {
+      final step = member.step;
+      if (current == null ||
+          (member == group.members.first &&
+              boundary != null &&
+              current.stepIds.isNotEmpty)) {
+        current = _ShotDraft(
+          id: 'shot-${drafts.length + 1}',
+          label: _shotLabel(boundary ?? group.members.first.step, drafts.length + 1),
+          startMs: group.startMs,
+        );
+        drafts.add(current);
+      } else if (step.kind == CinematicTimelineStepKind.marker &&
+          step.label != null) {
+        current.label = step.label!;
+      }
+
+      current.stepIds.add(step.id);
+      final end = group.endMs;
+      current.durationMs = end - current.startMs;
+      elapsedMs = end;
+
+      final actorId = step.actorId;
+      if (actorId != null) {
+        final actorLabel = actorLabels[actorId];
+        if (actorLabel == null) {
           current.diagnostics.add(CinematicStoryboardDiagnostic.missingActor);
         } else {
-          current.actorLabels.add(actorLabels[targetActor]!);
+          current.actorLabels.add(actorLabel);
         }
-      } else if (targetKind == 'stagePoint') {
-        final pointId =
-            step.metadata[cinematicTimelineCameraTargetStagePointIdMetadataKey];
-        if (pointId == null || !stagePointIds.contains(pointId)) {
-          current.diagnostics
-              .add(CinematicStoryboardDiagnostic.missingStagePoint);
+      }
+      final targetId = step.targetId;
+      if (targetId != null && !targetIds.contains(targetId)) {
+        current.diagnostics.add(
+          CinematicStoryboardDiagnostic.missingMovementTarget,
+        );
+      }
+      if (step.kind == CinematicTimelineStepKind.camera) {
+        current.cameraFraming = _cameraFraming(step, actorLabels);
+        final targetKind =
+            step.metadata[cinematicTimelineCameraTargetKindMetadataKey];
+        if (targetKind == 'actor') {
+          final targetActor =
+              step.metadata[cinematicTimelineCameraTargetActorIdMetadataKey];
+          if (targetActor == null || !actorLabels.containsKey(targetActor)) {
+            current.diagnostics.add(CinematicStoryboardDiagnostic.missingActor);
+          } else {
+            current.actorLabels.add(actorLabels[targetActor]!);
+          }
+        } else if (targetKind == 'stagePoint') {
+          final pointId = step
+              .metadata[cinematicTimelineCameraTargetStagePointIdMetadataKey];
+          if (pointId == null || !stagePointIds.contains(pointId)) {
+            current.diagnostics.add(
+              CinematicStoryboardDiagnostic.missingStagePoint,
+            );
+          }
         }
       }
     }
   }
-
   return CinematicStoryboardReadModel(
     locationLabel: location,
     totalDurationMs: elapsedMs,
@@ -199,10 +216,10 @@ String _cameraFraming(
       step.metadata[cinematicTimelineCameraTargetKindMetadataKey];
   final zoom =
       switch (step.metadata[cinematicTimelineCameraZoomPresetMetadataKey]) {
-    'wide' => 'Large',
-    'close' => 'Rapproché',
-    _ => 'Moyen',
-  };
+        'wide' => 'Large',
+        'close' => 'Rapproché',
+        _ => 'Moyen',
+      };
   if (targetKind == 'actor') {
     final actorId =
         step.metadata[cinematicTimelineCameraTargetActorIdMetadataKey];

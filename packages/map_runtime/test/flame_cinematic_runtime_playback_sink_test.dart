@@ -1,9 +1,120 @@
+import 'dart:async';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('resolved media channel conflict rejects before capturing or locking', () async {
+    final host = _FakeHost();
+    final media = _BlockingMediaPort();
+    final controller = CinematicRuntimePlaybackController(sink: FlameCinematicRuntimePlaybackSink(
+        host: host, mediaPlaybackPort: media, mediaAssets: _parallelMediaAssets(shared: true)));
+    final result = await controller.play(_parallelMediaAsset());
+    expect(result.success, isFalse);
+    expect(media.captures, 0);
+    expect(media.commands, isEmpty);
+    expect(host.inputLocked, isFalse);
+  });
+
+  for (final sameKind in [false, true]) {
+    test('distinct media channels start concurrently sameKind=$sameKind', () async {
+      final host = _FakeHost();
+      final media = _BlockingMediaPort()..blockAudio = true;
+      final controller = CinematicRuntimePlaybackController(sink: FlameCinematicRuntimePlaybackSink(
+          host: host, mediaPlaybackPort: media,
+          mediaAssets: _parallelMediaAssets(shared: false, sameKind: sameKind)));
+      final completion = controller.play(_parallelMediaAsset(sameKind: sameKind));
+      await Future<void>.delayed(Duration.zero);
+      expect(media.commands.map((command) => command.assetId), ['a', 'b']);
+      expect(controller.pause(), isFalse);
+      expect((await controller.seek(Duration.zero)).status,
+          CinematicRuntimeSeekStatus.unsupportedTimeline);
+      media.audioGate.complete();
+      await Future<void>.delayed(Duration.zero);
+      controller.update(const Duration(seconds: 1));
+      expect((await completion).success, isTrue);
+      expect(media.restores, 1);
+      expect(host.inputLocked, isFalse);
+    });
+  }
+
+  test('FX cancellation stays ordered before a subsequent spawn on its channel', () async {
+    final media = _BlockingMediaPort()..blockFxCancel = true;
+    final host = _FakeHost();
+    final controller = CinematicRuntimePlaybackController(sink: FlameCinematicRuntimePlaybackSink(
+      host: host, mediaPlaybackPort: media,
+      mediaAssets: [CinematicMediaAsset(id: 'fx', label: 'FX',
+          kind: CinematicMediaAssetKind.cinematicFx, relativePath: 'fx/test.json', channel: 'weather')],
+    ));
+    final asset = _visualAsset(steps: [
+      for (final id in ['first', 'second']) CinematicTimelineStep(id: id,
+          kind: CinematicTimelineStepKind.fx, assetRef: 'fx', durationMs: 100),
+    ]);
+    final completion = controller.play(asset);
+    await Future<void>.delayed(Duration.zero);
+    controller.update(const Duration(milliseconds: 100));
+    await Future<void>.delayed(Duration.zero);
+    expect(media.commands.where((command) =>
+        command.kind == CinematicMediaPlaybackCommandKind.spawnFx), hasLength(1));
+    media.fxCancelGate.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(media.commands.where((command) =>
+        command.kind == CinematicMediaPlaybackCommandKind.spawnFx), hasLength(2));
+    controller.update(const Duration(milliseconds: 100));
+    expect((await completion).success, isTrue);
+  });
+
+  test('parallel dialogue waits for player confirmation after its duration', () async {
+    final host = _FakeHost();
+    final base = _visualAsset();
+    final move = _actorMoveStep();
+    final asset = CinematicAsset.fromJson({...base.toJson(), 'timeline': {'steps': [
+      {...move.toJson(), 'durationMs': 1000, 'parallelGroupId': 'pair'},
+      {'id': 'dialogue', 'kind': 'dialogueLine', 'durationMs': 1000,
+        'dialogueText': 'Continue', 'parallelGroupId': 'pair'},
+    ]}});
+    final sink = FlameCinematicRuntimePlaybackSink(host: host);
+    final controller = CinematicRuntimePlaybackController(sink: sink);
+    final completion = controller.play(asset);
+    controller.update(const Duration(seconds: 1));
+    expect(controller.isPlaying, isTrue);
+    expect(host.dialogueLine, 'Continue');
+    expect(sink.signalDialogueLineComplete(), isTrue);
+    controller.update(Duration.zero);
+    expect((await completion).success, isTrue);
+    expect(host.inputLocked, isFalse);
+  });
+
+  test('two actors and camera advance together from a common group snapshot', () async {
+    final host = _FakeHost();
+    final base = _visualAsset();
+    final actorMove = _actorMoveStep();
+    final camera = base.timeline.steps.firstWhere((step) => step.kind == CinematicTimelineStepKind.camera);
+    final asset = CinematicAsset.fromJson({...base.toJson(),
+      'timeline': {'steps': [
+        {...actorMove.toJson(), 'durationMs': 1000, 'parallelGroupId': 'together'},
+        {...actorMove.toJson(), 'id': 'npc-move', 'actorId': 'lysa',
+          'durationMs': 1000, 'parallelGroupId': 'together'},
+        {...camera.toJson(), 'durationMs': 1500, 'parallelGroupId': 'together'},
+      ]},
+    });
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(asset);
+    controller.update(const Duration(milliseconds: 500));
+    expect(host.actors['hero']!.focusPoint, Vector2(60, 30));
+    expect(host.actors['npc']!.focusPoint, Vector2(70, 30));
+    expect(host.cameraPosition.x, closeTo(10 + 10 / 3, .000001));
+    expect(host.cameraPosition.y, closeTo(10 + 10 / 3, .000001));
+    controller.update(const Duration(milliseconds: 1000));
+    expect((await completion).success, isTrue);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    expect(host.actors['npc']!.focusPoint, Vector2(40, 20));
+    expect(host.cameraPosition, Vector2(10, 10));
+  });
+
   for (final keepFacing in [false, true]) {
     test('jump has a separate lift and exact landing preserve=$keepFacing', () async {
       final host = _FakeHost();
@@ -574,6 +685,44 @@ final class _FakeHost implements FlameCinematicRuntimeHost, FlameCinematicPoseRu
     events.add('fade:${opacity ?? '-'}');
   }
 }
+
+final class _BlockingMediaPort implements CinematicMediaPlaybackPort {
+  final commands = <CinematicMediaPlaybackCommand>[];
+  final audioGate = Completer<void>();
+  final fxCancelGate = Completer<void>();
+  bool blockAudio = false, blockFxCancel = false;
+  int captures = 0, restores = 0;
+
+  @override
+  Future<CinematicMediaPlaybackCheckpoint> captureCheckpoint() async {
+    captures++;
+    return CinematicMediaPlaybackCheckpoint();
+  }
+
+  @override
+  Future<void> execute(CinematicMediaPlaybackCommand command) async {
+    commands.add(command);
+    if (blockAudio && command.kind == CinematicMediaPlaybackCommandKind.play) await audioGate.future;
+    if (blockFxCancel && command.kind == CinematicMediaPlaybackCommandKind.cancelFx) await fxCancelGate.future;
+  }
+
+  @override
+  Future<void> restore(CinematicMediaPlaybackCheckpoint checkpoint) async { restores++; }
+}
+
+CinematicAsset _parallelMediaAsset({bool sameKind = false}) => _visualAsset(steps: [
+  CinematicTimelineStep(id: 'a', kind: CinematicTimelineStepKind.sound,
+      assetRef: 'a', durationMs: 1000, parallelGroupId: 'media'),
+  CinematicTimelineStep(id: 'b', kind: sameKind ? CinematicTimelineStepKind.sound
+      : CinematicTimelineStepKind.music, assetRef: 'b', durationMs: 1000, parallelGroupId: 'media'),
+]);
+
+List<CinematicMediaAsset> _parallelMediaAssets({required bool shared, bool sameKind = false}) => [
+  CinematicMediaAsset(id: 'a', label: 'A', kind: CinematicMediaAssetKind.sound,
+      relativePath: 'audio/a.ogg', channel: shared ? 'shared' : 'a'),
+  CinematicMediaAsset(id: 'b', label: 'B', kind: sameKind ? CinematicMediaAssetKind.sound
+      : CinematicMediaAssetKind.music, relativePath: 'audio/b.ogg', channel: shared ? 'shared' : 'b'),
+];
 
 final class _FakeActor
     implements

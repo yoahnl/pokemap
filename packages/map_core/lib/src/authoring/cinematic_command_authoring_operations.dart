@@ -97,6 +97,7 @@ CinematicCommandAuthoringResult updateCinematicTimelineCommandStep(
     cinematic,
     kind: source.kind,
     id: source.id,
+    parallelGroupId: source.parallelGroupId,
     label: label ?? source.label,
     actorId: actorId ?? source.actorId,
     dialogueId: dialogueId ??
@@ -138,6 +139,7 @@ CinematicTimelineStep _buildCommandStep(
   String? id,
   String? label,
   String? actorId,
+  String? parallelGroupId,
   String? dialogueId,
   String? dialogueText,
   CinematicMediaAsset? mediaAsset,
@@ -214,6 +216,7 @@ CinematicTimelineStep _buildCommandStep(
       cinematicTimelineCommandIntensityMetadataKey: '$intensity',
   };
   return CinematicTimelineStep(
+    parallelGroupId: parallelGroupId,
     id: id ?? _freshId(cinematic, 'step_${kind.name}'),
     kind: kind,
     label: cleanLabel?.isNotEmpty == true ? cleanLabel : _defaultLabel(kind),

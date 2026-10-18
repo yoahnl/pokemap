@@ -728,6 +728,7 @@ final class CinematicTimelineStep {
     required this.kind,
     String? label,
     this.durationMs,
+    String? parallelGroupId,
     String? actorId,
     String? targetId,
     String? dialogueText,
@@ -735,6 +736,7 @@ final class CinematicTimelineStep {
     Map<String, String> metadata = const <String, String>{},
   })  : id = _requireTrimmed(id, 'CinematicTimelineStep.id'),
         label = _trimOptional(label),
+        parallelGroupId = _parallelGroupId(parallelGroupId),
         actorId = _trimOptional(actorId),
         targetId = _trimOptional(targetId),
         dialogueText = _trimOptional(dialogueText),
@@ -747,6 +749,9 @@ final class CinematicTimelineStep {
       kind: _readEnum(CinematicTimelineStepKind.values, json['kind'], 'kind'),
       label: _readOptionalString(json, 'label'),
       durationMs: _readOptionalInt(json, 'durationMs'),
+      parallelGroupId: json.containsKey('parallelGroupId')
+          ? _parallelGroupIdFromJson(json['parallelGroupId'])
+          : null,
       actorId: _readOptionalString(json, 'actorId'),
       targetId: _readOptionalString(json, 'targetId'),
       dialogueText: _readOptionalString(json, 'dialogueText'),
@@ -759,6 +764,7 @@ final class CinematicTimelineStep {
   final CinematicTimelineStepKind kind;
   final String? label;
   final int? durationMs;
+  final String? parallelGroupId;
   final String? actorId;
   final String? targetId;
   final String? dialogueText;
@@ -770,6 +776,7 @@ final class CinematicTimelineStep {
         'kind': kind.name,
         'label': label,
         'durationMs': durationMs,
+        'parallelGroupId': parallelGroupId,
         'actorId': actorId,
         'targetId': targetId,
         'dialogueText': dialogueText,
@@ -785,6 +792,7 @@ final class CinematicTimelineStep {
           other.kind == kind &&
           other.label == label &&
           other.durationMs == durationMs &&
+          other.parallelGroupId == parallelGroupId &&
           other.actorId == actorId &&
           other.targetId == targetId &&
           other.dialogueText == dialogueText &&
@@ -797,6 +805,7 @@ final class CinematicTimelineStep {
         kind,
         label,
         durationMs,
+        parallelGroupId,
         actorId,
         targetId,
         dialogueText,
@@ -1102,4 +1111,26 @@ List<String> _cleanWaypointList(List<String> values) {
     }
   }
   return List<String>.unmodifiable(result);
+}
+
+String? _parallelGroupId(String? value) {
+  if (value != null && (value.isEmpty || value.trim() != value)) {
+    throw ArgumentError.value(
+      value,
+      'parallelGroupId',
+      'A group id must be nonblank and trimmed.',
+    );
+  }
+  return value;
+}
+
+String _parallelGroupIdFromJson(Object? value) {
+  if (value is! String) {
+    throw ArgumentError.value(
+      value,
+      'parallelGroupId',
+      'A group id must be a string.',
+    );
+  }
+  return _parallelGroupId(value)!;
 }

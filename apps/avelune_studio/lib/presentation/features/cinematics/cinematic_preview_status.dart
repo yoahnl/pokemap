@@ -1,6 +1,8 @@
 import 'cinematic_transport_listenable.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
@@ -34,7 +36,14 @@ class _CinematicPreviewStatusState extends State<CinematicPreviewStatus> {
         final steps =
             widget.controller.active?.asset.timeline.steps ??
             <CinematicTimelineStep>[];
-        final active = steps.where((s) => activeIds.contains(s.id)).firstOrNull;
+        final activeSteps = steps
+            .where((s) => activeIds.contains(s.id))
+            .toList();
+        final active =
+            activeSteps
+                .where((s) => s.kind == CinematicTimelineStepKind.dialogueLine)
+                .firstOrNull ??
+            activeSteps.firstOrNull;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -46,7 +55,11 @@ class _CinematicPreviewStatusState extends State<CinematicPreviewStatus> {
             if (transport.mediaError case final problem?)
               StudioNotice(problem, isError: true),
             Text(
-              '${cinematicTime(transport.timeMs)} · ${active == null ? 'Fin de séquence' : cinematicActionLabel(active.kind)}',
+              '${cinematicTime(transport.timeMs)} · ${activeSteps.length > 1
+                  ? '${activeSteps.length} actions simultanées · ${activeSteps.map((step) => cinematicActionLabel(step.kind)).join(' + ')}'
+                  : active == null
+                  ? 'Fin de séquence'
+                  : cinematicActionLabel(active.kind)}',
             ),
             const SizedBox(height: 8),
             const StudioNotice(

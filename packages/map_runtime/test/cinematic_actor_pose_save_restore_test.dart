@@ -9,9 +9,43 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
+import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('real player, NPC and camera advance together before one final save', (tester) async {
+    await tester.runAsync(() async {
+      final game = await _mount(tester, parallel: true);
+      final player = game.world.children.whereType<PlayerComponent>().single;
+      final start = player.cinematicVisualFocusPoint.clone();
+      final initialCamera = game.debugCameraWorldTopLeft.clone();
+      final initialPlayerState = game.gameStateSnapshot.playerPixelPosition;
+      final completion = game.debugExecuteNarrativeSceneForTest(
+        NarrativeSceneExecutionRequest(eventId: 'test', sceneId: 'scene',
+            executionId: 'parallel', gameState: game.gameStateSnapshot),
+      );
+      await _until(game, () => game.debugIsCinematicPlaying);
+      game.update(.5);
+      expect(player.cinematicVisualFocusPoint.x, closeTo((start.x + 64) / 2, .000001));
+      expect(_npc(game).position.x + _npc(game).size.x / 2, 64);
+      expect(game.debugCameraWorldTopLeft, isNot(initialCamera));
+      expect(game.gameStateSnapshot.playerPixelPosition, initialPlayerState);
+      game.update(.5);
+      expect(game.debugIsCinematicPlaying, isTrue);
+      expect(game.debugCinematicDialogueLine, isNull);
+      game.update(.5);
+      expect(game.debugCinematicDialogueLine, 'Ready');
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      expect(await completion, isA<NarrativeSceneExecutionCompleted>());
+      expect(_npc(game).gridPos, const GridPos(x: 4, y: 3));
+      expect(game.gameStateSnapshot.playerPixelPosition, isNot(initialPlayerState));
+      final saved = SaveData.fromJson(jsonDecode(jsonEncode(saveDataFromGameState(game.gameStateSnapshot))));
+      expect(saved.mapInstanceWorldState.instancesByMapId['room']!.npcPoses['guide']!.position,
+          const GridPos(x: 4, y: 3));
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+  });
 
   testWidgets('real NPC jumps over a wall with visual lift and grounded save', (tester) async {
     await tester.runAsync(() async {
@@ -101,9 +135,10 @@ Future<void> _until(PlayableMapGame game, bool Function() ready) async {
   fail('Runtime condition did not settle.');
 }
 
-Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targetX = 4.5, bool jump = false}) async {
+Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targetX = 4.5,
+    bool jump = false, bool parallel = false}) async {
   final game = PlayableMapGame(
-    bundle: _bundle(targetX, jump: jump), projectFilePath: '/tmp/cinematic-pose/project.json',
+    bundle: _bundle(targetX, jump: jump, parallel: parallel), projectFilePath: '/tmp/cinematic-pose/project.json',
     saveData: save,
     runtimeTilesetImageLoader: (paths, {transparentColorByTilesetId = const {}}) async {
       final recorder = ui.PictureRecorder();
@@ -127,7 +162,7 @@ Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targ
   return game;
 }
 
-RuntimeMapBundle _bundle(double targetX, {bool jump = false}) => RuntimeMapBundle(
+RuntimeMapBundle _bundle(double targetX, {bool jump = false, bool parallel = false}) => RuntimeMapBundle(
   projectRootDirectory: '/tmp/cinematic-pose',
   tilesetAbsolutePathsById: const {'actors': '/tmp/cinematic-pose/actors.png'},
   map: MapData(
@@ -151,21 +186,35 @@ RuntimeMapBundle _bundle(double targetX, {bool jump = false}) => RuntimeMapBundl
     characters: [ProjectCharacterEntry(id: 'guide-character', name: 'Guide', tilesetId: 'actors')],
     cinematics: [CinematicAsset(
       id: 'cinematic', title: 'Move guide', mapId: 'room',
-      requiredActors: [CinematicActorRef(actorId: 'guide')],
-      movementTargets: [CinematicMovementTargetRef(targetId: 'end', label: 'End')],
+      requiredActors: [CinematicActorRef(actorId: 'guide'),
+        if (parallel) CinematicActorRef(actorId: 'hero')],
+      movementTargets: [CinematicMovementTargetRef(targetId: 'end', label: 'End'),
+        if (parallel) CinematicMovementTargetRef(targetId: 'hero-end', label: 'Hero end')],
       stageContext: CinematicStageContext(
         actorBindings: [CinematicActorBinding(actorId: 'guide',
-            kind: CinematicActorBindingKind.mapEntity, mapEntityId: 'guide')],
-        stagePoints: [CinematicStagePoint(id: 'end', label: 'End', x: targetX, y: 3)],
+            kind: CinematicActorBindingKind.mapEntity, mapEntityId: 'guide'),
+          if (parallel) CinematicActorBinding(actorId: 'hero', kind: CinematicActorBindingKind.player)],
+        stagePoints: [CinematicStagePoint(id: 'end', label: 'End', x: targetX, y: 3),
+          if (parallel) CinematicStagePoint(id: 'hero-end', label: 'Hero end', x: 4, y: 2)],
         movementTargetBindings: [CinematicMovementTargetBinding(targetId: 'end',
-            kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: 'end')],
+            kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: 'end'),
+          if (parallel) CinematicMovementTargetBinding(targetId: 'hero-end',
+              kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: 'hero-end')],
       ),
       timeline: CinematicTimeline(steps: [
         CinematicTimelineStep(id: 'move', kind: jump
             ? CinematicTimelineStepKind.actorJump : CinematicTimelineStepKind.actorMove,
-            actorId: 'guide', targetId: 'end', durationMs: jump ? 1000 : 100,
+            actorId: 'guide', targetId: 'end', durationMs: jump || parallel ? 1000 : 100,
+            parallelGroupId: parallel ? 'pair' : null,
             metadata: jump ? const {'actor.jumpHeightCells': '0.5'}
                 : const {'actor.movementMode': 'walk', 'actor.pathMode': 'direct'}),
+        if (parallel) CinematicTimelineStep(id: 'hero-move', kind: CinematicTimelineStepKind.actorMove,
+            actorId: 'hero', targetId: 'hero-end', durationMs: 1000, parallelGroupId: 'pair',
+            metadata: const {'actor.movementMode': 'walk', 'actor.pathMode': 'direct'}),
+        if (parallel) CinematicTimelineStep(id: 'camera', kind: CinematicTimelineStepKind.camera,
+            durationMs: 1500, parallelGroupId: 'pair', metadata: const {
+              'camera.mode': 'focus', 'camera.targetKind': 'stagePoint',
+              'camera.targetStagePointId': 'end', 'camera.zoomPreset': 'close'}),
         CinematicTimelineStep(id: 'face', kind: CinematicTimelineStepKind.actorFace,
             actorId: 'guide', metadata: const {'actor.direction': 'left'}),
         CinematicTimelineStep(id: 'line', kind: CinematicTimelineStepKind.dialogueLine,

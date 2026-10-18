@@ -1,11 +1,14 @@
 import 'cinematic_transport_listenable.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
 
 class CinematicTimelineGrid extends CustomPainter {
   CinematicTimelineGrid({
     required this.layout,
+    this.visualRows,
     required this.scale,
     required this.rowHeight,
     required this.color,
@@ -13,6 +16,7 @@ class CinematicTimelineGrid extends CustomPainter {
     required this.textStyle,
   });
   final CinematicTimelineTimeLayoutReadModel layout;
+  final int? visualRows;
   final double scale, rowHeight;
   final Color color, text;
   final TextStyle textStyle;
@@ -33,7 +37,7 @@ class CinematicTimelineGrid extends CustomPainter {
       )..layout();
       label.paint(canvas, Offset(x + 3, 5));
     }
-    for (var row = 0; row <= layout.lanes.length; row++) {
+    for (var row = 0; row <= (visualRows ?? layout.lanes.length); row++) {
       final y = 30 + row * rowHeight;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
     }
@@ -42,6 +46,7 @@ class CinematicTimelineGrid extends CustomPainter {
   @override
   bool shouldRepaint(covariant CinematicTimelineGrid oldDelegate) =>
       layout != oldDelegate.layout ||
+      visualRows != oldDelegate.visualRows ||
       scale != oldDelegate.scale ||
       color != oldDelegate.color;
 }

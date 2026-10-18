@@ -1092,6 +1092,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                 widget.onUpdateCinematicAsset == null
                                     ? null
                                     : _setActorCompletionPolicy,
+                            onTimelineAsset: widget.onUpdateCinematicAsset == null ? null : (asset) => widget.onUpdateCinematicAsset!(cinematicId: widget.asset.id, cinematic: asset),
                             selectedStep: selectedStep,
                             selectedStepIndex: selectedStepIndex,
                             startExpanded: widget.startExpanded,
@@ -4040,7 +4041,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     if (viewportHeight <= 0) {
       return;
     }
-    final rowTop = _timelineAxisHeight + laneIndex * _timelineLaneRowHeight;
+    final rowTop = _timelineAxisHeight + (timeLayout.lanes.take(laneIndex).fold<int>(0, (sum, lane) => sum + _laneVisualRowCount(lane)) + _blockVisualRow(timeLayout.lanes[laneIndex], block)) * _timelineLaneRowHeight;
     final rowBottom = rowTop + _timelineLaneRowHeight;
     final targetOffset = _scrollOffsetToRevealRange(
       currentOffset: position.pixels,
@@ -5024,7 +5025,7 @@ class _TimelineLaneLabelCell extends StatelessWidget {
     final label = _timelineLaneLabel(lane);
     return Container(
       key: ValueKey('cinematic-builder-lane-${lane.laneId}'),
-      height: _timelineLaneRowHeight,
+      height: _timelineLaneRowHeight * _laneVisualRowCount(lane),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
@@ -5713,7 +5714,7 @@ class _TimelineTrackRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return SizedBox(
-      height: _timelineLaneRowHeight,
+      height: _timelineLaneRowHeight * _laneVisualRowCount(lane),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: colors.borderSubtle)),
@@ -5781,7 +5782,7 @@ class _TimelineTrackRow extends StatelessWidget {
                 if (stepsById[block.stepId] case final step?)
                   Positioned(
                     left: block.startMs * pixelsPerMs,
-                    top: (_timelineLaneRowHeight - _timelineBarHeight) / 2,
+                    top: _blockVisualRow(lane, block) * _timelineLaneRowHeight + (_timelineLaneRowHeight - _timelineBarHeight) / 2,
                     width: _timelineBarWidth(block, pixelsPerMs),
                     height: _timelineBarHeight,
                     child: _TimelineStepCard(
@@ -5918,7 +5919,7 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    widget.block.label,
+                    '${widget.step.parallelGroupId == null ? '' : 'Ensemble · '}${widget.block.label}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: DefaultTextStyle.of(context).style.copyWith(
@@ -6370,6 +6371,7 @@ class _InspectorPlaceholder extends StatefulWidget {
   const _InspectorPlaceholder({
     required this.entry,
     required this.asset,
+    this.onTimelineAsset,
     required this.stageMaps,
     required this.groups,
     required this.characters,
@@ -6420,6 +6422,7 @@ class _InspectorPlaceholder extends StatefulWidget {
   final ValueChanged<CinematicActorCompletionPolicy>? onCompletionPolicy;
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
+  final Future<bool> Function(CinematicAsset)? onTimelineAsset;
   final List<ProjectMapEntry> stageMaps;
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
@@ -6547,6 +6550,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                     else if (selected != null && selectedIndex != null)
                       _SelectedStepInspector(
                         asset: widget.asset,
+                        onTimelineAsset: widget.onTimelineAsset,
                         animationDefinitions: widget.animationDefinitions,
                         dialogues: widget.dialogues,
                         mediaAssets: widget.mediaAssets,
@@ -6672,6 +6676,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                   else if (selected != null && selectedIndex != null)
                     _SelectedStepInspector(
                       asset: widget.asset,
+                      onTimelineAsset: widget.onTimelineAsset,
                       animationDefinitions: widget.animationDefinitions,
                       dialogues: widget.dialogues,
                       mediaAssets: widget.mediaAssets,
@@ -11059,6 +11064,7 @@ class _StageChoice extends StatelessWidget {
 class _SelectedStepInspector extends StatelessWidget {
   const _SelectedStepInspector({
     required this.asset,
+    this.onTimelineAsset,
     required this.animationDefinitions,
     required this.dialogues,
     required this.mediaAssets,
@@ -11080,6 +11086,7 @@ class _SelectedStepInspector extends StatelessWidget {
   });
 
   final CinematicAsset asset;
+  final Future<bool> Function(CinematicAsset)? onTimelineAsset;
   final List<CharacterCustomAnimationDefinition> animationDefinitions;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> mediaAssets;
@@ -11116,6 +11123,8 @@ class _SelectedStepInspector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _ParallelGroupControls(asset: asset, step: step, onUpdate: onTimelineAsset),
+        const SizedBox(height: 8),
         if (basicBlockKind != null) ...[
           _BasicBlockControls(
             asset: asset,
@@ -14757,4 +14766,83 @@ class _RenderTestHidden extends RenderProxyBox {
   void paint(PaintingContext context, Offset offset) {
     // Do not paint the child to make it invisible
   }
+}
+
+class _ParallelGroupControls extends StatefulWidget {
+  const _ParallelGroupControls({required this.asset, required this.step, this.onUpdate});
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final Future<bool> Function(CinematicAsset)? onUpdate;
+  @override
+  State<_ParallelGroupControls> createState() => _ParallelGroupControlsState();
+}
+
+class _ParallelGroupControlsState extends State<_ParallelGroupControls> {
+  String? error;
+  Future<void> change(bool join) async {
+    try {
+      final next = join ? _joinParallel(widget.asset, widget.step.id) : _dissolveParallel(widget.asset, widget.step.id);
+      final accepted = await widget.onUpdate!(next);
+      if (mounted) setState(() => error = accepted ? null : _parallelEditError);
+    } on ArgumentError {
+      if (mounted) setState(() => error = _parallelEditError);
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    final steps = widget.asset.timeline.steps;
+    final index = steps.indexWhere((step) => step.id == widget.step.id);
+    final joined = index > 0 && widget.step.parallelGroupId != null && steps[index - 1].parallelGroupId == widget.step.parallelGroupId;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (widget.step.parallelGroupId != null) const PokeMapBadge(label: 'Ensemble', variant: PokeMapBadgeVariant.info),
+      PokeMapButton(key: const ValueKey('cinematic-builder-parallel-join'), onPressed: widget.onUpdate == null || index <= 0 || joined || widget.step.kind == CinematicTimelineStepKind.marker ? null : () => change(true), variant: PokeMapButtonVariant.secondary, leading: const Icon(CupertinoIcons.link), child: const Text('En même temps que l’étape précédente')),
+      const SizedBox(height: 6),
+      const _MutedText('Les déplacements et sauts d’un même groupe doivent avoir des durées identiques. Les durées ne sont pas ajustées automatiquement.'),
+      if (widget.step.parallelGroupId != null) ...[
+        PokeMapButton(key: const ValueKey('cinematic-builder-parallel-dissolve'), onPressed: widget.onUpdate == null ? null : () => change(false), variant: PokeMapButtonVariant.secondary, child: const Text('Dissocier le groupe')),
+      ],
+      if (error != null) Text(error!),
+    ]);
+  }
+}
+
+CinematicAsset _joinParallel(CinematicAsset asset, String stepId) {
+  final steps = asset.timeline.steps;
+  final index = steps.indexWhere((step) => step.id == stepId);
+  if (index <= 0) throw ArgumentError('Une étape précédente est nécessaire.');
+  final previous = steps[index - 1];
+  final current = steps[index];
+  final groups = {if (previous.parallelGroupId != null) previous.parallelGroupId!, if (current.parallelGroupId != null) current.parallelGroupId!};
+  final ids = {previous.id, current.id, for (final step in steps) if (groups.contains(step.parallelGroupId)) step.id};
+  final used = steps.map((step) => step.parallelGroupId).toSet();
+  var number = 1;
+  while (used.contains('parallel_$number')) { number++; }
+  final groupId = previous.parallelGroupId ?? current.parallelGroupId ?? 'parallel_$number';
+  return setCinematicTimelineParallelGroup(asset, stepIds: ids, parallelGroupId: groupId).cinematic;
+}
+
+CinematicAsset _dissolveParallel(CinematicAsset asset, String stepId) {
+  final group = asset.timeline.steps.firstWhere((step) => step.id == stepId).parallelGroupId;
+  if (group == null) return asset;
+  return setCinematicTimelineParallelGroup(asset, stepIds: {for (final step in asset.timeline.steps) if (step.parallelGroupId == group) step.id}, parallelGroupId: null).cinematic;
+}
+
+const _parallelEditError = 'Impossible de regrouper ces étapes : les déplacements et sauts doivent avoir des durées identiques. Vérifiez aussi les acteurs, la caméra et les canaux audio.';
+
+int _laneVisualRowCount(CinematicTimelineTimeLane lane) {
+  if (lane.laneKind != CinematicTimelineLaneKind.audio) return 1;
+  final counts = <String, int>{};
+  for (final block in lane.blocks) {
+    final group = block.parallelGroupId;
+    if (group != null) counts[group] = (counts[group] ?? 0) + 1;
+  }
+  return counts.values.fold(1, (largest, count) => count > largest ? count : largest);
+}
+
+int _blockVisualRow(
+  CinematicTimelineTimeLane lane,
+  CinematicTimelineTimeBlock block,
+) {
+  if (lane.laneKind != CinematicTimelineLaneKind.audio || block.parallelGroupId == null) return 0;
+  return lane.blocks.where((member) => member.parallelGroupId == block.parallelGroupId).toList().indexOf(block);
 }

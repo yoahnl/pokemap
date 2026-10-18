@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 
@@ -117,6 +118,7 @@ final class CinematicTimelineLaneStep {
     required this.kind,
     required this.label,
     this.durationMs,
+    this.parallelGroupId,
     this.actorId,
     this.actorLabel,
     this.targetId,
@@ -130,6 +132,7 @@ final class CinematicTimelineLaneStep {
   final CinematicTimelineStepKind kind;
   final String label;
   final int? durationMs;
+  final String? parallelGroupId;
   final String? actorId;
   final String? actorLabel;
   final String? targetId;
@@ -245,16 +248,9 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
     sortOrder: 700,
   );
 
-  var duration = 0;
-  var hasDuration = false;
   var unknownActorOffset = 0;
   for (final entry in cinematic.timeline.steps.asMap().entries) {
     final step = entry.value;
-    final durationMs = step.durationMs;
-    if (durationMs != null && durationMs > 0) {
-      duration += durationMs;
-      hasDuration = true;
-    }
 
     final lane = _laneForStep(step, lanes, actorLabels, unknownActorOffset);
     if (lane.wasUnknownActorCreated) {
@@ -297,7 +293,9 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
         ),
     ],
     stepCount: cinematic.timeline.steps.length,
-    estimatedDurationMs: hasDuration ? duration : null,
+    estimatedDurationMs: estimateCinematicTimelineDeclaredDurationMs(
+      cinematic.timeline,
+    ),
   );
 }
 
@@ -387,6 +385,7 @@ CinematicTimelineLaneStep _laneStepFor(
       targetLabel: targetLabel,
     ),
     durationMs: step.durationMs,
+    parallelGroupId: step.parallelGroupId,
     actorId: step.actorId,
     actorLabel: actorLabel,
     targetId: step.targetId,

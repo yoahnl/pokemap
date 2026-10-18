@@ -80,7 +80,7 @@ typedef SpatialCinematicTraversal = bool Function(
     Map<CinematicActorBinding, SpatialCinematicActorPose> poses);
 
 final class SpatialCinematicRuntimePlaybackSink
-    implements CinematicRuntimePlaybackSink {
+    implements CinematicRuntimePlaybackSink, CinematicRuntimeGroupPlaybackSink {
   SpatialCinematicRuntimePlaybackSink({
     required this.project,
     required this.activeMap,
@@ -109,12 +109,25 @@ final class SpatialCinematicRuntimePlaybackSink
 
   _SpatialCinematicPreparation? _prepared;
   _SpatialCinematicSnapshot? _snapshot;
-  CinematicActorBinding? _stepActor;
-  List<({double x, double y})>? _route;
-  double _routeProgress = 0;
-  EntityFacing? _preservedFacing;
-  double? _jumpHeight;
-  SpatialCinematicCameraPose? _cameraFrom, _cameraTarget;
+  String? _selectedStepId;
+  final _states = <String, _SpatialCinematicStepState>{};
+  _SpatialCinematicStepState get _state => _states[_selectedStepId!]!;
+  CinematicActorBinding? get _stepActor => _state.actor;
+  set _stepActor(CinematicActorBinding? value) => _state.actor = value;
+  List<({double x, double y})>? get _route => _state.route;
+  set _route(List<({double x, double y})>? value) => _state.route = value;
+  double get _routeProgress => _state.progress;
+  set _routeProgress(double value) => _state.progress = value;
+  EntityFacing? get _preservedFacing => _state.facing;
+  set _preservedFacing(EntityFacing? value) => _state.facing = value;
+  double? get _jumpHeight => _state.jumpHeight;
+  set _jumpHeight(double? value) => _state.jumpHeight = value;
+  SpatialCinematicCameraPose? get _cameraFrom => _state.cameraFrom;
+  set _cameraFrom(SpatialCinematicCameraPose? value) => _state.cameraFrom = value;
+  SpatialCinematicCameraPose? get _cameraTarget => _state.cameraTarget;
+  set _cameraTarget(SpatialCinematicCameraPose? value) => _state.cameraTarget = value;
+  Map<CinematicActorBinding, SpatialCinematicActorPose> _groupStartPoses = const {};
+  List<CinematicTimelineStep> _groupSteps = const [];
 
   @override
   CinematicRuntimeSinkPreflightResult preflight(CinematicAsset asset) {
@@ -214,16 +227,20 @@ final class SpatialCinematicRuntimePlaybackSink
         }
       }
       final routes = <String, List<({double x, double y})>>{};
-      for (final step in asset.timeline.steps) {
+      for (final group in buildCinematicTimelineSchedule(asset,
+          timing: CinematicTimelineScheduleTiming.runtime).groups) {
+        final before = Map<CinematicActorBinding, SpatialCinematicActorPose>.of(poses);
+        final next = Map<CinematicActorBinding, SpatialCinematicActorPose>.of(poses);
+        for (final member in group.members) {
+        final step = member.step;
         switch (step.kind) {
           case CinematicTimelineStepKind.actorJump:
             final binding = bindings[step.actorId]!;
-            final route = _movementRoute(asset, map, step, poses);
+            final route = _movementRoute(asset, map, step, before);
             final target = route.single;
-            _validateLanding(map, binding, target, poses);
-            _terminalPose(binding, poses[binding]!.copyWith(x: target.x, z: target.y));
+            _terminalPose(binding, before[binding]!.copyWith(x: target.x, z: target.y));
             routes[step.id] = route;
-            poses[binding] = poses[binding]!.copyWith(x: target.x, z: target.y);
+            next[binding] = before[binding]!.copyWith(x: target.x, z: target.y);
           case CinematicTimelineStepKind.actorMove:
             if ((step.durationMs ?? 0) <= 0 ||
                 cinematicTimelineActorMovementModeOf(step) == null ||
@@ -232,25 +249,17 @@ final class SpatialCinematicRuntimePlaybackSink
                   'Movement ${step.id} requires a duration and mode.');
             }
             final binding = bindings[step.actorId]!;
-            final pose = poses[binding]!;
-            final route = _movementRoute(asset, map, step, poses);
-            _validateRoute(
-                map,
-                binding,
-                [
-                  (x: pose.x, y: pose.z),
-                  ...route,
-                ],
-                poses: poses);
+            final pose = before[binding]!;
+            final route = _movementRoute(asset, map, step, before);
             routes[step.id] = route;
-            poses[binding] = pose.copyWith(x: route.last.x, z: route.last.y);
+            next[binding] = pose.copyWith(x: route.last.x, z: route.last.y);
           case CinematicTimelineStepKind.actorFace:
             final facing = cinematicTimelineActorFacingDirectionOf(step);
             if (facing == null) {
               throw StateError('Facing ${step.id} is missing.');
             }
             final binding = bindings[step.actorId]!;
-            poses[binding] = poses[binding]!.copyWith(facing: _facing(facing));
+            next[binding] = before[binding]!.copyWith(facing: _facing(facing));
           case CinematicTimelineStepKind.camera:
             final mode = cinematicTimelineCameraModeOf(step);
             if (mode == null ||
@@ -260,11 +269,15 @@ final class SpatialCinematicRuntimePlaybackSink
                   'Camera ${step.id} has an invalid mode or duration.');
             }
             if (mode == CinematicTimelineCameraMode.focus) {
-              _focusPoint(asset, map, step, poses);
+              _focusPoint(asset, map, step, before);
             }
           default:
             break;
         }
+        }
+        _validateGroupMotion(map: map, bindings: bindings, start: before,
+            routes: routes, steps: group.members.map((member) => member.step).toList());
+        poses..clear()..addAll(next);
       }
       for (final entry in poses.entries) {
         _terminalPose(entry.key, entry.value);
@@ -278,7 +291,21 @@ final class SpatialCinematicRuntimePlaybackSink
   }
 
   @override
+  void beginGroup(List<CinematicRuntimeStepContext> contexts) {
+    if (contexts.isEmpty) return;
+    if (_snapshot == null) _begin(contexts.first.asset);
+    final prepared = _current(contexts.first.asset);
+    _groupStartPoses = _livePoses(prepared);
+    _groupSteps = contexts.map((context) => context.step).toList();
+    _validateGroupMotion(map: prepared.map, bindings: prepared.bindings,
+        start: _groupStartPoses, routes: prepared.routes, steps: _groupSteps);
+    for (final context in contexts) { beginStep(context); }
+  }
+
+  @override
   void beginStep(CinematicRuntimeStepContext context) {
+    _selectedStepId = context.step.id;
+    _states[_selectedStepId!] = _SpatialCinematicStepState();
     if (_snapshot == null) _begin(context.asset);
     final prepared = _current(context.asset);
     _stepActor = null;
@@ -294,7 +321,9 @@ final class SpatialCinematicRuntimePlaybackSink
         final binding = _stepActor = prepared.bindings[step.actorId]!;
         final pose = _actor(binding);
         final target = prepared.routes[step.id]!.single;
-        _validateLanding(prepared.map, binding, target, _livePoses(prepared));
+        _validateLanding(prepared.map, binding, target, _groupSteps.isEmpty
+            ? _livePoses(prepared) : _groupPosesAt(_groupStartPoses,
+                prepared.bindings, prepared.routes, _groupSteps, 1));
         _route = [(x: pose.x, y: pose.z), target];
         _preservedFacing = cinematicTimelineActorFacingModeOf(step) ==
                 CinematicTimelineActorFacingMode.preserve
@@ -307,8 +336,9 @@ final class SpatialCinematicRuntimePlaybackSink
           _preservedFacing = pose.facing;
         }
         _route = [(x: pose.x, y: pose.z), ...prepared.routes[step.id]!];
-        _validateRoute(prepared.map, binding, _route!,
-            poses: _livePoses(prepared));
+        if (_groupSteps.isEmpty) {
+          _validateRoute(prepared.map, binding, _route!, poses: _livePoses(prepared));
+        }
         writeActor(binding, pose.copyWith(animationSeconds: 0));
       case CinematicTimelineStepKind.actorFace:
         final binding = _stepActor = prepared.bindings[step.actorId]!;
@@ -334,25 +364,35 @@ final class SpatialCinematicRuntimePlaybackSink
 
   @override
   void updateStep(CinematicRuntimeStepContext context) {
+    _selectedStepId = context.step.id;
     final prepared = _current(context.asset);
     final duration = context.step.durationMs ?? 0;
     final progress = duration <= 0
         ? 1.0
         : (context.elapsed.inMicroseconds / (duration * 1000)).clamp(0.0, 1.0);
     final route = _route, binding = _stepActor;
+    if (route != null && binding != null && _groupSteps.isNotEmpty) {
+      _validateGroupMotion(map: prepared.map, bindings: prepared.bindings,
+          start: _groupStartPoses, routes: prepared.routes, steps: _groupSteps,
+          from: _routeProgress, to: progress);
+    }
     if (route != null && binding != null && _jumpHeight != null) {
       if (progress >= 1) {
-        _validateLanding(prepared.map, binding, route.last, _livePoses(prepared));
+        _validateLanding(prepared.map, binding, route.last, _groupSteps.isEmpty
+            ? _livePoses(prepared) : _groupPosesAt(_groupStartPoses,
+                prepared.bindings, prepared.routes, _groupSteps, 1));
       }
       final sample = sampleCinematicJump(start: route.first, end: route.last,
           progress: progress, heightCells: _jumpHeight!);
       writeActor(binding, _actor(binding).copyWith(x: sample.x, z: sample.y,
           liftCells: sample.liftCells, facing: _preservedFacing,
           motion: CharacterAnimationState.idle, animationSeconds: 0));
+      _routeProgress = progress;
     } else if (route != null && binding != null) {
       final pose = _actor(binding);
       final sample = sampleCinematicRoute(route, progress);
       final previousSample = sampleCinematicRoute(route, _routeProgress);
+      if (_groupSteps.isEmpty) {
       _validateRoute(
           prepared.map,
           binding,
@@ -366,6 +406,7 @@ final class SpatialCinematicRuntimePlaybackSink
             (x: sample.x, y: sample.y),
           ],
           poses: _livePoses(prepared));
+      }
       _routeProgress = progress;
       final segment = sample.segment;
       final facing = _preservedFacing ?? (segment < 0
@@ -419,16 +460,17 @@ final class SpatialCinematicRuntimePlaybackSink
     _route = null;
     _preservedFacing = null;
     _cameraFrom = _cameraTarget = null;
+    _states.remove(context.step.id);
   }
 
   @override
   void restore(CinematicRuntimeTermination termination) {
     final snapshot = _snapshot;
     _snapshot = null;
-    _stepActor = null;
-    _route = null;
-    _preservedFacing = null;
-    _cameraFrom = _cameraTarget = null;
+    _states.clear();
+    _selectedStepId = null;
+    _groupStartPoses = const {};
+    _groupSteps = const [];
     if (snapshot == null) return;
     Object? failure;
     StackTrace? stack;
@@ -525,6 +567,85 @@ final class SpatialCinematicRuntimePlaybackSink
       z >= 0 &&
       x < map.size.width &&
       z < map.size.height;
+
+  Map<CinematicActorBinding, SpatialCinematicActorPose> _groupPosesAt(
+      Map<CinematicActorBinding, SpatialCinematicActorPose> start,
+      Map<String, CinematicActorBinding> bindings,
+      Map<String, List<({double x, double y})>> routes,
+      List<CinematicTimelineStep> steps, double progress) {
+    final result = Map<CinematicActorBinding, SpatialCinematicActorPose>.of(start);
+    for (final step in steps) {
+      final binding = bindings[step.actorId];
+      final pose = start[binding];
+      if (binding == null || pose == null) continue;
+      if (step.kind == CinematicTimelineStepKind.actorMove ||
+          step.kind == CinematicTimelineStepKind.actorJump) {
+        final route = [(x: pose.x, y: pose.z), ...routes[step.id]!];
+        final sample = sampleCinematicRoute(route, progress);
+        result[binding] = pose.copyWith(x: sample.x, z: sample.y);
+      }
+    }
+    return result;
+  }
+
+  void _validateGroupMotion({
+    required MapData map,
+    required Map<String, CinematicActorBinding> bindings,
+    required Map<CinematicActorBinding, SpatialCinematicActorPose> start,
+    required Map<String, List<({double x, double y})>> routes,
+    required List<CinematicTimelineStep> steps,
+    double from = 0, double to = 1,
+  }) {
+    var length = 0.0;
+    for (final step in steps) {
+      final binding = bindings[step.actorId];
+      final pose = start[binding];
+      if (pose == null || routes[step.id] == null) continue;
+      final route = [(x: pose.x, y: pose.z), ...routes[step.id]!];
+      var total = 0.0;
+      for (var i = 1; i < route.length; i++) {
+        total += math.sqrt(math.pow(route[i].x - route[i - 1].x, 2) +
+            math.pow(route[i].y - route[i - 1].y, 2));
+      }
+      length = math.max(length, total);
+      for (final point in route) {
+        if (!_inside(map, point.x, point.y)) {
+          throw StateError('A cinematic group route is outside its map.');
+        }
+      }
+    }
+    final count = math.max(1, (length * (to - from).abs() * 16).ceil());
+    var previous = _groupPosesAt(start, bindings, routes, steps, from);
+    var previousProgress = from;
+    for (var i = 1; i <= count; i++) {
+      final progress = i == count ? to : from + (to - from) * i / count;
+      final candidates = _groupPosesAt(start, bindings, routes, steps, progress);
+      for (final step in steps) {
+        final binding = bindings[step.actorId];
+        if (binding == null || routes[step.id] == null) continue;
+        final pose = candidates[binding]!;
+        if (step.kind == CinematicTimelineStepKind.actorJump) {
+          if (progress >= 1) {
+            _validateLanding(map, binding, (x: pose.x, y: pose.z), candidates);
+          }
+        } else if (step.kind == CinematicTimelineStepKind.actorMove) {
+          final initial = start[binding]!;
+          final route = [(x: initial.x, y: initial.z), ...routes[step.id]!];
+          final before = sampleCinematicRoute(route, previousProgress);
+          final after = sampleCinematicRoute(route, progress);
+          _validateRoute(map, binding, [
+            (x: previous[binding]!.x, y: previous[binding]!.z),
+            if (before.segment >= 0)
+              for (var segment = before.segment + 1; segment <= after.segment; segment++)
+                route[segment],
+            (x: pose.x, y: pose.z),
+          ], poses: candidates);
+        }
+      }
+      previous = candidates;
+      previousProgress = progress;
+    }
+  }
 
   void _validateRoute(MapData map, CinematicActorBinding binding,
       List<({double x, double y})> route,
@@ -733,6 +854,15 @@ final class SpatialCinematicRuntimePlaybackSink
               SceneCinematicRuntimeAwaitableErrorCode.preflightRejected]) =>
       CinematicRuntimeSinkPreflightResult.rejected(
           errorCode: code, message: message);
+}
+
+final class _SpatialCinematicStepState {
+  CinematicActorBinding? actor;
+  List<({double x, double y})>? route;
+  double progress = 0;
+  EntityFacing? facing;
+  double? jumpHeight;
+  SpatialCinematicCameraPose? cameraFrom, cameraTarget;
 }
 
 final class _SpatialCinematicPreparation {

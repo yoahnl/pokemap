@@ -1,3 +1,4 @@
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../authoring/cinematic_authoring_operations.dart';
 import '../authoring/cinematic_command_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
@@ -18,6 +19,7 @@ enum CinematicDiagnosticCode {
   cinematicDuplicateId,
   cinematicEmptyTimeline,
   cinematicDuplicateStepId,
+  cinematicParallelGroupInvalid,
   cinematicInvalidStepDuration,
   cinematicUnsupportedGameplayStep,
   cinematicTechnicalLabel,
@@ -200,6 +202,7 @@ CinematicDiagnosticsReport diagnoseCinematicAsset(
   CinematicAsset cinematic, {
   int? mapWidth,
   int? mapHeight,
+  Iterable<CinematicMediaAsset> mediaAssets = const [],
 }) {
   final diagnostics = <CinematicDiagnostic>[];
   _diagnoseCinematicShape(cinematic, diagnostics);
@@ -214,17 +217,19 @@ CinematicDiagnosticsReport diagnoseCinematicAsset(
     diagnostics,
     mapWidth: mapWidth,
     mapHeight: mapHeight,
+    mediaAssets: mediaAssets,
   );
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
 }
 
 CinematicDiagnosticsReport diagnoseCinematics(
-  List<CinematicAsset> cinematics,
-) {
+  List<CinematicAsset> cinematics, {
+  Iterable<CinematicMediaAsset> mediaAssets = const [],
+}) {
   final diagnostics = <CinematicDiagnostic>[];
   final firstById = <String, CinematicAsset>{};
   for (final cinematic in cinematics) {
-    diagnostics.addAll(diagnoseCinematicAsset(cinematic).diagnostics);
+    diagnostics.addAll(diagnoseCinematicAsset(cinematic, mediaAssets: mediaAssets).diagnostics);
     final previous = firstById[cinematic.id];
     if (previous == null) {
       firstById[cinematic.id] = cinematic;
@@ -248,7 +253,8 @@ CinematicDiagnosticsReport diagnoseCinematicsAgainstProject(
   ProjectManifest project,
 ) {
   final diagnostics =
-      diagnoseCinematics(project.cinematics).diagnostics.toList(growable: true);
+      diagnoseCinematics(project.cinematics, mediaAssets: project.cinematicMediaAssets)
+          .diagnostics.toList(growable: true);
   final storylineIds =
       project.storylines.map((storyline) => storyline.id).toSet();
   final chapterIdsByStoryline = {
@@ -1340,6 +1346,7 @@ void _diagnoseTimeline(
   List<CinematicDiagnostic> diagnostics, {
   int? mapWidth,
   int? mapHeight,
+  Iterable<CinematicMediaAsset> mediaAssets = const [],
 }) {
   if (cinematic.timeline.steps.isEmpty) {
     diagnostics.add(
@@ -1355,6 +1362,22 @@ void _diagnoseTimeline(
     return;
   }
 
+  for (final issue in buildCinematicTimelineSchedule(cinematic, mediaAssets: mediaAssets).issues) {
+    for (final id in issue.stepIds) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.cinematicParallelGroupInvalid,
+          severity: CinematicDiagnosticSeverity.error,
+          message: issue.message,
+          cinematicId: cinematic.id,
+          stepId: id,
+          referenceId: issue.parallelGroupId,
+          target: CinematicDiagnosticTarget.step,
+          suggestedFixLabel: 'Modifier le groupe parallèle ou ses ressources.',
+        ),
+      );
+    }
+  }
   final stepIds = <String>{};
   final requiredActorIds =
       cinematic.requiredActors.map((actor) => actor.actorId).toSet();

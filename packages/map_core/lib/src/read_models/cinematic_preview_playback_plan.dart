@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart' show immutable;
 
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_emote_catalog.dart';
@@ -456,6 +457,7 @@ final class CinematicPreviewPlaybackTimelineItem {
     required this.startMs,
     required this.endMs,
     this.durationMs,
+    this.parallelGroupId,
     required this.visualDurationMs,
     required this.durationSource,
     this.actorId,
@@ -475,6 +477,7 @@ final class CinematicPreviewPlaybackTimelineItem {
   final int startMs;
   final int endMs;
   final int? durationMs;
+  final String? parallelGroupId;
   final int visualDurationMs;
   final CinematicTimelineVisualDurationSource durationSource;
   final String? actorId;
@@ -497,6 +500,7 @@ final class CinematicPreviewPlaybackTimelineItem {
           other.startMs == startMs &&
           other.endMs == endMs &&
           other.durationMs == durationMs &&
+          other.parallelGroupId == parallelGroupId &&
           other.visualDurationMs == visualDurationMs &&
           other.durationSource == durationSource &&
           other.actorId == actorId &&
@@ -515,6 +519,7 @@ final class CinematicPreviewPlaybackTimelineItem {
         startMs,
         endMs,
         durationMs,
+        parallelGroupId,
         visualDurationMs,
         durationSource,
         actorId,
@@ -879,6 +884,7 @@ final class CinematicPreviewPlaybackFrame {
 final class CinematicPreviewPlaybackPlan {
   CinematicPreviewPlaybackPlan._({
     required this.cinematicId,
+    required this.schedule,
     required this.actorCompletionPolicy,
     required this.totalDurationMs,
     required this.executableDurationMs,
@@ -938,6 +944,7 @@ final class CinematicPreviewPlaybackPlan {
         _stageBounds = stageBounds;
 
   final String cinematicId;
+  final CinematicTimelineSchedule schedule;
   final CinematicActorCompletionPolicy actorCompletionPolicy;
   final int totalDurationMs;
   final int executableDurationMs;
@@ -1087,7 +1094,13 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
     final itemDiagnostics = <CinematicPreviewPlaybackDiagnostic>[];
     var supported = _stepSupportedForPlayback(step);
     final advancedIssues = preflight.issues
-        .where((issue) => issue.stepId == step.id && _isAdvancedKind(step.kind))
+        .where(
+          (issue) =>
+              issue.kind ==
+                  CinematicPlaybackPreflightIssueKind.invalidParallelGroup
+              ? issue.referenceId == step.parallelGroupId
+              : issue.stepId == step.id && _isAdvancedKind(step.kind),
+        )
         .toList(growable: false);
     if (advancedIssues.isNotEmpty) {
       supported = false;
@@ -1275,6 +1288,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
         startMs: block.startMs,
         endMs: block.endMs,
         durationMs: block.durationMs,
+        parallelGroupId: step.parallelGroupId,
         visualDurationMs: block.visualDurationMs,
         durationSource: block.durationSource,
         actorId: block.actorId,
@@ -1289,11 +1303,12 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
 
   return CinematicPreviewPlaybackPlan._(
     cinematicId: cinematic.id,
+    schedule: buildCinematicTimelineSchedule(cinematic, mediaAssets: mediaList),
     actorCompletionPolicy: cinematic.actorCompletionPolicy,
     totalDurationMs: timeLayout.totalDurationMs,
     executableDurationMs: timelineItems
         .where((item) => item.kind != CinematicTimelineStepKind.marker)
-        .fold(0, (sum, item) => sum + item.visualDurationMs),
+        .fold(0, (end, item) => math.max(end, item.endMs)),
     timelineItems: timelineItems,
     actorTracks: actorTracks,
     diagnostics: diagnostics,
@@ -1351,151 +1366,162 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
       if (cue.containsTime(clampedTimeMs)) cue,
   ];
 
-  for (final item in plan.timelineItems) {
-    if (clampedTimeMs < item.startMs) {
-      break;
+  for (final group in plan.schedule.groups) {
+    if (clampedTimeMs < group.startMs) break;
+    if (group.parallelGroupId != null &&
+        plan.schedule.issues.any(
+          (issue) => issue.parallelGroupId == group.parallelGroupId,
+        )) {
+      continue;
     }
-    switch (item.kind) {
-      case CinematicTimelineStepKind.actorFace:
-        final direction = plan._actorFaceDirections[item.stepId];
-        final actorId = item.actorId;
-        if (direction != null && actorId != null) {
-          final current = posesByActorId[actorId];
-          if (current != null) {
-            posesByActorId[actorId] = current.copyWith(
-              facing: direction,
-              source: CinematicActorPlaybackPoseSource.actorFace,
-              isInterpolated: false,
-              activeStepId: item.stepId,
-            );
+    final groupStartPoses = Map<String, CinematicActorPlaybackPose>.of(
+      posesByActorId,
+    );
+    for (final member in group.members) {
+      final item = plan.timelineItems[member.stepIndex];
+      switch (item.kind) {
+        case CinematicTimelineStepKind.actorFace:
+          final direction = plan._actorFaceDirections[item.stepId];
+          final actorId = item.actorId;
+          if (direction != null && actorId != null) {
+            final current = groupStartPoses[actorId];
+            if (current != null) {
+              posesByActorId[actorId] = current.copyWith(
+                facing: direction,
+                source: CinematicActorPlaybackPoseSource.actorFace,
+                isInterpolated: false,
+                activeStepId: item.stepId,
+              );
+            }
           }
-        }
-      case CinematicTimelineStepKind.actorJump:
-        final jump = plan._jumpPlans[item.stepId];
-        final current = jump == null ? null : posesByActorId[jump.actorId];
-        if (!item.supported ||
-            jump == null ||
-            current == null ||
-            !current.hasPosition ||
-            !current.x!.isFinite ||
-            !current.y!.isFinite ||
-            jump.destination == null ||
-            jump.heightCells == null ||
-            jump.facingMode == null) {
-          break;
-        }
-        final destination = jump.destination!;
-        final sampled = sampleCinematicJump(
-          start: (x: current.x!, y: current.y!),
-          end: (x: destination.x, y: destination.y),
-          progress: _timelineItemProgress(item, clampedTimeMs),
-          heightCells: jump.heightCells!,
-        );
-        final facing = _pointAlongRoute([
-          CinematicPreviewPlaybackPoint(
-            x: current.x!,
-            y: current.y!,
-            source: CinematicPreviewPlaybackPointSource.initialPlacement,
-          ),
-          destination,
-        ], 1).facing;
-        posesByActorId[jump.actorId] = current.copyWith(
-          x: sampled.x,
-          y: sampled.y,
-          liftCells: sampled.liftCells,
-          facing: jump.facingMode == CinematicTimelineActorFacingMode.preserve
-              ? current.facing
-              : facing ?? current.facing,
-          source: CinematicActorPlaybackPoseSource.actorJump,
-          isInterpolated:
-              clampedTimeMs > item.startMs && clampedTimeMs < item.endMs,
-          activeStepId: item.stepId,
-        );
-      case CinematicTimelineStepKind.actorMove:
-        final movePlan = plan._movePlans[item.stepId];
-        if (movePlan == null) {
-          break;
-        }
-        final current = posesByActorId[movePlan.actorId];
-        if (current == null) {
-          break;
-        }
-        final next = _poseForMove(
-          current: current,
-          movePlan: movePlan,
-          item: item,
-          clampedTimeMs: clampedTimeMs,
-        );
-        posesByActorId[movePlan.actorId] = next;
-      case CinematicTimelineStepKind.fade:
-        if (clampedTimeMs >= item.startMs) {
-          final mode = plan._fadeModes[item.stepId];
-          if (mode != null) {
-            fadeState = _fadeStateFor(
+        case CinematicTimelineStepKind.actorJump:
+          final jump = plan._jumpPlans[item.stepId];
+          final current = jump == null ? null : groupStartPoses[jump.actorId];
+          if (!item.supported ||
+              jump == null ||
+              current == null ||
+              !current.hasPosition ||
+              !current.x!.isFinite ||
+              !current.y!.isFinite ||
+              jump.destination == null ||
+              jump.heightCells == null ||
+              jump.facingMode == null) {
+            break;
+          }
+          final destination = jump.destination!;
+          final sampled = sampleCinematicJump(
+            start: (x: current.x!, y: current.y!),
+            end: (x: destination.x, y: destination.y),
+            progress: _timelineItemProgress(item, clampedTimeMs),
+            heightCells: jump.heightCells!,
+          );
+          final facing = _pointAlongRoute([
+            CinematicPreviewPlaybackPoint(
+              x: current.x!,
+              y: current.y!,
+              source: CinematicPreviewPlaybackPointSource.initialPlacement,
+            ),
+            destination,
+          ], 1).facing;
+          posesByActorId[jump.actorId] = current.copyWith(
+            x: sampled.x,
+            y: sampled.y,
+            liftCells: sampled.liftCells,
+            facing: jump.facingMode == CinematicTimelineActorFacingMode.preserve
+                ? current.facing
+                : facing ?? current.facing,
+            source: CinematicActorPlaybackPoseSource.actorJump,
+            isInterpolated:
+                clampedTimeMs > item.startMs && clampedTimeMs < item.endMs,
+            activeStepId: item.stepId,
+          );
+        case CinematicTimelineStepKind.actorMove:
+          final movePlan = plan._movePlans[item.stepId];
+          if (movePlan == null) {
+            break;
+          }
+          final current = groupStartPoses[movePlan.actorId];
+          if (current == null) {
+            break;
+          }
+          final next = _poseForMove(
+            current: current,
+            movePlan: movePlan,
+            item: item,
+            clampedTimeMs: clampedTimeMs,
+          );
+          posesByActorId[movePlan.actorId] = next;
+        case CinematicTimelineStepKind.fade:
+          if (clampedTimeMs >= item.startMs) {
+            final mode = plan._fadeModes[item.stepId];
+            if (mode != null) {
+              fadeState = _fadeStateFor(
+                item: item,
+                mode: mode,
+                clampedTimeMs: clampedTimeMs,
+              );
+            }
+          }
+        case CinematicTimelineStepKind.camera:
+          if (clampedTimeMs >= item.startMs) {
+            cameraPose = _cameraPoseFor(
               item: item,
-              mode: mode,
+              mode: plan._cameraModes[item.stepId],
+              focusBinding: plan._cameraFocusBindings[item.stepId],
+              actorPosesById: groupStartPoses,
+              stagePointsById: plan._stagePointsById,
+              stageBounds: plan._stageBounds,
               clampedTimeMs: clampedTimeMs,
             );
           }
-        }
-      case CinematicTimelineStepKind.camera:
-        if (clampedTimeMs >= item.startMs) {
-          cameraPose = _cameraPoseFor(
-            item: item,
-            mode: plan._cameraModes[item.stepId],
-            focusBinding: plan._cameraFocusBindings[item.stepId],
-            actorPosesById: posesByActorId,
-            stagePointsById: plan._stagePointsById,
-            stageBounds: plan._stageBounds,
-            clampedTimeMs: clampedTimeMs,
-          );
-        }
-      case CinematicTimelineStepKind.wait:
-        break;
-      case CinematicTimelineStepKind.actorAnimation:
-        if (item.containsTime(clampedTimeMs)) {
-          final command = plan._characterAnimationCommands[item.stepId];
-          if (command != null) {
-            final elapsedMs = (clampedTimeMs - item.startMs).clamp(
-              0,
-              item.visualDurationMs,
-            );
-            activeCharacterAnimations.add(
-              CinematicActorCustomAnimationPlaybackState(
-                activeStepId: item.stepId,
-                stepIndex: item.stepIndex,
-                command: command,
-                durationMs: item.visualDurationMs,
-                elapsedMs: elapsedMs,
-                progress: _timelineItemProgress(item, clampedTimeMs),
+        case CinematicTimelineStepKind.wait:
+          break;
+        case CinematicTimelineStepKind.actorAnimation:
+          if (item.containsTime(clampedTimeMs)) {
+            final command = plan._characterAnimationCommands[item.stepId];
+            if (command != null) {
+              final elapsedMs = (clampedTimeMs - item.startMs).clamp(
+                0,
+                item.visualDurationMs,
+              );
+              activeCharacterAnimations.add(
+                CinematicActorCustomAnimationPlaybackState(
+                  activeStepId: item.stepId,
+                  stepIndex: item.stepIndex,
+                  command: command,
+                  durationMs: item.visualDurationMs,
+                  elapsedMs: elapsedMs,
+                  progress: _timelineItemProgress(item, clampedTimeMs),
+                ),
+              );
+            }
+          }
+          break;
+        case CinematicTimelineStepKind.actorEmote:
+          if (item.containsTime(clampedTimeMs)) {
+            activeEmotes.add(
+              _emotePlaybackStateFor(
+                item: item,
+                plan: plan._actorEmotePlans[item.stepId],
+                clampedTimeMs: clampedTimeMs,
               ),
             );
           }
-        }
-        break;
-      case CinematicTimelineStepKind.actorEmote:
-        if (item.containsTime(clampedTimeMs)) {
-          activeEmotes.add(
-            _emotePlaybackStateFor(
-              item: item,
-              plan: plan._actorEmotePlans[item.stepId],
-              clampedTimeMs: clampedTimeMs,
-            ),
-          );
-        }
-        break;
-      case CinematicTimelineStepKind.dialogueLine:
-      case CinematicTimelineStepKind.sound:
-      case CinematicTimelineStepKind.music:
-      case CinematicTimelineStepKind.shake:
-      case CinematicTimelineStepKind.fx:
-      case CinematicTimelineStepKind.marker:
-        break;
+          break;
+        case CinematicTimelineStepKind.dialogueLine:
+        case CinematicTimelineStepKind.sound:
+        case CinematicTimelineStepKind.music:
+        case CinematicTimelineStepKind.shake:
+        case CinematicTimelineStepKind.fx:
+        case CinematicTimelineStepKind.marker:
+          break;
+      }
     }
   }
 
   if (clampedTimeMs == plan.totalDurationMs &&
-      plan.actorCompletionPolicy == CinematicActorCompletionPolicy.restoreInitial) {
+      plan.actorCompletionPolicy ==
+          CinematicActorCompletionPolicy.restoreInitial) {
     for (final track in plan.actorTracks) {
       posesByActorId[track.actorId] = track.initialPose;
     }

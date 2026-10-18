@@ -113,6 +113,7 @@ abstract interface class FlameCinematicRuntimeHost {
 final class FlameCinematicRuntimePlaybackSink
     implements
         CinematicRuntimePlaybackSink,
+        CinematicRuntimeGroupPlaybackSink,
         CinematicRuntimeStepCompletionPolicy,
         CinematicRuntimeAsyncRestorationSink {
   FlameCinematicRuntimePlaybackSink({
@@ -133,17 +134,32 @@ final class FlameCinematicRuntimePlaybackSink
   Vector2? _playbackCameraPosition;
   Vector2? _playbackVisibleGameSize;
   Map<String, FlameCinematicRuntimeActorHandle> _actors = const {};
-  _FlameCinematicStepState? _stepState;
+  String? _selectedStepId;
+  final _stepStates = <String, _FlameCinematicStepState>{};
+  final _animationControllers = <String, CharacterCustomAnimationRuntimeController>{};
+  Map<String, FlameCinematicActorPose> _groupStartPoses = const {};
+  Map<CinematicActorBinding, FlameCinematicActorPose> _groupFinalPoses = const {};
+  _FlameCinematicStepState? get _stepState => _stepStates[_selectedStepId];
+  set _stepState(_FlameCinematicStepState? state) {
+    if (state == null) { _stepStates.remove(_selectedStepId); }
+    else { _stepStates[_selectedStepId!] = state; }
+  }
   bool _dialogueLineSignalled = false;
   Future<CinematicMediaPlaybackCheckpoint>? _mediaCheckpointFuture;
   Future<void>? _pendingMediaOperation;
-  CharacterCustomAnimationRuntimeController? _characterAnimationController;
+  final _pendingMediaByChannel = <String?, Future<void>>{};
+  CharacterCustomAnimationRuntimeController? get _characterAnimationController =>
+      _animationControllers[_selectedStepId];
+  set _characterAnimationController(CharacterCustomAnimationRuntimeController? value) {
+    if (value == null) { _animationControllers.remove(_selectedStepId); }
+    else { _animationControllers[_selectedStepId!] = value; }
+  }
 
   bool get isAwaitingDialogueLineAdvance =>
-      _stepState is _DialogueLineStepState && !_dialogueLineSignalled;
+      _stepStates.values.any((state) => state is _DialogueLineStepState) && !_dialogueLineSignalled;
 
   bool signalDialogueLineComplete() {
-    if (_stepState is! _DialogueLineStepState || _dialogueLineSignalled) {
+    if (!isAwaitingDialogueLineAdvance) {
       return false;
     }
     _dialogueLineSignalled = true;
@@ -238,7 +254,21 @@ final class FlameCinematicRuntimePlaybackSink
   }
 
   @override
+  void beginGroup(List<CinematicRuntimeStepContext> contexts) {
+    if (contexts.isEmpty) return;
+    if (_snapshot == null) _beginSession(contexts.first.asset);
+    _groupStartPoses = {for (final entry in _actors.entries)
+      entry.key: FlameCinematicActorPose(focusX: entry.value.focusPoint.x,
+          focusY: entry.value.focusPoint.y, facing: entry.value.facing)};
+    _groupFinalPoses = _predictedActorPoses(contexts.first.asset,
+        steps: contexts.map((context) => context.step).toList(),
+        includeInitialPlacements: false);
+    for (final context in contexts) { beginStep(context); }
+  }
+
+  @override
   void beginStep(CinematicRuntimeStepContext context) {
+    _selectedStepId = context.step.id;
     if (_snapshot == null) {
       _beginSession(context.asset);
     }
@@ -304,6 +334,7 @@ final class FlameCinematicRuntimePlaybackSink
 
   @override
   void updateStep(CinematicRuntimeStepContext context) {
+    _selectedStepId = context.step.id;
     final state = _stepState;
     if (state == null) {
       throw StateError('No cinematic visual step is active.');
@@ -347,6 +378,7 @@ final class FlameCinematicRuntimePlaybackSink
 
   @override
   bool isStepVisuallyComplete(CinematicRuntimeStepContext context) {
+    _selectedStepId = context.step.id;
     final state = _stepState;
     if (state is _ImmediateStepState) return true;
     if (state is _DialogueLineStepState) return _dialogueLineSignalled;
@@ -362,10 +394,12 @@ final class FlameCinematicRuntimePlaybackSink
 
   @override
   bool requiresSinkCompletion(CinematicRuntimeStepContext context) =>
-      _stepState is _AsyncStepState;
+      _stepStates[context.step.id] is _AsyncStepState ||
+      _stepStates[context.step.id] is _DialogueLineStepState;
 
   @override
   void endStep(CinematicRuntimeStepContext context) {
+    _selectedStepId = context.step.id;
     final state = _stepState;
     if (state == null) return;
     switch (state) {
@@ -394,7 +428,7 @@ final class FlameCinematicRuntimePlaybackSink
         break;
     }
     _stepState = null;
-    _dialogueLineSignalled = false;
+    if (state is _DialogueLineStepState) _dialogueLineSignalled = false;
   }
 
   @override
@@ -470,7 +504,9 @@ final class FlameCinematicRuntimePlaybackSink
     attempt(host.cancelCinematicDialogueAsset);
     attempt(() => host.showCinematicActorEmote(null, null));
     attempt(() => host.setCinematicFadeOpacity(null));
-    attempt(() => _characterAnimationController?.dispose());
+    for (final controller in _animationControllers.values.toList()) {
+      attempt(controller.dispose);
+    }
     for (final actor in _actors.values) {
       if (actor is FlameCinematicJumpActorHandle) {
         attempt(() => actor.setJumpLift(0));
@@ -522,8 +558,12 @@ final class FlameCinematicRuntimePlaybackSink
     _playbackCameraPosition = null;
     _playbackVisibleGameSize = null;
     _actors = const {};
-    _stepState = null;
-    _characterAnimationController = null;
+    _stepStates.clear();
+    _animationControllers.clear();
+    _selectedStepId = null;
+    _groupStartPoses = const {};
+    _groupFinalPoses = const {};
+    _pendingMediaByChannel.clear();
     _dialogueLineSignalled = false;
 
     if (firstError != null) {
@@ -645,7 +685,8 @@ final class FlameCinematicRuntimePlaybackSink
   }
 
   Map<CinematicActorBinding, FlameCinematicActorPose> _predictedActorPoses(
-      CinematicAsset asset) {
+      CinematicAsset asset, {List<CinematicTimelineStep>? steps,
+      bool includeInitialPlacements = true}) {
     final bindings = asset.stageContext?.actorBindings ?? const <CinematicActorBinding>[];
     final poses = <String, FlameCinematicActorPose>{
       for (final binding in bindings)
@@ -655,7 +696,9 @@ final class FlameCinematicRuntimePlaybackSink
           facing: _resolveActor(binding)!.facing,
         ),
     };
-    for (final placement in asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]) {
+    for (final placement in includeInitialPlacements
+        ? asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]
+        : const <CinematicActorInitialPlacement>[]) {
       final point = _initialPlacement(asset, placement);
       final pose = poses[placement.actorId];
       if (point == null || pose == null) continue;
@@ -667,11 +710,18 @@ final class FlameCinematicRuntimePlaybackSink
     }
     final width = (project?.settings.tileWidth ?? 1) * (project?.settings.displayScale ?? 1);
     final height = (project?.settings.tileHeight ?? 1) * (project?.settings.displayScale ?? 1);
-    for (final step in asset.timeline.steps) {
-      final pose = poses[step.actorId];
+    final groups = buildCinematicTimelineSchedule(steps == null ? asset
+        : asset.copyWith(timeline: CinematicTimeline(steps: steps)),
+        timing: CinematicTimelineScheduleTiming.runtime).groups;
+    for (final group in groups) {
+    final before = Map<String, FlameCinematicActorPose>.of(poses);
+    final next = Map<String, FlameCinematicActorPose>.of(poses);
+    for (final member in group.members) {
+      final step = member.step;
+      final pose = before[step.actorId];
       if (pose == null) continue;
       if (step.kind == CinematicTimelineStepKind.actorFace) {
-        poses[step.actorId!] = FlameCinematicActorPose(
+        next[step.actorId!] = FlameCinematicActorPose(
           focusX: pose.focusX, focusY: pose.focusY, facing: _entityFacingOf(step));
       } else if (step.kind == CinematicTimelineStepKind.actorMove ||
           step.kind == CinematicTimelineStepKind.actorJump) {
@@ -682,7 +732,7 @@ final class FlameCinematicRuntimePlaybackSink
         if (targetBinding?.kind == CinematicMovementTargetBindingKind.mapEntity) {
           final binding = bindings.where((binding) => binding.kind == CinematicActorBindingKind.mapEntity &&
               binding.mapEntityId == targetBinding!.sourceId).firstOrNull;
-          final targetPose = poses[binding?.actorId];
+          final targetPose = before[binding?.actorId];
           if (targetPose != null) target = Vector2(targetPose.focusX, targetPose.focusY);
         }
         final previous = route.length > 1 ? route[route.length - 2] : Vector2(pose.focusX, pose.focusY);
@@ -690,13 +740,15 @@ final class FlameCinematicRuntimePlaybackSink
             ? pose.facing
             : _facingBetween(Vector2(previous.x / width, previous.y / height),
                 Vector2(target.x / width, target.y / height), pose.facing);
-        poses[step.actorId!] = FlameCinematicActorPose(focusX: target.x, focusY: target.y, facing: facing);
-        if (step.kind == CinematicTimelineStepKind.actorJump) {
+        next[step.actorId!] = FlameCinematicActorPose(focusX: target.x, focusY: target.y, facing: facing);
+      }
+    }
+    poses..clear()..addAll(next);
+        if (group.members.any((member) => member.step.kind == CinematicTimelineStepKind.actorJump)) {
           (host as FlameCinematicPoseRuntimeHost).validateCinematicActorPoses({
             for (final binding in bindings) binding: poses[binding.actorId]!,
           });
         }
-      }
     }
     return {for (final binding in bindings) binding: poses[binding.actorId]!};
   }
@@ -854,7 +906,7 @@ final class FlameCinematicRuntimePlaybackSink
     _AsyncCharacterAnimationStepState state,
     CharacterCustomAnimationRuntimeResult result,
   ) {
-    if (!identical(_stepState, state) || state.completed) return;
+    if (!_stepStates.values.contains(state) || state.completed) return;
     switch (result.status) {
       case CharacterCustomAnimationRuntimeStatus.completed:
       case CharacterCustomAnimationRuntimeStatus.fallbackApplied:
@@ -877,13 +929,18 @@ final class FlameCinematicRuntimePlaybackSink
         StateError('Cinematic media playback is not initialized.'),
       );
     }
-    final previous = _pendingMediaOperation;
+    final queueChannel = command.channel ?? (command.kind == CinematicMediaPlaybackCommandKind.cancelFx
+        ? mediaAssets.where((asset) => asset.id == command.assetId).firstOrNull?.channel ?? 'fx'
+        : null);
+    final previous = _pendingMediaByChannel[queueChannel];
     final operation = () async {
       if (previous != null) await previous;
       await checkpoint;
       await port.execute(command);
     }();
-    _pendingMediaOperation = operation;
+    _pendingMediaByChannel[queueChannel] = operation;
+    _pendingMediaOperation = Future.wait(_pendingMediaByChannel.values).then((_) {});
+    _pendingMediaOperation!.catchError((Object _) {});
     return operation;
   }
 
@@ -930,13 +987,15 @@ final class FlameCinematicRuntimePlaybackSink
   void _beginActorMoveStep(CinematicRuntimeStepContext context) {
     final actor = _requireActor(context.step.actorId);
     final route = _movementRoute(context.asset, context.step)!;
-    final points = <Vector2>[actor.focusPoint.clone(), ...route];
+    final initial = _groupStartPoses[context.step.actorId];
+    final points = <Vector2>[initial == null ? actor.focusPoint.clone()
+        : Vector2(initial.focusX, initial.focusY), ...route];
     _stepState = _ActorMoveStepState(
       actor: actor,
       points: points,
       preservedFacing: cinematicTimelineActorFacingModeOf(context.step) ==
               CinematicTimelineActorFacingMode.preserve
-          ? actor.facing
+          ? initial?.facing ?? actor.facing
           : null,
       motion: cinematicTimelineActorMovementModeOf(context.step) ==
               CinematicTimelineActorMovementMode.run
@@ -976,7 +1035,7 @@ final class FlameCinematicRuntimePlaybackSink
     final snapshot = _snapshot!;
     (host as FlameCinematicPoseRuntimeHost).validateCinematicActorPoses({
       for (final binding in snapshot.asset.stageContext!.actorBindings)
-        binding: FlameCinematicActorPose(
+        binding: _groupFinalPoses[binding] ?? FlameCinematicActorPose(
           focusX: _requireActor(binding.actorId).focusPoint.x,
           focusY: _requireActor(binding.actorId).focusPoint.y,
           facing: _requireActor(binding.actorId).facing,
@@ -1082,6 +1141,10 @@ final class FlameCinematicRuntimePlaybackSink
     if (binding == null || sourceId == null) return null;
     switch (binding.kind) {
       case CinematicMovementTargetBindingKind.mapEntity:
+        final actorBinding = asset.stageContext?.actorBindings
+            .where((actor) => actor.mapEntityId == sourceId).firstOrNull;
+        final start = _groupStartPoses[actorBinding?.actorId];
+        if (start != null) return Vector2(start.focusX, start.focusY);
         return host.mapEntityFocusPoint(sourceId);
       case CinematicMovementTargetBindingKind.stagePoint:
         for (final point in context.stagePoints) {
@@ -1135,7 +1198,8 @@ final class FlameCinematicRuntimePlaybackSink
     return switch (focus.target.kind) {
       CinematicCameraTargetKind.sceneCenter => host.sceneCenter,
       CinematicCameraTargetKind.actor =>
-        _resolveActorById(asset, focus.target.actorId)?.focusPoint,
+        _groupStartFocusPoint(focus.target.actorId) ??
+            _resolveActorById(asset, focus.target.actorId)?.focusPoint,
       CinematicCameraTargetKind.stagePoint => _stagePointById(
           asset,
           focus.target.stagePointId,
@@ -1149,6 +1213,11 @@ final class FlameCinematicRuntimePlaybackSink
       if (point.id == pointId) return host.stagePointFocusPoint(point);
     }
     return null;
+  }
+
+  Vector2? _groupStartFocusPoint(String? actorId) {
+    final pose = _groupStartPoses[actorId];
+    return pose == null ? null : Vector2(pose.focusX, pose.focusY);
   }
 }
 
@@ -1199,6 +1268,7 @@ SceneCinematicRuntimeAwaitableErrorCode _runtimeErrorCodeFor(
       CinematicPlaybackPreflightIssueKind.invalidTargetReference =>
         SceneCinematicRuntimeAwaitableErrorCode.invalidTargetReference,
       CinematicPlaybackPreflightIssueKind.invalidStep ||
+      CinematicPlaybackPreflightIssueKind.invalidParallelGroup ||
       CinematicPlaybackPreflightIssueKind.missingDialogue ||
       CinematicPlaybackPreflightIssueKind.missingMedia ||
       CinematicPlaybackPreflightIssueKind.mediaTypeMismatch =>

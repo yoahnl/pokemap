@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
 import '../../shared/widgets/layout/studio_timeline_clip.dart';
@@ -90,6 +92,12 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
           );
     final layout = buildCinematicTimelineTimeLayoutReadModel(staged);
     final original = buildCinematicTimelineTimeLayoutReadModel(current);
+    final laneOffsets = <String, int>{};
+    var visualRows = 0;
+    for (final lane in layout.lanes) {
+      laneOffsets[lane.laneId] = visualRows;
+      visualRows += _laneVisualRowCount(lane);
+    }
     final colors = Theme.of(context).colorScheme;
     final rowHeight = math.max(
       42.0,
@@ -117,7 +125,7 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
               constraints.maxWidth - labelWidth - 12,
               layout.totalDurationMs * scale + 32,
             );
-            final height = math.max(80.0, layout.lanes.length * rowHeight + 30);
+            final height = math.max(80.0, visualRows * rowHeight + 30);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -144,7 +152,11 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
                   ),
                   child: Text(
                     insertion == null
-                        ? 'Ordre séquentiel · durées d’aperçu estimées'
+                        ? current.timeline.steps.any(
+                                (step) => step.parallelGroupId != null,
+                              )
+                              ? 'Groupes simultanés · attente de la fin de chaque groupe'
+                              : 'Ordre séquentiel · durées d’aperçu estimées'
                         : 'Insérer en position ${insertion! + 1} · aucune attente ajoutée',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -161,7 +173,7 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
                               const SizedBox(height: 30),
                               for (final lane in layout.lanes)
                                 SizedBox(
-                                  height: rowHeight,
+                                  height: rowHeight * _laneVisualRowCount(lane),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -183,9 +195,9 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
                                           child: Text(
                                             lane.label,
                                             maxLines: 2,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.labelSmall,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall,
                                           ),
                                         ),
                                       ],
@@ -209,13 +221,14 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
                                     child: CustomPaint(
                                       painter: CinematicTimelineGrid(
                                         layout: layout,
+                                        visualRows: visualRows,
                                         scale: scale,
                                         rowHeight: rowHeight,
                                         color: colors.outlineVariant,
                                         text: colors.onSurfaceVariant,
-                                        textStyle: Theme.of(
-                                          context,
-                                        ).textTheme.labelSmall!,
+                                        textStyle: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall!,
                                       ),
                                     ),
                                   ),
@@ -243,7 +256,15 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
                                     for (final block in lane.$2.blocks)
                                       Positioned(
                                         left: block.startMs * scale,
-                                        top: 30 + lane.$1 * rowHeight + 3,
+                                        top:
+                                            30 +
+                                            (laneOffsets[lane.$2.laneId]! +
+                                                    _blockVisualRow(
+                                                      lane.$2,
+                                                      block,
+                                                    )) *
+                                                rowHeight +
+                                            3,
                                         width: math.max(
                                           14,
                                           block.visualDurationMs * scale - 2,
@@ -290,4 +311,31 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
       ),
     );
   }
+}
+
+int _laneVisualRowCount(CinematicTimelineTimeLane lane) {
+  if (lane.laneKind != CinematicTimelineLaneKind.audio) return 1;
+  final counts = <String, int>{};
+  for (final block in lane.blocks) {
+    final group = block.parallelGroupId;
+    if (group != null) counts[group] = (counts[group] ?? 0) + 1;
+  }
+  return counts.values.fold(
+    1,
+    (largest, count) => count > largest ? count : largest,
+  );
+}
+
+int _blockVisualRow(
+  CinematicTimelineTimeLane lane,
+  CinematicTimelineTimeBlock block,
+) {
+  if (lane.laneKind != CinematicTimelineLaneKind.audio ||
+      block.parallelGroupId == null) {
+    return 0;
+  }
+  return lane.blocks
+      .where((member) => member.parallelGroupId == block.parallelGroupId)
+      .toList()
+      .indexOf(block);
 }

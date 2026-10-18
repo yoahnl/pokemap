@@ -1,5 +1,7 @@
+import '../runtime/cinematic_timeline_schedule.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_emote_catalog.dart';
+import '../models/cinematic_media_asset.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 
@@ -804,7 +806,7 @@ CinematicAssetAuthoringResult addCinematicAsset(
   ProjectManifest project,
   CinematicAsset cinematic,
 ) {
-  _validateCinematicShape(cinematic);
+  _validateCinematicShape(cinematic, mediaAssets: project.cinematicMediaAssets);
   _throwIfDuplicateId(
     cinematic.id,
     project.cinematics.map((asset) => asset.id),
@@ -822,7 +824,7 @@ CinematicAssetAuthoringResult updateCinematicAsset(
   ProjectManifest project,
   CinematicAsset cinematic,
 ) {
-  _validateCinematicShape(cinematic);
+  _validateCinematicShape(cinematic, mediaAssets: project.cinematicMediaAssets);
   var found = false;
   final updatedCinematics = <CinematicAsset>[];
   for (final existing in project.cinematics) {
@@ -1958,6 +1960,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorFacingStep(
     ..[cinematicTimelineActorDirectionMetadataKey] = updatedDirection.name;
   final updatedStep = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: _actorFacingLabel(actor),
     durationMs: durationMs == null
@@ -2091,6 +2094,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
             : cinematicTimelineActorPathModeOf(step)!.name;
   final updatedStep = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: _actorMoveLabel(actor),
     durationMs: durationMs == null
@@ -2207,6 +2211,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorJumpStep(
   }
   final updated = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: step.label,
     actorId: actor.actorId,
@@ -2381,6 +2386,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorEmoteStep(
     ..[cinematicTimelineActorEmoteEmoteIdMetadataKey] = emote.id;
   final updatedStep = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: _actorEmoteLabel(actor, emote),
     durationMs: durationMs == null
@@ -2762,6 +2768,7 @@ CinematicStageContextAuthoringResult addCinematicManualPathForActorMove(
 
   final updatedStep = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: step.label,
     durationMs: step.durationMs,
@@ -2891,6 +2898,7 @@ CinematicStageContextAuthoringResult removeCinematicManualPath(
             CinematicTimelineActorPathMode.direct.name;
       final updatedStep = CinematicTimelineStep(
         id: step.id,
+        parallelGroupId: step.parallelGroupId,
         kind: step.kind,
         label: step.label,
         durationMs: step.durationMs,
@@ -3121,6 +3129,7 @@ CinematicTimelineStepUpdateResult setActorMovePathMode(
 
   final updatedStep = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: step.label,
     durationMs: step.durationMs,
@@ -3173,6 +3182,7 @@ CinematicStageContextAuthoringResult clearActorMoveManualPath(
 
   final updatedStep = CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: step.label,
     durationMs: step.durationMs,
@@ -3229,7 +3239,12 @@ void _validateCinematics(List<CinematicAsset> cinematics) {
   }
 }
 
-void _validateCinematicShape(CinematicAsset cinematic) {
+void _validateCinematicShape(CinematicAsset cinematic, {
+  Iterable<CinematicMediaAsset> mediaAssets = const [],
+}) {
+  final schedule = buildCinematicTimelineSchedule(cinematic, mediaAssets: mediaAssets);
+  if (!schedule.isValid) throw ArgumentError(schedule.issues.first.message);
+
   _trimRequired(
     cinematic.id,
     'cinematic.id',
@@ -3609,6 +3624,7 @@ CinematicTimelineStep _copyBasicBlockStepWithParams(
 
   return CinematicTimelineStep(
     id: step.id,
+    parallelGroupId: step.parallelGroupId,
     kind: step.kind,
     label: label,
     durationMs: durationMs == null

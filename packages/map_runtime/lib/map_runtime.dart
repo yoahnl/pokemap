@@ -479,6 +479,9 @@ export 'src/application/scene_runtime/cinematic_runtime_playback_controller.dart
     show
         CinematicRuntimePlaybackController,
         CinematicRuntimePlaybackSink,
+        CinematicRuntimeGroupPlaybackSink,
+        CinematicRuntimeSeekStatus,
+        CinematicRuntimeSeekResult,
         CinematicRuntimeStepCompletionPolicy,
         CinematicRuntimeAsyncRestorationSink,
         CinematicRuntimeSinkPreflightResult,
