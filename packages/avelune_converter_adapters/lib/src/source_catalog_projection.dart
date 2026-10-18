@@ -8,6 +8,7 @@ import 'native_project_writer.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_bindings.dart';
+import 'native_trainer_catalog_qualification.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'native_source_species_bindings.dart';
 
@@ -180,6 +181,7 @@ final class SourceCatalogProjector {
           List<SourcePbsIdentity> requestedTrainerKeys = const [],
           List<SourcePbsIdentity> nativeTrainerKeys = const [],
           NativePsdkCatalog? nativeTrainerBundle,
+          NativeTrainerCatalogQualification? nativeTrainerQualification,
           NativeEncounterCatalogQualification? nativeEncounterQualification,
           NativeEncounterRatePolicy nativeEncounterRatePolicy =
               NativeEncounterRatePolicy.unresolved,
@@ -200,6 +202,7 @@ final class SourceCatalogProjector {
               requestedTrainerKeys,
               nativeTrainerKeys,
               nativeTrainerBundle,
+              nativeTrainerQualification,
               nativeTrainerMovePolicy,
               nativeEncounterQualification,
               nativeEncounterRatePolicy,
@@ -227,6 +230,7 @@ final class _Run {
       this.trainers,
       this.nativeTrainers,
       this.nativeBundle,
+      this.trainerQualification,
       this.nativeMovePolicy,
       this.encounterQualification,
       this.encounterRatePolicy,
@@ -242,6 +246,7 @@ final class _Run {
   final List<SourcePbsIdentity> trainers;
   final List<SourcePbsIdentity> nativeTrainers;
   final NativePsdkCatalog? nativeBundle;
+  final NativeTrainerCatalogQualification? trainerQualification;
   final NativeTrainerMovePolicy nativeMovePolicy;
   final NativeEncounterCatalogQualification? encounterQualification;
   final NativeEncounterRatePolicy encounterRatePolicy;
@@ -565,7 +570,7 @@ final class _Run {
       ],
     };
     documents.clear();
-    final trainerBinding = _bindNativeTrainers();
+    final trainerBinding = await _bindNativeTrainers();
     final encounterBinding = encounterQualification == null
         ? null
         : await const NativeEncounterCatalogBindings().bind(
@@ -737,20 +742,37 @@ final class _Run {
     return result;
   }
 
-  NativeTrainerCatalogBindingResult? _bindNativeTrainers() {
-    if (nativeTrainers.isEmpty) return null;
-    final bundle = nativeBundle;
-    if (bundle == null ||
-        nativeTrainers.any(
-            (key) => !trainers.any((requested) => requested.key == key.key))) {
-      throw ContractError('native_trainer.projection_binding', r'$',
-          'Native trainer bindings require their explicit requested source roots and bundle.');
+  Future<NativeTrainerCatalogBindingResult?> _bindNativeTrainers() async {
+    final qualification = trainerQualification;
+    if (qualification != null) {
+      final bundle = encounterQualification?.bundle ?? nativeBundle;
+      if (bundle == null || nativeMovePolicy != NativeTrainerMovePolicy.nativeAveluneDefaults) {
+        throw ContractError('native_trainer.projection_binding', r'$',
+            'Qualified trainers require their active native catalog and explicit native defaults policy.');
+      }
+      await qualification.validateContext(normalizedSource: source,
+          source: pbs, files: files, nativeCatalog: bundle,
+          requestedTrainers: trainers, cancellation: cancel);
+      for (final refusal in qualification.refusals) {
+        _gap(refusal.code, refusal.message, refusal.identity.key, false, null);
+      }
+      return NativeTrainerCatalogBindingResult(
+          trainers: qualification.trainers,
+          evidence: {
+            'kind': 'nativeTrainerQualificationReference',
+            'version': 1,
+            'qualificationHash': qualification.evidenceHash.value,
+            'nativeCatalogHash': qualification.evidence['nativeCatalogHash'],
+            'qualifiedTrainerIds': qualification.trainers.map((row) => row.id).toList(),
+            'refusals': qualification.refusals.map((row) => row.toJson()).toList(),
+            'battleLogic': 'avelune',
+          });
     }
-    return const NativeTrainerCatalogBindings().bind(
-        source: pbs,
-        requestedTrainers: nativeTrainers,
-        native: bundle,
-        movePolicy: nativeMovePolicy);
+    if (nativeTrainers.isNotEmpty) {
+      throw ContractError('native_trainer.projection_binding', r'$',
+          'Explicit native trainer keys require their exact compiled source qualification.');
+    }
+    return null;
   }
 
   Future<List<Map<String, Object?>>> _publishNativeBundle(

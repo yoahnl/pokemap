@@ -21,6 +21,9 @@ import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_trainer_event_bindings.dart';
+import 'native_psdk_trainer_bundle.dart';
+import 'native_psdk_catalog.dart';
+import 'native_trainer_catalog_qualification.dart';
 import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_field_obstacle_binding.dart';
@@ -36,16 +39,21 @@ final class SourceEventStudyComposition {
   const SourceEventStudyComposition(
       {required this.draft,
       required this.projection,
-      this.musicBindings = const {}});
+      this.musicBindings = const {},
+      this.trainerQualification});
   final NativeProjectDraft draft;
   final SourceEventProjection projection;
   final Map<int, SourceMapMusicBinding> musicBindings;
+  final NativeTrainerCatalogQualification? trainerQualification;
 }
 
 final class SourceEventStudyComposer {
-  const SourceEventStudyComposer({this.nativeEncounterQualification});
+  const SourceEventStudyComposer({this.nativeEncounterQualification,
+      this.nativeTrainerCatalog, this.nativeTrainerQualification});
 
   final NativeEncounterCatalogQualification? nativeEncounterQualification;
+  final NativePsdkCatalog? nativeTrainerCatalog;
+  final NativeTrainerCatalogQualification? nativeTrainerQualification;
 
   Future<SourceEventStudyComposition?> compose({
     required NormalizedSourceProject source,
@@ -56,6 +64,12 @@ final class SourceEventStudyComposer {
   }) async {
     cancellation?.check();
     limits.validate();
+    if (nativeTrainerCatalog != null && nativeEncounterQualification != null &&
+        canonicalHashOf(nativeTrainerCatalog!.toJson(), limits: nativePsdkCatalogShardJsonLimits) !=
+            canonicalHashOf(nativeEncounterQualification!.bundle.toJson(), limits: nativePsdkCatalogShardJsonLimits)) {
+      throw ContractError('native_catalog.encounter_qualification_identity', r'$',
+          'Trainer events require the exact active encounter catalog.');
+    }
     final profile = SourceEventProfile.kantoForProject(source);
     if (!profile.isQualified ||
         !base.compositionEvidence.containsKey('sourceSemantics')) {
@@ -330,6 +344,8 @@ final class SourceEventStudyComposer {
       healingDisplayEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final trainerBindings = await const SourceTrainerEventBindingResolver().read(
+        nativeCatalog: nativeEncounterQualification?.bundle ?? nativeTrainerCatalog,
+        qualification: nativeTrainerQualification,
         source: source, analysis: analysis, files: recording,
         limits: limits, cancellation: cancellation);
     final pokedexReward = await const SourcePokedexRewardBindingResolver().read(
@@ -839,6 +855,7 @@ final class SourceEventStudyComposer {
     return SourceEventStudyComposition(
         projection: projection,
         musicBindings: Map.unmodifiable(musicBindings),
+        trainerQualification: trainerBindings.qualification,
         draft: NativeProjectDraft(
             source: source,
             projectName: base.projectName,

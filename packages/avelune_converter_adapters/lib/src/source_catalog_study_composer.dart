@@ -10,6 +10,8 @@ import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
+import 'source_catalog_selection.dart';
+import 'native_trainer_catalog_qualification.dart';
 import 'source_encounter_consumers.dart';
 import 'source_event_item_bindings.dart';
 import 'source_semantic_study_composer.dart';
@@ -73,11 +75,13 @@ final class SourceCatalogStudyComposer {
           NativeTrainerMovePolicy.nativeAveluneDefaults,
       this.nativeEncounterQualification,
       this.nativeTrainerCatalog,
+      this.nativeTrainerQualification,
       this.automaticNativeEncounters = true,
       this.includeNativeEncounterConsumers = false});
   final NativeTrainerMovePolicy nativeTrainerMovePolicy;
   final NativeEncounterCatalogQualification? nativeEncounterQualification;
   final NativePsdkCatalog? nativeTrainerCatalog;
+  final NativeTrainerCatalogQualification? nativeTrainerQualification;
   final bool automaticNativeEncounters;
   final bool includeNativeEncounterConsumers;
 
@@ -142,21 +146,39 @@ final class SourceCatalogStudyComposer {
                 cancellation: cancellation)
             : null);
     final encounterRelease = encounters?.artifacts(limits: limits);
-    final selection = _catalogSelection(source, base.mapIds.keys.toSet());
+    final selection = sourceCatalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
-    final native = nativeTrainerCatalog ?? NativePsdkTrainerBundle.builtin();
+    final native = encounters?.bundle ?? nativeTrainerCatalog ??
+        NativePsdkCatalogManifest.builtin();
     final sourceEvents = base.compositionEvidence['sourceEvents'];
     final nativePartyTrade =
         sourceEvents is Map && sourceEvents['partyTrade'] is Map;
-    final supported =
-        ((native.evidence['sourceTrainerKeys'] as List?) ?? const [])
-            .cast<String>()
-            .toSet();
-    final nativeKeys = selection.trainers
-        .where((key) =>
-            key.version == 0 &&
-            supported.contains('${key.trainerType},${key.trainerName}'))
-        .toList();
+    final trainerQualification = nativeTrainerQualification ??
+        (selection.trainers.isEmpty || !source.snapshot.entries.any(
+                (entry) => entry.relativePath == 'Data/trainers.dat')
+            ? null
+            : await NativeTrainerCatalogQualification.prepare(
+                normalizedSource: source, source: pbs, files: recording,
+                nativeCatalog: native, requestedTrainers: selection.trainers,
+                cancellation: cancellation));
+    if (trainerQualification != null) {
+      await trainerQualification.validateContext(
+          normalizedSource: source, source: pbs, files: recording,
+          nativeCatalog: native, requestedTrainers: selection.trainers,
+          cancellation: cancellation);
+    }
+    final precedingTrainerBindings = sourceEvents is Map
+        ? sourceEvents['trainerBindings'] : null;
+    final precedingBindings = precedingTrainerBindings is Map
+        ? precedingTrainerBindings['bindings'] : null;
+    if (precedingBindings is List && precedingBindings.any((binding) =>
+        binding is! Map || trainerQualification == null ||
+        binding['qualificationHash'] != trainerQualification.evidenceHash.value ||
+        binding['nativeBundleHash'] != trainerQualification.evidence['nativeCatalogHash'])) {
+      throw const NativeWriteException('catalogs.trainer.event_binding',
+          'Active trainer events require the same exact shared catalog qualification.');
+    }
+    final trainerRelease = trainerQualification?.artifacts(limits: limits);
     var projection = await const SourceCatalogProjector().read(
         source: source,
         pbs: pbs,
@@ -165,8 +187,8 @@ final class SourceCatalogStudyComposer {
         existingItemCatalog: existing?.catalog,
         requestedItemSymbols: selection.items,
         requestedTrainerKeys: selection.trainers,
-        nativeTrainerKeys: nativeKeys,
-        nativeTrainerBundle: nativeKeys.isEmpty &&
+        nativeTrainerQualification: trainerQualification,
+        nativeTrainerBundle: trainerQualification == null &&
                 !nativePartyTrade &&
                 nativeTrainerCatalog == null
             ? null
@@ -220,6 +242,16 @@ final class SourceCatalogStudyComposer {
         'logicalPath': 'assets/converter/$id.json',
         'tags': ['native-encounter-release', 'preserved-native-provenance'],
         'usages': ['converter.nativeEncounterQualificationBytes'],
+      }));
+    }
+    for (final artifact in trainerRelease?.artifacts ?? const <NativeArtifact>[]) {
+      final id = 'native_trainer_release_${artifact.rawSha256.value.substring(0, 24)}';
+      mutations.add(mutation('asset.import', id, {
+        'artifactHandle': artifact.handle,
+        'assetId': id,
+        'logicalPath': 'assets/converter/$id.json',
+        'tags': ['native-trainer-release', 'preserved-native-provenance'],
+        'usages': ['converter.nativeTrainerQualificationBytes'],
       }));
     }
     final nativeCatalogQualified =
@@ -412,6 +444,8 @@ final class SourceCatalogStudyComposer {
       if (consumers != null) 'nativeEncounterConsumers': consumers.evidence,
       if (encounterRelease != null)
         'nativeEncounterRelease': encounterRelease.evidence,
+      if (trainerRelease != null)
+        'nativeTrainerRelease': trainerRelease.evidence,
       'preservedSourceFiles': preservedFiles,
     };
     final companionBytes = utf8.encode(canonicalJsonOf(companionPayload,
@@ -497,6 +531,8 @@ final class SourceCatalogStudyComposer {
       if (consumers != null) 'nativeEncounterConsumers': consumers.evidence,
       if (encounterRelease != null)
         'nativeEncounterRelease': encounterRelease.evidence,
+      if (trainerRelease != null)
+        'nativeTrainerRelease': trainerRelease.evidence,
       'diagnostics':
           projection.diagnostics.map((entry) => entry.toJson()).toList(),
       'requestedItemSymbols': selection.items,
@@ -519,6 +555,7 @@ final class SourceCatalogStudyComposer {
         ...base.artifacts,
         ...projection.artifacts,
         ...?encounterRelease?.artifacts,
+        ...?trainerRelease?.artifacts,
         ...preservedArtifacts.values,
         companion
       ])
@@ -774,136 +811,5 @@ Iterable<(NativeArtifact, int, int)> _catalogSourceChunks(
       offset,
       end - offset
     );
-  }
-}
-
-({List<String> items, List<SourcePbsIdentity> trainers}) _catalogSelection(
-    NormalizedSourceProject source, Set<int> mapIds) {
-  final items = <String>{};
-  final trainers = <String, SourcePbsIdentity>{};
-  for (final map
-      in source.maps.where((entry) => mapIds.contains(entry.map.sourceMapId))) {
-    for (final event in map.map.events) {
-      for (final page in event.pages) {
-        for (final command in page.commands) {
-          String? text;
-          if (command.code == 355 &&
-              command.parameters.length == 1 &&
-              command.parameters.single is String) {
-            text = command.parameters.single as String;
-          } else if (command.code == 111 &&
-              command.parameters.length == 2 &&
-              command.parameters.first == 12 &&
-              command.parameters.last is String) {
-            text = command.parameters.last as String;
-          }
-          if (text == null) continue;
-          final call = _CatalogLiteralCall.read(text);
-          if (call == null || call.arguments.isEmpty) continue;
-          final first = call.arguments.first;
-          if (first.$1 != 'symbol') continue;
-          if ((call.name == 'pbItemBall' || call.name == 'pbReceiveItem') &&
-              (call.arguments.length == 1 ||
-                  (call.arguments.length == 2 &&
-                      call.arguments[1].$1 == 'integer'))) {
-            items.add(first.$2);
-          } else if ((call.name == 'TrainerBattle.start' ||
-                  (call.name == 'pbTrainerBattle' &&
-                      call.arguments.length == 2)) &&
-              call.arguments.length >= 2 &&
-              call.arguments.length <= 3 &&
-              call.arguments[1].$1 == 'string' &&
-              (call.arguments.length == 2 ||
-                  call.arguments[2].$1 == 'integer')) {
-            final identity = SourcePbsIdentity(
-                namespace: source.snapshot.logicalProjectNamespace,
-                family: SourcePbsFamily.trainers,
-                trainerType: first.$2,
-                trainerName: call.arguments[1].$2,
-                version: call.arguments.length == 3
-                    ? int.parse(call.arguments[2].$2)
-                    : 0);
-            trainers[identity.key] = identity;
-          }
-        }
-      }
-    }
-  }
-  return (
-    items: items.toList()..sort(),
-    trainers: trainers.values.toList()..sort((a, b) => a.key.compareTo(b.key))
-  );
-}
-
-final class _CatalogLiteralCall {
-  const _CatalogLiteralCall(this.name, this.arguments);
-  final String name;
-  final List<(String, String)> arguments;
-
-  static _CatalogLiteralCall? read(String text) {
-    final match = RegExp(
-            r'^(pbItemBall|pbReceiveItem|pbTrainerBattle|TrainerBattle\.start)\s*\((.*)\)$',
-            dotAll: true)
-        .firstMatch(text.trim());
-    if (match == null) return null;
-    final body = match[2]!;
-    final arguments = <(String, String)>[];
-    var offset = 0;
-    void space() {
-      while (offset < body.length && RegExp(r'\s').hasMatch(body[offset])) {
-        offset++;
-      }
-    }
-
-    while (offset < body.length) {
-      space();
-      if (offset == body.length) return null;
-      final unit = body[offset];
-      if (unit == ':') {
-        offset++;
-        final symbol = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*')
-            .firstMatch(body.substring(offset));
-        if (symbol == null) return null;
-        arguments.add(('symbol', symbol[0]!));
-        offset += symbol[0]!.length;
-      } else if (unit == '"' || unit == "'") {
-        offset++;
-        final value = StringBuffer();
-        var ended = false;
-        while (offset < body.length) {
-          final character = body[offset++];
-          if (character == unit) {
-            ended = true;
-            break;
-          }
-          if (character == r'\') {
-            return null;
-          } else {
-            value.write(character);
-          }
-        }
-        final literal = value.toString();
-        if (!ended ||
-            (unit == '"' &&
-                (literal.contains(r'#{') ||
-                    literal.contains('#@') ||
-                    literal.contains(r'#$')))) {
-          return null;
-        }
-        arguments.add(('string', literal));
-      } else {
-        final integer =
-            RegExp(r'^(0|[1-9][0-9]{0,9})').firstMatch(body.substring(offset));
-        if (integer == null || int.parse(integer[0]!) > 2147483647) return null;
-        arguments.add(('integer', integer[0]!));
-        offset += integer[0]!.length;
-      }
-      space();
-      if (offset == body.length) break;
-      if (body[offset++] != ',') return null;
-      space();
-      if (offset == body.length || arguments.length >= 3) return null;
-    }
-    return _CatalogLiteralCall(match[1]!, List.unmodifiable(arguments));
   }
 }

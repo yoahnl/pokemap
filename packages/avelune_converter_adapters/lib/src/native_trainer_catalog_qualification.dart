@@ -435,6 +435,52 @@ final class NativeTrainerCatalogQualification {
     return NativeTrainerCatalogQualification._(trainers, refusals, evidence);
   }
 
+  Future<void> validateContext({
+    required NormalizedSourceProject normalizedSource,
+    required SourcePbsProject source,
+    required SourceFilePort files,
+    required NativePsdkCatalog nativeCatalog,
+    required Iterable<SourcePbsIdentity> requestedTrainers,
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    final requested = {for (final identity in requestedTrainers) identity.key}
+        .toList()
+      ..sort();
+    final qualified = (evidence['requestedTrainers'] as List)
+        .map((row) => canonicalJsonOf(row))
+        .toList()
+      ..sort();
+    if (evidence['sourceSnapshotHash'] !=
+            normalizedSource.snapshot.canonicalHash.value ||
+        evidence['normalizationHash'] != normalizedSource.canonicalHash.value ||
+        evidence['sourcePbsHash'] != source.canonicalHash.value ||
+        source.sourceSnapshotHash != normalizedSource.snapshot.canonicalHash ||
+        evidence['nativeCatalogHash'] != _catalogHash(nativeCatalog) ||
+        canonicalJsonOf(requested) != canonicalJsonOf(qualified)) {
+      _invalid('context_binding',
+          'Trainer qualification requires its exact source, normalization, PBS, active catalog and requested identities.');
+    }
+    final pbsFiles =
+        source.documents.map((document) => document.file.fileId).toSet();
+    for (final entry in normalizedSource.snapshot.entries.where((entry) =>
+        pbsFiles.contains(entry.fileId) ||
+        entry.relativePath == 'Data/trainers.dat' ||
+        entry.relativePath == 'Data/species.dat')) {
+      final bytes = await files.read(entry.fileId);
+      cancellation?.check();
+      if (bytes.length != entry.byteLength ||
+          crypto.sha256.convert(bytes).toString() != entry.sha256?.value) {
+        _invalid('source_changed',
+            'Trainer source bytes changed after qualification.');
+      }
+    }
+    if (evidence['nativeCatalogHash'] != _catalogHash(nativeCatalog)) {
+      _invalid('catalog_changed',
+          'The active native catalog changed while source witnesses were read.');
+    }
+  }
+
   NativeTrainerQualificationArtifacts artifacts(
       {NativeWriteLimits limits = const NativeWriteLimits()}) {
     limits.validate();

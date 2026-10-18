@@ -4,15 +4,20 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_trainer_catalog_bindings.dart';
+import 'native_trainer_catalog_qualification.dart';
+import 'native_psdk_catalog.dart';
+import 'source_catalog_selection.dart';
 
 final class SourceTrainerEventBindings {
   SourceTrainerEventBindings._(
       Map<ConverterId, SourceTrainerEventBinding> bindings,
-      Map<ConverterId, String> refusals)
+      Map<ConverterId, String> refusals,
+      this.qualification)
       : byEventIdentity = Map.unmodifiable(bindings),
         refusals = Map.unmodifiable(refusals);
   final Map<ConverterId, SourceTrainerEventBinding> byEventIdentity;
   final Map<ConverterId, String> refusals;
+  final NativeTrainerCatalogQualification? qualification;
 }
 
 final class SourceTrainerEventBinding {
@@ -25,7 +30,7 @@ final class SourceTrainerEventBinding {
     required this.profileHash,
     required this.sourceTrainerPbsHash,
     required this.nativeBundleHash,
-    required this.referenceRosterHash,
+    required this.qualificationHash,
     required this.loseText,
     required this.loseTextLocator,
     required this.eventIdentity,
@@ -44,7 +49,7 @@ final class SourceTrainerEventBinding {
       profileHash,
       sourceTrainerPbsHash,
       nativeBundleHash,
-      referenceRosterHash,
+      qualificationHash,
       nativeTrainerHash,
       eventHash;
   final String? loseText;
@@ -95,9 +100,7 @@ final class SourceTrainerEventBinding {
         'profileHash': profileHash.value,
         'sourceTrainerPbsHash': sourceTrainerPbsHash.value,
         'sourceRosterFile': sourceRosterFile.toJson(),
-        'referenceRosterHash': referenceRosterHash.value,
-        'sourceRosterMatchesReference':
-            sourceRosterFile.sha256 == referenceRosterHash,
+        'qualificationHash': qualificationHash.value,
         'nativeBundleHash': nativeBundleHash.value,
         'nativeTrainerId': nativeTrainer.id,
         'nativeTrainerHash': nativeTrainerHash.value,
@@ -127,6 +130,8 @@ final class SourceTrainerEventBindingResolver {
     required NormalizedSourceProject source,
     required SourceEventAnalysis analysis,
     required SourceFilePort files,
+    NativePsdkCatalog? nativeCatalog,
+    NativeTrainerCatalogQualification? qualification,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -148,19 +153,47 @@ final class SourceTrainerEventBindingResolver {
       ..sort(
           (left, right) => left.identity.value.compareTo(right.identity.value));
     if (candidates.isEmpty || !analysis.profile.isQualified) {
-      return SourceTrainerEventBindings._(bindings, refusals);
+      return SourceTrainerEventBindings._(bindings, refusals, qualification);
     }
     final pbs = await const SourcePbsParser().read(
-        snapshot: source.snapshot,
-        files: files,
-        families: const {SourcePbsFamily.trainers},
-        cancellation: cancellation);
+        snapshot: source.snapshot, files: files, cancellation: cancellation);
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
             .analyze();
-    final native = NativePsdkTrainerBundle.builtin();
-    final referenceRoster = native.evidence['sourceRosterFile'] as Map;
-    final nativeHash = canonicalHashOf(native.toJson());
+    final native = nativeCatalog ?? NativePsdkCatalogManifest.builtin();
+    final requested =
+        sourceCatalogSelection(source, source.selectedSourceMapIds.toSet())
+            .trainers;
+    if (!source.snapshot.entries
+        .any((entry) => entry.relativePath == 'Data/trainers.dat')) {
+      for (final event in candidates) {
+        refusals[event.identity] = 'native_trainer.compiled_witness';
+      }
+      return SourceTrainerEventBindings._(bindings, refusals, null);
+    }
+    qualification ??= await NativeTrainerCatalogQualification.prepare(
+        normalizedSource: source,
+        source: pbs,
+        files: files,
+        nativeCatalog: native,
+        requestedTrainers: requested,
+        cancellation: cancellation);
+    await qualification.validateContext(
+        normalizedSource: source,
+        source: pbs,
+        files: files,
+        nativeCatalog: native,
+        requestedTrainers: requested,
+        cancellation: cancellation);
+    final nativeHash = canonicalHashOf(native.toJson(),
+        limits: nativePsdkCatalogShardJsonLimits);
+    final qualified = {
+      for (final trainer in qualification.trainers) trainer.id: trainer
+    };
+    final rejected = {
+      for (final refusal in qualification.refusals)
+        refusal.identity.key: refusal
+    };
     for (final event in candidates) {
       cancellation?.check();
       try {
@@ -194,6 +227,15 @@ final class SourceTrainerEventBindingResolver {
             trainerType: program.trainerType,
             trainerName: program.trainerName,
             version: program.trainerVersion);
+        final refusal = rejected[identity.key];
+        if (refusal != null) {
+          throw ContractError(refusal.code, identity.key, refusal.message);
+        }
+        final trainer = qualified[identity.sourceId.value];
+        if (trainer == null) {
+          throw ContractError('native_trainer.request_missing', identity.key,
+              'The complete program requires its exact shared qualification.');
+        }
         final entry = pbs.lookup(identity);
         if (entry == null ||
             entry.fields.any((field) =>
@@ -211,22 +253,16 @@ final class SourceTrainerEventBindingResolver {
         }
         final document = pbs.documents.singleWhere((document) =>
             document.file.relativePath == entry.headerLocator.file);
-        final result = const NativeTrainerCatalogBindings().bind(
-            source: pbs,
-            requestedTrainers: [identity],
-            native: native,
-            movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults);
         final binding = SourceTrainerEventBinding._(
             sourceIdentity: identity,
-            nativeTrainer: result.trainers.single,
+            nativeTrainer: trainer,
             sourceRosterFile: document.file,
             sourceSnapshotHash: source.snapshot.canonicalHash,
             normalizationHash: source.canonicalHash,
             profileHash: analysis.profile.canonicalHash,
             sourceTrainerPbsHash: pbs.canonicalHash,
             nativeBundleHash: nativeHash,
-            referenceRosterHash:
-                Sha256Hash(referenceRoster['sha256'] as String),
+            qualificationHash: qualification.evidenceHash,
             loseText: loseText?.values.single,
             loseTextLocator: loseText?.locator,
             eventIdentity: event.identity,
@@ -246,7 +282,7 @@ final class SourceTrainerEventBindingResolver {
         refusals[event.identity] = error.code;
       }
     }
-    return SourceTrainerEventBindings._(bindings, refusals);
+    return SourceTrainerEventBindings._(bindings, refusals, qualification);
   }
 }
 

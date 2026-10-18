@@ -22,6 +22,8 @@ import 'source_event_study_composer.dart';
 import 'source_event_arrival_validation.dart';
 import 'source_catalog_study_composer.dart';
 import 'native_encounter_catalog_qualification.dart';
+import 'native_trainer_catalog_qualification.dart';
+import 'native_psdk_catalog.dart';
 import 'source_catalog_projection.dart';
 import 'native_source_event_atlas_admission.dart';
 import 'native_mutation_batches.dart';
@@ -2617,6 +2619,23 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
         : NativeEncounterCatalogQualification.fromArtifacts(
             evidence: Map<String, Object?>.from(release as Map), artifacts: draft.artifacts,
             limits: limits);
+    final trainerRelease = catalogRaw is Map ? catalogRaw['nativeTrainerRelease'] : null;
+    final trainerCatalog = nativeEncounters?.bundle ??
+        NativePsdkCatalogManifest.builtin();
+    final explicitTrainerCatalog = catalogRaw is Map &&
+        catalogRaw['automaticEncounterReleaseSuppressedForExplicitCatalog'] == true;
+    NativeTrainerCatalogQualification? nativeTrainers;
+    if (trainerRelease != null) {
+      final trainerEvidence = Map<String, Object?>.from(trainerRelease as Map);
+      final handles = (trainerEvidence['chunks'] as List)
+          .map((row) => (row as Map)['handle']).toSet();
+      nativeTrainers = await NativeTrainerCatalogQualification.fromArtifacts(
+          evidence: trainerEvidence,
+          artifacts: draft.artifacts.where((artifact) => handles.contains(artifact.handle)),
+          normalizedSource: draft.source, files: _WitnessSourceFiles(files),
+          nativeCatalog: trainerCatalog, writeLimits: limits,
+          cancellation: cancellation);
+    }
     if (includeSurf && nativeEncounters == null) {
       throw const FormatException('Surf traversal requires its exact native encounter release');
     }
@@ -2648,7 +2667,9 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     }
     if (eventRaw != null) {
       eventComposition = await SourceEventStudyComposer(
-          nativeEncounterQualification: nativeEncounters).compose(
+          nativeEncounterQualification: nativeEncounters,
+          nativeTrainerCatalog: trainerCatalog,
+          nativeTrainerQualification: nativeTrainers).compose(
           source: draft.source,
           base: regenerated,
           files: _WitnessSourceFiles(files),
@@ -2671,6 +2692,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
       catalogComposition = await SourceCatalogStudyComposer(
               automaticNativeEncounters: automaticEncounters,
               nativeEncounterQualification: nativeEncounters,
+              nativeTrainerQualification: nativeTrainers,
+              nativeTrainerCatalog: explicitTrainerCatalog ? trainerCatalog : null,
               includeNativeEncounterConsumers:
                   catalogRaw['includeNativeEncounterConsumers'] == true)
           .compose(

@@ -44,6 +44,7 @@ Future<(NormalizedSourceProject, SourceFilePort)> _source(
       .singleWhere((entry) => entry.value == 'PBS/trainers.txt')
       .key;
   final rosterBytes = await File('$sourceRoot/PBS/trainers.txt').readAsBytes();
+  final changedFiles = <ConverterId>{};
   if (unrelatedRosterChange) {
     bytes[rosterId] = [
       ...rosterBytes,
@@ -60,7 +61,38 @@ Future<(NormalizedSourceProject, SourceFilePort)> _source(
         'LoseText = WHAT? What a total waste of time!',
         'LoseText = $loseTextOverride'));
   }
-  final rosterChanged = bytes.containsKey(rosterId);
+  if (bytes.containsKey(rosterId)) changedFiles.add(rosterId);
+  if (loseTextOverride != null) {
+    final compiledId = paths.entries
+        .singleWhere((entry) => entry.value == 'Data/trainers.dat')
+        .key;
+    final compiled = await File('$sourceRoot/Data/trainers.dat').readAsBytes();
+    final before = utf8.encode('WHAT? What a total waste of time!');
+    final pattern = [34, before.length + 5, ...before];
+    final offsets = <int>[];
+    for (var offset = 0; offset <= compiled.length - pattern.length; offset++) {
+      if (pattern.indexed
+          .every((entry) => compiled[offset + entry.$1] == entry.$2)) {
+        offsets.add(offset);
+      }
+    }
+    if (offsets.length != 1) {
+      throw StateError('Expected one exact compiled Brent LoseText witness');
+    }
+    final after = utf8.encode(loseTextOverride);
+    if (after.length > 122) {
+      throw StateError(
+          'The controlled fixture requires a short Marshal literal');
+    }
+    bytes[compiledId] = [
+      ...compiled.take(offsets.single),
+      34,
+      after.isEmpty ? 0 : after.length + 5,
+      ...after,
+      ...compiled.skip(offsets.single + pattern.length),
+    ];
+    changedFiles.add(compiledId);
+  }
   final files = _Files(bytes, paths, sourceRoot);
   final snapshot = SourceSnapshot(
       logicalProjectNamespace:
@@ -72,13 +104,17 @@ Future<(NormalizedSourceProject, SourceFilePort)> _source(
               fileId: ConverterId(row['fileId'] as String),
               relativePath: row['relativePath'] as String,
               kind: SourceNodeKind.values.byName(row['kind'] as String),
-              byteLength: row['fileId'] == rosterId.value && rosterChanged
-                  ? bytes[rosterId]!.length
-                  : row['byteLength'] as int,
+              byteLength:
+                  changedFiles.contains(ConverterId(row['fileId'] as String))
+                      ? bytes[ConverterId(row['fileId'] as String)]!.length
+                      : row['byteLength'] as int,
               sha256: row['sha256'] == null
                   ? null
-                  : Sha256Hash(row['fileId'] == rosterId.value && rosterChanged
-                      ? crypto.sha256.convert(bytes[rosterId]!).toString()
+                  : Sha256Hash(changedFiles
+                          .contains(ConverterId(row['fileId'] as String))
+                      ? crypto.sha256
+                          .convert(bytes[ConverterId(row['fileId'] as String)]!)
+                          .toString()
                       : row['sha256'] as String),
               format: row['format'] as String,
               family: row['family'] as String)

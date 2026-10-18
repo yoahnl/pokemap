@@ -112,6 +112,13 @@ final class LiteralFixtureObject {
   final Map<String, Object?> fields;
 }
 
+final class LiteralFixtureSymbol {
+  const LiteralFixtureSymbol(this.value);
+  final String value;
+}
+
+List<int> literalFixtureMarshal(Object? value) => _Marshal().dump(value);
+
 final class LiteralFixtureTileset {
   LiteralFixtureTileset({
     required this.id,
@@ -472,6 +479,7 @@ final class _Marshal {
   }
 
   List<int> _value(Object? value) {
+    if (value is LiteralFixtureSymbol) return _symbol(value.value);
     if (value is LiteralFixtureObject) {
       return _value(_Object(value.name, value.fields));
     }

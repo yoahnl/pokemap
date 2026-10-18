@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:avelune_converter_adapters/src/native_encounter_catalog_bindings.dart';
 import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
 import 'package:avelune_converter_adapters/src/native_trainer_catalog_bindings.dart';
+import 'package:avelune_converter_adapters/src/native_trainer_catalog_qualification.dart';
 import 'package:avelune_converter_adapters/src/source_catalog_projection.dart';
 import 'package:avelune_converter_adapters/src/source_catalog_study_composer.dart';
 import 'package:avelune_converter_adapters/src/source_semantic_study_composer.dart';
@@ -17,6 +18,7 @@ import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
 import 'support/native_media_source_fixture.dart';
+import 'support/native_trainer_fixture.dart';
 
 List<int> _symbol(String text) => [58, text.length + 5, ...utf8.encode(text)];
 List<int> _compiled(String symbol) => [
@@ -297,20 +299,24 @@ void main() {
       () async {
     final source = await _source(extraFiles: {
       ...nativeMedia(),
-      'PBS/trainers.txt': utf8.encode(
-          '[FRLG_BUGCATCHER,Brent]\nPokemon = BEEDRILL,19\nPokemon = BEEDRILL,19\n'),
+      ...nativeTrainerFixtureFiles([(type: 'FRLG_BUGCATCHER', name: 'Brent', version: 0)],
+          team: const [(species: 'BEEDRILL', level: 19), (species: 'BEEDRILL', level: 19)]),
     });
     final key = source.pbs.entries
         .singleWhere((entry) => entry.family == SourcePbsFamily.trainers)
         .identity!;
+    final trainerQualification = await NativeTrainerCatalogQualification.prepare(
+        normalizedSource: source.fixture.source, source: source.pbs,
+        files: source.fixture.files, nativeCatalog: qualification.bundle,
+        requestedTrainers: [key]);
     final result = await const SourceCatalogProjector().read(
         source: source.fixture.source,
         pbs: source.pbs,
         files: source.fixture.files,
         nativeMapIds: {98: 'native-route9'},
         requestedTrainerKeys: [key],
-        nativeTrainerKeys: [key],
-        nativeTrainerBundle: NativePsdkTrainerBundle.builtin(),
+        nativeTrainerQualification: trainerQualification,
+        nativeTrainerBundle: qualification.bundle,
         nativeTrainerMovePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults,
         nativeEncounterQualification: qualification,
         nativeEncounterRatePolicy: NativeEncounterRatePolicy

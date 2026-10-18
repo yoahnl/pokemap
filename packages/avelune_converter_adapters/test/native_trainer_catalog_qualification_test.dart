@@ -309,13 +309,18 @@ Future<void> _realOracle(String studyPath) async {
     root.replaceFirst(' - Kanto', ' - Johto'),
     root.replaceFirst(' - Kanto', ' - Hoenn')
   ]);
-  final normalized = await const RmxpSourceNormalizer()
-      .normalize(snapshot: snapshot, files: files, selectedMapIds: {56});
-  final pbs =
-      await const SourcePbsParser().read(snapshot: snapshot, files: files);
   final audit = jsonDecode(
       await File('$studyPath/real_trainer_versions_audit/current.json')
           .readAsString()) as Map;
+  final normalized = await const RmxpSourceNormalizer().normalize(
+      snapshot: snapshot,
+      files: files,
+      selectedMapIds: {
+        for (final row in audit['programs'] as List) row['mapId'] as int
+      },
+      includeEventSystem: true);
+  final pbs =
+      await const SourcePbsParser().read(snapshot: snapshot, files: files);
   expect(audit['sourceSnapshotHash'], snapshot.canonicalHash.value);
   final requested = [
     for (final row in audit['programs'] as List)
@@ -332,12 +337,22 @@ Future<void> _realOracle(String studyPath) async {
       files: files,
       nativeCatalog: catalog,
       requestedTrainers: requested);
+  expect(files.reads['Data/trainers.dat'], 1);
+  expect(files.reads['Data/species.dat'], 1);
+  final analysis = SourceEventAnalyzer.forProject(normalized,
+          profile: SourceEventProfile.kantoForProject(normalized))
+      .analyze();
+  final eventBindings = await const SourceTrainerEventBindingResolver()
+      .read(source: normalized, analysis: analysis, files: files);
+  expect(eventBindings.byEventIdentity, hasLength(197),
+      reason: eventBindings.refusals.toString());
+  expect(eventBindings.refusals, hasLength(1));
+  expect(eventBindings.refusals.values.single, 'native_trainer.pbs_missing');
   expect(result.trainers, hasLength(189));
   expect(result.refusals, hasLength(1));
   expect(result.refusals.single.identity.trainerName, 'ARTHUR');
   expect(result.refusals.single.code, 'native_trainer.pbs_missing');
-  expect(files.reads['Data/trainers.dat'], 1);
-  expect(files.reads['Data/species.dat'], 1);
+
   expect(result.trainers.fold<int>(0, (count, row) => count + row.team.length),
       451);
   final limits =
@@ -567,6 +582,81 @@ void main() {
     ]);
     expect(result.trainers, hasLength(1));
     expect(result.refusals.single.code, 'native_trainer.pbs_missing');
+  });
+
+  test('a shared qualification rejects missing or additional selected roots',
+      () async {
+    final source = await _source([_roster(), _roster(name: 'Other')]);
+    final first = _key(source.pbs.logicalProjectNamespace);
+    final second = _key(source.pbs.logicalProjectNamespace, name: 'Other');
+    final subset = await _prepare(source, requested: [first]);
+    final complete = await _prepare(source, requested: [first, second]);
+    final catalog = NativePsdkTrainerBundle.builtin();
+    for (final request in [
+      (subset, [first, second]),
+      (complete, [first])
+    ]) {
+      await expectLater(
+          request.$1.validateContext(
+              normalizedSource: source.fixture.source,
+              source: source.pbs,
+              files: source.fixture.files,
+              nativeCatalog: catalog,
+              requestedTrainers: request.$2),
+          _error('native_trainer.context_binding'));
+    }
+    await complete.validateContext(
+        normalizedSource: source.fixture.source,
+        source: source.pbs,
+        files: source.fixture.files,
+        nativeCatalog: catalog,
+        requestedTrainers: [second, first, first]);
+  });
+
+  test('shared qualification rejects catalog and source bytes changing',
+      () async {
+    final source = await _source([_roster()]);
+    final qualification = await _prepare(source);
+    final keys = [_key(source.pbs.logicalProjectNamespace)];
+    await expectLater(
+        qualification.validateContext(
+            normalizedSource: source.fixture.source,
+            source: source.pbs,
+            files: source.fixture.files,
+            nativeCatalog: NativePsdkCatalogManifest.builtin(),
+            requestedTrainers: keys),
+        _error('native_trainer.context_binding'));
+    source.fixture.files.overrides['PBS/trainers.txt'] = [
+      ...source.fixture.files.bytes['PBS/trainers.txt']!,
+      10,
+    ];
+    await expectLater(
+        qualification.validateContext(
+            normalizedSource: source.fixture.source,
+            source: source.pbs,
+            files: source.fixture.files,
+            nativeCatalog: NativePsdkTrainerBundle.builtin(),
+            requestedTrainers: keys),
+        _error('native_trainer.source_changed'));
+  });
+
+  test('shared context rejects a native catalog changing during source reads',
+      () async {
+    final source = await _source([_roster()]);
+    final catalog = NativePsdkTrainerBundle.builtin();
+    final qualification = await _prepare(source, catalog: catalog);
+    source.fixture.files.onRead = (_) {
+      catalog.speciesById['rattata']!.names['en'] =
+          'Altered during source read';
+    };
+    await expectLater(
+        qualification.validateContext(
+            normalizedSource: source.fixture.source,
+            source: source.pbs,
+            files: source.fixture.files,
+            nativeCatalog: catalog,
+            requestedTrainers: [_key(source.pbs.logicalProjectNamespace)]),
+        _error('native_trainer.catalog_changed'));
   });
 
   test('a duplicated Grunt40 PBS identity is a local refusal', () async {

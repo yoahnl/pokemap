@@ -152,9 +152,10 @@ void main() {
           r'EndSpeech: WHAT?\nWhat a total waste of time!');
       expect(binding.toJson()['sourceScriptsExecuted'], 0);
       expect(binding.toJson()['nativeExecutionQualified'], isFalse);
-      expect(binding.toJson()['sourceRosterMatchesReference'], isTrue);
-      expect(binding.toJson()['referenceRosterHash'],
-          '7a6da9584c291c7bb2a68748357058ae484476784c30f4ee05faf798102c09b9');
+      expect(binding.toJson()['qualificationHash'],
+          bindings.qualification!.evidenceHash.value);
+      expect(binding.nativeBundleHash.value,
+          bindings.qualification!.evidence['nativeCatalogHash']);
     });
 
     test('binding rejects a different event and mismatched profile', () {
@@ -242,7 +243,7 @@ void main() {
       expect(result.byEventIdentity.containsKey(changed.eventIdentity(98, 1)),
           isFalse);
       expect(result.refusals[changed.eventIdentity(98, 1)],
-          'events.trainer.header_unsupported');
+          'native_trainer.trainer_override');
     });
 
     test('attested unrelated roster change preserves exact trainer bindings',
@@ -259,7 +260,9 @@ void main() {
       final before = bindings.byEventIdentity[source.eventIdentity(98, 1)]!;
       final after = result.byEventIdentity[changed.eventIdentity(98, 1)]!;
       expect(after.nativeTrainerHash, before.nativeTrainerHash);
-      expect(after.toJson()['sourceRosterMatchesReference'], isFalse);
+      expect(
+          after.sourceRosterFile.sha256, isNot(before.sourceRosterFile.sha256));
+      expect(after.qualificationHash, isNot(before.qualificationHash));
       expect(
           before.isBoundToEvent(
               source: changed,

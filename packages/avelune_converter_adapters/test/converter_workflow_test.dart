@@ -14,6 +14,7 @@ import 'support/literal_tile_fixture.dart';
 import 'support/original_autotile_fixture.dart';
 import 'support/source_map_music_fixture.dart';
 import 'support/native_media_source_fixture.dart';
+import 'support/native_trainer_fixture.dart';
 
 void main() {
   test(
@@ -76,7 +77,7 @@ void main() {
 
   final catalogScripts = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   test(
-      'one-map default workflow admits the full automatic catalog with distinct media',
+      'one-map default workflow prepares and writes the shared versioned trainer qualification',
       () async {
     final catalog = NativePsdkCatalogManifest.builtin();
     final nativeFiles = nativeMediaSourceFiles(catalog, sourceSymbols: const {
@@ -95,17 +96,19 @@ void main() {
         scriptsBytes: await File(catalogScripts!).readAsBytes(),
         includeEventSystem: true,
         maps: [
-          LiteralFixtureMap(id: 98, layers: [
-            [384, 384, 384],
-            [0, 0, 0],
-            [0, 0, 0]
-          ])
+          LiteralFixtureMap(id: 98, width: 4, height: 3,
+              layers: [List.filled(12, 384), List.filled(12, 0), List.filled(12, 0)],
+              events: [nativeTrainerFixtureEvent(
+                  (type: 'ARBITRARY', name: 'Jóey', version: 7), 1)])
         ],
         tilesets: [
           LiteralFixtureTileset(id: 1, terrainTags: {384: 2})
         ],
         extraFiles: {
           ...nativeFiles,
+          ...nativeTrainerFixtureFiles([(type: 'ARBITRARY', name: 'Jóey', version: 7)]),
+          'Graphics/Characters/OriginalTrainer.png': image.encodePng(
+              image.Image(width: 128, height: 128, numChannels: 4)),
           'PBS/encounters.txt':
               utf8.encode('[98]\nLand,11\n100,RATTATA,14,14\n'),
           'Data/items.dat': await File.fromUri(
@@ -141,6 +144,20 @@ void main() {
           as Map)['projection'] as Map;
       expect(evidence['nativeEncounterBindings'], isA<Map>());
       expect(evidence['nativeMediaSpeciesBindings'], isA<Map>());
+      final trainerEvidence = (draft.compositionEvidence['sourceEvents'] as Map)['trainerBindings'] as Map;
+      expect(trainerEvidence['bindings'] as List, hasLength(1));
+      expect(trainerEvidence['refusals'], isEmpty);
+      final binding = (trainerEvidence['bindings'] as List).single as Map;
+      expect((binding['sourceIdentity'] as Map)['version'], 7);
+      expect((binding['sourceIdentity'] as Map)['trainerName'], 'Jóey');
+      final release = (draft.compositionEvidence['sourceCatalogs'] as Map)['nativeTrainerRelease'] as Map;
+      expect(binding['qualificationHash'], release['qualificationHash']);
+      expect(binding['nativeBundleHash'], release['nativeCatalogHash']);
+      expect(draft.mutations.where((row) => row.actionId == 'campaign.trainer.upsert'), hasLength(1));
+      final result = await harness.workflow.writeApproved(harness.approve(prepared));
+      expect(result.published, isTrue);
+      expect(result.receipt.verified, isTrue);
+
     } finally {
       await harness.close();
     }

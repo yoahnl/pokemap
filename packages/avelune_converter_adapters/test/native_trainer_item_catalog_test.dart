@@ -7,19 +7,25 @@ import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
 import 'support/native_media_source_fixture.dart';
+import 'support/native_trainer_fixture.dart';
 
 void main() {
   late LiteralTileFixture fixture;
   late SourcePbsProject source;
   late SourcePbsIdentity trainer;
   late NativePsdkTrainerBundle bundle;
+  late NativeTrainerCatalogQualification qualification;
 
   setUpAll(() async {
     bundle = NativePsdkTrainerBundle.builtin();
     fixture = await LiteralTileFixture.create(extraFiles: {
       ...nativeMediaSourceFiles(bundle),
-      'PBS/trainers.txt': utf8.encode(
-          '[FRLG_BUGCATCHER,Brent]\nPokemon = BEEDRILL,19\nPokemon = BEEDRILL,19\n'),
+      ...nativeTrainerFixtureFiles([
+        (type: 'FRLG_BUGCATCHER', name: 'Brent', version: 0)
+      ], team: const [
+        (species: 'BEEDRILL', level: 19),
+        (species: 'BEEDRILL', level: 19)
+      ]),
       'PBS/items.txt': utf8.encode(
           '[SOURCEVALID]\nName = Source valid\nPocket = 1\nPrice = 50\n'),
     });
@@ -28,6 +34,12 @@ void main() {
     trainer = source.entries
         .singleWhere((entry) => entry.family == SourcePbsFamily.trainers)
         .identity!;
+    qualification = await NativeTrainerCatalogQualification.prepare(
+        normalizedSource: fixture.source,
+        source: source,
+        files: fixture.files,
+        nativeCatalog: bundle,
+        requestedTrainers: [trainer]);
   });
 
   Future<SourceCatalogProjection> project(
@@ -40,7 +52,7 @@ void main() {
           existingItemCatalog: existing,
           requestedItemSymbols: ['MISSING', 'SOURCEVALID'],
           requestedTrainerKeys: [trainer],
-          nativeTrainerKeys: bindNative ? [trainer] : [],
+          nativeTrainerQualification: bindNative ? qualification : null,
           nativeTrainerBundle: bindNative ? bundle : null,
           nativeTrainerMovePolicy:
               NativeTrainerMovePolicy.nativeAveluneDefaults);
@@ -98,5 +110,22 @@ void main() {
     expect(
         (projection.evidence['itemCatalogMerge'] as Map)['nativeCatalogPolicy'],
         'sourceMergeBlocked');
+  });
+
+  test('refuses obsolete native trainer keys without a compiled qualification',
+      () async {
+    await expectLater(
+        const SourceCatalogProjector().read(
+            source: fixture.source,
+            pbs: source,
+            files: fixture.files,
+            nativeMapIds: {1: 'native_map'},
+            requestedTrainerKeys: [trainer],
+            nativeTrainerKeys: [trainer],
+            nativeTrainerBundle: bundle,
+            nativeTrainerMovePolicy:
+                NativeTrainerMovePolicy.nativeAveluneDefaults),
+        throwsA(isA<ContractError>().having((error) => error.code, 'code',
+            'native_trainer.projection_binding')));
   });
 }
