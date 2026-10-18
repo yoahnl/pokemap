@@ -3,10 +3,10 @@
   "kind": "pokemon_catalog",
   "catalog": "moves",
   "provenance": {
-    "sourceProject": "Bourg Palette — essai natif",
+    "dataset": "canonical-move-status-effects",
     "sourceCatalog": "data/pokemon/catalogs/moves.json",
     "sourceCatalogSha256": "f33a0c49ffae66c3839e0e2cf568b9a9987d32e3a04d2933e2e4eaa9c30f162c",
-    "changes": "Only the eight status effect kinds and identifiers are corrected; other fields and probabilities are preserved."
+    "changes": "Canonical major and volatile status effect regression cases; original catalog fields and probabilities are preserved."
   },
   "entries": [
     {

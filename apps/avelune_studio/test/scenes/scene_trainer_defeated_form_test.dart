@@ -45,7 +45,7 @@ void main() {
       await pump(
         tester,
         ProjectManifest(
-          name: 'Johto',
+          name: 'Trainer condition fixture',
           maps: [],
           tilesets: [],
           trainers: [
@@ -101,7 +101,7 @@ void main() {
         await pump(
           tester,
           ProjectManifest(
-            name: 'Johto',
+            name: 'Trainer condition fixture',
             maps: [],
             tilesets: [],
             trainers: trainers,

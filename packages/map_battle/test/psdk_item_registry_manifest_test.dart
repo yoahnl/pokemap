@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK item effect manifest', () {
-    test('newly declared Johto held effects have executable registry entries',
+    test('declared held effects have executable registry entries',
         () {
       final registry = ItemEffectRegistry();
       for (final effectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {

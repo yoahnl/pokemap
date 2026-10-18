@@ -18,7 +18,7 @@ for (const dimension of ["twoD", "threeD"]) {
     const root = await mkdtemp(join(tmpdir(), "trainer-condition-mcp-"));
     const file = join(root, "project.json");
     await writeFile(file, JSON.stringify({
-      name: "Johto trainer condition", version: dimension === "twoD" ? "v8" : "v9",
+      name: "Trainer condition fixture", version: dimension === "twoD" ? "v8" : "v9",
       settings: { dimension }, pokemon: canonicalPokemonConfig(), maps: [], tilesets: [],
       trainers: [
         { id: "clair", name: "Sandra", trainerClass: "Championne", team: [] },

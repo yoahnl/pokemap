@@ -351,7 +351,7 @@ void main() {
           'EVENT_V2_QUERY ${entry.name} events=200 maps=24 returned=${page.items.length} catalogs=${metrics.catalogs} validations=${metrics.validations.length} elapsed_us=${watch.elapsedMicroseconds}');
       expect(page.totalAvailable, 200);
     }
-  }, skip: Platform.environment['JOHTO_QUERY_BENCHMARK'] != '1');
+  }, skip: Platform.environment['EVENT_V2_QUERY_BENCHMARK'] != '1');
 }
 
 final class _Metrics {

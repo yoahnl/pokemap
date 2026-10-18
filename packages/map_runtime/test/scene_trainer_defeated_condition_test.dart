@@ -14,7 +14,7 @@ void main() {
           expected: expected,
         );
         var state = const GameState(
-          saveId: 'johto',
+          saveId: 'condition-test',
           progression: PlayerProgression(
             storyFlags: ['trainer_defeated:clair'],
           ),
@@ -74,16 +74,16 @@ void main() {
         source: SceneConditionSource.playerFacing(
           direction: EntityFacing.north,
         ),
-        gameState: const GameState(saveId: 'johto'),
+        gameState: const GameState(saveId: 'condition-test'),
       ),
       throwsArgumentError,
     );
   });
   test('spatial callback reads the live canonical trainer flag without a shadow fact', () {
-    var state = const GameState(saveId: 'johto');
+    var state = const GameState(saveId: 'condition-test');
     final host = SpatialSceneCallbacks(
       project: const ProjectManifest(name: 'Spatial', maps: [], tilesets: []),
-      runtimeSourceId: 'johto',
+      runtimeSourceId: 'condition-test',
       readGameState: () => state,
       show: (_) async => const SceneDialogueRuntimeAwaitableResult.completed(),
       battle: (_) async => const SceneBattleRuntimeOutcomeResult.completed(

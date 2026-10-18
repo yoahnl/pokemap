@@ -21,7 +21,7 @@ void main() {
           source: source,
         ).updatedScene;
         final project = ProjectManifest(
-          name: 'Johto',
+          name: 'Trainer condition fixture',
           maps: [],
           tilesets: [],
           trainers: const [

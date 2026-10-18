@@ -42,8 +42,8 @@ const _expected = <String,
 };
 
 void main() {
-  final catalogPath = Platform.environment['JOHTO_MOVE_CATALOG_PATH'] ??
-      'test/fixtures/johto_moves_status_catalog.json';
+  final catalogPath = Platform.environment['MOVE_STATUS_CATALOG_PATH'] ??
+      'test/fixtures/move_status_effects_catalog.json';
   final catalog =
       jsonDecode(File(catalogPath).readAsStringSync()) as Map<String, dynamic>;
   final entries = <String, Map<String, dynamic>>{
@@ -53,7 +53,7 @@ void main() {
   };
   const projector = CanonicalPsdkMoveProjector();
 
-  group('Johto move status projection', () {
+  group('Canonical move status projection', () {
     for (final entry in _expected.entries) {
       test(entry.key, () {
         final source = PokemonMove.fromJson(entries[entry.key]!).normalized();
@@ -72,7 +72,7 @@ void main() {
     }
   });
 
-  group('Johto move status battle execution', () {
+  group('Canonical move status battle execution', () {
     for (final entry in _expected.entries) {
       test('${entry.key} applies its imported effect', () {
         final move = projector.project(
