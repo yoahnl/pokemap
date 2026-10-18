@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
-import '../support/clairbois_template_fixture.dart';
+
+import '../support/synthetic_template_fixture.dart';
 
 void main() {
   late Directory parent;
@@ -23,19 +25,17 @@ void main() {
         ..change(() {});
 
   test(
-    'Clairbois fixes its grid and preserves the empty project settings',
+    'Template Alpha fixes its grid and preserves the empty project settings',
     () async {
-      final state = ProjectCreationController(
-        offlineProjectCreation,
-      );
+      final state = ProjectCreationController(offlineProjectCreation);
       state.setTemplate(ProjectCreationTemplate.empty);
       state.change(() {
         state.tileSize = 48;
         state.width = '24';
         state.height = '18';
       });
-      state.setCatalogueTemplate('clairbois');
-      expect((state.tileSize, state.width, state.height), (32, '32', '26'));
+      state.setCatalogueTemplate('alpha');
+      expect((state.tileSize, state.width, state.height), (16, '12', '10'));
       state.setTemplate(ProjectCreationTemplate.empty);
       expect((state.tileSize, state.width, state.height), (48, '24', '18'));
       await state.loadPreview();
@@ -54,15 +54,15 @@ void main() {
           readTemplate: (uri) async {
             reached.complete();
             await release.future;
-            return readClairboisFixture(uri);
+            return readSyntheticTemplate(uri);
           },
         ),
       )..setName('Copie annulée');
       state.template = ProjectCreationTemplate.catalogue;
-      state.templateId = 'clairbois';
-      state.tileSize = clairboisDescriptor.tileSize;
-      state.width = '${clairboisDescriptor.mapWidth}';
-      state.height = '${clairboisDescriptor.mapHeight}';
+      state.templateId = 'alpha';
+      state.tileSize = syntheticDescriptor.tileSize;
+      state.width = '${syntheticDescriptor.mapWidth}';
+      state.height = '${syntheticDescriptor.mapHeight}';
       state.parentPath = parent.path;
       final pending = state.create();
       await reached.future;
@@ -81,22 +81,19 @@ void main() {
     },
   );
 
-  test(
-    'folder suggestion stops after manual input; validation preserves invalid input',
-    () {
-      final state = configured(const LocalProjectCreationService());
-      expect(state.folderName, 'mon-aventure');
-      state.setFolder('dossier-personnel');
-      state.setName('Un autre nom');
-      expect(state.folderName, 'dossier-personnel');
-      state.setFolder('../interdit');
-      expect(state.next(), isFalse);
-      expect(state.step, 0);
-      expect(state.folderName, '../interdit');
-      expect(state.error, contains('dossier valide'));
-      state.dispose();
-    },
-  );
+  test('folder suggestion stops after manual input; validation preserves invalid input', () {
+    final state = configured(const LocalProjectCreationService());
+    expect(state.folderName, 'mon-aventure');
+    state.setFolder('dossier-personnel');
+    state.setName('Un autre nom');
+    expect(state.folderName, 'dossier-personnel');
+    state.setFolder('../interdit');
+    expect(state.next(), isFalse);
+    expect(state.step, 0);
+    expect(state.folderName, '../interdit');
+    expect(state.error, contains('dossier valide'));
+    state.dispose();
+  });
 
   test(
     'accepted cancellation blocks writing and duplicate launch until cleanup',

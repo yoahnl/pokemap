@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../support/map_catalogue_host_fixture.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/capture_m3_widget.dart';
@@ -10,12 +11,12 @@ void main() {
     'home refreshes an already mounted preview after a closed map title changes',
     (tester) async {
       final f = await MapCatalogueHostFixture.open(tester);
-      expect(f.host.maps.documents.containsKey('maison'), isFalse);
+      expect(f.host.maps.documents.containsKey('annex'), isFalse);
       await tester.tap(find.text('Accueil'));
       await pumpIo(tester, frames: 30);
       await tester.tap(find.text('Carte').first);
       await pumpIo(tester, frames: 20);
-      await f.renameMap('maison', 'Maison des saules');
+      await f.renameMap('annex', 'Maison des saules');
       await tester.tap(find.text('Accueil'));
       await pumpIo(tester, frames: 30);
       expect(
@@ -26,7 +27,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(f.host.maps.documents.containsKey('maison'), isFalse);
+      expect(f.host.maps.documents.containsKey('annex'), isFalse);
     },
   );
   testWidgets(
@@ -44,13 +45,13 @@ void main() {
         parent: 'Région / Village',
       );
       expect(houses.parentGroupId, town.id);
-      await f.mapAction('maison', 'Déplacer…');
+      await f.mapAction('annex', 'Déplacer…');
       await f.choose('Dossier de destination', 'Région / Village / Intérieurs');
       await tester.tap(find.text('Déplacer').last);
       await pumpIo(tester, frames: 20);
       expect(f.host.maps.active, same(active));
       expect(
-        f.host.maps.project!.maps.singleWhere((e) => e.id == 'maison').groupId,
+        f.host.maps.project!.maps.singleWhere((e) => e.id == 'annex').groupId,
         houses.id,
       );
       await f.groupAction(houses.id, 'Renommer…');
@@ -113,16 +114,16 @@ void main() {
       await f.mapAction(active.base.mapId, 'Renommer…');
       await tester.tap(find.text('Enregistrer cette carte puis renommer'));
       await pumpIo(tester, frames: 20);
-      await f.field('rename-map-name', 'Clairbois — verger');
+      await f.field('rename-map-name', 'Synthetic — orchard');
       await tester.tap(find.text('Enregistrer').last);
       await pumpIo(tester, frames: 20);
       expect(active.dirty, isFalse);
       final after = await f.reopen();
       expect(
         after.maps[active.base.mapId],
-        draft.copyWith(name: 'Clairbois — verger'),
+        draft.copyWith(name: 'Synthetic — orchard'),
       );
-      expect(after.maps['maison'], before.maps['maison']);
+      expect(after.maps['annex'], before.maps['annex']);
       expect(after.project.newGame, before.project.newGame);
     },
   );

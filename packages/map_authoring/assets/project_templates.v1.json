@@ -1,21 +1,4 @@
 {
   "schemaVersion": 1,
-  "templates": [
-    {
-      "id": "clairbois",
-      "label": "Clairbois",
-      "description": "Un village, de l’eau, des falaises et une maison à explorer. Copie indépendante et éditable, téléchargée depuis GitHub à la création.",
-      "revision": "e3d3766ed80d34b6b451ad4d0cd5647d6373c230",
-      "projectPaths": ["project.json", "maps/", "dialogues/", "assets/", "asset-provenance.json"],
-      "archive": {
-        "uri": "https://codeload.github.com/yoahnl/avelune-template-clairbois/zip/e3d3766ed80d34b6b451ad4d0cd5647d6373c230",
-        "sha256": "ba60603d627d91b2c41d8f502ae4d3818774e3f00c000b3610316dc767a4942f"
-      },
-      "preview": {
-        "uri": "https://raw.githubusercontent.com/yoahnl/avelune-template-clairbois/e3d3766ed80d34b6b451ad4d0cd5647d6373c230/preview/village.png",
-        "sha256": "a14d950e16aeeb6857c6318390132fb2349f2b057976ae099c0f5c8c9c6c254b"
-      },
-      "geometry": {"tileSize": 32, "mapWidth": 32, "mapHeight": 26}
-    }
-  ]
+  "templates": []
 }

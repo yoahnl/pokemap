@@ -9,6 +9,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'm2_ui_fixture.dart' show pumpIo;
 import 'project_creation_workspace_fixture.dart';
+import 'synthetic_template_fixture.dart';
 
 class MapCatalogueHostFixture {
   MapCatalogueHostFixture(this.tester, this.parent, this.host);
@@ -35,7 +36,12 @@ class MapCatalogueHostFixture {
       await host.dispose();
       await tester.runAsync(() => parent.delete(recursive: true));
     });
-    await host.mount(size: size, textScale: textScale, captureKey: captureKey);
+    await host.mount(
+      size: size,
+      textScale: textScale,
+      captureKey: captureKey,
+      creationPort: workspaceProjectCreation,
+    );
     if (empty) {
       await tester.tap(find.text('Nouveau projet'));
       await pumpIo(tester, frames: 3);
@@ -61,7 +67,11 @@ class MapCatalogueHostFixture {
       }
       await pumpIo(tester, frames: 4);
     } else {
-      await host.create(32, name: 'Clairbois UwU');
+      await host.create(
+        32,
+        name: 'Synthetic workspace',
+        templateId: 'workspace',
+      );
     }
     return MapCatalogueHostFixture(tester, parent, host);
   }

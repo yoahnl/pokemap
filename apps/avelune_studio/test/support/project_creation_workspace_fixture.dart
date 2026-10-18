@@ -26,7 +26,7 @@ import 'm2_ui_fixture.dart'
     show WidgetResourcePort, WidgetMapController, pumpIo;
 import 'ui05_narrative_fixture.dart' show Ui05NarrativePort;
 import 'ui08_workspace_harness.dart' show Ui08MapPort;
-import 'clairbois_template_fixture.dart';
+import 'synthetic_template_fixture.dart';
 import 'widget_map_catalog_port.dart';
 
 class ProjectCreationWorkspaceFixture {
@@ -62,9 +62,8 @@ class ProjectCreationWorkspaceFixture {
         debugShowCheckedModeBanner: false,
         theme: studioTheme(),
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
         home: ProjectSessionScreen(
@@ -73,8 +72,7 @@ class ProjectCreationWorkspaceFixture {
           recentProjects: recents,
           creationPort: _CreationIo(
             tester,
-            creationPort ??
-                offlineProjectCreation,
+            creationPort ?? offlineProjectCreation,
             bridgeCreate,
           ),
           chooseCreationParent: () async => parent.path,
@@ -103,8 +101,8 @@ class ProjectCreationWorkspaceFixture {
       )
       .controller;
 
-  Future<void> create(int tileSize, {String? name}) async {
-    await submitCreation(tileSize, name: name);
+  Future<void> create(int tileSize, {String? name, String? templateId}) async {
+    await submitCreation(tileSize, name: name, templateId: templateId);
     for (var i = 0; i < 100 && session.state.project == null; i++) {
       await pumpIo(tester, frames: 2);
     }
@@ -118,6 +116,7 @@ class ProjectCreationWorkspaceFixture {
     String? name,
     bool settle = true,
     bool confirm = true,
+    String? templateId,
   }) async {
     await tester.tap(find.text('Nouveau projet'));
     await pumpIo(tester, frames: 4);
@@ -126,10 +125,17 @@ class ProjectCreationWorkspaceFixture {
       name ?? 'Projet grille $tileSize',
     );
     await next();
-    await tester.tap(find.text('Petit projet jouable'));
+    final template = templateId == null
+        ? find.text('Petit projet jouable')
+        : find.byKey(ValueKey('creation-template-catalogue-$templateId'));
+    await Scrollable.ensureVisible(tester.element(template));
+    await tester.pumpAndSettle();
+    await tester.tap(template);
     await pumpIo(tester, frames: 4);
     await next();
-    await tester.tap(find.byKey(ValueKey('creation-grid-$tileSize')));
+    if (templateId == null) {
+      await tester.tap(find.byKey(ValueKey('creation-grid-$tileSize')));
+    }
     await next();
     await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
     await pumpIo(tester, frames: 8);

@@ -12,7 +12,7 @@ import 'package:map_authoring/map_authoring_local.dart';
 
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/project_creation_workspace_fixture.dart';
-import '../support/clairbois_template_fixture.dart';
+import '../support/synthetic_template_fixture.dart';
 
 void main() {
   Future<ProjectCreationWorkspaceFixture> fixture(WidgetTester tester) async {
@@ -121,7 +121,7 @@ void main() {
       final service = _ObservedCreationPort(
         LocalProjectCreationService(
           templateCatalog: fixtureTemplateCatalog,
-          readTemplate: readClairboisFixture,
+          readTemplate: readSyntheticTemplate,
           checkpoint: (point, _) async {
             if (point == ProjectCreationCheckpoint.beforeReservation) {
               reached.complete();

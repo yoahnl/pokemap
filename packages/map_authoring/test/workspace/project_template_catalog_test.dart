@@ -7,6 +7,8 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/project_template_fixture.dart';
+
 void main() {
   Map<String, dynamic> entry(String id) => {
         'id': id,
@@ -101,6 +103,15 @@ void main() {
     expect(await Directory('${result.projectPath}/assets').exists(), isFalse);
   });
 
+  test('the shipped catalogue contains no project-specific entries', () async {
+    expect(
+        ProjectTemplateCatalog.fromJson(jsonDecode(
+                await File('assets/project_templates.v1.json')
+                    .readAsString()) as Map<String, dynamic>)
+            .templates,
+        isEmpty);
+  });
+
   test('arbitrary catalogue entries preserve identity, geometry and provenance',
       () {
     final source = [entry('alpha'), entry('beta')];
@@ -117,9 +128,8 @@ void main() {
     final root =
         await Directory.systemTemp.createTemp('template-asset-integrity-');
     addTearDown(() => root.delete(recursive: true));
-    final original = ZipDecoder().decodeBytes(
-        await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
-            .readAsBytes());
+    final original =
+        ZipDecoder().decodeBytes(SyntheticProjectTemplate().archive);
     final corrupt = Archive();
     var changed = false;
     for (final file in original) {
@@ -251,36 +261,33 @@ void main() {
       () async {
     final root = await Directory.systemTemp.createTemp('template-copies-');
     addTearDown(() => root.delete(recursive: true));
-    final bytes =
-        await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
-            .readAsBytes();
-    final entries = [
-      for (final id in ['alpha', 'beta'])
-        {
-          ...entry(id),
-          'archive': {
-            'uri': 'https://example.test/$id/project.zip',
-            'sha256': sha256.convert(bytes).toString()
-          },
-        }
+    final fixtures = [
+      SyntheticProjectTemplate(
+          id: 'alpha', tileSize: 16, width: 12, height: 10),
+      SyntheticProjectTemplate(id: 'beta', tileSize: 48, width: 9, height: 7)
     ];
+    final entries = [for (final fixture in fixtures) fixture.descriptor];
     final reads = <Uri>[];
     final service = LocalProjectCreationService(
         templateCatalog: catalog(entries),
         readTemplate: (uri) async {
           reads.add(uri);
-          return bytes;
+          return fixtures
+              .singleWhere((fixture) =>
+                  fixture.catalog.templates.single.archiveUri == uri)
+              .archive;
         });
-    for (final id in ['alpha', 'beta']) {
+    for (final fixture in fixtures) {
+      final id = fixture.id;
       final result = await service.create(ProjectCreationRequest(
         name: id,
         folderName: id,
         parentPath: root.path,
         template: ProjectCreationTemplate.catalogue,
         templateId: id,
-        tileSize: 32,
-        mapWidth: 32,
-        mapHeight: 26,
+        tileSize: fixture.tileSize,
+        mapWidth: fixture.width,
+        mapHeight: fixture.height,
       ));
       expect(result.manifest.name, id);
       expect(result.manifest.maps, isNotEmpty);
@@ -302,9 +309,7 @@ void main() {
     addTearDown(() => root.delete(recursive: true));
     final malicious = ZipEncoder().encode(
         Archive()..addFile(ArchiveFile.string('root/../escape.json', '{}')));
-    final valid =
-        await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
-            .readAsBytes();
+    final valid = SyntheticProjectTemplate().archive;
     for (final bytes in [malicious, valid]) {
       final descriptor = {
         ...entry('safe'),
@@ -337,9 +342,7 @@ void main() {
     final root =
         await Directory.systemTemp.createTemp('template-declared-paths-');
     addTearDown(() => root.delete(recursive: true));
-    final bytes =
-        await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
-            .readAsBytes();
+    final bytes = SyntheticProjectTemplate().archive;
     final descriptor = {
       ...entry('missing'),
       'projectPaths': [

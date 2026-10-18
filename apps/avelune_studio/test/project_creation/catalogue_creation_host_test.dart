@@ -9,20 +9,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
-import '../support/clairbois_template_fixture.dart';
+import '../support/synthetic_template_fixture.dart';
 import '../support/project_creation_workspace_fixture.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
-import '../support/clairbois_player_recipe.dart';
+import '../support/synthetic_player_recipe.dart';
 
 void main() {
   testWidgets(
-    'real home creator downloads Clairbois and opens an independent copy',
+    'real home creator downloads Template Alpha and opens an independent copy',
     (tester) async {
       final parent = (await tester.runAsync(() async {
         await loadDesktopCaptureFonts();
-        return Directory.systemTemp.createTemp('clairbois-host-');
+        return Directory.systemTemp.createTemp('alpha-host-');
       }))!;
       final host = ProjectCreationWorkspaceFixture(
         tester,
@@ -41,7 +41,7 @@ void main() {
           templateCatalog: fixtureTemplateCatalog,
           readTemplate: (uri) async {
             urls.add(uri);
-            return readClairboisFixture(uri);
+            return readSyntheticTemplate(uri);
           },
         ),
       );
@@ -49,22 +49,24 @@ void main() {
       await pumpIo(tester, frames: 4);
       await tester.enterText(
         find.widgetWithText(TextField, 'Nom du projet'),
-        'Mon Clairbois',
+        'Mon Template Alpha',
       );
       await host.next();
-      final chosenTemplate = find.byKey(const ValueKey('creation-template-catalogue-clairbois'));
+      final chosenTemplate = find.byKey(
+        const ValueKey('creation-template-catalogue-alpha'),
+      );
       await Scrollable.ensureVisible(tester.element(chosenTemplate));
       await tester.pumpAndSettle();
       await tester.tap(chosenTemplate);
       await pumpIo(tester, frames: 8);
-      expect(find.textContaining('Clairbois'), findsWidgets);
+      expect(find.textContaining(syntheticDescriptor.label), findsWidgets);
       expect(
-        urls.where((uri) => uri == clairboisDescriptor.archiveUri),
+        urls.where((uri) => uri == syntheticDescriptor.archiveUri),
         isEmpty,
       );
-      await captureM3Widget(tester, key, 'clairbois-model');
+      await captureM3Widget(tester, key, 'alpha-model');
       await host.next();
-      expect(find.byKey(const ValueKey('creation-grid-16')), findsNothing);
+      expect(find.byKey(const ValueKey('creation-grid-32')), findsNothing);
       expect(find.byKey(const ValueKey('creation-grid-48')), findsNothing);
       await host.next();
       await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
@@ -76,11 +78,11 @@ void main() {
       }
       await pumpIo(tester, frames: 30);
       expect(
-        urls.where((uri) => uri == clairboisDescriptor.archiveUri).length,
+        urls.where((uri) => uri == syntheticDescriptor.archiveUri).length,
         1,
       );
       final session = host.session.state.project!;
-      expect(session.name, 'Mon Clairbois');
+      expect(session.name, 'Mon Template Alpha');
       expect(host.maps.project!.maps.length, 2);
       final resources =
           tester
@@ -96,40 +98,37 @@ void main() {
       }
       expect(ready, isTrue);
       expect(resources.diagnostics, isEmpty);
-      expect(resources.images.length, greaterThan(10));
+      expect(resources.images, isNotEmpty);
       await tester.pump();
-      await captureM3Widget(tester, key, 'clairbois-opened');
+      await captureM3Widget(tester, key, 'alpha-opened');
       await tester.runAsync(() async {
         final adapter = LocalProjectSessionAdapter();
         final reopened = await adapter.open(session.directoryPath);
         try {
           final maps = LocalMapWorkspaceAdapter();
           final manifest = await maps.loadProject(reopened);
-          expect(manifest.settings.tileWidth, 32);
-          expect(manifest.maps.map((map) => map.id), ['first-map', 'maison']);
+          expect(manifest.settings.tileWidth, 16);
+          expect(manifest.maps.map((map) => map.id), ['first-map', 'annex']);
           expect(
             (await maps.loadMap(reopened, manifest.maps.last)).map.id,
-            'maison',
+            'annex',
           );
           expect(
             jsonDecode(
-              await File(
-                '${session.directoryPath}/project.json',
-              ).readAsString(),
+              await File('${session.directoryPath}/project.json')
+                  .readAsString(),
             )['name'],
-            'Mon Clairbois',
+            'Mon Template Alpha',
           );
           expect(
-            File(
-              '${session.directoryPath}/dialogues/bienvenue.yarn',
-            ).existsSync(),
+            File('${session.directoryPath}/dialogues/intro.yarn').existsSync(),
             isTrue,
           );
         } finally {
           await adapter.close(reopened);
         }
       });
-      await playCreatedClairbois(tester, session);
+      await playCreatedSyntheticTemplate(tester, session);
       expect(tester.takeException(), isNull);
     },
   );

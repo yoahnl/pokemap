@@ -13,16 +13,17 @@ import 'package:map_authoring/map_authoring.dart'
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/project_template_fixture.dart';
+
 void main() {
   late Directory parent;
   late List<int> archive;
   late ProjectTemplateCatalog templates;
   setUp(() async {
-    parent = await Directory.systemTemp.createTemp('clairbois-creation-');
-    archive = await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
-        .readAsBytes();
-    templates = ProjectTemplateCatalog.fromJson(jsonDecode(
-        await File('assets/project_templates.v1.json').readAsString()));
+    parent = await Directory.systemTemp.createTemp('synthetic-creation-');
+    final fixture = SyntheticProjectTemplate();
+    archive = fixture.archive;
+    templates = fixture.catalog;
   });
   tearDown(() => parent.delete(recursive: true));
   ProjectCreationRequest request([String folder = 'mon-village']) =>
@@ -31,7 +32,7 @@ void main() {
         folderName: folder,
         parentPath: parent.path,
         template: ProjectCreationTemplate.catalogue,
-        templateId: 'clairbois',
+        templateId: 'alpha',
         tileSize: 32,
         mapWidth: 32,
         mapHeight: 26,
@@ -40,7 +41,8 @@ void main() {
       LocalProjectCreationService(
           templateCatalog: templates, readTemplate: read);
 
-  test('verified GitHub archive is copied, renamed and independently reopened',
+  test(
+      'verified synthetic archive is copied, renamed and independently reopened',
       () async {
     final phases = <ProjectCreationPhase>[];
     final urls = <Uri>[];
@@ -49,14 +51,14 @@ void main() {
       return archive;
     });
     final receipt = await creator.create(request(), onPhase: phases.add);
-    expect(urls, [templates.require('clairbois').archiveUri]);
+    expect(urls, [templates.require('alpha').archiveUri]);
     expect(phases, contains(ProjectCreationPhase.downloading));
     final manifest = ProjectManifest.fromJson(jsonDecode(
             await File('${receipt.projectPath}/project.json').readAsString())
         as Map<String, dynamic>);
     expect(manifest.name, 'Mon village indépendant');
     expect(manifest.settings.tileWidth, 32);
-    expect(manifest.maps.map((map) => map.id), ['first-map', 'maison']);
+    expect(manifest.maps.map((map) => map.id), ['first-map', 'annex']);
     expect(manifest.newGame.startMapId, 'first-map');
     final source = ZipDecoder().decodeBytes(archive);
     var copied = 0;
@@ -74,9 +76,9 @@ void main() {
           reason: relative);
       copied++;
     }
-    expect(copied, 69);
+    expect(copied, SyntheticProjectTemplate().files.length - 1);
     expect(File('${receipt.projectPath}/README.md').existsSync(), isFalse);
-    expect(File('${receipt.projectPath}/preview/village.png').existsSync(),
+    expect(File('${receipt.projectPath}/preview/overview.png').existsSync(),
         isFalse);
   });
 
@@ -99,7 +101,7 @@ void main() {
     final sourceFile = File('${receipt.projectPath}/project.json');
     final before = await sourceFile.readAsBytes();
     final profile = GamePackageExportProfile(
-      gameId: 'games.avelune.clairbois-test',
+      gameId: 'games.avelune.synthetic-test',
       gameVersion: '0.1.0',
       title: receipt.manifest.name,
       authorName: 'Avelune',
@@ -117,7 +119,7 @@ void main() {
       projectRoot: Directory(receipt.projectPath),
       profile: profile,
       mode: GamePackageExportMode.localTest,
-      outputFile: File('${parent.path}/clairbois.avelunegame'),
+      outputFile: File('${parent.path}/synthetic.avelunegame'),
     );
     expect(artifact.certification.isExportable, isTrue);
     final package = ZipDecoder().decodeBytes(artifact.packageBytes);
@@ -126,7 +128,7 @@ void main() {
     final exported = ProjectManifest.fromJson(
         jsonDecode(utf8.decode(project.content)) as Map<String, dynamic>);
     expect(exported.settings.tileWidth, 32);
-    expect(exported.maps.map((map) => map.id), ['first-map', 'maison']);
+    expect(exported.maps.map((map) => map.id), ['first-map', 'annex']);
     expect(await sourceFile.readAsBytes(), orderedEquals(before));
   });
 
@@ -161,7 +163,8 @@ void main() {
     expect(await parent.list().toList(), isEmpty);
   });
 
-  test('existing destination refuses even before contacting GitHub', () async {
+  test('existing destination refuses even before reading the archive',
+      () async {
     final existing = await Directory('${parent.path}/mon-village').create();
     final sentinel = File('${existing.path}/important.txt');
     await sentinel.writeAsString('conserver');

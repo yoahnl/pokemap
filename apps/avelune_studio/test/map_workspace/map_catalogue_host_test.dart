@@ -5,13 +5,13 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_catalogue_host_fixture.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
-import '../support/clairbois_player_recipe.dart';
+import '../support/synthetic_player_recipe.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
 
 void main() {
   testWidgets(
-    'Clairbois creates edits saves and renames without changing existing identities',
+    'Template Alpha creates edits saves and renames without changing existing identities',
     (tester) async {
       await tester.runAsync(loadDesktopCaptureFonts);
       final key = GlobalKey();
@@ -66,19 +66,19 @@ void main() {
       f.host.maps.restore(redo: true);
       expect(draft.current.name, 'Île aux lucioles');
       expect(draft.current, renamed.maps[created.id]);
-      await f.renameMap('first-map', 'Clairbois — village');
+      await f.renameMap('first-map', 'Template Alpha — village');
       final finalRead = await f.reopen();
       expect(finalRead.project.newGame, initial.project.newGame);
       expect(
         finalRead.maps['first-map']!.warps,
         initial.maps['first-map']!.warps,
       );
-      expect(finalRead.maps['maison'], initial.maps['maison']);
-      expect(original.current.name, 'Clairbois — village');
+      expect(finalRead.maps['annex'], initial.maps['annex']);
+      expect(original.current.name, 'Template Alpha — village');
       expect(originalViewport.transform.value, originalTransform);
-      await f.createFolder('Clairbois');
+      await f.createFolder('Template Alpha');
       await f.mapAction('first-map', 'Déplacer…');
-      await f.choose('Dossier de destination', 'Clairbois');
+      await f.choose('Dossier de destination', 'Template Alpha');
       await tester.tap(find.text('Déplacer').last);
       await pumpIo(tester, frames: 20);
       expect(
@@ -87,7 +87,7 @@ void main() {
       );
       await captureM3Widget(tester, key, 'uwu-created-and-renamed');
       await f.preserveNativeFixture();
-      await playCreatedClairbois(tester, f.host.session.state.project!);
+      await playCreatedSyntheticTemplate(tester, f.host.session.state.project!);
     },
   );
 

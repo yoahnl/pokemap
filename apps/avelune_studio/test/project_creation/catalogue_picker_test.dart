@@ -42,7 +42,6 @@ void main() {
         ),
       );
       expect(find.text('Petit projet jouable'), findsOneWidget);
-      expect(find.textContaining('Clairbois'), findsNothing);
       expect(find.textContaining('GitHub'), findsNothing);
     },
   );
@@ -124,7 +123,7 @@ void main() {
       final catalog = (await tester.runAsync(
         entry.loadStudioProjectTemplateCatalog,
       ))!;
-      expect(catalog.templates, isNotEmpty);
+      expect(catalog.templates, isEmpty);
       await tester.pumpWidget(StudioBootstrap(templateCatalog: catalog));
       final container = ProviderScope.containerOf(
         tester.element(find.byType(StudioApp)),

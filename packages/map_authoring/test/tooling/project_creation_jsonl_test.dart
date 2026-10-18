@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/project_template_fixture.dart';
+
 void main() {
   late Directory root;
   late WorkspacePolicy policy;
@@ -46,23 +48,22 @@ void main() {
   test(
       'JSONL discovers arbitrary catalogue entries and binds their explicit selection',
       () async {
-    final source = jsonDecode(
-            await File('assets/project_templates.v1.json').readAsString())
-        as Map<String, dynamic>;
-    final base =
-        Map<String, dynamic>.from((source['templates'] as List).single as Map);
+    final fixtures = [
+      SyntheticProjectTemplate(
+          id: 'alpha', tileSize: 16, width: 12, height: 10),
+      SyntheticProjectTemplate(id: 'beta', tileSize: 48, width: 9, height: 7)
+    ];
     final catalog = ProjectTemplateCatalog.fromJson({
       'schemaVersion': 1,
-      'templates': [
-        for (final id in ['alpha', 'beta']) {...base, 'id': id, 'label': id},
-      ]
+      'templates': [for (final fixture in fixtures) fixture.descriptor]
     });
-    final bytes =
-        await File('test/fixtures/project_creation/clairbois-e3d3766.zip')
-            .readAsBytes();
     final host = worker(
         service: LocalProjectCreationService(
-            templateCatalog: catalog, readTemplate: (_) async => bytes));
+            templateCatalog: catalog,
+            readTemplate: (uri) async => fixtures
+                .singleWhere((fixture) =>
+                    fixture.catalog.templates.single.archiveUri == uri)
+                .archive));
     final listed = await _request(host, 'project_templates', {});
     expect(listed.status, AuthoringResultStatus.success);
     expect(
@@ -79,7 +80,7 @@ void main() {
         await _request(host, 'project_create_preview', {'request': args});
     expect(preview.status, AuthoringResultStatus.success,
         reason: preview.toJson().toString());
-    expect((preview.data['request'] as Map)['tileSize'], 32);
+    expect((preview.data['request'] as Map)['tileSize'], 16);
     expect(
         preview.data['templateDescriptor'], catalog.require('alpha').toJson());
     final changed = await _request(host, 'project_create', {
@@ -95,43 +96,82 @@ void main() {
     expect(created.data['projectName'], 'Catalogue');
   });
 
-
-  test('JSONL preserves a typed retention policy and binds its confirmation', () async {
+  test('JSONL preserves a typed retention policy and binds its confirmation',
+      () async {
     final host = worker();
-    final retention = MapInstanceRetentionPolicy(viewportWidthTiles: 16,
-      viewportHeightTiles: 12, marginTiles: 6, clampViewportToMapIds: ['future-map']);
-    final args = {...request(), 'template': 'empty',
-      'mapInstanceRetentionPolicy': retention.toJson()};
-    final preview = await _request(host, 'project_create_preview', {'request': args});
-    expect(preview.status, AuthoringResultStatus.success, reason: preview.toJson().toString());
-    final changed = await _request(host, 'project_create', {'request': {
-      ...args, 'mapInstanceRetentionPolicy': {...retention.toJson(), 'marginTiles': 5}},
-      'confirmation': preview.data['confirmation']});
+    final retention = MapInstanceRetentionPolicy(
+        viewportWidthTiles: 16,
+        viewportHeightTiles: 12,
+        marginTiles: 6,
+        clampViewportToMapIds: ['future-map']);
+    final args = {
+      ...request(),
+      'template': 'empty',
+      'mapInstanceRetentionPolicy': retention.toJson()
+    };
+    final preview =
+        await _request(host, 'project_create_preview', {'request': args});
+    expect(preview.status, AuthoringResultStatus.success,
+        reason: preview.toJson().toString());
+    final changed = await _request(host, 'project_create', {
+      'request': {
+        ...args,
+        'mapInstanceRetentionPolicy': {...retention.toJson(), 'marginTiles': 5}
+      },
+      'confirmation': preview.data['confirmation']
+    });
     expect(changed.status, AuthoringResultStatus.failure);
     expect(await root.list().toList(), isEmpty);
-    final created = await _request(host, 'project_create', {
-      'request': args, 'confirmation': preview.data['confirmation']});
-    expect(created.status, AuthoringResultStatus.success, reason: created.toJson().toString());
+    final created = await _request(host, 'project_create',
+        {'request': args, 'confirmation': preview.data['confirmation']});
+    expect(created.status, AuthoringResultStatus.success,
+        reason: created.toJson().toString());
     final manifest = ProjectManifest.fromJson(jsonDecode(await File(
-      p.join(created.data['projectPath'] as String, 'project.json')).readAsString()) as Map<String, dynamic>);
+            p.join(created.data['projectPath'] as String, 'project.json'))
+        .readAsString()) as Map<String, dynamic>);
     expect(manifest.settings.mapInstanceRetentionPolicy, retention);
-    final opened = await _request(host, 'open', {'projectRoot': created.data['projectPath']});
+    final opened = await _request(
+        host, 'open', {'projectRoot': created.data['projectPath']});
     expect(opened.status, AuthoringResultStatus.success);
   });
 
-  test('JSONL rejects invalid retention and unsupported templates before writes', () async {
+  test(
+      'JSONL rejects invalid retention and unsupported templates before writes',
+      () async {
     final host = worker();
-    final retention = MapInstanceRetentionPolicy(viewportWidthTiles: 16,
-      viewportHeightTiles: 12, marginTiles: 6).toJson();
+    final retention = MapInstanceRetentionPolicy(
+            viewportWidthTiles: 16, viewportHeightTiles: 12, marginTiles: 6)
+        .toJson();
     for (final args in [
       {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': null},
-      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': {...retention, 'marginTiles': -1}},
-      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': {...retention, 'extra': true}},
-      {...request(), 'template': 'empty', 'mapInstanceRetentionPolicy': {...retention, 'clampViewportToMapIds': ['x', 'x']}},
-      {...request(), 'template': 'empty', 'dimension': 'threeD', 'mapInstanceRetentionPolicy': retention},
+      {
+        ...request(),
+        'template': 'empty',
+        'mapInstanceRetentionPolicy': {...retention, 'marginTiles': -1}
+      },
+      {
+        ...request(),
+        'template': 'empty',
+        'mapInstanceRetentionPolicy': {...retention, 'extra': true}
+      },
+      {
+        ...request(),
+        'template': 'empty',
+        'mapInstanceRetentionPolicy': {
+          ...retention,
+          'clampViewportToMapIds': ['x', 'x']
+        }
+      },
+      {
+        ...request(),
+        'template': 'empty',
+        'dimension': 'threeD',
+        'mapInstanceRetentionPolicy': retention
+      },
       {...request(), 'mapInstanceRetentionPolicy': retention},
     ]) {
-      final result = await _request(host, 'project_create_preview', {'request': args});
+      final result =
+          await _request(host, 'project_create_preview', {'request': args});
       expect(result.status, AuthoringResultStatus.failure);
       expect(await root.list().toList(), isEmpty);
     }
