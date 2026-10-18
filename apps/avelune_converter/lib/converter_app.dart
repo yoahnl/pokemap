@@ -121,6 +121,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
   final _selectedMaps = <int>{};
   final _decisions = <LiteralDependencyDecision>[];
   final _imageBindings = <SourceImageBinding>[];
+  final _sourceAdaptations = <SourceEventAdaptation>[];
+  final _missingItemBindings = <SourceMissingItemBinding>[];
   ConverterAssetReviewSet? _reviewSet;
   int? _reviewMapId;
   StoredReviewSession? _storedReview;
@@ -302,6 +304,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ? previous.dependencyDecisions
           : _decisions.map(LocalReviewDependencyDecision.fromDecision).toList(),
       imageBindings: _imageBindings,
+      sourceAdaptations: _sourceAdaptations,
+      missingItemBindings: _missingItemBindings,
     );
   }
 
@@ -560,6 +564,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _imageBindings
         ..clear()
         ..addAll(settings.imageBindings);
+      _sourceAdaptations
+        ..clear()
+        ..addAll(settings.sourceAdaptations);
+      _missingItemBindings
+        ..clear()
+        ..addAll(settings.missingItemBindings);
       _studyAcknowledged =
           settings.profileAcknowledgement?.humanConfirmed ?? false;
       _allowFirstFrameAutotiles = settings.allowFirstFrameAutotiles;
@@ -697,6 +707,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _selectedMaps.clear();
       _decisions.clear();
       _imageBindings.clear();
+      _sourceAdaptations.clear();
+      _missingItemBindings.clear();
       _importedSettings = null;
       _interpretationProfile = null;
       _assetOutputMode = AssetOutputMode.sharedAtlas;
@@ -734,6 +746,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _selectedMaps.clear();
       _importedSettings = null;
       _imageBindings.clear();
+      _sourceAdaptations.clear();
+      _missingItemBindings.clear();
       _dirty = false;
       _studyAcknowledged = false;
       _allowFirstFrameAutotiles = false;
@@ -780,6 +794,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
     return ConverterStudySettings(
       interpretationProfile: _interpretationProfile,
       imageBindings: _imageBindings,
+      sourceAdaptations: _sourceAdaptations,
+      missingItemBindings: _missingItemBindings,
       projectName: _name.text.trim(),
       parentPath: _parent.text.trim(),
       folderName: _folder.text.trim(),
@@ -937,6 +953,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _imageBindings
           ..clear()
           ..addAll(recipe.settings.imageBindings);
+        _sourceAdaptations
+          ..clear()
+          ..addAll(recipe.settings.sourceAdaptations);
+        _missingItemBindings
+          ..clear()
+          ..addAll(recipe.settings.missingItemBindings);
         _storedReview = null;
         _reviewSet = null;
         _reviewMapId = null;
@@ -1010,6 +1032,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ..clear()
         ..addAll(ids);
       _decisions.clear();
+      _sourceAdaptations.clear();
+      _missingItemBindings.clear();
       _reviewPreview = null;
       _reviewSet = null;
       _reviewMapId = null;
@@ -1050,6 +1074,48 @@ class _ConverterWindowState extends State<ConverterWindow> {
               sourcePathCollisionKey(expected),
         );
         if (binding != null) _imageBindings.add(binding);
+        _reviewPreview = previous;
+        _reviewSet = null;
+        _reviewMapId = null;
+        _storedReview = null;
+        _reviewSourceVerified = false;
+        _unappliedDrafts = false;
+        _decisions.clear();
+        _sessionGeneration++;
+        _dirty = true;
+      });
+      _workflow.invalidatePrepared();
+    }),
+  );
+
+  void _changeMissingItemBinding(String symbol, SourceMissingItemBinding? binding) => unawaited(
+    _run(() async {
+      final previous = _prepared ?? _reviewPreview;
+      if (previous == null || !await _prepareForSessionChange() || !mounted) return;
+      setState(() {
+        _missingItemBindings.removeWhere((value) => value.sourceSymbol == symbol);
+        if (binding != null) _missingItemBindings.add(binding);
+        _reviewPreview = previous;
+        _reviewSet = null;
+        _reviewMapId = null;
+        _storedReview = null;
+        _reviewSourceVerified = false;
+        _unappliedDrafts = false;
+        _decisions.clear();
+        _sessionGeneration++;
+        _dirty = true;
+      });
+      _workflow.invalidatePrepared();
+    }),
+  );
+
+  void _changeSourceAdaptation(SourceEventAdaptation decision, bool apply) => unawaited(
+    _run(() async {
+      final previous = _prepared ?? _reviewPreview;
+      if (previous == null || !await _prepareForSessionChange() || !mounted) return;
+      setState(() {
+        _sourceAdaptations.removeWhere((value) => value.targetKey == decision.targetKey);
+        if (apply) _sourceAdaptations.add(decision);
         _reviewPreview = previous;
         _reviewSet = null;
         _reviewMapId = null;
@@ -1734,6 +1800,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
         const SizedBox(height: 24),
         _imageBindingsPanel(),
         const SizedBox(height: 24),
+        _sourceAdaptationsPanel(),
+        const SizedBox(height: 24),
+        _missingItemsPanel(),
+        const SizedBox(height: 24),
         _issuesPanel(),
       ],
     );
@@ -1797,6 +1867,65 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ),
       ],
     );
+  }
+
+  Widget _sourceAdaptationsPanel() {
+    final inventory = (_prepared ?? _reviewPreview)?.sourceAdaptationInventory;
+    if (inventory == null || inventory.issues.isEmpty) return const SizedBox.shrink();
+    final actions = <String, SourceAdaptationIssue>{
+      for (final issue in inventory.issues)
+        if (issue.action != null) issue.action!.targetKey: issue,
+    };
+    return StudioPanel(
+      title: 'Défauts et adaptations de la source',
+      radius: 16,
+      children: [
+        const Text('Les décisions ci-dessous sont explicites et liées aux fichiers source exacts. Après chaque changement, préparez à nouveau les cartes puis examinez le résultat.'),
+        const SizedBox(height: 12),
+        for (final entry in actions.entries) ...[
+          Text('${_mapName(entry.value.locator.mapId!)} · événement ${entry.value.locator.eventId} · page ${entry.value.locator.pageIndex! + 1}'),
+          const SizedBox(height: 6),
+          Text(entry.value.message),
+          const SizedBox(height: 6),
+          StudioSelect(
+            key: ValueKey('source-adaptation-${entry.key}'),
+            label: entry.value.action!.kind == SourceEventAdaptationKind.omitInvalidEventTileGraphic
+                ? 'Calque invalide : omission visuelle explicite, sans fidélité source certifiée'
+                : 'Cible de la remise à zéro du soin',
+            value: _sourceAdaptations.any((value) => value.targetKey == entry.key) ? 'apply' : '',
+            options: {'': 'Conserver la source et son défaut', 'apply': entry.value.action!.kind == SourceEventAdaptationKind.omitInvalidEventTileGraphic
+                ? 'Omettre ce calque hors atlas' : 'Utiliser la cible de soin reconnue'},
+            onChanged: _busy ? null : (value) => _changeSourceAdaptation(entry.value.action!, value == 'apply'),
+          ),
+          const SizedBox(height: 16),
+        ],
+        Text('Inventaire : ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.sourceDefect).length} défauts source ; ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.missingBinding).length} associations manquantes ; ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.unsupported).length} limites non prises en charge ; ${_sourceAdaptations.length + _missingItemBindings.length} adaptations choisies.'),
+      ],
+    );
+  }
+
+  Widget _missingItemsPanel() {
+    final prepared = _prepared ?? _reviewPreview;
+    final symbols = {...?prepared?.missingItemBindingOptions.keys,
+      ..._missingItemBindings.map((value) => value.sourceSymbol)}.toList()..sort();
+    if (symbols.isEmpty) return const SizedBox.shrink();
+    return StudioPanel(title: 'Entrées absentes du catalogue source', radius: 16, children: [
+      const Text('Choisissez explicitement une entrée réelle dans un dossier de référence déjà sélectionné. Seuls les objets absents du catalogue prioritaire peuvent être associés.'),
+      const SizedBox(height: 12),
+      for (final symbol in symbols) ...[
+        StudioSelect(key: ValueKey('missing-item-binding-$symbol'), label: 'Objet $symbol',
+          value: _missingItemBindings.where((value) => value.sourceSymbol == symbol).firstOrNull?.sourceRelativePath ?? '',
+          options: {'': 'Conserver le refus : entrée absente',
+            for (final candidate in prepared?.missingItemBindingOptions[symbol] ?? <SourceMissingItemBinding>[])
+              candidate.sourceRelativePath: _state.sharedSourceFiles.where((value) => value.relativePath == candidate.sourceRelativePath).firstOrNull?.referenceRootPath ?? candidate.sourceRelativePath,
+            for (final selected in _missingItemBindings.where((value) => value.sourceSymbol == symbol))
+              selected.sourceRelativePath: _state.sharedSourceFiles.where((value) => value.relativePath == selected.sourceRelativePath).firstOrNull?.referenceRootPath ?? selected.sourceRelativePath,
+          }, onChanged: _busy ? null : (selected) => _changeMissingItemBinding(symbol,
+            selected.isEmpty ? null : (prepared?.missingItemBindingOptions[symbol] ?? <SourceMissingItemBinding>[])
+              .where((value) => value.sourceRelativePath == selected).firstOrNull ?? _missingItemBindings.where((value) => value.sourceSymbol == symbol && value.sourceRelativePath == selected).firstOrNull)),
+        const SizedBox(height: 12),
+      ],
+    ]);
   }
 
   Widget _resourcesPage() {

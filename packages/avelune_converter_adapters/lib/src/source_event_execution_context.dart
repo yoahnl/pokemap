@@ -755,7 +755,7 @@ final class SourceEventExecutionContextResolver {
             .where((event) => attestedMapIds.contains(event.sourceMapId))) {
           for (final page in event.pages) {
             final graphic = page.graphic;
-            final archive = project.archive.files[event.sourceFileId];
+            final archive = project.sourceFiles[event.sourceFileId];
             if (graphic == null ||
                 archive == null ||
                 (!_staticAutonomySafe(archive.document, graphic) &&

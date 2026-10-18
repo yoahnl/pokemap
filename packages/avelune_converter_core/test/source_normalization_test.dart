@@ -475,6 +475,156 @@ List<Object?> _routeConnections() => [
     ];
 
 void main() {
+  test('normalization exposes an explicit immutable source adaptation context', () async {
+    final source = await _normalize(_source(_project()));
+    expect(source.toJson()['sourceAdaptations'], isEmpty);
+    expect(source.toJson()['originalNormalizationHash'], source.canonicalHash.value);
+    expect(source.toJson()['sourceScriptsExecuted'], 0);
+  });
+
+  group('explicit source event adaptations', () {
+    late Object? Function(Object?) convert;
+    _RubyObject ruby(Map value) => _RubyObject(value['__class__'] as String, {
+      for (final entry in value.entries.where((entry) => entry.key != '__class__'))
+        '@${entry.key}': convert(entry.value),
+    });
+    setUp(() {
+      convert = (value) => value is Map && value.containsKey('__class__')
+          ? ruby(value) : value is List ? value.map(convert).toList() : value;
+    });
+    _Files nurseInput({bool unknownRuby = false}) {
+      final programs = jsonDecode(File('test/fixtures/synthetic_declared_programs.json').readAsStringSync()) as List;
+      final nurse = jsonDecode(jsonEncode(programs.firstWhere((value) => value['family'] == 'centerNurse')['pages'])) as Map;
+      final display = (programs.firstWhere((value) => value['family'] == 'healingDisplay')['pages'] as Map);
+      for (final page in nurse.values) {
+        page['graphic']['character_name'] = 'SyntheticCenterNurse';
+        for (final command in page['list'] as List) {
+          if (command['code'] == 209 && command['parameters'][0] == 4) command['parameters'][0] = 7;
+        }
+      }
+      if (unknownRuby) nurse.values.first['list'][0]['parameters'] = ['unrecognized_code()'];
+      return _source(_project(maps: {1: _map(events: {
+        3: _event(3, nurse.values.map((value) => ruby(value as Map)).toList()),
+        4: _event(4, [_page([_command(0, [])])]),
+        7: _event(7, display.values.map((value) => ruby(value as Map)).toList()),
+      })}));
+    }
+    test('offers only exact nurse reset defects and preserves original bytes after application', () async {
+      final files = nurseInput();
+      final original = await _normalize(files);
+      final inventory = await SourceAdaptationInventory.inspect(source: original, files: files);
+      final decisions = inventory.issues.where((value) => value.code == 'source_defect.healing_reset_target').map((value) => value.action!).toList();
+      expect(decisions, hasLength(2));
+      for (final decision in decisions) {
+        expect(SourceEventAdaptation.fromJson(decision.toJson()).toJson(), decision.toJson());
+      }
+      final adapted = await const RmxpSourceNormalizer().normalize(snapshot: files.snapshot, files: files, sourceAdaptations: decisions);
+      expect(adapted.canonicalHash, isNot(original.canonicalHash));
+      expect(adapted.originalNormalizationHash, original.canonicalHash);
+      expect(adapted.archive.canonicalHash, original.archive.canonicalHash);
+      expect(adapted.archive.toJson(), original.archive.toJson());
+      final analysis = SourceEventAnalyzer.forProject(adapted, profile: SourceEventProfile.forProject(adapted)).analyze();
+      final inventoryJson = SourceInteractionInventory.build(source: adapted, analysis: analysis, toolRevision: 'ev09-test').toJson();
+      final nursePages = ((inventoryJson['events'] as List).first as Map)['pages'] as List;
+      expect(nursePages.expand((value) => value['rawCommands'] as List).where((value) => (value['parameters'] as List).contains('get_character(4).pattern = 0')), hasLength(2));
+      expect(nursePages.expand((value) => value['effectiveCommands'] as List).where((value) => (value['parameters'] as List).contains('get_character(7).pattern = 0')), hasLength(2));
+      expect(adapted.maps.single.map.events.first.pages.expand((value) => value.commands).where((value) => value.parameters.contains('get_character(7).pattern = 0')), hasLength(2));
+      expect(original.maps.single.map.events.first.pages.expand((value) => value.commands).where((value) => value.parameters.contains('get_character(4).pattern = 0')), hasLength(2));
+      final replay = await const RmxpSourceNormalizer().normalize(snapshot: files.snapshot, files: files, sourceAdaptations: decisions.reversed.toList());
+      expect(replay.canonicalHash, adapted.canonicalHash);
+      expect((await SourceAdaptationInventory.inspect(source: adapted, files: files)).issues.where((value) => value.classification == SourceAdaptationClassification.appliedAdaptation), hasLength(2));
+    });
+    test('unresolved item choices are never reported as applied by the core inventory', () async {
+      const alias = '_converter_sources/1/Data/items.dat';
+      final files = _source(_project()..[alias] = _MarshalFixture().dump(<Object?, Object?>{}));
+      final entry = files.snapshot.entries.singleWhere((value) => value.relativePath == alias);
+      final binding = SourceMissingItemBinding.fromJson({'kind': 'sourceMissingItemBinding', 'version': 1,
+        'sourceSymbol': 'ETHER', 'sourceSnapshotHash': files.snapshot.canonicalHash.value,
+        'sourceFileId': entry.fileId.value, 'sourceRelativePath': alias,
+        'sourceSha256': entry.sha256!.value, 'reason': 'Pending explicit choice', 'humanConfirmed': true});
+      final source = await const RmxpSourceNormalizer().normalize(snapshot: files.snapshot,
+          files: files, missingItemBindings: [binding]);
+      final inventory = await SourceAdaptationInventory.inspect(source: source, files: files);
+      expect(source.missingItemBindings, hasLength(1));
+      expect(inventory.issues.where((value) => value.classification == SourceAdaptationClassification.appliedAdaptation), isEmpty);
+    });
+
+    for (final unsupportedRoute in <Object>['unsupported', 0]) {
+      test('malformed literal movement routes remain inert without aborting inventory: $unsupportedRoute', () async {
+        final graphic = _page([_command(0, [])]);
+        (graphic.fields['@graphic'] as _RubyObject).fields['@tile_id'] = 511;
+        final files = _source(_project(maps: {1: _map(events: {
+          1: _event(1, [_page([_command(209, [1, unsupportedRoute]), _command(0, [])])]),
+          2: _event(2, [graphic]),
+        })}));
+        final source = await _normalize(files);
+        final inventory = await SourceAdaptationInventory.inspect(source: source, files: files);
+        expect(inventory.issues.where((value) => value.action?.locator.eventId == 1), isEmpty);
+        expect(inventory.issues.where((value) => value.action?.locator.eventId == 2), hasLength(1));
+        final analysis = SourceEventAnalyzer.forProject(source, profile: SourceEventProfile.forProject(source)).analyze();
+        expect(analysis.events.first.isQuarantined, true);
+      });
+    }
+
+    test('unknown Ruby is never repaired into a recognized nurse', () async {
+      final files = nurseInput(unknownRuby: true);
+      final inventory = await SourceAdaptationInventory.inspect(source: await _normalize(files), files: files);
+      expect(inventory.issues.where((value) => value.code == 'source_defect.healing_reset_target'), isEmpty);
+    });
+    test('refuses duplicate stale changed values and unsupported arbitrary patches', () async {
+      final files = nurseInput();
+      final source = await _normalize(files);
+      final decision = (await SourceAdaptationInventory.inspect(source: source, files: files)).issues.firstWhere((value) => value.action != null).action!;
+      expect(() => SourceEventAdaptation.canonicalize([decision, decision]), throwsA(isA<ContractError>()));
+      for (final change in [
+        {'sourceSnapshotHash': 'f' * 64},
+        {'sourceFileSha256': 'f' * 64},
+        {'originalPageHash': 'f' * 64},
+        {'newValue': 'get_character(6).pattern = 0'},
+        {'locator': {...decision.toJson()['locator'] as Map, 'eventId': 999}},
+      ]) {
+        final changed = SourceEventAdaptation.fromJson({...decision.toJson(), ...change});
+        await expectLater(const RmxpSourceNormalizer().normalize(snapshot: files.snapshot, files: files, sourceAdaptations: [changed]), throwsA(isA<ContractError>()));
+      }
+      for (final change in [
+        {'arbitraryPatch': {}}, {'newValue': 'dangerous()'}, {'reason': ''}, {'adaptation': 'replaceRuby'},
+      ]) {
+        expect(() => SourceEventAdaptation.fromJson({...decision.toJson(), ...change}), throwsA(isA<ContractError>()));
+      }
+    });
+    test('unsupported noncanonical source map paths never offer unroundtrippable decisions', () async {
+      final page = _page([_command(0, [])]);
+      (page.fields['@graphic'] as _RubyObject).fields['@tile_id'] = 511;
+      final bytes = _project(maps: {1: _map(events: {2: _event(2, [page])})});
+      bytes['Data/Map1.rxdata'] = bytes.remove('Data/Map001.rxdata')!;
+      final files = _source(bytes);
+      final source = await _normalize(files);
+      final inventory = await SourceAdaptationInventory.inspect(source: source, files: files);
+      expect(inventory.issues.where((value) => value.action != null), isEmpty);
+      expect(inventory.issues.any((value) => value.classification == SourceAdaptationClassification.unsupported &&
+          value.code == 'source_adaptation.noncanonical_map_path'), true);
+    });
+
+    test('invalid event overlay omission is explicit and cannot target a valid tile', () async {
+      final page = _page([_command(0, [])]);
+      (page.fields['@graphic'] as _RubyObject).fields['@tile_id'] = 511;
+      final files = _source(_project(maps: {1: _map(events: {2: _event(2, [page])})}));
+      final source = await _normalize(files);
+      final inventory = await SourceAdaptationInventory.inspect(source: source, files: files);
+      final issue = inventory.issues.singleWhere((value) => value.code == 'source_defect.event_tile_outside_image');
+      expect(issue.toJson()['sourceVisualParity'], false);
+      expect(SourceEventAdaptation.fromJson(issue.action!.toJson()).toJson(), issue.action!.toJson());
+      expect(source.eventImages.any((value) => value.sourceTileId == 511), isTrue);
+      final adapted = await const RmxpSourceNormalizer().normalize(snapshot: files.snapshot, files: files, sourceAdaptations: [issue.action!]);
+      expect(adapted.eventImages.any((value) => value.sourceTileId == 511), isFalse);
+      expect(adapted.archive.toJson(), source.archive.toJson());
+      (page.fields['@graphic'] as _RubyObject).fields['@tile_id'] = 385;
+      final validFiles = _source(_project(maps: {1: _map(events: {2: _event(2, [page])})}));
+      final valid = await _normalize(validFiles);
+      expect((await SourceAdaptationInventory.inspect(source: valid, files: validFiles)).issues.where((value) => value.action?.kind == SourceEventAdaptationKind.omitInvalidEventTileGraphic), isEmpty);
+    });
+  });
+
   group('common event archive census', () {
     Future<NormalizedSourceProject> normalize(_Files files, {bool include = true,
         SourceNormalizationLimits limits = const SourceNormalizationLimits()}) =>
@@ -551,7 +701,10 @@ void main() {
       final source = await _normalize(_source(_project()));
       expect(source.archive.isSealed, isTrue);
       final oracleJson = Map<String, Object?>.from(source.toJson())
-        ..remove('archive');
+        ..remove('archive')
+        ..remove('originalNormalizationHash')
+        ..remove('sourceAdaptations')
+        ..remove('sourceScriptsExecuted');
       final oracle = canonicalHashOf(oracleJson,
           limits: const ContractLimits(
               maxNodes: 40000000,
@@ -950,7 +1103,7 @@ void main() {
     expect(row.rawDataRef.binaryLocation.graphPath, contains('[2]'));
     expect(row.toJson()['nativeOffset'], 0);
     expect(row.toJson()['sourceDirection'], 'E');
-    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v6');
+    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v7');
   });
 
   test(

@@ -374,7 +374,7 @@ final class SourceSemanticResolver {
   SourceSemanticResolver._(
       {required this.profile,
       required Map<int, _SourceSemanticMap> maps,
-      required Map<ConverterId, SourceArchivedFile> eventFiles})
+      required Map<ConverterId, SourceSemanticFile> eventFiles})
       : _maps = Map.unmodifiable(maps),
         _eventFiles = Map.unmodifiable(eventFiles);
 
@@ -396,7 +396,7 @@ final class SourceSemanticResolver {
     };
     return SourceSemanticResolver._(
         profile: profile,
-        eventFiles: project.archive.files,
+        eventFiles: project.sourceFiles,
         maps: {
           for (final source in project.maps)
             source.map.sourceMapId: _SourceSemanticMap(
@@ -406,7 +406,7 @@ final class SourceSemanticResolver {
 
   final SourceSemanticProfile profile;
   final Map<int, _SourceSemanticMap> _maps;
-  final Map<ConverterId, SourceArchivedFile> _eventFiles;
+  final Map<ConverterId, SourceSemanticFile> _eventFiles;
 
   bool _plainTouchPage(SourceEventPageAnalysis page) {
     final raw = page.rawDataRef;

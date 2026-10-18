@@ -37,7 +37,7 @@ final class SourceStairProgram {
         sourceSnapshotHash = source.snapshot.canonicalHash,
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
-        sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
+        sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
         _fingerprint = _fingerprintOf(event),
         _sourceProgram = canonicalJsonOf({
           'page': event.pages.single.rawDataRef?.toJson(),
@@ -79,7 +79,7 @@ final class SourceStairProgram {
       source.snapshot.canonicalHash == sourceSnapshotHash &&
       source.canonicalHash == normalizationHash &&
       analysis.profile.canonicalHash == profileHash &&
-      source.archive.files[event.sourceFileId]?.contentHash == sourceFileHash &&
+      source.sourceFiles[event.sourceFileId]?.contentHash == sourceFileHash &&
       event.identity == eventIdentity &&
       _family(event) == family &&
       _fingerprintOf(event) == _fingerprint;

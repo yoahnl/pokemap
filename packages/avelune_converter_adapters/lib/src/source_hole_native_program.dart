@@ -12,7 +12,7 @@ final class SourceHoleNativeProgram {
         sourceSnapshotHash = source.snapshot.canonicalHash,
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
-        sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
+        sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
         fingerprint = _fingerprint(event),
         warp = event.pages.single.body.nodes.whereType<SourceWarpNode>().single,
         fallingSound = event.pages.single.body.nodes
@@ -45,7 +45,7 @@ final class SourceHoleNativeProgram {
       source.snapshot.canonicalHash == sourceSnapshotHash &&
       source.canonicalHash == normalizationHash &&
       analysis.profile.canonicalHash == profileHash &&
-      source.archive.files[event.sourceFileId]?.contentHash == sourceFileHash &&
+      source.sourceFiles[event.sourceFileId]?.contentHash == sourceFileHash &&
       event.identity == eventIdentity &&
       _fingerprint(event) == fingerprint;
 

@@ -57,11 +57,13 @@ void main() {
   }
 
   ConverterStudyPlanRecipe connectionRecipe(int maxConnections,
-      {NativeWriteLimits writeLimits = const NativeWriteLimits(), SourceInterpretationProfile? interpretationProfile}) {
+      {NativeWriteLimits writeLimits = const NativeWriteLimits(), SourceInterpretationProfile? interpretationProfile,
+      List<SourceMissingItemBinding> missingItemBindings = const []}) {
     final sourceHash = Sha256Hash('1' * 64);
     final profileHash = Sha256Hash('2' * 64);
     final settings = ConverterStudySettings(
         interpretationProfile: interpretationProfile,
+        missingItemBindings: missingItemBindings,
         projectName: 'Original connection quota study',
         parentPath: output.path,
         folderName: 'original-study',
@@ -201,7 +203,25 @@ void main() {
   });
 
   for (final initiallyShared in [false, true]) {
-    for (final afterApproval in [false, true]) {
+    test('missing item decisions affect settings hash and survive exact recipe and session schemas', () {
+    final binding = SourceMissingItemBinding.fromJson({
+      'kind': 'sourceMissingItemBinding', 'version': 1, 'sourceSymbol': 'ETHER',
+      'sourceSnapshotHash': '1' * 64, 'sourceFileId': 'donor-items',
+      'sourceRelativePath': '_converter_sources/2/Data/items.dat', 'sourceSha256': '2' * 64,
+      'reason': 'Explicit supplemental source selection', 'humanConfirmed': true,
+    });
+    final plain = connectionRecipe(2);
+    final recipe = connectionRecipe(2, missingItemBindings: [binding]);
+    expect(recipe.settingsHash, isNot(plain.settingsHash));
+    final decoded = ConverterStudyPlanRecipe.fromJson(recipe.toJson());
+    expect(decoded.settings.missingItemBindings.single.toJson(), binding.toJson());
+    final resume = LocalReviewResumeSettings(sourceRootPath: root.path,
+        destinationParentPath: output.path, projectName: 'Source binding', folderName: 'source-binding',
+        missingItemBindings: [binding]);
+    expect(LocalReviewResumeSettings.fromJson(resume.toJson()).missingItemBindings.single.toJson(), binding.toJson());
+  });
+
+  for (final afterApproval in [false, true]) {
       test(
           'constant bytes cannot change source origin shared=$initiallyShared approved=$afterApproval',
           () async {
@@ -278,7 +298,7 @@ void main() {
           await prepare(supplementalRootPaths: [first.path, second.path]);
       final snapshot = original.state.snapshot!;
       final recipe = original.exportStudyPlanRecipe();
-      expect(recipe.toJson()['version'], 11);
+      expect(recipe.toJson()['version'], 12);
       expect(recipe.sourceSelection.supplementalRootPaths,
           [first.path, second.path]);
       expect(recipe.sharedSourceFiles.single.referenceRootPath, second.path);
@@ -434,7 +454,7 @@ void main() {
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 8);
+    expect((recipe.toJson()['settings'] as Map)['version'], 9);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -448,7 +468,7 @@ void main() {
     await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
-    expect(decoded.toJson()['version'], 11);
+    expect(decoded.toJson()['version'], 12);
     expect(decoded.sourceSelection.supplementalRootPaths, [shared.path]);
     expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
@@ -711,8 +731,8 @@ void main() {
       'maxStringCodeUnits': 1048576,
       'maxTextCodeUnits': 25165824,
     });
-    expect(settings['version'], 8);
-    expect(recipe.toJson()['version'], 11);
+    expect(settings['version'], 9);
+    expect(recipe.toJson()['version'], 12);
   });
 
   test('aggregate image budget recipe preserves explicit boundaries and hashes',
@@ -725,7 +745,7 @@ void main() {
       expect(decoded.settings.writeLimits.maxImagePixels, 16777216);
       expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
       expect(decoded.canonicalHash, recipe.canonicalHash);
-      expect((recipe.toJson()['settings'] as Map)['version'], 8);
+      expect((recipe.toJson()['settings'] as Map)['version'], 9);
     }
     final low = connectionRecipe(2,
         writeLimits: const NativeWriteLimits(maxTotalImagePixels: 16777216));
@@ -807,8 +827,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('ordered source recipe emits breaking version 11', () {
-    expect(connectionRecipe(2).toJson()['version'], 11);
+  test('source adaptations recipe emits breaking version 12', () {
+    expect(connectionRecipe(2).toJson()['version'], 12);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

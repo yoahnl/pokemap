@@ -141,7 +141,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     for (final candidate in event.pages) {
       final reference = analyzer._reference(candidate.rawDataRef);
       if (reference == null) return null;
-      final file = analyzer.project.archive.files[reference.fileId]!;
+      final file = analyzer.project.sourceFiles[reference.fileId]!;
       if (file.entry.relativePath != path) return null;
       _SourceTrainerRawFields(file.document).validate(reference.nodeId);
       final value =
@@ -299,7 +299,7 @@ bool _sourceTrainerEventContext(
     SourceEventAnalyzer analyzer, int mapId, SourceEvent event) {
   final reference = analyzer._reference(event.pages.first.rawDataRef);
   if (reference == null) return false;
-  final file = analyzer.project.archive.files[reference.fileId]!;
+  final file = analyzer.project.sourceFiles[reference.fileId]!;
   if (file.entry.relativePath != _sourceTrainerPath(mapId)) return false;
   final document = file.document;
   final root = _eventFields(document, document.rootId, 'RPG::Map');

@@ -240,7 +240,7 @@ final class SourceInteractionInventory {
       final raw = expected[event.identity.value];
       require(raw != null, 'alien analysis event');
       final sourceEvent = raw!.$2;
-      final file = source.archive.files[raw.$1.map.sourceFileId];
+      final file = source.sourceFiles[raw.$1.map.sourceFileId];
       require(
         file != null &&
             event.sourceFileId == file.fileId &&
@@ -513,7 +513,21 @@ final class SourceInteractionInventory {
           'commandBodyEmpty': page.isEmpty,
           'rawCommandCount': commands.length,
           'rawExecutableCommandCount': executable,
-          'rawCommands': commands.map((c) => c.toJson()).toList(),
+          'rawCommands': commands.map((command) {
+            final correction = source.sourceAdaptations.where((value) =>
+                value.kind == SourceEventAdaptationKind.resetHealingDisplayTarget &&
+                value.locator.mapId == event.sourceMapId && value.locator.eventId == event.sourceEventId &&
+                value.locator.pageIndex == index && value.locator.commandIndex == command.originalIndex).singleOrNull;
+            return correction == null ? command.toJson() : {...command.toJson(), 'parameters': [correction.expectedBefore]};
+          }).toList(),
+          'effectiveCommands': commands.map((command) => command.toJson()).toList(),
+          'sourceAdaptations': source.sourceAdaptations.where((value) =>
+              value.locator.mapId == event.sourceMapId && value.locator.eventId == event.sourceEventId &&
+              value.locator.pageIndex == index).map((value) => value.toJson()).toList(),
+          'originalGraphicTileId': source.sourceAdaptations.where((value) =>
+              value.kind == SourceEventAdaptationKind.omitInvalidEventTileGraphic &&
+              value.locator.mapId == event.sourceMapId && value.locator.eventId == event.sourceEventId &&
+              value.locator.pageIndex == index).singleOrNull?.expectedBefore ?? graphic?.tileId,
           'parsedCommands': page.body.nodes
               .map(
                 (n) => {
@@ -550,6 +564,7 @@ final class SourceInteractionInventory {
         'locator': event.locator.toJson(),
         'sourceFileId': event.sourceFileId.value,
         'sourceFileSha256': file!.contentHash.value,
+        'sourceSemanticContextHash': file.semanticContextHash.value,
         'sourceMapId': event.sourceMapId,
         'mapName': mapNames[event.sourceMapId],
         'sourceEventId': event.sourceEventId,
@@ -707,7 +722,7 @@ Map<String, Object?> _inventoryConditionFields(
   NormalizedSourceProject source,
   SourcePreservedData ref,
 ) {
-  final document = source.archive.files[ref.fileId]!.document;
+  final document = source.sourceFiles[ref.fileId]!.document;
   final Map<String, int> fields;
   try {
     fields = _eventFields(document, ref.nodeId, 'RPG::Event::Page::Condition');

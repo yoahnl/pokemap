@@ -326,7 +326,7 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
           'normalizationHash': source.canonicalHash.value,
           'profileHash': profile.canonicalHash.value,
           'sourceFileHash':
-              source.archive.files[event.sourceFileId]!.contentHash.value,
+              source.sourceFiles[event.sourceFileId]!.contentHash.value,
           'wholeProgramHash': canonicalHashOf(_fingerprint(event)).value,
         }),
         binding,

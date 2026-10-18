@@ -19,6 +19,61 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('source defects require an explicit reversible presentation decision', (tester) async {
+    final source = (await tester.runAsync(() => _OriginalSource.create(maps: [
+      LiteralFixtureMap(id: 1, events: [const LiteralFixtureEvent(id: 2, x: 1, y: 0,
+        pages: [LiteralFixtureEventPage(tileId: 511, commands: [LiteralFixtureEventCommand(0, [])])])]),
+    ])))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await tester.pumpWidget(ConverterApp(workflow: source.workflow,
+        initialSourcePath: source.sourcePath, initialParentPath: source.output.path,
+        sessionStore: LocalReviewSessionStore(rootPath: '${source.root.path}/sessions')));
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(tester, () => source.workflow.state.snapshot != null && !source.workflow.state.isBusy);
+      await tester.ensureVisible(find.text('Tout sélectionner'));
+      await tester.tap(find.text('Tout sélectionner'));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('acknowledge-study')));
+      await tester.tap(find.byKey(const ValueKey('acknowledge-study')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(tester, () => source.workflow.state.prepared != null && !source.workflow.state.isBusy);
+      expect(source.workflow.state.prepared!.settings.sourceAdaptations, isEmpty);
+      final issue = source.workflow.state.prepared!.sourceAdaptationInventory.issues.singleWhere((value) => value.action != null);
+      final picker = find.byKey(ValueKey('source-adaptation-${issue.action!.targetKey}'));
+      expect(picker, findsOneWidget);
+      expect(tester.widget<StudioSelect>(picker).value, '');
+      tester.widget<StudioSelect>(picker).onChanged!('apply');
+      await tester.pumpAndSettle();
+      if (find.text('Abandonner les changements').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Abandonner les changements'));
+        await tester.pumpAndSettle();
+      }
+      expect(source.workflow.state.prepared, isNull);
+      expect(source.workflow.state.approval, isNull);
+      expect(tester.widget<StudioSelect>(picker).value, 'apply');
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(tester, () => source.workflow.state.prepared != null && !source.workflow.state.isBusy);
+      final adapted = source.workflow.state.prepared!;
+      expect(adapted.settings.sourceAdaptations.single.kind, SourceEventAdaptationKind.omitInvalidEventTileGraphic);
+      expect(adapted.normalizedSource.eventImages.where((value) => value.sourceTileId == 511), isEmpty);
+      tester.widget<StudioSelect>(picker).onChanged!('');
+      await tester.pumpAndSettle();
+      if (find.text('Abandonner les changements').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Abandonner les changements'));
+        await tester.pumpAndSettle();
+      }
+      expect(source.workflow.state.prepared, isNull);
+      expect(tester.widget<StudioSelect>(picker).value, '');
+      await tester.runAsync(source.expectSourceUnchanged);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
   testWidgets('source interpretation selection is explicit and clearable', (tester) async {
     final source = (await tester.runAsync(_OriginalSource.create))!;
     final profile = File('${source.root.path}/selected-profile.json');

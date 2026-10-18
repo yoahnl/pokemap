@@ -52,6 +52,29 @@ void main() {
         '--json'
       ];
 
+  test('CLI inventories explicit source defects and replays their closed decisions', () async {
+    fixture = await LiteralTileFixture.create(sourceRootPath: '${root.path}/defect-source', maps: [
+      LiteralFixtureMap(id: 1, events: [const LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+        LiteralFixtureEventPage(tileId: 511, commands: [LiteralFixtureEventCommand(0, [])]),
+      ])]),
+    ]);
+    final inspected = await invoke(['inspect-adaptations', '--source', fixture.sourceRootPath!,
+      '--namespace', 'original-ac16-cli', '--maps', '1', '--offline', '--json']);
+    expect(inspected.code, 0, reason: inspected.err);
+    final inventory = jsonDecode(inspected.out) as Map;
+    final issue = (inventory['issues'] as List).singleWhere((value) => value['allowedAction'] != null);
+    final manifest = File('${root.path}/source-adaptations.json');
+    await manifest.writeAsString(jsonEncode([issue['allowedAction']]));
+    final planned = await invoke([...planArgs(), '--source-adaptations', manifest.path]);
+    expect(planned.code, 0, reason: planned.err);
+    final recipe = await const LocalStudyPlanStore().read(planPath);
+    expect(recipe.settings.sourceAdaptations.single.kind, SourceEventAdaptationKind.omitInvalidEventTileGraphic);
+    final converted = await invoke(['convert', '--plan', planPath, '--approve-plan',
+      recipe.approvedPlanHash.value, '--offline', '--json']);
+    expect(converted.code, 0, reason: converted.err);
+    expect(jsonDecode(converted.out)['sourceUnchanged'], true);
+  }, skip: !Platform.isMacOS);
+
   test('CLI explicitly selects persists and replays a source interpretation profile', () async {
     final profile = SourceInterpretationProfile.fromJson({
       ...syntheticSourceInterpretationProfile.toJson(), 'capabilities': ['events']});

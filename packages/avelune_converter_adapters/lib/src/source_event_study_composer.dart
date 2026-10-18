@@ -43,8 +43,10 @@ final class SourceEventStudyComposition {
       {required this.draft,
       required this.projection,
       this.musicBindings = const {},
+      this.sourceItems,
       this.trainerQualification, this.pokemonGiftCatalog});
   final NativeProjectDraft draft;
+  final SourceEventItemBindings? sourceItems;
   final SourceEventProjection projection;
   final Map<int, SourceMapMusicBinding> musicBindings;
   final NativeTrainerCatalogQualification? trainerQualification;
@@ -184,7 +186,7 @@ final class SourceEventStudyComposer {
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
-      for (final file in source.archive.files.values)
+      for (final file in source.sourceFiles.values)
         if (sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata')
           file.entry.relativePath,
       for (final program in warpTilePrograms.programs.values)
@@ -253,6 +255,7 @@ final class SourceEventStudyComposer {
       try {
         items = await const SourceEventItemBindingResolver().read(
             snapshot: source.snapshot,
+            missingItemBindings: source.missingItemBindings,
             files: recording,
             symbols: itemSymbols,
             eventProfile: profile,
@@ -622,6 +625,7 @@ final class SourceEventStudyComposer {
                     RegExp(r'^Data/Map\d+\.rxdata$')
                         .hasMatch(entry['relativePath'] as String))))
         .map((entry) => entry['fileId'] as String));
+    preservedFileIds.addAll(items?.archive.files.keys.map((id) => id.value) ?? const <String>[]);
     final catalogMutations = <NativeMutation>[];
     if (projection.itemCatalog != null) {
       final config = const ProjectPokemonConfig(
@@ -909,6 +913,7 @@ final class SourceEventStudyComposer {
           .toList(),
     };
     return SourceEventStudyComposition(
+        sourceItems: items,
         projection: projection,
         musicBindings: Map.unmodifiable(musicBindings),
         trainerQualification: trainerBindings.qualification,

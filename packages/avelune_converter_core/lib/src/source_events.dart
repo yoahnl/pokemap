@@ -907,7 +907,7 @@ final class SourceEventAnalyzer {
     final switches = _switchNames();
     final qualified = _isQualified;
     for (final map in project.maps) {
-      final mapFile = project.archive.files[map.map.sourceFileId];
+      final mapFile = project.sourceFiles[map.map.sourceFileId];
       final path = mapFile?.entry.relativePath ??
           'Data/Map${map.map.sourceMapId}.rxdata';
       for (final event in map.map.events) {
@@ -1004,7 +1004,7 @@ final class SourceEventAnalyzer {
   SourcePreservedData? _reference(ConverterId? id) {
     final reference = project.archive.references[id];
     if (reference == null) return null;
-    final file = project.archive.files[reference.fileId];
+    final file = project.sourceFiles[reference.fileId];
     if (file == null ||
         file.contentHash != reference.contentHash ||
         !_admitted(file)) {
@@ -1013,7 +1013,7 @@ final class SourceEventAnalyzer {
     return reference;
   }
 
-  bool _admitted(SourceArchivedFile file) => project.snapshot.entries.any(
+  bool _admitted(SourceSemanticFile file) => project.snapshot.entries.any(
       (entry) =>
           entry.fileId == file.fileId &&
           entry.sha256 == file.contentHash &&
@@ -1023,7 +1023,7 @@ final class SourceEventAnalyzer {
   ({List<String> texts, bool complete}) observeOpaquePageRuby(SourceEventPage page) {
     final reference = _reference(page.rawDataRef);
     if (reference == null) return (texts: const [], complete: false);
-    final reader = _SourceOpaqueCommandReader(project.archive.files[reference.fileId]!.document);
+    final reader = _SourceOpaqueCommandReader(project.sourceFiles[reference.fileId]!.document);
     try {
       final fields = _eventFields(reader.document, reference.nodeId, 'RPG::Event::Page');
       if (reader.integer(_eventField(fields, '@move_type')) == 3) {
@@ -1045,7 +1045,7 @@ final class SourceEventAnalyzer {
           present: false, complete: true);
     }
     if (entries.length == 1) {
-      final file = project.archive.files[entries.single.fileId];
+      final file = project.sourceFiles[entries.single.fileId];
       if (file != null && _admitted(file)) {
         final reader = _SourceOpaqueCommandReader(file.document);
         try {
@@ -1067,7 +1067,7 @@ final class SourceEventAnalyzer {
   }
 
   List<int> get commonEventIds {
-    final files = project.archive.files.values.where((file) =>
+    final files = project.sourceFiles.values.where((file) =>
       sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata' && _admitted(file)).toList();
     if (files.length != 1) return const [];
     try {
@@ -1083,7 +1083,7 @@ final class SourceEventAnalyzer {
   late final bool commonEventsAreManual = _commonEventsAreManual();
 
   bool _commonEventsAreManual() {
-    final files = project.archive.files.values.where((file) =>
+    final files = project.sourceFiles.values.where((file) =>
         sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata' && _admitted(file)).toList();
     if (files.length != 1) return false;
     final reader = _SourceOpaqueCommandReader(files.single.document);
@@ -1149,7 +1149,7 @@ final class SourceEventAnalyzer {
   }
 
   List<String?>? _systemNames(String field) {
-    for (final file in project.archive.files.values) {
+    for (final file in project.sourceFiles.values) {
       if (sourcePathCollisionKey(file.entry.relativePath) !=
               'data/system.rxdata' ||
           !_admitted(file)) {
@@ -1206,7 +1206,7 @@ final class SourceEventAnalyzer {
     if (ref == null) {
       return _unqualifiedEventCondition('events.missing_page_condition');
     }
-    final file = project.archive.files[ref.fileId]!;
+    final file = project.sourceFiles[ref.fileId]!;
     final fields =
         _eventFields(file.document, ref.nodeId, 'RPG::Event::Page::Condition');
     final children = <SourceEventCondition>[];
@@ -1267,7 +1267,7 @@ final class SourceEventAnalyzer {
   }
 
   SourceEventGraphic _graphic(SourcePreservedData ref) {
-    final doc = project.archive.files[ref.fileId]!.document;
+    final doc = project.sourceFiles[ref.fileId]!.document;
     final page = _eventFields(doc, ref.nodeId, 'RPG::Event::Page');
     final graphic = _eventFields(
         doc, _eventField(page, '@graphic'), 'RPG::Event::Page::Graphic');
@@ -1443,11 +1443,11 @@ final class _SourceEventParser {
   final int mapId, eventId;
   final List<String?>? switchNames;
   final SourcePreservedData? rawPage;
-  final ({SourceArchivedFile file, int nodeId})? rawCommon;
+  final ({SourceSemanticFile file, int nodeId})? rawCommon;
   final List<int> callStack;
   final _SourceCallBudget callBudget;
   MarshalDocument get _document => rawCommon?.file.document ??
-      analyzer.project.archive.files[rawPage!.fileId]!.document;
+      analyzer.project.sourceFiles[rawPage!.fileId]!.document;
   final diagnostics = <SourceEventDiagnostic>[];
   var index = 0;
 
@@ -1633,7 +1633,7 @@ final class _SourceEventParser {
     if (!analyzer.commonEventsAreManual) return _unknown('events.common_event_automatic_or_invalid');
     if (callStack.contains(id)) return _unknown('events.common_event_recursion');
     if (callStack.length >= 16) return _unknown('events.common_event_depth_exceeded');
-    final files = analyzer.project.archive.files.values.where((file) =>
+    final files = analyzer.project.sourceFiles.values.where((file) =>
         sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata' &&
         analyzer._admitted(file)).toList();
     if (files.length != 1) return _unknown('events.common_event_missing');
@@ -1980,7 +1980,7 @@ final class _SourceEventParser {
     _arity(command.parameters, 2);
     final raw = _rawFacingParameters(command, 2);
     final reference = _facingReference(command, 0, raw[0]);
-    final doc = analyzer.project.archive.files[reference.fileId]!.document;
+    final doc = analyzer.project.sourceFiles[reference.fileId]!.document;
     final tone = doc.node(_facingPlain(doc, raw[0], MarshalKind.userDefined));
     if (tone.className != 'Tone' || tone.bytes?.length != 32) {
       throw const FormatException();
@@ -2013,7 +2013,7 @@ final class _SourceEventParser {
     _arity(command.parameters, 1);
     final raw = _rawFacingParameters(command, 1);
     final reference = _facingReference(command, 0, raw[0]);
-    final doc = analyzer.project.archive.files[reference.fileId]!.document;
+    final doc = analyzer.project.sourceFiles[reference.fileId]!.document;
     final fields = _facingFields(doc, raw[0], 'RPG::AudioFile',
         const {'@name', '@volume', '@pitch'});
     final nameId = _eventField(fields, '@name');
@@ -2076,7 +2076,7 @@ final class _SourceEventParser {
     final copyParameters = _rawFacingParameters(copyCommand, 1);
     final route = _facingReference(routeCommand, 1, routeParameters[1]);
     final copy = _facingReference(copyCommand, 0, copyParameters[0]);
-    final doc = analyzer.project.archive.files[route.fileId]!.document;
+    final doc = analyzer.project.sourceFiles[route.fileId]!.document;
     if (_eventInt(
             doc, _facingPlain(doc, routeParameters[0], MarshalKind.integer)) !=
         0) {
@@ -2106,7 +2106,7 @@ final class _SourceEventParser {
     _arity(command.parameters, 2);
     final raw = _rawFacingParameters(command, 2);
     final route = _facingReference(command, 1, raw[1]);
-    final doc = analyzer.project.archive.files[route.fileId]!.document;
+    final doc = analyzer.project.sourceFiles[route.fileId]!.document;
     final target =
         _eventInt(doc, _facingPlain(doc, raw[0], MarshalKind.integer));
     if (target < -1 || target != _integer(command.parameters[0])) {

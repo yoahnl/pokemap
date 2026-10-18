@@ -333,7 +333,7 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
   if (reference == null) {
     return null;
   }
-  final file = analyzer.project.archive.files[reference.fileId]!;
+  final file = analyzer.project.sourceFiles[reference.fileId]!;
   if (file.entry.relativePath != _sourceTrainerPath(mapId)) {
     return null;
   }

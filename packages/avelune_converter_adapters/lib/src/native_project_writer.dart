@@ -1745,7 +1745,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           semantics.requireOperation(mutation);
           final logicalPath = _string(parameters, 'logicalPath');
           if (logicalPath.startsWith('assets/regions/')) {
-            final townMap = _regeneratedTownMap(semantics);
+            final townMap = _regeneratedTownMap(semantics, assetId: id);
             final image = townMap?['image'];
             final expected = semantics.events?.draft.mutations
                 .where((entry) => entry.operationId == mutation.operationId)
@@ -2185,9 +2185,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       case 'regionalMap.region.upsert':
         semantics.requireOperation(mutation);
         _allowParameters(parameters, const {'region'});
-        final townMap = _regeneratedTownMap(semantics);
         final region = ProjectRegionDefinition.fromJson(
             Map<String, dynamic>.from(parameters['region'] as Map));
+        final townMap = _regeneratedTownMap(semantics, regionId: region.id);
         final image = townMap?['image'];
         if (townMap == null || image is! Map ||
             townMap['nativeRegionId'] != region.id ||
@@ -2204,7 +2204,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         _allowParameters(parameters, const {'poi'});
         final point = ProjectRegionPointOfInterest.fromJson(
             Map<String, dynamic>.from(parameters['poi'] as Map));
-        final townMap = _regeneratedTownMap(semantics);
+        final townMap = _regeneratedTownMap(semantics, regionId: point.regionId);
         if (townMap == null || point.destination != null ||
             point.regionId != townMap['nativeRegionId'] ||
             !(regionalMap?.regions.any((region) => region.id == point.regionId) ?? false) ||
@@ -2357,15 +2357,36 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       borderSnapshots);
 }
 
-Map<String, Object?>? _regeneratedTownMap(_VerifiedSourceSemantics semantics) {
-  final events = semantics.events?.draft.compositionEvidence['sourceEvents'];
-  final townMap = events is Map ? events['townMap'] : null;
-  if (townMap is! Map<String, Object?> ||
-      townMap['kind'] != 'sourceTownMapBinding' || townMap['version'] != 1 ||
-      townMap['sourceWallMap'] != true || townMap['flyEnabled'] != false) {
+Map<String, Object?>? _regeneratedTownMap(_VerifiedSourceSemantics semantics,
+    {String? assetId, String? regionId}) {
+  final draft = semantics.events?.draft;
+  final events = draft?.compositionEvidence['sourceEvents'];
+  final bindings = events is Map ? events['townMap'] : null;
+  if (draft == null || bindings is! List || bindings.isEmpty ||
+      bindings.length > draft.mapIds.length || (assetId == null) == (regionId == null)) {
     return null;
   }
-  return townMap;
+  final regions = <String>{};
+  final matches = <Map<String, Object?>>[];
+  final profileHash = SourceEventProfile.forProject(draft.source).canonicalHash.value;
+  for (final binding in bindings) {
+    if (binding is! Map<String, Object?> ||
+        binding['kind'] != 'sourceTownMapBinding' || binding['version'] != 1 ||
+        binding['sourceWallMap'] != true || binding['flyEnabled'] != false ||
+        binding['sourceSnapshotHash'] != draft.source.snapshot.canonicalHash.value ||
+        binding['normalizationHash'] != draft.source.canonicalHash.value ||
+        binding['profileHash'] != profileHash || binding['sourceMapId'] is! int ||
+        draft.mapIds[binding['sourceMapId']] != binding['nativeMapId'] ||
+        binding['nativeRegionId'] is! String || !regions.add(binding['nativeRegionId'] as String) ||
+        binding['image'] is! Map) {
+      return null;
+    }
+    final image = binding['image'] as Map;
+    if (assetId != null ? image['assetId'] == assetId : binding['nativeRegionId'] == regionId) {
+      matches.add(binding);
+    }
+  }
+  return matches.length == 1 ? matches.single : null;
 }
 
 void _validateCatalogReferences(

@@ -21,7 +21,7 @@ final class SupplementedSourceTree implements SourceTreePort {
     'PBS/pokemon_forms.txt',
     'Game.exe',
   };
-  static const maxSupplementalFiles = maxSupplementalMediaFiles + 9;
+  static const maxSupplementalFiles = maxSupplementalMediaFiles + 9 + maxSupplementalRoots;
   static const _mediaRoots = {'Graphics', 'Audio'};
   static const _imageExtensions = {'.png', '.bmp', '.jpg', '.jpeg'};
   static const _audioExtensions = {'.wav', '.ogg', '.mp3', '.flac'};
@@ -39,8 +39,10 @@ final class SupplementedSourceTree implements SourceTreePort {
   List<String> get sharedRelativePaths =>
       List.unmodifiable(_sharedOrigins.keys.toList()..sort());
 
+  static bool isCatalogAlias(String value) => RegExp(r'^_converter_sources/[1-4]/Data/items\.dat$').hasMatch(value);
+
   static bool isSupplementalFilePath(String value) {
-    if (sharedPaths.contains(value)) return true;
+    if (sharedPaths.contains(value) || isCatalogAlias(value)) return true;
     final extension = path.posix.extension(value).toLowerCase();
     return value.startsWith('Graphics/') &&
             _imageExtensions.contains(extension) ||
@@ -110,7 +112,7 @@ final class SupplementedSourceTree implements SourceTreePort {
     var mediaBytes = 0;
 
     void admit(SourceNode node, MacOsSourceTree origin,
-        List<_SourceInventory> earlier) {
+        List<_SourceInventory> earlier, {SourceNode? physicalNode}) {
       cancellation.check();
       if (++entries > policy.limits.maxEntries) {
         throw ContractError('source.entry_limit', node.relativePath,
@@ -128,7 +130,7 @@ final class SupplementedSourceTree implements SourceTreePort {
           throw ContractError('source.total_bytes_limit', node.relativePath,
               'Source total byte limit exceeded.');
         }
-        _origins[node] = _SourceOrigin(origin, earlier, policy);
+        _origins[node] = _SourceOrigin(origin, earlier, policy, physicalNode ?? node);
       }
     }
 
@@ -136,6 +138,9 @@ final class SupplementedSourceTree implements SourceTreePort {
     await for (final node
         in primary.walk(policy: policy, cancellation: cancellation)) {
       final key = sourcePathCollisionKey(node.relativePath);
+      if (key == '_converter_sources' || key.startsWith('_converter_sources/')) {
+        throw ContractError('source.shared.reserved_path', node.relativePath, 'The supplemental catalog namespace is reserved.');
+      }
       if (_trees.length > 1 && merged.containsKey(key)) {
         throw ContractError('source.path_collision', node.relativePath,
             'Source paths collide after Unicode and case normalization.');
@@ -228,6 +233,33 @@ final class SupplementedSourceTree implements SourceTreePort {
         admit(file, reference, earlier);
         yield file;
       }
+      final shadowedItems = nodes['data/items.dat'];
+      if (shadowedItems != null && !policy.isExcluded(shadowedItems.relativePath) &&
+          earlier.any((inventory) => inventory.nodes['data/items.dat']?.kind == SourceNodeKind.file)) {
+        if (shadowedItems.relativePath != 'Data/items.dat' || shadowedItems.kind != SourceNodeKind.file ||
+            shadowedItems.byteLength > 16777216) {
+          throw ContractError('source.shared.node_invalid', shadowedItems.relativePath,
+              'Shadowed item catalogs require an exact bounded regular source file.');
+        }
+        final index = _trees.indexOf(reference);
+        final alias = '_converter_sources/$index/Data/items.dat';
+        final segments = alias.split('/');
+        for (var count = 1; count < segments.length; count++) {
+          final directoryPath = segments.take(count).join('/');
+          if (merged.containsKey(directoryPath)) continue;
+          final directory = SourceNode(relativePath: directoryPath, kind: SourceNodeKind.directory,
+              byteLength: 0, token: 'supplemental-catalog-directory:$directoryPath');
+          merged[directoryPath] = directory;
+          admit(directory, reference, earlier);
+          yield directory;
+        }
+        final logical = SourceNode(relativePath: alias, kind: SourceNodeKind.file,
+            byteLength: shadowedItems.byteLength, token: shadowedItems.token);
+        merged[alias] = logical;
+        _sharedOrigins[alias] = reference.rootPath;
+        admit(logical, reference, earlier, physicalNode: shadowedItems);
+        yield logical;
+      }
       inventories.add(_SourceInventory(reference, Map.unmodifiable(nodes)));
     }
   }
@@ -241,10 +273,10 @@ final class SupplementedSourceTree implements SourceTreePort {
       throw ContractError('source.node_unissued', node.relativePath,
           'The source file was not authorized by this source tree instance.');
     }
-    await _verifyEarlier(node.relativePath, origin, cancellation);
+    await _verifyEarlier(origin.physicalNode.relativePath, origin, cancellation);
     yield* origin.tree
-        .read(node, maxBytes: maxBytes, cancellation: cancellation);
-    await _verifyEarlier(node.relativePath, origin, cancellation);
+        .read(origin.physicalNode, maxBytes: maxBytes, cancellation: cancellation);
+    await _verifyEarlier(origin.physicalNode.relativePath, origin, cancellation);
   }
 
   Future<void> _verifyEarlier(String relativePath, _SourceOrigin origin,
@@ -309,10 +341,11 @@ final class _SourceInventory {
 }
 
 final class _SourceOrigin {
-  const _SourceOrigin(this.tree, this.earlier, this.policy);
+  const _SourceOrigin(this.tree, this.earlier, this.policy, this.physicalNode);
   final MacOsSourceTree tree;
   final List<_SourceInventory> earlier;
   final SourceScanPolicy policy;
+  final SourceNode physicalNode;
 }
 
 final class ConverterSharedSourceFile {
@@ -349,6 +382,7 @@ final class ConverterSharedSourceFile {
         sha256: Sha256Hash(input['sha256'] as String));
   }
 
+  String get originalRelativePath => relativePath.startsWith('_converter_sources/') ? 'Data/items.dat' : relativePath;
   final String relativePath;
   final String referenceRootPath;
   final ConverterId fileId;
@@ -366,7 +400,7 @@ List<ConverterSharedSourceFile> validateSupplementalProvenance(
   if (files.length > SupplementedSourceTree.maxSupplementalFiles ||
       files
               .where((file) => !SupplementedSourceTree.sharedPaths
-                  .contains(file.relativePath))
+                  .contains(file.relativePath) && !SupplementedSourceTree.isCatalogAlias(file.relativePath))
               .length >
           SupplementedSourceTree.maxSupplementalMediaFiles ||
       files
@@ -374,7 +408,11 @@ List<ConverterSharedSourceFile> validateSupplementalProvenance(
               .toSet()
               .length !=
           files.length ||
-      files.any((file) => !roots.contains(file.referenceRootPath))) {
+      files.where((file) => SupplementedSourceTree.isCatalogAlias(file.relativePath)).length > roots.length ||
+      files.any((file) => !roots.contains(file.referenceRootPath) ||
+        SupplementedSourceTree.isCatalogAlias(file.relativePath) &&
+          (int.parse(file.relativePath.split('/')[1]) > roots.length ||
+           roots[int.parse(file.relativePath.split('/')[1]) - 1] != file.referenceRootPath))) {
     throw ContractError('source.shared.reference_invalid', r'$',
         'Supplemental provenance must be unique, bounded and bound to selected roots.');
   }

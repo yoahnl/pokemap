@@ -99,7 +99,7 @@ final class SourceMapMusicResolver {
     final maps =
         source.maps.where((map) => map.map.sourceMapId == sourceMapId).toList();
     if (maps.length != 1) _unavailable('map_missing');
-    final archived = source.archive.files[maps.single.map.sourceFileId];
+    final archived = source.sourceFiles[maps.single.map.sourceFileId];
     if (archived == null ||
         !snapshot.entries.any((entry) =>
             entry.fileId == archived.fileId &&

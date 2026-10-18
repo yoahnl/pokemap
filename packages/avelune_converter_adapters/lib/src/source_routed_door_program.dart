@@ -16,7 +16,7 @@ final class SourceRoutedDoorProgram {
         sourceSnapshotHash = source.snapshot.canonicalHash,
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
-        sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
+        sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
         _departureGraphic = event.pages[event.pages.length - 2].graphic!,
         _arrivalGraphic = event.pages.last.graphic!,
         nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event, source),
@@ -40,7 +40,7 @@ final class SourceRoutedDoorProgram {
       source.snapshot.canonicalHash == sourceSnapshotHash &&
       source.canonicalHash == normalizationHash &&
       analysis.profile.canonicalHash == profileHash &&
-      source.archive.files[event.sourceFileId]?.contentHash == sourceFileHash &&
+      source.sourceFiles[event.sourceFileId]?.contentHash == sourceFileHash &&
       event.identity == eventIdentity &&
       _isRoutedDoor(event, source) &&
       _fingerprintOf(event) == _fingerprint;

@@ -142,7 +142,7 @@ final class SourcePickupFeedbackResolver {
         source.maps.where((map) => map.map.sourceMapId == sourceMapId).toList();
     if (maps.length != 1) _unavailable('map_missing');
     final map = maps.single;
-    final mapFile = source.archive.files[map.map.sourceFileId];
+    final mapFile = source.sourceFiles[map.map.sourceFileId];
     if (mapFile == null ||
         mapFile.contentHash != mapFile.entry.sha256 ||
         !snapshot.entries.any((entry) =>

@@ -379,6 +379,10 @@ final class NormalizedSourceProject {
     required List<int> unprocessedSourceMapIds,
     required this.archive,
     this.interpretationProfile,
+    this.originalNormalizationHash,
+    this.sourceAdaptations = const [],
+    this.missingItemBindings = const [],
+    Map<ConverterId, MarshalDocument> semanticDocuments = const {},
   })  : maps = List.unmodifiable(maps),
         connections = List.unmodifiable(connections),
         mapHierarchy = List.unmodifiable(mapHierarchy),
@@ -387,7 +391,11 @@ final class NormalizedSourceProject {
         preservedParameterRefs = List.unmodifiable(preservedParameterRefs),
         selectedSourceMapIds = List.unmodifiable(selectedSourceMapIds),
         unprocessedSourceMapIds = List.unmodifiable(unprocessedSourceMapIds),
-        diagnostics = List.unmodifiable(diagnostics) {
+        diagnostics = List.unmodifiable(diagnostics),
+        sourceFiles = Map.unmodifiable({
+          for (final entry in archive.files.entries)
+            entry.key: SourceSemanticFile._(entry.value, semanticDocuments[entry.key], sourceAdaptations),
+        }) {
     if (!archive.isSealed) {
       throw StateError(
           'A normalized source project requires a sealed archive.');
@@ -408,6 +416,10 @@ final class NormalizedSourceProject {
   final List<SourceNormalizationDiagnostic> diagnostics;
   final List<NormalizedPreservedParameter> preservedParameterRefs;
   final SourceArchive archive;
+  final Map<ConverterId, SourceSemanticFile> sourceFiles;
+  final Sha256Hash? originalNormalizationHash;
+  final List<SourceEventAdaptation> sourceAdaptations;
+  final List<SourceMissingItemBinding> missingItemBindings;
   final SourceInterpretationProfile? interpretationProfile;
   final List<int> selectedSourceMapIds;
   final List<int> unprocessedSourceMapIds;
@@ -433,7 +445,7 @@ final class NormalizedSourceProject {
   Map<String, Object?> _normalizedJson() => {
         'schemaVersion': '1.0',
         'kind': 'normalizedSourceProject',
-        'extractorVersion': 'rmxp-normalization-v6',
+        'extractorVersion': 'rmxp-normalization-v7',
         'interpretationProfile': interpretationProfile?.toJson(),
         'connections':
             connections.map((connection) => connection.toJson()).toList(),
@@ -454,6 +466,12 @@ final class NormalizedSourceProject {
         'preservedParameterRefs':
             preservedParameterRefs.map((item) => item.toJson()).toList(),
         'archiveHash': archive.canonicalHash.value,
+        if (missingItemBindings.isNotEmpty) 'missingItemBindings': missingItemBindings.map((value) => value.toJson()).toList(),
+        if (sourceAdaptations.isNotEmpty || missingItemBindings.isNotEmpty) ...{
+          'originalNormalizationHash': originalNormalizationHash!.value,
+          'sourceAdaptations': sourceAdaptations.map((value) => value.toJson()).toList(),
+          'semanticFiles': sourceFiles.values.where((value) => value.isAdapted).map((value) => value.toJson()).toList(),
+        },
       };
 
   late final Sha256Hash canonicalHash = canonicalHashOf(
@@ -468,6 +486,9 @@ final class NormalizedSourceProject {
   Map<String, Object?> toJson() => {
         ..._normalizedJson(),
         'archive': archive.toJson(),
+        'originalNormalizationHash': (originalNormalizationHash ?? canonicalHash).value,
+        'sourceAdaptations': sourceAdaptations.map((value) => value.toJson()).toList(),
+        'sourceScriptsExecuted': 0,
       };
 }
 
@@ -497,6 +518,8 @@ final class RmxpSourceNormalizer {
     bool includeEventSystem = false,
     bool includeConnections = false,
     List<SourceImageBinding> imageBindings = const [],
+    List<SourceEventAdaptation> sourceAdaptations = const [],
+    List<SourceMissingItemBinding> missingItemBindings = const [],
     SourceInterpretationProfile? interpretationProfile,
   }) async {
     limits._validate();
@@ -508,7 +531,10 @@ final class RmxpSourceNormalizer {
       await interpretationProfile.verifySource(
           snapshot: snapshot, files: files, cancellation: token);
     }
-    final normalized = await _SourceNormalizationRun(
+    final decisions = SourceEventAdaptation.canonicalize(sourceAdaptations);
+    final itemBindings = SourceMissingItemBinding.canonicalize(missingItemBindings);
+    for (final binding in itemBindings) { binding.verifySnapshot(snapshot); }
+    var normalized = await _SourceNormalizationRun(
             snapshot,
             files,
             limits,
@@ -518,7 +544,22 @@ final class RmxpSourceNormalizer {
             includeConnections,
             List.unmodifiable(imageBindings))
         .run();
-    if (interpretationProfile == null) return normalized;
+    final originalHash = canonicalHashOf({
+      ...normalized._normalizedJson(),
+      'interpretationProfile': interpretationProfile?.toJson(),
+    }, limits: const ContractLimits(maxNodes: 40000000,
+        maxStringCodeUnits: 1048576, maxTextCodeUnits: 134217728));
+    Map<ConverterId, MarshalDocument> documents = const {};
+    if (decisions.isNotEmpty) {
+      final inventory = await SourceAdaptationInventory.inspect(source: normalized, files: files, cancellation: token);
+      documents = inventory._apply(decisions);
+      final adaptedRun = _SourceNormalizationRun(snapshot, files, limits, token,
+          selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds),
+          includeEventSystem, includeConnections, List.unmodifiable(imageBindings));
+      adaptedRun.documentOverrides.addAll(documents);
+      normalized = await adaptedRun.run();
+    }
+    if (interpretationProfile == null && decisions.isEmpty && itemBindings.isEmpty) return normalized;
     return NormalizedSourceProject._(
         snapshot: normalized.snapshot,
         sourceProfileId: normalized.sourceProfileId,
@@ -534,7 +575,11 @@ final class RmxpSourceNormalizer {
         selectedSourceMapIds: normalized.selectedSourceMapIds,
         unprocessedSourceMapIds: normalized.unprocessedSourceMapIds,
         archive: normalized.archive,
-        interpretationProfile: interpretationProfile);
+        interpretationProfile: interpretationProfile,
+        sourceAdaptations: decisions,
+        missingItemBindings: itemBindings,
+        originalNormalizationHash: decisions.isEmpty && itemBindings.isEmpty ? null : originalHash,
+        semanticDocuments: documents);
   }
 }
 
@@ -577,6 +622,7 @@ final class _SourceNormalizationRun {
   final boundImages = <String, SourceFileEntry>{};
   final usedImageBindings = <String>{};
   final SourceArchive archive;
+  final documentOverrides = <ConverterId, MarshalDocument>{};
   final ConverterId sourceProfileId;
   final byPath = <String, SourceFileEntry>{};
   final maps = <SourceMapIr>[];
@@ -684,7 +730,7 @@ final class _SourceNormalizationRun {
       SourceIdentity(snapshot.logicalProjectNamespace, ConverterId(domain), id)
           .stableId;
 
-  Future<SourceArchivedFile> load(SourceFileEntry entry) async {
+  Future<SourceSemanticFile> load(SourceFileEntry entry) async {
     cancellation.check();
     if (entry.byteLength > limits.maxTotalBytes - readBytes) {
       throw ContractError('normalization.quota.bytes', entry.relativePath,
@@ -699,7 +745,7 @@ final class _SourceNormalizationRun {
         'normalization.source_changed',
         entry.relativePath,
         'Source bytes disagree with the admitted snapshot');
-    return archive.add(entry, bytes);
+    return SourceSemanticFile._(archive.add(entry, bytes), documentOverrides[entry.fileId], const []);
   }
 
   Map<String, int> fields(MarshalDocument document, int id, String className) {
@@ -768,7 +814,7 @@ final class _SourceNormalizationRun {
   }
 
   SourcePreservedData preserve(
-          SourceArchivedFile file, int nodeId, SourceLocator sourceLocator) =>
+          SourceSemanticFile file, int nodeId, SourceLocator sourceLocator) =>
       archive.reference(
           fileId: file.fileId, nodeId: nodeId, locator: sourceLocator);
 
@@ -1083,6 +1129,7 @@ final class _SourceNormalizationRun {
       selectedSourceMapIds: selected,
       unprocessedSourceMapIds: unprocessed,
       archive: archive,
+      semanticDocuments: documentOverrides,
     );
   }
 
@@ -1205,7 +1252,7 @@ final class _SourceNormalizationRun {
     }
   }
 
-  void readHierarchy(SourceArchivedFile file) {
+  void readHierarchy(SourceSemanticFile file) {
     final doc = file.document;
     final root = doc.node(doc.rootId);
     _require(
@@ -1268,7 +1315,7 @@ final class _SourceNormalizationRun {
     }
   }
 
-  SourceMapIr readMap(SourceArchivedFile file, int mapId) {
+  SourceMapIr readMap(SourceSemanticFile file, int mapId) {
     final doc = file.document;
     final object = fields(doc, doc.rootId, 'RPG::Map');
     final width = integer(doc, requiredField(object, '@width'),
@@ -1463,7 +1510,7 @@ final class _SourceNormalizationRun {
 
   static final _unsupportedParameter = Object();
 
-  Object? parameter(SourceArchivedFile file, int nodeId, SourceLocator loc,
+  Object? parameter(SourceSemanticFile file, int nodeId, SourceLocator loc,
       int parameterIndex, String graphPath, Set<int> active, int depth) {
     final projected = projectParameter(file, nodeId, loc, active, depth);
     if (!identical(projected, _unsupportedParameter)) return projected;
@@ -1486,7 +1533,7 @@ final class _SourceNormalizationRun {
     return {'preservedDataRef': ref.id.value};
   }
 
-  Object? projectParameter(SourceArchivedFile file, int nodeId,
+  Object? projectParameter(SourceSemanticFile file, int nodeId,
       SourceLocator loc, Set<int> active, int depth) {
     cancellation.check();
     if (++parameterNodes > limits.maxParameterNodes || depth >= 64) {
@@ -1530,7 +1577,7 @@ final class _SourceNormalizationRun {
     return _unsupportedParameter;
   }
 
-  NormalizedMediaReference resolveImage(SourceArchivedFile file, int nameId,
+  NormalizedMediaReference resolveImage(SourceSemanticFile file, int nameId,
       ConverterId ownerId, String role, String folder, SourceLocator loc,
       {int? slot}) {
     final name = text(file.document, nameId, maxLength: 1024);
@@ -1617,7 +1664,7 @@ final class _SourceNormalizationRun {
         sourceFile: candidates.length == 1 ? candidates.single : null);
   }
 
-  void readTilesets(SourceArchivedFile file, Set<int> usedIds) {
+  void readTilesets(SourceSemanticFile file, Set<int> usedIds) {
     final doc = file.document;
     final entries = array(doc, doc.rootId, maximum: 100000);
     for (var index = 0; index < entries.length; index++) {

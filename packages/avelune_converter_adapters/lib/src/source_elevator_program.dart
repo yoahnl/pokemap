@@ -58,8 +58,8 @@ final class SourceElevatorProgram {
       source.snapshot.canonicalHash == this.source.snapshot.canonicalHash &&
       source.canonicalHash == this.source.canonicalHash &&
       analysis.profile.canonicalHash == profileHash &&
-      source.archive.files[event.sourceFileId]?.contentHash ==
-          this.source.archive.files[this.event.sourceFileId]?.contentHash &&
+      source.sourceFiles[event.sourceFileId]?.contentHash ==
+          this.source.sourceFiles[this.event.sourceFileId]?.contentHash &&
       event.identity == eventIdentity &&
       _fingerprintOf(event) == _fingerprint;
 
@@ -67,8 +67,8 @@ final class SourceElevatorProgram {
           SourceEventDefinition owner, SourceEventPageAnalysis page) =>
       project.snapshot.canonicalHash == source.snapshot.canonicalHash &&
       requiredEventIdentities.contains(owner.identity) &&
-      project.archive.files[owner.sourceFileId]?.contentHash ==
-          source.archive.files[owner.sourceFileId]?.contentHash &&
+      project.sourceFiles[owner.sourceFileId]?.contentHash ==
+          source.sourceFiles[owner.sourceFileId]?.contentHash &&
       page.graphic?.moveType == 0;
 
   Map<String, Object?> toJson() => {
@@ -93,7 +93,7 @@ final class SourceElevatorProgram {
         'profileHash': profileHash.value,
         'familyHash': familyHash.value,
         'sourceFileHash':
-            source.archive.files[event.sourceFileId]!.contentHash.value,
+            source.sourceFiles[event.sourceFileId]!.contentHash.value,
         'programHash': canonicalHashOf(_fingerprint).value,
         'requiredEventCount': requiredEventIdentities.length,
         'requiredEventIdentitiesHash': canonicalHashOf(

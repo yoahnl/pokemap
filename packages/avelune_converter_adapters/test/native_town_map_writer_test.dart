@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:image/image.dart' as image;
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -13,6 +15,42 @@ import 'support/literal_tile_fixture.dart';
 import 'support/source_town_map_original_fixture.dart';
 
 void main() {
+  for (final regionCount in [1, 2]) {
+    test('native writer accepts exact town map binding lists for $regionCount regions and refuses forged provenance', () async {
+      final output = await Directory('/private/tmp').createTemp('ev09-town-map-list-');
+      addTearDown(() => output.delete(recursive: true));
+      const limits = NativeWriteLimits(maxArtifacts: 512, maxMutations: 2048);
+      final events = await _syntheticTownMapList(output.path, regionCount, limits);
+      final draft = events.draft;
+      final evidence = draft.compositionEvidence['sourceEvents'] as Map;
+      final bindings = evidence['townMap'] as List;
+      expect(bindings, hasLength(regionCount), reason: jsonEncode(events.projection.semanticEvidence['events']));
+      for (final mode in ['duplicate', 'invalid', 'wrongProvenance']) {
+        final changedBindings = jsonDecode(jsonEncode(bindings)) as List;
+        switch (mode) {
+          case 'duplicate': changedBindings.add(changedBindings.first);
+          case 'invalid': changedBindings.first['flyEnabled'] = true;
+          case 'wrongProvenance': changedBindings.first['normalizationHash'] = 'f' * 64;
+        }
+        final forged = copyNativeFixtureDraft(draft, compositionEvidence: {
+          ...draft.compositionEvidence, 'sourceEvents': {...evidence, 'townMap': changedBindings},
+        });
+        final approval = approveNativeFixtureDraft(forged);
+        final stages = <NativeWriteStage>[];
+        await expectLater(NativeProjectWriter(checkpoint: (stage, _, __) async { stages.add(stage); })
+            .write(approval.plan, approval.context, forged, limits: limits), throwsA(isA<NativeWriteException>()));
+        expect(stages, isEmpty);
+      }
+      final approval = approveNativeFixtureDraft(draft);
+      final receipt = await const NativeProjectWriter().write(approval.plan, approval.context, draft, limits: limits);
+      expect(receipt.verified, true);
+      for (final binding in bindings) {
+        final imageBinding = binding['image'] as Map;
+        expect(receipt.assetHashes[imageBinding['assetId']]?.value, imageBinding['sha256']);
+      }
+    }, skip: !Platform.isMacOS);
+  }
+
   final sourceRoot = Platform.environment['AVELUNE_KANTO_TOWN_MAP_SOURCE_ROOT'];
   final archivePath = Platform.environment['AVELUNE_KANTO_TOWN_MAP_ARCHIVE'];
   test(
@@ -74,7 +112,7 @@ void main() {
           isNotEmpty);
     }
     final sourceEvents = draft.compositionEvidence['sourceEvents'] as Map;
-    final townMap = sourceEvents['townMap'] as Map;
+    final townMap = (sourceEvents['townMap'] as List).single as Map;
     final image = townMap['image'] as Map;
     expect(townMap['pointCount'], 90);
     expect(townMap['flyEnabled'], isFalse);
@@ -455,4 +493,50 @@ Future<SourceCatalogStudyComposition> _composeNativeTownMapPublication(
       source: source, base: events.draft, files: files, limits: limits);
   if (catalogs == null) throw StateError('Original native catalogs refused.');
   return catalogs;
+}
+
+Future<SourceEventStudyComposition> _syntheticTownMapList(String output,
+    int regionCount, NativeWriteLimits limits) async {
+  List<int> png(int width, int height, int color) {
+    final raster = image.Image(width: width, height: height, numChannels: 4);
+    raster.setPixelRgba(0, 0, color, 20, 30, 255);
+    return image.encodePng(raster);
+  }
+  final fixture = await LiteralTileFixture.create(namespace: 'ev09-town-map-list-$regionCount',
+      interpretationProfile: syntheticSourceInterpretationProfile,
+      scriptsBytes: syntheticInterpretationArchive, includeEventSystem: true,
+      tilesets: [LiteralFixtureTileset(id: 1, passages: const {391: 15})],
+      maps: [for (var id = 1; id <= regionCount; id++) LiteralFixtureMap(id: id, layers: const [[384, 391, 384], [0, 0, 0], [0, 0, 0]], events: [
+        const LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [LiteralFixtureEventPage(commands: [
+          LiteralFixtureEventCommand(101, ['A regional map.']), LiteralFixtureEventCommand(355, ['pbShowMap']),
+          LiteralFixtureEventCommand(0, []),
+        ])]),
+      ])],
+      extraFiles: {
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = TestPlayer\n'),
+        'Graphics/Characters/TestPlayer.png': png(128, 192, 1),
+        'Data/map_metadata.dat': literalFixtureMarshal({
+          for (var id = 1; id <= regionCount; id++) id: LiteralFixtureObject('GameData::MapMetadata', {
+            '@id': id, '@town_map_size': null, '@town_map_position': [id, 1, 1],
+          }),
+        }),
+        'Data/town_map.dat': literalFixtureMarshal({
+          for (var id = 1; id <= regionCount; id++) id: LiteralFixtureObject('GameData::TownMap', {
+            '@id': id, '@flags': <Object?>[], '@pbs_file_suffix': '', '@real_name': 'Region $id',
+            '@filename': 'Region$id.png', '@point': [[1, 1, 'Town $id', null, null, null, null, null]],
+          }),
+        }),
+        for (var id = 1; id <= regionCount; id++) 'Graphics/UI/Town Map/Region$id.png': png(32, 32, id),
+      });
+  final literal = await const LiteralTileComposer().compose(source: fixture.source,
+      files: fixture.files, selectedSourceMapIds: [for (var id = 1; id <= regionCount; id++) id],
+      projectName: 'Town Map lists', parentPath: output, folderName: 'native', limits: limits);
+  if (literal.draft == null) throw StateError('Literal fixture refused: ${literal.diagnostics}');
+  final semantic = await const SourceSemanticStudyComposer().compose(source: fixture.source,
+      base: literal, files: fixture.files, limits: limits);
+  if (semantic == null) throw StateError('Semantic fixture refused');
+  final events = await const SourceEventStudyComposer().compose(source: fixture.source,
+      base: semantic, files: fixture.files, limits: limits);
+  if (events == null) throw StateError('Event fixture refused');
+  return events;
 }

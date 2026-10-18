@@ -18,6 +18,78 @@ import 'support/native_media_source_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 
 void main() {
+  test('explicit malformed donor item refuses preparation without publishing an applied decision', () async {
+    final harness = await _WorkflowHarness.create(includeEventSystem: true,
+      extraFiles: {'Data/Scripts.rxdata': syntheticInterpretationArchive,
+        'Data/items.dat': literalFixtureMarshal(<Object?, Object?>{}),
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = TestPlayer\n'),
+        'Graphics/Characters/TestPlayer.png': image.encodePng(image.Image(width: 128, height: 192, numChannels: 4))},
+      maps: [LiteralFixtureMap(id: 1, events: [const LiteralFixtureEvent(id: 2, x: 1, y: 0,
+        pages: [LiteralFixtureEventPage(commands: [LiteralFixtureEventCommand(111, [12, 'pbItemBall(:ETHER)']),
+          LiteralFixtureEventCommand(123, ['A', 0], indent: 1),
+          LiteralFixtureEventCommand(0, [], indent: 1), LiteralFixtureEventCommand(412, []),
+          LiteralFixtureEventCommand(0, [])])])])]);
+    try {
+      final donor = await Directory('${harness.root.path}/donor/Data').create(recursive: true);
+      await File('${donor.path}/items.dat').writeAsBytes(literalFixtureMarshal({
+        const LiteralFixtureSymbol('ETHER'): const LiteralFixtureObject('GameData::Item', {
+          '@id': LiteralFixtureSymbol('ETHER'),
+        }),
+      }));
+      final selection = ConverterSourceSelection(rootPath: harness.sourceRoot,
+          supplementalRootPaths: [donor.parent.path], logicalProjectNamespace: harness.selection.logicalProjectNamespace);
+      final snapshot = await harness.workflow.scanSource(selection);
+      final entry = snapshot.entries.singleWhere((value) => value.relativePath == '_converter_sources/1/Data/items.dat');
+      final binding = SourceMissingItemBinding.fromJson({'kind': 'sourceMissingItemBinding', 'version': 1,
+        'sourceSymbol': 'ETHER', 'sourceSnapshotHash': snapshot.canonicalHash.value,
+        'sourceFileId': entry.fileId.value, 'sourceRelativePath': entry.relativePath,
+        'sourceSha256': entry.sha256!.value, 'reason': 'Explicit malformed entry test', 'humanConfirmed': true});
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1],
+          interpretationProfile: syntheticSourceInterpretationProfile, missingItemBindings: [binding]));
+      await expectLater(harness.workflow.prepareStudy(), _throwsWorkflow('workflow.item_binding.invalid'));
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.workflow.state.approval, isNull);
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+    } finally { await harness.close(); }
+  });
+
+  test('explicit event adaptations survive recipes and sessions and reject stale analysis approvals', () async {
+    final harness = await _WorkflowHarness.create(maps: [LiteralFixtureMap(id: 1, events: [
+      const LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+        LiteralFixtureEventPage(tileId: 511, commands: [LiteralFixtureEventCommand(0, [])]),
+      ]),
+    ])]);
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1]));
+      final original = await harness.workflow.prepareStudy();
+      final issue = original.sourceAdaptationInventory.issues.singleWhere((value) => value.code == 'source_defect.event_tile_outside_image');
+      final decision = issue.action!;
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1], sourceAdaptations: [decision]));
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.workflow.state.approval, isNull);
+      final adapted = await harness.workflow.prepareStudy();
+      expect(adapted.preparationHash, isNot(original.preparationHash));
+      expect(adapted.normalizedSource.archive.canonicalHash, original.normalizedSource.archive.canonicalHash);
+      final oldAnalysis = SourceEventAnalyzer.forProject(original.normalizedSource, profile: SourceEventProfile.forProject(original.normalizedSource)).analyze();
+      expect(() => const SourceEventProjector().project(source: adapted.normalizedSource, analysis: oldAnalysis, nativeMaps: {}),
+          throwsA(isA<NativeWriteException>().having((value) => value.code, 'code', 'events.source.binding')));
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      expect(ConverterStudyPlanRecipe.fromJson(recipe.toJson()).settings.sourceAdaptations.single.toJson(), decision.toJson());
+      final resume = LocalReviewResumeSettings(sourceRootPath: harness.sourceRoot,
+          destinationParentPath: harness.output.path, projectName: adapted.settings.projectName,
+          folderName: adapted.settings.folderName, sourceAdaptations: [decision]);
+      expect(LocalReviewResumeSettings.fromJson(resume.toJson()).sourceAdaptations.single.toJson(), decision.toJson());
+      final approval = harness.approve(adapted);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1]));
+      expect(harness.workflow.state.approval, isNull);
+      await expectLater(harness.workflow.writeApproved(approval), throwsA(isA<ConverterWorkflowFailure>()));
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally { await harness.close(); }
+  });
+
   test('selected profile mismatch refuses preparation before native staging', () async {
     final harness = await _WorkflowHarness.create();
     try {
@@ -332,7 +404,7 @@ void main() {
         ),
       );
       final json = settings.toJson();
-      expect(json['version'], 8);
+      expect(json['version'], 9);
       final write = json['writeLimits'] as Map;
       expect(write['maxImagePixels'], 16777216);
       expect(write['maxTotalImagePixels'], 33554432);
@@ -2511,6 +2583,8 @@ final class _WorkflowHarness {
           {List<int> selected = const [1, 8],
           List<LiteralDependencyDecision> decisions = const [],
           List<SourceImageBinding> imageBindings = const [],
+          List<SourceEventAdaptation> sourceAdaptations = const [],
+          List<SourceMissingItemBinding> missingItemBindings = const [],
           bool humanConfirmed = true,
           bool allowFirstFrameAutotiles = false,
           String? reason,
@@ -2544,6 +2618,8 @@ final class _WorkflowHarness {
         ),
         dependencyDecisions: decisions,
         imageBindings: imageBindings,
+        sourceAdaptations: sourceAdaptations,
+        missingItemBindings: missingItemBindings,
         allowFirstFrameAutotiles: allowFirstFrameAutotiles,
         normalizationLimits: normalizationLimits,
         writeLimits: writeLimits,

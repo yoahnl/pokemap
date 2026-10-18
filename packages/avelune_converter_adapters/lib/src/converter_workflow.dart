@@ -11,6 +11,7 @@ import 'converter_study_plan_recipe.dart';
 import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
+import 'source_event_item_bindings.dart';
 import 'source_catalog_study_composer.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'native_psdk_catalog.dart';
@@ -139,6 +140,8 @@ final class ConverterStudySettings {
     SourceInterpretationProfile? interpretationProfile,
     List<LiteralDependencyDecision> dependencyDecisions = const [],
     List<SourceImageBinding> imageBindings = const [],
+    List<SourceEventAdaptation> sourceAdaptations = const [],
+    List<SourceMissingItemBinding> missingItemBindings = const [],
     bool allowFirstFrameAutotiles = false,
     AssetOutputMode assetOutputMode = AssetOutputMode.sharedAtlas,
     ConverterAssetReviewSet? reviewSet,
@@ -212,6 +215,8 @@ final class ConverterStudySettings {
         interpretationProfile,
         List.unmodifiable(decisions),
         bindings,
+        SourceEventAdaptation.canonicalize(sourceAdaptations),
+        SourceMissingItemBinding.canonicalize(missingItemBindings),
         allowFirstFrameAutotiles,
         assetOutputMode,
         reviewSet,
@@ -228,6 +233,8 @@ final class ConverterStudySettings {
       this.interpretationProfile,
       this.dependencyDecisions,
       this.imageBindings,
+      this.sourceAdaptations,
+      this.missingItemBindings,
       this.allowFirstFrameAutotiles,
       this.assetOutputMode,
       this.reviewSet,
@@ -242,6 +249,8 @@ final class ConverterStudySettings {
   final SourceInterpretationProfile? interpretationProfile;
   final List<LiteralDependencyDecision> dependencyDecisions;
   final List<SourceImageBinding> imageBindings;
+  final List<SourceEventAdaptation> sourceAdaptations;
+  final List<SourceMissingItemBinding> missingItemBindings;
   final bool allowFirstFrameAutotiles;
   final AssetOutputMode assetOutputMode;
   final ConverterAssetReviewSet? reviewSet;
@@ -252,7 +261,7 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 8,
+        'version': 9,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
@@ -262,6 +271,8 @@ final class ConverterStudySettings {
         'dependencyDecisions':
             dependencyDecisions.map((value) => value.toJson()).toList(),
         'imageBindings': imageBindings.map((value) => value.toJson()).toList(),
+        'sourceAdaptations': sourceAdaptations.map((value) => value.toJson()).toList(),
+        'missingItemBindings': missingItemBindings.map((value) => value.toJson()).toList(),
         'allowFirstFrameAutotiles': allowFirstFrameAutotiles,
         'assetOutputMode': assetOutputMode.name,
         if (includeReviewSet) 'reviewSet': reviewSet?.toJson(),
@@ -302,6 +313,8 @@ final class PreparedStudy {
     required this.profileEvidenceHash,
     required this.settings,
     required this.normalizedSource,
+    required this.sourceAdaptationInventory,
+    required this.missingItemBindingOptions,
     required this.composition,
     required this.assetProposalsByMap,
     required this.assetProposalDiagnostics,
@@ -322,6 +335,8 @@ final class PreparedStudy {
   final Sha256Hash profileEvidenceHash;
   final ConverterStudySettings settings;
   final NormalizedSourceProject normalizedSource;
+  final SourceAdaptationInventory sourceAdaptationInventory;
+  final Map<String, List<SourceMissingItemBinding>> missingItemBindingOptions;
   final LiteralTileComposition composition;
   final Map<int, LocalAssetProposalSet>? assetProposalsByMap;
   final List<LocalAssetProposalDiagnostic> assetProposalDiagnostics;
@@ -1472,12 +1487,15 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             cancellation: relay.cancellation,
             selectedMapIds: wanted,
             imageBindings: settings.imageBindings,
+            sourceAdaptations: settings.sourceAdaptations,
+            missingItemBindings: settings.missingItemBindings,
             interpretationProfile: settings.interpretationProfile,
             includeEventSystem: true,
             includeConnections: snapshot.entries.any((entry) =>
                 entry.kind == SourceNodeKind.file &&
                 sourcePathCollisionKey(entry.relativePath) ==
                     'data/map_connections.dat'));
+        final adaptationInventory = await SourceAdaptationInventory.inspect(source: normalized, files: files, cancellation: relay.cancellation);
         relay.finish(done: normalized.maps.length);
         await relay.start(ConverterWorkflowPhase.compose, JobUnit.assets);
         final composition = await const LiteralTileComposer().compose(
@@ -1685,6 +1703,25 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         relay.cancellation.check();
         relay.finish();
         final capabilities = _nativeCapabilities();
+        final requestedItemSymbols = {...?events?.sourceItems?.bindings.keys,
+          ...?events?.sourceItems?.quarantinedSymbols.keys};
+        if (settings.missingItemBindings.any((value) => !requestedItemSymbols.contains(value.sourceSymbol))) {
+          throw const ConverterWorkflowFailure('workflow.item_binding.unused',
+              'An explicit item binding does not address an item requested by the selected source events.');
+        }
+        if (settings.missingItemBindings.any((value) =>
+            events?.sourceItems?.bindings[value.sourceSymbol]?.pickupQualified != true ||
+            events?.sourceItems?.quarantinedSymbols.containsKey(value.sourceSymbol) == true)) {
+          throw const ConverterWorkflowFailure('workflow.item_binding.invalid',
+              'A selected supplemental item entry is invalid, unsupported, or unqualified for native pickup.');
+        }
+        final missingItems = events?.sourceItems?.quarantinedSymbols.entries
+            .where((entry) => entry.value.length == 1 && entry.value.single == 'item.symbol_missing')
+            .map((entry) => entry.key).toList() ?? const <String>[];
+        final itemOptions = missingItems.isEmpty ? const <String, List<SourceMissingItemBinding>>{} :
+            await const SourceEventItemBindingResolver().suggestMissingBindings(
+              snapshot: normalized.snapshot, files: files, symbols: missingItems,
+              eventProfile: SourceEventProfile.forProject(normalized), cancellation: relay.cancellation);
         final plan = _previewPlan(request, normalized, composition,
             capabilities, draft, decisions, proposalDiagnostics, library);
         final hash = canonicalHashOf({
@@ -1724,6 +1761,8 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 profileEvidenceHash: snapshot.profile.evidenceHash,
                 settings: settings,
                 normalizedSource: normalized,
+                sourceAdaptationInventory: adaptationInventory,
+                missingItemBindingOptions: itemOptions,
                 composition: composition,
                 assetProposalsByMap: proposals,
                 assetProposalDiagnostics:
@@ -2096,7 +2135,8 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 6,
+      'version': 7,
+      'sourceAdaptations': 'closed-event-defects-and-missing-catalog-entries-original-byte-provenance-v1',
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {
         'qualification': 'exact-source-full-pbs-selected-map-scope-v2',

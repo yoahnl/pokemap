@@ -86,7 +86,7 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 11) {
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 12) {
         throw _invalid();
       }
       final source = _object(json['sourceSelection']);
@@ -98,7 +98,7 @@ final class ConverterStudyPlanRecipe {
       final write = _object(settings['writeLimits']);
       final contract = _object(write['jsonLimits']);
       final planContract = _object(write['planJsonLimits']);
-      if (settings['version'] != 8) throw _invalid();
+      if (settings['version'] != 9) throw _invalid();
       if (!write.containsKey('maxDraftEvidenceJsonNodes')) throw _invalid();
       final writeLimits = NativeWriteLimits(
           maxArtifacts: _int(write['maxArtifacts']),
@@ -152,6 +152,8 @@ final class ConverterStudyPlanRecipe {
           settings: ConverterStudySettings(
               interpretationProfile: settings['interpretationProfile'] == null ? null :
                 SourceInterpretationProfile.fromJson(settings['interpretationProfile']),
+              missingItemBindings: _list(settings['missingItemBindings']).map(SourceMissingItemBinding.fromJson).toList(),
+              sourceAdaptations: _list(settings['sourceAdaptations']).map(SourceEventAdaptation.fromJson).toList(),
               imageBindings: _list(settings['imageBindings'])
                   .map(SourceImageBinding.fromJson)
                   .toList(),
@@ -261,7 +263,7 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 11,
+        'version': 12,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {

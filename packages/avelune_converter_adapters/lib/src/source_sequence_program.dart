@@ -12,7 +12,7 @@ final class SourceSequenceProgram {
         sourceSnapshotHash = source.snapshot.canonicalHash,
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
-        sourceFileHash = source.archive.files[event.sourceFileId]!.contentHash,
+        sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
         _fingerprint = _fingerprintOf(event);
 
   final ConverterId eventIdentity;
@@ -32,7 +32,7 @@ final class SourceSequenceProgram {
       source.snapshot.canonicalHash == sourceSnapshotHash &&
       source.canonicalHash == normalizationHash &&
       analysis.profile.canonicalHash == profileHash &&
-      source.archive.files[event.sourceFileId]?.contentHash == sourceFileHash &&
+      source.sourceFiles[event.sourceFileId]?.contentHash == sourceFileHash &&
       event.identity == eventIdentity &&
       _isSequence(event) &&
       _fingerprintOf(event) == _fingerprint;

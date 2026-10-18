@@ -181,7 +181,7 @@ final class SourceConnectionStudyComposer {
     final diagnostics = <Map<String, Object?>>[];
     final mutations = <NativeMutation>[];
     final fileId = source.connectionsFileId;
-    final file = fileId == null ? null : source.archive.files[fileId];
+    final file = fileId == null ? null : source.sourceFiles[fileId];
     final evidence = <String, Object?>{
       'kind': 'sourceConnectionStudy',
       'version': 1,

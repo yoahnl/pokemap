@@ -21,9 +21,11 @@ Future<int> runConverterCli(List<String> arguments,
         negatable: false, help: 'Phases et compteurs sur stderr.');
   ArgParser sourceArguments() => common()
     ..addOption('source', help: 'Dossier source absolu, lu sans modification.')
+    ..addMultiOption('reference-source', splitCommas: false, help: 'Dossier de référence absolu explicitement sélectionné (quatre au maximum).')
     ..addOption('namespace',
         help: 'Identifiant logique stable du projet source.');
   final scan = sourceArguments();
+  final inspectAdaptations = sourceArguments()..addOption('maps', help: 'Cartes source à examiner.');
   final plan = sourceArguments()
     ..addOption('destination',
         help: 'Nouveau dossier natif absolu ; son parent doit exister.')
@@ -31,6 +33,8 @@ Future<int> runConverterCli(List<String> arguments,
     ..addMultiOption('atlas-binding',
         splitCommas: false,
         help: 'Association explicite Référence=PNG source du même dossier.')
+    ..addOption('missing-item-bindings', help: 'Liste JSON fermée des associations explicites d’entrées absentes.')
+    ..addOption('source-adaptations', help: 'Liste JSON fermée des décisions explicites issues de l’inventaire.')
     ..addOption('name', help: 'Nom du projet natif.')
     ..addOption('interpretation-profile', help: 'Profil JSON explicite des scripts source ; absent : étude littérale.')
     ..addOption('mode', defaultsTo: 'study', allowed: ['study'])
@@ -50,12 +54,14 @@ Future<int> runConverterCli(List<String> arguments,
         help: 'Projet natif absolu à vérifier sans écriture.');
   final parser = ArgParser()
     ..addFlag('help', abbr: 'h', negatable: false)
+    ..addCommand('inspect-adaptations', inspectAdaptations)
     ..addCommand('scan', scan)
     ..addCommand('plan', plan)
     ..addCommand('convert', convert)
     ..addCommand('verify', verify);
   final commands = {
     'scan': scan,
+    'inspect-adaptations': inspectAdaptations,
     'plan': plan,
     'convert': convert,
     'verify': verify
@@ -101,12 +107,13 @@ Future<int> runConverterCli(List<String> arguments,
   String? parentPath;
   String? folderName;
   try {
-    if (command.name == 'scan' || command.name == 'plan') {
+    if (command.name == 'scan' || command.name == 'plan' || command.name == 'inspect-adaptations') {
       final sourcePath = command['source'] as String?;
       final namespace = command['namespace'] as String?;
       if (!absolute(sourcePath) || namespace == null) return invalid();
       selection = ConverterSourceSelection(
           rootPath: sourcePath!,
+          supplementalRootPaths: command['reference-source'] as List<String>,
           logicalProjectNamespace: ConverterId(namespace));
     }
     if (command.name == 'plan') {
@@ -186,6 +193,21 @@ Future<int> runConverterCli(List<String> arguments,
       cancellation.check();
       final snapshot = await workflow.scanSource(selection);
       cancellation.check();
+      if (command.name == 'inspect-adaptations') {
+        final maps = command['maps'] as String?;
+        if (maps == null) return invalid();
+        final tree = await SupplementedSourceTree.open(selection.rootPath,
+            supplementalRootPaths: selection.supplementalRootPaths);
+        try {
+          final files = await SnapshotSourceFiles.bind(source: tree, snapshot: snapshot,
+              policy: selection.policy, cancellation: cancellation);
+          final normalized = await const RmxpSourceNormalizer().normalize(snapshot: snapshot,
+              files: files, selectedMapIds: maps.split(',').map(int.parse).toSet(), cancellation: cancellation);
+          final inventory = await SourceAdaptationInventory.inspect(source: normalized, files: files, cancellation: cancellation);
+          out.writeln(jsonEncode(inventory.toJson()));
+        } finally { await tree.close(); }
+        return 0;
+      }
       if (command.name == 'scan') {
         if (command['json'] == true) {
           out.writeln(jsonEncode(snapshot.toJson()));
@@ -212,6 +234,10 @@ Future<int> runConverterCli(List<String> arguments,
       workflow.updateSettings(ConverterStudySettings(
           interpretationProfile: command['interpretation-profile'] == null ? null :
             await const LocalSourceInterpretationProfileStore().read(command['interpretation-profile'] as String),
+          missingItemBindings: command['missing-item-bindings'] == null ? const [] :
+              await _readMissingItemBindings(command['missing-item-bindings'] as String),
+          sourceAdaptations: command['source-adaptations'] == null ? const [] :
+              await _readSourceAdaptations(command['source-adaptations'] as String),
           imageBindings: [
             for (final raw in command['atlas-binding'] as List<String>)
               _sourceImageBinding(raw, snapshot),
@@ -417,4 +443,26 @@ int converterCliExitCode(String code) {
     return 4;
   }
   return 5;
+}
+
+Future<List<SourceEventAdaptation>> _readSourceAdaptations(String filePath) async {
+  if (!filePath.startsWith('/') || filePath.length > 4096 || filePath.contains('\u0000')) {
+    throw const FormatException('An absolute adaptation manifest path is required.');
+  }
+  final file = File(filePath);
+  if (await file.length() > 1048576) throw const FormatException('Adaptation manifest exceeds its quota.');
+  final json = jsonDecode(await file.readAsString());
+  if (json is! List || json.length > 256) throw const FormatException('A bounded adaptation list is required.');
+  return SourceEventAdaptation.canonicalize(json.map(SourceEventAdaptation.fromJson));
+}
+
+Future<List<SourceMissingItemBinding>> _readMissingItemBindings(String filePath) async {
+  if (!filePath.startsWith('/') || filePath.length > 4096 || filePath.contains('\u0000')) {
+    throw const FormatException('An absolute item binding manifest path is required.');
+  }
+  final file = File(filePath);
+  if (await file.length() > 1048576) throw const FormatException('Item binding manifest exceeds its quota.');
+  final json = jsonDecode(await file.readAsString());
+  if (json is! List || json.length > 128) throw const FormatException('A bounded item binding list is required.');
+  return SourceMissingItemBinding.canonicalize(json.map(SourceMissingItemBinding.fromJson));
 }

@@ -639,6 +639,7 @@ Future<SourceCatalogProjection> _seedNativeExplorationItems({
   ];
   final bindings = await const SourceEventItemBindingResolver().read(
       snapshot: source.snapshot,
+            missingItemBindings: source.missingItemBindings,
       files: files,
       symbols: symbols,
       eventProfile: profile,

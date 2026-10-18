@@ -161,6 +161,8 @@ final class LocalReviewResumeSettings {
     LocalReviewProfileAcknowledgement? profileAcknowledgement,
     List<LocalReviewDependencyDecision> dependencyDecisions = const [],
     List<SourceImageBinding> imageBindings = const [],
+    List<SourceEventAdaptation> sourceAdaptations = const [],
+    List<SourceMissingItemBinding> missingItemBindings = const [],
     SourceScanPolicy? sourceScanPolicy,
     SourceNormalizationLimits normalizationLimits =
         const SourceNormalizationLimits(),
@@ -218,6 +220,8 @@ final class LocalReviewResumeSettings {
             interpretationProfile,
             List.unmodifiable(dependencyDecisions),
             bindings,
+            SourceEventAdaptation.canonicalize(sourceAdaptations),
+        SourceMissingItemBinding.canonicalize(missingItemBindings),
             sourceScanPolicy ?? SourceScanPolicy(),
             normalizationLimits,
             writeLimits);
@@ -235,6 +239,8 @@ final class LocalReviewResumeSettings {
       this.interpretationProfile,
       this.dependencyDecisions,
       this.imageBindings,
+      this.sourceAdaptations,
+      this.missingItemBindings,
       this.sourceScanPolicy,
       this.normalizationLimits,
       this.writeLimits);
@@ -254,6 +260,8 @@ final class LocalReviewResumeSettings {
           'interpretationProfile',
           'dependencyDecisions',
           'imageBindings',
+          'sourceAdaptations',
+          'missingItemBindings',
           'sourceScanPolicy',
           'normalizationLimits',
           'writeLimits'
@@ -279,6 +287,8 @@ final class LocalReviewResumeSettings {
                   json['profileAcknowledgement']),
           dependencyDecisions:
               dependencies.map(LocalReviewDependencyDecision.fromJson).toList(),
+          missingItemBindings: _list(json['missingItemBindings']).map(SourceMissingItemBinding.fromJson).toList(),
+          sourceAdaptations: _list(json['sourceAdaptations']).map(SourceEventAdaptation.fromJson).toList(),
           imageBindings: _list(json['imageBindings'])
               .map(SourceImageBinding.fromJson)
               .toList(),
@@ -300,6 +310,8 @@ final class LocalReviewResumeSettings {
   final SourceInterpretationProfile? interpretationProfile;
   final List<LocalReviewDependencyDecision> dependencyDecisions;
   final List<SourceImageBinding> imageBindings;
+  final List<SourceEventAdaptation> sourceAdaptations;
+  final List<SourceMissingItemBinding> missingItemBindings;
   final SourceScanPolicy sourceScanPolicy;
   final SourceNormalizationLimits normalizationLimits;
   final NativeWriteLimits writeLimits;
@@ -318,6 +330,8 @@ final class LocalReviewResumeSettings {
         'dependencyDecisions':
             dependencyDecisions.map((item) => item.toJson()).toList(),
         'imageBindings': imageBindings.map((item) => item.toJson()).toList(),
+        'sourceAdaptations': sourceAdaptations.map((item) => item.toJson()).toList(),
+        'missingItemBindings': missingItemBindings.map((item) => item.toJson()).toList(),
         'sourceScanPolicy': {
           'limits': sourceScanPolicy.limits.toJson(),
           'excludedSegments': sourceScanPolicy.excludedSegments

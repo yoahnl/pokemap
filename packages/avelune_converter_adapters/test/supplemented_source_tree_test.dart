@@ -53,6 +53,36 @@ void main() {
   Matcher code(String value) =>
       isA<ContractError>().having((error) => error.code, 'code', value);
 
+  test('shadowed item catalogs retain explicit bounded origins without changing precedence', () async {
+    await write(primary, 'Data/items.dat', 'canonical');
+    await write(reference, 'Data/items.dat', 'supplemental');
+    final nodes = await walk();
+    final canonical = nodes.singleWhere((value) => value.relativePath == 'Data/items.dat');
+    final alias = nodes.singleWhere((value) => value.relativePath == '_converter_sources/1/Data/items.dat');
+    expect(await read(canonical), 'canonical');
+    expect(await read(alias), 'supplemental');
+    expect(tree.sharedRelativePaths, contains(alias.relativePath));
+    await write(primary, 'Data/items.dat', 'changed winner');
+    await expectLater(read(alias), throwsA(code('source.changed')));
+  });
+  test('catalog alias provenance has a separate quota and exact selected root slot', () {
+    final files = [for (var index = 0; index < 1024; index++) ConverterSharedSourceFile(
+      relativePath: 'Graphics/Pictures/source$index.png', referenceRootPath: reference.path,
+      fileId: ConverterId('image-$index'), sha256: Sha256Hash('1' * 64)),
+      ConverterSharedSourceFile(relativePath: '_converter_sources/1/Data/items.dat',
+        referenceRootPath: reference.path, fileId: ConverterId('catalog'), sha256: Sha256Hash('2' * 64)),
+    ];
+    expect(validateSupplementalProvenance(files, [reference.path]), hasLength(1025));
+    final wrongSlot = ConverterSharedSourceFile(relativePath: '_converter_sources/2/Data/items.dat',
+        referenceRootPath: reference.path, fileId: ConverterId('wrong-slot'), sha256: Sha256Hash('3' * 64));
+    expect(() => validateSupplementalProvenance([wrongSlot], [reference.path]), throwsA(code('source.shared.reference_invalid')));
+  });
+
+  test('primary files cannot impersonate the reserved supplemental catalog namespace', () async {
+    await write(primary, '_converter_sources/1/Data/items.dat', 'forged');
+    await expectLater(walk(), throwsA(code('source.shared.reserved_path')));
+  });
+
   test('supplements exactly declared missing catalogs without source writes',
       () async {
     await write(primary, 'Data/Map001.rxdata', 'map');
@@ -127,9 +157,9 @@ void main() {
     await write(primary, 'Data/items.dat', 'primary');
     await write(reference, 'Data/items.dat', 'reference');
     final node =
-        (await walk()).singleWhere((n) => n.kind == SourceNodeKind.file);
+        (await walk()).singleWhere((n) => n.relativePath == 'Data/items.dat');
     expect(await read(node), 'primary');
-    expect(tree.sharedRelativePaths, isEmpty);
+    expect(tree.sharedRelativePaths, ['_converter_sources/1/Data/items.dat']);
   });
 
   test('a complete project without a reference keeps the same inventory',

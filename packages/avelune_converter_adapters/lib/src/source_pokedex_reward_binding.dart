@@ -207,6 +207,7 @@ final class SourcePokedexRewardBindingResolver {
     try {
       items = await const SourceEventItemBindingResolver().read(
           snapshot: source.snapshot,
+            missingItemBindings: source.missingItemBindings,
           files: files,
           symbols: [programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol],
           eventProfile: analysis.profile,

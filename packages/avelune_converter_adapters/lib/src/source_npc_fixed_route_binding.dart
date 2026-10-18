@@ -139,7 +139,7 @@ final class SourceNpcFixedRouteBindingResolver {
         graphic.stepAnime) {
       _unavailable('page_contract_unsupported');
     }
-    final doc = source.archive.files[raw.fileId]!.document;
+    final doc = source.sourceFiles[raw.fileId]!.document;
     for (final node in doc.nodes) {
       if (node.kind == MarshalKind.symbol &&
           const {'RPG::Event::Page', 'RPG::MoveRoute', 'RPG::MoveCommand'}

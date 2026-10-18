@@ -213,6 +213,56 @@ Map<String, Object?> _explorationItem(String symbol) {
 }
 
 void main() {
+  test('explicit missing symbols use genuine supplemental entries without overriding the canonical catalog', () async {
+    final primary = _fixture(items: {'BURNHEAL': _item('BURNHEAL')});
+    final donor = _fixture(items: {'ETHER': _item('ETHER'), 'BURNHEAL': _item('BURNHEAL')});
+    final bytes = donor.files.bytes.values.single;
+    final donorEntry = SourceFileEntry(fileId: ConverterId('donor-items'),
+        relativePath: '_converter_sources/2/Data/items.dat', kind: SourceNodeKind.file,
+        byteLength: bytes.length, sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+        format: 'unknown', family: 'project');
+    final snapshot = SourceSnapshot(logicalProjectNamespace: primary.snapshot.logicalProjectNamespace,
+        policyHash: primary.snapshot.policyHash, entries: [...primary.snapshot.entries, donorEntry],
+        diagnostics: [], excludedPaths: [], profileEvidence: [], state: SourceScanState.complete);
+    final files = _Files({...primary.files.bytes, donorEntry.fileId: bytes});
+    final profile = SourceEventProfile(scriptsArchiveHash: primary.profile.scriptsArchiveHash,
+        sourceSnapshotHash: snapshot.canonicalHash, normalizationHash: primary.profile.normalizationHash,
+        interpretationProfile: primary.profile.interpretationProfile);
+    SourceMissingItemBinding binding(String symbol) => SourceMissingItemBinding.fromJson({
+      'kind': 'sourceMissingItemBinding', 'version': 1, 'sourceSymbol': symbol,
+      'sourceSnapshotHash': snapshot.canonicalHash.value, 'sourceFileId': donorEntry.fileId.value,
+      'sourceRelativePath': donorEntry.relativePath, 'sourceSha256': donorEntry.sha256!.value,
+      'reason': 'Explicit test source selection', 'humanConfirmed': true,
+    });
+    final unresolved = await const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
+        symbols: ['ETHER'], eventProfile: profile);
+    expect(unresolved.quarantinedSymbols['ETHER'], ['item.symbol_missing']);
+    final options = await const SourceEventItemBindingResolver().suggestMissingBindings(snapshot: snapshot,
+        files: files, symbols: ['ETHER', 'BURNHEAL'], eventProfile: profile);
+    expect(options.keys, ['ETHER']);
+    final resolved = await const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
+        symbols: ['ETHER', 'BURNHEAL'], eventProfile: profile, missingItemBindings: [binding('ETHER')]);
+    expect(resolved.bindings['ETHER']!.pickupQualified, true);
+    expect(resolved.bindings['ETHER']!.itemReference.fileId, donorEntry.fileId);
+    expect(resolved.bindings['BURNHEAL']!.itemReference.fileId, primary.snapshot.entries.single.fileId);
+    expect(resolved.archive.files[donorEntry.fileId]!.rawBytes, bytes);
+    expect(resolved.archive.files, hasLength(2));
+    await expectLater(const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
+        symbols: ['BURNHEAL'], eventProfile: profile, missingItemBindings: [binding('BURNHEAL')]),
+        throwsA(isA<ContractError>().having((value) => value.code, 'code', 'source.event_items.binding_override')));
+    await expectLater(const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
+        symbols: ['MISSING'], eventProfile: profile, missingItemBindings: [binding('MISSING')]),
+        throwsA(isA<ContractError>().having((value) => value.code, 'code', 'source.event_items.binding_target_invalid')));
+    for (final patch in [
+      {'humanConfirmed': false}, {'sourceRelativePath': 'Data/items.dat'}, {'reason': ''}, {'extraPatch': {}},
+    ]) {
+      expect(() => SourceMissingItemBinding.fromJson({...binding('ETHER').toJson(), ...patch}), throwsA(isA<ContractError>()));
+    }
+    final stale = SourceMissingItemBinding.fromJson({...binding('ETHER').toJson(), 'sourceSha256': 'f' * 64});
+    await expectLater(const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
+        symbols: ['ETHER'], eventProfile: profile, missingItemBindings: [stale]), throwsA(isA<ContractError>()));
+  });
+
   for (final fieldUse in [3, 4, 5]) {
     test('shop important policy distinguishes TM HM and consumable TR: $fieldUse', () async {
       final fixture = _fixture(items: {'TM101': _item('TM101', patch: {

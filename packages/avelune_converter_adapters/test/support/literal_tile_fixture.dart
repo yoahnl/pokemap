@@ -87,7 +87,7 @@ final class LiteralFixtureEvent {
 
 final class LiteralFixtureEventPage {
   const LiteralFixtureEventPage({required this.commands, this.selfSwitch,
-    this.globalSwitch, this.characterName = '', this.pattern = 0,
+    this.globalSwitch, this.characterName = '', this.pattern = 0, this.tileId = 0,
     this.direction = 2, this.trigger = 0, this.through = false,
     this.moveType = 0, this.directionFix = false, this.moveSpeed = 3});
   final List<LiteralFixtureEventCommand> commands;
@@ -95,6 +95,7 @@ final class LiteralFixtureEventPage {
   final int? globalSwitch;
   final String characterName;
   final int pattern;
+  final int tileId;
   final int direction;
   final int trigger;
   final bool through;
@@ -376,7 +377,7 @@ _Object _fixtureEvent(LiteralFixtureEvent event) => _Object('RPG::Event', {
       '@self_switch_ch': page.selfSwitch ?? 'A',
     }),
     '@graphic': _Object('RPG::Event::Page::Graphic', {
-      '@tile_id': 0, '@character_name': page.characterName,
+      '@tile_id': page.tileId, '@character_name': page.characterName,
       '@character_hue': 0, '@direction': page.direction,
       '@pattern': page.pattern, '@opacity': 255, '@blend_type': 0,
     }),

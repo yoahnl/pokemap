@@ -145,6 +145,8 @@ final class ConverterReviewSessionResumer {
         interpretationProfile: saved.interpretationProfile,
         dependencyDecisions: decisions,
         imageBindings: saved.imageBindings,
+        sourceAdaptations: saved.sourceAdaptations,
+        missingItemBindings: saved.missingItemBindings,
         allowFirstFrameAutotiles: saved.allowFirstFrameAutotiles,
         assetOutputMode:
             restoreReview ? session.outputMode : session.seedOutputMode,
