@@ -10,7 +10,7 @@ import zipfile
 
 from PIL import Image
 
-from convert_bw2_door_asset import IDENTITY, NAMESPACE, inputs, matrix, multiply, point, source_rows
+from convert_rigid_skin_asset import IDENTITY, NAMESPACE, inputs, matrix, multiply, point, source_rows
 
 def sha256(data):
     return digest(data).hexdigest()

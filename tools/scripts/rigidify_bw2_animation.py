@@ -5,7 +5,7 @@ import json
 import math
 import struct
 
-from convert_bw2_door_asset import IDENTITY, compose, multiply, point
+from convert_rigid_skin_asset import IDENTITY, compose, multiply, point
 
 
 def read_glb(data):

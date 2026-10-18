@@ -7,7 +7,7 @@ import struct
 
 from PIL import Image
 
-from convert_bw2_city_joint_animations import unique_source
+from source_file_lookup import unique_source
 from read_bw2_nitro_animations import blocks, dictionary, retarget_material_texture
 from rigidify_bw2_animation import read_glb
 
