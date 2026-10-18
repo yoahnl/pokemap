@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
 import '../support/event_backend_fixture.dart';
@@ -22,6 +23,24 @@ void main() {
   tearDown(() async {
     c.dispose();
     await f.dispose();
+  });
+  test('EV04 guided values insert current Fact and player name in text and choices', () async {
+    await c.create('Valeurs du dialogue');
+    final node = c.active!.document.nodes.single;
+    final line = node.steps.whereType<DeLineStep>().single.id;
+    final fact = c.project.facts.first;
+    expect(c.insertTextValue(line, 'player_name'), isTrue);
+    expect(c.insertTextValue(line, fact.id), isTrue);
+    final body = c.active!.document.nodes.single.steps.whereType<DeLineStep>().single.body;
+    expect(body, contains('{{ player_name }}'));
+    expect(body, contains(dialogueFactPlaceholder(fact.id)));
+    final choice = c.addChoice(node.id)!;
+    final response = c.addResponse(choice, 'Score : ')!;
+    expect(c.insertTextValue(response, fact.id, response: true), isTrue);
+    expect(await c.save(), isTrue, reason: c.error);
+    await c.reload();
+    expect(c.active!.source, contains(dialogueFactPlaceholder(fact.id)));
+    expect(c.insertTextValue(line, 'missing'), isFalse);
   });
   test(
     'lazy library, reply choices shared targets outcomes save reopen and deterministic identities',

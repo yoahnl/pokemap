@@ -6,6 +6,7 @@ import '../../transactions/authoring_plan.dart';
 import 'modern_narrative_inspection.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
+import 'dialogue_fact_snapshot.dart';
 
 final class FactRuleActions {
   const FactRuleActions();
@@ -79,6 +80,12 @@ final class FactRuleActions {
       case 'fact.delete':
         rejectUnknownNarrativeParameters(parameters, const {'factId'});
         final id = narrativeStringParameter(parameters, 'factId');
+        final documents = snapshotDialogueDocuments(context.snapshot);
+        if (documents.entries.any((entry) => dialogueDocumentFactIds(entry.value).contains(id))) {
+          throw NarrativeAuthoringException('fact.delete_rejected', 'A dialogue still references this Fact.',
+              details: {'dialogueIds': [for (final entry in documents.entries)
+                if (dialogueDocumentFactIds(entry.value).contains(id)) entry.key]});
+        }
         final before = context.snapshot.manifest.facts
             .where((candidate) => candidate.id == id)
             .firstOrNull;
@@ -86,6 +93,7 @@ final class FactRuleActions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           factId: id,
+          dialogueDocuments: documents,
         );
         return _draft(
           context,
@@ -202,6 +210,7 @@ final class FactRuleActions {
     ProjectManifest project, {
     required List<MapData> maps,
     required String factId,
+    Map<String, RuntimeDialogueDocument> dialogueDocuments = const {},
   }) =>
       _translate(
         'fact.delete_rejected',
@@ -212,6 +221,7 @@ final class FactRuleActions {
           dependencyIndex: buildNarrativeDependencyIndex(
             project: project,
             maps: maps,
+            dialogueDocuments: dialogueDocuments,
           ),
         ).updatedProject,
       );

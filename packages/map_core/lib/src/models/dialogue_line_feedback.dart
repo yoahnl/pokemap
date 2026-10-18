@@ -345,15 +345,12 @@ final class DialogueLineFeedback {
   DialogueLineFeedback mapText(String Function(String) transform) =>
       DialogueLineFeedback(
         segments: segments
-            .map(
-              (segment) => switch (segment) {
-                DialogueTextSegment() => DialogueTextSegment(
-                  transform(segment.text),
-                  style: segment.style,
-                ),
-                DialogueIconSegment() => segment,
-              },
-            )
+            .expand<DialogueLineSegment>((segment) {
+              if (segment is DialogueIconSegment) return [segment];
+              final text = segment as DialogueTextSegment;
+              final mapped = transform(text.text);
+              return mapped.isEmpty ? const [] : [DialogueTextSegment(mapped, style: text.style)];
+            })
             .toList(growable: false),
         revealIntervalMicros: revealIntervalMicros,
         advance: advance,

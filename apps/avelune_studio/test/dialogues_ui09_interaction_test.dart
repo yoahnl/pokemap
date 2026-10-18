@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import 'package:map_core/map_core_domain.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'support/m2_ui_fixture.dart';
 import 'support/ui09_dialogue_harness.dart';
 import 'support/ui09_runtime_fixture.dart';
@@ -38,6 +40,24 @@ Future<void> tap(WidgetTester tester, Finder target) async {
 }
 
 void main() {
+  testWidgets('EV04 guided value picker distinguishes player identity from a Fact of the same name', (tester) async {
+    final h = await setup(tester);
+    h.maps.project = h.maps.project!.copyWith(facts: [...h.maps.project!.facts,
+      NarrativeFactDefinition(id: 'player_name', label: 'Nom de la gare', initialValue: const NarrativeValue.string('Selbrume'))]);
+    final line = h.dialogues.active!.document.nodes.first.steps.whereType<DeLineStep>().first;
+    await tap(tester, find.byKey(ValueKey('dialogue-row-${line.id}')));
+    final picker = find.byKey(ValueKey('dialogue-text-value-${line.id}'));
+    final select = tester.widget<StudioSelect>(picker);
+    expect(select.options['player_name'], 'Nom du joueur');
+    expect(select.options['fact:player_name'], contains('Nom de la gare'));
+    select.onChanged!('fact:player_name');
+    await pumpIo(tester, frames: 4);
+    expect(h.dialogues.active!.source, contains('{{ fact.player_name }}'));
+    tester.widget<StudioSelect>(picker).onChanged!('player_name');
+    await pumpIo(tester, frames: 4);
+    expect(h.dialogues.active!.source, contains('{{ player_name }}'));
+  });
+
   testWidgets('switching inspector tab commits focused text before disposal', (
     tester,
   ) async {

@@ -1,6 +1,31 @@
 part of 'dialogue_workspace_controller.dart';
 
 extension DialogueWorkspaceCommands on DialogueWorkspaceController {
+  bool insertTextValue(String id, String value, {bool response = false, bool fact = false}) {
+    final String placeholder;
+    if (value == 'player_name' && !fact) {
+      placeholder = '{{ player_name }}';
+    } else {
+      final matches = project.facts.where((fact) => fact.id == value);
+      if (matches.length != 1) return _fail('Cette variable est absente ou ambiguë.');
+      try {
+        placeholder = dialogueFactPlaceholder(value);
+      } on FormatException {
+        return _fail('Cette variable ne possède pas un identifiant utilisable dans un dialogue.');
+      }
+    }
+    final doc = _active?.current.document;
+    if (doc == null) return false;
+    if (response) {
+      final branch = _branch(doc, id);
+      return updateResponse(id, '${branch.label}$placeholder');
+    }
+    final step = _step(doc, id);
+    final text = switch (step) { DeLineStep() => step.body, DeNarrationStep() => step.text, _ => null };
+    if (text == null) return _fail('Sélectionnez un texte ou une réponse.');
+    return updateLine(id, text: '$text$placeholder');
+  }
+
   bool rename(String name) => name.trim().isEmpty
       ? _fail('Indiquez un nom.')
       : _edit((_) {}, metadata: (e) => e.copyWith(name: name.trim()));

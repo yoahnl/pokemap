@@ -417,15 +417,31 @@ final class SourceChoiceBranch {
   final SourceEventBlock body;
 }
 
+enum SourceChoiceCancellationKind { disabled, choice, branch }
+
+final class SourceChoiceCancellation {
+  const SourceChoiceCancellation.disabled() : kind = SourceChoiceCancellationKind.disabled, choiceIndex = null;
+  const SourceChoiceCancellation.choice(this.choiceIndex) : kind = SourceChoiceCancellationKind.choice;
+  const SourceChoiceCancellation.branch() : kind = SourceChoiceCancellationKind.branch, choiceIndex = null;
+  final SourceChoiceCancellationKind kind;
+  final int? choiceIndex;
+  Map<String, Object?> toJson() => {'kind': kind.name, if (choiceIndex != null) 'choiceIndex': choiceIndex};
+}
+
 final class SourceChoiceNode extends SourceEventNode {
   SourceChoiceNode(super.span,
       {required List<SourceChoiceBranch> branches,
       required this.cancelType,
-      this.cancelBranch})
-      : branches = List.unmodifiable(branches);
+      this.cancelBranch, SourceChoiceCancellation? cancellation})
+      : branches = List.unmodifiable(branches), cancellation = cancellation ?? switch (cancelType) {
+        0 => const SourceChoiceCancellation.disabled(),
+        5 => const SourceChoiceCancellation.branch(),
+        _ => SourceChoiceCancellation.choice(cancelType - 1),
+      };
   final List<SourceChoiceBranch> branches;
   final int cancelType;
   final SourceEventBlock? cancelBranch;
+  final SourceChoiceCancellation cancellation;
 }
 
 final class SourceConditionalNode extends SourceEventNode {
@@ -1050,6 +1066,8 @@ final class SourceEventAnalyzer {
 
   bool _validVariable(int id) => id >= 1 && id <= 5000 &&
       _variableNames != null && id < _variableNames.length && _variableNames[id] != null;
+
+  bool isIntegerVariableDeclared(int id) => _validVariable(id);
 
   List<String?>? _systemNames(String field) {
     for (final file in project.archive.files.values) {
@@ -2223,56 +2241,62 @@ final class _SourceEventParser {
 
   SourceChoiceNode _choice(int indent) {
     final first = index;
-    final params = commands[index].parameters;
-    _arity(params, 2);
-    final options = params[0];
-    final cancelType = _integer(params[1]);
-    if (options is! List ||
-        options.isEmpty ||
-        options.length > 4 ||
-        cancelType < 0 ||
-        cancelType > 5 ||
-        (cancelType > options.length && cancelType != 5)) {
-      throw const FormatException();
-    }
-    final labels = options.map(_string).toList();
     final branches = <SourceChoiceBranch>[];
     SourceEventBlock? cancel;
-    index++;
-    while (_at(402, indent)) {
-      final branchParams = commands[index].parameters;
-      _arity(branchParams, 2);
-      final branchIndex = _integer(branchParams[0]);
-      final label = _string(branchParams[1]);
-      if (branchIndex != branches.length ||
-          branchIndex >= labels.length ||
-          label != labels[branchIndex]) {
+    var cancellation = const SourceChoiceCancellation.disabled();
+    var cancelType = 0;
+    do {
+      final params = commands[index].parameters;
+      _arity(params, 2);
+      final options = params[0];
+      final groupCancel = _integer(params[1]);
+      if (options is! List || options.isEmpty || options.length > 4 ||
+          groupCancel < 0 || groupCancel > 5 ||
+          (groupCancel > options.length && groupCancel != 5) || branches.length + options.length > 256) {
         throw const FormatException();
       }
+      if (cancellation.kind == SourceChoiceCancellationKind.branch && groupCancel == 0) {
+        _diagnostic('events.adjacent_choice_cancel_collision', first, index);
+      }
+      final offset = branches.length;
+      final labels = options.map(_string).toList();
       index++;
-      branches.add(SourceChoiceBranch(branchIndex, label, _block(indent + 1)));
-    }
-    if (_at(403, indent)) {
-      if (commands[index].parameters.isNotEmpty &&
-          (commands[index].parameters.length != 1 ||
-              commands[index].parameters[0] != 4)) {
+      var branchCount = 0;
+      while (_at(402, indent)) {
+        final branchParams = commands[index].parameters;
+        _arity(branchParams, 2);
+        final branchIndex = _integer(branchParams[0]);
+        final label = _string(branchParams[1]);
+        if (branchIndex != branchCount || branchIndex >= labels.length || label != labels[branchIndex]) {
+          throw const FormatException();
+        }
+        index++;
+        branches.add(SourceChoiceBranch(offset + branchIndex, label, _block(indent + 1)));
+        branchCount++;
+      }
+      SourceEventBlock? groupBranch;
+      if (_at(403, indent)) {
+        if (commands[index].parameters.isNotEmpty &&
+            (commands[index].parameters.length != 1 || commands[index].parameters[0] != 4)) {
+          throw const FormatException();
+        }
+        index++;
+        groupBranch = _block(indent + 1);
+      }
+      if (!_at(404, indent) || branchCount != labels.length || (groupCancel == 5 && groupBranch == null)) {
         throw const FormatException();
       }
+      _arity(commands[index].parameters, 0);
       index++;
-      cancel = _block(indent + 1);
-    }
-    if (!_at(404, indent) ||
-        branches.length != labels.length ||
-        (cancelType == 5 && cancel == null)) {
-      throw const FormatException();
-    }
-    _arity(commands[index].parameters, 0);
-    index++;
-    if (_at(102, indent)) {
-      _diagnostic('events.adjacent_choice_merge_unqualified', first, index);
-    }
-    return SourceChoiceNode(_span(first, index - 1),
-        branches: branches, cancelType: cancelType, cancelBranch: cancel);
+      if (groupCancel != 0) {
+        cancellation = groupCancel == 5 ? const SourceChoiceCancellation.branch()
+            : SourceChoiceCancellation.choice(offset + groupCancel - 1);
+        cancelType = groupCancel == 5 ? 5 : offset + groupCancel;
+        cancel = groupCancel == 5 ? groupBranch : null;
+      }
+    } while (_at(102, indent));
+    return SourceChoiceNode(_span(first, index - 1), branches: branches,
+        cancelType: cancelType, cancelBranch: cancel, cancellation: cancellation);
   }
 
   bool _at(int code, int indent) =>

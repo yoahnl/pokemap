@@ -470,7 +470,9 @@ final class SpatialExplorationGameSessionRuntime
             commit,
             () => _session!.showDialogue(DialogueRef(
                 dialogueId: request.dialogueId,
-                startNode: request.yarnNodeName))),
+                startNode: request.yarnNodeName),
+                choicePolicies: request.choicePolicies,
+                linePolicies: request.linePolicies)),
         battle: (request) => _withSceneState(read, commit, () async {
           final state = read();
           final context = OverworldReturnContext(
@@ -903,7 +905,7 @@ final class SpatialExplorationGameSessionRuntime
     if (inputAuthority.value.context == RuntimeInputContext.dialogue) {
       if (event.isPress && !event.isRepeat) {
         if (event.control == RuntimeInputControl.secondary) {
-          _session!.closeDialogue();
+          _session!.cancelDialogue();
         }
         if (event.control == RuntimeInputControl.primary) {
           _session!.confirmDialogue();

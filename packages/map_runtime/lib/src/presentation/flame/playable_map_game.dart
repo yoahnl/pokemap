@@ -14396,6 +14396,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     session = interpolateDialogueVariables(
       session, state.scriptVariables,
+      factResolver: NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
+      factState: state.narrativeFactRuntimeState,
+      storyFlags: state.storyFlags,
       pokedexCaughtCount: speciesIndex == null ? null : (range) => countPokedexCaughtSpecies(
         gameState: state, speciesIndex: speciesIndex!, range: range,
       ),

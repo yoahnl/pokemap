@@ -1,4 +1,6 @@
 import 'dart:collection';
+import '../dialogue/dialogue_fact_references.dart';
+import '../dialogue/runtime_dialogue_document.dart';
 
 import 'package:meta/meta.dart' show immutable;
 
@@ -482,8 +484,9 @@ NarrativeDependencyIndex buildNarrativeDependencyIndex({
   required ProjectManifest project,
   List<MapData> maps = const <MapData>[],
   ProjectItemCatalog? itemCatalog,
+  Map<String, RuntimeDialogueDocument> dialogueDocuments = const {},
 }) {
-  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog).build();
+  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog, dialogueDocuments).build();
 }
 
 final class _NarrativeDependencyIndexBuilder {
@@ -491,11 +494,13 @@ final class _NarrativeDependencyIndexBuilder {
     this.project,
     List<MapData> maps,
     this.itemCatalog,
+    this.dialogueDocuments,
   ) : maps = List<MapData>.unmodifiable(maps);
 
   final ProjectManifest project;
   final ProjectItemCatalog? itemCatalog;
   final List<MapData> maps;
+  final Map<String, RuntimeDialogueDocument> dialogueDocuments;
   final List<NarrativeDependencyDefinition> _definitions = [];
   final List<NarrativeDependencyUsage> _usages = [];
   final List<NarrativeDependencyIssue> _issues = [];
@@ -511,6 +516,13 @@ final class _NarrativeDependencyIndexBuilder {
     _collectEvents();
     _collectLegacyClaims();
     _collectScenes();
+    for (final entry in dialogueDocuments.entries) {
+      final owner = NarrativeDependencyKey(NarrativeDependencyTargetKind.dialogue, entry.key);
+      for (final id in dialogueDocumentFactIds(entry.value)) {
+        _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, id), owner: owner,
+            path: 'dialogues[${entry.key}].text.fact[$id]', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      }
+    }
     _collectStorylines();
     _collectCinematics();
     _collectWorldRules();
@@ -2285,6 +2297,12 @@ final class _NarrativeDependencyIndexBuilder {
     final path = 'scenes[$sceneId].graph.nodes[$index].payload';
     final payload = node.payload;
     if (payload is SceneYarnDialoguePayload) {
+      for (final policy in payload.linePolicies) {
+        for (final id in dialogueTextFactIds(policy.feedback.plainText)) {
+          _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, id), owner: owner,
+              path: '$path.linePolicies[${policy.lineIndex}].fact[$id]', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        }
+      }
       _usage(
         target: NarrativeDependencyKey(
           NarrativeDependencyTargetKind.dialogue,

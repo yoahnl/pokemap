@@ -1,10 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('EV04 ten choices keep the keyboard selection visible in a small viewport', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    DialoguePresentationSnapshot snapshot(int selected) => DialoguePresentationSnapshot(
+        revision: selected + 1, mode: DialoguePresentationMode.choices, nodeTitle: 'Start', speaker: null,
+        text: '', fullText: '', isCurrentLineFullyRevealed: true, isLastContent: false,
+        choices: [for (var i = 0; i < 10; i++) DialoguePresentationChoice(index: i, label: 'Destination $i', selected: i == selected)]);
+    DialoguePresentationCommand? command;
+    await _pump(tester, snapshot: snapshot(0), onCommand: (value) => command = value);
+    await tester.pumpAndSettle();
+    await _pump(tester, snapshot: snapshot(9), onCommand: (value) => command = value);
+    await tester.pumpAndSettle();
+    final last = find.byKey(const ValueKey<String>('dialogue-choice-9'));
+    expect(tester.getRect(last).top, greaterThanOrEqualTo(0));
+    expect(tester.getRect(last).bottom, lessThanOrEqualTo(568));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(command, isA<DialogueSelectChoiceCommand>().having((value) => value.choiceIndex, 'choice', 9));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'revealing letters keeps the dialogue opaque and commands current',
       (tester) async {

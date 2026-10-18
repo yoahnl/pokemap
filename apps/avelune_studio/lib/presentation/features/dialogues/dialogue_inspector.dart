@@ -14,6 +14,7 @@ import 'dialogue_view_state.dart';
 import 'dialogue_portrait_fields.dart';
 import 'dialogue_results_panel.dart';
 import 'dialogue_suite_actions.dart';
+import 'dialogue_text_value_picker.dart';
 
 class DialogueInspector extends StatelessWidget {
   const DialogueInspector({
@@ -139,8 +140,10 @@ class DialogueInspector extends StatelessWidget {
                               ],
                               if (step is DeLineStep ||
                                   step is DeNarrationStep) ...[
+                                DialogueTextValuePicker(controller: controller, targetId: step!.id),
+                                const SizedBox(height: 8),
                                 StudioCommitField(
-                                  key: ValueKey('text-${step!.id}'),
+                                  key: ValueKey('text-${step.id}'),
                                   label: 'Texte',
                                   value: step is DeLineStep
                                       ? step.body
@@ -160,6 +163,8 @@ class DialogueInspector extends StatelessWidget {
                                   ),
                               ],
                               if (branch != null) ...[
+                                DialogueTextValuePicker(controller: controller, targetId: branch.id, response: true),
+                                const SizedBox(height: 8),
                                 StudioCommitField(
                                   key: ValueKey('response-${branch.id}'),
                                   label: 'Réponse du joueur',

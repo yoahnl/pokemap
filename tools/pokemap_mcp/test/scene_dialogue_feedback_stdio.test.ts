@@ -31,6 +31,7 @@ function fixture(): JsonRecord {
     name: "Original MCP dialogue feedback",
     version: "v8", pokemon: canonicalPokemonConfig(),
     maps: [], tilesets: [],
+    facts: [{ id: "score", label: "Score", valueType: "int", defaultValue: 3 }],
     dialogues: [{ id: "choice", name: "Choice", relativePath: "dialogues/choice.yarn",
       declaredOutcomes: [{ id: "yes", label: "Yes" }, { id: "no", label: "No" }] }],
     scenes: [{ id: "scene", name: "Scene", graph: { startNodeId: "start", nodes: [
@@ -232,10 +233,20 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     assert.ok(media);
     assert.equal(media.kind, "sound"); assert.equal(media.durationMs, 1000);
     assert.notEqual(media.loopByDefault, true);
+    assert.ok(JSON.stringify(actions.get("dialogue.source_update")).includes("{{ fact.<id> }}"));
+    publishedSource = publishedSource.replace("-> Yes", "-> {{ fact.score }} points");
+    await mutate("dialogue.source_update", { dialogueId: "choice", source: publishedSource });
+    assert.equal(await readFile(sourcePath, "utf8"), publishedSource);
+    const missingFact = await plan("dialogue.source_update", { dialogueId: "choice",
+      source: publishedSource.replace("fact.score", "fact.missing") }, true);
+    assert.equal(missingFact.domainCode, "dialogue.fact_reference_invalid");
+    const referencedFact = await plan("fact.delete", { factId: "score" }, true);
+    assert.equal(referencedFact.domainCode, "fact.delete_rejected");
     console.log(JSON.stringify({ liveCatalog: true, actions: [choiceAction, feedbackAction, audioAction, mapAudioAction],
       choicePoliciesApplied: 3, lineFeedbackApplied: true, audioArtifactImported: true,
       musicEffectPolicyApplied: true, mapVolumeAppliedAndPreserved: true,
-      exactRejections: 9, explicitLineTextEditActions: 2, reopenedThroughMcp: true }));
+      exactRejections: 11, typedFactSourcePreserved: true, typedFactDeletionBlocked: true,
+      explicitLineTextEditActions: 2, reopenedThroughMcp: true }));
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = undefined;
   } finally {

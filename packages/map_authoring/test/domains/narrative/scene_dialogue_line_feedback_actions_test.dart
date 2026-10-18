@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/domains/narrative/dialogue_fact_snapshot.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -36,6 +37,78 @@ SceneDialogueLinePolicy _policy(
             audioCue: audioCue));
 
 void main() {
+  test('EV04 escaped Yarn Fact text remains a snapshot and deletion dependency',
+      () async {
+    final fixture = await _Fixture.create(facts: [
+      NarrativeFactDefinition(
+          id: 'fact_score',
+          label: 'Score',
+          initialValue: NarrativeValue.integer(3))
+    ]);
+    addTearDown(fixture.dispose);
+    final source = _source.replaceFirst(
+        'Found!', r'\"{{ \u0066act.\u0066act_score }}"');
+    expect(source, isNot(contains('fact')));
+    await fixture.sourceFile.writeAsString(source);
+    final snapshot = await fixture.loader.load(fixture.opened.projectHandle);
+    final documents = snapshotDialogueDocuments(snapshot);
+    expect(dialogueDocumentFactIds(documents['choice']!), {'fact_score'});
+    final index = buildNarrativeDependencyIndex(
+        project: snapshot.manifest, dialogueDocuments: documents);
+    expect(
+        index.usagesFor(const NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.fact, 'fact_score')),
+        isNotEmpty);
+    final request = await fixture.request('fact.delete', {'factId': 'fact_score'});
+    await expectLater(
+        fixture.api.planMutation(fixture.opened.projectHandle, request),
+        throwsA(isA<NarrativeAuthoringException>().having(
+            (error) => error.code, 'code', 'fact.delete_rejected')));
+  });
+
+  test('EV04 escaped JSON Fact text remains a blocking deletion dependency', () async {
+    final fixture = await _Fixture.create(facts: [NarrativeFactDefinition(id: 'score', label: 'Score', initialValue: NarrativeValue.integer(3))]);
+    addTearDown(fixture.dispose);
+    final project = ProjectManifest.fromJson(jsonDecode(await fixture.projectFile.readAsString()) as Map<String, dynamic>);
+    final compiled = const YarnDialogueCompiler().compile(_source.replaceFirst('Found!', '{{ fact.score }}'));
+    await File('${fixture.directory.path}/dialogues/choice.json').writeAsString(jsonEncode(compiled.toJson()).replaceAll('fact.score', r'fact\u002escore'));
+    await fixture.projectFile.writeAsString(jsonEncode(project.copyWith(dialogues: [
+      project.dialogues.single.copyWith(relativePath: 'dialogues/choice.json')]).toJson()));
+    final request = await fixture.request('fact.delete', {'factId': 'score'});
+    await expectLater(fixture.api.planMutation(fixture.opened.projectHandle, request),
+        throwsA(isA<NarrativeAuthoringException>().having((error) => error.code, 'code', 'fact.delete_rejected')));
+  });
+
+  test('EV04 direct API and JSONL persist typed Fact text and reject dangling references and deletion', () async {
+    for (final jsonl in [false, true]) {
+      final fixture = await _Fixture.create(facts: [NarrativeFactDefinition(id: 'score', label: 'Score', initialValue: NarrativeValue.integer(3))]);
+      addTearDown(fixture.dispose);
+      final worker = JsonlWorker(api: fixture.readApi, mutations: fixture.api);
+      Future<AuthoringResult> command(String name, Map<String, Object?> args) async =>
+          AuthoringResult.fromJson(jsonDecode(await worker.processLine(jsonEncode({'id': name, 'command': name, 'args': args}))) as Map<String, dynamic>);
+      expect(jsonEncode((await command('describe', {})).toJson()), contains('{{ fact.<id> }}'));
+      final source = _source.replaceFirst('Found!', 'Score {{ fact.score }}').replaceFirst('-> Oui', '-> {{ fact.score }} points');
+      final request = await fixture.request('dialogue.source_update', {'dialogueId': 'choice', 'source': source});
+      final planned = jsonl ? (await command('plan', {'projectHandle': fixture.opened.projectHandle.value, 'request': request.toJson()})).data
+          : await fixture.api.plan(fixture.opened.projectHandle, request);
+      final applied = jsonl ? (await command('apply', {'projectHandle': fixture.opened.projectHandle.value, 'planId': planned['planId'], 'operationId': 'ev04-fact'})).data
+          : await fixture.api.apply(fixture.opened.projectHandle, planId: planned['planId'] as String, operationId: 'ev04-fact');
+      expect(applied['receipt'], isNotNull);
+      expect(await fixture.sourceFile.readAsString(), source);
+      final reloaded = await fixture.loader.load(fixture.opened.projectHandle);
+      final document = const YarnDialogueCompiler().compile(await fixture.sourceFile.readAsString());
+      final index = buildNarrativeDependencyIndex(project: reloaded.manifest, dialogueDocuments: {'choice': document});
+      expect(index.usagesFor(const NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, 'score')), isNotEmpty);
+      final invalid = await fixture.request('dialogue.source_update', {'dialogueId': 'choice', 'source': source.replaceAll('fact.score', 'fact.missing')});
+      final rejected = await command('plan', {'projectHandle': fixture.opened.projectHandle.value, 'request': invalid.toJson()});
+      expect(jsonEncode(rejected.toJson()), contains('dialogue.fact_reference_invalid'));
+      final deletion = await fixture.request('fact.delete', {'factId': 'score'});
+      final blocked = await command('plan', {'projectHandle': fixture.opened.projectHandle.value, 'request': deletion.toJson()});
+      expect(jsonEncode(blocked.toJson()), contains('fact.delete_rejected'));
+      expect(await fixture.sourceFile.readAsString(), source);
+    }
+  });
+
   test('canonical scene feedback accepts and preserves bounded music effects',
       () {
     final cue = DialogueAudioCue(
@@ -444,14 +517,14 @@ final class _Fixture {
   File get sourceFile => File('${directory.path}/dialogues/choice.yarn');
 
   static Future<_Fixture> create(
-      {List<SceneDialogueLinePolicy>? linePolicies}) async {
+      {List<SceneDialogueLinePolicy>? linePolicies, List<NarrativeFactDefinition> facts = const []}) async {
     final directory =
         await Directory.systemTemp.createTemp('scene_line_feedback_');
     await Directory('${directory.path}/dialogues').create();
     await File('${directory.path}/dialogues/choice.yarn')
         .writeAsString(_source);
     await File('${directory.path}/project.json').writeAsString(
-        jsonEncode(_project(linePolicies: linePolicies).toJson()));
+        jsonEncode(_project(linePolicies: linePolicies).copyWith(facts: facts).toJson()));
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [directory.path], fileReader: reader);

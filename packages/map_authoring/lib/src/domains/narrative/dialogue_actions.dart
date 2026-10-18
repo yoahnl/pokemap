@@ -29,10 +29,10 @@ final class DialogueActions {
   final DialogueLegacyMigrationService migration;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
-    _descriptor('dialogue.create', 'Create a compiled Yarn dialogue'),
+    _descriptor('dialogue.create', 'Create a compiled Yarn dialogue; {{ fact.<id> }} resolves a declared typed Fact in lines and choices'),
     _descriptor('dialogue.update',
         'Update dialogue metadata, outcomes and optional Yarn source atomically'),
-    _descriptor('dialogue.source_update', 'Update and compile Yarn source'),
+    _descriptor('dialogue.source_update', 'Update and compile Yarn source; {{ fact.<id> }} references a declared bool, integer or string Fact, resolved from current scene state'),
     _descriptor(
       'dialogue.delete',
       'Delete an unreferenced dialogue and source',
@@ -269,7 +269,9 @@ final class DialogueActions {
         'New dialogues must use a .yarn project path.',
       );
     }
-    _requirePublishable(compiler.compile(entry: entry, source: source));
+    final compiled = compiler.compile(entry: entry, source: source);
+    _requirePublishable(compiled);
+    validateDialogueSceneStarts(project: manifest, dialogueId: entry.id, compiled: compiled);
     return _validated(
       manifest.copyWith(dialogues: [...manifest.dialogues, entry]),
     );

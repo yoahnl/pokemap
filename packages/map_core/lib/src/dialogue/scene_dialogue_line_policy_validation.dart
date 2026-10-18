@@ -1,6 +1,7 @@
 import '../models/cinematic_media_asset.dart';
 import '../models/dialogue_line_feedback.dart';
 import 'runtime_dialogue_document.dart';
+import 'dialogue_fact_references.dart';
 
 final class SceneDialogueLineScope {
   const SceneDialogueLineScope({
@@ -68,6 +69,7 @@ void validateSceneDialogueLinePolicies(
       );
     }
     policy.feedback.validateText(scope.text);
+    validateDialogueFactFeedback(policy.feedback);
   }
 }
 

@@ -7,6 +7,7 @@ import '../domains/assets/asset_store.dart';
 import '../domains/assets/project_media_store.dart';
 import '../domains/project/regional_map_authoring_gate.dart';
 import '../workspace/project_snapshot.dart';
+import '../domains/narrative/dialogue_fact_snapshot.dart';
 
 enum ProjectReferenceSeverity { info, warning, error }
 
@@ -266,6 +267,7 @@ final class ProjectReferenceIndex {
         project: snapshot.manifest,
         maps: snapshot.maps,
         itemCatalog: snapshot.itemCatalog,
+        dialogueDocuments: snapshotDialogueDocuments(snapshot),
       ),
     );
     final presentation = PresentationReferenceGraph.build(

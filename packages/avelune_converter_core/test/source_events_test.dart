@@ -3041,7 +3041,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         contains('events.command_depth_exceeded'));
   });
 
-  test('adjacent Essentials choices remain wholly non-executable', () async {
+  test('adjacent Essentials choices merge with stable branch indices', () async {
     final choice = [
       _command(102, [
         ['One'],
@@ -3055,9 +3055,10 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       _page([...choice, ...choice])
     ]))
         .analyze();
-    expect(result.requireEvent(1, 1).isQuarantined, isTrue);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('events.adjacent_choice_merge_unqualified'));
+    expect(result.requireEvent(1, 1).isQuarantined, isFalse);
+    final merged = result.requireEvent(1, 1).pages.single.body.nodes.single as SourceChoiceNode;
+    expect(merged.branches.map((branch) => branch.index), [0, 1]);
+    expect(merged.cancellation.kind, SourceChoiceCancellationKind.disabled);
   });
 
   test(

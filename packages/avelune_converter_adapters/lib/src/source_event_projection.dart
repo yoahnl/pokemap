@@ -26,86 +26,15 @@ import 'source_stair_program.dart';
 import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
+import 'source_dialogue_text.dart';
 
-final _sourceFormattingTag =
-    RegExp(r'</?([a-z0-9]+)(?:\s*=\s*[^>]*)?>', caseSensitive: false);
-const _sourceFormattingTags = {
-  'b',
-  'i',
-  'u',
-  's',
-  'al',
-  'r',
-  'ar',
-  'ac',
-  'br',
-  'c',
-  'c2',
-  'c3',
-  'o',
-  'outln',
-  'outln2',
-  'fn',
-  'fs',
-  'icon',
-  'img',
-  'pg',
-  'pog',
-};
-const _sourceFormattingEntities = {
-  '&lt;',
-  '&gt;',
-  '&apos;',
-  '&quot;',
-  '&amp;',
-  '&m;',
-  '&f;',
-};
-
-DialogueLineFeedback? _staticSourceTextFeedback(String source) {
-  if (source.contains('\uFFFC') ||
-      _sourceFormattingEntities.any(source.contains) ||
-      _sourceFormattingTag.allMatches(source).any((match) =>
-          _sourceFormattingTags.contains(match.group(1)!.toLowerCase()))) {
-    return null;
-  }
-  final segments = <DialogueLineSegment>[];
-  var text = StringBuffer();
-  DialogueSegmentStyle? style;
-  void flush() {
-    if (text.isEmpty) return;
-    segments.add(DialogueTextSegment(text.toString(), style: style));
-    text = StringBuffer();
-  }
-
-  for (var index = 0; index < source.length; index++) {
-    if (source[index] != r'\') {
-      text.write(source[index]);
-      continue;
-    }
-    if (++index >= source.length) return null;
-    switch (source[index].toLowerCase()) {
-      case 'n':
-        if (index + 1 < source.length && source[index + 1] == '[') return null;
-        text.write('\n');
-      case 'b':
-      case 'r':
-        flush();
-        style = DialogueSegmentStyle(
-            colorArgb:
-                source[index].toLowerCase() == 'b' ? 0xff3050c8 : 0xffe00808,
-            shadowColorArgb: 0xffd0d0c8);
-      default:
-        return null;
-    }
-  }
-  flush();
-  return DialogueLineFeedback(segments: segments);
-}
+DialogueLineFeedback? _staticSourceTextFeedback(String source, {bool allowNativePlaceholders = false}) =>
+    parseSourceDialogueText(source, allowPlayerName: false, allowTiming: false, allowLiteralEscapes: false,
+        allowNativePlaceholders: allowNativePlaceholders);
 
 DialogueLineFeedback? _pokedexRewardTextFeedback(String source, PokedexSpeciesRange range, int ownedVariableId) =>
-    _staticSourceTextFeedback(source.replaceAll(r'\PN', '{{ player_name }}')
-        .replaceAll('\\v[$ownedVariableId]', range.dialoguePlaceholder));
+    source.contains('{{') ? null : _staticSourceTextFeedback(source.replaceAll(r'\PN', '{{ player_name }}')
+        .replaceAll('\\v[$ownedVariableId]', range.dialoguePlaceholder), allowNativePlaceholders: true);
 
 const _sourceSignWindowControl = r'\w[signskin]';
 
@@ -201,7 +130,7 @@ Map<SourceEventNode, Set<int>> _sourceMapScopes(SourceEventBlock block, int owne
           _ => null,
         };
         current = {
-          if (choice?.cancelType == 5 && choice?.cancelBranch == null)
+          if (choice?.cancellation.kind == SourceChoiceCancellationKind.branch && choice?.cancelBranch == null)
             ...current,
           for (final branch in branches) ...visit(branch, current)
         };
@@ -486,7 +415,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
     SourceConditionalNode() => {'condition': node.condition.toJson(),
       'true': node.whenTrue.nodes.map(_sourceControlNode).toList(),
       'false': node.whenFalse.nodes.map(_sourceControlNode).toList()},
-    SourceChoiceNode() => {'cancelType': node.cancelType, 'branches': [
+    SourceChoiceNode() => {'cancelType': node.cancelType, 'cancellation': node.cancellation.toJson(), 'branches': [
       for (final branch in node.branches) {'index': branch.index, 'label': branch.label,
         'nodes': branch.body.nodes.map(_sourceControlNode).toList()}],
       'cancel': node.cancelBranch?.nodes.map(_sourceControlNode).toList()},
@@ -510,6 +439,7 @@ Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
       case SourceTextNode(:final followingChoice):
         yield* node.annotations;
         if (followingChoice == null) break;
+        yield followingChoice;
         for (final branch in followingChoice.branches) { yield* _sourceControlNodes(branch.body); }
         if (followingChoice.cancelBranch != null) yield* _sourceControlNodes(followingChoice.cancelBranch!);
       default: break;
@@ -526,7 +456,7 @@ bool _eventUsesTempSwitch(SourceEventDefinition event) => event.pages.any((page)
     _sourceControlNodes(page.body).any((node) => node is SourceTempSwitchNode ||
         node is SourceConditionalNode && _conditionUsesTempSwitch(node.condition)));
 
-Set<String> _sourceControlVariables(SourceEventDefinition event) {
+Set<String> _sourceControlVariables(SourceEventDefinition event, String namespace) {
   final ids = <String>{};
   void condition(SourceEventCondition value) {
     if (value.kind == SourceEventConditionKind.variableAtLeast ||
@@ -540,6 +470,12 @@ Set<String> _sourceControlVariables(SourceEventDefinition event) {
     for (final node in _sourceControlNodes(page.body)) {
       if (node is SourceVariableSetNode) ids.addAll(node.factIds);
       if (node is SourceConditionalNode) condition(node.condition);
+      if (node is SourceTextNode) ids.addAll(sourceDialogueVariableIds(node.text).map((id) => 'source:$namespace:variable:$id'));
+      if (node is SourceChoiceNode) {
+        for (final branch in node.branches) {
+          ids.addAll(sourceDialogueVariableIds(branch.label).map((id) => 'source:$namespace:variable:$id'));
+        }
+      }
     }
   }
   return ids;
@@ -550,7 +486,7 @@ bool _hasSourceSelfSwitchScript(SourceEventDefinition event) => event.pages.any(
         command.parameters.any((value) => value is String && RegExp(r'\bpbSetSelfSwitch\b').hasMatch(value))));
 
 bool _requiresSourceControlScriptProfile(SourceEventDefinition event) =>
-    _hasSourceSelfSwitchScript(event) || _sourceControlVariables(event).isNotEmpty || event.pages.any((page) =>
+    _hasSourceSelfSwitchScript(event) || _sourceControlVariables(event, '').isNotEmpty || event.pages.any((page) =>
       _sourceControlNodes(page.body).any((node) =>
         node is SourceAnnotationNode || node is SourceExitEventNode));
 
@@ -1845,11 +1781,32 @@ final class _ProjectionBuilder {
       choice.branches.any((branch) => _hasReceiveItem(branch.body)) ||
       (choice.cancelBranch != null && _hasReceiveItem(choice.cancelBranch!));
 
-  DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text) =>
-      _supportsStaticSign(event)
-          ? _staticSourceSignFeedback(text)
+  bool get _dialogueTextQualified => const ['Messages', 'MessageConfig', 'DrawText'].every(
+      (role) => analysis.profile.interpretationProfile?.sections.containsKey('events.$role') == true);
+
+  DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text) {
+    if (text.contains('{{')) return null;
+    if (!_dialogueTextQualified) {
+      return _supportsStaticSign(event) ? _staticSourceSignFeedback(text)
           : _staticSourceTextFeedback(_isItemGiver(event)
-              ? text.replaceAll(r'\PN', '{{ player_name }}') : text);
+              ? text.replaceAll(r'\PN', '{{ player_name }}') : text, allowNativePlaceholders: _isItemGiver(event));
+    }
+    return parseSourceDialogueText(_supportsStaticSign(event) && text.startsWith(_sourceSignWindowControl)
+        ? text.substring(_sourceSignWindowControl.length) : text,
+        variablePlaceholder: (id) => _sourceControlAnalyzer.isIntegerVariableDeclared(id)
+            ? dialogueFactPlaceholder(sourceEventIntegerVariableBindingId(_sourceControlAnalyzer.variableFactId(id))) : null);
+  }
+
+  String? _choiceText(SourceEventDefinition event, String text) {
+    if (!_dialogueTextQualified) return text.trim().isNotEmpty && !text.contains(r'\') && !text.contains('{{') ? text : null;
+    final feedback = _textFeedback(event, text);
+    if (feedback == null || feedback.plainText.trim().isEmpty || feedback.revealIntervalMicros != null ||
+        feedback.advance.kind != DialogueLineAdvanceKind.confirm ||
+        feedback.segments.whereType<DialogueTextSegment>().any((segment) => segment.style != null)) {
+      return null;
+    }
+    return feedback.plainText;
+  }
 
   bool _supportsStaticWideInteraction(SourceEventDefinition event) {
     final map = maps[event.sourceMapId]!;
@@ -2496,7 +2453,7 @@ final class _ProjectionBuilder {
           ? 'sourceSelfSwitchSourceMismatch' : 'sourceNumericControlSourceMismatch'};
     }
     if (_unqualifiedVariableWriters == null) return const {};
-    final variables = _sourceControlVariables(event);
+    final variables = _sourceControlVariables(event, source.snapshot.logicalProjectNamespace.value);
     if (variables.isNotEmpty && _incompleteVariableRubyCensus) {
       return {'sourceVariableRubyCensusIncomplete'};
     }
@@ -3070,16 +3027,14 @@ final class _ProjectionBuilder {
   void _choiceGaps(
       SourceEventDefinition event, SourceChoiceNode choice, Set<String> gaps,
       {bool checkCharacterBindings = true}) {
-    if (choice.cancelType < 0 ||
-        choice.cancelType > 5 ||
-        (choice.cancelType > 0 &&
-            choice.cancelType < 5 &&
-            !choice.branches.any((b) => b.index == choice.cancelType - 1))) {
+    if ((choice.cancellation.kind == SourceChoiceCancellationKind.choice &&
+            !choice.branches.any((b) => b.index == choice.cancellation.choiceIndex)) ||
+        (choice.cancellation.kind == SourceChoiceCancellationKind.branch && choice.cancelBranch == null)) {
       gaps.add('choiceCancellationInvalid');
     }
     if (choice.branches.isEmpty ||
         choice.branches
-            .any((b) => b.label.trim().isEmpty || b.label.contains(r'\'))) {
+            .any((b) => _choiceText(event, b.label) == null)) {
       gaps.add('choiceTextUnsupported');
     }
     for (final branch in choice.branches) {
@@ -3142,7 +3097,8 @@ final class _ProjectionBuilder {
           _collectFacts(condition, ids);
           _blockFacts(whenTrue, ids);
           _blockFacts(whenFalse, ids);
-        case SourceTextNode(:final followingChoice):
+        case SourceTextNode(:final followingChoice, :final text):
+          ids.addAll(sourceDialogueVariableIds(text).map(_sourceControlAnalyzer.variableFactId));
           if (followingChoice != null) _choiceFacts(followingChoice, ids);
         case SourceChoiceNode():
           _choiceFacts(node, ids);
@@ -3154,6 +3110,7 @@ final class _ProjectionBuilder {
 
   void _choiceFacts(SourceChoiceNode choice, Set<String> ids) {
     for (final branch in choice.branches) {
+      ids.addAll(sourceDialogueVariableIds(branch.label).map(_sourceControlAnalyzer.variableFactId));
       _blockFacts(branch.body, ids);
     }
     if (choice.cancelBranch != null) _blockFacts(choice.cancelBranch!, ids);
@@ -4180,7 +4137,7 @@ final class _SceneBuilder {
     final outcomes = [
       for (final branch in choice?.branches ?? <SourceChoiceBranch>[])
         'choice_${branch.index}',
-      if (choice?.cancelType == 5) 'cancel'
+      if (choice?.cancellation.kind == SourceChoiceCancellationKind.branch) 'cancel'
     ];
     final entry = ProjectDialogueEntry(
         id: id,
@@ -4190,7 +4147,7 @@ final class _SceneBuilder {
         declaredOutcomes: [
           for (final branch in choice?.branches ?? <SourceChoiceBranch>[])
             DialogueDeclaredOutcome(
-                id: 'choice_${branch.index}', label: branch.label)
+                id: 'choice_${branch.index}', label: projection._choiceText(event, branch.label)!)
         ]);
     final source = [
       'title: Start',
@@ -4200,7 +4157,7 @@ final class _SceneBuilder {
       else if (text != null)
         '\\${jsonEncode(text)}',
       for (final branch in choice?.branches ?? <SourceChoiceBranch>[]) ...[
-        '-> \\${jsonEncode(branch.label)}',
+        '-> \\${jsonEncode(projection._choiceText(event, branch.label)!)}',
         '    <<outcome choice_${branch.index}>>'
       ],
       '===',
@@ -4231,12 +4188,12 @@ final class _SceneBuilder {
                     nodeName: 'Start',
                     choiceIndex: 0,
                     defaultOutcomeId: 'choice_${defaultChoiceIndex ?? choice.branches.first.index}',
-                    cancellation: switch (choice.cancelType) {
-                      0 => const SceneDialogueChoiceCancellation.disabled(),
-                      5 =>
+                    cancellation: switch (choice.cancellation.kind) {
+                      SourceChoiceCancellationKind.disabled => const SceneDialogueChoiceCancellation.disabled(),
+                      SourceChoiceCancellationKind.branch =>
                         const SceneDialogueChoiceCancellation.branch('cancel'),
-                      _ => SceneDialogueChoiceCancellation.choice(
-                          'choice_${choice.cancelType - 1}'),
+                      SourceChoiceCancellationKind.choice => SceneDialogueChoiceCancellation.choice(
+                          'choice_${choice.cancellation.choiceIndex}'),
                     })
               ]));
     _edge(node, 'completed', next);
@@ -4244,7 +4201,7 @@ final class _SceneBuilder {
       _edge(node, 'choice_${branch.index}', choiceTargets?[branch.index] ?? _block(branch.body, next),
           SceneEdgeKind.dialogueOutcome);
     }
-    if (choice?.cancelType == 5) {
+    if (choice?.cancellation.kind == SourceChoiceCancellationKind.branch) {
       _edge(
           node,
           'cancel',

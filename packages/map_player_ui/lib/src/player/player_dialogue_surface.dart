@@ -669,7 +669,7 @@ class _DialogueAdvanceLabel extends StatelessWidget {
   }
 }
 
-class _DialogueChoiceContent extends StatelessWidget {
+class _DialogueChoiceContent extends StatefulWidget {
   const _DialogueChoiceContent({
     required this.data,
     required this.onAction,
@@ -677,6 +677,56 @@ class _DialogueChoiceContent extends StatelessWidget {
 
   final PlayerDialogueViewData data;
   final ValueChanged<PlayerDialogueAction> onAction;
+
+  @override
+  State<_DialogueChoiceContent> createState() => _DialogueChoiceContentState();
+}
+
+class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
+  final _choiceKeys = <int, GlobalKey>{};
+  final _choiceFocus = <int, FocusNode>{};
+  PlayerDialogueViewData get data => widget.data;
+  ValueChanged<PlayerDialogueAction> get onAction => widget.onAction;
+
+  @override
+  void initState() {
+    super.initState();
+    _revealSelected();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DialogueChoiceContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previous = oldWidget.data.choices
+        .where((choice) => choice.selected)
+        .firstOrNull
+        ?.index;
+    final selected =
+        data.choices.where((choice) => choice.selected).firstOrNull?.index;
+    if (previous != selected) {
+      _revealSelected();
+    }
+  }
+
+  void _revealSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selected = data.choices.where((choice) => choice.selected).firstOrNull;
+      final target = _choiceKeys[selected?.index]?.currentContext;
+      if (selected != null && selected.enabled) {
+        _choiceFocus[selected.index]?.requestFocus();
+      }
+      if (target != null) Scrollable.ensureVisible(target, alignment: .5);
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final focus in _choiceFocus.values) {
+      focus.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -711,27 +761,31 @@ class _DialogueChoiceContent extends StatelessWidget {
           ),
           const SizedBox(height: PlayerSpacing.sm),
           for (final choice in data.choices) ...<Widget>[
-            PlayerActionButton(
-              key: ValueKey<String>('dialogue-choice-${choice.index}'),
-              label: choice.label,
-              icon: choice.selected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              autofocus: choice.selected,
-              selected: choice.selected,
-              secondary: !choice.selected,
-              shape: shape,
-              backgroundColor: choice.selected ? selectedColor : null,
-              foregroundColor: choice.selected ? selectedForeground : null,
-              disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
-              onPressed: choice.enabled
-                  ? () => onAction(
-                        PlayerDialogueSelectChoiceAction(
-                          snapshotRevision: data.revision,
-                          choiceIndex: choice.index,
-                        ),
-                      )
-                  : null,
+            KeyedSubtree(
+              key: _choiceKeys.putIfAbsent(choice.index, GlobalKey.new),
+              child: PlayerActionButton(
+                key: ValueKey<String>('dialogue-choice-${choice.index}'),
+                label: choice.label,
+                icon: choice.selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                autofocus: choice.selected,
+                focusNode: _choiceFocus.putIfAbsent(choice.index, FocusNode.new),
+                selected: choice.selected,
+                secondary: !choice.selected,
+                shape: shape,
+                backgroundColor: choice.selected ? selectedColor : null,
+                foregroundColor: choice.selected ? selectedForeground : null,
+                disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
+                onPressed: choice.enabled
+                    ? () => onAction(
+                          PlayerDialogueSelectChoiceAction(
+                            snapshotRevision: data.revision,
+                            choiceIndex: choice.index,
+                          ),
+                        )
+                    : null,
+              ),
             ),
             if (choice != data.choices.last)
               SizedBox(

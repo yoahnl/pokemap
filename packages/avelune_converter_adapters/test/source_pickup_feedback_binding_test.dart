@@ -188,7 +188,7 @@ Future<_Fixture> _fixture(
     List<int>? iconBytes,
     List<int>? audioBytes}) async {
   final original =
-      await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
+      await LiteralTileFixture.create(interpretationProfile: scripts == null ? null : fixtureSourceInterpretationProfile,
 scriptsBytes: scripts, extraFiles: {
     'Data/items.dat': _dump({
       for (final symbol in machine ? ['TM101'] : ['BURNHEAL', 'ETHER'])
@@ -266,7 +266,7 @@ scriptsBytes: scripts, extraFiles: {
     },
   });
   final source = await const RmxpSourceNormalizer().normalize(
-      snapshot: snapshot, files: files, interpretationProfile: presentationProfile);
+      snapshot: snapshot, files: files, interpretationProfile: scripts == null ? null : presentationProfile);
   final items = await const SourceEventItemBindingResolver().read(
       snapshot: snapshot, files: files,
       symbols: machine ? ['TM101'] : ['BURNHEAL', 'ETHER'],

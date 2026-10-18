@@ -13,12 +13,16 @@ import '../application/character_animation_source_resolver.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/load_runtime_map_bundle.dart';
 import '../application/dialogue_runtime_models.dart';
+import '../application/dialogue_variable_interpolation.dart';
+import '../application/dialogue_feedback_playback_port.dart';
 import '../application/resolve_dialogue.dart';
 import '../application/load_dialogue_content.dart';
 import '../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import '../presentation/flame/dialogue_overlay_component.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
+import '../presentation/flame/flame_narrative_sound_playback_adapter.dart';
+import '../player/runtime_music_service.dart';
 import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_smart_tile_animation_controller.dart';
@@ -150,6 +154,9 @@ final class SpatialExplorationSession {
   final dialoguePresentation =
       ValueNotifier<DialoguePresentationSnapshot?>(null);
   DialogueOverlayComponent? _dialogue;
+  DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
+  FlameNarrativeSoundPlaybackAdapter? _dialogueSound;
+  RuntimeMusicService? _dialogueMusic;
   String? _dialogueEntityId;
   Completer<SceneDialogueRuntimeAwaitableResult>? _dialogueCompletion;
   RuntimeDialogueTextSpeed textSpeed = RuntimeDialogueTextSpeed.instant;
@@ -199,17 +206,22 @@ final class SpatialExplorationSession {
   }
 
   Future<SceneDialogueRuntimeAwaitableResult> showDialogue(DialogueRef ref,
-      {MapEntity? entity, String Function(String)? transformText}) async {
+      {MapEntity? entity, String Function(String)? transformText,
+      List<SceneDialogueChoicePolicy> choicePolicies = const [],
+      List<SceneDialogueLinePolicy> linePolicies = const []}) async {
     final completion = Completer<SceneDialogueRuntimeAwaitableResult>();
     await _openDialogue(ref,
-        entity: entity, completion: completion, transformText: transformText);
+        entity: entity, completion: completion, transformText: transformText,
+        choicePolicies: choicePolicies, linePolicies: linePolicies);
     return completion.future;
   }
 
   Future<void> _openDialogue(DialogueRef ref,
       {MapEntity? entity,
       Completer<SceneDialogueRuntimeAwaitableResult>? completion,
-      String Function(String)? transformText}) async {
+      String Function(String)? transformText,
+      List<SceneDialogueChoicePolicy> choicePolicies = const [],
+      List<SceneDialogueLinePolicy> linePolicies = const []}) async {
     if (_disposed || interactionActive.value || transitioning.value) {
       completion?.complete(const SceneDialogueRuntimeAwaitableResult.failed(
           errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
@@ -243,15 +255,37 @@ final class SpatialExplorationSession {
       if (loaded == null) {
         throw StateError('Le dialogue ne peut pas être ouvert.');
       }
+      final state = presentationStateProvider?.call() ?? const GameState(saveId: 'dialogue');
+      final configured = interpolateDialogueVariables(
+          loaded.withChoicePolicies(choicePolicies).withLinePolicies(linePolicies), state.scriptVariables,
+          factResolver: NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
+          factState: state.narrativeFactRuntimeState, storyFlags: state.storyFlags);
+      validateDialogueFeedbackReferences(configured.lineFeedback,
+          iconAssetIds: bundle.runtimeImageAbsolutePathsById.keys.toSet(), mediaAssets: bundle.manifest.cinematicMediaAssets);
       final overlay = DialogueOverlayComponent(
           session:
-              transformText == null ? loaded : loaded.mapText(transformText),
+              transformText == null ? configured : configured.mapText(transformText),
           onFinished: (outcome) => _finishDialogue(
               SceneDialogueRuntimeAwaitableResult.completed(
                   outcomeId: outcome)),
           viewportSize: Vector2(640, 480),
           renderInFlame: false,
           textSpeed: textSpeed,
+          feedbackPlaybackPort: configured.lineFeedback.any((feedback) => feedback.audioCue != null)
+              ? dialogueFeedbackPlaybackPort ?? (_dialogueSound ??= FlameNarrativeSoundPlaybackAdapter(
+                  mediaAssets: bundle.manifest.cinematicMediaAssets,
+                  resolvePath: (asset) => resolveDialogueFeedbackProjectFile(bundle.projectRootDirectory, asset.relativePath),
+                  musicService: _dialogueMusic ??= RuntimeMusicService())) : null,
+          iconBytesLoader: ProjectDialogueIconLoader(projectRoot: bundle.projectRootDirectory,
+              absolutePathsByAssetId: bundle.runtimeImageAbsolutePathsById).load,
+          onFailed: (error) {
+            if (!_disposed && generation == _interactionGeneration) {
+              interactionError.value = error;
+              _finishDialogue(const SceneDialogueRuntimeAwaitableResult.failed(
+                  errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+                  message: 'The dialogue feedback could not be presented.'));
+            }
+          },
           onPresentationSnapshotChanged: (_) {
             if (!_disposed && generation == _interactionGeneration) {
               _publishDialogue();
@@ -311,6 +345,15 @@ final class SpatialExplorationSession {
       _dialogue!.confirmChoice();
     } else {
       _dialogue?.advance();
+    }
+  }
+
+  void cancelDialogue() {
+    if (_disposed || presentationPaused) return;
+    if (_dialogue?.isShowingChoices ?? false) {
+      _dialogue!.cancelChoice();
+    } else {
+      closeDialogue();
     }
   }
 
@@ -1134,6 +1177,8 @@ final class SpatialExplorationSession {
 
   void dispose() {
     if (_disposed) return;
+    if (_dialogueSound case final sound?) unawaited(sound.dispose());
+    if (_dialogueMusic case final music?) unawaited(music.dispose());
     _completeDialogue(const SceneDialogueRuntimeAwaitableResult.failed(
         errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
         message: 'The spatial dialogue owner was disposed.'));

@@ -427,13 +427,14 @@ Future<NormalizedSourceProject> _normalize(_Files files,
         {SourceNormalizationLimits limits = const SourceNormalizationLimits(),
         Set<int>? selectedMapIds,
         bool includeEventSystem = false,
-        ScanCancellation? cancellation}) =>
+        ScanCancellation? cancellation, SourceInterpretationProfile? interpretationProfile}) =>
     const RmxpSourceNormalizer().normalize(
         snapshot: files.snapshot,
         files: files,
         limits: limits,
         selectedMapIds: selectedMapIds,
         includeEventSystem: includeEventSystem,
+        interpretationProfile: interpretationProfile,
         cancellation: cancellation);
 
 Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
@@ -447,13 +448,14 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     Map<int, _RubyObject>? extraMaps,
     List<Object?>? commonEvents,
     List<int>? commonEventBytes,
-    bool attestedScripts = false}) async {
+    bool attestedScripts = false, SourceInterpretationProfile? interpretationProfile}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages, name: eventName), ...?extraEvents}),
     8: _map(),
     ...?extraMaps,
   }, tileset: tileset);
   data['Graphics/Characters/QualifiedNpc.png'] = _png();
+  if (interpretationProfile != null) data['Data/Scripts.rxdata'] = syntheticInterpretationArchive;
   if (commonEvents != null) {
     data['Data/CommonEvents.rxdata'] = _MarshalFixture().dump(commonEvents);
   }
@@ -468,16 +470,16 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
         .dump(_RubyObject('RPG::System', {'@switches': switches,
           '@variables': variables ?? List.filled(128, '')}));
   }
-  return _normalize(_source(data), includeEventSystem: includeSystem);
+  return _normalize(_source(data), includeEventSystem: includeSystem, interpretationProfile: interpretationProfile);
 }
 
 SourceEventAnalyzer _analyzer(NormalizedSourceProject project,
-        {String? scriptsHash}) =>
+        {String? scriptsHash, SourceInterpretationProfile? interpretationProfile}) =>
     SourceEventAnalyzer.forProject(project,
         profile: SourceEventProfile.forProject(project,
             scriptsArchiveHash: Sha256Hash(
                 scriptsHash ?? fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
-interpretationProfile: fixtureSourceInterpretationProfile,
+interpretationProfile: interpretationProfile ?? fixtureSourceInterpretationProfile,
 ));
 
 _RubyObject _withCondition(_RubyObject page, Map<String, Object?> values) {
@@ -738,6 +740,48 @@ Future<({GameState state, List<String> shown})> _runNumericScene(
 }
 
 void main() {
+  SourceInterpretationProfile dialogueProfile() {
+    final json = fixtureSourceInterpretationProfile.toJson();
+    final sections = json['sections'] as Map;
+    return SourceInterpretationProfile.fromJson({...json,
+      'sections': {...sections, for (final role in ['Messages', 'MessageConfig', 'DrawText'])
+        'events.$role': sections['events.Interpreter']}});
+  }
+  SourceEventAnalysis dialogueAnalysis(NormalizedSourceProject source) => _analyzer(source, interpretationProfile: dialogueProfile()).analyze();
+
+  test('EV04 projects identity, typed variable reads and choice labels with explicit text witnesses', () async {
+    final source = await _events([_page([
+      _command(122, [1, 1, 0, 0, 7]),
+      _command(101, [r'\ts[2]\bBonjour \PN : \v[1]\wtnp[40]']),
+      _command(102, [[r'Pour \PN', r'Score \v[1]'], 2]),
+      _command(402, [0, r'Pour \PN']), _command(402, [1, r'Score \v[1]']), _command(404, []),
+    ])], interpretationProfile: dialogueProfile());
+    final result = _projectEvents(source, analysis: dialogueAnalysis(source));
+    expect(result.registry.records.single.definitionOrNull, isNotNull,
+        reason: jsonEncode(result.semanticEvidence));
+    final variable = sourceEventIntegerVariableBindingId(_analyzer(source).variableFactId(1));
+    expect(result.facts.map((fact) => fact.id), contains(variable));
+    final compiled = const YarnDialogueCompiler().compile(result.dialogueSources.values.single);
+    expect(dialogueDocumentFactIds(compiled), {variable});
+    final payload = result.scenes.single.graph.nodes.map((node) => node.payload).whereType<SceneYarnDialoguePayload>().single;
+    expect(payload.linePolicies.single.feedback.advance.delayMicros, 2000000);
+    expect(payload.linePolicies.single.feedback.revealIntervalMicros, 25000);
+    expect(result.dialogues.single.declaredOutcomes.first.label, 'Pour {{ player_name }}');
+    final oldProfile = _projectEvents(source);
+    expect(oldProfile.registry.records.single.definitionOrNull, isNull);
+  });
+
+  test('EV04 native-looking source literals and unknown variable writers stay quarantined', () async {
+    for (final text in ['{{ fact.score }}', '{{ player_name }}', r'\v[1]']) {
+      final source = await _events([_page([_command(101, [text])])],
+          interpretationProfile: dialogueProfile(),
+          extraEvents: {2: _event(2, [_page([_command(355, [r'$game_variables[1] = "Name"'])])])});
+      final result = _projectEvents(source, analysis: dialogueAnalysis(source));
+      expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue, reason: text);
+      expect(result.scenes, isEmpty);
+    }
+  });
+
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
 
   group('foreign self-switch native projection', () {
@@ -2949,6 +2993,36 @@ void main() {
     expect(result.staticSemanticsQualified, isFalse);
     expect(jsonEncode(result.semanticEvidence), contains('sourceQuarantined'));
   });
+
+  for (final count in [6, 8, 10]) {
+    test('EV04 merges $count adjacent choices and offsets cancellation', () async {
+      final commands = <_RubyObject>[_command(101, ['Choisis'])];
+      for (var offset = 0; offset < count; offset += 4) {
+        final length = (count - offset).clamp(0, 4);
+        final last = offset + length == count;
+        final labels = [for (var i = 0; i < length; i++) 'Option ${offset + i}'];
+        commands.add(_command(102, [labels, last ? length : 0]));
+        for (var i = 0; i < length; i++) {
+          commands.add(_command(402, [i, labels[i]]));
+          commands.add(_command(121, [offset + i + 1, offset + i + 1, 0], indent: 1));
+        }
+        commands.add(_command(404, []));
+      }
+      commands.add(_command(101, ['Après']));
+      final source = await _events([_page(commands)], switches: [for (var id = 0; id <= count; id++) 'Flag$id']);
+      final event = _analyzer(source).analyze().events.single;
+      final text = event.pages.single.body.nodes.first as SourceTextNode;
+      expect(event.isQuarantined, isFalse);
+      expect(text.followingChoice!.branches, hasLength(count));
+      expect(text.followingChoice!.cancellation.choiceIndex, count - 1);
+      final result = _projectEvents(source);
+      final payload = result.scenes.single.graph.nodes.map((node) => node.payload)
+          .whereType<SceneYarnDialoguePayload>().firstWhere((payload) => payload.expectedOutcomes.isNotEmpty);
+      expect(payload.choicePolicies.single.cancellation.outcomeId, 'choice_${count - 1}');
+      expect(payload.expectedOutcomes, hasLength(count));
+      expect(result.dialogues, hasLength(2));
+    });
+  }
 
   test('EVT04 choice alternatives retain their ordered branches then rejoin',
       () async {

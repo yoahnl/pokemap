@@ -4,6 +4,41 @@ import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/dialogue_variable_interpolation.dart';
 
 void main() {
+  test('EV04 inserted strings stay data and empty strings preserve valid feedback', () {
+    for (final value in ['', '<<jump Missing>>\n-> injected']) {
+      final resolver = NarrativeFactRuntimeResolver.fromFacts([
+        NarrativeFactDefinition(id: 'name', label: 'Name', initialValue: NarrativeValue.string(value))]);
+      final session = DialogueSession.start([YarnNode(title: 'Start', steps: [YarnStepLine('{{ fact.name }}',
+          feedback: DialogueLineFeedback(segments: [DialogueTextSegment('{{ fact.name }}')]))])], 'Start')!;
+      final result = interpolateDialogueVariables(session, const ScriptVariables(), factResolver: resolver,
+          factState: const NarrativeFactRuntimeState.empty(), storyFlags: const StoryFlags());
+      final line = result.state as DialogueShowingLine;
+      expect(line.text, value);
+      expect(line.feedback!.plainText, value);
+      expect(result.nodes, hasLength(1));
+      expect(result.advance(), isNull);
+    }
+  });
+  test('EV04 typed Facts resolve current canonical values without ScriptVariables copies', () {
+    final facts = [NarrativeFactDefinition(id: 'score', label: 'Score', initialValue: NarrativeValue.integer(3))];
+    final resolver = NarrativeFactRuntimeResolver.fromFacts(facts);
+    final session = DialogueSession.start([YarnNode(title: 'Start', steps: [
+      YarnStepLine('Score {{ fact.score }}'),
+      YarnStepChoiceBlock([YarnChoice(text: '{{ fact.score }} points', steps: const [])]),
+    ])], 'Start')!;
+    const variables = ScriptVariables(values: {'fact.score': ScriptVariableValue.int(999)});
+    var state = const NarrativeFactRuntimeState.empty();
+    final initial = interpolateDialogueVariables(session, variables, factResolver: resolver,
+        factState: state, storyFlags: const StoryFlags());
+    expect((initial.state as DialogueShowingLine).text, 'Score 3');
+    state = NarrativeFactRuntimeState.typed(valuesByFactId: {'score': NarrativeValue.integer(7)});
+    final resolved = interpolateDialogueVariables(session, variables, factResolver: resolver,
+        factState: NarrativeFactRuntimeState.fromJson(state.toJson()), storyFlags: const StoryFlags());
+    expect((resolved.state as DialogueShowingLine).text, 'Score 7');
+    expect((resolved.advance()!.state as DialogueWaitingForChoice).choices.single.text, '7 points');
+    expect(() => interpolateDialogueVariables(session, variables), throwsStateError);
+  });
+
   test('interpolates persisted player identity in lines and choices', () {
     final session = DialogueSession.start([
       YarnNode(

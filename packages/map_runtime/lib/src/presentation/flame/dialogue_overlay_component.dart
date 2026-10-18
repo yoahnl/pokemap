@@ -398,8 +398,11 @@ class DialogueOverlayComponent extends PositionComponent {
   void _renderChoices(Canvas canvas, DialogueWaitingForChoice state) {
     final vw = size.x;
     final vh = size.y;
+    final visibleCount = ((vh - 32 - _kPaddingV * 2 - _kHintFontSize * 2) / _kChoiceLineHeight)
+        .floor().clamp(1, state.choices.length);
+    final first = (state.selectedIndex - visibleCount + 1).clamp(0, state.choices.length - visibleCount);
     final boxH = _kPaddingV * 2 +
-        state.choices.length * _kChoiceLineHeight +
+        visibleCount * _kChoiceLineHeight +
         _kHintFontSize * 2.0;
     final boxY = vh - boxH - 16.0;
 
@@ -410,8 +413,8 @@ class DialogueOverlayComponent extends PositionComponent {
     canvas.drawRRect(rrect, _bgPaint);
     canvas.drawRRect(rrect, _borderPaint);
 
-    for (var i = 0; i < _choicePainters.length; i++) {
-      final y = boxY + _kPaddingV + i * _kChoiceLineHeight;
+    for (var i = first; i < first + visibleCount; i++) {
+      final y = boxY + _kPaddingV + (i - first) * _kChoiceLineHeight;
       if (i == state.selectedIndex) {
         _cursorPainter.paint(canvas, Offset(16 + _kPaddingH, y));
       }

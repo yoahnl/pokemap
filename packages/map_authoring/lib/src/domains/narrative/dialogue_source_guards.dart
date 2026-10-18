@@ -8,6 +8,11 @@ void validateDialogueSceneStarts({
   required String dialogueId,
   required DialogueAuthoringCompileResult compiled,
 }) {
+  try {
+    validateDialogueFactReferences(project: project, document: compiled.document!);
+  } on FormatException catch (error) {
+    throw NarrativeAuthoringException('dialogue.fact_reference_invalid', error.message);
+  }
   final titles = {for (final node in compiled.document!.nodes) node.title};
   final references = <String>[];
   final choiceReferences = <String>[];
@@ -68,6 +73,7 @@ void validateDialogueLineFeedbackAgainstProject({
   required List<SceneDialogueLinePolicy> policies,
 }) {
   final scopes = sceneDialogueLineScopes(document);
+  validateDialogueFactReferences(project: project, document: document);
   validateSceneDialogueLinePolicies(scopes, policies);
   final byScope = {
     for (final policy in policies) (policy.nodeName, policy.lineIndex): policy,
