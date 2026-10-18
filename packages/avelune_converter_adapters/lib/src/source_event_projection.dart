@@ -488,6 +488,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
+    SourceSelfSwitchNode() => [node.factId, node.letter, node.value],
     SourceExitEventNode() => node.toJson(),
     SourceConditionalNode() => {'condition': node.condition.toJson(),
       'true': node.whenTrue.nodes.map(_sourceControlNode).toList(),
@@ -542,10 +543,25 @@ Set<String> _sourceControlVariables(SourceEventDefinition event) {
   return ids;
 }
 
-bool _hasSourceControl(SourceEventDefinition event) =>
-    _sourceControlVariables(event).isNotEmpty || event.pages.any((page) =>
+bool _hasSourceSelfSwitchScript(SourceEventDefinition event) => event.pages.any((page) =>
+    page.sourcePage.commands.any((command) => const [355, 655].contains(command.code) &&
+        command.parameters.any((value) => value is String && RegExp(r'\bpbSetSelfSwitch\b').hasMatch(value))));
+
+bool _requiresSourceControlScriptProfile(SourceEventDefinition event) =>
+    _hasSourceSelfSwitchScript(event) || _sourceControlVariables(event).isNotEmpty || event.pages.any((page) =>
       _sourceControlNodes(page.body).any((node) =>
         node is SourceAnnotationNode || node is SourceExitEventNode));
+
+bool _hasSourceSelfSwitchControl(SourceEventDefinition event) {
+  bool condition(SourceEventCondition value) =>
+      value.kind == SourceEventConditionKind.selfSwitch || value.children.any(condition);
+  return event.pages.any((page) => condition(page.condition) ||
+      _sourceControlNodes(page.body).any((node) => node is SourceSelfSwitchNode ||
+          node is SourceConditionalNode && condition(node.condition)));
+}
+
+bool _hasSourceControl(SourceEventDefinition event) =>
+    _requiresSourceControlScriptProfile(event) || _hasSourceSelfSwitchControl(event);
 
 Sha256Hash _sourceControlFingerprint(SourceEventDefinition event) => canonicalHashOf({
   'identity': event.identity.value, 'map': event.sourceMapId, 'event': event.sourceEventId,
@@ -555,6 +571,13 @@ Sha256Hash _sourceControlFingerprint(SourceEventDefinition event) => canonicalHa
     'raw': page.rawDataRef?.toJson(), 'nodes': page.body.nodes.map(_sourceControlNode).toList(),
   }],
 });
+
+final class _SourceSelfSwitchQualification {
+  final states = <(ConverterId, bool, String)>{};
+  var evaluatedStateCount = 0;
+  var hasForeignTargets = false;
+  var refused = false;
+}
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
@@ -670,6 +693,13 @@ final class _ProjectionBuilder {
   late final Set<ConverterId> _selectedEventIdentities =
       analysis.events.map((event) => event.identity).toSet();
   final _arrivalOwnerChecks = <ConverterId>{};
+  _SourceSelfSwitchQualification? _selfSwitchQualification;
+  final _selfSwitchQualificationProofs = <Map<String, Object?>>[];
+  late final Map<String, SourceEventDefinition> _selfSwitchTargets = {
+    for (final event in _sourceControlAnalysis.events)
+      for (final letter in const ['A', 'B', 'C', 'D'])
+        _sourceControlAnalyzer.selfFactId(event.sourceMapId, event.sourceEventId, letter): event,
+  };
   final Map<int, MapData> maps;
   final Set<ConverterId> originalDoorIdentities;
   final Map<ConverterId, SourceStaticDoorProgram> staticDoorPrograms;
@@ -1425,6 +1455,11 @@ final class _ProjectionBuilder {
         enabled: maps.length > 8, limits: limits);
     final evidence = <String, Object?>{
       'contract': 'source-events-v2-projection-v1',
+      if (_selfSwitchQualificationProofs.isNotEmpty)
+        'foreignSelfSwitchQualification': {
+          'contract': 'owner-local-closed-context-traversal-v1',
+          'ownerClosures': _selfSwitchQualificationProofs,
+        },
       'sourceSnapshotHash': sourceSnapshotHash.value,
       'normalizationHash': source.canonicalHash.value,
       'sourceProfileHash': analysis.profile.canonicalHash.value,
@@ -2406,8 +2441,9 @@ final class _ProjectionBuilder {
   Set<int>? _unqualifiedVariableWriters;
   bool _dynamicVariableWriter = false;
   bool _incompleteVariableRubyCensus = false;
-  late final SourceEventAnalysis _sourceControlAnalysis = SourceEventAnalyzer.forProject(
-      source, profile: analysis.profile).analyze();
+  late final SourceEventAnalyzer _sourceControlAnalyzer = SourceEventAnalyzer.forProject(
+      source, profile: analysis.profile);
+  late final SourceEventAnalysis _sourceControlAnalysis = _sourceControlAnalyzer.analyze();
 
   void _prepareVariableWriterAudit({required bool checkCharacterBindings}) {
     if (_unqualifiedVariableWriters != null) return;
@@ -2519,9 +2555,13 @@ final class _ProjectionBuilder {
     if (!_hasSourceControl(event) && (expected == null || !_hasSourceControl(expected))) {
       return const {};
     }
-    if (!SourceEventProfile.kantoForProject(source).isQualified || expected == null ||
-        _sourceControlFingerprint(expected) != _sourceControlFingerprint(event)) {
-      return {'sourceNumericControlSourceMismatch'};
+    final requiresScriptProfile = _requiresSourceControlScriptProfile(event) ||
+        expected != null && _requiresSourceControlScriptProfile(expected);
+    if ((requiresScriptProfile && !SourceEventProfile.kantoForProject(source).isQualified) ||
+        expected == null || _sourceControlFingerprint(expected) != _sourceControlFingerprint(event)) {
+      return {_hasSourceSelfSwitchControl(event) || (expected != null && _hasSourceSelfSwitchControl(expected)) ||
+          _hasSourceSelfSwitchScript(event) || (expected != null && _hasSourceSelfSwitchScript(expected))
+          ? 'sourceSelfSwitchSourceMismatch' : 'sourceNumericControlSourceMismatch'};
     }
     if (_unqualifiedVariableWriters == null) return const {};
     final variables = _sourceControlVariables(event);
@@ -2535,7 +2575,44 @@ final class _ProjectionBuilder {
     return const {};
   }
 
+  (ConverterId, bool, String) _selfSwitchQualificationState(
+      SourceEventDefinition event, bool checkCharacterBindings) {
+    final arrivalOwners = _arrivalOwnerChecks.map((owner) => owner.value).toList()..sort();
+    return (event.identity, checkCharacterBindings, canonicalJsonOf(arrivalOwners));
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
+      {bool checkCharacterBindings = true}) {
+    if (_selfSwitchQualification != null) {
+      return _localGaps(event, checkCharacterBindings: checkCharacterBindings);
+    }
+    final qualification = _SourceSelfSwitchQualification();
+    qualification.states.add(_selfSwitchQualificationState(event, checkCharacterBindings));
+    qualification.evaluatedStateCount++;
+    _selfSwitchQualification = qualification;
+    try {
+      final gaps = <String>{..._localGaps(event, checkCharacterBindings: checkCharacterBindings)};
+      if (qualification.refused) gaps.add('sourceSelfSwitchTargetUnavailable');
+      if (qualification.hasForeignTargets) {
+        _selfSwitchQualificationProofs.add({
+          'ownerSourceIdentity': event.identity.value,
+          'checkCharacterBindings': checkCharacterBindings,
+          'variableWriterAuditComplete': _unqualifiedVariableWriters != null,
+          'evaluatedStateCount': qualification.evaluatedStateCount,
+          'distinctStateCount': qualification.states.length,
+          'arrivalContextCount': qualification.states.map((state) => state.$3).toSet().length,
+          'bindingModes': qualification.states.map((state) => state.$2).toSet().toList()
+            ..sort((a, b) => (a ? 1 : 0).compareTo(b ? 1 : 0)),
+          'refused': gaps.isNotEmpty,
+        });
+      }
+      return gaps;
+    } finally {
+      _selfSwitchQualification = null;
+    }
+  }
+
+  Set<String> _localGaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     if (isSourceHoleNativeIdentity(event)) return _holeGaps(event);
     if (elevatorPrograms.containsKey(event.identity)) return _elevatorGaps(event, checkCharacterBindings: checkCharacterBindings);
@@ -2913,7 +2990,27 @@ final class _ProjectionBuilder {
         case SourceExitEventNode():
           break;
         case SourceSwitchNode():
+          break;
         case SourceSelfSwitchNode():
+          final target = _selfSwitchTargets[node.factId];
+          if (target == null || !const ['A', 'B', 'C', 'D'].contains(node.letter) ||
+              !node.factId.endsWith(':self:${node.letter}') ||
+              !maps.containsKey(target.sourceMapId) ||
+              !_selectedEventIdentities.contains(target.identity)) {
+            gaps.add('sourceSelfSwitchTargetUnavailable');
+          } else if (target.identity != event.identity) {
+            final qualification = _selfSwitchQualification!;
+            qualification.hasForeignTargets = true;
+            final selected = analysis.eventAt(target.sourceMapId, target.sourceEventId)!;
+            final state = _selfSwitchQualificationState(selected, checkCharacterBindings);
+            if (qualification.states.add(state)) {
+              qualification.evaluatedStateCount++;
+              if (_gaps(selected, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+                qualification.refused = true;
+                gaps.add('sourceSelfSwitchTargetUnavailable');
+              }
+            }
+          }
           break;
         case SourceInteractionFacingNode():
           if (!_supportsInteractionFacing(event,

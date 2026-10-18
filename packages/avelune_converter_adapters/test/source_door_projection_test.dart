@@ -376,7 +376,7 @@ void main() {
 
     test('profile is a new exact-hash contract with at-foot timing oracle', () {
       final profile = SourceEventProfile.kantoForProject(source);
-      expect(profile.toJson()['profile'], 'kanto-events-static-v5');
+      expect(profile.toJson()['profile'], 'kanto-events-static-v6');
       final timing = profile.toJson()['doorTiming'] as Map;
       expect(timing['playerStepMs'], 250);
       expect(timing['movementContext'], 'atFoot');

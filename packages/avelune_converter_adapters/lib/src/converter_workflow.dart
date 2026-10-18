@@ -2117,6 +2117,7 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'tileSize': 32,
       'requestedMode': 'study',
       'events': 'qualified-static-native-or-whole-event-quarantine',
+      'sourceSelfSwitchStatements': 'exact-source-literal-existing-selected-target-owner-closure-v2',
       'gameplayMetadata': 'sourceArchiveOnly',
       'catalogs':
           'essentials21.1-bounded-data-and-explicit-native-capabilities',

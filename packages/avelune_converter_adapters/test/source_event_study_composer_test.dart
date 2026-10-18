@@ -14,6 +14,78 @@ import 'support/native_writer_fixture.dart';
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
 
+  test('foreign self-switch survives canonical mutation write and strict reopen', () async {
+    final temporary = await Directory.systemTemp.createTemp('foreign-self-switch-native-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final fixture = await LiteralTileFixture.create(
+      scriptsBytes: await File(scriptsPath!).readAsBytes(), includeEventSystem: true,
+      extraFiles: {
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+        'Graphics/Characters/OriginalPlayer.png': image.encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+      }, maps: [
+        for (final map in [1, 2]) LiteralFixtureMap(id: map, width: 4, height: 4,
+          layers: [List.filled(16, 384), List.filled(16, 0), List.filled(16, 0)],
+          events: [LiteralFixtureEvent(id: 1, x: 2, y: 2, pages: [
+            LiteralFixtureEventPage(characterName: 'OriginalPlayer', selfSwitch: map == 2 ? 'A' : null, commands: [
+              if (map == 1) const LiteralFixtureEventCommand(355, ['pbSetSelfSwitch(1, "A", true, 2)']),
+              if (map == 2) const LiteralFixtureEventCommand(101, ['Before']),
+            ]),
+          ])]),
+      ]);
+    final literal = await const LiteralTileComposer().compose(source: fixture.source,
+      files: fixture.files, selectedSourceMapIds: [1, 2], projectName: 'Foreign self-switch',
+      parentPath: temporary.path, folderName: 'native');
+    final semantic = (await const SourceSemanticStudyComposer().compose(
+      source: fixture.source, base: literal, files: fixture.files))!;
+    final composed = (await const SourceEventStudyComposer().compose(
+      source: fixture.source, base: semantic, files: fixture.files))!;
+    final replay = (await const SourceEventStudyComposer().compose(
+      source: fixture.source, base: semantic, files: fixture.files))!;
+    expect(canonicalHashOf(replay.draft.compositionEvidence), canonicalHashOf(composed.draft.compositionEvidence));
+    expect(canonicalJsonOf(replay.draft.mutations.indexed.map((entry) => entry.$2.toJson(entry.$1)).toList()),
+        canonicalJsonOf(composed.draft.mutations.indexed.map((entry) => entry.$2.toJson(entry.$1)).toList()));
+    expect(replay.draft.artifacts.map((artifact) => (artifact.handle, artifact.rawSha256)).toList(),
+        composed.draft.artifacts.map((artifact) => (artifact.handle, artifact.rawSha256)).toList());
+    expect(composed.projection.registry.records.every((record) => record.definitionOrNull != null), isTrue,
+        reason: jsonEncode(composed.projection.semanticEvidence['events']));
+    final factMutation = composed.draft.mutations.singleWhere((mutation) => mutation.actionId == 'fact.create');
+    final approval = approveNativeFixtureDraft(composed.draft);
+    final receipt = await NativeProjectWriter().write(approval.plan, approval.context, composed.draft);
+    expect(receipt.verified, isTrue);
+    const reader = LocalProjectFileReader();
+    final handles = WorkspaceHandleStore();
+    final policy = await WorkspacePolicy.create(allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+    final opener = ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(receipt.projectPath);
+    try {
+      final native = await ProjectSnapshotLoader(handles: handles).load(
+        opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(native.loadDiagnostics, isEmpty);
+      expect(native.manifest.facts.single.toJson(), factMutation.parameters['fact']);
+      final expected = sourceEventFactBindingId(SourceEventAnalyzer.forProject(fixture.source,
+        profile: SourceEventProfile.kantoForProject(fixture.source)).selfFactId(2, 1, 'A'));
+      final set = native.manifest.scenes.expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload).whereType<SceneActionPayload>()
+          .map((payload) => payload.consequence).whereType<SceneSetFactConsequence>().single;
+      expect(set.factId, expected);
+      expect(set.value, isTrue);
+      final writer = NarrativeFactRuntimeWriter(NarrativeFactRuntimeResolver.fromFacts(native.manifest.facts));
+      final changed = writer.setFactValue(gameState: const GameState(saveId: 'foreign'),
+        factId: set.factId, value: set.narrativeValue);
+      expect(changed.success, isTrue);
+      final reopenedState = GameState.fromJson(jsonDecode(jsonEncode(changed.gameState.toJson())) as Map<String, dynamic>);
+      final maps = native.manifest.maps.map((entry) => native.mapById(entry.id)!).toList();
+      final before = projectWorldRuleEffects(native.manifest, const GameState(saveId: 'foreign'), maps: maps);
+      final after = projectWorldRuleEffects(native.manifest, reopenedState, maps: maps);
+      expect(before.any((effect) => effect.effect.kind == WorldRuleEffectKind.entityHidden), isTrue);
+      expect(after.any((effect) => effect.effect.kind == WorldRuleEffectKind.entityVisible), isTrue);
+      expect(after.where((effect) => effect.effect.kind == WorldRuleEffectKind.entityVisible)
+          .every((effect) => effect.target.mapId == composed.draft.mapIds[2]), isTrue);
+    } finally {
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  }, skip: scriptsPath == null);
+
   test('unqualified event profile leaves a literal study unchanged', () async {
     final fixture = await LiteralTileFixture.create(includeEventSystem: true);
     final literal = await const LiteralTileComposer().compose(

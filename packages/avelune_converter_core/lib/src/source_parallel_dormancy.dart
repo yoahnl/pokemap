@@ -235,9 +235,8 @@ void _auditSourceFactWriteBlock(
         }
       case SourceSelfSwitchNode(:final factId, :final letter, :final value):
         if (!const ['A', 'B', 'C', 'D'].contains(letter) ||
-            factId !=
-                analyzer.selfFactId(
-                    event.sourceMapId, event.sourceEventId, letter)) {
+            !analyzer.project.maps.any((map) => map.map.events.any((target) =>
+                factId == analyzer.selfFactId(map.map.sourceMapId, target.sourceEventId, letter)))) {
           throw const FormatException();
         }
         write(factId, value);

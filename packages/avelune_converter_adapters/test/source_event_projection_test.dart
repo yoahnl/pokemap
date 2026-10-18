@@ -443,12 +443,14 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     String? eventName,
     _RubyObject? tileset,
     Map<int, _RubyObject>? extraEvents,
+    Map<int, _RubyObject>? extraMaps,
     List<Object?>? commonEvents,
     List<int>? commonEventBytes,
     bool attestedScripts = false}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages, name: eventName), ...?extraEvents}),
     8: _map(),
+    ...?extraMaps,
   }, tileset: tileset);
   data['Graphics/Characters/QualifiedNpc.png'] = _png();
   if (commonEvents != null) {
@@ -489,10 +491,10 @@ Map<int, MapData> _nativeMaps(NormalizedSourceProject source) => {
     };
 
 SourceEventProjection _projectEvents(NormalizedSourceProject source,
-        {Map<int, MapData>? maps}) =>
+        {Map<int, MapData>? maps, SourceEventAnalysis? analysis}) =>
     const SourceEventProjector().project(
         source: source,
-        analysis: _analyzer(source).analyze(),
+        analysis: analysis ?? _analyzer(source).analyze(),
         nativeMaps: maps ?? _nativeMaps(source),
         characterBindings: {
           for (final file in source.snapshot.entries.where((entry) =>
@@ -734,6 +736,280 @@ Future<({GameState state, List<String> shown})> _runNumericScene(
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+
+  group('foreign self-switch native projection', () {
+    test('dense seven-event closure has a deterministic bound and replay', () async {
+      const count = 7;
+      final events = {for (var owner = 1; owner <= count; owner++)
+        owner: _event(owner, [_page([
+          for (var target = 1; target <= count; target++)
+            if (target != owner) _command(355, ['pbSetSelfSwitch($target, "A", true)']),
+          _command(0, []),
+        ])], x: owner - 1, y: 0)};
+      final source = await _events([_page([])], attestedScripts: true,
+          extraMaps: {1: _map(width: count, height: 2, events: events)});
+      final result = _projectEvents(source);
+      expect(result.registry.records.every((record) => record.definitionOrNull != null), isTrue);
+      expect(result.facts, hasLength(count));
+      final proof = result.semanticEvidence['foreignSelfSwitchQualification'];
+      expect(proof, isA<Map>());
+      final closures = ((proof as Map)['ownerClosures'] as List).cast<Map>();
+      expect(closures, hasLength(count));
+      expect(closures.map((closure) => closure['evaluatedStateCount']), everyElement(count));
+      expect(closures.map((closure) => closure['distinctStateCount']), everyElement(count));
+      expect(closures.map((closure) => closure['arrivalContextCount']), everyElement(1));
+      expect(closures.map((closure) => closure['refused']), everyElement(false));
+      expect(closures.fold<int>(0, (sum, closure) => sum + (closure['evaluatedStateCount'] as int)), count * count);
+      final replay = _projectEvents(source);
+      expect(canonicalJsonOf(replay.semanticEvidence), canonicalJsonOf(result.semanticEvidence));
+      expect(canonicalJsonOf(replay.mutations.indexed.map((entry) => entry.$2.toJson(entry.$1)).toList()),
+          canonicalJsonOf(result.mutations.indexed.map((entry) => entry.$2.toJson(entry.$1)).toList()));
+    });
+    test('arrival guards distinguish repeated self-switch target contexts', () async {
+      final source = await _events([_page([
+        _command(355, ['pbSetSelfSwitch(2, "A", true)']),
+        _command(201, [0, 8, 2, 1, 0, 0]), _command(0, []),
+      ])], attestedScripts: true, extraEvents: {
+        2: _event(2, [_page([
+          _command(355, ['pbSetSelfSwitch(1, "B", true)']), _command(0, []),
+        ])], x: 2, y: 0),
+      }, extraMaps: {8: _map(events: {1: _event(1, [_page([
+        _command(355, ['setTempSwitchOn("A")']), _command(106, [1]),
+        _command(355, ['pbSetSelfSwitch(2, "C", true, 1)']), _command(0, []),
+      ], trigger: 3)], x: 2, y: 1)})});
+      final result = _projectEvents(source);
+      expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue);
+      expect(result.facts, isEmpty);
+      final proof = result.semanticEvidence['foreignSelfSwitchQualification'] as Map;
+      final closures = (proof['ownerClosures'] as List).cast<Map>();
+      final first = closures.singleWhere((closure) => closure['ownerSourceIdentity'] ==
+          _analyzer(source).analyze().eventAt(1, 1)!.identity.value);
+      expect(first['arrivalContextCount'], 2);
+      expect(first['evaluatedStateCount'], first['distinctStateCount']);
+      expect(first['refused'], isTrue);
+    });
+    for (final invalid in ['setter', 'source', 'trigger', 'graphic', 'missingTarget', 'numericWriter']) {
+      test('a cycle propagates the later transitive refusal $invalid', () async {
+        final source = await _events([_page([
+          _command(355, ['pbSetSelfSwitch(2, "A", true)']), _command(0, []),
+        ])], attestedScripts: true, extraEvents: {
+          2: _event(2, [_page([
+            _command(355, ['pbSetSelfSwitch(1, "B", true)']),
+            _command(355, ['pbSetSelfSwitch(3, "A", true)']), _command(0, []),
+          ])], x: 2, y: 0),
+          3: _event(3, [_page([
+            if (invalid == 'setter') _command(355, ['pbSetSelfSwitch(1, "A", flag)'])
+            else if (invalid == 'missingTarget') _command(355, ['pbSetSelfSwitch(99, "A", true)'])
+            else if (invalid == 'numericWriter') _command(122, [7, 7, 0, 0, 1])
+            else _command(123, ['C', 0]),
+            _command(0, []),
+          ], trigger: invalid == 'trigger' ? 4 : 0,
+             character: invalid == 'graphic' ? 'MissingActor' : 'QualifiedNpc')], x: 2, y: 1),
+          if (invalid == 'numericWriter') 4: _event(4, [_page([
+            _command(355, [r'$game_variables[7] = []']), _command(0, []),
+          ])], x: 0, y: 0),
+        });
+        final analysis = _analyzer(source).analyze();
+        final target = analysis.eventAt(1, 3)!;
+        final page = target.pages.single;
+        final setter = page.body.nodes.first;
+        final supplied = invalid != 'source' ? analysis : SourceEventAnalysis(
+          profile: analysis.profile, diagnostics: [], events: [for (final event in analysis.events)
+            if (event.identity != target.identity) event else SourceEventDefinition(
+              sourceMapId: target.sourceMapId, sourceEventId: target.sourceEventId,
+              sourceFileId: target.sourceFileId, identity: target.identity, name: target.name,
+              x: target.x, y: target.y, locator: target.locator, pages: [SourceEventPageAnalysis(
+                sourcePage: page.sourcePage, locator: page.locator, condition: page.condition,
+                graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [],
+                body: SourceEventBlock(span: page.body.span, nodes: [SourceSelfSwitchNode(setter.span,
+                  factId: _analyzer(source).selfFactId(1, 1, 'C'), letter: 'C', value: true)]))])]);
+        if (invalid == 'graphic') {
+          final candidates = const SourceEventProjector().characterImportCandidates(
+            source: source, analysis: supplied, nativeMaps: _nativeMaps(source));
+          expect(candidates.map((event) => event.identity), contains(analysis.eventAt(1, 1)!.identity));
+        }
+        final result = _projectEvents(source, analysis: supplied);
+        expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue);
+        expect(result.facts, isEmpty);
+        expect(result.scenes, isEmpty);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceSelfSwitchTargetUnavailable'));
+      });
+    }
+
+    for (final attested in [false, true]) {
+      test('rejects a fabricated setter in dialogue-only source attested=$attested', () async {
+        final source = await _events([_page([
+          _command(101, ['Only dialogue']), _command(0, []),
+        ])], attestedScripts: attested, extraEvents: {2: _event(2, [_page([])])});
+        final analysis = _analyzer(source).analyze();
+        final original = analysis.eventAt(1, 1)!;
+        final page = original.pages.single;
+        final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+          sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+          identity: original.identity, name: original.name, x: original.x, y: original.y,
+          locator: original.locator, pages: [SourceEventPageAnalysis(
+            sourcePage: page.sourcePage, locator: page.locator, condition: page.condition,
+            graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [],
+            body: SourceEventBlock(span: page.body.span, nodes: [
+              SourceSelfSwitchNode(page.body.nodes.first.span,
+                factId: _analyzer(source).selfFactId(1, 2, 'A'), letter: 'A', value: true),
+              ...page.body.nodes,
+            ]))]);
+        final result = _projectEvents(source,
+          analysis: SourceEventAnalysis(profile: analysis.profile,
+            events: [for (final event in analysis.events) event.identity == original.identity ? forged : event], diagnostics: []));
+        expect(result.facts, isEmpty);
+        expect(result.registry.records.first.definitionOrNull, isNull);
+        expect(result.scenes.expand((scene) => scene.graph.nodes)
+            .map((node) => node.payload).whereType<SceneActionPayload>(), isEmpty);
+      });
+      test('preserves legitimate RM123 local setters attested=$attested', () async {
+        final source = await _events([_page([
+          _command(123, ['C', 0]), _command(0, []),
+        ])], attestedScripts: attested, extraEvents: {2: _event(2, [_page([])])});
+        final result = _projectEvents(source);
+        final expected = sourceEventFactBindingId(_analyzer(source).selfFactId(1, 1, 'C'));
+        expect(result.facts.map((fact) => fact.id), [expected]);
+        expect(result.registry.records.every((record) => record.definitionOrNull != null), isTrue);
+        final scene = result.scenes.singleWhere((scene) => scene.graph.nodes
+            .map((node) => node.payload).whereType<SceneActionPayload>().isNotEmpty);
+        final run = await _runNumericScene(result, scene);
+        expect(run.state.narrativeFactRuntimeState.valuesByFactId[expected]!.boolValue, isTrue);
+      });
+    }
+
+    test('rejects a forged self-switch destination page condition', () async {
+      final source = await _events([_page([
+        _command(355, ['pbSetSelfSwitch(2, "A", true)']), _command(0, []),
+      ])], attestedScripts: true, extraEvents: {2: _event(2, [
+        _withCondition(_page([_command(101, ['Target'])]), {'@self_switch_valid': true}),
+      ], x: 2, y: 0)});
+      final analysis = _analyzer(source).analyze();
+      final original = analysis.eventAt(1, 2)!;
+      final page = original.pages.single;
+      final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+        sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+        identity: original.identity, name: original.name, x: original.x, y: original.y,
+        locator: original.locator, pages: [SourceEventPageAnalysis(
+          sourcePage: page.sourcePage, locator: page.locator,
+          condition: SourceEventCondition(kind: SourceEventConditionKind.selfSwitch,
+            factId: _analyzer(source).selfFactId(1, 1, 'A')),
+          graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [], body: page.body)]);
+      final result = _projectEvents(source, analysis: SourceEventAnalysis(profile: analysis.profile,
+        events: [for (final event in analysis.events) event.identity == original.identity ? forged : event], diagnostics: []));
+      expect(result.facts, isEmpty);
+      expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue);
+      expect(jsonEncode(result.semanticEvidence), contains('sourceSelfSwitchSourceMismatch'));
+    });
+    for (final (targetMap, value) in [(1, true), (8, true), (8, false)]) {
+      test('writes $value only to target $targetMap event facts and selects its page after reload', () async {
+        final target = _event(2, [
+          _page([_command(101, ['Off'])]),
+          _withCondition(_page([_command(101, ['On'])]),
+              {'@self_switch_valid': true, '@self_switch_ch': 'B'}),
+        ], x: 2, y: 0);
+        final source = await _events([_page([
+          _command(355, ['pbSetSelfSwitch(2, "B", $value, $targetMap)']), _command(0, []),
+        ])], attestedScripts: true,
+            extraEvents: targetMap == 1 ? {2: target} : null,
+            extraMaps: targetMap == 8 ? {8: _map(events: {2: target})} : null);
+        final analyzer = _analyzer(source);
+        final result = _projectEvents(source);
+        expect(result.registry.records.every((record) => record.definitionOrNull != null), isTrue);
+        final fact = analyzer.selfFactId(targetMap, 2, 'B');
+        expect(result.facts.map((entry) => entry.id), contains(sourceEventFactBindingId(fact)));
+        final scene = result.scenes.singleWhere((scene) => scene.graph.nodes
+            .map((node) => node.payload).whereType<SceneActionPayload>()
+            .any((payload) => payload.consequence is SceneSetFactConsequence));
+        final initial = value ? const GameState(saveId: 'foreign') :
+            NarrativeFactRuntimeWriter(NarrativeFactRuntimeResolver.fromFacts(result.facts))
+                .setFactValue(gameState: const GameState(saveId: 'foreign'),
+                    factId: sourceEventFactBindingId(fact), value: NarrativeValue.boolean(true)).gameState;
+        final run = await _runNumericScene(result, scene, initial: initial);
+        final values = run.state.narrativeFactRuntimeState.valuesByFactId;
+        expect(values[sourceEventFactBindingId(fact)]!.boolValue, value);
+        expect(values[sourceEventFactBindingId(analyzer.selfFactId(1, 1, 'B'))]?.boolValue ?? false, isFalse);
+        expect(values[sourceEventFactBindingId(analyzer.selfFactId(targetMap, 2, 'A'))]?.boolValue ?? false, isFalse);
+        expect(analyzer.analyze().eventAt(targetMap, 2)!.selectPage(facts: {fact: values[sourceEventFactBindingId(fact)]!.boolValue})!.originalPageIndex, value ? 1 : 0);
+      });
+    }
+    test('multiple literal statements keep execution order and the native dialogue suffix', () async {
+      final source = await _events([_page([
+        _command(355, ['pbSetSelfSwitch(2, "A", true); pbSetSelfSwitch(2, "A", false)']),
+        _command(101, ['After']), _command(0, []),
+      ])], attestedScripts: true, extraEvents: {2: _event(2, [_page([])], x: 2, y: 0)});
+      final result = _projectEvents(source);
+      final scene = result.scenes.singleWhere((scene) => scene.graph.nodes
+          .map((node) => node.payload).whereType<SceneActionPayload>().isNotEmpty);
+      final run = await _runNumericScene(result, scene);
+      final fact = sourceEventFactBindingId(_analyzer(source).selfFactId(1, 2, 'A'));
+      expect(run.state.narrativeFactRuntimeState.valuesByFactId[fact]!.boolValue, isFalse);
+      expect(run.shown, ['After']);
+    });
+    for (final broken in [false, true]) {
+      test('mutual interaction writes have no artificial cycle dependency broken=$broken', () async {
+        final source = await _events([_page([
+          _command(355, ['pbSetSelfSwitch(2, "A", true)']), _command(0, []),
+        ])], attestedScripts: true, extraEvents: {2: _event(2, [_page([
+          _command(355, ['pbSetSelfSwitch(1, "B", false)']), _command(0, []),
+        ], character: broken ? 'MissingActor' : 'QualifiedNpc')], x: 2, y: 0)});
+        final result = _projectEvents(source);
+        expect(result.registry.records.every((record) => record.definitionOrNull != null), !broken);
+        expect(result.facts.length, broken ? 0 : 2);
+        if (broken) expect(jsonEncode(result.semanticEvidence), contains('sourceSelfSwitchTargetUnavailable'));
+      });
+    }
+    for (final unavailable in ['map', 'event', 'quarantined', 'graphic']) {
+      test('rejects an unavailable destination $unavailable', () async {
+        final source = await _events([_page([
+          _command(355, ['pbSetSelfSwitch(2, "A", true, 8)']), _command(0, []),
+        ])], attestedScripts: true, extraMaps: {8: _map(events: {
+          2: _event(2, [_page([
+            if (unavailable == 'quarantined') _command(355, ['unsafe()']),
+            _command(101, ['Target']),
+          ], character: unavailable == 'graphic' ? 'MissingActor' : 'QualifiedNpc')]),
+        })});
+        final analysis = _analyzer(source).analyze();
+        final result = _projectEvents(source,
+            analysis: unavailable == 'event' ? SourceEventAnalysis(profile: analysis.profile,
+              events: analysis.events.where((event) => event.sourceMapId == 1).toList(), diagnostics: []) : analysis,
+            maps: unavailable == 'map' ? {1: _nativeMaps(source)[1]!} : _nativeMaps(source));
+        expect(result.facts, isEmpty);
+        expect(result.registry.records.first.definitionOrNull, isNull);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceSelfSwitchTargetUnavailable'));
+      });
+    }
+    for (final forgery in ['fact', 'letter', 'value', 'removed']) {
+      test('rejects a $forgery forgery against the raw source helper', () async {
+        final source = await _events([_page([
+          _command(355, ['pbSetSelfSwitch(2, "A", true)']), _command(101, ['After']), _command(0, []),
+        ])], attestedScripts: true, extraEvents: {2: _event(2, [_page([])])});
+        final analysis = _analyzer(source).analyze();
+        final original = analysis.eventAt(1, 1)!;
+        final page = original.pages.single;
+        final node = page.body.nodes.first as SourceSelfSwitchNode;
+        final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+          sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+          identity: original.identity, name: original.name, x: original.x, y: original.y,
+          locator: original.locator, pages: [SourceEventPageAnalysis(
+            sourcePage: page.sourcePage, locator: page.locator, condition: page.condition,
+            graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [],
+            body: SourceEventBlock(span: page.body.span, nodes: [
+              if (forgery != 'removed') SourceSelfSwitchNode(node.span,
+                factId: forgery == 'fact' ? _analyzer(source).selfFactId(1, 1, 'A') : node.factId,
+                letter: forgery == 'letter' ? 'B' : node.letter,
+                value: forgery == 'value' ? false : node.value),
+              ...page.body.nodes.skip(1),
+            ]))]);
+        final result = _projectEvents(source,
+          analysis: SourceEventAnalysis(profile: analysis.profile,
+            events: [for (final event in analysis.events) event.identity == original.identity ? forged : event], diagnostics: []));
+        expect(result.facts, isEmpty);
+        expect(result.registry.records.first.definitionOrNull, isNull);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceSelfSwitchSourceMismatch'));
+      });
+    }
+  }, skip: scriptsPath == null);
   group('generic native numeric control', () {
     test('annotations have no runtime effect and range writes persist', () async {
       final source = await _events([_page([
@@ -1537,7 +1813,7 @@ void main() {
       expect(result.staticSemanticsQualified, isFalse);
       expect(source.canonicalHash, before);
       final profile = result.semanticEvidence['sourceProfile'] as Map;
-      expect(profile['profile'], 'kanto-events-static-v5');
+      expect(profile['profile'], 'kanto-events-static-v6');
       expect(result.semanticEvidence['sourceProfileHash'],
           canonicalHashOf(profile).value);
       final historical =

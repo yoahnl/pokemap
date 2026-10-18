@@ -172,7 +172,7 @@ final class SourceEventProfile {
       scriptsArchiveHash?.value == kantoScriptsArchiveSha256;
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
-        'profile': 'kanto-events-static-v5',
+        'profile': 'kanto-events-static-v6',
         'scriptsArchiveHash': scriptsArchiveHash?.value,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
@@ -1401,7 +1401,12 @@ final class _SourceEventParser {
       }
       final before = index;
       try {
-        nodes.add(_node(indent));
+        final statements = command.code == 355 ? _selfSwitchStatements(indent) : null;
+        if (statements != null) {
+          nodes.addAll(statements);
+        } else {
+          nodes.add(_node(indent));
+        }
       } on FormatException {
         if (index == before) {
           nodes.add(_unknown('events.invalid_command_parameters'));
@@ -1419,6 +1424,57 @@ final class _SourceEventParser {
         nodes: nodes,
         span: _span(first, index - 1),
         diagnostics: diagnostics.sublist(initialDiagnostics));
+  }
+
+  List<SourceSelfSwitchNode>? _selfSwitchStatements(int indent) {
+    if (!analyzer._isQualified) return null;
+    final first = index;
+    var end = first;
+    final lines = <String>[];
+    while (end < commands.length && const [355, 655].contains(commands[end].code)) {
+      final command = commands[end];
+      if (command.indent != indent || command.parameters.length != 1) return null;
+      lines.add(_string(command.parameters.single));
+      end++;
+    }
+    final script = lines.join('\n');
+    final statement = RegExp(
+        r'''pbSetSelfSwitch[ \t]*\([ \t]*([1-9][0-9]*)[ \t]*,[ \t]*(['"])([A-D])\2[ \t]*,[ \t]*(true|false)[ \t]*(?:,[ \t]*(-?(?:0|[1-9][0-9]*))[ \t]*)?\)''');
+    final whitespace = RegExp(r'[ \t\r\n]*');
+    final separator = RegExp(r'[ \t]*(?:;|\r?\n)[ \t\r\n]*');
+    var offset = whitespace.matchAsPrefix(script)!.end;
+    final nodes = <SourceSelfSwitchNode>[];
+    while (offset < script.length) {
+      final match = statement.matchAsPrefix(script, offset);
+      if (match == null) return null;
+      final targetEvent = int.tryParse(match.group(1)!);
+      final explicitMap = match.group(5) == null ? -1 : int.tryParse(match.group(5)!);
+      if (targetEvent == null || explicitMap == null) return null;
+      final targetMap = explicitMap < 0 ? mapId : explicitMap;
+      if (!analyzer.project.maps.any((map) => map.map.sourceMapId == targetMap &&
+          map.map.events.any((event) => event.sourceEventId == targetEvent))) {
+        return null;
+      }
+      final letter = match.group(3)!;
+      nodes.add(SourceSelfSwitchNode(_span(first, end - 1), letter: letter,
+          value: match.group(4) == 'true',
+          factId: analyzer.selfFactId(targetMap, targetEvent, letter)));
+      offset = match.end;
+      if (whitespace.matchAsPrefix(script, offset)!.end == script.length) break;
+      final delimiter = separator.matchAsPrefix(script, offset);
+      if (delimiter == null) return null;
+      offset = delimiter.end;
+    }
+    if (nodes.isEmpty) return null;
+    for (var position = first; position < end; position++) {
+      final raw = _rawFacingParameters(commands[position], 1);
+      final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+      if (_eventLiteralText(doc, raw.single) != lines[position - first]) {
+        throw const FormatException();
+      }
+    }
+    index = end;
+    return nodes;
   }
 
   SourceUnknownNode _unknown(String reason) {

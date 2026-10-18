@@ -18,6 +18,76 @@ import 'support/native_trainer_fixture.dart';
 
 void main() {
   test(
+      'closed self-switch qualification invalidates prior recursive recipes',
+      () async {
+    const oldRules =
+        'af983aba88b940492e99f0a00663013ddf9ff88df14b124eccb5c0c865abbe5e';
+    final harness = await _WorkflowHarness.create();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [1], writeLimits: sourceCatalogStudyWriteLimitsFor(1)));
+      await harness.workflow.prepareStudy();
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      expect(recipe.settings.writeLimits.maxArtifacts, 512);
+      expect(recipe.rulesHash.value, isNot(oldRules));
+      final body = {...recipe.toJson(), 'rulesHash': oldRules}
+        ..remove('canonicalHash');
+      final stale = ConverterStudyPlanRecipe.fromJson({
+        ...body,
+        'canonicalHash':
+            canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+                .value
+      });
+      final fresh = ConverterWorkflow();
+      try {
+        await expectLater(fresh.restoreStudyPlanRecipe(stale),
+            _throwsWorkflow('workflow.recipe.stale'));
+        expect(fresh.state.snapshot, isNull);
+        expect(fresh.state.prepared, isNull);
+      } finally {
+        await fresh.dispose();
+      }
+    } finally {
+      await harness.close();
+    }
+  });
+  test(
+      'literal self-switch rules invalidate pre-helper recipes before reading source',
+      () async {
+    const oldRules =
+        'ce2a55624ec95708bcdd796d89387ff19013eafb3cd4b3ca52464542b101bddc';
+    final harness = await _WorkflowHarness.create();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [1], writeLimits: sourceCatalogStudyWriteLimitsFor(1)));
+      await harness.workflow.prepareStudy();
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      expect(recipe.settings.writeLimits.maxArtifacts, 512);
+      expect(recipe.rulesHash.value, isNot(oldRules));
+      final body = {...recipe.toJson(), 'rulesHash': oldRules}
+        ..remove('canonicalHash');
+      final stale = ConverterStudyPlanRecipe.fromJson({
+        ...body,
+        'canonicalHash':
+            canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+                .value
+      });
+      final fresh = ConverterWorkflow();
+      try {
+        await expectLater(fresh.restoreStudyPlanRecipe(stale),
+            _throwsWorkflow('workflow.recipe.stale'));
+        expect(fresh.state.snapshot, isNull);
+        expect(fresh.state.prepared, isNull);
+      } finally {
+        await fresh.dispose();
+      }
+    } finally {
+      await harness.close();
+    }
+  });
+  test(
       'native catalog rules invalidate the former one-map recipe before reading source',
       () async {
     const oldRules =
@@ -204,7 +274,7 @@ void main() {
           greaterThan(512));
       expect(draft.artifacts.length + draft.sourceArtifacts.length,
           lessThanOrEqualTo(settings.writeLimits.maxArtifacts));
-      expect(prepared.settings.writeLimits.maxMutations, 16384);
+      expect(prepared.settings.writeLimits.maxMutations, 32768);
       final evidence = (draft.compositionEvidence['sourceCatalogs']
           as Map)['projection'] as Map;
       expect(evidence['nativeEncounterBindings'], isA<Map>());

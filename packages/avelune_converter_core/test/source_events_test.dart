@@ -630,6 +630,86 @@ _RubyObject _strengthPage() => _page([
     ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
 
 void main() {
+  group('literal foreign self-switch statements', () {
+    for (final (script, target, value) in [
+      ('pbSetSelfSwitch(1, "A", true)', (1, 1), true),
+      ('pbSetSelfSwitch(2, "A", true)', (1, 2), true),
+      ("pbSetSelfSwitch(2, 'B', false, -9)", (1, 2), false),
+      ('pbSetSelfSwitch(2, "C", true, 1)', (1, 2), true),
+      ('pbSetSelfSwitch(1, "D", false, 8)', (8, 1), false),
+    ]) {
+      test('resolves $script to the exact target fact', () async {
+        final data = _project(maps: {
+          1: _map(events: {
+            1: _event(1, [_page([_command(355, [script]), _command(0, [])])]),
+            2: _event(2, [_page([])]),
+          }),
+          8: _map(events: {1: _event(1, [_page([])])}),
+        });
+        final source = await _normalize(_source(data));
+        final analyzer = _analyzer(source);
+        final event = analyzer.analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isFalse);
+        final node = event.pages.single.body.nodes.single as SourceSelfSwitchNode;
+        expect(node.factId, analyzer.selfFactId(target.$1, target.$2, node.letter));
+        expect(node.value, value);
+      });
+    }
+    test('retains complete ordered statements and ordinary command suffix', () async {
+      final source = await _events([_page([
+        _command(355, ['pbSetSelfSwitch(2, "A", true); pbSetSelfSwitch(2, "B", false)']),
+        _command(655, ['pbSetSelfSwitch(2, "C", true, -1)']),
+        _command(101, ['After']),
+        _command(0, []),
+      ])], extraEvents: {2: _event(2, [_page([])])});
+      final event = _analyzer(source).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isFalse);
+      expect(event.pages.single.body.nodes.map((node) => node.runtimeType),
+          [SourceSelfSwitchNode, SourceSelfSwitchNode, SourceSelfSwitchNode, SourceTextNode]);
+      expect(event.pages.single.body.nodes.whereType<SourceSelfSwitchNode>().map((node) => node.letter), ['A', 'B', 'C']);
+    });
+    for (final script in [
+      'pbSetSelfSwitch(2, "A")', 'pbSetSelfSwitch(2, "A", true, 0)',
+      'pbSetSelfSwitch(2, "A", true, 99)', 'pbSetSelfSwitch(9, "A", true)',
+      'pbSetSelfSwitch(0, "A", true)', 'pbSetSelfSwitch(-2, "A", true)',
+      'pbSetSelfSwitch(2, "E", true)', 'pbSetSelfSwitch(2, "A", 1)',
+      'pbSetSelfSwitch(2, "A", flag)', 'pbSetSelfSwitch(id, "A", true)',
+      'pbSetSelfSwitch(2, "A", true, map)', 'pbSetSelfSwitch(2, "#{value}", true)',
+      'x = pbSetSelfSwitch(2, "A", true)', 'puts(pbSetSelfSwitch(2, "A", true))',
+      'pbSetSelfSwitch(2, "A", true) if ready', 'pbSetSelfSwitch(2, "A", true); unsafe()',
+      'if true\npbSetSelfSwitch(2, "A", true)\nend',
+      'pbSetSelfSwitch(2, "A", true, 1, 7)', 'pbSetSelfSwitch(02, "A", true)',
+    ]) {
+      test('quarantines the whole script $script', () async {
+        final source = await _events([_page([_command(355, [script]), _command(0, [])])],
+            extraEvents: {2: _event(2, [_page([])])});
+        final event = _analyzer(source).analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isTrue);
+        expect(event.pages.single.body.nodes.whereType<SourceSelfSwitchNode>(), isEmpty);
+      });
+    }
+    test('dormancy audit records the foreign destination rather than the writer owner', () async {
+      final source = await _normalize(_source(_project(maps: {
+        1: _map(events: {1: _event(1, [_page([
+          _command(355, ['pbSetSelfSwitch(14, "A", true, 205)']), _command(0, []),
+        ])])}),
+        205: _map(events: {14: _event(14, [_page([])])}),
+      })));
+      final analyzer = _analyzer(source);
+      final proof = auditSourceParallelDormancy(source: source, profile: analyzer.profile).toJson();
+      final writes = (proof['nativeWriteSet'] as List).cast<Map>();
+      expect(writes, hasLength(1));
+      expect(writes.single['factId'], analyzer.selfFactId(205, 14, 'A'));
+      expect(writes.single['factId'], isNot(analyzer.selfFactId(1, 1, 'A')));
+      expect(proof['refusals'], contains('sourceDormancyControllerWriterExecutable'));
+    });
+    test('requires the exact qualified source profile', () async {
+      final source = await _events([_page([_command(355, ['pbSetSelfSwitch(2, "A", true)'])])],
+          extraEvents: {2: _event(2, [_page([])])});
+      expect(_analyzer(source, scriptsHash: '0' * 64).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+    });
+  });
+
   group('common event inert census', () {
     _RubyObject common(List<_RubyObject> commands, {int id = 1, int trigger = 0}) =>
         _RubyObject('RPG::CommonEvent', {'@id': id, '@name': 'Inert',
@@ -1310,7 +1390,7 @@ void main() {
         greaterThan(branch.span.lastCommandIndex));
     expect([branch.span.lastCommandIndex, setter.span.firstCommandIndex],
         [25, 26]);
-    expect(result.profile.toJson()['profile'], 'kanto-events-static-v5');
+    expect(result.profile.toJson()['profile'], 'kanto-events-static-v6');
     expect(project.canonicalHash, before);
     expect(project.archive.canonicalHash, archive);
   });
@@ -1889,7 +1969,7 @@ void main() {
     final profile =
         SourceEventProfile.kantoForProject(await _events([_page([])]));
     final json = profile.toJson();
-    expect(json['profile'], 'kanto-events-static-v5');
+    expect(json['profile'], 'kanto-events-static-v6');
     expect(
         json['oracleSections'],
         containsPair('039',
