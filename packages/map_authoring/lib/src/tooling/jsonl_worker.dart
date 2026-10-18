@@ -431,6 +431,10 @@ final class JsonlWorker {
         code: AuthoringErrorCode.revisionConflict,
         domainCode: error.code,
         message: error.message,
+        details: _safeDetails(error.details),
+        remediation: error.details.containsKey('operationId')
+            ? const ['Inspect recovery status before resuming this operation.']
+            : const [],
       );
     } on AuthoringRecoveryException catch (error) {
       result = _failure(
@@ -739,6 +743,20 @@ final class JsonlWorker {
             args['cursor'],
             'args.cursor',
           ),
+        );
+      case 'recovery_status':
+        rejectUnknownContractKeys(args, const {'projectHandle', 'operationId'});
+        final mutations = _mutationApi();
+        if (mutations is! AuthoringRecoveryStatusPort) {
+          throw const _WorkerRequestException(
+            'worker.unsupported',
+            'Recovery inspection is unavailable.',
+          );
+        }
+        return (mutations as AuthoringRecoveryStatusPort).recoveryStatus(
+          _projectHandle(args),
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
         );
       case 'recover':
         rejectUnknownContractKeys(

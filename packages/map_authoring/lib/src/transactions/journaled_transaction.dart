@@ -50,10 +50,12 @@ final class AuthoringTransactionSimulatedCrash implements Exception {
 }
 
 final class JournaledAuthoringTransactionException implements Exception {
-  const JournaledAuthoringTransactionException(this.code, this.message);
+  const JournaledAuthoringTransactionException(this.code, this.message,
+      {this.details = const {}});
 
   final String code;
   final String message;
+  final Map<String, Object?> details;
 
   @override
   String toString() =>
@@ -262,94 +264,140 @@ final class JournaledAuthoringTransaction {
         await _gateway.deleteTransaction(operationId);
         rethrow;
       }
-      final receipt = await _idempotency.execute(
-        scope: scope,
-        request: request,
-        operationId: operationId,
-        apply: () async {
-          await _checkpoint(
-            AuthoringTransactionCheckpoint.afterReservation,
-            operationId,
-          );
-          journal = journal.copyWith(
-            status: AuthoringTransactionStatus.prepared,
-            updatedAt: _clock().toUtc(),
-          );
-          await _gateway.writeJournal(journal);
-          await _checkpoint(
-            AuthoringTransactionCheckpoint.afterJournalPrepared,
-            operationId,
-          );
+      late final AuthoringReceipt receipt;
+      try {
+        receipt = await _idempotency.execute(
+          scope: scope,
+          request: request,
+          operationId: operationId,
+          apply: () async {
+            await _checkpoint(
+              AuthoringTransactionCheckpoint.afterReservation,
+              operationId,
+            );
+            journal = journal.copyWith(
+              status: AuthoringTransactionStatus.prepared,
+              updatedAt: _clock().toUtc(),
+            );
+            await _gateway.writeJournal(journal);
+            await _checkpoint(
+              AuthoringTransactionCheckpoint.afterJournalPrepared,
+              operationId,
+            );
 
-          journal = journal.copyWith(
-            status: AuthoringTransactionStatus.promoting,
-            updatedAt: _clock().toUtc(),
-          );
-          await _gateway.writeJournal(journal);
-          for (var index = 0; index < journal.entries.length; index++) {
-            final entry = journal.entries[index];
-            await _checkpoint(
-              AuthoringTransactionCheckpoint.beforeResourcePromotion,
-              operationId,
-              storageKey: entry.storageKey,
-              promotionIndex: index,
+            journal = journal.copyWith(
+              status: AuthoringTransactionStatus.promoting,
+              updatedAt: _clock().toUtc(),
             );
-            await _gateway.promoteStaged(
-              operationId: operationId,
-              storageKey: entry.storageKey,
-              kind: TransactionPayloadKind.after,
-              expectedCurrentRevision: entry.beforeRevision,
-            );
-            await _checkpoint(
-              AuthoringTransactionCheckpoint.afterResourcePromoted,
-              operationId,
-              storageKey: entry.storageKey,
-              promotionIndex: index,
-            );
-            if (journal.checkpointProfile ==
-                AuthoringTransactionCheckpointProfile.perResource) {
-              journal = journal.copyWith(
-                updatedAt: _clock().toUtc(),
-                entries: _replaceEntry(
-                  journal.entries,
-                  index,
-                  entry.copyWith(promoted: true),
-                ),
+            await _gateway.writeJournal(journal);
+            for (var index = 0; index < journal.entries.length; index++) {
+              final entry = journal.entries[index];
+              await _checkpoint(
+                AuthoringTransactionCheckpoint.beforeResourcePromotion,
+                operationId,
+                storageKey: entry.storageKey,
+                promotionIndex: index,
               );
-              await _gateway.writeJournal(journal);
+              await _gateway.promoteStaged(
+                operationId: operationId,
+                storageKey: entry.storageKey,
+                kind: TransactionPayloadKind.after,
+                expectedCurrentRevision: entry.beforeRevision,
+              );
+              await _checkpoint(
+                AuthoringTransactionCheckpoint.afterResourcePromoted,
+                operationId,
+                storageKey: entry.storageKey,
+                promotionIndex: index,
+              );
+              if (journal.checkpointProfile ==
+                  AuthoringTransactionCheckpointProfile.perResource) {
+                journal = journal.copyWith(
+                  updatedAt: _clock().toUtc(),
+                  entries: _replaceEntry(
+                    journal.entries,
+                    index,
+                    entry.copyWith(promoted: true),
+                  ),
+                );
+                await _gateway.writeJournal(journal);
+              }
+              await _checkpoint(
+                AuthoringTransactionCheckpoint.afterResourceJournaled,
+                operationId,
+                storageKey: entry.storageKey,
+                promotionIndex: index,
+              );
             }
-            await _checkpoint(
-              AuthoringTransactionCheckpoint.afterResourceJournaled,
-              operationId,
-              storageKey: entry.storageKey,
-              promotionIndex: index,
-            );
-          }
 
-          journal = journal.copyWith(
-            status: AuthoringTransactionStatus.committed,
-            updatedAt: _clock().toUtc(),
-            finalReceipt: intendedReceipt,
+            journal = journal.copyWith(
+              status: AuthoringTransactionStatus.committed,
+              updatedAt: _clock().toUtc(),
+              finalReceipt: intendedReceipt,
+            );
+            await _gateway.writeJournal(journal);
+            await _checkpoint(
+              AuthoringTransactionCheckpoint.afterJournalCommitted,
+              operationId,
+            );
+            await _commitHook?.record(
+              AuthoringCommittedMutation(
+                scope: scope,
+                planId: plan.planId,
+                operationId: operationId,
+                receipt: intendedReceipt,
+                bulkCapability: journal.bulkCapability,
+                changes:
+                    await _stagedChanges(operationId, plan.changeSet.changes),
+              ),
+            );
+            return intendedReceipt;
+          },
+        );
+      } on AuthoringTransactionSimulatedCrash {
+        rethrow;
+      } on Object catch (error, stackTrace) {
+        AuthoringTransactionJournal? durable;
+        AuthoringIdempotencyRecord? record;
+        try {
+          durable = await _gateway.readJournal(operationId);
+          record = await _idempotency.recordForRecovery(scope);
+        } on Object {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+        if (durable != null && record?.operationId == operationId) {
+          final committed =
+              durable.status == AuthoringTransactionStatus.committed;
+          if (!committed && error is TransactionFileGatewayException) {
+            Error.throwWithStackTrace(error, stackTrace);
+          }
+          final finalized =
+              record!.status == AuthoringIdempotencyStatus.completed &&
+                  durable.finalReceipt != null &&
+                  canonicalAuthoringJson(record.receipt!.toJson()) ==
+                      canonicalAuthoringJson(durable.finalReceipt!.toJson());
+          throw JournaledAuthoringTransactionException(
+            committed
+                ? 'transaction.finalization_required'
+                : 'transaction.recovery_required',
+            committed
+                ? 'The files were committed. Inspect the operation and reconcile its finalization before retrying.'
+                : 'The transaction was interrupted. Inspect its durable state before recovering.',
+            details: {
+              'operationId': operationId,
+              'planId': durable.planId,
+              'receiptId':
+                  (durable.finalReceipt ?? durable.intendedReceipt).receiptId,
+              'journalStatus': durable.status.name,
+              'committed': committed,
+              'recoverable': finalized ? false : null,
+              'recoveryRequired': !finalized,
+              'finalized': finalized,
+            },
           );
-          await _gateway.writeJournal(journal);
-          await _checkpoint(
-            AuthoringTransactionCheckpoint.afterJournalCommitted,
-            operationId,
-          );
-          await _commitHook?.record(
-            AuthoringCommittedMutation(
-              scope: scope,
-              planId: plan.planId,
-              operationId: operationId,
-              receipt: intendedReceipt,
-              bulkCapability: journal.bulkCapability,
-              changes:
-                  await _stagedChanges(operationId, plan.changeSet.changes),
-            ),
-          );
-          return intendedReceipt;
-        },
-      );
+        }
+        Error.throwWithStackTrace(error, stackTrace);
+      }
       await _deleteTransactionBestEffort(operationId);
       try {
         await plan.releasePayloads();

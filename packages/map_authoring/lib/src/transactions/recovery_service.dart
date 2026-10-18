@@ -20,18 +20,24 @@ final class AuthoringRecoveryInspection {
     required this.journalStatus,
     required this.disposition,
     required this.message,
+    this.receiptId,
   });
 
   final String operationId;
   final AuthoringTransactionStatus journalStatus;
   final AuthoringRecoveryDisposition disposition;
   final String message;
+  final String? receiptId;
 
   Map<String, Object?> toJson() => {
         'operationId': operationId,
         'journalStatus': journalStatus.name,
         'disposition': disposition.name,
         'message': message,
+        if (receiptId != null) 'receiptId': receiptId,
+        'committed': journalStatus == AuthoringTransactionStatus.committed,
+        'recoverable': disposition == AuthoringRecoveryDisposition.resumable,
+        'finalized': disposition == AuthoringRecoveryDisposition.completed,
       };
 }
 
@@ -81,6 +87,18 @@ final class AuthoringRecoveryService {
       return List.unmodifiable(inspections);
     });
   }
+
+  Future<AuthoringRecoveryInspection?> inspectOperation({
+    required String operationId,
+    required AuthoringIdempotencyScope scope,
+  }) =>
+      _gateway.withExclusiveWriteLock(() async {
+        final journal = await _gateway.readJournal(operationId);
+      if (journal == null || journal.scope.storageKey != scope.storageKey) {
+        return null;
+      }
+        return _inspectJournal(journal);
+      });
 
   Future<AuthoringReceipt> resume(String operationId) {
     return _gateway.withExclusiveWriteLock(() async {
@@ -574,6 +592,7 @@ AuthoringRecoveryInspection _inspection(
     journalStatus: journal.status,
     disposition: disposition,
     message: message,
+    receiptId: (journal.finalReceipt ?? journal.intendedReceipt).receiptId,
   );
 }
 

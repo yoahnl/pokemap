@@ -57,6 +57,13 @@ abstract interface class AuthoringArtifactStagingPort {
   });
 }
 
+abstract interface class AuthoringRecoveryStatusPort {
+  Future<Map<String, Object?>> recoveryStatus(
+    ProjectHandle projectHandle, {
+    required String operationId,
+  });
+}
+
 /// Typed application boundary for direct Dart mutation consumers.
 abstract interface class AuthoringMutationServicePort {
   AuthoringMutationDescription describeMutationContracts();

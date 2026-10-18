@@ -6,6 +6,7 @@ import { PokeMapToolError } from "../tool_error.js";
 import {
   authoringResult,
   mutationAnnotations,
+  readOnlyAnnotations,
   toolEnvelopeSchema,
 } from "./result.js";
 
@@ -213,6 +214,21 @@ export function registerMutationTools(
               idempotencyKey: input.idempotencyKey,
             }),
           ),
+  );
+
+  server.registerTool(
+    "pokemap_recovery_status",
+    {
+      title: "Inspect a PokeMap operation",
+      description: "Reports committed, recoverable and finalized state without applying or resuming an operation.",
+      inputSchema: z.object({
+        projectHandle: z.string().min(1),
+        operationId: z.string().min(1),
+      }).strict(),
+      outputSchema: toolEnvelopeSchema,
+      annotations: readOnlyAnnotations,
+    },
+    async (input) => authoringResult(() => authoring.request("recovery_status", input)),
   );
 
   server.registerTool(

@@ -70,6 +70,7 @@ test("all tools publish strict schemas, outputs and annotations", async () => {
         "pokemap_plan",
         "pokemap_apply",
         "pokemap_history",
+        "pokemap_recovery_status",
         "pokemap_recovery",
         "pokemap_game_export",
         "pokemap_project_create_preview",

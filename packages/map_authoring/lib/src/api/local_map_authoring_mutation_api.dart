@@ -55,6 +55,7 @@ final class LocalMapAuthoringMutationApi
         AuthoringArtifactStagingPort,
         AuthoringMutationServicePort,
         AuthoringArtifactStagingServicePort,
+        AuthoringRecoveryStatusPort,
         AuthoringResultProjectionPort {
   LocalMapAuthoringMutationApi({
     required WorkspacePolicy policy,
@@ -156,6 +157,10 @@ final class LocalMapAuthoringMutationApi
           AuthoringMutationCommandDescriptor(
             id: 'recover',
             summary: 'Resume a recoverable transaction.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'recovery_status',
+            summary: 'Inspect a durable operation without reapplying it.',
           ),
           AuthoringMutationCommandDescriptor(
             id: 'stage_artifact',
@@ -399,19 +404,56 @@ final class LocalMapAuthoringMutationApi
     String? expectedHeadEntryId,
     void Function()? beforeReservation,
     void Function()? preparationCheck,
-  }) => _session(projectHandle).resourcePackHistory(
-    operation: operation,
-    entryId: entryId,
-    operationId: operationId,
-    expectedRevision: expectedRevision,
-    expectedHeadEntryId: expectedHeadEntryId,
-    beforeReservation: beforeReservation,
-    preparationCheck: preparationCheck,
-  );
+  }) =>
+      _session(projectHandle).resourcePackHistory(
+        operation: operation,
+        entryId: entryId,
+        operationId: operationId,
+        expectedRevision: expectedRevision,
+        expectedHeadEntryId: expectedHeadEntryId,
+        beforeReservation: beforeReservation,
+        preparationCheck: preparationCheck,
+      );
 
   Future<List<AuthoringRecoveryInspection>> resourcePackPending(
     ProjectHandle projectHandle,
-  ) => _session(projectHandle)._recovery.inspect();
+  ) =>
+      _session(projectHandle)._recovery.inspect();
+
+  @override
+  Future<Map<String, Object?>> recoveryStatus(
+    ProjectHandle projectHandle, {
+    required String operationId,
+  }) async {
+    _snapshotLoader.requireActiveProject(projectHandle);
+    final session = _session(projectHandle);
+    final identity = _safeIdentity(operationId, 'operationId');
+    session.requireProjectionRead();
+    final found = await session._idempotencyStore.lookupOperation(
+      actorId: _actor.actorId,
+      projectId: session.projectId,
+      operationId: identity,
+      now: session._plans.now,
+    );
+    if (found == null) {
+      return {'operationId': identity, 'disposition': 'notFound'};
+    }
+    final inspection = await session._recovery.inspectOperation(
+      operationId: identity, scope: found.scope,
+    );
+    if (inspection != null) return inspection.toJson();
+    final receipt = found.completed?.receipt;
+    return {
+      'operationId': identity,
+      'disposition': receipt == null ? 'blocked' : 'completed',
+      'committed': receipt == null
+          ? null
+          : receipt.extensions['recoveryOutcome'] != 'compensated',
+      'recoverable': false,
+      'finalized': receipt != null,
+      if (receipt != null) 'receiptId': receipt.receiptId,
+    };
+  }
 
   Future<bool> resourcePackRequiresJob(
     ProjectHandle projectHandle, {
