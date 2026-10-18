@@ -3,11 +3,27 @@ import 'package:map_core/map_core.dart';
 import '../../workspace/project_snapshot.dart';
 import 'narrative_authoring_exception.dart';
 
-bool sceneNeedsPartyMoveCatalog(SceneAsset scene) => scene.graph.nodes.any(
-    (node) =>
-        node.payload is SceneConditionPayload &&
-        (node.payload as SceneConditionPayload).conditionSource?.partyMoveId !=
-            null);
+bool sceneNeedsPartyMoveCatalog(SceneAsset scene) =>
+    scene.graph.nodes.any((node) => switch (node.payload) {
+          SceneConditionPayload(:final conditionSource) =>
+            conditionSource?.partyMoveId != null,
+          SceneActionPayload() => _giftMoves(node.payload) != null,
+          _ => false,
+        });
+
+List<String>? _giftMoves(SceneNodePayload payload) => switch (payload) {
+      SceneActionPayload(
+        consequence: SceneGivePokemonFromCatalogConsequence(:final moveIds)
+      ) =>
+        moveIds,
+      SceneActionPayload(
+        interactiveCommand: SceneReceivePokemonFromCatalogInteractiveCommand(
+          :final moveIds
+        )
+      ) =>
+        moveIds,
+      _ => null,
+    };
 
 Future<Set<String>> loadScenePartyMoveCatalog(ProjectSnapshot snapshot) async {
   try {
@@ -46,19 +62,31 @@ Future<Set<String>> loadScenePartyMoveCatalog(ProjectSnapshot snapshot) async {
     return Set.unmodifiable(ids);
   } on Object {
     throw NarrativeAuthoringException('scene.party_move_catalog_unavailable',
-        'Party move conditions require a readable catalogue with unique canonical move identities.');
+        'Party move conditions and explicit Pokemon gift moves require a readable catalogue with unique canonical move identities.');
   }
 }
 
 void validateScenePartyMoves(SceneAsset scene, Set<String> moveIds) {
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
-    if (payload is! SceneConditionPayload) continue;
-    final moveId = payload.conditionSource?.partyMoveId;
+    final moveId = payload is SceneConditionPayload
+        ? payload.conditionSource?.partyMoveId
+        : null;
     if (moveId != null && !moveIds.contains(moveId)) {
       throw NarrativeAuthoringException('scene.party_move_ref_unknown',
           'The selected party move is not in the active project catalogue.',
           details: {'sceneId': scene.id, 'nodeId': node.id, 'moveId': moveId});
+    }
+    for (final giftMoveId in _giftMoves(payload) ?? const <String>[]) {
+      if (!moveIds.contains(giftMoveId)) {
+        throw NarrativeAuthoringException('scene.pokemon_move_ref_unknown',
+            'The selected Pokemon gift move is not in the active project catalogue.',
+            details: {
+              'sceneId': scene.id,
+              'nodeId': node.id,
+              'moveId': giftMoveId
+            });
+      }
     }
   }
 }

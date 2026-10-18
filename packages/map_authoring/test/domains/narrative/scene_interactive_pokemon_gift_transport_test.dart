@@ -23,7 +23,8 @@ void main() {
         'level',
         'nicknamePolicy',
         'nicknameMaxGraphemes',
-        'pokedexPresentationPolicy'
+        'pokedexPresentationPolicy',
+        'moveIds'
       ]);
       expect(contract['outputPorts'], ['party', 'pc', 'noCapacity']);
       expect(contract['technicalDismissal'], 'abortSceneTransaction');

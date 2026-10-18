@@ -2,6 +2,8 @@ import 'dart:async';
 import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:flutter/material.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_name_dialog.dart';
@@ -32,6 +34,7 @@ class SceneBuilderPage extends StatefulWidget {
     required this.onBack,
     this.narrative,
     this.loadMoves,
+    this.loadSpecies,
     this.onTest,
     this.dialogues,
     this.onDialogue,
@@ -46,6 +49,7 @@ class SceneBuilderPage extends StatefulWidget {
   final SceneBuilderViewStore views;
   final NarrativeWorkspaceController? narrative;
   final Future<Map<String, String>> Function()? loadMoves;
+  final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
   final VoidCallback onBack;
   final String onBackLabel;
   final VoidCallback? onTest;
@@ -109,6 +113,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                 project: linkedProject,
                 loadMap: mapLoader.load,
                 loadMoves: widget.loadMoves,
+                loadSpecies: widget.loadSpecies,
                 documents: documents,
                 narrative: widget.narrative,
                 nodeId: state!.nodeId,

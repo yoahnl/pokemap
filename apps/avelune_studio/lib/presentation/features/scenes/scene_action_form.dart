@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_core/map_core.dart'
     show ProjectModel3dEntry, Model3dAnimation;
@@ -10,6 +15,7 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 
 import 'scene_actor_action_form.dart';
+import 'scene_pokemon_gift_moves_editor.dart';
 
 part 'scene_action_references.dart';
 
@@ -20,6 +26,8 @@ class SceneActionForm extends StatefulWidget {
     required this.current,
     required this.onApply,
     this.loadMap,
+    this.loadMoves,
+    this.loadSpecies,
     this.commandCatalog,
   });
 
@@ -27,6 +35,8 @@ class SceneActionForm extends StatefulWidget {
   final SceneNodePayload? current;
   final ValueChanged<SceneNodePayload> onApply;
   final Future<MapData> Function(String)? loadMap;
+  final Future<Map<String, String>> Function()? loadMoves;
+  final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
   @visibleForTesting
   final List<NarrativeCommandDescriptor>? commandCatalog;
 
@@ -58,6 +68,59 @@ class _SceneActionFormState extends State<SceneActionForm> {
   String? _referenceError;
   bool _referenceLoading = false;
   int _referenceRequest = 0;
+  List<PokemonSpeciesSummary> _species = const [];
+  bool _speciesLoading = false;
+  String? _speciesError;
+  int _speciesRequest = 0;
+  bool _giftMovesValid = true;
+  bool get _isGift =>
+      _commandId == NarrativeCommandIds.givePokemonFromCatalog ||
+      _commandId == NarrativeCommandIds.receivePokemonFromCatalog;
+  List<String>? get _giftMoves {
+    final value = _values['moveIds'];
+    return value == null || value.isEmpty
+        ? null
+        : (jsonDecode(value) as List).cast<String>();
+  }
+
+  Future<void> _loadGiftSpecies() async {
+    final token = ++_speciesRequest;
+    _species = const [];
+    _speciesError = null;
+    _speciesLoading = false;
+    if (!_isGift) return;
+    _speciesLoading = true;
+    await Future<void>.value();
+    try {
+      final load = widget.loadSpecies;
+      if (load == null) throw StateError('Unavailable');
+      final species = await load();
+      if (!mounted || token != _speciesRequest) return;
+      final unique =
+          species.map((entry) => entry.id).toSet().length == species.length;
+      if (!unique) throw StateError('Ambiguous');
+      setState(
+        () => _species = species
+            .where(
+              (entry) =>
+                  entry.enabled &&
+                  entry.isBaseForm &&
+                  entry.baseFormId.isNotEmpty &&
+                  entry.formIds.contains(entry.baseFormId),
+            )
+            .toList(),
+      );
+    } on Object {
+      if (!mounted || token != _speciesRequest) return;
+      setState(
+        () => _speciesError = 'Catalogue des Pokémon indisponible ou ambigu. Les références enregistrées sont conservées.',
+      );
+    } finally {
+      if (mounted && token == _speciesRequest) {
+        setState(() => _speciesLoading = false);
+      }
+    }
+  }
   void _refreshReferences(VoidCallback changed) => setState(changed);
 
   NarrativeCommandDescriptor? get _command =>
@@ -82,13 +145,21 @@ class _SceneActionFormState extends State<SceneActionForm> {
   @override
   void didUpdateWidget(SceneActionForm oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_isGift &&
+        _giftMoves != null &&
+        (oldWidget.loadMoves != widget.loadMoves ||
+            oldWidget.project != widget.project)) {
+      _giftMovesValid = false;
+    }
     if (oldWidget.current != widget.current ||
         oldWidget.commandCatalog != widget.commandCatalog) {
       _readCurrent();
     }
     if (oldWidget.loadMap != widget.loadMap ||
-        oldWidget.project != widget.project) {
+        oldWidget.project != widget.project ||
+        oldWidget.loadSpecies != widget.loadSpecies) {
       _loadReferenceMap();
+      _loadGiftSpecies();
     }
   }
 
@@ -100,6 +171,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
     _unsupported = current != null;
     if (current is! SceneActionPayload) {
       _loadReferenceMap();
+      _loadGiftSpecies();
       return;
     }
     final data =
@@ -109,11 +181,13 @@ class _SceneActionFormState extends State<SceneActionForm> {
     if (_command == null || data == null) {
       _commandId = null;
       _loadReferenceMap();
+      _loadGiftSpecies();
       return;
     }
     if (_isActorCommand(_commandId)) {
       _unsupported = false;
       _loadReferenceMap();
+      _loadGiftSpecies();
       return;
     }
     for (final parameter in _command!.parameters) {
@@ -124,6 +198,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
           : data[parameter.id];
       if (value is String || value is num || value is bool) {
         _values[parameter.id] = '$value';
+      } else if (value is List && parameter.id == 'moveIds') {
+        _values[parameter.id] = jsonEncode(value);
       }
     }
     if (data['mapId'] != null && data['entityId'] != null) {
@@ -136,7 +212,9 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _unsupported = true;
     }
     if (_unsupported) _commandId = null;
+    _giftMovesValid = !_isGift || _giftMoves == null;
     _loadReferenceMap();
+    _loadGiftSpecies();
   }
 
   SceneNodePayload _buildPayload() {
@@ -170,6 +248,12 @@ class _SceneActionFormState extends State<SceneActionForm> {
         _values[parameter.id] = '1';
       }
     }
+    _giftMovesValid = true;
+    if (commandId == NarrativeCommandIds.receivePokemonFromCatalog) {
+      _values['nicknamePolicy'] = 'offer';
+      _values['nicknameMaxGraphemes'] = '12';
+      _values['pokedexPresentationPolicy'] = 'never';
+    }
     if (commandId == NarrativeCommandIds.playModelAnimation) {
       _values['speed'] = '1';
     } else if (commandId == NarrativeCommandIds.wait) {
@@ -182,11 +266,16 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _values['volume'] = '1';
     }
     _loadReferenceMap();
+    _loadGiftSpecies();
   });
 
   bool get _valid {
     final command = _command;
     if (command == null) return false;
+    if (_isGift &&
+        (_speciesLoading || _speciesError != null || !_giftMovesValid)) {
+      return false;
+    }
     for (final parameter in command.parameters) {
       final value = _values[parameter.id];
       if (value == null || value.trim().isEmpty) {
@@ -213,7 +302,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
         return false;
       }
     }
-    if (command.id == NarrativeCommandIds.warp ||
+    if (_isGift ||
+        command.id == NarrativeCommandIds.warp ||
         command.id == NarrativeCommandIds.wait ||
         command.id == NarrativeCommandIds.worldTone ||
         command.id == NarrativeCommandIds.playSoundEffect) {
@@ -280,6 +370,24 @@ class _SceneActionFormState extends State<SceneActionForm> {
   Map<String, String> _options(
     NarrativeCommandParameterKind kind,
   ) => switch (kind) {
+    NarrativeCommandParameterKind.species => {
+      for (final species in _species) species.id: species.name,
+    },
+    NarrativeCommandParameterKind.speciesForm => {
+      for (final species in _species)
+        if (species.id == _values['speciesId'])
+          species.baseFormId: species.baseFormId == 'base'
+              ? 'Forme principale'
+              : species.baseFormId,
+    },
+    NarrativeCommandParameterKind.pokemonGiftNicknamePolicy => const {
+      'offer': 'Proposer un surnom',
+      'disabled': 'Garder le nom de l’espèce',
+    },
+    NarrativeCommandParameterKind.pokemonGiftPokedexPolicy => const {
+      'never': 'Ne pas présenter',
+      'whenNewAndPokedexVisible': 'Si nouveau et Pokédex disponible',
+    },
     NarrativeCommandParameterKind.fact => {
       for (final fact in widget.project.facts)
         if (fact.valueKind == NarrativeValueKind.boolean) fact.id: fact.label,
@@ -378,6 +486,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
         onChanged: _commands.isEmpty ? null : _choose,
       ),
       if (_commands.isEmpty) const StudioNotice('Aucune commande disponible.'),
+      if (_isGift && _speciesLoading)
+        const StudioNotice('Chargement des Pokémon…'),
+      if (_isGift && _speciesError != null)
+        StudioNotice(_speciesError!, isError: true),
       if (_referenceLoading)
         StudioNotice(
           _commandId == NarrativeCommandIds.warp
@@ -433,6 +545,26 @@ class _SceneActionFormState extends State<SceneActionForm> {
   );
 
   Widget _field(NarrativeCommandParameterDescriptor parameter) {
+    if (_isGift && parameter.id == 'moveIds') {
+      return ScenePokemonGiftMovesEditor(
+        key: ValueKey('gift-moves-$_commandId'),
+        value: _giftMoves,
+        loadMoves: widget.loadMoves,
+        catalogueScope: widget.project,
+        onChanged: (value) => setState(() {
+          if (value == null) {
+            _values.remove('moveIds');
+          } else {
+            _values['moveIds'] = jsonEncode(value);
+          }
+        }),
+        onValidityChanged: (value) {
+          if (mounted && _giftMovesValid != value) {
+            setState(() => _giftMovesValid = value);
+          }
+        },
+      );
+    }
     void changed(String value) => setState(() {
       _values[parameter.id] = value;
       _error = null;
@@ -443,6 +575,14 @@ class _SceneActionFormState extends State<SceneActionForm> {
         if (value.isEmpty) {
           for (final key in ['fadeOutMs', 'transferDelayMs', 'revealMs']) { _values.remove(key); }
         }
+      }
+      if (_isGift && parameter.id == 'speciesId') {
+        _values['formId'] =
+            _species
+                .where((species) => species.id == value)
+                .firstOrNull
+                ?.baseFormId ??
+            '';
       }
       if (parameter.id == 'destinationMapId' &&
           _commandId == NarrativeCommandIds.warp) {

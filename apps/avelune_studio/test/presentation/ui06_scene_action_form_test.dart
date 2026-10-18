@@ -1,4 +1,6 @@
 import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,8 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     SceneNodePayload? current,
+    ProjectManifest? projectOverride,
+    Future<Map<String, String>> Function()? loadMoves,
     required ValueChanged<SceneNodePayload> onApply,
   }) => tester.pumpWidget(
     MaterialApp(
@@ -23,11 +27,13 @@ void main() {
       home: Scaffold(
         body: SizedBox(
           width: 360,
-          child: SceneActionForm(
-            project: project,
+          child: SingleChildScrollView(child: SceneActionForm(
+            project: projectOverride ?? project,
             current: current,
+            loadSpecies: _loadGiftSpecies,
+            loadMoves: loadMoves ?? _loadGiftMoves,
             onApply: onApply,
-          ),
+          )),
         ),
       ),
     ),
@@ -60,6 +66,75 @@ void main() {
       result.consequence,
       SceneConsequence.setFact(factId: 'departure', value: false),
     );
+  });
+
+  testWidgets('catalog gifts keep imposed move references visible', (tester) async {
+    final original = SceneActionPayload.consequence(SceneConsequence.givePokemonFromCatalog(
+      speciesId: 'bird', formId: 'base', level: 8, moveIds: ['removed', 'tackle']));
+    await pump(tester, current: original, onApply: (_) => fail('Missing references must block application'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('scene-gift-move-mode')), findsOneWidget);
+    expect(find.textContaining('removed'), findsWidgets);
+    expect(tester.widget<StudioButton>(find.byWidgetPredicate((widget) => widget is StudioButton && widget.label == 'Appliquer l’action')).onPressed, isNull);
+  });
+
+  for (final interactive in [false, true]) {
+    testWidgets('${interactive ? 'interactive' : 'consequence'} gifts guide creation and ordered moves', (tester) async {
+      SceneNodePayload? submitted;
+      await pump(tester, onApply: (value) => submitted = value);
+      tester.widget<StudioSelect>(find.byWidgetPredicate((widget) => widget is StudioSelect && widget.label == 'Commande')).onChanged!(interactive ? 'receivePokemonFromCatalog' : 'givePokemonFromCatalog');
+      await tester.pumpAndSettle();
+      tester.widget<StudioSelect>(find.byWidgetPredicate((widget) => widget is StudioSelect && widget.label == 'Espèce')).onChanged!('bird');
+      await tester.pump();
+      expect(tester.widget<StudioSelect>(find.byWidgetPredicate((widget) => widget is StudioSelect && widget.label == 'Forme')).options.keys, ['base']);
+      tester.widget<StudioSelect>(find.byKey(const ValueKey('scene-gift-move-mode'))).onChanged!('explicit');
+      await tester.pumpAndSettle();
+      tester.widget<StudioSelect>(find.byKey(const ValueKey('scene-gift-move-0'))).onChanged!('exceptional');
+      await tester.pump();
+      tester.widget<StudioButton>(find.byKey(const ValueKey('scene-gift-move-add'))).onPressed!();
+      await tester.pump();
+      tester.widget<StudioSelect>(find.byKey(const ValueKey('scene-gift-move-1'))).onChanged!('tackle');
+      await tester.pump();
+      tester.widget<StudioButton>(find.byKey(const ValueKey('scene-gift-move-down-0'))).onPressed!();
+      await tester.pump();
+      final apply = find.byWidgetPredicate((widget) => widget is StudioButton && widget.label == 'Ajouter l’action');
+      tester.widget<StudioButton>(apply).onPressed!();
+      final payload = submitted! as SceneActionPayload;
+      expect((payload.consequence?.toJson() ?? payload.interactiveCommand!.toJson())['moveIds'], ['tackle', 'exceptional']);
+      expect(submitted, isNotNull);
+    });
+  }
+
+  testWidgets('gift moves reload when project changes with the same loader callback', (tester) async {
+    var catalogue = {'tackle': 'Charge'};
+    var loads = 0;
+    Future<Map<String, String>> loader() async { loads++; return catalogue; }
+    final original = SceneActionPayload.consequence(SceneConsequence.givePokemonFromCatalog(speciesId: 'bird', formId: 'base', level: 8, moveIds: ['tackle']));
+    await pump(tester, current: original, loadMoves: loader, onApply: (_) {});
+    await tester.pumpAndSettle();
+    final apply = find.byWidgetPredicate((widget) => widget is StudioButton && widget.label == 'Appliquer l’action');
+    expect(tester.widget<StudioButton>(apply).onPressed, isNotNull);
+    catalogue = {'surf': 'Surf'};
+    await pump(tester, current: original, loadMoves: loader, projectOverride: const ProjectManifest(name: 'Other project', maps: [], tilesets: []), onApply: (_) {});
+    await tester.pumpAndSettle();
+    expect(tester.widget<StudioButton>(apply).onPressed, isNull);
+    final picker = tester.widget<StudioSelect>(find.byKey(const ValueKey('scene-gift-move-0')));
+    expect(picker.value, 'tackle');
+    expect(picker.options['tackle'], contains('introuvable'));
+    expect(loads, 2);
+  });
+
+  testWidgets('gift moves keep their catalogue for equal manifest projections', (tester) async {
+    var loads = 0;
+    Future<Map<String, String>> loader() async { loads++; return {'tackle': 'Charge'}; }
+    final original = SceneActionPayload.consequence(SceneConsequence.givePokemonFromCatalog(speciesId: 'bird', formId: 'base', level: 8, moveIds: ['tackle']));
+    await pump(tester, current: original, loadMoves: loader, onApply: (_) {});
+    await tester.pumpAndSettle();
+    expect(loads, 1);
+    await pump(tester, current: original, loadMoves: loader, projectOverride: project.copyWith(), onApply: (_) {});
+    await tester.pumpAndSettle();
+    expect(loads, 1);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('missing references remain explicit and cannot apply', (
@@ -116,3 +191,8 @@ void main() {
     expect(original.parameters, const {'private': 'value'});
   });
 }
+
+Future<Map<String, String>> _loadGiftMoves() async => {'exceptional': 'Capacité exceptionnelle', 'tackle': 'Charge', 'surf': 'Surf', 'fly': 'Vol'};
+
+Future<List<PokemonSpeciesSummary>> _loadGiftSpecies() async => const [PokemonSpeciesSummary(
+  id: 'bird', name: 'Oiseau', nationalDex: 1, generation: 1, types: ['normal'], formIds: ['base', 'sunny'], baseFormId: 'base', mediaRelativePath: '', enabled: true, relativePath: 'bird.json')];

@@ -127,6 +127,8 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
         block.kind,
         linkedProject,
         loadMap: mapLoader.load,
+        loadMoves: widget.loadMoves,
+        loadSpecies: widget.loadSpecies,
       );
       if (!mounted || widget.controller.active != session || payload == null) {
         return;

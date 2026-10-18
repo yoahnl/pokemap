@@ -173,6 +173,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               ? _presentationPage()
                               : workspaceSecondaryContent(
                                   loadSceneMoves: _loadSceneMoves,
+                                  loadSceneSpecies: _loadSceneSpecies,
                                   space: _space,
                                   presentations: _presentations,
                                   onPresentations: _presentations == null
@@ -266,6 +267,14 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         ),
       ),
     );
+  }
+  Future<List<PokemonSpeciesSummary>> _loadSceneSpecies() async {
+    final owner = _pokemon;
+    if (owner == null) throw StateError('Catalogue indisponible.');
+    final index = await owner.port.loadIndex();
+    if (!mounted || !identical(owner, _pokemon)) throw StateError('Le projet a changé.');
+    if (!index.enabled) throw StateError('Catalogue Pokémon désactivé.');
+    return index.entries;
   }
   Future<Map<String, String>> _loadSceneMoves() async {
     final owner = _pokemon;

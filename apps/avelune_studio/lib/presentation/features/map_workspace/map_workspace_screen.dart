@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+
 import '../../../features/regional_map/application/regional_map_controller.dart';
 import '../../../features/regional_map/domain/regional_map_port.dart';
 import '../regional_map/regional_map_page.dart';

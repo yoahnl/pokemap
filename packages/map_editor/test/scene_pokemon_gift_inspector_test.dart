@@ -20,6 +20,7 @@ void main() {
         speciesId: 'bird',
         formId: 'bronze',
         level: 17,
+        moveIds: ['exceptional', 'tackle'],
         nicknamePolicy: ScenePokemonGiftNicknamePolicy.disabled,
         nicknameMaxGraphemes: 10,
         pokedexPresentationPolicy:
@@ -75,6 +76,7 @@ void main() {
                 child: SceneNodeReadOnlyInspector(
                   scene: summary,
                   selectedNodeId: 'gift',
+                  loadPartyMoves: () async => {'exceptional': 'Capacité exceptionnelle', 'tackle': 'Charge'},
                   consequenceCatalogs: const SceneConsequenceCatalogs(
                     items: SceneConsequenceCatalogSection.loading(),
                     species: species,
@@ -91,6 +93,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       expect(find.byType(SceneActionBuilder), findsOneWidget);
       expect(find.text('party / pc / noCapacity'), findsWidgets);
       expect(find.text('Aucune conséquence typée.'), findsNothing);
@@ -115,6 +118,7 @@ void main() {
         ScenePokemonGiftNicknamePolicy.offer,
       );
       expect(submitted!.toJson()['level'], 17);
+      expect(submitted!.toJson()['moveIds'], ['exceptional', 'tackle']);
     },
   );
 }

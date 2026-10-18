@@ -12,6 +12,7 @@ import 'cinematics/cinematic_library_dialogs.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_action_builder.dart';
+import 'scenes/scene_pokemon_gift_moves_editor.dart';
 import 'scenes/scene_cinematic_picker.dart';
 import 'scenes/scene_graph_editor.dart';
 import 'scenes/scene_graph_read_only_view.dart';
@@ -900,6 +901,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
               consequenceCatalogs: widget.consequenceCatalogs,
               actionPickerOptions: widget.actionPickerOptions,
               loadWarpMap: widget.loadWarpMap,
+              loadMoves: widget.loadPartyMoves,
               project: widget.project,
               onAddEdgeDraft: _addEdgeDraft,
               onStartConnection: _startConnection,
@@ -1983,6 +1985,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.consequenceCatalogs,
     required this.actionPickerOptions,
     this.loadWarpMap,
+    this.loadMoves,
     this.project,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
@@ -2020,6 +2023,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final Future<Map<String, String>> Function()? loadMoves;
   final ProjectManifest? project;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
@@ -2062,6 +2066,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               consequenceCatalogs: consequenceCatalogs,
               actionPickerOptions: actionPickerOptions,
               loadWarpMap: loadWarpMap,
+              loadMoves: loadMoves,
               project: project,
               onAddEdgeDraft: onAddEdgeDraft,
               onStartConnection: onStartConnection,
@@ -2116,6 +2121,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.consequenceCatalogs,
     required this.actionPickerOptions,
     this.loadWarpMap,
+    this.loadMoves,
     this.project,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
@@ -2153,6 +2159,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final Future<Map<String, String>> Function()? loadMoves;
   final ProjectManifest? project;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
@@ -2208,6 +2215,7 @@ class _SelectedSceneSummary extends StatelessWidget {
             consequenceCatalogs: consequenceCatalogs,
             actionPickerOptions: actionPickerOptions,
             loadWarpMap: loadWarpMap,
+            loadMoves: loadMoves,
             project: project,
             onAddNodeDraft: onAddNodeDraft,
             onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
@@ -2282,6 +2290,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.consequenceCatalogs,
     required this.actionPickerOptions,
     this.loadWarpMap,
+    this.loadMoves,
     this.project,
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
@@ -2306,6 +2315,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
   actionPickerOptions;
   final Future<MapData?> Function(String)? loadWarpMap;
+  final Future<Map<String, String>> Function()? loadMoves;
   final ProjectManifest? project;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
@@ -2724,6 +2734,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         facts: consequenceFactOptions,
         events: consequenceEventOptions,
         catalogs: consequenceCatalogs,
+        loadMoves: loadMoves,
         onOpenCommandCatalog: actionPickerOptions.isEmpty
             ? null
             : () => _openCommandCatalog(sheetContext),
@@ -2746,6 +2757,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         child: SceneActionBuilder(
           pickerOptions: actionPickerOptions,
           loadWarpMap: loadWarpMap,
+          loadMoves: loadMoves,
           project: project,
           onSubmit: (payload) => Navigator.of(catalogContext).pop(payload),
         ),
@@ -2807,12 +2819,14 @@ class _SceneConsequencePickerDialog extends StatefulWidget {
     required this.events,
     required this.catalogs,
     this.onOpenCommandCatalog,
+    this.loadMoves,
   });
 
   final List<SceneConsequenceFactPickerOption> facts;
   final List<SceneConsequenceEventPickerOption> events;
   final SceneConsequenceCatalogs catalogs;
   final VoidCallback? onOpenCommandCatalog;
+  final Future<Map<String, String>> Function()? loadMoves;
 
   @override
   State<_SceneConsequencePickerDialog> createState() =>
@@ -2828,6 +2842,8 @@ class _SceneConsequencePickerDialogState
   SceneConsequenceCatalogOption? _selectedItem;
   SceneConsequenceCatalogOption? _selectedSpecies;
   String? _selectedPokemonFormId;
+  List<String>? _giftMoves;
+  bool _giftMovesValid = true;
   SceneConsequenceCatalogOption? _selectedConfiguredStarter;
   bool _setFactValue = true;
   final TextEditingController _setFactValueController = TextEditingController();
@@ -3291,9 +3307,21 @@ class _SceneConsequencePickerDialogState
       ),
       const SizedBox(height: 12),
       if (catalogGift)
+        ScenePokemonGiftMovesEditor(
+          value: _giftMoves,
+          loadMoves: widget.loadMoves,
+          onChanged: (value) => setState(() => _giftMoves = value),
+          onValidityChanged: (value) {
+            if (mounted && _giftMovesValid != value) {
+              setState(() => _giftMovesValid = value);
+            }
+          },
+        ),
+      if (catalogGift)
         const PokeMapDiagnosticCallout(
           severity: PokeMapDiagnosticSeverity.info,
-          message: 'PV, attaques, PP et caractéristiques seront calculés depuis le catalogue actif. Le Pokémon rejoint l’équipe ou le PC.',
+          message:
+              'PV, PP et caractéristiques seront calculés depuis le catalogue actif. Le Pokémon rejoint l’équipe ou le PC.',
         ),
       if (!catalogGift) ...[
       PokeMapTextField(
@@ -3408,15 +3436,21 @@ class _SceneConsequencePickerDialogState
               friendship: int.parse(_pokemonFriendshipController.text.trim()),
             ),
       _SceneConsequencePickerMode.givePokemonFromCatalog =>
-        _selectedSpecies == null || _selectedPokemonFormId == null ||
-          !_selectedSpecies!.catalogGiftFormIds.contains(_selectedPokemonFormId) ||
-          (int.tryParse(_pokemonLevelController.text.trim()) ?? 0) < 1 ||
-          (int.tryParse(_pokemonLevelController.text.trim()) ?? 101) > 100
-        ? null
-        : SceneConsequence.givePokemonFromCatalog(
-          speciesId: _selectedSpecies!.id, formId: _selectedPokemonFormId!,
-          level: int.parse(_pokemonLevelController.text.trim()),
-        ),
+        !_giftMovesValid ||
+                _selectedSpecies == null ||
+                _selectedPokemonFormId == null ||
+                !_selectedSpecies!.catalogGiftFormIds.contains(
+                  _selectedPokemonFormId,
+                ) ||
+                (int.tryParse(_pokemonLevelController.text.trim()) ?? 0) < 1 ||
+                (int.tryParse(_pokemonLevelController.text.trim()) ?? 101) > 100
+            ? null
+            : SceneConsequence.givePokemonFromCatalog(
+                speciesId: _selectedSpecies!.id,
+                formId: _selectedPokemonFormId!,
+                moveIds: _giftMoves,
+                level: int.parse(_pokemonLevelController.text.trim()),
+              ),
       _SceneConsequencePickerMode.giveConfiguredStarter =>
         _selectedConfiguredStarter == null
             ? null

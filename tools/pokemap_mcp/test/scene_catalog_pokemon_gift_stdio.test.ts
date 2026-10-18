@@ -13,8 +13,8 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-const gift = (level: number): JsonRecord => ({
-  kind: "givePokemonFromCatalog", speciesId: "sproutle", formId: "sunny", level,
+const gift = (level: number, moveIds: string[] | null = ["exceptional", "tackle"]): JsonRecord => ({
+  kind: "givePokemonFromCatalog", speciesId: "sproutle", formId: "sunny", level, moveIds,
 });
 
 const giftNode = (consequence: JsonRecord): JsonRecord => ({
@@ -28,7 +28,7 @@ test("MCP discovers, authors and cold reopens catalog Pokemon gifts in 2D and 3D
     layout: { nodeLayouts: [{ nodeId: "gift", x: 21, y: 34 }], edgeLayouts: [] },
     graph: {
       startNodeId: "start", nodes: [
-        { id: "start", kind: "start" }, giftNode(gift(5)), { id: "end", kind: "end" },
+        { id: "start", kind: "start" }, giftNode(gift(5, null)), { id: "end", kind: "end" },
       ], edges: [
         { id: "enter", fromNodeId: "start", fromPortId: "completed", toNodeId: "gift", kind: "default" },
         { id: "leave", fromNodeId: "gift", fromPortId: "completed", toNodeId: "end", kind: "actionCompleted" },
@@ -38,12 +38,14 @@ test("MCP discovers, authors and cold reopens catalog Pokemon gifts in 2D and 3D
   for (const dimension of ["twoD", "threeD"]) {
     const directory = join(root, dimension);
     await mkdir(directory);
+    await mkdir(join(directory, "data"));
+    await writeFile(join(directory, "data/moves.json"), JSON.stringify({ schemaVersion: 1, kind: "catalog", catalog: "moves", entries: [{ id: "tackle" }, { id: "exceptional" }] }));
     await writeFile(join(directory, "project.json"), JSON.stringify({
       name: "Catalog gift transport", version: dimension === "twoD" ? "v8" : "v9",
-      settings: { dimension }, pokemon: canonicalPokemonConfig(), maps: [], tilesets: [], scenes: [],
+      settings: { dimension }, pokemon: { ...canonicalPokemonConfig(), enabled: true, catalogFiles: { moves: "data/moves.json" } }, maps: [], tilesets: [], scenes: [],
     }));
   }
-  const args = [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
+  const args = [resolve(process.env.POKEMAP_TEST_MCP_ENTRY ?? "dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
   if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
   const client = new Client({ name: "catalog-pokemon-gift-test", version: "1.0.0" });
   const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
@@ -60,7 +62,8 @@ test("MCP discovers, authors and cold reopens catalog Pokemon gifts in 2D and 3D
       const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === id);
       assert.ok(action);
       assert.deepEqual(record(action.extensions).givePokemonFromCatalog, {
-        consequenceKind: "givePokemonFromCatalog", parameters: ["speciesId", "formId", "level"],
+        consequenceKind: "givePokemonFromCatalog", parameters: ["speciesId", "formId", "level", "moveIds"],
+        moveIds: { type: "array", items: "canonicalMoveId", minItems: 1, maxItems: 4, uniqueItems: true, ordered: true, default: null, semantics: "replaceNativeLevelLearnset" },
         levelRange: [1, 100], catalog: "activeProjectPokemonCatalog", generation: "activeNativeRuleset",
         initialHealth: "fullHpAndPp", moves: "nativeLevelLearnset", destination: "partyThenStorage",
         storageFull: "atomicRefusalWithoutConsumingOperation", pokedex: "seenAndCaughtOnSuccessfulGrant",
@@ -95,6 +98,12 @@ test("MCP discovers, authors and cold reopens catalog Pokemon gifts in 2D and 3D
           operationId: `catalog-gift-apply-${sequence}`,
         });
         assert.equal(record(applied.receipt).status, "applied");
+        if (actionId === "scene.upsert") {
+          const savedProject = record(JSON.parse(await readFile(file, "utf8")));
+          const savedScene = record((savedProject.scenes as JsonRecord[])[0]);
+          const savedNode = (record(savedScene.graph).nodes as JsonRecord[]).find(entry => entry.id === "gift");
+          assert.equal(record(record(savedNode!.payload).consequence).moveIds, undefined);
+        }
       }
       const beforeInvalid = await readFile(file);
       for (const invalid of [gift(0), { ...gift(8), currentHp: 8 }, { ...gift(8), abilityId: "unknown" }]) {
@@ -104,6 +113,11 @@ test("MCP discovers, authors and cold reopens catalog Pokemon gifts in 2D and 3D
         assert.equal(error.domainCode, "scene.graph.invalid_patch");
         assert.deepEqual(await readFile(file), beforeInvalid);
       }
+      const unknown = await plan("scene.graph.patch", {
+        sceneId: "catalog-gift", upsertNodes: [giftNode({ ...gift(8), moveIds: ["missing"] })],
+      }, true);
+      assert.equal(unknown.domainCode, "scene.pokemon_move_ref_unknown");
+      assert.deepEqual(await readFile(file), beforeInvalid);
       await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
       const reopened = await call("pokemap_workspace", { operation: "open", projectRoot: directory });
       const queried = await call("pokemap_query", {

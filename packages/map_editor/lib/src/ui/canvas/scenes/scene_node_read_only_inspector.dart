@@ -9,6 +9,7 @@ import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_cinematic_picker.dart';
 import 'scene_action_builder.dart';
+import 'scene_pokemon_gift_moves_editor.dart';
 import 'scene_party_condition_editor.dart';
 import 'scene_dialogue_choice_policy_dialog.dart';
 import 'scene_pre_session_interaction_dialog.dart';
@@ -476,25 +477,48 @@ class _NodeInspectorBody extends StatelessWidget {
               onUpdatePayload: onUpdatePreSessionInteraction,
             ),
             const SizedBox(height: 10),
-          ] else if (node.payload case SceneActionPayload(interactiveCommand: SceneReceivePokemonFromCatalogInteractiveCommand())) ...[
-            _InspectorSection(title: 'Cadeau Pokémon interactif', children: [
-              if (onUpdateInteractiveCommand != null)
-                SceneActionBuilder(
-                  key: ValueKey('gift-inspector-${node.id}'),
-                  initialPayload: node.payload as SceneActionPayload,
-                  allowCommandSelection: false,
-                  pickerOptions: {
-                    NarrativeCommandParameterKind.species: [for (final species in consequenceCatalogs.species.options) SceneActionPickerOption(id: species.id, label: species.label)],
-                    NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions(consequenceCatalogs.species.options),
-                  },
-                  onSubmit: (payload) {
-                    final command = (payload as SceneActionPayload).interactiveCommand!;
-                    onUpdateInteractiveCommand!(nodeId: node.id, command: command);
-                  },
-                )
-              else
-                const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour configurer le cadeau.'),
-            ]),
+          ] else if (node.payload case SceneActionPayload(
+            interactiveCommand: SceneReceivePokemonFromCatalogInteractiveCommand(),
+          )) ...[
+            _InspectorSection(
+              title: 'Cadeau Pokémon interactif',
+              children: [
+                if (onUpdateInteractiveCommand != null)
+                  SceneActionBuilder(
+                    key: ValueKey('gift-inspector-${node.id}'),
+                    loadMoves: loadPartyMoves,
+                    initialPayload: node.payload as SceneActionPayload,
+                    allowCommandSelection: false,
+                    pickerOptions: {
+                      NarrativeCommandParameterKind.species: [
+                        for (final species
+                            in consequenceCatalogs.species.options)
+                          SceneActionPickerOption(
+                            id: species.id,
+                            label: species.label,
+                          ),
+                      ],
+                      NarrativeCommandParameterKind.speciesForm:
+                          buildScenePokemonFormPickerOptions(
+                            consequenceCatalogs.species.options,
+                          ),
+                    },
+                    onSubmit: (payload) {
+                      final command =
+                          (payload as SceneActionPayload).interactiveCommand!;
+                      onUpdateInteractiveCommand!(
+                        nodeId: node.id,
+                        command: command,
+                      );
+                    },
+                  )
+                else
+                  const _InspectorNote(
+                    label:
+                        'Ouvrez ce nœud dans un projet modifiable pour configurer le cadeau.',
+                  ),
+              ],
+            ),
             const SizedBox(height: 10),
           ] else if (node.kind == SceneNodeKind.action &&
               node.payload is SceneActionPayload) ...[
@@ -504,6 +528,7 @@ class _NodeInspectorBody extends StatelessWidget {
               factOptions: consequenceFactOptions,
               eventOptions: consequenceEventOptions,
               catalogs: consequenceCatalogs,
+              loadMoves: loadPartyMoves,
               onUpdatePayload: onUpdateActionConsequence,
             ),
             const SizedBox(height: 10),
@@ -1356,8 +1381,10 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     required this.eventOptions,
     required this.catalogs,
     required this.onUpdatePayload,
+    this.loadMoves,
   });
 
+  final Future<Map<String, String>> Function()? loadMoves;
   final SceneNode node;
   final SceneActionPayload payload;
   final List<SceneConsequenceFactPickerOption> factOptions;
@@ -1758,6 +1785,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
       builder: (context) => _GameplayConsequenceEditSheet(
         initialConsequence: consequence,
         catalogs: catalogs,
+        loadMoves: loadMoves,
       ),
     );
     if (updated == null || !context.mounted) {
@@ -1876,8 +1904,10 @@ class _GameplayConsequenceEditSheet extends StatefulWidget {
   const _GameplayConsequenceEditSheet({
     required this.initialConsequence,
     required this.catalogs,
+    this.loadMoves,
   });
 
+  final Future<Map<String, String>> Function()? loadMoves;
   final SceneConsequence initialConsequence;
   final SceneConsequenceCatalogs catalogs;
 
@@ -1888,6 +1918,8 @@ class _GameplayConsequenceEditSheet extends StatefulWidget {
 
 class _GameplayConsequenceEditSheetState
     extends State<_GameplayConsequenceEditSheet> {
+  List<String>? _giftMoves;
+  bool _giftMovesValid = true;
   late String? _selectedItemId;
   late String? _selectedSpeciesId;
   late String? _selectedPokemonFormId;
@@ -1901,6 +1933,10 @@ class _GameplayConsequenceEditSheetState
   void initState() {
     super.initState();
     final consequence = widget.initialConsequence;
+    _giftMoves = consequence is SceneGivePokemonFromCatalogConsequence
+        ? consequence.moveIds
+        : null;
+    _giftMovesValid = _giftMoves == null;
     final initialItemId = switch (consequence) {
       SceneGiveItemConsequence(:final itemId) => itemId,
       SceneTakeItemConsequence(:final itemId) => itemId,
@@ -2137,6 +2173,17 @@ class _GameplayConsequenceEditSheetState
               : null,
           onChanged: (_) => setState(() {}),
         ),
+        if (catalogGift)
+          ScenePokemonGiftMovesEditor(
+            value: _giftMoves,
+            loadMoves: widget.loadMoves,
+            onChanged: (value) => setState(() => _giftMoves = value),
+            onValidityChanged: (value) {
+              if (mounted && _giftMovesValid != value) {
+                setState(() => _giftMovesValid = value);
+              }
+            },
+          ),
         if (consequence is SceneGivePokemonConsequence) ...[
         const SizedBox(height: 12),
         PokeMapTextField(
@@ -2245,10 +2292,23 @@ class _GameplayConsequenceEditSheetState
                 notes: notes,
               ),
       SceneGivePokemonFromCatalogConsequence() =>
-        _selectedSpeciesId == null || _selectedPokemonFormId == null ||
-          !(_speciesOption(_selectedSpeciesId)?.catalogGiftFormIds.contains(_selectedPokemonFormId) ?? false) || level == null || level < 1 || level > 100
-          ? null
-          : SceneConsequence.givePokemonFromCatalog(speciesId: _selectedSpeciesId!, formId: _selectedPokemonFormId!, level: level),
+        !_giftMovesValid ||
+                _selectedSpeciesId == null ||
+                _selectedPokemonFormId == null ||
+                !(_speciesOption(
+                      _selectedSpeciesId,
+                    )?.catalogGiftFormIds.contains(_selectedPokemonFormId) ??
+                    false) ||
+                level == null ||
+                level < 1 ||
+                level > 100
+            ? null
+            : SceneConsequence.givePokemonFromCatalog(
+                speciesId: _selectedSpeciesId!,
+                formId: _selectedPokemonFormId!,
+                level: level,
+                moveIds: _giftMoves,
+              ),
       SceneGiveConfiguredStarterConsequence(:final label, :final notes) =>
         _selectedConfiguredStarterId == null
             ? null

@@ -11,6 +11,7 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 void main() {
   testWidgets('interactive native gift keeps guided policies when reopened and rejects invalid bounds', (tester) async {
     final gift = SceneInteractiveCommand.receivePokemonFromCatalog(speciesId: 'bird', formId: 'bronze', level: 17,
+      moveIds: ['exceptional', 'tackle'],
       nicknamePolicy: ScenePokemonGiftNicknamePolicy.disabled, nicknameMaxGraphemes: 10,
       pokedexPresentationPolicy: ScenePokemonGiftPokedexPresentationPolicy.whenNewAndPokedexVisible);
     SceneNodePayload? submitted;
@@ -26,6 +27,7 @@ void main() {
     expect(_picker(tester, 'Forme').items.map((item) => item.value), ['bronze']);
     expect(_picker(tester, 'Proposer un surnom').value, 'disabled');
     expect(_picker(tester, 'Présenter le Pokédex').value, 'whenNewAndPokedexVisible');
+    expect(find.byKey(const ValueKey('scene-gift-move-mode')), findsOneWidget);
     expect(_submitButton(tester).onPressed, isNotNull);
     await tester.ensureVisible(find.byKey(const ValueKey('scene-action-submit')));
     await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
@@ -41,6 +43,79 @@ void main() {
       await tester.pump();
     }
     expect(_submitButton(tester).onPressed, isNotNull);
+  });
+
+  for (final command in [NarrativeCommandIds.givePokemonFromCatalog, NarrativeCommandIds.receivePokemonFromCatalog]) {
+    testWidgets('$command guides ordered exceptional moves and automatic reset', (tester) async {
+      SceneNodePayload? submitted;
+      await _pumpBuilder(tester, initialCommandId: command,
+        initialParameters: const {'speciesId': 'bird', 'formId': 'base', 'level': '8', 'moveIds': '["exceptional","tackle"]'},
+        options: {NarrativeCommandParameterKind.species: const [SceneActionPickerOption(id: 'bird', label: 'Bird')],
+          NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([const SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', primaryFormId: 'base', formIds: ['base'])])},
+        onSubmit: (value) => submitted = value);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('scene-action-parameter-moveIds')), findsNothing);
+      final first = tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-0')));
+      expect(first.value, 'exceptional');
+      expect(first.items.map((item) => item.value), isNot(contains('tackle')));
+      await tester.ensureVisible(find.byKey(const ValueKey('scene-gift-move-down-0')));
+      await tester.tap(find.byKey(const ValueKey('scene-gift-move-down-0')));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('scene-action-submit')));
+      await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+      var payload = submitted! as SceneActionPayload;
+      expect((payload.consequence?.toJson() ?? payload.interactiveCommand!.toJson())['moveIds'], ['tackle', 'exceptional']);
+      for (final move in ['surf', 'fly']) {
+        tester.widget<PokeMapButton>(find.byKey(const ValueKey('scene-gift-move-add'))).onPressed!();
+        await tester.pump();
+        expect(_submitButton(tester).onPressed, isNull);
+        final index = move == 'surf' ? 2 : 3;
+        tester.widget<PokeMapDropdownField<String>>(find.byKey(ValueKey('scene-gift-move-$index'))).onChanged(move);
+        await tester.pump();
+      }
+      expect(tester.widget<PokeMapButton>(find.byKey(const ValueKey('scene-gift-move-add'))).onPressed, isNull);
+      tester.widget<PokeMapButton>(find.byKey(const ValueKey('scene-gift-move-remove-1'))).onPressed!();
+      await tester.pump();
+      tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-mode'))).onChanged('automatic');
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('scene-action-submit')));
+      await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+      payload = submitted! as SceneActionPayload;
+      expect((payload.consequence?.toJson() ?? payload.interactiveCommand!.toJson()).containsKey('moveIds'), isFalse);
+    });
+  }
+
+  testWidgets('lost gift moves stay visible until explicitly repaired', (tester) async {
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.givePokemonFromCatalog,
+      initialParameters: const {'speciesId': 'bird', 'formId': 'base', 'level': '8', 'moveIds': '["removed","tackle"]'},
+      options: {NarrativeCommandParameterKind.species: const [SceneActionPickerOption(id: 'bird', label: 'Bird')],
+        NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([const SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', primaryFormId: 'base', formIds: ['base'])])});
+    await tester.pumpAndSettle();
+    expect(_submitButton(tester).onPressed, isNull);
+    final picker = tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-0')));
+    expect(picker.value, 'removed');
+    expect(picker.items.singleWhere((item) => item.value == 'removed').label, contains('introuvable'));
+    picker.onChanged('surf');
+    await tester.pump();
+    expect(_submitButton(tester).onPressed, isNotNull);
+  });
+
+  testWidgets('gift move catalogue rejects a late response after project replacement', (tester) async {
+    final pending = Completer<Map<String, String>>();
+    const parameters = {'speciesId': 'bird', 'formId': 'base', 'level': '8', 'moveIds': '["tackle"]'};
+    final options = {NarrativeCommandParameterKind.species: const [SceneActionPickerOption(id: 'bird', label: 'Bird')],
+      NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([const SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', primaryFormId: 'base', formIds: ['base'])])};
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.givePokemonFromCatalog, initialParameters: parameters, options: options, loadMoves: () => pending.future);
+    expect(_submitButton(tester).onPressed, isNull);
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.givePokemonFromCatalog, initialParameters: parameters, options: options, loadMoves: () async => {'surf': 'Surf'});
+    await tester.pumpAndSettle();
+    pending.complete({'tackle': 'Ancien projet'});
+    await tester.pumpAndSettle();
+    expect(_submitButton(tester).onPressed, isNull);
+    final picker = tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-0')));
+    expect(picker.value, 'tackle');
+    expect(picker.items.singleWhere((item) => item.value == 'tackle').label, contains('introuvable'));
+    expect(tester.takeException(), isNull);
   });
 
   for (final primaryFormId in ['base', 'bronze']) {
@@ -1380,6 +1455,7 @@ Future<void> _pumpBuilder(
   Map<String, String> initialParameters = const {},
   Set<String>? runtimeCommandIds,
   Future<MapData?> Function(String)? loadWarpMap,
+  Future<Map<String, String>> Function()? loadMoves,
   NarrativeCommandCatalog? commandCatalog,
   ProjectManifest? project = const ProjectManifest(name: '2D UI fixture', maps: [], tilesets: []),
   SceneActionPayload? initialPayload,
@@ -1405,6 +1481,7 @@ Future<void> _pumpBuilder(
             initialParameters: initialParameters,
             runtimeCommandIds: runtimeCommandIds,
             loadWarpMap: loadWarpMap,
+            loadMoves: loadMoves ?? _loadGiftMoves,
             onSubmit: onSubmit ?? (_) {},
             onSubmitResult: onSubmitResult,
           ),
@@ -1417,6 +1494,8 @@ Future<void> _pumpBuilder(
 
 PokeMapButton _submitButton(WidgetTester tester) => tester
     .widget<PokeMapButton>(find.byKey(const ValueKey('scene-action-submit')));
+
+Future<Map<String, String>> _loadGiftMoves() async => {'exceptional': 'Capacité exceptionnelle', 'tackle': 'Charge', 'growl': 'Rugissement', 'surf': 'Surf', 'fly': 'Vol'};
 
 const _soundOptions = {
   NarrativeCommandParameterKind.soundMediaReference: [

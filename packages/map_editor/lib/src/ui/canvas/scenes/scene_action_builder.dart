@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -6,6 +8,7 @@ import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_action_inspector.dart';
 import 'scene_actor_action_builder.dart';
+import 'scene_pokemon_gift_moves_editor.dart';
 
 final class SceneActionPickerOption {
   const SceneActionPickerOption({
@@ -82,6 +85,7 @@ class SceneActionBuilder extends StatefulWidget {
     this.loadWarpMap,
     this.project,
     this.initialPayload,
+    this.loadMoves,
   });
 
   final ValueChanged<SceneNodePayload> onSubmit;
@@ -96,6 +100,7 @@ class SceneActionBuilder extends StatefulWidget {
   final Future<MapData?> Function(String)? loadWarpMap;
   final ProjectManifest? project;
   final SceneActionPayload? initialPayload;
+  final Future<Map<String, String>> Function()? loadMoves;
 
   @override
   State<SceneActionBuilder> createState() => _SceneActionBuilderState();
@@ -111,6 +116,16 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   String? _warpReferenceError;
   bool _warpReferenceLoading = false;
   int _warpReferenceRequest = 0;
+  bool _giftMovesValid = true;
+  bool get _isGift =>
+      _commandId == NarrativeCommandIds.givePokemonFromCatalog ||
+      _commandId == NarrativeCommandIds.receivePokemonFromCatalog;
+  List<String>? get _giftMoves {
+    final value = _values['moveIds'];
+    return value == null || value.isEmpty
+        ? null
+        : (jsonDecode(value) as List).cast<String>();
+  }
 
   @override
   void initState() {
@@ -181,18 +196,29 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     _textControllers.clear();
     _values.clear();
     for (final parameter in command.parameters) {
-      final existing = widget.initialPayload?.interactiveCommand;
-      final data = existing?.toJson() ?? const <String, dynamic>{};
+      final data =
+          widget.initialPayload?.interactiveCommand?.toJson() ??
+          widget.initialPayload?.consequence?.toJson() ??
+          const <String, dynamic>{};
       final presentation = data['presentation'];
-      final storedValue = existing?.kind.name == command.id &&
-          (_is2DPresentationCommand(command.id) || command.id == NarrativeCommandIds.warp || command.id == NarrativeCommandIds.receivePokemonFromCatalog)
+      final storedValue =
+          data['kind'] == command.id &&
+              (_is2DPresentationCommand(command.id) ||
+                  command.id == NarrativeCommandIds.warp ||
+                  command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
+                  command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? command.id == NarrativeCommandIds.warp && presentation is Map
               ? parameter.id == 'presentationMode' ? presentation['mode']
                   : data[parameter.id] ?? presentation[parameter.id]
               : data[parameter.id]
           : null;
-      final initial = widget.initialParameters[parameter.id] ??
-          (storedValue is String || storedValue is num ? '$storedValue' : null);
+      final initial =
+          widget.initialParameters[parameter.id] ??
+          (storedValue is String || storedValue is num
+              ? '$storedValue'
+              : storedValue is List
+              ? jsonEncode(storedValue)
+              : null);
       switch (parameter.kind) {
         case NarrativeCommandParameterKind.boolean:
           _values[parameter.id] = initial == 'false' ? 'false' : 'true';
@@ -236,13 +262,22 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         _applyOptionParameters(parameter.kind, value);
       }
     }
+    if (_isGift && (_values['moveIds']?.isEmpty ?? false)) {
+      _values.remove('moveIds');
+    }
+    _giftMovesValid = !_isGift || _giftMoves == null;
     _loadWarpReferences(selectFirst: true);
   }
 
   @override
   void didUpdateWidget(SceneActionBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_command.id == NarrativeCommandIds.receivePokemonFromCatalog && oldWidget.initialPayload != widget.initialPayload) {
+    if (_isGift &&
+        _giftMoves != null &&
+        oldWidget.loadMoves != widget.loadMoves) {
+      _giftMovesValid = false;
+    }
+    if (_isGift && oldWidget.initialPayload != widget.initialPayload) {
       _seedParameterValues(_command);
     }
     if (oldWidget.loadWarpMap != widget.loadWarpMap ||
@@ -501,7 +536,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           widget.project?.settings.dimension == ProjectDimension.twoD) &&
       (_command.id != NarrativeCommandIds.warp ||
           !_warpReferenceLoading && _warpReferenceError == null) &&
-      _missingParameters.isEmpty && _validWarpPresentation;
+      _missingParameters.isEmpty &&
+      _validWarpPresentation &&
+      (!_isGift || _giftMovesValid);
 
   @override
   Widget build(BuildContext context) {
@@ -613,6 +650,25 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   Widget _buildParameter(NarrativeCommandParameterDescriptor parameter) {
+    if (_isGift && parameter.id == 'moveIds') {
+      return ScenePokemonGiftMovesEditor(
+        key: ValueKey('gift-moves-$_commandId'),
+        value: _giftMoves,
+        loadMoves: widget.loadMoves,
+        onChanged: (value) => setState(() {
+          if (value == null) {
+            _values.remove('moveIds');
+          } else {
+            _values['moveIds'] = jsonEncode(value);
+          }
+        }),
+        onValidityChanged: (value) {
+          if (mounted && _giftMovesValid != value) {
+            setState(() => _giftMovesValid = value);
+          }
+        },
+      );
+    }
     switch (parameter.kind) {
       case NarrativeCommandParameterKind.boolean:
         return PokeMapDropdownField<String>(

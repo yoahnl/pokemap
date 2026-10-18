@@ -100,6 +100,8 @@ extension _SceneInspectorFields on SceneInspector {
           project: project,
           current: value,
           loadMap: loadMap,
+          loadMoves: loadMoves,
+          loadSpecies: loadSpecies,
           onApply: (v) => payload(node, v),
         ),
       ];

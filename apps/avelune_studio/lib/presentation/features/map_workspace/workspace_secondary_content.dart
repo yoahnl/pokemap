@@ -5,6 +5,8 @@ import '../cinematics/cinematic_workspace_page.dart';
 import '../cinematics/cinematic_view_state.dart';
 
 import 'package:flutter/material.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+
 
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../dialogues/dialogue_workspace_page.dart';
@@ -88,6 +90,7 @@ Widget? workspaceSecondaryContent({
   VerificationWorkspaceController? verification,
   required SceneWorkspaceController? scenes,
   Future<Map<String, String>> Function()? loadSceneMoves,
+  Future<List<PokemonSpeciesSummary>> Function()? loadSceneSpecies,
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
   required StoryProgressionViewStore progressionViews,
@@ -175,6 +178,7 @@ Widget? workspaceSecondaryContent({
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
       loadMoves: loadSceneMoves,
+      loadSpecies: loadSceneSpecies,
       onPresentation: onScenePresentation,
       onCreatePresentation: onCreatePresentation,
       presentationFor: presentations?.assetFor,

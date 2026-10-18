@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
@@ -8,6 +10,8 @@ Future<SceneNodePayload?> chooseScenePayload(
   SceneNodeKind kind,
   ProjectManifest project, {
   Future<MapData> Function(String)? loadMap,
+  Future<Map<String, String>> Function()? loadMoves,
+  Future<List<PokemonSpeciesSummary>> Function()? loadSpecies,
 }) => showDialog<SceneNodePayload>(
   context: context,
   builder: (context) {
@@ -71,6 +75,8 @@ Future<SceneNodePayload?> chooseScenePayload(
                   project: project,
                   current: null,
                   loadMap: loadMap,
+                  loadMoves: loadMoves,
+                  loadSpecies: loadSpecies,
                   onApply: (payload) => Navigator.pop(context, payload),
                 )
               : Column(

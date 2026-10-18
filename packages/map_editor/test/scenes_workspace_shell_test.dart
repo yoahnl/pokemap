@@ -7,6 +7,8 @@ import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -1277,6 +1279,7 @@ void main() {
         project: _projectWithConsequenceAuthoringTargets(),
         projectRootPath: '/project', workspaceMode: EditorWorkspaceMode.scenes,
         overrides: [
+          pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue((_) async => const PokemonMovesCatalogView(entries: [PokemonMoveCatalogEntryView(id: 'exceptional', name: 'Capacité exceptionnelle'), PokemonMoveCatalogEntryView(id: 'tackle', name: 'Charge')], isAvailable: true, description: 'Capacités')),
           projectWorkspaceFactoryProvider.overrideWithValue(const _SceneTestWorkspaceFactory()),
           sceneItemDefinitionLoaderProvider.overrideWithValue((_) async => const <ProjectItemDefinition>[]),
           pokedexEntryLoaderProvider.overrideWithValue((_) async => [
@@ -1297,10 +1300,19 @@ void main() {
       await tester.enterText(find.descendant(of: find.byKey(const ValueKey('scene-consequence-pokemon-level-field')), matching: find.byType(TextField)), '7');
       await tester.pump();
       expect(find.byKey(const ValueKey('scene-consequence-pokemon-current-hp-field')), findsNothing);
+      tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-mode'))).onChanged('explicit');
+      await tester.pumpAndSettle();
+      tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-0'))).onChanged('exceptional');
+      await tester.pump();
+      tester.widget<PokeMapButton>(find.byKey(const ValueKey('scene-gift-move-add'))).onPressed!();
+      await tester.pump();
+      tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gift-move-1'))).onChanged('tackle');
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('scene-consequence-create-action')));
       await tester.tap(find.byKey(const ValueKey('scene-consequence-create-action')));
       await tester.pumpAndSettle();
       final consequence = (container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.last.payload as SceneActionPayload).consequence;
-      expect(consequence, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: primaryFormId, level: 7));
+      expect(consequence, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: primaryFormId, level: 7, moveIds: ['exceptional', 'tackle']));
       final createdNode = container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.last;
       await tester.tap(find.byKey(ValueKey('scene-graph-node-${createdNode.id}')));
       await tester.pumpAndSettle();
@@ -1313,7 +1325,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('scene-gameplay-consequence-save-action')));
       await tester.pumpAndSettle();
       final edited = (container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.last.payload as SceneActionPayload).consequence;
-      expect(edited, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: primaryFormId, level: 9));
+      expect(edited, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: primaryFormId, level: 9, moveIds: ['exceptional', 'tackle']));
     });
     }
 

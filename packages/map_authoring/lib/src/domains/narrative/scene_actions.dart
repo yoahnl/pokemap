@@ -112,7 +112,17 @@ final class SceneActions {
 
   static const _givePokemonFromCatalogContract = {
     'consequenceKind': 'givePokemonFromCatalog',
-    'parameters': ['speciesId', 'formId', 'level'],
+    'parameters': ['speciesId', 'formId', 'level', 'moveIds'],
+    'moveIds': {
+      'type': 'array',
+      'items': 'canonicalMoveId',
+      'minItems': 1,
+      'maxItems': 4,
+      'uniqueItems': true,
+      'ordered': true,
+      'default': null,
+      'semantics': 'replaceNativeLevelLearnset'
+    },
     'levelRange': [1, 100],
     'catalog': 'activeProjectPokemonCatalog',
     'generation': 'activeNativeRuleset',
@@ -126,7 +136,25 @@ final class SceneActions {
 
   static const _receivePokemonFromCatalogContract = {
     'interactiveCommandKind': 'receivePokemonFromCatalog',
-    'parameters': ['speciesId', 'formId', 'level', 'nicknamePolicy', 'nicknameMaxGraphemes', 'pokedexPresentationPolicy'],
+    'parameters': [
+      'speciesId',
+      'formId',
+      'level',
+      'nicknamePolicy',
+      'nicknameMaxGraphemes',
+      'pokedexPresentationPolicy',
+      'moveIds'
+    ],
+    'moveIds': {
+      'type': 'array',
+      'items': 'canonicalMoveId',
+      'minItems': 1,
+      'maxItems': 4,
+      'uniqueItems': true,
+      'ordered': true,
+      'default': null,
+      'semantics': 'replaceNativeLevelLearnset'
+    },
     'levelRange': [1, 100],
     'nicknamePolicies': ['offer', 'disabled'],
     'nicknameMaxGraphemesRange': [1, 100],

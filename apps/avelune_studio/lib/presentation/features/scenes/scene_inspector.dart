@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_panel.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
@@ -42,6 +44,7 @@ class SceneInspector extends StatelessWidget {
     this.onCreatePresentation,
     this.loadMap,
     this.loadMoves,
+    this.loadSpecies,
   });
   final SceneLinkedDocuments? documents;
   final NarrativeWorkspaceController? narrative;
@@ -53,6 +56,7 @@ class SceneInspector extends StatelessWidget {
   final ValueChanged<SceneNode>? onCreatePresentation;
   final Future<MapData> Function(String)? loadMap;
   final Future<Map<String, String>> Function()? loadMoves;
+  final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
 
   void edit(SceneAsset Function(SceneAsset) mutation) {
     session.mutate(mutation);
