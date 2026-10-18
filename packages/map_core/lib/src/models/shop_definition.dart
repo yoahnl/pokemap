@@ -5,6 +5,68 @@ import 'shop_state_definition.dart';
 part 'shop_definition.freezed.dart';
 part 'shop_definition.g.dart';
 
+enum ShopSellPolicy { listedEntries, catalogPrices }
+
+final class ShopPurchaseBonus {
+  const ShopPurchaseBonus({
+    required this.itemId,
+    required this.everyQuantity,
+    required this.quantity,
+    this.maximumOwnedQuantity,
+  });
+
+  final String itemId;
+  final int everyQuantity, quantity;
+  final int? maximumOwnedQuantity;
+
+  factory ShopPurchaseBonus.fromJson(Map<String, dynamic> json) =>
+      ShopPurchaseBonus(
+        itemId: json['itemId'] as String,
+        everyQuantity: _shopIntegerFromJson(json['everyQuantity']),
+        quantity: _shopIntegerFromJson(json['quantity']),
+        maximumOwnedQuantity: _shopNullableIntegerFromJson(
+          json['maximumOwnedQuantity'],
+        ),
+      ).normalized();
+
+  ShopPurchaseBonus normalized({Set<String>? knownItemIds}) {
+    if (itemId.trim().isEmpty ||
+        everyQuantity <= 0 ||
+        quantity <= 0 ||
+        (maximumOwnedQuantity != null && maximumOwnedQuantity! <= 0) ||
+        (knownItemIds != null && !knownItemIds.contains(itemId.trim()))) {
+      throw StateError(
+        'Shop purchase bonus requires a known item and positive quantities',
+      );
+    }
+    return ShopPurchaseBonus(
+      itemId: itemId.trim(),
+      everyQuantity: everyQuantity,
+      quantity: quantity,
+      maximumOwnedQuantity: maximumOwnedQuantity,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'itemId': itemId,
+    'everyQuantity': everyQuantity,
+    'quantity': quantity,
+    'maximumOwnedQuantity': maximumOwnedQuantity,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShopPurchaseBonus &&
+      other.itemId == itemId &&
+      other.everyQuantity == everyQuantity &&
+      other.quantity == quantity &&
+      other.maximumOwnedQuantity == maximumOwnedQuantity;
+
+  @override
+  int get hashCode =>
+      Object.hash(itemId, everyQuantity, quantity, maximumOwnedQuantity);
+}
+
 int _shopIntegerFromJson(Object? value) {
   if (value is! int) {
     throw FormatException('Shop numeric values must be integers', value);
@@ -21,11 +83,14 @@ int? _shopNullableIntegerFromJson(Object? value) {
 abstract class ShopEntryDefinition with _$ShopEntryDefinition {
   const ShopEntryDefinition._();
 
+  @JsonSerializable(explicitToJson: true)
   const factory ShopEntryDefinition({
     required String itemId,
     @JsonKey(fromJson: _shopIntegerFromJson) required int price,
     @JsonKey(fromJson: _shopNullableIntegerFromJson) int? sellPrice,
     @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock,
+    @JsonKey(fromJson: _shopNullableIntegerFromJson) int? maximumOwnedQuantity,
+    ShopPurchaseBonus? purchaseBonus,
   }) = _ShopEntryDefinition;
 
   factory ShopEntryDefinition.fromJson(Map<String, dynamic> json) =>
@@ -45,12 +110,20 @@ abstract class ShopEntryDefinition with _$ShopEntryDefinition {
     if (stock != null && stock! < 0) {
       throw StateError('ShopEntryDefinition stock must be non-negative');
     }
+    if (maximumOwnedQuantity != null && maximumOwnedQuantity! <= 0) {
+      throw StateError(
+        'ShopEntryDefinition maximumOwnedQuantity must be positive',
+      );
+    }
     if (knownItemIds != null && !knownItemIds.contains(normalizedItemId)) {
       throw StateError(
         'ShopEntryDefinition references unknown item "$normalizedItemId"',
       );
     }
-    return copyWith(itemId: normalizedItemId);
+    return copyWith(
+      itemId: normalizedItemId,
+      purchaseBonus: purchaseBonus?.normalized(knownItemIds: knownItemIds),
+    );
   }
 }
 
@@ -64,6 +137,7 @@ abstract class ShopDefinition with _$ShopDefinition {
     required String label,
     @Default([]) List<ShopEntryDefinition> entries,
     @Default([]) List<ShopStateDefinition> states,
+    @Default(ShopSellPolicy.listedEntries) ShopSellPolicy sellPolicy,
   }) = _ShopDefinition;
 
   factory ShopDefinition.fromJson(Map<String, dynamic> json) =>

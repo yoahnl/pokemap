@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'source_event_evidence.dart';
 import 'source_pokemon_gift_binding.dart';
+import 'source_shop_binding.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
@@ -452,6 +453,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourcePickupNode() => node.toJson(),
     SourceUnknownNode() => {'command': node.command.toJson(), 'reason': node.reason},
     SourcePokemonGiftNode() => node.toJson(),
+    SourceShopProgramNode() => node.toJson(),
     SourceTrainerProgramNode() => node.toJson(),
     SourcePokedexRewardProgramNode() => node.toJson(),
     SourceCenterServiceProgramNode() => node.toJson(),
@@ -732,6 +734,10 @@ final class _ProjectionBuilder {
   final bool executionContextQualified;
   final NativeWriteLimits limits;
   final usedItems = <String, ProjectItemDefinition>{};
+  late final shopBindings = sourceShopBindings(source: source, analysis: analysis,
+      events: analysis.events, itemBindings: itemBindings);
+  final _qualifiedShopBindings = <String, SourceShopBinding?>{};
+  final _emittedShopIds = <String>{};
   final usedPickupBindingKeys = <String>{};
   final factsById = <String, NarrativeFactDefinition>{};
   final scenes = <SceneAsset>[];
@@ -1432,6 +1438,7 @@ final class _ProjectionBuilder {
     final phases = {
       'event_v2.registry_mode.set': 0,
       'fact.create': 1,
+      'campaign.shop.upsert': 1,
       'entity.upsert': 2,
       'entity.set_presentation': 2,
       'entity.set_field_obstacle': 2,
@@ -1798,7 +1805,8 @@ final class _ProjectionBuilder {
         page.body.nodes.length >= 2 &&
         (page.body.nodes.length == 2 || _fixedRouteBindings(event) != null) &&
         page.body.nodes.take(page.body.nodes.length - 1).every((node) =>
-            node is SourceTextNode && node.followingChoice == null) &&
+            node is SourceTextNode && node.followingChoice == null ||
+            node is SourceShopProgramNode && _shopBinding(event, node) != null) &&
         page.body.nodes.last is SourceInteractionFacingNode;
   }
 
@@ -1968,6 +1976,9 @@ final class _ProjectionBuilder {
     final passage = semanticResolver.resolveConnectionEntryTile(
         semanticResolver.cellAt(event.sourceMapId, event.x, event.y));
     return {
+      for (final node in event.pages.expand((page) => page.body.nodes).whereType<SourceCenterServiceProgramNode>())
+        if (node.pcDenialText case final denial?)
+          if (_textFeedback(event, denial.text) == null) 'sourcePcDenialTextUnsupported',
       if (map.spatialScene != null) 'sourceCenterPcSpatialUnsupported',
       if (passage.status != SourcePassageStatus.blocked ||
           !_nativeSolidAt(event)) 'sourceCenterPcContactUnqualified',
@@ -1983,13 +1994,16 @@ final class _ProjectionBuilder {
         candidate.sourceMapId == owner.sourceMapId)) {
       final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
           .allMatches(candidate.name).toList();
-      final width = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(1)!);
-      final height = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(2)!);
-      if (sizes.length > 1 || width == null || width < 1 || width > 2 || height != 1) {
+      final size = _eventFootprint(candidate);
+      final map = source.maps.singleWhere((map) => map.map.sourceMapId == owner.sourceMapId).map;
+      final top = candidate.y - size.height + 1;
+      if (sizes.length > 1 || size.width < 1 || size.width > 64 ||
+          size.height < 1 || size.height > 64 || candidate.x < 0 || top < 0 ||
+          candidate.x + size.width > map.width || candidate.y >= map.height) {
         return true;
       }
-      if (candidate.identity != owner.identity && candidate.y == y &&
-          candidate.x <= x && x < candidate.x + width) {
+      if (candidate.identity != owner.identity && top <= y && y <= candidate.y &&
+          candidate.x <= x && x < candidate.x + size.width) {
         return true;
       }
     }
@@ -3159,6 +3173,8 @@ final class _ProjectionBuilder {
               canonicalJsonOf(binding.program.toJson()) != canonicalJsonOf(node.toJson())) {
             gaps.add('sourcePokemonGiftBindingsMissing');
           }
+        case SourceShopProgramNode():
+          if (_shopBinding(event, node) == null) gaps.add('sourceShopBindingsMissing');
         case SourceScriptNode():
         case SourceUnknownNode():
           gaps.add('sourceCommandUnqualified');
@@ -3244,6 +3260,23 @@ final class _ProjectionBuilder {
     }
   }
 
+  SourceShopBinding? _shopBinding(SourceEventDefinition event, SourceShopProgramNode program) {
+    final key = sourceShopBindingKey(program);
+    if (_qualifiedShopBindings.containsKey(key)) return _qualifiedShopBindings[key];
+    final binding = shopBindings[key];
+    final expected = _sourceControlAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    final matches = expected != null && expected.identity == event.identity &&
+        expected.sourceFileId == event.sourceFileId && expected.x == event.x && expected.y == event.y &&
+        expected.name == event.name && expected.pages.length == event.pages.length &&
+        List.generate(event.pages.length, (index) => index).every((index) =>
+          canonicalJsonOf(expected.pages[index].condition.toJson()) ==
+              canonicalJsonOf(event.pages[index].condition.toJson()) &&
+          _sourceCommonProgramHash(expected.pages[index].body) ==
+              _sourceCommonProgramHash(event.pages[index].body));
+    return _qualifiedShopBindings[key] = matches && binding != null &&
+        binding.isBoundToEvent(source: source, analysis: analysis, event: event) ? binding : null;
+  }
+
   SourcePickupFeedbackBinding? _pickupBinding(
       SourceEventDefinition event, SourcePickupNode pickup) {
     final binding = pickupBindings[sourcePickupFeedbackBindingKey(
@@ -3284,6 +3317,8 @@ final class _ProjectionBuilder {
           ids.addAll(factIds);
         case SourceSelfSwitchNode(:final factId):
           ids.add(factId);
+        case SourceCenterServiceProgramNode():
+          if (node.pcAvailabilityCondition case final condition?) _collectFacts(condition, ids);
         case SourceTrainerProgramNode(:final defeatedFactId):
           ids.add(defeatedFactId);
         case SourcePokedexRewardProgramNode(:final rewardFactId):
@@ -4004,6 +4039,21 @@ final class _SceneBuilder {
           next = _fact(factId, value, next);
         case SourcePokemonGiftNode():
           next = _pokemonGift(node, next);
+        case SourceShopProgramNode():
+          final binding = projection._shopBinding(event, node);
+          if (binding == null) {
+            throw const NativeWriteException('events.shop.bindings_missing',
+                'A source mart requires its complete stock and source helper contracts.');
+          }
+          for (final item in binding.items.values) {
+            projection.usedItems[item.definition.id] = item.definition;
+          }
+          if (projection._emittedShopIds.add(binding.shop.id)) {
+            projection.mutations.add(projection._mutation('campaign.shop.upsert',
+                binding.shop.id, [event.identity, event.sourceFileId],
+                [binding.shop.id], {'value': binding.shop.toJson()}));
+          }
+          next = _interactive(SceneInteractiveCommand.openShop(shopId: binding.shop.id), next);
         case SourcePickupNode():
           next = _receiveItem(node, next);
         case SourceConditionalNode(
@@ -4054,7 +4104,11 @@ final class _SceneBuilder {
             throw const NativeWriteException('events.center_service.bindings_missing',
                 'A source Center program requires its qualified native service bindings');
           }
-          next = _interactive(SceneInteractiveCommand.openPc(), next);
+          final opened = _interactive(SceneInteractiveCommand.openPc(), next);
+          final availability = node.pcAvailabilityCondition;
+          final denial = node.pcDenialText;
+          next = availability == null ? opened : _condition(availability, opened,
+              _dialogue(denial!.span, denial.text, null, next));
         case SourceTrainerProgramNode():
           next = _trainer(node, next);
         case SourcePokedexRewardProgramNode():
@@ -4223,17 +4277,17 @@ final class _SceneBuilder {
       _staticSourceTextFeedback(text)!];
     completedLines[0] = projection.centerRecoveryBinding[event.identity]!.recoveryFeedback(
         cueId: projection._key(event, 'recovery_music'), line: completedLines.first);
-    final completed = _dialogue(program.span, null, null, next,
+    final completed = _dialogue(program.textGroupSpan('completion'), null, null, next,
         feedbackLines: completedLines);
     final heal = _interactive(SceneInteractiveCommand.openHeal(requiresConfirmation: false,
         displayEntityId: projection._healingDisplayEntityId(event)), completed);
-    final accepted = _dialogue(program.span, program.acceptanceLines.join('\n'), null, heal);
-    final refused = _dialogue(program.span, program.refusalLines.join('\n'), null, next);
+    final accepted = _dialogue(program.textGroupSpan('acceptance'), program.acceptanceLines.join('\n'), null, heal);
+    final refused = _dialogue(program.textGroupSpan('refusal'), program.refusalLines.join('\n'), null, next);
     final empty = SourceEventBlock(nodes: const [], span: program.span);
     final choice = SourceChoiceNode(program.span, cancelType: program.cancelType!, branches: [
       for (final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1, label.$2, empty),
     ]);
-    return _dialogue(program.span, null, choice, next,
+    return _dialogue(program.textGroupSpan('greeting'), null, choice, next,
         feedbackLines: [for (final text in program.greetingLines) _staticSourceTextFeedback(text)!],
         choiceTargets: {0: accepted, 1: refused});
   }

@@ -58,6 +58,8 @@ void main() {
       find.byKey(const Key('shop-stock-field')),
       '4',
     );
+    await tester.ensureVisible(find.byKey(const Key('shop-add-entry-button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop-add-entry-button')));
     await tester.pump();
 

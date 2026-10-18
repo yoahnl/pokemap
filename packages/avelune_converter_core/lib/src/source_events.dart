@@ -1888,6 +1888,24 @@ final class _SourceEventParser {
           index++;
         } while (index < commands.length &&
             [355, 655].contains(commands[index].code));
+        final shop = _sourceShopLiteral(script);
+        if (analyzer._isQualified && rawCommon == null && rawPage != null &&
+            shop != null && commands.skip(first + 1).take(index - first - 1)
+                .every((entry) => entry.code == 655 && entry.indent == indent)) {
+          for (var commandIndex = first; commandIndex < index; commandIndex++) {
+            final sourceCommand = commands[commandIndex];
+            final raw = _rawFacingParameters(sourceCommand, 1);
+            if (_eventLiteralText(_document, raw.single) !=
+                _string(sourceCommand.parameters.single)) {
+              throw const FormatException();
+            }
+          }
+          return SourceShopProgramNode._(_span(first, index - 1),
+              sourceItemSymbols: shop, rawDataRef: rawPage!,
+              sourceSnapshotHash: analyzer.profile.sourceSnapshotHash,
+              normalizationHash: analyzer.profile.normalizationHash,
+              profileHash: analyzer.profile.canonicalHash);
+        }
         final temporaryCall = RegExp(r'^setTempSwitchOn\("([A-D])"\)\n$').firstMatch(script);
         if (analyzer._isQualified && index == first + 1 && temporaryCall != null) {
           final raw = _rawFacingParameters(command, 1);

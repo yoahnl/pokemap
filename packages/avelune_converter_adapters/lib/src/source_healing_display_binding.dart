@@ -164,12 +164,15 @@ final class SourceHealingDisplayBindingResolver {
       throw const SourceHealingDisplayBindingUnavailable(
           'event_binding_unqualified');
     }
-    final presentation =
+    final declaredPresentation =
         source.interpretationProfile?.presentationBindings?.healingDisplay;
-    if (presentation == null) {
-      throw const SourceHealingDisplayBindingUnavailable(
-          'presentation_bindings_missing');
-    }
+    final presentation = declaredPresentation ??
+        await _automaticHealingPresentation(
+            source: source,
+            program: program,
+            files: files,
+            limits: limits,
+            cancellation: cancellation);
     final sheets = presentation.sheets;
     final totalPixels = sheets.fold<int>(
         0, (total, sheet) => total + sheet.pixelWidth * sheet.pixelHeight);
@@ -221,6 +224,10 @@ final class SourceHealingDisplayBindingResolver {
       final dimensions =
           decodeRasterImageDimensions(bytes, mediaType: 'image/png');
       if (dimensions == null ||
+          dimensions.width < 4 ||
+          dimensions.height < 4 ||
+          dimensions.width > 16384 ||
+          dimensions.height > 16384 ||
           dimensions.width != sheet.pixelWidth ||
           dimensions.height != sheet.pixelHeight) {
         throw const SourceHealingDisplayBindingUnavailable(
@@ -317,6 +324,17 @@ final class SourceHealingDisplayBindingResolver {
           'sourcePresentationMilliseconds': program.sourceWaitMilliseconds,
           'nativePresentationPolicy': 'runtimeHealService',
           'declaredPresentation': presentation.toJson(),
+          'presentationOrigin': declaredPresentation == null
+              ? 'automaticSourceCharsetRows'
+              : 'declaredProfileBinding',
+          if (declaredPresentation == null)
+            'animationOracle': {
+              'section': 'walking.Game_Character',
+              'moveSpeed': 3,
+              'frameDurationMs': 125,
+              'sourceCycleFrames': 4,
+              'reference': 'Game_Character:110-122,138-143,999-1022',
+            },
           'nativeAnchor': 'bottomCenterOfOriginalSourceCell',
           'sourceVariableExecuted': false,
           'sourcePixelsResampled': false,
@@ -334,6 +352,109 @@ final class SourceHealingDisplayBindingResolver {
     }
     return result;
   }
+}
+
+Future<SourceHealingDisplayPresentation> _automaticHealingPresentation({
+  required NormalizedSourceProject source,
+  required SourceHealingDisplayProgram program,
+  required SourceFilePort files,
+  required NativeWriteLimits limits,
+  ScanCancellation? cancellation,
+}) async {
+  final sheets = <String, Map<String, Object?>>{};
+  final variants = <Map<String, Object?>>[];
+  var sourceBytes = 0;
+  var imagePixels = 0;
+  for (var count = 1; count <= 6; count++) {
+    final page = program.declaredProgram
+        .pageValues[program.declaredProgram.indexForRole('count$count')]!;
+    final graphic = page['graphic'] as Map;
+    final name = graphic['character_name'];
+    final direction = graphic['direction'];
+    if (name is! String ||
+        !RegExp(r'^[A-Za-z0-9][A-Za-z0-9_ -]{0,127}$').hasMatch(name) ||
+        graphic['tile_id'] != 0 ||
+        graphic['character_hue'] != 0 ||
+        graphic['opacity'] != 255 ||
+        graphic['blend_type'] != 0 ||
+        graphic['pattern'] != 0 ||
+        !const [2, 4, 6, 8].contains(direction) ||
+        page['move_type'] != 0 ||
+        page['move_speed'] != 3) {
+      throw const SourceHealingDisplayBindingUnavailable(
+          'automatic_presentation_graphic_unqualified');
+    }
+    final path = 'Graphics/Characters/$name.png';
+    if (!sheets.containsKey(path)) {
+      if (sheets.length >= limits.maxArtifacts) {
+        throw const NativeWriteException('events.healing_display.quota',
+            'Healing display native assets exceed the configured budget.');
+      }
+      final matches = source.snapshot.entries
+          .where((entry) =>
+              sourcePathCollisionKey(entry.relativePath) ==
+              sourcePathCollisionKey(path))
+          .toList();
+      if (matches.length != 1 ||
+          matches.single.relativePath != path ||
+          matches.single.kind != SourceNodeKind.file ||
+          matches.single.sha256 == null ||
+          matches.single.byteLength > limits.maxArtifactBytes) {
+        throw const SourceHealingDisplayBindingUnavailable(
+            'source_image_unqualified');
+      }
+      sourceBytes += matches.single.byteLength;
+      if (sourceBytes > limits.maxTotalArtifactBytes) {
+        throw const NativeWriteException('events.healing_display.quota',
+            'Healing display source images exceed the configured byte budget.');
+      }
+      cancellation?.check();
+      final bytes = await files.read(matches.single.fileId);
+      if (bytes.length != matches.single.byteLength ||
+          crypto.sha256.convert(bytes).toString() !=
+              matches.single.sha256!.value) {
+        throw ContractError('source.healing_display.image_changed', path,
+            'Healing display image differs from its source inventory.');
+      }
+      final dimensions =
+          decodeRasterImageDimensions(bytes, mediaType: 'image/png');
+      if (dimensions == null ||
+          dimensions.width % 4 != 0 ||
+          dimensions.height % 4 != 0 ||
+          dimensions.width * dimensions.height > limits.maxImagePixels) {
+        throw const SourceHealingDisplayBindingUnavailable(
+            'source_image_unqualified');
+      }
+      imagePixels += dimensions.width * dimensions.height;
+      if (imagePixels > limits.maxTotalImagePixels) {
+        throw const NativeWriteException('events.healing_display.quota',
+            'Healing display images exceed the configured pixel budget.');
+      }
+      sheets[path] = {
+        'asset': {'relativePath': path, 'sha256': matches.single.sha256!.value},
+        'pixelWidth': dimensions.width,
+        'pixelHeight': dimensions.height,
+        'tileWidth': dimensions.width ~/ 4,
+        'tileHeight': dimensions.height ~/ 4
+      };
+    }
+    variants.add({
+      'count': count,
+      'sheetIndex': sheets.keys.toList().indexOf(path),
+      'frames': [
+        for (var frame = 0; frame < 4; frame++)
+          {
+            'x': frame,
+            'y': const [2, 4, 6, 8].indexOf(direction),
+            'width': 1,
+            'height': 1,
+            'durationMs': 125,
+          }
+      ]
+    });
+  }
+  return SourceHealingDisplayPresentation.fromJson(
+      {'sheets': sheets.values.toList(), 'variants': variants});
 }
 
 Object? _freezeHealing(Object? value) => switch (value) {

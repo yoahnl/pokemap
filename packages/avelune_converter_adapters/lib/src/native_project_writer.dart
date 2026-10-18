@@ -1332,6 +1332,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'scene.dialogue.audioMedia.import',
           'map.audio.update',
           'campaign.badge.upsert',
+          'campaign.shop.upsert',
           'entity.set_field_obstacle',
           'entity.set_presentation',
           'regionalMap.region.upsert',
@@ -1432,6 +1433,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final characters = <ProjectCharacterEntry>[];
   final trainersById = <String, ProjectTrainerEntry>{};
   final badges = <BadgeDefinition>[];
+  final shops = <ShopDefinition>[];
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
@@ -2105,6 +2107,25 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               Map<String, dynamic>.from(parameters['value'] as Map));
           trainersById[trainer.id] = trainer;
         }
+      case 'campaign.shop.upsert':
+        semantics.requireOperation(mutation);
+        if (semantics.events == null) {
+          throw const NativeWriteException('native.events.binding',
+              'Shop publication requires exact regenerated source events.');
+        }
+        _allowParameters(parameters, const {'value'});
+        final shop = ShopDefinition.fromJson(Map<String, dynamic>.from(parameters['value'] as Map));
+        final expected = semantics.events!.draft.mutations.where((entry) =>
+            entry.actionId == 'campaign.shop.upsert' &&
+            _targetIds(entry.targetEntityIds, {shop.id})).toList();
+        if (expected.length != 1 ||
+            canonicalJsonOf(expected.single.parameters) != canonicalJsonOf(parameters) ||
+            !_targetIds(mutation.targetEntityIds, {shop.id}) ||
+            shops.any((value) => value.id == shop.id)) {
+          throw const NativeWriteException('native.events.shop',
+              'Shops require one complete exact regenerated source stock and purchase policy.');
+        }
+        shops.add(shop);
       case 'campaign.badge.upsert':
         semantics.requireOperation(mutation);
         if (semantics.events == null) {
@@ -2236,6 +2257,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           presets: smartTilePresets),
       characters: characters,
       badges: badges,
+      shops: shops,
       pokemon: bootstrap.pokemon.copyWith(
           enabled: projectedEvents?.itemCatalog != null ||
               projectedCatalogs?.evidence['nativeTrainerBindings'] is Map ||

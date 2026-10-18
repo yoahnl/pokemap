@@ -13,6 +13,8 @@ final class ShopCatalogEntryDraft {
     this.sellPrice,
     this.stock,
     this.editingItemId,
+    this.maximumOwnedQuantity,
+    this.purchaseBonus,
   });
 
   final String itemId;
@@ -20,6 +22,8 @@ final class ShopCatalogEntryDraft {
   final int? sellPrice;
   final int? stock;
   final String? editingItemId;
+  final int? maximumOwnedQuantity;
+  final ShopPurchaseBonus? purchaseBonus;
 }
 
 class ShopStateCatalogEditor extends StatefulWidget {
@@ -32,6 +36,8 @@ class ShopStateCatalogEditor extends StatefulWidget {
     required this.onRemove,
     this.catalogMessage,
     this.onRetryCatalog,
+    this.sellPolicy = ShopSellPolicy.listedEntries,
+    this.onSellPolicyChanged,
   });
 
   final String title;
@@ -41,6 +47,8 @@ class ShopStateCatalogEditor extends StatefulWidget {
   final ValueChanged<String> onRemove;
   final String? catalogMessage;
   final VoidCallback? onRetryCatalog;
+  final ShopSellPolicy sellPolicy;
+  final ValueChanged<ShopSellPolicy>? onSellPolicyChanged;
 
   @override
   State<ShopStateCatalogEditor> createState() => _ShopStateCatalogEditorState();
@@ -50,6 +58,12 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
   final _priceController = TextEditingController();
   final _sellPriceController = TextEditingController();
   final _stockController = TextEditingController();
+  final _maximumOwnedController = TextEditingController();
+  final _bonusEveryController = TextEditingController(text: '10');
+  final _bonusQuantityController = TextEditingController(text: '1');
+  final _bonusMaximumController = TextEditingController();
+  bool _bonusEnabled = false;
+  String? _bonusItemId;
   String? _selectedItemId;
   String? _editingItemId;
   String? _localError;
@@ -77,6 +91,10 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
     _priceController.dispose();
     _sellPriceController.dispose();
     _stockController.dispose();
+    _maximumOwnedController.dispose();
+    _bonusEveryController.dispose();
+    _bonusQuantityController.dispose();
+    _bonusMaximumController.dispose();
     super.dispose();
   }
 
@@ -99,6 +117,25 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          if (widget.onSellPolicyChanged != null) ...[
+            PokeMapDropdownField<ShopSellPolicy>(
+              key: const Key('shop-sell-policy'),
+              label: 'Objets repris à la vente',
+              value: widget.sellPolicy,
+              items: const [
+                PokeMapDropdownItem(
+                  value: ShopSellPolicy.listedEntries,
+                  label: 'Objets de cette boutique',
+                ),
+                PokeMapDropdownItem(
+                  value: ShopSellPolicy.catalogPrices,
+                  label: 'Tout le sac, au prix du catalogue',
+                ),
+              ],
+              onChanged: widget.onSellPolicyChanged!,
+            ),
+            const SizedBox(height: 8),
+          ],
           if (widget.entries.isEmpty)
             const PokeMapEmptyState(
               title: 'Aucun objet vendu',
@@ -219,6 +256,60 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  PokeMapTextField(
+                    label: 'Quantité maximale possédée (facultatif)',
+                    fieldKey: const Key('shop-owned-limit-field'),
+                    controller: _maximumOwnedController,
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 8),
+                  PokeMapToggleTile(
+                    key: const Key('shop-bonus-toggle'),
+                    label: 'Offrir un objet après un achat',
+                    value: _bonusEnabled,
+                    onChanged: (value) => setState(() {
+                      _bonusEnabled = value;
+                      _bonusItemId ??= widget.itemOptions.firstOrNull?.id;
+                    }),
+                  ),
+                  if (_bonusEnabled) ...[
+                    const SizedBox(height: 8),
+                    ItemCapabilityPicker(
+                      fieldKey: const Key('shop-bonus-item-picker'),
+                      label: 'Objet offert',
+                      definitions: [
+                        for (final option in widget.itemOptions)
+                          if (option.definition != null) option.definition!,
+                      ],
+                      requirement: ItemCapabilityRequirement.any,
+                      value: _bonusItemId ?? widget.itemOptions.first.id,
+                      onChanged: (value) =>
+                          setState(() => _bonusItemId = value),
+                    ),
+                    const SizedBox(height: 8),
+                    PokeMapTextField(
+                      label: 'Un cadeau toutes les X unités achetées',
+                      fieldKey: const Key('shop-bonus-every-field'),
+                      controller: _bonusEveryController,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 8),
+                    PokeMapTextField(
+                      label: 'Quantité offerte',
+                      fieldKey: const Key('shop-bonus-quantity-field'),
+                      controller: _bonusQuantityController,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 8),
+                    PokeMapTextField(
+                      label:
+                          'Quantité maximale possédée du cadeau (facultatif)',
+                      fieldKey: const Key('shop-bonus-owned-limit-field'),
+                      controller: _bonusMaximumController,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
                   if (_localError != null) ...[
                     const SizedBox(height: 6),
                     Text(
@@ -282,6 +373,15 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
       _priceController.text = '${entry.price}';
       _sellPriceController.text = entry.sellPrice?.toString() ?? '';
       _stockController.text = entry.stock?.toString() ?? '';
+      _maximumOwnedController.text =
+          entry.maximumOwnedQuantity?.toString() ?? '';
+      _bonusEnabled = entry.purchaseBonus != null;
+      _bonusItemId = entry.purchaseBonus?.itemId;
+      _bonusEveryController.text =
+          '${entry.purchaseBonus?.everyQuantity ?? 10}';
+      _bonusQuantityController.text = '${entry.purchaseBonus?.quantity ?? 1}';
+      _bonusMaximumController.text =
+          entry.purchaseBonus?.maximumOwnedQuantity?.toString() ?? '';
       _localError = null;
     });
   }
@@ -289,16 +389,34 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
   void _save() {
     final price = int.tryParse(_priceController.text.trim());
     final sellPriceText = _sellPriceController.text.trim();
-    final sellPrice =
-        sellPriceText.isEmpty ? null : int.tryParse(sellPriceText);
+    final sellPrice = sellPriceText.isEmpty
+        ? null
+        : int.tryParse(sellPriceText);
     final stockText = _stockController.text.trim();
     final stock = stockText.isEmpty ? null : int.tryParse(stockText);
+    final maximumText = _maximumOwnedController.text.trim();
+    final maximum = maximumText.isEmpty ? null : int.tryParse(maximumText);
+    final bonusEvery = int.tryParse(_bonusEveryController.text.trim());
+    final bonusQuantity = int.tryParse(_bonusQuantityController.text.trim());
+    final bonusMaximumText = _bonusMaximumController.text.trim();
+    final bonusMaximum = bonusMaximumText.isEmpty
+        ? null
+        : int.tryParse(bonusMaximumText);
     if (price == null ||
         (sellPriceText.isNotEmpty && sellPrice == null) ||
-        (stockText.isNotEmpty && stock == null)) {
+        (stockText.isNotEmpty && stock == null) ||
+        (maximumText.isNotEmpty && (maximum == null || maximum <= 0)) ||
+        (_bonusEnabled &&
+            (_bonusItemId == null ||
+                bonusEvery == null ||
+                bonusEvery <= 0 ||
+                bonusQuantity == null ||
+                bonusQuantity <= 0 ||
+                (bonusMaximumText.isNotEmpty &&
+                    (bonusMaximum == null || bonusMaximum <= 0))))) {
       setState(() {
         _localError =
-            'Prix, revente et stock doivent être des nombres entiers.';
+            'Les prix et quantités doivent être des entiers valides. Les limites et cadeaux doivent être positifs.';
       });
       return;
     }
@@ -308,6 +426,15 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
         price: price,
         sellPrice: sellPrice,
         stock: stock,
+        maximumOwnedQuantity: maximum,
+        purchaseBonus: !_bonusEnabled
+            ? null
+            : ShopPurchaseBonus(
+                itemId: _bonusItemId!,
+                everyQuantity: bonusEvery!,
+                quantity: bonusQuantity!,
+                maximumOwnedQuantity: bonusMaximum,
+              ),
         editingItemId: _editingItemId,
       ),
     );
@@ -320,6 +447,12 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
       _priceController.clear();
       _sellPriceController.clear();
       _stockController.clear();
+      _maximumOwnedController.clear();
+      _bonusEnabled = false;
+      _bonusItemId = null;
+      _bonusEveryController.text = '10';
+      _bonusQuantityController.text = '1';
+      _bonusMaximumController.clear();
       _localError = null;
     }
 

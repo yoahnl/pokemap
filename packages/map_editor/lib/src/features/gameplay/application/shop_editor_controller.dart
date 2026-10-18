@@ -130,12 +130,18 @@ final class ShopEditorController {
     _replaceShop(shopId, shopById(shopId).copyWith(label: normalizedLabel));
   }
 
+  void setSellPolicy(String shopId, ShopSellPolicy policy) {
+    _replaceShop(shopId, shopById(shopId).copyWith(sellPolicy: policy));
+  }
+
   void addEntry({
     required String shopId,
     required String itemId,
     required int price,
     int? sellPrice,
     int? stock,
+    int? maximumOwnedQuantity,
+    ShopPurchaseBonus? purchaseBonus,
   }) {
     final shop = shopById(shopId);
     final option = itemOptions.where((item) => item.id == itemId).firstOrNull;
@@ -169,6 +175,8 @@ final class ShopEditorController {
       price: price,
       sellPrice: sellPrice,
       stock: stock,
+      maximumOwnedQuantity: maximumOwnedQuantity,
+      purchaseBonus: purchaseBonus,
     ).normalized(knownItemIds: _knownItemIds);
     _replaceShop(
       shopId,
@@ -182,6 +190,8 @@ final class ShopEditorController {
     required int price,
     int? sellPrice,
     int? stock,
+    int? maximumOwnedQuantity,
+    ShopPurchaseBonus? purchaseBonus,
   }) {
     final shop = shopById(shopId);
     final index = shop.entries.indexWhere((entry) => entry.itemId == itemId);
@@ -193,6 +203,8 @@ final class ShopEditorController {
       price: price,
       sellPrice: sellPrice,
       stock: stock,
+      maximumOwnedQuantity: maximumOwnedQuantity,
+      purchaseBonus: purchaseBonus,
     ).normalized(knownItemIds: _knownItemIds);
     final entries = <ShopEntryDefinition>[...shop.entries];
     entries[index] = updated;
@@ -319,6 +331,8 @@ final class ShopEditorController {
     required int price,
     int? sellPrice,
     int? stock,
+    int? maximumOwnedQuantity,
+    ShopPurchaseBonus? purchaseBonus,
   }) {
     final state = stateById(shopId, stateId);
     if (state.entries.any((entry) => entry.itemId == itemId)) {
@@ -331,13 +345,13 @@ final class ShopEditorController {
       price: price,
       sellPrice: sellPrice,
       stock: stock,
+      maximumOwnedQuantity: maximumOwnedQuantity,
+      purchaseBonus: purchaseBonus,
     );
     _replaceState(
       shopId,
       stateId,
-      state.copyWith(
-        entries: <ShopEntryDefinition>[...state.entries, entry],
-      ),
+      state.copyWith(entries: <ShopEntryDefinition>[...state.entries, entry]),
     );
   }
 
@@ -348,6 +362,8 @@ final class ShopEditorController {
     required int price,
     int? sellPrice,
     int? stock,
+    int? maximumOwnedQuantity,
+    ShopPurchaseBonus? purchaseBonus,
   }) {
     final state = stateById(shopId, stateId);
     final index = state.entries.indexWhere((entry) => entry.itemId == itemId);
@@ -360,6 +376,8 @@ final class ShopEditorController {
       price: price,
       sellPrice: sellPrice,
       stock: stock,
+      maximumOwnedQuantity: maximumOwnedQuantity,
+      purchaseBonus: purchaseBonus,
     );
     _replaceState(shopId, stateId, state.copyWith(entries: entries));
   }
@@ -507,6 +525,8 @@ final class ShopEditorController {
     required int price,
     required int? sellPrice,
     required int? stock,
+    int? maximumOwnedQuantity,
+    ShopPurchaseBonus? purchaseBonus,
   }) {
     if (!itemOptions.any((item) => item.id == itemId)) {
       throw const ShopEditorValidationException(
@@ -533,6 +553,8 @@ final class ShopEditorController {
       price: price,
       sellPrice: sellPrice,
       stock: stock,
+      maximumOwnedQuantity: maximumOwnedQuantity,
+      purchaseBonus: purchaseBonus,
     ).normalized(knownItemIds: _knownItemIds);
   }
 

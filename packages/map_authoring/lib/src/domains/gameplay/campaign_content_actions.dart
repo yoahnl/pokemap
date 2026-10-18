@@ -146,7 +146,9 @@ final class CampaignContentActions {
     for (final kind in CampaignContentKind.values) ...[
       _descriptor(
         'campaign.${_wireKind(kind)}.upsert',
-        'Create or update one ${_wireKind(kind)} campaign definition',
+        kind == CampaignContentKind.shop
+          ? 'Create or update a shop: value.sellPolicy is listedEntries or catalogPrices; entries support maximumOwnedQuantity and purchaseBonus {itemId, everyQuantity, quantity, maximumOwnedQuantity}. Purchase bonuses fill remaining capacity after a successful purchase.'
+          : 'Create or update one ${_wireKind(kind)} campaign definition',
       ),
       _descriptor(
         'campaign.${_wireKind(kind)}.delete',

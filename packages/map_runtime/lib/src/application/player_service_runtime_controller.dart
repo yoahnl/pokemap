@@ -2675,7 +2675,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     _publishWorldService(
       _buildShopSnapshot(
         session,
-        safeMessage: 'Achat effectué.',
+        safeMessage: result.bonusQuantity > 0
+            ? 'Achat effectué. Cadeau : ${result.bonusQuantity} × ${_shopItemLabel(result.bonusItemId!)}.'
+            : 'Achat effectué.',
       ),
     );
     return const RuntimeWorldServiceCommandResult(
@@ -2863,24 +2865,32 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           .toList(growable: false);
     }
 
-    return session.gameState.bag.normalized().entries.map((bagEntry) {
-      final shopEntry = session.resolved.entries
-          .where((entry) => entry.itemId == bagEntry.itemId)
-          .firstOrNull;
-      final unavailableReason = _shopSaleUnavailableReason(
-        bagEntry: bagEntry,
-        shopEntry: shopEntry,
-        itemCatalog: session.itemCatalog,
-      );
-      return RuntimeShopEntrySnapshot(
-        itemId: bagEntry.itemId,
-        label: _shopItemLabel(bagEntry.itemId),
-        unitPrice: shopEntry?.sellPrice ?? 0,
-        ownedQuantity: bagEntry.quantity,
-        canTransact: unavailableReason == null,
-        unavailableReason: unavailableReason,
-      );
-    }).toList(growable: false);
+    return session.gameState.bag
+        .normalized()
+        .entries
+        .map((bagEntry) {
+          final shopEntry = session.resolved.entries
+              .where((entry) => entry.itemId == bagEntry.itemId)
+              .firstOrNull;
+          final sellPrice =
+              session.request.shop.sellPolicy == ShopSellPolicy.catalogPrices
+              ? session.itemCatalog.definitionFor(bagEntry.itemId)?.sellPrice
+              : shopEntry?.sellPrice;
+          final unavailableReason = _shopSaleUnavailableReason(
+            bagEntry: bagEntry,
+            sellPrice: sellPrice,
+            itemCatalog: session.itemCatalog,
+          );
+          return RuntimeShopEntrySnapshot(
+            itemId: bagEntry.itemId,
+            label: _shopItemLabel(bagEntry.itemId),
+            unitPrice: sellPrice ?? 0,
+            ownedQuantity: bagEntry.quantity,
+            canTransact: unavailableReason == null,
+            unavailableReason: unavailableReason,
+          );
+        })
+        .toList(growable: false);
   }
 
   int _maximumShopQuantity(_ContextualShopSession session) {
@@ -2905,12 +2915,25 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     ShopEntryDefinition entry,
   ) {
     final stock = entry.stock;
-    if (stock == null) return null;
-    final stockKey = '${session.request.shop.id}::'
+    final stockKey =
+        '${session.request.shop.id}::'
         '${session.resolved.stateId}::${entry.itemId}';
     final purchased =
         session.gameState.progression.shopPurchaseCounts[stockKey] ?? 0;
-    return (stock - purchased).clamp(0, stock);
+    final remainingStock = stock == null
+        ? null
+        : (stock - purchased).clamp(0, stock);
+    final ownedLimit = entry.maximumOwnedQuantity;
+    if (ownedLimit == null) return remainingStock;
+    final owned = session.gameState.bag
+        .normalized()
+        .entries
+        .where((item) => item.itemId == entry.itemId)
+        .fold(0, (total, item) => total + item.quantity);
+    final remainingOwned = (ownedLimit - owned).clamp(0, ownedLimit);
+    return remainingStock == null || remainingOwned < remainingStock
+        ? remainingOwned
+        : remainingStock;
   }
 
   void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
@@ -3074,14 +3097,16 @@ final class _PcTransferTarget {
 }
 
 String _shopFailureMessage(ShopPurchaseFailure failure) => switch (failure) {
-      ShopPurchaseFailure.invalidRequest => 'Achat invalide.',
-      ShopPurchaseFailure.unknownItem => 'Objet inconnu.',
-      ShopPurchaseFailure.insufficientFunds => 'Fonds insuffisants.',
-      ShopPurchaseFailure.outOfStock => 'Stock insuffisant.',
-      ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',
-      ShopPurchaseFailure.shopStateChanged =>
-        'La boutique a changé. Le catalogue a été actualisé.',
-    };
+  ShopPurchaseFailure.invalidRequest => 'Achat invalide.',
+  ShopPurchaseFailure.unknownItem => 'Objet inconnu.',
+  ShopPurchaseFailure.insufficientFunds => 'Fonds insuffisants.',
+  ShopPurchaseFailure.outOfStock => 'Stock insuffisant.',
+  ShopPurchaseFailure.ownershipLimit =>
+    'La quantité maximale possédée est atteinte.',
+  ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',
+  ShopPurchaseFailure.shopStateChanged =>
+    'La boutique a changé. Le catalogue a été actualisé.',
+};
 
 String _shopSaleFailureMessage(ShopSaleFailure failure) => switch (failure) {
       ShopSaleFailure.invalidRequest => 'Vente invalide.',
@@ -3096,14 +3121,14 @@ String _shopSaleFailureMessage(ShopSaleFailure failure) => switch (failure) {
 
 String? _shopSaleUnavailableReason({
   required BagEntry bagEntry,
-  required ShopEntryDefinition? shopEntry,
+  required int? sellPrice,
   required ItemCatalogSnapshot itemCatalog,
 }) {
   if (itemCatalog.definitionFor(bagEntry.itemId)?.tags.contains('key-item') ??
       false) {
     return 'Les objets importants sont invendables.';
   }
-  if (shopEntry?.sellPrice == null) {
+  if (sellPrice == null || sellPrice <= 0) {
     return 'Cette boutique ne reprend pas cet objet.';
   }
   return null;

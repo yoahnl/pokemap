@@ -76,6 +76,7 @@ final class SourceEventItemBinding {
     required List<String> flags,
     required this.isKeyItem,
     required this.isMachine,
+    required this.isImportant,
     required this.moveSymbol,
     required this.sourceMachineMove,
     required this.sourceConsumable,
@@ -98,6 +99,7 @@ final class SourceEventItemBinding {
   final List<String> flags;
   final bool isKeyItem;
   final bool isMachine;
+  final bool isImportant;
   final String? moveSymbol;
   final SourceEventMachineMoveBinding? sourceMachineMove;
   final bool sourceConsumable;
@@ -128,6 +130,7 @@ final class SourceEventItemBinding {
         'flags': flags,
         'isKeyItem': isKeyItem,
         'isMachine': isMachine,
+        'isImportant': isImportant,
         'moveSymbol': moveSymbol,
         'sourceMachineMove': sourceMachineMove?.toJson(),
         if (isMachine) 'nativeProjectMoveMachine': null,
@@ -537,7 +540,7 @@ final class SourceEventItemBindingResolver {
           pocketId: _pockets[pocket - 1],
           description: description,
           buyPrice: price,
-          sellPrice: sell,
+          sellPrice: isKey || const [3, 4].contains(fieldUse) ? null : sell,
           tags: {'source-imported', if (isKey) 'key-item'},
           heldEffectId: qualified && symbol == 'EVERSTONE'
               ? PokemonPassiveHeldEffect.preventEvolution.id
@@ -563,6 +566,7 @@ final class SourceEventItemBindingResolver {
           flags: flags,
           isKeyItem: isKey,
           isMachine: isMachine,
+          isImportant: isKey || const [3, 4].contains(fieldUse),
           moveSymbol: move,
           sourceMachineMove: sourceMachineMove,
           sourceConsumable: consumable!,

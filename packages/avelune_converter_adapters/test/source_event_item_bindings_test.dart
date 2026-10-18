@@ -213,6 +213,18 @@ Map<String, Object?> _explorationItem(String symbol) {
 }
 
 void main() {
+  for (final fieldUse in [3, 4, 5]) {
+    test('shop important policy distinguishes TM HM and consumable TR: $fieldUse', () async {
+      final fixture = _fixture(items: {'TM101': _item('TM101', patch: {
+        '@field_use': fieldUse, '@battle_use': 0, '@pocket': 4, '@move': _Symbol('AERIALACE')})});
+      final result = await const SourceEventItemBindingResolver().read(snapshot: fixture.snapshot,
+          files: fixture.files, symbols: ['TM101'], eventProfile: fixture.profile);
+      final item = result.bindings['TM101']!;
+      expect(item.isMachine, isTrue);
+      expect(item.isImportant, fieldUse != 5);
+      expect(item.definition.sellPrice, fieldUse == 5 ? 300 : null);
+    });
+  }
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   final capacitySymbols = [for (var i = 0; i < 65; i++) 'ITEM$i'];
   final capacityCatalog = _fixture(items: {

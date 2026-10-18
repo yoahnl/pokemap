@@ -79,6 +79,7 @@ enum ShopPurchaseFailure {
   outOfStock,
   shopClosed,
   shopStateChanged,
+  ownershipLimit,
 }
 
 /// Result of one atomic shop purchase against [GameState].
@@ -88,16 +89,22 @@ final class ShopPurchaseResult {
     required this.totalCost,
     this.failure,
     this.remainingStock,
+    this.bonusItemId,
+    this.bonusQuantity = 0,
   });
 
   const ShopPurchaseResult.success({
     required GameState state,
     required int totalCost,
     int? remainingStock,
+    String? bonusItemId,
+    int bonusQuantity = 0,
   }) : this._(
           state: state,
           totalCost: totalCost,
           remainingStock: remainingStock,
+          bonusItemId: bonusItemId,
+          bonusQuantity: bonusQuantity,
         );
 
   const ShopPurchaseResult.failed({
@@ -116,6 +123,8 @@ final class ShopPurchaseResult {
   final int totalCost;
   final ShopPurchaseFailure? failure;
   final int? remainingStock;
+  final String? bonusItemId;
+  final int bonusQuantity;
 
   bool get isSuccess => failure == null;
 }
@@ -531,6 +540,27 @@ class GameStateMutations {
     }
 
     final stock = entry.stock;
+    final owned = _bagOperations.quantityOf(state.bag, normalizedItemId);
+    final ownedLimit = entry.maximumOwnedQuantity;
+    if (ownedLimit != null &&
+        (ownedLimit <= 0 || quantity > ownedLimit - owned)) {
+      return ShopPurchaseResult.failed(
+          state: state,
+          totalCost: 0,
+          failure: ShopPurchaseFailure.ownershipLimit);
+    }
+    final bonus = entry.purchaseBonus;
+    if (bonus != null &&
+        (bonus.everyQuantity <= 0 ||
+            bonus.quantity <= 0 ||
+            itemCatalog.definitionFor(bonus.itemId) == null ||
+            (bonus.maximumOwnedQuantity != null &&
+                bonus.maximumOwnedQuantity! <= 0))) {
+      return ShopPurchaseResult.failed(
+          state: state,
+          totalCost: 0,
+          failure: ShopPurchaseFailure.invalidRequest);
+    }
     final stockKey = '$normalizedShopId::$normalizedStateId::$normalizedItemId';
     final purchased = state.progression.shopPurchaseCounts[stockKey] ?? 0;
     final remainingStock = stock == null ? null : stock - purchased;
@@ -550,15 +580,44 @@ class GameStateMutations {
       unitPrice: entry.price,
       itemCatalog: itemCatalog,
     );
-    if (!purchase.isSuccess || stock == null) {
+    if (!purchase.isSuccess) {
       return purchase;
     }
-
+    var purchasedState = purchase.state;
+    var bonusQuantity = 0;
+    if (bonus != null) {
+      final ownedBonus =
+          _bagOperations.quantityOf(purchasedState.bag, bonus.itemId);
+      final capacity =
+          (bonus.maximumOwnedQuantity ?? maximumBagEntryQuantity) - ownedBonus;
+      final groups = quantity ~/ bonus.everyQuantity;
+      if (capacity > 0 && groups > 0) {
+        bonusQuantity = groups > capacity ~/ bonus.quantity
+            ? capacity
+            : groups * bonus.quantity;
+        final given = _bagOperations.give(BagGiveRequest(
+            bag: purchasedState.bag,
+            itemId: bonus.itemId,
+            quantity: bonusQuantity));
+        if (given.isSuccess) {
+          purchasedState = purchasedState.copyWith(bag: given.bag);
+        } else {
+          bonusQuantity = 0;
+        }
+      }
+    }
+    if (stock == null) {
+      return ShopPurchaseResult.success(
+          state: purchasedState,
+          totalCost: purchase.totalCost,
+          bonusItemId: bonusQuantity == 0 ? null : bonus?.itemId,
+          bonusQuantity: bonusQuantity);
+    }
     final nextCount = purchased + quantity;
-    final nextState = purchase.state.copyWith(
-      progression: purchase.state.progression.copyWith(
+    final nextState = purchasedState.copyWith(
+      progression: purchasedState.progression.copyWith(
         shopPurchaseCounts: <String, int>{
-          ...purchase.state.progression.shopPurchaseCounts,
+          ...purchasedState.progression.shopPurchaseCounts,
           stockKey: nextCount,
         },
       ).normalized(),
@@ -567,6 +626,8 @@ class GameStateMutations {
       state: nextState,
       totalCost: purchase.totalCost,
       remainingStock: stock - nextCount,
+      bonusItemId: bonusQuantity == 0 ? null : bonus?.itemId,
+      bonusQuantity: bonusQuantity,
     );
   }
 
@@ -716,15 +777,17 @@ class GameStateMutations {
     final entry = resolved.entries
         .where((candidate) => candidate.itemId == normalizedItemId)
         .firstOrNull;
-    if (entry == null) {
+    if (entry == null && shop.sellPolicy != ShopSellPolicy.catalogPrices) {
       return ShopSaleResult.failed(
         state: state,
         totalRevenue: 0,
         failure: ShopSaleFailure.unknownItem,
       );
     }
-    final sellPrice = entry.sellPrice;
-    if (sellPrice == null) {
+    final sellPrice = shop.sellPolicy == ShopSellPolicy.catalogPrices
+        ? itemCatalog.definitionFor(normalizedItemId)?.sellPrice
+        : entry?.sellPrice;
+    if (sellPrice == null || sellPrice <= 0) {
       return ShopSaleResult.failed(
         state: state,
         totalRevenue: 0,

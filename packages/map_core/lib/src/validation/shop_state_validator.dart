@@ -201,6 +201,52 @@ final class ShopStateValidator {
           ),
         );
       }
+      if (entry.maximumOwnedQuantity != null &&
+          entry.maximumOwnedQuantity! <= 0) {
+        diagnostics.add(
+          ShopStateDiagnostic(
+            code: 'SHOP_STATE_INVALID_OWNERSHIP_LIMIT',
+            severity: ShopStateDiagnosticSeverity.error,
+            message:
+                'La quantité maximale possédée doit être strictement positive.',
+            shopId: shop.id,
+            stateId: stateId,
+            path: '$entryPath.maximumOwnedQuantity',
+          ),
+        );
+      }
+      final bonus = entry.purchaseBonus;
+      if (bonus != null) {
+        if (!knownItemIds.contains(bonus.itemId.trim())) {
+          diagnostics.add(
+            ShopStateDiagnostic(
+              code: 'SHOP_STATE_UNKNOWN_BONUS_ITEM',
+              severity: ShopStateDiagnosticSeverity.error,
+              message:
+                  'L’objet offert « ${bonus.itemId} » est absent du catalogue.',
+              shopId: shop.id,
+              stateId: stateId,
+              path: '$entryPath.purchaseBonus.itemId',
+            ),
+          );
+        }
+        if (bonus.everyQuantity <= 0 ||
+            bonus.quantity <= 0 ||
+            bonus.maximumOwnedQuantity != null &&
+                bonus.maximumOwnedQuantity! <= 0) {
+          diagnostics.add(
+            ShopStateDiagnostic(
+              code: 'SHOP_STATE_INVALID_PURCHASE_BONUS',
+              severity: ShopStateDiagnosticSeverity.error,
+              message:
+                  'Les quantités du cadeau doivent être strictement positives.',
+              shopId: shop.id,
+              stateId: stateId,
+              path: '$entryPath.purchaseBonus',
+            ),
+          );
+        }
+      }
     }
   }
 

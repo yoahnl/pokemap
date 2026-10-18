@@ -1257,6 +1257,9 @@ Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
     switch (node) {
       case SourcePickupNode():
         yield node.sourceSymbol;
+      case SourceShopProgramNode():
+        yield* node.sourceItemSymbols;
+        yield 'PREMIERBALL';
       case SourceConditionalNode():
         if (node.condition.sourceItemSymbol != null) yield node.condition.sourceItemSymbol!;
         if (node.condition.pickup != null) yield node.condition.pickup!.sourceSymbol;

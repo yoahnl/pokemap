@@ -30,6 +30,124 @@ final _shopItemCatalog = ItemCatalogSnapshot.fromCatalog(
 );
 
 void main() {
+  test(
+    'contextual shop retains bonus ownership caps and catalog sale authority',
+    () async {
+      final catalog = ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            ProjectItemDefinition(
+              id: 'ball',
+              displayName: 'Ball',
+              pocketId: 'balls',
+              sellPrice: 50,
+            ),
+            ProjectItemDefinition(
+              id: 'premier',
+              displayName: 'Premier',
+              pocketId: 'balls',
+              sellPrice: 10,
+            ),
+            ProjectItemDefinition(
+              id: 'medicine',
+              displayName: 'Medicine',
+              pocketId: 'medicine',
+              sellPrice: 250,
+            ),
+          ],
+        ),
+      );
+      var state = const GameState(
+        saveId: 'bonus-shop',
+        trainerProfile: TrainerProfile(name: 'Player', money: 10000),
+        bag: Bag(entries: [BagEntry(itemId: 'medicine', quantity: 2)]),
+      );
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async =>
+            const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
+        itemCatalog: catalog,
+      );
+      addTearDown(controller.dispose);
+      final open = controller.openShop(
+        const ShopDefinition(
+          id: 'mart',
+          label: 'Mart',
+          sellPolicy: ShopSellPolicy.catalogPrices,
+          entries: [
+            ShopEntryDefinition(
+              itemId: 'ball',
+              price: 100,
+              maximumOwnedQuantity: 10,
+              purchaseBonus: ShopPurchaseBonus(
+                itemId: 'premier',
+                everyQuantity: 10,
+                quantity: 1,
+                maximumOwnedQuantity: 999,
+              ),
+            ),
+          ],
+        ),
+        request: const OpenShopService(
+          interactionId: 'merchant',
+          shopId: 'mart',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      var snapshot = controller.worldServiceSnapshot!;
+      final bought = await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.confirm,
+          snapshotRevision: snapshot.revision,
+          targetId: 'ball',
+          quantity: 10,
+        ),
+      );
+      expect(bought.status, RuntimeWorldServiceCommandStatus.accepted);
+      snapshot = controller.worldServiceSnapshot!;
+      expect(
+        (snapshot.content! as RuntimeShopServiceContent)
+            .entries
+            .single
+            .remainingStock,
+        0,
+      );
+      await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.showSales,
+          snapshotRevision: snapshot.revision,
+        ),
+      );
+      snapshot = controller.worldServiceSnapshot!;
+      final medicine = (snapshot.content! as RuntimeShopServiceContent).entries
+          .singleWhere((entry) => entry.itemId == 'medicine');
+      expect(medicine.canTransact, isTrue);
+      expect(medicine.unitPrice, 250);
+      await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.confirm,
+          snapshotRevision: snapshot.revision,
+          targetId: 'medicine',
+          quantity: 2,
+        ),
+      );
+      await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.close,
+          snapshotRevision: controller.worldServiceSnapshot!.revision,
+        ),
+      );
+      await open;
+      expect(state.trainerProfile.money, 9500);
+      expect(const BagOperations().quantityOf(state.bag, 'ball'), 10);
+      expect(const BagOperations().quantityOf(state.bag, 'premier'), 1);
+    },
+  );
   test('contextual shop keeps pricing and purchase authority in the runtime',
       () async {
     var state = const GameState(

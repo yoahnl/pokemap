@@ -105,12 +105,40 @@ final class NarrativeEventRuntimeSnapshot {
       }
       mapsById[mapEntry.id] = loaded.map;
       validatedProjects.add(loaded.project);
+      if (owner != null) {
+        final hydrated = await owner.manifestForMap(loaded.map);
+        if (!identical(owner, RuntimeProjectCatalog.ownerOf(hydrated))) {
+          throw StateError(
+            'Event V2 runtime snapshot changed while hydrating map "${mapEntry.id}".',
+          );
+        }
+        validatedProjects.add(hydrated);
+      }
       onMapLoaded?.call(mapsById.length, project.maps.length);
     }
 
+    final validationProject = owner == null
+        ? project
+        : project.copyWith(
+            elements: _mergeNarrativeVisualDefinitions(
+              validatedProjects.expand((view) => view.elements),
+              (entry) => entry.id,
+              (entry) => entry.toJson(),
+            ),
+            tilesets: _mergeNarrativeVisualDefinitions(
+              validatedProjects.expand((view) => view.tilesets),
+              (entry) => entry.id,
+              (entry) => entry.toJson(),
+            ),
+            elementCategories: _mergeNarrativeVisualDefinitions(
+              validatedProjects.expand((view) => view.elementCategories),
+              (entry) => entry.id,
+              (entry) => entry.toJson(),
+            ),
+          );
     final catalog = await Isolate.run(
       () => _buildNarrativeCatalog(
-        project: project,
+        project: validationProject,
         mapsById: mapsById,
         registry: registry,
         structuralClaimIndex: structuralClaimIndex,
@@ -127,6 +155,28 @@ final class NarrativeEventRuntimeSnapshot {
       validatedProjects: validatedProjects,
     );
   }
+}
+
+List<T> _mergeNarrativeVisualDefinitions<T>(
+  Iterable<T> entries,
+  String Function(T) identityOf,
+  Map<String, dynamic> Function(T) jsonOf,
+) {
+  final definitions = <String, T>{};
+  for (final entry in entries) {
+    final id = identityOf(entry);
+    final existing = definitions[id];
+    if (existing != null &&
+        !identical(existing, entry) &&
+        canonicalizeNarrativeEventJson(jsonOf(existing)) !=
+            canonicalizeNarrativeEventJson(jsonOf(entry))) {
+      throw StateError(
+        'Event V2 runtime snapshot has conflicting visual definition "$id".',
+      );
+    }
+    definitions[id] = entry;
+  }
+  return List.unmodifiable(definitions.values);
 }
 
 ({

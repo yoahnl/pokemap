@@ -299,6 +299,7 @@ void _auditSourceFactWriteBlock(
       case SourcePlayerVisibilityNode():
       case SourceTempSwitchNode():
       case SourcePokemonGiftNode():
+      case SourceShopProgramNode():
       case SourcePickupNode():
       case SourceCenterServiceProgramNode():
       case SourceTownMapProgramNode():

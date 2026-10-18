@@ -25,6 +25,7 @@ enum ProjectItemReferenceKind {
   shopEntry,
   trainerReward,
   trainerHeld,
+  trainerBall,
   mapPickup,
   machineCapability,
   evolutionRequirement,
@@ -311,6 +312,14 @@ final class _ProjectItemReferenceIndexBuilder {
           sourceId: shop.id,
           editablePath: 'shops[${shop.id}].entries[$index].itemId',
         );
+        _add(
+          itemId: shop.entries[index].purchaseBonus?.itemId,
+          kind: ProjectItemReferenceKind.shopEntry,
+          sourceKind: 'shop',
+          sourceId: shop.id,
+          editablePath:
+              'shops[${shop.id}].entries[$index].purchaseBonus.itemId',
+        );
       }
       for (var stateIndex = 0; stateIndex < shop.states.length; stateIndex++) {
         final state = shop.states[stateIndex];
@@ -332,6 +341,14 @@ final class _ProjectItemReferenceIndexBuilder {
             sourceId: shop.id,
             editablePath:
                 'shops[${shop.id}].states[$stateIndex].entries[$entryIndex].itemId',
+          );
+          _add(
+            itemId: state.entries[entryIndex].purchaseBonus?.itemId,
+            kind: ProjectItemReferenceKind.shopEntry,
+            sourceKind: 'shop',
+            sourceId: shop.id,
+            editablePath:
+                'shops[${shop.id}].states[$stateIndex].entries[$entryIndex].purchaseBonus.itemId',
           );
         }
       }
@@ -357,6 +374,13 @@ final class _ProjectItemReferenceIndexBuilder {
           sourceKind: 'trainer',
           sourceId: trainer.id,
           editablePath: 'trainers[${trainer.id}].team[$index].heldItemId',
+        );
+        _add(
+          itemId: trainer.team[index].ballItemId,
+          kind: ProjectItemReferenceKind.trainerBall,
+          sourceKind: 'trainer',
+          sourceId: trainer.id,
+          editablePath: 'trainers[${trainer.id}].team[$index].ballItemId',
         );
       }
     }

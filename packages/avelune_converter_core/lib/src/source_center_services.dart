@@ -16,12 +16,23 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
       required this.sourceSnapshotHash,
       required this.profileHash,
       required this.templateHash,
+      this.pcAvailabilityCondition,
       required this.declaredProgram});
 
   final SourceCenterServiceProgramKind kind;
   final SourceDeclaredProgramMatch declaredProgram;
   final SourcePreservedData rawDataRef;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
+  final SourceEventCondition? pcAvailabilityCondition;
+
+  SourceTextNode? get pcDenialText {
+    if (pcAvailabilityCondition == null) return null;
+    final commands =
+        declaredProgram.binding.pages['activation']!['list'] as List;
+    final index =
+        commands.indexWhere((command) => (command as Map)['code'] == 101);
+    return _declaredText(declaredProgram, 'activation', index);
+  }
 
   bool isBoundToSourceEvent({
     required NormalizedSourceProject source,
@@ -50,6 +61,8 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
     return node.kind == kind &&
         node.rawDataRef.id == rawDataRef.id &&
         node.templateHash == templateHash &&
+        canonicalJsonOf(node.pcAvailabilityCondition?.toJson()) ==
+            canonicalJsonOf(pcAvailabilityCondition?.toJson()) &&
         canonicalJsonOf(node.span.toJson()) == canonicalJsonOf(span.toJson());
   }
 
@@ -107,6 +120,18 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
   List<String> get completionLines => _texts('completion');
   List<String> get refusalLines => _texts('refusal');
 
+  SourceEventSpan textGroupSpan(String group) {
+    final indices =
+        (((_parameters['textGroups'] as Map)[_role] as Map)[group] as List)
+            .cast<int>();
+    final first = _declaredText(declaredProgram, _role, indices.first).span;
+    final last = _declaredText(declaredProgram, _role, indices.last).span;
+    return SourceEventSpan(
+        firstCommandIndex: first.firstCommandIndex,
+        lastCommandIndex: last.lastCommandIndex,
+        locator: first.locator);
+  }
+
   List<String> get requiredGameplayBindings => isPc
       ? const ['nativePcService', 'collapseSourcePcSelfSwitchCycle']
       : [
@@ -127,6 +152,8 @@ final class SourceCenterServiceProgramNode extends SourceEventNode {
   Map<String, Object?> toJson() => {
         'kind': 'centerServiceProgram',
         'programKind': kind.name,
+        'pcAvailabilityCondition': pcAvailabilityCondition?.toJson(),
+        'pcDenialText': pcDenialText?.text,
         'nativeOperation': nativeOperation.name,
         'span': span.toJson(),
         'rawDataRef': rawDataRef.toJson(),
@@ -182,6 +209,18 @@ SourceEventBlock? _sourceCenterServiceBlock(SourceEventAnalyzer analyzer,
     _ => null,
   };
   if (kind == null) return null;
+  SourceEventCondition? pcAvailability;
+  if (match.binding.family == SourceDeclaredProgramFamily.centerPc) {
+    final commands = match.binding.pages['activation']!['list'] as List;
+    final first = commands.first as Map;
+    if (first['code'] == 111) {
+      pcAvailability = analyzer._switchCondition(
+          (first['parameters'] as List)[1] as int,
+          true,
+          analyzer._switchNames());
+      if (!pcAvailability.isQualified) return null;
+    }
+  }
   final span = SourceEventSpan(
       firstCommandIndex: page.commands.first.originalIndex,
       lastCommandIndex: page.commands.last.originalIndex,
@@ -193,6 +232,7 @@ SourceEventBlock? _sourceCenterServiceBlock(SourceEventAnalyzer analyzer,
         sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
         profileHash: analyzer.profile.canonicalHash,
         declaredProgram: match,
+        pcAvailabilityCondition: pcAvailability,
         templateHash: canonicalHashOf(match.pageValues[page.originalPageIndex]))
   ]);
 }

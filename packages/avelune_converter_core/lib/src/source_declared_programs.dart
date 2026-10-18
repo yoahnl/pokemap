@@ -232,6 +232,27 @@ final class SourceDeclaredProgramBinding {
       pageGuard('activation', 0, const {});
       pageGuard('open', 3, const {'self_switch_valid'});
       final letter = (pages['open']!['condition'] as Map)['self_switch_ch'];
+      final activation = (pages['activation']!['list'] as List)
+          .cast<Map>()
+          .where((command) => !const {108, 408, 401}.contains(command['code']))
+          .toList();
+      if (activation.first['code'] == 111) {
+        final condition = activation.first['parameters'] as List;
+        _require(
+            activation
+                        .map((command) =>
+                            '${command['code']}:${command['indent']}')
+                        .join(',') ==
+                    '111:0,123:1,0:1,411:0,101:1,0:1,412:0,0:0' &&
+                condition.length == 3 &&
+                condition[0] == 0 &&
+                condition[1] is int &&
+                (condition[1] as int) > 0 &&
+                condition[2] == 0,
+            'declared_program.pc_availability',
+            r'$',
+            'A conditional PC must preserve its switch, activation and complete denial branch.');
+      }
       for (final role in const ['activation', 'open']) {
         final writes = (pages[role]!['list'] as List)
             .cast<Map>()
@@ -719,7 +740,16 @@ void _validateDeclaredPage(Map<String, Object?> page,
         412,
         509
       },
-    SourceDeclaredProgramFamily.centerPc => const {0, 123, 355},
+    SourceDeclaredProgramFamily.centerPc => const {
+        0,
+        101,
+        111,
+        123,
+        355,
+        401,
+        411,
+        412
+      },
     SourceDeclaredProgramFamily.partyTrade => const {
         0,
         101,
@@ -768,7 +798,11 @@ void _validateDeclaredPage(Map<String, Object?> page,
       },
     _ => null,
   };
-  final grammar = _declaredProgramOpcodeGrammars['${family.name}.$role'];
+  final grammar = family == SourceDeclaredProgramFamily.centerPc &&
+          role == 'activation' &&
+          list.any((command) => command is Map && command['code'] == 111)
+      ? const [111, 123, 411, 412]
+      : _declaredProgramOpcodeGrammars['${family.name}.$role'];
   if (grammar != null) {
     final opcodes = [
       for (final raw in list)
@@ -908,6 +942,7 @@ void _validateDeclaredPage(Map<String, Object?> page,
           r'$', 'Declared conditions require a typed operand.');
       if (allowed != null) {
         final kinds = switch (family) {
+          SourceDeclaredProgramFamily.centerPc => const {0},
           SourceDeclaredProgramFamily.centerNurse ||
           SourceDeclaredProgramFamily.pokedexReward =>
             const {1, 12},
@@ -1030,7 +1065,9 @@ bool _declaredScriptAllowed(
 
 final class SourceDeclaredProgramMatch {
   SourceDeclaredProgramMatch._(
-      this.binding, this.pageRoles, this.pageValues, this.references);
+      this.binding, this.pageRoles, this.pageValues, this.references,
+      {this.automaticallyDiscovered = false});
+  final bool automaticallyDiscovered;
   final SourceDeclaredProgramBinding binding;
   final Map<int, String> pageRoles;
   final Map<int, Map<String, Object?>> pageValues;
@@ -1038,7 +1075,9 @@ final class SourceDeclaredProgramMatch {
   int indexForRole(String role) =>
       pageRoles.entries.singleWhere((e) => e.value == role).key;
   Map<String, Object?> toJson() => {
-        'mode': 'declaredProgramBinding',
+        'mode': automaticallyDiscovered
+            ? 'automaticSourceStructure'
+            : 'declaredProgramBinding',
         'bindingId': binding.id.value,
         'bindingHash': binding.canonicalHash.value,
         'family': binding.family.name,
@@ -1064,8 +1103,20 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
     if (pages is! List || pages.length != event.pages.length) return null;
     final encodedPages = [for (final page in pages) canonicalJsonOf(page)];
     final matches = <SourceDeclaredProgramMatch>[];
-    for (final binding in profile.interpretationProfile?.declaredPrograms ??
-        const <SourceDeclaredProgramBinding>[]) {
+    final declared = profile.interpretationProfile?.declaredPrograms ??
+        const <SourceDeclaredProgramBinding>[];
+    final automatic = families.any((family) => const {
+                  SourceDeclaredProgramFamily.centerNurse,
+                  SourceDeclaredProgramFamily.centerPc,
+                  SourceDeclaredProgramFamily.healingDisplay,
+                }.contains(family)) &&
+            !declared.any((binding) =>
+                families.contains(binding.family) &&
+                binding.pages.length == pages.length &&
+                encodedPages.every(binding._canonicalPages.values.contains))
+        ? _automaticCenterServiceBinding(pages.cast<Object?>())
+        : null;
+    for (final binding in [...declared, if (automatic != null) automatic]) {
       if (bindingIds != null && !bindingIds.contains(binding.id) ||
           !families.contains(binding.family) ||
           binding.pages.length != pages.length ||
@@ -1097,7 +1148,8 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
             binding,
             Map.unmodifiable(roles),
             Map.unmodifiable(values),
-            Map.unmodifiable(refs)));
+            Map.unmodifiable(refs),
+            automaticallyDiscovered: identical(binding, automatic)));
       }
     }
     return matches.length == 1 ? matches.single : null;

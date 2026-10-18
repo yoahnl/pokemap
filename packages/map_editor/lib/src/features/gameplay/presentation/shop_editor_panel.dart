@@ -244,21 +244,27 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
       onRetryCatalog: widget.onRetryCatalog,
       onSave: _saveEntry,
       onRemove: _removeEntry,
+      sellPolicy: shop.sellPolicy,
+      onSellPolicyChanged: (policy) => _runMutation(() {
+        widget.controller.setSellPolicy(shop.id, policy);
+        return 'Politique de revente mise à jour.';
+      }),
     );
   }
 
   Widget _buildInspector(ShopDefinition shop) => ShopStateInspector(
-        shop: shop,
-        state: _selectedState,
-        onRenameShop: _renameShop,
-        onSaveState: _selectedState == null ? null : _saveStateSettings,
-        diagnostics: _simulationController.validate(
-          shop,
-          knownItemIds:
-              widget.controller.itemOptions.map((option) => option.id).toSet(),
-        ),
-        onDiagnosticSelected: _selectDiagnostic,
-      );
+    shop: shop,
+    state: _selectedState,
+    onRenameShop: _renameShop,
+    onSaveState: _selectedState == null ? null : _saveStateSettings,
+    diagnostics: _simulationController.validate(
+      shop,
+      knownItemIds: widget.controller.itemOptions
+          .map((option) => option.id)
+          .toSet(),
+    ),
+    onDiagnosticSelected: _selectDiagnostic,
+  );
 
   Widget _buildReferenceRepair(ShopDefinition shop) {
     final candidates = widget.controller.shops
@@ -472,6 +478,8 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
             price: draft.price,
             sellPrice: draft.sellPrice,
             stock: draft.stock,
+            maximumOwnedQuantity: draft.maximumOwnedQuantity,
+            purchaseBonus: draft.purchaseBonus,
           );
         } else {
           widget.controller.updateEntry(
@@ -480,6 +488,8 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
             price: draft.price,
             sellPrice: draft.sellPrice,
             stock: draft.stock,
+            maximumOwnedQuantity: draft.maximumOwnedQuantity,
+            purchaseBonus: draft.purchaseBonus,
           );
         }
       } else if (editing == null) {
@@ -490,6 +500,8 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
           price: draft.price,
           sellPrice: draft.sellPrice,
           stock: draft.stock,
+          maximumOwnedQuantity: draft.maximumOwnedQuantity,
+          purchaseBonus: draft.purchaseBonus,
         );
       } else {
         widget.controller.updateStateEntry(
@@ -499,6 +511,8 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
           price: draft.price,
           sellPrice: draft.sellPrice,
           stock: draft.stock,
+          maximumOwnedQuantity: draft.maximumOwnedQuantity,
+          purchaseBonus: draft.purchaseBonus,
         );
       }
       return editing == null ? 'Objet ajouté.' : 'Objet mis à jour.';

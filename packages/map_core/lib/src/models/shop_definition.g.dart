@@ -12,6 +12,14 @@ _ShopEntryDefinition _$ShopEntryDefinitionFromJson(Map<String, dynamic> json) =>
       price: _shopIntegerFromJson(json['price']),
       sellPrice: _shopNullableIntegerFromJson(json['sellPrice']),
       stock: _shopNullableIntegerFromJson(json['stock']),
+      maximumOwnedQuantity: _shopNullableIntegerFromJson(
+        json['maximumOwnedQuantity'],
+      ),
+      purchaseBonus: json['purchaseBonus'] == null
+          ? null
+          : ShopPurchaseBonus.fromJson(
+              json['purchaseBonus'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$ShopEntryDefinitionToJson(
@@ -21,6 +29,8 @@ Map<String, dynamic> _$ShopEntryDefinitionToJson(
   'price': instance.price,
   'sellPrice': instance.sellPrice,
   'stock': instance.stock,
+  'maximumOwnedQuantity': instance.maximumOwnedQuantity,
+  'purchaseBonus': instance.purchaseBonus?.toJson(),
 };
 
 _ShopDefinition _$ShopDefinitionFromJson(
@@ -38,6 +48,9 @@ _ShopDefinition _$ShopDefinitionFromJson(
           ?.map((e) => ShopStateDefinition.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  sellPolicy:
+      $enumDecodeNullable(_$ShopSellPolicyEnumMap, json['sellPolicy']) ??
+      ShopSellPolicy.listedEntries,
 );
 
 Map<String, dynamic> _$ShopDefinitionToJson(_ShopDefinition instance) =>
@@ -46,4 +59,10 @@ Map<String, dynamic> _$ShopDefinitionToJson(_ShopDefinition instance) =>
       'label': instance.label,
       'entries': instance.entries.map((e) => e.toJson()).toList(),
       'states': instance.states.map((e) => e.toJson()).toList(),
+      'sellPolicy': _$ShopSellPolicyEnumMap[instance.sellPolicy]!,
     };
+
+const _$ShopSellPolicyEnumMap = {
+  ShopSellPolicy.listedEntries: 'listedEntries',
+  ShopSellPolicy.catalogPrices: 'catalogPrices',
+};
