@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "suites": {
+    "test-journey": "phase_a_golden_slice_launch_test.dart",
+    "test-receipt": "narrative_runtime_smoke_receipt_file_integration_test.dart"
+  }
+}

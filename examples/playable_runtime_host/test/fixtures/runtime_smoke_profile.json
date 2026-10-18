@@ -1,0 +1,8 @@
+{
+  "id": "test-release-v1",
+  "version": 1,
+  "requiredSuiteIds": [
+    "test-journey",
+    "test-receipt"
+  ]
+}

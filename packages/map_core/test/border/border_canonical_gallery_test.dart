@@ -5,7 +5,7 @@ import '../fixtures/border/masonry_line_fixture.dart';
 import '../fixtures/border/connected_line_network_fixture.dart';
 import '../fixtures/border/organic_edge_reference_coast_fixture.dart';
 import '../fixtures/border/post_and_rail_line_fixture.dart';
-import '../fixtures/border/selbrume_two_tier_stone_chain_v4_fixture.dart';
+import '../fixtures/border/compact_two_tier_fixture.dart';
 import '../fixtures/border/stone_chain_line_fixture.dart';
 import '../fixtures/border/two_tier_stone_chain_fixture.dart';
 
@@ -486,12 +486,12 @@ void main() {
     test(
       'keeps the inverted sharp-corner face in its outgoing topological run',
       () {
-        final primitives = selbrumeTwoTierNeckPublishedPrimitives();
+        final primitives = compactTwoTierNeckPublishedPrimitives();
         final gallery = resolveBorderCanonicalGallery(
           blueprintId: 'border-blueprint-4',
-          blueprintRevision: selbrumeTwoTierV4Revision(primitives),
-          visualSnapshots: selbrumeTwoTierV4Snapshots(primitives),
-          tileSizePx: selbrumeTwoTierV4TileSize,
+          blueprintRevision: compactTwoTierRevision(primitives),
+          visualSnapshots: compactTwoTierSnapshots(primitives),
+          tileSizePx: compactTwoTierTileSize,
         );
         final sharpCorner = gallery.cases.singleWhere(
           (item) => item.galleryCase == BorderCanonicalGalleryCase.sharpCorner,
@@ -510,12 +510,12 @@ void main() {
 
     test('uses outgoing slot identity to disambiguate parallel S-bend runs',
         () {
-      final primitives = selbrumeTwoTierNeckPublishedPrimitives();
+      final primitives = compactTwoTierNeckPublishedPrimitives();
       final gallery = resolveBorderCanonicalGallery(
         blueprintId: 'border-blueprint-4',
-        blueprintRevision: selbrumeTwoTierV4Revision(primitives),
-        visualSnapshots: selbrumeTwoTierV4Snapshots(primitives),
-        tileSizePx: selbrumeTwoTierV4TileSize,
+        blueprintRevision: compactTwoTierRevision(primitives),
+        visualSnapshots: compactTwoTierSnapshots(primitives),
+        tileSizePx: compactTwoTierTileSize,
       );
       final bend = gallery.cases.singleWhere(
         (item) => item.galleryCase == BorderCanonicalGalleryCase.sBend,

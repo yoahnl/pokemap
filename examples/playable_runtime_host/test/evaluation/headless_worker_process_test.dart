@@ -8,14 +8,13 @@ import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
 import 'package:pokemap_loader/src/project_tree_digest.dart';
 
+import '../support/minimal_evaluation_project.dart';
+
 void main() {
   test('worker request round-trips through JSON', () {
     final request = _requestFixture();
 
-    expect(
-      EvaluationWorkerRequest.fromJson(request.toJson()),
-      request,
-    );
+    expect(EvaluationWorkerRequest.fromJson(request.toJson()), request);
   });
 
   test('worker result round-trips through JSON', () {
@@ -26,10 +25,7 @@ void main() {
       receiptPath: 'build/pokemap-eval/runs/run-001/receipt.json',
     );
 
-    expect(
-      EvaluationWorkerResult.fromJson(result.toJson()),
-      result,
-    );
+    expect(EvaluationWorkerResult.fromJson(result.toJson()), result);
   });
 
   test('portable worker fields reject absolute and escaping paths', () {
@@ -46,7 +42,7 @@ void main() {
     expect(
       () => EvaluationWorkerRequest.run(
         runId: 'run-escape',
-        projectRoot: 'selbrume',
+        projectRoot: 'synthetic',
         expectedProjectTreeHash: 'a' * 64,
         scenarioPath: '../scenario.json',
         outputDirectory: 'build/run-escape',
@@ -69,7 +65,7 @@ void main() {
   });
 
   test(
-    'real one-shot worker loads Selbrume without a desktop window',
+    'real one-shot worker loads a synthetic project without a desktop window',
     () async {
       final root = _repositoryRoot();
       final runId = 'run-worker-${DateTime.now().microsecondsSinceEpoch}';
@@ -80,19 +76,24 @@ void main() {
         if (await output.exists()) await output.delete(recursive: true);
       });
       await output.create(recursive: true);
+      final project = await (await createMinimalEvaluationProject(parent: output))
+          .rename(p.join(output.path, 'synthetic-project'));
+      final projectPath = p
+          .relative(project.path, from: root.path)
+          .replaceAll(r'\', '/');
       await scenario.writeAsString(
         jsonEncode(<String, Object?>{
           'schemaVersion': 1,
-          'id': 'selbrume.worker-smoke',
+          'id': 'synthetic.worker-smoke',
           'title': 'Worker smoke',
-          'projectId': 'selbrume',
+          'projectId': p.basename(project.path),
           'policy': 'certify',
           'start': <String, Object?>{'newGame': true},
           'steps': <Object?>[
             <String, Object?>{
               'id': 'initial-map',
               'assert': 'state.currentMapId',
-              'equals': 'map_bourg_selbrume',
+              'equals': 'start',
             },
           ],
           'criteria': <Object?>[
@@ -103,25 +104,27 @@ void main() {
           ],
         }),
       );
-      final scenarioPath =
-          p.relative(scenario.path, from: root.path).replaceAll(r'\', '/');
+      final scenarioPath = p
+          .relative(scenario.path, from: root.path)
+          .replaceAll(r'\', '/');
       final workerStderr = StringBuffer();
       final expectedProjectTreeHash = await const ProjectTreeDigest().compute(
-        Directory(p.join(root.path, 'selbrume')),
+        project,
       );
 
-      final result = await HeadlessWorkerProcess(
-        hostRoot: root,
-        stderrSink: workerStderr.write,
-      ).run(
-        EvaluationWorkerRequest.run(
-          runId: runId,
-          projectRoot: 'selbrume',
-          expectedProjectTreeHash: expectedProjectTreeHash,
-          scenarioPath: scenarioPath,
-          outputDirectory: relativeOutput,
-        ),
-      );
+      final result =
+          await HeadlessWorkerProcess(
+            hostRoot: root,
+            stderrSink: workerStderr.write,
+          ).run(
+            EvaluationWorkerRequest.run(
+              runId: runId,
+              projectRoot: projectPath,
+              expectedProjectTreeHash: expectedProjectTreeHash,
+              scenarioPath: scenarioPath,
+              outputDirectory: relativeOutput,
+            ),
+          );
 
       expect(
         result.status,
@@ -134,10 +137,7 @@ void main() {
         File(p.join(root.path, relativeOutput, 'events.jsonl')).existsSync(),
         isTrue,
       );
-      expect(
-        File(p.join(root.path, result.receiptPath!)).existsSync(),
-        isTrue,
-      );
+      expect(File(p.join(root.path, result.receiptPath!)).existsSync(), isTrue);
       final receipt = jsonDecode(
         await File(p.join(root.path, result.receiptPath!)).readAsString(),
       ) as Map<String, Object?>;
@@ -160,16 +160,12 @@ void main() {
   );
 }
 
-EvaluationWorkerRequest _requestFixture({
-  String runId = 'run-001',
-}) {
+EvaluationWorkerRequest _requestFixture({String runId = 'run-001'}) {
   return EvaluationWorkerRequest.run(
     runId: runId,
-    projectRoot: 'selbrume',
+    projectRoot: 'synthetic',
     expectedProjectTreeHash: 'a' * 64,
-    scenarioPath:
-        'examples/playable_runtime_host/evaluation/scenarios/selbrume/'
-        'shop_after_lysa.json',
+    scenarioPath: 'synthetic-scenario.json',
     outputDirectory: 'build/pokemap-eval/runs/$runId',
   );
 }

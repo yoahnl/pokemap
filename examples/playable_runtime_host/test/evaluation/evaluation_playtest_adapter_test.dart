@@ -8,7 +8,6 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_state_snapshot.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_playtest_adapter.dart';
-import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +20,7 @@ void main() {
       if (await projectRoot.exists()) await projectRoot.delete(recursive: true);
     });
     final projectFile = File('${projectRoot.path}/project.json');
-    await projectFile.writeAsString('{"id":"selbrume"}');
+    await projectFile.writeAsString('{"id":"synthetic"}');
     final beforeBytes = await projectFile.readAsBytes();
     final revision = await computeEvaluationProjectRevision(projectRoot);
     final sandboxes = <Directory>[];
@@ -44,7 +43,7 @@ void main() {
     final session = await port.start(
       PlaytestStartRequest(
         sessionId: 'session-070',
-        projectId: 'selbrume',
+        projectId: 'synthetic',
         projectRevision: revision,
         scenarioId: 'golden.slice',
         seed: 42,
@@ -71,120 +70,6 @@ void main() {
     expect(sandboxes, hasLength(1));
     expect(await sandboxes.single.exists(), isFalse);
   });
-
-  test('canonical port drives interactions on an isolated Selbrume QA copy',
-      () async {
-    late RuntimeEvaluationDriver runtimeDriver;
-    final sourceRoot =
-        Directory(p.join(_findRepositoryRoot().path, 'selbrume'));
-    final sourceRevision = await computeEvaluationProjectRevision(sourceRoot);
-    final qaRoot = await Directory.systemTemp.createTemp('ow001-selbrume-qa_');
-    addTearDown(() async {
-      if (await qaRoot.exists()) await qaRoot.delete(recursive: true);
-    });
-    final projectRoot =
-        await Directory(p.join(qaRoot.path, 'selbrume')).create();
-    await for (final entity
-        in sourceRoot.list(recursive: true, followLinks: false)) {
-      final target = p.join(
-        projectRoot.path,
-        p.relative(entity.path, from: sourceRoot.path),
-      );
-      if (entity is Directory) {
-        await Directory(target).create(recursive: true);
-      } else if (entity is File) {
-        await File(target).parent.create(recursive: true);
-        await entity.copy(target);
-      } else {
-        throw StateError('QA project copy refuses symbolic links.');
-      }
-    }
-    final revision = await computeEvaluationProjectRevision(projectRoot);
-    expect(revision, sourceRevision);
-    final port = RuntimePlaytestPort(
-      pokemonCatalogPreflight: _readyPokemonCatalog,
-      driverFactory: (request) => EvaluationPlaytestDriver.start(
-        request: request,
-        projectRoot: projectRoot,
-        driverFactory: ({required runId, required seed}) async {
-          expect(seed, 0);
-          runtimeDriver = await RuntimeEvaluationDriver.start(
-            projectRoot: projectRoot,
-            runId: runId,
-          );
-          return runtimeDriver;
-        },
-      ),
-    );
-    final session = await port.start(
-      PlaytestStartRequest(
-        sessionId: 'session-070-selbrume',
-        projectId: 'selbrume',
-        projectRevision: revision,
-        scenarioId: 'smoke.start',
-        seed: 0,
-      ),
-    );
-    addTearDown(session.stop);
-
-    final execution = await session.execute(
-      PlaytestCommand(
-        commandId: 'money',
-        operation: 'probe.setMoney',
-        arguments: const <String, Object?>{'value': 1123},
-      ),
-    );
-    expect(
-      (execution.snapshot.state['world']! as Map)['availableInteractions'],
-      runtimeDriver.game.overworldInteractionSnapshot.toJson(),
-    );
-    final repeated = await session.snapshot();
-    expect(repeated.stateDigest, execution.snapshot.stateDigest);
-    final observedActions = <RuntimeOverworldInteractionAction>[];
-    void observeInteraction() {
-      final action =
-          runtimeDriver.game.overworldInteractionSnapshot.primaryAction;
-      if (action != null) observedActions.add(action);
-    }
-    runtimeDriver.game.overworldInteractions.addListener(observeInteraction);
-    final interaction = await session.execute(
-      PlaytestCommand(
-        commandId: 'read-intro-sign',
-        operation: 'world.interact',
-        arguments: const <String, Object?>{'entityId': 'p6_03_intro_sign'},
-      ),
-    );
-    runtimeDriver.game.overworldInteractions
-        .removeListener(observeInteraction);
-    expect(
-      observedActions.any(
-        (action) => action.request.targetId == 'p6_03_intro_sign',
-      ),
-      isTrue,
-    );
-    expect(
-      (interaction.snapshot.state['world']! as Map)['availableInteractions'],
-      runtimeDriver.game.overworldInteractionSnapshot.toJson(),
-    );
-    expect(
-      runtimeDriver.game.gameStateSnapshot.storyFlags.activeFlags,
-      contains('p6.selbrume.first_interaction.seen'),
-    );
-    final receipt = await session.stop();
-
-    expect(
-      (execution.snapshot.state['trainer'] as Map)['money'],
-      1123,
-    );
-    expect(receipt.terminalState, PlaytestSessionState.stopped);
-    final finalQaRevision = await computeEvaluationProjectRevision(projectRoot);
-    final finalSourceRevision =
-        await computeEvaluationProjectRevision(sourceRoot);
-    expect(finalQaRevision, revision);
-    expect(finalSourceRevision, sourceRevision);
-    stdout.writeln('OW001 QA source=${sourceRoot.path} copy=${projectRoot.path} '
-        'before=$revision after=$finalQaRevision sourceAfter=$finalSourceRevision');
-  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('bounded player-state service drives Bag commands without durable writes',
       () async {
@@ -276,9 +161,9 @@ final class _FakeEvaluationDriver
 
   @override
   EvaluationStateSnapshot snapshot() => EvaluationStateSnapshot(
-        projectId: 'selbrume',
+        projectId: 'synthetic',
         runId: 'session-070',
-        mapId: 'map_bourg_selbrume',
+        mapId: 'map_bourg_synthetic',
         x: 4,
         y: 7,
         movementMode: 'walk',
@@ -323,17 +208,3 @@ final class _FakeEvaluationDriver
 Future<PokemonCatalogCoherenceReport> _readyPokemonCatalog(
   PlaytestStartRequest _,
 ) async => PokemonCatalogCoherenceReport(const []);
-
-Directory _findRepositoryRoot() {
-  var current = Directory.current.absolute;
-  while (true) {
-    if (File(p.join(current.path, 'AGENTS.md')).existsSync() &&
-        File(p.join(current.path, 'selbrume', 'project.json')).existsSync()) {
-      return current;
-    }
-    if (current.parent.path == current.path) {
-      throw StateError('pokemonProject repository root not found.');
-    }
-    current = current.parent;
-  }
-}

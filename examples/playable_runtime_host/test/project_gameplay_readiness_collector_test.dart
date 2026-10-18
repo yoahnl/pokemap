@@ -1,30 +1,13 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:pokemap_loader/src/project_gameplay_readiness_collector.dart';
-import 'package:path/path.dart' as p;
 
 void main() {
-  late ProjectManifest selbrume;
-
-  setUpAll(() async {
-    final file = File(p.join(
-      Directory.current.path,
-      '..',
-      '..',
-      'selbrume',
-      'project.json',
-    ));
-    selbrume = ProjectManifest.fromJson(
-      (jsonDecode(await file.readAsString()) as Map).cast<String, dynamic>(),
-    );
-  });
+  final project = _readinessProject();
 
   test('collects executable product and structural project readiness', () {
     final result = const ProjectGameplayReadinessCollector().collect(
-      project: selbrume,
+      project: project,
       receipt: _receipt(),
       expectedCommit: 'a' * 40,
       actualProjectTreeHashSha256: 'b' * 64,
@@ -39,7 +22,7 @@ void main() {
 
   test('rejects stale commit and changed project tree', () {
     final result = const ProjectGameplayReadinessCollector().collect(
-      project: selbrume,
+      project: project,
       receipt: _receipt(),
       expectedCommit: 'c' * 40,
       actualProjectTreeHashSha256: 'd' * 64,
@@ -54,9 +37,7 @@ void main() {
 
   test('rejects missing, duplicate or failed product observations', () {
     final missingCriteria = _criteria()
-        .where(
-          (item) => item.criterion != MvpProductCriterion.mvp09PcOverflow,
-        )
+        .where((item) => item.criterion != MvpProductCriterion.mvp09PcOverflow)
         .toList(growable: false);
     final duplicateCriteria = <MvpProductCriterionEvidence>[
       ..._criteria(),
@@ -86,7 +67,7 @@ void main() {
       failedCriteria,
     ]) {
       final result = const ProjectGameplayReadinessCollector().collect(
-        project: selbrume,
+        project: project,
         receipt: _receipt(criteria: criteria),
         expectedCommit: 'a' * 40,
         actualProjectTreeHashSha256: 'b' * 64,
@@ -98,7 +79,7 @@ void main() {
 
   test('a non-zero journey execution fails every derived check closed', () {
     final result = const ProjectGameplayReadinessCollector().collect(
-      project: selbrume,
+      project: project,
       receipt: _receipt(exitCode: 1),
       expectedCommit: 'a' * 40,
       actualProjectTreeHashSha256: 'b' * 64,
@@ -110,52 +91,54 @@ void main() {
     expect(result.report.errors, isNotEmpty);
   });
 
-  test('fails event-command readiness on an incomplete promoted capability',
-      () {
-    final result = const ProjectGameplayReadinessCollector().collect(
-      project: selbrume,
-      receipt: _receipt(),
-      expectedCommit: 'a' * 40,
-      actualProjectTreeHashSha256: 'b' * 64,
-      capabilityTruth: const [
-        ProjectCapabilityTruthRecord.promoted(
-          capabilityId: 'narrative.command.test',
-          authoringControl: 'Event Builder',
-          contractField: 'SceneConsequence.test',
-          runtimeConsumer: '',
-          playerSurface: 'Scene flow',
-          positiveTest: 'positive_test.dart',
-          negativeTest: 'negative_test.dart',
-        ),
-      ],
-    );
+  test(
+    'fails event-command readiness on an incomplete promoted capability',
+    () {
+      final result = const ProjectGameplayReadinessCollector().collect(
+        project: project,
+        receipt: _receipt(),
+        expectedCommit: 'a' * 40,
+        actualProjectTreeHashSha256: 'b' * 64,
+        capabilityTruth: const [
+          ProjectCapabilityTruthRecord.promoted(
+            capabilityId: 'narrative.command.test',
+            authoringControl: 'Event Builder',
+            contractField: 'SceneConsequence.test',
+            runtimeConsumer: '',
+            playerSurface: 'Scene flow',
+            positiveTest: 'positive_test.dart',
+            negativeTest: 'negative_test.dart',
+          ),
+        ],
+      );
 
-    expect(result.isReady, isFalse);
-    expect(
-      result.report.errors
-          .singleWhere(
-            (diagnostic) =>
-                diagnostic.check == ProjectGameplayReadinessCheck.eventCommands,
-          )
-          .summary,
-      contains('missingRuntimeConsumer'),
-    );
-  });
+      expect(result.isReady, isFalse);
+      expect(
+        result.report.errors
+            .singleWhere(
+              (diagnostic) =>
+                  diagnostic.check ==
+                  ProjectGameplayReadinessCheck.eventCommands,
+            )
+            .summary,
+        contains('missingRuntimeConsumer'),
+      );
+    },
+  );
 }
 
 MvpReleaseEvidenceReceipt _receipt({
   int exitCode = 0,
   List<MvpProductCriterionEvidence>? criteria,
-}) =>
-    MvpReleaseEvidenceReceipt.validated(
-      command: 'flutter test test/selbrume_player_journey_e2e_test.dart',
-      exitCode: exitCode,
-      releaseCandidateCommit: 'a' * 40,
-      capturedAtUtc: DateTime.utc(2026, 7, 23),
-      source: 'test/selbrume_player_journey_e2e_test.dart',
-      projectTreeHashSha256: 'b' * 64,
-      criteria: criteria ?? _criteria(),
-    );
+}) => MvpReleaseEvidenceReceipt.validated(
+  command: 'flutter test test/synthetic_player_journey_test.dart',
+  exitCode: exitCode,
+  releaseCandidateCommit: 'a' * 40,
+  capturedAtUtc: DateTime.utc(2026, 7, 23),
+  source: 'test/synthetic_player_journey_test.dart',
+  projectTreeHashSha256: 'b' * 64,
+  criteria: criteria ?? _criteria(),
+);
 
 List<MvpProductCriterionEvidence> _criteria() => MvpProductCriterion.values
     .map(
@@ -185,3 +168,97 @@ List<ProjectCapabilityTruthRecord> _truth() {
     negativeTests: attestation,
   );
 }
+
+ProjectManifest _readinessProject() => ProjectManifest(
+  name: 'Synthetic readiness project',
+  maps: [
+    for (final id in ['alpha', 'beta', 'gamma'])
+      ProjectMapEntry(id: id, name: id, relativePath: 'maps/$id.json'),
+  ],
+  tilesets: [],
+  newGame: const ProjectNewGameConfig(
+    enabled: true,
+    startMapId: 'alpha',
+    preSessionSceneId: 'prepare',
+    starterOptions: [
+      ProjectStarterOption(
+        id: 'choice',
+        label: 'Test companion',
+        pokemon: PlayerPokemon(
+          speciesId: 'fixture-species',
+          natureId: 'fixture-nature',
+          abilityId: 'fixture-ability',
+        ),
+      ),
+    ],
+  ),
+  encounterTables: const [
+    ProjectEncounterTable(
+      id: 'encounters',
+      name: 'Test encounters',
+      encounterKind: EncounterKind.walk,
+      entries: [
+        ProjectEncounterEntry(
+          speciesId: 'fixture-species',
+          minLevel: 2,
+          maxLevel: 3,
+        ),
+      ],
+    ),
+  ],
+  trainers: const [
+    ProjectTrainerEntry(
+      id: 'trainer',
+      name: 'Test trainer',
+      trainerClass: 'Test',
+      team: [
+        ProjectTrainerPokemonEntry(speciesId: 'fixture-species', level: 3),
+      ],
+    ),
+  ],
+  shops: const [
+    ShopDefinition(
+      id: 'shop',
+      label: 'Test shop',
+      entries: [ShopEntryDefinition(itemId: 'fixture-item', price: 10)],
+    ),
+  ],
+  dialogues: const [
+    ProjectDialogueEntry(
+      id: 'dialogue',
+      name: 'Test dialogue',
+      relativePath: 'dialogues/intro.yarn',
+    ),
+  ],
+  facts: [NarrativeFactDefinition(id: 'ready', label: 'Ready')],
+  storylines: [
+    StorylineAsset(
+      id: 'story',
+      title: 'Test progression',
+      type: StorylineType.main,
+    ),
+  ],
+  scenes: [
+    SceneAsset(
+      id: 'prepare',
+      name: 'Test setup',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'unlock',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload(
+              consequence: SceneUnlockFieldAbilityConsequence(
+                ability: FieldAbility.cut,
+              ),
+            ),
+          ),
+          SceneNode(id: 'condition', kind: SceneNodeKind.condition),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+      ),
+    ),
+  ],
+);

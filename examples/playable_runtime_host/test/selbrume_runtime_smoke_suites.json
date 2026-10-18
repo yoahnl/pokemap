@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1,
-  "suites": {
-    "selbrume-lighthouse-retry": "selbrume_lighthouse_retry_integration_test.dart",
-    "selbrume-player-journey": "selbrume_player_journey_e2e_test.dart"
-  }
-}

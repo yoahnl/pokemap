@@ -4,7 +4,10 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+
 import '../support/evaluation_game_fixtures.dart';
+import '../support/minimal_evaluation_project.dart';
+
 import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/runner/evaluation_checkpoint_cache.dart';
 
@@ -84,9 +87,8 @@ void main() {
     final provenance = _provenance();
     final entry = cache.entryDirectory('after-lysa', provenance);
     await entry.create(recursive: true);
-    await File(p.join(entry.path, 'manifest.json')).writeAsString(
-      jsonEncode(<String, Object?>{'schemaVersion': 1}),
-    );
+    await File(p.join(entry.path, 'manifest.json'))
+        .writeAsString(jsonEncode(<String, Object?>{'schemaVersion': 1}));
 
     expect(
       () => cache.load('after-lysa', provenance),
@@ -126,9 +128,8 @@ void main() {
       addTearDown(() => root.delete(recursive: true));
       final cache = EvaluationCheckpointCache(root: root);
       final provenance = _provenance();
-      final projectRoot = Directory(p.normalize(
-        p.join(Directory.current.path, '..', '..', 'selbrume'),
-      ));
+      final projectRoot = await createMinimalEvaluationProject();
+      addTearDown(() => projectRoot.delete(recursive: true));
       final first = await RuntimeEvaluationDriver.start(
         projectRoot: projectRoot,
         runId: 'checkpoint-producer',

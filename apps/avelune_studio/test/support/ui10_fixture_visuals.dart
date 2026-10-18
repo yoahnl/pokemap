@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:map_core/map_core.dart';
+import 'package:image/image.dart' as image;
 import 'ui07_story_fixture.dart';
 
 Future<void> seedUi10Visuals(
@@ -9,15 +10,16 @@ Future<void> seedUi10Visuals(
 }) async {
   final repo = Directory.current.parent.parent.path;
   final root = fixture.directory.path;
-  final assets = {
-    'grass': '$repo/selbrume/assets/tilesets/grass_texture.png',
-    'path': '$repo/selbrume/assets/tilesets/dirt_path.png',
-    'forest': '$repo/selbrume/assets/tilesets/selbrume_forest_props.png',
-    'actor':
-        '$repo/packages/map_editor/test/fixtures/cinematics/actor_sprite_test_sheet.png',
+  final assets = <String, List<int>>{
+    'grass': _syntheticAtlas(192, 128, 11),
+    'path': _syntheticAtlas(128, 96, 37),
+    'forest': _syntheticAtlas(256, 384, 83),
+    'actor': await File(
+      '$repo/packages/map_editor/test/fixtures/cinematics/actor_sprite_test_sheet.png',
+    ).readAsBytes(),
   };
   for (final entry in assets.entries) {
-    await File(entry.value).copy('$root/assets/ui10_${entry.key}.png');
+    await File('$root/assets/ui10_${entry.key}.png').writeAsBytes(entry.value);
   }
   var manifest = await fixture.readFresh();
   final frames = 64 ~/ tileSize;
@@ -87,7 +89,7 @@ Future<void> seedUi10Visuals(
       ProjectElementEntry(
         id: 'pine',
         categoryId: 'atelier',
-        name: 'Pin de Selbrume',
+        name: 'Bloc vertical synthétique',
         tilesetId: 'forest',
         frames: [
           TilesetVisualFrame(
@@ -104,7 +106,7 @@ Future<void> seedUi10Visuals(
       ProjectElementEntry(
         id: 'bench',
         categoryId: 'atelier',
-        name: 'Banc de Selbrume',
+        name: 'Bloc horizontal synthétique',
         tilesetId: 'forest',
         frames: [
           TilesetVisualFrame(
@@ -183,4 +185,15 @@ Future<void> seedUi10Visuals(
     MapValidator.validate(map, projectDialogueContext: manifest);
     await fixture.maps.saveMap(fixture.session, base, map);
   }
+}
+
+List<int> _syntheticAtlas(int width, int height, int seed) {
+  final pixels = image.Image(width: width, height: height, numChannels: 4);
+  for (var y = 0; y < height; y += 1) {
+    for (var x = 0; x < width; x += 1) {
+      pixels.setPixelRgba(x, y, (x * 3 + seed) % 256,
+          (y * 5 + seed) % 256, ((x ~/ 16 + y ~/ 16) * 29 + seed) % 256, 255);
+    }
+  }
+  return image.encodePng(pixels);
 }

@@ -9,7 +9,6 @@ import '../../../tools/performance/benchmark_support.dart';
 const _knownFixtures = <String>{
   'small',
   'intermediate',
-  'selbrume',
   'synthetic-10mb',
   'synthetic-65mb-asset',
 };
@@ -40,7 +39,7 @@ Future<void> main(List<String> arguments) async {
     }
     final fixtures = cli.strings(
       'fixtures',
-      fallback: 'small,intermediate,selbrume,synthetic-10mb',
+      fallback: 'small,intermediate,synthetic-10mb',
     );
     if (fixtures.isEmpty) {
       throw const FormatException('fixtures must not be empty');
@@ -363,8 +362,6 @@ Future<Directory> _resolveFixture(String name) async {
       return Directory(
         '${repository.path}/examples/playable_runtime_host/golden_fangame_slice',
       );
-    case 'selbrume':
-      return Directory('${repository.path}/selbrume');
     case 'synthetic-10mb':
       return _syntheticFixture();
     case 'synthetic-65mb-asset':

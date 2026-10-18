@@ -10,15 +10,14 @@ import '../tool/verify_narrative_project.dart';
 import 'support/runtime_smoke_profile_fixture.dart';
 
 void main() {
-  test('campaign harness keeps its explicit policy and suite data', () async {
+  test('generic harness keeps its explicit policy and suite data', () async {
     final profile = NarrativeRuntimeSmokeProfile.fromJson(
       jsonDecode(
-        await File('test/fixtures/selbrume_runtime_smoke_profile.json')
-            .readAsString(),
+        await File('test/fixtures/runtime_smoke_profile.json').readAsString(),
       ),
     );
     final suites = await loadNarrativeSuiteManifest(
-      File('test/selbrume_runtime_smoke_suites.json'),
+      File('test/runtime_smoke_suites.json'),
     );
     expect(suites.keys.toSet(), profile.requiredSuiteIds.toSet());
     for (final path in suites.values) {

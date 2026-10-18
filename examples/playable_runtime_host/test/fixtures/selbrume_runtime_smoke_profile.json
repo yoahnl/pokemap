@@ -1,8 +1,0 @@
-{
-  "id": "selbrume-release-v1",
-  "version": 1,
-  "requiredSuiteIds": [
-    "selbrume-lighthouse-retry",
-    "selbrume-player-journey"
-  ]
-}

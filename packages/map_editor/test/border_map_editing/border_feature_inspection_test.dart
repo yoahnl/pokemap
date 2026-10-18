@@ -3,17 +3,16 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_inspection.dart';
 
 import '../../../map_core/test/fixtures/border/two_tier_stone_chain_fixture.dart';
-import '../fixtures/border/stone_chain_visual_fixture.dart';
-import '../fixtures/border/two_tier_stone_chain_visual_fixture.dart';
+import '../fixtures/border/synthetic_border_inspection_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('reports the persisted stone-chain feature without mutating it',
       () async {
-    final fixture = await StoneChainVisualFixture.load();
+    final fixture = await SyntheticBorderInspectionFixture.load();
     final resolution = fixture.resolve(
-      fixture.cases.firstWhere((candidate) => candidate.id == 'l_primary'),
+      fixture.cases.firstWhere((candidate) => candidate.id == 'l_convex_primary'),
     );
     final materialization = resolution.evidence.result.materialization!;
     final source = resolution.feature;
@@ -33,7 +32,7 @@ void main() {
       id: 'inspection-map',
       name: 'Inspection map',
       version: ProjectVersion.v8,
-      size: stoneChainVisualMapSize,
+      size: twoTierStoneChainVisualMapSize,
       layers: <MapLayer>[
         MapLayer.border(
           id: 'inspection-layer',
@@ -286,7 +285,7 @@ void main() {
   test(
     'keeps primary and inverted L/S turn faces in their physical stroke',
     () async {
-      final fixture = await TwoTierStoneChainVisualFixture.load();
+      final fixture = await SyntheticBorderInspectionFixture.load();
       addTearDown(fixture.dispose);
 
       for (final caseAndTurn in const <(String, GridPos)>[
@@ -380,7 +379,7 @@ void main() {
 
   test('binds an inverted S shoulder to its outgoing run beside a parallel run',
       () async {
-    final fixture = await TwoTierStoneChainVisualFixture.load();
+    final fixture = await SyntheticBorderInspectionFixture.load();
     addTearDown(fixture.dispose);
     final scenario = _inspectInvertedSShoulder(
       fixture,
@@ -397,7 +396,7 @@ void main() {
   });
 
   test('leaves an unknown one-cell shoulder slot unassigned', () async {
-    final fixture = await TwoTierStoneChainVisualFixture.load();
+    final fixture = await SyntheticBorderInspectionFixture.load();
     addTearDown(fixture.dispose);
     final scenario = _inspectInvertedSShoulder(
       fixture,
@@ -573,7 +572,7 @@ BorderResolvedPlacement _withSlotAndAnchorCell(
     );
 
 StoneChainPlacedMask _maskForPlacement(
-  TwoTierStoneChainVisualFixture fixture,
+  SyntheticBorderInspectionFixture fixture,
   BorderResolvedPlacement placement,
 ) =>
     StoneChainPlacedMask(
@@ -584,7 +583,7 @@ StoneChainPlacedMask _maskForPlacement(
 
 ({int physicalInterlockPixels, Map<String, Object?> inspection})
     _inspectInvertedSShoulder(
-  TwoTierStoneChainVisualFixture fixture, {
+  SyntheticBorderInspectionFixture fixture, {
   required bool useKnownOutgoingSlot,
 }) {
   final visualCase = fixture.cases.singleWhere(
@@ -713,7 +712,7 @@ StoneChainPlacedMask _maskForPlacement(
 }
 
 bool _hasEffectiveEastOrientation(
-  TwoTierStoneChainVisualFixture fixture,
+  SyntheticBorderInspectionFixture fixture,
   BorderResolvedPlacement placement,
 ) {
   final authored =

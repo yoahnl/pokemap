@@ -11,6 +11,7 @@ import '../support/load_desktop_capture_fonts.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/m3_story_fixture.dart';
 import '../support/map_host_fixture.dart';
+import '../support/synthetic_pokemon_media.dart';
 import '../support/pokemon_external_source_fixture.dart';
 
 void main() {
@@ -128,7 +129,6 @@ void main() {
 Future<void> _seedVisualProject(M3StoryFixture fixture) async {
   const sample =
       '../../packages/map_editor/test/fixtures/manual_pokemon_import_pack_10';
-  const assets = '../../selbrume/assets/pokemon';
   final root = fixture.directory.path;
   for (final (speciesFile, id) in [
     ('0001-bulbasaur', 'bulbasaur'),
@@ -141,27 +141,26 @@ Future<void> _seedVisualProject(M3StoryFixture fixture) async {
       ('evolutions', '$id.json'),
       ('media', '$id.json'),
     ]) {
-      final data =
-          jsonDecode(await File('$sample/$family/$file').readAsString())
-              as Map<String, dynamic>;
+      final data = jsonDecode(
+        await File('$sample/$family/$file').readAsString(),
+      ) as Map<String, dynamic>;
       data['schemaVersion'] = 1;
       final destination = File('$root/data/pokemon/$family/$file');
       await destination.parent.create(recursive: true);
       await destination.writeAsString(jsonEncode(data));
     }
-    for (final (source, destination) in [
-      ('sprites/$id/front.png', 'sprites/$id/front.png'),
-      ('sprites/$id/back.png', 'sprites/$id/back.png'),
-      ('sprites/$id/front_shiny.png', 'sprites/$id/front_shiny.png'),
-      ('sprites/$id/back_shiny.png', 'sprites/$id/back_shiny.png'),
-      ('sprites/$id/front.png', 'sprites/$id/icon.png'),
-      ('sprites/$id/front.png', 'sprites/$id/party.png'),
-      ('portraits/$id.png', 'portraits/$id.png'),
-      ('cries/$id.ogg', 'cries/$id.ogg'),
+    for (final destination in [
+      'sprites/$id/front.png',
+      'sprites/$id/back.png',
+      'sprites/$id/front_shiny.png',
+      'sprites/$id/back_shiny.png',
+      'sprites/$id/icon.png',
+      'sprites/$id/party.png',
+      'portraits/$id.png',
     ]) {
       final target = File('$root/assets/pokemon/$destination');
       await target.parent.create(recursive: true);
-      await File('$assets/$source').copy(target.path);
+      await target.writeAsBytes(syntheticPokemonMediaPng(seed: id.length));
     }
   }
   final moves = File('$root/data/pokemon/catalogs/moves.json');

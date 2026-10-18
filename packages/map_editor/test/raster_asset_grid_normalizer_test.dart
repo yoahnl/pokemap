@@ -11,11 +11,22 @@ import '../tool/normalize_tileset_asset.dart' as normalize_cli;
 void main() {
   group('normalizeRasterAssetToGrid', () {
     test(
-      'pads the real 154x194 boat to 160x224 and preserves opaque pixels',
+      'pads a synthetic 154x194 raster and preserves every opaque pixel',
       () {
-        final sourceBytes = File(
-          '../../selbrume/assets/tilesets/bateau_selbrume.png',
-        ).readAsBytesSync();
+        final image = img.Image(width: 154, height: 194, numChannels: 4);
+        for (var y = 0; y < image.height; y += 1) {
+          for (var x = 0; x < image.width; x += 1) {
+            image.setPixelRgba(
+              x,
+              y,
+              x % 256,
+              y % 256,
+              (x + y) % 256,
+              (x + y) % 3 == 0 ? 128 : 255,
+            );
+          }
+        }
+        final sourceBytes = img.encodePng(image);
         final source = _decodePng(sourceBytes);
 
         expect((source.width, source.height), (154, 194));

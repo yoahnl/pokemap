@@ -14,7 +14,6 @@ Future<void> main(List<String> arguments) async {
   for (final fixture in {
     'S': 'examples/playable_runtime_host/golden_battle_slice',
     'M': 'examples/playable_runtime_host/golden_fangame_slice',
-    'L': 'selbrume',
   }.entries) {
     final parent = await Directory.systemTemp.createTemp(
       'uwu-catalogue-measure-',
