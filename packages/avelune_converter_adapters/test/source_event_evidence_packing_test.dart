@@ -76,6 +76,44 @@ List<int> _reassemble(List<NativeArtifact> artifacts) {
 }
 
 void main() {
+  test('distinct long page scopes fit without repeating every page hash', () {
+    const limits = NativeWriteLimits(
+        maxArtifacts: 1024,
+        maxMutations: 4096,
+        jsonLimits: ContractLimits(maxTextCodeUnits: 4194304));
+    final pages = [
+      for (var row = 0; row < 773; row++)
+        {'sourcePage': row, 'rawDataHash': 'f' * 64},
+    ];
+    final originals = [
+      for (var index = 0; index < 128; index++)
+        _context(index)
+          ..['proof'] = {
+            'mapAutonomyAudit': {
+              'pages': [
+                ...pages.skip(index),
+                ...pages.take(index),
+              ],
+            },
+          },
+    ];
+    final encoding =
+        SourceEventEvidenceEncoding(enabled: true, limits: limits);
+    final encoded = [
+      for (final original in originals) encoding.encodeContext(original),
+    ];
+    final payload = {'contexts': encoded, 'tables': encoding.tables};
+    final packed = SourceEventEvidenceArtifacts.pack(payload, limits: limits);
+    expect(_reassemble(packed.artifacts),
+        utf8.encode(canonicalJsonOf(payload, limits: limits.jsonLimits)));
+    final restored = SourceEventEvidenceEncoding.restoreContexts(
+        encoded, encoding.tables!,
+        limits: limits);
+    expect(restored.map(canonicalHashOf), originals.map(canonicalHashOf));
+    expect(canonicalJsonOf(payload, limits: limits.jsonLimits).length,
+        lessThan(1048576));
+  });
+
   test('the individual JSON hard limit remains exact at 1 MiB', () {
     final atBoundary = {'v': 'x' * (1048576 - 8)};
     final afterBoundary = {'v': 'x' * (1048576 - 7)};
@@ -245,6 +283,49 @@ void main() {
               Map<String, Object?>.from(badReference.single as Map)
             ], encoding.tables!, limits: _limits),
         throwsA(isA<NativeWriteException>()));
+  });
+
+  test('indexed page references reject malformed indexes and altered pages', () {
+    final encoding =
+        SourceEventEvidenceEncoding(enabled: true, limits: _limits);
+    final encoded = [encoding.encodeContext(_context(1))];
+    Map<String, Object?> copyTables() =>
+        jsonDecode(canonicalJsonOf(encoding.tables)) as Map<String, Object?>;
+    List<Map<String, Object?>?> copyContexts() =>
+        (jsonDecode(canonicalJsonOf(encoded)) as List)
+            .map((value) => Map<String, Object?>.from(value as Map))
+            .toList();
+    for (final index in <Object?>[-1, 100000, 0.5, true, '0', null]) {
+      final tables = copyTables();
+      final contexts = copyContexts();
+      final lists = tables['mapAutonomyPageLists'] as Map;
+      final pages = List<Object?>.from(lists.values.single as List);
+      pages[0] = index;
+      final hash = canonicalHashOf(pages).value;
+      lists
+        ..clear()
+        ..[hash] = pages;
+      ((contexts.single!['proof'] as Map)['mapAutonomyAudit'] as Map)
+          ['pageListRef'] = hash;
+      expect(
+          () => SourceEventEvidenceEncoding.restoreContexts(contexts, tables,
+              limits: _limits),
+          throwsA(isA<NativeWriteException>()),
+          reason: 'index=$index');
+    }
+    final altered = copyTables();
+    final row = (altered['mapAutonomyPages'] as Map)['0'] as Map;
+    (row['page'] as Map)['row'] = 1000;
+    final missingHash = copyTables();
+    ((missingHash['mapAutonomyPages'] as Map)['0'] as Map).remove('sha256');
+    final legacy = copyTables()
+      ..['contract'] = 'source-event-execution-context-tables-v1';
+    for (final tables in [altered, missingHash, legacy]) {
+      expect(
+          () => SourceEventEvidenceEncoding.restoreContexts(encoded, tables,
+              limits: _limits),
+          throwsA(isA<NativeWriteException>()));
+    }
   });
 
   test('disabled shared tables preserve the exact context representation', () {

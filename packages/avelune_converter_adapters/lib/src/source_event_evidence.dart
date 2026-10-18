@@ -107,6 +107,7 @@ final class SourceEventEvidenceEncoding {
 
   final bool enabled;
   final NativeWriteLimits limits;
+  final _pageReferences = <String, int>{};
   final _tables = <String, Map<String, Object?>>{
     'nativeBindings': {},
     'mapAutonomyPages': {},
@@ -129,6 +130,19 @@ final class SourceEventEvidenceEncoding {
     return hash;
   }
 
+  int _internPage(Object? page) {
+    final text = canonicalJsonOf(page, limits: limits.jsonLimits);
+    final hash = crypto.sha256.convert(utf8.encode(text)).toString();
+    return _pageReferences.putIfAbsent(hash, () {
+      final reference = _pageReferences.length;
+      _tables['mapAutonomyPages']!['$reference'] = {
+        'sha256': hash,
+        'page': jsonDecode(text),
+      };
+      return reference;
+    });
+  }
+
   Map<String, Object?>? encodeContext(Map<String, Object?>? original) {
     if (!enabled || original == null) return original;
     final context = Map<String, Object?>.from(original);
@@ -147,7 +161,7 @@ final class SourceEventEvidenceEncoding {
         final audit = Map<String, Object?>.from(rawAudit);
         audit['pageListRef'] = _intern('mapAutonomyPageLists', [
           for (final page in audit.remove('pages') as List)
-            _intern('mapAutonomyPages', page)
+            _internPage(page)
         ]);
         proof['mapAutonomyAudit'] = audit;
       }
@@ -166,7 +180,7 @@ final class SourceEventEvidenceEncoding {
       !enabled || _tables['nativeBindings']!.isEmpty
           ? null
           : {
-              'contract': 'source-event-execution-context-tables-v1',
+              'contract': 'source-event-execution-context-tables-v2',
               ..._tables
             };
 
@@ -176,7 +190,7 @@ final class SourceEventEvidenceEncoding {
     Never invalid() => throw const NativeWriteException(
         'events.evidence.binding',
         'Execution context evidence tables require exact hashes and references');
-    if (tables['contract'] != 'source-event-execution-context-tables-v1' ||
+    if (tables['contract'] != 'source-event-execution-context-tables-v2' ||
         tables.length != 5) {
       invalid();
     }
@@ -193,6 +207,29 @@ final class SourceEventEvidenceEncoding {
       used.putIfAbsent(table, () => {}).add(ref);
       return jsonDecode(
           canonicalJsonOf(entries[ref], limits: limits.jsonLimits));
+    }
+
+    Object? resolvePage(Object? reference) {
+      final entries = tables['mapAutonomyPages'];
+      if (entries is! Map ||
+          reference is! int ||
+          reference < 0 ||
+          reference >= entries.length) {
+        invalid();
+      }
+      final key = reference.toString();
+      final entry = entries[key];
+      if (entry is! Map ||
+          entry.length != 2 ||
+          !entry.containsKey('page') ||
+          entry['sha256'] is! String ||
+          canonicalHashOf(entry['page'], limits: limits.jsonLimits).value !=
+              entry['sha256']) {
+        invalid();
+      }
+      used.putIfAbsent('mapAutonomyPages', () => {}).add(key);
+      return jsonDecode(
+          canonicalJsonOf(entry['page'], limits: limits.jsonLimits));
     }
 
     final restored = <Map<String, Object?>?>[];
@@ -223,7 +260,7 @@ final class SourceEventEvidenceEncoding {
             invalid();
           }
           audit['pages'] = [
-            for (final ref in refs) resolve('mapAutonomyPages', ref)
+            for (final ref in refs) resolvePage(ref)
           ];
           proof['mapAutonomyAudit'] = audit;
         }
