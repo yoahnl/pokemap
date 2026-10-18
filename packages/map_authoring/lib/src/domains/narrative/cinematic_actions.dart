@@ -97,7 +97,7 @@ final class CinematicActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'cinematic.upsert',
-      'Create or update a cinematic; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
+      'Create or update a cinematic; actorMove metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
       resourceKinds: const ['project', 'cinematic'],
     ),
     narrativeActionDescriptor(
@@ -408,7 +408,18 @@ CinematicAsset? _findCinematic(ProjectManifest project, String id) {
 
 CinematicAsset _decodeCinematic(Map<String, dynamic> json) {
   try {
-    return CinematicAsset.fromJson(json);
+    final asset = CinematicAsset.fromJson(json);
+    for (final step in asset.timeline.steps) {
+      if (step.kind == CinematicTimelineStepKind.actorMove &&
+          cinematicTimelineActorFacingModeOf(step) == null) {
+        throw ArgumentError.value(
+          step.metadata[cinematicTimelineActorFacingModeMetadataKey],
+          cinematicTimelineActorFacingModeMetadataKey,
+          'Actor move facing mode must be followMovement or preserve.',
+        );
+      }
+    }
+    return asset;
   } on Object catch (error) {
     throw NarrativeAuthoringException(
       'cinematic.invalid',

@@ -1,15 +1,114 @@
-import 'package:flame/components.dart';
+import 'package:flame/game.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-      'PlayableMapGame renders and awaits a cinematic before restoring input and camera',
-      () async {
+  testWidgets('real player preserves facing during a cinematic move', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final cinematic = CinematicAsset(
+        id: 'cinematic_lighthouse',
+        title: 'Actor movement',
+        mapId: 'map_port',
+        requiredActors: [CinematicActorRef(actorId: 'hero')],
+        movementTargets: [
+          CinematicMovementTargetRef(targetId: 'end', label: 'End'),
+        ],
+        stageContext: CinematicStageContext(
+          actorBindings: [
+            CinematicActorBinding(
+              actorId: 'hero',
+              kind: CinematicActorBindingKind.player,
+            ),
+          ],
+          movementTargetBindings: [
+            CinematicMovementTargetBinding(
+              targetId: 'end',
+              kind: CinematicMovementTargetBindingKind.stagePoint,
+              sourceId: 'end',
+            ),
+          ],
+          stagePoints: [
+            CinematicStagePoint(id: 'end', label: 'End', x: 4, y: 2),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'face',
+              kind: CinematicTimelineStepKind.actorFace,
+              actorId: 'hero',
+              metadata: const {'actor.direction': 'left'},
+            ),
+            CinematicTimelineStep(
+              id: 'move',
+              kind: CinematicTimelineStepKind.actorMove,
+              actorId: 'hero',
+              targetId: 'end',
+              durationMs: 1000,
+              metadata: const {
+                'actor.movementMode': 'walk',
+                'actor.pathMode': 'direct',
+                'actor.facingMode': 'preserve',
+              },
+            ),
+            CinematicTimelineStep(
+              id: 'line',
+              kind: CinematicTimelineStepKind.dialogueLine,
+              dialogueText: 'Finished',
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _bundle(cinematic: cinematic),
+        projectFilePath: '/tmp/cinematic_runtime/project.json',
+      );
+      game.onGameResize(Vector2(320, 240));
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: GameWidget(game: game),
+        ),
+      );
+      await game.loaded;
+      await tester.pump();
+      addTearDown(game.onRemove);
+      await _waitForInitialMapActivation(game);
+      final player = game.world.children.whereType<PlayerComponent>().single;
+      final initialPosition = player.position.clone();
+      final completion = game.debugExecuteNarrativeSceneForTest(
+        NarrativeSceneExecutionRequest(
+          eventId: 'event',
+          sceneId: 'scene_cinematic_runtime',
+          executionId: 'run',
+          gameState: game.gameStateSnapshot,
+        ),
+      );
+      await _waitUntil(game, () => game.debugIsCinematicPlaying);
+      game.update(.5);
+      expect(player.position.x, greaterThan(initialPosition.x));
+      expect(player.cinematicFacing, EntityFacing.west);
+      game.update(.5);
+      expect(player.cinematicFacing, EntityFacing.west);
+      expect(game.debugCinematicDialogueLine, 'Finished');
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      );
+      expect(await completion, isA<NarrativeSceneExecutionCompleted>());
+      expect(game.debugIsCinematicPlaying, isFalse);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+  });
+
+  test('PlayableMapGame renders and awaits a cinematic before restoring input and camera', () async {
     final game = _LifecycleTestPlayableMapGame(
       bundle: _bundle(),
       projectFilePath: '/tmp/cinematic_runtime/project.json',
@@ -93,10 +192,7 @@ Future<void> _waitForInitialMapActivation(PlayableMapGame game) async {
   fail('Initial map activation did not settle.');
 }
 
-Future<void> _waitUntil(
-  PlayableMapGame game,
-  bool Function() condition,
-) async {
+Future<void> _waitUntil(PlayableMapGame game, bool Function() condition) async {
   for (var i = 0; i < 100; i++) {
     if (condition()) return;
     game.update(0);
@@ -105,7 +201,7 @@ Future<void> _waitUntil(
   fail('Runtime condition did not settle.');
 }
 
-RuntimeMapBundle _bundle() {
+RuntimeMapBundle _bundle({CinematicAsset? cinematic}) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
       name: 'Cinematic runtime integration',
@@ -117,16 +213,14 @@ RuntimeMapBundle _bundle() {
         ),
       ],
       tilesets: const <ProjectTilesetEntry>[],
-      cinematics: <CinematicAsset>[_cinematic()],
+      cinematics: <CinematicAsset>[cinematic ?? _cinematic()],
       scenes: <SceneAsset>[_scene()],
     ),
     map: const MapData(
       id: 'map_port',
       name: 'Port',
       size: GridSize(width: 20, height: 15),
-      layers: <MapLayer>[
-        MapLayer.object(id: 'objects', name: 'Objects'),
-      ],
+      layers: <MapLayer>[MapLayer.object(id: 'objects', name: 'Objects')],
       entities: <MapEntity>[
         MapEntity(
           id: 'spawn_start',
@@ -154,12 +248,7 @@ CinematicAsset _cinematic() {
     mapId: 'map_port',
     stageContext: CinematicStageContext(
       stagePoints: <CinematicStagePoint>[
-        CinematicStagePoint(
-          id: 'lighthouse',
-          label: 'Phare',
-          x: 15,
-          y: 10,
-        ),
+        CinematicStagePoint(id: 'lighthouse', label: 'Phare', x: 15, y: 10),
       ],
     ),
     timeline: CinematicTimeline(

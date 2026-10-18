@@ -1617,6 +1617,7 @@ class _HarnessState extends State<_Harness> {
                 String? targetId,
                 int? durationMs,
                 CinematicTimelineActorMovementMode? movementMode,
+                CinematicTimelineActorFacingMode? facingMode,
               }) async {
                 final result = updateCinematicTimelineActorMoveStep(
                   _project,

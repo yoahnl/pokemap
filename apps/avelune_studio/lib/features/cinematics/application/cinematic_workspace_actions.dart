@@ -50,6 +50,8 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
     int durationMs = 1000,
     CinematicTimelineActorMovementMode movementMode =
         CinematicTimelineActorMovementMode.walk,
+    CinematicTimelineActorFacingMode facingMode =
+        CinematicTimelineActorFacingMode.followMovement,
   }) => _added(
     (a) => addCinematicTimelineActorMoveStep(
       _with(a),
@@ -59,6 +61,7 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
       afterStepId: afterStepId,
       durationMs: durationMs,
       movementMode: movementMode,
+      facingMode: facingMode,
     ).cinematic,
   );
   String? addEmote(

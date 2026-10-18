@@ -7,6 +7,72 @@ import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.
 
 void main() {
   test(
+    'preserve facing survives every segment and commits the same pose',
+    () async {
+      final host = _Host();
+      final base = _asset(manual: true);
+      final move = base.timeline.steps.single;
+      final asset = base.copyWith(
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'face',
+              kind: CinematicTimelineStepKind.actorFace,
+              actorId: 'guide',
+              metadata: const {'actor.direction': 'left'},
+            ),
+            CinematicTimelineStep.fromJson({
+              ...move.toJson(),
+              'metadata': {...move.metadata, 'actor.facingMode': 'preserve'},
+            }),
+          ],
+        ),
+      );
+      final controller = host.controller();
+      final completion = controller.play(asset);
+      controller.update(const Duration(milliseconds: 500));
+      expect(host.pose.x, 3);
+      expect(host.pose.facing, EntityFacing.west);
+      controller.update(const Duration(milliseconds: 400));
+      expect(host.pose.z, greaterThan(2));
+      expect(host.pose.facing, EntityFacing.west);
+      controller.update(const Duration(milliseconds: 100));
+      expect((await completion).success, isTrue);
+      expect(host.committed.single.facing, EntityFacing.west);
+      expect(host.pose.motion, CharacterAnimationState.idle);
+    },
+  );
+
+  test(
+    'cancelled preserve move restores its initial facing and position',
+    () async {
+      final host = _Host();
+      final original = host.pose;
+      final base = _asset();
+      final move = base.timeline.steps.single;
+      final controller = host.controller();
+      final completion = controller.play(
+        base.copyWith(
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep.fromJson({
+                ...move.toJson(),
+                'metadata': {...move.metadata, 'actor.facingMode': 'preserve'},
+              }),
+            ],
+          ),
+        ),
+      );
+      controller.update(const Duration(milliseconds: 500));
+      expect(host.pose.facing, EntityFacing.north);
+      controller.cancel();
+      expect((await completion).success, isFalse);
+      expect(host.pose, original);
+      expect(host.committed, isEmpty);
+    },
+  );
+
+  test(
       'manual route follows distance in map units and commits its terminal pose',
       () async {
     final host = _Host();

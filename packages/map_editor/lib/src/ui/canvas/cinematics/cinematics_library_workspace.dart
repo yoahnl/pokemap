@@ -172,6 +172,7 @@ typedef UpdateTimelineActorMoveCallback =
       String? targetId,
       int? durationMs,
       CinematicTimelineActorMovementMode? movementMode,
+      CinematicTimelineActorFacingMode? facingMode,
     });
 
 typedef AddTimelineActorEmoteCallback =

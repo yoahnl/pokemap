@@ -188,6 +188,23 @@ extension CinematicInspectorStep on CinematicInspector {
           ).cinematic,
         ),
       ),
+      StudioSelect(
+        label: 'Orientation pendant le déplacement',
+        value: cinematicTimelineActorFacingModeOf(step)?.name,
+        options: const {
+          'followMovement': 'Suivre le déplacement',
+          'preserve': 'Conserver l’orientation',
+        },
+        onChanged: (value) => _edit(
+          asset,
+          (a) => updateCinematicTimelineActorMoveStep(
+            _project(a),
+            cinematicId: a.id,
+            stepId: step.id,
+            facingMode: CinematicTimelineActorFacingMode.values.byName(value),
+          ).cinematic,
+        ),
+      ),
       StudioButton(
         label: 'Ajouter un point de trajet',
         secondary: true,

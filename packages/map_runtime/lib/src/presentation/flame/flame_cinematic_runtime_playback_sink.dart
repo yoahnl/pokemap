@@ -777,8 +777,18 @@ final class FlameCinematicRuntimePlaybackSink
     final actor = _requireActor(context.step.actorId);
     final route = _movementRoute(context.asset, context.step)!;
     final points = <Vector2>[actor.focusPoint.clone(), ...route];
-    _stepState = _ActorMoveStepState(actor: actor, points: points,
-      motion: cinematicTimelineActorMovementModeOf(context.step) == CinematicTimelineActorMovementMode.run ? CharacterAnimationState.run : CharacterAnimationState.walk);
+    _stepState = _ActorMoveStepState(
+      actor: actor,
+      points: points,
+      preservedFacing: cinematicTimelineActorFacingModeOf(context.step) ==
+              CinematicTimelineActorFacingMode.preserve
+          ? actor.facing
+          : null,
+      motion: cinematicTimelineActorMovementModeOf(context.step) ==
+              CinematicTimelineActorMovementMode.run
+          ? CharacterAnimationState.run
+          : CharacterAnimationState.walk,
+    );
     _applyActorMoveState(_stepState! as _ActorMoveStepState, 0);
     if (actor is FlameCinematicCharacterAnimationActorHandle) {
       actor.restoreBase(actor.facing);
@@ -810,9 +820,9 @@ final class FlameCinematicRuntimePlaybackSink
       for (final point in state.points) (x: point.x, y: point.y),
     ], progress, coordinateWidth: width.toDouble(), coordinateHeight: height.toDouble());
     final actor = state.actor;
-    final facing = sample.segment < 0 ? actor.facing : _facingBetween(
+    final facing = state.preservedFacing ?? (sample.segment < 0 ? actor.facing : _facingBetween(
       Vector2(state.points[sample.segment].x / width, state.points[sample.segment].y / height),
-      Vector2(state.points[sample.segment + 1].x / width, state.points[sample.segment + 1].y / height), actor.facing);
+      Vector2(state.points[sample.segment + 1].x / width, state.points[sample.segment + 1].y / height), actor.facing));
     if (actor is FlameCinematicMotionActorHandle) {
       actor.setMotion(facing, progress >= 1 ? CharacterAnimationState.idle : state.motion);
     } else {
@@ -1047,11 +1057,17 @@ final class _CameraStepState extends _FlameCinematicStepState {
 }
 
 final class _ActorMoveStepState extends _FlameCinematicStepState {
-  const _ActorMoveStepState({required this.actor, required this.points, required this.motion});
+  const _ActorMoveStepState({
+    required this.actor,
+    required this.points,
+    required this.motion,
+    required this.preservedFacing,
+  });
 
   final FlameCinematicRuntimeActorHandle actor;
   final List<Vector2> points;
   final CharacterAnimationState motion;
+  final EntityFacing? preservedFacing;
 }
 
 final class _ActorEmoteStepState extends _FlameCinematicStepState {

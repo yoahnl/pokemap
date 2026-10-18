@@ -748,6 +748,8 @@ enum CinematicTimelineActorMovementMode {
   run,
 }
 
+enum CinematicTimelineActorFacingMode { followMovement, preserve }
+
 enum CinematicTimelineActorPathMode {
   direct,
   manual,
@@ -772,6 +774,7 @@ const cinematicTimelineActorFaceBlockMetadataValue = 'actorFace';
 const cinematicTimelineActorMoveBlockMetadataValue = 'actorMove';
 const cinematicTimelineActorEmoteBlockMetadataValue = 'actorEmote';
 const cinematicTimelineActorMovementModeMetadataKey = 'actor.movementMode';
+const cinematicTimelineActorFacingModeMetadataKey = 'actor.facingMode';
 const cinematicTimelineActorPathModeMetadataKey = 'actor.pathMode';
 const cinematicTimelineActorEmoteEmoteIdMetadataKey = 'actor.emoteId';
 const cinematicTimelineCommandVolumeMetadataKey = 'media.volume';
@@ -1976,6 +1979,8 @@ CinematicTimelineActorMoveStepResult addCinematicTimelineActorMoveStep(
   int? durationMs,
   CinematicTimelineActorMovementMode movementMode =
       CinematicTimelineActorMovementMode.walk,
+  CinematicTimelineActorFacingMode facingMode =
+      CinematicTimelineActorFacingMode.followMovement,
   String? afterStepId,
 }) {
   final cinematic = _requireCinematic(project, cinematicId);
@@ -1994,6 +1999,7 @@ CinematicTimelineActorMoveStepResult addCinematicTimelineActorMoveStep(
     target: target,
     durationMs: durationMs ?? cinematicTimelineDefaultActorMoveDurationMs,
     movementMode: movementMode,
+    facingMode: facingMode,
   );
   steps.insert(insertIndex, step);
 
@@ -2017,6 +2023,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
   String? targetId,
   int? durationMs,
   CinematicTimelineActorMovementMode? movementMode,
+  CinematicTimelineActorFacingMode? facingMode,
 }) {
   final cinematic = _requireCinematic(project, cinematicId);
   final id = _trimRequired(
@@ -2060,8 +2067,12 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
 
   final metadata = Map<String, String>.of(step.metadata)
     ..[cinematicTimelineActorMovementModeMetadataKey] = updatedMovementMode.name
+    ..[cinematicTimelineActorFacingModeMetadataKey] =
+        (facingMode ?? cinematicTimelineActorFacingModeOf(step)!).name
     ..[cinematicTimelineActorPathModeMetadataKey] =
-        CinematicTimelineActorPathMode.direct.name;
+        actor.actorId != step.actorId || target.targetId != step.targetId
+            ? CinematicTimelineActorPathMode.direct.name
+            : cinematicTimelineActorPathModeOf(step)!.name;
   final updatedStep = CinematicTimelineStep(
     id: step.id,
     kind: step.kind,
@@ -2431,9 +2442,18 @@ bool isCinematicTimelineActorMoveStep(CinematicTimelineStep step) {
     return false;
   }
   final pathMode = cinematicTimelineActorPathModeOf(step);
-  return pathMode == CinematicTimelineActorPathMode.direct ||
-      pathMode == CinematicTimelineActorPathMode.manual;
+  return cinematicTimelineActorFacingModeOf(step) != null &&
+      (pathMode == CinematicTimelineActorPathMode.direct ||
+          pathMode == CinematicTimelineActorPathMode.manual);
 }
+
+CinematicTimelineActorFacingMode? cinematicTimelineActorFacingModeOf(
+  CinematicTimelineStep step,
+) => switch (step.metadata[cinematicTimelineActorFacingModeMetadataKey]) {
+      null || 'followMovement' => CinematicTimelineActorFacingMode.followMovement,
+      'preserve' => CinematicTimelineActorFacingMode.preserve,
+      _ => null,
+    };
 
 CinematicTimelineActorMovementMode? cinematicTimelineActorMovementModeOf(
   CinematicTimelineStep step,
@@ -3022,6 +3042,16 @@ void _validateCinematicShape(CinematicAsset cinematic) {
     'cinematic.title',
     'CinematicAsset title is required.',
   );
+  for (final step in cinematic.timeline.steps) {
+    if (step.kind == CinematicTimelineStepKind.actorMove &&
+        cinematicTimelineActorFacingModeOf(step) == null) {
+      throw ArgumentError.value(
+        step.metadata[cinematicTimelineActorFacingModeMetadataKey],
+        cinematicTimelineActorFacingModeMetadataKey,
+        'Actor move facing mode must be followMovement or preserve.',
+      );
+    }
+  }
 }
 
 void _throwIfDuplicateId(String id, Iterable<String> existingIds) {
@@ -3259,6 +3289,7 @@ CinematicTimelineStep _buildActorMoveStep(
   required CinematicMovementTargetRef target,
   required int durationMs,
   required CinematicTimelineActorMovementMode movementMode,
+  required CinematicTimelineActorFacingMode facingMode,
 }) {
   return CinematicTimelineStep(
     id: _nextTimelineStepId(cinematic, 'step_actor_move'),
@@ -3279,6 +3310,7 @@ CinematicTimelineStep _buildActorMoveStep(
       cinematicTimelineAuthoringBlockMetadataKey:
           cinematicTimelineActorMoveBlockMetadataValue,
       cinematicTimelineActorMovementModeMetadataKey: movementMode.name,
+      cinematicTimelineActorFacingModeMetadataKey: facingMode.name,
       cinematicTimelineActorPathModeMetadataKey:
           CinematicTimelineActorPathMode.direct.name,
     },

@@ -122,6 +122,7 @@ typedef UpdateCinematicActorMoveStepCallback = Future<bool> Function({
   String? targetId,
   int? durationMs,
   CinematicTimelineActorMovementMode? movementMode,
+  CinematicTimelineActorFacingMode? facingMode,
 });
 
 typedef AddCinematicActorEmoteStepCallback = Future<String?> Function({
@@ -229,6 +230,7 @@ typedef _UpdateActorMoveCallback = Future<void> Function(
   String? targetId,
   int? durationMs,
   CinematicTimelineActorMovementMode? movementMode,
+  CinematicTimelineActorFacingMode? facingMode,
 });
 
 typedef _UpdateActorEmoteCallback = Future<void> Function(
@@ -1989,6 +1991,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     String? targetId,
     int? durationMs,
     CinematicTimelineActorMovementMode? movementMode,
+    CinematicTimelineActorFacingMode? facingMode,
   }) async {
     if (!isCinematicTimelineActorMoveStep(step)) {
       return;
@@ -2000,6 +2003,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       targetId: targetId,
       durationMs: durationMs,
       movementMode: movementMode,
+      facingMode: facingMode,
     );
     if (!mounted || !updated || durationMs == null) {
       return;
@@ -12692,6 +12696,32 @@ class _ActorMoveControls extends StatelessWidget {
                   size: PokeMapButtonSize.small,
                   isSelected: currentMovementMode == mode,
                   leading: Icon(_actorMovementModeIcon(mode)),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const _KeyValue(
+          label: 'Orientation pendant le déplacement',
+          value: 'Suivre ou conserver',
+        ),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final mode in CinematicTimelineActorFacingMode.values)
+              _InlineControlAction(
+                label: mode == CinematicTimelineActorFacingMode.preserve
+                    ? 'Conserver l’orientation'
+                    : 'Suivre le déplacement',
+                button: PokeMapButton(
+                  key: ValueKey('cinematic-builder-actor-facing-mode-${mode.name}'),
+                  onPressed: () => onUpdateActorMove(step, facingMode: mode),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: cinematicTimelineActorFacingModeOf(step) == mode,
+                  leading: const Icon(CupertinoIcons.compass, size: 12),
                   child: const SizedBox.shrink(),
                 ),
               ),

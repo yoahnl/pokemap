@@ -22,6 +22,7 @@ enum CinematicPreviewPlaybackDiagnosticCode {
   cinematicPreviewPlaybackActorMissing,
   cinematicPreviewPlaybackActorInitialPoseMissing,
   cinematicPreviewPlaybackMoveDestinationMissing,
+  cinematicPreviewPlaybackMoveFacingModeInvalid,
   cinematicPreviewPlaybackManualPathMissing,
   cinematicPreviewPlaybackManualPathPointMissing,
   cinematicPreviewPlaybackManualPathZeroLength,
@@ -1510,6 +1511,16 @@ _ActorMovePlaybackPlan _buildActorMovePlan({
 
   final pathMode = cinematicTimelineActorPathModeOf(step) ??
       CinematicTimelineActorPathMode.direct;
+  final facingMode = cinematicTimelineActorFacingModeOf(step);
+  if (facingMode == null) {
+    diagnostics.add(CinematicPreviewPlaybackDiagnostic(
+      code: CinematicPreviewPlaybackDiagnosticCode.cinematicPreviewPlaybackMoveFacingModeInvalid,
+      severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+      message: 'Le mode d’orientation du déplacement n’est pas valide.',
+      stepId: step.id,
+      actorId: actorId,
+    ));
+  }
   final destination = stageContext == null
       ? resolvedMovementTargets[step.targetId]
       : _movementTargetPoint(
@@ -1537,6 +1548,7 @@ _ActorMovePlaybackPlan _buildActorMovePlan({
       stepId: step.id,
       actorId: actorId ?? '',
       pathMode: pathMode,
+      facingMode: facingMode,
       destination: destination,
       waypoints: const [],
     );
@@ -1619,6 +1631,7 @@ _ActorMovePlaybackPlan _buildActorMovePlan({
     stepId: step.id,
     actorId: actorId ?? '',
     pathMode: pathMode,
+    facingMode: facingMode,
     destination: destination,
     waypoints: waypoints,
   );
@@ -1705,7 +1718,7 @@ CinematicActorPlaybackPose _poseForMove({
   required CinematicPreviewPlaybackTimelineItem item,
   required int clampedTimeMs,
 }) {
-  if (!current.hasPosition || movePlan.destination == null) {
+  if (!current.hasPosition || movePlan.destination == null || movePlan.facingMode == null) {
     return current.copyWith(isInterpolated: false, activeStepId: item.stepId);
   }
 
@@ -1734,7 +1747,9 @@ CinematicActorPlaybackPose _poseForMove({
     actorLabel: current.actorLabel,
     x: interpolation.point.x,
     y: interpolation.point.y,
-    facing: interpolation.facing ?? current.facing,
+    facing: movePlan.facingMode == CinematicTimelineActorFacingMode.preserve
+        ? current.facing
+        : interpolation.facing ?? current.facing,
     source: source,
     isInterpolated: isInterpolated,
     activeStepId: item.stepId,
@@ -2186,9 +2201,10 @@ CinematicActorEmotePlaybackState _emotePlaybackStateFor({
 
 bool _stepSupportedForPlayback(CinematicTimelineStep step) {
   return switch (step.kind) {
+    CinematicTimelineStepKind.actorMove =>
+      cinematicTimelineActorFacingModeOf(step) != null,
     CinematicTimelineStepKind.wait ||
     CinematicTimelineStepKind.actorFace ||
-    CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.fade ||
     CinematicTimelineStepKind.actorEmote ||
     CinematicTimelineStepKind.actorAnimation =>
@@ -2476,6 +2492,7 @@ final class _ActorMovePlaybackPlan {
     required this.stepId,
     required this.actorId,
     required this.pathMode,
+    required this.facingMode,
     required this.destination,
     required List<CinematicPreviewPlaybackPoint> waypoints,
   }) : waypoints = List<CinematicPreviewPlaybackPoint>.unmodifiable(waypoints);
@@ -2483,6 +2500,7 @@ final class _ActorMovePlaybackPlan {
   final String stepId;
   final String actorId;
   final CinematicTimelineActorPathMode pathMode;
+  final CinematicTimelineActorFacingMode? facingMode;
   final CinematicPreviewPlaybackPoint? destination;
   final List<CinematicPreviewPlaybackPoint> waypoints;
 }

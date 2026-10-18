@@ -4512,6 +4512,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     String? targetId,
     int? durationMs,
     CinematicTimelineActorMovementMode? movementMode,
+    CinematicTimelineActorFacingMode? facingMode,
   }) async {
     final project = widget.project;
     if (project == null) {
@@ -4526,6 +4527,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         targetId: targetId,
         durationMs: durationMs,
         movementMode: movementMode,
+        facingMode: facingMode,
       );
       final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,

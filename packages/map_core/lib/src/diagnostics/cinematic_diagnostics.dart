@@ -30,6 +30,7 @@ enum CinematicDiagnosticCode {
   cinematicUnknownMovementTargetRef,
   cinematicActorMoveInvalidDuration,
   cinematicActorMoveInvalidMovementMode,
+  cinematicActorMoveInvalidFacingMode,
   cinematicActorMoveUnsupportedPathMode,
   cinematicActorEmoteMissingActorRef,
   cinematicActorEmoteUnknownActorRef,
@@ -1921,6 +1922,20 @@ void _diagnoseActorMoveStep(
         referenceId: mode,
         target: CinematicDiagnosticTarget.step,
         suggestedFixLabel: 'Choisir marche ou course.',
+      ),
+    );
+  }
+
+  if (cinematicTimelineActorFacingModeOf(step) == null) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorMoveInvalidFacingMode,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Le déplacement doit suivre sa direction ou conserver son orientation.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Choisir le mode d’orientation du déplacement.',
       ),
     );
   }

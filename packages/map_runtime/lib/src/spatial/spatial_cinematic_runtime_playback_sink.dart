@@ -109,6 +109,7 @@ final class SpatialCinematicRuntimePlaybackSink
   CinematicActorBinding? _stepActor;
   List<({double x, double y})>? _route;
   double _routeProgress = 0;
+  EntityFacing? _preservedFacing;
   SpatialCinematicCameraPose? _cameraFrom, _cameraTarget;
 
   @override
@@ -270,12 +271,17 @@ final class SpatialCinematicRuntimePlaybackSink
     _stepActor = null;
     _route = null;
     _routeProgress = 0;
+    _preservedFacing = null;
     _cameraFrom = _cameraTarget = null;
     final step = context.step;
     switch (step.kind) {
       case CinematicTimelineStepKind.actorMove:
         final binding = _stepActor = prepared.bindings[step.actorId]!;
         final pose = _actor(binding);
+        if (cinematicTimelineActorFacingModeOf(step) ==
+            CinematicTimelineActorFacingMode.preserve) {
+          _preservedFacing = pose.facing;
+        }
         _route = [(x: pose.x, y: pose.z), ...prepared.routes[step.id]!];
         _validateRoute(prepared.map, binding, _route!,
             poses: _livePoses(prepared));
@@ -329,9 +335,9 @@ final class SpatialCinematicRuntimePlaybackSink
           poses: _livePoses(prepared));
       _routeProgress = progress;
       final segment = sample.segment;
-      final facing = segment < 0
+      final facing = _preservedFacing ?? (segment < 0
           ? pose.facing
-          : _segmentFacing(route[segment], route[segment + 1], pose.facing);
+          : _segmentFacing(route[segment], route[segment + 1], pose.facing));
       writeActor(
           binding,
           pose.copyWith(
@@ -378,6 +384,7 @@ final class SpatialCinematicRuntimePlaybackSink
     }
     _stepActor = null;
     _route = null;
+    _preservedFacing = null;
     _cameraFrom = _cameraTarget = null;
   }
 
@@ -387,6 +394,7 @@ final class SpatialCinematicRuntimePlaybackSink
     _snapshot = null;
     _stepActor = null;
     _route = null;
+    _preservedFacing = null;
     _cameraFrom = _cameraTarget = null;
     if (snapshot == null) return;
     Object? failure;

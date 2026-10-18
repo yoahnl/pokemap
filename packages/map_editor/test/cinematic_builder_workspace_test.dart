@@ -31,6 +31,52 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets('facing mode picker updates the canonical actor move', (
+    tester,
+  ) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_actorMovementCinematic()]);
+    var latest = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_actor_move',
+      onProjectChanged: (value) => latest = value,
+    );
+    final add = find.byKey(
+      const ValueKey('cinematic-builder-palette-actorMove-button'),
+    );
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    final preserve = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-mode-preserve'),
+    );
+    expect(preserve, findsOneWidget);
+    await tester.ensureVisible(preserve);
+    await tester.tap(preserve);
+    await tester.pumpAndSettle();
+    expect(
+      cinematicTimelineActorFacingModeOf(
+        latest.cinematics.single.timeline.steps.last,
+      ),
+      CinematicTimelineActorFacingMode.preserve,
+    );
+    final follow = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-mode-followMovement'),
+    );
+    await tester.ensureVisible(follow);
+    await tester.tap(follow);
+    await tester.pumpAndSettle();
+    expect(
+      cinematicTimelineActorFacingModeOf(
+        latest.cinematics.single.timeline.steps.last,
+      ),
+      CinematicTimelineActorFacingMode.followMovement,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets(
     'NSC-60 characterizes palette, stage, timeline and inspector boundaries',
     (tester) async {
@@ -18679,6 +18725,7 @@ Future<void> _pumpBuilder(
                 String? targetId,
                 int? durationMs,
                 CinematicTimelineActorMovementMode? movementMode,
+                CinematicTimelineActorFacingMode? facingMode,
               }) async =>
                   false,
               onAddActorEmoteStep: ({
@@ -19227,6 +19274,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     String? targetId,
     int? durationMs,
     CinematicTimelineActorMovementMode? movementMode,
+    CinematicTimelineActorFacingMode? facingMode,
   }) async {
     final result = updateCinematicTimelineActorMoveStep(
       _project,
@@ -19236,6 +19284,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
       targetId: targetId,
       durationMs: durationMs,
       movementMode: movementMode,
+      facingMode: facingMode,
     );
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);

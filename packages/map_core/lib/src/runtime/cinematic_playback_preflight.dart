@@ -1,3 +1,4 @@
+import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/project_manifest.dart';
@@ -204,6 +205,9 @@ CinematicPlaybackPreflightReport preflightCinematicPlayback({
       }
     }
     if (step.kind == CinematicTimelineStepKind.actorMove) {
+      if (cinematicTimelineActorFacingModeOf(step) == null) {
+        issues.add(_stepIssue(step, 'requires a valid actor.facingMode.'));
+      }
       final targetId = step.targetId;
       if (targetId == null ||
           !targetIds.contains(targetId) ||

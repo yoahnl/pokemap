@@ -4,6 +4,59 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final target in [
+    (facing: EntityFacing.north, x: 20.0, y: 40.0),
+    (facing: EntityFacing.south, x: 20.0, y: 0.0),
+    (facing: EntityFacing.east, x: 0.0, y: 20.0),
+    (facing: EntityFacing.west, x: 40.0, y: 20.0),
+  ]) {
+    test('preserves ${target.facing.name} while moving backwards', () async {
+      final host = _FakeHost();
+      host.actors['hero']!.setFacing(target.facing);
+      final base = _visualAsset(steps: [_actorMoveStep()]);
+      final asset = CinematicAsset.fromJson({
+        ...base.toJson(),
+        'stageContext': {
+          ...base.stageContext!.toJson(),
+          'stagePoints': [
+            {
+              'id': 'lighthouse_point',
+              'label': 'End',
+              'x': target.x,
+              'y': target.y,
+            },
+          ],
+        },
+        'timeline': {
+          'steps': [
+            {
+              ...base.timeline.steps.single.toJson(),
+              'metadata': {
+                ...base.timeline.steps.single.metadata,
+                'actor.facingMode': 'preserve',
+              },
+            },
+            {'id': 'hold', 'kind': 'wait', 'durationMs': 10},
+          ],
+        },
+      });
+      final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host),
+      );
+      final completion = controller.play(asset);
+      controller.update(const Duration(milliseconds: 50));
+      expect(host.actors['hero']!.facing, target.facing);
+      expect(host.actors['hero']!.motion, CharacterAnimationState.walk);
+      controller.update(const Duration(milliseconds: 50));
+      expect(host.actors['hero']!.focusPoint, Vector2(target.x, target.y));
+      expect(host.actors['hero']!.facing, target.facing);
+      controller.cancel();
+      await completion;
+      expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+      expect(host.actors['hero']!.facing, target.facing);
+    });
+  }
+
   test(
       'authored initial placement is temporary and cancellation restores actor',
       () async {
