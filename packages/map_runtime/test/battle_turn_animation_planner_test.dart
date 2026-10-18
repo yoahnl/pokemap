@@ -116,6 +116,134 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
 
+  group('L14 weather residual presentation', () {
+    BattleAnimationPlan planFor({
+      int currentHp = 40,
+      int damage = 2,
+      int incomingDamage = 0,
+      int? remainingHp,
+      bool requiresReplacement = false,
+    }) {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: currentHp,
+          moves: <BattleMoveData>[
+            _move(id: 'splash', name: 'Splash', type: 'normal', power: 0),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'splash', name: 'Splash', type: 'normal', power: 0),
+          ],
+        ),
+      );
+      return BattleTurnAnimationPlanner(
+        speciesDisplayName: (id) => id == 'sproutle' ? 'Pousse' : 'Étincelle',
+      ).buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: BattleTurnResult(
+          playerAction: const BattleActionNone(),
+          enemyAction: const BattleActionNone(),
+          executions: const <BattleMoveExecution>[],
+          timeline: <BattleTurnEvent>[
+            if (incomingDamage > 0)
+              BattleTurnExecutionEvent(BattleMoveExecution(
+                attackerSlot: const BattleSlotRef.active(BattleSideId.enemy),
+                move: const BattleMove(id: 'tackle', name: 'Tackle', power: 40),
+                targetKind: BattleMoveExecutionTargetKind.combatant,
+                targetSlot: const BattleSlotRef.active(BattleSideId.player),
+                damage: incomingDamage,
+                didHit: true,
+              )),
+            BattleTurnFieldEvent(BattleFieldEvent.weatherResidualDamage(
+              weather: BattleWeatherId.sandstorm,
+              targetSlot: const BattleSlotRef.active(BattleSideId.player),
+              damage: damage,
+              remainingHp: remainingHp ?? currentHp - incomingDamage - damage,
+            )),
+            if (requiresReplacement)
+              const BattleTurnSwitchEvent(
+                BattleSwitchEvent.replacementRequired(
+                  side: BattleSideId.player,
+                  fromSpeciesId: 'sproutle',
+                ),
+              ),
+          ],
+        ),
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+    }
+
+    test('animates residual HP and names the target without an attack', () {
+      final plan = planFor();
+      final steps = plan.flattenedSteps;
+      final tween = steps.whereType<HudHpTweenStep>().single;
+
+      expect(tween.side, BattleSideId.player);
+      expect(tween.fromHp, 40);
+      expect(tween.toHp, 38);
+      expect(steps.whereType<ShowMessageStep>().single.message,
+          'Pousse est blessé par la tempête de sable !');
+      expect(steps.whereType<PlayRmxpAnimationStep>(), isEmpty);
+      expect(steps.whereType<SpawnFxStep>(), isEmpty);
+      expect(steps.whereType<PlaySeStep>(), isEmpty);
+      expect(steps.whereType<FaintCombatantStep>(), isEmpty);
+    });
+
+    test('residual HP starts after the preceding move damage', () {
+      final tweens = planFor(incomingDamage: 3)
+          .flattenedSteps
+          .whereType<HudHpTweenStep>()
+          .toList();
+
+      expect(tweens, hasLength(2));
+      expect(tweens.first.fromHp, 40);
+      expect(tweens.first.toHp, 37);
+      expect(tweens.last.fromHp, 37);
+      expect(tweens.last.toHp, 35);
+    });
+
+    test('residual HP uses the canonical value after an earlier heal', () {
+      final tween = planFor(remainingHp: 40)
+          .flattenedSteps
+          .whereType<HudHpTweenStep>()
+          .single;
+
+      expect(tween.fromHp, 42);
+      expect(tween.toHp, 40);
+    });
+
+    for (final replacement in <bool>[false, true]) {
+      test('presents one residual knockout with replacement=$replacement', () {
+        final steps = planFor(
+          currentHp: 1,
+          damage: 1,
+          requiresReplacement: replacement,
+        ).flattenedSteps.toList();
+        final tween = steps.whereType<HudHpTweenStep>().single;
+        final faint = steps.whereType<FaintCombatantStep>().single;
+        final koMessage = steps.whereType<ShowMessageStep>().singleWhere(
+            (step) => step.message == 'Pousse est K.O. !');
+
+        expect(tween.fromHp, 1);
+        expect(tween.toHp, 0);
+        expect(steps.indexOf(tween), lessThan(steps.indexOf(koMessage)));
+        expect(steps.indexOf(tween), lessThan(steps.indexOf(faint)));
+        expect(steps.whereType<PlaySeStep>().single.seName, 'down');
+        if (replacement) {
+          expect(steps.indexOf(koMessage), lessThan(steps.indexOf(faint)));
+        }
+      });
+    }
+  });
+
   group('BattleTurnAnimationPlanner', () {
     test('build returns empty plan when currentTurn is null', () {
       final session = _session(

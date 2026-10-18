@@ -1058,14 +1058,16 @@ final class _BattleFieldRules {
       numerator: 1,
       denominator: 16,
     );
+    final nextCombatant = combatant.withDamage(damage);
 
     return _SandstormResidualResult(
-      combatant: combatant.withDamage(damage),
+      combatant: nextCombatant,
       fieldEvents: <BattleFieldEvent>[
         BattleFieldEvent.weatherResidualDamage(
           weather: BattleWeatherId.sandstorm,
           targetSlot: combatantSlot,
-          damage: damage,
+          damage: combatant.currentHp - nextCombatant.currentHp,
+          remainingHp: nextCombatant.currentHp,
         ),
       ],
     );

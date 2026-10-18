@@ -1180,6 +1180,207 @@ void main() {
       expect(game.gameStateSnapshot.bag.entries, isEmpty);
     });
 
+    test(
+      'L14 Player applies sandstorm, expires it and reloads exact HP',
+      () async {
+        final manifest = await _writeProjectManifest(tempProjectRoot);
+        final map = _buildMap();
+        final catalogFile = File(
+          p.join(tempProjectRoot.path, 'data/pokemon/catalogs/moves.json'),
+        );
+        final catalog = jsonDecode(
+          await catalogFile.readAsString(),
+        ) as Map<String, dynamic>;
+        (catalog['entries'] as List).addAll([
+          _moveEntry(
+            'sandstorm',
+            'Sandstorm',
+            0,
+            type: 'rock',
+            target: PokemonMoveTarget.self,
+            pp: 10,
+            effects: const [
+              PokemonMoveEffect.setWeather(weatherId: 'sandstorm'),
+            ],
+          ),
+          _moveEntry('splash', 'Splash', 0, target: PokemonMoveTarget.self),
+        ]);
+        await catalogFile.writeAsString(jsonEncode(catalog));
+        await _writeProjectRelativeJson(
+          tempProjectRoot,
+          'data/pokemon/learnsets/sparkitten.json',
+          {
+            'startingMoves': ['splash'],
+            'relearnMoves': [],
+            'levelUp': [],
+          },
+        );
+        const initial = GameState(
+          saveId: 'sandstorm-player',
+          party: PlayerParty(
+            members: [
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 50,
+                currentHp: 90,
+                knownMoveIds: ['sandstorm', 'splash'],
+                currentPpByMoveId: {'sandstorm': 10, 'splash': 35},
+              ),
+            ],
+          ),
+        );
+        final game = _LoadedGame(
+          bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+          projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+          saveData: saveDataFromGameState(initial),
+          reducedMotion: true,
+        );
+        addTearDown(game.onRemove);
+        game.onGameResize(Vector2(640, 480));
+        await game.onLoad();
+        await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+        await game.debugWaitForBattleOverlaySync();
+        expect(game.debugPsdkBattleSessionActive, isTrue);
+        var snapshot = await _ppBattleSnapshot(game, 'root');
+        final before = game.debugBattleSessionSnapshot!.state;
+        expect(before.player.currentHp, 90);
+        expect(before.player.moves.map((move) => move.id), [
+          'sandstorm',
+          'splash',
+        ]);
+        expect(before.enemy.moves.map((move) => move.id), ['splash']);
+        final playerDamage = (before.player.maxHp ~/ 16).clamp(
+          1,
+          before.player.maxHp,
+        );
+        final enemyDamage = (before.enemy.maxHp ~/ 16).clamp(
+          1,
+          before.enemy.maxHp,
+        );
+        final messages = <String>[];
+        expect(
+          _ppSelectEntry(game, snapshot, BattleCommandRootAction.fight.index),
+          isTrue,
+        );
+        for (var turn = 1; turn <= 5; turn++) {
+          snapshot = await _ppBattleSnapshot(game, 'fight');
+          expect(_ppSelectEntry(game, snapshot, turn == 1 ? 0 : 1), isTrue);
+          await game.debugWaitForBattleOverlaySync();
+          snapshot = await _ppBattleSnapshot(game, 'fight', messages: messages);
+          final current = game.debugBattleSessionSnapshot!.state;
+          final damageTicks = min(turn, 4);
+          expect(
+            current.player.currentHp,
+            before.player.currentHp - playerDamage * damageTicks,
+          );
+          expect(
+            current.enemy.currentHp,
+            before.enemy.currentHp - enemyDamage * damageTicks,
+          );
+          expect(snapshot.playerHud.currentHp, current.player.currentHp);
+          expect(snapshot.enemyHud.currentHp, current.enemy.currentHp);
+          final fieldEvents = current.currentTurn!.timeline
+              .whereType<BattleTurnFieldEvent>()
+              .map((entry) => entry.event)
+              .toList();
+          final residuals = fieldEvents
+              .where(
+                (event) =>
+                    event.kind == BattleFieldEventKind.weatherResidualDamage,
+              )
+              .toList();
+          expect(residuals, hasLength(turn < 5 ? 2 : 0));
+          if (turn < 5) {
+            expect(
+              residuals
+                  .singleWhere(
+                    (event) => event.targetSlot!.side == BattleSideId.player,
+                  )
+                  .damage,
+              playerDamage,
+            );
+            expect(current.field.weather!.remainingTurns, 5 - turn);
+          } else {
+            expect(current.field.weather, isNull);
+            expect(
+              fieldEvents.any(
+                (event) => event.kind == BattleFieldEventKind.weatherExpired,
+              ),
+              isTrue,
+            );
+          }
+        }
+        expect(
+          messages.any(
+            (line) => line.toLowerCase().contains('tempête de sable'),
+          ),
+          isTrue,
+        );
+        expect(messages.any((line) => line.contains('se dissipe')), isTrue);
+        final expectedHp = before.player.currentHp - playerDamage * 4;
+        expect(
+          game.dispatchBattlePresentationCommand(
+            BattleBackCommand(
+              snapshotRevision: snapshot.revision,
+              expectedMode: snapshot.mode,
+            ),
+          ),
+          isTrue,
+        );
+        snapshot = await _ppBattleSnapshot(game, 'root');
+        expect(
+          _ppSelectEntry(game, snapshot, BattleCommandRootAction.run.index),
+          isTrue,
+        );
+        await game.debugWaitForBattleOverlaySync();
+        await _acknowledgePostBattleAndWaitForOverworld(game);
+        final saved = game.gameStateSnapshot;
+        expect(saved.party.members.single.currentHp, expectedHp);
+        expect(saved.party.members.single.currentPpByMoveId, {
+          'sandstorm': 9,
+          'splash': 31,
+        });
+        final saveFile = File(
+          p.join(tempProjectRoot.path, 'sandstorm-save.json'),
+        );
+        await saveFile.writeAsString(
+          jsonEncode(saveDataFromGameState(saved).toJson()),
+        );
+        final reloaded = _LoadedGame(
+          bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+          projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+          saveData: SaveData.fromJson(
+            jsonDecode(await saveFile.readAsString()) as Map<String, dynamic>,
+          ),
+          reducedMotion: true,
+        );
+        addTearDown(reloaded.onRemove);
+        reloaded.onGameResize(Vector2(640, 480));
+        await reloaded.onLoad();
+        expect(
+          reloaded.gameStateSnapshot.party.members.single.currentHp,
+          expectedHp,
+        );
+        expect(
+          reloaded.gameStateSnapshot.party.members.single.currentPpByMoveId,
+          saved.party.members.single.currentPpByMoveId,
+        );
+        await reloaded.debugOpenBattleForTest(_wildRequest(manifest, map));
+        await reloaded.debugWaitForBattleOverlaySync();
+        expect(reloaded.debugPsdkBattleSessionActive, isTrue);
+        expect(
+          reloaded.debugBattleSessionSnapshot!.state.player.currentHp,
+          expectedHp,
+        );
+        expect(
+          reloaded.debugBattleSessionSnapshot!.state.field.weather,
+          isNull,
+        );
+      },
+    );
+
     test('PlayableMapGame can use a potion in a PSDK battle', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();

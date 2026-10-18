@@ -1,8 +1,11 @@
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
+import '../effect/item/item_effect.dart';
 import '../effect/status/status_effect_registry.dart';
 import 'battle_heal_handler.dart';
 import 'battle_handler_context.dart';
@@ -22,13 +25,15 @@ final class BattleEndTurnHandler {
         user: context.user,
       ),
     );
-    final effects = tickEndTurnEffects(
+    final effects = _tickEndTurnEffects(
       BattleHandlerContext(
         state: statuses.state,
         rng: statuses.rng,
         turn: context.turn,
         user: context.user,
       ),
+      where: (effect) =>
+          effect is! BattleAbilityEffect && effect is! BattleItemEffect,
     );
     final fieldProgression = tickField(
       BattleHandlerContext(
@@ -38,25 +43,47 @@ final class BattleEndTurnHandler {
         user: context.user,
       ),
     );
+    final abilities = _tickEndTurnEffects(
+      BattleHandlerContext(
+        state: fieldProgression.state,
+        rng: fieldProgression.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      where: (effect) => effect is BattleAbilityEffect,
+      orderBySpeed: true,
+      activeOnly: true,
+    );
+    final items = _tickEndTurnEffects(
+      BattleHandlerContext(
+        state: abilities.state,
+        rng: abilities.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      where: (effect) => effect is BattleItemEffect,
+      orderBySpeed: true,
+      activeOnly: true,
+    );
+    final applied = cleared.applied ||
+        statuses.applied ||
+        effects.applied ||
+        fieldProgression.applied ||
+        abilities.applied ||
+        items.applied;
     return BattleHandlerResult(
-      state: fieldProgression.state,
-      rng: fieldProgression.rng,
+      state: items.state,
+      rng: items.rng,
       events: <PsdkBattleEvent>[
         ...cleared.events,
         ...statuses.events,
         ...effects.events,
         ...fieldProgression.events,
+        ...abilities.events,
+        ...items.events,
       ],
-      applied: cleared.applied ||
-          statuses.applied ||
-          effects.applied ||
-          fieldProgression.applied,
-      reason: cleared.applied ||
-              statuses.applied ||
-              effects.applied ||
-              fieldProgression.applied
-          ? null
-          : 'no_end_turn_changes',
+      applied: applied,
+      reason: applied ? null : 'no_end_turn_changes',
     );
   }
 
@@ -84,24 +111,61 @@ final class BattleEndTurnHandler {
   }
 
   BattleHandlerResult tickEndTurnEffects(BattleHandlerContext context) {
+    return _tickEndTurnEffects(context);
+  }
+
+  BattleHandlerResult _tickEndTurnEffects(
+    BattleHandlerContext context, {
+    bool Function(BattleEffect effect)? where,
+    bool orderBySpeed = false,
+    bool activeOnly = false,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     final events = <PsdkBattleEvent>[];
     var changed = false;
 
-    for (final slot in context.state.combatants.keys) {
-      final ownerIsFainted = nextState.battlerAt(slot).isFainted;
-      final result = nextState.battlerAt(slot).effects.dispatchEndTurn(
-            BattleEffectEndTurnContext(
-              state: nextState,
-              rng: nextRng,
-              turn: context.turn,
-              owner: slot,
-            ),
-            where: (effect) =>
-                effect is! BattleMajorStatusEffect &&
-                (!ownerIsFainted || effect.scope is FieldBattleEffectScope),
-          );
+    final slots = context.state.combatants.keys.toList(growable: false);
+    if (orderBySpeed) {
+      slots.sort((a, b) {
+        final bySpeed = context.state
+            .battlerAt(b)
+            .stats
+            .speed
+            .compareTo(context.state.battlerAt(a).stats.speed);
+        if (bySpeed != 0) {
+          return bySpeed;
+        }
+        final byBank = a.bank.compareTo(b.bank);
+        return byBank != 0 ? byBank : a.position.compareTo(b.position);
+      });
+    }
+    for (final slot in slots) {
+      final battler = nextState.battlerAt(slot);
+      final ownerIsFainted = battler.isFainted;
+      final abilitySuppressed = battler.effects.contains('ability_suppressed');
+      final itemSuppressed = battleItemEffectsSuppressed(
+            battler: battler,
+            state: nextState,
+            slot: slot,
+          ) ||
+          (!abilitySuppressed &&
+              battler.abilityId?.trim().toLowerCase() == 'klutz');
+      final result = battler.effects.dispatchEndTurn(
+        BattleEffectEndTurnContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: slot,
+        ),
+        where: (effect) =>
+            effect is! BattleMajorStatusEffect &&
+            (where == null || where(effect)) &&
+            (!activeOnly ||
+                ((effect is! BattleAbilityEffect || !abilitySuppressed) &&
+                    (effect is! BattleItemEffect || !itemSuppressed))) &&
+            (!ownerIsFainted || effect.scope is FieldBattleEffectScope),
+      );
       nextState = result.state;
       nextRng = result.rng;
       events.addAll(result.events);
@@ -153,6 +217,18 @@ final class BattleEndTurnHandler {
         nextRng = postWeather.rng;
         events.addAll(postWeather.events);
         changed = changed || postWeather.applied;
+      } else if (nextWeather.id == PsdkBattleWeatherId.sandstorm) {
+        final residual = _damageSandstorm(
+          BattleHandlerContext(
+            state: nextState.copyWith(field: nextField),
+            rng: nextRng,
+            turn: context.turn,
+            user: context.user,
+          ),
+        );
+        nextState = residual.state;
+        events.addAll(residual.events);
+        changed = changed || residual.applied;
       }
     }
 
@@ -207,6 +283,64 @@ final class BattleEndTurnHandler {
       events: events,
       applied: changed,
       reason: changed ? null : 'no_field_progression',
+    );
+  }
+
+  BattleHandlerResult _damageSandstorm(BattleHandlerContext context) {
+    var nextState = context.state;
+    final events = <PsdkBattleEvent>[];
+    for (final slot in context.state.aliveSlots()) {
+      final battler = nextState.battlerAt(slot);
+      if (!nextState.isWeatherEffectActive(PsdkBattleWeatherId.sandstorm) ||
+          battler.isFainted ||
+          const <String>{'rock', 'ground', 'steel'}.any(battler.hasType) ||
+          battler.effects.contains('out_of_reach_base')) {
+        continue;
+      }
+      final abilityId = battler.effects.contains('ability_suppressed')
+          ? null
+          : battler.abilityId?.trim().toLowerCase();
+      if (const <String>{
+        'magic_guard',
+        'sand_veil',
+        'sand_rush',
+        'sand_force',
+        'overcoat',
+      }.contains(abilityId)) {
+        continue;
+      }
+      if (battler.heldItemId?.trim().toLowerCase() == 'safety_goggles' &&
+          !battler.itemConsumed &&
+          abilityId != 'klutz' &&
+          !battleItemEffectsSuppressed(
+            battler: battler,
+            state: nextState,
+            slot: slot,
+          )) {
+        continue;
+      }
+      final damage = (battler.maxHp ~/ 16).clamp(1, battler.currentHp).toInt();
+      final remainingHp = battler.currentHp - damage;
+      nextState = nextState.replaceBattler(
+        slot,
+        battler.copyWith(currentHp: remainingHp),
+      );
+      events.add(
+        PsdkBattleWeatherDamageEvent(
+          turn: context.turn,
+          target: slot,
+          weather: PsdkBattleWeatherId.sandstorm,
+          damage: damage,
+          remainingHp: remainingHp,
+        ),
+      );
+    }
+    return BattleHandlerResult(
+      state: nextState,
+      rng: context.rng,
+      events: events,
+      applied: events.isNotEmpty,
+      reason: events.isEmpty ? 'no_sandstorm_damage' : null,
     );
   }
 

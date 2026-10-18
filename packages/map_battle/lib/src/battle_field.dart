@@ -164,12 +164,14 @@ final class BattleFieldEvent {
   })  : kind = BattleFieldEventKind.weatherSet,
         pseudoWeather = null,
         targetSlot = null,
-        damage = null;
+        damage = null,
+        remainingHp = null;
 
   const BattleFieldEvent.weatherResidualDamage({
     required this.weather,
     required this.targetSlot,
     required this.damage,
+    required this.remainingHp,
   })  : kind = BattleFieldEventKind.weatherResidualDamage,
         pseudoWeather = null,
         sourceMoveId = null;
@@ -180,7 +182,8 @@ final class BattleFieldEvent {
         pseudoWeather = null,
         sourceMoveId = null,
         targetSlot = null,
-        damage = null;
+        damage = null,
+        remainingHp = null;
 
   const BattleFieldEvent.pseudoWeatherSet({
     required this.pseudoWeather,
@@ -188,7 +191,8 @@ final class BattleFieldEvent {
   })  : kind = BattleFieldEventKind.pseudoWeatherSet,
         weather = null,
         targetSlot = null,
-        damage = null;
+        damage = null,
+        remainingHp = null;
 
   const BattleFieldEvent.pseudoWeatherCleared({
     required this.pseudoWeather,
@@ -196,7 +200,8 @@ final class BattleFieldEvent {
   })  : kind = BattleFieldEventKind.pseudoWeatherCleared,
         weather = null,
         targetSlot = null,
-        damage = null;
+        damage = null,
+        remainingHp = null;
 
   const BattleFieldEvent.pseudoWeatherExpired({
     required this.pseudoWeather,
@@ -204,7 +209,8 @@ final class BattleFieldEvent {
         weather = null,
         sourceMoveId = null,
         targetSlot = null,
-        damage = null;
+        damage = null,
+        remainingHp = null;
 
   final BattleFieldEventKind kind;
   final BattleWeatherId? weather;
@@ -224,4 +230,5 @@ final class BattleFieldEvent {
   String? get target => targetSide?.actorId;
 
   final int? damage;
+  final int? remainingHp;
 }

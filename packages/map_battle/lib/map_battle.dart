@@ -277,6 +277,7 @@ export 'src/domain/timeline/battle_timeline_event.dart'
         BattleTimelineEvent,
         BattleTurnEndedTimelineEvent,
         BattleTurnStartedTimelineEvent,
+        BattleWeatherDamageTimelineEvent,
         BattleWeatherChangedTimelineEvent;
 export 'src/domain/rng/battle_seeded_rng.dart'
     show BattleRngChanceRoll, BattleRngStream, BattleRngStreamRoll;

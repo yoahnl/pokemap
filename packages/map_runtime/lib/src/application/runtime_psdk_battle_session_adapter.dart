@@ -40,6 +40,7 @@ final class RuntimePsdkBattleSessionAdapter {
   static const _statusBridge = RuntimeBattleStatusBridge();
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;
+  PsdkBattleWeatherId? _lastTurnWeather;
   final Map<String, String> _itemDisplayNames = <String, String>{};
 
   BattlePublicState get state => _facade.state;
@@ -106,9 +107,11 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 
   BattleEngineTurnResult submitDecision(BattleDecision decision) {
+    final previousWeather = state.psdkState.field.weather?.id;
     final result = _facade.submit(decision);
     _lastDecision = decision;
     _lastTurnResult = result;
+    _lastTurnWeather = previousWeather;
     return result;
   }
 
@@ -176,6 +179,8 @@ final class RuntimePsdkBattleSessionAdapter {
     final executions = <BattleMoveExecution>[];
     final bagHpHealItemEvents = <BattleBagHpHealItemEvent>[];
     final captureAttemptEvents = <BattleCaptureAttemptEvent>[];
+    final fieldEvents = <BattleFieldEvent>[];
+    var currentWeather = _lastTurnWeather;
     // Recette du 2026-08-24 : un move qui produit un dégât, un raté ou une
     // immunité porte déjà son message d'usage via l'exécution traduite. Seule
     // une déclaration qui ne débouche sur AUCUN de ces trois événements — un
@@ -198,6 +203,41 @@ final class RuntimePsdkBattleSessionAdapter {
         final execution = _toLegacyDamageExecution(event);
         executions.add(execution);
         timeline.add(BattleTurnExecutionEvent(execution));
+      } else if (event is BattleWeatherDamageTimelineEvent) {
+        final weather = _legacyWeatherId(event.weather);
+        if (weather != null) {
+          final fieldEvent = BattleFieldEvent.weatherResidualDamage(
+            weather: weather,
+            targetSlot:
+                BattleSlotRef.active(_legacySideForPosition(event.target)),
+            damage: event.damage,
+            remainingHp: event.remainingHp,
+          );
+          fieldEvents.add(fieldEvent);
+          timeline.add(BattleTurnFieldEvent(fieldEvent));
+        }
+      } else if (event is BattleWeatherChangedTimelineEvent) {
+        final weatherId = event.weatherId;
+        final nextWeather = PsdkBattleWeatherId.values
+            .where((weather) => weather.jsonName == weatherId)
+            .firstOrNull;
+        final weather = _legacyWeatherId(nextWeather);
+        final previousWeather = _legacyWeatherId(currentWeather);
+        final fieldEvent = weather != null
+            ? BattleFieldEvent.weatherSet(
+                weather: weather,
+                sourceMoveId: null,
+              )
+            : weatherId == null &&
+                    event.reason == 'expired' &&
+                    previousWeather != null
+                ? BattleFieldEvent.weatherExpired(weather: previousWeather)
+                : null;
+        if (fieldEvent != null) {
+          fieldEvents.add(fieldEvent);
+          timeline.add(BattleTurnFieldEvent(fieldEvent));
+        }
+        currentWeather = nextWeather;
       } else if (event is BattleMoveMissedTimelineEvent) {
         final execution = _toLegacyMissedExecution(event);
         executions.add(execution);
@@ -338,6 +378,7 @@ final class RuntimePsdkBattleSessionAdapter {
       playerAction: _toLegacyPlayerAction(decision, result),
       enemyAction: _toLegacyOpponentAction(result),
       executions: List<BattleMoveExecution>.unmodifiable(executions),
+      fieldEvents: List<BattleFieldEvent>.unmodifiable(fieldEvents),
       bagHpHealItemEvents:
           List<BattleBagHpHealItemEvent>.unmodifiable(bagHpHealItemEvents),
       captureAttemptEvents:
@@ -886,11 +927,7 @@ final class RuntimePsdkBattleSessionAdapter {
     if (weather == null) {
       return null;
     }
-    final legacyId = switch (weather.id) {
-      PsdkBattleWeatherId.rain => BattleWeatherId.rain,
-      PsdkBattleWeatherId.sandstorm => BattleWeatherId.sandstorm,
-      _ => null,
-    };
+    final legacyId = _legacyWeatherId(weather.id);
     if (legacyId == null) {
       return null;
     }
@@ -898,6 +935,14 @@ final class RuntimePsdkBattleSessionAdapter {
       id: legacyId,
       remainingTurns: weather.remainingTurns ?? 999,
     );
+  }
+
+  BattleWeatherId? _legacyWeatherId(PsdkBattleWeatherId? weather) {
+    return switch (weather) {
+      PsdkBattleWeatherId.rain => BattleWeatherId.rain,
+      PsdkBattleWeatherId.sandstorm => BattleWeatherId.sandstorm,
+      _ => null,
+    };
   }
 
   BattleOutcomeType _legacyOutcomeType() {

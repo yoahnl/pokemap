@@ -80,6 +80,15 @@ sealed class BattleTimelineEvent {
         moveId: event.moveId,
       );
     }
+    if (event is PsdkBattleWeatherDamageEvent) {
+      return BattleWeatherDamageTimelineEvent(
+        turn: event.turn,
+        target: _fromPsdkSlot(event.target),
+        weather: event.weather,
+        damage: event.damage,
+        remainingHp: event.remainingHp,
+      );
+    }
     if (event is PsdkBattleDamageEvent) {
       return BattleDamageTimelineEvent(
         user: _fromPsdkSlot(event.user),
@@ -1147,6 +1156,39 @@ final class BattleAbilityTriggeredTimelineEvent extends BattleTimelineEvent {
 
   @override
   PsdkBattleEvent? toPsdkEvent() => null;
+}
+
+final class BattleWeatherDamageTimelineEvent extends BattleTimelineEvent {
+  const BattleWeatherDamageTimelineEvent({
+    required int turn,
+    required this.target,
+    required this.weather,
+    required this.damage,
+    required this.remainingHp,
+  }) : super(kind: 'weather_damage', turn: turn);
+
+  final BattlePositionRef target;
+  final PsdkBattleWeatherId weather;
+  final int damage;
+  final int remainingHp;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        ...baseJson(),
+        'target': _slotJson(target),
+        'weather': weather.jsonName,
+        'damage': damage,
+        'remainingHp': remainingHp,
+      };
+
+  @override
+  PsdkBattleEvent toPsdkEvent() => PsdkBattleWeatherDamageEvent(
+        turn: turn!,
+        target: _toPsdkSlot(target),
+        weather: weather,
+        damage: damage,
+        remainingHp: remainingHp,
+      );
 }
 
 final class BattleWeatherChangedTimelineEvent extends BattleTimelineEvent {

@@ -457,8 +457,40 @@ final class BattleTurnAnimationPlanner {
               break;
           }
         case BattleTurnFieldEvent(:final event):
-          steps.add(ShowMessageStep(message: _messageForFieldEvent(event)));
+          steps.add(ShowMessageStep(
+            message: _messageForFieldEvent(event, trackedDisplayName),
+          ));
           switch (event.kind) {
+            case BattleFieldEventKind.weatherResidualDamage:
+              final targetSide = event.targetSide;
+              final damage = event.damage;
+              final hpTo = event.remainingHp;
+              if (targetSide != null &&
+                  damage != null &&
+                  damage > 0 &&
+                  hpTo != null) {
+                final hpFrom = hpTo + damage;
+                trackedHp[targetSide] = hpTo;
+                steps.add(HudHpTweenStep(
+                  side: targetSide,
+                  fromHp: hpFrom,
+                  toHp: hpTo,
+                  durationMs: (_hpDrainSeconds(damage) * 1000).round(),
+                ));
+                if (hpFrom > 0 && hpTo == 0) {
+                  steps.add(const PlaySeStep(seName: 'down', pitch: 80));
+                  if (!replacementRequiredSides.contains(targetSide)) {
+                    steps.add(FaintCombatantStep(
+                      side: targetSide,
+                      durationSeconds: 0.1,
+                    ));
+                  }
+                  steps.add(ShowMessageStep(
+                    message:
+                        '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
+                  ));
+                }
+              }
             case BattleFieldEventKind.weatherSet:
               if (event.weather == BattleWeatherId.rain) {
                 steps.addAll(
@@ -945,13 +977,19 @@ String _messageForVolatileEvent(
   };
 }
 
-String _messageForFieldEvent(BattleFieldEvent event) {
+String _messageForFieldEvent(
+  BattleFieldEvent event,
+  Map<BattleSideId, String> displayNameBySide,
+) {
+  final target = event.targetSide == null
+      ? null
+      : _presentationCombatantName(event.targetSide!, displayNameBySide);
   return switch (event.kind) {
     BattleFieldEventKind.weatherSet => event.weather == BattleWeatherId.rain
         ? 'La pluie commence à tomber.'
         : 'Une tempête de sable se lève.',
     BattleFieldEventKind.weatherResidualDamage =>
-      'La météo inflige des dégâts.',
+      '$target est blessé par la tempête de sable !',
     BattleFieldEventKind.weatherExpired => 'La météo se dissipe.',
     BattleFieldEventKind.pseudoWeatherSet => 'L’espace se tord bizarrement.',
     BattleFieldEventKind.pseudoWeatherCleared =>

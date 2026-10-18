@@ -465,6 +465,32 @@ class PsdkBattleImmuneEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleWeatherDamageEvent extends PsdkBattleEvent {
+  const PsdkBattleWeatherDamageEvent({
+    required this.turn,
+    required this.target,
+    required this.weather,
+    required this.damage,
+    required this.remainingHp,
+  }) : super(kind: 'weather_damage');
+
+  final int turn;
+  final PsdkBattleSlotRef target;
+  final PsdkBattleWeatherId weather;
+  final int damage;
+  final int remainingHp;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        'turn': turn,
+        'target': target.toJson(),
+        'weather': weather.jsonName,
+        'damage': damage,
+        'remainingHp': remainingHp,
+      };
+}
+
 class PsdkBattleWeatherChangedEvent extends PsdkBattleEvent {
   const PsdkBattleWeatherChangedEvent({
     this.turn,

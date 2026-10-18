@@ -8,6 +8,76 @@ import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.
 
 void main() {
   group('RuntimePsdkBattleSessionAdapter', () {
+    test('L14 translates weather set and residuals without extra move uses', () {
+      final session = _sandstormSession(setWeather: true);
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final turn = session
+          .createLegacyDisplaySession(isTrainerBattle: false)
+          .state
+          .currentTurn!;
+      final fields = turn.timeline.whereType<BattleTurnFieldEvent>().toList();
+
+      expect(fields.map((event) => event.event.kind), <BattleFieldEventKind>[
+        BattleFieldEventKind.weatherSet,
+        BattleFieldEventKind.weatherResidualDamage,
+        BattleFieldEventKind.weatherResidualDamage,
+      ]);
+      expect(fields.first.event.weather, BattleWeatherId.sandstorm);
+      final residuals = fields.skip(1).map((event) => event.event).toList();
+      expect(residuals.map((event) => event.targetSide).toSet(),
+          <BattleSideId>{BattleSideId.player, BattleSideId.enemy});
+      expect(residuals.map((event) => event.damage), everyElement(10));
+      expect(turn.executions.where((event) => event.move.id == 'sandstorm'),
+          hasLength(1));
+      expect(turn.executions.every((event) => event.damage == 0), isTrue);
+      expect(turn.fieldEvents, fields.map((event) => event.event).toList());
+      expect(
+        turn.timeline.indexOf(fields[1]),
+        greaterThan(turn.timeline.lastIndexWhere(
+            (event) => event is BattleTurnExecutionEvent)),
+      );
+    });
+
+    test('L14 expires the previous sandstorm without residuals on its last tick',
+        () {
+      final session = _sandstormSession(remainingTurns: 1);
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final display =
+          session.createLegacyDisplaySession(isTrainerBattle: false);
+      final fields = display.state.currentTurn!.timeline
+          .whereType<BattleTurnFieldEvent>()
+          .map((event) => event.event)
+          .toList();
+
+      expect(fields, hasLength(1));
+      expect(fields.single.kind, BattleFieldEventKind.weatherExpired);
+      expect(fields.single.weather, BattleWeatherId.sandstorm);
+      expect(display.state.player.currentHp, 160);
+      expect(display.state.enemy.currentHp, 160);
+      expect(display.state.field.weather, isNull);
+    });
+
+    test('L14 residual knockout retains the canonical replacement request', () {
+      final session = _sandstormSession(playerHp: 5, withReserve: true);
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final display =
+          session.createLegacyDisplaySession(isTrainerBattle: true);
+      final residual = display.state.currentTurn!.timeline
+          .whereType<BattleTurnFieldEvent>()
+          .map((event) => event.event)
+          .singleWhere((event) => event.targetSide == BattleSideId.player);
+
+      expect(residual.damage, 5);
+      expect(display.state.player.currentHp, 0);
+      expect(display.decisionRequest, isA<BattleForcedReplacementRequest>());
+      expect(session.decisionRequest.kind,
+          BattleEngineDecisionRequestKind.forcedReplacement);
+      expect(session.createLegacyWriteBackState().player.currentHp, 0);
+    });
+
     test('legacy display session preserves an explicit no-flee policy', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(_setup());
       final displaySession = session.createLegacyDisplaySession(
@@ -614,6 +684,64 @@ void main() {
       );
     });
   });
+}
+
+RuntimePsdkBattleSessionAdapter _sandstormSession({
+  bool setWeather = false,
+  int remainingTurns = 2,
+  int playerHp = 160,
+  bool withReserve = false,
+}) {
+  final wait = _move(
+    id: 'splash',
+    category: PsdkBattleMoveCategory.status,
+    power: 0,
+    battleEngineMethod: 's_splash',
+  );
+  return RuntimePsdkBattleSessionAdapter.fromSetup(
+    PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+      player: _combatant(
+        id: 'player_0',
+        hp: 160,
+        currentHp: playerHp,
+        moves: <PsdkBattleMoveData>[
+          if (setWeather)
+            _move(
+              id: 'sandstorm',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              battleEngineMethod: 's_weather',
+              target: PsdkBattleMoveTarget.allBattlers,
+            )
+          else
+            wait,
+        ],
+      ),
+      playerReserves: <PsdkBattleCombatantSetup>[
+        if (withReserve)
+          _combatant(id: 'player_1', hp: 160, moves: <PsdkBattleMoveData>[wait]),
+      ],
+      opponent: _combatant(
+        id: 'opponent_0',
+        hp: 160,
+        moves: <PsdkBattleMoveData>[wait],
+      ),
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 1,
+        generic: 1,
+      ),
+      field: PsdkBattleFieldState(
+        weather: setWeather
+            ? null
+            : PsdkBattleWeatherState(
+                id: PsdkBattleWeatherId.sandstorm,
+                remainingTurns: remainingTurns,
+              ),
+      ),
+    ),
+  );
 }
 
 RuntimePsdkBattleSessionAdapter _copyMoveSession({
