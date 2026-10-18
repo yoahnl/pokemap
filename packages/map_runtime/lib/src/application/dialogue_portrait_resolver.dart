@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'dialogue_runtime_models.dart';
+import 'runtime_project_catalog.dart';
 
 enum DialoguePortraitResolutionCode {
   catalogUnavailable,
@@ -69,9 +70,9 @@ final class DialoguePortraitResolver {
     DialoguePortraitCatalogLoader? loadCatalog,
     bool Function(String path)? fileExists,
     this.onDiagnostic,
-  })  : projectRootDirectory = p.normalize(p.absolute(projectRootDirectory)),
-        _loadCatalog = loadCatalog ?? _loadRuntimeAssetCatalog,
-        _fileExists = fileExists ?? FileSystemEntity.isFileSync {
+  }) : projectRootDirectory = p.normalize(p.absolute(projectRootDirectory)),
+       _loadCatalog = loadCatalog ?? _catalogLoaderFor(manifest),
+       _fileExists = fileExists ?? FileSystemEntity.isFileSync {
     if (cacheCapacity < 1) {
       throw ArgumentError.value(cacheCapacity, 'cacheCapacity');
     }
@@ -87,15 +88,27 @@ final class DialoguePortraitResolver {
   final DialoguePortraitCatalogLoader _loadCatalog;
   final bool Function(String path) _fileExists;
   final void Function(DialoguePortraitResolutionDiagnostic diagnostic)?
-      onDiagnostic;
+  onDiagnostic;
   final Map<String, ResolvedDialoguePortrait?> _cache =
       <String, ResolvedDialoguePortrait?>{};
+  final _hydratedCharacters =
+      <
+        String,
+        ({
+          ProjectCharacterEntry character,
+          Map<String, CharacterPortraitStateDefinition> states,
+        })?
+      >{};
   AssetCatalog? _catalog;
   bool _catalogLoaded = false;
+  int _preloadGeneration = 0;
 
   int get cachedResolutionCount => _cache.length;
 
   Future<void> preload(DialogueSession session) async {
+    final generation = ++_preloadGeneration;
+    _hydratedCharacters.clear();
+    _cache.clear();
     final references =
         <String, ({String characterId, String portraitStateId})>{};
     for (final node in session.nodes) {
@@ -103,6 +116,11 @@ final class DialoguePortraitResolver {
     }
     if (references.isEmpty) return;
     await _ensureCatalogLoaded();
+    await _hydrateCharacters(
+      references.values.map((reference) => reference.characterId),
+      generation: generation,
+    );
+    if (generation != _preloadGeneration) return;
     if (!_catalogLoaded || preloadLimit == 0) return;
     for (final reference in references.values.take(preloadLimit)) {
       resolve(
@@ -134,13 +152,60 @@ final class DialoguePortraitResolver {
     return resolved;
   }
 
-  /// Charge le catalogue d'assets si ce n'est pas déjà fait.
-  ///
-  /// Public depuis BETA-BAT-029 : le portrait d'un dresseur sert aussi à la
-  /// mise en scène du COMBAT, et ce chemin n'est pas précédé d'un
-  /// [preload] de dialogue. Sans ce chargement, [resolve] rend null et le
-  /// repli portrait ne se voyait jamais.
-  Future<void> ensureCatalogLoaded() => _ensureCatalogLoaded();
+  Future<void> ensureCatalogLoaded({
+    Iterable<String> characterIds = const [],
+  }) async {
+    await _ensureCatalogLoaded();
+    await _hydrateCharacters(characterIds, maximumCharacters: 64);
+  }
+
+  Future<void> _hydrateCharacters(
+    Iterable<String> characterIds, {
+    int? maximumCharacters,
+    int? generation,
+  }) async {
+    final owner = RuntimeProjectCatalog.ownerOf(manifest);
+    if (owner == null) return;
+    for (final id in characterIds.toSet()) {
+      if (manifest.characters.any((character) => character.id == id) ||
+          _hydratedCharacters.containsKey(id)) {
+        continue;
+      }
+      try {
+        final view = await owner.manifestForCharacter(id);
+        if (generation != null && generation != _preloadGeneration) return;
+        final character = view.characters.firstWhere((value) => value.id == id);
+        _hydratedCharacters[id] = (
+          character: character,
+          states: {
+            for (final state in view.characterStudioCatalog.portraitStates)
+              if (character.portraits.any(
+                (portrait) => portrait.portraitStateId == state.id,
+              ))
+                state.id: state,
+          },
+        );
+      } on RuntimeCatalogDefinitionMissingException catch (error) {
+        if (generation != null && generation != _preloadGeneration) return;
+        if (error.key !=
+            CatalogDefinitionKey(CatalogDefinitionKind.character, id)) {
+          rethrow;
+        }
+        _hydratedCharacters[id] = null;
+      }
+      _cache.removeWhere((key, _) => key.startsWith('$id\u0000'));
+      if (maximumCharacters != null) {
+        while (_hydratedCharacters.length > maximumCharacters) {
+          _hydratedCharacters.remove(_hydratedCharacters.keys.first);
+        }
+      }
+    }
+    if (maximumCharacters != null) {
+      while (_hydratedCharacters.length > maximumCharacters) {
+        _hydratedCharacters.remove(_hydratedCharacters.keys.first);
+      }
+    }
+  }
 
   Future<void> _ensureCatalogLoaded() async {
     if (_catalogLoaded) return;
@@ -163,10 +228,13 @@ final class DialoguePortraitResolver {
     required String characterId,
     required String portraitStateId,
   }) {
-    final character = _firstWhereOrNull(
-      manifest.characters,
-      (value) => value.id == characterId,
-    );
+    final hydrated = _hydratedCharacters[characterId];
+    final character =
+        _firstWhereOrNull(
+          manifest.characters,
+          (value) => value.id == characterId,
+        ) ??
+        hydrated?.character;
     if (character == null) {
       _emit(
         DialoguePortraitResolutionCode.characterUnknown,
@@ -175,10 +243,12 @@ final class DialoguePortraitResolver {
       );
       return null;
     }
-    final state = _firstWhereOrNull(
-      manifest.characterStudioCatalog.portraitStates,
-      (value) => value.id == portraitStateId,
-    );
+    final state =
+        _firstWhereOrNull(
+          manifest.characterStudioCatalog.portraitStates,
+          (value) => value.id == portraitStateId,
+        ) ??
+        hydrated?.states[portraitStateId];
     if (state == null) {
       _emit(
         DialoguePortraitResolutionCode.portraitStateUnknown,
@@ -267,6 +337,13 @@ final class DialoguePortraitResolver {
   }
 }
 
+DialoguePortraitCatalogLoader _catalogLoaderFor(ProjectManifest manifest) {
+  final owner = RuntimeProjectCatalog.ownerOf(manifest);
+  return owner == null
+      ? _loadRuntimeAssetCatalog
+      : (_) => owner.loadAssetCatalog();
+}
+
 Future<AssetCatalog?> _loadRuntimeAssetCatalog(String projectRoot) async {
   final file = File(p.join(projectRoot, assetCatalogStorageKey));
   if (!await file.exists()) return null;
@@ -285,10 +362,7 @@ void _collectReferences(
         if (characterId != null && portraitStateId != null) {
           output.putIfAbsent(
             '$characterId\u0000$portraitStateId',
-            () => (
-              characterId: characterId,
-              portraitStateId: portraitStateId,
-            ),
+            () => (characterId: characterId, portraitStateId: portraitStateId),
           );
         }
       case YarnStepChoiceBlock(:final choices):

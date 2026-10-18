@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -25,7 +23,6 @@ import '../application/runtime_pokemon_species_loader.dart';
 import '../application/runtime_post_battle_decision_coordinator.dart';
 import '../application/runtime_psdk_battle_session_adapter.dart';
 import '../application/runtime_psdk_battle_setup_mapper.dart';
-import '../infrastructure/tile_image_loader.dart';
 import '../infrastructure/battle_transition_image_loader.dart';
 import '../presentation/flame/battle_background_resolver.dart';
 import '../presentation/flame/battle_bag_item_icon_resolver.dart';
@@ -200,7 +197,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     _setBattleSnapshot(null);
     late final BattleTransitionOverlayComponent curtain;
     curtain = BattleTransitionOverlayComponent(
-      loadProjectSheet: (reference) => loadProjectBattleTransitionImage(reference, bundle.projectRootDirectory),
+      resourceBudget: bundle.resourceBudget,
+      loadProjectSheet: (reference) => loadProjectBattleTransitionImage(reference, bundle.projectRootDirectory,
+        resourceBudget: bundle.resourceBudget, isCurrent: () => _current(generation)),
       spec: resolveBattleTransitionSpecWithTerrain(
         request: request,
         manifest: bundle.manifest,
@@ -237,21 +236,6 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       ruleset: bundle.manifest.pokemon.ruleset,
       defaultOrigin: PlayerPokemonHydrationOrigin.legacySave,
     );
-  }
-
-  Future<ui.Image> _ownedImage(
-    Future<ui.Image> Function() load,
-    int generation,
-  ) async {
-    if (!_current(generation)) {
-      throw StateError('Battle image owner was cancelled.');
-    }
-    final image = await load();
-    if (!_current(generation)) {
-      image.dispose();
-      throw StateError('Battle image owner was cancelled.');
-    }
-    return image;
   }
 
   Future<void> _prepare(
@@ -328,21 +312,12 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       );
       displaySession = _display();
       _images = BattleVisualAssetCache(
-        imageLoader: (path) =>
-            _ownedImage(() => loadImageFromFilePath(path), generation),
+        resourceBudget: bundle.resourceBudget,
+        isCurrent: () => _current(generation),
       );
       _effects = BattleFxBundleCache(
-        imageLoader: (key) => _ownedImage(() async {
-          final data = await rootBundle.load(key);
-          final codec = await ui.instantiateImageCodec(
-            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-          );
-          try {
-            return (await codec.getNextFrame()).image;
-          } finally {
-            codec.dispose();
-          }
-        }, generation),
+        resourceBudget: bundle.resourceBudget,
+        isCurrent: () => _current(generation),
       );
       final captureSprites = RuntimeCaptureSpriteResolver(
         projectRootDirectory: bundle.projectRootDirectory,
@@ -354,6 +329,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       );
       late final BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        resourceBudget: bundle.resourceBudget,
         session: displaySession!,
         gameState: _working!,
         introEnabled: true,
@@ -673,6 +649,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     late final BattleTransitionOverlayComponent curtain;
     curtain = BattleTransitionOverlayComponent(
       spec: battleExitFade,
+      resourceBudget: bundle.resourceBudget,
       viewportSize: overlay.size.clone(),
       onBlackHeld: () {
         if (!blackHeld.isCompleted) blackHeld.complete();

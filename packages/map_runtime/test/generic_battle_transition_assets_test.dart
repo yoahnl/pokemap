@@ -38,12 +38,29 @@ void main() {
       expect(spec.totalSeconds, closeTo(0.6, 0.00001));
       final phase = spec.phases.whereType<TransitionSheetCellsPhase>().single;
       expect(phase.sheetName, 'project:atlas.png');
-      final loaded = await loadProjectBattleTransitionImage(phase.sheetName, project.path);
+      final budget = RuntimeResourceBudget();
+      final loaded = await loadProjectBattleTransitionImage(
+        phase.sheetName, project.path, resourceBudget: budget,
+      );
       expect(loaded, isNotNull);
-      expect(loaded!.width, 8);
-      expect(loaded.height, 6);
+      expect(loaded!.image.width, 8);
+      expect(loaded.image.height, 6);
+      expect(budget.residentBytes, 8 * 6 * 4);
       loaded.dispose();
+      expect(budget.residentBytes, 0);
     }
+  });
+
+  test('transition admission refuses a sheet above its resident budget', () async {
+    final file = File('${root.path}/oversized.png')..writeAsBytesSync(png);
+    final budget = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumResidentBytes: 128),
+    );
+    expect(await loadProjectBattleTransitionImage(
+      'project:oversized.png', file.parent.path, resourceBudget: budget,
+    ), isNull);
+    expect(budget.residentBytes, 0);
+    expect(budget.activeDecodes, 0);
   });
 
   test('missing images return null and symlink escapes are refused', () async {

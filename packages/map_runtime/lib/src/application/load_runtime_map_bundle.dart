@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 
 import 'runtime_manifest_tilesets.dart';
 import 'runtime_map_bundle.dart';
+import 'runtime_project_catalog.dart';
 import 'character_animation_source_resolver.dart';
 import '../border/border_runtime_readiness.dart';
 
@@ -252,7 +253,7 @@ ProjectManifest normalizeRuntimeProjectManifest(ProjectManifest manifest) {
 
 Future<MapData> loadMapDataFromFile(
   String absoluteMapPath, {
-  required ProjectManifest projectDialogueContext,
+  required ProjectManifest? projectDialogueContext,
 }) async {
   final maps = await loadMapDataFiles([
     absoluteMapPath,
@@ -262,7 +263,7 @@ Future<MapData> loadMapDataFromFile(
 
 Future<List<MapData>> loadMapDataFiles(
   List<String> absoluteMapPaths, {
-  required ProjectManifest projectDialogueContext,
+  required ProjectManifest? projectDialogueContext,
 }) {
   if (absoluteMapPaths.isEmpty) return Future.value(const <MapData>[]);
   return Isolate.run(
@@ -272,7 +273,7 @@ Future<List<MapData>> loadMapDataFiles(
 
 Future<List<MapData>> _readMapDataFiles(
   List<String> absoluteMapPaths,
-  ProjectManifest projectDialogueContext,
+  ProjectManifest? projectDialogueContext,
 ) async {
   final maps = <MapData>[];
   for (final absoluteMapPath in absoluteMapPaths) {
@@ -303,7 +304,7 @@ Future<List<MapData>> _readMapDataFiles(
 
 MapData _decodeValidateAndComposeMapData(
   String text,
-  ProjectManifest projectDialogueContext,
+  ProjectManifest? projectDialogueContext,
 ) {
   final raw = jsonDecode(text) as Map<String, dynamic>;
   final map = MapData.fromJson(raw);
@@ -329,10 +330,47 @@ ProjectMapEntry? projectMapEntryForId(ProjectManifest manifest, String mapId) {
   return null;
 }
 
+Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
+  RuntimeProjectCatalog catalog,
+  String mapId, {
+  Set<String> additionalCharacterIds = const {},
+}) async {
+  final entry = projectMapEntryForId(catalog.projectMetadata, mapId);
+  if (entry == null) throw MapLoadException('Map id not in project: $mapId');
+  final root = p.dirname(catalog.projectFilePath);
+  final mapPath = p.normalize(p.join(root, entry.relativePath));
+  if (!p.isWithin(root, mapPath) ||
+      !p.isWithin(root, await File(mapPath).resolveSymbolicLinks())) {
+    throw const MapLoadException('Map entry escapes the project directory');
+  }
+  final map = await Isolate.run(() async {
+    final file = File(mapPath);
+    if (await file.length() > 128 * 1024 * 1024) {
+      throw const MapLoadException('Map document exceeds its byte limit');
+    }
+    final raw = decodeNarrativeEventJsonStrict(await file.readAsString());
+    return MapData.fromJson(raw as Map<String, dynamic>);
+  });
+  if (map.id != mapId) throw const MapLoadException('Map identity mismatch');
+  final project = await catalog.manifestForMap(
+    map,
+    extraCharacterIds: additionalCharacterIds,
+  );
+  MapValidator.validate(map, projectDialogueContext: project);
+  final composition = buildMapVisualCompositionPlan(map);
+  if (!composition.canCompose) {
+    throw MapLoadException('Map ${map.id} cannot be composed by this runtime.');
+  }
+  return (project: project, map: map);
+}
+
 Future<RuntimeMapBundle> loadRuntimeMapBundle({
   required String projectFilePath,
   required String mapId,
   ProjectManifest? preloadedManifest,
+  RuntimeProjectCatalog? projectCatalog,
+  RuntimeResourceBudget? resourceBudget,
+  Set<String> additionalCharacterIds = const {},
   RuntimeMapBundleLoadProfileSink? profileSink,
   RuntimeMapBundleLoadProgressSink? progressSink,
 }) async {
@@ -341,10 +379,24 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     'bundle load start projectFilePath=$projectFilePath mapId=$mapId',
   );
   var manifestLoadMicroseconds = 0;
-  late final ProjectManifest manifest;
+  final budget = resourceBudget ?? RuntimeResourceBudget();
+  if (projectCatalog != null) {
+    final suppliedPath = p.normalize(p.absolute(projectFilePath));
+    if (suppliedPath != projectCatalog.projectFilePath &&
+        await File(suppliedPath).resolveSymbolicLinks() !=
+            projectCatalog.projectFilePath) {
+      throw const MapLoadException('Project catalog identity mismatch');
+    }
+  }
+  final catalog =
+      projectCatalog ??
+      (preloadedManifest == null
+          ? await RuntimeProjectCatalog.open(projectFilePath)
+          : null);
+  late ProjectManifest manifest;
   if (preloadedManifest == null) {
     final watch = Stopwatch()..start();
-    manifest = await loadProjectManifestFromFile(projectFilePath);
+    manifest = catalog!.projectMetadata;
     watch.stop();
     manifestLoadMicroseconds = watch.elapsedMicroseconds;
   } else {
@@ -359,30 +411,46 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     );
     throw MapLoadException('Map id not in project manifest: $mapId');
   }
-  final projectRoot = p.normalize(p.dirname(projectFilePath));
+  final projectRoot = p.dirname(
+    catalog?.projectFilePath ?? p.normalize(p.absolute(projectFilePath)),
+  );
   final rel = entry.relativePath.trim();
   if (rel.isEmpty) {
     _runtimeLoaderLog('bundle load failed: empty relativePath mapId=$mapId');
     throw const MapLoadException('Map entry has empty relativePath');
   }
   final mapPath = p.normalize(p.join(projectRoot, rel));
+  if (!p.isWithin(projectRoot, mapPath)) {
+    throw const MapLoadException('Map entry escapes the project directory');
+  }
   progressSink?.call(RuntimeMapBundleLoadStage.mapResolution);
   _runtimeLoaderLog(
     'bundle map resolved mapId=$mapId relativePath=$rel mapPath=$mapPath',
   );
   final mapWatch = Stopwatch()..start();
-  final map = await loadMapDataFromFile(
-    mapPath,
-    projectDialogueContext: manifest,
-  );
+  final MapData map;
+  if (catalog == null) {
+    map = await loadMapDataFromFile(mapPath, projectDialogueContext: manifest);
+  } else {
+    final loaded = await loadRuntimeCatalogMap(
+      catalog,
+      mapId,
+      additionalCharacterIds: additionalCharacterIds,
+    );
+    map = loaded.map;
+    manifest = loaded.project;
+  }
   mapWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.mapData);
   final assetCatalogWatch = Stopwatch()..start();
-  final assetCatalog = await _loadRuntimeAssetCatalog(projectRoot);
+  final assetCatalog = catalog == null
+      ? await _loadRuntimeAssetCatalog(projectRoot)
+      : await catalog.loadAssetCatalog();
   assetCatalogWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.assetCatalog);
   final tilesetWatch = Stopwatch()..start();
-  final tilesetIds = collectAllRuntimeTilesetIds(map, manifest);
+  final tilesetIds = collectAllRuntimeTilesetIds(map, manifest,
+      additionalCharacterIds: additionalCharacterIds);
   _runtimeLoaderLog('bundle tilesets collected ids=${tilesetIds.join(',')}');
   final paths = resolveTilesetAbsolutePaths(
     manifest: manifest,
@@ -393,6 +461,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   final characterAnimationPreloadPlan =
       buildCharacterAnimationSourcePreloadPlan(
         manifest: manifest,
+        map: map,
+        additionalCharacterIds: additionalCharacterIds,
         projectRootDirectory: projectRoot,
         assetCatalog: assetCatalog,
       );
@@ -421,7 +491,10 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
       tilesetAbsolutePathsById: paths,
       characterAnimationAbsolutePathsByAssetId:
           characterAnimationPreloadPlan.absolutePathsByAssetId,
+      projectCatalog: catalog,
+      resourceBudget: budget,
     ),
+    resourceBudget: budget,
   );
   borderWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.worldPreparation);

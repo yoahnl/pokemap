@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,13 +21,13 @@ void main() {
     await _pump(tester, snapshot: _lineSnapshot(portrait: portrait));
 
     expect(find.byType(PlayerPortraitFrame), findsOneWidget);
-    final image = tester.widget<Image>(
+    final image = tester.widget<PlayerFileImage>(
       find.byKey(
         const ValueKey<String>('dialogue-portrait-portrait.elia.surprised'),
       ),
     );
     expect(image.fit, BoxFit.cover);
-    expect((image.image as FileImage).file.path, portrait.absoluteFilePath);
+    expect(image.path, portrait.absoluteFilePath);
     expect(find.bySemanticsLabel('Élia, Attends… tu as vu ça ?'), findsOne);
     expect(tester.takeException(), isNull);
   });
@@ -135,12 +135,12 @@ void main() {
       ),
       const Size.square(120),
     );
-    final image = tester.widget<Image>(
+    final image = tester.widget<PlayerFileImage>(
       find.byKey(
         const ValueKey<String>('dialogue-portrait-portrait.elia.surprised'),
       ),
     );
-    expect((image.image as FileImage).file.path, portrait.absoluteFilePath);
+    expect(image.path, portrait.absoluteFilePath);
   });
 
   for (final shape in ProjectDialoguePortraitShape.values) {
@@ -285,17 +285,13 @@ void main() {
     );
     expect(
       tester
-          .widget<Image>(
+          .widget<PlayerFileImage>(
             find.byKey(
               const ValueKey<String>('dialogue-portrait-portrait.elia.second'),
             ),
           )
-          .image,
-      isA<FileImage>().having(
-        (image) => image.file.path,
-        'path',
-        second.absoluteFilePath,
-      ),
+          .path,
+      second.absoluteFilePath,
     );
 
     await _pump(
@@ -349,6 +345,8 @@ void main() {
   }
 }
 
+final _imageScopeIdentity = Object();
+
 Future<void> _pump(
   WidgetTester tester, {
   required DialoguePresentationSnapshot snapshot,
@@ -358,7 +356,24 @@ Future<void> _pump(
   Key? boundaryKey,
   ProjectDialoguePresentationProfile? dialogue,
   bool showSpeakerName = true,
-}) {
+}) async {
+  final portrait = snapshot.portrait;
+  Object? loadError;
+  final lease = portrait == null ? null : await tester.runAsync(
+    () async {
+      try {
+        return await loadRuntimeUiImageFromFilePath(portrait.absoluteFilePath);
+      } on Object catch (error) {
+        loadError = error;
+        return null;
+      }
+    },
+  );
+  if (lease != null) addTearDown(lease.dispose);
+  Future<PlayerImageLease> loader(String path, {required bool Function() isCurrent}) async {
+    if (lease == null) throw loadError ?? StateError('Missing portrait.');
+    return PlayerImageLease(image: lease.image, onDispose: lease.dispose);
+  }
   var resolvedTheme = theme ?? PokeMapPlayerTheme.dark();
   if (dialogue != null) {
     resolvedTheme = PokeMapPlayerTheme.withDialogueProfile(
@@ -366,7 +381,7 @@ Future<void> _pump(
       dialogue,
     );
   }
-  return tester.pumpWidget(
+  await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr'),
@@ -378,16 +393,21 @@ Future<void> _pump(
         child: RepaintBoundary(
           key: boundaryKey,
           child: Scaffold(
-            body: PlayerDialogueOverlay(
+            body: PlayerImageScope(
+              identity: _imageScopeIdentity,
+              loader: loader,
+              child: PlayerDialogueOverlay(
               snapshot: snapshot,
               onCommand: (_) {},
               showSpeakerName: showSpeakerName,
+              ),
             ),
           ),
         ),
       ),
     ),
   );
+  await tester.pump();
 }
 
 DialoguePresentationSnapshot _lineSnapshot({
@@ -434,11 +454,17 @@ Future<ResolvedDialoguePortrait> _portrait(
 }) async {
   final directory = await Directory.systemTemp.createTemp('player_portrait_');
   final file = File('${directory.path}/$suffix.png');
-  await file.writeAsBytes(
-    base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9tsAAAAASUVORK5CYII=',
-    ),
-  );
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder).drawColor(const ui.Color(0x00000000), ui.BlendMode.src);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(1, 1);
+  try {
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    await file.writeAsBytes(data!.buffer.asUint8List());
+  } finally {
+    image.dispose();
+    picture.dispose();
+  }
   return ResolvedDialoguePortrait(
     characterId: 'elia',
     characterName: 'Élia',

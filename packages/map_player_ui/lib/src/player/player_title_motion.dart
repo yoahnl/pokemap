@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../foundation/player_image.dart';
 
 import 'player_intro_video_player.dart';
 import 'player_startup_media.dart';
@@ -193,7 +194,7 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
       fit: StackFit.expand,
       children: <Widget>[
         if (widget.poster case final poster?)
-          Image(
+          PlayerProvidedImage(
             key: const ValueKey<String>('player-title-motion-poster'),
             image: poster,
             fit: BoxFit.cover,

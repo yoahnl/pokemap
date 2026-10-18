@@ -176,7 +176,11 @@ final class SpatialExplorationSession {
   Future<Uint8List> groundImageBytes(String id) async {
     final path = bundle.runtimeImageAbsolutePathsById[id];
     if (path == null) throw StateError('Image du terrain introuvable : $id');
-    return File(path).readAsBytes();
+    final file = File(path);
+    if (await file.length() > bundle.resourceBudget.profile.maximumEncodedBytes) {
+      throw const RuntimeResourceAdmissionException('encoded_bytes');
+    }
+    return file.readAsBytes();
   }
 
   final Map<String, EntityFacing> npcFacing = {};
@@ -263,6 +267,7 @@ final class SpatialExplorationSession {
       validateDialogueFeedbackReferences(configured.lineFeedback,
           iconAssetIds: bundle.runtimeImageAbsolutePathsById.keys.toSet(), mediaAssets: bundle.manifest.cinematicMediaAssets);
       final overlay = DialogueOverlayComponent(
+        resourceBudget: bundle.resourceBudget,
           session:
               transformText == null ? configured : configured.mapText(transformText),
           onFinished: (outcome) => _finishDialogue(
@@ -369,7 +374,9 @@ final class SpatialExplorationSession {
         session: dialogue.currentSession,
         revision: ++_revision,
         visibleText: dialogue.visibleText,
-        isCurrentLineFullyRevealed: dialogue.isCurrentLineFullyRevealed);
+        isCurrentLineFullyRevealed: dialogue.isCurrentLineFullyRevealed,
+        iconPngBytes: dialogue.currentPresentationSnapshot?.iconPngBytes ?? const {},
+        iconImages: dialogue.currentPresentationSnapshot?.iconImages ?? const {});
   }
 
   void closeDialogue() {
@@ -506,7 +513,7 @@ final class SpatialExplorationSession {
     final entityVisuals = SpatialEntityVisualPlan(bundle.map, bundle.manifest);
     movement.entityProjection = (entity) => entityProjection == null ? entity :
       entityProjection(bundle.map.id, entity);
-    final assets = sharedAssets ?? _SpatialActorAssets();
+    final assets = sharedAssets ?? _SpatialActorAssets(bundle.resourceBudget);
     final session = SpatialExplorationSession._(
         bundle,
         character,
@@ -547,7 +554,10 @@ final class SpatialExplorationSession {
               projectFilePath:
                   p.join(bundle.projectRootDirectory, 'project.json'),
               mapId: id,
-              preloadedManifest: bundle.manifest);
+              preloadedManifest: bundle.projectCatalog == null ? bundle.manifest : null,
+              projectCatalog: bundle.projectCatalog,
+              resourceBudget: bundle.resourceBudget,
+              additionalCharacterIds: {if (characterId != null) characterId});
       session._warps =
           SpatialWarpController(map: bundle.map, x: movement.x, z: movement.z);
       for (final actor in characters) {
@@ -806,11 +816,20 @@ final class SpatialExplorationSession {
     return override;
   }
 
-  Future<List<int>> modelBytes(String id) async {
-    final model = bundle.manifest.models3d.where((v) => v.id == id).firstOrNull;
+  Future<Uint8List> modelBytes(String id) => modelBytesForBundle(bundle, id);
+
+  Future<Uint8List> modelBytesForBundle(RuntimeMapBundle source, String id) async {
+    final model = source.manifest.models3d.where((v) => v.id == id).firstOrNull;
     if (model == null) throw StateError('Modèle absent : $id');
-    return File(p.join(bundle.projectRootDirectory, model.relativePath))
-        .readAsBytes();
+    final path = p.normalize(p.join(source.projectRootDirectory, model.relativePath));
+    if (!p.isWithin(source.projectRootDirectory, path)) {
+      throw StateError('Model path escapes the project.');
+    }
+    final file = File(path);
+    if (await file.length() > source.resourceBudget.profile.maximumEncodedBytes) {
+      throw const RuntimeResourceAdmissionException('encoded_bytes');
+    }
+    return file.readAsBytes();
   }
 
   Future<void> enterWarp(MapWarp warp) async {
@@ -1167,6 +1186,11 @@ final class SpatialExplorationSession {
       }
     } finally {
       candidate?.dispose();
+      if (!_disposed) {
+        _assets.retain({
+          for (final prepared in _preparedMaps.values) ...prepared.imageIds,
+        });
+      }
       if (!_disposed && generation == _transferGeneration) {
         movement.setPaused(presentationPaused || interactionActive.value);
         transitioning.value = false;
@@ -1232,6 +1256,9 @@ final class _PreparedSpatialMap {
 }
 
 final class _SpatialActorAssets {
+  _SpatialActorAssets(this.budget);
+  final RuntimeResourceBudget budget;
+  final reservations = <String, RuntimeResourceReservation>{};
   final images = <String, ui.Image>{};
   final textures = <String, SpatialActorTexture>{};
   final owners = <Object, Set<String>>{};
@@ -1242,21 +1269,52 @@ final class _SpatialActorAssets {
       String id, String path, SpatialEntityVisualPlan plan) async {
     if (images.containsKey(id)) return;
     final future = pending.putIfAbsent(id, () async {
-      final codec =
-          await ui.instantiateImageCodec(await File(path).readAsBytes());
+      final file = File(path);
+      final length = await file.length();
+      if (length > budget.profile.maximumEncodedBytes) {
+        throw const RuntimeResourceAdmissionException('encoded_bytes');
+      }
+      final reservation = await budget.acquire(
+        transientBytes: length * 2,
+        isCurrent: () => !disposed,
+      );
+      ui.ImmutableBuffer? buffer;
+      ui.ImageDescriptor? descriptor;
+      ui.Codec? codec;
       ui.Image? image;
       try {
+        final bytes = await file.readAsBytes();
+        if (bytes.length != length) {
+          throw const RuntimeResourceAdmissionException('source_changed');
+        }
+        buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+        descriptor = await ui.ImageDescriptor.encoded(buffer);
+        final residentLimit = reservation.profile.maximumResidentBytes ~/ 2;
+        final transientLimit = (reservation.profile.maximumTransientBytes - length * 2) ~/ 3;
+        final pixels = runtimeImageRgbaByteLength(descriptor.width, descriptor.height,
+            maximumBytes: residentLimit < transientLimit ? residentLimit : transientLimit);
+        reservation.resize(residentBytes: pixels * 2,
+            transientBytes: length * 2 + pixels * 3);
+        codec = await descriptor.instantiateCodec();
         image = (await codec.getNextFrame()).image;
+        reservation.ensureCurrent();
         final texture = await plan.createTexture(id, image);
         if (disposed) {
           throw StateError('Les ressources de la session sont fermées.');
         }
         images[id] = image;
         textures[id] = texture;
+        reservation.commit();
+        reservations[id] = reservation;
         image = null;
+      } on Object {
+        reservation.release();
+        rethrow;
       } finally {
         image?.dispose();
-        codec.dispose();
+        codec?.dispose();
+        descriptor?.dispose();
+        buffer?.dispose();
       }
     });
     try {
@@ -1272,6 +1330,7 @@ final class _SpatialActorAssets {
         in images.keys.where((id) => !retained.contains(id)).toList()) {
       images.remove(id)!.dispose();
       textures.remove(id);
+      reservations.remove(id)?.release();
     }
   }
 
@@ -1284,5 +1343,9 @@ final class _SpatialActorAssets {
     images.clear();
     textures.clear();
     owners.clear();
+    for (final reservation in reservations.values) {
+      reservation.release();
+    }
+    reservations.clear();
   }
 }

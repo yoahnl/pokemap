@@ -5,6 +5,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
@@ -310,7 +311,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               ? fallback
               : KeyedSubtree(
                   key: ValueKey(image),
-                  child: Image(
+                  child: PlayerProvidedImage(
                     key: const ValueKey('runtime-menu-background'),
                     image: ResizeImage(image,
                         width: decodeWidth,

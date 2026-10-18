@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
 
@@ -36,6 +37,7 @@ class DialoguePresentationSnapshot {
     this.portrait,
     this.segments = const [],
     this.iconPngBytes = const {},
+    this.iconImages = const {},
     this.isAdvanceAvailable = true,
   });
 
@@ -51,6 +53,7 @@ class DialoguePresentationSnapshot {
   final ResolvedDialoguePortrait? portrait;
   final List<DialogueLineSegment> segments;
   final Map<String, Uint8List> iconPngBytes;
+  final Map<String, ui.Image> iconImages;
   final bool isAdvanceAvailable;
 }
 
@@ -61,6 +64,7 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
   required bool isCurrentLineFullyRevealed,
   DialoguePortraitLookup? resolvePortrait,
   Map<String, Uint8List> iconPngBytes = const {},
+  Map<String, ui.Image> iconImages = const {},
 }) {
   final state = session.state;
   return switch (state) {
@@ -72,20 +76,22 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
     ) =>
       () {
         final fullLine = feedback?.segments.isNotEmpty == true
-            ? (speaker: null, text: text) : _splitDialogueLine(text);
+            ? (speaker: null, text: text)
+            : _splitDialogueLine(text);
         final portrait = characterId == null || portraitStateId == null
             ? null
             : resolvePortrait?.call(
                 characterId: characterId,
                 portraitStateId: portraitStateId,
               );
-        final speakerPrefix =
-            fullLine.speaker == null ? null : '${fullLine.speaker}:';
+        final speakerPrefix = fullLine.speaker == null
+            ? null
+            : '${fullLine.speaker}:';
         final visibleBody = speakerPrefix == null
             ? visibleText
             : visibleText.length <= speakerPrefix.length
-                ? ''
-                : visibleText.substring(speakerPrefix.length).trimLeft();
+            ? ''
+            : visibleText.substring(speakerPrefix.length).trimLeft();
         return DialoguePresentationSnapshot(
           revision: revision,
           mode: DialoguePresentationMode.line,
@@ -97,16 +103,18 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
           isLastContent: session.isLastContent,
           choices: const <DialoguePresentationChoice>[],
           portrait: portrait,
-          segments: visibleDialogueLineSegments(feedback?.segments ?? const [], visibleText.runes.length),
+          segments: visibleDialogueLineSegments(
+            feedback?.segments ?? const [],
+            visibleText.runes.length,
+          ),
           iconPngBytes: Map.unmodifiable(iconPngBytes),
-          isAdvanceAvailable: !isCurrentLineFullyRevealed ||
+          iconImages: Map.unmodifiable(iconImages),
+          isAdvanceAvailable:
+              !isCurrentLineFullyRevealed ||
               feedback?.advance.kind != DialogueLineAdvanceKind.autoAfterReveal,
         );
       }(),
-    DialogueWaitingForChoice(
-      :final choices,
-      :final selectedIndex,
-    ) =>
+    DialogueWaitingForChoice(:final choices, :final selectedIndex) =>
       DialoguePresentationSnapshot(
         revision: revision,
         mode: DialoguePresentationMode.choices,
@@ -182,7 +190,7 @@ class DialoguePresentationCommandValidation {
   });
 
   const DialoguePresentationCommandValidation.accepted()
-      : this._(accepted: true);
+    : this._(accepted: true);
 
   const DialoguePresentationCommandValidation.rejected(
     DialoguePresentationCommandRejection rejection,
@@ -202,22 +210,25 @@ DialoguePresentationCommandValidation validateDialoguePresentationCommand(
     );
   }
   return switch (command) {
-    DialogueAdvanceCommand() => snapshot.mode == DialoguePresentationMode.line
-        ? snapshot.isAdvanceAvailable
-            ? const DialoguePresentationCommandValidation.accepted()
-            : const DialoguePresentationCommandValidation.rejected(DialoguePresentationCommandRejection.advanceUnavailable)
-        : const DialoguePresentationCommandValidation.rejected(
-            DialoguePresentationCommandRejection.wrongMode,
-          ),
+    DialogueAdvanceCommand() =>
+      snapshot.mode == DialoguePresentationMode.line
+          ? snapshot.isAdvanceAvailable
+                ? const DialoguePresentationCommandValidation.accepted()
+                : const DialoguePresentationCommandValidation.rejected(
+                    DialoguePresentationCommandRejection.advanceUnavailable,
+                  )
+          : const DialoguePresentationCommandValidation.rejected(
+              DialoguePresentationCommandRejection.wrongMode,
+            ),
     DialogueSelectChoiceCommand(:final choiceIndex) =>
       snapshot.mode != DialoguePresentationMode.choices
           ? const DialoguePresentationCommandValidation.rejected(
               DialoguePresentationCommandRejection.wrongMode,
             )
           : snapshot.choices.any((choice) => choice.index == choiceIndex)
-              ? const DialoguePresentationCommandValidation.accepted()
-              : const DialoguePresentationCommandValidation.rejected(
-                  DialoguePresentationCommandRejection.choiceMissing,
-                ),
+          ? const DialoguePresentationCommandValidation.accepted()
+          : const DialoguePresentationCommandValidation.rejected(
+              DialoguePresentationCommandRejection.choiceMissing,
+            ),
   };
 }

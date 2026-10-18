@@ -5,7 +5,8 @@ import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 
-import 'package:map_core/map_core.dart' show validateBattleTransitionAssetReference;
+import 'package:map_core/map_core.dart';
+import '../../infrastructure/runtime_ui_image.dart';
 import 'battle_transition_spec.dart';
 
 /// La pré-transition de début de combat — BETA-BAT-016.
@@ -35,6 +36,7 @@ class BattleTransitionOverlayComponent extends PositionComponent {
     this.revealSeconds = 0.25,
     Future<Image?> Function(String sheetName)? loadSheet,
     this.loadProjectSheet,
+    this.resourceBudget,
     @visibleForTesting Future<FragmentProgram?> Function()? loadDissolveProgram,
   })  : _loadSheet = loadSheet,
         _loadDissolveProgram = loadDissolveProgram,
@@ -53,7 +55,8 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   final VoidCallback onBlackHeld;
   final VoidCallback? onDismissed;
   final double revealSeconds;
-  final Future<Image?> Function(String reference)? loadProjectSheet;
+  final Future<RuntimeUiImageLease?> Function(String reference)? loadProjectSheet;
+  final RuntimeResourceBudget? resourceBudget;
   final Future<Image?> Function(String sheetName)? _loadSheet;
   final Future<FragmentProgram?> Function()? _loadDissolveProgram;
 
@@ -66,6 +69,8 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   FragmentShader? _dissolveShader;
 
   final Map<String, Image> _sheetImages = <String, Image>{};
+  final List<void Function()> _releaseImages = [];
+  bool _disposed = false;
   var _phaseIndex = 0;
   var _phaseElapsed = 0.0;
   var _blackHeldNotified = false;
@@ -113,12 +118,14 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       };
       if (sheetName == null || _sheetImages.containsKey(sheetName)) continue;
       final image = await _resolveSheetImage(sheetName);
+      if (_disposed) return;
       if (image != null) {
         _sheetImages[sheetName] = image;
       }
     }
     if (spec.phases.any((p) => p is TransitionThresholdDissolvePhase)) {
       _dissolveProgram = await _resolveDissolveProgram();
+      if (_disposed) return;
       if (_dissolveProgram != null) {
         _dissolveShader = _dissolveProgram!.fragmentShader();
       }
@@ -153,10 +160,16 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   Future<Image?> _resolveSheetImage(String sheetName) async {
     final loader = _loadSheet;
     if (loader != null) {
-      return loader(sheetName);
+      final image = await loader(sheetName);
+      if (image != null) _retainImage(image.dispose);
+      return _disposed ? null : image;
     }
     validateBattleTransitionAssetReference(sheetName);
-    if (sheetName.startsWith('project:')) return loadProjectSheet?.call(sheetName);
+    if (sheetName.startsWith('project:')) {
+      final lease = await loadProjectSheet?.call(sheetName);
+      if (lease != null) _retainImage(lease.dispose);
+      return _disposed ? null : lease?.image;
+    }
     if (!sheetName.startsWith('embedded:')) return null;
     final fileName = sheetName.substring('embedded:'.length);
     // Double essai comme le catalogue RMXP : la clé préfixée `packages/` vaut
@@ -178,13 +191,40 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       }
     }
     try {
-      final codec = await instantiateImageCodec(bytes.buffer.asUint8List());
-      final frame = await codec.getNextFrame();
-      return frame.image;
+      final lease = await decodeRuntimeUiImage(
+        bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+        resourceBudget: resourceBudget,
+        isCurrent: () => !_disposed,
+      );
+      _retainImage(lease.dispose);
+      return _disposed ? null : lease.image;
     } on Object catch (error) {
       debugPrint('[battle-transition] failed to decode "$sheetName": $error');
       return null;
     }
+  }
+
+  void _retainImage(void Function() release) {
+    if (_disposed) {
+      release();
+    } else {
+      _releaseImages.add(release);
+    }
+  }
+
+  @override
+  void onRemove() {
+    _disposed = true;
+    for (final release in _releaseImages) {
+      release();
+    }
+    _releaseImages.clear();
+    _sheetImages.clear();
+    _visibleSheet = null;
+    _dissolveTexture = null;
+    _dissolveShader?.dispose();
+    _dissolveShader = null;
+    super.onRemove();
   }
 
   /// Dessine le balayage de terrain — BETA-BAT-032.

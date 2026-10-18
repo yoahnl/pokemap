@@ -5,6 +5,8 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../infrastructure/runtime_ui_image.dart';
+
 typedef CinematicEmoteImageLoader = Future<ui.Image> Function(String assetKey);
 
 /// Découpe les emotes du catalogue depuis les atlas livrés avec le runtime.
@@ -16,11 +18,23 @@ typedef CinematicEmoteImageLoader = Future<ui.Image> Function(String assetKey);
 final class CinematicEmoteSpriteCache {
   CinematicEmoteSpriteCache({
     CinematicEmoteImageLoader? imageLoader,
-  }) : _imageLoader = imageLoader ?? _loadImageFromAssetBundle;
+    RuntimeResourceBudget? resourceBudget,
+    bool Function()? isCurrent,
+  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+       _ownsResourceBudget = resourceBudget == null {
+    _images = RuntimeOwnedImageCache(
+      imageLoader: imageLoader,
+      loadLease: (key) =>
+          _loadImageFromAssetBundle(key, this.resourceBudget, isCurrent),
+    );
+    _images.beginScope();
+  }
 
   static const String _assetKeyPrefix = 'packages/map_runtime/';
 
-  final CinematicEmoteImageLoader _imageLoader;
+  final RuntimeResourceBudget resourceBudget;
+  final bool _ownsResourceBudget;
+  late final RuntimeOwnedImageCache _images;
   final Map<String, Future<ui.Image>> _imageFutureByAtlasId =
       <String, Future<ui.Image>>{};
   final Map<String, Future<List<Sprite>>> _spriteFutureByEmoteId =
@@ -82,7 +96,7 @@ final class CinematicEmoteSpriteCache {
     if (cached != null) {
       return await cached;
     }
-    final future = _imageLoader(runtimeAssetKeyFor(atlas));
+    final future = _images.load(runtimeAssetKeyFor(atlas));
     _imageFutureByAtlasId[atlas.id] = future;
     try {
       return await future;
@@ -94,19 +108,25 @@ final class CinematicEmoteSpriteCache {
       rethrow;
     }
   }
+
+  void dispose() {
+    _images.dispose();
+    _imageFutureByAtlasId.clear();
+    _spriteFutureByEmoteId.clear();
+    if (_ownsResourceBudget) resourceBudget.dispose();
+  }
 }
 
-Future<ui.Image> _loadImageFromAssetBundle(String assetKey) async {
+Future<RuntimeUiImageLease> _loadImageFromAssetBundle(
+  String assetKey,
+  RuntimeResourceBudget resourceBudget,
+  bool Function()? isCurrent,
+) async {
   final data = await rootBundle.load(assetKey);
-  final bytes = data.buffer.asUint8List(
-    data.offsetInBytes,
-    data.lengthInBytes,
+  final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  return decodeRuntimeUiImage(
+    bytes,
+    resourceBudget: resourceBudget,
+    isCurrent: isCurrent,
   );
-  final codec = await ui.instantiateImageCodec(bytes);
-  try {
-    final frame = await codec.getNextFrame();
-    return frame.image;
-  } finally {
-    codec.dispose();
-  }
 }

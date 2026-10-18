@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import '../application/load_runtime_map_bundle.dart';
 import '../application/narrative_event_runtime_snapshot.dart';
 import '../application/runtime_map_bundle.dart';
+import '../application/runtime_project_catalog.dart';
 import '../infrastructure/runtime_tileset_image.dart';
 import '../infrastructure/tile_image_loader.dart';
 import '../session/game_session_contract.dart';
@@ -38,14 +39,13 @@ typedef RuntimeInitialMapPreloadProgressSink = void Function(
 );
 
 final class RuntimeInitialMapPreloadRequest {
-  const RuntimeInitialMapPreloadRequest.continueGame(
-    SaveSlotAddress address,
-  )   : mode = RuntimeInitialMapPreloadMode.continueGame,
-        saveAddress = address;
+  const RuntimeInitialMapPreloadRequest.continueGame(SaveSlotAddress address)
+    : mode = RuntimeInitialMapPreloadMode.continueGame,
+      saveAddress = address;
 
   const RuntimeInitialMapPreloadRequest.newGame()
-      : mode = RuntimeInitialMapPreloadMode.newGame,
-        saveAddress = null;
+    : mode = RuntimeInitialMapPreloadMode.newGame,
+      saveAddress = null;
 
   final RuntimeInitialMapPreloadMode mode;
   final SaveSlotAddress? saveAddress;
@@ -72,28 +72,34 @@ typedef RuntimeInitialMapBundleLoader = Future<RuntimeMapBundle> Function({
   required String mapId,
   required ProjectManifest preloadedManifest,
 });
-typedef RuntimeInitialMapTilesetImageLoader
-    = Future<Map<String, RuntimeTilesetImage>> Function(
-  Map<String, String> absolutePathByTilesetId, {
-  Map<String, TilesetTransparentColor> transparentColorByTilesetId,
-  RuntimeTilesetImageLoadProgressSink? onProgress,
-});
+typedef RuntimeInitialMapTilesetImageLoader =
+    Future<Map<String, RuntimeTilesetImage>> Function(
+      Map<String, String> absolutePathByTilesetId, {
+      Map<String, TilesetTransparentColor> transparentColorByTilesetId,
+      RuntimeTilesetImageLoadProgressSink? onProgress,
+    });
 
 final class RuntimeInitialMapPreloadResult {
-  RuntimeInitialMapPreloadResult({
-    required this.bundle,
-    this.narrativeSnapshot,
-  });
+  RuntimeInitialMapPreloadResult({required this.bundle, this.narrativeSnapshot})
+    : _projectCatalog = bundle.projectCatalog;
 
   RuntimeInitialMapPreloadResult._({
     required this.bundle,
     required RuntimeTilesetImageSingleFlightCache tilesetImageCache,
     this.narrativeSnapshot,
-  }) : _tilesetImageCache = tilesetImageCache;
+  }) : _tilesetImageCache = tilesetImageCache,
+       _projectCatalog = bundle.projectCatalog;
 
   final RuntimeMapBundle bundle;
   final NarrativeEventRuntimeSnapshot? narrativeSnapshot;
   RuntimeTilesetImageSingleFlightCache? _tilesetImageCache;
+  RuntimeProjectCatalog? _projectCatalog;
+
+  RuntimeProjectCatalog? takeProjectCatalog() {
+    final catalog = _projectCatalog;
+    _projectCatalog = null;
+    return catalog;
+  }
 
   RuntimeTilesetImageSingleFlightCache? takeTilesetImageCache() {
     final cache = _tilesetImageCache;
@@ -104,6 +110,8 @@ final class RuntimeInitialMapPreloadResult {
   void dispose() {
     _tilesetImageCache?.dispose();
     _tilesetImageCache = null;
+    _projectCatalog?.dispose();
+    _projectCatalog = null;
   }
 }
 
@@ -111,28 +119,30 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
   RuntimeInitialMapPreloader({
     required RuntimeInitialMapProjectFilePathLoader projectFilePath,
     required RuntimeInitialMapSaveLoader loadSave,
-    RuntimeInitialMapManifestLoader manifestLoader =
-        loadProjectManifestFromFile,
+    this.expectedIdentity,
+    RuntimeInitialMapManifestLoader? manifestLoader,
     RuntimeInitialMapBundleLoader? bundleLoader,
     RuntimeInitialMapTilesetImageLoader tilesetImageLoader =
         loadTilesetImagesById,
-  })  : _projectFilePath = projectFilePath,
-        _loadSave = loadSave,
-        _manifestLoader = manifestLoader,
-        _bundleLoader = bundleLoader,
-        _tilesetImageLoader = tilesetImageLoader;
+  }) : _projectFilePath = projectFilePath,
+       _loadSave = loadSave,
+       _manifestLoader = manifestLoader,
+       _bundleLoader = bundleLoader,
+       _tilesetImageLoader = tilesetImageLoader;
 
   final RuntimeInitialMapProjectFilePathLoader _projectFilePath;
+  final GameIdentity? expectedIdentity;
   final RuntimeInitialMapSaveLoader _loadSave;
-  final RuntimeInitialMapManifestLoader _manifestLoader;
+  final RuntimeInitialMapManifestLoader? _manifestLoader;
   final RuntimeInitialMapBundleLoader? _bundleLoader;
   final RuntimeInitialMapTilesetImageLoader _tilesetImageLoader;
 
   _RuntimeInitialMapCacheEntry? _cached;
   final Map<int, RuntimeTilesetImageSingleFlightCache>
-      _activeTilesetCacheByGeneration =
+  _activeTilesetCacheByGeneration =
       <int, RuntimeTilesetImageSingleFlightCache>{};
   int _generation = 0;
+  final Map<int, RuntimeProjectCatalog> _activeCatalogByGeneration = {};
 
   @override
   Future<void> preloadInitialMap(
@@ -153,135 +163,175 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
 
     final projectFilePath = p.normalize(p.absolute(await _projectFilePath()));
     publish(RuntimeInitialMapPreloadStage.projectResolution, 0.08);
-    final manifest = await _manifestLoader(projectFilePath);
-    publish(RuntimeInitialMapPreloadStage.manifest, 0.24);
-    final mapId = await _resolveMapId(request, manifest);
-    if (request.mode == RuntimeInitialMapPreloadMode.continueGame) {
-      publish(RuntimeInitialMapPreloadStage.saveDiscovery, 0.32);
+    final RuntimeProjectCatalog? catalog;
+    if (_manifestLoader == null && _bundleLoader == null) {
+      catalog = await RuntimeProjectCatalog.open(projectFilePath);
+      if (generation != _generation) {
+        catalog.dispose();
+        return;
+      }
+      _activeCatalogByGeneration[generation] = catalog;
+    } else {
+      catalog = null;
     }
-    publish(RuntimeInitialMapPreloadStage.mapSelection, 0.38);
-    final bundle = await (_bundleLoader?.call(
-          projectFilePath: projectFilePath,
-          mapId: mapId,
-          preloadedManifest: manifest,
-        ) ??
-        loadRuntimeMapBundle(
-          projectFilePath: projectFilePath,
-          mapId: mapId,
-          preloadedManifest: manifest,
-          progressSink: (stage) {
-            switch (stage) {
-              case RuntimeMapBundleLoadStage.manifest ||
-                    RuntimeMapBundleLoadStage.mapResolution:
-                break;
-              case RuntimeMapBundleLoadStage.mapData:
-                publish(RuntimeInitialMapPreloadStage.mapData, 0.48);
-              case RuntimeMapBundleLoadStage.assetCatalog:
-                publish(RuntimeInitialMapPreloadStage.assetCatalog, 0.54);
-              case RuntimeMapBundleLoadStage.tilesets:
-                publish(RuntimeInitialMapPreloadStage.tilesets, 0.60);
-              case RuntimeMapBundleLoadStage.worldPreparation:
-                break;
-            }
-          },
-        ));
-    if (bundle.map.id != mapId) {
-      throw StateError('The preloaded map does not match the requested map.');
-    }
-    if (generation != _generation) return;
-    RuntimeTilesetImageLoadProgressSink? tilesetProgress = (completed, total) {
-      final fraction = total <= 0 ? 1.0 : completed / total;
-      publish(
-        RuntimeInitialMapPreloadStage.tilesets,
-        0.60 + (0.15 * fraction.clamp(0, 1)),
-      );
-    };
-    final tilesetCache = RuntimeTilesetImageSingleFlightCache(
-      loader: (
-        paths, {
-        transparentColorByTilesetId = const <String, TilesetTransparentColor>{},
-      }) =>
-          _tilesetImageLoader(
-        paths,
-        transparentColorByTilesetId: transparentColorByTilesetId,
-        onProgress: tilesetProgress,
-      ),
-    );
-    _activeTilesetCacheByGeneration[generation] = tilesetCache;
-    var retained = false;
     try {
-      publish(RuntimeInitialMapPreloadStage.tilesets, 0.60);
-      await tilesetCache.loadById(
-        bundle.runtimeImageAbsolutePathsById,
-        transparentColorByTilesetId: _transparentColorByTilesetId(
-          bundle.manifest,
-        ),
-      );
-      if (bundle.runtimeImageAbsolutePathsById.isEmpty) {
-        publish(RuntimeInitialMapPreloadStage.tilesets, 0.75);
+      final manifest =
+          catalog?.projectMetadata ??
+          await (_manifestLoader ?? loadProjectManifestFromFile)(
+            projectFilePath,
+          );
+      publish(RuntimeInitialMapPreloadStage.manifest, 0.24);
+      final selection = await _resolveInitialSelection(request, manifest);
+      final mapId = selection.mapId;
+      if (request.mode == RuntimeInitialMapPreloadMode.continueGame) {
+        publish(RuntimeInitialMapPreloadStage.saveDiscovery, 0.32);
       }
-      tilesetProgress = null;
+      publish(RuntimeInitialMapPreloadStage.mapSelection, 0.38);
+      final bundle =
+          await (_bundleLoader?.call(
+                projectFilePath: projectFilePath,
+                mapId: mapId,
+                preloadedManifest: manifest,
+              ) ??
+              loadRuntimeMapBundle(
+                projectFilePath: projectFilePath,
+                mapId: mapId,
+                preloadedManifest: manifest,
+                projectCatalog: catalog,
+                additionalCharacterIds: selection.characterIds,
+                progressSink: (stage) {
+                  switch (stage) {
+                    case RuntimeMapBundleLoadStage.manifest ||
+                        RuntimeMapBundleLoadStage.mapResolution:
+                      break;
+                    case RuntimeMapBundleLoadStage.mapData:
+                      publish(RuntimeInitialMapPreloadStage.mapData, 0.48);
+                    case RuntimeMapBundleLoadStage.assetCatalog:
+                      publish(RuntimeInitialMapPreloadStage.assetCatalog, 0.54);
+                    case RuntimeMapBundleLoadStage.tilesets:
+                      publish(RuntimeInitialMapPreloadStage.tilesets, 0.60);
+                    case RuntimeMapBundleLoadStage.worldPreparation:
+                      break;
+                  }
+                },
+              ));
+      if (bundle.map.id != mapId) {
+        throw StateError('The preloaded map does not match the requested map.');
+      }
       if (generation != _generation) return;
-      final registry = manifest.eventRegistry;
-      NarrativeEventRuntimeSnapshot? narrativeSnapshot;
-      if (registry != null &&
-          (registry.mode != EventSystemMode.legacyOnly ||
-              registry.hasLocalRuntimeAuthority)) {
-        publish(RuntimeInitialMapPreloadStage.narrativeCatalog, 0.75);
-        narrativeSnapshot = await NarrativeEventRuntimeSnapshot.build(
-          project: manifest,
-          loadMap: (id) async {
-            final entry = projectMapEntryForId(manifest, id);
-            if (entry == null) {
-              throw StateError(
-                  'The narrative map is missing from the project.');
-            }
-            final mapPath = p.normalize(
-              p.join(bundle.projectRootDirectory, entry.relativePath),
+      RuntimeTilesetImageLoadProgressSink? tilesetProgress =
+          (completed, total) {
+            final fraction = total <= 0 ? 1.0 : completed / total;
+            publish(
+              RuntimeInitialMapPreloadStage.tilesets,
+              0.60 + (0.15 * fraction.clamp(0, 1)),
             );
-            if (!p.isWithin(bundle.projectRootDirectory, mapPath)) {
-              throw StateError('The narrative map path escapes the project.');
-            }
-            final map = id == bundle.map.id
-                ? bundle.map
-                : await loadMapDataFromFile(
-                    mapPath,
-                    projectDialogueContext: manifest,
-                  );
-            return (project: manifest, map: map);
-          },
-          onMapLoaded: (completed, total) => publish(
-            RuntimeInitialMapPreloadStage.narrativeCatalog,
-            0.75 + (0.22 * completed / total),
-          ),
+          };
+      final tilesetCache = RuntimeTilesetImageSingleFlightCache(
+        resourceBudget: bundle.resourceBudget,
+        identity: catalog?.identity ?? '',
+        loader: identical(_tilesetImageLoader, loadTilesetImagesById)
+            ? loadTilesetImagesById
+            : (
+                paths, {
+                transparentColorByTilesetId =
+                    const <String, TilesetTransparentColor>{},
+              }) => _tilesetImageLoader(
+                paths,
+                transparentColorByTilesetId: transparentColorByTilesetId,
+                onProgress: tilesetProgress,
+              ),
+      );
+      _activeTilesetCacheByGeneration[generation] = tilesetCache;
+      var retained = false;
+      try {
+        publish(RuntimeInitialMapPreloadStage.tilesets, 0.60);
+        if (bundle.manifest.settings.dimension != ProjectDimension.threeD) {
+          await tilesetCache.loadById(
+            bundle.runtimeImageAbsolutePathsById,
+            isCurrent: () => generation == _generation,
+            transparentColorByTilesetId: _transparentColorByTilesetId(
+              bundle.manifest,
+            ),
+          );
+        }
+        if (bundle.runtimeImageAbsolutePathsById.isEmpty) {
+          publish(RuntimeInitialMapPreloadStage.tilesets, 0.75);
+        }
+        tilesetProgress = null;
+        if (generation != _generation) return;
+        final registry = manifest.eventRegistry;
+        NarrativeEventRuntimeSnapshot? narrativeSnapshot;
+        if (registry != null &&
+            (registry.mode != EventSystemMode.legacyOnly ||
+                registry.hasLocalRuntimeAuthority)) {
+          publish(RuntimeInitialMapPreloadStage.narrativeCatalog, 0.75);
+          narrativeSnapshot = await NarrativeEventRuntimeSnapshot.build(
+            project: manifest,
+            loadMap: (id) async {
+              final entry = projectMapEntryForId(manifest, id);
+              if (entry == null) {
+                throw StateError(
+                  'The narrative map is missing from the project.',
+                );
+              }
+              final mapPath = p.normalize(
+                p.join(bundle.projectRootDirectory, entry.relativePath),
+              );
+              if (!p.isWithin(bundle.projectRootDirectory, mapPath)) {
+                throw StateError('The narrative map path escapes the project.');
+              }
+              final map = id == bundle.map.id
+                  ? bundle.map
+                  : await loadMapDataFromFile(
+                      mapPath,
+                      projectDialogueContext: catalog == null ? manifest : null,
+                    );
+              return (project: manifest, map: map);
+            },
+            onMapLoaded: (completed, total) => publish(
+              RuntimeInitialMapPreloadStage.narrativeCatalog,
+              0.75 + (0.22 * completed / total),
+            ),
+          );
+        }
+        if (generation != _generation) return;
+        publish(RuntimeInitialMapPreloadStage.worldPreparation, 0.98);
+        final result = RuntimeInitialMapPreloadResult._(
+          bundle: bundle,
+          tilesetImageCache: tilesetCache,
+          narrativeSnapshot: narrativeSnapshot,
         );
+        publish(RuntimeInitialMapPreloadStage.ready, 1);
+        if (generation != _generation) return;
+        _cached = _RuntimeInitialMapCacheEntry(
+          projectFilePath: projectFilePath,
+          request: request,
+          mapId: mapId,
+          saveFingerprint: selection.saveFingerprint,
+          result: result,
+        );
+        retained = true;
+      } catch (_) {
+        if (generation == _generation) rethrow;
+      } finally {
+        tilesetProgress = null;
+        if (identical(
+          _activeTilesetCacheByGeneration[generation],
+          tilesetCache,
+        )) {
+          _activeTilesetCacheByGeneration.remove(generation);
+        }
+        if (!retained) tilesetCache.dispose();
       }
-      if (generation != _generation) return;
-      publish(RuntimeInitialMapPreloadStage.worldPreparation, 0.98);
-      final result = RuntimeInitialMapPreloadResult._(
-        bundle: bundle,
-        tilesetImageCache: tilesetCache,
-        narrativeSnapshot: narrativeSnapshot,
-      );
-      _cached = _RuntimeInitialMapCacheEntry(
-        projectFilePath: projectFilePath,
-        request: request,
-        mapId: mapId,
-        result: result,
-      );
-      retained = true;
-      publish(RuntimeInitialMapPreloadStage.ready, 1);
     } catch (_) {
       if (generation == _generation) rethrow;
     } finally {
-      tilesetProgress = null;
-      if (identical(
-        _activeTilesetCacheByGeneration[generation],
-        tilesetCache,
-      )) {
-        _activeTilesetCacheByGeneration.remove(generation);
+      final owned = _activeCatalogByGeneration.remove(generation);
+      if (owned != null &&
+          !identical(_cached?.result.bundle.projectCatalog, owned)) {
+        owned.dispose();
       }
-      if (!retained) tilesetCache.dispose();
     }
   }
 
@@ -291,7 +341,8 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     required SaveEnvelope? initialSave,
   }) async {
     final cached = _cached;
-    if (cached == null ||
+    if ((expectedIdentity != null && descriptor.identity != expectedIdentity) ||
+        cached == null ||
         cached.projectFilePath != p.normalize(p.absolute(projectFilePath))) {
       return null;
     }
@@ -301,8 +352,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
                 initialSave == null
             ? cached.result.bundle.manifest.newGame.startMapId.trim()
             : null,
-      GameSessionLaunchMode.continueGame ||
-      GameSessionLaunchMode.load =>
+      GameSessionLaunchMode.continueGame || GameSessionLaunchMode.load =>
         _resolveContinueMapId(cached.request, descriptor, initialSave),
     };
     if (expectedMapId == null ||
@@ -311,13 +361,28 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
         cached.result.bundle.map.id != expectedMapId) {
       return null;
     }
+    if (cached.saveFingerprint != null &&
+        (initialSave == null ||
+            cached.saveFingerprint !=
+                narrativeEventCanonicalSha256(
+                  const SaveEnvelopeCodec().toJson(initialSave),
+                ))) {
+      return null;
+    }
+    final catalog = cached.result.bundle.projectCatalog;
+    if (catalog != null && !await catalog.isCurrentPublication()) {
+      if (identical(_cached, cached)) {
+        _cached = null;
+        cached.result.dispose();
+      }
+      return null;
+    }
+    if (!identical(_cached, cached)) return null;
     _cached = null;
     return cached.result;
   }
 
-  RuntimeMapBundle? preparedNewGameBundle({
-    required String projectFilePath,
-  }) {
+  RuntimeMapBundle? preparedNewGameBundle({required String projectFilePath}) {
     final cached = _cached;
     if (cached == null ||
         cached.request.mode != RuntimeInitialMapPreloadMode.newGame ||
@@ -347,9 +412,14 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
       cache.dispose();
     }
     _activeTilesetCacheByGeneration.clear();
+    for (final catalog in _activeCatalogByGeneration.values) {
+      catalog.dispose();
+    }
+    _activeCatalogByGeneration.clear();
   }
 
-  Future<String> _resolveMapId(
+  Future<({String mapId, Set<String> characterIds, String? saveFingerprint})>
+  _resolveInitialSelection(
     RuntimeInitialMapPreloadRequest request,
     ProjectManifest manifest,
   ) async {
@@ -360,19 +430,31 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
           'The project does not define a launchable new game map.',
         );
       }
-      return mapId;
+      return (
+        mapId: mapId,
+        characterIds: const <String>{},
+        saveFingerprint: null,
+      );
     }
     final address = request.saveAddress!;
     final save = await _loadSave(address);
     if (save == null || !_matchesAddress(save, address)) {
       throw StateError('The selected save is no longer launchable.');
     }
-    final mapId =
-        const GameStateSaveEnvelopeMapper().restore(save).currentMapId.trim();
+    final state = const GameStateSaveEnvelopeMapper().restore(save);
+    final mapId = state.currentMapId.trim();
     if (mapId.isEmpty) {
       throw StateError('The selected save does not reference a map.');
     }
-    return mapId;
+    return (
+      mapId: mapId,
+      characterIds: {
+        if (state.trainerProfile.avatarCharacterId case final id?) id,
+      },
+      saveFingerprint: narrativeEventCanonicalSha256(
+        const SaveEnvelopeCodec().toJson(save),
+      ),
+    );
   }
 }
 
@@ -415,11 +497,13 @@ final class _RuntimeInitialMapCacheEntry {
     required this.projectFilePath,
     required this.request,
     required this.mapId,
+    this.saveFingerprint,
     required this.result,
   });
 
   final String projectFilePath;
   final RuntimeInitialMapPreloadRequest request;
   final String mapId;
+  final String? saveFingerprint;
   final RuntimeInitialMapPreloadResult result;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../foundation/player_image.dart';
 import 'package:flutter/services.dart';
 
 import '../foundation/player_components.dart';
@@ -58,14 +59,10 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color: colors.background,
-                    image: background == null
-                        ? null
-                        : DecorationImage(
-                            image: background!,
-                            fit: BoxFit.cover,
-                          ),
                   ),
                 ),
+                if (background != null)
+                  PlayerProvidedImage(image: background!, fit: BoxFit.cover),
                 if (backgroundContent != null) backgroundContent!,
                 ColoredBox(color: colors.scrim.withValues(alpha: .16)),
                 SafeArea(
@@ -109,7 +106,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                       constraints: BoxConstraints(
                                         maxHeight: compact ? 160 : 240,
                                       ),
-                                      child: Image(
+                                      child: PlayerProvidedImage(
                                         image: logo!,
                                         fit: BoxFit.contain,
                                         alignment: compact

@@ -1,14 +1,19 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/src/parser/glb_parser.dart';
+import 'package:flame_3d/src/parser/gltf/gltf_root.dart';
+import 'package:flame_3d/src/parser/gltf/image.dart' as gltf;
+import 'package:flame_3d/resources.dart' as resources;
 import 'package:map_core/map_core.dart';
 
 import 'animated_render_model.dart';
 import 'glb_renderer_layout.dart';
+import 'spatial_resource_admission.dart';
 
 final class ModelByteLoader {
   static int _sequence = 0;
@@ -17,6 +22,9 @@ final class ModelByteLoader {
     Map<String, Future<Model>> cache,
     Map<String, Future<Uint8List> Function()> sources, {
     bool Function()? isCurrent,
+    RuntimeResourceBudget? budget,
+    void Function(String key, RuntimeResourceReservation reservation)?
+    onResident,
   }) async {
     final entries = sources.entries.iterator;
     var failed = false;
@@ -24,8 +32,16 @@ final class ModelByteLoader {
       while (!failed && (isCurrent?.call() ?? true) && entries.moveNext()) {
         final entry = entries.current;
         try {
-          await loadCached(cache, entry.key, entry.value);
+          await loadCached(
+            cache,
+            entry.key,
+            entry.value,
+            budget: budget,
+            isCurrent: budget == null ? null : isCurrent,
+            onResident: onResident,
+          );
         } on Object {
+          if (!(isCurrent?.call() ?? true)) return;
           failed = true;
           rethrow;
         }
@@ -39,9 +55,36 @@ final class ModelByteLoader {
   static Future<Model> loadCached(
     Map<String, Future<Model>> cache,
     String key,
-    Future<Uint8List> Function() read,
-  ) async {
-    final pending = cache.putIfAbsent(key, () async => load(await read()));
+    Future<Uint8List> Function() read, {
+    RuntimeResourceBudget? budget,
+    bool Function()? isCurrent,
+    void Function(String key, RuntimeResourceReservation reservation)?
+    onResident,
+  }) async {
+    final pending = cache.putIfAbsent(key, () async {
+      final reservation = await budget?.acquire(
+        residentBytes: 1,
+        transientBytes: budget.profile.maximumEncodedBytes,
+        isCurrent: isCurrent,
+      );
+      try {
+        reservation?.ensureCurrent();
+        final bytes = await read();
+        reservation?.ensureCurrent();
+        return await load(
+          bytes,
+          budget: budget,
+          reservation: reservation,
+          isCurrent: isCurrent,
+          onResident: onResident == null
+              ? null
+              : (lease) => onResident(key, lease),
+        );
+      } catch (_) {
+        reservation?.release();
+        rethrow;
+      }
+    });
     try {
       return await pending;
     } on Object {
@@ -50,7 +93,47 @@ final class ModelByteLoader {
     }
   }
 
-  static Future<Model> load(Uint8List bytes) async {
+  static Future<Model> load(
+    Uint8List bytes, {
+    RuntimeResourceBudget? budget,
+    RuntimeResourceReservation? reservation,
+    bool Function()? isCurrent,
+    void Function(RuntimeResourceReservation reservation)? onResident,
+    Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
+  }) async {
+    final controller = budget ?? RuntimeResourceBudget();
+    final lease = reservation ?? await controller.acquire(isCurrent: isCurrent);
+    try {
+      lease.ensureCurrent();
+      if (bytes.length > controller.profile.maximumEncodedBytes) {
+        throw const RuntimeResourceAdmissionException('encoded_bytes');
+      }
+      lease.resize(residentBytes: 0, transientBytes: bytes.length * 2);
+      final estimate = await spatialModelResourceEstimate(bytes, lease);
+      lease.resize(
+        residentBytes: estimate.resident,
+        transientBytes: estimate.transient,
+      );
+      final model = await _loadAdmitted(bytes, lease, codecLoader);
+      lease.ensureCurrent();
+      lease.commit();
+      if (onResident == null) {
+        lease.release();
+      } else {
+        onResident(lease);
+      }
+      return model;
+    } catch (_) {
+      lease.release();
+      rethrow;
+    }
+  }
+
+  static Future<Model> _loadAdmitted(
+    Uint8List bytes,
+    RuntimeResourceReservation reservation,
+    Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
+  ) async {
     final current = Flame.assets;
     final cache = current is _ModelAssetsCache
         ? current
@@ -64,7 +147,28 @@ final class ModelByteLoader {
       final materialAnimations = Model3dMaterialAnimations.fromGlbJson(
         layout.json,
       );
-      final root = await GlbParser().parseRoot(key);
+      final glb = await GlbParser().parseGlb(key);
+      final json = glb.jsonChunk();
+      final imageDefinitions = (json['images'] as List?) ?? const [];
+      final root = await GltfRoot.from(
+        prefix: '',
+        json: {...json, 'images': <Object>[]},
+        chunks: glb.binaryChunks().toList(),
+      );
+      root.images.addAll([
+        for (final raw in imageDefinitions)
+          _OwnedGltfImage.parse(
+            root,
+            Map<String, Object?>.from(raw as Map),
+            reservation,
+            codecLoader,
+          ),
+      ]);
+      for (final image in root.images) {
+        reservation.ensureCurrent();
+        await image.init();
+      }
+      reservation.ensureCurrent();
       final model = root.toFlameModel();
       for (final node in model.nodes.values) {
         final mesh = node.mesh;
@@ -176,8 +280,7 @@ class EndpointSafeAnimationController<T> extends AnimationController<T> {
 }
 
 final class _ModelAssetsCache extends AssetsCache {
-  _ModelAssetsCache(this.delegate)
-    : super(bundle: delegate.bundle);
+  _ModelAssetsCache(this.delegate) : super(bundle: delegate.bundle);
 
   final AssetsCache delegate;
   final Map<String, Uint8List> models = {};
@@ -209,4 +312,32 @@ final class _ModelAssetsCache extends AssetsCache {
 
   @override
   int get cacheCount => delegate.cacheCount;
+}
+
+final class _OwnedGltfImage extends gltf.Image {
+  _OwnedGltfImage.parse(
+    GltfRoot root,
+    Map<String, Object?> json,
+    this.reservation,
+    this.codecLoader,
+  ) : super.parse(root, json);
+  final RuntimeResourceReservation reservation;
+  final Future<ui.Codec> Function(Uint8List bytes)? codecLoader;
+
+  @override
+  Future<resources.ImageTexture> loadData() async {
+    reservation.ensureCurrent();
+    final bytes = await data();
+    reservation.ensureCurrent();
+    final codec = await (codecLoader ?? ui.instantiateImageCodec)(bytes);
+    ui.Image? image;
+    try {
+      image = (await codec.getNextFrame()).image;
+      reservation.ensureCurrent();
+      return await resources.ImageTexture.create(image);
+    } finally {
+      image?.dispose();
+      codec.dispose();
+    }
+  }
 }

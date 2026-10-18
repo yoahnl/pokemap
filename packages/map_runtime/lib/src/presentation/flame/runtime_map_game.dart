@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:map_core/map_core.dart';
 
@@ -8,25 +10,55 @@ import '../../infrastructure/tile_image_loader.dart';
 import 'map_layers_component.dart';
 
 class RuntimeMapGame extends FlameGame {
-  RuntimeMapGame({required this.bundle});
+  RuntimeMapGame({required this.bundle}) {
+    _borderAssetCache = BorderRuntimeAssetCache(
+      resourceBudget: bundle.resourceBudget,
+      identity: bundle.projectCatalog?.identity ?? '',
+    );
+    _imageCache = RuntimeTilesetImageSingleFlightCache(
+      resourceBudget: bundle.resourceBudget,
+      identity: bundle.projectCatalog?.identity ?? '',
+      loader: loadTilesetImagesById,
+    );
+  }
 
   RuntimeMapBundle bundle;
-  final BorderRuntimeAssetCache _borderAssetCache = BorderRuntimeAssetCache();
+  late final BorderRuntimeAssetCache _borderAssetCache;
+  late final RuntimeTilesetImageSingleFlightCache _imageCache;
+  var _removed = false;
+
+  @override
+  void onRemove() {
+    _removed = true;
+    _imageCache.dispose();
+    unawaited(_borderAssetCache.dispose());
+    bundle.projectCatalog?.dispose();
+    super.onRemove();
+  }
 
   @override
   Future<void> onLoad() async {
-    bundle = await prepareBorderRuntimeBundle(bundle);
+    bundle = await prepareBorderRuntimeBundle(
+      bundle,
+      resourceBudget: bundle.resourceBudget,
+    );
+    if (_removed) return;
     final borderAssets = await _borderAssetCache.loadCollection(
       projectRoot: bundle.projectRootDirectory,
       collection: bundle.borderRuntimePreparation!.assetCollection,
     );
-    final images = await loadTilesetImagesById(
+    final images = await _imageCache.loadById(
       bundle.runtimeImageAbsolutePathsById,
       transparentColorByTilesetId: _transparentColorByTilesetId(
         bundle.manifest,
       ),
     );
-    bundle = await prepareBorderRuntimeBundle(bundle);
+    if (_removed) return;
+    bundle = await prepareBorderRuntimeBundle(
+      bundle,
+      resourceBudget: bundle.resourceBudget,
+    );
+    if (_removed) return;
     world.add(
       MapLayersComponent(
         bundle: bundle,

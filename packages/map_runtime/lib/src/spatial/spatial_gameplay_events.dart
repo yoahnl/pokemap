@@ -34,15 +34,16 @@ typedef SpatialLegacyEventFallback = Future<GameState?> Function(
 final Object _spatialHostEffectsZoneKey = Object();
 final Object _spatialOperationZoneKey = Object();
 
-typedef SpatialSceneConsequenceWriterFactory
-    = Future<SceneConsequenceRuntimeWriter> Function(
-  GameState state,
-  String sceneId,
-);
+typedef SpatialSceneConsequenceWriterFactory =
+    Future<SceneConsequenceRuntimeWriter> Function(
+      GameState state,
+      String sceneId,
+    );
 
 final class SpatialGameplayEvents {
   SpatialGameplayEvents._({
     required this.project,
+    this.currentModelDefinitions,
     required this.mapsById,
     required NarrativeEventRuntimeSnapshot narrativeSnapshot,
     required GameState Function() readGameState,
@@ -59,25 +60,26 @@ final class SpatialGameplayEvents {
     SpatialLegacyEventFallback? legacyFallback,
     SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
     Future<void> Function(GameState)? afterStateCommitted,
-  })  : _snapshot = narrativeSnapshot,
-        _readGameState = readGameState,
-        _commitGameState = commitGameState,
-        _createSceneCallbacks = createSceneCallbacks,
-        _showEntityDialogue = showEntityDialogue,
-        _startWildBattle = startWildBattle,
-        _isActive = isActive,
-        _canProcessInput = canProcessInput,
-        _runtimeIdFactory = runtimeIdFactory,
-        _random = random,
-        _now = now,
-        _legacyFallback = legacyFallback,
-        _buildSceneConsequenceWriter = buildSceneConsequenceWriter,
-        _afterStateCommitted = afterStateCommitted,
-        _transactions = NarrativeEventStateTransactions(readGameState()),
-        _chapterIndex = buildGlobalStoryChapterStepIndex(project.scenarios),
-        _battleContracts = buildBattlePublicContracts(project),
-        _presenceRules =
-            buildStepStudioWorldPresenceRuleList(project.scenarios) {
+  }) : _snapshot = narrativeSnapshot,
+       _readGameState = readGameState,
+       _commitGameState = commitGameState,
+       _createSceneCallbacks = createSceneCallbacks,
+       _showEntityDialogue = showEntityDialogue,
+       _startWildBattle = startWildBattle,
+       _isActive = isActive,
+       _canProcessInput = canProcessInput,
+       _runtimeIdFactory = runtimeIdFactory,
+       _random = random,
+       _now = now,
+       _legacyFallback = legacyFallback,
+       _buildSceneConsequenceWriter = buildSceneConsequenceWriter,
+       _afterStateCommitted = afterStateCommitted,
+       _transactions = NarrativeEventStateTransactions(readGameState()),
+       _chapterIndex = buildGlobalStoryChapterStepIndex(project.scenarios),
+       _battleContracts = buildBattlePublicContracts(project),
+       _presenceRules = buildStepStudioWorldPresenceRuleList(
+         project.scenarios,
+       ) {
     final activity = NarrativeRuntimeActivityPort(activityGate);
     _mapEnter = MapEnterProductionDispatchBridge(
       stateTransactions: _transactions,
@@ -118,6 +120,7 @@ final class SpatialGameplayEvents {
 
   static Future<SpatialGameplayEvents> create({
     required ProjectManifest project,
+    Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions,
     required Map<String, MapData> mapsById,
     required GameState Function() readGameState,
     required void Function(GameState) commitGameState,
@@ -145,17 +148,20 @@ final class SpatialGameplayEvents {
         throw StateError('Spatial gameplay map "${entry.id}" is unavailable.');
       }
     }
-    final snapshot = narrativeSnapshot ??
+    final snapshot =
+        narrativeSnapshot ??
         await NarrativeEventRuntimeSnapshot.build(
           project: project,
           loadMap: (id) async => (project: project, map: maps[id]!),
         );
     if (!snapshot.matchesProject(project)) {
       throw StateError(
-          'Spatial narrative snapshot belongs to another project.');
+        'Spatial narrative snapshot belongs to another project.',
+      );
     }
     return SpatialGameplayEvents._(
       project: project,
+      currentModelDefinitions: currentModelDefinitions,
       mapsById: maps,
       narrativeSnapshot: snapshot,
       readGameState: readGameState,
@@ -176,6 +182,7 @@ final class SpatialGameplayEvents {
   }
 
   final ProjectManifest project;
+  final Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions;
   final Map<String, MapData> mapsById;
   final NarrativeRuntimeActivityGate activityGate;
   final NarrativeEventRuntimeSnapshot _snapshot;
@@ -240,7 +247,8 @@ final class SpatialGameplayEvents {
     if (_activation == activation) return;
     if (activation.mapId != _readGameState().currentMapId) {
       throw StateError(
-          'Map activation does not match the authoritative state.');
+        'Map activation does not match the authoritative state.',
+      );
     }
     if (tryActivateConnectedMap(activation)) return;
     _installActivation(activation);
@@ -252,7 +260,8 @@ final class SpatialGameplayEvents {
       }
       if (result is MapEnterProductionDispatchAuthorityBlocked) {
         throw StateError(
-            'Map enter authority blocked: ${result.authority.reason.name}: ${result.authority.diagnostics.join('; ')}');
+          'Map enter authority blocked: ${result.authority.reason.name}: ${result.authority.diagnostics.join('; ')}',
+        );
       }
       await _settle();
     });
@@ -262,19 +271,26 @@ final class SpatialGameplayEvents {
     if (!_available ||
         activation.reason != MapActivationReason.connection ||
         activation.mapId != _readGameState().currentMapId ||
-        isBusy || _hostEffectsPending || _legacyFallback != null ||
+        isBusy ||
+        _hostEffectsPending ||
+        _legacyFallback != null ||
         activityGate.checkpointInProgress ||
         activityGate.activity != NarrativeRuntimeActivity.idle ||
-        _readGameState().narrativeEventProgress.pendingNarrativeOutcomeDeliveries.isNotEmpty) {
+        _readGameState()
+            .narrativeEventProgress
+            .pendingNarrativeOutcomeDeliveries
+            .isNotEmpty) {
       return false;
     }
     final source = activation.occurrence.source;
     final registry = project.eventRegistry;
     if (registry != null &&
-        (registry.records.any((record) =>
-            record.definitionOrNull?.source == source ||
-            record.draftOrNull?.source == source) ||
-         registry.legacyClaims.any((claim) => claim.source == source))) {
+        (registry.records.any(
+              (record) =>
+                  record.definitionOrNull?.source == source ||
+                  record.draftOrNull?.source == source,
+            ) ||
+            registry.legacyClaims.any((claim) => claim.source == source))) {
       return false;
     }
     final authority = _prepareAuthority(activation.occurrence);
@@ -307,7 +323,11 @@ final class SpatialGameplayEvents {
     final state = _readGameState();
     final position = state.playerSpatialPosition;
     if (position == null) return null;
-    final map = projectMapEntityPresentations(project: project, gameState: state, map: _map);
+    final map = projectMapEntityPresentations(
+      project: project,
+      gameState: state,
+      map: _map,
+    );
     return findSpatialEntityInteraction(
       scene: map.spatialScene!,
       entities: map.entities.where((entity) => entityIsPresent(map.id, entity)),
@@ -319,8 +339,11 @@ final class SpatialGameplayEvents {
     );
   }
 
-  bool entityIsPresent(String mapId, MapEntity entity,
-      {GameState? gameStateOverride}) {
+  bool entityIsPresent(
+    String mapId,
+    MapEntity entity, {
+    GameState? gameStateOverride,
+  }) {
     final map = mapsById[mapId];
     if (map == null) return false;
     final state = gameStateOverride ?? _readGameState();
@@ -333,19 +356,23 @@ final class SpatialGameplayEvents {
       chapterIndex: _chapterIndex,
     );
     return const RuntimeWorldRuleProjectionHook()
-        .resolve(
-          project: project,
-          gameState: state,
-          map: map,
-        )
+        .resolve(project: project, gameState: state, map: map)
         .isMapEntityVisible(entity, defaultVisible: present);
   }
 
-  MapEntity? projectEntity(String mapId, MapEntity entity, {GameState? gameStateOverride}) {
+  MapEntity? projectEntity(
+    String mapId,
+    MapEntity entity, {
+    GameState? gameStateOverride,
+  }) {
     final map = mapsById[mapId];
     if (map == null) return null;
-    return projectMapEntityPresentation(project: project,
-      gameState: gameStateOverride ?? _readGameState(), map: map, entity: entity);
+    return projectMapEntityPresentation(
+      project: project,
+      gameState: gameStateOverride ?? _readGameState(),
+      map: map,
+      entity: entity,
+    );
   }
 
   SpatialModelInstance? get modelInteractionTarget {
@@ -372,13 +399,15 @@ final class SpatialGameplayEvents {
       if (id != null) ids.add(id);
     }
     return findSpatialModelInteraction(
-        scene: map.spatialScene!,
-        models: project.models3d,
-        instances: map.spatialScene!.instances
-            .where((instance) => ids.contains(instance.id)),
-        x: position.x,
-        z: position.z,
-        facing: state.playerFacing);
+      scene: map.spatialScene!,
+      models: currentModelDefinitions?.call() ?? project.models3d,
+      instances: map.spatialScene!.instances.where(
+        (instance) => ids.contains(instance.id),
+      ),
+      x: position.x,
+      z: position.z,
+      facing: state.playerFacing,
+    );
   }
 
   Future<NarrativeSpatialProductionDispatchResult?> interact() {
@@ -387,11 +416,13 @@ final class SpatialGameplayEvents {
     if (entity == null && model == null) return Future.value();
     final mapId = _map.id;
     return _run(() async {
-      final result = await _dispatchSpatial(NarrativeEventOccurrence(
-        source: entity != null
-            ? NarrativeEventSourceRef.entityInteract(mapId, entity.id)
-            : NarrativeEventSourceRef.modelInteract(mapId, model!.id),
-      ));
+      final result = await _dispatchSpatial(
+        NarrativeEventOccurrence(
+          source: entity != null
+              ? NarrativeEventSourceRef.entityInteract(mapId, entity.id)
+              : NarrativeEventSourceRef.modelInteract(mapId, model!.id),
+        ),
+      );
       await _settle();
       return result;
     });
@@ -425,9 +456,11 @@ final class SpatialGameplayEvents {
     final mapId = _map.id;
     return _run<GameplayEncounterCheckResult?>(() async {
       for (final triggerId in fronts.enteredTriggerIds) {
-        await _dispatchSpatial(NarrativeEventOccurrence(
-          source: NarrativeEventSourceRef.triggerEnter(mapId, triggerId),
-        ));
+        await _dispatchSpatial(
+          NarrativeEventOccurrence(
+            source: NarrativeEventSourceRef.triggerEnter(mapId, triggerId),
+          ),
+        );
         await _settle();
         _ensureCurrent();
       }
@@ -446,11 +479,13 @@ final class SpatialGameplayEvents {
       );
       final encounter = check.encounter;
       if (check.triggered && encounter != null) {
-        await _startWildBattle(buildBattleStartRequestFromEncounter(
-          encounter: encounter,
-          world: world,
-          createdAtEpochMs: _now().millisecondsSinceEpoch,
-        ));
+        await _startWildBattle(
+          buildBattleStartRequestFromEncounter(
+            encounter: encounter,
+            world: world,
+            createdAtEpochMs: _now().millisecondsSinceEpoch,
+          ),
+        );
         _ensureCurrent();
       }
       return check;
@@ -492,7 +527,8 @@ final class SpatialGameplayEvents {
     if (!_available || isBusy) return;
     await _run<void>(() async {
       await _transactions.transact<void>(
-          (_) => NarrativeEventStateTransaction.commit(_readGameState(), null));
+        (_) => NarrativeEventStateTransaction.commit(_readGameState(), null),
+      );
       await _settle();
     });
   }
@@ -505,7 +541,8 @@ final class SpatialGameplayEvents {
     if (request.requestId.isEmpty ||
         request.requestId.trim() != request.requestId) {
       throw ArgumentError(
-          'Narrative battle publication requires an exact attempt id.');
+        'Narrative battle publication requires an exact attempt id.',
+      );
     }
     final trainerId = switch (request) {
       TrainerBattleStartRequest(:final trainerId) => trainerId,
@@ -517,20 +554,24 @@ final class SpatialGameplayEvents {
         ? BattlePublicContractKind.staticEncounter
         : BattlePublicContractKind.trainer;
     final contracts = _battleContracts
-        .where((contract) =>
-            contract.trainerId == trainerId && contract.battleKind == kind)
+        .where(
+          (contract) =>
+              contract.trainerId == trainerId && contract.battleKind == kind,
+        )
         .toList(growable: false);
     if (contracts.length != 1 ||
         contracts.single.status != LinkedAssetContractStatus.available ||
-        !contracts.single.possibleOutcomes
-            .any((outcome) => outcome.id == outcomeId)) {
+        !contracts.single.possibleOutcomes.any(
+          (outcome) => outcome.id == outcomeId,
+        )) {
       return false;
     }
     if (_publishedBattleAttemptIds.contains(request.requestId)) return false;
     final outcome = NarrativeOutcomeRef(
-        producerKind: NarrativeOutcomeProducerKind.battle,
-        producerId: contracts.single.battleRefId,
-        outcomeId: outcomeId);
+      producerKind: NarrativeOutcomeProducerKind.battle,
+      producerId: contracts.single.battleRefId,
+      outcomeId: outcomeId,
+    );
     final sceneAttempts = _sceneBattleAttempts;
     if (sceneAttempts != null) {
       _ensureCurrent();
@@ -538,7 +579,8 @@ final class SpatialGameplayEvents {
       if (previous != null) {
         if (previous != outcome) {
           throw StateError(
-              'One battle attempt cannot produce two narrative results.');
+            'One battle attempt cannot produce two narrative results.',
+          );
         }
         return false;
       }
@@ -553,18 +595,20 @@ final class SpatialGameplayEvents {
         final state = _readGameState();
         final progress = state.narrativeEventProgress;
         final next = state.copyWith(
-            narrativeEventProgress: progress.copyWith(
-          pendingNarrativeOutcomeDeliveries: [
-            ...progress.pendingNarrativeOutcomeDeliveries,
-            NarrativeOutcomeDelivery(
+          narrativeEventProgress: progress.copyWith(
+            pendingNarrativeOutcomeDeliveries: [
+              ...progress.pendingNarrativeOutcomeDeliveries,
+              NarrativeOutcomeDelivery(
                 deliveryId: _runtimeIdFactory('outd'),
                 outcome: outcome,
                 causationExecutionId: _runtimeIdFactory('evx'),
                 rootCorrelationId: _runtimeIdFactory('corr'),
                 depth: 0,
-                attemptCount: 0),
-          ],
-        ));
+                attemptCount: 0,
+              ),
+            ],
+          ),
+        );
         return NarrativeEventStateTransaction.commit(next, next);
       });
       _ensureCurrent();
@@ -580,7 +624,8 @@ final class SpatialGameplayEvents {
     }
     if (isBusy) {
       throw StateError(
-          'A narrative operation already owns battle publication.');
+        'A narrative operation already owns battle publication.',
+      );
     }
     return await _run<bool>(publish) ?? false;
   }
@@ -608,8 +653,10 @@ final class SpatialGameplayEvents {
       _operationGeneration = generation;
       try {
         _ensureCurrent();
-        final value = await runZoned(action,
-            zoneValues: {_spatialOperationZoneKey: this});
+        final value = await runZoned(
+          action,
+          zoneValues: {_spatialOperationZoneKey: this},
+        );
         completer.complete(_currentOperation ? value : null);
       } on _SpatialGameplayCancelled {
         completer.complete();
@@ -641,32 +688,36 @@ final class SpatialGameplayEvents {
   }
 
   NarrativeEventDispatchAuthorityPreparation _prepareAuthority(
-          NarrativeEventOccurrence occurrence) =>
-      NarrativeEventDispatchAuthority.prepare(
-        registryResult: _snapshot.registryResult,
-        occurrence: occurrence,
-        factResolver: _snapshot.factResolver,
-        legacyClaimIndex: _snapshot.legacyClaimIndex,
-        projectCatalog: _snapshot.projectCatalog,
-        project: project,
-        maps: mapsById.values.toList(growable: false),
-      );
+    NarrativeEventOccurrence occurrence,
+  ) => NarrativeEventDispatchAuthority.prepare(
+    registryResult: _snapshot.registryResult,
+    occurrence: occurrence,
+    factResolver: _snapshot.factResolver,
+    legacyClaimIndex: _snapshot.legacyClaimIndex,
+    projectCatalog: _snapshot.projectCatalog,
+    project: project,
+    maps: mapsById.values.toList(growable: false),
+  );
 
   Future<NarrativeSpatialProductionDispatchResult> _dispatchSpatial(
-      NarrativeEventOccurrence occurrence) async {
+    NarrativeEventOccurrence occurrence,
+  ) async {
     _ensureCurrent();
     final id = _runtimeIdFactory('spocc');
     _occurrences.add(id);
     try {
-      final result =
-          await _spatial.dispatch(occurrenceId: id, occurrence: occurrence);
+      final result = await _spatial.dispatch(
+        occurrenceId: id,
+        occurrence: occurrence,
+      );
       _ensureCurrent();
       if (result is NarrativeSpatialProductionDispatchFailed) {
         throw StateError('Spatial event failed: ${result.failure}');
       }
       if (result is NarrativeSpatialProductionDispatchAuthorityBlocked) {
         throw StateError(
-            'Spatial event authority blocked: ${result.authority.reason.name}: ${result.authority.diagnostics.join('; ')}');
+          'Spatial event authority blocked: ${result.authority.reason.name}: ${result.authority.diagnostics.join('; ')}',
+        );
       }
       return result;
     } finally {
@@ -675,31 +726,34 @@ final class SpatialGameplayEvents {
   }
 
   Future<NarrativeSceneExecutionResult> _executeScene(
-      NarrativeSceneExecutionRequest request) async {
+    NarrativeSceneExecutionRequest request,
+  ) async {
     final generation = _operationGeneration;
     var workingState = request.gameState;
     bool current() => _currentOperation && _operationGeneration == generation;
-    final writer = await _buildSceneConsequenceWriter?.call(
-            workingState, request.sceneId) ??
+    final writer =
+        await _buildSceneConsequenceWriter?.call(
+          workingState,
+          request.sceneId,
+        ) ??
         SceneConsequenceRuntimeWriter(project: project, mapsById: mapsById);
     if (!current()) {
       return NarrativeSceneExecutionResult.cancelled(
-          'Spatial activation changed while preparing scene.');
+        'Spatial activation changed while preparing scene.',
+      );
     }
     if (_sceneBattleAttempts != null) {
       return NarrativeSceneExecutionResult.failed(
-          StateError('A spatial scene already owns battle returns.'));
+        StateError('A spatial scene already owns battle returns.'),
+      );
     }
     final attempts = _sceneBattleAttempts = <String, NarrativeOutcomeRef>{};
     final outcomes = _sceneBattleOutcomes = <NarrativeOutcomeRef>[];
     final previousProjection = _sceneStateProjection;
     try {
-      final callbacks = _createSceneCallbacks(
-        () => workingState,
-        (state) {
-          if (current()) workingState = state;
-        },
-      );
+      final callbacks = _createSceneCallbacks(() => workingState, (state) {
+        if (current()) workingState = state;
+      });
       SceneRuntimeIntentCallback guard(SceneRuntimeIntentCallback callback) =>
           (intent) async {
             if (!current()) throw const _SpatialGameplayCancelled();
@@ -713,7 +767,8 @@ final class SpatialGameplayEvents {
         mapsById: mapsById,
         currentGameState: () => workingState,
         consequenceWriter: writer,
-        onSceneStateProjection: (projector) => _sceneStateProjection = projector,
+        onSceneStateProjection: (projector) =>
+            _sceneStateProjection = projector,
         hostedBattleOutcomes: outcomes,
         callbacks: SceneRuntimeHostCallbacks(
           presentPokemonGift: callbacks.presentPokemonGift == null
@@ -744,21 +799,25 @@ final class SpatialGameplayEvents {
               : guard(callbacks.executeInteractiveCommand!),
           requestStructuredInteraction:
               callbacks.requestStructuredInteraction == null
-                  ? null
-                  : guard(callbacks.requestStructuredInteraction!),
+              ? null
+              : guard(callbacks.requestStructuredInteraction!),
         ),
       );
       if (!current()) {
         return NarrativeSceneExecutionResult.cancelled(
-            'Spatial activation changed during scene.');
+          'Spatial activation changed during scene.',
+        );
       }
       if (result is NarrativeSceneExecutionCompleted && attempts.isNotEmpty) {
         final deferred = _transactions.deferAfterCurrentCommit((_) {
           if (current()) _publishedBattleAttemptIds.addAll(attempts.keys);
         });
         if (!deferred) {
-          return NarrativeSceneExecutionResult.failed(StateError(
-              'Scene battle publication requires the scene transaction.'));
+          return NarrativeSceneExecutionResult.failed(
+            StateError(
+              'Scene battle publication requires the scene transaction.',
+            ),
+          );
         }
       }
       return result;
@@ -772,7 +831,9 @@ final class SpatialGameplayEvents {
   }
 
   Future<void> _fallback(
-      NarrativeEventOccurrence occurrence, GameState state) async {
+    NarrativeEventOccurrence occurrence,
+    GameState state,
+  ) async {
     _ensureCurrent();
     final fallback = _legacyFallback;
     if (fallback != null) {
@@ -780,7 +841,8 @@ final class SpatialGameplayEvents {
       _ensureCurrent();
       if (updated != null) {
         await _transactions.transact<void>(
-            (_) => NarrativeEventStateTransaction.commit(updated, null));
+          (_) => NarrativeEventStateTransaction.commit(updated, null),
+        );
         _ensureCurrent();
         _commit(updated);
       }
@@ -798,17 +860,22 @@ final class SpatialGameplayEvents {
     );
     if (source == null) return;
     final map = mapsById[source.mapId]!;
-    final entity =
-        map.entities.where((entity) => entity.id == source.entityId).single;
-    final projection = const RuntimeWorldRuleProjectionHook()
-        .resolve(project: project, gameState: state, map: map);
+    final entity = map.entities
+        .where((entity) => entity.id == source.entityId)
+        .single;
+    final projection = const RuntimeWorldRuleProjectionHook().resolve(
+      project: project,
+      gameState: state,
+      map: map,
+    );
     final override = projection.dialogueOverrideForEntity(entity.id);
     final dialogue = override == null
         ? entity.npc == null
-            ? entity.sign?.dialogue
-            : MapEntityRuntimePredicateEvaluator(
-                    gameState: state, chapterIndex: _chapterIndex)
-                .resolveNpcDialogue(entity.npc!)
+              ? entity.sign?.dialogue
+              : MapEntityRuntimePredicateEvaluator(
+                  gameState: state,
+                  chapterIndex: _chapterIndex,
+                ).resolveNpcDialogue(entity.npc!)
         : DialogueRef(dialogueId: override);
     if (dialogue != null) {
       await _showEntityDialogue(entity, dialogue);
@@ -849,30 +916,34 @@ final class SpatialGameplayEvents {
         case NarrativeOutcomeOutboxBusy():
           throw StateError('Spatial narrative outbox is already processing.');
         case NarrativeOutcomeOutboxRetryScheduled(
-            :final updatedGameState,
-            :final failure
-          ):
+          :final updatedGameState,
+          :final failure,
+        ):
           _commit(updatedGameState);
           throw StateError(
-              'Spatial narrative outcome remains pending: $failure');
+            'Spatial narrative outcome remains pending: $failure',
+          );
         case NarrativeOutcomeOutboxDelivered(:final updatedGameState) ||
-              NarrativeOutcomeOutboxTerminalized(:final updatedGameState) ||
-              NarrativeOutcomeOutboxDataInconsistency(:final updatedGameState):
+            NarrativeOutcomeOutboxTerminalized(:final updatedGameState) ||
+            NarrativeOutcomeOutboxDataInconsistency(:final updatedGameState):
           _commit(updatedGameState);
       }
     }
   }
 
   Future<NarrativeOutcomeDispatchResult> _dispatchOutcome(
-      NarrativeOutcomeDispatchRequest request) async {
+    NarrativeOutcomeDispatchRequest request,
+  ) async {
     if (!_currentOperation) {
       return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
-          const _SpatialGameplayCancelled());
+        const _SpatialGameplayCancelled(),
+      );
     }
     final preparation = _prepareAuthority(request.occurrence);
     if (preparation is NarrativeEventDispatchAuthorityBlocked) {
       return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
-          preparation);
+        preparation,
+      );
     }
     final authority = preparation as NarrativeEventDispatchAuthorityReady;
     final execution = await NarrativeEventExecutionCoordinator(
@@ -884,28 +955,33 @@ final class SpatialGameplayEvents {
       correlationIdFactory: () => _runtimeIdFactory('corr'),
       deliveryIdFactory: () => _runtimeIdFactory('outd'),
       beforePlan: (state) => authority.applyOutcomeReset(
-          gameState: state,
-          deliveryId: request.delivery.deliveryId,
-          outcome: request.delivery.outcome),
+        gameState: state,
+        deliveryId: request.delivery.deliveryId,
+        outcome: request.delivery.outcome,
+      ),
     ).execute(authority: authority);
     if (!_currentOperation) {
       return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
-          const _SpatialGameplayCancelled());
+        const _SpatialGameplayCancelled(),
+      );
     }
     if (execution is NarrativeEventExecutionSucceeded) {
       return NarrativeOutcomeDispatchResult.delivered(
-          updatedGameState: execution.updatedGameState,
-          causationExecutionId: execution.executionId);
+        updatedGameState: execution.updatedGameState,
+        causationExecutionId: execution.executionId,
+      );
     }
     if (execution is NarrativeEventExecutionFailed) {
       return NarrativeOutcomeDispatchResult.terminalFailure(execution.failure);
     }
     if (execution is NarrativeEventExecutionCancelled) {
       return NarrativeOutcomeDispatchResult.terminalFailure(
-          execution.reason ?? 'Spatial outcome scene was cancelled.');
+        execution.reason ?? 'Spatial outcome scene was cancelled.',
+      );
     }
     return NarrativeOutcomeDispatchResult.delivered(
-        updatedGameState: await _transactions.read());
+      updatedGameState: await _transactions.read(),
+    );
   }
 }
 

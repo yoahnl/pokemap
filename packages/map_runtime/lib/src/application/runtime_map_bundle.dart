@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../border/border_runtime_preparation.dart';
+import 'runtime_project_catalog.dart';
 
 class RuntimeMapBundle {
   RuntimeMapBundle({
@@ -10,7 +11,10 @@ class RuntimeMapBundle {
     required this.tilesetAbsolutePathsById,
     this.characterAnimationAbsolutePathsByAssetId = const <String, String>{},
     this.borderRuntimePreparation,
-  }) : map = projectSpatialSmartTileModels(
+    this.projectCatalog,
+    RuntimeResourceBudget? resourceBudget,
+  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+       map = projectSpatialSmartTileModels(
          map: map,
          catalog: manifest.smartTileCatalog,
          sourceCellWidth: manifest.settings.tileWidth,
@@ -23,6 +27,8 @@ class RuntimeMapBundle {
   final Map<String, String> tilesetAbsolutePathsById;
   final Map<String, String> characterAnimationAbsolutePathsByAssetId;
   final BorderRuntimePreparation? borderRuntimePreparation;
+  final RuntimeProjectCatalog? projectCatalog;
+  final RuntimeResourceBudget resourceBudget;
 
   Map<String, String> get runtimeImageAbsolutePathsById => <String, String>{
     ...tilesetAbsolutePathsById,
@@ -55,6 +61,8 @@ class RuntimeMapBundle {
       characterAnimationAbsolutePathsByAssetId:
           characterAnimationAbsolutePathsByAssetId ??
           this.characterAnimationAbsolutePathsByAssetId,
+      projectCatalog: projectCatalog,
+      resourceBudget: resourceBudget,
       borderRuntimePreparation:
           clearBorderRuntimePreparation || preparationInputsChanged
           ? null

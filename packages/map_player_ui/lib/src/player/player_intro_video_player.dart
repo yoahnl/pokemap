@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:video_player/video_player.dart';
+import '../foundation/player_image.dart';
 
 import 'player_intro_video_controller.dart';
 import 'player_intro_video_strings.dart';
@@ -259,7 +260,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
 
   Widget? _poster() => widget.poster == null
       ? null
-      : Image(
+      : PlayerProvidedImage(
           image: widget.poster!,
           fit: BoxFit.cover,
           alignment: widget.source.focalAlignment,

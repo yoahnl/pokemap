@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../theme/pokemap_player_theme.dart';
+import '../foundation/player_image.dart';
 import 'player_dialogue_surface.dart';
 
 export 'player_dialogue_surface.dart';
@@ -23,7 +22,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
   final ValueChanged<DialoguePresentationCommand> onCommand;
   final Widget Function(String speaker)? portraitBuilder;
   final Widget Function(ResolvedDialoguePortrait portrait)?
-      resolvedPortraitBuilder;
+  resolvedPortraitBuilder;
   final bool showSpeakerName;
 
   @override
@@ -53,27 +52,26 @@ class PlayerDialogueOverlay extends StatelessWidget {
             ),
         ],
       ),
-      onAction: (action) => onCommand(
-        switch (action) {
-          PlayerDialogueAdvanceAction() => DialogueAdvanceCommand(
-              snapshotRevision: action.snapshotRevision,
-            ),
-          PlayerDialogueSelectChoiceAction(:final choiceIndex) =>
-            DialogueSelectChoiceCommand(
-              snapshotRevision: action.snapshotRevision,
-              choiceIndex: choiceIndex,
-            ),
-        },
-      ),
+      onAction: (action) => onCommand(switch (action) {
+        PlayerDialogueAdvanceAction() => DialogueAdvanceCommand(
+          snapshotRevision: action.snapshotRevision,
+        ),
+        PlayerDialogueSelectChoiceAction(:final choiceIndex) =>
+          DialogueSelectChoiceCommand(
+            snapshotRevision: action.snapshotRevision,
+            choiceIndex: choiceIndex,
+          ),
+      }),
       portraitBuilder: portraitBuilder,
       showSpeakerName: showSpeakerName,
       resolvedPortrait: portrait == null
           ? null
           : KeyedSubtree(
               key: ValueKey<String>(portrait.assetId),
-              child: resolvedPortraitBuilder?.call(portrait) ??
-                  Image.file(
-                    File(portrait.absoluteFilePath),
+              child:
+                  resolvedPortraitBuilder?.call(portrait) ??
+                  PlayerFileImage(
+                    path: portrait.absoluteFilePath,
                     key: ValueKey<String>(
                       'dialogue-portrait-${portrait.assetId}',
                     ),
@@ -82,7 +80,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
                       CharacterPortraitFitMode.cover => BoxFit.cover,
                     },
                     filterQuality: FilterQuality.medium,
-                    errorBuilder: (context, error, stackTrace) => Center(
+                    errorBuilder: (context, error, stack) => Center(
                       child: Icon(
                         Icons.broken_image_outlined,
                         color: context.playerColors.textSecondary,
@@ -95,31 +93,48 @@ class PlayerDialogueOverlay extends StatelessWidget {
 
   InlineSpan? _lineSpan() {
     if (snapshot.segments.isEmpty) return null;
-    return TextSpan(children: [
-      for (final segment in snapshot.segments)
-        switch (segment) {
-          DialogueTextSegment(:final text, :final style) => TextSpan(
+    return TextSpan(
+      children: [
+        for (final segment in snapshot.segments)
+          switch (segment) {
+            DialogueTextSegment(:final text, :final style) => TextSpan(
               text: text,
               style: TextStyle(
-                color: style?.colorArgb == null ? null : Color(style!.colorArgb!),
+                color: style?.colorArgb == null
+                    ? null
+                    : Color(style!.colorArgb!),
                 shadows: style?.shadowColorArgb == null
                     ? null
-                    : [Shadow(color: Color(style!.shadowColorArgb!), offset: const Offset(1, 1))],
+                    : [
+                        Shadow(
+                          color: Color(style!.shadowColorArgb!),
+                          offset: const Offset(1, 1),
+                        ),
+                      ],
               ),
             ),
-          DialogueIconSegment(:final assetId, :final widthPx, :final heightPx) => WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Image.memory(
-                snapshot.iconPngBytes[assetId] ??
-                    (throw StateError('Missing dialogue icon bytes: $assetId.')),
-                key: ValueKey<String>('dialogue-inline-icon-$assetId'),
-                width: widthPx.toDouble(),
-                height: heightPx.toDouble(),
-                filterQuality: FilterQuality.none,
-                fit: BoxFit.fill,
+            DialogueIconSegment(
+              :final assetId,
+              :final widthPx,
+              :final heightPx,
+            ) =>
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: RawImage(
+                  image:
+                      snapshot.iconImages[assetId] ??
+                      (throw StateError(
+                        'Missing decoded dialogue icon: $assetId.',
+                      )),
+                  key: ValueKey<String>('dialogue-inline-icon-$assetId'),
+                  width: widthPx.toDouble(),
+                  height: heightPx.toDouble(),
+                  filterQuality: FilterQuality.none,
+                  fit: BoxFit.fill,
+                ),
               ),
-            ),
-        },
-    ]);
+          },
+      ],
+    );
   }
 }

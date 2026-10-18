@@ -1,33 +1,37 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/infrastructure/runtime_ui_image.dart';
 
 void main() {
-  testWidgets('consumes exact styled segments and inline imported PNG bytes', (
+  testWidgets('consumes exact styled segments and the admitted inline image', (
     tester,
   ) async {
     final bytes = _png();
+    final lease = await tester.runAsync(() => decodeRuntimeUiImage(bytes));
+    addTearDown(lease!.dispose);
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapPlayerTheme.dark(),
         home: Scaffold(
           body: PlayerDialogueOverlay(
-            snapshot: _snapshot(bytes),
+            snapshot: _snapshot(bytes, image: lease.image),
             onCommand: (_) {},
           ),
         ),
       ),
     );
     await tester.pump();
-    final image = tester.widget<Image>(
+    final image = tester.widget<RawImage>(
       find.byKey(const ValueKey('dialogue-inline-icon-pocket')),
     );
-    expect((image.image as MemoryImage).bytes, bytes);
+    expect(identical(image.image, lease.image), isTrue);
     expect(image.width, 16);
     expect(image.height, 16);
     expect(image.filterQuality, FilterQuality.none);
@@ -48,12 +52,14 @@ void main() {
     tester,
   ) async {
     var commands = 0;
+    final lease = await tester.runAsync(() => decodeRuntimeUiImage(_png()));
+    addTearDown(lease!.dispose);
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapPlayerTheme.dark(),
         home: Scaffold(
           body: PlayerDialogueOverlay(
-            snapshot: _snapshot(_png()),
+            snapshot: _snapshot(_png(), image: lease.image),
             onCommand: (_) => commands++,
           ),
         ),
@@ -80,7 +86,7 @@ void main() {
   });
 }
 
-DialoguePresentationSnapshot _snapshot(Uint8List? png) =>
+DialoguePresentationSnapshot _snapshot(Uint8List? png, {ui.Image? image}) =>
     DialoguePresentationSnapshot(
       revision: 1,
       mode: DialoguePresentationMode.line,
@@ -101,8 +107,9 @@ DialoguePresentationSnapshot _snapshot(Uint8List? png) =>
         DialogueTextSegment('!'),
       ],
       iconPngBytes: png == null ? const {} : {'pocket': png},
+      iconImages: image == null ? const {} : {'pocket': image},
     );
 
 Uint8List _png() => base64Decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aUx8AAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
 );

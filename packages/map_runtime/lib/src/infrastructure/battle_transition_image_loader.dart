@@ -1,13 +1,16 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-import 'tile_image_loader.dart';
+import 'runtime_ui_image.dart';
 
-Future<ui.Image?> loadProjectBattleTransitionImage(
-    String reference, String projectRootDirectory) async {
+Future<RuntimeUiImageLease?> loadProjectBattleTransitionImage(
+  String reference,
+  String projectRootDirectory, {
+  RuntimeResourceBudget? resourceBudget,
+  bool Function()? isCurrent,
+}) async {
   validateBattleTransitionAssetReference(reference);
   if (!reference.startsWith('project:')) return null;
   try {
@@ -21,7 +24,11 @@ Future<ui.Image?> loadProjectBattleTransitionImage(
       return null;
     }
     try {
-      return await loadImageFromFilePath(resolved);
+      return await loadRuntimeUiImageFromFilePath(
+        resolved,
+        resourceBudget: resourceBudget,
+        isCurrent: isCurrent,
+      );
     } on Object {
       return null;
     }

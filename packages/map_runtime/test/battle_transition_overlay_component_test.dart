@@ -1,8 +1,13 @@
 import 'support/battle_transition_presets.dart';
 import 'dart:ui' as ui;
+import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/infrastructure/runtime_ui_image.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_spec.dart';
 
@@ -38,6 +43,34 @@ Future<void> _flushMicrotasks() => Future<void>.delayed(Duration.zero);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('transition owns admitted images until removal and drops late loads', () async {
+    final budget = RuntimeResourceBudget();
+    final pending = Completer<RuntimeUiImageLease?>();
+    final overlay = BattleTransitionOverlayComponent(
+      spec: const BattleTransitionSpec(id: 'owned', phases: [
+        TransitionSheetCellsPhase(
+          sheetName: 'project:sheet.png', columns: 1, rows: 1,
+          durationSeconds: 1,
+        ),
+      ]),
+      viewportSize: Vector2(32, 32),
+      onBlackHeld: () {},
+      resourceBudget: budget,
+      loadProjectSheet: (_) => pending.future,
+    );
+    final loading = overlay.onLoad();
+    overlay.onRemove();
+    final lease = await decodeRuntimeUiImage(
+      Uint8List.fromList(img.encodePng(img.Image(width: 2, height: 2))),
+      resourceBudget: budget,
+    );
+    expect(budget.residentBytes, 16);
+    pending.complete(lease);
+    await loading;
+    expect(budget.residentBytes, 0);
+    expect(overlay.debugReady, isFalse);
+  });
 
   test(
       'le rideau couvre la scène de combat (97), le post-combat (99) et le '

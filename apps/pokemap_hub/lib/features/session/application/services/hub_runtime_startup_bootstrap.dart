@@ -210,9 +210,9 @@ final class HubRuntimeStartupBootstrap
 
       final projectFile = await launch.assets.resolveReference(launch.project);
       lifetime?.ensureActive();
-      final installedProject = await loadProjectManifestFromFile(
-        projectFile.path,
-      );
+      final metadataCatalog = await RuntimeProjectCatalog.open(projectFile.path);
+      final installedProject = metadataCatalog.projectMetadata;
+      metadataCatalog.dispose();
       lifetime?.ensureActive();
       final spatial =
           installedProject.settings.dimension == ProjectDimension.threeD;
@@ -249,6 +249,7 @@ final class HubRuntimeStartupBootstrap
         preferencesGateway: preferencesGateway,
       );
       final initialMapPreloader = RuntimeInitialMapPreloader(
+        expectedIdentity: launch.identity,
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
       );

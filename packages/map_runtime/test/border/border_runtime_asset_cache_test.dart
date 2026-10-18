@@ -16,96 +16,121 @@ const _digest =
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('trimming evicts the least recently used unretained border image',
-      () async {
-    var loads = 0;
-    final cache = BorderRuntimeAssetCache(
+  test(
+    'trimming evicts the least recently used unretained border image',
+    () async {
+      var loads = 0;
+      final cache = BorderRuntimeAssetCache(
         imageLoader: (absolutePath, {transparentColor}) async {
-      loads++;
-      return _runtimeImage();
-    });
-    addTearDown(cache.dispose);
-    final a = await cache.loadFrame(
-        projectRoot: p.current, frame: _frame(fileName: 'a.png'));
-    final b = await cache.loadFrame(
-        projectRoot: p.current, frame: _frame(fileName: 'b.png'));
-    expect(
+          loads++;
+          return _runtimeImage();
+        },
+      );
+      addTearDown(cache.dispose);
+      final a = await cache.loadFrame(
+        projectRoot: p.current,
+        frame: _frame(fileName: 'a.png'),
+      );
+      final b = await cache.loadFrame(
+        projectRoot: p.current,
+        frame: _frame(fileName: 'b.png'),
+      );
+      expect(
         await cache.loadFrame(
-            projectRoot: p.current, frame: _frame(fileName: 'a.png')),
-        same(a));
-    final c = await cache.loadFrame(
-        projectRoot: p.current, frame: _frame(fileName: 'c.png'));
-    cache.trimToBudget(maxBytes: 8, retainedImages: [c]);
-    expect(a.isDisposed, isFalse);
-    expect(b.isDisposed, isTrue);
-    expect(c.isDisposed, isFalse);
-    final reloaded = await cache.loadFrame(
-        projectRoot: p.current, frame: _frame(fileName: 'b.png'));
-    expect(reloaded, isNot(same(b)));
-    expect(reloaded.isDisposed, isFalse);
-    expect(loads, 4);
-  });
+          projectRoot: p.current,
+          frame: _frame(fileName: 'a.png'),
+        ),
+        same(a),
+      );
+      final c = await cache.loadFrame(
+        projectRoot: p.current,
+        frame: _frame(fileName: 'c.png'),
+      );
+      cache.trimToBudget(maxBytes: 8, retainedImages: [c]);
+      expect(a.isDisposed, isFalse);
+      expect(b.isDisposed, isTrue);
+      expect(c.isDisposed, isFalse);
+      final reloaded = await cache.loadFrame(
+        projectRoot: p.current,
+        frame: _frame(fileName: 'b.png'),
+      );
+      expect(reloaded, isNot(same(b)));
+      expect(reloaded.isDisposed, isFalse);
+      expect(loads, 4);
+    },
+  );
 
-  test('retained border images survive even when they exceed the budget',
-      () async {
-    final image = await _runtimeImage();
-    final cache = BorderRuntimeAssetCache(
-        imageLoader: (absolutePath, {transparentColor}) async => image);
-    addTearDown(cache.dispose);
-    await cache.loadFrame(projectRoot: p.current, frame: _frame());
-    cache.trimToBudget(maxBytes: 0, retainedImages: [image]);
-    expect(image.isDisposed, isFalse);
-    cache.trimToBudget(maxBytes: 0, retainedImages: []);
-    expect(image.isDisposed, isTrue);
-  });
+  test(
+    'retained border images survive even when they exceed the budget',
+    () async {
+      final image = await _runtimeImage();
+      final cache = BorderRuntimeAssetCache(
+        imageLoader: (absolutePath, {transparentColor}) async => image,
+      );
+      addTearDown(cache.dispose);
+      await cache.loadFrame(projectRoot: p.current, frame: _frame());
+      cache.trimToBudget(maxBytes: 0, retainedImages: [image]);
+      expect(image.isDisposed, isFalse);
+      cache.trimToBudget(maxBytes: 0, retainedImages: []);
+      expect(image.isDisposed, isTrue);
+    },
+  );
 
   test('eviction removes every key sharing the same decoded image', () async {
     var loads = 0;
     final shared = await _runtimeImage();
     final cache = BorderRuntimeAssetCache(
-        imageLoader: (absolutePath, {transparentColor}) async {
-      loads++;
-      return loads <= 2 ? shared : await _runtimeImage();
-    });
+      imageLoader: (absolutePath, {transparentColor}) async {
+        loads++;
+        return loads <= 2 ? shared : await _runtimeImage();
+      },
+    );
     addTearDown(cache.dispose);
     await cache.loadFrame(
-        projectRoot: p.current, frame: _frame(fileName: 'a.png'));
+      projectRoot: p.current,
+      frame: _frame(fileName: 'a.png'),
+    );
     await cache.loadFrame(
-        projectRoot: p.current, frame: _frame(fileName: 'b.png'));
+      projectRoot: p.current,
+      frame: _frame(fileName: 'b.png'),
+    );
     cache.trimToBudget(maxBytes: 0, retainedImages: []);
     expect(shared.isDisposed, isTrue);
     for (final name in ['a.png', 'b.png']) {
       final image = await cache.loadFrame(
-          projectRoot: p.current, frame: _frame(fileName: name));
+        projectRoot: p.current,
+        frame: _frame(fileName: name),
+      );
       expect(image.isDisposed, isFalse);
     }
     expect(loads, 4);
   });
 
-  test('trimming leaves in-flight loads alive until ownership is known',
-      () async {
-    final completer = Completer<RuntimeTilesetImage>();
-    final cache = BorderRuntimeAssetCache(
-        imageLoader: (absolutePath, {transparentColor}) => completer.future);
-    addTearDown(cache.dispose);
-    final pending = cache.loadFrame(projectRoot: p.current, frame: _frame());
-    cache.trimToBudget(maxBytes: 0, retainedImages: []);
-    final image = await _runtimeImage();
-    completer.complete(image);
-    expect(await pending, same(image));
-    expect(image.isDisposed, isFalse);
-    cache.trimToBudget(maxBytes: 0, retainedImages: []);
-    expect(image.isDisposed, isTrue);
-  });
+  test(
+    'trimming leaves in-flight loads alive until ownership is known',
+    () async {
+      final completer = Completer<RuntimeTilesetImage>();
+      final cache = BorderRuntimeAssetCache(
+        imageLoader: (absolutePath, {transparentColor}) => completer.future,
+      );
+      addTearDown(cache.dispose);
+      final pending = cache.loadFrame(projectRoot: p.current, frame: _frame());
+      cache.trimToBudget(maxBytes: 0, retainedImages: []);
+      final image = await _runtimeImage();
+      completer.complete(image);
+      expect(await pending, same(image));
+      expect(image.isDisposed, isFalse);
+      cache.trimToBudget(maxBytes: 0, retainedImages: []);
+      expect(image.isDisposed, isTrue);
+    },
+  );
 
   test('normalizes cache key path and ARGB to its low 24 RGB bits', () async {
     final calls = <({String path, String? rgb})>[];
     final image = await _runtimeImage();
     final cache = BorderRuntimeAssetCache(
       imageLoader: (absolutePath, {transparentColor}) async {
-        calls.add(
-          (path: absolutePath, rgb: transparentColor?.toHexRgb()),
-        );
+        calls.add((path: absolutePath, rgb: transparentColor?.toHexRgb()));
         return image;
       },
     );
@@ -121,9 +146,7 @@ void main() {
     expect(calls.single.rgb, 'aabbcc');
     expect(
       calls.single.path,
-      p.normalize(
-        p.absolute(p.join(root, frameA.relativeAssetPath)),
-      ),
+      p.normalize(p.absolute(p.join(root, frameA.relativeAssetPath))),
     );
   });
 
@@ -155,11 +178,15 @@ void main() {
       imageLoader: (absolutePath, {transparentColor}) => completer.future,
     );
     final loading = cache.loadFrame(projectRoot: p.current, frame: _frame());
+    final rejected = expectLater(
+      loading,
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
     await Future<void>.delayed(Duration.zero);
     final disposing = cache.dispose();
     final image = await _runtimeImage();
     completer.complete(image);
-    expect(await loading, same(image));
+    await rejected;
     await disposing;
     await cache.dispose();
     expect(image.debugDisposed, isTrue);
@@ -194,59 +221,55 @@ void main() {
     expect(loadCount, 2);
   });
 
-  test('default file loader preserves the controlled missing-asset failure',
-      () async {
-    final missingRoot = Directory.systemTemp.createTempSync(
-      'border_runtime_missing_asset',
-    );
-    addTearDown(() async {
-      if (await missingRoot.exists()) {
-        await missingRoot.delete(recursive: true);
-      }
-    });
-    final cache = BorderRuntimeAssetCache();
-
-    await expectLater(
-      cache.loadFrame(projectRoot: missingRoot.path, frame: _frame()),
-      throwsA(
-        isA<AssetNotFoundException>().having(
-          (error) => error.toString(),
-          'message',
-          contains('Image not found:'),
-        ),
-      ),
-    );
-  });
-
   test(
-    'default loader reads a real snapshot without source element or Surface '
-    'metadata',
+    'default file loader preserves the controlled missing-asset failure',
     () async {
-      final fixture = await _writeAsymmetricSnapshot();
+      final missingRoot = Directory.systemTemp.createTempSync(
+        'border_runtime_missing_asset',
+      );
+      addTearDown(() async {
+        if (await missingRoot.exists()) {
+          await missingRoot.delete(recursive: true);
+        }
+      });
       final cache = BorderRuntimeAssetCache();
 
-      final loaded = await cache.loadFrame(
-        projectRoot: fixture.projectRoot,
-        frame: fixture.frame,
-      );
-
-      expect(loaded.width, 4);
-      expect(loaded.height, 3);
-      expect(loaded.chunkCount, 1);
-      expect(
-        File(p.join(fixture.projectRoot, fixture.frame.relativeAssetPath))
-            .existsSync(),
-        isTrue,
-      );
-      // The fixture deliberately contains only the immutable snapshot file.
-      // Loading therefore cannot fall back to ProjectElementEntry source
-      // metadata or a Surface preset/source asset.
-      expect(
-        Directory(p.join(fixture.projectRoot, 'assets', 'source')).existsSync(),
-        isFalse,
+      await expectLater(
+        cache.loadFrame(projectRoot: missingRoot.path, frame: _frame()),
+        throwsA(
+          isA<AssetNotFoundException>().having(
+            (error) => error.toString(),
+            'message',
+            contains('Image not found:'),
+          ),
+        ),
       );
     },
   );
+
+  test('default loader reads a real snapshot without source element or Surface '
+      'metadata', () async {
+    final fixture = await _writeAsymmetricSnapshot();
+    final cache = BorderRuntimeAssetCache();
+
+    final loaded = await cache.loadFrame(
+      projectRoot: fixture.projectRoot,
+      frame: fixture.frame,
+    );
+
+    expect(loaded.width, 4);
+    expect(loaded.height, 3);
+    expect(loaded.chunkCount, 1);
+    expect(
+      File(p.join(fixture.projectRoot, fixture.frame.relativeAssetPath))
+          .existsSync(),
+      isTrue,
+    );
+    expect(
+      Directory(p.join(fixture.projectRoot, 'assets', 'source')).existsSync(),
+      isFalse,
+    );
+  });
 
   test(
     'real snapshot drawing preserves source rect, RGB key, and nearest pixels',
@@ -264,8 +287,9 @@ void main() {
           ],
         ),
       );
-      final loadedFrame =
-          bundle.snapshotById(fixture.frame.snapshotId).frames[0];
+      final loadedFrame = bundle
+          .snapshotById(fixture.frame.snapshotId)
+          .frames[0];
 
       final rendered = await _drawFrameNearest(
         loadedFrame,
@@ -364,7 +388,7 @@ Future<RuntimeTilesetImage> _runtimeImage() async {
 }
 
 Future<({String projectRoot, BorderRuntimeFrameRequest frame})>
-    _writeAsymmetricSnapshot() async {
+_writeAsymmetricSnapshot() async {
   final projectRoot = Directory.systemTemp.createTempSync(
     'border_runtime_real_snapshot',
   );

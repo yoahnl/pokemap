@@ -14,10 +14,7 @@ typedef BorderRuntimeImageLoader = Future<RuntimeTilesetImage> Function(
 /// One loaded frame retaining its persisted source rectangle and timing.
 @immutable
 final class BorderRuntimeLoadedFrame {
-  const BorderRuntimeLoadedFrame({
-    required this.request,
-    required this.image,
-  });
+  const BorderRuntimeLoadedFrame({required this.request, required this.image});
 
   final BorderRuntimeFrameRequest request;
   final RuntimeTilesetImage image;
@@ -71,8 +68,8 @@ final class BorderRuntimeAssetBundle {
   BorderRuntimeAssetBundle({
     required List<BorderRuntimeLoadedSnapshot> snapshots,
   }) : _snapshotById = <String, BorderRuntimeLoadedSnapshot>{
-          for (final snapshot in snapshots) snapshot.snapshotId: snapshot,
-        } {
+         for (final snapshot in snapshots) snapshot.snapshotId: snapshot,
+       } {
     if (_snapshotById.length != snapshots.length) {
       throw ArgumentError.value(
         snapshots,
@@ -85,9 +82,11 @@ final class BorderRuntimeAssetBundle {
   final Map<String, BorderRuntimeLoadedSnapshot> _snapshotById;
 
   Iterable<RuntimeTilesetImage> get images =>
-      Set<RuntimeTilesetImage>.identity()
-        ..addAll(_snapshotById.values
-            .expand((snapshot) => snapshot.frames.map((frame) => frame.image)));
+      Set<RuntimeTilesetImage>.identity()..addAll(
+        _snapshotById.values.expand(
+          (snapshot) => snapshot.frames.map((frame) => frame.image),
+        ),
+      );
 
   BorderRuntimeLoadedSnapshot snapshotById(String snapshotId) {
     final snapshot = _snapshotById[snapshotId];
@@ -106,16 +105,40 @@ final class BorderRuntimeAssetBundle {
 /// RGB transparency key. Failed futures are evicted so an explicit retry can
 /// observe a restored file.
 final class BorderRuntimeAssetCache {
-  BorderRuntimeAssetCache({BorderRuntimeImageLoader? imageLoader})
-      : _imageLoader = imageLoader ?? _loadRuntimeImage;
+  BorderRuntimeAssetCache({
+    this.imageLoader,
+    RuntimeResourceBudget? resourceBudget,
+    this.identity = '',
+  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget();
 
-  final BorderRuntimeImageLoader _imageLoader;
+  final BorderRuntimeImageLoader? imageLoader;
+  final RuntimeResourceBudget resourceBudget;
+  final String identity;
   final Map<_BorderRuntimeImageCacheKey, Future<RuntimeTilesetImage>>
-      _imageFutureByKey =
+  _imageFutureByKey =
       <_BorderRuntimeImageCacheKey, Future<RuntimeTilesetImage>>{};
   final Map<_BorderRuntimeImageCacheKey, RuntimeTilesetImage> _loadedByKey = {};
   bool _disposed = false;
   Future<void>? _disposal;
+  Iterable<RuntimeTilesetImage> get loadedImages => _loadedByKey.values;
+
+  Iterable<RuntimeTilesetImage> imagesForCollection({
+    required String projectRoot,
+    required BorderRuntimeAssetCollection collection,
+  }) sync* {
+    for (final snapshot in collection.snapshots) {
+      for (final frame in snapshot.frames) {
+        final image =
+            _loadedByKey[_BorderRuntimeImageCacheKey(
+              absolutePath: p.normalize(
+                p.absolute(p.join(projectRoot, frame.relativeAssetPath)),
+              ),
+              transparentRgb: frame.effectiveTransparentRgb,
+            )];
+        if (image != null) yield image;
+      }
+    }
+  }
 
   void trimToBudget({
     required int maxBytes,
@@ -127,7 +150,9 @@ final class BorderRuntimeAssetCache {
     final oldestFirst = Set<RuntimeTilesetImage>.identity()
       ..addAll(_loadedByKey.values);
     var bytes = oldestFirst.fold<int>(
-        0, (total, image) => total + image.width * image.height * 4);
+      0,
+      (total, image) => total + image.width * image.height * 4,
+    );
     for (final image in oldestFirst) {
       if (bytes <= maxBytes) break;
       if (retained.contains(image)) continue;
@@ -147,9 +172,14 @@ final class BorderRuntimeAssetCache {
   Future<RuntimeTilesetImage> loadFrame({
     required String projectRoot,
     required BorderRuntimeFrameRequest frame,
+    bool prefetch = false,
+    bool Function()? isCurrent,
   }) async {
     if (_disposed) {
       throw StateError('Border runtime assets are closed.');
+    }
+    if (!(isCurrent?.call() ?? true)) {
+      throw const RuntimeResourceAdmissionException('cancelled');
     }
     final absolutePath = p.normalize(
       p.absolute(p.join(projectRoot, frame.relativeAssetPath)),
@@ -162,22 +192,42 @@ final class BorderRuntimeAssetCache {
     if (cached != null) {
       final loaded = _loadedByKey.remove(key);
       if (loaded != null) _loadedByKey[key] = loaded;
-      return cached;
+      final image = await cached;
+      if (_disposed || !(isCurrent?.call() ?? true)) {
+        throw const RuntimeResourceAdmissionException('cancelled_or_closed');
+      }
+      return image;
     }
 
-    final future = _imageLoader(
-      absolutePath,
-      transparentColor: _transparentColor(frame.effectiveTransparentRgb),
-    );
+    final future = imageLoader == null
+        ? loadTilesetImageFromFilePath(
+            absolutePath,
+            transparentColor: _transparentColor(frame.effectiveTransparentRgb),
+            resourceBudget: resourceBudget,
+            prefetch: prefetch,
+            isCurrent: () => !_disposed,
+          )
+        : imageLoader!(
+            absolutePath,
+            transparentColor: _transparentColor(frame.effectiveTransparentRgb),
+          );
     _imageFutureByKey[key] = future;
     try {
       final image = await future;
+      if (_disposed) {
+        image.dispose();
+        throw const RuntimeResourceAdmissionException('cancelled_or_closed');
+      }
       if (!_disposed && identical(_imageFutureByKey[key], future)) {
         _loadedByKey[key] = image;
       }
+      if (!(isCurrent?.call() ?? true)) {
+        throw const RuntimeResourceAdmissionException('cancelled');
+      }
       return image;
     } catch (_) {
-      if (identical(_imageFutureByKey[key], future)) {
+      if (!_loadedByKey.containsKey(key) &&
+          identical(_imageFutureByKey[key], future)) {
         _imageFutureByKey.remove(key);
       }
       rethrow;
@@ -187,26 +237,52 @@ final class BorderRuntimeAssetCache {
   Future<BorderRuntimeAssetBundle> loadCollection({
     required String projectRoot,
     required BorderRuntimeAssetCollection collection,
+    bool prefetch = false,
+    bool Function()? isCurrent,
   }) async {
-    // Décodages concurrents : le cache single-flight dédupe déjà les chemins
-    // partagés, la latence passe de la somme des décodages au plus lent.
-    final loadedSnapshots = await Future.wait(
-      collection.snapshots.map((snapshot) async {
-        final loadedFrames = await Future.wait(
-          snapshot.frames.map(
-            (frame) async => BorderRuntimeLoadedFrame(
+    final snapshots = collection.snapshots;
+    final loadedSnapshots = List<BorderRuntimeLoadedSnapshot?>.filled(
+      snapshots.length,
+      null,
+    );
+    var next = 0;
+    Future<void> worker() async {
+      while (next < snapshots.length) {
+        final index = next++;
+        final snapshot = snapshots[index];
+        final loadedFrames = <BorderRuntimeLoadedFrame>[];
+        for (final frame in snapshot.frames) {
+          loadedFrames.add(
+            BorderRuntimeLoadedFrame(
               request: frame,
-              image: await loadFrame(projectRoot: projectRoot, frame: frame),
+              image: await loadFrame(
+                projectRoot: projectRoot,
+                frame: frame,
+                prefetch: prefetch,
+                isCurrent: isCurrent,
+              ),
             ),
-          ),
-        );
-        return BorderRuntimeLoadedSnapshot(
+          );
+        }
+        loadedSnapshots[index] = BorderRuntimeLoadedSnapshot(
           snapshotId: snapshot.snapshotId,
           frames: loadedFrames,
         );
-      }),
+      }
+    }
+
+    await Future.wait([
+      for (
+        var index = 0;
+        index < resourceBudget.profile.maximumConcurrentDecodes &&
+            index < snapshots.length;
+        index++
+      )
+        worker(),
+    ]);
+    return BorderRuntimeAssetBundle(
+      snapshots: loadedSnapshots.cast<BorderRuntimeLoadedSnapshot>(),
     );
-    return BorderRuntimeAssetBundle(snapshots: loadedSnapshots);
   }
 
   Future<void> dispose() => _disposal ??= _dispose();
@@ -217,25 +293,17 @@ final class BorderRuntimeAssetCache {
     _imageFutureByKey.clear();
     _loadedByKey.clear();
     final images = await Future.wait(
-      pending.map((future) => future.then<RuntimeTilesetImage?>(
-            (image) => image,
-            onError: (Object _) => null,
-          )),
+      pending.map(
+        (future) => future.then<RuntimeTilesetImage?>(
+          (image) => image,
+          onError: (Object _) => null,
+        ),
+      ),
     );
     for (final image in images.whereType<RuntimeTilesetImage>().toSet()) {
       image.dispose();
     }
   }
-}
-
-Future<RuntimeTilesetImage> _loadRuntimeImage(
-  String absolutePath, {
-  TilesetTransparentColor? transparentColor,
-}) {
-  return loadTilesetImageFromFilePath(
-    absolutePath,
-    transparentColor: transparentColor,
-  );
 }
 
 TilesetTransparentColor? _transparentColor(int? rgb) {

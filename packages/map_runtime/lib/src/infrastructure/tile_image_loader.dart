@@ -3,17 +3,18 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_tileset_image.dart';
 
-typedef RuntimeTilesetImageBatchLoader
-    = Future<Map<String, RuntimeTilesetImage>> Function(
-  Map<String, String> absolutePathByTilesetId, {
-  Map<String, TilesetTransparentColor> transparentColorByTilesetId,
-});
+final defaultRuntimeResourceBudget = RuntimeResourceBudget();
+
+typedef RuntimeTilesetImageBatchLoader =
+    Future<Map<String, RuntimeTilesetImage>> Function(
+      Map<String, String> absolutePathByTilesetId, {
+      Map<String, TilesetTransparentColor> transparentColorByTilesetId,
+    });
 typedef RuntimeUiImageDecoder = Future<ui.Image> Function(Uint8List bytes);
 typedef RuntimeTilesetImageFileLoader = Future<RuntimeTilesetImage> Function(
   String absolutePath, {
@@ -26,27 +27,49 @@ typedef RuntimeTilesetImageLoadProgressSink = void Function(
 
 final class RuntimeTilesetImageSingleFlightCache {
   RuntimeTilesetImageSingleFlightCache({
-    required RuntimeTilesetImageBatchLoader loader,
-  }) : _loader = loader;
+    required this.loader,
+    RuntimeResourceBudget? resourceBudget,
+    this.identity = '',
+  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget();
 
-  final RuntimeTilesetImageBatchLoader _loader;
+  final RuntimeTilesetImageBatchLoader loader;
+  final RuntimeResourceBudget resourceBudget;
+  final String identity;
   final Map<_RuntimeTilesetImageCacheKey, RuntimeTilesetImage> _completed =
       <_RuntimeTilesetImageCacheKey, RuntimeTilesetImage>{};
   final Map<_RuntimeTilesetImageCacheKey, Future<RuntimeTilesetImage?>>
-      _inFlight =
-      <_RuntimeTilesetImageCacheKey, Future<RuntimeTilesetImage?>>{};
+  _inFlight = <_RuntimeTilesetImageCacheKey, Future<RuntimeTilesetImage?>>{};
   bool _isDisposed = false;
+  Iterable<RuntimeTilesetImage> get loadedImages => _completed.values;
+
+  Iterable<RuntimeTilesetImage> imagesForRequest(
+    Map<String, String> absolutePathByTilesetId, {
+    Map<String, TilesetTransparentColor> transparentColorByTilesetId = const {},
+  }) sync* {
+    for (final entry in absolutePathByTilesetId.entries) {
+      final image =
+          _completed[_RuntimeTilesetImageCacheKey(
+            identity: identity,
+            normalizedAbsolutePath: p.normalize(p.absolute(entry.value)),
+            transparentColor: transparentColorByTilesetId[entry.key],
+          )];
+      if (image != null) yield image;
+    }
+  }
 
   void trimToBudget({
     required int maxBytes,
     required Iterable<RuntimeTilesetImage> retainedImages,
   }) {
     if (_isDisposed) return;
-    final retained = Set<RuntimeTilesetImage>.identity()..addAll(retainedImages);
+    final retained = Set<RuntimeTilesetImage>.identity()
+      ..addAll(retainedImages);
     final oldestFirst = Set<RuntimeTilesetImage>.identity()
       ..addAll(_completed.values);
     var bytes = oldestFirst.fold<int>(
-      0, (total, image) => total + image.width * image.height * 4);
+      0,
+      (total, image) => total + image.width * image.height * 4,
+    );
     for (final image in oldestFirst) {
       if (bytes <= maxBytes) break;
       if (retained.contains(image)) continue;
@@ -65,11 +88,16 @@ final class RuntimeTilesetImageSingleFlightCache {
     Map<String, String> absolutePathByTilesetId, {
     Map<String, TilesetTransparentColor> transparentColorByTilesetId =
         const <String, TilesetTransparentColor>{},
+    bool prefetch = false,
+    bool Function()? isCurrent,
   }) {
     if (_isDisposed) {
       return Future<Map<String, RuntimeTilesetImage>>.error(
         StateError('RuntimeTilesetImageSingleFlightCache is disposed.'),
       );
+    }
+    if (!(isCurrent?.call() ?? true)) {
+      return Future.error(const RuntimeResourceAdmissionException('cancelled'));
     }
     if (absolutePathByTilesetId.isEmpty) {
       return Future<Map<String, RuntimeTilesetImage>>.value(
@@ -82,6 +110,7 @@ final class RuntimeTilesetImageSingleFlightCache {
         <_RuntimeTilesetImageCacheKey, _RuntimeTilesetImageLoadSlot>{};
     for (final entry in absolutePathByTilesetId.entries) {
       final key = _RuntimeTilesetImageCacheKey(
+        identity: identity,
         normalizedAbsolutePath: p.normalize(p.absolute(entry.value)),
         transparentColor: transparentColorByTilesetId[entry.key],
       );
@@ -89,8 +118,9 @@ final class RuntimeTilesetImageSingleFlightCache {
       if (completed != null) {
         _completed.remove(key);
         _completed[key] = completed;
-        imageFutureById[entry.key] =
-            Future<RuntimeTilesetImage?>.value(completed);
+        imageFutureById[entry.key] = Future<RuntimeTilesetImage?>.value(
+          completed,
+        );
         continue;
       }
       final inFlight = _inFlight[key];
@@ -117,9 +147,14 @@ final class RuntimeTilesetImageSingleFlightCache {
     }
 
     if (newSlotByKey.isNotEmpty) {
-      _startBatch(newSlotByKey);
+      _startBatch(newSlotByKey, prefetch: prefetch, isCurrent: isCurrent);
     }
-    return _collectLoadedImages(imageFutureById);
+    return _collectLoadedImages(imageFutureById).then((images) {
+      if (_isDisposed || !(isCurrent?.call() ?? true)) {
+        throw const RuntimeResourceAdmissionException('cancelled_or_closed');
+      }
+      return images;
+    });
   }
 
   Future<Map<String, RuntimeTilesetImage>> _collectLoadedImages(
@@ -136,8 +171,10 @@ final class RuntimeTilesetImageSingleFlightCache {
   }
 
   void _startBatch(
-    Map<_RuntimeTilesetImageCacheKey, _RuntimeTilesetImageLoadSlot> slotByKey,
-  ) {
+    Map<_RuntimeTilesetImageCacheKey, _RuntimeTilesetImageLoadSlot> slotByKey, {
+    required bool prefetch,
+    bool Function()? isCurrent,
+  }) {
     final pathById = <String, String>{
       for (final slot in slotByKey.values) slot.tilesetId: slot.absolutePath,
     };
@@ -147,10 +184,15 @@ final class RuntimeTilesetImageSingleFlightCache {
           slot.tilesetId: slot.transparentColor!,
     };
     Future<Map<String, RuntimeTilesetImage>>.sync(
-      () => _loader(
-        pathById,
-        transparentColorByTilesetId: transparentColorById,
-      ),
+      () => identical(loader, loadTilesetImagesById)
+          ? loadTilesetImagesById(
+              pathById,
+              transparentColorByTilesetId: transparentColorById,
+              resourceBudget: resourceBudget,
+              prefetch: prefetch,
+              isCurrent: () => !_isDisposed,
+            )
+          : loader(pathById, transparentColorByTilesetId: transparentColorById),
     ).then<void>(
       (loadedById) {
         if (_isDisposed) {
@@ -244,10 +286,12 @@ final class _RuntimeTilesetImageLoadSlot {
 
 final class _RuntimeTilesetImageCacheKey {
   const _RuntimeTilesetImageCacheKey({
+    required this.identity,
     required this.normalizedAbsolutePath,
     required this.transparentColor,
   });
 
+  final String identity;
   final String normalizedAbsolutePath;
   final TilesetTransparentColor? transparentColor;
 
@@ -255,12 +299,14 @@ final class _RuntimeTilesetImageCacheKey {
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is _RuntimeTilesetImageCacheKey &&
+            identity == other.identity &&
             normalizedAbsolutePath == other.normalizedAbsolutePath &&
             transparentColor == other.transparentColor;
   }
 
   @override
-  int get hashCode => Object.hash(normalizedAbsolutePath, transparentColor);
+  int get hashCode =>
+      Object.hash(identity, normalizedAbsolutePath, transparentColor);
 }
 
 Future<ui.Image> loadImageFromFilePath(String absolutePath) async {
@@ -303,42 +349,148 @@ Future<List<ui.Image>> decodeRuntimeTilesetChunks(
 Future<RuntimeTilesetImage> decodeRuntimeTilesetImage(
   Uint8List bytes, {
   TilesetTransparentColor? transparentColor,
-}) => _loadTilesetImageWithUiCodec(bytes, transparentColor: transparentColor);
+  RuntimeResourceBudget? resourceBudget,
+  bool prefetch = false,
+  bool Function()? isCurrent,
+}) async {
+  final budget = resourceBudget ?? defaultRuntimeResourceBudget;
+  _checkEncodedLength(bytes.length, budget);
+  final reservation = await budget.acquire(
+    transientBytes: bytes.length * 2,
+    prefetch: prefetch,
+    isCurrent: isCurrent,
+  );
+  return _decodeAdmittedImage(
+    bytes,
+    transparentColor: transparentColor,
+    reservation: reservation,
+    decoder: _decodeUiImageFromBytes,
+  );
+}
 
 Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
   String absolutePath, {
   TilesetTransparentColor? transparentColor,
+  RuntimeResourceBudget? resourceBudget,
+  RuntimeUiImageDecoder? decoder,
+  bool prefetch = false,
+  bool Function()? isCurrent,
 }) async {
   final file = File(absolutePath);
   if (!await file.exists()) {
     throw AssetNotFoundException('Image not found: $absolutePath');
   }
-  final bytes = await file.readAsBytes();
-  // Chemin principal : décodage unique par le codec moteur. L'ancien chemin
-  // décodait chaque atlas via package:image (pur Dart, 10-50x plus lent, sur
-  // l'isolate UI) puis re-décodait les mêmes octets côté moteur — et la
-  // branche multi-chunk ré-encodait même des PNG intermédiaires.
+  final budget = resourceBudget ?? defaultRuntimeResourceBudget;
+  final length = await file.length();
+  _checkEncodedLength(length, budget);
+  final reservation = await budget.acquire(
+    transientBytes: length * 2,
+    prefetch: prefetch,
+    isCurrent: isCurrent,
+  );
   try {
-    return await _loadTilesetImageWithUiCodec(
+    final bytes = await readRuntimeImageFileBytes(file, length);
+    return await _decodeAdmittedImage(
       bytes,
       transparentColor: transparentColor,
+      reservation: reservation,
+      decoder: decoder ?? _decodeUiImageFromBytes,
     );
   } catch (_) {
-    // Filet de sécurité : formats que package:image accepte mais pas le
-    // moteur, ou readback indisponible. Comportement d'origine conservé.
-    return _loadTilesetImageWithImagePackage(
-      absolutePath,
+    reservation.release();
+    rethrow;
+  }
+}
+
+void _checkEncodedLength(int length, RuntimeResourceBudget budget) {
+  if (length <= 0 || length > budget.profile.maximumEncodedBytes) {
+    throw const RuntimeResourceAdmissionException('encoded_bytes');
+  }
+}
+
+Future<Uint8List> readRuntimeImageFileBytes(File file, int length) async {
+  final handle = await file.open();
+  try {
+    final bytes = await handle.read(length);
+    if (bytes.length != length || await handle.readByte() != -1) {
+      throw const RuntimeResourceAdmissionException(
+        'image_changed_during_read',
+      );
+    }
+    return bytes;
+  } finally {
+    await handle.close();
+  }
+}
+
+Future<({int width, int height})> inspectRuntimeImageDimensions(
+  Uint8List bytes,
+) async {
+  final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+  ui.ImageDescriptor? descriptor;
+  try {
+    descriptor = await ui.ImageDescriptor.encoded(buffer);
+    if (descriptor.width <= 0 || descriptor.height <= 0) {
+      throw const RuntimeResourceAdmissionException('image_dimensions');
+    }
+    return (width: descriptor.width, height: descriptor.height);
+  } finally {
+    descriptor?.dispose();
+    buffer.dispose();
+  }
+}
+
+Future<RuntimeTilesetImage> _decodeAdmittedImage(
+  Uint8List bytes, {
+  required TilesetTransparentColor? transparentColor,
+  required RuntimeResourceReservation reservation,
+  required RuntimeUiImageDecoder decoder,
+}) async {
+  RuntimeTilesetImage? image;
+  try {
+    reservation.ensureCurrent();
+    final dimensions = await inspectRuntimeImageDimensions(bytes);
+    final pixels = runtimeImageRgbaByteLength(
+      dimensions.width,
+      dimensions.height,
+      maximumBytes:
+          reservation.profile.maximumResidentBytes <
+              (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/
+                  4
+          ? reservation.profile.maximumResidentBytes
+          : (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/ 4,
+    );
+    reservation.resize(
+      residentBytes: pixels,
+      transientBytes: bytes.length * 2 + pixels * 4,
+    );
+    image = await _loadTilesetImageWithUiCodec(
       bytes,
       transparentColor: transparentColor,
+      decoder: decoder,
     );
+    if (image.width != dimensions.width || image.height != dimensions.height) {
+      throw const RuntimeResourceAdmissionException(
+        'decoded_dimensions_changed',
+      );
+    }
+    reservation.ensureCurrent();
+    image.addDisposeListener(reservation.release);
+    reservation.commit();
+    return image;
+  } catch (_) {
+    image?.dispose();
+    reservation.release();
+    rethrow;
   }
 }
 
 Future<RuntimeTilesetImage> _loadTilesetImageWithUiCodec(
   Uint8List bytes, {
   required TilesetTransparentColor? transparentColor,
+  RuntimeUiImageDecoder decoder = _decodeUiImageFromBytes,
 }) async {
-  final fullImage = await _decodeUiImageFromBytes(bytes);
+  final fullImage = await decoder(bytes);
   final width = fullImage.width;
   final height = fullImage.height;
   final chunks = buildRuntimeTilesetChunks(
@@ -358,8 +510,9 @@ Future<RuntimeTilesetImage> _loadTilesetImageWithUiCodec(
   // Transparence et/ou découpe : une passe sur les octets RGBA plats, sans
   // objet Pixel boxé ni ré-encodage PNG.
   try {
-    final byteData =
-        await fullImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = await fullImage.toByteData(
+      format: ui.ImageByteFormat.rawRgba,
+    );
     if (byteData == null) {
       throw StateError('Tileset image readback is unavailable.');
     }
@@ -432,93 +585,6 @@ Future<ui.Image> _decodeImageFromRgbaPixels(
   return completer.future;
 }
 
-Future<RuntimeTilesetImage> _loadTilesetImageWithImagePackage(
-  String absolutePath,
-  Uint8List bytes, {
-  required TilesetTransparentColor? transparentColor,
-}) async {
-  final decoded = img.decodeImage(bytes);
-  if (decoded == null) {
-    final image = await loadImageFromFilePath(absolutePath);
-    return RuntimeTilesetImage(
-      images: <ui.Image>[image],
-      chunks: buildRuntimeTilesetChunks(
-        totalWidth: image.width,
-        totalHeight: image.height,
-      ),
-      width: image.width,
-      height: image.height,
-    );
-  }
-
-  final displayImage = _applyTransparentColor(
-    decoded,
-    transparentColor: transparentColor,
-  );
-  final displayBytes = transparentColor == null
-      ? bytes
-      : Uint8List.fromList(img.encodePng(displayImage, level: 0));
-
-  final chunks = buildRuntimeTilesetChunks(
-    totalWidth: displayImage.width,
-    totalHeight: displayImage.height,
-  );
-  if (chunks.length <= 1) {
-    final image = await _decodeUiImageFromBytes(displayBytes);
-    return RuntimeTilesetImage(
-      images: <ui.Image>[image],
-      chunks: chunks,
-      width: displayImage.width,
-      height: displayImage.height,
-    );
-  }
-
-  final images = await decodeRuntimeTilesetChunks(chunks.map((chunk) {
-    final cropped = img.copyCrop(
-      displayImage,
-      x: 0,
-      y: chunk.top,
-      width: chunk.width,
-      height: chunk.height,
-    );
-    final chunkBytes = Uint8List.fromList(img.encodePng(cropped, level: 0));
-    return chunkBytes;
-  }));
-  return RuntimeTilesetImage(
-    images: images,
-    chunks: chunks,
-    width: displayImage.width,
-    height: displayImage.height,
-  );
-}
-
-img.Image _applyTransparentColor(
-  img.Image source, {
-  required TilesetTransparentColor? transparentColor,
-}) {
-  if (transparentColor == null) {
-    return source;
-  }
-  final image = source.hasAlpha
-      ? img.Image.from(source)
-      : source.convert(
-          numChannels: 4,
-          alpha: 255,
-        );
-  for (var y = 0; y < image.height; y += 1) {
-    for (var x = 0; x < image.width; x += 1) {
-      final pixel = image.getPixel(x, y);
-      final red = pixel.r.toInt();
-      final green = pixel.g.toInt();
-      final blue = pixel.b.toInt();
-      if (transparentColor.matchesRgb(red: red, green: green, blue: blue)) {
-        image.setPixelRgba(x, y, red, green, blue, 0);
-      }
-    }
-  }
-  return image;
-}
-
 Future<ui.Image> _decodeUiImageFromBytes(Uint8List bytes) async {
   final codec = await ui.instantiateImageCodec(bytes);
   return decodeFirstFrameAndDispose(codec);
@@ -529,37 +595,80 @@ Future<Map<String, RuntimeTilesetImage>> loadTilesetImagesById(
   Map<String, TilesetTransparentColor> transparentColorByTilesetId = const {},
   RuntimeTilesetImageFileLoader? loader,
   RuntimeTilesetImageLoadProgressSink? onProgress,
+  RuntimeResourceBudget? resourceBudget,
+  bool prefetch = false,
+  bool Function()? isCurrent,
 }) async {
-  final load = loader ?? loadTilesetImageFromFilePath;
-  // Chargements concurrents : la latence passe de la somme des décodages au
-  // plus lent d'entre eux. Chaque résultat est capturé individuellement pour
-  // pouvoir libérer les succès si un décodage échoue.
+  final budget = resourceBudget ?? defaultRuntimeResourceBudget;
+  final RuntimeTilesetImageFileLoader load =
+      loader ??
+      (path, {transparentColor}) => loadTilesetImageFromFilePath(
+        path,
+        transparentColor: transparentColor,
+        resourceBudget: budget,
+        prefetch: prefetch,
+        isCurrent: isCurrent,
+      );
   final entries = absolutePathByTilesetId.entries.toList(growable: false);
   var completed = 0;
-  final outcomes = await Future.wait(
-    entries.map((e) async {
+  Object? progressError;
+  StackTrace? progressStack;
+  final outcomes =
+      <
+        ({
+          String key,
+          RuntimeTilesetImage? image,
+          Object? error,
+          StackTrace? stackTrace,
+        })
+      >[];
+  var next = 0;
+  Future<void> worker() async {
+    while (next < entries.length) {
+      final e = entries[next++];
       try {
+        if (!(isCurrent?.call() ?? true)) {
+          throw const RuntimeResourceAdmissionException('cancelled');
+        }
         final image = await load(
           e.value,
           transparentColor: transparentColorByTilesetId[e.key],
         );
-        return (key: e.key, image: image, error: null, stackTrace: null);
+        if (!(isCurrent?.call() ?? true)) {
+          image.dispose();
+          throw const RuntimeResourceAdmissionException('cancelled');
+        }
+        outcomes.add((key: e.key, image: image, error: null, stackTrace: null));
       } catch (error, stackTrace) {
-        return (
+        outcomes.add((
           key: e.key,
           image: null,
           error: error as Object?,
           stackTrace: stackTrace as StackTrace?,
-        );
+        ));
       } finally {
         completed++;
-        onProgress?.call(completed, entries.length);
+        try {
+          onProgress?.call(completed, entries.length);
+        } catch (error, stack) {
+          progressError ??= error;
+          progressStack ??= stack;
+        }
       }
-    }),
-  );
+    }
+  }
+
+  await Future.wait([
+    for (
+      var index = 0;
+      index < budget.profile.maximumConcurrentDecodes && index < entries.length;
+      index++
+    )
+      worker(),
+  ]);
   final out = <String, RuntimeTilesetImage>{};
-  Object? firstError;
-  StackTrace? firstStackTrace;
+  Object? firstError = progressError;
+  StackTrace? firstStackTrace = progressStack;
   for (final outcome in outcomes) {
     final image = outcome.image;
     if (image != null) {

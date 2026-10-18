@@ -7,6 +7,7 @@ export 'player_surfaces.dart';
 export 'presentation_renderer.dart';
 export 'src/foundation/player_action_availability.dart';
 export 'src/foundation/player_asset_preloader.dart';
+export 'src/foundation/player_image.dart';
 export 'src/foundation/player_components.dart';
 export 'src/foundation/player_menu_components.dart';
 export 'src/foundation/player_overworld_components.dart';

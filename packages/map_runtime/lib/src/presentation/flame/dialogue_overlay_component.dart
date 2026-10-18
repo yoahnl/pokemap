@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/dialogue_runtime_models.dart';
 import '../../application/dialogue_feedback_playback_port.dart';
 import '../../application/dialogue_portrait_resolver.dart';
+import '../../infrastructure/runtime_ui_image.dart';
 import '../flutter/dialogue_presentation_snapshot.dart';
 import 'dialogue_text_speed.dart';
 
@@ -24,9 +25,12 @@ class DialogueOverlayComponent extends PositionComponent {
     this.portraitResolver,
     this.feedbackPlaybackPort,
     this.iconBytesLoader,
+    RuntimeResourceBudget? resourceBudget,
     this.onFailed,
     bool renderInFlame = true,
   })  : _session = session,
+        _resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+        _ownsResourceBudget = resourceBudget == null,
         _renderInFlame = renderInFlame,
         super(
           position: Vector2.zero(),
@@ -41,9 +45,12 @@ class DialogueOverlayComponent extends PositionComponent {
   final DialoguePortraitResolver? portraitResolver;
   final DialogueFeedbackPlaybackPort? feedbackPlaybackPort;
   final DialogueIconBytesLoader? iconBytesLoader;
+  final RuntimeResourceBudget _resourceBudget;
+  final bool _ownsResourceBudget;
   final void Function(Object error)? onFailed;
   final Map<String, Uint8List> _iconBytes = {};
   final Map<String, ui.Image> _iconImages = {};
+  final Map<String, RuntimeUiImageLease> _iconLeases = {};
   double _waitElapsedMicros = 0;
   bool _finished = false;
   bool _linePlaybackReady = false;
@@ -124,15 +131,18 @@ class DialogueOverlayComponent extends PositionComponent {
         final bytes = await loader(icon.assetId);
         if (_finished) return;
         validateDialogueIconPng(bytes);
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        codec.dispose();
+        final lease = await decodeRuntimeUiImage(bytes,
+          resourceBudget: _resourceBudget,
+          retainedEncodedBytes: bytes.length,
+          isCurrent: () => !_finished,
+        );
         if (_finished) {
-          frame.image.dispose();
+          lease.dispose();
           return;
         }
         _iconBytes[icon.assetId] = Uint8List.fromList(bytes).asUnmodifiableView();
-        _iconImages[icon.assetId] = frame.image;
+        _iconImages[icon.assetId] = lease.image;
+        _iconLeases[icon.assetId] = lease;
       }
     }
     await _beginLineFeedback();
@@ -182,10 +192,13 @@ class DialogueOverlayComponent extends PositionComponent {
   void _failFeedback(Object error) {
     if (_finished) return;
     _finished = true;
-    for (final image in _iconImages.values) {
-      image.dispose();
+    for (final lease in _iconLeases.values) {
+      lease.dispose();
     }
+    _iconLeases.clear();
+    _iconBytes.clear();
     _iconImages.clear();
+    if (_ownsResourceBudget) _resourceBudget.dispose();
     removeFromParent();
     onFailed?.call(error);
   }
@@ -225,10 +238,13 @@ class DialogueOverlayComponent extends PositionComponent {
   @override
   void onRemove() {
     _finished = true;
-    for (final image in _iconImages.values) {
-      image.dispose();
+    for (final lease in _iconLeases.values) {
+      lease.dispose();
     }
+    _iconLeases.clear();
+    _iconBytes.clear();
     _iconImages.clear();
+    if (_ownsResourceBudget) _resourceBudget.dispose();
     super.onRemove();
   }
 
@@ -511,6 +527,7 @@ class DialogueOverlayComponent extends PositionComponent {
       isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
       resolvePortrait: portraitResolver?.resolve,
       iconPngBytes: _iconBytes,
+      iconImages: _iconImages,
     );
     _currentPresentationSnapshot = snapshot;
     onPresentationSnapshotChanged?.call(snapshot);

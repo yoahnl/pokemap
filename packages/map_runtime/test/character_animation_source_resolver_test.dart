@@ -229,6 +229,7 @@ void main() {
       projectFilePath: '${root.path}/project.json',
       mapId: 'start',
       preloadedManifest: manifest,
+      additionalCharacterIds: const {'hero'},
     );
 
     expect(bundle.tilesetAbsolutePathsById, isEmpty);

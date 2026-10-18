@@ -6,6 +6,7 @@ import 'package:map_battle/map_battle.dart' show BattleOutcome;
 import 'package:path/path.dart' as p;
 
 import '../application/load_runtime_map_bundle.dart';
+import '../application/runtime_project_catalog.dart';
 import '../application/narrative_runtime_activity_gate.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_map_bundle.dart';
@@ -114,6 +115,7 @@ final class SpatialExplorationGameSessionRuntime
     context: RuntimeInputContext.blocked,
   ));
   SpatialExplorationSession? _session;
+  RuntimeProjectCatalog? _projectCatalog;
   SpatialStoryPlayback? _story;
   PlayerPreferencesSnapshot? _preferences;
   late final overworldInteractions = ValueNotifier(
@@ -336,16 +338,28 @@ final class SpatialExplorationGameSessionRuntime
         for (final entry in entries)
           p.join(bundle.projectRootDirectory, entry.relativePath),
       ],
-      projectDialogueContext: project,
+      projectDialogueContext: bundle.projectCatalog == null ? project : null,
     );
     _ensureLoadActive(generation);
     for (var index = 0; index < entries.length; index++) {
       maps[entries[index].id] = loadedMaps[index];
     }
-    validateSpatialWorldState(
-        state: gameStateSnapshot.spatialWorldState,
-        project: project,
-        maps: maps.values);
+    final savedWorld = gameStateSnapshot.spatialWorldState;
+    if (bundle.projectCatalog case final catalog?) {
+      for (final id in {...savedWorld.modelsByMap.keys,
+          ...savedWorld.actorsByMap.keys}) {
+        final map = maps[id];
+        if (map == null) throw StateError('Saved spatial map is missing: $id');
+        final view = await catalog.manifestForMap(map);
+        validateSpatialWorldState(
+            state: SpatialWorldState(
+              modelsByMap: {if (savedWorld.modelsByMap[id] case final value?) id: value},
+              actorsByMap: {if (savedWorld.actorsByMap[id] case final value?) id: value},
+            ), project: view, maps: [map]);
+      }
+    } else {
+      validateSpatialWorldState(state: savedWorld, project: project, maps: maps.values);
+    }
     _mapsById = Map.unmodifiable(maps);
     if (!SpatialGameplayCapabilities.requiresGameplay(project,
         maps: maps.values)) {
@@ -371,6 +385,8 @@ final class SpatialExplorationGameSessionRuntime
       ..addListener(_syncMovement);
     _gameplay = await SpatialGameplayEvents.create(
         project: project,
+        currentModelDefinitions: () =>
+            _session?.bundle.manifest.models3d ?? project.models3d,
         mapsById: _mapsById,
         readGameState: () => _gameState!,
         commitGameState: (state) {
@@ -760,8 +776,14 @@ final class SpatialExplorationGameSessionRuntime
         projectFilePath: path, descriptor: descriptor, initialSave: save);
     try {
       _ensureLoadActive(generation);
-      final manifest =
-          preload?.bundle.manifest ?? await loadProjectManifestFromFile(path);
+      final catalog = preload?.takeProjectCatalog() ??
+          (preload == null ? await RuntimeProjectCatalog.open(path) : null);
+      if (_disposed || _stopped || generation != _loadGeneration) {
+        catalog?.dispose();
+        _ensureLoadActive(generation);
+      }
+      _projectCatalog = catalog;
+      final manifest = preload?.bundle.manifest ?? catalog!.projectMetadata;
       _ensureLoadActive(generation);
       if (manifest.settings.dimension != ProjectDimension.threeD ||
           manifest.maps.isEmpty) {
@@ -799,7 +821,12 @@ final class SpatialExplorationGameSessionRuntime
       }
       final bundle = preload?.bundle ??
           await loadRuntimeMapBundle(
-              projectFilePath: path, mapId: mapId, preloadedManifest: manifest);
+              projectFilePath: path, mapId: mapId, preloadedManifest: manifest,
+              projectCatalog: catalog,
+              additionalCharacterIds: {
+                if (state.trainerProfile.avatarCharacterId case final String id
+                    when id.isNotEmpty) id,
+              });
       _ensureLoadActive(generation);
       if (bundle.map.id != mapId) {
         throw StateError('The preloaded map does not match the spatial state.');
@@ -1263,6 +1290,8 @@ final class SpatialExplorationGameSessionRuntime
     if (_disposed) return;
     _story?.cancel();
     _disposed = true;
+    _projectCatalog?.dispose();
+    _projectCatalog = null;
     _stopped = true;
     _loadGeneration++;
     _playWatch.stop();

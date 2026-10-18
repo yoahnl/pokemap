@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'runtime_player_actions.dart';
@@ -190,18 +189,16 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
         size: 144,
         color: context.playerMenuTheme.secondary);
     if (path == null || path.trim().isEmpty) return fallback;
-    return Image(
+    return PlayerFileImage(
       key: ValueKey(
           'profile-portrait-source-${profile.avatarCharacterId}:$path'),
-      image: FileImage(File(path)),
+      path: path,
       width: 256,
       height: 288,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
       excludeFromSemantics: true,
-      frameBuilder: (_, child, frame, synchronouslyLoaded) =>
-          frame == null ? fallback : child,
-      errorBuilder: (_, error, stack) => fallback,
+      fallback: fallback,
     );
   }
 
@@ -374,15 +371,13 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
               height: 64,
               child: path == null || path.trim().isEmpty
                   ? fallback
-                  : Image(
+                  : PlayerFileImage(
                       key: ValueKey('profile-badge-source-${badge.id}:$path'),
-                      image: FileImage(File(path)),
+                      path: path,
                       fit: BoxFit.contain,
                       filterQuality: FilterQuality.medium,
                       excludeFromSemantics: true,
-                      frameBuilder: (_, child, frame, synchronouslyLoaded) =>
-                          frame == null ? fallback : child,
-                      errorBuilder: (_, error, stack) => fallback,
+                      fallback: fallback,
                     ),
             ),
           ),

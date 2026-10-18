@@ -69,6 +69,67 @@ void main() {
   });
   tearDown(() async => root.delete(recursive: true));
 
+  test('failed warp releases partial actor images before a smaller retry', () async {
+    final budget = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumResidentBytes: 20000),
+    );
+    const warp = MapWarp(
+      id: 'next', pos: GridPos(x: 4, y: 4),
+      targetMapId: 'target', targetPos: GridPos(x: 4, y: 4),
+    );
+    final hero = source.manifest.characters.single;
+    ProjectCharacterEntry actor(String id) => hero.copyWith(
+      id: id,
+      animations: [for (final animation in hero.animations)
+        animation.copyWith(sourceAssetId: id)],
+    );
+    final manifest = source.manifest.copyWith(
+      characters: [hero, actor('first'), actor('second')],
+    );
+    source = RuntimeMapBundle(
+      resourceBudget: budget, manifest: manifest,
+      map: source.map.copyWith(warps: [warp]),
+      projectRootDirectory: root.path,
+      tilesetAbsolutePathsById: source.tilesetAbsolutePathsById,
+      characterAnimationAbsolutePathsByAssetId:
+          source.characterAnimationAbsolutePathsByAssetId,
+    );
+    target = RuntimeMapBundle(
+      resourceBudget: budget, manifest: manifest,
+      projectRootDirectory: root.path,
+      tilesetAbsolutePathsById: target.tilesetAbsolutePathsById,
+      characterAnimationAbsolutePathsByAssetId: {
+        ...source.characterAnimationAbsolutePathsByAssetId,
+        'first': '${root.path}/hero.png',
+        'second': '${root.path}/hero.png',
+      },
+      map: target.map.copyWith(entities: [
+        for (final (index, id) in ['first', 'second'].indexed)
+          MapEntity(id: id, kind: MapEntityKind.npc,
+            pos: GridPos(x: 2 + index, y: 2),
+            npc: MapEntityNpcData(characterId: id)),
+      ]),
+    );
+    final session = await SpatialExplorationSession.load(
+      source, loadMap: (_) async => target,
+    );
+    addTearDown(session.dispose);
+    final baseline = budget.residentBytes;
+    expect(baseline, 8192);
+    await session.enterWarp(warp);
+    expect(session.bundle.map.id, 'source');
+    expect(session.interactionError.value, isA<RuntimeResourceAdmissionException>());
+    expect(budget.residentBytes, baseline);
+    target = target.copyWith(map: target.map.copyWith(
+      entities: [target.map.entities.last],
+    ));
+    await session.enterWarp(warp);
+    expect(session.bundle.map.id, 'target');
+    expect(session.interactionError.value, isNull);
+    session.dispose();
+    expect(budget.residentBytes, 0);
+  });
+
   test('refuses unsupported multiple neighbors on a 3D edge', () async {
     source = source.copyWith(map: source.map.copyWith(connections: const [MapConnection(direction: MapConnectionDirection.east, targetMapId: 'target'), MapConnection(direction: MapConnectionDirection.east, targetMapId: 'other', offset: 4)]));
     await expectLater(SpatialExplorationSession.load(source, loadMap: (_) async => target), throwsStateError);

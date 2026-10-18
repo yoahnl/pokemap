@@ -8,11 +8,15 @@ final class SpatialSceneNeighbor {
     required this.map,
     required this.offset,
     required this.loadGroundImage,
+    this.project,
+    this.loadModel,
   });
 
   final MapData map;
   final Offset offset;
   final Future<Uint8List> Function(String id) loadGroundImage;
+  final ProjectManifest? project;
+  final Future<Uint8List> Function(String id)? loadModel;
 }
 
 Offset spatialConnectionOffset(

@@ -12,7 +12,10 @@ final class _PlayableMapCinematicRuntimeHost
   static const double _emoteFrameStepSeconds = 0.28;
 
   PositionComponent? _emoteOverlay;
-  final CinematicEmoteSpriteCache _emoteSprites = CinematicEmoteSpriteCache();
+  late final CinematicEmoteSpriteCache _emoteSprites = CinematicEmoteSpriteCache(
+    resourceBudget: _game._bundle.resourceBudget,
+    isCurrent: () => !_game._isRemoved,
+  );
   int _emoteRequestSerial = 0;
   final Map<String, RectangleComponent> _fxOverlays = {};
 

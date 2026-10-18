@@ -8,6 +8,7 @@ import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
+import 'spatial_resource_admission.dart';
 import 'spatial_terrain_geometry.dart';
 
 typedef SpatialGroundVisual = ({
@@ -724,10 +725,33 @@ void applySpatialGroundColorKey(Uint8List rgba, TilesetTransparentColor color) {
 Future<Texture> loadSpatialGroundTexture(
   Uint8List bytes, {
   TilesetTransparentColor? transparentColor,
+  RuntimeResourceBudget? budget,
+  RuntimeResourceReservation? reservation,
+  bool Function()? isCurrent,
+  void Function(RuntimeResourceReservation reservation)? onResident,
+  Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
 }) async {
-  final codec = await ui.instantiateImageCodec(bytes);
+  final controller = budget ?? RuntimeResourceBudget();
+  final lease = reservation ?? await controller.acquire(isCurrent: isCurrent);
+  ui.Codec? codec;
   ui.Image? image;
   try {
+    if (bytes.length > controller.profile.maximumEncodedBytes) {
+      throw const RuntimeResourceAdmissionException('encoded_bytes');
+    }
+    lease.resize(residentBytes: 0, transientBytes: bytes.length * 2);
+    final residentLimit = controller.profile.maximumResidentBytes ~/ 2;
+    final transientLimit = (controller.profile.maximumTransientBytes - bytes.length * 2) ~/
+        (transparentColor == null ? 1 : 3);
+    final rgbaBytes = await spatialImageRgbaBytes(bytes,
+        maximumBytes: residentLimit < transientLimit ? residentLimit : transientLimit);
+    lease.resize(
+      residentBytes: rgbaBytes * 2,
+      transientBytes:
+          bytes.length * 2 + rgbaBytes * (transparentColor == null ? 1 : 3),
+    );
+    lease.ensureCurrent();
+    codec = await (codecLoader ?? ui.instantiateImageCodec)(bytes);
     image = (await codec.getNextFrame()).image;
     if (transparentColor != null) {
       final data = await image.toByteData(
@@ -752,9 +776,50 @@ Future<Texture> loadSpatialGroundTexture(
       image.dispose();
       image = processed;
     }
-    return await ImageTexture.create(image);
+    final texture = await ImageTexture.create(image);
+    lease.ensureCurrent();
+    lease.commit();
+    if (onResident == null) {
+      lease.release();
+    } else {
+      onResident(lease);
+    }
+    return texture;
+  } catch (_) {
+    lease.release();
+    rethrow;
   } finally {
     image?.dispose();
-    codec.dispose();
+    codec?.dispose();
+  }
+}
+
+Future<Texture> loadSpatialGroundTextureFromSource(
+  Future<Uint8List> Function() read, {
+  required RuntimeResourceBudget budget,
+  TilesetTransparentColor? transparentColor,
+  bool Function()? isCurrent,
+  void Function(RuntimeResourceReservation reservation)? onResident,
+}) async {
+  final lease = await budget.acquire(
+    residentBytes: 8,
+    transientBytes: budget.profile.maximumEncodedBytes,
+    isCurrent: isCurrent,
+  );
+  try {
+    lease.ensureCurrent();
+    final bytes = await read();
+    lease.ensureCurrent();
+    return await loadSpatialGroundTexture(
+      bytes,
+      budget: budget,
+      reservation: lease,
+      transparentColor: transparentColor,
+      isCurrent: isCurrent,
+      onResident: onResident,
+    );
+  } catch (_) {
+    lease.release();
+    rethrow;
   }
 }

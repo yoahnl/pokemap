@@ -65,6 +65,7 @@ import '../../application/runtime_battle_reward_resolver.dart';
 import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
+import '../../application/character_animation_source_resolver.dart';
 import '../../application/runtime_committed_movement.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
@@ -124,6 +125,7 @@ import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import '../../infrastructure/battle_transition_image_loader.dart';
+import '../../infrastructure/runtime_ui_image.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_combatant_ball_resolver.dart';
@@ -277,7 +279,7 @@ typedef RuntimePostBattleOverlayMounter = Future<void> Function(
 );
 typedef DefeatRecoveryCheckpointEmitter = Future<void> Function();
 
-class PlayableMapGame extends FlameGame with KeyboardEvents {
+class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObserver {
   PlayableMapGame({
     required RuntimeMapBundle bundle,
     required this.projectFilePath,
@@ -339,11 +341,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   : gameStateFromSaveData(saveData)),
         ),
         _dialogueSessionLoader = dialogueSessionLoader ?? loadDialogueContent,
-        _runtimeMapBundleLoader =
-            runtimeMapBundleLoader ?? loadRuntimeMapBundle,
+        _runtimeMapBundleLoader = runtimeMapBundleLoader ??
+            (({required projectFilePath, required mapId}) =>
+                loadRuntimeMapBundle(
+                  projectFilePath: projectFilePath,
+                  mapId: mapId,
+                  projectCatalog: bundle.projectCatalog,
+                  resourceBudget: bundle.resourceBudget,
+                  additionalCharacterIds: {
+                    if (initialPlayerAvatarCharacterId != null)
+                      initialPlayerAvatarCharacterId,
+                    if (initialGameState?.trainerProfile.avatarCharacterId
+                        case final String id when id.isNotEmpty) id,
+                  },
+                )),
         _hasInjectedRuntimeMapBundleLoader = runtimeMapBundleLoader != null,
-        _runtimeTilesetImageLoader =
-            runtimeTilesetImageLoader ?? loadTilesetImagesById,
         _runtimePlayerPokemonProgressionCatalogLoader =
             runtimePlayerPokemonProgressionCatalogLoader,
         _encounterRandom = encounterRandom ?? math.Random(),
@@ -480,8 +492,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _tilesetImageCache = initialTilesetImageCache ??
         RuntimeTilesetImageSingleFlightCache(
-          loader: _runtimeTilesetImageLoader,
+          loader: runtimeTilesetImageLoader ?? loadTilesetImagesById,
+          resourceBudget: bundle.resourceBudget,
+          identity: bundle.projectCatalog?.identity ?? '',
         );
+    _borderRuntimeAssetCache = BorderRuntimeAssetCache(
+      resourceBudget: bundle.resourceBudget,
+      identity: bundle.projectCatalog?.identity ?? '',
+    );
   }
 
   final String projectFilePath;
@@ -569,6 +587,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   final RailJourneySpatialTransition? railJourneySpatialTransition;
   RuntimeMapBundle _bundle;
+  RuntimeResourceBudget get resourceBudget => _bundle.resourceBudget;
   GameState _gameState;
   late final bool _isProjectNewGameBoot;
   late GameplayWorldState _world;
@@ -672,7 +691,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
   final bool _hasInjectedRuntimeMapBundleLoader;
-  final RuntimeTilesetImageLoader _runtimeTilesetImageLoader;
   late final RuntimeTilesetImageSingleFlightCache _tilesetImageCache;
   bool _isRemoved = false;
   bool _onLoadInProgress = false;
@@ -686,8 +704,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <String, Future<void>>{};
   final Map<String, Future<void>> _prewarmedBattleDataFutureByKey =
       <String, Future<void>>{};
-  final BorderRuntimeAssetCache _borderRuntimeAssetCache =
-      BorderRuntimeAssetCache();
+  late final BorderRuntimeAssetCache _borderRuntimeAssetCache;
+  final _prefetchQueue = RuntimePrefetchQueue();
+  final _pendingTileImageHandoffs = Set<Map<String, RuntimeTilesetImage>>.identity();
+  final _pendingBorderImageHandoffs = Set<BorderRuntimeAssetBundle>.identity();
+  var _mapMountsInProgress = 0;
+  var _tilesetLoadsInProgress = 0;
+  var _borderLoadsInProgress = 0;
+  var _memoryPressureSeen = false;
+  var _observingMemoryPressure = false;
 
   /// Injected only by deterministic acceptance tests. Production retains a
   /// fresh random source and the encounter engine remains the sole consumer.
@@ -715,12 +740,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final FlameCinematicRuntimePlaybackSink _cinematicRuntimeSink;
   late final CinematicRuntimePlaybackController _cinematicRuntimeController;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
-  final BattleVisualAssetCache _battleVisualAssetCache =
-      BattleVisualAssetCache();
+  late final BattleVisualAssetCache _battleVisualAssetCache =
+      BattleVisualAssetCache(resourceBudget: _bundle.resourceBudget,
+        isCurrent: () => !_isRemoved);
 
   /// Cache FX au scope jeu : construit par combat auparavant, chaque combat
   /// re-décodait les mêmes PNG et orphelinait les images du combat précédent.
-  final BattleFxBundleCache _battleFxBundleCache = BattleFxBundleCache();
+  late final BattleFxBundleCache _battleFxBundleCache = BattleFxBundleCache(
+    resourceBudget: _bundle.resourceBudget, isCurrent: () => !_isRemoved);
 
   /// BETA-BAT-014 : le lecteur des sons de combat, créé au premier combat.
   /// Les assets sont embarqués dans le runtime, donc le moteur fournit le
@@ -1336,6 +1363,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final snapshot = await NarrativeEventRuntimeSnapshot.build(
       project: project,
       loadMap: (mapId) async {
+        final catalog = _bundle.projectCatalog;
+        if (!_hasInjectedRuntimeMapBundleLoader && catalog != null) {
+          final entry = projectMapEntryForId(catalog.projectMetadata, mapId);
+          if (entry == null) throw StateError('The narrative map is missing.');
+          final path = p.normalize(p.join(_bundle.projectRootDirectory,
+              entry.relativePath));
+          if (!p.isWithin(_bundle.projectRootDirectory, path)) {
+            throw StateError('The narrative map escapes the project.');
+          }
+          final map = mapId == _bundle.map.id ? _bundle.map :
+              await loadMapDataFromFile(path, projectDialogueContext: null);
+          return (project: project, map: map);
+        }
         if (!_hasInjectedRuntimeMapBundleLoader &&
             identical(project, _bundle.manifest)) {
           final entry = projectMapEntryForId(project, mapId);
@@ -4329,7 +4369,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<RuntimeMapBundle> _loadRuntimeMapBundleCached(String mapId) async {
     final cached = _runtimeBundleByMapId[mapId];
     if (cached != null) {
-      final prepared = await prepareBorderRuntimeBundle(cached);
+      final prepared = await prepareBorderRuntimeBundle(cached,
+          resourceBudget: _bundle.resourceBudget);
       _runtimeBundleByMapId[mapId] = prepared;
       return prepared;
     }
@@ -4343,7 +4384,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapId: mapId,
       );
       final resolved = _resolveRuntimeBundle(loaded);
-      final prepared = await prepareBorderRuntimeBundle(resolved);
+      final prepared = await prepareBorderRuntimeBundle(resolved,
+          resourceBudget: _bundle.resourceBudget);
+      if (_isRemoved) throw StateError('The runtime session is closed.');
       _runtimeBundleByMapId[mapId] = prepared;
       return prepared;
     }();
@@ -4361,6 +4404,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<Map<String, RuntimeTilesetImage>> _loadTilesetImagesCached(
     Map<String, String> absolutePathByTilesetId, {
     ProjectManifest? manifest,
+    bool prefetch = false,
+    bool retainUntilMount = false,
+    RuntimeMapBundle? resourceBundle,
+    bool Function()? isCurrent,
   }) async {
     if (absolutePathByTilesetId.isEmpty) {
       debugPrint('[runtime_game] tileset cache skipped: no tilesets');
@@ -4372,10 +4419,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final transparentColors = _transparentColorByTilesetId(
       manifest ?? _bundle.manifest,
     );
-    final result = await _tilesetImageCache.loadById(
-      absolutePathByTilesetId,
-      transparentColorByTilesetId: transparentColors,
-    );
+    if (!prefetch) {
+      _trimImageCachesForDemand(requestedPaths: absolutePathByTilesetId,
+        requestedTransparentColors: transparentColors,
+        requestedBorders: resourceBundle);
+    }
+    _tilesetLoadsInProgress++;
+    late final Map<String, RuntimeTilesetImage> result;
+    try {
+      result = await _tilesetImageCache.loadById(
+        absolutePathByTilesetId,
+        transparentColorByTilesetId: transparentColors,
+        prefetch: prefetch,
+        isCurrent: isCurrent ?? () => !_isRemoved,
+      );
+      if (retainUntilMount) _pendingTileImageHandoffs.add(result);
+    } finally {
+      _tilesetLoadsInProgress--;
+    }
     for (final entry in absolutePathByTilesetId.entries) {
       if (!result.containsKey(entry.key)) {
         debugPrint(
@@ -4390,8 +4451,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   Future<BorderRuntimeAssetBundle> _loadBorderRuntimeAssets(
-    RuntimeMapBundle bundle,
-  ) {
+    RuntimeMapBundle bundle, {
+    bool prefetch = false,
+    bool retainUntilMount = true,
+    bool Function()? isCurrent,
+  }) async {
     final preparation = bundle.borderRuntimePreparation;
     if (preparation == null) {
       throw StateError(
@@ -4399,10 +4463,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '${bundle.map.id}',
       );
     }
-    return _borderRuntimeAssetCache.loadCollection(
-      projectRoot: bundle.projectRootDirectory,
-      collection: preparation.assetCollection,
-    );
+    if (!prefetch) {
+      _trimImageCachesForDemand(requestedBorders: bundle);
+    }
+    _borderLoadsInProgress++;
+    try {
+      final result = await _borderRuntimeAssetCache.loadCollection(
+        projectRoot: bundle.projectRootDirectory,
+        collection: preparation.assetCollection,
+        prefetch: prefetch,
+        isCurrent: isCurrent ?? () => !_isRemoved,
+      );
+      if (!prefetch && retainUntilMount) _pendingBorderImageHandoffs.add(result);
+      return result;
+    } finally {
+      _borderLoadsInProgress--;
+    }
   }
 
   Map<String, TilesetTransparentColor> _transparentColorByTilesetId(
@@ -4695,6 +4771,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    if (_observingMemoryPressure) {
+      WidgetsBinding.instance.removeObserver(this);
+      _observingMemoryPressure = false;
+    }
+    _prefetchQueue.dispose();
+    _pendingTileImageHandoffs.clear();
+    _pendingBorderImageHandoffs.clear();
+    _bundle.projectCatalog?.dispose();
     _cancelInteractiveEncounter();
     _cancelPlayerFishing(notify: false);
     final warpPresentation = _warpTransitionOverlay;
@@ -4720,12 +4804,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled when the runtime closed.',
     );
+    _cinematicRuntimeHost._emoteSprites.dispose();
+    _battleVisualAssetCache.dispose();
+    _battleFxBundleCache.dispose();
     _publishOverworldInteractions();
     if (!_onLoadInProgress) {
       _tilesetImageCache.dispose();
       unawaited(_borderRuntimeAssetCache.dispose());
-      _battleVisualAssetCache.dispose();
-      _battleFxBundleCache.dispose();
       unawaited(_battleSfxPlayer?.dispose());
       _battleSfxPlayer = null;
       unawaited(_musicService?.dispose());
@@ -4739,6 +4824,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _onLoadInProgress = true;
     try {
       if (_isRemoved) return;
+      if (!_observingMemoryPressure) {
+        WidgetsBinding.instance.addObserver(this);
+        _observingMemoryPressure = true;
+      }
       if (initialMapActivationReason == MapActivationReason.saveRestore) {
         final restoredMapId = _gameState.currentMapId.trim();
         if (restoredMapId.isEmpty) {
@@ -4777,6 +4866,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final tilesetImages =
           _loadTilesetImagesCached(_bundle.runtimeImageAbsolutePathsById,
+        retainUntilMount: true,
+        resourceBundle: _bundle,
       );
       final bootResources = await Future.wait<Object?>(
         <Future<Object?>>[
@@ -4931,17 +5022,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[runtime_game] mount root map ok map=$_activeMapId');
       onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.map);
       final playerChar = _resolvePlayerCharacter(_bundle);
+      final playerImageIds = <String>{
+        if (playerChar != null) playerChar.tilesetId,
+        for (final animation in playerChar?.animations ?? const <CharacterAnimation>[])
+          if (animation.sourceAssetId case final String id when id.trim().isNotEmpty)
+            characterAnimationRuntimeImageId(id),
+        for (final animation in playerChar?.customAnimations ?? const <CharacterCustomAnimationClip>[])
+          if (animation.sourceAssetId.trim().isNotEmpty)
+            characterAnimationRuntimeImageId(animation.sourceAssetId),
+      };
+      final playerImages = <String, RuntimeTilesetImage>{
+        for (final entry in images.entries)
+          if (playerImageIds.contains(entry.key)) entry.key: entry.value,
+      };
       _player = PlayerComponent(
         bundle: _bundle,
         state: _world.player,
         characterEntry: playerChar,
-        tileImages: images,
+        tileImages: playerImages,
         mapOrigin: _originPixelsOf(rootMap),
       );
       if (_world.player.movementMode == MovementMode.bicycle && !_player.hasBicycleAnimations) {
         throw StateError('The saved bicycle animations are incomplete.');
       }
-      _playerRetainedImages = images.values;
+      _playerRetainedImages = playerImages.values;
       _playerSupportsRunning = _player.hasRunningAnimation;
       world.add(_player);
       await _player.loaded;
@@ -9064,8 +9168,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
     final overlay = BattleTransitionOverlayComponent(
+      resourceBudget: _bundle.resourceBudget,
       spec: spec,
-      loadProjectSheet: (reference) => loadProjectBattleTransitionImage(reference, _bundle.projectRootDirectory),
+      loadProjectSheet: (reference) => loadProjectBattleTransitionImage(reference, _bundle.projectRootDirectory,
+        resourceBudget: _bundle.resourceBudget, isCurrent: () => !_isRemoved),
       viewportSize: camera.viewport.size,
       onBlackHeld: _maybeRevealBattleScene,
     );
@@ -9350,6 +9456,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           : null;
       if (!_canContinueInteractiveBattle(request) || (_flowPhase != _RuntimeFlowPhase.battleTransition &&
           !isBattleUiActive)) {
+        introTrainerImage?.dispose();
         return;
       }
 
@@ -9391,6 +9498,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           spriteResolver: _battleSpriteResolver,
           visualAssetCache: _battleVisualAssetCache,
           fxBundleCache: _battleFxBundleCache,
+          resourceBudget: _bundle.resourceBudget,
           bagItemIconResolver: _battleBagItemIconResolver,
           itemCapabilityResolver: ItemCapabilityResolver(
             _itemCatalogSnapshot),
@@ -9425,7 +9533,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
       if (introTrainerImage != null) {
-        overlay.prepareIntroTrainerVisual(introTrainerImage);
+        overlay.prepareIntroTrainerVisual(introTrainerImage.image,
+          onRelease: introTrainerImage.dispose);
       }
       camera.viewport.add(overlay);
       _battleOverlay = overlay;
@@ -10126,9 +10235,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final trainerRequest =
           activeBattleContext.request as TrainerBattleStartRequest;
       final image = await _loadTrainerBattleImage(trainerRequest.trainerId);
-      if (flowDied()) return;
+      if (flowDied()) {
+        image?.dispose();
+        return;
+      }
       if (image != null) {
-        overlay.prepareDefeatedTrainerVisual(image);
+        overlay.prepareDefeatedTrainerVisual(image.image, onRelease: image.dispose);
         defeatedTrainerVisualReady = true;
       }
     }
@@ -10188,6 +10300,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final blackHeld = Completer<void>();
     late final BattleTransitionOverlayComponent curtain;
     curtain = BattleTransitionOverlayComponent(
+      resourceBudget: _bundle.resourceBudget,
       spec: battleExitFade,
       viewportSize: camera.viewport.size,
       onBlackHeld: () {
@@ -10296,7 +10409,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// scène du dresseur retombait sur son repli silencieux et ne se voyait
   /// jamais en jeu. Le portrait est une image de la donnée, déjà résolue par
   /// le Character Studio.
-  Future<ui.Image?> _loadTrainerBattleImage(String trainerId) async {
+  Future<RuntimeUiImageLease?> _loadTrainerBattleImage(String trainerId) async {
     final trainer = _findTrainerEntry(_bundle.manifest, trainerId);
     final relativePath = trainer?.battleSpriteRelativePath?.trim() ?? '';
     if (relativePath.isNotEmpty) {
@@ -10311,7 +10424,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Le catalogue d'assets n'est chargé que par le préchargement des
     // dialogues : un combat sans dialogue d'introduction laisserait le
     // résolveur muet.
-    await _dialoguePortraitResolver.ensureCatalogLoaded();
+    await _dialoguePortraitResolver.ensureCatalogLoaded(characterIds: {characterId});
     final portrait = _dialoguePortraitResolver.resolve(
       characterId: characterId,
       portraitStateId: _trainerBattlePortraitStateId,
@@ -10327,15 +10440,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// combat : celui que tout personnage du Character Studio porte.
   static const String _trainerBattlePortraitStateId = 'neutre';
 
-  Future<ui.Image?> _decodeProjectImage(
+  Future<RuntimeUiImageLease?> _decodeProjectImage(
     String absolutePath, {
     required String label,
   }) async {
     try {
-      final bytes = await File(absolutePath).readAsBytes();
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      return frame.image;
+      return await loadRuntimeUiImageFromFilePath(absolutePath,
+        resourceBudget: _bundle.resourceBudget, isCurrent: () => !_isRemoved);
     } on Object catch (error) {
       debugPrint('[battle] $label unavailable ($absolutePath): $error');
       return null;
@@ -14417,6 +14528,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final overlay = DialogueOverlayComponent(
       session: session,
+      resourceBudget: _bundle.resourceBudget,
       viewportSize: camera.viewport.size,
       textSpeed: _dialogueTextSpeed,
       renderInFlame: !_preferDialogueFlutterOverlay,
@@ -15232,6 +15344,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       newImages = await _loadTilesetImagesCached(
         newBundle.runtimeImageAbsolutePathsById,
         manifest: newBundle.manifest,
+        retainUntilMount: true,
+        resourceBundle: newBundle,
       );
       newBorderAssets = await _loadBorderRuntimeAssets(newBundle);
       newBundle = await prepareBorderRuntimeBundle(
@@ -15386,6 +15500,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final sourceImages = await _loadTilesetImagesCached(
         sourceBundle.runtimeImageAbsolutePathsById,
         manifest: sourceBundle.manifest,
+        retainUntilMount: true,
+        resourceBundle: sourceBundle,
       );
       final sourceBorderAssets = await _loadBorderRuntimeAssets(sourceBundle);
       if (restorationGuard?.call() == false) return false;
@@ -15662,6 +15778,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         () => _loadTilesetImagesCached(
           newBundle.runtimeImageAbsolutePathsById,
           manifest: newBundle.manifest,
+          retainUntilMount: true,
+          resourceBundle: newBundle,
         ),
       );
       final newBorderAssets = await _traceAsync(
@@ -15951,6 +16069,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final fallbackImages = await _loadTilesetImagesCached(
         fallbackBundle.runtimeImageAbsolutePathsById,
         manifest: fallbackBundle.manifest,
+        retainUntilMount: true,
+        resourceBundle: fallbackBundle,
       );
       final fallbackBorderAssets =
           await _loadBorderRuntimeAssets(fallbackBundle,
@@ -16596,7 +16716,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellX,
     required int originCellY,
   }) async {
+    if (_isRemoved) throw StateError('The runtime session is closed.');
+    _mapMountsInProgress++;
+    try {
+      return await _mountLoadedMapContents(bundle: bundle,
+        tileImagesById: tileImagesById, borderAssets: borderAssets,
+        originCellX: originCellX, originCellY: originCellY);
+    } finally {
+      _pendingTileImageHandoffs.remove(tileImagesById);
+      if (borderAssets != null) _pendingBorderImageHandoffs.remove(borderAssets);
+      _mapMountsInProgress--;
+    }
+  }
+
+  Future<_LoadedPlayableMap> _mountLoadedMapContents({
+    required RuntimeMapBundle bundle,
+    required Map<String, RuntimeTilesetImage> tileImagesById,
+    BorderRuntimeAssetBundle? borderAssets,
+    required int originCellX,
+    required int originCellY,
+  }) async {
     await beforeMapMount?.call(bundle.map.id);
+    if (_isRemoved) throw StateError('The runtime session is closed.');
     final preparedBundle = await prepareBorderRuntimeBundle(
       _projectMovingPlatformBundle(
         bundle,
@@ -16604,7 +16745,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ),
     );
     final resolvedBorderAssets =
-        borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle);
+        borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle, retainUntilMount: false);
+    if (_isRemoved) throw StateError('The runtime session is closed.');
     final npcPred = _npcPresencePredicateFor(preparedBundle.manifest);
     final smartTileAnimationController = SmartTileAnimationActivationController(
       map: preparedBundle.map,
@@ -16857,6 +16999,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final images = await _loadTilesetImagesCached(
           bundle.runtimeImageAbsolutePathsById,
           manifest: bundle.manifest,
+          retainUntilMount: true,
+          resourceBundle: bundle,
         );
         final loaded = await _mountLoadedMap(
           bundle: bundle,
@@ -16985,6 +17129,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _prewarmActiveMapWarpTargets() {
+    _prefetchQueue.invalidate();
+    if (_memoryPressureSeen) return;
     final active = _loadedMapsById[_activeMapId];
     if (active == null) {
       return;
@@ -17004,28 +17150,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    late final Future<void> future;
-    future = () async {
+    final scheduled = _prefetchQueue.schedule((isCurrent) async {
       try {
         final bundle = await _loadRuntimeMapBundleCached(normalizedTargetMapId);
+        if (!isCurrent() || _isRemoved) return;
         await _loadTilesetImagesCached(
           bundle.runtimeImageAbsolutePathsById,
           manifest: bundle.manifest,
+          prefetch: true,
+          isCurrent: isCurrent,
         );
-        await _loadBorderRuntimeAssets(bundle);
+        if (!isCurrent() || _isRemoved) return;
+        await _loadBorderRuntimeAssets(bundle,
+            prefetch: true, isCurrent: isCurrent);
       } catch (error, stackTrace) {
         debugPrint(
           '[perf][warp][real] prewarmTargetFailed map=$normalizedTargetMapId error=$error\n$stackTrace',
         );
-      } finally {
-        final current =
-            _prewarmedWarpTargetFutureByMapId[normalizedTargetMapId];
-        if (identical(current, future)) {
-          _prewarmedWarpTargetFutureByMapId.remove(normalizedTargetMapId);
-        }
-        _trimUnusedTilesetImages();
       }
-    }();
+    });
+    if (scheduled == null) return;
+    late final Future<void> future;
+    future = scheduled.whenComplete(() {
+      if (identical(_prewarmedWarpTargetFutureByMapId[normalizedTargetMapId], future)) {
+        _prewarmedWarpTargetFutureByMapId.remove(normalizedTargetMapId);
+      }
+      _trimUnusedTilesetImages();
+    });
 
     _prewarmedWarpTargetFutureByMapId[normalizedTargetMapId] = future;
   }
@@ -17416,12 +17567,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _trimUnusedTilesetImages() {
     if (_isRemoved || _onLoadInProgress ||
         _flowPhase == _RuntimeFlowPhase.mapTransition ||
+        _mapMountsInProgress > 0 ||
+        _tilesetLoadsInProgress > 0 || _borderLoadsInProgress > 0 ||
+        _isLoadActivationWorkInFlight ||
         _loadMapFutureById.isNotEmpty ||
         _prewarmedWarpTargetFutureByMapId.isNotEmpty) {
       return;
     }
     _tilesetImageCache.trimToBudget(
-      maxBytes: 64 * 1024 * 1024,
+      maxBytes: _memoryPressureSeen ? 0 : 64 * 1024 * 1024,
       retainedImages: [
         ..._playerRetainedImages,
         for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps,
@@ -17430,13 +17584,62 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ],
     );
     _borderRuntimeAssetCache.trimToBudget(
-      maxBytes: 64 * 1024 * 1024,
+      maxBytes: _memoryPressureSeen ? 0 : 64 * 1024 * 1024,
       retainedImages: [
         for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps,
         ])
           ...?loaded.backgroundLayers.borderAssets?.images,
       ],
     );
+  }
+
+  void _trimImageCachesForDemand({
+    Map<String, String> requestedPaths = const {},
+    Map<String, TilesetTransparentColor> requestedTransparentColors = const {},
+    RuntimeMapBundle? requestedBorders,
+  }) {
+    if (!_onLoadInProgress && !_isLoadActivationWorkInFlight &&
+        _flowPhase != _RuntimeFlowPhase.mapTransition &&
+        _loadMapFutureById.isEmpty && _mapMountsInProgress == 0) {
+      _pendingTileImageHandoffs.clear();
+      _pendingBorderImageHandoffs.clear();
+    }
+    _tilesetImageCache.trimToBudget(
+      maxBytes: 0,
+      retainedImages: [
+        ..._playerRetainedImages,
+        if (_tilesetLoadsInProgress > 0) ..._tilesetImageCache.loadedImages,
+        ..._tilesetImageCache.imagesForRequest(requestedPaths,
+          transparentColorByTilesetId: requestedTransparentColors),
+        if (requestedBorders != null)
+          ..._tilesetImageCache.imagesForRequest(requestedBorders.runtimeImageAbsolutePathsById,
+            transparentColorByTilesetId: _transparentColorByTilesetId(requestedBorders.manifest)),
+        for (final handoff in _pendingTileImageHandoffs) ...handoff.values,
+        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps])
+          ...loaded.tileImagesById.values,
+      ],
+    );
+    _borderRuntimeAssetCache.trimToBudget(
+      maxBytes: 0,
+      retainedImages: [
+        if (requestedBorders?.borderRuntimePreparation case final preparation?)
+          ..._borderRuntimeAssetCache.imagesForCollection(
+            projectRoot: requestedBorders!.projectRootDirectory,
+            collection: preparation.assetCollection),
+        if (_borderLoadsInProgress > 0) ..._borderRuntimeAssetCache.loadedImages,
+        for (final handoff in _pendingBorderImageHandoffs) ...handoff.images,
+        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps])
+          ...?loaded.backgroundLayers.borderAssets?.images,
+      ],
+    );
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    if (_isRemoved) return;
+    _memoryPressureSeen = true;
+    _prefetchQueue.invalidate();
+    _trimImageCachesForDemand();
   }
 
   Vector2 _originPixels({

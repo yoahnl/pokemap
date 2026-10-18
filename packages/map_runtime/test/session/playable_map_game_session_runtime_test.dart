@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
@@ -8,57 +9,107 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'closing a session during project lookup never resumes its load',
+    () async {
+      final path = Completer<String>();
+      var reads = 0;
+      var mounts = 0;
+      final runtime = PlayableMapGameSessionRuntime(
+        descriptor: GameSessionDescriptor(
+          sessionId: 'cancelled-session',
+          sessionToken: 'secret',
+          identity: GameIdentity(
+            gameId: 'org.example.runtime-fixture',
+            gameVersion: '1.0.0',
+            projectFormat: ProjectFormat.v1,
+            saveFormat: 1,
+            compatibilityId: 'fixture-v1',
+          ),
+          profileId: 'player-1',
+          slotId: 'slot-1',
+          launchMode: GameSessionLaunchMode.continueGame,
+          installedVersionHandle: 'verified-fixture',
+          saveReadHandle: 'opaque-save',
+          runtimeApiVersion: '1.0.0',
+          grantedCapabilities: const {'map.v1'},
+          locale: 'fr-FR',
+          accessibility: const GameSessionAccessibilityOptions(),
+        ),
+        projectFilePath: () => path.future,
+        initialSave: () async {
+          reads++;
+          return null;
+        },
+        mountGame: (_) async {
+          mounts++;
+        },
+        unmountGame: (_) async {},
+      );
+      final loading = expectLater(runtime.load((_) {}), throwsStateError);
+      await runtime.dispose();
+      path.complete('/unused/project.json');
+      await loading;
+      expect(reads, 0);
+      expect(mounts, 0);
+      expect(runtime.game, isNull);
+    },
+  );
+
   test('2D session rejects spatial save state before mounting', () async {
     final identity = GameIdentity(
-        gameId: 'org.example.runtime-fixture',
-        gameVersion: '1.0.0',
-        projectFormat: ProjectFormat.v1,
-        saveFormat: 1,
-        compatibilityId: 'fixture-v1');
+      gameId: 'org.example.runtime-fixture',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v1,
+      saveFormat: 1,
+      compatibilityId: 'fixture-v1',
+    );
     final createdAt = DateTime.utc(2026, 10, 8);
     final save = const GameStateSaveEnvelopeMapper().create(
+      identity: identity,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      saveId: '123e4567-e89b-42d3-a456-426614174002',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+      status: SaveStatus.active,
+      playTimeSeconds: 0,
+      gameState: GameState(
+        saveId: '123e4567-e89b-42d3-a456-426614174002',
+        currentMapId: 'golden_field',
+        playerPosition: const GridPos(x: 1, y: 1),
+        playerSpatialPosition: PlayerSpatialPosition(x: 1.5, z: 1.5),
+      ),
+    );
+    var mounts = 0;
+    final runtime = PlayableMapGameSessionRuntime(
+      descriptor: GameSessionDescriptor(
+        sessionId: 'session-wrong-dimension',
+        sessionToken: 'secret',
         identity: identity,
         profileId: 'player-1',
         slotId: 'slot-1',
-        saveId: '123e4567-e89b-42d3-a456-426614174002',
-        createdAt: createdAt,
-        updatedAt: createdAt,
-        status: SaveStatus.active,
-        playTimeSeconds: 0,
-        gameState: GameState(
-            saveId: '123e4567-e89b-42d3-a456-426614174002',
-            currentMapId: 'golden_field',
-            playerPosition: const GridPos(x: 1, y: 1),
-            playerSpatialPosition: PlayerSpatialPosition(x: 1.5, z: 1.5)));
-    var mounts = 0;
-    final runtime = PlayableMapGameSessionRuntime(
-        descriptor: GameSessionDescriptor(
-            sessionId: 'session-wrong-dimension',
-            sessionToken: 'secret',
-            identity: identity,
-            profileId: 'player-1',
-            slotId: 'slot-1',
-            launchMode: GameSessionLaunchMode.continueGame,
-            installedVersionHandle: 'verified-fixture',
-            saveReadHandle: 'opaque-save',
-            runtimeApiVersion: '1.0.0',
-            grantedCapabilities: const {'map.v1'},
-            locale: 'fr-FR',
-            accessibility: const GameSessionAccessibilityOptions()),
-        projectFilePath: () async => File(
-                '../../examples/playable_runtime_host/golden_battle_slice/project.json')
-            .absolute
-            .path,
-        initialSave: () async => save,
-        mountGame: (_) async => mounts++,
-        unmountGame: (_) async {});
+        launchMode: GameSessionLaunchMode.continueGame,
+        installedVersionHandle: 'verified-fixture',
+        saveReadHandle: 'opaque-save',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const {'map.v1'},
+        locale: 'fr-FR',
+        accessibility: const GameSessionAccessibilityOptions(),
+      ),
+      projectFilePath: () async => File(
+        '../../examples/playable_runtime_host/golden_battle_slice/project.json',
+      ).absolute.path,
+      initialSave: () async => save,
+      mountGame: (_) async => mounts++,
+      unmountGame: (_) async {},
+    );
     addTearDown(runtime.dispose);
     await expectLater(runtime.load((_) {}), throwsStateError);
     expect(mounts, 0);
   });
 
-  test('companion menu reads preserve the loaded world and movement authority',
-      () async {
+  test('companion menu reads preserve the loaded world and movement authority', () async {
     final identity = GameIdentity(
       gameId: 'org.example.runtime-fixture',
       gameVersion: '1.0.0',
@@ -81,15 +132,17 @@ void main() {
         currentMapId: 'golden_field',
         playerPosition: GridPos(x: 1, y: 1),
         trainerProfile: TrainerProfile(name: 'Session trainer', money: 1234),
-        party: PlayerParty(members: [
-          PlayerPokemon(
-            speciesId: 'sparkitten',
-            natureId: 'hardy',
-            abilityId: 'blaze',
-            level: 7,
-            currentHp: 23,
-          ),
-        ]),
+        party: PlayerParty(
+          members: [
+            PlayerPokemon(
+              speciesId: 'sparkitten',
+              natureId: 'hardy',
+              abilityId: 'blaze',
+              level: 7,
+              currentHp: 23,
+            ),
+          ],
+        ),
         bag: Bag(entries: [BagEntry(itemId: 'poke-ball', quantity: 2)]),
       ),
     );
@@ -125,9 +178,11 @@ void main() {
     await runtime.load((_) {});
     await runtime.resume();
     expect(game.isLoaded, isTrue);
-    for (var index = 0;
-        index < 240 && game.debugIsMapActivationDispatchInFlight;
-        index++) {
+    for (
+      var index = 0;
+      index < 240 && game.debugIsMapActivationDispatchInFlight;
+      index++
+    ) {
       game.update(.016);
       await Future<void>.delayed(Duration.zero);
     }
@@ -152,86 +207,100 @@ void main() {
     for (final data in [first, second]) {
       expect(data.pauseMenuState, before.pauseMenuState);
       expect(
-          data.pauseDetails[RuntimePlayerPauseSection.profile]!.profile!.money,
-          1234);
+        data.pauseDetails[RuntimePlayerPauseSection.profile]!.profile!.money,
+        1234,
+      );
       expect(
-          data.pauseDetails[RuntimePlayerPauseSection.party]!.entries.single
-              .pokemonSummary!.currentHp,
-          before.party.members.single.currentHp);
+        data
+            .pauseDetails[RuntimePlayerPauseSection.party]!
+            .entries
+            .single
+            .pokemonSummary!
+            .currentHp,
+        before.party.members.single.currentHp,
+      );
       expect(
-          data.pauseDetails[RuntimePlayerPauseSection.bag]!.entries.single
-              .bagItem!.quantity,
-          2);
+        data
+            .pauseDetails[RuntimePlayerPauseSection.bag]!
+            .entries
+            .single
+            .bagItem!
+            .quantity,
+        2,
+      );
     }
     expect(game.inputAuthoritySnapshot, authority);
     expect(
-        runtime.handleInput(
-            const RuntimeInputEvent.press(RuntimeInputControl.right)),
-        isTrue);
+      runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.right),
+      ),
+      isTrue,
+    );
     runtime.handleInput(
-        const RuntimeInputEvent.release(RuntimeInputControl.right));
+      const RuntimeInputEvent.release(RuntimeInputControl.right),
+    );
   });
 
-  test('localizes unavailable runtime services from the session locale',
-      () async {
-    Future<PlayableMapGameSessionRuntime> runtimeFor(String locale) async {
-      final runtime = PlayableMapGameSessionRuntime(
-        descriptor: GameSessionDescriptor(
-          sessionId: 'session-$locale',
-          sessionToken: 'secret',
-          identity: GameIdentity(
-            gameId: 'org.example.runtime-fixture',
-            gameVersion: '1.0.0',
-            projectFormat: ProjectFormat.v1,
-            saveFormat: 1,
-            compatibilityId: 'fixture-v1',
+  test(
+    'localizes unavailable runtime services from the session locale',
+    () async {
+      Future<PlayableMapGameSessionRuntime> runtimeFor(String locale) async {
+        final runtime = PlayableMapGameSessionRuntime(
+          descriptor: GameSessionDescriptor(
+            sessionId: 'session-$locale',
+            sessionToken: 'secret',
+            identity: GameIdentity(
+              gameId: 'org.example.runtime-fixture',
+              gameVersion: '1.0.0',
+              projectFormat: ProjectFormat.v1,
+              saveFormat: 1,
+              compatibilityId: 'fixture-v1',
+            ),
+            profileId: 'player-1',
+            slotId: 'slot-1',
+            launchMode: GameSessionLaunchMode.newGame,
+            installedVersionHandle: 'verified-fixture',
+            runtimeApiVersion: '1.0.0',
+            grantedCapabilities: const <String>{},
+            locale: locale,
+            accessibility: const GameSessionAccessibilityOptions(),
+            initialGameState: const GameState(
+              saveId: 'slot-1',
+              currentMapId: 'map-start',
+            ),
           ),
-          profileId: 'player-1',
-          slotId: 'slot-1',
-          launchMode: GameSessionLaunchMode.newGame,
-          installedVersionHandle: 'verified-fixture',
-          runtimeApiVersion: '1.0.0',
-          grantedCapabilities: const <String>{},
-          locale: locale,
-          accessibility: const GameSessionAccessibilityOptions(),
-          initialGameState: const GameState(
-            saveId: 'slot-1',
-            currentMapId: 'map-start',
+          projectFilePath: () async => '',
+          initialSave: () async => null,
+          mountGame: (_) async {},
+          unmountGame: (_) async {},
+        );
+        addTearDown(runtime.dispose);
+        return runtime;
+      }
+
+      final english = await runtimeFor('en-US');
+      expect(
+        (await english.dispatchPauseCommand(
+          const RuntimePlayerPauseCommand.useBagItem(
+            itemTargetId: 'bag:potion',
+            partyTargetId: 'party:0',
           ),
-        ),
-        projectFilePath: () async => '',
-        initialSave: () async => null,
-        mountGame: (_) async {},
-        unmountGame: (_) async {},
+        )).safeMessage,
+        'The bag is unavailable.',
       );
-      addTearDown(runtime.dispose);
-      return runtime;
-    }
 
-    final english = await runtimeFor('en-US');
-    expect(
-      (await english.dispatchPauseCommand(
-        const RuntimePlayerPauseCommand.useBagItem(
-          itemTargetId: 'bag:potion',
-          partyTargetId: 'party:0',
-        ),
-      ))
-          .safeMessage,
-      'The bag is unavailable.',
-    );
-
-    final french = await runtimeFor('fr-FR');
-    expect(
-      (await french.dispatchWorldService(
-        const RuntimeWorldServiceCommand(
-          action: RuntimeWorldServiceAction.close,
-          snapshotRevision: 1,
-        ),
-      ))
-          .safeMessage,
-      'Aucun service contextuel n’est actif.',
-    );
-  });
+      final french = await runtimeFor('fr-FR');
+      expect(
+        (await french.dispatchWorldService(
+          const RuntimeWorldServiceCommand(
+            action: RuntimeWorldServiceAction.close,
+            snapshotRevision: 1,
+          ),
+        )).safeMessage,
+        'Aucun service contextuel n’est actif.',
+      );
+    },
+  );
 
   test('routes party reorder pause commands to the party service', () async {
     // BETA-PTY-002, le maillon de ROUTAGE — mesuré manquant par sabotage :
@@ -297,9 +366,10 @@ void main() {
     PlayableMapGame? mounted;
     final runtime = PlayableMapGameSessionRuntime(
       descriptor: descriptor,
-      projectFilePath: () async => File(
-        'test/fixtures/p3_scenario_runtime_golden_path/project.json',
-      ).absolute.path,
+      projectFilePath: () async =>
+          File('test/fixtures/p3_scenario_runtime_golden_path/project.json')
+              .absolute
+              .path,
       initialSave: () async => save,
       mountGame: (game) async {
         expect(game.dialogueTextSpeed, RuntimeDialogueTextSpeed.slow);
@@ -309,30 +379,34 @@ void main() {
       now: () => DateTime.utc(2026, 8, 20),
     );
     addTearDown(runtime.dispose);
-    runtime.applyPlayerPreferences(const PlayerPreferencesSnapshot(
-      locale: 'fr',
-      accessibility: GameSessionAccessibilityOptions(),
-      dialogueTextSpeed: RuntimeDialogueTextSpeed.slow,
-    ));
+    runtime.applyPlayerPreferences(
+      const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(),
+        dialogueTextSpeed: RuntimeDialogueTextSpeed.slow,
+      ),
+    );
     await runtime.load((_) {});
     expect(mounted, isNotNull);
 
-    runtime.applyPlayerPreferences(const PlayerPreferencesSnapshot(
-      locale: 'en',
-      accessibility: GameSessionAccessibilityOptions(
-        reducedMotion: true,
-        textScale: 1.4,
+    runtime.applyPlayerPreferences(
+      const PlayerPreferencesSnapshot(
+        locale: 'en',
+        accessibility: GameSessionAccessibilityOptions(
+          reducedMotion: true,
+          textScale: 1.4,
+        ),
+        dialogueTextSpeed: RuntimeDialogueTextSpeed.fast,
       ),
-      dialogueTextSpeed: RuntimeDialogueTextSpeed.fast,
-    ));
+    );
     expect(mounted!.dialogueTextSpeed, RuntimeDialogueTextSpeed.fast);
     expect(mounted!.reducedMotion, isTrue);
     expect(mounted!.textScale, 1.4);
     expect(mounted!.runtimeLocale, 'fr-FR');
     expect(
-        (await runtime.loadPauseDetails())[RuntimePlayerPauseSection.map]!
-            .title,
-        'Map');
+      (await runtime.loadPauseDetails())[RuntimePlayerPauseSection.map]!.title,
+      'Map',
+    );
 
     final result = await runtime.dispatchPauseCommand(
       const RuntimePlayerPauseCommand.setPartyLead(
@@ -342,15 +416,15 @@ void main() {
 
     expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
     expect(
-      mounted!.gameStateSnapshot.party.members
-          .map((member) => member.individualId),
+      mounted!.gameStateSnapshot.party.members.map(
+        (member) => member.individualId,
+      ),
       <String>['pkm_second', 'pkm_first'],
       reason: 'the session routed the party kind to the party service',
     );
   });
 
-  test('loads a scoped save without filesystem persistence and completes once',
-      () async {
+  test('loads a scoped save without filesystem persistence and completes once', () async {
     final identity = GameIdentity(
       gameId: 'org.example.runtime-fixture',
       gameVersion: '1.0.0',
@@ -409,23 +483,17 @@ void main() {
             ),
           ],
         ),
-        bag: Bag(
-          entries: <BagEntry>[
-            BagEntry(
-              itemId: 'potion',
-              quantity: 2,
-            ),
-          ],
-        ),
+        bag: Bag(entries: <BagEntry>[BagEntry(itemId: 'potion', quantity: 2)]),
       ),
     );
     PlayableMapGame? mounted;
     var unmounted = false;
     final runtime = PlayableMapGameSessionRuntime(
       descriptor: descriptor,
-      projectFilePath: () async => File(
-        'test/fixtures/p3_scenario_runtime_golden_path/project.json',
-      ).absolute.path,
+      projectFilePath: () async =>
+          File('test/fixtures/p3_scenario_runtime_golden_path/project.json')
+              .absolute
+              .path,
       initialSave: () async => save,
       mountGame: (game) async => mounted = game,
       unmountGame: (game) async {
@@ -462,10 +530,7 @@ void main() {
       pauseDetails[RuntimePlayerPauseSection.bag]!.entries.single.trailingLabel,
       '×2',
     );
-    expect(
-      pauseDetails,
-      contains(RuntimePlayerPauseSection.pokedex),
-    );
+    expect(pauseDetails, contains(RuntimePlayerPauseSection.pokedex));
     expect(
       pauseDetails[RuntimePlayerPauseSection.map]!.entries.single.title,
       'P3 Test Map',
@@ -510,141 +575,146 @@ void main() {
     await subscription.cancel();
   });
 
-  test('loads an older game version when save compatibility is unchanged',
-      () async {
-    final identity = GameIdentity(
-      gameId: 'org.example.runtime-fixture',
-      gameVersion: '1.0.1',
-      projectFormat: ProjectFormat.v1,
-      saveFormat: 1,
-      compatibilityId: 'fixture-v1',
-    );
-    final descriptor = GameSessionDescriptor(
-      sessionId: 'session-compatible-update',
-      sessionToken: 'secret',
-      identity: identity,
-      profileId: 'player-1',
-      slotId: 'slot-1',
-      launchMode: GameSessionLaunchMode.continueGame,
-      installedVersionHandle: 'verified-fixture',
-      saveReadHandle: 'opaque-save',
-      runtimeApiVersion: '1.0.0',
-      grantedCapabilities: const <String>{'map.v1'},
-      locale: 'fr-FR',
-      accessibility: const GameSessionAccessibilityOptions(),
-    );
-    final timestamp = DateTime.utc(2026, 8, 28);
-    final save = const GameStateSaveEnvelopeMapper().create(
-      identity: GameIdentity(
+  test(
+    'loads an older game version when save compatibility is unchanged',
+    () async {
+      final identity = GameIdentity(
+        gameId: 'org.example.runtime-fixture',
+        gameVersion: '1.0.1',
+        projectFormat: ProjectFormat.v1,
+        saveFormat: 1,
+        compatibilityId: 'fixture-v1',
+      );
+      final descriptor = GameSessionDescriptor(
+        sessionId: 'session-compatible-update',
+        sessionToken: 'secret',
+        identity: identity,
+        profileId: 'player-1',
+        slotId: 'slot-1',
+        launchMode: GameSessionLaunchMode.continueGame,
+        installedVersionHandle: 'verified-fixture',
+        saveReadHandle: 'opaque-save',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const <String>{'map.v1'},
+        locale: 'fr-FR',
+        accessibility: const GameSessionAccessibilityOptions(),
+      );
+      final timestamp = DateTime.utc(2026, 8, 28);
+      final save = const GameStateSaveEnvelopeMapper().create(
+        identity: GameIdentity(
+          gameId: 'org.example.runtime-fixture',
+          gameVersion: '1.0.0',
+          projectFormat: ProjectFormat.v1,
+          saveFormat: 1,
+          compatibilityId: 'fixture-v1',
+        ),
+        profileId: descriptor.profileId,
+        slotId: descriptor.slotId,
+        saveId: '123e4567-e89b-42d3-a456-426614174003',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        status: SaveStatus.active,
+        playTimeSeconds: 30,
+        gameState: const GameState(
+          saveId: '123e4567-e89b-42d3-a456-426614174003',
+          currentMapId: 'p3_test_map',
+        ),
+      );
+      PlayableMapGame? mounted;
+      final runtime = PlayableMapGameSessionRuntime(
+        descriptor: descriptor,
+        projectFilePath: () async =>
+            File('test/fixtures/p3_scenario_runtime_golden_path/project.json')
+                .absolute
+                .path,
+        initialSave: () async => save,
+        mountGame: (game) async => mounted = game,
+        unmountGame: (_) async {},
+      );
+      addTearDown(runtime.dispose);
+
+      await runtime.load((_) {});
+
+      expect(mounted, isNotNull);
+    },
+  );
+
+  test(
+    'reuses a preloaded initial map bundle without reading the project again',
+    () async {
+      final projectFile = File(
+        'test/fixtures/p3_scenario_runtime_golden_path/project.json',
+      ).absolute;
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFile.path,
+        mapId: 'p3_test_map',
+      );
+      final identity = GameIdentity(
         gameId: 'org.example.runtime-fixture',
         gameVersion: '1.0.0',
         projectFormat: ProjectFormat.v1,
         saveFormat: 1,
         compatibilityId: 'fixture-v1',
-      ),
-      profileId: descriptor.profileId,
-      slotId: descriptor.slotId,
-      saveId: '123e4567-e89b-42d3-a456-426614174003',
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      status: SaveStatus.active,
-      playTimeSeconds: 30,
-      gameState: const GameState(
-        saveId: '123e4567-e89b-42d3-a456-426614174003',
-        currentMapId: 'p3_test_map',
-      ),
-    );
-    PlayableMapGame? mounted;
-    final runtime = PlayableMapGameSessionRuntime(
-      descriptor: descriptor,
-      projectFilePath: () async => File(
-        'test/fixtures/p3_scenario_runtime_golden_path/project.json',
-      ).absolute.path,
-      initialSave: () async => save,
-      mountGame: (game) async => mounted = game,
-      unmountGame: (_) async {},
-    );
-    addTearDown(runtime.dispose);
-
-    await runtime.load((_) {});
-
-    expect(mounted, isNotNull);
-  });
-
-  test(
-      'reuses a preloaded initial map bundle without reading the project again',
-      () async {
-    final projectFile = File(
-      'test/fixtures/p3_scenario_runtime_golden_path/project.json',
-    ).absolute;
-    final bundle = await loadRuntimeMapBundle(
-      projectFilePath: projectFile.path,
-      mapId: 'p3_test_map',
-    );
-    final identity = GameIdentity(
-      gameId: 'org.example.runtime-fixture',
-      gameVersion: '1.0.0',
-      projectFormat: ProjectFormat.v1,
-      saveFormat: 1,
-      compatibilityId: 'fixture-v1',
-    );
-    final descriptor = GameSessionDescriptor(
-      sessionId: 'session-preloaded',
-      sessionToken: 'secret',
-      identity: identity,
-      profileId: 'player-1',
-      slotId: 'slot-1',
-      launchMode: GameSessionLaunchMode.continueGame,
-      installedVersionHandle: 'verified-fixture',
-      saveReadHandle: 'opaque-save',
-      runtimeApiVersion: '1.0.0',
-      grantedCapabilities: const <String>{'map.v1'},
-      locale: 'fr-FR',
-      accessibility: const GameSessionAccessibilityOptions(),
-    );
-    final timestamp = DateTime.utc(2026, 8, 9);
-    final save = const GameStateSaveEnvelopeMapper().create(
-      identity: identity,
-      profileId: descriptor.profileId,
-      slotId: descriptor.slotId,
-      saveId: '123e4567-e89b-42d3-a456-426614174001',
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      status: SaveStatus.active,
-      playTimeSeconds: 30,
-      gameState: const GameState(
+      );
+      final descriptor = GameSessionDescriptor(
+        sessionId: 'session-preloaded',
+        sessionToken: 'secret',
+        identity: identity,
+        profileId: 'player-1',
+        slotId: 'slot-1',
+        launchMode: GameSessionLaunchMode.continueGame,
+        installedVersionHandle: 'verified-fixture',
+        saveReadHandle: 'opaque-save',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const <String>{'map.v1'},
+        locale: 'fr-FR',
+        accessibility: const GameSessionAccessibilityOptions(),
+      );
+      final timestamp = DateTime.utc(2026, 8, 9);
+      final save = const GameStateSaveEnvelopeMapper().create(
+        identity: identity,
+        profileId: descriptor.profileId,
+        slotId: descriptor.slotId,
         saveId: '123e4567-e89b-42d3-a456-426614174001',
-        currentMapId: 'p3_test_map',
-      ),
-    );
-    var preloadReads = 0;
-    PlayableMapGame? mounted;
-    final runtime = PlayableMapGameSessionRuntime(
-      descriptor: descriptor,
-      projectFilePath: () async => '/missing/project.json',
-      initialSave: () async => save,
-      preloadedInitialMap: ({
-        required String projectFilePath,
-        required GameSessionDescriptor descriptor,
-        required SaveEnvelope? initialSave,
-      }) async {
-        preloadReads++;
-        expect(projectFilePath, '/missing/project.json');
-        expect(descriptor.sessionId, 'session-preloaded');
-        expect(initialSave, same(save));
-        return RuntimeInitialMapPreloadResult(bundle: bundle);
-      },
-      mountGame: (game) async => mounted = game,
-      unmountGame: (_) async {},
-    );
-    addTearDown(runtime.dispose);
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        status: SaveStatus.active,
+        playTimeSeconds: 30,
+        gameState: const GameState(
+          saveId: '123e4567-e89b-42d3-a456-426614174001',
+          currentMapId: 'p3_test_map',
+        ),
+      );
+      var preloadReads = 0;
+      PlayableMapGame? mounted;
+      final runtime = PlayableMapGameSessionRuntime(
+        descriptor: descriptor,
+        projectFilePath: () async => '/missing/project.json',
+        initialSave: () async => save,
+        preloadedInitialMap:
+            ({
+              required String projectFilePath,
+              required GameSessionDescriptor descriptor,
+              required SaveEnvelope? initialSave,
+            }) async {
+              preloadReads++;
+              expect(projectFilePath, '/missing/project.json');
+              expect(descriptor.sessionId, 'session-preloaded');
+              expect(initialSave, same(save));
+              return RuntimeInitialMapPreloadResult(bundle: bundle);
+            },
+        mountGame: (game) async => mounted = game,
+        unmountGame: (_) async {},
+      );
+      addTearDown(runtime.dispose);
 
-    await runtime.load((_) {});
+      await runtime.load((_) {});
 
-    expect(preloadReads, 1);
-    expect(mounted, isNotNull);
-    expect(mounted!.gameStateSnapshot.currentMapId, 'p3_test_map');
-  });
+      expect(preloadReads, 1);
+      expect(mounted, isNotNull);
+      expect(mounted!.gameStateSnapshot.currentMapId, 'p3_test_map');
+    },
+  );
 
   test('refuses a preloaded bundle when the saved map has diverged', () async {
     final projectFile = File(
@@ -699,8 +769,7 @@ void main() {
         required projectFilePath,
         required descriptor,
         required initialSave,
-      }) async =>
-          RuntimeInitialMapPreloadResult(bundle: bundle),
+      }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
       mountGame: (_) async => mounted = true,
       unmountGame: (_) async {},
     );

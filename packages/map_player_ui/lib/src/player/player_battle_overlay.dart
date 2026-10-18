@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../localization/player_localizations.dart';
+import '../foundation/player_image.dart';
 import '../theme/pokemap_player_battle_theme.dart';
 import 'player_battle_scene.dart';
 import 'player_battle_surface.dart';
@@ -64,7 +65,15 @@ class PlayerBattleOverlay extends StatelessWidget {
         },
       ),
       itemIconBuilder: itemIconBuilder ??
-          (assetPath) => BattleMobileItemIcon(imagePath: assetPath),
+          (assetPath) => ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: PlayerFileImage(
+                  path: assetPath,
+                  width: 32,
+                  height: 32,
+                  fallback: const Icon(Icons.inventory_2_outlined, size: 18),
+                ),
+              ),
     );
   }
 }

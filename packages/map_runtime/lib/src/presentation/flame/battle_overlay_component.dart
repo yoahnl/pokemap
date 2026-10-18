@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui' as ui show Image, instantiateImageCodec;
+import 'dart:ui' as ui show Image;
 
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 
@@ -12,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
+import '../../infrastructure/runtime_ui_image.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
@@ -511,6 +511,7 @@ class BattleOverlayComponent extends PositionComponent {
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
     BattleFxBundleCache? fxBundleCache,
+    RuntimeResourceBudget? resourceBudget,
     bool allowMedicineReserveTargets = true,
     Map<int, double> playerExperienceProgressByLineupIndex = const {},
   })  : _session = session,
@@ -519,7 +520,9 @@ class BattleOverlayComponent extends PositionComponent {
             ItemCapabilityResolver(ItemCatalogSnapshot.empty()),
         _moveCatalog = moveCatalog ??
             RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
-        _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(),
+        _resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+        _ownsResourceBudget = resourceBudget == null,
+        _ownsFxBundleCache = fxBundleCache == null,
         _allowMedicineReserveTargets = allowMedicineReserveTargets,
         _playerExperienceProgressByLineupIndex = Map<int, double>.unmodifiable(
           playerExperienceProgressByLineupIndex,
@@ -532,6 +535,9 @@ class BattleOverlayComponent extends PositionComponent {
         ) {
     _moveVisualResolver =
         moveVisualResolver ?? BattleMoveVisualResolver(_moveCatalog);
+    _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(resourceBudget: _resourceBudget);
+    _visualImageScope = visualAssetCache?.beginScope();
+    _fxImageScope = _fxBundleCache.beginScope();
   }
 
   BattleSession _session;
@@ -585,7 +591,14 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName;
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
-  final BattleFxBundleCache _fxBundleCache;
+  late final BattleFxBundleCache _fxBundleCache;
+  final RuntimeResourceBudget _resourceBudget;
+  final bool _ownsResourceBudget;
+  final bool _ownsFxBundleCache;
+  Object? _visualImageScope;
+  Object? _fxImageScope;
+  final Map<String, RuntimeUiImageLease> _sheetLeases = {};
+  final Set<void Function()> _trainerImageReleases = {};
   final Map<int, double> _playerExperienceProgressByLineupIndex;
 
   /// Le debug reste volontairement opt-in.
@@ -921,6 +934,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// Même contrat que les planches de Ball : chargement paresseux au premier
   /// besoin, et une planche introuvable ne montre rien sans jamais casser.
   final Map<String, ui.Image> _statSheetImages = <String, ui.Image>{};
+  final Map<String, Future<ui.Image?>> _pendingStatSheets = {};
 
   @visibleForTesting
   int get debugStatSheetCount => _statSheetImages.length;
@@ -929,6 +943,18 @@ class BattleOverlayComponent extends PositionComponent {
     if (_ballImagesDisposed) return null;
     final cached = _statSheetImages[sheetName];
     if (cached != null) return cached;
+    final pending = _pendingStatSheets.putIfAbsent(
+      sheetName, () => _decodeStatSheet(sheetName));
+    try {
+      return await pending;
+    } finally {
+      if (identical(_pendingStatSheets[sheetName], pending)) {
+        _pendingStatSheets.remove(sheetName);
+      }
+    }
+  }
+
+  Future<ui.Image?> _decodeStatSheet(String sheetName) async {
     final fileName = battleStatSheetManifest[sheetName];
     if (fileName == null) return null;
     ByteData? bytes;
@@ -945,18 +971,24 @@ class BattleOverlayComponent extends PositionComponent {
     }
     if (_ballImagesDisposed) return null;
     try {
-      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      final lease = await decodeRuntimeUiImage(
+        bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+        resourceBudget: _resourceBudget,
+        isCurrent: () => !_ballImagesDisposed,
+      );
       try {
-        final image = (await codec.getNextFrame()).image;
+        final image = lease.image;
         final cached = _statSheetImages[sheetName];
         if (_ballImagesDisposed || cached != null) {
-          image.dispose();
+          lease.dispose();
           return cached;
         }
         _statSheetImages[sheetName] = image;
+        _sheetLeases['stat:$sheetName'] = lease;
         return image;
-      } finally {
-        codec.dispose();
+      } catch (_) {
+        lease.dispose();
+        rethrow;
       }
     } on Object catch (error) {
       debugPrint('[battle] stat sheet undecodable ($sheetName): $error');
@@ -1022,20 +1054,24 @@ class BattleOverlayComponent extends PositionComponent {
     try {
       final path = await resolveBallSpritePath?.call(itemId);
       if (path == null || _ballImagesDisposed) return null;
-      final codec =
-          await ui.instantiateImageCodec(await File(path).readAsBytes());
+      final lease = await loadRuntimeUiImageFromFilePath(path,
+        resourceBudget: _resourceBudget,
+        isCurrent: () => !_ballImagesDisposed,
+      );
       try {
-        final frame = await codec.getNextFrame();
+        final image = lease.image;
         if (_ballImagesDisposed ||
-            frame.image.width != 64 ||
-            frame.image.height != 2048) {
-          frame.image.dispose();
+            image.width != 64 ||
+            image.height != 2048) {
+          lease.dispose();
           return null;
         }
-        _ballSheetImages[itemId] = frame.image;
-        return frame.image;
-      } finally {
-        codec.dispose();
+        _ballSheetImages[itemId] = image;
+        _sheetLeases['ball:$itemId'] = lease;
+        return image;
+      } catch (_) {
+        lease.dispose();
+        rethrow;
       }
     } on Object catch (error) {
       debugPrint('[battle] item animation unavailable ($itemId): $error');
@@ -1048,14 +1084,24 @@ class BattleOverlayComponent extends PositionComponent {
     _ballImagesDisposed = true;
     _presentationGeneration++;
     _animationRunner?.cancel(notify: false);
-    for (final image in _ballSheetImages.values) {
-      image.dispose();
+    for (final lease in _sheetLeases.values) {
+      lease.dispose();
     }
+    _sheetLeases.clear();
+    for (final release in _trainerImageReleases) {
+      release();
+    }
+    _trainerImageReleases.clear();
     _ballSheetImages.clear();
-    for (final image in _statSheetImages.values) {
-      image.dispose();
-    }
     _statSheetImages.clear();
+    final visualScope = _visualImageScope;
+    _visualImageScope = null;
+    if (visualScope != null) visualAssetCache?.endScope(visualScope);
+    final fxScope = _fxImageScope;
+    _fxImageScope = null;
+    if (fxScope != null) _fxBundleCache.endScope(fxScope);
+    if (_ownsFxBundleCache) _fxBundleCache.dispose();
+    if (_ownsResourceBudget) _resourceBudget.dispose();
     super.onRemove();
   }
 
@@ -1214,7 +1260,12 @@ class BattleOverlayComponent extends PositionComponent {
   ui.Image? _defeatedTrainerImage;
   PositionComponent? _defeatedTrainerSprite;
 
-  void prepareDefeatedTrainerVisual(ui.Image image) {
+  void prepareDefeatedTrainerVisual(ui.Image image, {void Function()? onRelease}) {
+    if (_ballImagesDisposed) {
+      onRelease?.call();
+      return;
+    }
+    if (onRelease != null) _trainerImageReleases.add(onRelease);
     _defeatedTrainerImage = image;
   }
 
@@ -1226,7 +1277,12 @@ class BattleOverlayComponent extends PositionComponent {
   ui.Image? _introTrainerImage;
   BattleIntroTrainerComponent? _introTrainerSprite;
 
-  void prepareIntroTrainerVisual(ui.Image image) {
+  void prepareIntroTrainerVisual(ui.Image image, {void Function()? onRelease}) {
+    if (_ballImagesDisposed) {
+      onRelease?.call();
+      return;
+    }
+    if (onRelease != null) _trainerImageReleases.add(onRelease);
     _introTrainerImage = image;
   }
 
@@ -1559,8 +1615,7 @@ class BattleOverlayComponent extends PositionComponent {
     // pendant un tour gèlerait la scène, exactement ce que BAT-018 combat.
     // Le chargement ne bloque pas onLoad : l'aura retombe sur son SE seul si
     // la planche n'est pas prête.
-    unawaited(_loadStatSheet('stat_up'));
-    unawaited(_loadStatSheet('stat_down'));
+    unawaited(_loadStatSheet('stat_up').then((_) => _loadStatSheet('stat_down')));
     final playerBallItemId = resolveCombatantBallItemId?.call(
       BattleSideId.player,
       _session.state.player.lineupIndex,

@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'runtime_manifest_tilesets.dart';
+
 String characterAnimationRuntimeImageId(String sourceAssetId) =>
     'character-animation:${sourceAssetId.trim()}';
 
@@ -47,7 +49,7 @@ final class CharacterAnimationSourceResolver {
   CharacterAnimationSourceResolver({this.onDiagnostic});
 
   final void Function(CharacterAnimationSourceDiagnostic diagnostic)?
-      onDiagnostic;
+  onDiagnostic;
   final Set<String> _emittedDiagnostics = <String>{};
 
   ResolvedCharacterAnimationFrameSource? resolveFrame({
@@ -134,7 +136,8 @@ final class CharacterAnimationSourceResolver {
   }
 
   void _emitOnce(CharacterAnimationSourceDiagnostic diagnostic) {
-    final key = '${diagnostic.code.name}\u0000${diagnostic.characterId}'
+    final key =
+        '${diagnostic.code.name}\u0000${diagnostic.characterId}'
         '\u0000${diagnostic.sourceAssetId}\u0000${diagnostic.state?.name}'
         '\u0000${diagnostic.direction?.name}';
     if (_emittedDiagnostics.add(key)) {
@@ -147,10 +150,12 @@ final class CharacterAnimationSourcePreloadPlan {
   CharacterAnimationSourcePreloadPlan({
     required Map<String, String> absolutePathsByAssetId,
     required List<CharacterAnimationSourceDiagnostic> diagnostics,
-  })  : absolutePathsByAssetId =
-            Map<String, String>.unmodifiable(absolutePathsByAssetId),
-        diagnostics =
-            List<CharacterAnimationSourceDiagnostic>.unmodifiable(diagnostics);
+  }) : absolutePathsByAssetId = Map<String, String>.unmodifiable(
+         absolutePathsByAssetId,
+       ),
+       diagnostics = List<CharacterAnimationSourceDiagnostic>.unmodifiable(
+         diagnostics,
+       );
 
   final Map<String, String> absolutePathsByAssetId;
   final List<CharacterAnimationSourceDiagnostic> diagnostics;
@@ -160,6 +165,9 @@ CharacterAnimationSourcePreloadPlan buildCharacterAnimationSourcePreloadPlan({
   required ProjectManifest manifest,
   required String projectRootDirectory,
   required AssetCatalog? assetCatalog,
+  MapData? map,
+  Set<String> additionalCharacterIds = const {},
+  Set<String> additionalSceneIds = const {},
   bool Function(String path)? fileExists,
 }) {
   final root = p.normalize(p.absolute(projectRootDirectory));
@@ -167,7 +175,16 @@ CharacterAnimationSourcePreloadPlan buildCharacterAnimationSourcePreloadPlan({
   final paths = <String, String>{};
   final diagnostics = <CharacterAnimationSourceDiagnostic>[];
   final assetIds = <String, String>{};
+  final characterIds = map == null
+      ? null
+      : collectRuntimeMapCharacterIds(
+          map,
+          manifest,
+          additionalCharacterIds: additionalCharacterIds,
+          additionalSceneIds: additionalSceneIds,
+        );
   for (final character in manifest.characters) {
+    if (characterIds != null && !characterIds.contains(character.id)) continue;
     for (final animation in character.animations) {
       final assetId = animation.sourceAssetId?.trim();
       if (assetId != null && assetId.isNotEmpty) {

@@ -6,8 +6,209 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/dialogue_portrait_resolver.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
+import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 
 void main() {
+  for (final partitioned in [false, true]) {
+    test(
+      'hydrates off-map portrait speakers, partitioned=$partitioned',
+      () async {
+        final fixture = await _PortraitFixture.create();
+        addTearDown(fixture.dispose);
+        final project = fixture.manifest.copyWith(
+          tilesets: const [
+            ProjectTilesetEntry(
+              id: 'elia-overworld',
+              name: 'Missing overworld image',
+              relativePath: 'never-open.png',
+            ),
+          ],
+        );
+        final projectFile = File('${fixture.root.path}/project.json');
+        if (partitioned) {
+          final publication = PortableCatalogPublication.encodeProject(project);
+          await projectFile.writeAsString(jsonEncode(publication.descriptor));
+          for (final object in publication.storage.objects.entries) {
+            final file = File(
+              '${fixture.root.path}/catalog/objects/${object.key}.json',
+            );
+            await file.parent.create(recursive: true);
+            await file.writeAsBytes(object.value);
+          }
+        } else {
+          await projectFile.writeAsString(jsonEncode(project.toJson()));
+        }
+        final catalog = await RuntimeProjectCatalog.open(projectFile.path);
+        addTearDown(catalog.dispose);
+        final view = await catalog.manifestForMap(
+          MapData(
+            id: 'empty',
+            name: 'Empty',
+            size: const GridSize(width: 1, height: 1),
+          ),
+        );
+        expect(view.characters, isEmpty);
+        final diagnostics = <DialoguePortraitResolutionDiagnostic>[];
+        final resolver = DialoguePortraitResolver(
+          manifest: view,
+          projectRootDirectory: fixture.root.path,
+          preloadLimit: 0,
+          onDiagnostic: diagnostics.add,
+        );
+        await resolver.preload(
+          DialogueSession.start([
+            YarnNode(
+              title: 'Start',
+              steps: [
+                YarnStepLine(
+                  'Élia: Surprise.',
+                  characterId: 'elia',
+                  portraitStateId: 'surprised',
+                ),
+                YarnStepLine(
+                  'Ghost: Bouh.',
+                  characterId: 'unknown',
+                  portraitStateId: 'surprised',
+                ),
+              ],
+            ),
+          ], 'Start')!,
+        );
+        expect(
+          resolver
+              .resolve(characterId: 'elia', portraitStateId: 'surprised')
+              ?.absoluteFilePath,
+          fixture.blob.path,
+        );
+        expect(
+          resolver.resolve(
+            characterId: 'unknown',
+            portraitStateId: 'surprised',
+          ),
+          isNull,
+        );
+        expect(
+          diagnostics.single.code,
+          DialoguePortraitResolutionCode.characterUnknown,
+        );
+        final battleResolver = DialoguePortraitResolver(
+          manifest: view,
+          projectRootDirectory: fixture.root.path,
+        );
+        await battleResolver.ensureCatalogLoaded(characterIds: ['elia']);
+        expect(
+          battleResolver.resolve(
+            characterId: 'elia',
+            portraitStateId: 'surprised',
+          ),
+          isNotNull,
+        );
+        expect(
+          await File('${fixture.root.path}/never-open.png').exists(),
+          isFalse,
+        );
+        if (partitioned) {
+          final broken = PortableCatalogPublication.encodeProject(
+            project.copyWith(tilesets: const []),
+          );
+          await projectFile.writeAsString(jsonEncode(broken.descriptor));
+          for (final object in broken.storage.objects.entries) {
+            final file = File(
+              '${fixture.root.path}/catalog/objects/${object.key}.json',
+            );
+            await file.parent.create(recursive: true);
+            await file.writeAsBytes(object.value);
+          }
+          final brokenCatalog = await RuntimeProjectCatalog.open(
+            projectFile.path,
+          );
+          addTearDown(brokenCatalog.dispose);
+          final brokenResolver = DialoguePortraitResolver(
+            manifest: brokenCatalog.projectMetadata,
+            projectRootDirectory: fixture.root.path,
+          );
+          await expectLater(
+            brokenResolver.ensureCatalogLoaded(characterIds: ['elia']),
+            throwsA(
+              isA<RuntimeCatalogDefinitionMissingException>().having(
+                (error) => error.key,
+                'key',
+                CatalogDefinitionKey(
+                  CatalogDefinitionKind.tileset,
+                  'elia-overworld',
+                ),
+              ),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  test(
+    'hydrated definitions are bounded and reset with the dialogue',
+    () async {
+      final fixture = await _PortraitFixture.create();
+      addTearDown(fixture.dispose);
+      final project = fixture.manifest.copyWith(
+        tilesets: const [
+          ProjectTilesetEntry(
+            id: 'elia-overworld',
+            name: 'Overworld',
+            relativePath: 'never-open.png',
+          ),
+        ],
+        characters: [
+          for (var i = 0; i < 65; i++)
+            fixture.manifest.characters.single.copyWith(id: 'speaker-$i'),
+        ],
+      );
+      final file = File('${fixture.root.path}/project.json');
+      await file.writeAsString(jsonEncode(project.toJson()));
+      final catalog = await RuntimeProjectCatalog.open(file.path);
+      addTearDown(catalog.dispose);
+      var injectedLoads = 0;
+      final resolver = DialoguePortraitResolver(
+        manifest: catalog.projectMetadata,
+        projectRootDirectory: fixture.root.path,
+        loadCatalog: (_) async {
+          injectedLoads++;
+          return catalog.loadAssetCatalog();
+        },
+      );
+      await resolver.ensureCatalogLoaded(
+        characterIds: List.generate(65, (i) => 'speaker-$i'),
+      );
+      expect(injectedLoads, 1);
+      expect(
+        resolver.resolve(
+          characterId: 'speaker-0',
+          portraitStateId: 'surprised',
+        ),
+        isNull,
+      );
+      expect(
+        resolver.resolve(
+          characterId: 'speaker-64',
+          portraitStateId: 'surprised',
+        ),
+        isNotNull,
+      );
+      await resolver.preload(
+        DialogueSession.start([
+          YarnNode(title: 'Start', steps: [YarnStepLine('Hello')]),
+        ], 'Start')!,
+      );
+      expect(
+        resolver.resolve(
+          characterId: 'speaker-64',
+          portraitStateId: 'surprised',
+        ),
+        isNull,
+      );
+    },
+  );
+
   test('resolves one authored portrait through the portable asset store',
       () async {
     final fixture = await _PortraitFixture.create();

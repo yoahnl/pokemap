@@ -1,8 +1,10 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flame/sprite.dart';
 import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../infrastructure/runtime_ui_image.dart';
 
 import 'battle_fx_catalog.dart';
 
@@ -11,61 +13,39 @@ typedef BattleFxImageLoader = Future<ui.Image> Function(String assetKey);
 final class BattleFxBundleCache {
   BattleFxBundleCache({
     BattleFxImageLoader? imageLoader,
-  }) : _imageLoader = imageLoader ?? _loadImageFromAssetBundle;
+    RuntimeResourceBudget? resourceBudget,
+    bool Function()? isCurrent,
+  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+       _ownsResourceBudget = resourceBudget == null {
+    _images = RuntimeOwnedImageCache(
+      imageLoader: imageLoader,
+      loadLease: (key) =>
+          _loadImageFromAssetBundle(key, this.resourceBudget, isCurrent),
+    );
+  }
 
-  final BattleFxImageLoader _imageLoader;
-  final Map<String, Future<ui.Image>> _imageFutureByEffectId =
-      <String, Future<ui.Image>>{};
-  final Map<String, Future<Sprite>> _spriteFutureByEffectId =
-      <String, Future<Sprite>>{};
+  final RuntimeResourceBudget resourceBudget;
+  final bool _ownsResourceBudget;
+  late final RuntimeOwnedImageCache _images;
 
   /// BETA-BAT-018 : le nombre d'images déjà demandées au cache — la preuve
   /// observable qu'une préchauffe a bien eu lieu avant le premier coup.
-  int get debugCachedImageCount => _imageFutureByEffectId.length;
+  int get debugCachedImageCount => _images.length;
+
+  Object beginScope() => _images.beginScope();
+
+  void endScope(Object scope) {
+    _images.endScope(scope);
+  }
 
   Future<ui.Image> loadImage(String effectId) async {
     final normalizedEffectId = effectId.trim();
     final spec = BattleFxCatalog.require(normalizedEffectId);
-    final cached = _imageFutureByEffectId[normalizedEffectId];
-    if (cached != null) {
-      return await cached;
-    }
-
-    final future = _imageLoader(spec.assetKey);
-    _imageFutureByEffectId[normalizedEffectId] = future;
-    try {
-      return await future;
-    } catch (_) {
-      final current = _imageFutureByEffectId[normalizedEffectId];
-      if (identical(current, future)) {
-        _imageFutureByEffectId.remove(normalizedEffectId);
-      }
-      rethrow;
-    }
+    return _images.load(spec.assetKey);
   }
 
   Future<Sprite> loadSprite(String effectId) async {
-    final normalizedEffectId = effectId.trim();
-    BattleFxCatalog.require(normalizedEffectId);
-    final cached = _spriteFutureByEffectId[normalizedEffectId];
-    if (cached != null) {
-      return await cached;
-    }
-
-    final future = () async {
-      final image = await loadImage(normalizedEffectId);
-      return Sprite(image);
-    }();
-    _spriteFutureByEffectId[normalizedEffectId] = future;
-    try {
-      return await future;
-    } catch (_) {
-      final current = _spriteFutureByEffectId[normalizedEffectId];
-      if (identical(current, future)) {
-        _spriteFutureByEffectId.remove(normalizedEffectId);
-      }
-      rethrow;
-    }
+    return Sprite(await loadImage(effectId));
   }
 
   Future<void> prewarm(Iterable<String> effectIds) async {
@@ -79,40 +59,28 @@ final class BattleFxBundleCache {
     }
   }
 
-  /// Oublie les entrées sans libérer les images (elles peuvent encore être
-  /// référencées par des sprites vivants ; le GC les récupérera).
   void clear() {
-    _imageFutureByEffectId.clear();
-    _spriteFutureByEffectId.clear();
+    _images.trimUnused();
   }
 
-  /// Libère toutes les images décodées puis vide le cache.
-  ///
-  /// À n'appeler que quand plus aucun composant battle ne référence les
-  /// sprites servis — typiquement au teardown du jeu propriétaire. Les
-  /// sprites partagent les images de [_imageFutureByEffectId], donc une seule
-  /// passe de libération suffit.
   void dispose() {
-    for (final future in _imageFutureByEffectId.values) {
-      unawaited(
-        future.then((image) => image.dispose()).catchError((_) {}),
-      );
-    }
-    _imageFutureByEffectId.clear();
-    _spriteFutureByEffectId.clear();
+    _images.dispose();
+    if (_ownsResourceBudget) resourceBudget.dispose();
   }
 }
 
-Future<ui.Image> _loadImageFromAssetBundle(String assetKey) async {
+Future<RuntimeUiImageLease> _loadImageFromAssetBundle(
+  String assetKey,
+  RuntimeResourceBudget resourceBudget,
+  bool Function()? isCurrent,
+) async {
   final data = await rootBundle.load(assetKey);
   final bytes = _asUint8List(data);
-  final codec = await ui.instantiateImageCodec(bytes);
-  try {
-    final frame = await codec.getNextFrame();
-    return frame.image;
-  } finally {
-    codec.dispose();
-  }
+  return decodeRuntimeUiImage(
+    bytes,
+    resourceBudget: resourceBudget,
+    isCurrent: isCurrent,
+  );
 }
 
 Uint8List _asUint8List(ByteData data) {

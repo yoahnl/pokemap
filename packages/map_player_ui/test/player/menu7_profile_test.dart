@@ -191,9 +191,9 @@ void main() {
         _profile(
             portrait: '/missing/old-player.png',
             badgeIcon: '/missing/old-badge.png'));
-    final oldImage = tester.widget<Image>(find.byKey(const ValueKey(
+    final oldImage = tester.widget<PlayerFileImage>(find.byKey(const ValueKey(
         'profile-portrait-source-avatar_yoahn:/missing/old-player.png')));
-    expect((oldImage.image as FileImage).file.path, '/missing/old-player.png');
+    expect(oldImage.path, '/missing/old-player.png');
     await _pump(
         tester,
         RuntimePlayerProfileSnapshot(
@@ -226,9 +226,9 @@ void main() {
         find.byKey(const ValueKey(
             'profile-portrait-source-avatar_yoahn:/missing/old-player.png')),
         findsNothing);
-    final newImage = tester.widget<Image>(find.byKey(const ValueKey(
+    final newImage = tester.widget<PlayerFileImage>(find.byKey(const ValueKey(
         'profile-portrait-source-avatar_aline:/missing/new-player.png')));
-    expect((newImage.image as FileImage).file.path, '/missing/new-player.png');
+    expect(newImage.path, '/missing/new-player.png');
     expect(tester.takeException(), isNull);
   });
 

@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import '../foundation/player_image.dart';
 
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_pokemon_type_badge.dart';
@@ -584,17 +584,14 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
             height: thumbnail ? 48 : height,
             child: media == null
                 ? placeholder
-                : Image.file(
-                    File(media.absoluteFilePath),
+                : PlayerFileImage(
+                    path: media.absoluteFilePath,
                     fit: BoxFit.contain,
-                    gaplessPlayback: false,
                     filterQuality:
                         media.sampling == ProjectMenuImageSampling.pixelArt
                             ? FilterQuality.none
                             : FilterQuality.medium,
-                    frameBuilder: (_, child, frame, synchronous) =>
-                        synchronous || frame != null ? child : placeholder,
-                    errorBuilder: (_, error, stack) => placeholder,
+                    fallback: placeholder,
                   )));
   }
 }

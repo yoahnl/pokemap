@@ -8,6 +8,7 @@ import '../application/load_runtime_map_bundle.dart';
 import '../application/dialogue_portrait_resolver.dart';
 import '../application/map_activation.dart';
 import '../application/runtime_map_bundle.dart';
+import '../application/runtime_project_catalog.dart';
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_move_catalog_loader.dart';
@@ -31,12 +32,12 @@ typedef PlayableMapGameMount = Future<void> Function(PlayableMapGame game);
 typedef PlayableMapGameUnmount = Future<void> Function(PlayableMapGame game);
 typedef SessionProjectFilePathLoader = Future<String> Function();
 typedef SessionInitialSaveLoader = Future<SaveEnvelope?> Function();
-typedef SessionPreloadedInitialMapLoader
-    = Future<RuntimeInitialMapPreloadResult?> Function({
-  required String projectFilePath,
-  required GameSessionDescriptor descriptor,
-  required SaveEnvelope? initialSave,
-});
+typedef SessionPreloadedInitialMapLoader =
+    Future<RuntimeInitialMapPreloadResult?> Function({
+      required String projectFilePath,
+      required GameSessionDescriptor descriptor,
+      required SaveEnvelope? initialSave,
+    });
 
 /// Disposable in-process graph backed by the production `PlayableMapGame`.
 ///
@@ -72,13 +73,13 @@ final class PlayableMapGameSessionRuntime
     this.audioMixer,
     this.presentationCinematicPlayer,
     DateTime Function()? now,
-  })  : _projectFilePath = projectFilePath,
-        _initialSave = initialSave,
-        _mountGame = mountGame,
-        _unmountGame = unmountGame,
-        _preloadedInitialMap = preloadedInitialMap,
-        _commitCheckpoint = commitCheckpoint,
-        _now = now ?? DateTime.now;
+  }) : _projectFilePath = projectFilePath,
+       _initialSave = initialSave,
+       _mountGame = mountGame,
+       _unmountGame = unmountGame,
+       _preloadedInitialMap = preloadedInitialMap,
+       _commitCheckpoint = commitCheckpoint,
+       _now = now ?? DateTime.now;
 
   final GameSessionDescriptor descriptor;
   final SessionProjectFilePathLoader _projectFilePath;
@@ -99,6 +100,9 @@ final class PlayableMapGameSessionRuntime
   final Stopwatch _playWatch = Stopwatch();
 
   PlayableMapGame? _game;
+  RuntimeProjectCatalog? _projectCatalog;
+  Future<void>? _mountOperation;
+  bool _loadingStarted = false;
   PlayerPreferencesSnapshot? _playerPreferences;
   PlayerServiceRuntimeController? _playerServices;
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _playerServiceSnapshots;
@@ -143,17 +147,17 @@ final class PlayableMapGameSessionRuntime
   @override
   RuntimeOverworldInteractionSnapshot? get overworldInteractionSnapshot =>
       _disposed || !_interactionsEnabled
-          ? null
-          : _game?.overworldInteractionSnapshot;
+      ? null
+      : _game?.overworldInteractionSnapshot;
 
   @override
   Stream<RuntimeOverworldInteractionSnapshot?>
-      get overworldInteractionSnapshots =>
-          _overworldInteractionSnapshots.stream;
+  get overworldInteractionSnapshots => _overworldInteractionSnapshots.stream;
 
   @override
   bool dispatchOverworldInteraction(
-          RuntimeOverworldInteractionRequest request) =>
+    RuntimeOverworldInteractionRequest request,
+  ) =>
       !_disposed &&
       _interactionsEnabled &&
       !_completionEmitted &&
@@ -184,231 +188,255 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<void> load(GameSessionProgressReporter reportProgress) async {
     _ensureNotDisposed();
-    if (_game != null) throw StateError('The runtime graph is single-use.');
+    if (_loadingStarted) throw StateError('The runtime graph is single-use.');
+    _loadingStarted = true;
     reportProgress(
-      const GameSessionLoadingProgress(
-        stage: 'project',
-        current: 0,
-        total: 7,
-      ),
+      const GameSessionLoadingProgress(stage: 'project', current: 0, total: 7),
     );
     final projectFilePath = await _projectFilePath();
+    _ensureNotDisposed();
     reportProgress(
-      const GameSessionLoadingProgress(
-        stage: 'save',
-        current: 1,
-        total: 7,
-      ),
+      const GameSessionLoadingProgress(stage: 'save', current: 1, total: 7),
     );
     final save = await _initialSave();
+    _ensureNotDisposed();
     _validateInitialSave(save);
     final preloadedInitialMap = await _preloadedInitialMap?.call(
       projectFilePath: projectFilePath,
       descriptor: descriptor,
       initialSave: save,
     );
+    if (_disposed) {
+      preloadedInitialMap?.dispose();
+      _ensureNotDisposed();
+    }
     final preloadedBundle = preloadedInitialMap?.bundle;
-    final manifest = preloadedBundle?.manifest ??
-        await loadProjectManifestFromFile(projectFilePath);
-
-    late final String mapId;
-    SaveData? saveData;
-    GameState? initialState;
-    if (descriptor.launchMode == GameSessionLaunchMode.newGame) {
-      if (!manifest.newGame.enabled ||
-          manifest.newGame.startMapId.trim().isEmpty) {
-        preloadedInitialMap?.dispose();
-        throw StateError(
-          'The installed project does not define a launchable new game.',
-        );
-      }
-      initialState = descriptor.initialGameState!;
-      mapId = initialState.currentMapId.trim();
-      if (mapId != manifest.newGame.startMapId.trim()) {
-        preloadedInitialMap?.dispose();
-        throw StateError(
-          'The committed New Game state does not target the authored map.',
-        );
-      }
-      _createdAt = _now().toUtc();
-      _saveId = initialState.saveId;
-    } else {
-      final envelope = save!;
-      initialState = const GameStateSaveEnvelopeMapper().restore(envelope);
-      mapId = initialState.currentMapId.trim();
-      if (mapId.isEmpty) {
-        preloadedInitialMap?.dispose();
-        throw StateError('The selected save does not reference a map.');
-      }
-      saveData = saveDataFromGameState(initialState);
-      _createdAt = envelope.createdAt;
-      _saveId = envelope.saveId;
-      _basePlayTimeSeconds = envelope.playTimeSeconds;
-    }
-
-    if (initialState.playerSpatialPosition != null) {
+    final catalog =
+        preloadedInitialMap?.takeProjectCatalog() ??
+        (preloadedBundle == null
+            ? await RuntimeProjectCatalog.open(projectFilePath)
+            : null);
+    if (_disposed) {
+      catalog?.dispose();
       preloadedInitialMap?.dispose();
-      throw StateError('A 2D session cannot consume spatial player state.');
+      _ensureNotDisposed();
     }
-
-    reportProgress(
-      const GameSessionLoadingProgress(
-        stage: 'world',
-        current: 2,
-        total: 7,
-      ),
-    );
-    final RuntimeMapBundle bundle;
-    if (preloadedBundle == null) {
-      bundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: mapId,
-        preloadedManifest: manifest,
-      );
-    } else {
-      if (preloadedBundle.map.id != mapId ||
-          projectMapEntryForId(preloadedBundle.manifest, mapId) == null) {
-        preloadedInitialMap?.dispose();
-        throw StateError(
-          'The preloaded map does not match the requested session map.',
-        );
-      }
-      bundle = preloadedBundle;
-    }
-    _projectRootDirectory = bundle.projectRootDirectory;
-    _pausePortraitResolver = DialoguePortraitResolver(
-      manifest: bundle.manifest,
-      projectRootDirectory: bundle.projectRootDirectory,
-    );
-    _pokemonConfig = bundle.manifest.pokemon;
-    _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
-    _regionalMap = bundle.manifest.regionalMap;
-    _projectBadges = List<BadgeDefinition>.unmodifiable(bundle.manifest.badges);
-    _projectCharacters =
-        List<ProjectCharacterEntry>.unmodifiable(bundle.manifest.characters);
-    final memorySaves = _SessionMemoryGameSaveRepository(initialState);
-    final initialTilesetImageCache =
-        preloadedInitialMap?.takeTilesetImageCache();
-    late final PlayableMapGame game;
+    _projectCatalog = catalog;
     try {
-      game = PlayableMapGame(
-        bundle: bundle,
-        projectFilePath: projectFilePath,
-        saveData: saveData,
-        initialGameState: descriptor.initialGameState,
-        saveRepository: memorySaves,
-        overworldCheckpointWriter: _commitCheckpoint == null
-            ? null
-            : (state) async {
-                _ensureNotDisposed();
-                if (!identical(_game, game) || state.saveId != _saveId) {
-                  throw StateError(
-                    'The overworld checkpoint session is stale.',
-                  );
-                }
-                await _commitCheckpoint(GameSessionCheckpointCommit(
-                  descriptor: descriptor.publicContext,
-                  checkpoint: _checkpointFromState(state),
-                  status: SaveStatus.active,
-                  trigger: GameSessionCheckpointTrigger.pauseMutation,
-                ));
-                await memorySaves.save(state);
-              },
-        gameCompletionEmitter: emitCompletion,
-        defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
-        runtimeLocale: descriptor.locale,
-        reducedMotion: descriptor.accessibility.reducedMotion,
-        textScale: descriptor.accessibility.textScale,
-        initialMapActivationReason:
-            descriptor.launchMode == GameSessionLaunchMode.newGame
-                ? MapActivationReason.initialBoot
-                : MapActivationReason.saveRestore,
-        initialTilesetImageCache: initialTilesetImageCache,
-        initialNarrativeSnapshot: preloadedInitialMap?.narrativeSnapshot,
-        onInitialLoadProgress: (stage) {
-          final (name, current) = switch (stage) {
-            PlayableMapGameInitialLoadStage.resources => ('resources', 4),
-            PlayableMapGameInitialLoadStage.map => ('map', 5),
-            PlayableMapGameInitialLoadStage.player => ('player', 6),
-          };
-          reportProgress(GameSessionLoadingProgress(
-            stage: name,
-            current: current,
-            total: 7,
-          ));
-        },
-        audioMixer: audioMixer,
-        presentationCinematicPlayer: presentationCinematicPlayer,
+      final manifest = preloadedBundle?.manifest ?? catalog!.projectMetadata;
+
+      late final String mapId;
+      SaveData? saveData;
+      GameState? initialState;
+      if (descriptor.launchMode == GameSessionLaunchMode.newGame) {
+        if (!manifest.newGame.enabled ||
+            manifest.newGame.startMapId.trim().isEmpty) {
+          preloadedInitialMap?.dispose();
+          throw StateError(
+            'The installed project does not define a launchable new game.',
+          );
+        }
+        initialState = descriptor.initialGameState!;
+        mapId = initialState.currentMapId.trim();
+        if (mapId != manifest.newGame.startMapId.trim()) {
+          preloadedInitialMap?.dispose();
+          throw StateError(
+            'The committed New Game state does not target the authored map.',
+          );
+        }
+        _createdAt = _now().toUtc();
+        _saveId = initialState.saveId;
+      } else {
+        final envelope = save!;
+        initialState = const GameStateSaveEnvelopeMapper().restore(envelope);
+        mapId = initialState.currentMapId.trim();
+        if (mapId.isEmpty) {
+          preloadedInitialMap?.dispose();
+          throw StateError('The selected save does not reference a map.');
+        }
+        saveData = saveDataFromGameState(initialState);
+        _createdAt = envelope.createdAt;
+        _saveId = envelope.saveId;
+        _basePlayTimeSeconds = envelope.playTimeSeconds;
+      }
+
+      if (initialState.playerSpatialPosition != null) {
+        preloadedInitialMap?.dispose();
+        throw StateError('A 2D session cannot consume spatial player state.');
+      }
+
+      reportProgress(
+        const GameSessionLoadingProgress(stage: 'world', current: 2, total: 7),
       );
-    } catch (_) {
-      initialTilesetImageCache?.dispose();
-      rethrow;
-    } finally {
-      preloadedInitialMap?.dispose();
-    }
-    _game = game;
-    game.overworldInteractions.addListener(_publishOverworldInteractions);
-    if (_playerPreferences case final preferences?) {
-      game.applyPlayerPreferences(preferences);
-    }
-    final playerServices = PlayerServiceRuntimeController.contextual(
-      supportsRepel: true,
-      healingDisplayMapReader: game.playerServiceHealingDisplayMap,
-      currentGameState: () => game.playerServiceGameStateSnapshot,
-      commitAndSave: game.commitAndSavePlayerServiceState,
-      setInputLocked: (locked) => game.setExternalInputLock(
-        RuntimeExternalInputLock.playerService,
-        locked: locked,
-      ),
-      loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
-        gameState: state,
+      final RuntimeMapBundle bundle;
+      if (preloadedBundle == null) {
+        bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: mapId,
+          preloadedManifest: manifest,
+          projectCatalog: catalog,
+          additionalCharacterIds: {
+            if (initialState.trainerProfile.avatarCharacterId
+                case final String id when id.isNotEmpty)
+              id,
+          },
+        );
+      } else {
+        if (preloadedBundle.map.id != mapId ||
+            projectMapEntryForId(preloadedBundle.manifest, mapId) == null) {
+          preloadedInitialMap?.dispose();
+          throw StateError(
+            'The preloaded map does not match the requested session map.',
+          );
+        }
+        bundle = preloadedBundle;
+      }
+      _ensureNotDisposed();
+      _projectRootDirectory = bundle.projectRootDirectory;
+      _pausePortraitResolver = DialoguePortraitResolver(
+        manifest: bundle.manifest,
+        projectRootDirectory: bundle.projectRootDirectory,
+      );
+      _pokemonConfig = bundle.manifest.pokemon;
+      _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
+      _regionalMap = bundle.manifest.regionalMap;
+      _projectBadges = List<BadgeDefinition>.unmodifiable(
+        bundle.manifest.badges,
+      );
+      _projectCharacters = List<ProjectCharacterEntry>.unmodifiable(
+        bundle.manifest.characters,
+      );
+      final memorySaves = _SessionMemoryGameSaveRepository(initialState);
+      final initialTilesetImageCache = preloadedInitialMap
+          ?.takeTilesetImageCache();
+      late final PlayableMapGame game;
+      try {
+        game = PlayableMapGame(
+          bundle: bundle,
+          projectFilePath: projectFilePath,
+          saveData: saveData,
+          initialGameState: descriptor.initialGameState,
+          saveRepository: memorySaves,
+          overworldCheckpointWriter: _commitCheckpoint == null
+              ? null
+              : (state) async {
+                  _ensureNotDisposed();
+                  if (!identical(_game, game) || state.saveId != _saveId) {
+                    throw StateError(
+                      'The overworld checkpoint session is stale.',
+                    );
+                  }
+                  await _commitCheckpoint(
+                    GameSessionCheckpointCommit(
+                      descriptor: descriptor.publicContext,
+                      checkpoint: _checkpointFromState(state),
+                      status: SaveStatus.active,
+                      trigger: GameSessionCheckpointTrigger.pauseMutation,
+                    ),
+                  );
+                  await memorySaves.save(state);
+                },
+          gameCompletionEmitter: emitCompletion,
+          defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
+          runtimeLocale: descriptor.locale,
+          reducedMotion: descriptor.accessibility.reducedMotion,
+          textScale: descriptor.accessibility.textScale,
+          initialMapActivationReason:
+              descriptor.launchMode == GameSessionLaunchMode.newGame
+              ? MapActivationReason.initialBoot
+              : MapActivationReason.saveRestore,
+          initialTilesetImageCache: initialTilesetImageCache,
+          initialNarrativeSnapshot: preloadedInitialMap?.narrativeSnapshot,
+          onInitialLoadProgress: (stage) {
+            final (name, current) = switch (stage) {
+              PlayableMapGameInitialLoadStage.resources => ('resources', 4),
+              PlayableMapGameInitialLoadStage.map => ('map', 5),
+              PlayableMapGameInitialLoadStage.player => ('player', 6),
+            };
+            reportProgress(
+              GameSessionLoadingProgress(
+                stage: name,
+                current: current,
+                total: 7,
+              ),
+            );
+          },
+          audioMixer: audioMixer,
+          presentationCinematicPlayer: presentationCinematicPlayer,
+        );
+      } catch (_) {
+        initialTilesetImageCache?.dispose();
+        rethrow;
+      } finally {
+        preloadedInitialMap?.dispose();
+      }
+      _game = game;
+      game.overworldInteractions.addListener(_publishOverworldInteractions);
+      if (_playerPreferences case final preferences?) {
+        game.applyPlayerPreferences(preferences);
+      }
+      final playerServices = PlayerServiceRuntimeController.contextual(
+        supportsRepel: true,
+        healingDisplayMapReader: game.playerServiceHealingDisplayMap,
+        currentGameState: () => game.playerServiceGameStateSnapshot,
+        commitAndSave: game.commitAndSavePlayerServiceState,
+        setInputLocked: (locked) => game.setExternalInputLock(
+          RuntimeExternalInputLock.playerService,
+          locked: locked,
+        ),
+        loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+          gameState: state,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+          speciesLoader: _recoveryCapsSpeciesLoader,
+          moveCatalogLoader: _recoveryCapsMoveCatalogLoader,
+        ),
+        conditionContext: ScriptEvaluationContext(
+          narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+            bundle.manifest.facts,
+          ),
+        ),
+        grantedCapabilities: descriptor.grantedCapabilities,
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: bundle.manifest.pokemon,
-        speciesLoader: _recoveryCapsSpeciesLoader,
-        moveCatalogLoader: _recoveryCapsMoveCatalogLoader,
-      ),
-      conditionContext: ScriptEvaluationContext(
-        narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
-          bundle.manifest.facts,
-        ),
-      ),
-      grantedCapabilities: descriptor.grantedCapabilities,
-      projectRootDirectory: bundle.projectRootDirectory,
-      pokemonConfig: bundle.manifest.pokemon,
-      locale: descriptor.locale,
-    );
-    _playerServices = playerServices;
-    _worldServiceSnapshot = playerServices.worldServiceSnapshot;
-    _playerServiceSnapshots = playerServices.worldServiceSnapshots.listen(
-      _publishWorldService,
-    );
-    game.setPlayerServiceRuntimeController(playerServices);
-    reportProgress(
-      const GameSessionLoadingProgress(
-        stage: 'mount',
-        current: 3,
-        total: 7,
-      ),
-    );
-    await _mountGame(game);
-    _mounted = true;
-    _interactionsEnabled = true;
-    _publishOverworldInteractions();
-    _playWatch.start();
-    reportProgress(
-      const GameSessionLoadingProgress(
-        stage: 'ready',
-        current: 7,
-        total: 7,
-      ),
-    );
+        locale: descriptor.locale,
+      );
+      _playerServices = playerServices;
+      _worldServiceSnapshot = playerServices.worldServiceSnapshot;
+      _playerServiceSnapshots = playerServices.worldServiceSnapshots.listen(
+        _publishWorldService,
+      );
+      game.setPlayerServiceRuntimeController(playerServices);
+      reportProgress(
+        const GameSessionLoadingProgress(stage: 'mount', current: 3, total: 7),
+      );
+      final mount = () async {
+        await _mountGame(game);
+        _mounted = true;
+      }();
+      _mountOperation = mount;
+      await mount;
+      _ensureNotDisposed();
+      _interactionsEnabled = true;
+      _publishOverworldInteractions();
+      _playWatch.start();
+      reportProgress(
+        const GameSessionLoadingProgress(stage: 'ready', current: 7, total: 7),
+      );
+    } catch (_) {
+      preloadedInitialMap?.dispose();
+      if (!_disposed) await dispose();
+      rethrow;
+    }
   }
 
   @override
   Future<void> pause() async {
     final game = _requireGame();
     if (!game.canCapturePlayerCheckpoint &&
-        !game.inputAuthoritySnapshot.externalLocks.contains(RuntimeExternalInputLock.lifecycle)) {
+        !game.inputAuthoritySnapshot.externalLocks.contains(
+          RuntimeExternalInputLock.lifecycle,
+        )) {
       throw StateError('Terminez ou annulez la pêche avant d’ouvrir le menu.');
     }
     _interactionsEnabled = false;
@@ -419,7 +447,7 @@ final class PlayableMapGameSessionRuntime
 
   @override
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
-      loadPauseDetails() async {
+  loadPauseDetails() async {
     return (await _readPauseData(companion: false)).pauseDetails;
   }
 
@@ -427,8 +455,9 @@ final class PlayableMapGameSessionRuntime
   Future<RuntimePlayerCompanionMenuData> readCompanionMenuData() =>
       _readPauseData(companion: true);
 
-  Future<RuntimePlayerCompanionMenuData> _readPauseData(
-      {required bool companion}) async {
+  Future<RuntimePlayerCompanionMenuData> _readPauseData({
+    required bool companion,
+  }) async {
     final game = _requireGame();
     final projectRootDirectory = _projectRootDirectory;
     final pokemonConfig = _pokemonConfig;
@@ -442,8 +471,9 @@ final class PlayableMapGameSessionRuntime
     if (_disposed || !identical(game, _game)) {
       throw StateError('Session closed.');
     }
-    final gameState =
-        companion ? game.companionGameStateSnapshot : game.gameStateSnapshot;
+    final gameState = companion
+        ? game.companionGameStateSnapshot
+        : game.gameStateSnapshot;
     final details = await const RuntimePlayerPauseDataBuilder().build(
       supportsRepel: true,
       supportsEscapeRope: _playerServices?.supportsEscapeRope ?? false,
@@ -463,7 +493,9 @@ final class PlayableMapGameSessionRuntime
       playtimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
     );
     return RuntimePlayerCompanionMenuData(
-        pauseMenuState: gameState.pauseMenuState, pauseDetails: details);
+      pauseMenuState: gameState.pauseMenuState,
+      pauseDetails: details,
+    );
   }
 
   @override
@@ -611,6 +643,10 @@ final class PlayableMapGameSessionRuntime
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _projectCatalog?.dispose();
+    _projectCatalog = null;
+    await _mountOperation?.catchError((Object _) {});
+    _mountOperation = null;
     _publishOverworldInteractions();
     _playWatch.stop();
     await _playerServiceSnapshots?.cancel();

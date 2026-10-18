@@ -807,7 +807,7 @@ void main() {
     },
   );
 
-  testWidgets('battle bag loads the resolved thumbnail by default', (
+  testWidgets('battle bag routes resolved thumbnails through the image scope', (
     tester,
   ) async {
     await _pumpOverlay(
@@ -821,10 +821,13 @@ void main() {
     );
 
     expect(
-      find.byWidgetPredicate(
-        (widget) => widget.runtimeType.toString() == 'BattleMobileItemIcon',
-      ),
+      find.byType(PlayerFileImage),
       findsNWidgets(2),
+    );
+    expect(
+      tester.widgetList<PlayerFileImage>(find.byType(PlayerFileImage))
+          .map((image) => image.path),
+      ['/items/potion.png', '/items/poke-ball.png'],
     );
   });
 

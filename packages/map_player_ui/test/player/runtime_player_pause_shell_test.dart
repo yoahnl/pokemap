@@ -317,7 +317,7 @@ void main() {
       ),
     )));
     final imageWidget = tester
-        .widget<Image>(find.byKey(const ValueKey('runtime-menu-background')));
+        .widget<PlayerProvidedImage>(find.byKey(const ValueKey('runtime-menu-background')));
     expect(imageWidget.fit, BoxFit.cover);
     expect((imageWidget.alignment as Alignment).x, closeTo(.6, .001));
     expect(imageWidget.filterQuality, FilterQuality.none);

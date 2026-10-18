@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -151,6 +152,15 @@ class PlayerPauseSummaryCard extends StatelessWidget {
               : 144,
       color: context.playerMenuTheme.secondary,
     );
+    final path = profile?.portraitFilePath;
+    if (path != null && path.isNotEmpty) {
+      return PlayerFileImage(
+        key: const ValueKey('player-pause-summary-portrait'),
+        path: path,
+        fit: BoxFit.contain,
+        fallback: fallback,
+      );
+    }
     final image = portraitImage;
     if (image == null) return fallback;
     return Image(

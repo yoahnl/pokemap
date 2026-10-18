@@ -290,7 +290,7 @@ void main() {
     expect(find.byKey(const ValueKey('pokedex-image-missing-species.1-detail')),
         findsOneWidget);
     expect(find.text('La description publiée par le projet.'), findsOneWidget);
-    final images = tester.widgetList<Image>(find.byType(Image));
+    final images = tester.widgetList<PlayerFileImage>(find.byType(PlayerFileImage));
     expect(images.map((image) => image.fit), everyElement(BoxFit.contain));
     expect(images.map((image) => image.filterQuality),
         containsAll([FilterQuality.none, FilterQuality.medium]));

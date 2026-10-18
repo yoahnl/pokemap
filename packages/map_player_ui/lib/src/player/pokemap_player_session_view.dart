@@ -10,6 +10,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../foundation/player_overworld_components.dart';
 import '../foundation/player_text_scaler.dart';
 import '../localization/player_localizations.dart';
@@ -184,11 +185,15 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.beforePauseAction,
     this.relayedControllerInput = false,
     this.pauseRootActionsOnly = false,
+    this.imageLoader,
+    this.imageScopeIdentity,
   }) : assert(
           presentationFrame == null || presentationContentPort != null,
         ), assert(!relayedControllerInput || controllerInputEvents != null);
 
   final RuntimePlayerViewController controller;
+  final PlayerImageLoader? imageLoader;
+  final Object? imageScopeIdentity;
   final RuntimePlayerSessionCommandController? commandController;
   final bool companionMenusAttached;
   final bool Function(RuntimeInputEvent)? onCompanionInput;
@@ -1399,7 +1404,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     );
     return RuntimePlayerPreferencesScope(
       preferences: snapshot.preferences,
-      child: stack,
+      child: PlayerImageScope(
+        loader: widget.imageLoader,
+        identity: widget.imageScopeIdentity ?? widget.controller,
+        child: stack,
+      ),
     );
   }
 

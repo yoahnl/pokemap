@@ -99,4 +99,67 @@ void main() {
     expect(await neighbor.loadGroundImage('grass'), [1, 2]);
     expect(requested, ['grass']);
   });
+
+  test(
+    'neighbor owns definitions and byte loaders absent from the active map',
+    () async {
+      final model = ProjectModel3dEntry(
+        id: 'neighbor-only',
+        name: 'Neighbor',
+        sourceAssetId: 'neighbor-source',
+        relativePath: 'assets/models3d/neighbor-only.glb',
+        inspection: Model3dInspection(
+          bounds: Model3dBounds(
+            min: Model3dVector3.zero,
+            max: Model3dVector3(x: 1, y: 1, z: 1),
+          ),
+          meshCount: 1,
+          triangleCount: 1,
+        ),
+      );
+      final project = ProjectManifest(
+        name: 'Neighbor scope',
+        maps: [],
+        tilesets: [],
+        models3d: [model],
+      );
+      final active = ProjectManifest(
+        name: 'Active scope',
+        maps: [],
+        tilesets: [],
+      );
+      final neighbor = SpatialSceneNeighbor(
+        map: MapData(
+          id: 'neighbor',
+          name: 'Neighbor',
+          size: target,
+          spatialScene: MapSpatialScene(
+            width: target.width,
+            depth: target.height,
+            instances: [
+              SpatialModelInstance(
+                id: 'instance',
+                modelId: model.id,
+                position: Model3dVector3.zero,
+              ),
+            ],
+          ),
+        ),
+        project: project,
+        offset: const Offset(11, 0),
+        loadModel: (id) async {
+          expect(id, model.id);
+          return Uint8List.fromList([2]);
+        },
+        loadGroundImage: (_) async => Uint8List.fromList([3]),
+      );
+      expect(active.models3d, isEmpty);
+      expect(
+        neighbor.project!.models3d.single.id,
+        neighbor.map.spatialScene!.instances.single.modelId,
+      );
+      expect(await neighbor.loadModel!(model.id), [2]);
+      expect(await neighbor.loadGroundImage('neighbor-atlas'), [3]);
+    },
+  );
 }

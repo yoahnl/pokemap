@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -390,10 +389,6 @@ class _RuntimePlayerSurfaceRouterState
           controllerFamily: widget.controllerFamily,
           focusController: widget.pauseFocusController,
           playerProfile: widget.snapshot.playerProfile,
-          portraitImage: widget.snapshot.playerProfile?.portraitFilePath == null
-              ? null
-              : FileImage(
-                  File(widget.snapshot.playerProfile!.portraitFilePath!)),
           gameTitle: widget.snapshot.gameTitle,
           pauseSection:
               widget.snapshot.pauseSection ?? RuntimePlayerPauseSection.root,

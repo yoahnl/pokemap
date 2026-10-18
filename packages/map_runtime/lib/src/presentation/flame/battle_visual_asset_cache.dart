@@ -1,36 +1,52 @@
-import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
 
-import '../../infrastructure/tile_image_loader.dart';
+import '../../infrastructure/runtime_ui_image.dart';
 
-typedef BattleVisualImageLoader = Future<ui.Image> Function(String absolutePath);
+typedef BattleVisualImageLoader = Future<ui.Image> Function(
+  String absolutePath,
+);
 
 final class BattleVisualAssetCache {
   BattleVisualAssetCache({
     BattleVisualImageLoader? imageLoader,
     int capacity = 96,
-  })  : _imageLoader = imageLoader ?? loadImageFromFilePath,
-        _capacity = capacity;
+    RuntimeResourceBudget? resourceBudget,
+    bool Function()? isCurrent,
+  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+       _ownsResourceBudget = resourceBudget == null,
+       _capacity = capacity {
+    _images = RuntimeOwnedImageCache(
+      capacity: capacity,
+      imageLoader: imageLoader,
+      loadLease: (path) => loadRuntimeUiImageFromFilePath(
+        path,
+        resourceBudget: this.resourceBudget,
+        isCurrent: isCurrent,
+      ),
+    );
+  }
 
-  final BattleVisualImageLoader _imageLoader;
+  final RuntimeResourceBudget resourceBudget;
+  final bool _ownsResourceBudget;
+  late final RuntimeOwnedImageCache _images;
 
-  /// Borne LRU : ce cache vit toute la session de jeu et retenait chaque
-  /// sprite/backdrop/icône jamais vus. L'éviction se contente de lâcher la
-  /// référence — une image évincée peut encore être affichée par un
-  /// composant vivant, c'est donc le GC qui libère le natif ; la libération
-  /// déterministe passe par [dispose] au teardown.
+  Object beginScope() => _images.beginScope();
+
+  void endScope(Object scope) {
+    _images.endScope(scope);
+    _opaqueRectFutureByPath.clear();
+  }
+
   final int _capacity;
-  final Map<String, Future<ui.Image>> _imageFutureByPath =
-      <String, Future<ui.Image>>{};
   final Map<String, Future<ui.Rect?>> _opaqueRectFutureByPath =
       <String, Future<ui.Rect?>>{};
-  int _actualImageLoadCount = 0;
   int _actualOpaqueRectComputeCount = 0;
 
-  int get debugActualImageLoadCount => _actualImageLoadCount;
+  int get debugActualImageLoadCount => _images.actualLoadCount;
 
   int get debugActualOpaqueRectComputeCount => _actualOpaqueRectComputeCount;
 
@@ -44,17 +60,10 @@ final class BattleVisualAssetCache {
       );
     }
 
-    final cached = _imageFutureByPath.remove(normalizedPath);
-    if (cached != null) {
-      _imageFutureByPath[normalizedPath] = cached;
-      return await cached;
-    }
-
     Future<ui.Image> load() async {
       final stopwatch = Stopwatch()..start();
-      _actualImageLoadCount += 1;
       try {
-        return await _imageLoader(normalizedPath);
+        return await _images.load(normalizedPath);
       } finally {
         stopwatch.stop();
         if (kDebugMode) {
@@ -65,20 +74,7 @@ final class BattleVisualAssetCache {
       }
     }
 
-    final future = load();
-    _imageFutureByPath[normalizedPath] = future;
-    while (_imageFutureByPath.length > _capacity) {
-      _imageFutureByPath.remove(_imageFutureByPath.keys.first);
-    }
-    try {
-      return await future;
-    } catch (_) {
-      final current = _imageFutureByPath[normalizedPath];
-      if (identical(current, future)) {
-        _imageFutureByPath.remove(normalizedPath);
-      }
-      rethrow;
-    }
+    return load();
   }
 
   Future<ui.Rect?> loadOpaqueSourceRect(
@@ -97,12 +93,28 @@ final class BattleVisualAssetCache {
     }
 
     Future<ui.Rect?> compute() async {
+      final scope = _images.beginScope();
+      _images.retain(normalizedPath);
       final stopwatch = Stopwatch()..start();
       _actualOpaqueRectComputeCount += 1;
       try {
         final resolvedImage = image ?? await loadImage(normalizedPath);
-        return await _computeOpaqueSourceRect(resolvedImage);
+        final reservation = await resourceBudget.acquire(
+          residentBytes: resolvedImage.width * resolvedImage.height * 4,
+          transientBytes: resolvedImage.width * resolvedImage.height * 8,
+          isCurrent: () => !_images.isDisposed,
+        );
+        ui.Image? readbackImage;
+        try {
+          reservation.ensureCurrent();
+          readbackImage = resolvedImage.clone();
+          return await _computeOpaqueSourceRect(readbackImage);
+        } finally {
+          readbackImage?.dispose();
+          reservation.release();
+        }
       } finally {
+        _images.endScope(scope, trim: false);
         stopwatch.stop();
         if (kDebugMode) {
           debugPrint(
@@ -134,10 +146,7 @@ final class BattleVisualAssetCache {
 
   Future<void> prewarmSprite(String absolutePath) async {
     final image = await loadImage(absolutePath);
-    await loadOpaqueSourceRect(
-      absolutePath,
-      image: image,
-    );
+    await loadOpaqueSourceRect(absolutePath, image: image);
   }
 
   /// Libère toutes les images décodées puis vide le cache.
@@ -145,13 +154,9 @@ final class BattleVisualAssetCache {
   /// À n'appeler que quand plus rien ne peint depuis ce cache — typiquement
   /// au teardown du jeu propriétaire.
   void dispose() {
-    for (final future in _imageFutureByPath.values) {
-      unawaited(
-        future.then((image) => image.dispose()).catchError((_) {}),
-      );
-    }
-    _imageFutureByPath.clear();
+    _images.dispose();
     _opaqueRectFutureByPath.clear();
+    if (_ownsResourceBudget) resourceBudget.dispose();
   }
 }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
+import '../foundation/player_image.dart';
 
 import 'player_intro_video_player.dart';
 import 'player_intro_video_strings.dart';
@@ -155,7 +156,7 @@ class _PlayerIntroVideoPreviewState extends State<PlayerIntroVideoPreview> {
 
   Widget? _poster() => widget.poster == null
       ? null
-      : Image(
+      : PlayerProvidedImage(
           key: const ValueKey<String>('player-intro-preview-poster'),
           image: widget.poster!,
           fit: BoxFit.cover,

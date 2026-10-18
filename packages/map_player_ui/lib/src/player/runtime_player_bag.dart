@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -740,22 +740,12 @@ class PlayerBagItemImage extends StatelessWidget {
             height: size,
             child: path == null
                 ? placeholder
-                : Image(
-                    image: ResizeImage(
-                      FileImage(File(path)),
-                      width: (size * MediaQuery.devicePixelRatioOf(context))
-                          .ceil(),
-                      height: (size * MediaQuery.devicePixelRatioOf(context))
-                          .ceil(),
-                      policy: ResizeImagePolicy.fit,
-                    ),
+                : PlayerFileImage(
+                    path: path,
                     key: ValueKey('${entry.id}-$path-$size'),
                     fit: BoxFit.contain,
-                    gaplessPlayback: false,
                     filterQuality: FilterQuality.none,
-                    frameBuilder: (_, child, frame, sync) =>
-                        sync || frame != null ? child : placeholder,
-                    errorBuilder: (_, __, ___) => placeholder)));
+                    fallback: placeholder)));
   }
 }
 

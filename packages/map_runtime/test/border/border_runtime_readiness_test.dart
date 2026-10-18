@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/border/border_runtime_readiness.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
@@ -21,82 +22,105 @@ import '../../../map_core/test/support/spatial_border_ground_surface_fixture.dar
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'overflowing Border crop is refused before isolate pixel allocation',
+    () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final source = fixture.bundle();
+      final raw = source.manifest.toJson();
+      final snapshot =
+          ((raw['borderCatalog'] as Map)['visualSnapshots'] as List).single
+              as Map;
+      final frame = (snapshot['frames'] as List).single as Map;
+      (frame['sourceRectPx'] as Map)['width'] = 1 << 62;
+      final budget = RuntimeResourceBudget();
+      await expectLater(
+        prepareBorderRuntimeBundle(
+          source.copyWith(manifest: ProjectManifest.fromJson(raw)),
+          resourceBudget: budget,
+        ),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      expect(budget.residentBytes, 0);
+      expect(budget.transientBytes, 0);
+      expect(budget.activeDecodes, 0);
+    },
+  );
+
   group('spatial Border runtime readiness', () {
     for (final mutation in ['none', 'republished', 'tampered']) {
-      test(
-        'verifies plateau publication identity: $mutation',
-        () async {
-          final own = surfaceFixture();
-          final resolved = resolveSpatialBorderFeature(
-            manifest: own.project,
-            map: own.map,
-            layerId: 'border',
-            featureId: 'fence',
-          );
-          final map = applySpatialBorderFeaturePreview(
-            own.map,
-            manifest: own.project,
-            proposedResult: resolved,
-          );
-          final raw = own.project.toJson();
-          if (mutation != 'none') {
-            final record =
-                ((raw['borderCatalog'] as Map)['records'] as List).single
-                    as Map;
-            final primitive =
-                (((record['latestPublished'] as Map)['definition']
-                                as Map)['primitives']
-                            as List)
-                        .first
-                    as Map;
-            ((primitive['groundSurfaces'] as List).first as Map)['height'] =
-                .125;
-            if (mutation == 'republished') {
-              (record['latestPublished'] as Map)['revision'] = 2;
-              (record['draft'] as Map)['baseRevision'] = 2;
-            }
+      test('verifies plateau publication identity: $mutation', () async {
+        final own = surfaceFixture();
+        final resolved = resolveSpatialBorderFeature(
+          manifest: own.project,
+          map: own.map,
+          layerId: 'border',
+          featureId: 'fence',
+        );
+        final map = applySpatialBorderFeaturePreview(
+          own.map,
+          manifest: own.project,
+          proposedResult: resolved,
+        );
+        final raw = own.project.toJson();
+        if (mutation != 'none') {
+          final record =
+              ((raw['borderCatalog'] as Map)['records'] as List).single as Map;
+          final primitive =
+              (((record['latestPublished'] as Map)['definition']
+                              as Map)['primitives']
+                          as List)
+                      .first
+                  as Map;
+          ((primitive['groundSurfaces'] as List).first as Map)['height'] = .125;
+          if (mutation == 'republished') {
+            (record['latestPublished'] as Map)['revision'] = 2;
+            (record['draft'] as Map)['baseRevision'] = 2;
           }
-          final project = ProjectManifest.fromJson(raw);
-          final bundle = RuntimeMapBundle(
-            manifest: project,
-            map: map,
-            projectRootDirectory: Directory.systemTemp.path,
-            tilesetAbsolutePathsById: const {},
-          );
-          if (mutation == 'tampered') {
-            await expectLater(
-              prepareBorderRuntimeBundle(bundle),
-              throwsA(isA<BorderRuntimeReadinessException>().having(
+        }
+        final project = ProjectManifest.fromJson(raw);
+        final bundle = RuntimeMapBundle(
+          manifest: project,
+          map: map,
+          projectRootDirectory: Directory.systemTemp.path,
+          tilesetAbsolutePathsById: const {},
+        );
+        if (mutation == 'tampered') {
+          await expectLater(
+            prepareBorderRuntimeBundle(bundle),
+            throwsA(
+              isA<BorderRuntimeReadinessException>().having(
                 (error) => error.reasons,
                 'reasons',
                 contains(BorderStalenessReason.outputAltered),
-              )),
-            );
-            return;
-          }
-          final prepared = await prepareBorderRuntimeBundle(bundle);
-          expect(prepared.map, map);
-          expect(prepared.manifest, project);
-          expect(
-            prepared.borderRuntimePreparation!.featureFreshness.single.state,
-            mutation == 'republished'
-                ? BorderMaterializationState.stale
-                : BorderMaterializationState.fresh,
+              ),
+            ),
           );
-          expect(
-            prepared
-                .borderRuntimePreparation!
-                .featureFreshness
-                .single
-                .isRenderable,
-            true,
-          );
-          expect(
-            prepared.borderRuntimePreparation!.assetCollection.snapshots,
-            isEmpty,
-          );
-        },
-      );
+          return;
+        }
+        final prepared = await prepareBorderRuntimeBundle(bundle);
+        expect(prepared.map, map);
+        expect(prepared.manifest, project);
+        expect(
+          prepared.borderRuntimePreparation!.featureFreshness.single.state,
+          mutation == 'republished'
+              ? BorderMaterializationState.stale
+              : BorderMaterializationState.fresh,
+        );
+        expect(
+          prepared
+              .borderRuntimePreparation!
+              .featureFreshness
+              .single
+              .isRenderable,
+          true,
+        );
+        expect(
+          prepared.borderRuntimePreparation!.assetCollection.snapshots,
+          isEmpty,
+        );
+      });
     }
 
     test('accepts passive native placements without sprite metadata', () async {
@@ -414,6 +438,30 @@ void main() {
   });
 
   group('prepareBorderRuntimeBundle', () {
+    test(
+      'reserves snapshot inspection pixels before its isolate decode',
+      () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        await fixture.snapshotFile.writeAsBytes(
+          img.encodePng(img.Image(width: 16, height: 16)),
+        );
+        final budget = RuntimeResourceBudget(
+          profile: const RuntimeResourceProfile(maximumTransientBytes: 4096),
+        );
+        await expectLater(
+          prepareBorderRuntimeBundle(fixture.bundle(), resourceBudget: budget),
+          throwsA(isA<RuntimeResourceAdmissionException>()),
+        );
+        expect(
+          budget.residentBytes + budget.transientBytes + budget.activeDecodes,
+          0,
+        );
+        expect(budget.peakBytes, lessThanOrEqualTo(4096));
+        budget.dispose();
+      },
+    );
+
     test(
       'accepts fresh materialization and ignores an unused corrupt snapshot',
       () async {
@@ -749,6 +797,84 @@ void main() {
       fixture.snapshot.id,
     );
   });
+
+  test(
+    'partitioned closure keeps materialized snapshots after republishing',
+    () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final source = fixture.bundle();
+      final digest = computeBorderSnapshotContentFingerprint(
+        frames: [
+          BorderSnapshotContentFrame(
+            sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+            durationMs: 100,
+            rgbaBytes: Uint8List.fromList([99, 34, 56, 255]),
+          ),
+        ],
+      );
+      final path = 'assets/borders/snapshots/$digest/frame_0000.png';
+      final imageFile = File(p.join(fixture.root.path, path));
+      await imageFile.parent.create(recursive: true);
+      await imageFile.writeAsBytes(
+        img.encodePng(
+          img.Image(width: 1, height: 1, numChannels: 4)
+            ..setPixelRgba(0, 0, 99, 34, 56, 255),
+        ),
+      );
+      final nextSnapshot = _snapshot(digest: digest, relativePath: path);
+      final raw = source.manifest.toJson();
+      final border = raw['borderCatalog'] as Map;
+      final record = (border['records'] as List).single as Map;
+      (record['draft'] as Map)['baseRevision'] = 2;
+      final revision = record['latestPublished'] as Map;
+      revision['revision'] = 2;
+      final primitive =
+          ((revision['definition'] as Map)['primitives'] as List).single as Map;
+      primitive['visualSnapshotId'] = nextSnapshot.id;
+      final project = ProjectManifest.fromJson(raw);
+      final withSnapshots = project.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+          formatVersion: project.borderCatalog.formatVersion,
+          records: project.borderCatalog.records,
+          visualSnapshots: [fixture.snapshot, nextSnapshot],
+        ),
+      );
+      final publication = PortableCatalogPublication.encodeProject(
+        withSnapshots,
+      );
+      final projectFile = File(p.join(fixture.root.path, 'project.json'));
+      await projectFile.writeAsString(jsonEncode(publication.descriptor));
+      for (final object in publication.storage.objects.entries) {
+        final file = File(
+          p.join(fixture.root.path, 'catalog/objects/${object.key}.json'),
+        );
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(object.value);
+      }
+      final catalog = await RuntimeProjectCatalog.open(projectFile.path);
+      addTearDown(catalog.dispose);
+      final view = await catalog.manifestForMap(source.map);
+      expect(view.elements, isEmpty);
+      expect(
+        view.borderCatalog.visualSnapshots
+            .map((snapshot) => snapshot.id)
+            .toSet(),
+        {fixture.snapshot.id, nextSnapshot.id},
+      );
+      final prepared = await prepareBorderRuntimeBundle(
+        source.copyWith(manifest: view),
+      );
+      expect(
+        prepared.borderRuntimePreparation!.featureFreshness.single.state,
+        BorderMaterializationState.stale,
+      );
+      expect(
+        prepared.borderRuntimePreparation!.featureFreshness.single.isRenderable,
+        isTrue,
+      );
+    },
+  );
 
   group('Border runtime host gate', () {
     test(

@@ -579,11 +579,10 @@ Future<void> _pump(WidgetTester tester, _Harness harness,
   tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
   addTearDown(harness.dispose);
-  await tester.pumpWidget(MaterialApp(
-      theme: PokeMapPlayerTheme.dark(), home: const SizedBox.shrink()));
-  await tester.runAsync(() => precacheImage(
-      FileImage(File('${_media.path}/map.png')),
-      tester.element(find.byType(MaterialApp))));
+  final mapImage = (await tester.runAsync(
+    () => loadRuntimeUiImageFromFilePath('${_media.path}/map.png'),
+  ))!;
+  addTearDown(mapImage.dispose);
   await tester.pumpWidget(MaterialApp(
     locale: const Locale('fr'),
     theme: PokeMapPlayerTheme.dark(),
@@ -601,11 +600,21 @@ Future<void> _pump(WidgetTester tester, _Harness harness,
         viewInsets: EdgeInsets.only(bottom: keyboardInset),
         disableAnimations: accessible,
       ),
-      child: PlayerMenuEffectsScope(
+      child: PlayerImageScope(
+        identity: mapImage,
+        loader: (path, {required isCurrent}) async {
+          if (path != '${_media.path}/map.png') {
+            throw StateError('Unknown fixture image $path');
+          }
+          final image = mapImage.image.clone();
+          return PlayerImageLease(image: image, onDispose: image.dispose);
+        },
+        child: PlayerMenuEffectsScope(
         effects: accessible
             ? RuntimePlayerMenuEffects.opaque
             : RuntimePlayerMenuEffects.full,
         child: child!,
+        ),
       ),
     ),
     home: Scaffold(body: Builder(builder: (context) {

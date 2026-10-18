@@ -6,6 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_intro_video_player.dart';
@@ -350,7 +351,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       return PlayerIntroVideoSurface(
         media: widget.introPoster == null
             ? null
-            : Image(
+            : PlayerProvidedImage(
                 image: widget.introPoster!,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const SizedBox.expand(),

@@ -49,11 +49,7 @@ List<RuntimeTilesetChunk> buildRuntimeTilesetChunks({
       break;
     }
     chunks.add(
-      RuntimeTilesetChunk(
-        top: top,
-        height: height,
-        width: totalWidth,
-      ),
+      RuntimeTilesetChunk(top: top, height: height, width: totalWidth),
     );
     top += height;
   }
@@ -87,8 +83,9 @@ List<RuntimeTilesetDrawSlice> resolveRuntimeTilesetDrawSlices({
     final chunkTop = chunk.top.toDouble();
     final chunkBottom = chunk.bottom.toDouble();
     final overlapTop = sourceRect.top > chunkTop ? sourceRect.top : chunkTop;
-    final overlapBottom =
-        sourceRect.bottom < chunkBottom ? sourceRect.bottom : chunkBottom;
+    final overlapBottom = sourceRect.bottom < chunkBottom
+        ? sourceRect.bottom
+        : chunkBottom;
     if (overlapBottom <= overlapTop) {
       continue;
     }
@@ -128,17 +125,20 @@ final class RuntimeTilesetImage {
     required this.width,
     required this.height,
     this.ownsImages = true,
-  })  : _images = List<ui.Image>.unmodifiable(images),
-        chunks = List<RuntimeTilesetChunk>.unmodifiable(chunks) {
+  }) : _images = List<ui.Image>.unmodifiable(images),
+       chunks = List<RuntimeTilesetChunk>.unmodifiable(chunks) {
     assert(_images.length == this.chunks.length);
   }
 
-  factory RuntimeTilesetImage.borrowed(ui.Image image) =>
-      RuntimeTilesetImage(images: [
-        image
-      ], chunks: [
-        RuntimeTilesetChunk(top: 0, height: image.height, width: image.width)
-      ], width: image.width, height: image.height, ownsImages: false);
+  factory RuntimeTilesetImage.borrowed(ui.Image image) => RuntimeTilesetImage(
+    images: [image],
+    chunks: [
+      RuntimeTilesetChunk(top: 0, height: image.height, width: image.width),
+    ],
+    width: image.width,
+    height: image.height,
+    ownsImages: false,
+  );
 
   final List<ui.Image> _images;
   final bool ownsImages;
@@ -146,6 +146,15 @@ final class RuntimeTilesetImage {
   final int width;
   final int height;
   bool _isDisposed = false;
+  final _disposeListeners = <void Function()>[];
+
+  void addDisposeListener(void Function() listener) {
+    if (_isDisposed) {
+      listener();
+    } else {
+      _disposeListeners.add(listener);
+    }
+  }
 
   @visibleForTesting
   int get chunkCount => chunks.length;
@@ -206,9 +215,17 @@ final class RuntimeTilesetImage {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
-    if (!ownsImages) return;
-    for (final image in _images) {
-      image.dispose();
+    try {
+      if (ownsImages) {
+        for (final image in _images) {
+          image.dispose();
+        }
+      }
+    } finally {
+      for (final listener in _disposeListeners) {
+        listener();
+      }
+      _disposeListeners.clear();
     }
   }
 }

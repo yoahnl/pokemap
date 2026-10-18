@@ -90,6 +90,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           RuntimeMapBundle bundle, MapConnection connection) =>
       SpatialSceneNeighbor(
           map: bundle.map,
+          project: bundle.manifest,
+          loadModel: (id) => widget.session.modelBytesForBundle(bundle, id),
           offset: spatialConnectionOffset(activeBundle.map.size,
               bundle.map.size, connection.direction, connection.offset),
           loadGroundImage: (id) => groundBytes(bundle, id));
@@ -99,11 +101,14 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     if (path == null) {
       throw StateError('Image du terrain introuvable : $id');
     }
-    return File(path).readAsBytes();
+    final file = File(path);
+    if (await file.length() > bundle.resourceBudget.profile.maximumEncodedBytes) {
+      throw const RuntimeResourceAdmissionException('encoded_bytes');
+    }
+    return file.readAsBytes();
   }
 
-  Future<Uint8List> loadModel(String id) async =>
-      Uint8List.fromList(await widget.session.modelBytes(id));
+  Future<Uint8List> loadModel(String id) => widget.session.modelBytes(id);
 
   Future<void> loadNeighbors({RuntimeMapBundle? previous}) async {
     final generation = ++neighborGeneration;
@@ -303,6 +308,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
             child: Stack(children: [
               Positioned.fill(
                   child: SpatialSceneView(
+                      resourceBudget: widget.session.bundle.resourceBudget,
+                      resourceIdentity: widget.session.bundle.projectCatalog?.identity,
                       key: ObjectKey(widget.session),
                       scene: widget.session.bundle.map.spatialScene!,
                       groundMap: widget.session.bundle.map,

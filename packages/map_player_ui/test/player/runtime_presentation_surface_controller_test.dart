@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
+import 'package:map_player_ui/src/foundation/player_image.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -151,7 +151,7 @@ void main() {
     expect(resolution, isA<PresentationVisualReady>());
     expect(
       (resolution as PresentationVisualReady).child,
-      isA<Image>(),
+      isA<PlayerFileImage>(),
     );
   });
 }

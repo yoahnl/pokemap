@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
@@ -42,18 +43,15 @@ class _PlayerTitleBackground extends StatelessWidget {
           DecoratedBox(
             decoration: BoxDecoration(
               color: backgroundColor,
-              image: background == null
-                  ? null
-                  : DecorationImage(
-                      image: background!,
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                        scrimColor.withValues(alpha: 0.45),
-                        BlendMode.srcOver,
-                      ),
-                    ),
             ),
           ),
+          if (background != null)
+            PlayerProvidedImage(
+              image: background!,
+              fit: BoxFit.cover,
+              color: scrimColor.withValues(alpha: 0.45),
+              colorBlendMode: BlendMode.srcOver,
+            ),
           if (backgroundContent case final content?) content,
           child,
         ],
@@ -332,7 +330,7 @@ class PlayerTitleSurface extends StatelessWidget {
                                   ConstrainedBox(
                                     constraints:
                                         const BoxConstraints(maxHeight: 150),
-                                    child: Image(
+                                    child: PlayerProvidedImage(
                                       image: data.logo!,
                                       fit: BoxFit.contain,
                                       semanticLabel: data.gameTitle,
@@ -850,9 +848,6 @@ class PlayerTitleSurface extends StatelessWidget {
       key: const ValueKey<String>('player-title-startup-visual'),
       decoration: BoxDecoration(
         color: colors.background,
-        image: data.background == null
-            ? null
-            : DecorationImage(image: data.background!, fit: BoxFit.cover),
       ),
       child: data.background == null
           ? Center(
@@ -862,7 +857,7 @@ class PlayerTitleSurface extends StatelessWidget {
                 color: colors.primary.withValues(alpha: .38),
               ),
             )
-          : const SizedBox.expand(),
+          : PlayerProvidedImage(image: data.background!, fit: BoxFit.cover),
     );
     final backgroundContent = data.backgroundContent;
     if (backgroundContent == null) return fallback;
@@ -905,7 +900,7 @@ class PlayerTitleSurface extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 92),
-                    child: Image(
+                    child: PlayerProvidedImage(
                       image: data.logo!,
                       fit: BoxFit.contain,
                       semanticLabel: data.gameTitle,

@@ -2,6 +2,8 @@ import 'dart:isolate';
 
 import 'package:map_core/map_core.dart';
 
+import 'runtime_project_catalog.dart';
+
 /// Immutable Event V2 runtime view built from one project/map corpus.
 ///
 /// The runtime deliberately refuses to combine maps loaded from a different
@@ -16,7 +18,8 @@ final class NarrativeEventRuntimeSnapshot {
     required this.projectCatalog,
     required this.legacyClaimIndex,
     required Set<ProjectManifest> validatedProjects,
-  }) : _validatedProjects = validatedProjects;
+  }) : _validatedProjects = validatedProjects,
+       _owner = RuntimeProjectCatalog.ownerOf(project);
 
   final ProjectManifest project;
   final Map<String, MapData> mapsById;
@@ -25,18 +28,24 @@ final class NarrativeEventRuntimeSnapshot {
   final NarrativeEventProjectCatalog projectCatalog;
   final ValidatedLegacyClaimIndex legacyClaimIndex;
   final Set<ProjectManifest> _validatedProjects;
+  final RuntimeProjectCatalog? _owner;
 
-  bool matchesProject(ProjectManifest candidate) =>
-      _validatedProjects.contains(candidate) || project == candidate;
+  bool matchesProject(ProjectManifest candidate) => _owner != null
+      ? identical(RuntimeProjectCatalog.ownerOf(project), _owner) &&
+            identical(RuntimeProjectCatalog.ownerOf(candidate), _owner)
+      : RuntimeProjectCatalog.ownerOf(candidate) == null &&
+            (_validatedProjects.contains(candidate) || project == candidate);
 
   static Future<NarrativeEventRuntimeSnapshot> build({
     required ProjectManifest project,
     required Future<({ProjectManifest project, MapData map})> Function(
       String mapId,
-    ) loadMap,
+    )
+    loadMap,
     void Function(int completed, int total)? onMapLoaded,
   }) async {
-    final registry = project.eventRegistry ??
+    final registry =
+        project.eventRegistry ??
         NarrativeEventRegistry(
           schemaVersion: 1,
           mode: EventSystemMode.legacyOnly,
@@ -65,6 +74,7 @@ final class NarrativeEventRuntimeSnapshot {
       );
     }
     String? projectFingerprint;
+    final owner = RuntimeProjectCatalog.ownerOf(project);
     final mapsById = <String, MapData>{};
 
     for (final mapEntry in project.maps) {
@@ -75,9 +85,13 @@ final class NarrativeEventRuntimeSnapshot {
         );
       }
       final loaded = await loadMap(mapEntry.id);
-      if (!identical(loaded.project, project) &&
-          _runtimeProjectFingerprint(loaded.project) !=
-              (projectFingerprint ??= _runtimeProjectFingerprint(project))) {
+      if (!identical(owner, RuntimeProjectCatalog.ownerOf(loaded.project)) ||
+          (owner == null &&
+              !identical(loaded.project, project) &&
+              _runtimeProjectFingerprint(loaded.project) !=
+                  (projectFingerprint ??= _runtimeProjectFingerprint(
+                    project,
+                  )))) {
         throw StateError(
           'Event V2 runtime snapshot changed while loading map '
           '"${mapEntry.id}".',
@@ -118,7 +132,8 @@ final class NarrativeEventRuntimeSnapshot {
 ({
   NarrativeEventProjectCatalog projectCatalog,
   ValidatedLegacyClaimIndex legacyClaimIndex,
-}) _buildNarrativeCatalog({
+})
+_buildNarrativeCatalog({
   required ProjectManifest project,
   required Map<String, MapData> mapsById,
   required NarrativeEventRegistry registry,
@@ -196,15 +211,20 @@ final class NarrativeEventRuntimeSnapshot {
 
 String _runtimeProjectFingerprint(ProjectManifest project) {
   final ordered = project.copyWith(
-    elements: project.elements.map((element) {
-      final profile = element.collisionProfile;
-      if (profile == null) return element;
-      final cells = [...profile.cells]..sort((a, b) {
-          final row = a.y.compareTo(b.y);
-          return row == 0 ? a.x.compareTo(b.x) : row;
-        });
-      return element.copyWith(collisionProfile: profile.copyWith(cells: cells));
-    }).toList(growable: false),
+    elements: project.elements
+        .map((element) {
+          final profile = element.collisionProfile;
+          if (profile == null) return element;
+          final cells = [...profile.cells]
+            ..sort((a, b) {
+              final row = a.y.compareTo(b.y);
+              return row == 0 ? a.x.compareTo(b.x) : row;
+            });
+          return element.copyWith(
+            collisionProfile: profile.copyWith(cells: cells),
+          );
+        })
+        .toList(growable: false),
   );
   return canonicalizeNarrativeEventJson(ordered.toJson());
 }

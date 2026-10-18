@@ -93,6 +93,7 @@ void main() {
         final bundle = await loadRuntimeMapBundle(
           projectFilePath: projectFile.path,
           mapId: mapId,
+          preloadedManifest: await loadProjectManifestFromFile(projectFile.path),
         );
         return (project: bundle.manifest, map: bundle.map);
       },

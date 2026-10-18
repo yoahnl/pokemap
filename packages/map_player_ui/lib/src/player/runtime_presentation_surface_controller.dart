@@ -9,6 +9,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'presentation_frame_renderer.dart';
 import 'presentation_video_playback_driver.dart';
 import 'runtime_presentation_frame_surface.dart';
+import '../foundation/player_image.dart';
 
 final class RuntimePresentationSurfaceController
     extends ValueNotifier<RuntimePresentationFrameSnapshot?>
@@ -278,12 +279,11 @@ final class RuntimePresentationSurfaceController
       );
     }
     return PresentationVisualReady(
-      child: Image.file(
-        File.fromUri(uri),
+      child: PlayerFileImage(
+        path: uri.toFilePath(),
         key: ValueKey<String>('runtime-presentation-media-$mediaId'),
         fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => const SizedBox.expand(),
+        fallback: const SizedBox.expand(),
       ),
     );
   }

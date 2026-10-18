@@ -17,12 +17,190 @@ final class PortableCatalogPublicationBuild {
   final CatalogStorageBuild storage;
 }
 
+final class PortableProjectCatalog {
+  PortableProjectCatalog._(this.snapshot, this.projectMetadata, this._shell);
+
+  final CatalogSnapshot snapshot;
+  final ProjectManifest projectMetadata;
+  final CatalogDefinitionUnit _shell;
+
+  static Future<PortableProjectCatalog> open(
+    Map<String, Object?> descriptor, {
+    required CatalogObjectReader readObject,
+    CatalogStorageLimits? limits,
+  }) async {
+    if (descriptor.length != 4 ||
+        descriptor['format'] != 'avelune.portable-catalog' ||
+        descriptor['version'] != 2 ||
+        descriptor['version'] is! int ||
+        descriptor['kind'] != 'project') {
+      throw const FormatException('catalog.publication: unsupported project');
+    }
+    final snapshot = await CatalogSnapshot.open(
+      root: CatalogObjectReference.fromJson(_map(descriptor['root'])),
+      readObject: readObject,
+      limits: limits,
+    );
+    final shell = await snapshot.lookup(_shellKey);
+    if (shell == null || shell.payload['section'] != r'$shell') {
+      throw const FormatException('catalog.publication: missing project shell');
+    }
+    final metadata = <CatalogDefinitionUnit>[shell];
+    String? cursor;
+    do {
+      final page = await snapshot.page(
+        kind: CatalogDefinitionKind.catalogMetadata,
+        limit: snapshot.limits.indexPageSize,
+        cursor: cursor,
+      );
+      for (final entry in page.items) {
+        if (entry.key == _shellKey) continue;
+        final identity = entry.key.id;
+        if (!identity.startsWith('["projectDefinition",') &&
+            !identity.startsWith('["projectAggregateHeader",') &&
+            !identity.startsWith('["projectAggregateChunk",') &&
+            !identity.startsWith('["dynamic",')) {
+          continue;
+        }
+        final unit = await snapshot.lookup(entry.key);
+        if (unit == null) {
+          throw const FormatException('catalog.project: missing metadata');
+        }
+        metadata.add(unit);
+      }
+      cursor = page.nextCursor;
+    } while (cursor != null);
+    final decoded = ProjectManifest.fromJson(_reconstruct(metadata));
+    final project = decoded.copyWith(
+      globalProperties: _immutableProjectProperty(
+        decoded.globalProperties,
+        0,
+      ) as Map<String, dynamic>,
+    );
+    final projection = ProjectManifest(
+      name: project.name,
+      version: project.version,
+      maps: const [],
+      tilesets: const [],
+    ).toJson();
+    final originalShell = _map(shell.payload['value']);
+    for (final section in [
+      'smartTileCatalog',
+      'borderCatalog',
+      'resourceLibraryCatalog',
+      'characterStudioCatalog',
+    ]) {
+      if (originalShell[section] != null) {
+        projection[section] = _copy(_map(originalShell[section]));
+      }
+    }
+    return PortableProjectCatalog._(
+      snapshot,
+      project,
+      _unit(_shellKey, r'$shell', 0, projection),
+    );
+  }
+
+  Future<CatalogDefinitionUnit?> lookup(CatalogDefinitionKey key) =>
+      snapshot.lookup(key);
+
+  ProjectManifest definitions(Iterable<CatalogDefinitionUnit> definitions) {
+    final grouped = <String, List<CatalogDefinitionUnit>>{};
+    for (final unit in definitions) {
+      final section = unit.payload['section'];
+      if (section is! String ||
+          !_sections.containsKey(section) ||
+          _sections[section] != unit.key.kind ||
+          unit.payload['id'] != unit.key.id ||
+          _id(section, unit.payload['value']) != unit.key.id) {
+        throw const FormatException('catalog.project: invalid definition');
+      }
+      (grouped[section] ??= []).add(unit);
+    }
+    return ProjectManifest.fromJson(
+      _reconstruct([
+        _shell,
+        for (final units in grouped.values)
+          ...((units..sort(
+                (a, b) => (a.payload['position']! as int).compareTo(
+                  b.payload['position']! as int,
+                ),
+              ))
+              .indexed
+              .map(
+                (entry) => CatalogDefinitionUnit(
+                  key: entry.$2.key,
+                  payload: {...entry.$2.payload, 'position': entry.$1},
+                  references: entry.$2.references,
+                ),
+              )),
+      ]),
+    );
+  }
+
+  ProjectManifest projectWithDefinitions(
+    Iterable<CatalogDefinitionUnit> definitions,
+  ) {
+    final selected = this.definitions(definitions);
+    return projectMetadata.copyWith(
+      tilesets: selected.tilesets,
+      elements: selected.elements,
+      models3d: selected.models3d,
+      characters: selected.characters,
+      environmentPresets: selected.environmentPresets,
+      smartTileCatalog: selected.smartTileCatalog,
+      borderCatalog: selected.borderCatalog,
+      elementCategories: selected.elementCategories,
+      tilesetFolders: selected.tilesetFolders,
+      characterStudioCatalog: selected.characterStudioCatalog,
+      resourceLibraryCatalog: selected.resourceLibraryCatalog,
+    );
+  }
+}
+
+Object? _immutableProjectProperty(Object? value, int depth) {
+  if (depth > 128) {
+    throw const FormatException('catalog.project: property depth limit');
+  }
+  if (value is Map) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key as String: _immutableProjectProperty(entry.value, depth + 1),
+    });
+  }
+  if (value is List) {
+    return List<Object?>.unmodifiable([
+      for (final child in value) _immutableProjectProperty(child, depth + 1),
+    ]);
+  }
+  return value;
+}
+
 final class PortableCatalogPublication {
   static const projectDynamicDependenciesKey =
       'aveluneCatalogDynamicDependencies';
 
   static void validateProjectMetadataJson(String source) {
     _metadataSourceMetrics(source);
+  }
+
+  static int validateCatalogObjectBytes(
+    CatalogObjectReference reference,
+    List<int> bytes, {
+    CatalogStorageLimits? limits,
+  }) {
+    final effective = limits ?? CatalogStorageLimits();
+    if (reference.byteLength > effective.maxUnitBytes ||
+        bytes.length != reference.byteLength ||
+        crypto.sha256.convert(bytes).toString() != reference.sha256) {
+      throw const FormatException('catalog.object: invalid size or digest');
+    }
+    final metrics = _metadataSourceMetrics(utf8.decode(bytes));
+    if (metrics.values > effective.maxJsonValues ||
+        metrics.depth > effective.maxJsonDepth) {
+      throw const FormatException('catalog.object: logical JSON limit');
+    }
+    return metrics.values;
   }
 
   static String objectPath(CatalogObjectReference reference) =>

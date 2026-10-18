@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_control_profile.dart';
@@ -544,14 +545,12 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (path != null) ...[
-            Image(
-                image:
-                    widget.imageProvider?.call(path) ?? FileImage(File(path)),
+            PlayerFileImage(
+                path: path,
                 height: 100,
                 fit: BoxFit.cover,
                 excludeFromSemantics: true,
-                errorBuilder: (context, error, stack) =>
-                    const SizedBox.shrink()),
+                fallback: const SizedBox.shrink()),
             const SizedBox(height: 12),
           ],
           Text(_label(point), style: theme.subtitle),
@@ -604,6 +603,8 @@ class _RegionImage extends StatefulWidget {
 }
 
 class _RegionImageState extends State<_RegionImage> {
+  PlayerImageLease? _lease;
+  bool _hasSource = false;
   ImageProvider<Object>? _provider;
   ImageStream? _stream;
   ImageStreamListener? _listener;
@@ -630,15 +631,27 @@ class _RegionImageState extends State<_RegionImage> {
 
   void _loadImage() {
     if (_listener != null) _stream?.removeListener(_listener!);
+    _lease?.dispose();
+    _lease = null;
     final generation = ++_generation;
     _imageSize = null;
     _failed = false;
     final path = widget.region.imageFilePath;
     if (path == null) {
       _provider = null;
+      _hasSource = false;
       return;
     }
-    _provider = widget.provider?.call(path) ?? FileImage(File(path));
+    final loader = PlayerImageScope.maybeOf(context);
+    if (loader != null) {
+      _provider = null;
+      _hasSource = true;
+      unawaited(_loadLease(loader, path, generation));
+      return;
+    }
+    _provider = widget.provider?.call(path);
+    _hasSource = _provider != null;
+    if (_provider == null) return;
     _stream = _provider!.resolve(createLocalImageConfiguration(context));
     _listener = ImageStreamListener((info, synchronous) {
       final size =
@@ -657,9 +670,34 @@ class _RegionImageState extends State<_RegionImage> {
     _stream!.addListener(_listener!);
   }
 
+  Future<void> _loadLease(
+    PlayerImageLoader loader,
+    String path,
+    int generation,
+  ) async {
+    bool current() => mounted && generation == _generation;
+    try {
+      final lease = await loader(path, isCurrent: current);
+      if (!current()) {
+        lease.dispose();
+        return;
+      }
+      setState(() {
+        _lease = lease;
+        _imageSize = Size(
+          lease.image.width.toDouble(),
+          lease.image.height.toDouble(),
+        );
+      });
+    } on Object {
+      if (current()) setState(() => _failed = true);
+    }
+  }
+
   @override
   void dispose() {
     ++_generation;
+    _lease?.dispose();
     if (_listener != null) _stream?.removeListener(_listener!);
     super.dispose();
   }
@@ -672,7 +710,7 @@ class _RegionImageState extends State<_RegionImage> {
 
   Widget _viewport(Widget child) => widget.canvasHeight == null
       ? Expanded(child: child)
-      : _provider == null || _failed
+      : !_hasSource || _failed
           ? child
           : SizedBox(height: widget.canvasHeight, child: child);
 
@@ -685,7 +723,7 @@ class _RegionImageState extends State<_RegionImage> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           _viewport(LayoutBuilder(builder: (context, constraints) {
             final size = _imageSize;
-            if (_provider == null || _failed) {
+            if (!_hasSource || _failed) {
               return Center(
                   child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -759,7 +797,15 @@ class _RegionImageState extends State<_RegionImage> {
                       child: Stack(children: [
                     Positioned.fromRect(
                         rect: geometry.transformedImageRect,
-                        child: Image(
+                        child: _lease != null
+                            ? RawImage(
+                                image: _lease!.image,
+                                fit: BoxFit.fill,
+                                filterQuality: widget.region.pixelArt
+                                    ? FilterQuality.none
+                                    : FilterQuality.medium,
+                              )
+                            : Image(
                             image: _provider!,
                             fit: BoxFit.fill,
                             excludeFromSemantics: true,

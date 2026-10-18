@@ -1,5 +1,10 @@
 library;
 
+export 'src/infrastructure/runtime_ui_image.dart'
+    show RuntimeUiImageLease, loadRuntimeUiImageFromFilePath;
+
+export 'src/application/runtime_project_catalog.dart';
+
 export 'src/application/runtime_committed_movement.dart';
 
 export 'src/player/runtime_companion_presentation_codec.dart';

@@ -18,6 +18,7 @@ class AveluneGameplayCompanionApp extends StatefulWidget {
 }
 
 class _AveluneGameplayCompanionAppState extends State<AveluneGameplayCompanionApp> {
+  final _imageBudget = RuntimeResourceBudget();
   final _remote = AveluneGameplayCompanionRemote();
   final _controllerIds = ValueNotifier<Set<String>>(const {'owner-input-relay'});
   late final _controller = _RemotePlayerController(_remote);
@@ -33,6 +34,7 @@ class _AveluneGameplayCompanionAppState extends State<AveluneGameplayCompanionAp
 
   @override
   void dispose() {
+    _imageBudget.dispose();
     _controller.dispose();
     _remote.dispose();
     _controllerIds.dispose();
@@ -85,7 +87,19 @@ class _AveluneGameplayCompanionAppState extends State<AveluneGameplayCompanionAp
               body: SafeArea(
                 child: !resolvedReady || snapshot == null
                     ? const SizedBox.expand()
-                    : _surface(snapshot, presentation),
+                    : player_ui.PlayerImageScope(
+                        identity: (_imageBudget, snapshot.sessionId),
+                        loader: (path, {required isCurrent}) async {
+                          final lease = await loadRuntimeUiImageFromFilePath(
+                            path, resourceBudget: _imageBudget,
+                            isCurrent: isCurrent,
+                          );
+                          return player_ui.PlayerImageLease(
+                            image: lease.image, onDispose: lease.dispose,
+                          );
+                        },
+                        child: _surface(snapshot, presentation),
+                      ),
               ),
             ),
           );
@@ -101,6 +115,18 @@ class _AveluneGameplayCompanionAppState extends State<AveluneGameplayCompanionAp
         return AbsorbPointer(
           absorbing: _remote.busy || !snapshot.companionAttached,
           child: player_ui.PokeMapPlayerSessionView(
+            imageScopeIdentity: (_imageBudget, snapshot.sessionId),
+            imageLoader: (path, {required isCurrent}) async {
+              final lease = await loadRuntimeUiImageFromFilePath(
+                path,
+                resourceBudget: _imageBudget,
+                isCurrent: isCurrent,
+              );
+              return player_ui.PlayerImageLease(
+                image: lease.image,
+                onDispose: lease.dispose,
+              );
+            },
             key: ValueKey('companion-player-${snapshot.sessionId}'),
             controller: _controller,
             titlePresentation: presentation.title,

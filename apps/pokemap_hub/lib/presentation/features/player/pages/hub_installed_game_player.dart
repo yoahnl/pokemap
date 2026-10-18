@@ -452,6 +452,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
 class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
   static const _splashMovieRevealDuration = Duration(milliseconds: 2600);
+  final _startupImageBudget = RuntimeResourceBudget();
 
   final _gameplayViewportKey = GlobalKey();
   RuntimeStartupBootstrapCoordinator<HubRuntimeStartupPreparedData>?
@@ -993,7 +994,23 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     return Localizations.override(
       context: context,
       locale: playerLocale,
-      child: player,
+      child: player_ui.PlayerImageScope(
+        identity: _mountedGame?.resourceBudget ??
+            _mountedSpatial?.session?.bundle.resourceBudget ?? _startupImageBudget,
+        loader: (path, {required isCurrent}) async {
+          final lease = await loadRuntimeUiImageFromFilePath(
+            path,
+            resourceBudget: _mountedGame?.resourceBudget ??
+                _mountedSpatial?.session?.bundle.resourceBudget ?? _startupImageBudget,
+            isCurrent: isCurrent,
+          );
+          return player_ui.PlayerImageLease(
+            image: lease.image,
+            onDispose: lease.dispose,
+          );
+        },
+        child: player,
+      ),
     );
   }
 
@@ -1032,6 +1049,20 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       }
     }
     return player_ui.PokeMapPlayerSessionView(
+      imageScopeIdentity: _mountedGame?.resourceBudget ??
+          _mountedSpatial?.session?.bundle.resourceBudget ?? viewController,
+      imageLoader: (path, {required isCurrent}) async {
+        final lease = await loadRuntimeUiImageFromFilePath(
+          path,
+          resourceBudget: _mountedGame?.resourceBudget ??
+              _mountedSpatial?.session?.bundle.resourceBudget,
+          isCurrent: isCurrent,
+        );
+        return player_ui.PlayerImageLease(
+          image: lease.image,
+          onDispose: lease.dispose,
+        );
+      },
       key: const ValueKey<String>('pokemap-runtime-player-view'),
       controller: viewController,
       commandController: _companionCommandController,
@@ -1220,6 +1251,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   @override
   void dispose() {
+    _startupImageBudget.dispose();
     if (widget.controller?._stop == _stop) {
       widget.controller?._stop = null;
     }

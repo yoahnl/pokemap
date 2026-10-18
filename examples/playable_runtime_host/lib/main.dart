@@ -109,6 +109,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       : null;
   InteractiveEvaluationBridge? _interactiveBridge;
   final GlobalKey _interactiveGameSurfaceKey = GlobalKey();
+  final _startupImageBudget = RuntimeResourceBudget();
   final player_ui.PlayerRuntimeStartupShellController _startupShellController =
       player_ui.PlayerRuntimeStartupShellController();
   StandaloneRuntimeStartupHost? _startupHost;
@@ -131,6 +132,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
 
   @override
   void dispose() {
+    _startupImageBudget.dispose();
     // Le ticker d'overlay est strictement local au host et doit toujours être
     // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
     _runtimeInfoTicker?.cancel();
@@ -785,12 +787,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       manifest: manifest,
       presentationSession: presentationSession,
       sharedAudioMixer: audioMixer,
-      preferencesFile: () async => File(p.join(
-        (await getApplicationSupportDirectory()).path,
-        'runtime-player-preferences.json',
-      )),
+      preferencesFile: () async => File(
+        p.join(
+          (await getApplicationSupportDirectory()).path,
+          'runtime-player-preferences.json',
+        ),
+      ),
       sessionPort: CallbackStandaloneRuntimeSessionPort(
-        onPreferencesChanged: (preferences) => _game?.applyPlayerPreferences(preferences),
+        onPreferencesChanged: (preferences) =>
+            _game?.applyPlayerPreferences(preferences),
         onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
           await _load(
             launchMode: descriptor.launchMode,
@@ -1118,11 +1123,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     final controller = _startupHost?.playerCoordinator;
     final preferences = controller?.snapshot.preferences;
     if (controller != null && preferences != null) {
-      final result = await controller.dispatch(RuntimePlayerCommand(
-        action: RuntimePlayerAction.updatePreferences,
-        snapshotRevision: controller.snapshot.revision,
-        payload: preferences.copyWith(dialogueTextSpeed: options.dialogueTextSpeed),
-      ));
+      final result = await controller.dispatch(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.updatePreferences,
+          snapshotRevision: controller.snapshot.revision,
+          payload: preferences.copyWith(
+            dialogueTextSpeed: options.dialogueTextSpeed,
+          ),
+        ),
+      );
       if (!mounted) return;
       if (result.status != RuntimePlayerCommandStatus.accepted) {
         setState(() => _error = result.safeMessage);
@@ -1133,7 +1142,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       _playerOptions = options;
       _touchControlsHiddenByUser = !options.showTouchControls;
     });
-    if (controller == null) _game?.setDialogueTextSpeed(options.dialogueTextSpeed);
+    if (controller == null)
+      _game?.setDialogueTextSpeed(options.dialogueTextSpeed);
     unawaited(_persistLastSession());
   }
 
@@ -1228,93 +1238,119 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     final reducedMotion =
         snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ??
         false;
-    return Theme(
-      data: playerPresentation.applyTo(
-        player_ui.PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
-      ),
-      child: player_ui.PlayerRuntimeStartupShell(
-        key: const ValueKey<String>('standalone-runtime-startup-shell'),
-        controller: _startupShellController,
-        branding: standaloneRuntimeSplashBranding,
-        snapshot: snapshot,
-        titlePresentation: playerPresentation.title,
-        introSource: introSource,
-        introPoster: _startupImage(host, snapshot.presentation?.introPoster),
-        audioMixer: host.audioMixer,
-        titlePromptSource: _startupVideo(
-          host,
-          snapshot.presentation?.titlePromptVideo,
-          promptVariant,
-          looping: true,
-          volume: 0,
+    return player_ui.PlayerImageScope(
+      identity: _game?.resourceBudget ?? _startupImageBudget,
+      loader: (path, {required isCurrent}) async {
+        final lease = await loadRuntimeUiImageFromFilePath(
+          path,
+          resourceBudget: _game?.resourceBudget ?? _startupImageBudget,
+          isCurrent: isCurrent,
+        );
+        return player_ui.PlayerImageLease(
+          image: lease.image,
+          onDispose: lease.dispose,
+        );
+      },
+      child: Theme(
+        data: playerPresentation.applyTo(
+          player_ui.PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
         ),
-        titlePromptPoster: _startupImage(
-          host,
-          snapshot.presentation?.titlePromptPoster,
-        ),
-        titleMenuSource: _startupVideo(
-          host,
-          snapshot.presentation?.titleMenuVideo,
-          menuVariant,
-          looping: true,
-          volume: 0,
-        ),
-        titleMenuPoster: _startupImage(
-          host,
-          snapshot.presentation?.titleMenuPoster,
-        ),
-        onPresentationOrientationChanged: (nextOrientation) => unawaited(
-          host.coordinator.updatePresentationOrientation(nextOrientation),
-        ),
-        reducedMotion: reducedMotion,
-        onStartupCommand: (command) =>
-            unawaited(host.coordinator.dispatch(command)),
-        onPlayerCommand: (command) => host.coordinator.dispatchPlayerCommand(
-          startupSnapshotRevision: snapshot.revision,
-          command: command,
-        ),
-        onIntroPlaybackCompleted: (revision) => unawaited(
-          host.coordinator.introPlaybackCompleted(snapshotRevision: revision),
-        ),
-        onIntroPlaybackFailed: (revision, reason) => unawaited(
-          host.coordinator.introPlaybackFailed(
-            snapshotRevision: revision,
-            reason: reason,
+        child: player_ui.PlayerRuntimeStartupShell(
+          key: const ValueKey<String>('standalone-runtime-startup-shell'),
+          controller: _startupShellController,
+          branding: standaloneRuntimeSplashBranding,
+          snapshot: snapshot,
+          titlePresentation: playerPresentation.title,
+          introSource: introSource,
+          introPoster: _startupImage(host, snapshot.presentation?.introPoster),
+          audioMixer: host.audioMixer,
+          titlePromptSource: _startupVideo(
+            host,
+            snapshot.presentation?.titlePromptVideo,
+            promptVariant,
+            looping: true,
+            volume: 0,
           ),
-        ),
-        sessionBuilder: (_, _) {
-          final game = _game;
-          final viewController = _startupViewController;
-          if (viewController == null) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+          titlePromptPoster: _startupImage(
+            host,
+            snapshot.presentation?.titlePromptPoster,
+          ),
+          titleMenuSource: _startupVideo(
+            host,
+            snapshot.presentation?.titleMenuVideo,
+            menuVariant,
+            looping: true,
+            volume: 0,
+          ),
+          titleMenuPoster: _startupImage(
+            host,
+            snapshot.presentation?.titleMenuPoster,
+          ),
+          onPresentationOrientationChanged: (nextOrientation) => unawaited(
+            host.coordinator.updatePresentationOrientation(nextOrientation),
+          ),
+          reducedMotion: reducedMotion,
+          onStartupCommand: (command) =>
+              unawaited(host.coordinator.dispatch(command)),
+          onPlayerCommand: (command) => host.coordinator.dispatchPlayerCommand(
+            startupSnapshotRevision: snapshot.revision,
+            command: command,
+          ),
+          onIntroPlaybackCompleted: (revision) => unawaited(
+            host.coordinator.introPlaybackCompleted(snapshotRevision: revision),
+          ),
+          onIntroPlaybackFailed: (revision, reason) => unawaited(
+            host.coordinator.introPlaybackFailed(
+              snapshotRevision: revision,
+              reason: reason,
+            ),
+          ),
+          sessionBuilder: (_, _) {
+            final game = _game;
+            final viewController = _startupViewController;
+            if (viewController == null) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return player_ui.PokeMapPlayerSessionView(
+              imageScopeIdentity: game?.resourceBudget ?? viewController,
+              imageLoader: (path, {required isCurrent}) async {
+                final lease = await loadRuntimeUiImageFromFilePath(
+                  path,
+                  resourceBudget: game?.resourceBudget,
+                  isCurrent: isCurrent,
+                );
+                return player_ui.PlayerImageLease(
+                  image: lease.image,
+                  onDispose: lease.dispose,
+                );
+              },
+              key: const ValueKey<String>('standalone-runtime-player-view'),
+              controller: viewController,
+              titlePresentation: playerPresentation.title,
+              pauseMenuLabels: playerPresentation.pauseMenuLabels,
+              pausePresentation: playerPresentation.pausePresentation,
+              gameplayInputRoute: host.sessionController.handleInput,
+              gameplayViewportKey: _interactiveGameSurfaceKey,
+              gameplayInputAuthority: game?.inputAuthorityListenable,
+              overworldInteractions: game?.overworldInteractions,
+              hitTestOverworldInteraction: game?.hitTestOverworldInteraction,
+              onOverworldInteraction: game?.dispatchOverworldInteraction,
+              dialoguePresentation: game?.dialoguePresentationListenable,
+              onDialogueCommand: game?.dispatchDialoguePresentationCommand,
+              battlePresentation: game?.battleCommandOverlayListenable,
+              onBattleCommand: game?.dispatchBattlePresentationCommand,
+              presentationFrame: host.presentationSession?.controller,
+              presentationContentPort: host.presentationSession?.controller,
+              touchControlsAvailable:
+                  _supportsTouchControls && !_touchControlsHiddenByUser,
+              controllerInputEnabled: false,
+              gameSceneBuilder: (_) =>
+                  activeGameSurface ?? const SizedBox.shrink(),
             );
-          }
-          return player_ui.PokeMapPlayerSessionView(
-            key: const ValueKey<String>('standalone-runtime-player-view'),
-            controller: viewController,
-            titlePresentation: playerPresentation.title,
-            pauseMenuLabels: playerPresentation.pauseMenuLabels,
-            pausePresentation: playerPresentation.pausePresentation,
-            gameplayInputRoute: host.sessionController.handleInput,
-            gameplayViewportKey: _interactiveGameSurfaceKey,
-            gameplayInputAuthority: game?.inputAuthorityListenable,
-            overworldInteractions: game?.overworldInteractions,
-            hitTestOverworldInteraction: game?.hitTestOverworldInteraction,
-            onOverworldInteraction: game?.dispatchOverworldInteraction,
-            dialoguePresentation: game?.dialoguePresentationListenable,
-            onDialogueCommand: game?.dispatchDialoguePresentationCommand,
-            battlePresentation: game?.battleCommandOverlayListenable,
-            onBattleCommand: game?.dispatchBattlePresentationCommand,
-            presentationFrame: host.presentationSession?.controller,
-            presentationContentPort: host.presentationSession?.controller,
-            touchControlsAvailable:
-                _supportsTouchControls && !_touchControlsHiddenByUser,
-            controllerInputEnabled: false,
-            gameSceneBuilder: (_) =>
-                activeGameSurface ?? const SizedBox.shrink(),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -1771,13 +1807,12 @@ final class _RuntimePlayerServiceOverlayHost
   }
 }
 
-typedef _PlayerServiceBodyBuilder =
-    Widget Function(
-      GameState gameState,
-      Future<void> Function(GameState state) stageState,
-      GameState Function() currentGameState,
-      Future<void> Function() close,
-    );
+typedef _PlayerServiceBodyBuilder = Widget Function(
+  GameState gameState,
+  Future<void> Function(GameState state) stageState,
+  GameState Function() currentGameState,
+  Future<void> Function() close,
+);
 
 final class _RuntimePlayerServiceRoute extends StatefulWidget {
   const _RuntimePlayerServiceRoute({

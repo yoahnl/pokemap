@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/runtime_map_bundle.dart';
+import '../infrastructure/tile_image_loader.dart';
 import 'border_runtime_asset_collection.dart';
 import 'border_runtime_preparation.dart';
 
@@ -55,8 +56,12 @@ final class BorderRuntimeReadinessException implements Exception {
 /// preparation: transformed bundles and files are checked again before a host
 /// caches or mounts the map. No Border solver is invoked.
 Future<RuntimeMapBundle> prepareBorderRuntimeBundle(
-  RuntimeMapBundle bundle,
-) async {
+  RuntimeMapBundle bundle, {
+  RuntimeResourceBudget? resourceBudget,
+  bool prefetch = false,
+  bool Function()? isCurrent,
+}) async {
+  final budget = resourceBudget ?? bundle.resourceBudget;
   final catalog = bundle.manifest.borderCatalog;
   final usedSnapshotIds = _materializedSnapshotIds(bundle.map);
   final integrity = <String, BorderVisualSnapshotIntegrity>{};
@@ -72,6 +77,9 @@ Future<RuntimeMapBundle> prepareBorderRuntimeBundle(
         : await _inspectSnapshotCached(
             snapshot,
             projectRoot: bundle.projectRootDirectory,
+            resourceBudget: budget,
+            prefetch: prefetch,
+            isCurrent: isCurrent,
           );
   }
 
@@ -411,6 +419,9 @@ Set<String> _materializedSnapshotIds(MapData map) {
 Future<BorderVisualSnapshotIntegrity> _inspectSnapshotCached(
   BorderVisualSnapshot snapshot, {
   required String projectRoot,
+  required RuntimeResourceBudget resourceBudget,
+  required bool prefetch,
+  bool Function()? isCurrent,
 }) async {
   final key = await _snapshotStatKey(snapshot, projectRoot: projectRoot);
   final cached = _integrityByStatKey.remove(key);
@@ -418,7 +429,88 @@ Future<BorderVisualSnapshotIntegrity> _inspectSnapshotCached(
     _integrityByStatKey[key] = cached;
     return cached;
   }
-  final result = await _inspectSnapshotOffThread(snapshot, projectRoot);
+  final reservation = await resourceBudget.acquire(
+    prefetch: prefetch,
+    isCurrent: isCurrent,
+  );
+  late final BorderVisualSnapshotIntegrity result;
+  try {
+    var encoded = 0;
+    var cropped = 0;
+    var largestDecoded = 0;
+    var inspectable = true;
+    final bytesByPath = <String, Uint8List>{};
+    for (final frame in snapshot.frames) {
+      final file = File(p.join(projectRoot, frame.relativeAssetPath));
+      if (!await file.exists()) continue;
+      final length = await file.length();
+      if (length <= 0 || length > resourceBudget.profile.maximumEncodedBytes) {
+        throw const RuntimeResourceAdmissionException('border_encoded_bytes');
+      }
+      if (length >
+          (resourceBudget.profile.maximumTransientBytes -
+                  encoded -
+                  cropped -
+                  largestDecoded * 4) ~/
+              2) {
+        throw const RuntimeResourceAdmissionException('border_encoded_bytes');
+      }
+      encoded += length * 2;
+      reservation.resize(
+        residentBytes: 0,
+        transientBytes: encoded + cropped + largestDecoded * 4,
+      );
+      final bytes = await readRuntimeImageFileBytes(file, length);
+      bytesByPath[frame.relativeAssetPath] = bytes;
+      try {
+        final dimensions = await inspectRuntimeImageDimensions(bytes);
+        final decoded = runtimeImageRgbaByteLength(
+          dimensions.width,
+          dimensions.height,
+          maximumBytes:
+              (resourceBudget.profile.maximumTransientBytes -
+                  encoded -
+                  cropped) ~/
+              4,
+        );
+        if (decoded > largestDecoded) largestDecoded = decoded;
+      } on RuntimeResourceAdmissionException {
+        rethrow;
+      } on Object {
+        inspectable = false;
+        break;
+      }
+      cropped += runtimeImageRgbaByteLength(
+        frame.sourceRectPx.width,
+        frame.sourceRectPx.height,
+        maximumBytes:
+            resourceBudget.profile.maximumTransientBytes -
+            encoded -
+            cropped -
+            largestDecoded * 4,
+      );
+      reservation.resize(
+        residentBytes: 0,
+        transientBytes: encoded + cropped + largestDecoded * 4,
+      );
+    }
+    reservation.ensureCurrent();
+    result = inspectable
+        ? await _inspectSnapshotOffThread(
+            snapshot,
+            bytesByPath,
+            resourceBudget.profile.maximumTransientBytes,
+          )
+        : BorderVisualSnapshotIntegrity(
+            snapshotId: snapshot.id,
+            metadataValid: false,
+            filesPresent: true,
+            contentFingerprintMatches: false,
+          );
+    reservation.ensureCurrent();
+  } finally {
+    reservation.release();
+  }
   _integrityByStatKey[key] = result;
   while (_integrityByStatKey.length > _integrityCacheCapacity) {
     _integrityByStatKey.remove(_integrityByStatKey.keys.first);
@@ -446,9 +538,11 @@ Future<String> _snapshotStatKey(
       ..write('|')
       ..write(absolutePath)
       ..write('#')
-      ..write(stat.type == FileSystemEntityType.notFound
-          ? 'missing'
-          : '${stat.modified.microsecondsSinceEpoch},${stat.size}')
+      ..write(
+        stat.type == FileSystemEntityType.notFound
+            ? 'missing'
+            : '${stat.modified.microsecondsSinceEpoch},${stat.size}',
+      )
       ..write('#')
       ..write('${rect.x},${rect.y},${rect.width},${rect.height}')
       ..write('#')
@@ -463,37 +557,46 @@ Future<String> _snapshotStatKey(
 /// snapshot (modèle pur) et le chemin racine.
 Future<BorderVisualSnapshotIntegrity> _inspectSnapshotOffThread(
   BorderVisualSnapshot snapshot,
-  String projectRoot,
+  Map<String, Uint8List> bytesByPath,
+  int maximumBytes,
 ) {
   return Isolate.run(
-    () => _inspectSnapshot(snapshot, projectRoot: projectRoot),
+    () => _inspectSnapshot(
+      snapshot,
+      bytesByPath: bytesByPath,
+      maximumBytes: maximumBytes,
+    ),
   );
 }
 
 Future<BorderVisualSnapshotIntegrity> _inspectSnapshot(
   BorderVisualSnapshot snapshot, {
-  required String projectRoot,
+  required Map<String, Uint8List> bytesByPath,
+  required int maximumBytes,
 }) async {
   var metadataValid = true;
   var filesPresent = true;
   final contentFrames = <BorderSnapshotContentFrame>[];
   for (final frame in snapshot.frames) {
-    final absolutePath = p.normalize(
-      p.absolute(p.join(projectRoot, frame.relativeAssetPath)),
-    );
-    final file = File(absolutePath);
-    if (!await file.exists()) {
+    final bytes = bytesByPath[frame.relativeAssetPath];
+    if (bytes == null) {
       filesPresent = false;
       continue;
     }
     try {
-      final decoded = img.decodeImage(await file.readAsBytes());
+      final decoded = img.decodeImage(bytes, frame: 0);
       final rect = frame.sourceRectPx;
       if (decoded == null || !_rectFits(rect, decoded.width, decoded.height)) {
         metadataValid = false;
         continue;
       }
-      final rgba = Uint8List(rect.width * rect.height * 4);
+      final rgba = Uint8List(
+        runtimeImageRgbaByteLength(
+          rect.width,
+          rect.height,
+          maximumBytes: maximumBytes,
+        ),
+      );
       final transparentRgb = frame.transparentColorArgb == null
           ? null
           : frame.transparentColorArgb! & 0x00ffffff;
@@ -533,9 +636,8 @@ Future<BorderVisualSnapshotIntegrity> _inspectSnapshot(
       filesPresent &&
       contentFrames.length == snapshot.frames.length) {
     try {
-      contentFingerprintMatches = computeBorderSnapshotContentFingerprint(
-            frames: contentFrames,
-          ) ==
+      contentFingerprintMatches =
+          computeBorderSnapshotContentFingerprint(frames: contentFrames) ==
           snapshot.contentFingerprint;
     } catch (_) {
       metadataValid = false;

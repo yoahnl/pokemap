@@ -396,12 +396,15 @@ List<PlayerBattleCommandViewData> _battleEntries(
       PlayerBattlePanelKind.message => const <PlayerBattleCommandViewData>[],
     };
 
-FileImage _fixtureImage(String relativePath) => FileImage(
-      File(
-        '${Directory.current.path}/../../examples/playable_runtime_host/'
-        'golden_personalization_v3/$relativePath',
-      ),
-    );
+final _fixtureProviders = <String, MemoryImage>{};
+
+MemoryImage _fixtureImage(String relativePath) => _fixtureProviders.putIfAbsent(
+  relativePath,
+  () => MemoryImage(File(
+    '${Directory.current.path}/../../examples/playable_runtime_host/'
+    'golden_personalization_v3/$relativePath',
+  ).readAsBytesSync()),
+);
 
 Future<void> _seedFixtureImages() async {
   for (final relativePath in <String>[
@@ -412,7 +415,7 @@ Future<void> _seedFixtureImages() async {
   ]) {
     final provider = _fixtureImage(relativePath);
     final codec = await ui.instantiateImageCodec(
-      await provider.file.readAsBytes(),
+      provider.bytes,
     );
     final frame = await codec.getNextFrame();
     PaintingBinding.instance.imageCache.putIfAbsent(
