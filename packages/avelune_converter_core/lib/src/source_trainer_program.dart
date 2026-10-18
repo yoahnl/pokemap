@@ -7,6 +7,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       {required this.kind,
       required this.trainerType,
       required this.trainerName,
+      required this.trainerVersion,
       required this.detectionDistance,
       required this.defeatedFactId,
       required List<String> challengeLines,
@@ -25,17 +26,19 @@ final class SourceTrainerProgramNode extends SourceEventNode {
 
   final SourceTrainerProgramKind kind;
   final String trainerType, trainerName, defeatedFactId, endSpeechComment;
-  final int detectionDistance, sourceTriggerCode, sourceMoveType;
+  final int trainerVersion,
+      detectionDistance,
+      sourceTriggerCode,
+      sourceMoveType;
   final List<String> challengeLines, afterWinLines;
   final SourcePreservedData rawDataRef;
   final List<SourcePreservedData> sourcePageRefs;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
 
-  int get trainerVersion => 0;
   bool get facesPlayerAfterDialogue =>
       kind == SourceTrainerProgramKind.afterWin;
   List<String> get requiredGameplayBindings => [
-        'nativeTrainerDefinitionVersion0',
+        'nativeTrainerDefinitionVersion$trainerVersion',
         'nativeTrainerBattleOutcome',
         'sourceTrainerSightAndApproach',
         'sourceTrainerLockAndUnlock',
@@ -209,8 +212,9 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     }
     final encounter = _SourceTrainerProgramCursor(values[0]['list'] as List);
     final intro = encounter.literal(355);
-    final introMatch = RegExp(r'^pbTrainerIntro\(:([A-Z_][A-Z0-9_]{0,127})\)$')
-        .firstMatch(intro);
+    final introMatch =
+        RegExp(r'^pbTrainerIntro\(:([A-Za-z_][A-Za-z0-9_]{0,127})\)$')
+            .firstMatch(intro);
     if (introMatch == null) return null;
     encounter.expect(355, 0, const ['pbNoticePlayer(get_self)']);
     final challenge = encounter.texts();
@@ -220,12 +224,12 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     if (battle.length != 2 || battle[0] != 12 || battle[1] is! String) {
       return null;
     }
-    final battleMatch =
-        RegExp(r'^TrainerBattle\.start\(:([A-Z_][A-Z0-9_]{0,127}), (.+)\)$')
-            .firstMatch(battle[1] as String);
+    final battleMatch = RegExp(
+            r'^TrainerBattle\.start\(:([A-Za-z_][A-Za-z0-9_]{0,127}), (.+)\)$')
+        .firstMatch(battle[1] as String);
     if (battleMatch == null || battleMatch[1] != introMatch[1]) return null;
-    final trainerName = _sourceTrainerLiteralName(battleMatch[2]!);
-    if (trainerName == null) return null;
+    final arguments = _sourceTrainerLiteralArguments(battleMatch[2]!);
+    if (arguments == null) return null;
     encounter.expect(123, 1, const ['A', 0]);
     encounter.expect(0, 1, const []);
     encounter.expect(412, 0, const []);
@@ -269,7 +273,8 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
               ? SourceTrainerProgramKind.encounter
               : SourceTrainerProgramKind.afterWin,
           trainerType: battleMatch[1]!,
-          trainerName: trainerName,
+          trainerName: arguments.name,
+          trainerVersion: arguments.version,
           detectionDistance: distance,
           defeatedFactId: analyzer.selfFactId(mapId, event.sourceEventId, 'A'),
           challengeLines: challenge,
@@ -536,6 +541,26 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
     }
   }
   return true;
+}
+
+({String name, int version})? _sourceTrainerLiteralArguments(String arguments) {
+  if (arguments.isEmpty) return null;
+  final quote = arguments[0];
+  if (quote != '"' && quote != "'") return null;
+  for (var index = 1; index < arguments.length; index++) {
+    if (arguments[index] == r'\') {
+      index++;
+    } else if (arguments[index] == quote) {
+      final name = _sourceTrainerLiteralName(arguments.substring(0, index + 1));
+      if (name == null) return null;
+      final suffix = arguments.substring(index + 1);
+      if (suffix.isEmpty) return (name: name, version: 0);
+      final match = RegExp(r'^, (0|[1-9][0-9]*)$').firstMatch(suffix);
+      final version = match == null ? null : _pbsInt(match[1]!);
+      return version == null ? null : (name: name, version: version);
+    }
+  }
+  return null;
 }
 
 String? _sourceTrainerLiteralName(String literal) {

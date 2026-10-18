@@ -177,7 +177,204 @@ List<TrainerRubyObject> _rawTemplateObjects(
   ];
 }
 
+Future<NormalizedSourceProject> _literalTrainerSource(String arguments,
+        {String type = 'FRLG_LEADER_Giovanni', String? introType}) =>
+    trainerSource(mutate: (pages) {
+      final commands = pages[0].fields['@list'] as List;
+      (commands[0] as TrainerRubyObject).fields['@parameters'] = [
+        'pbTrainerIntro(:${introType ?? type})'
+      ];
+      (commands[4] as TrainerRubyObject).fields['@parameters'] = [
+        12,
+        'TrainerBattle.start(:$type, $arguments)'
+      ];
+    });
+
 void main() {
+  group('literal trainer arguments', () {
+    for (final type in [
+      'FRLG_BUGCATCHER',
+      'FRLG_LEADER_Giovanni',
+      'trainer',
+      '_Trainer2',
+      'A${'b' * 127}'
+    ]) {
+      test('preserves case-sensitive Ruby symbol $type', () async {
+        final source = await _literalTrainerSource('"Giovanni"', type: type);
+        final analysis = analyzeTrainerSource(source);
+        for (final page in analysis.eventAt(417, 23)!.pages) {
+          final node = _program(page);
+          expect(node.trainerType, type);
+          expect(node.trainerVersion, 0);
+          expect(node.requiredGameplayBindings,
+              contains('nativeTrainerDefinitionVersion0'));
+        }
+      });
+    }
+    for (final (arguments, version) in [
+      ('"Giovanni"', 0),
+      ('"Giovanni", 0', 0),
+      ('"Giovanni", 1', 1),
+      ('"Giovanni", 9007199254740991', 9007199254740991),
+    ]) {
+      test('preserves literal team version in both pages: $arguments',
+          () async {
+        final source = await _literalTrainerSource(arguments);
+        final analysis = analyzeTrainerSource(source);
+        final nodes = analysis.eventAt(417, 23)!.pages.map(_program).toList();
+        expect(nodes.map((node) => node.kind), SourceTrainerProgramKind.values);
+        for (final node in nodes) {
+          expect(node.trainerName, 'Giovanni');
+          expect(node.trainerVersion, version);
+          expect(node.toJson()['trainerVersion'], version);
+          expect(node.requiredGameplayBindings.first,
+              'nativeTrainerDefinitionVersion$version');
+          expect(node.toJson()['nativeExecutionQualified'], isFalse);
+          expect(node.toJson()['sourceScriptsExecuted'], 0);
+          expect(
+              node.isBoundToSourceEvent(
+                  source: source,
+                  profile: analysis.profile,
+                  sourceMapId: 417,
+                  event: source.maps.single.map.events.single),
+              isTrue);
+        }
+      });
+    }
+    for (final (arguments, name, version) in [
+      ('"Name, 1"', 'Name, 1', 0),
+      ('"Name, 1", 2', 'Name, 1', 2),
+      (r'"O\"Neil, 23", 4', 'O"Neil, 23', 4),
+      (r"'O\'Neil, 23', 4", "O'Neil, 23", 4),
+      (r'"Back\\slash, 5", 6', r'Back\slash, 5', 6),
+    ]) {
+      test('keeps quoted commas and escaped characters: $arguments', () async {
+        final source = await _literalTrainerSource(arguments);
+        for (final page
+            in analyzeTrainerSource(source).eventAt(417, 23)!.pages) {
+          final node = _program(page);
+          expect(node.trainerName, name);
+          expect(node.trainerVersion, version);
+        }
+      });
+    }
+    for (final suffix in [
+      '-1',
+      '+1',
+      '1.0',
+      '1e2',
+      '0x1',
+      '00',
+      '01',
+      '010',
+      '09',
+      '1_000',
+      '9007199254740992',
+      '99999999999999999999999999999999999',
+      'version',
+      r'$version',
+      'nil',
+      'true',
+      '"1"',
+      ':one',
+      '[1]',
+      '1 + 1',
+      'eval("1")',
+      '#{version}',
+      'version: 1',
+      '1, 2',
+      '1, canLose: true',
+      '1 # comment',
+      '1; unknown()',
+      '',
+    ]) {
+      test('refuses a nonliteral or unsupported team version: $suffix',
+          () async {
+        final source = await _literalTrainerSource('"Name", $suffix');
+        _expectRejected(analyzeTrainerSource(source), 417, 23);
+      });
+    }
+    for (final arguments in [
+      r'"#{unknown()}", 1',
+      r'"#@variable", 1',
+      r'"Name\nOther", 1',
+      r'"Name\", 1',
+      '"Name" + "Other", 1',
+      'name, 1',
+      '"Name", 1);unknown();("Other"',
+      '"Name", 1) # comment(',
+      '"Name", 1\n',
+    ]) {
+      test('refuses executable or malformed arguments: $arguments', () async {
+        final source = await _literalTrainerSource(arguments);
+        _expectRejected(analyzeTrainerSource(source), 417, 23);
+      });
+    }
+    for (final type in [
+      '1Trainer',
+      'FRLG-LEADER',
+      'A${'b' * 128}',
+      'Trainer;unknown()',
+    ]) {
+      test('refuses invalid or oversized Ruby symbol $type', () async {
+        final source = await _literalTrainerSource('"Name", 1', type: type);
+        _expectRejected(analyzeTrainerSource(source), 417, 23);
+      });
+    }
+    test('requires exact intro type case for a versioned battle', () async {
+      final source = await _literalTrainerSource('"Name", 1',
+          introType: 'FRLG_LEADER_GIOVANNI');
+      _expectRejected(analyzeTrainerSource(source), 417, 23);
+    });
+    test('binds versioned nodes to unchanged raw source and normalized calls',
+        () async {
+      final original = await _literalTrainerSource('"Name", 1');
+      final changed = await _literalTrainerSource('"Name", 2');
+      final originalAnalysis = analyzeTrainerSource(original);
+      final changedAnalysis = analyzeTrainerSource(changed);
+      final originalNodes =
+          originalAnalysis.eventAt(417, 23)!.pages.map(_program).toList();
+      final changedNodes =
+          changedAnalysis.eventAt(417, 23)!.pages.map(_program).toList();
+      for (final index in [0, 1]) {
+        expect(originalNodes[index].trainerVersion, 1);
+        expect(changedNodes[index].trainerVersion, 2);
+        expect(canonicalHashOf(originalNodes[index].toJson()),
+            isNot(canonicalHashOf(changedNodes[index].toJson())));
+        expect(
+            originalNodes[index].isBoundToSourceEvent(
+                source: changed,
+                profile: changedAnalysis.profile,
+                sourceMapId: 417,
+                event: changed.maps.single.map.events.single),
+            isFalse);
+      }
+      for (final variant in ['version', 'rawReference']) {
+        final json = jsonDecode(jsonEncode(original.maps.single.toJson()))
+            as Map<String, dynamic>;
+        final pages = json['map']['events'][0]['pages'] as List;
+        if (variant == 'version') {
+          pages[0]['commands'][4]['parameters'] = [
+            12,
+            'TrainerBattle.start(:FRLG_LEADER_Giovanni, "Name", 2)'
+          ];
+        } else {
+          pages[0]['rawDataRef'] = pages[1]['rawDataRef'];
+        }
+        final event = SourceMapIr.fromJson(json).map.events.single;
+        for (final node in originalNodes) {
+          expect(
+              node.isBoundToSourceEvent(
+                  source: original,
+                  profile: originalAnalysis.profile,
+                  sourceMapId: 417,
+                  event: event),
+              isFalse,
+              reason: variant);
+        }
+      }
+    });
+  });
   test('raw template refuses duplicate string encoding metadata', () async {
     final source = await trainerSource(mutate: (pages) {
       ((pages[0].fields['@list'] as List)[2] as TrainerRubyObject)
@@ -385,11 +582,11 @@ void main() {
     'trainer intro disagreement': (pages) =>
         ((pages[0].fields['@list'] as List)[0] as TrainerRubyObject)
             .fields['@parameters'] = ['pbTrainerIntro(:OTHER)'],
-    'battle version': (pages) =>
+    'battle variable version': (pages) =>
         ((pages[0].fields['@list'] as List)[4] as TrainerRubyObject)
             .fields['@parameters'] = [
           12,
-          'TrainerBattle.start(:FRLG_BUGCATCHER, "Brent", 1)'
+          'TrainerBattle.start(:FRLG_BUGCATCHER, "Brent", version)'
         ],
     'battle loss parameter': (pages) =>
         ((pages[0].fields['@list'] as List)[4] as TrainerRubyObject)
@@ -536,6 +733,18 @@ void main() {
       analysis = SourceEventAnalyzer.forProject(source,
               profile: SourceEventProfile.kantoForProject(source))
           .analyze();
+    });
+
+    test('preserves the canonical bytes of all original version zero nodes',
+        () {
+      final nodes = [
+        for (final id in _trainerIds)
+          for (final page in analysis.eventAt(id.$1, id.$2)!.pages)
+            _program(page).toJson()
+      ];
+      expect(nodes, hasLength(22));
+      expect(canonicalHashOf(nodes).value,
+          'cb27b33619027cb2c6abd8f928caa4d8ae680c20bb73991cf585e2e98c26b862');
     });
 
     for (final id in _trainerIds) {
