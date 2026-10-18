@@ -449,6 +449,72 @@ void main() {
           world, const MoveIntent(Direction.south, pixelsPerStep: 32));
       expect(step, isA<Jumped>());
       expect((step as Jumped).plan.landingPos, const GridPos(x: 1, y: 3));
+      final derived = <NativeArtifact>[];
+      for (final snapshot in native.manifest.borderCatalog.visualSnapshots) {
+        for (final frame in snapshot.frames) {
+          derived.add(
+            NativeArtifact(
+              bytes: await File('${receipt.projectPath}/${frame.relativeAssetPath}')
+                  .readAsBytes(),
+            ),
+          );
+        }
+      }
+      final retained = [...draft.artifacts, ...draft.sourceArtifacts];
+      final finalUniqueCount = {
+        for (final artifact in [...retained, ...derived]) artifact.handle,
+      }.length;
+      expect(
+        finalUniqueCount,
+        greaterThan(retained.map((a) => a.handle).toSet().length),
+      );
+      expect(retained.length + derived.length * 2, greaterThan(finalUniqueCount));
+      NativeProjectDraft withFolder(String folder) => NativeProjectDraft(
+            source: draft.source,
+            projectName: draft.projectName,
+            parentPath: draft.parentPath,
+            folderName: folder,
+            sourceRootPath: draft.sourceRootPath,
+            mapIds: draft.mapIds,
+            artifacts: draft.artifacts,
+            sourceArtifacts: draft.sourceArtifacts,
+            mutations: draft.mutations,
+            compositionEvidence: draft.compositionEvidence,
+            defaultMapWidth: draft.defaultMapWidth,
+            defaultMapHeight: draft.defaultMapHeight,
+          );
+      final bounded = withFolder('border-quota-rejected');
+      final boundedApproval = approveNativeFixtureDraft(bounded);
+      final stages = <NativeWriteStage>[];
+      await expectLater(
+        NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage)).write(
+          boundedApproval.plan,
+          boundedApproval.context,
+          bounded,
+          limits: NativeWriteLimits(maxArtifacts: finalUniqueCount - 1),
+        ),
+        throwsA(
+          isA<NativeWriteException>().having(
+            (error) => error.code,
+            'code',
+            'native.border.quota',
+          ),
+        ),
+      );
+      expect(stages, isEmpty);
+      expect(
+        await Directory('${temporary.path}/border-quota-rejected').exists(),
+        isFalse,
+      );
+      final exact = withFolder('border-quota-exact');
+      final exactApproval = approveNativeFixtureDraft(exact);
+      final exactReceipt = await NativeProjectWriter().write(
+        exactApproval.plan,
+        exactApproval.context,
+        exact,
+        limits: NativeWriteLimits(maxArtifacts: finalUniqueCount),
+      );
+      expect(exactReceipt.verified, isTrue);
     } finally {
       opener.closeWorkspace(opened.workspaceHandle);
     }

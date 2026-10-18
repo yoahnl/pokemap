@@ -327,9 +327,11 @@ void main() {
     expect(() => draft.sourceArtifacts.clear(), throwsUnsupportedError);
   });
 
-  test('AC-08 source witnesses consume aggregate artifact counts and bytes',
+  test('AC-08 distinct source witnesses consume artifact counts and bytes',
       () {
-    final witnesses = [NativeArtifact(bytes: fixture.atlasBytes)];
+    final witnesses = [
+      NativeArtifact(bytes: image.encodePng(image.Image(width: 1, height: 1)))
+    ];
     expect(
         () => withSourceArtifacts(witnesses,
             limits: const NativeWriteLimits(maxArtifacts: 1)),
@@ -340,6 +342,207 @@ void main() {
                 maxTotalArtifactBytes: fixture.atlasBytes.length)),
         throwsA(_nativeFailure));
   });
+
+  test('artifact quota counts one exact blob in both retained roles', () {
+    final witnesses = [NativeArtifact(bytes: fixture.atlasBytes)];
+    final draft = withSourceArtifacts(
+      witnesses,
+      limits: const NativeWriteLimits(maxArtifacts: 1),
+    );
+    expect(draft.artifacts, hasLength(1));
+    expect(draft.sourceArtifacts, hasLength(1));
+    expect(draft.artifacts.single.handle, draft.sourceArtifacts.single.handle);
+    expect(draft.canonicalHash, isNot(fixture.draft.canonicalHash));
+    draft.validateResourceBudget(
+      limits: const NativeWriteLimits(maxArtifacts: 1),
+    );
+    expect(
+      () => draft.validateResourceBudget(
+        limits: NativeWriteLimits(
+          maxArtifacts: 1,
+          maxTotalArtifactBytes: fixture.atlasBytes.length * 2 - 1,
+        ),
+      ),
+      throwsA(
+        isA<NativeWriteException>().having(
+          (error) => error.code,
+          'code',
+          'native.quota.artifact',
+        ),
+      ),
+    );
+  });
+
+  test('artifact quota refuses a distinct blob beyond a shared blob', () async {
+    final witnesses = [
+      NativeArtifact(bytes: fixture.atlasBytes),
+      NativeArtifact(bytes: image.encodePng(image.Image(width: 1, height: 1))),
+    ];
+    expect(
+      () => withSourceArtifacts(
+        witnesses,
+        limits: const NativeWriteLimits(maxArtifacts: 1),
+      ),
+      throwsA(
+        isA<NativeWriteException>().having(
+          (error) => error.code,
+          'code',
+          'native.quota.draft',
+        ),
+      ),
+    );
+    final draft = withSourceArtifacts(
+      witnesses,
+      limits: const NativeWriteLimits(maxArtifacts: 2),
+    );
+    await refuseBeforeStage(
+      draft,
+      limits: const NativeWriteLimits(maxArtifacts: 1),
+      failureMatcher: isA<NativeWriteException>().having(
+        (error) => error.code,
+        'code',
+        'native.quota.draft',
+      ),
+    );
+    expect(
+      () => draft.validateResourceBudget(
+        limits: const NativeWriteLimits(maxArtifacts: 1),
+      ),
+      throwsA(
+        isA<NativeWriteException>().having(
+          (error) => error.code,
+          'code',
+          'native.quota.draft',
+        ),
+      ),
+    );
+  });
+
+  test('duplicate blobs within either retained role are refused', () {
+    final blob = fixture.draft.artifacts.single;
+    for (final makeDraft in [
+      () => withSourceArtifacts([blob, blob]),
+      () => copyNativeFixtureDraft(fixture.draft, artifacts: [blob, blob]),
+    ]) {
+      expect(
+        makeDraft,
+        throwsA(
+          isA<NativeWriteException>().having(
+            (error) => error.code,
+            'code',
+            'native.artifact.duplicate',
+          ),
+        ),
+      );
+    }
+  });
+
+  test(
+    'shared artifact handles with different media are refused before staging',
+    () async {
+      final bytes = utf8.encode('{}');
+      final json = NativeArtifact(bytes: bytes, mediaType: 'application/json');
+      final png = NativeArtifact(bytes: bytes);
+      expect(json.handle, png.handle);
+      for (final roles in [(json, png), (png, json)]) {
+        expect(
+          () => NativeProjectDraft(
+            source: fixture.draft.source,
+            projectName: fixture.draft.projectName,
+            parentPath: fixture.draft.parentPath,
+            folderName: fixture.draft.folderName,
+            mapIds: fixture.draft.mapIds,
+            artifacts: [roles.$1],
+            sourceArtifacts: [roles.$2],
+            mutations: fixture.draft.mutations,
+          ),
+          throwsA(
+            isA<NativeWriteException>().having(
+              (error) => error.code,
+              'code',
+              'native.artifact.conflict',
+            ),
+          ),
+        );
+      }
+      expect(await _treeShape(output.path), isEmpty);
+    },
+  );
+
+  test(
+    'derived artifact quota counts shared exact blobs and bounds references',
+    () {
+      final blob = fixture.draft.artifacts.single;
+      final other = NativeArtifact(
+        bytes: image.encodePng(image.Image(width: 1, height: 1)),
+      );
+      expect(
+        validateNativeArtifactCount(
+          artifacts: [blob],
+          sourceArtifacts: [],
+          derivedArtifacts: [NativeArtifact(bytes: blob.bytes)],
+          limits: const NativeWriteLimits(maxArtifacts: 1),
+        ),
+        1,
+      );
+      expect(
+        validateNativeArtifactCount(
+          artifacts: [blob],
+          sourceArtifacts: [blob],
+          derivedArtifacts: [
+            other,
+            NativeArtifact(bytes: other.bytes),
+          ],
+          limits: const NativeWriteLimits(maxArtifacts: 2),
+        ),
+        2,
+      );
+      for (final derived in [
+        [other],
+        [other, other, other],
+      ]) {
+        expect(
+          () => validateNativeArtifactCount(
+            artifacts: [blob],
+            sourceArtifacts: [blob],
+            derivedArtifacts: derived,
+            limits: NativeWriteLimits(
+              maxArtifacts: derived.length == 1 ? 1 : 2,
+            ),
+            quotaCode: 'native.border.quota',
+          ),
+          throwsA(
+            isA<NativeWriteException>().having(
+              (error) => error.code,
+              'code',
+              'native.border.quota',
+            ),
+          ),
+        );
+      }
+      expect(
+        () => validateNativeArtifactCount(
+          artifacts: [blob],
+          sourceArtifacts: [],
+          derivedArtifacts: [
+            NativeArtifact(
+              bytes: utf8.encode('{}'),
+              mediaType: 'application/json',
+            ),
+            NativeArtifact(bytes: utf8.encode('{}')),
+          ],
+          limits: const NativeWriteLimits(maxArtifacts: 3),
+        ),
+        throwsA(
+          isA<NativeWriteException>().having(
+            (error) => error.code,
+            'code',
+            'native.artifact.conflict',
+          ),
+        ),
+      );
+    },
+  );
 
   test(
       'AC-08 source witnesses without a bound library are refused before stage',
@@ -608,7 +811,10 @@ void main() {
                 .fold<int>(0, (sum, artifact) => sum + artifact.bytes.length)));
     await refuseBeforeStage(draft,
         approval: approval,
-        limits: NativeWriteLimits(maxArtifacts: draft.artifacts.length));
+        limits: NativeWriteLimits(maxArtifacts: {
+          for (final artifact in [...draft.artifacts, ...draft.sourceArtifacts])
+            artifact.handle,
+        }.length - 1));
   });
 
   test('AC-08 real reraster cancellation has no staging effects', () async {
@@ -1459,25 +1665,42 @@ void main() {
             .having((error) => error.code, 'code', 'native.quota.image'));
   });
 
-  test('aggregate image budget exact total publishes and reopens both roles',
-      () async {
-    final (_, _, draft, approval) =
-        await assetLibraryFixture(mode: AssetOutputMode.sharedAtlas);
-    final receipt = await const NativeProjectWriter().write(
-        approval.plan, approval.context, draft,
-        limits: const NativeWriteLimits(
-            maxImagePixels: 65536, maxTotalImagePixels: 131072));
-    final reopened = await _NativeProject.open(receipt.projectPath);
-    try {
-      final snapshot = await reopened.load();
-      expect(snapshot.loadDiagnostics, isEmpty);
-      expect(receipt.verified, isTrue);
-      expect(snapshot.manifest.elements, isNotEmpty);
-    } finally {
-      await reopened.close();
-    }
-    await sourceUnchanged();
-  });
+  test(
+    'aggregate image budget exact total publishes and reopens both roles',
+    () async {
+      final (_, _, draft, approval) = await assetLibraryFixture(
+        mode: AssetOutputMode.sharedAtlas,
+      );
+      final uniqueCount = {
+        for (final artifact in [...draft.artifacts, ...draft.sourceArtifacts])
+          artifact.handle,
+      }.length;
+      expect(
+        draft.artifacts.length + draft.sourceArtifacts.length,
+        greaterThan(uniqueCount),
+      );
+      final receipt = await const NativeProjectWriter().write(
+        approval.plan,
+        approval.context,
+        draft,
+        limits: NativeWriteLimits(
+          maxArtifacts: uniqueCount,
+          maxImagePixels: 65536,
+          maxTotalImagePixels: 131072,
+        ),
+      );
+      final reopened = await _NativeProject.open(receipt.projectPath);
+      try {
+        final snapshot = await reopened.load();
+        expect(snapshot.loadDiagnostics, isEmpty);
+        expect(receipt.verified, isTrue);
+        expect(snapshot.manifest.elements, isNotEmpty);
+      } finally {
+        await reopened.close();
+      }
+      await sourceUnchanged();
+    },
+  );
 
   test('aggregate image budget keeps single PNG geometry bounded', () async {
     await refuseBeforeStage(fixture.draft,

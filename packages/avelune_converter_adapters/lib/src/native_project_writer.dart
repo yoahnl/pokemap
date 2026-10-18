@@ -143,6 +143,68 @@ final class NativeArtifact {
   String get handle => reference.handle;
 }
 
+int validateNativeArtifactCount({
+  required List<NativeArtifact> artifacts,
+  required List<NativeArtifact> sourceArtifacts,
+  List<NativeArtifact> derivedArtifacts = const [],
+  required NativeWriteLimits limits,
+  String quotaCode = 'native.quota.draft',
+}) {
+  limits.validate();
+  if (artifacts.length > limits.maxArtifacts ||
+      sourceArtifacts.length > limits.maxArtifacts ||
+      artifacts.length + sourceArtifacts.length + derivedArtifacts.length >
+          limits.maxArtifacts * 2) {
+    throw NativeWriteException(quotaCode,
+        'Artifact role and reference counts exceed the bounded budget');
+  }
+  final blobs = <String, NativeArtifact>{};
+  void admit(NativeArtifact artifact) {
+    final previous = blobs[artifact.handle];
+    if (previous != null &&
+        (previous.reference != artifact.reference ||
+            previous.rawSha256 != artifact.rawSha256 ||
+            previous.bytes.length != artifact.bytes.length ||
+            !_equalNativeArtifactBytes(previous.bytes, artifact.bytes))) {
+      throw const NativeWriteException('native.artifact.conflict',
+          'Shared artifact handles must identify the exact same blob');
+    }
+    blobs[artifact.handle] = artifact;
+  }
+
+  for (final role in [artifacts, sourceArtifacts]) {
+    final handles = <String>{};
+    for (final artifact in role) {
+      if (!handles.add(artifact.handle)) {
+        throw const NativeWriteException('native.artifact.duplicate',
+            'Duplicate artifact handles within a retained role are not admitted');
+      }
+      admit(artifact);
+    }
+  }
+  for (final artifact in derivedArtifacts) {
+    admit(artifact);
+  }
+  if (blobs.length > limits.maxArtifacts) {
+    throw NativeWriteException(
+        quotaCode,
+        'Unique artifact budget exceeded: artifacts=${artifacts.length}, '
+        'sourceArtifacts=${sourceArtifacts.length}, '
+        'derivedArtifacts=${derivedArtifacts.length}, '
+        'uniqueArtifacts=${blobs.length}, maxArtifacts=${limits.maxArtifacts}');
+  }
+  return blobs.length;
+}
+
+bool _equalNativeArtifactBytes(List<int> left, List<int> right) {
+  if (identical(left, right)) return true;
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
 const _nativeAudioMediaTypes = {
   'audio/wav',
   'audio/ogg',
@@ -321,20 +383,12 @@ final class NativeProjectDraft {
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits._validate();
+    validateNativeArtifactCount(
+        artifacts: artifacts, sourceArtifacts: sourceArtifacts, limits: limits);
     if (mapIds.length > limits.maxMaps ||
-        artifacts.length + sourceArtifacts.length > limits.maxArtifacts ||
         nativeLogicalMutationCount(mutations) > limits.maxMutations) {
-      final uniqueArtifacts = {
-        for (final artifact in [...artifacts, ...sourceArtifacts])
-          artifact.handle,
-      }.length;
-      throw NativeWriteException('native.quota.draft',
-          'Draft entry budget exceeded: artifacts=${artifacts.length}, '
-          'sourceArtifacts=${sourceArtifacts.length}, '
-          'totalArtifacts=${artifacts.length + sourceArtifacts.length}, '
-          'uniqueArtifacts=$uniqueArtifacts, maxArtifacts=${limits.maxArtifacts}; '
-          'mutations=${nativeLogicalMutationCount(mutations)}, maxMutations=${limits.maxMutations}; '
-          'maps=${mapIds.length}, maxMaps=${limits.maxMaps}.');
+      throw const NativeWriteException(
+          'native.quota.draft', 'Draft map or mutation budget exceeded');
     }
     var total = 0;
     for (final artifact in [...artifacts, ...sourceArtifacts]) {
@@ -494,9 +548,9 @@ final class NativeProjectDraft {
 
 void _validateNativeDraftBinding(
     NativeProjectDraft draft, NativeWriteLimits limits) {
-  if (draft.artifacts.length + draft.sourceArtifacts.length >
-          limits.maxArtifacts ||
-      nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
+  validateNativeArtifactCount(artifacts: draft.artifacts,
+      sourceArtifacts: draft.sourceArtifacts, limits: limits);
+  if (nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
       draft.mapIds.length > limits.maxMaps) {
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
@@ -1042,11 +1096,8 @@ final class _PreparedNativeDraft {
 ({Map<String, NativeArtifact> artifacts, Map<String, (int, int)> dimensions})
     _preflightNativeResourceBudget(
         NativeProjectDraft draft, NativeWriteLimits limits) {
-  if (draft.artifacts.length + draft.sourceArtifacts.length >
-      limits.maxArtifacts) {
-    throw const NativeWriteException('native.quota.draft',
-        'Retained artifact and source witness count exceeds the budget');
-  }
+  validateNativeArtifactCount(artifacts: draft.artifacts,
+      sourceArtifacts: draft.sourceArtifacts, limits: limits);
   final artifacts = <String, NativeArtifact>{};
   final dimensions = <String, (int, int)>{};
   final witnessHandles = <String>{};
@@ -1134,9 +1185,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     throw const NativeWriteException('native.source.context',
         'Normalized source differs from the approved plan context');
   }
-  if (draft.artifacts.length + draft.sourceArtifacts.length >
-          limits.maxArtifacts ||
-      nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
+  validateNativeArtifactCount(artifacts: draft.artifacts,
+      sourceArtifacts: draft.sourceArtifacts, limits: limits);
+  if (nativeLogicalMutationCount(draft.mutations) > limits.maxMutations ||
       draft.mapIds.length > limits.maxMaps) {
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
@@ -2170,8 +2221,12 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   var derivedBytes = 0;
   var derivedPixels = 0;
-  for (final artifact in [...borderSnapshots.values,
-      for (final bytes in borderResources.blobs.values) NativeArtifact(bytes: bytes, limits: limits)]) {
+  final derivedArtifacts = [...borderSnapshots.values,
+      for (final bytes in borderResources.blobs.values) NativeArtifact(bytes: bytes, limits: limits)];
+  validateNativeArtifactCount(artifacts: draft.artifacts,
+      sourceArtifacts: draft.sourceArtifacts, derivedArtifacts: derivedArtifacts,
+      limits: limits, quotaCode: 'native.border.quota');
+  for (final artifact in derivedArtifacts) {
     derivedBytes += artifact.bytes.length;
     final size = _pngDimensions(artifact.bytes, limits);
     derivedPixels += size.$1 * size.$2;
@@ -2182,8 +2237,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     final size = _pngHeaderDimensions(artifact.bytes, limits);
     retainedPixels += size.$1 * size.$2;
   }
-  if (retained.length + borderSnapshots.length + borderResources.blobs.length > limits.maxArtifacts ||
-      retained.fold<int>(0, (sum, a) => sum + a.bytes.length) + derivedBytes > limits.maxTotalArtifactBytes ||
+  if (retained.fold<int>(0, (sum, a) => sum + a.bytes.length) + derivedBytes > limits.maxTotalArtifactBytes ||
       retainedPixels + derivedPixels > limits.maxTotalImagePixels) {
     throw const NativeWriteException('native.border.quota', 'Derived canonical Border snapshots require their explicit cumulative artifact budget');
   }

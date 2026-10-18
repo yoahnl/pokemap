@@ -570,10 +570,8 @@ final class SourceCatalogStudyComposer {
         entry.handle: entry
     }.values.toList()
       ..sort((a, b) => a.handle.compareTo(b.handle));
-    if (artifacts.length + witnesses.length > limits.maxArtifacts) {
-      throw NativeWriteException('catalogs.artifacts.quota',
-          'Catalog composition requires ${artifacts.length + witnesses.length} artifacts (${artifacts.length} output, ${witnesses.length} source); the admitted limit is ${limits.maxArtifacts}.');
-    }
+    validateNativeArtifactCount(artifacts: artifacts, sourceArtifacts: witnesses,
+        limits: limits, quotaCode: 'catalogs.artifacts.quota');
     return SourceCatalogStudyComposition(
         projection: projection,
         draft: NativeProjectDraft(

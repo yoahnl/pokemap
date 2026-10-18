@@ -360,8 +360,10 @@ final class ApprovedAssetLibraryComposer {
         }
       }
     }
-    if (sourceImages.length + frozenCandidates.length * 2 + terrainCount >
-        limits.maxArtifacts) {
+    final outputArtifactBound = frozenCandidates.length * 2 + terrainCount;
+    if (sourceImages.length > limits.maxArtifacts ||
+        outputArtifactBound > limits.maxArtifacts ||
+        sourceImages.length + outputArtifactBound > limits.maxArtifacts * 2) {
       throw const ApprovedAssetLibraryFailure('library.quota.entries',
           'Source witnesses and output artifacts exceed the collection budget');
     }
@@ -813,6 +815,13 @@ ApprovedAssetLibraryComposition _composition(
     List<ApprovedAssetCandidateBinding> bindings,
     List<ApprovedAssetLibraryDiagnostic> diagnostics,
     NativeWriteLimits limits) {
+  try {
+    validateNativeArtifactCount(artifacts: artifacts,
+        sourceArtifacts: sourceArtifacts, limits: limits,
+        quotaCode: 'library.quota.entries');
+  } on NativeWriteException catch (error) {
+    throw ApprovedAssetLibraryFailure(error.code, error.message);
+  }
   final record = _freezeLibraryJson({
     'sourceSnapshotHash': source.snapshot.canonicalHash.value,
     'sourceArchiveHash': source.archive.canonicalHash.value,
