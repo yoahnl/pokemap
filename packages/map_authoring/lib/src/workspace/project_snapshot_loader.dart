@@ -451,23 +451,43 @@ final class ProjectSnapshotLoader {
   Future<ProjectSnapshot> load(
     ProjectHandle projectHandle, {
     ProjectSnapshotLoadPolicy policy = ProjectSnapshotLoadPolicy.strict,
+    bool deferPokemonDocuments = false,
     ProjectSnapshotCacheValidation cacheValidation =
         ProjectSnapshotCacheValidation.canonical,
   }) async {
     final profiler =
         profileSink == null ? null : _ProjectSnapshotLoadProfiler();
-    final snapshotCache =
-        policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection
+    final snapshotCache = deferPokemonDocuments
+        ? null
+        : policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection
             ? _resourceUsageSnapshotCache
             : _snapshotCache;
     final cacheIdentityReadsBefore =
         profiler == null ? 0 : snapshotCache?.identityReads ?? 0;
     final access = _handles.resolveProject(projectHandle);
     final absentResourcePaths = <String>{};
+    if (deferPokemonDocuments) invalidate(projectHandle);
     Future<ProjectResourceBytes?> readOptional(String path) async {
       final bytes = await _readOptional(access, path);
       if (bytes == null) absentResourcePaths.add(path);
       return bytes;
+    }
+
+    Future<_LoadedProjectResource?> readDeferredPokemon(
+        String path, String identity) async {
+      if (!access.canStreamResources) {
+        throw const ProjectSnapshotException(
+            'project.pokemon_stream_unavailable',
+            'Pokemon document queries require streaming and resource identity access.');
+      }
+      final resource = await _readStoredResource(access, path, identity);
+      if (resource != null) return resource;
+      if ((await access.probeResource(path)).status ==
+          ProjectResourceProbeStatus.missing) {
+        return null;
+      }
+      throw const ProjectSnapshotException('project.pokemon_stream_unavailable',
+          'Pokemon document queries require streaming and resource identity access.');
     }
 
     final cached = await snapshotCache?.lookup(
@@ -592,55 +612,63 @@ final class ProjectSnapshotLoader {
           'Two project resources resolve to the same storage path.',
         );
       }
-      final itemCatalogReadTimer = profiler?.startStage();
-      final itemCatalogBytes = await readOptional(normalizedItemCatalogPath);
-      profiler?.recordInitialRead(itemCatalogReadTimer!);
-      if (itemCatalogBytes == null) {
-        final references = buildProjectItemReferenceIndex(
-          project: manifest,
-          maps: maps,
-        ).references;
-        if (policy == ProjectSnapshotLoadPolicy.strict &&
-            references.isNotEmpty) {
-          throw const ProjectSnapshotException(
-            'project.item_catalog_missing',
-            'The project references items but its canonical item catalog is missing.',
-          );
-        }
-        if (references.isNotEmpty) {
-          loadDiagnostics.add(
-            ProjectSnapshotLoadDiagnostic(
-              code: 'project.item_catalog_missing',
+      final storedItemCatalog = deferPokemonDocuments
+          ? await readDeferredPokemon(
+              normalizedItemCatalogPath, itemCatalogResourceIdentity)
+          : null;
+      if (storedItemCatalog != null) {
+        resources.add(storedItemCatalog);
+      } else {
+        final itemCatalogReadTimer = profiler?.startStage();
+        final itemCatalogBytes = await readOptional(normalizedItemCatalogPath);
+        profiler?.recordInitialRead(itemCatalogReadTimer!);
+        if (itemCatalogBytes == null) {
+          final references = buildProjectItemReferenceIndex(
+            project: manifest,
+            maps: maps,
+          ).references;
+          if (policy == ProjectSnapshotLoadPolicy.strict &&
+              references.isNotEmpty) {
+            throw const ProjectSnapshotException(
+              'project.item_catalog_missing',
+              'The project references items but its canonical item catalog is missing.',
+            );
+          }
+          if (references.isNotEmpty) {
+            loadDiagnostics.add(
+              ProjectSnapshotLoadDiagnostic(
+                code: 'project.item_catalog_missing',
+                resourceKind: 'itemCatalog',
+                resourceId: 'items',
+              ),
+            );
+          }
+        } else {
+          final itemCatalogDecodeTimer = profiler?.startStage();
+          try {
+            itemCatalog = await _decodeExecutor.decodeItemCatalog(
+              itemCatalogBytes.bytes,
+            );
+          } on ProjectSnapshotException catch (error) {
+            if (policy == ProjectSnapshotLoadPolicy.strict ||
+                error.code != 'project.item_catalog_invalid') {
+              rethrow;
+            }
+            loadDiagnostics.add(ProjectSnapshotLoadDiagnostic(
+              code: error.code,
               resourceKind: 'itemCatalog',
               resourceId: 'items',
+            ));
+          }
+          resources.add(
+            _LoadedProjectResource(
+              relativePath: normalizedItemCatalogPath,
+              identity: itemCatalogResourceIdentity,
+              bytes: itemCatalogBytes,
             ),
           );
+          profiler?.recordDecodeModel(itemCatalogDecodeTimer!);
         }
-      } else {
-        final itemCatalogDecodeTimer = profiler?.startStage();
-        try {
-          itemCatalog = await _decodeExecutor.decodeItemCatalog(
-            itemCatalogBytes.bytes,
-          );
-        } on ProjectSnapshotException catch (error) {
-          if (policy == ProjectSnapshotLoadPolicy.strict ||
-              error.code != 'project.item_catalog_invalid') {
-            rethrow;
-          }
-          loadDiagnostics.add(ProjectSnapshotLoadDiagnostic(
-            code: error.code,
-            resourceKind: 'itemCatalog',
-            resourceId: 'items',
-          ));
-        }
-        resources.add(
-          _LoadedProjectResource(
-            relativePath: normalizedItemCatalogPath,
-            identity: itemCatalogResourceIdentity,
-            bytes: itemCatalogBytes,
-          ),
-        );
-        profiler?.recordDecodeModel(itemCatalogDecodeTimer!);
       }
     }
     final dialogueValidationTimer = profiler?.startStage();
@@ -706,6 +734,13 @@ final class ProjectSnapshotLoader {
             'Two project resources resolve to the same storage path.',
           );
         }
+        final stored = deferPokemonDocuments
+            ? await readDeferredPokemon(path, 'pokemonCatalog:${entry.key}')
+            : null;
+        if (stored != null) {
+          resources.add(stored);
+          continue;
+        }
         final bytes = await readOptional(path);
         if (bytes == null) continue;
         resources.add(_LoadedProjectResource(
@@ -717,6 +752,8 @@ final class ProjectSnapshotLoader {
       for (final directory in <String>[
         manifest.pokemon.speciesDir,
         manifest.pokemon.mediaDir,
+        manifest.pokemon.learnsetsDir,
+        manifest.pokemon.evolutionsDir,
       ]) {
         List<String>? listed;
         try {
@@ -735,7 +772,14 @@ final class ProjectSnapshotLoader {
             ..sort();
         }
       }
-      pokemonInventoryComplete = pokemonDirectoryInventory.length == 2;
+      if (deferPokemonDocuments && pokemonDirectoryInventory.length != 4) {
+        throw const ProjectSnapshotException(
+            'project.pokemon_inventory_unavailable',
+            'Complete Pokemon document reads require directory inventory access.');
+      }
+      pokemonInventoryComplete =
+          pokemonDirectoryInventory.containsKey(manifest.pokemon.speciesDir) &&
+              pokemonDirectoryInventory.containsKey(manifest.pokemon.mediaDir);
       if (pokemonInventoryComplete) {
         final ids = <String>{};
         for (final entry in pokemonDirectoryInventory.entries) {
@@ -747,6 +791,14 @@ final class ProjectSnapshotLoader {
                 'project.resource_path_conflict',
                 'Pokemon inventory paths must be unique and inside their directory.',
               );
+            }
+            if (deferPokemonDocuments) {
+              final stored =
+                  await readDeferredPokemon(path, 'pokemonDocument:$path');
+              if (stored != null) {
+                resources.add(stored);
+                continue;
+              }
             }
             final bytes = await access.readResourceBytes(path);
             var id = path
@@ -770,7 +822,11 @@ final class ProjectSnapshotLoader {
             }
             final identity = isSpecies
                 ? pokemonSpeciesResourceIdentity(id)
-                : pokemonMediaResourceIdentity(id);
+                : entry.key == manifest.pokemon.mediaDir
+                    ? pokemonMediaResourceIdentity(id)
+                    : entry.key == manifest.pokemon.learnsetsDir
+                        ? 'pokemonLearnset:$path'
+                        : 'pokemonEvolution:$path';
             if (!ids.add(identity)) {
               throw const ProjectSnapshotException(
                 'project.pokemon_identity_conflict',

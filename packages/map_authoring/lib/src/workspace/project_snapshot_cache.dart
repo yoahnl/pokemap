@@ -362,6 +362,8 @@ final class ProjectSnapshotCache {
       for (final directory in <String>[
         entry.snapshot.manifest.pokemon.speciesDir,
         entry.snapshot.manifest.pokemon.mediaDir,
+        entry.snapshot.manifest.pokemon.learnsetsDir,
+        entry.snapshot.manifest.pokemon.evolutionsDir,
       ]) {
         List<String>? listed;
         try {
@@ -370,7 +372,13 @@ final class ProjectSnapshotCache {
           if (error.code != 'workspace.directory_missing') return false;
           listed = const [];
         }
-        if (listed == null) return false;
+        if (listed == null) {
+          if (directory == entry.snapshot.manifest.pokemon.learnsetsDir ||
+              directory == entry.snapshot.manifest.pokemon.evolutionsDir) {
+            continue;
+          }
+          return false;
+        }
         final observed = listed
             .where((path) => path.toLowerCase().endsWith('.json'))
             .toList()

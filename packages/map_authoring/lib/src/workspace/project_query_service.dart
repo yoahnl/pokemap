@@ -10,6 +10,7 @@ import '../domains/assets/asset_store.dart';
 import '../domains/assets/presentation_preview_context_resources.dart';
 import '../domains/assets/project_media_store.dart';
 import '../domains/gameplay/character_studio/character_studio_resources.dart';
+import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
 import '../domains/maps/world_graph_queries.dart';
@@ -42,10 +43,145 @@ final class ProjectQueryService {
   final void Function()? onEventV2CatalogBuilt;
   final void Function(String eventId)? onEventV2ValidationBuilt;
 
+  Future<AuthoringQueryPage> queryPokemonDocuments(
+    ProjectSnapshot snapshot,
+    AuthoringQueryRequest request,
+  ) async {
+    if (request.resourceKind != 'pokemonDocument' ||
+        request.extensions.isNotEmpty) {
+      throw const AuthoringQueryException('query.action_resource_mismatch',
+          'Pokemon documents accept the generic query contract only.');
+    }
+    if (request.filters.keys
+            .any((key) => !_pokemonDocumentMetadata.contains(key)) ||
+        request.sort
+            .any((sort) => !_pokemonDocumentMetadata.contains(sort.field))) {
+      throw const AuthoringQueryException(
+          'query.pokemon_document_field_unsupported',
+          'Pokemon document filters and sorting accept metadata fields only.');
+    }
+    var records = _applyOperation(_pokemonDocumentRecords(snapshot), request)
+        .where((record) => _matchesFilters(record.summary, request.filters))
+        .toList(growable: false);
+    records = records.toList()..sort(_comparator(request.sort));
+    final offset = _cursorOffset(snapshot, request);
+    if (offset > records.length) {
+      throw const AuthoringQueryException(
+          'query.cursor_invalid', 'The query cursor offset is invalid.');
+    }
+    final end = (offset + request.pageSize).clamp(0, records.length);
+    final selected = records.sublist(offset, end);
+    final useDetail = request.operation != AuthoringQueryOperation.summary &&
+        request.view == AuthoringQueryView.detail &&
+        (request.fieldMask.isEmpty ||
+            request.fieldMask
+                .any((field) => !_pokemonDocumentMetadata.contains(field)));
+    if (useDetail &&
+        selected.any((record) =>
+            (record.summary['byteLength']! as int) >
+            _pokemonDocumentMaxSourceBytes)) {
+      throw const AuthoringQueryException('query.pokemon_document_too_large',
+          'A selected Pokemon document exceeds the 8 MiB source limit.');
+    }
+    if (useDetail &&
+        selected.fold<int>(0,
+                (sum, record) => sum + (record.summary['byteLength']! as int)) >
+            _pokemonDocumentMaxPageBytes) {
+      throw const AuthoringQueryException(
+          'query.pokemon_document_page_too_large',
+          'Selected Pokemon documents exceed the 16 MiB source page limit; narrow the query.');
+    }
+    final items = <Map<String, Object?>>[];
+    final nextCursor = end < records.length
+        ? _encodeCursor(
+            revision: snapshot.revision,
+            signature: request.signature,
+            offset: end)
+        : null;
+    final identitiesByPath = {
+      for (final entry in snapshot.resourceStorageKeys.entries)
+        entry.value: entry.key,
+    };
+    bool includesDetailField(String field) =>
+        request.fieldMask.isEmpty ||
+        request.fieldMask
+            .any((path) => path == field || path.startsWith('$field.'));
+    var responseBytes = utf8
+        .encode(jsonEncode({
+          'snapshotRevision': snapshot.revision,
+          'items': <Object?>[],
+          'returned': selected.length,
+          'totalAvailable': records.length,
+          if (nextCursor != null) 'nextCursor': nextCursor,
+        }))
+        .length;
+    for (final record in selected) {
+      var detail = record.summary;
+      if (useDetail) {
+        final relativePath = record.summary['relativePath']! as String;
+        final identity = identitiesByPath[relativePath]!;
+        final bytes = await snapshot.readResourceBytes(identity);
+        if (bytes == null) {
+          throw const AuthoringQueryException('query.resource_not_found',
+              'The selected Pokemon document was not found.');
+        }
+        late final PokemonJsonDocument document;
+        try {
+          final json = jsonDecode(utf8.decode(bytes));
+          if (json is! Map<String, dynamic>) throw const FormatException();
+          document = PokemonJsonDocument.fromJson(
+              PokemonDocumentKind.values
+                  .byName(record.summary['documentKind']! as String),
+              json);
+        } on Object {
+          throw const AuthoringQueryException('query.pokemon_document_invalid',
+              'The selected Pokemon document does not match its canonical schema.');
+        }
+        detail = {
+          ...record.summary,
+          if (includesDetailField('documentId'))
+            'documentId': document.identity,
+          if (includesDetailField('document')) 'document': document.toJson(),
+          if (includesDetailField('beforeBytesBase64'))
+            'beforeBytesBase64': base64Encode(bytes),
+          if (includesDetailField('mutationResourceRef'))
+            'mutationResourceRef': <String, Object?>{
+              'kind': 'pokemonDocument',
+              'id': '${document.kind.name}:${document.identity}',
+              'revision': record.summary['revision'],
+            },
+        };
+      }
+      final item = _applyFieldMask(detail, request.fieldMask);
+      responseBytes +=
+          utf8.encode(jsonEncode(item)).length + (items.isEmpty ? 0 : 1);
+      if (responseBytes > _pokemonDocumentMaxPageBytes) {
+        throw const AuthoringQueryException(
+            'query.pokemon_document_page_too_large',
+            'Pokemon document results exceed the 16 MiB response limit; select fewer fields or documents.');
+      }
+      items.add(item);
+    }
+    return AuthoringQueryPage(
+        snapshotRevision: snapshot.revision,
+        items: items,
+        totalAvailable: records.length,
+        nextCursor: nextCursor);
+  }
+
   AuthoringQueryPage query(
     ProjectSnapshot snapshot,
     AuthoringQueryRequest request,
   ) {
+    if (request.resourceKind == 'pokemonDocument' &&
+        request.view == AuthoringQueryView.detail &&
+        request.operation != AuthoringQueryOperation.summary &&
+        (request.fieldMask.isEmpty ||
+            request.fieldMask
+                .any((field) => !_pokemonDocumentMetadata.contains(field)))) {
+      throw const AuthoringQueryException('query.async_required',
+          'Pokemon document detail requires queryPokemonDocuments.');
+    }
     if (!canonicalQueryableResourceKindIds.contains(request.resourceKind)) {
       throw const AuthoringQueryException(
         'query.resource_kind_unsupported',
@@ -114,6 +250,61 @@ final class ProjectQueryService {
       nextCursor: nextCursor,
     );
   }
+}
+
+const _pokemonDocumentMaxSourceBytes = 8 * 1024 * 1024;
+const _pokemonDocumentMaxPageBytes = 16 * 1024 * 1024;
+const _pokemonDocumentMetadata = <String>{
+  'id',
+  'name',
+  'resourceKind',
+  'documentKind',
+  'relativePath',
+  'revision',
+  'byteLength',
+};
+
+List<_QueryRecord> _pokemonDocumentRecords(ProjectSnapshot snapshot) {
+  final config = snapshot.manifest.pokemon;
+  if (!config.enabled) return const [];
+  final paths = <String, PokemonDocumentKind>{
+    for (final path in config.catalogFiles.values)
+      path: PokemonDocumentKind.catalog,
+  };
+  final directories = <String, PokemonDocumentKind>{
+    config.speciesDir: PokemonDocumentKind.species,
+    config.learnsetsDir: PokemonDocumentKind.learnset,
+    config.evolutionsDir: PokemonDocumentKind.evolution,
+    config.mediaDir: PokemonDocumentKind.media,
+  };
+  final records = <_QueryRecord>[];
+  for (final entry in snapshot.resourceStorageKeys.entries) {
+    final path = entry.value;
+    var kind = paths[path];
+    if (kind == null && path.toLowerCase().endsWith('.json')) {
+      for (final directory in directories.entries) {
+        if (path.startsWith('${directory.key}/')) {
+          kind = directory.value;
+          break;
+        }
+      }
+    }
+    if (kind == null) continue;
+    final byteLength = snapshot.storedResources[entry.key]?.byteLength ??
+        snapshot.payloadResources[entry.key]?.byteLength ??
+        snapshot.inlineResourceBytes[entry.key]!.length;
+    final metadata = <String, Object?>{
+      'id': '${kind.name}:$path',
+      'name': path.split('/').last,
+      'resourceKind': 'pokemonDocument',
+      'documentKind': kind.name,
+      'relativePath': path,
+      'revision': snapshot.resourceFingerprints[entry.key],
+      'byteLength': byteLength,
+    };
+    records.add(_QueryRecord(summary: metadata, detail: metadata));
+  }
+  return records;
 }
 
 List<_QueryRecord>? _itemQueryActionRecords(
@@ -673,6 +864,8 @@ List<_QueryRecord> _records(
   void Function(String eventId)? onEventV2ValidationBuilt,
 }) {
   switch (request.resourceKind) {
+    case 'pokemonDocument':
+      return _pokemonDocumentRecords(snapshot);
     case 'resourceLibraryCatalog':
       final catalog = snapshot.manifest.resourceLibraryCatalog;
       final record = <String, Object?>{

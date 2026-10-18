@@ -146,12 +146,16 @@ final class AuthoringReadApi
     }
     final snapshot = await _snapshotLoader.load(
       projectHandle,
+      deferPokemonDocuments: request.resourceKind == 'pokemonDocument',
       policy: request.resourceKind == 'resourceUsage'
           ? ProjectSnapshotLoadPolicy.resourceUsageReadProjection
           : ProjectSnapshotLoadPolicy.editorReadProjection,
     );
     if (request.extensions['actionId'] == 'scene.simulate') {
       return querySceneSimulation(snapshot, request);
+    }
+    if (request.resourceKind == 'pokemonDocument') {
+      return _queryService.queryPokemonDocuments(snapshot, request);
     }
     return _queryService.query(snapshot, request);
   }
