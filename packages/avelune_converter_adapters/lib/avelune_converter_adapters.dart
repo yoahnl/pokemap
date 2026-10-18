@@ -32,6 +32,7 @@ export 'src/native_psdk_trainer_bundle.dart';
 export 'src/native_psdk_catalog.dart';
 export 'src/native_source_species_bindings.dart';
 export 'src/native_trainer_catalog_bindings.dart';
+export 'src/native_trainer_catalog_qualification.dart';
 export 'src/native_encounter_catalog_bindings.dart';
 export 'src/source_catalog_study_composer.dart';
 export 'src/converter_study_plan_recipe.dart';
