@@ -106,6 +106,29 @@ final class SceneActions {
     'idempotency': 'saveIdAndSceneGrantOperationId',
   };
 
+  static const _receivePokemonFromCatalogContract = {
+    'interactiveCommandKind': 'receivePokemonFromCatalog',
+    'parameters': ['speciesId', 'formId', 'level', 'nicknamePolicy', 'nicknameMaxGraphemes', 'pokedexPresentationPolicy'],
+    'levelRange': [1, 100],
+    'nicknamePolicies': ['offer', 'disabled'],
+    'nicknameMaxGraphemesRange': [1, 100],
+    'pokedexPresentationPolicies': ['never', 'whenNewAndPokedexVisible'],
+    'outputPorts': ['party', 'pc', 'noCapacity'],
+    'projectDimensions': ['twoD', 'threeD'],
+    'catalog': 'activeProjectPokemonCatalog',
+    'catalogValidation': 'runtimePreloadAndCommit',
+    'generation': 'activeNativeRuleset',
+    'destination': 'partyThenStorage',
+    'pokedexAvailability': 'nativePauseMenuVisibility',
+    'pokedex': 'seenAndCaughtOnSuccessfulGrant',
+    'nicknameDeclined': 'keepSpeciesNameAndContinue',
+    'technicalDismissal': 'abortSceneTransaction',
+    'noCapacity': 'continueWithoutGrantOrOperationConsumption',
+    'idempotency': 'saveIdAndSceneGrantOperationId',
+    'persistent': true,
+    'transaction': 'wholeScene',
+  };
+
   static const _openRegionalMapContract = {
     'projectDimension': 'twoD',
     'parameters': [],
@@ -234,6 +257,7 @@ final class SceneActions {
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
+        'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -276,6 +300,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'command'],
+        'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
@@ -323,6 +348,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
+        'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,

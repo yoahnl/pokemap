@@ -478,7 +478,9 @@ final class SceneRuntimeExecutor {
           .recordOutcome(nodeId: nodeId, outcome: result.outputPortId!);
     final giftRejected =
         intent.interactiveCommand is SceneGiveItemInteractiveCommand &&
-        result.outputPortId == 'bagFull';
+        result.outputPortId == 'bagFull' ||
+        intent.interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand &&
+        result.outputPortId == 'noCapacity';
     return _OutputPortResult(
       outputPortId: result.outputPortId,
       context: giftRejected

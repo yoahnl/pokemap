@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import 'scene_runtime/scene_interactive_pokemon_gift.dart';
+
 import 'scene_runtime/scene_consequence_runtime_writer.dart';
 import 'scene_runtime/scene_consequence_runtime_write_result.dart';
 import 'scene_runtime/scene_fact_condition_runtime_resolver.dart';
@@ -69,6 +71,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   // Scene completes, those authoritative writes are kept by rebasing the
   // buffered consequences onto the latest host GameState.
   final pendingConsequences = <SceneConsequence>[];
+  final preparedPokemonGifts = <String, PreparedScenePokemonGift>{};
   final pendingPokemonGrantOperationIds = <String?>[];
   final pendingRailProgressionOperationIds = <String?>[];
   final writer = consequenceWriter ??
@@ -103,6 +106,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         for (final index in indices) pendingPokemonGrantOperationIds[index],
         if (additional != null) grantOperationId,
       ],
+      preparedPokemonGifts: preparedPokemonGifts,
       railProgressionOperationIds: [
         for (final index in indices) pendingRailProgressionOperationIds[index],
         if (additional != null) railOperationId,
@@ -113,6 +117,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   bool? uniqueBattleConsumed;
   var blockedUniqueBattle = false;
+  var pokemonGiftStorageFull = false;
   final consumedUniqueTableIds = <String>{};
   try {
     onSceneStateProjection?.call(() {
@@ -202,6 +207,61 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         playPresentationCinematic: callbacks.playPresentationCinematic,
         executeInteractiveCommand: (intent) async {
               final command = intent.interactiveCommand;
+              if (command is SceneReceivePokemonFromCatalogInteractiveCommand) {
+                final catalog = writer.pokemonCatalog;
+                final presenter = callbacks.presentPokemonGift;
+                if (catalog == null || presenter == null) {
+                  throw StateError(
+                    'The Pokemon gift catalog or presenter is unavailable.',
+                  );
+                }
+                final consequence = SceneGivePokemonFromCatalogConsequence(
+                  speciesId: command.speciesId,
+                  formId: command.formId,
+                  level: command.level,
+                );
+                final operationId = scenePokemonGrantOperationId(
+                  sceneId: request.sceneId,
+                  executionId: request.executionId,
+                  nodeId: intent.sourceNodeId ?? '',
+                  consequence: consequence,
+                );
+                if (operationId == null) {
+                  throw StateError(
+                    'The Pokemon gift source identity is missing.',
+                  );
+                }
+                GameState projectedState() {
+                  final result = projectPending(currentGameState());
+                  if (!result.success) {
+                    throw StateError(
+                      result.message ?? 'Pokemon gift projection failed.',
+                    );
+                  }
+                  return result.gameState;
+                }
+
+                final result = await receiveScenePokemonFromCatalog(
+                  command: command,
+                  operationId: operationId,
+                  project: project,
+                  readProjectedState: projectedState,
+                  catalog: catalog,
+                  present: presenter,
+                );
+                if (result.outputPortId == 'noCapacity') {
+                  pokemonGiftStorageFull = true;
+                }
+                if (result.prepared case final prepared?) {
+                  preparedPokemonGifts[operationId] = prepared;
+                  pendingConsequences.add(consequence);
+                  pendingPokemonGrantOperationIds.add(operationId);
+                  pendingRailProgressionOperationIds.add(null);
+                }
+                return result.outputPortId;
+              }
+
+
               if (command is! SceneGiveItemInteractiveCommand) {
                 final callback = callbacks.executeInteractiveCommand;
                 if (callback == null) {
@@ -326,7 +386,10 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     return NarrativeSceneExecutionResult.completed(
       updatedGameState: completedState,
       gameCompletion: writeResult.gameCompletion,
-      consumeOneShot: !retryableEnd && (uniqueBattleConsumed ?? true),
+      consumeOneShot:
+          !retryableEnd &&
+          !pokemonGiftStorageFull &&
+          (uniqueBattleConsumed ?? true),
       qualifiedOutcomes: <NarrativeOutcomeRef>[
         ...hostedBattleOutcomes,
         if (sceneOutcomeId != null)

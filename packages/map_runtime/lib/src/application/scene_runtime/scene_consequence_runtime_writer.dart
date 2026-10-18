@@ -5,6 +5,7 @@ import 'scene_consequence_runtime_write_result.dart';
 import 'scene_game_completion_metadata.dart';
 import 'scene_npc_state_metadata.dart';
 import 'runtime_scene_pokemon_catalog.dart';
+import 'scene_interactive_pokemon_gift.dart';
 
 String? scenePokemonGrantOperationId({
   required String sceneId,
@@ -93,6 +94,7 @@ final class SceneConsequenceRuntimeWriter {
     List<SceneConsequence> consequences, {
     List<String?> pokemonGrantOperationIds = const <String?>[],
     List<String?> railProgressionOperationIds = const <String?>[],
+    Map<String, PreparedScenePokemonGift> preparedPokemonGifts = const {},
   }) {
     var nextState = gameState;
     final applied = <SceneConsequence>[];
@@ -108,6 +110,38 @@ final class SceneConsequenceRuntimeWriter {
       final railOperationId = index < railProgressionOperationIds.length
           ? railProgressionOperationIds[index]
           : null;
+      final prepared = preparedPokemonGifts[grantOperationId];
+      if (prepared != null) {
+        if (consequence != prepared.consequence || pokemonCatalog == null) {
+          return SceneConsequenceRuntimeWriteResult.failed(
+            gameState: gameState,
+            errorCode:
+                SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+            message:
+                'The prepared Pokemon gift does not match its consequence.',
+            failedConsequence: consequence,
+            appliedConsequences: const [],
+          );
+        }
+        try {
+          nextState = prepared.commit(
+            nextState,
+            catalog: pokemonCatalog!,
+            project: project,
+          );
+          applied.add(consequence);
+          continue;
+        } catch (error) {
+          return SceneConsequenceRuntimeWriteResult.failed(
+            gameState: gameState,
+            errorCode:
+                SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+            message: 'Prepared Pokemon gift commit failed: $error',
+            failedConsequence: consequence,
+            appliedConsequences: const [],
+          );
+        }
+      }
       final step = _apply(
         nextState,
         consequence,

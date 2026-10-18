@@ -206,7 +206,8 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
     }
 
     final acceptedPorts = current.intent.declaredOutputPortIds;
-    final requiresInput = _requiresExplicitInput(current.intent.kind);
+    final requiresInput = _requiresExplicitInput(current.intent.kind) ||
+        current.intent.kind == SceneRuntimePlanIntentKind.executeInteractiveCommand && acceptedPorts.length > 1;
     final explicitPort = input.outputPortByNodeId[current.id];
     if (requiresInput && explicitPort == null) {
       trace.add(
@@ -250,7 +251,8 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
         outputPortId: outputPortId,
       ),
     );
-    if (_recordsPreviewOutcome(current.intent.kind)) {
+    if (_recordsPreviewOutcome(current.intent.kind) ||
+        current.intent.kind == SceneRuntimePlanIntentKind.executeInteractiveCommand) {
       context = context.recordOutcome(
         nodeId: current.id,
         outcome: outputPortId,

@@ -259,10 +259,12 @@ final class SceneRuntimePlanIntent {
 
   factory SceneRuntimePlanIntent.executeInteractiveCommand({
     required SceneInteractiveCommand command,
+    String? sourceNodeId,
   }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.executeInteractiveCommand,
       interactiveCommand: command,
+      sourceNodeId: sourceNodeId,
     );
   }
 

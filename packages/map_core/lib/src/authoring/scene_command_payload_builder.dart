@@ -73,6 +73,14 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         abilityId: parameters['abilityId'] ?? 'unknown',
       ),
     ),
+    NarrativeCommandIds.receivePokemonFromCatalog => SceneActionPayload.interactive(
+      SceneInteractiveCommand.fromJson({
+        'kind': commandId,
+        for (final entry in parameters.entries)
+          entry.key: const {'level', 'nicknameMaxGraphemes'}.contains(entry.key)
+              ? int.tryParse(entry.value) : entry.value,
+      }),
+    ),
     NarrativeCommandIds.givePokemonFromCatalog => SceneActionPayload.consequence(
       SceneConsequence.givePokemonFromCatalog(
         speciesId: parameters['speciesId']!,

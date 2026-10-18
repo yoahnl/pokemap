@@ -708,6 +708,22 @@ final class SpatialGameplayEvents {
         onSceneStateProjection: (projector) => _sceneStateProjection = projector,
         hostedBattleOutcomes: outcomes,
         callbacks: SceneRuntimeHostCallbacks(
+          presentPokemonGift: callbacks.presentPokemonGift == null
+              ? null
+              : (request) async {
+                  if (!current()) {
+                    throw StateError(
+                      'Spatial Pokemon gift activation changed.',
+                    );
+                  }
+                  final response = await callbacks.presentPokemonGift!(request);
+                  if (!current()) {
+                    throw StateError(
+                      'Spatial Pokemon gift activation changed.',
+                    );
+                  }
+                  return response;
+                },
           evaluateCondition: guard(callbacks.evaluateCondition),
           showDialogue: guard(callbacks.showDialogue),
           startBattle: guard(callbacks.startBattle),

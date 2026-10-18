@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../player/runtime_player_pause_data.dart';
+import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_world_service_models.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_move_catalog_loader.dart';
@@ -306,6 +307,120 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   var _partyTradeRevision = -1;
   _ContextualTextSession? _textSession;
   var _textRevision = -1;
+  var _giftRevision = -1;
+  _ContextualPokemonGiftSession? _giftSession;
+
+  Future<SceneInteractionResult> openPokemonGiftInteraction({
+    required OpenPokemonGiftInteractionService request,
+  }) async {
+    if (_disposed || _active) {
+      throw StateError('The Pokemon gift modal is unavailable.');
+    }
+    _active = true;
+    final session = _ContextualPokemonGiftSession(request);
+    _giftSession = session;
+    var locked = false;
+    try {
+      _setInputLocked(true);
+      locked = true;
+      var presented = request;
+      final root = _projectRootDirectory;
+      final config = _pokemonConfig;
+      if (root != null && config != null) {
+        final species = await _pokemonSpeciesLoader.loadById(
+          projectRootDirectory: root,
+          pokemonConfig: config,
+          speciesId: request.pokemon.speciesId,
+        );
+        final detail = request.stage == PokemonGiftInteractionStage.pokedex
+            ? await const RuntimePlayerPauseDataBuilder()
+                  .buildPokemonGiftPokedexEntry(
+                    gameState: request.projectedState,
+                    speciesId: request.pokemon.speciesId,
+                    projectRootDirectory: root,
+                    pokemonConfig: config,
+                    locale: _locale,
+                  )
+            : null;
+        presented = OpenPokemonGiftInteractionService(
+          interactionId: request.interactionId,
+          interaction: request.interaction,
+          stage: request.stage,
+          pokemon: request.pokemon,
+          projectedState: request.projectedState,
+          pokedexDetail: detail,
+          speciesName: species.displayName(_locale),
+        );
+      } else if (request.stage == PokemonGiftInteractionStage.pokedex &&
+          request.pokedexDetail == null) {
+        throw StateError(
+          'The native Pokedex gift entry requires the project catalog.',
+        );
+      }
+      if (_disposed || !identical(_giftSession, session)) {
+        throw StateError('The Pokemon gift modal was disposed.');
+      }
+      _giftRevision =
+          ((_worldServiceSnapshot?.revision ?? -1) > _giftRevision
+              ? _worldServiceSnapshot!.revision
+              : _giftRevision) +
+          1;
+      _publishWorldService(
+        RuntimeWorldServiceSnapshot(
+          revision: _giftRevision,
+          request: presented,
+          stage: RuntimeWorldServiceStage.active,
+          content: presented.interaction,
+          actions: const [
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.confirm,
+            ),
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.cancel,
+            ),
+          ],
+        ),
+      );
+      return await session.result.future;
+    } finally {
+      if (identical(_giftSession, session)) {
+        _giftSession = null;
+        _publishWorldService(null);
+      }
+      if (locked) _setInputLocked(false);
+      _active = false;
+    }
+  }
+
+  RuntimeWorldServiceCommandResult _dispatchPokemonGift(
+    _ContextualPokemonGiftSession session,
+    RuntimeWorldServiceCommand command,
+  ) {
+    if (session.result.isCompleted) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+      );
+    }
+    final request = session.request.interaction;
+    final result =
+        command.interactionResult ??
+        (command.action == RuntimeWorldServiceAction.cancel
+            ? SceneInteractionResult.cancelled(
+                requestId: request.requestId,
+                revision: request.revision,
+                reason: SceneInteractionCancellationReason.disposed,
+              )
+            : null);
+    if (result == null || request.validateResult(result).isNotEmpty) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+      );
+    }
+    session.result.complete(result);
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
 
   bool get isActive => _active;
   bool get supportsBicycle => _bicycleConsumer != null;
@@ -1733,7 +1848,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     if (command.interactionResult != null &&
-        snapshot.request is! OpenTextInputService) {
+        snapshot.request is! OpenTextInputService && snapshot.request is! OpenPokemonGiftInteractionService) {
       return const RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
         safeMessage: 'Cette réponse appartient à une autre demande.',
@@ -1746,6 +1861,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             'Cette action n’est pas disponible.',
       );
     }
+    final gift = _giftSession;
+    if (gift != null) return _dispatchPokemonGift(gift, command);
     final shop = _shopSession;
     if (shop != null) return _dispatchShop(shop, command);
     final heal = _healSession;
@@ -2806,6 +2923,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    final gift = _giftSession;
+    if (gift != null && !gift.result.isCompleted) {
+      final interaction = gift.request.interaction;
+      gift.result.complete(
+        SceneInteractionResult.cancelled(
+          requestId: interaction.requestId,
+          revision: interaction.revision,
+          reason: SceneInteractionCancellationReason.disposed,
+        ),
+      );
+    }
     await _disposePartyTrade();
     final shop = _shopSession;
     if (shop != null && !shop.result.isCompleted) {
@@ -3107,4 +3235,10 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
     maxPpByPartyIndex:
         Map<int, Map<String, int>>.unmodifiable(maxPpByPartyIndex),
   );
+}
+
+final class _ContextualPokemonGiftSession {
+  _ContextualPokemonGiftSession(this.request);
+  final OpenPokemonGiftInteractionService request;
+  final result = Completer<SceneInteractionResult>();
 }

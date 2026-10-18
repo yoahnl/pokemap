@@ -185,7 +185,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       final data = existing?.toJson() ?? const <String, dynamic>{};
       final presentation = data['presentation'];
       final storedValue = existing?.kind.name == command.id &&
-          (_is2DPresentationCommand(command.id) || command.id == NarrativeCommandIds.warp)
+          (_is2DPresentationCommand(command.id) || command.id == NarrativeCommandIds.warp || command.id == NarrativeCommandIds.receivePokemonFromCatalog)
           ? command.id == NarrativeCommandIds.warp && presentation is Map
               ? parameter.id == 'presentationMode' ? presentation['mode']
                   : data[parameter.id] ?? presentation[parameter.id]
@@ -199,7 +199,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
-              (command.id == NarrativeCommandIds.warp && !parameter.required ? '' :
+              (command.id == NarrativeCommandIds.receivePokemonFromCatalog && parameter.id == 'nicknameMaxGraphemes' ? '12' :
+              command.id == NarrativeCommandIds.warp && !parameter.required ? '' :
               ((command.id == NarrativeCommandIds.worldTone ||
                        command.id == NarrativeCommandIds.wait) &&
                       parameter.id == 'durationMs'
@@ -241,6 +242,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   @override
   void didUpdateWidget(SceneActionBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_command.id == NarrativeCommandIds.receivePokemonFromCatalog && oldWidget.initialPayload != widget.initialPayload) {
+      _seedParameterValues(_command);
+    }
     if (oldWidget.loadWarpMap != widget.loadWarpMap ||
         oldWidget.pickerOptions != widget.pickerOptions) {
       _loadWarpReferences();
@@ -425,6 +429,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         return _hasValidPresentationParameter(parameter.id, value);
       }
       final parsed = int.tryParse(value);
+      if (_command.id == NarrativeCommandIds.receivePokemonFromCatalog && (parameter.id == 'level' || parameter.id == 'nicknameMaxGraphemes')) {
+        return parsed != null && parsed >= 1 && parsed <= 100;
+      }
       return parsed != null && parsed > 0;
     }
     if (parameter.kind == NarrativeCommandParameterKind.number) {
@@ -503,7 +510,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       header: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Text(
-          'Ajouter une action',
+          _command.id == NarrativeCommandIds.receivePokemonFromCatalog && widget.initialPayload != null ? 'Modifier le cadeau Pokémon' : 'Ajouter une action',
           style: TextStyle(
             color: colors.textPrimary,
             fontSize: 14,
@@ -521,7 +528,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   key: const ValueKey('scene-action-submit'),
                   onPressed: _canSubmit ? _submit : null,
                   variant: PokeMapButtonVariant.primary,
-                  child: const Text('Ajouter à la Scene'),
+                  child: Text(_command.id == NarrativeCommandIds.receivePokemonFromCatalog && widget.initialPayload != null ? 'Appliquer les modifications' : 'Ajouter à la Scene'),
                 ),
               ),
             ),
@@ -674,7 +681,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         if (currentValue != null &&
             currentValue.isNotEmpty &&
             !options.any((option) => option.id == currentValue)) {
-          if (_command.id == NarrativeCommandIds.givePokemonFromCatalog &&
+          if ((_command.id == NarrativeCommandIds.givePokemonFromCatalog || _command.id == NarrativeCommandIds.receivePokemonFromCatalog) &&
               parameter.kind == NarrativeCommandParameterKind.speciesForm &&
               options.isNotEmpty) {
             return Column(
@@ -737,7 +744,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
-    if (_command.id == NarrativeCommandIds.givePokemonFromCatalog &&
+    if ((_command.id == NarrativeCommandIds.givePokemonFromCatalog || _command.id == NarrativeCommandIds.receivePokemonFromCatalog) &&
         kind == NarrativeCommandParameterKind.species) {
       final loadableSpeciesIds = {
         for (final form in widget.pickerOptions[NarrativeCommandParameterKind.speciesForm] ?? const <SceneActionPickerOption>[])
@@ -769,7 +776,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return [
         for (final option in widget.pickerOptions[kind] ?? const [])
           if (option.parentId == speciesId &&
-              (_command.id != NarrativeCommandIds.givePokemonFromCatalog || option.isPrimarySpeciesForm)) option,
+              ((_command.id != NarrativeCommandIds.givePokemonFromCatalog && _command.id != NarrativeCommandIds.receivePokemonFromCatalog) || option.isPrimarySpeciesForm)) option,
       ];
     }
     if (kind == NarrativeCommandParameterKind.visualElementReference) {
@@ -786,6 +793,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return options;
     }
     return switch (kind) {
+      NarrativeCommandParameterKind.pokemonGiftNicknamePolicy => const [
+        SceneActionPickerOption(id: 'offer', label: 'Proposer un surnom'),
+        SceneActionPickerOption(id: 'disabled', label: 'Conserver le nom de l’espèce'),
+      ],
+      NarrativeCommandParameterKind.pokemonGiftPokedexPolicy => const [
+        SceneActionPickerOption(id: 'never', label: 'Ne pas ouvrir de fiche'),
+        SceneActionPickerOption(id: 'whenNewAndPokedexVisible', label: 'Nouvelle espèce si le Pokédex est visible'),
+      ],
       NarrativeCommandParameterKind.completionOutcome => const [
         SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
         SceneActionPickerOption(id: 'victory', label: 'Victoire'),

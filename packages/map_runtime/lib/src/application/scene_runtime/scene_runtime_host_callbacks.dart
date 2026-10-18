@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'scene_interactive_pokemon_gift.dart';
+
 final class SceneRuntimeHostCallbacks {
   const SceneRuntimeHostCallbacks({
     required this.evaluateCondition,
@@ -9,6 +11,7 @@ final class SceneRuntimeHostCallbacks {
     this.playPresentationCinematic,
     this.executeInteractiveCommand,
     this.requestStructuredInteraction,
+    this.presentPokemonGift,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
@@ -18,6 +21,7 @@ final class SceneRuntimeHostCallbacks {
   final SceneRuntimeIntentCallback? playPresentationCinematic;
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
   final SceneRuntimeIntentCallback? requestStructuredInteraction;
+  final ScenePokemonGiftPresenter? presentPokemonGift;
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({
     required SceneRuntimeConsequenceCallback applyConsequence,

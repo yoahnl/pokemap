@@ -63,6 +63,8 @@ enum SceneDiagnosticCode {
   commandInvalidActorTarget,
   commandInvalidHealingDisplay,
   commandUnsupportedDimension,
+  commandPokemonCatalogUnavailable,
+  commandPokemonCatalogDeferred,
   commandInvalidActorInitialCollisionOwner,
   commandInvalidWarpArrivalOwner,
   commandInvalidWarpPresentation,
@@ -1134,6 +1136,18 @@ void _diagnoseActionConsequenceAgainstProject(
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
+  if (interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand) {
+    diagnostics.add(SceneDiagnostic(
+      code: project.pokemon.enabled ? SceneDiagnosticCode.commandPokemonCatalogDeferred : SceneDiagnosticCode.commandPokemonCatalogUnavailable,
+      severity: project.pokemon.enabled ? SceneDiagnosticSeverity.info : SceneDiagnosticSeverity.error,
+      message: project.pokemon.enabled
+          ? 'Le cadeau utilise le catalogue Pokémon externe du projet. La paire espèce/forme, les capacités et les règles natives seront validées au chargement et au commit du runtime.'
+          : 'Le cadeau nécessite le catalogue Pokémon natif activé dans ce projet.',
+      sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+      suggestedFixLabel: project.pokemon.enabled ? 'Vérifier le catalogue local puis tester le cadeau dans le Player.' : 'Activer et configurer le catalogue Pokémon du projet.',
+    ));
+  }
+
   if (interactiveCommand is SceneOpenHealInteractiveCommand &&
       interactiveCommand.displayEntityId != null) {
     final id = interactiveCommand.displayEntityId!;

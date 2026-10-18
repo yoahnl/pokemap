@@ -15,6 +15,7 @@ abstract final class NarrativeCommandIds {
   static const grantRailStamp = 'grantRailStamp';
   static const givePokemon = 'givePokemon';
   static const givePokemonFromCatalog = 'givePokemonFromCatalog';
+  static const receivePokemonFromCatalog = 'receivePokemonFromCatalog';
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
   static const wait = 'wait';
@@ -279,6 +280,20 @@ final class NarrativeCommandCatalog {
             NarrativeCommandParameterKind.starter,
           ),
         ],
+      ),
+      interactive(
+        NarrativeCommandIds.receivePokemonFromCatalog,
+        'Recevoir un Pokémon du catalogue',
+        'FG-103',
+        [
+          _parameter('speciesId', 'Espèce', NarrativeCommandParameterKind.species),
+          _parameter('formId', 'Forme', NarrativeCommandParameterKind.speciesForm),
+          _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
+          _parameter('nicknamePolicy', 'Proposer un surnom', NarrativeCommandParameterKind.pokemonGiftNicknamePolicy),
+          _parameter('nicknameMaxGraphemes', 'Longueur maximale du surnom', NarrativeCommandParameterKind.integer),
+          _parameter('pokedexPresentationPolicy', 'Présenter le Pokédex', NarrativeCommandParameterKind.pokemonGiftPokedexPolicy),
+        ],
+        isPersistent: true,
       ),
       consequence(
         NarrativeCommandIds.givePokemonFromCatalog,

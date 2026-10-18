@@ -130,6 +130,8 @@ typedef SceneCinematicPayloadUpdater =
       required String cinematicId,
     });
 
+typedef SceneInteractiveCommandUpdater = Future<bool> Function({required String sceneId, required String nodeId, required SceneInteractiveCommand command});
+
 typedef SceneActionConsequenceUpdater =
     Future<bool> Function({
       required String sceneId,
@@ -261,6 +263,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
+    this.onUpdateInteractiveCommand,
     this.onUpdatePreSessionInteractionDraft,
     this.onOpenDialogue,
     this.onOpenCinematic,
@@ -316,6 +319,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
+  final SceneInteractiveCommandUpdater? onUpdateInteractiveCommand;
   final ScenePreSessionInteractionDraftUpdater?
   onUpdatePreSessionInteractionDraft;
   final SceneLinkedAssetOpener? onOpenDialogue;
@@ -982,6 +986,11 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     consequenceEventOptions: widget.consequenceEventOptions,
                     consequenceCatalogs: widget.consequenceCatalogs,
                     onUpdateActionConsequence: _updateActionConsequence,
+                    onUpdateInteractiveCommand: widget.onUpdateInteractiveCommand == null ? null : ({required nodeId, required command}) async {
+                      final updated = await widget.onUpdateInteractiveCommand!(sceneId: selectedScene.id, nodeId: nodeId, command: command);
+                      if (mounted && updated) setState(() {});
+                      return updated;
+                    },
                     onUpdatePreSessionInteraction:
                         _updatePreSessionInteractionDraft,
                   ),

@@ -446,6 +446,13 @@ final class SpatialExplorationGameSessionRuntime
   SceneRuntimeHostCallbacks _createSceneCallbacks(
           GameState Function() read, void Function(GameState) commit) =>
       SpatialSceneCallbacks(
+    presentPokemonGift: (request) async {
+      final services = _playerServices;
+      if (services == null) {
+        throw StateError('The spatial Pokemon gift presenter is unavailable.');
+      }
+      return services.openPokemonGiftInteraction(request: request);
+    },
         project: _session!.bundle.manifest,
         runtimeSourceId: _mapActivationId,
         readGameState: read,
@@ -500,6 +507,7 @@ final class SpatialExplorationGameSessionRuntime
                     _executeSceneWarp(command, read: read, commit: commit),
                 openWorldService: (request) async {
                   final result = await switch (request) {
+                    OpenPokemonGiftInteractionService() => throw StateError('Pokemon gifts require the Scene presenter.'),
                     OpenTextInputService() =>
                       Future<PlayerServiceRuntimeResult>.value(
                         const PlayerServiceRuntimeResult.unavailable(

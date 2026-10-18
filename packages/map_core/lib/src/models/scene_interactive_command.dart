@@ -9,6 +9,7 @@ import 'scene_warp_presentation.dart';
 
 enum SceneInteractiveCommandKind {
   giveItem,
+  receivePokemonFromCatalog,
   warp,
   wait,
   waitForActorRoutes,
@@ -28,6 +29,10 @@ enum SceneInteractiveCommandKind {
   railJourney,
 }
 
+enum ScenePokemonGiftNicknamePolicy { disabled, offer }
+
+enum ScenePokemonGiftPokedexPresentationPolicy { never, whenNewAndPokedexVisible }
+
 enum SceneRailJourneyOperation { begin, advance, acknowledge }
 
 enum SceneWarpTransition { mapDefault, none }
@@ -46,6 +51,15 @@ abstract base class SceneInteractiveCommand {
     required String itemId,
     required int quantity,
   }) = SceneGiveItemInteractiveCommand;
+
+  factory SceneInteractiveCommand.receivePokemonFromCatalog({
+    required String speciesId,
+    required String formId,
+    required int level,
+    required ScenePokemonGiftNicknamePolicy nicknamePolicy,
+    required int nicknameMaxGraphemes,
+    required ScenePokemonGiftPokedexPresentationPolicy pokedexPresentationPolicy,
+  }) = SceneReceivePokemonFromCatalogInteractiveCommand;
 
   factory SceneInteractiveCommand.warp({
     required String destinationMapId,
@@ -143,6 +157,8 @@ abstract base class SceneInteractiveCommand {
       ),
     );
     return switch (kind) {
+      SceneInteractiveCommandKind.receivePokemonFromCatalog =>
+        SceneReceivePokemonFromCatalogInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.giveItem => SceneGiveItemInteractiveCommand(
         itemId: _required(json, 'itemId'),
         quantity: json['quantity'] is int
@@ -1205,4 +1221,110 @@ String? _healingDisplayIdentity(String? value) {
     throw const FormatException('The healing display identity must be nonblank and exact.');
   }
   return value;
+}
+
+final class SceneReceivePokemonFromCatalogInteractiveCommand
+    extends SceneInteractiveCommand {
+  SceneReceivePokemonFromCatalogInteractiveCommand({
+    required String speciesId,
+    required String formId,
+    required this.level,
+    required this.nicknamePolicy,
+    required this.nicknameMaxGraphemes,
+    required this.pokedexPresentationPolicy,
+  }) : speciesId = speciesId.trim(),
+       formId = formId.trim() {
+    if (this.speciesId.isEmpty ||
+        this.formId.isEmpty ||
+        level < 1 ||
+        level > 100 ||
+        nicknameMaxGraphemes < 1 ||
+        nicknameMaxGraphemes > 100) {
+      throw const FormatException(
+        'Interactive catalog gift requires species, form, level 1..100 and nickname length 1..100.',
+      );
+    }
+  }
+
+  factory SceneReceivePokemonFromCatalogInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    const fields = {
+      'kind',
+      'speciesId',
+      'formId',
+      'level',
+      'nicknamePolicy',
+      'nicknameMaxGraphemes',
+      'pokedexPresentationPolicy',
+    };
+    if (json.length != fields.length ||
+        json.keys.any((key) => !fields.contains(key)) ||
+        json['kind'] != 'receivePokemonFromCatalog' ||
+        json['level'] is! int ||
+        json['nicknameMaxGraphemes'] is! int) {
+      throw const FormatException('Invalid interactive catalog gift fields.');
+    }
+    return SceneReceivePokemonFromCatalogInteractiveCommand(
+      speciesId: _required(json, 'speciesId'),
+      formId: _required(json, 'formId'),
+      level: json['level'] as int,
+      nicknamePolicy: _requiredEnum(
+        json,
+        'nicknamePolicy',
+        ScenePokemonGiftNicknamePolicy.values,
+      ),
+      nicknameMaxGraphemes: json['nicknameMaxGraphemes'] as int,
+      pokedexPresentationPolicy: _requiredEnum(
+        json,
+        'pokedexPresentationPolicy',
+        ScenePokemonGiftPokedexPresentationPolicy.values,
+      ),
+    );
+  }
+
+  final String speciesId;
+  final String formId;
+  final int level;
+  final ScenePokemonGiftNicknamePolicy nicknamePolicy;
+  final int nicknameMaxGraphemes;
+  final ScenePokemonGiftPokedexPresentationPolicy pokedexPresentationPolicy;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.receivePokemonFromCatalog;
+
+  @override
+  List<String> get outputPortIds => const ['party', 'pc', 'noCapacity'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'speciesId': speciesId,
+    'formId': formId,
+    'level': level,
+    'nicknamePolicy': nicknamePolicy.name,
+    'nicknameMaxGraphemes': nicknameMaxGraphemes,
+    'pokedexPresentationPolicy': pokedexPresentationPolicy.name,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneReceivePokemonFromCatalogInteractiveCommand &&
+      other.speciesId == speciesId &&
+      other.formId == formId &&
+      other.level == level &&
+      other.nicknamePolicy == nicknamePolicy &&
+      other.nicknameMaxGraphemes == nicknameMaxGraphemes &&
+      other.pokedexPresentationPolicy == pokedexPresentationPolicy;
+
+  @override
+  int get hashCode => Object.hash(
+    speciesId,
+    formId,
+    level,
+    nicknamePolicy,
+    nicknameMaxGraphemes,
+    pokedexPresentationPolicy,
+  );
 }

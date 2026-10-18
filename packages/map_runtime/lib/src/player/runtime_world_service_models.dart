@@ -6,7 +6,7 @@ import 'runtime_pokemon_summary.dart';
 import 'runtime_player_pause_data.dart';
 
 enum RuntimeWorldServiceKind { shop, heal, pc, textInput, regionalMap,
-  partyTrade,
+  partyTrade, pokemonGift,
 }
 
 /// Typed request emitted by an interaction in the running world.
@@ -567,4 +567,33 @@ final class RuntimeRegionalMapOpening {
 
 abstract interface class RuntimeRegionalMapPort {
   Future<RuntimeRegionalMapOpening?> openPlayerRegionalMap();
+}
+
+enum PokemonGiftInteractionStage {
+  received,
+  pokedex,
+  nicknameConfirmation,
+  nickname,
+  destination,
+}
+
+final class OpenPokemonGiftInteractionService
+    extends RuntimeWorldServiceRequest {
+  const OpenPokemonGiftInteractionService({
+    required super.interactionId,
+    required this.interaction,
+    required this.stage,
+    required this.pokemon,
+    required this.projectedState,
+    this.pokedexDetail,
+    this.speciesName,
+  });
+  final SceneInteractionRequest interaction;
+  final PokemonGiftInteractionStage stage;
+  final PlayerPokemon pokemon;
+  final GameState projectedState;
+  final RuntimePlayerPauseDetailSnapshot? pokedexDetail;
+  final String? speciesName;
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.pokemonGift;
 }

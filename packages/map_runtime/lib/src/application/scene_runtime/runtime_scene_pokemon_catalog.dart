@@ -89,6 +89,9 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
         consequence: final SceneGivePokemonFromCatalogConsequence gift,
       ))
         gift,
+    for (final node in scene?.graph.nodes ?? const <SceneNode>[])
+      if (node.payload case SceneActionPayload(interactiveCommand: final SceneReceivePokemonFromCatalogInteractiveCommand gift))
+        SceneGivePokemonFromCatalogConsequence(speciesId: gift.speciesId, formId: gift.formId, level: gift.level),
   ];
   if (gifts.isEmpty) return null;
   final resolvedSpeciesLoader = speciesLoader ?? RuntimePokemonSpeciesLoader();

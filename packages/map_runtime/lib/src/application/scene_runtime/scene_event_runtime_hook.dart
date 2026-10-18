@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import 'scene_interactive_pokemon_gift.dart';
+
 import 'scene_consequence_runtime_writer.dart';
 import 'scene_consequence_runtime_write_result.dart';
 import 'scene_runtime_host_callbacks.dart';
@@ -79,6 +81,7 @@ final class SceneEventRuntimeHook {
     }
 
     final pendingConsequences = <SceneConsequence>[];
+  final preparedPokemonGifts = <String, PreparedScenePokemonGift>{};
     final pendingPokemonGrantOperationIds = <String?>[];
     final pendingRailProgressionOperationIds = <String?>[];
     final writer =
@@ -99,6 +102,7 @@ final class SceneEventRuntimeHook {
         pendingConsequences,
         pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
         railProgressionOperationIds: pendingRailProgressionOperationIds,
+        preparedPokemonGifts: preparedPokemonGifts,
       );
       if (!projected.success) {
         throw StateError(projected.message ?? 'Scene state projection failed.');
@@ -154,6 +158,47 @@ final class SceneEventRuntimeHook {
       requestStructuredInteraction: callbacks.requestStructuredInteraction,
       executeInteractiveCommand: (intent) async {
         final command = intent.interactiveCommand;
+        if (command is SceneReceivePokemonFromCatalogInteractiveCommand) {
+          final catalog = writer.pokemonCatalog;
+          final presenter = callbacks.presentPokemonGift;
+          if (catalog == null || presenter == null) {
+            throw StateError(
+              'The Pokemon gift catalog or presenter is unavailable.',
+            );
+          }
+          final consequence = SceneGivePokemonFromCatalogConsequence(
+            speciesId: command.speciesId,
+            formId: command.formId,
+            level: command.level,
+          );
+          final operationId = scenePokemonGrantOperationId(
+            sceneId: sceneId,
+            executionId: executionId,
+            nodeId: intent.sourceNodeId ?? '',
+            consequence: consequence,
+          );
+          if (operationId == null) {
+            throw StateError('The Pokemon gift source identity is missing.');
+          }
+          final result = await receiveScenePokemonFromCatalog(
+            command: command,
+            operationId: operationId,
+            project: project,
+            readProjectedState: projectedState,
+            catalog: catalog,
+            present: presenter,
+          );
+          if (result.prepared case final prepared?) {
+            preparedPokemonGifts[operationId] = prepared;
+            pendingConsequences.add(consequence);
+            pendingPokemonGrantOperationIds.add(operationId);
+            pendingRailProgressionOperationIds.add(null);
+            validationState = projectedState();
+          }
+          return result.outputPortId;
+        }
+
+
         if (command is! SceneGiveItemInteractiveCommand) {
           final callback = callbacks.executeInteractiveCommand;
           if (callback == null) {
@@ -250,6 +295,7 @@ final class SceneEventRuntimeHook {
         pendingConsequences,
         pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
         railProgressionOperationIds: pendingRailProgressionOperationIds,
+        preparedPokemonGifts: preparedPokemonGifts,
       );
       if (!writeResult.success) {
         return SceneEventRuntimeHookResult.failed(

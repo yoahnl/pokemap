@@ -4,6 +4,7 @@ import '../rail_journey_runtime_transaction.dart';
 import 'scene_consequence_runtime_writer.dart';
 import 'scene_interactive_command_runtime_executor.dart';
 import 'scene_runtime_host_callbacks.dart';
+import 'scene_interactive_pokemon_gift.dart';
 
 ProjectCapabilityTruthAttestation
     buildMapRuntimeNarrativeCommandConsumerAttestation({
@@ -21,6 +22,10 @@ ProjectCapabilityTruthAttestation
 }
 
 String _runtimeReference(NarrativeCommandDescriptor command) {
+  if (command.id == NarrativeCommandIds.receivePokemonFromCatalog) {
+    const Type runtimeType = PreparedScenePokemonGift;
+    return 'packages/map_runtime/lib/src/application/scene_runtime/scene_interactive_pokemon_gift.dart#${runtimeType.toString()}';
+  }
   if (command.id == NarrativeCommandIds.railJourney) {
     const path = 'packages/map_runtime/lib/src/application/'
         'rail_journey_runtime_transaction.dart';

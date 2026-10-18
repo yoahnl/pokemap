@@ -8,6 +8,7 @@ import '../../../features/narrative/state/scene_consequence_catalog_providers.da
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_cinematic_picker.dart';
+import 'scene_action_builder.dart';
 import 'scene_dialogue_choice_policy_dialog.dart';
 import 'scene_pre_session_interaction_dialog.dart';
 
@@ -56,6 +57,8 @@ typedef SceneCinematicPayloadDraftUpdater =
       required String nodeId,
       required String cinematicId,
     });
+
+typedef SceneInteractiveCommandDraftUpdater = Future<bool> Function({required String nodeId, required SceneInteractiveCommand command});
 
 typedef SceneActionConsequenceDraftUpdater =
     Future<bool> Function({
@@ -153,6 +156,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.consequenceEventOptions = const [],
     this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
     this.onUpdateActionConsequence,
+    this.onUpdateInteractiveCommand,
     this.onUpdatePreSessionInteraction,
   });
 
@@ -179,6 +183,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
+  final SceneInteractiveCommandDraftUpdater? onUpdateInteractiveCommand;
   final ScenePreSessionInteractionEditorUpdater? onUpdatePreSessionInteraction;
 
   @override
@@ -228,6 +233,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               consequenceEventOptions: consequenceEventOptions,
               consequenceCatalogs: consequenceCatalogs,
               onUpdateActionConsequence: onUpdateActionConsequence,
+              onUpdateInteractiveCommand: onUpdateInteractiveCommand,
               onUpdatePreSessionInteraction: onUpdatePreSessionInteraction,
             ),
     );
@@ -339,6 +345,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
     required this.onUpdateActionConsequence,
+    required this.onUpdateInteractiveCommand,
     required this.onUpdatePreSessionInteraction,
   });
 
@@ -363,6 +370,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
+  final SceneInteractiveCommandDraftUpdater? onUpdateInteractiveCommand;
   final ScenePreSessionInteractionEditorUpdater? onUpdatePreSessionInteraction;
 
   @override
@@ -454,6 +462,26 @@ class _NodeInspectorBody extends StatelessWidget {
               newGameConfig: newGameConfig,
               onUpdatePayload: onUpdatePreSessionInteraction,
             ),
+            const SizedBox(height: 10),
+          ] else if (node.payload case SceneActionPayload(interactiveCommand: SceneReceivePokemonFromCatalogInteractiveCommand())) ...[
+            _InspectorSection(title: 'Cadeau Pokémon interactif', children: [
+              if (onUpdateInteractiveCommand != null)
+                SceneActionBuilder(
+                  key: ValueKey('gift-inspector-${node.id}'),
+                  initialPayload: node.payload as SceneActionPayload,
+                  allowCommandSelection: false,
+                  pickerOptions: {
+                    NarrativeCommandParameterKind.species: [for (final species in consequenceCatalogs.species.options) SceneActionPickerOption(id: species.id, label: species.label)],
+                    NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions(consequenceCatalogs.species.options),
+                  },
+                  onSubmit: (payload) {
+                    final command = (payload as SceneActionPayload).interactiveCommand!;
+                    onUpdateInteractiveCommand!(nodeId: node.id, command: command);
+                  },
+                )
+              else
+                const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour configurer le cadeau.'),
+            ]),
             const SizedBox(height: 10),
           ] else if (node.kind == SceneNodeKind.action &&
               node.payload is SceneActionPayload) ...[
@@ -3276,6 +3304,7 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
       :final actionKind,
       :final parameters,
       :final consequence,
+      :final interactiveCommand,
     ) =>
       [
         _InspectorRow(
@@ -3290,8 +3319,17 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
                   .map((entry) => '${entry.key}=${entry.value}')
                   .join(', '),
         ),
-        ..._sceneConsequenceRows(consequence),
-        const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
+        if (interactiveCommand != null) ...[
+          _InspectorRow(label: 'Commande native', value: NarrativeCommandCatalog.canonical().byId(interactiveCommand.kind.name)?.label ?? interactiveCommand.kind.name),
+          if (interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand) ...[
+            _InspectorRow(label: 'Espèce / forme', value: '${interactiveCommand.speciesId} / ${interactiveCommand.formId}'),
+            _InspectorRow(label: 'Niveau', value: '${interactiveCommand.level}'),
+          ],
+          _InspectorRow(label: 'Sorties attendues', value: interactiveCommand.outputPortIds.join(' / ')),
+        ] else ...[
+          ..._sceneConsequenceRows(consequence),
+          const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
+        ],
       ],
     SceneBattlePayload(
       :final battleKind,

@@ -11588,6 +11588,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final presentationSession = _activeNarrativeSceneWorkingSession;
     var soundIndex = 0;
     return SceneRuntimeHostCallbacks(
+      presentPokemonGift: (request) async {
+        final controller = _playerServiceRuntimeController;
+        if (controller == null) {
+          throw StateError('The Pokemon gift presenter is unavailable.');
+        }
+        return controller.openPokemonGiftInteraction(request: request);
+      },
       evaluateCondition: (intent) => _resolveSceneConditionOutput(
         intent,
         // Dialogue and battle callbacks may commit a newer runtime snapshot
@@ -12429,6 +12436,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return 'cancelled';
     }
     switch (request) {
+      case OpenPokemonGiftInteractionService():
+        throw StateError('Pokemon gift interactions require the Scene presenter.');
       case OpenTextInputService():
         return _scenePortForPlayerService(
           await controller.openTextInput(request: request),

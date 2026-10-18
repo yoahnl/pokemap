@@ -1871,6 +1871,24 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 return false;
               }
             },
+        onUpdateInteractiveCommand: ({required sceneId, required nodeId, required command}) async {
+          final project = editor.project;
+          if (project == null) return false;
+          final scene = project.scenes.where((s) => s.id == sceneId).singleOrNull;
+          final node = scene?.graph.nodes.where((n) => n.id == nodeId).singleOrNull;
+          if (node == null || node.kind != SceneNodeKind.action) return false;
+          final old = node.payload as SceneActionPayload;
+          try {
+            final projected = const SceneActions().patchGraph(project,
+              maps: editor.activeMap == null ? const <MapData>[] : [editor.activeMap!], sceneId: sceneId,
+              upsertNodes: [SceneNode(id: node.id, kind: node.kind, title: node.title, description: node.description,
+                payload: SceneActionPayload.interactive(command, actionKind: old.actionKind, parameters: old.parameters))]);
+            editorNotifier.applyInMemoryProjectManifest(projected, statusMessage: 'Scene native gift updated');
+            return true;
+          } on NarrativeAuthoringException {
+            return false;
+          }
+        },
         onUpdateActionConsequence:
             ({
               required String sceneId,

@@ -7,6 +7,7 @@ import '../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.da
 import '../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
+import '../application/scene_runtime/scene_interactive_pokemon_gift.dart';
 
 final class SpatialSceneCallbacks
     implements SceneDialogueRuntimeLauncher, SceneBattleRuntimeLauncher {
@@ -18,8 +19,10 @@ final class SpatialSceneCallbacks
     required this.battle,
     required this.interactive,
     this.playCinematic,
+    this.presentPokemonGift,
   });
 
+  final ScenePokemonGiftPresenter? presentPokemonGift;
   final ProjectManifest project;
   final String runtimeSourceId;
   final GameState Function() readGameState;
@@ -31,6 +34,7 @@ final class SpatialSceneCallbacks
   final Future<String> Function(SceneRuntimePlanIntent intent)? playCinematic;
 
   SceneRuntimeHostCallbacks build() => SceneRuntimeHostCallbacks(
+        presentPokemonGift: presentPokemonGift,
         evaluateCondition: evaluateCondition,
         showDialogue: (intent) async {
           final result = await SceneDialogueRuntimeAwaitableAdapter(

@@ -253,7 +253,7 @@ SceneRuntimePlanIntent _actionIntent(SceneNode node) {
   }
   final command = payload.interactiveCommand;
   if (command != null) {
-    return SceneRuntimePlanIntent.executeInteractiveCommand(command: command);
+    return SceneRuntimePlanIntent.executeInteractiveCommand(command: command, sourceNodeId: node.id);
   }
   final consequence = payload.consequence;
   if (consequence == null) {

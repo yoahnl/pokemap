@@ -858,6 +858,36 @@ final class RuntimePlayerPauseDataBuilder {
     return reasons;
   }
 
+  Future<RuntimePlayerPauseDetailSnapshot> buildPokemonGiftPokedexEntry({
+    required GameState gameState,
+    required String speciesId,
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required String locale,
+  }) async {
+    final catalog = await _loadSpeciesCatalog(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
+    final species = catalog.entries
+        .where((entry) => entry.id == speciesId && entry.enabled)
+        .toList();
+    if (catalog.invalid || species.length != 1) {
+      throw StateError('The native Pokedex gift entry is unavailable.');
+    }
+    return _buildPokedex(
+      gameState,
+      species,
+      locale: locale,
+      isFrench: locale.toLowerCase().startsWith('fr'),
+      catalogInvalid: false,
+      mediaResolver: RuntimePokemonSummaryMediaResolver(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+      ),
+    );
+  }
+
   Future<RuntimePlayerPauseDetailSnapshot> _buildPokedex(
     GameState gameState,
     List<_RuntimeSpeciesPresentation> species, {

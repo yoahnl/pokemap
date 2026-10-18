@@ -9,6 +9,40 @@ import 'package:map_editor/src/features/narrative/state/scene_consequence_catalo
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('interactive native gift keeps guided policies when reopened and rejects invalid bounds', (tester) async {
+    final gift = SceneInteractiveCommand.receivePokemonFromCatalog(speciesId: 'bird', formId: 'bronze', level: 17,
+      nicknamePolicy: ScenePokemonGiftNicknamePolicy.disabled, nicknameMaxGraphemes: 10,
+      pokedexPresentationPolicy: ScenePokemonGiftPokedexPresentationPolicy.whenNewAndPokedexVisible);
+    SceneNodePayload? submitted;
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.receivePokemonFromCatalog,
+      initialPayload: SceneActionPayload.interactive(gift), onSubmit: (p) => submitted = p,
+      options: {
+        NarrativeCommandParameterKind.species: const [SceneActionPickerOption(id: 'bird', label: 'Bird'), SceneActionPickerOption(id: 'invalid', label: 'Unresolved')],
+        NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([
+          const SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', primaryFormId: 'bronze', formIds: ['sunny', 'bronze']),
+        ]),
+      });
+    expect(_picker(tester, 'Espèce').items.map((item) => item.value), ['bird']);
+    expect(_picker(tester, 'Forme').items.map((item) => item.value), ['bronze']);
+    expect(_picker(tester, 'Proposer un surnom').value, 'disabled');
+    expect(_picker(tester, 'Présenter le Pokédex').value, 'whenNewAndPokedexVisible');
+    expect(_submitButton(tester).onPressed, isNotNull);
+    await tester.ensureVisible(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    expect((submitted as SceneActionPayload).interactiveCommand, gift);
+    for (final field in ['level', 'nicknameMaxGraphemes']) {
+      final input = find.byKey(ValueKey('scene-action-parameter-$field'));
+      for (final value in ['0', '101', '1.5']) {
+        await tester.enterText(input, value);
+        await tester.pump();
+        expect(_submitButton(tester).onPressed, isNull, reason: '$field=$value');
+      }
+      await tester.enterText(input, field == 'level' ? '17' : '10');
+      await tester.pump();
+    }
+    expect(_submitButton(tester).onPressed, isNotNull);
+  });
+
   for (final primaryFormId in ['base', 'bronze']) {
   testWidgets('catalog gift builder offers only the resolved primary form $primaryFormId', (tester) async {
     SceneNodePayload? submitted;

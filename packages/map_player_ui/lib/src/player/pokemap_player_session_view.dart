@@ -28,6 +28,7 @@ import 'player_pause_menu.dart';
 import 'player_pc_overlay.dart';
 import 'player_scene_interaction_surface.dart';
 import 'player_text_input_overlay.dart';
+import 'player_pokemon_gift_overlay.dart';
 import 'player_shop_overlay.dart';
 import 'presentation_frame_renderer.dart';
 import 'runtime_presentation_frame_surface.dart';
@@ -1555,6 +1556,10 @@ class _RuntimeWorldServiceOverlay extends StatelessWidget {
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),
         ),
+      RuntimeWorldServiceKind.pokemonGift => PlayerPokemonGiftOverlay(
+        snapshot: snapshot,
+        onCommand: (command) => onCommand(command),
+      ),
       RuntimeWorldServiceKind.textInput => PlayerTextInputOverlay(
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),

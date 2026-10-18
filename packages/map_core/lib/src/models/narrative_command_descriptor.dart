@@ -25,6 +25,8 @@ enum NarrativeCommandParameterKind {
   item,
   species,
   speciesForm,
+  pokemonGiftNicknamePolicy,
+  pokemonGiftPokedexPolicy,
   starter,
   map,
   modelInstance,
