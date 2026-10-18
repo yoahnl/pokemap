@@ -12,6 +12,81 @@ import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import 'resource_pack_selection.dart';
 
+class _PackBudgetReports extends StatelessWidget {
+  const _PackBudgetReports(this.reports);
+  final List<Map<String, Object?>> reports;
+
+  String contextLabel(Object? scope) {
+    final value = '$scope';
+    for (final entry in const {
+      'elementCategories': 'Catégories de décors',
+      'tilesetFolders': 'Dossiers des atlas',
+      'dialogueFolders': 'Dossiers des dialogues',
+      'terrainCategories': 'Catégories des sols',
+      'pathCategories': 'Catégories des chemins',
+      'groups': 'Groupes',
+      'resourceLibraryCatalog.families': 'Familles de ressources',
+    }.entries) {
+      if (value.endsWith('.${entry.key}')) return entry.value;
+    }
+    if (value.contains('/')) return 'Fichier ${value.split('/').last}';
+    return value == 'nativeSelectionDefinitions'
+        ? 'Définitions avant publication' : 'Sous-ensemble du catalogue';
+  }
+
+  String unknownLabel(Object? dimension) => switch (dimension) {
+    'publicationMetadata' => 'informations finales de publication',
+    'archiveBytes' => 'taille de l’archive',
+    'manifestBytes' => 'manifeste de l’archive',
+    'publishedCatalogBytes' => 'taille du catalogue publié',
+    'imagePixels' || 'rgba8BytesEstimate' => 'dimensions des images',
+    'licenses' => 'documents de licence',
+    'mediaIntegrity' => 'intégrité des médias',
+    'fileInventory' || 'files' || 'fileBytes' => 'inventaire des fichiers',
+    'payloadEntries' || 'payloadBytes' => 'contenu complet du package',
+    'runtimeProjection' => 'données conservées dans le jeu exporté',
+    'publishedFiles' => 'fichiers finaux à installer',
+    _ => '$dimension'.endsWith('.imageDimensions')
+        ? 'dimensions d’une image du pack' : 'données complémentaires',
+  };
+
+  @override
+  Widget build(BuildContext context) => StudioPanel(
+    compact: true,
+    title: 'Volumes et limites',
+    children: [
+      const Text('Les limites de publication du jeu sont distinctes de l’installation de la bibliothèque.'),
+      for (final report in reports) ...[
+        const SizedBox(height: 8),
+        Text(switch (report['scope']) {
+          'nativeSelection' => 'Sélection à exporter',
+          'sourceProjectDistribution' => 'Projet actuel — publication du jeu',
+          'mergedProjectDistribution' => 'Projet après import — publication du jeu',
+          'inspectedArchive' => 'Pack inspecté complet',
+          'preparedExport' => 'Pack préparé',
+          _ => 'Mesures du catalogue',
+        }),
+        Text(report['accepted'] == true
+            ? 'Aucun dépassement parmi les mesures disponibles.'
+            : 'Une ou plusieurs limites sont dépassées.'),
+        for (final metric in (report['metrics'] as List? ?? const []).whereType<Map>())
+          if (metric['allowed'] != null)
+            Text('${metric['scope'] != report['scope'] ? '${contextLabel(metric['scope'])} — ' : ''}${metric['label']} : ${metric['observed']} ${metric['unit']} / limite ${metric['allowed']}.'),
+        for (final violation in (report['violations'] as List? ?? const []).whereType<Map>())
+          if (violation['remedy'] case final String remedy)
+            Text(remedy),
+        if (report['measurementComplete'] != true)
+          const Text('Mesures complémentaires nécessaires avant la publication finale.'),
+        if ((report['unknownDimensions'] as List? ?? const []).isNotEmpty)
+          Text('À mesurer : ${(report['unknownDimensions'] as List).map(unknownLabel).toSet().take(6).join(', ')}.'),
+        if (report['truncated'] == true)
+          Text('Résumé borné : ${report['metricCount']} mesures, ${report['violationCount']} dépassements.'),
+      ],
+    ],
+  );
+
+}
+
 class _PackIdentity extends StatelessWidget {
   const _PackIdentity({required this.controller});
   final ResourcePackTransferController controller;
@@ -469,6 +544,11 @@ class _ResourcePackTransferDialogState
               children: [
                 if (c.notice != null) StudioNotice(c.notice!),
                 if (c.error != null) StudioNotice(c.error!, isError: true),
+                if (selection)
+                  StudioButton(label: 'Vérifier les volumes', secondary: true,
+                      onPressed: c.canDiagnose ? c.diagnose : null),
+                if (c.budgetReports.isNotEmpty)
+                  _PackBudgetReports(c.budgetReports),
                 if (c.inspection.isNotEmpty) _PackIdentity(controller: c),
                 if (c.exporting && (selection || review))
                   _PackExportMetadata(c),

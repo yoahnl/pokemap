@@ -2,6 +2,7 @@ library map_distribution;
 
 export 'src/audio_media_format.dart';
 export 'src/canonical_json.dart';
+export 'src/catalog_budget_report.dart';
 export 'src/content_tree_hasher.dart';
 export 'src/game_package_format_exception.dart';
 export 'src/game_package_builder.dart';

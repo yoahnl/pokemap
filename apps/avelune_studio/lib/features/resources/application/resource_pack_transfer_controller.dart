@@ -73,6 +73,7 @@ final class ResourcePackTransferController extends ChangeNotifier {
   String attributionSection = 'authors';
   int familyCount = 0, attributionCount = 0;
   Map<String, Object?> inspection = const {}, preparedSummary = const {};
+  List<Map<String, Object?>> budgetReports = const [];
   Map<String, int> jobCounters = const {};
   List<Map<String, Object?>> entries = const [], preview = const [];
   int selectedCount = 0,
@@ -115,6 +116,8 @@ final class ResourcePackTransferController extends ChangeNotifier {
       phase == ResourcePackTransferPhase.selecting &&
       _releasingInputs == 0 &&
       (!exporting || exportValidation == null);
+  bool get canDiagnose => !operationActive && _selection != null &&
+      phase == ResourcePackTransferPhase.selecting && !_closing;
   bool get canApply =>
       !operationActive &&
       !exporting &&
@@ -570,6 +573,7 @@ final class ResourcePackTransferController extends ChangeNotifier {
   }
 
   void _summary(Map<String, Object?> value) {
+    budgetReports = const [];
     _selectionRevision = value['revision']! as String;
     selectedCount = value['selectedCount']! as int;
     totalCount = value['totalAvailable']! as int;
@@ -757,6 +761,34 @@ final class ResourcePackTransferController extends ChangeNotifier {
           'Ces ressources sont déjà installées. ${preparedSummary['localModifiedResourceCount']} définitions modifiées et ${preparedSummary['localDeletedResourceCount']} suppressions locales conservées.';
     }
   });
+
+  Future<void> diagnose() => _run((epoch) async {
+    if (_selection == null) return;
+    final expected = exporting ? _expectedRevision : await port.captureRevision();
+    final result = await _monitor(await port.transfer('diagnose', {
+      'expectedRevision': expected,
+      'selectionHandle': _selection,
+      'revision': _selectionRevision,
+    }));
+    if (!_current(epoch) || _closing) return;
+    _takeBudgetReports(result);
+    phase = ResourcePackTransferPhase.selecting;
+  });
+
+  void _takeBudgetReports(Map<String, Object?> value) {
+    final list = value['budgetReports'];
+    final summary = value['summary'];
+    final single = value['budgetReport'] ??
+        (summary is Map ? summary['budgetReport'] : null);
+    if (list is List) {
+      budgetReports = List.unmodifiable(list.whereType<Map>().map(
+          (row) => Map<String, Object?>.unmodifiable(
+              Map<String, Object?>.from(row))));
+    } else if (single is Map) {
+      budgetReports = [Map<String, Object?>.unmodifiable(
+          Map<String, Object?>.from(single))];
+    }
+  }
   Future<void> _loadPreview({String? cursor}) async {
     final epoch = _epoch, handle = _previewHandle, input = _inputRevision;
     if (handle == null) return;
@@ -832,6 +864,7 @@ final class ResourcePackTransferController extends ChangeNotifier {
         case 'succeeded':
           _jobId = null;
           final completed = Map<String, Object?>.from(result['result']! as Map);
+          _takeBudgetReports(completed);
           if (completed['preparedExportHandle'] case final String prepared) {
             if (completed['previewHandle'] case final String preview) {
               _nativePreviewOwners[prepared] = preview;
@@ -857,8 +890,14 @@ final class ResourcePackTransferController extends ChangeNotifier {
         case 'cancelled':
           throw const _PackCancelled();
         case 'failed':
+          final details = result['result'];
+          if (details is Map) {
+            _takeBudgetReports(Map<String, Object?>.from(details));
+          }
           throw ResourceFailure(
-            'Le pack a été refusé (${snapshot['errorCode'] ?? 'erreur de transfert'}).',
+            budgetReports.isNotEmpty && snapshot['errorMessage'] is String
+                ? snapshot['errorMessage']! as String
+                : 'Le pack a été refusé (${snapshot['errorCode'] ?? 'erreur de transfert'}).',
           );
       }
       if (_closing && cancelAllowed) {
@@ -975,6 +1014,7 @@ final class ResourcePackTransferController extends ChangeNotifier {
   }
 
   Future<void> _release() async {
+    budgetReports = const [];
     await _inputCleanup;
     if (exporting) {
       await _releasePreparation();
@@ -995,6 +1035,7 @@ final class ResourcePackTransferController extends ChangeNotifier {
   }
 
   Future<void> _releasePreparation() async {
+    budgetReports = const [];
     final prepared = _prepared, previewHandle = _previewHandle;
     _prepared = null;
     _previewHandle = null;

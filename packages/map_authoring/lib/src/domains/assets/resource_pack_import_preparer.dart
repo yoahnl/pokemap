@@ -24,6 +24,7 @@ import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import 'asset_store.dart';
 import 'resource_information_document.dart';
+import 'resource_pack_budget.dart';
 import 'resource_pack_import_projection.dart';
 part 'resource_pack_import_review.dart';
 
@@ -516,6 +517,9 @@ final class ResourcePackImportPreparer {
           _merge(snapshot.manifest, projection, previous, installation);
       ProjectValidator.validate(manifest);
       final catalog = AssetCatalog(records: records);
+      final projectBytes = encodeResourceInformationDocument(snapshot, manifest);
+      final budget = await measureProjectDocumentBudget(projectBytes,
+          scope: 'mergedProjectDistribution');
       final value = _Prepared(
           selection,
           snapshot,
@@ -523,7 +527,7 @@ final class ResourcePackImportPreparer {
           installation,
           List.unmodifiable(leases),
           List.unmodifiable(outputs),
-          encodeResourceInformationDocument(snapshot, manifest),
+          projectBytes,
           utf8.encode(jsonEncode(catalog.toJson())),
           _clock().toUtc().add(ttl));
       if ((await loadSnapshot()).revision != snapshot.revision) {
@@ -532,7 +536,7 @@ final class ResourcePackImportPreparer {
       _checkOpen();
       checkCancelled?.call();
       final handle = _next('prepared');
-      value.review = _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: previous, projection: projection, installation: installation, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.ready, outputs: outputs, metadataBytes: value.projectBytes.length + value.catalogBytes.length);
+      value.review = _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: previous, projection: projection, installation: installation, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.ready, outputs: outputs, metadataBytes: value.projectBytes.length + value.catalogBytes.length, budgetReport: budget.toBoundedJson(maximumBytes: 96 * 1024));
       _prepared[handle] = value;
       leases.clear();
       return ResourcePackPreparedImport._(

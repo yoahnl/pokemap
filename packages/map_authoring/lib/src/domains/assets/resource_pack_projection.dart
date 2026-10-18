@@ -73,6 +73,20 @@ final class ResourcePackProjectionBuilder {
       {this.policy = const ResourcePackSecurityPolicy()});
   final ResourcePackSecurityPolicy policy;
 
+  Future<CatalogBudgetReport> measureNativeSelection({
+    required ProjectManifest manifest,
+    required Iterable<NativeResourcePackRef> roots,
+    required Iterable<NativeResourcePackFile> files,
+    Iterable<String> smartTilePatternIds = const [],
+  }) => Isolate.run(_nativeSelectionBudgetWorker(
+    manifest,
+    roots.toList(),
+    [for (final file in files)
+      (file.id, file.logicalPath, file.byteLength, file.rawSha256, file.mediaType)],
+    smartTilePatternIds.toList(),
+    policy,
+  ));
+
   Future<Set<String>> selectedFileIds({
     required ProjectManifest manifest,
     required Iterable<NativeResourcePackRef> roots,
@@ -121,6 +135,7 @@ final class ResourcePackProjectionBuilder {
     for (final id in patterns) {
       projection.reference('smartTilePattern', id);
     }
+    projection.requireBudget();
     if (portableRoots.isEmpty && patterns.isEmpty) _fail('selection_empty');
     final inherited = _NativeAttributions(projection, attribution);
     final licenses = <String>[];
@@ -217,6 +232,11 @@ final class ResourcePackProjectionBuilder {
     var catalog = ResourcePackCatalog.fromJson(json);
     ResourcePackDependencyGraph.fromCatalog(catalog).validateAll();
     catalog = await projection.verifyBorders(catalog);
+    final budget = CatalogBudgetCalculator(resourcePackPolicy: policy)
+        .measureResourcePack(catalog, scope: 'preparedExport',
+          files: [for (final source in sources.values)
+            CatalogBudgetFile(path: source.path, byteLength: source.byteLength)]);
+    if (!budget.accepted) throw CatalogBudgetExceededException(budget);
     return ResourcePackExportProjection._(
         catalog: catalog,
         sourceRevision: sourceRevision,
@@ -394,12 +414,74 @@ final class _Projection {
     } else {
       _supportCount++;
     }
-    if (_resourceCount > policy.maxResources ||
-        _supportCount > policy.maxSupports ||
-        _fileCount > policy.maxPublishedFiles) {
-      _fail('resource_limit_exceeded');
-    }
     return kind == 'borderSnapshot' ? id : allocate(key);
+  }
+
+  CatalogBudgetReport measureBudget() {
+    const scope = 'nativeSelection';
+    CatalogBudgetMetric fact(String dimension, int observed, int? allowed,
+        String label, String remedy) => CatalogBudgetMetric(
+      scope: scope, dimension: dimension, observed: observed, allowed: allowed,
+      unit: 'count', label: label, remedy: remedy,
+    );
+    final counts = <String, int>{};
+    var largestFile = 0;
+    final physicalFiles = <String, int>{};
+    for (final key in completed.keys) {
+      final node = nodes[key]!;
+      counts.update(node.kind, (count) => count + 1, ifAbsent: () => 1);
+      if (node.kind == 'file') {
+        final file = files[node.id]!;
+        largestFile = max(largestFile, file.byteLength);
+        physicalFiles['${file.rawSha256}:${file.byteLength}:${file.mediaType}'] =
+            file.byteLength;
+      }
+    }
+    final definitions = const CatalogBudgetCalculator().measureJsonDocument(
+      catalogJson([], []), scope: 'nativeSelectionDefinitions');
+    return CatalogBudgetReport(
+      scope: scope,
+      metrics: [
+        fact('resources', _resourceCount, policy.maxResources,
+            'Ressources de la sélection et de ses dépendances',
+            'Réduire la sélection ou partager les définitions équivalentes.'),
+        fact('supports', _supportCount, policy.maxSupports,
+            'Définitions techniques de la sélection',
+            'Partager les matières, motifs et autres définitions équivalentes.'),
+        fact('files', _fileCount, policy.maxPublishedFiles,
+            'Fichiers logiques nécessaires',
+            'Réduire la sélection ou regrouper les sources compatibles.'),
+        CatalogBudgetMetric(scope: scope, dimension: 'fileBytes',
+          observed: largestFile, allowed: policy.maxFileBytes, unit: 'bytes',
+          label: 'Plus gros fichier source',
+          remedy: 'Préparer une source plus petite en conservant les images entières.'),
+        ...definitions.metrics,
+      ],
+      totals: {
+        'resources': _resourceCount, 'supports': _supportCount,
+        'files': _fileCount,
+        'sourceBlobBytes': physicalFiles.values.fold<int>(0, (sum, n) => sum + n),
+        'archiveBytes': null,
+      },
+      breakdown: [for (final kind in counts.keys.toList()..sort())
+        fact(kind, counts[kind]!, null, kind, '')],
+      unknownDimensions: const [
+        'publicationMetadata', 'archiveBytes', 'publishedCatalogBytes',
+        'imagePixels', 'licenses', 'mediaIntegrity',
+      ],
+    );
+  }
+
+  void requireBudget() {
+    if (_resourceCount <= policy.maxResources &&
+        _supportCount <= policy.maxSupports &&
+        _fileCount <= policy.maxPublishedFiles &&
+        completed.keys.where((key) => nodes[key]!.kind == 'file').every(
+            (key) => files[nodes[key]!.id]!.byteLength <= policy.maxFileBytes)) {
+      return;
+    }
+    final report = measureBudget();
+    if (!report.accepted) throw CatalogBudgetExceededException(report);
   }
 
   Map<String, dynamic> _supportValue(String kind, String id, [String? owner]) {
@@ -1203,6 +1285,7 @@ Set<String> Function() _requiredNativeFilesWorker(
         projection.reference('smartTilePattern', id);
       }
       final inherited = _NativeAttributions(projection, null);
+      projection.requireBudget();
       return {
         ...inherited.documentFileIds,
         for (final key in projection.completed.keys)
@@ -1210,6 +1293,28 @@ Set<String> Function() _requiredNativeFilesWorker(
       };
     };
 Stream<List<int>> _emptyNativeRead() => const Stream.empty();
+
+CatalogBudgetReport Function() _nativeSelectionBudgetWorker(
+  ProjectManifest manifest,
+  List<NativeResourcePackRef> roots,
+  List<(String, String, int, String, String)> files,
+  List<String> patterns,
+  ResourcePackSecurityPolicy policy,
+) => () {
+  final projection = _Projection(manifest, [
+    for (final file in files) NativeResourcePackFile(
+      id: file.$1, logicalPath: file.$2, byteLength: file.$3,
+      rawSha256: file.$4, mediaType: file.$5, openRead: _emptyNativeRead),
+  ], policy);
+  for (final root in roots) {
+    projection.reference(root.kind.name, root.id);
+  }
+  for (final id in patterns) {
+    projection.reference('smartTilePattern', id);
+  }
+  _NativeAttributions(projection, null);
+  return projection.measureBudget();
+};
 
 ResourcePackBuildSource _documentAliases(
     List<ResourcePackBuildSource> aliases, ResourcePackSecurityPolicy policy) {

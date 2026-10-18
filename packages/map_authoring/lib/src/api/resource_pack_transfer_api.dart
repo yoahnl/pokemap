@@ -48,6 +48,7 @@ final resourcePackTransferContract = <String, Object?>{
     'stage',
     'stage_license',
     'inspect',
+    'diagnose',
     'entries',
     'selection.create',
     'selection.patch',
@@ -141,6 +142,15 @@ final resourcePackVerbInputSchemas = <String, Map<String, Object?>>{
   'stage': _object(['sourcePath'], {'sourcePath': _textSchema(4096)}),
   'stage_license': _object(['sourcePath'], {'sourcePath': _textSchema(4096)}),
   'inspect': _object(['archiveHandle'], {'archiveHandle': _handleSchema}),
+  'diagnose': {
+    'oneOf': [
+      _object(['expectedRevision'], {'expectedRevision': _revisionSchema}),
+      _object(['expectedRevision', 'selectionHandle', 'revision'], {
+        'expectedRevision': _revisionSchema,
+        ..._selectionSchema,
+      }),
+    ],
+  },
   'entries':
       _object([], {
           'inspectionHandle': _handleSchema,

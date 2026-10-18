@@ -4,13 +4,16 @@ final class GamePackageFormatException extends FormatException {
     required String path,
     required String message,
     List<String> relatedCodes = const <String>[],
+    Map<String, Object?>? details,
   })  : path = _safePath(path),
         relatedCodes = List.unmodifiable(relatedCodes),
+        details = details == null ? null : Map.unmodifiable(details),
         super(_redact(message), _safePath(path));
 
   final String code;
   final String path;
   final List<String> relatedCodes;
+  final Map<String, Object?>? details;
 
   @override
   String toString() =>

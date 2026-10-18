@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:map_distribution/map_distribution.dart';
+
 import '../contracts/job_contracts.dart';
 import '../contracts/json_contract_support.dart';
 
@@ -79,6 +81,7 @@ final class ResourcePackJobService implements AuthoringJobPort {
       'resource_pack.stage',
       'resource_pack.license.stage',
       'resource_pack.inspect',
+      'resource_pack.diagnose',
       'resource_pack.prepare',
       'resource_pack.import',
       'resource_pack.export',
@@ -144,6 +147,32 @@ final class ResourcePackJobService implements AuthoringJobPort {
         }
         job.state = AuthoringJobState.failed;
         job.errorCode = _code(error);
+        if (job.cancelAllowed && error is CatalogBudgetExceededException) {
+          final result = {'budgetReport': error.report.toBoundedJson()};
+          if (utf8.encode(jsonEncode(result)).length <= 240 * 1024) {
+            job.result = freezeContractJsonObject(result,
+                field: 'resourcePackJob.budget');
+          }
+          job.errorCode = error.code;
+          job.errorMessage = error.message;
+          job.emit('failed');
+          return;
+        }
+        if (job.cancelAllowed && error is GamePackageFormatException) {
+          final report = error.details?['budgetReport'];
+          if (report is Map<String, Object?>) {
+            final result = {'budgetReport': report};
+            if (utf8.encode(jsonEncode(result)).length <= 240 * 1024) {
+              job.result = freezeContractJsonObject(result,
+                  field: 'resourcePackJob.budget');
+              job.errorCode = error.code;
+              job.errorMessage =
+                  'Le pack dépasse les limites indiquées dans le rapport de volumes.';
+              job.emit('failed');
+              return;
+            }
+          }
+        }
         job.errorMessage = job.cancelAllowed
             ? 'The pack operation failed before finalization.'
             : 'Finalization requires the canonical receipt or transaction recovery.';

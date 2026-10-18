@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as img;
 
 import 'canonical_json.dart';
+import 'catalog_budget_report.dart';
 import 'game_package_format_exception.dart';
 import 'game_package_security_policy.dart';
 import 'glb_model3d_inspector.dart';
@@ -32,8 +33,11 @@ final class ResourcePackInspection {
       required this.resourceCount,
       required this.supportCount,
       required this.provenanceStatus,
-      required Map<String, Model3dInspection> modelInspections})
-      : modelInspections = Map.unmodifiable(modelInspections);
+      required Map<String, Model3dInspection> modelInspections,
+      this.budgetReport,
+      Map<String, RasterImageDimensions> imageDimensions = const {}})
+      : modelInspections = Map.unmodifiable(modelInspections),
+        imageDimensions = Map.unmodifiable(imageDimensions);
   final ResourcePackManifest manifest;
   final ResourcePackCatalog catalog;
   final String archiveRawSha256;
@@ -45,6 +49,8 @@ final class ResourcePackInspection {
   final int supportCount;
   final ResourcePackProvenanceStatus provenanceStatus;
   final Map<String, Model3dInspection> modelInspections;
+  final Map<String, RasterImageDimensions> imageDimensions;
+  final CatalogBudgetReport? budgetReport;
 }
 
 abstract final class ResourcePackCapabilities {
@@ -103,7 +109,9 @@ final class ResourcePackInspector {
   ResourcePackInspection _inspect(RandomAccessPackageSource source) {
     final length = source.length;
     if (length < 0 || length > policy.maxArchiveBytes) {
-      _fail('archive_too_large', r'$', 'The archive exceeds its byte limit.');
+      _fail('archive_too_large', r'$', 'The archive exceeds its byte limit.',
+          budgetReport:
+              length < 0 ? null : _partialBudgetReport(archiveBytes: length));
     }
     final structure = RandomAccessZipStructureReader(
       const GamePackageSecurityPolicy(),
@@ -119,11 +127,29 @@ final class ResourcePackInspector {
     }
     if (manifestEntry.size > policy.maxManifestBytes) {
       _fail('manifest_too_large', 'manifest.json',
-          'The manifest exceeds its byte limit.');
+          'The manifest exceeds its byte limit.',
+          budgetReport: _partialBudgetReport(
+              archiveBytes: length, manifestBytes: manifestEntry.size));
     }
     final manifestPayload = _stream(source, manifestEntry, collect: true);
-    final manifest = ResourcePackManifestCodec(policy: policy)
-        .decodeUtf8(manifestPayload.bytes);
+    late final ResourcePackManifest manifest;
+    try {
+      manifest = ResourcePackManifestCodec(policy: policy)
+          .decodeUtf8(manifestPayload.bytes);
+    } on GamePackageFormatException catch (error) {
+      if (error.code != 'resource_pack.json_complexity') rethrow;
+      final partial = _partialBudgetReport(
+          archiveBytes: length, manifestBytes: manifestEntry.size);
+      throw GamePackageFormatException(
+          code: error.code,
+          path: error.path,
+          message: error.message,
+          relatedCodes: error.relatedCodes,
+          details: {
+            'budgetReport': _jsonGuardReport(partial, 'manifest.json')
+                .toBoundedJson(maximumBytes: 96 * 1024)
+          });
+    }
     final declared = manifest.compatibility.requiredCapabilities;
     if (declared.any((c) => !ResourcePackCapabilities.supported.contains(c))) {
       _fail('capability_mismatch', 'manifest.json',
@@ -142,39 +168,25 @@ final class ResourcePackInspector {
       _fail('missing_file', r'$',
           'An inventoried file is absent from the archive.');
     }
-    if (manifest.content.catalog.byteLength > policy.maxCatalogBytes) {
-      _fail('catalog_too_large', 'catalog.json',
-          'The catalog exceeds its byte limit.');
-    }
-    var payloadBytes = 0;
-    var previews = 0;
     for (final file in inventory.values) {
       if (entries[file.path]!.size != file.byteLength) {
         _fail('size_mismatch', file.path,
             'The ZIP entry and manifest declare different byte lengths.');
       }
-      if (file.path != 'catalog.json' &&
-          file.byteLength > policy.maxFileBytes) {
-        _fail('file_too_large', file.path,
-            'The payload exceeds its individual byte limit.');
+    }
+    final partialBudget = _partialBudgetReport(
+        archiveBytes: length,
+        manifestBytes: manifestEntry.size,
+        inventory: inventory.values);
+    if (manifest.content.catalog.byteLength > policy.maxCatalogBytes) {
+      final content = _stream(source, entries['catalog.json']!);
+      if (content.rawSha256 != manifest.content.catalog.rawSha256) {
+        _fail('hash_mismatch', 'catalog.json',
+            'The raw SHA-256 differs from the inventoried digest.');
       }
-      if (file.path.endsWith('.glb') && file.byteLength > 128 * 1024 * 1024) {
-        _fail('model_too_large', file.path,
-            'The GLB exceeds the native 128 MiB limit.');
-      }
-      payloadBytes += file.byteLength;
-      if (payloadBytes > policy.maxTotalPayloadBytes) {
-        _fail('payload_too_large', r'$',
-            'The useful payload exceeds its cumulative byte limit.');
-      }
-      if (file.path.startsWith('previews/')) {
-        previews++;
-        if (file.byteLength > policy.maxPreviewBytes ||
-            previews > policy.maxPreviewFiles) {
-          _fail('preview_limit', file.path,
-              'The preview byte or count quota is exceeded.');
-        }
-      }
+      _fail('catalog_too_large', 'catalog.json',
+          'The catalog exceeds its byte limit.',
+          budgetReport: partialBudget);
     }
     if (resourcePackTreeSha256(
             manifest.content.catalog, manifest.content.files) !=
@@ -182,28 +194,19 @@ final class ResourcePackInspector {
       _fail('tree_mismatch', 'manifest.json',
           'The content tree digest does not match the inventory.');
     }
-    Uint8List? catalogBytes;
-    final imageBounds = <String, RasterImageDimensions>{};
-    for (final file in inventory.values) {
-      final content = _stream(source, entries[file.path]!,
-          collect: file.path == 'catalog.json' || file.mediaType == 'image/png',
-          text: file.mediaType == 'text/plain');
-      if (content.rawSha256 != file.rawSha256) {
-        _fail('hash_mismatch', file.path,
-            'The raw SHA-256 differs from the inventoried digest.');
-      }
-      if (file.path == 'catalog.json') catalogBytes = content.bytes;
-      if (file.mediaType == 'image/png') {
-        imageBounds[file.path] =
-            _inspectPngDimensions(file.path, content.bytes);
-      }
+    final catalogPayload =
+        _stream(source, entries['catalog.json']!, collect: true);
+    if (catalogPayload.rawSha256 != manifest.content.catalog.rawSha256) {
+      _fail('hash_mismatch', 'catalog.json',
+          'The raw SHA-256 differs from the inventoried digest.');
     }
-    final json = _decodeJson(catalogBytes!, 'catalog.json');
+    final json = _decodeJson(catalogPayload.bytes, 'catalog.json',
+        budgetReport: partialBudget);
     if (json is! Map<String, dynamic>) {
       _fail('catalog_invalid', 'catalog.json',
           'The portable catalog must be an object.');
     }
-    _validateHierarchies(json);
+    _validateHierarchies(json, enforceLimits: false);
     final catalog = ResourcePackCatalog.fromJson(json);
     final graph = ResourcePackDependencyGraph.fromCatalog(catalog);
     final closure = graph.validateAll();
@@ -220,13 +223,94 @@ final class ResourcePackInspector {
             support.kind != ResourcePackSupportKind.resourceFamily ||
             !builtinFamilies.contains(support.id))
         .length;
+    final measuredBudget = CatalogBudgetCalculator(resourcePackPolicy: policy)
+        .measureResourcePack(catalog,
+            archiveBytes: length,
+            manifestBytes: manifestEntry.size,
+            files: [
+          for (final file in manifest.content.files)
+            CatalogBudgetFile(
+                path: file.path,
+                byteLength: file.byteLength,
+                isPreview: file.path.startsWith('previews/')),
+        ]);
+    final rawJsonBudget = const CatalogBudgetCalculator().measureJsonDocument(
+        json,
+        scope: 'resourcePack',
+        maxBytes: policy.maxCatalogBytes,
+        maxNodes: policy.maxJsonNodes,
+        maxDepth: policy.maxJsonDepth);
+    final budgetMetrics = <(String, String), CatalogBudgetMetric>{
+      for (final metric in measuredBudget.metrics)
+        (metric.scope, metric.dimension): metric,
+      for (final metric in rawJsonBudget.metrics)
+        (metric.scope, metric.dimension): metric,
+      for (final metric in partialBudget.metrics)
+        (metric.scope, metric.dimension): metric,
+    };
+    final budgetReport = CatalogBudgetReport(
+        scope: 'resourcePack',
+        metrics: budgetMetrics.values,
+        totals: {
+          ...measuredBudget.totals,
+          ...rawJsonBudget.totals,
+          ...partialBudget.totals
+        },
+        breakdown: measuredBudget.breakdown,
+        omittedBreakdownEntries: measuredBudget.omittedBreakdownEntries,
+        unknownDimensions: measuredBudget.unknownDimensions);
+    _validateHierarchies(json, budgetReport: budgetReport);
+    var payloadBytes = 0;
+    var previews = 0;
+    for (final file in inventory.values) {
+      if (file.path != 'catalog.json' &&
+          file.byteLength > policy.maxFileBytes) {
+        _fail('file_too_large', file.path,
+            'The payload exceeds its individual byte limit.',
+            budgetReport: budgetReport);
+      }
+      if (file.path.endsWith('.glb') && file.byteLength > 128 * 1024 * 1024) {
+        _fail('model_too_large', file.path,
+            'The GLB exceeds the native 128 MiB limit.');
+      }
+      payloadBytes += file.byteLength;
+      if (payloadBytes > policy.maxTotalPayloadBytes) {
+        _fail('payload_too_large', r'$',
+            'The useful payload exceeds its cumulative byte limit.',
+            budgetReport: budgetReport);
+      }
+      if (file.path.startsWith('previews/')) {
+        previews++;
+        if (file.byteLength > policy.maxPreviewBytes ||
+            previews > policy.maxPreviewFiles) {
+          _fail('preview_limit', file.path,
+              'The preview byte or count quota is exceeded.',
+              budgetReport: budgetReport);
+        }
+      }
+    }
     if (resources > policy.maxResources) {
-      _fail(
-          'resource_limit', 'catalog.json', 'The resource quota is exceeded.');
+      _fail('resource_limit', 'catalog.json', 'The resource quota is exceeded.',
+          budgetReport: budgetReport);
     }
     if (supports > policy.maxSupports) {
       _fail('support_limit', 'catalog.json',
-          'The support and pattern quota is exceeded.');
+          'The support and pattern quota is exceeded.',
+          budgetReport: budgetReport);
+    }
+    final imageBounds = <String, RasterImageDimensions>{};
+    for (final file in manifest.content.files) {
+      final content = _stream(source, entries[file.path]!,
+          collect: file.mediaType == 'image/png',
+          text: file.mediaType == 'text/plain');
+      if (content.rawSha256 != file.rawSha256) {
+        _fail('hash_mismatch', file.path,
+            'The raw SHA-256 differs from the inventoried digest.');
+      }
+      if (file.mediaType == 'image/png') {
+        imageBounds[file.path] = _inspectPngDimensions(file.path, content.bytes,
+            budgetReport: budgetReport);
+      }
     }
     final calculated =
         ResourcePackCapabilities.requiredFor(catalog, manifest.content.files);
@@ -295,6 +379,27 @@ final class ResourcePackInspector {
       _fail('source_changed', r'$',
           'The archive changed while the receipt was created.');
     }
+    final measuredImageDimensions = {
+      for (final path in imageBounds.keys) '$path.imageDimensions',
+    };
+    final imagePixels = imageBounds.values.fold<int>(
+        0, (total, dimensions) => total + dimensions.width * dimensions.height);
+    final finalBudgetReport = CatalogBudgetReport(
+        scope: budgetReport.scope,
+        metrics: [
+          ...budgetReport.metrics,
+          for (final entry in imageBounds.entries)
+            ..._imageMetrics(entry.key, entry.value)
+        ],
+        totals: {
+          ...budgetReport.totals,
+          'imagePixels': imagePixels,
+          'rgba8BytesEstimate': imagePixels * 4
+        },
+        breakdown: budgetReport.breakdown,
+        omittedBreakdownEntries: budgetReport.omittedBreakdownEntries,
+        unknownDimensions: budgetReport.unknownDimensions.where(
+            (dimension) => !measuredImageDimensions.contains(dimension)));
     final attributedResources =
         catalog.provenance.expand((entry) => entry.resources).toSet();
     return ResourcePackInspection(
@@ -312,15 +417,113 @@ final class ResourcePackInspector {
                 closure.resources.every(attributedResources.contains)
             ? ResourcePackProvenanceStatus.declared
             : ResourcePackProvenanceStatus.unqualified,
-        modelInspections: modelInspections);
+        modelInspections: modelInspections,
+        imageDimensions: imageBounds,
+        budgetReport: finalBudgetReport);
   }
 
-  void _validateHierarchies(Map<String, dynamic> json) {
+  CatalogBudgetReport _jsonGuardReport(
+          CatalogBudgetReport report, String path) =>
+      CatalogBudgetReport(
+          scope: report.scope,
+          metrics: [
+            ...report.metrics,
+            CatalogBudgetMetric(
+                scope: path,
+                dimension: 'jsonComplexityGuard',
+                observed: 1,
+                allowed: 0,
+                unit: 'refus',
+                label: 'Garde de complexité JSON déclenchée',
+                remedy: 'Réduire la complexité du document JSON.')
+          ],
+          totals: report.totals,
+          unknownDimensions: report.unknownDimensions);
+
+  CatalogBudgetReport _partialBudgetReport(
+      {required int archiveBytes,
+      int? manifestBytes,
+      Iterable<ResourcePackInventoryFile>? inventory}) {
+    final metrics = <CatalogBudgetMetric>[];
+    final totals = <String, int?>{};
+    final unknown = <String>{
+      'jsonNodes',
+      'jsonDepth',
+      'resources',
+      'supports',
+      'hierarchies',
+      'publishedFiles'
+    };
+    void add(
+        String scope, String dimension, int observed, int allowed, String label,
+        {String unit = 'octets'}) {
+      metrics.add(CatalogBudgetMetric(
+          scope: scope,
+          dimension: dimension,
+          observed: observed,
+          allowed: allowed,
+          unit: unit,
+          label: label,
+          remedy: 'Réduire la sélection ou la complexité du pack.'));
+      if (scope == 'resourcePack') totals[dimension] = observed;
+    }
+
+    add('resourcePack', 'archiveBytes', archiveBytes, policy.maxArchiveBytes,
+        'Taille de l’archive');
+    if (manifestBytes == null) {
+      unknown.add('manifestBytes');
+    } else {
+      add('resourcePack', 'manifestBytes', manifestBytes,
+          policy.maxManifestBytes, 'Taille du manifeste');
+    }
+    if (inventory == null) {
+      unknown.addAll(['catalogBytes', 'payloadBytes', 'files']);
+    } else {
+      var payloadBytes = 0;
+      var previews = 0;
+      final files = inventory.toList();
+      for (final file in files) {
+        payloadBytes += file.byteLength;
+        if (file.path == 'catalog.json') {
+          add('resourcePack', 'catalogBytes', file.byteLength,
+              policy.maxCatalogBytes, 'Taille du catalogue JSON');
+        } else {
+          add(file.path, 'fileBytes', file.byteLength, policy.maxFileBytes,
+              'Taille du fichier');
+        }
+        if (file.path.startsWith('previews/')) {
+          previews++;
+          add(file.path, 'previewBytes', file.byteLength,
+              policy.maxPreviewBytes, 'Taille de l’aperçu');
+        }
+        if (file.mediaType == 'image/png') {
+          unknown.add('${file.path}.imageDimensions');
+        }
+      }
+      add('resourcePack', 'payloadBytes', payloadBytes,
+          policy.maxTotalPayloadBytes, 'Charge utile');
+      add('resourcePack', 'zipEntries', files.length + 1, policy.maxZipEntries,
+          'Entrées ZIP',
+          unit: 'unités');
+      add('resourcePack', 'previewFiles', previews, policy.maxPreviewFiles,
+          'Aperçus',
+          unit: 'unités');
+    }
+    return CatalogBudgetReport(
+        scope: 'resourcePack',
+        metrics: metrics,
+        totals: totals,
+        unknownDimensions: unknown);
+  }
+
+  void _validateHierarchies(Map<String, dynamic> json,
+      {CatalogBudgetReport? budgetReport, bool enforceLimits = true}) {
     void hierarchy(Object? value, String parent) {
       if (value is! List) return;
-      if (value.length > policy.maxHierarchyEntries) {
+      if (enforceLimits && value.length > policy.maxHierarchyEntries) {
         _fail('hierarchy_limit', 'catalog.json',
-            'A native hierarchy exceeds its entry limit.');
+            'A native hierarchy exceeds its entry limit.',
+            budgetReport: budgetReport);
       }
       final parents = <String, String?>{};
       for (final item in value) {
@@ -330,13 +533,32 @@ final class ResourcePackInspector {
           parents[item['id'] as String] = item[parent] as String?;
         }
       }
+      if (!enforceLimits) {
+        final completed = <String>{};
+        for (final id in parents.keys) {
+          final active = <String>{};
+          String? current = id;
+          while (current != null &&
+              parents.containsKey(current) &&
+              !completed.contains(current)) {
+            if (!active.add(current)) {
+              _fail('hierarchy_limit', 'catalog.json',
+                  'A native hierarchy is cyclic or exceeds its depth limit.');
+            }
+            current = parents[current];
+          }
+          completed.addAll(active);
+        }
+        return;
+      }
       for (final id in parents.keys) {
         final seen = <String>{};
         String? current = id;
         while (current != null && parents.containsKey(current)) {
           if (!seen.add(current) || seen.length > policy.maxHierarchyDepth) {
             _fail('hierarchy_limit', 'catalog.json',
-                'A native hierarchy is cyclic or exceeds its depth limit.');
+                'A native hierarchy is cyclic or exceeds its depth limit.',
+                budgetReport: budgetReport);
           }
           current = parents[current];
         }
@@ -643,13 +865,15 @@ final class ResourcePackInspector {
     }
   }
 
-  RasterImageDimensions _inspectPngDimensions(String path, Uint8List bytes) {
-    final decoded = _decodeStaticPng(path, bytes);
+  RasterImageDimensions _inspectPngDimensions(String path, Uint8List bytes,
+      {CatalogBudgetReport? budgetReport}) {
+    final decoded = _decodeStaticPng(path, bytes, budgetReport: budgetReport);
     return RasterImageDimensions(width: decoded.width, height: decoded.height);
   }
 
-  img.Image _decodeStaticPng(String path, Uint8List bytes) {
-    _validatePng(path, bytes);
+  img.Image _decodeStaticPng(String path, Uint8List bytes,
+      {CatalogBudgetReport? budgetReport}) {
+    _validatePng(path, bytes, budgetReport: budgetReport);
     try {
       final decoder = validatedStaticPngDecoder(bytes,
           maxDimension: policy.maxImageDimension,
@@ -671,7 +895,58 @@ final class ResourcePackInspector {
     }
   }
 
-  void _validatePng(String path, Uint8List header) {
+  List<CatalogBudgetMetric> _imageMetrics(
+          String path, RasterImageDimensions dimensions) =>
+      [
+        CatalogBudgetMetric(
+            scope: path,
+            dimension: 'imageWidth',
+            observed: dimensions.width,
+            allowed: policy.maxImageDimension,
+            unit: 'pixels',
+            label: 'Largeur de l’image',
+            remedy: 'Réduire la largeur de l’image.'),
+        CatalogBudgetMetric(
+            scope: path,
+            dimension: 'imageHeight',
+            observed: dimensions.height,
+            allowed: policy.maxImageDimension,
+            unit: 'pixels',
+            label: 'Hauteur de l’image',
+            remedy: 'Réduire la hauteur de l’image.'),
+        CatalogBudgetMetric(
+            scope: path,
+            dimension: 'imagePixels',
+            observed: dimensions.width * dimensions.height,
+            allowed: policy.maxImagePixels,
+            unit: 'pixels',
+            label: 'Surface de l’image',
+            remedy: 'Réduire les dimensions de l’image.'),
+        CatalogBudgetMetric(
+            scope: path,
+            dimension: 'rgba8BytesEstimate',
+            observed: dimensions.width * dimensions.height * 4,
+            unit: 'octets',
+            label:
+                'Estimation de surface RGBA8, hors mémoire réelle du processus',
+            remedy: 'Mesure informative.'),
+      ];
+
+  CatalogBudgetReport _imageBudgetReport(CatalogBudgetReport? report,
+      String path, RasterImageDimensions dimensions) {
+    return CatalogBudgetReport(
+        scope: report?.scope ?? 'resourcePack',
+        metrics: [...?report?.metrics, ..._imageMetrics(path, dimensions)],
+        totals: report?.totals ?? const {},
+        breakdown: report?.breakdown ?? const [],
+        omittedBreakdownEntries: report?.omittedBreakdownEntries ?? 0,
+        unknownDimensions: (report?.unknownDimensions ??
+                ['resources', 'supports', 'catalogBytes'])
+            .where((dimension) => dimension != '$path.imageDimensions'));
+  }
+
+  void _validatePng(String path, Uint8List header,
+      {CatalogBudgetReport? budgetReport}) {
     final dimensions =
         decodeRasterImageDimensions(header, mediaType: 'image/png');
     if (dimensions == null) {
@@ -682,11 +957,13 @@ final class ResourcePackInspector {
         dimensions.height > policy.maxImageDimension ||
         dimensions.width * dimensions.height > policy.maxImagePixels) {
       _fail('image_limit', path,
-          'The decoded image dimensions exceed native pixel bounds.');
+          'The decoded image dimensions exceed native pixel bounds.',
+          budgetReport: _imageBudgetReport(budgetReport, path, dimensions));
     }
   }
 
-  Object? _decodeJson(List<int> bytes, String path) {
+  Object? _decodeJson(List<int> bytes, String path,
+      {CatalogBudgetReport? budgetReport}) {
     late final String text;
     try {
       text = utf8.decode(bytes, allowMalformed: false);
@@ -707,7 +984,10 @@ final class ResourcePackInspector {
       _fail(
           error.code == 'entryTooLarge' ? 'json_complexity' : 'invalid_json',
           path,
-          'The JSON document is malformed or exceeds its complexity bounds.');
+          'The JSON document is malformed or exceeds its complexity bounds.',
+          budgetReport: error.code == 'entryTooLarge' && budgetReport != null
+              ? _jsonGuardReport(budgetReport, path)
+              : null);
     } on FormatException {
       _fail('invalid_json', path, 'The JSON document contains invalid values.');
     }
@@ -817,9 +1097,18 @@ final class _DiscardText implements Sink<String> {
   void close() {}
 }
 
-Never _fail(String code, String path, String message) =>
+Never _fail(String code, String path, String message,
+        {CatalogBudgetReport? budgetReport}) =>
     throw GamePackageFormatException(
-        code: 'resource_pack.$code', path: path, message: message);
+        code: 'resource_pack.$code',
+        path: path,
+        message: message,
+        details: budgetReport == null
+            ? null
+            : {
+                'budgetReport':
+                    budgetReport.toBoundedJson(maximumBytes: 96 * 1024)
+              });
 
 final class _DecodedSnapshotFrames
     extends ListBase<BorderSnapshotContentFrame> {

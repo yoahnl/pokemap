@@ -33,6 +33,10 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
   z.object({ projectHandle: handle, verb: z.literal("stage"), input: z.object({ sourcePath: z.string().min(1).max(4096) }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("stage_license"), input: z.object({ sourcePath: z.string().min(1).max(4096) }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("inspect"), input: z.object({ archiveHandle: handle }).strict() }).strict(),
+  z.object({ projectHandle: handle, verb: z.literal("diagnose"), input: z.union([
+    z.object({ expectedRevision: revision }).strict(),
+    z.object({ expectedRevision: revision, ...selection }).strict(),
+  ]) }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("entries"), input: z.object({
     inspectionHandle: handle.optional(), selectionHandle: handle.optional(), section: z.enum(["resources", "families", "authors", "sources"]).optional(), filter: filter.optional(), ...page,
   }).strict().refine((value) => Boolean(value.inspectionHandle) !== Boolean(value.selectionHandle), "Choose one scoped owner.") }).strict(),
@@ -73,7 +77,7 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
 export function registerResourcePackTool(server: McpServer, authoring: AuthoringGateway): void {
   server.registerTool("pokemap_resource_pack", {
     title: "Transfer native Avelune resource packs",
-    description: "Runs bounded session-owned pack jobs. Stage only from configured source roots; inspect, select, prepare, then plan resource_pack.import before start_apply. Stage UTF-8 licences, prepare a native selection, then inspect its prepared preview and export only its immutable preparedExportHandle. Native entry sections describe the captured project inventory; preview credits describe only reached origins/documents. Acknowledge organization removal only on export when the preparation requires it.",
+    description: "Runs bounded session-owned pack jobs. Diagnose saved project and optional selection volumes without staging media or preparing a mutation. Stage only from configured source roots; inspect, select, prepare, then plan resource_pack.import before start_apply. Stage UTF-8 licences, prepare a native selection, then inspect its prepared preview and export only its immutable preparedExportHandle. Native entry sections describe the captured project inventory; preview credits describe only reached origins/documents. Acknowledge organization removal only on export when the preparation requires it.",
     inputSchema: resourcePackToolSchema,
     outputSchema: toolEnvelopeSchema,
     annotations: mutationAnnotations,

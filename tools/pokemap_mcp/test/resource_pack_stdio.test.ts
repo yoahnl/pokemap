@@ -73,7 +73,7 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
     const published = record(contract.inputSchema);
     const validated = z.toJSONSchema(resourcePackToolSchema, { unrepresentable: "any" }) as JsonRecord;
     comparePublishedShape(published, validated);
-    assert.equal((published.oneOf as unknown[]).length, 19);
+    assert.equal((published.oneOf as unknown[]).length, 20);
     assert.equal(contract.schemaVersion, 2);
     for (const kind of ["resourcePackJob", "resourcePackInspection", "resourcePackEntry", "resourcePackSelection", "resourcePackPreview"]) {
       assert.ok((catalog.resourceKinds as JsonRecord[]).some((entry) => entry.id === kind), kind);

@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
 import 'canonical_json.dart';
+import 'catalog_budget_report.dart';
 import 'game_package_format_exception.dart';
 import 'package_path_policy.dart';
 import 'resource_pack_inspector.dart';
@@ -65,39 +66,76 @@ final class ResourcePackBuilder {
     try {
       final files = sources.toList()
         ..sort((a, b) => PackagePathPolicy.compareUtf8(a.path, b.path));
-      if (files.length + 2 > policy.maxZipEntries ||
-          files.length + 2 >= 65535) {
-        _fail('entry_count_exceeded');
-      }
-      var payloadBytes = 0;
-      var previews = 0;
       final names = <String>{};
       for (final file in files) {
         file.inventory;
         if (!names.add(file.path)) _fail('duplicate_path', file.path);
+      }
+      var budgetReport = CatalogBudgetCalculator(resourcePackPolicy: policy)
+          .measureResourcePack(catalog, files: [
+        for (final file in files)
+          CatalogBudgetFile(
+              path: file.path,
+              byteLength: file.byteLength,
+              isPreview: file.path.startsWith('previews/')),
+      ]);
+      if (files.length + 2 > policy.maxZipEntries ||
+          files.length + 2 >= 65535) {
+        _fail('entry_count_exceeded', r'$', budgetReport);
+      }
+      var payloadBytes = 0;
+      var previews = 0;
+      for (final file in files) {
         if (file.byteLength > policy.maxFileBytes) {
-          _fail('file_too_large', file.path);
+          _fail('file_too_large', file.path, budgetReport);
         }
         if (file.path.startsWith('previews/')) {
           previews++;
           if (file.byteLength > policy.maxPreviewBytes ||
               previews > policy.maxPreviewFiles) {
-            _fail('preview_too_large', file.path);
+            _fail('preview_too_large', file.path, budgetReport);
           }
         }
         payloadBytes += file.byteLength;
         if (payloadBytes > policy.maxTotalPayloadBytes) {
-          _fail('payload_too_large');
+          _fail('payload_too_large', r'$', budgetReport);
         }
       }
-      ResourcePackDependencyGraph.fromCatalog(catalog).validateAll();
+      final closure =
+          ResourcePackDependencyGraph.fromCatalog(catalog).validateAll();
+      final builtinFamilies = ResourceLibraryCatalog.predefinedFamilies
+          .map((family) => family.id)
+          .toSet();
+      final explicitFamilies = catalog.resourceLibraryCatalog.families
+          .map((family) => family.id)
+          .toSet();
+      builtinFamilies.removeAll(explicitFamilies);
+      final supports = closure.supports
+          .where((support) =>
+              support.kind != ResourcePackSupportKind.resourceFamily ||
+              !builtinFamilies.contains(support.id))
+          .length;
+      if (closure.resources.length > policy.maxResources) {
+        _fail('resource_limit', 'catalog.json', budgetReport);
+      }
+      if (supports > policy.maxSupports) {
+        _fail('support_limit', 'catalog.json', budgetReport);
+      }
       final catalogBytes = CanonicalJson.encodeUtf8(catalog.toJson());
       if (catalogBytes.length > policy.maxCatalogBytes) {
-        _fail('catalog_too_large');
+        _fail('catalog_too_large', r'$', budgetReport);
       }
       payloadBytes += catalogBytes.length;
       if (payloadBytes > policy.maxTotalPayloadBytes) {
-        _fail('payload_too_large');
+        _fail('payload_too_large', r'$', budgetReport);
+      }
+      if (budgetReport.violations.any(
+          (v) => v.dimension == 'jsonNodes' || v.dimension == 'jsonDepth')) {
+        _fail('json_complexity', 'catalog.json', budgetReport);
+      }
+      if (budgetReport.violations
+          .any((v) => v.dimension.startsWith('hierarchy'))) {
+        _fail('hierarchy_limit', 'catalog.json', budgetReport);
       }
       final catalogFile = ResourcePackInventoryFile(
           path: 'catalog.json',
@@ -122,8 +160,20 @@ final class ResourcePackBuilder {
               catalog: catalogFile,
               files: inventory,
               treeSha256: resourcePackTreeSha256(catalogFile, inventory)));
-      final manifestBytes =
-          ResourcePackManifestCodec(policy: policy).encodeUtf8(manifest);
+      final manifestBytes = CanonicalJson.encodeUtf8(manifest.toJson());
+      budgetReport = CatalogBudgetCalculator(resourcePackPolicy: policy)
+          .measureResourcePack(catalog,
+              manifestBytes: manifestBytes.length,
+              files: [
+            for (final file in files)
+              CatalogBudgetFile(
+                  path: file.path,
+                  byteLength: file.byteLength,
+                  isPreview: file.path.startsWith('previews/')),
+          ]);
+      if (manifestBytes.length > policy.maxManifestBytes) {
+        _fail('manifest_too_large', 'manifest.json', budgetReport);
+      }
       final entries = <ResourcePackBuildSource>[
         ...files,
         _inline('catalog.json', catalogBytes),
@@ -140,7 +190,26 @@ final class ResourcePackBuilder {
         centralSize += 46 + name.length;
         if (offset + centralSize + 22 > policy.maxArchiveBytes ||
             offset + centralSize + 22 >= 0xffffffff) {
-          _fail('archive_too_large');
+          final archiveBytes = entries.fold<int>(
+              22,
+              (sum, item) =>
+                  sum +
+                  76 +
+                  2 * utf8.encode(item.path).length +
+                  item.byteLength);
+          final archiveReport =
+              CatalogBudgetCalculator(resourcePackPolicy: policy)
+                  .measureResourcePack(catalog,
+                      archiveBytes: archiveBytes,
+                      manifestBytes: manifestBytes.length,
+                      files: [
+                for (final file in files)
+                  CatalogBudgetFile(
+                      path: file.path,
+                      byteLength: file.byteLength,
+                      isPreview: file.path.startsWith('previews/')),
+              ]);
+          _fail('archive_too_large', r'$', archiveReport);
         }
         prepared.add(entry);
       }
@@ -281,8 +350,15 @@ final class _DigestReceiver implements Sink<Digest> {
   void close() {}
 }
 
-Never _fail(String code, [String path = r'$']) =>
+Never _fail(String code,
+        [String path = r'$', CatalogBudgetReport? budgetReport]) =>
     throw GamePackageFormatException(
         code: 'resource_pack.$code',
         path: path,
-        message: 'Resource pack export refused: $code.');
+        message: 'Resource pack export refused: $code.',
+        details: budgetReport == null
+            ? null
+            : {
+                'budgetReport':
+                    budgetReport.toBoundedJson(maximumBytes: 96 * 1024)
+              });

@@ -195,6 +195,7 @@ final class NativeResourcePackImportFixture {
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
     Directory? nativeRoot,
+    bool allowPackSources = false,
   }) async {
     final fixture = await ResourcePackImportFixture.create(
         sourceManifest: sourceManifest,
@@ -216,12 +217,12 @@ final class NativeResourcePackImportFixture {
     }));
     final native =
         NativeResourcePackImportFixture._(fixture, root, clock, faultInjector);
-    await native.open();
+    await native.open(allowPackSources: allowPackSources);
     await native.stage();
     return native;
   }
 
-  Future<void> open({AuthoringActor? actor}) async {
+  Future<void> open({AuthoringActor? actor, bool allowPackSources = false}) async {
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [root.path], fileReader: reader);
@@ -233,6 +234,7 @@ final class NativeResourcePackImportFixture {
     opened = await service.openProject(root.path);
     mutations = LocalMapAuthoringMutationApi(
         policy: policy,
+        resourcePackSourceRoots: allowPackSources ? [root.path] : const [],
         snapshotLoader: loader,
         clock: clock,
         faultInjector: faultInjector,

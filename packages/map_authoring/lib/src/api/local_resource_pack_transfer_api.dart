@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../domains/assets/resource_pack_import_preparer.dart';
 import '../domains/assets/resource_pack_projection.dart';
+import '../domains/assets/resource_pack_budget.dart';
 import '../domains/assets/asset_store.dart';
 import '../support/authoring_fingerprint.dart';
 
@@ -281,6 +282,100 @@ final class LocalResourcePackTransferApi
             'snapshotRevision': selection.sourceRevision
           },
         };
+      case 'diagnose':
+        _keys(args, const {'selectionHandle', 'revision', 'expectedRevision'});
+        final expected = _string(args, 'expectedRevision');
+        final selected = args.containsKey('selectionHandle')
+            ? _selection(session, args) : null;
+        if (selected == null && args.containsKey('revision')) {
+          _fail('selection_invalid');
+        }
+        final selectionRevision = selected?.revision;
+        final refs = selected?.selected.toList() ?? const <String>[];
+        return _start(session, 'diagnose', {
+          if (selected != null) 'selectionHandle': selected.id,
+        }, (job) async {
+          job.progress('measuringProject');
+          final snapshot = await snapshotLoader.load(session.project,
+              policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+          if (snapshot.revision != expected) _fail('project_stale');
+          if (selected?.mode == 'native' &&
+              selected!.sourceRevision != expected) {
+            _fail('selection_stale');
+          }
+          final reports = <Map<String, Object?>>[
+            (await measureProjectDocumentBudget(snapshot.resourceBytes('project'),
+                scope: 'sourceProjectDistribution')).toBoundedJson(maximumBytes: 96 * 1024),
+          ];
+          job.checkCancelled();
+          if (selected?.mode == 'native' && refs.isNotEmpty) {
+            final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
+            if (bytes == null) _fail('native_source_unavailable');
+            final assets = AssetCatalog.fromJson(
+                jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+            final sourceDigests = {
+              for (final entry in snapshot.resourceStorageKeys.entries)
+                if (snapshot.storedResources[entry.key] != null)
+                  entry.value: snapshot.storedResources[entry.key]!.rawSha256,
+            };
+            final budget = await const ResourcePackProjectionBuilder()
+                .measureNativeSelection(
+              manifest: snapshot.manifest,
+              roots: [for (final key in refs)
+                if ((jsonDecode(key) as List)[0] != 'smartTilePattern')
+                  NativeResourcePackRef(
+                    kind: ResourcePackKind.values.byName(
+                        (jsonDecode(key) as List)[0] as String),
+                    id: (jsonDecode(key) as List)[1] as String)],
+              smartTilePatternIds: [for (final key in refs)
+                if ((jsonDecode(key) as List)[0] == 'smartTilePattern')
+                  (jsonDecode(key) as List)[1] as String],
+              files: [for (final record in assets.records)
+                NativeResourcePackFile(id: record.id,
+                  logicalPath: record.logicalPath,
+                  byteLength: record.artifact.byteLength,
+                  rawSha256: sourceDigests[record.logicalPath] ?? '',
+                  mediaType: record.artifact.mediaType,
+                  openRead: () => const Stream.empty())],
+            );
+            reports.add(budget.toBoundedJson(maximumBytes: 96 * 1024));
+          } else if (selected?.inspection case final _Inspection inspection) {
+            final measured = inspection.value.budgetReport;
+            if (measured == null) _fail('budget_unavailable');
+            reports.add(CatalogBudgetReport(
+                scope: 'inspectedArchive',
+                metrics: [for (final metric in measured.metrics)
+                  metric.scope == measured.scope
+                    ? CatalogBudgetMetric(scope: 'inspectedArchive',
+                        dimension: metric.dimension, observed: metric.observed,
+                        allowed: metric.allowed, unit: metric.unit,
+                        label: metric.label, remedy: metric.remedy)
+                    : metric],
+                totals: measured.totals,
+                breakdown: measured.breakdown,
+                unknownDimensions: measured.unknownDimensions,
+                omittedBreakdownEntries: measured.omittedBreakdownEntries,
+              ).toBoundedJson(maximumBytes: 96 * 1024));
+          }
+          job.checkCancelled();
+          if ((await snapshotLoader.load(session.project,
+              policy: ProjectSnapshotLoadPolicy.editorReadProjection)).revision != expected) {
+            _fail('project_stale');
+          }
+          if (selected != null &&
+              (session.selections[selected.id] != selected ||
+                  selected.revision != selectionRevision)) {
+            _fail('selection_stale');
+          }
+          return {
+            'scope': 'volumeDiagnostics',
+            'sourceRevision': expected,
+            if (selectionRevision != null) 'selectionRevision': selectionRevision,
+            'budgetReports': reports,
+            'mergedProjectMeasured': false,
+            'note': 'Le projet après fusion est mesuré dans l’aperçu de préparation. Les limites du jeu ne sont pas une interdiction d’installer une bibliothèque d’auteur.',
+          };
+        }, sourceRevision: expected);
       case 'selection.create':
         _keys(args, const {'mode', 'inspectionHandle'});
         final mode = _string(args, 'mode');
@@ -878,6 +973,11 @@ final class LocalResourcePackTransferApi
               prepared.review.requiresOrganizationAcknowledgement,
           'summary': prepared.review.summary,
           ...prepared.review.summary,
+          'budgetReport': const CatalogBudgetCalculator().measureResourcePack(
+              prepared.catalog, scope: 'preparedExport',
+              files: [for (final file in prepared.sourceInventory)
+                CatalogBudgetFile(path: file.path, byteLength: file.byteLength)])
+              .toBoundedJson(maximumBytes: 96 * 1024),
           'sourceFileCount': prepared.sourceInventory.length,
         };
         session.preparedExports[id] = _PreparedNativeExport(

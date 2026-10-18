@@ -50,6 +50,7 @@ ResourcePackImportReview _buildImportReview({
   Iterable<String> conflicts = const [],
   List<_Output> outputs = const [],
   int metadataBytes = 0,
+  Map<String, Object?>? budgetReport,
 }) {
   final catalog = selection.inspection.catalog;
   final sources = indexResourcePackDefinitions(catalog.toJson());
@@ -278,6 +279,10 @@ ResourcePackImportReview _buildImportReview({
         'metadataBytes': applicable ? metadataBytes : 0,
         'writeBytes': outputBytes + (applicable ? metadataBytes : 0),
         'status': status.name,
+        if (budgetReport != null) ...{
+          'budgetReport': budgetReport,
+          'budgetAdmission': 'gameDistributionOnly',
+        },
         if (firstAdded != null) 'firstAdded': firstAdded,
       }),
       List.unmodifiable([...conflictRows, ...rows]));
