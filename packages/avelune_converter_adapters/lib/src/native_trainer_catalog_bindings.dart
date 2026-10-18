@@ -11,7 +11,7 @@ final class NativeTrainerCatalogBindings {
   NativeTrainerCatalogBindingResult bind({
     required SourcePbsProject source,
     required Iterable<SourcePbsIdentity> requestedTrainers,
-    required NativePsdkTrainerBundle native,
+    required NativePsdkCatalog native,
     required NativeTrainerMovePolicy movePolicy,
   }) {
     if (movePolicy == NativeTrainerMovePolicy.unresolved) {

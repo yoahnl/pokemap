@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'native_mutation_batches.dart';
 import 'native_psdk_trainer_bundle.dart';
+import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
@@ -68,9 +69,11 @@ final class SourceCatalogStudyComposer {
       {this.nativeTrainerMovePolicy =
           NativeTrainerMovePolicy.nativeAveluneDefaults,
       this.nativeEncounterQualification,
+      this.nativeTrainerCatalog,
       this.includeNativeEncounterConsumers = false});
   final NativeTrainerMovePolicy nativeTrainerMovePolicy;
   final NativeEncounterCatalogQualification? nativeEncounterQualification;
+  final NativePsdkCatalog? nativeTrainerCatalog;
   final bool includeNativeEncounterConsumers;
 
   Future<SourceCatalogStudyComposition?> compose({
@@ -109,21 +112,37 @@ final class SourceCatalogStudyComposer {
         profile: SourcePbsProfile.essentials21_1,
         cancellation: cancellation);
     if (pbs.documents.isEmpty) return null;
+    if (nativeTrainerCatalog != null &&
+        nativeEncounterQualification != null &&
+        canonicalHashOf(nativeTrainerCatalog!.toJson(),
+                limits: nativePsdkCatalogShardJsonLimits) !=
+            canonicalHashOf(nativeEncounterQualification!.bundle.toJson(),
+                limits: nativePsdkCatalogShardJsonLimits)) {
+      throw ContractError(
+          'native_catalog.encounter_qualification_identity',
+          r'$',
+          'An explicit native catalog requires its exact encounter qualification identity.');
+    }
     final encounterCandidate = nativeEncounterQualification ??
-        NativeEncounterCatalogQualification.builtinKantoV1();
+        (nativeTrainerCatalog == null
+            ? NativeEncounterCatalogQualification.builtinKantoV1()
+            : null);
     final encounters = nativeEncounterQualification != null ||
-            encounterCandidate.admitsAutomaticSource(source.snapshot)
+            (encounterCandidate?.admitsAutomaticSource(source.snapshot) ??
+                false)
         ? encounterCandidate
         : null;
     final encounterRelease = encounters?.artifacts(limits: limits);
     final selection = _catalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
-    final native = NativePsdkTrainerBundle.builtin();
+    final native = nativeTrainerCatalog ?? NativePsdkTrainerBundle.builtin();
     final sourceEvents = base.compositionEvidence['sourceEvents'];
     final nativePartyTrade =
         sourceEvents is Map && sourceEvents['partyTrade'] is Map;
     final supported =
-        (native.evidence['sourceTrainerKeys'] as List).cast<String>().toSet();
+        ((native.evidence['sourceTrainerKeys'] as List?) ?? const [])
+            .cast<String>()
+            .toSet();
     final nativeKeys = selection.trainers
         .where((key) =>
             key.version == 0 &&
@@ -138,8 +157,11 @@ final class SourceCatalogStudyComposer {
         requestedItemSymbols: selection.items,
         requestedTrainerKeys: selection.trainers,
         nativeTrainerKeys: nativeKeys,
-        nativeTrainerBundle:
-            nativeKeys.isEmpty && !nativePartyTrade ? null : native,
+        nativeTrainerBundle: nativeKeys.isEmpty &&
+                !nativePartyTrade &&
+                nativeTrainerCatalog == null
+            ? null
+            : native,
         nativeEncounterQualification: encounters,
         nativeEncounterRatePolicy: encounters == null
             ? NativeEncounterRatePolicy.unresolved
@@ -452,6 +474,8 @@ final class SourceCatalogStudyComposer {
       'pbsProfile': pbs.profile.name,
       'pbsHash': pbs.canonicalHash.value,
       'profile': profile.toJson(),
+      if (nativeTrainerCatalog != null && nativeEncounterQualification == null)
+        'automaticEncounterReleaseSuppressedForExplicitCatalog': true,
       'projectionHash': projection.canonicalHash.value,
       'projection': projection.evidence,
       if (includeNativeEncounterConsumers) 'includeNativeEncounterConsumers': true,

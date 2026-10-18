@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as image;
 import 'native_project_writer.dart';
 import 'native_psdk_trainer_bundle.dart';
+import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
 
@@ -116,7 +117,7 @@ final class SourceCatalogProjector {
           List<String> requestedItemSymbols = const [],
           List<SourcePbsIdentity> requestedTrainerKeys = const [],
           List<SourcePbsIdentity> nativeTrainerKeys = const [],
-          NativePsdkTrainerBundle? nativeTrainerBundle,
+          NativePsdkCatalog? nativeTrainerBundle,
           NativeEncounterCatalogQualification? nativeEncounterQualification,
           NativeEncounterRatePolicy nativeEncounterRatePolicy =
               NativeEncounterRatePolicy.unresolved,
@@ -178,7 +179,7 @@ final class _Run {
   final List<String> items;
   final List<SourcePbsIdentity> trainers;
   final List<SourcePbsIdentity> nativeTrainers;
-  final NativePsdkTrainerBundle? nativeBundle;
+  final NativePsdkCatalog? nativeBundle;
   final NativeTrainerMovePolicy nativeMovePolicy;
   final NativeEncounterCatalogQualification? encounterQualification;
   final NativeEncounterRatePolicy encounterRatePolicy;
@@ -222,6 +223,17 @@ final class _Run {
 
   Future<SourceCatalogProjection> read() async {
     cancel.check();
+    if (nativeBundle is NativePsdkCatalogManifest &&
+        encounterQualification != null &&
+        canonicalHashOf(nativeBundle!.toJson(),
+                limits: nativePsdkCatalogShardJsonLimits) !=
+            canonicalHashOf(encounterQualification!.bundle.toJson(),
+                limits: nativePsdkCatalogShardJsonLimits)) {
+      throw ContractError(
+          'native_catalog.encounter_qualification_identity',
+          r'$',
+          'A composite native catalog requires its exact encounter qualification identity.');
+    }
     if ([
           limits.maxClosureEntries,
           limits.maxNativeDocuments,
@@ -506,10 +518,12 @@ final class _Run {
             fishingRatePolicy: encounterFishingRatePolicy,
             cancellation: cancel);
     final activeBundle = encounterQualification?.bundle ?? nativeBundle;
+    final activeBundleIdentity = activeBundle?.toJson();
     final media = activeBundle == null
         ? const <Map<String, Object?>>[]
         : await _publishNativeBundle(
             activeBundle, trainerBinding?.trainers ?? const []);
+    if (activeBundle is NativePsdkCatalogManifest) activeBundle.toJson();
     final nativeBinding = trainerBinding == null
         ? null
         : NativeTrainerCatalogBindingResult(
@@ -559,6 +573,25 @@ final class _Run {
           'profile': pbs.profile.name,
           'namespace': namespace.value,
           'battleAuthority': 'aveluneNative',
+          if (activeBundle != null)
+            'nativeCatalogIdentity': {
+              'canonicalHash': canonicalHashOf(activeBundleIdentity,
+                      limits: nativePsdkCatalogShardJsonLimits)
+                  .value,
+              'sourceWitnessHash': canonicalHashOf(
+                      activeBundle.evidence['sources'],
+                      limits: nativePsdkCatalogShardJsonLimits)
+                  .value,
+              if (activeBundle is NativePsdkCatalogManifest)
+                'manifest': activeBundleIdentity,
+              if (activeBundle.evidence['sourceMoveAdaptations'] != null)
+                'sourceMoveAdaptations':
+                    activeBundle.evidence['sourceMoveAdaptations'],
+              if (activeBundle.evidence['sourceSpeciesAdaptations'] != null)
+                'sourceSpeciesAdaptations':
+                    activeBundle.evidence['sourceSpeciesAdaptations'],
+              'runtimeBattleBuilderQualified': false,
+            },
           if (nativeBinding != null)
             'nativeTrainerBindings': nativeBinding.evidence,
           if (encounterBinding != null)
@@ -637,7 +670,7 @@ final class _Run {
   }
 
   NativeTrainerCatalogBindingResult? _bindNativeTrainers() {
-    if (nativeTrainers.isEmpty && nativeBundle == null) return null;
+    if (nativeTrainers.isEmpty) return null;
     final bundle = nativeBundle;
     if (bundle == null ||
         nativeTrainers.any(
@@ -653,8 +686,7 @@ final class _Run {
   }
 
   Future<List<Map<String, Object?>>> _publishNativeBundle(
-      NativePsdkTrainerBundle bundle,
-      List<ProjectTrainerEntry> trainers) async {
+      NativePsdkCatalog bundle, List<ProjectTrainerEntry> trainers) async {
     for (final trainer in trainers) {
       for (final member in trainer.team) {
         final species = bundle.speciesById[member.speciesId];

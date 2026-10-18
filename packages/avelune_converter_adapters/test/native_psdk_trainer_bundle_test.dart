@@ -3,12 +3,237 @@ import 'dart:io';
 
 import 'package:avelune_converter_adapters/src/generated/native_psdk_trainer_bundle_data.dart';
 import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
+import 'package:avelune_converter_adapters/src/native_psdk_catalog.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../tool/build_native_psdk_trainer_bundle.dart' as generator;
+
 void main() {
+  final nativeReferenceRoot =
+      Platform.environment['AVELUNE_NATIVE_PSDK_REFERENCE_ROOT'];
+  test('corrects only the exact witnessed dangling native Sneasel baby form',
+      () async {
+    final requests = [
+      NativePsdkCatalogRequest(baseId: 'sneasel', form: 0, level: 5)
+    ];
+    final root = await Directory(nativeReferenceRoot!).resolveSymbolicLinks();
+    final native = await generator.buildNativePsdkTrainerShard(root, requests);
+    expect(native.speciesById, contains('sneasel'));
+    expect(native.speciesById.containsKey('sneasel_form1'), isFalse);
+    expect(native.evidence['sourceSpeciesAdaptations'], [
+      {
+        'sourceSpeciesId': 'sneasel',
+        'form': 0,
+        'field': 'babyForm',
+        'sourceValue': 1,
+        'nativeValue': 0,
+        'reason': 'danglingSelfBabyFormInNativeReference'
+      }
+    ]);
+    final witness = (native.evidence['sources'] as List)
+        .cast<Map>()
+        .singleWhere(
+            (row) => row['relativePath'] == 'Data/Studio/pokemon/sneasel.json');
+    expect(witness['sha256'],
+        'c10ef9bcaaa901bcc779a1fb62fc77f04c3f9cc33ed239800801d4be79a9781f');
+    final copy =
+        await Directory.systemTemp.createTemp('native_sneasel_witness_');
+    addTearDown(() => copy.delete(recursive: true));
+    for (final row in (native.evidence['sources'] as List).cast<Map>()) {
+      final relative = row['relativePath'] as String;
+      final file = File('${copy.path}/$relative');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(await File('$root/$relative').readAsBytes());
+    }
+    final speciesFile = File('${copy.path}/Data/Studio/pokemon/sneasel.json');
+    final raw = jsonDecode(await speciesFile.readAsString()) as Map;
+    await speciesFile.writeAsString(jsonEncode(raw));
+    await expectLater(
+        generator.buildNativePsdkTrainerShard(copy.path, requests),
+        _code('form_missing'));
+  },
+      skip: nativeReferenceRoot == null
+          ? 'Requires exact read-only native PSDK reference.'
+          : false);
+
+  test(
+      'records a representation-only critical-rate adaptation for zero-power status moves',
+      () {
+    final sources = _fixtureSources();
+    _addNativeMove(sources, 'native_heal');
+    _mutateSource(sources, 'Data/Studio/moves/native_heal.json', (raw) {
+      raw['category'] = 'status';
+      raw['power'] = 0;
+      raw['movecriticalRate'] = 0;
+      raw['battleEngineMethod'] = 's_heal';
+    });
+    final native =
+        const NativePsdkTrainerBundleBuilder().build(files: sources, requests: [
+      NativePsdkCatalogRequest(
+          baseId: 'fixture',
+          form: 0,
+          level: 1,
+          explicitMoveIds: ['native_heal'])
+    ]);
+    expect(native.movesById['native_heal']!.critRatio, 1);
+    expect(
+        native.movesById['native_heal']!.category, PokemonMoveCategory.status);
+    expect(native.movesById['native_heal']!.basePower, 0);
+    expect(native.evidence['sourceMoveAdaptations'], [
+      {
+        'sourceMoveId': 'native_heal',
+        'field': 'movecriticalRate',
+        'sourceValue': 0,
+        'nativeValue': 1,
+        'reason': 'statusMoveDoesNotCalculateCriticalDamage'
+      }
+    ]);
+    expect(
+        (native.evidence['sources'] as List).cast<Map>().singleWhere((row) =>
+            row['relativePath'] == 'Data/Studio/moves/native_heal.json'),
+        sources
+            .singleWhere((file) =>
+                file.relativePath == 'Data/Studio/moves/native_heal.json')
+            .evidence);
+    expect(native.evidence['runtimeBattleBuilderQualified'], isFalse);
+    final withoutAdaptation = const NativePsdkTrainerBundleBuilder().build(
+        files: sources,
+        requests: [
+          NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
+        ]);
+    final composed =
+        NativePsdkCatalogManifest.compose([native, withoutAdaptation]);
+    expect(composed.evidence['sourceMoveAdaptations'],
+        native.evidence['sourceMoveAdaptations']);
+    _addNativeMove(sources, 'native_heal_two');
+    _mutateSource(sources, 'Data/Studio/moves/native_heal_two.json', (raw) {
+      raw['category'] = 'status';
+      raw['power'] = 0;
+      raw['movecriticalRate'] = 0;
+      raw['battleEngineMethod'] = 's_heal';
+    });
+    final other =
+        const NativePsdkTrainerBundleBuilder().build(files: sources, requests: [
+      NativePsdkCatalogRequest(
+          baseId: 'fixture',
+          form: 0,
+          level: 1,
+          explicitMoveIds: ['native_heal_two'])
+    ]);
+    expect(
+        NativePsdkCatalogManifest.compose([native, other])
+            .evidence['sourceMoveAdaptations'],
+        [
+          ...native.evidence['sourceMoveAdaptations'] as List,
+          ...other.evidence['sourceMoveAdaptations'] as List
+        ]);
+    for (final (category, power, rate) in [
+      ('physical', 50, 0),
+      ('special', 0, 0),
+      ('status', 0, -1),
+      ('status', 1, 0)
+    ]) {
+      _mutateSource(sources, 'Data/Studio/moves/native_heal.json', (raw) {
+        raw['category'] = category;
+        raw['power'] = power;
+        raw['movecriticalRate'] = rate;
+      });
+      expect(
+          () => const NativePsdkTrainerBundleBuilder()
+                  .build(files: sources, requests: [
+                NativePsdkCatalogRequest(
+                    baseId: 'fixture',
+                    form: 0,
+                    level: 1,
+                    explicitMoveIds: ['native_heal'])
+              ]),
+          _code('move_critical_rate'));
+    }
+  });
+
+  test('catalog generator emits bounded content-addressed shards rerunnably',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('native_catalog_shards_');
+    addTearDown(() => directory.delete(recursive: true));
+    final sources = _fixtureSources();
+    final template =
+        jsonDecode(utf8.decode(sources.first.bytes)) as Map<String, dynamic>;
+    final form = (template['forms'] as List).first;
+    sources.removeAt(0);
+    for (var i = 0; i < 130; i++) {
+      sources.add(_source('Data/Studio/pokemon/species_$i.json', {
+        ...template,
+        'dbSymbol': 'species_$i',
+        'forms': [form]
+      }));
+    }
+    for (final source in sources) {
+      final file = File('${directory.path}/source/${source.relativePath}');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(source.bytes);
+    }
+    final requests = [
+      for (var i = 0; i < 130; i++)
+        for (var level = 1; level <= 3; level++)
+          NativePsdkCatalogRequest(
+                  baseId: 'species_$i',
+                  form: 0,
+                  level: level,
+                  explicitMoveIds: level == 3 ? ['cut'] : null)
+              .toJson()
+    ];
+    final recipe = File('${directory.path}/requests.json');
+    await recipe.writeAsString(jsonEncode({
+      'kind': 'nativePsdkCatalogRequests',
+      'version': 1,
+      'requests': requests
+    }));
+    final manifestPath = '${directory.path}/manifest.json';
+    final shardPath = '${directory.path}/shards';
+    Future<ProcessResult> generate() => Process.run('dart', [
+          'run',
+          'tool/build_native_psdk_trainer_bundle.dart',
+          '--catalog-shards',
+          '${directory.path}/source',
+          recipe.path,
+          manifestPath,
+          shardPath
+        ]);
+    final first = await generate();
+    expect(first.exitCode, 0, reason: '${first.stdout}\n${first.stderr}');
+    final manifest = await File(manifestPath).readAsString();
+    final raw = jsonDecode(manifest) as Map;
+    expect(raw['kind'], 'nativePsdkCatalogManifest');
+    expect(raw['shards'], hasLength(greaterThan(1)));
+    final shardContents = <String, String>{};
+    for (final hash in raw['shards'] as List) {
+      final text = await File('$shardPath/$hash.json').readAsString();
+      shardContents[hash as String] = text;
+      final shard = NativePsdkTrainerBundle.fromJson(
+          jsonDecode(text) as Map<String, dynamic>);
+      expect(shard.speciesById.length, lessThanOrEqualTo(128));
+      expect((shard.evidence['catalogRequests'] as List).length,
+          lessThanOrEqualTo(256));
+      expect(canonicalHashOf(shard.toJson()).value, hash);
+    }
+    await recipe.writeAsString(jsonEncode({
+      'kind': 'nativePsdkCatalogRequests',
+      'version': 1,
+      'requests': requests.reversed.toList()
+    }));
+    final second = await generate();
+    expect(second.exitCode, 0, reason: '${second.stdout}\n${second.stderr}');
+    expect(await File(manifestPath).readAsString(), manifest);
+    for (final entry in shardContents.entries) {
+      expect(await File('$shardPath/${entry.key}.json').readAsString(),
+          entry.value);
+    }
+  });
+
   test('retains native progression moves independently of roster defaults', () {
     final sources = _fixtureSources();
     _addNativeMove(sources, 'future_cut', level: 20);

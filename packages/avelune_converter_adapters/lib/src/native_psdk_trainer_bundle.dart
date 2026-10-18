@@ -35,7 +35,19 @@ final class NativePsdkTrainerSourceFile {
       };
 }
 
-final class NativePsdkTrainerBundle {
+abstract interface class NativePsdkCatalog {
+  Map<String, PokemonSpeciesFile> get speciesById;
+  Map<String, PokemonLearnsetFile> get learnsetsBySpeciesId;
+  Map<String, PokemonMove> get movesById;
+  Map<String, PokemonEvolutionFile> get evolutionsBySpeciesId;
+  Map<String, PokemonMediaFile> get mediaBySpeciesId;
+  Map<String, Map<String, Object?>> get fallbackMedia;
+  Map<String, PokemonCatalogFile> get catalogs;
+  Map<String, Object?> get evidence;
+  Map<String, Object?> toJson();
+}
+
+final class NativePsdkTrainerBundle implements NativePsdkCatalog {
   NativePsdkTrainerBundle._({
     required this.speciesById,
     required this.learnsetsBySpeciesId,
@@ -196,15 +208,24 @@ final class NativePsdkTrainerBundle {
         evidence: _freeze(evidence) as Map<String, Object?>);
   }
 
+  @override
   final Map<String, PokemonSpeciesFile> speciesById;
+  @override
   final Map<String, PokemonLearnsetFile> learnsetsBySpeciesId;
+  @override
   final Map<String, PokemonMove> movesById;
+  @override
   final Map<String, PokemonEvolutionFile> evolutionsBySpeciesId;
+  @override
   final Map<String, PokemonMediaFile> mediaBySpeciesId;
+  @override
   final Map<String, Map<String, Object?>> fallbackMedia;
+  @override
   final Map<String, PokemonCatalogFile> catalogs;
+  @override
   final Map<String, Object?> evidence;
 
+  @override
   Map<String, Object?> toJson() => {
         'kind': 'nativePsdkTrainerBundle',
         'version': 2,
@@ -469,6 +490,7 @@ final class NativePsdkTrainerBundleBuilder {
     final queue = requestedSpecies.toList();
     final raws = <String, Map<String, dynamic>>{};
     final formsByBase = <String, List<Map<String, dynamic>>>{};
+    final sourceSpeciesAdaptations = <Map<String, Object?>>[];
     var formCount = 0;
     for (var cursor = 0; cursor < queue.length; cursor++) {
       if (queue.length > 128) _invalid('species_closure_quota');
@@ -481,6 +503,24 @@ final class NativePsdkTrainerBundleBuilder {
       }
       raws[id] = raw;
       final forms = _objects(raw['forms']);
+      if (id == 'sneasel' &&
+          index['Data/Studio/pokemon/sneasel.json']!.sha256.value ==
+              'c10ef9bcaaa901bcc779a1fb62fc77f04c3f9cc33ed239800801d4be79a9781f' &&
+          raw['id'] == 215 &&
+          forms.length == 1 &&
+          forms.single['form'] == 0 &&
+          forms.single['babyDbSymbol'] == 'sneasel' &&
+          forms.single['babyForm'] == 1) {
+        forms.single['babyForm'] = 0;
+        sourceSpeciesAdaptations.add({
+          'sourceSpeciesId': id,
+          'form': 0,
+          'field': 'babyForm',
+          'sourceValue': 1,
+          'nativeValue': 0,
+          'reason': 'danglingSelfBabyFormInNativeReference',
+        });
+      }
       formCount += forms.length;
       if (formCount > 128) _invalid('form_quota');
       final formNumbers = <int>{};
@@ -741,10 +781,27 @@ final class NativePsdkTrainerBundleBuilder {
     }
 
     final movePayloads = <Map<String, Object?>>[];
+    final sourceMoveAdaptations = <Map<String, Object?>>[];
     for (final id in selectedMoves.toList()..sort()) {
       final raw = read('Data/Studio/moves/$id.json', id);
       final payload = Map<String, Object?>.from(raw);
       payload['criticalRate'] = raw['movecriticalRate'];
+      if (raw['movecriticalRate'] is num &&
+          (raw['movecriticalRate'] as num) <= 0) {
+        if (raw['movecriticalRate'] != 0 ||
+            raw['category'] != 'status' ||
+            raw['power'] != 0) {
+          _invalid('move_critical_rate');
+        }
+        payload['criticalRate'] = 1;
+        sourceMoveAdaptations.add({
+          'sourceMoveId': id,
+          'field': 'movecriticalRate',
+          'sourceValue': 0,
+          'nativeValue': 1,
+          'reason': 'statusMoveDoesNotCalculateCriticalDamage',
+        });
+      }
       payload['battleEngineAimedTarget'] =
           switch (raw['battleEngineAimedTarget']) {
         'any_other_pokemon' => 'anyFoe',
@@ -875,6 +932,10 @@ final class NativePsdkTrainerBundleBuilder {
         'nativeFormNameLanguage': 'en',
         'nativeFormNamesBySpeciesId': nativeFormNames,
         'nativeMoveDataFidelityOnly': true,
+        if (sourceMoveAdaptations.isNotEmpty)
+          'sourceMoveAdaptations': sourceMoveAdaptations,
+        if (sourceSpeciesAdaptations.isNotEmpty)
+          'sourceSpeciesAdaptations': sourceSpeciesAdaptations,
         'activationRequiresExactRuntimeMoveQualification': true,
         'quotas': {
           'requests': 256,
