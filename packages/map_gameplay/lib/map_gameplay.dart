@@ -35,6 +35,7 @@ export 'src/collision/border_collision_geometry.dart'
         MaterializedBorderCollisionRect;
 
 export 'src/scene_badge_condition_evaluator.dart';
+export 'src/scene_party_condition_evaluator.dart';
 export 'src/scene_item_gift.dart';
 
 export 'src/rail_journey_service.dart';

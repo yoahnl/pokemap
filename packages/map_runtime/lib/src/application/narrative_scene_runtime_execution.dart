@@ -131,6 +131,17 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       callbacks: SceneRuntimeHostCallbacks(
         evaluateCondition: (intent) {
           final source = intent.conditionSource;
+          if (source?.sourceKind == SceneConditionSourceKind.partyState) {
+            final projected = projectPending(currentGameState());
+            if (!projected.success) {
+              throw StateError(projected.message ?? 'Scene party state projection failed.');
+            }
+            return evaluateScenePartyCondition(
+              source: source!,
+              gameState: projected.gameState,
+              context: writer.partyConditionContext,
+            ) ? 'true' : 'false';
+          }
           if (pendingConsequences.isEmpty ||
               source == null ||
               !const {

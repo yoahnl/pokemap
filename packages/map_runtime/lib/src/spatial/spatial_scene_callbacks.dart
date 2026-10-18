@@ -21,9 +21,11 @@ final class SpatialSceneCallbacks
     required this.interactive,
     this.playCinematic,
     this.presentPokemonGift,
+    this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
   });
 
   final ScenePokemonGiftPresenter? presentPokemonGift;
+  final ScenePartyConditionContext partyConditionContext;
   final ProjectManifest project;
   final String runtimeSourceId;
   final GameState Function() readGameState;
@@ -68,6 +70,10 @@ final class SpatialSceneCallbacks
     final source = intent.conditionSource;
     if (source == null) throw StateError('The Scene condition is missing.');
     final state = readGameState();
+    if (source.sourceKind == SceneConditionSourceKind.partyState) {
+      return evaluateScenePartyCondition(source: source, gameState: state,
+          context: partyConditionContext) ? 'true' : 'false';
+    }
     if (source.sourceKind == SceneConditionSourceKind.trainerDefeated) {
       return evaluateSceneTrainerDefeatedCondition(source: source, gameState: state)
           ? 'true' : 'false';

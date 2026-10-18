@@ -78,6 +78,7 @@ import '../../application/runtime_player_pokemon_grant.dart';
 import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/scene_runtime/runtime_scene_pokemon_catalog.dart';
+import '../../application/scene_runtime/runtime_scene_party_condition_context.dart';
 import '../../application/runtime_pokemon_evolution_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_post_battle_decision_coordinator.dart';
@@ -11825,6 +11826,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String sceneId,
     required GameState gameState,
   }) async {
+    final bundle = _bundle;
+    final revision = _gameStateRevision;
+    final owner = _activeNarrativeSceneWorkingSession;
     SceneAsset? scene;
     for (final candidate in project.scenes) {
       if (candidate.id == sceneId) {
@@ -11844,23 +11848,40 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (requiresRecoveryCaps) {
       recoveryCaps = await loadRuntimePlayerServiceRecoveryCaps(
         gameState: gameState,
-        projectRootDirectory: _bundle.projectRootDirectory,
+        projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: project.pokemon,
         speciesLoader: _battleSpeciesLoader,
         moveCatalogLoader: _battleMoveCatalogLoader,
       );
     }
+    final partyConditionContext = scene == null
+        ? const ScenePartyConditionContext.unavailable()
+        : await loadRuntimeScenePartyConditionContext(
+            scene: scene,
+            projectRootDirectory: bundle.projectRootDirectory,
+            pokemonConfig: project.pokemon,
+            supportedFieldAbilities: twoDSceneFieldAbilities,
+            moveCatalogLoader: _battleMoveCatalogLoader,
+          );
+    final pokemonCatalog = await loadRuntimeScenePokemonCatalog(
+      scene: scene,
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: project.pokemon,
+      speciesLoader: _battleSpeciesLoader,
+      learnsetLoader: _battleLearnsetLoader,
+      moveCatalogLoader: _battleMoveCatalogLoader,
+    );
+    if (_isRemoved ||
+        !identical(bundle, _bundle) ||
+        revision != _gameStateRevision ||
+        !identical(owner, _activeNarrativeSceneWorkingSession)) {
+      throw StateError('The Scene preparation owner changed while loading.');
+    }
     return SceneConsequenceRuntimeWriter(
       project: project,
       mapsById: mapsById,
-      pokemonCatalog: await loadRuntimeScenePokemonCatalog(
-        scene: scene,
-        projectRootDirectory: _bundle.projectRootDirectory,
-        pokemonConfig: project.pokemon,
-        speciesLoader: _battleSpeciesLoader,
-        learnsetLoader: _battleLearnsetLoader,
-        moveCatalogLoader: _battleMoveCatalogLoader,
-      ),
+      pokemonCatalog: pokemonCatalog,
+      partyConditionContext: partyConditionContext,
       maxHpByPartyIndex: recoveryCaps.maxHpByPartyIndex,
       maxPpByPartyIndex: recoveryCaps.maxPpByPartyIndex,
       mapInstanceScopes: Map.unmodifiable({

@@ -81,6 +81,22 @@ enum SceneConditionSourceKind {
   mapEventInstanceBoolean,
 }
 
+enum ScenePartyConditionKind {
+  canReceivePokemon,
+  knowsMove,
+  hasUsableMove,
+  canUseFieldAbility;
+
+  String get label => switch (this) {
+    ScenePartyConditionKind.canReceivePokemon =>
+      'Peut recevoir un Pokémon (équipe ou PC)',
+    ScenePartyConditionKind.knowsMove => 'Connaît une capacité',
+    ScenePartyConditionKind.hasUsableMove => 'Possède une capacité utilisable',
+    ScenePartyConditionKind.canUseFieldAbility =>
+      'Peut utiliser une capacité de terrain',
+  };
+}
+
 enum SceneConditionOperator {
   isTrue,
   isFalse,
@@ -113,6 +129,44 @@ final class SceneConditionSource {
          value != null || mapId != null || key != null ||
          factOperator != null || expectedFactValue != null)) {
       throw ArgumentError('Trainer victory conditions require a canonical trainer ID and boolean operator.');
+    }
+    if (sourceKind == SceneConditionSourceKind.partyState) {
+      final kind = ScenePartyConditionKind.values
+          .where((kind) => kind.name == sourceId)
+          .firstOrNull;
+      if (kind == null ||
+          operator == SceneConditionOperator.equals ||
+          factOperator != null ||
+          expectedFactValue != null ||
+          mapId != null ||
+          key != null) {
+        throw ArgumentError(
+          'Party conditions require a typed predicate and boolean operator.',
+        );
+      }
+      switch (kind) {
+        case ScenePartyConditionKind.canReceivePokemon:
+          if (field != null || value != null) {
+            throw ArgumentError('Party capacity has no field or value.');
+          }
+        case ScenePartyConditionKind.knowsMove:
+        case ScenePartyConditionKind.hasUsableMove:
+          if (field != 'moveId' ||
+              value == null ||
+              value!.isEmpty ||
+              value!.trim() != value) {
+            throw ArgumentError(
+              'Party move conditions require a canonical moveId.',
+            );
+          }
+        case ScenePartyConditionKind.canUseFieldAbility:
+          if (field != 'ability' ||
+              !FieldAbility.values.any((ability) => ability.moveId == value)) {
+            throw ArgumentError(
+              'Party field ability requires a canonical ability.',
+            );
+          }
+      }
     }
     _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
     if (sourceKind == SceneConditionSourceKind.pokedexCaughtCount &&
@@ -208,6 +262,61 @@ final class SceneConditionSource {
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
     final kind = _readEnum(SceneConditionSourceKind.values,
         json['sourceKind'], 'conditionSource.sourceKind');
+    if (kind == SceneConditionSourceKind.partyState) {
+      final id = json['sourceId'];
+      final predicate = ScenePartyConditionKind.values
+          .where((kind) => kind.name == id)
+          .firstOrNull;
+      final fields = <String>{
+        'sourceKind',
+        'sourceId',
+        'operator',
+        'label',
+        'debugTechnicalLabel',
+        if (predicate != ScenePartyConditionKind.canReceivePokemon) ...[
+          'field',
+          'value',
+        ],
+      };
+      if (predicate == null ||
+          json.keys.any((field) => !fields.contains(field)) ||
+          id is! String ||
+          id.isEmpty ||
+          id.trim() != id) {
+        throw const FormatException(
+          'Unknown or incompatible party condition fields.',
+        );
+      }
+      try {
+        final hasReference =
+            predicate != ScenePartyConditionKind.canReceivePokemon;
+        final rawField = json['field'];
+        final rawValue = json['value'];
+        if (hasReference &&
+            (rawField is! String ||
+                rawValue is! String ||
+                rawValue.isEmpty ||
+                rawValue.trim() != rawValue)) {
+          throw const FormatException(
+            'Party references require canonical field and value.',
+          );
+        }
+        return SceneConditionSource(
+          sourceKind: kind,
+          sourceId: id,
+          operator: _readEnum(
+            SceneConditionOperator.values,
+            json['operator'],
+            'conditionSource.operator',
+          ),
+          field: hasReference ? rawField as String : null,
+          value: hasReference ? rawValue as String : null,
+          label: _readOptionalString(json, 'label'),
+          debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+      } on ArgumentError catch (error) {
+        throw FormatException(error.message?.toString() ?? 'Invalid party condition.');
+      }
+    }
     if (kind == SceneConditionSourceKind.pokedexCaughtCount) {
       const fields = {'sourceKind', 'sourceId', 'operator', 'field', 'value', 'label', 'debugTechnicalLabel'};
       if (json.keys.any((field) => !fields.contains(field))) {
@@ -320,6 +429,91 @@ final class SceneConditionSource {
             ),
     );
   }
+
+  factory SceneConditionSource.partyCanReceivePokemon({
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.partyState,
+    sourceId: ScenePartyConditionKind.canReceivePokemon.name,
+    operator: expected
+        ? SceneConditionOperator.isTrue
+        : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  factory SceneConditionSource.partyKnowsMove({
+    required String moveId,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.partyState,
+    sourceId: ScenePartyConditionKind.knowsMove.name,
+    field: 'moveId',
+    value: moveId,
+    operator: expected
+        ? SceneConditionOperator.isTrue
+        : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  factory SceneConditionSource.partyHasUsableMove({
+    required String moveId,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.partyState,
+    sourceId: ScenePartyConditionKind.hasUsableMove.name,
+    field: 'moveId',
+    value: moveId,
+    operator: expected
+        ? SceneConditionOperator.isTrue
+        : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  factory SceneConditionSource.partyCanUseFieldAbility({
+    required FieldAbility ability,
+    bool expected = true,
+    String? label,
+    String? debugTechnicalLabel,
+  }) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.partyState,
+    sourceId: ScenePartyConditionKind.canUseFieldAbility.name,
+    field: 'ability',
+    value: ability.moveId,
+    operator: expected
+        ? SceneConditionOperator.isTrue
+        : SceneConditionOperator.isFalse,
+    label: label,
+    debugTechnicalLabel: debugTechnicalLabel,
+  );
+
+  ScenePartyConditionKind? get partyConditionKind =>
+      sourceKind == SceneConditionSourceKind.partyState
+      ? ScenePartyConditionKind.values.byName(sourceId)
+      : null;
+
+  String? get partyMoveId =>
+      partyConditionKind == ScenePartyConditionKind.knowsMove ||
+          partyConditionKind == ScenePartyConditionKind.hasUsableMove
+      ? value
+      : null;
+
+  FieldAbility? get partyFieldAbility =>
+      partyConditionKind == ScenePartyConditionKind.canUseFieldAbility
+      ? FieldAbility.values.firstWhere((ability) => ability.moveId == value)
+      : null;
+
+  bool? get partyExpected => sourceKind == SceneConditionSourceKind.partyState
+      ? operator == SceneConditionOperator.isTrue
+      : null;
 
   factory SceneConditionSource.pokedexCaughtAtLeast({
     required PokedexSpeciesRange range, required int minimum,

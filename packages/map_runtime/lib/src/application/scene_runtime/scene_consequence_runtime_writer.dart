@@ -59,6 +59,7 @@ final class SceneConsequenceRuntimeWriter {
     this.mutations = const GameStateMutations(),
     this.mapInstanceScopes = const <String, MapInstanceRef>{},
     this.pokemonCatalog,
+    this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
   });
 
   final ProjectManifest project;
@@ -68,6 +69,7 @@ final class SceneConsequenceRuntimeWriter {
   final GameStateMutations mutations;
   final Map<String, MapInstanceRef> mapInstanceScopes;
   final RuntimeScenePokemonCatalog? pokemonCatalog;
+  final ScenePartyConditionContext partyConditionContext;
 
   static const int _maxPartySize = 6;
 

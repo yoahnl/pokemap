@@ -7,6 +7,7 @@ import 'items/item_capability_resolver.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'script_condition_evaluator.dart';
 import 'shop_state_resolver.dart';
+import 'player_storage_operations.dart';
 
 enum CaptureDestinationKind {
   none,
@@ -968,6 +969,35 @@ class GameStateMutations {
     }
   }
 
+  ({
+    CaptureDestinationKind destination,
+    int? partyIndex,
+    PlayerStorageSlot? storageSlot,
+  }) planPokemonAcquisitionDestination(
+    GameState state, {
+    int maxPartySize = maxPlayerPartySize,
+  }) {
+    if (maxPartySize <= 0 || maxPartySize > maxPlayerPartySize) {
+      throw ArgumentError.value(maxPartySize, 'maxPartySize');
+    }
+    if (state.party.members.length < maxPartySize) {
+      return (
+        destination: CaptureDestinationKind.party,
+        partyIndex: state.party.members.length,
+        storageSlot: null,
+      );
+    }
+    final slot = const PlayerStorageOperations()
+        .findFirstAvailableSlot(state.pokemonStorage);
+    return (
+      destination: slot == null
+          ? CaptureDestinationKind.none
+          : CaptureDestinationKind.storage,
+      partyIndex: null,
+      storageSlot: slot,
+    );
+  }
+
   /// Applique une capture réussie vers la party ou le storage minimal.
   ///
   /// Le storage est un simple état persistant de Pokémon capturés hors party :
@@ -1023,8 +1053,12 @@ class GameStateMutations {
       );
     }
 
-    if (state.party.members.length < maxPartySize) {
-      final partyIndex = state.party.members.length;
+    final destination = planPokemonAcquisitionDestination(
+      state,
+      maxPartySize: maxPartySize,
+    );
+    if (destination.destination == CaptureDestinationKind.party) {
+      final partyIndex = destination.partyIndex!;
       final nextMembers = [...state.party.members, normalizedPokemon];
       final nextState = normalizeLoadedGameState(
         state.copyWith(
@@ -1038,16 +1072,16 @@ class GameStateMutations {
       );
     }
 
-    final storage = state.pokemonStorage.normalized();
-    final targetBoxListIndex = storage.boxes.indexWhere(
-      (box) => box.pokemon.length < box.capacity,
-    );
-    if (targetBoxListIndex < 0) {
+    if (destination.destination == CaptureDestinationKind.none) {
       return CaptureDestinationResult.none(
         state,
         failure: CaptureDestinationFailure.storageFull,
       );
     }
+    final storage = state.pokemonStorage.normalized();
+    final targetBoxListIndex = storage.boxes.indexWhere(
+      (box) => box.id == destination.storageSlot!.boxId,
+    );
     final targetBox = storage.boxes[targetBoxListIndex];
     final boxIndex = targetBox.pokemon.length;
     final storageIndex = storage.boxes

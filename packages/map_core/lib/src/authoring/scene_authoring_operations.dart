@@ -769,7 +769,8 @@ SceneConditionSourceUpdateResult updateSceneConditionSource(
   _validateConditionSourceForV0(source);
 
   final updatedPayload = SceneConditionPayload(
-    conditionLabel: _trimOptional(source.label),
+    conditionLabel:
+        _trimOptional(source.label) ?? source.partyConditionKind?.label,
     conditionRef: source.sourceId,
     conditionSource: source,
   );
@@ -1864,6 +1865,7 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
     case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.trainerDefeated:
+    case SceneConditionSourceKind.partyState:
       return;
     case SceneConditionSourceKind.playerAtEntityAnchor:
     case SceneConditionSourceKind.mapEventInstanceBoolean:
@@ -1970,7 +1972,6 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
       }
       return;
     case SceneConditionSourceKind.storyStepActive:
-    case SceneConditionSourceKind.partyState:
     case SceneConditionSourceKind.dialogueOutcome:
     case SceneConditionSourceKind.battleOutcome:
     case SceneConditionSourceKind.scriptVariable:

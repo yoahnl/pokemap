@@ -41,6 +41,8 @@ enum SceneDiagnosticCode {
   conditionMapEntityRefUnknown,
   conditionBadgeRefUnknown,
   conditionTrainerRefUnknown,
+  conditionPartyMoveCatalogUnavailable,
+  conditionPartyMoveRefUnknown,
   conditionWorldRuleRefUnknown,
   conditionUnsupportedDimension,
   consequenceUnknownFact,
@@ -456,6 +458,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   SceneAsset scene,
   ProjectManifest project, {
   Map<String, MapData> mapsById = const {},
+  Set<String>? availableMoveIds,
 }) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
   final soundMediaById = <String, List<CinematicMediaAsset>>{};
@@ -642,6 +645,22 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
         final source = payload.conditionSource;
         if (source == null) {
           continue;
+        }
+        if (source.partyMoveId case final String moveId) {
+          if (availableMoveIds == null || !availableMoveIds.contains(moveId)) {
+            diagnostics.add(SceneDiagnostic(
+              code: availableMoveIds == null
+                  ? SceneDiagnosticCode.conditionPartyMoveCatalogUnavailable
+                  : SceneDiagnosticCode.conditionPartyMoveRefUnknown,
+              severity: availableMoveIds == null
+                  ? SceneDiagnosticSeverity.warning : SceneDiagnosticSeverity.error,
+              message: availableMoveIds == null
+                  ? 'Le catalogue des capacités doit être chargé pour vérifier cette référence.'
+                  : 'La condition référence une capacité absente du catalogue actif.',
+              sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir une capacité dans le catalogue du projet.',
+            ));
+          }
         }
         if (source.sourceKind == SceneConditionSourceKind.pokedexCaughtCount &&
             project.settings.dimension != ProjectDimension.twoD) {
@@ -2254,10 +2273,10 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.storyStepCompletion ||
     SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.badge ||
+    SceneConditionSourceKind.partyState ||
     SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.consumedEvent => true,
     SceneConditionSourceKind.storyStepActive ||
-    SceneConditionSourceKind.partyState ||
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
@@ -2290,12 +2309,12 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
           source.operator == SceneConditionOperator.isFalse,
     SceneConditionSourceKind.storyStepCompletion =>
       source.operator == SceneConditionOperator.equals,
+    SceneConditionSourceKind.partyState => source.partyExpected != null,
     SceneConditionSourceKind.trainerDefeated => source.trainerDefeatedExpected != null,
     SceneConditionSourceKind.badge => source.badgeOwnershipExpected != null,
     SceneConditionSourceKind.inventoryItem =>
       source.inventoryQuantityThreshold != null,
     SceneConditionSourceKind.storyStepActive ||
-    SceneConditionSourceKind.partyState ||
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||

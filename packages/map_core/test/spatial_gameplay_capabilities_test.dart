@@ -21,11 +21,14 @@ void main() {
         SceneConditionSourceKind.storyStepCompletion,
         SceneConditionSourceKind.consumedEvent,
         SceneConditionSourceKind.trainerDefeated,
+        SceneConditionSourceKind.partyState,
       });
       for (final kind in SceneConditionSourceKind.values.where(
         (kind) => kind != SceneConditionSourceKind.newGameDraft,
       )) {
         final source = switch (kind) {
+          SceneConditionSourceKind.partyState =>
+            SceneConditionSource.partyCanReceivePokemon(),
           SceneConditionSourceKind.playerFacing => SceneConditionSource(
             sourceKind: kind,
             sourceId: EntityFacing.north.name,

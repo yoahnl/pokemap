@@ -113,6 +113,13 @@ final class SceneEventRuntimeHook {
     final transactionalCallbacks = SceneRuntimeHostCallbacks(
       evaluateCondition: (intent) {
         final source = intent.conditionSource;
+        if (source?.sourceKind == SceneConditionSourceKind.partyState) {
+          return evaluateScenePartyCondition(
+            source: source!,
+            gameState: projectedState(),
+            context: writer.partyConditionContext,
+          ) ? 'true' : 'false';
+        }
         if (pendingConsequences.isEmpty ||
             source == null ||
             (source.sourceKind != SceneConditionSourceKind.badge &&
