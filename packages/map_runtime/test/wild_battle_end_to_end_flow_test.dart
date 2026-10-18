@@ -1002,6 +1002,184 @@ void main() {
       }
     });
 
+    for (final mode in ProjectItemAmountMode.values) {
+      test('L13 Player restores $mode PP through the bag and disk reload', () async {
+        final manifest = await _writeProjectManifest(tempProjectRoot);
+        final map = _buildMap();
+        final effect = ProjectItemEffectDefinition.restorePp(
+          mode: mode,
+          amount: mode == ProjectItemAmountMode.flat ? 7 : null,
+        );
+        await _writeProjectRelativeJson(tempProjectRoot,
+          'data/pokemon/catalogs/items.json',
+          ProjectItemCatalog(schemaVersion: 1, entries: [
+            ...mvpItemCatalog.entries,
+            ProjectItemDefinition(
+              id: 'custom-pp-charge', displayName: 'Recharge', pocketId: 'medicine',
+              uses: [ProjectItemUseDefinition(
+                contexts: const {ProjectItemUseContext.battle},
+                target: ProjectItemTargetKind.partyMove,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: effect,
+              )],
+            ),
+          ]).toJson(),
+        );
+        final reserveHp = mode == ProjectItemAmountMode.flat ? 0 : 10;
+        final initial = GameState(
+          saveId: 'battle-pp-player',
+          bag: const Bag(entries: [BagEntry(itemId: 'custom-pp-charge', quantity: 2)]),
+          party: PlayerParty(members: [
+            const PlayerPokemon(speciesId: 'sproutle', natureId: 'bold',
+              abilityId: 'overgrow', level: 50, currentHp: 120,
+              knownMoveIds: ['vine_whip'], currentPpByMoveId: {'vine_whip': 5}),
+            PlayerPokemon(speciesId: 'sproutle', natureId: 'bold',
+              abilityId: 'overgrow', level: 10, currentHp: reserveHp,
+              knownMoveIds: const ['wrap', 'coil'],
+              currentPpByMoveId: const {'wrap': 0, 'coil': 20}),
+          ]),
+        );
+        final game = _LoadedGame(
+          bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+          projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+          saveData: saveDataFromGameState(initial), reducedMotion: true,
+        );
+        addTearDown(game.onRemove);
+        game.onGameResize(Vector2(640, 480));
+        await game.onLoad();
+        await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+        await game.debugWaitForBattleOverlaySync();
+        expect(game.debugPsdkBattleSessionActive, isTrue);
+        var snapshot = await _ppBattleSnapshot(game, 'root');
+        final beforeSession = game.debugBattleSessionSnapshot!;
+        final beforeParty = game.gameStateSnapshot.party;
+        final beforeHp = beforeSession.state.player.currentHp;
+        expect(_ppSelectEntry(game, snapshot, BattleCommandRootAction.bag.index), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bag');
+        expect(snapshot.entries.single.primaryLabel, contains('Recharge'));
+        expect(_ppSelectEntry(game, snapshot, 0), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bagMedicineTarget');
+        expect(snapshot.entries[1].enabled, isTrue);
+        expect(_ppSelectEntry(game, snapshot, 1), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bagMedicineMoveTarget');
+        expect(snapshot.entries, hasLength(2));
+        expect(snapshot.entries[0].primaryLabel, contains('Wrap'));
+        expect(snapshot.entries[0].enabled, isTrue);
+        expect(snapshot.entries[1].enabled, isFalse);
+        String ppLabels(BattleCommandOverlayEntry entry) => [
+          entry.secondaryLabel, entry.tertiaryLabel, entry.trailingLabel, entry.statusLabel,
+        ].join(' ').replaceAll(RegExp(r'\s'), '');
+        expect(ppLabels(snapshot.entries[0]), contains('0/20'));
+        expect(ppLabels(snapshot.entries[1]), contains('20/20'));
+        expect(_ppSelectEntry(game, snapshot, 1), isFalse);
+        expect(game.debugBattleSessionSnapshot, same(beforeSession));
+        expect(game.gameStateSnapshot.party, beforeParty);
+        expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+        final stale = BattleSelectEntryCommand(snapshotRevision: snapshot.revision,
+          expectedMode: snapshot.mode, entryIndex: 0);
+        expect(game.dispatchBattlePresentationCommand(BattleBackCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode)), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bagMedicineTarget');
+        expect(game.dispatchBattlePresentationCommand(BattleBackCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode)), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bag');
+        expect(game.dispatchBattlePresentationCommand(stale), isFalse);
+        expect(game.debugBattleSessionSnapshot, same(beforeSession));
+        expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+        expect(_ppSelectEntry(game, snapshot, 0), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bagMedicineTarget');
+        expect(_ppSelectEntry(game, snapshot, 1), isTrue);
+        snapshot = await _ppBattleSnapshot(game, 'bagMedicineMoveTarget');
+        expect(snapshot.revision, isNot(stale.snapshotRevision));
+        expect(game.dispatchBattlePresentationCommand(stale), isFalse);
+        expect(game.debugBattleSessionSnapshot, same(beforeSession));
+        expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+        expect(_ppSelectEntry(game, snapshot, 0), isTrue);
+        final messages = <String>[];
+        snapshot = await _ppBattleSnapshot(game, 'bag', messages: messages);
+        final expectedPp = mode == ProjectItemAmountMode.flat ? 7 : 20;
+        expect(game.gameStateSnapshot.bag.entries.single.quantity, 1);
+        final restored = game.gameStateSnapshot.party.members[1];
+        expect(restored.currentPpByMoveId, {'wrap': expectedPp, 'coil': 20});
+        expect(restored.currentHp, reserveHp);
+        expect(game.gameStateSnapshot.party.members.first.currentPpByMoveId,
+            beforeParty.members.first.currentPpByMoveId);
+        expect(game.debugBattleSessionSnapshot!.state.player.currentHp, lessThan(beforeHp));
+        expect(game.debugBattleSessionSnapshot!.state.enemy.moves.single.currentPp,
+            beforeSession.state.enemy.moves.single.currentPp - 1);
+        expect(messages.toSet().where((line) => line.contains('Wrap') &&
+          line.contains('PP') && RegExp('\\b$expectedPp\\b').hasMatch(line)), hasLength(1));
+        expect(game.dispatchBattlePresentationCommand(BattleBackCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode)), isTrue);
+        await _ppBattleSnapshot(game, 'root');
+        expect(game.selectBattleRootEntry(BattleCommandRootAction.run.index), isTrue);
+        await game.debugWaitForBattleOverlaySync();
+        await _acknowledgePostBattleAndWaitForOverworld(game);
+        final saved = game.gameStateSnapshot;
+        expect(saved.party.members[1].currentPpByMoveId, {'wrap': expectedPp, 'coil': 20});
+        final saveFile = File(p.join(tempProjectRoot.path, 'pp-save.json'));
+        await saveFile.writeAsString(jsonEncode(saveDataFromGameState(saved).toJson()));
+        final reloaded = _LoadedGame(
+          bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+          projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+          saveData: SaveData.fromJson(jsonDecode(await saveFile.readAsString()) as Map<String, dynamic>),
+          reducedMotion: true,
+        );
+        addTearDown(reloaded.onRemove);
+        reloaded.onGameResize(Vector2(640, 480));
+        await reloaded.onLoad();
+        expect(reloaded.gameStateSnapshot.bag, saved.bag);
+        expect(reloaded.gameStateSnapshot.party.members[1].currentPpByMoveId,
+            saved.party.members[1].currentPpByMoveId);
+        expect(reloaded.gameStateSnapshot.party.members[1].currentHp, reserveHp);
+        await reloaded.debugOpenBattleForTest(_wildRequest(manifest, map));
+        await reloaded.debugWaitForBattleOverlaySync();
+        expect(reloaded.debugPsdkBattleSessionActive, isTrue);
+        final nextReserve = reloaded.debugBattleSessionSnapshot!.state.playerReserve.single;
+        expect(nextReserve.moves.map((move) => move.currentPp).toList(), [expectedPp, 20]);
+      });
+    }
+
+    test('L13 Player restores exhausted real moves without targeting Struggle', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final game = _LoadedGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        reducedMotion: true,
+        saveData: saveDataFromGameState(const GameState(
+          saveId: 'battle-pp-exhausted',
+          bag: Bag(entries: [BagEntry(itemId: 'ether', quantity: 1)]),
+          party: PlayerParty(members: [PlayerPokemon(
+            speciesId: 'sproutle', natureId: 'bold', abilityId: 'overgrow',
+            level: 50, currentHp: 120, knownMoveIds: ['vine_whip'],
+            currentPpByMoveId: {'vine_whip': 0},
+          )]),
+        )),
+      );
+      addTearDown(game.onRemove);
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+      await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+      await game.debugWaitForBattleOverlaySync();
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      var snapshot = await _ppBattleSnapshot(game, 'root');
+      expect(_ppSelectEntry(game, snapshot, BattleCommandRootAction.bag.index), isTrue);
+      snapshot = await _ppBattleSnapshot(game, 'bag');
+      expect(_ppSelectEntry(game, snapshot, 0), isTrue);
+      snapshot = await _ppBattleSnapshot(game, 'bagMedicineTarget');
+      expect(_ppSelectEntry(game, snapshot, 0), isTrue);
+      snapshot = await _ppBattleSnapshot(game, 'bagMedicineMoveTarget');
+      expect(snapshot.entries, hasLength(1));
+      expect(snapshot.entries.single.primaryLabel, contains('Vine Whip'));
+      expect(snapshot.entries.single.enabled, isTrue);
+      expect(_ppSelectEntry(game, snapshot, 0), isTrue);
+      await _ppBattleSnapshot(game, 'bag');
+      expect(game.gameStateSnapshot.party.members.single.currentPpByMoveId,
+          {'vine_whip': 10});
+      expect(game.gameStateSnapshot.bag.entries, isEmpty);
+    });
+
     test('PlayableMapGame can use a potion in a PSDK battle', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -2376,6 +2554,36 @@ void main() {
     });
   });
 }
+
+Future<BattleCommandOverlaySnapshot> _ppBattleSnapshot(
+  PlayableMapGame game,
+  String mode, {
+  List<String>? messages,
+}) async {
+  for (var tick = 0; tick < 500; tick++) {
+    game.update(0.05);
+    await Future<void>.delayed(Duration.zero);
+    final message = game.debugBattleOverlayComponent?.debugCurrentAnimationMessage;
+    if (message != null) messages?.add(message);
+    final snapshot = game.battleCommandOverlayListenable.value;
+    if (snapshot != null && snapshot.mode.name == mode && snapshot.interactionsEnabled) {
+      return snapshot;
+    }
+    if (snapshot != null && snapshot.mode == BattleCommandOverlayMode.continueOnly &&
+        snapshot.interactionsEnabled && snapshot.entries.isNotEmpty) {
+      _ppSelectEntry(game, snapshot, 0);
+    }
+  }
+  final snapshot = game.battleCommandOverlayListenable.value;
+  throw StateError('Battle did not reach enabled mode $mode: '
+      '${snapshot?.mode.name}, enabled=${snapshot?.interactionsEnabled}, '
+      'phase=${snapshot?.phase}, message=${game.debugBattleOverlayComponent?.debugCurrentAnimationMessage}');
+}
+
+bool _ppSelectEntry(PlayableMapGame game, BattleCommandOverlaySnapshot snapshot, int index) =>
+    game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+      snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: index,
+    ));
 
 /// Suit la fin de combat jusqu'au retour en overworld.
 ///
