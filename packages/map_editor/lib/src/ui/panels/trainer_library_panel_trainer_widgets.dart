@@ -156,6 +156,7 @@ class _TrainerOperationBanner extends StatelessWidget {
 class _TrainerEditorCard extends StatelessWidget {
   const _TrainerEditorCard({
     super.key,
+    this.transitionConfig,
     required this.title,
     required this.accent,
     required this.nameController,
@@ -240,6 +241,7 @@ class _TrainerEditorCard extends StatelessWidget {
   final String? battleBackgroundRelativePath;
   final String? battleSpriteRelativePath;
   final String? battleTransitionId;
+  final ProjectBattleTransitionConfig? transitionConfig;
   final String? projectRootPath;
   final List<ProjectCharacterEntry> characters;
   final List<ProjectElementEntry> elements;
@@ -271,6 +273,7 @@ class _TrainerEditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final transitionLabels = battleTransitionLabels(transitionConfig);
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
     final knownPortraitIds = elements.map((element) => element.id).toSet();
     final portraitId = portraitController.text.trim();
@@ -995,7 +998,7 @@ class _TrainerEditorCard extends StatelessWidget {
                             selected: battleTransitionId == null,
                             onTap: () => onSelectBattleTransition(null),
                           ),
-                          for (final transitionId in battleTrainerTransitionIds)
+                          for (final transitionId in battleTransitionIdsForUsage(transitionConfig, BattleTransitionUsage.trainer))
                             _TrainerTransitionChip(
                               key: Key(
                                 createMode
@@ -1003,7 +1006,7 @@ class _TrainerEditorCard extends StatelessWidget {
                                     : 'trainer-library-edit-transition-$transitionId',
                               ),
                               label:
-                                  battleTransitionDisplayLabels[transitionId] ??
+                                  transitionLabels[transitionId] ??
                                   transitionId,
                               selected: battleTransitionId == transitionId,
                               onTap: () =>

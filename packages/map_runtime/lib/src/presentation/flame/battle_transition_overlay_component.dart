@@ -5,7 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 
-import 'battle_transition_manifest.dart';
+import 'package:map_core/map_core.dart' show validateBattleTransitionAssetReference;
 import 'battle_transition_spec.dart';
 
 /// La pré-transition de début de combat — BETA-BAT-016.
@@ -33,7 +33,8 @@ class BattleTransitionOverlayComponent extends PositionComponent {
     required this.onBlackHeld,
     this.onDismissed,
     this.revealSeconds = 0.25,
-    @visibleForTesting Future<Image?> Function(String sheetName)? loadSheet,
+    Future<Image?> Function(String sheetName)? loadSheet,
+    this.loadProjectSheet,
     @visibleForTesting Future<FragmentProgram?> Function()? loadDissolveProgram,
   })  : _loadSheet = loadSheet,
         _loadDissolveProgram = loadDissolveProgram,
@@ -52,6 +53,7 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   final VoidCallback onBlackHeld;
   final VoidCallback? onDismissed;
   final double revealSeconds;
+  final Future<Image?> Function(String reference)? loadProjectSheet;
   final Future<Image?> Function(String sheetName)? _loadSheet;
   final Future<FragmentProgram?> Function()? _loadDissolveProgram;
 
@@ -153,11 +155,10 @@ class BattleTransitionOverlayComponent extends PositionComponent {
     if (loader != null) {
       return loader(sheetName);
     }
-    final fileName = battleTransitionSheetManifest[sheetName];
-    if (fileName == null) {
-      debugPrint('[battle-transition] no embedded sheet for "$sheetName"');
-      return null;
-    }
+    validateBattleTransitionAssetReference(sheetName);
+    if (sheetName.startsWith('project:')) return loadProjectSheet?.call(sheetName);
+    if (!sheetName.startsWith('embedded:')) return null;
+    final fileName = sheetName.substring('embedded:'.length);
     // Double essai comme le catalogue RMXP : la clé préfixée `packages/` vaut
     // quand map_runtime est une dépendance, la clé nue quand il est le
     // paquet hôte (ses propres tests notamment). rootBundle et pas

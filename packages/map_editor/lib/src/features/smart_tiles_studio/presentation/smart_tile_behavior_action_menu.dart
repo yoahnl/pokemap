@@ -21,6 +21,7 @@ class SmartTileBehaviorActionMenu extends StatelessWidget {
     required this.materialId,
     required this.catalog,
     required this.encounterTables,
+    this.transitionConfig,
     required this.notifier,
   });
 
@@ -30,6 +31,7 @@ class SmartTileBehaviorActionMenu extends StatelessWidget {
   final String? materialId;
   final ProjectSmartTileCatalog catalog;
   final List<ProjectEncounterTable> encounterTables;
+  final ProjectBattleTransitionConfig? transitionConfig;
   final EditorNotifier notifier;
 
   @override
@@ -99,6 +101,7 @@ class SmartTileBehaviorActionMenu extends StatelessWidget {
           materialId: currentMaterialId,
           catalog: catalog,
           encounterTables: encounterTables,
+          transitionConfig: transitionConfig,
           onConfirm: (value) => Navigator.of(dialogContext).pop(value),
         );
       },

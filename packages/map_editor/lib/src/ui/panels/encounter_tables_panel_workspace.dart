@@ -367,10 +367,10 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                   value: engineDefault,
                   label: 'Défaut du moteur (Rouge/Bleu/Jaune)',
                 ),
-                for (final id in battleWildTransitionIds)
+                for (final id in battleTransitionIdsForUsage(config, BattleTransitionUsage.wild))
                   PokeMapDropdownItem(
                     value: id,
-                    label: battleTransitionDisplayLabels[id] ?? id,
+                    label: battleTransitionLabels(config)[id] ?? id,
                   ),
               ],
               onChanged: (value) =>
@@ -388,10 +388,10 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                   value: engineDefault,
                   label: 'Défaut du moteur (Diamant/Perle/Platine)',
                 ),
-                for (final id in battleTrainerTransitionIds)
+                for (final id in battleTransitionIdsForUsage(config, BattleTransitionUsage.trainer))
                   PokeMapDropdownItem(
                     value: id,
-                    label: battleTransitionDisplayLabels[id] ?? id,
+                    label: battleTransitionLabels(config)[id] ?? id,
                   ),
               ],
               onChanged: (value) =>

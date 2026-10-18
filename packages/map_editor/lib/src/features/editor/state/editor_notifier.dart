@@ -13096,11 +13096,12 @@ class EditorNotifier extends _$EditorNotifier
   Future<bool> updateProjectBattleTransitionDefaults({
     String? wildTransitionId,
     String? trainerTransitionId,
+    List<BattleTransitionDefinition>? definitions,
   }) async {
     final projectRootPath = state.projectRootPath;
     final project = state.project;
     if (projectRootPath == null || project == null) return false;
-    if (wildTransitionId == null && trainerTransitionId == null) return true;
+    if (wildTransitionId == null && trainerTransitionId == null && definitions == null) return true;
     try {
       final gateway = ref.read(encounterTablePersistenceGatewayProvider);
       final updated = await gateway.updateBattleTransitionDefaults(
@@ -13108,6 +13109,7 @@ class EditorNotifier extends _$EditorNotifier
         expectedProject: project,
         wildTransitionId: wildTransitionId,
         trainerTransitionId: trainerTransitionId,
+        definitions: definitions,
       );
       state = state.copyWith(
         project: updated,

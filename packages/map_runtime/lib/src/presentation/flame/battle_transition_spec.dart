@@ -243,57 +243,6 @@ BattleTerrainSweepKind? resolveBattleTerrainSweepKind({
   };
 }
 
-/// La transition sauvage RBY — recontrôlée sur `100 RBYWild.rb` le
-/// 2026-08-23 : flash 1,5 s facteur 6 (trois flashs blancs), planche 10×3
-/// étirée plein écran sur 0,5 s, noir tenu 0,25 s.
-const battleTransitionRbyWild = BattleTransitionSpec(
-  id: 'rby_wild',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionSheetCellsPhase(
-      sheetName: 'rby_wild',
-      columns: 10,
-      rows: 3,
-      durationSeconds: 0.5,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition dresseur Diamant/Perle/Platine — recontrôlée sur
-/// `144 DPPTrainer.rb` le 2026-08-23 : flash 0,7 s facteur 2, pokéball 3×4
-/// centrée qui zoome (0,2 → plein cadre, 0,4 s) puis tourne (90° → -360°,
-/// 0,4 s), puis les deux planches défilent (0,2 s chacune), noir tenu 0,25 s.
-const battleTransitionDppTrainer = BattleTransitionSpec(
-  id: 'dpp_trainer',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 0.7, factor: 2),
-    TransitionSpriteZoomPhase(durationSeconds: 0.4, zoomFrom: 0.2),
-    TransitionSpriteAnglePhase(
-      durationSeconds: 0.4,
-      angleFromDegrees: 90,
-      angleToDegrees: -360,
-    ),
-    TransitionSheetCellsPhase(
-      sheetName: 'diamant_perle_trainer_01',
-      columns: 3,
-      rows: 4,
-      durationSeconds: 0.2,
-    ),
-    TransitionSheetCellsPhase(
-      sheetName: 'diamant_perle_trainer_02',
-      columns: 3,
-      rows: 4,
-      durationSeconds: 0.2,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La sortie de combat — BETA-BAT-017. Jouée par le même overlay que les
-/// pré-transitions : fondu au noir par-dessus la scène de combat, noir tenu,
-/// puis le jeu commit l'état, démonte le combat et demande le reveal sur
-/// l'overworld. Hors registre : ce n'est pas un choix d'authoring.
 const battleExitFade = BattleTransitionSpec(
   id: 'battle_exit_fade',
   phases: <BattleTransitionPhase>[
@@ -302,282 +251,71 @@ const battleExitFade = BattleTransitionSpec(
   ],
 );
 
-/// Les phases communes aux sauvages à planche — recontrôlées à l'oracle le
-/// 2026-08-24 : `create_pre_transition_animation` de `100 RBYWild.rb` porte
-/// le flash (1,5 s facteur 6) et le noir tenu (0,25 s) pour TOUS ses
-/// héritiers ; seuls la planche et son tempo changent
-/// (`pre_transition_cells_duration`).
-BattleTransitionSpec _wildSheetTransition({
-  required String id,
-  required String sheetName,
-  required double cellsDurationSeconds,
-}) {
-  return BattleTransitionSpec(
-    id: id,
-    phases: <BattleTransitionPhase>[
-      const TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-      TransitionSheetCellsPhase(
-        sheetName: sheetName,
-        columns: 10,
-        rows: 3,
-        durationSeconds: cellsDurationSeconds,
-      ),
-      const TransitionHoldBlackPhase(durationSeconds: 0.25),
-    ],
-  );
+const battleTransitionDefaultFade = BattleTransitionSpec(
+  id: 'default_fade',
+  phases: <BattleTransitionPhase>[
+    TransitionFadeToBlackPhase(durationSeconds: 0.3),
+    TransitionHoldBlackPhase(durationSeconds: 0.05),
+  ],
+);
+
+BattleTransitionSpec battleTransitionSpecFromDefinition(BattleTransitionDefinition definition) =>
+    BattleTransitionSpec(id: definition.id, phases: List.unmodifiable([
+      for (final phase in definition.phases) _phaseFromDefinition(phase),
+    ]));
+
+BattleTransitionPhase _phaseFromDefinition(BattleTransitionPhaseDefinition phase) {
+  final parameters = phase.parameters;
+  double number(String key) => (parameters[key] as num).toDouble();
+  return switch (phase.effect) {
+    BattleTransitionEffect.flash => TransitionFlashPhase(durationSeconds: phase.durationSeconds, factor: number('factor')),
+    BattleTransitionEffect.spriteZoom => TransitionSpriteZoomPhase(durationSeconds: phase.durationSeconds, zoomFrom: number('zoomFrom')),
+    BattleTransitionEffect.spriteAngle => TransitionSpriteAnglePhase(durationSeconds: phase.durationSeconds, angleFromDegrees: number('angleFromDegrees'), angleToDegrees: number('angleToDegrees')),
+    BattleTransitionEffect.sheetCells => TransitionSheetCellsPhase(durationSeconds: phase.durationSeconds, sheetName: parameters['sheetName'] as String, columns: parameters['columns'] as int, rows: parameters['rows'] as int),
+    BattleTransitionEffect.holdBlack => TransitionHoldBlackPhase(durationSeconds: phase.durationSeconds),
+    BattleTransitionEffect.terrainSweep => TransitionTerrainSweepPhase(durationSeconds: phase.durationSeconds, kind: BattleTerrainSweepKind.values.singleWhere((entry) => entry.name == parameters['terrain'])),
+    BattleTransitionEffect.interleavedBands => TransitionInterleavedBandsPhase(durationSeconds: phase.durationSeconds, bandHeight: number('bandHeight')),
+    BattleTransitionEffect.thresholdDissolve => TransitionThresholdDissolvePhase(durationSeconds: phase.durationSeconds, textureName: parameters['textureName'] as String, tFrom: number('tFrom'), tTo: number('tTo'), fineThreshold: parameters['fineThreshold'] as bool),
+    BattleTransitionEffect.fadeToBlack => TransitionFadeToBlackPhase(durationSeconds: phase.durationSeconds),
+  };
 }
 
-/// La transition sauvage Or — `110 GSCWild.rb` : planche `gold_wild` en 1 s.
-final battleTransitionGoldWild = _wildSheetTransition(
-  id: 'gold_wild',
-  sheetName: 'gold_wild',
-  cellsDurationSeconds: 1,
-);
-
-/// La transition sauvage Cristal — `110 GSCWild.rb` : planche
-/// `crystal_wild` au tempo hérité de RBY (0,5 s).
-final battleTransitionCrystalWild = _wildSheetTransition(
-  id: 'crystal_wild',
-  sheetName: 'crystal_wild',
-  cellsDurationSeconds: 0.5,
-);
-
-/// La transition sauvage HeartGold/SoulSilver — `150 HGSSWild.rb` : planche
-/// `heartgold_soulsilver_wild` en 1,5 s.
-final battleTransitionHgssWild = _wildSheetTransition(
-  id: 'hgss_wild',
-  sheetName: 'heartgold_soulsilver_wild',
-  cellsDurationSeconds: 1.5,
-);
-
-/// La transition grotte HeartGold/SoulSilver — `151 HGSSCave.rb` : planche
-/// `heartgold_soulsilver_cave_wild` en 1,5 s.
-final battleTransitionHgssCave = _wildSheetTransition(
-  id: 'hgss_cave',
-  sheetName: 'heartgold_soulsilver_cave_wild',
-  cellsDurationSeconds: 1.5,
-);
-
-/// La transition sauvage Rubis/Saphir — `120 RSWild.rb` : flash hérité de
-/// RBY puis les lignes de l'écran glissent hors champ en 0,7 s (adaptées en
-/// bandes entrelacées, voir [TransitionInterleavedBandsPhase]), noir tenu.
-const battleTransitionRsWild = BattleTransitionSpec(
-  id: 'rs_wild',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionInterleavedBandsPhase(durationSeconds: 0.7),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition sauvage Diamant/Perle — `140 DPPWild.rb` : la même
-/// mécanique que Rubis/Saphir (seul le shader de découpe diffère dans la
-/// référence, invisible dans notre adaptation) sous son propre id
-/// d'authoring.
-const battleTransitionDppWild = BattleTransitionSpec(
-  id: 'dpp_wild',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionInterleavedBandsPhase(durationSeconds: 0.7),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition dresseur HeartGold/SoulSilver — `154 HGSSTrainer.rb` :
-/// toute la séquence Diamant/Perle/Platine avec les deux planches HGSS.
-const battleTransitionHgssTrainer = BattleTransitionSpec(
-  id: 'hgss_trainer',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 0.7, factor: 2),
-    TransitionSpriteZoomPhase(durationSeconds: 0.4, zoomFrom: 0.2),
-    TransitionSpriteAnglePhase(
-      durationSeconds: 0.4,
-      angleFromDegrees: 90,
-      angleToDegrees: -360,
-    ),
-    TransitionSheetCellsPhase(
-      sheetName: 'heartgold_soulsilver_trainer_01',
-      columns: 3,
-      rows: 4,
-      durationSeconds: 0.2,
-    ),
-    TransitionSheetCellsPhase(
-      sheetName: 'heartgold_soulsilver_trainer_02',
-      columns: 3,
-      rows: 4,
-      durationSeconds: 0.2,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition dresseur Rouge/Bleu/Jaune — `100 RBYTrainer.rb` : le rideau
-/// spiral, un dissolve fin (seuil 16 bits) de 2,75 s sans flash, noir tenu.
-const battleTransitionRbyTrainer = BattleTransitionSpec(
-  id: 'rby_trainer',
-  phases: <BattleTransitionPhase>[
-    TransitionThresholdDissolvePhase(
-      textureName: 'rby_trainer',
-      durationSeconds: 2.75,
-      fineThreshold: true,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition dresseur Rubis/Saphir — `124 RSTrainer.rb` : flash RBY puis
-/// dissolve `ruby_saphir_trainer` en 1 s, noir tenu.
-const battleTransitionRsTrainer = BattleTransitionSpec(
-  id: 'rs_trainer',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionThresholdDissolvePhase(
-      textureName: 'ruby_saphir_trainer',
-      durationSeconds: 1,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition grotte Rubis/Saphir — `121 RSCave.rb` : flash hérité de RBY
-/// puis dissolve `ruby_saphir_wild` en 1 s, noir tenu.
-const battleTransitionRsCave = BattleTransitionSpec(
-  id: 'rs_cave',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionThresholdDissolvePhase(
-      textureName: 'ruby_saphir_wild',
-      durationSeconds: 1,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La transition grotte Diamant/Perle — `141 DPPCave.rb` : le même dissolve
-/// avec sa texture (le zoom ×3 de la capture d'écran de la référence n'a pas
-/// d'équivalent sans capture — adaptation assumée).
-const battleTransitionDppCave = BattleTransitionSpec(
-  id: 'dpp_cave',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionThresholdDissolvePhase(
-      textureName: 'diamant_perle_wild',
-      durationSeconds: 1,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La Zone de Combat, rideau vertical — `300 BattleFrontier.rb` (hérite du
-/// dresseur Rubis/Saphir avec sa texture).
-const battleTransitionBattleFrontierVertical = BattleTransitionSpec(
-  id: 'battle_frontier_v',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionThresholdDissolvePhase(
-      textureName: 'battle_frontier_vertical',
-      durationSeconds: 1,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// La Zone de Combat, rideau horizontal — `300 BattleFrontier.rb`.
-const battleTransitionBattleFrontierHorizontal = BattleTransitionSpec(
-  id: 'battle_frontier_h',
-  phases: <BattleTransitionPhase>[
-    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
-    TransitionThresholdDissolvePhase(
-      textureName: 'battle_frontier_horizontal',
-      durationSeconds: 1,
-    ),
-    TransitionHoldBlackPhase(durationSeconds: 0.25),
-  ],
-);
-
-/// Le registre moteur des transitions connues — BETA-BAT-019.
-///
-/// Le panel de la référence : les neuf sans shader, plus les six dissolves
-/// du lot shaders (rideau RBY dresseur, Rubis/Saphir dresseur et grotte,
-/// grotte Diamant/Perle, Zone de Combat V/H). Restent hors périmètre les
-/// transitions qui déforment la capture d'écran (mers, Noir/Blanc) et
-/// celles à images par dresseur (XY, champions d'arène, Red, Team Rocket).
-final Map<String, BattleTransitionSpec> battleTransitionRegistry =
-    <String, BattleTransitionSpec>{
-  'rby_wild': battleTransitionRbyWild,
-  'gold_wild': battleTransitionGoldWild,
-  'crystal_wild': battleTransitionCrystalWild,
-  'hgss_wild': battleTransitionHgssWild,
-  'hgss_cave': battleTransitionHgssCave,
-  'rs_wild': battleTransitionRsWild,
-  'dpp_wild': battleTransitionDppWild,
-  'dpp_trainer': battleTransitionDppTrainer,
-  'hgss_trainer': battleTransitionHgssTrainer,
-  'rby_trainer': battleTransitionRbyTrainer,
-  'rs_trainer': battleTransitionRsTrainer,
-  'rs_cave': battleTransitionRsCave,
-  'dpp_cave': battleTransitionDppCave,
-  'battle_frontier_v': battleTransitionBattleFrontierVertical,
-  'battle_frontier_h': battleTransitionBattleFrontierHorizontal,
-};
-
-/// Résout la transition d'une requête de combat — BETA-BAT-016.
-///
-/// Choisie par la donnée (`ProjectBattleTransitionConfig`), avec un défaut
-/// distinct par type et un repli sûr : un id inconnu ou vide retombe sur le
-/// défaut du type, comme les registres `.default` de la référence.
 BattleTransitionSpec resolveBattleTransitionSpec({
   required BattleStartRequest request,
   required ProjectManifest manifest,
   MapData? map,
 }) {
-  final isTrainerBattle = request is TrainerBattleStartRequest ||
-      request is StaticBattleStartRequest;
-
-  // BETA-BAT-019 : le dresseur d'abord — sa transition authorée gagne sur
-  // tout, comme les registres TRAINER_TRANSITIONS de la référence.
-  if (request is TrainerBattleStartRequest) {
-    final trainerId = request.trainerId.trim();
-    for (final trainer in manifest.trainers) {
-      if (trainer.id != trainerId) continue;
-      final authored = trainer.battleTransitionId?.trim() ?? '';
-      final spec = battleTransitionRegistry[authored];
-      if (spec != null) return spec;
-      break;
-    }
-  }
-
-  // BETA-BAT-019 : la ZONE (ou le calque Smart Tile) qui a déclenché la
-  // rencontre sauvage peut porter PLUSIEURS transitions — le runtime en tire
-  // une, déterministe par requête (le même requestId rejoue la même), donc
-  // testable et rejouable. Les ids inconnus sont ignorés sans bruit.
-  if (request is WildBattleStartRequest && (map != null || request.encounterSourceSnapshot != null)) {
-    final source = map == null ? null : findEncounterSource(
-      map,
-      kind: request.encounterSourceKind,
-      id: request.encounterSourceId,
-    );
-    final authoredIds =
-        ((request.encounterSourceSnapshot ?? source?.encounter)?.battleTransitionIds ?? const <String>[])
-            .map((id) => id.trim())
-            .where(battleTransitionRegistry.containsKey)
-            .toList(growable: false);
-    if (authoredIds.isNotEmpty) {
-      final index = _stableRequestHash(request.requestId) % authoredIds.length;
-      return battleTransitionRegistry[authoredIds[index]]!;
-    }
-  }
-
   final config = manifest.battleTransitions;
-  final requestedId =
-      (isTrainerBattle ? config?.trainerTransitionId : config?.wildTransitionId)
-          ?.trim();
-  final fallback =
-      isTrainerBattle ? battleTransitionDppTrainer : battleTransitionRbyWild;
-  if (requestedId == null || requestedId.isEmpty) {
-    return fallback;
+  config?.validate();
+  final catalog = config?.definitionsById ?? const <String, BattleTransitionDefinition>{};
+  final isTrainerBattle = request is TrainerBattleStartRequest || request is StaticBattleStartRequest;
+  final usage = isTrainerBattle ? BattleTransitionUsage.trainer : BattleTransitionUsage.wild;
+
+  BattleTransitionSpec resolve(String id) {
+    final definition = catalog[id];
+    if (definition == null || !definition.usages.contains(usage)) {
+      throw FormatException('Battle transition "$id" is not defined for this project and usage.');
+    }
+    return battleTransitionSpecFromDefinition(definition);
   }
-  return battleTransitionRegistry[requestedId] ?? fallback;
+
+  if (request is TrainerBattleStartRequest) {
+    final trainer = manifest.trainers.where((entry) => entry.id == request.trainerId.trim()).firstOrNull;
+    final selected = trainer?.battleTransitionId?.trim() ?? '';
+    if (selected.isNotEmpty) return resolve(selected);
+  }
+  if (request is WildBattleStartRequest && (map != null || request.encounterSourceSnapshot != null)) {
+    final source = map == null ? null : findEncounterSource(map,
+        kind: request.encounterSourceKind, id: request.encounterSourceId);
+    final ids = ((request.encounterSourceSnapshot ?? source?.encounter)?.battleTransitionIds ?? const <String>[])
+        .map((id) => id.trim()).toList(growable: false);
+    if (ids.isNotEmpty) {
+      for (final id in ids) { resolve(id); }
+      return resolve(ids[_stableRequestHash(request.requestId) % ids.length]);
+    }
+  }
+  final selected = (isTrainerBattle ? config?.trainerTransitionId : config?.wildTransitionId)?.trim() ?? '';
+  return selected.isEmpty ? battleTransitionDefaultFade : resolve(selected);
 }
 
 /// La transition à jouer, balayage de terrain compris — BETA-BAT-032.

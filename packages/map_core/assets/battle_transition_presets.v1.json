@@ -1,0 +1,495 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "source": "PSDK Battle::Visual::Transition",
+    "derivation": "Existing phase sequences preserved; sheet and threshold assets retain imported provenance",
+    "sourceCommit": "09139b7cd"
+  },
+  "definitions": [
+    {
+      "id": "rby_wild",
+      "label": "Rouge/Bleu/Jaune",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 0.5,
+          "sheetName": "embedded:rby_wild.png",
+          "columns": 10,
+          "rows": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "gold_wild",
+      "label": "Or",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 1,
+          "sheetName": "embedded:gold_wild.png",
+          "columns": 10,
+          "rows": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "crystal_wild",
+      "label": "Cristal",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 0.5,
+          "sheetName": "embedded:crystal_wild.png",
+          "columns": 10,
+          "rows": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "hgss_wild",
+      "label": "HeartGold/SoulSilver",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 1.5,
+          "sheetName": "embedded:heartgold_soulsilver_wild.png",
+          "columns": 10,
+          "rows": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "hgss_cave",
+      "label": "HeartGold/SoulSilver — grotte",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 1.5,
+          "sheetName": "embedded:heartgold_soulsilver_cave_wild.png",
+          "columns": 10,
+          "rows": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "rs_wild",
+      "label": "Rubis/Saphir",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "interleavedBands",
+          "durationSeconds": 0.7,
+          "bandHeight": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "dpp_wild",
+      "label": "Diamant/Perle/Platine",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "interleavedBands",
+          "durationSeconds": 0.7,
+          "bandHeight": 3
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "dpp_trainer",
+      "label": "Dresseur Diamant/Perle/Platine",
+      "usages": [
+        "trainer"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 0.7,
+          "factor": 2
+        },
+        {
+          "kind": "spriteZoom",
+          "durationSeconds": 0.4,
+          "zoomFrom": 0.2
+        },
+        {
+          "kind": "spriteAngle",
+          "durationSeconds": 0.4,
+          "angleFromDegrees": 90,
+          "angleToDegrees": -360
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 0.2,
+          "sheetName": "embedded:diamant_perle_trainer_01.png",
+          "columns": 3,
+          "rows": 4
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 0.2,
+          "sheetName": "embedded:diamant_perle_trainer_02.png",
+          "columns": 3,
+          "rows": 4
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "hgss_trainer",
+      "label": "Dresseur HeartGold/SoulSilver",
+      "usages": [
+        "trainer"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 0.7,
+          "factor": 2
+        },
+        {
+          "kind": "spriteZoom",
+          "durationSeconds": 0.4,
+          "zoomFrom": 0.2
+        },
+        {
+          "kind": "spriteAngle",
+          "durationSeconds": 0.4,
+          "angleFromDegrees": 90,
+          "angleToDegrees": -360
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 0.2,
+          "sheetName": "embedded:heartgold_soulsilver_trainer_01.png",
+          "columns": 3,
+          "rows": 4
+        },
+        {
+          "kind": "sheetCells",
+          "durationSeconds": 0.2,
+          "sheetName": "embedded:heartgold_soulsilver_trainer_02.png",
+          "columns": 3,
+          "rows": 4
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "rby_trainer",
+      "label": "Dresseur Rouge/Bleu/Jaune",
+      "usages": [
+        "trainer"
+      ],
+      "phases": [
+        {
+          "kind": "thresholdDissolve",
+          "durationSeconds": 2.75,
+          "textureName": "embedded:rby_trainer.png",
+          "tFrom": 0,
+          "tTo": 1,
+          "fineThreshold": true
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "rs_trainer",
+      "label": "Dresseur Rubis/Saphir",
+      "usages": [
+        "trainer"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "thresholdDissolve",
+          "durationSeconds": 1,
+          "textureName": "embedded:ruby_saphir_trainer.png",
+          "tFrom": 0,
+          "tTo": 1,
+          "fineThreshold": false
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "rs_cave",
+      "label": "Rubis/Saphir — grotte",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "thresholdDissolve",
+          "durationSeconds": 1,
+          "textureName": "embedded:ruby_saphir_wild.png",
+          "tFrom": 0,
+          "tTo": 1,
+          "fineThreshold": false
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "dpp_cave",
+      "label": "Diamant/Perle — grotte",
+      "usages": [
+        "wild"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "thresholdDissolve",
+          "durationSeconds": 1,
+          "textureName": "embedded:diamant_perle_wild.png",
+          "tFrom": 0,
+          "tTo": 1,
+          "fineThreshold": false
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "battle_frontier_v",
+      "label": "Zone de Combat — vertical",
+      "usages": [
+        "trainer"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "thresholdDissolve",
+          "durationSeconds": 1,
+          "textureName": "embedded:battle_frontier_vertical.png",
+          "tFrom": 0,
+          "tTo": 1,
+          "fineThreshold": false
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    },
+    {
+      "id": "battle_frontier_h",
+      "label": "Zone de Combat — horizontal",
+      "usages": [
+        "trainer"
+      ],
+      "phases": [
+        {
+          "kind": "flash",
+          "durationSeconds": 1.5,
+          "factor": 6
+        },
+        {
+          "kind": "thresholdDissolve",
+          "durationSeconds": 1,
+          "textureName": "embedded:battle_frontier_horizontal.png",
+          "tFrom": 0,
+          "tTo": 1,
+          "fineThreshold": false
+        },
+        {
+          "kind": "holdBlack",
+          "durationSeconds": 0.25
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "reference": "embedded:rby_wild.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/rby_wild.png",
+      "sha256": "a4fa3be8731a45001efb0497bf46cd977708483ad1e02107aa0960c69650af47"
+    },
+    {
+      "reference": "embedded:gold_wild.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/gold_wild.png",
+      "sha256": "3bbd9089674e4870663d1748e2f06424646d8be7653563560a01f57e16b0da38"
+    },
+    {
+      "reference": "embedded:crystal_wild.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/crystal_wild.png",
+      "sha256": "4fbeb3ffac4198ea3f436a91a95df2ec0f797898377b4fba121e0d8154956626"
+    },
+    {
+      "reference": "embedded:heartgold_soulsilver_wild.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/heartgold_soulsilver_wild.png",
+      "sha256": "ce081470201cfa4f3c872a04c6fcfa70e9cf8884c32925459731430eae9541c7"
+    },
+    {
+      "reference": "embedded:heartgold_soulsilver_cave_wild.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/heartgold_soulsilver_cave_wild.png",
+      "sha256": "629dfcfc5c3cf38f85cb7e888a9fd1a5610d8648d81c9184108319b24dfe36b9"
+    },
+    {
+      "reference": "embedded:diamant_perle_trainer_01.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/diamant_perle_trainer_01.png",
+      "sha256": "b6b0eba1efdb0a571b3ca994e6c849d7ca605d2e2a8e9173fdbaf45f460011a4"
+    },
+    {
+      "reference": "embedded:diamant_perle_trainer_02.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/diamant_perle_trainer_02.png",
+      "sha256": "366a394a591bbb3ce63e3922a92f3882479bfa8908db89297bf56ceb1b7204ce"
+    },
+    {
+      "reference": "embedded:heartgold_soulsilver_trainer_01.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/heartgold_soulsilver_trainer_01.png",
+      "sha256": "04e09dd97c05a4f7cd15cb6c33c5ca7dcb478b82b8764758a2da28df1dc2c619"
+    },
+    {
+      "reference": "embedded:heartgold_soulsilver_trainer_02.png",
+      "sourceRelativePath": "graphics/transitions/spritesheets/heartgold_soulsilver_trainer_02.png",
+      "sha256": "e97c8ddcc46b161655c5a1d37a6cb552907381e5476ec4a6823444b0c7d1aca5"
+    },
+    {
+      "reference": "embedded:rby_trainer.png",
+      "sourceRelativePath": "graphics/transitions/shaders/rby_trainer.png",
+      "sha256": "0e360bbb6fb2df257a9ee001f412df5124646b18594287289e73a334b196d40d"
+    },
+    {
+      "reference": "embedded:ruby_saphir_trainer.png",
+      "sourceRelativePath": "graphics/transitions/shaders/ruby_saphir_trainer.png",
+      "sha256": "faa5db076c8aec7a6abd883e285110b759af60b2842cd27ab8f8b202176f1885"
+    },
+    {
+      "reference": "embedded:ruby_saphir_wild.png",
+      "sourceRelativePath": "graphics/transitions/shaders/ruby_saphir_wild.png",
+      "sha256": "6db1bea0c721caf81ac5f6e8930239d3f5987ca85cfad53a924b682ffbbe9185"
+    },
+    {
+      "reference": "embedded:diamant_perle_wild.png",
+      "sourceRelativePath": "graphics/transitions/shaders/diamant_perle_wild.png",
+      "sha256": "6f5723730e4c366082ed8242c4521c342fb0198e997b3e3f77d2bb5a84803213"
+    },
+    {
+      "reference": "embedded:battle_frontier_vertical.png",
+      "sourceRelativePath": "graphics/transitions/shaders/battle_frontier_vertical.png",
+      "sha256": "d5d2b4fb6e591294ead514ee660b86644ce1590d5ea527f7be8456d2e967391c"
+    },
+    {
+      "reference": "embedded:battle_frontier_horizontal.png",
+      "sourceRelativePath": "graphics/transitions/shaders/battle_frontier_horizontal.png",
+      "sha256": "91130a1a00a87d23cb9dc107a9601bbc1502fb6b0d101988b8a793650133ee5d"
+    }
+  ]
+}

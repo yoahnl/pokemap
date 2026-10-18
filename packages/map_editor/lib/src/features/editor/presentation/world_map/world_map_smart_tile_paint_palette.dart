@@ -567,6 +567,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                     materialId: activeMaterialId,
                     catalog: snapshot.project!.smartTileCatalog,
                     encounterTables: snapshot.project!.encounterTables,
+                    transitionConfig: snapshot.project!.battleTransitions,
                     notifier: notifier,
                   ),
                 ),

@@ -563,6 +563,18 @@ final class AuthoringResourceKindRegistry {
         },
       ),
       AuthoringResourceKindDescriptor(
+        id: 'battleTransitionDefinition',
+        version: 1,
+        displayName: 'Battle transition',
+        summary: 'Project-owned labelled sequence of generic battle transition effects',
+        extensions: const {
+          'configureAction': 'project.battle_transitions.update',
+          'storage': 'project.json.battleTransitions.definitions',
+          'definitionMode': 'upsertById',
+          'fallback': 'neutralFade',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
           id: 'regionalMap',
           version: 1,
           displayName: 'Regional map',
@@ -772,6 +784,7 @@ final class AuthoringResourceKindRegistry {
         'mapConnection',
         'project',
         'runtimeSmokeProfile',
+        'battleTransitionDefinition',
         'pokemonDocument',
         'projectPresentationProfile',
         'projectPresentationPreset',

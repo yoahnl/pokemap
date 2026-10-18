@@ -11,6 +11,11 @@ _ProjectBattleTransitionConfig _$ProjectBattleTransitionConfigFromJson(
 ) => _ProjectBattleTransitionConfig(
   wildTransitionId: json['wildTransitionId'] as String?,
   trainerTransitionId: json['trainerTransitionId'] as String?,
+  definitions:
+      (json['definitions'] as List<dynamic>?)
+          ?.map(BattleTransitionDefinition.fromJson)
+          .toList() ??
+      const <BattleTransitionDefinition>[],
 );
 
 Map<String, dynamic> _$ProjectBattleTransitionConfigToJson(
@@ -18,4 +23,5 @@ Map<String, dynamic> _$ProjectBattleTransitionConfigToJson(
 ) => <String, dynamic>{
   'wildTransitionId': ?instance.wildTransitionId,
   'trainerTransitionId': ?instance.trainerTransitionId,
+  'definitions': instance.definitions.map((e) => e.toJson()).toList(),
 };

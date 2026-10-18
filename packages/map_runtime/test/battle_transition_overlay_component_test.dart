@@ -1,3 +1,4 @@
+import 'support/battle_transition_presets.dart';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';

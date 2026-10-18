@@ -1122,11 +1122,11 @@ class _GameplayZonePropertiesPanelState
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final transitionId in battleWildTransitionIds)
+            for (final transitionId in battleTransitionIdsForUsage(ref.watch(editorNotifierProvider).project?.battleTransitions, BattleTransitionUsage.wild))
               PokeMapSelectableChip(
                 key: Key('gameplay-zone-battle-transition-$transitionId'),
                 label:
-                    battleTransitionDisplayLabels[transitionId] ?? transitionId,
+                    battleTransitionLabels(ref.watch(editorNotifierProvider).project?.battleTransitions)[transitionId] ?? transitionId,
                 selected: _zoneBattleTransitionIds.contains(transitionId),
                 onToggle: () => setState(() {
                   if (_zoneBattleTransitionIds.contains(transitionId)) {

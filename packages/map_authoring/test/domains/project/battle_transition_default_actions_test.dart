@@ -20,14 +20,14 @@ void main() {
       await harness.update(
         suffix: 'set',
         parameters: <String, Object?>{
-          'wildTransitionId': 'dpp_wild',
-          'trainerTransitionId': 'hgss_trainer',
+          'wildTransitionId': 'aurora',
+          'trainerTransitionId': 'clockwork',
         },
       );
 
       final config = await harness.battleTransitions();
-      expect(config?.wildTransitionId, 'dpp_wild');
-      expect(config?.trainerTransitionId, 'hgss_trainer');
+      expect(config?.wildTransitionId, 'aurora');
+      expect(config?.trainerTransitionId, 'clockwork');
     });
 
     test('laisse intact un côté dont on ne parle pas', () async {
@@ -36,20 +36,20 @@ void main() {
 
       await harness.update(
         suffix: 'partial-a',
-        parameters: <String, Object?>{'wildTransitionId': 'rs_wild'},
+        parameters: <String, Object?>{'wildTransitionId': 'aurora'},
       );
       await harness.update(
         suffix: 'partial-b',
-        parameters: <String, Object?>{'trainerTransitionId': 'rby_trainer'},
+        parameters: <String, Object?>{'trainerTransitionId': 'clockwork'},
       );
 
       final config = await harness.battleTransitions();
       expect(
         config?.wildTransitionId,
-        'rs_wild',
+        'aurora',
         reason: 'régler le dresseur ne doit pas effacer le sauvage',
       );
-      expect(config?.trainerTransitionId, 'rby_trainer');
+      expect(config?.trainerTransitionId, 'clockwork');
     });
 
     test('une chaîne vide rend la main au défaut moteur', () async {
@@ -59,8 +59,8 @@ void main() {
       await harness.update(
         suffix: 'clear-set',
         parameters: <String, Object?>{
-          'wildTransitionId': 'gold_wild',
-          'trainerTransitionId': 'rs_trainer',
+          'wildTransitionId': 'aurora',
+          'trainerTransitionId': 'clockwork',
         },
       );
       await harness.update(
@@ -72,9 +72,8 @@ void main() {
       );
 
       expect(
-        await harness.battleTransitions(),
+        (await harness.battleTransitions())?.wildTransitionId,
         isNull,
-        reason: 'tout vide retire la section au lieu d’écrire des nulls',
       );
     });
 
@@ -89,11 +88,11 @@ void main() {
         ),
         throwsA(anything),
       );
-      expect(await harness.battleTransitions(), isNull);
+      expect((await harness.battleTransitions())?.wildTransitionId, isNull);
     });
 
     test('refuse une transition de dresseur du côté sauvage', () async {
-      // Les deux listes du contrat partagé sont distinctes : `dpp_trainer`
+      // Les deux listes du contrat partagé sont distinctes : `clockwork`
       // est valide, mais pas pour une rencontre sauvage. Sans ce test, le
       // seul garde-fou serait « l'id existe quelque part ».
       final harness = await _Harness.create('side');
@@ -102,7 +101,7 @@ void main() {
       await expectLater(
         harness.update(
           suffix: 'side',
-          parameters: <String, Object?>{'wildTransitionId': 'dpp_trainer'},
+          parameters: <String, Object?>{'wildTransitionId': 'clockwork'},
         ),
         throwsA(anything),
       );
@@ -207,6 +206,13 @@ ProjectManifest _manifest() {
   return ProjectManifest(
     name: 'Battle transition default fixture',
     version: ProjectVersion.v8,
+    battleTransitions: ProjectBattleTransitionConfig(definitions: [
+      for (final entry in {'aurora': 'wild', 'clockwork': 'trainer'}.entries)
+        BattleTransitionDefinition.fromJson({
+          'id': entry.key, 'label': entry.key, 'usages': [entry.value],
+          'phases': [{'kind': 'fadeToBlack', 'durationSeconds': 0.2}],
+        }),
+    ]),
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'route',

@@ -864,6 +864,16 @@ List<_QueryRecord> _records(
   void Function(String eventId)? onEventV2ValidationBuilt,
 }) {
   switch (request.resourceKind) {
+    case 'battleTransitionDefinition':
+      return [for (final definition in snapshot.manifest.battleTransitions?.definitions ?? const <BattleTransitionDefinition>[])
+        _QueryRecord(
+          summary: {'id': definition.id, 'name': definition.label,
+            'usages': definition.usages.map((usage) => usage.name).toList(),
+            'phaseCount': definition.phases.length, 'durationSeconds': definition.totalSeconds},
+          detail: {...definition.toJson(), 'name': definition.label,
+            'resourceKind': 'battleTransitionDefinition'},
+        ),
+      ];
     case 'runtimeSmokeProfile':
       final profile = snapshot.manifest.runtimeSmokeProfile;
       if (profile == null) return const [];

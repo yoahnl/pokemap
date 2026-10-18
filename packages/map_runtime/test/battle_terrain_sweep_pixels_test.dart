@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 
+import 'support/battle_transition_presets.dart';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_component.dart';

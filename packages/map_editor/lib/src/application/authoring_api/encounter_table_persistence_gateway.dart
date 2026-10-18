@@ -27,6 +27,7 @@ abstract interface class EncounterTablePersistenceGateway {
     required ProjectManifest expectedProject,
     String? wildTransitionId,
     String? trainerTransitionId,
+    List<BattleTransitionDefinition>? definitions,
   });
 }
 
@@ -80,6 +81,7 @@ final class CanonicalEncounterTablePersistenceGateway
     required ProjectManifest expectedProject,
     String? wildTransitionId,
     String? trainerTransitionId,
+    List<BattleTransitionDefinition>? definitions,
   }) {
     return _apply(
       projectRootPath: projectRootPath,
@@ -88,6 +90,7 @@ final class CanonicalEncounterTablePersistenceGateway
       parameters: <String, Object?>{
         'wildTransitionId': ?wildTransitionId,
         'trainerTransitionId': ?trainerTransitionId,
+        if (definitions != null) 'definitions': definitions.map((definition) => definition.toJson()).toList(),
       },
       operationLabel: 'battle_transitions',
       requiresConfirmation: false,

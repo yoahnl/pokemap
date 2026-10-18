@@ -269,6 +269,7 @@ class _RecordingEncounterTablePersistenceGateway
     required ProjectManifest expectedProject,
     String? wildTransitionId,
     String? trainerTransitionId,
+    List<BattleTransitionDefinition>? definitions,
   }) async {
     // Ce harnais couvre les use cases de tables ; le défaut projet a sa
     // propre suite côté map_authoring (BETA-BAT-034, lot 2).

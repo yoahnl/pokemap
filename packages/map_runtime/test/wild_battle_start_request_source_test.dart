@@ -1,3 +1,4 @@
+import 'support/battle_transition_presets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -15,7 +16,7 @@ void main() {
     final hydrated = request.withGeneratedPokemon(pokemon: const PlayerPokemon(speciesId: 'test', natureId: 'hardy', abilityId: 'test'), profileId: 'native', schemaVersion: 1);
     expect(hydrated.encounterSourceSnapshot, payload);
     expect(hydrated.toJson()['encounterSourceSnapshot'], payload.toJson());
-    final bundle = RuntimeMapBundle(manifest: const ProjectManifest(name: 'Deleted rock', maps: [], tilesets: []), map: MapData(id: 'route', name: 'Route', size: const GridSize(width: 4, height: 4)), projectRootDirectory: '/tmp/deleted-rock', tilesetAbsolutePathsById: {});
+    final bundle = RuntimeMapBundle(manifest: ProjectManifest(name: 'Deleted rock', maps: [], tilesets: [], battleTransitions: transitionPresetConfig()), map: MapData(id: 'route', name: 'Route', size: const GridSize(width: 4, height: 4)), projectRootDirectory: '/tmp/deleted-rock', tilesetAbsolutePathsById: {});
     expect(const BattleMusicResolver().resolve(request: hydrated, bundle: bundle).battleMusicAbsolutePath, '/tmp/deleted-rock/audio/rock.ogg');
     expect(const BattleBackgroundResolver().resolve(request: hydrated, bundle: bundle).explicitImageAbsolutePath, '/tmp/deleted-rock/assets/rock.png');
     expect(resolveBattleTransitionSpec(request: hydrated, manifest: bundle.manifest, map: bundle.map).id, 'rby_wild');

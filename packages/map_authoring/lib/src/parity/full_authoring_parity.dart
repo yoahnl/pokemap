@@ -510,6 +510,14 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'project.battle_transitions.update') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/battle_transition_catalogue_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/battle_transition_catalogue_actions_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/battle_transition_catalogue_editor_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/battle_transition_catalogue_stdio.test.ts',
+    };
+  }
   if (actionId == 'validation.runtime_smoke_profile.configure') {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/runtime_smoke_profile_actions_test.dart',
@@ -1707,7 +1715,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   // BETA-BAT-034 lot 2 : le défaut de projet des transitions de combat.
   _ContractEvidenceRule(
     ['project.battle_transitions.'],
-    'test/domains/project/battle_transition_default_actions_test.dart',
+    'test/domains/project/battle_transition_catalogue_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['project.battle_audio.', 'map.audio.'],
@@ -1814,6 +1822,7 @@ const _semanticOwners = <String, String>{
   'projectNewGameConfig': 'project',
   'projectPresentationProfile': 'project',
   'runtimeSmokeProfile': 'project',
+  'battleTransitionDefinition': 'project',
   'projectPresentationPreset': 'project',
   'presentationPreviewContext': 'project',
   'mapGroup': 'project',

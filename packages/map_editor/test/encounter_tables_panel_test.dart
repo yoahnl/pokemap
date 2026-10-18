@@ -80,12 +80,18 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(editorNotifierProvider.notifier);
-      notifier.state = const EditorState(
+      notifier.state = EditorState(
         projectRootPath: '/tmp/battle_transition_defaults_test',
         project: ProjectManifest(
           name: 'battle_transition_defaults_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
+          battleTransitions: ProjectBattleTransitionConfig(definitions: [
+            for (final id in ['aurora', 'clockwork']) BattleTransitionDefinition.fromJson({
+              'id': id, 'label': 'Entry $id', 'usages': ['wild', 'trainer'],
+              'phases': [{'kind': 'fadeToBlack', 'durationSeconds': 0.4}],
+            }),
+          ]),
           encounterTables: <ProjectEncounterTable>[
             ProjectEncounterTable(
               id: 'route_1_grass',
@@ -106,8 +112,12 @@ void main() {
         reason: 'le réglage doit être atteignable depuis l’Encounter Studio',
       );
 
+      await tester.tap(find.byKey(const Key('encounter-project-battle-transitions')));
+      await tester.pumpAndSettle();
+      final picker = tester.widget<PokeMapDropdownField<String>>(find.byKey(const Key('project-battle-transition-wild')));
+      expect(picker.items.map((item) => item.value), containsAll(['aurora', 'clockwork']));
       await notifier.updateProjectBattleTransitionDefaults(
-        wildTransitionId: 'dpp_wild',
+        wildTransitionId: 'aurora',
       );
       await tester.pumpAndSettle();
 
@@ -117,7 +127,7 @@ void main() {
             .project
             ?.battleTransitions
             ?.wildTransitionId,
-        'dpp_wild',
+        'aurora',
       );
       expect(
         gateway.battleTransitionCalls.single['trainerTransitionId'],
@@ -126,14 +136,14 @@ void main() {
       );
 
       await notifier.updateProjectBattleTransitionDefaults(
-        trainerTransitionId: 'hgss_trainer',
+        trainerTransitionId: 'clockwork',
       );
       await tester.pumpAndSettle();
 
       final config =
           container.read(editorNotifierProvider).project?.battleTransitions;
-      expect(config?.wildTransitionId, 'dpp_wild');
-      expect(config?.trainerTransitionId, 'hgss_trainer');
+      expect(config?.wildTransitionId, 'aurora');
+      expect(config?.trainerTransitionId, 'clockwork');
     },
   );
 
@@ -1576,6 +1586,7 @@ class _FakeEncounterTablePersistenceGateway
     required ProjectManifest expectedProject,
     String? wildTransitionId,
     String? trainerTransitionId,
+    List<BattleTransitionDefinition>? definitions,
   }) async {
     final current = expectedProject.battleTransitions;
     String? resolve(String? requested, String? existing) {
@@ -1592,6 +1603,7 @@ class _FakeEncounterTablePersistenceGateway
             battleTransitions: ProjectBattleTransitionConfig(
               wildTransitionId: wild,
               trainerTransitionId: trainer,
+              definitions: definitions ?? current?.definitions ?? const [],
             ),
           );
     battleTransitionCalls.add(

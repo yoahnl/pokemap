@@ -15,9 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProjectBattleTransitionConfig {
 
-/// Transition des combats sauvages. Défaut moteur : `rby_wild`.
-@JsonKey(includeIfNull: false) String? get wildTransitionId;/// Transition des combats de dresseurs. Défaut moteur : `dpp_trainer`.
-@JsonKey(includeIfNull: false) String? get trainerTransitionId;
+@JsonKey(includeIfNull: false) String? get wildTransitionId;@JsonKey(includeIfNull: false) String? get trainerTransitionId; List<BattleTransitionDefinition> get definitions;
 /// Create a copy of ProjectBattleTransitionConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,16 +28,16 @@ $ProjectBattleTransitionConfigCopyWith<ProjectBattleTransitionConfig> get copyWi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectBattleTransitionConfig&&(identical(other.wildTransitionId, wildTransitionId) || other.wildTransitionId == wildTransitionId)&&(identical(other.trainerTransitionId, trainerTransitionId) || other.trainerTransitionId == trainerTransitionId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectBattleTransitionConfig&&(identical(other.wildTransitionId, wildTransitionId) || other.wildTransitionId == wildTransitionId)&&(identical(other.trainerTransitionId, trainerTransitionId) || other.trainerTransitionId == trainerTransitionId)&&const DeepCollectionEquality().equals(other.definitions, definitions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,wildTransitionId,trainerTransitionId);
+int get hashCode => Object.hash(runtimeType,wildTransitionId,trainerTransitionId,const DeepCollectionEquality().hash(definitions));
 
 @override
 String toString() {
-  return 'ProjectBattleTransitionConfig(wildTransitionId: $wildTransitionId, trainerTransitionId: $trainerTransitionId)';
+  return 'ProjectBattleTransitionConfig(wildTransitionId: $wildTransitionId, trainerTransitionId: $trainerTransitionId, definitions: $definitions)';
 }
 
 
@@ -50,7 +48,7 @@ abstract mixin class $ProjectBattleTransitionConfigCopyWith<$Res>  {
   factory $ProjectBattleTransitionConfigCopyWith(ProjectBattleTransitionConfig value, $Res Function(ProjectBattleTransitionConfig) _then) = _$ProjectBattleTransitionConfigCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? wildTransitionId,@JsonKey(includeIfNull: false) String? trainerTransitionId
+@JsonKey(includeIfNull: false) String? wildTransitionId,@JsonKey(includeIfNull: false) String? trainerTransitionId, List<BattleTransitionDefinition> definitions
 });
 
 
@@ -67,11 +65,12 @@ class _$ProjectBattleTransitionConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectBattleTransitionConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? wildTransitionId = freezed,Object? trainerTransitionId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? wildTransitionId = freezed,Object? trainerTransitionId = freezed,Object? definitions = null,}) {
   return _then(_self.copyWith(
 wildTransitionId: freezed == wildTransitionId ? _self.wildTransitionId : wildTransitionId // ignore: cast_nullable_to_non_nullable
 as String?,trainerTransitionId: freezed == trainerTransitionId ? _self.trainerTransitionId : trainerTransitionId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,definitions: null == definitions ? _self.definitions : definitions // ignore: cast_nullable_to_non_nullable
+as List<BattleTransitionDefinition>,
   ));
 }
 
@@ -156,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildTransitionId, @JsonKey(includeIfNull: false)  String? trainerTransitionId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildTransitionId, @JsonKey(includeIfNull: false)  String? trainerTransitionId,  List<BattleTransitionDefinition> definitions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectBattleTransitionConfig() when $default != null:
-return $default(_that.wildTransitionId,_that.trainerTransitionId);case _:
+return $default(_that.wildTransitionId,_that.trainerTransitionId,_that.definitions);case _:
   return orElse();
 
 }
@@ -177,10 +176,10 @@ return $default(_that.wildTransitionId,_that.trainerTransitionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildTransitionId, @JsonKey(includeIfNull: false)  String? trainerTransitionId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildTransitionId, @JsonKey(includeIfNull: false)  String? trainerTransitionId,  List<BattleTransitionDefinition> definitions)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectBattleTransitionConfig():
-return $default(_that.wildTransitionId,_that.trainerTransitionId);case _:
+return $default(_that.wildTransitionId,_that.trainerTransitionId,_that.definitions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +196,10 @@ return $default(_that.wildTransitionId,_that.trainerTransitionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? wildTransitionId, @JsonKey(includeIfNull: false)  String? trainerTransitionId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? wildTransitionId, @JsonKey(includeIfNull: false)  String? trainerTransitionId,  List<BattleTransitionDefinition> definitions)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectBattleTransitionConfig() when $default != null:
-return $default(_that.wildTransitionId,_that.trainerTransitionId);case _:
+return $default(_that.wildTransitionId,_that.trainerTransitionId,_that.definitions);case _:
   return null;
 
 }
@@ -209,16 +208,21 @@ return $default(_that.wildTransitionId,_that.trainerTransitionId);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
-class _ProjectBattleTransitionConfig implements ProjectBattleTransitionConfig {
-  const _ProjectBattleTransitionConfig({@JsonKey(includeIfNull: false) this.wildTransitionId, @JsonKey(includeIfNull: false) this.trainerTransitionId});
+@JsonSerializable(explicitToJson: true)
+class _ProjectBattleTransitionConfig extends ProjectBattleTransitionConfig {
+  const _ProjectBattleTransitionConfig({@JsonKey(includeIfNull: false) this.wildTransitionId, @JsonKey(includeIfNull: false) this.trainerTransitionId, final  List<BattleTransitionDefinition> definitions = const <BattleTransitionDefinition>[]}): _definitions = definitions,super._();
   factory _ProjectBattleTransitionConfig.fromJson(Map<String, dynamic> json) => _$ProjectBattleTransitionConfigFromJson(json);
 
-/// Transition des combats sauvages. Défaut moteur : `rby_wild`.
 @override@JsonKey(includeIfNull: false) final  String? wildTransitionId;
-/// Transition des combats de dresseurs. Défaut moteur : `dpp_trainer`.
 @override@JsonKey(includeIfNull: false) final  String? trainerTransitionId;
+ final  List<BattleTransitionDefinition> _definitions;
+@override@JsonKey() List<BattleTransitionDefinition> get definitions {
+  if (_definitions is EqualUnmodifiableListView) return _definitions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_definitions);
+}
+
 
 /// Create a copy of ProjectBattleTransitionConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +237,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectBattleTransitionConfig&&(identical(other.wildTransitionId, wildTransitionId) || other.wildTransitionId == wildTransitionId)&&(identical(other.trainerTransitionId, trainerTransitionId) || other.trainerTransitionId == trainerTransitionId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectBattleTransitionConfig&&(identical(other.wildTransitionId, wildTransitionId) || other.wildTransitionId == wildTransitionId)&&(identical(other.trainerTransitionId, trainerTransitionId) || other.trainerTransitionId == trainerTransitionId)&&const DeepCollectionEquality().equals(other._definitions, _definitions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,wildTransitionId,trainerTransitionId);
+int get hashCode => Object.hash(runtimeType,wildTransitionId,trainerTransitionId,const DeepCollectionEquality().hash(_definitions));
 
 @override
 String toString() {
-  return 'ProjectBattleTransitionConfig(wildTransitionId: $wildTransitionId, trainerTransitionId: $trainerTransitionId)';
+  return 'ProjectBattleTransitionConfig(wildTransitionId: $wildTransitionId, trainerTransitionId: $trainerTransitionId, definitions: $definitions)';
 }
 
 
@@ -253,7 +257,7 @@ abstract mixin class _$ProjectBattleTransitionConfigCopyWith<$Res> implements $P
   factory _$ProjectBattleTransitionConfigCopyWith(_ProjectBattleTransitionConfig value, $Res Function(_ProjectBattleTransitionConfig) _then) = __$ProjectBattleTransitionConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? wildTransitionId,@JsonKey(includeIfNull: false) String? trainerTransitionId
+@JsonKey(includeIfNull: false) String? wildTransitionId,@JsonKey(includeIfNull: false) String? trainerTransitionId, List<BattleTransitionDefinition> definitions
 });
 
 
@@ -270,11 +274,12 @@ class __$ProjectBattleTransitionConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectBattleTransitionConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? wildTransitionId = freezed,Object? trainerTransitionId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? wildTransitionId = freezed,Object? trainerTransitionId = freezed,Object? definitions = null,}) {
   return _then(_ProjectBattleTransitionConfig(
 wildTransitionId: freezed == wildTransitionId ? _self.wildTransitionId : wildTransitionId // ignore: cast_nullable_to_non_nullable
 as String?,trainerTransitionId: freezed == trainerTransitionId ? _self.trainerTransitionId : trainerTransitionId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,definitions: null == definitions ? _self._definitions : definitions // ignore: cast_nullable_to_non_nullable
+as List<BattleTransitionDefinition>,
   ));
 }
 

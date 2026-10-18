@@ -44,6 +44,7 @@ class SmartTileEncounterBehaviorDialog extends StatefulWidget {
     this.materialId,
     required this.catalog,
     required this.encounterTables,
+    this.transitionConfig,
     required this.onConfirm,
     this.onCancel,
   });
@@ -54,6 +55,7 @@ class SmartTileEncounterBehaviorDialog extends StatefulWidget {
   final String? materialId;
   final ProjectSmartTileCatalog catalog;
   final List<ProjectEncounterTable> encounterTables;
+  final ProjectBattleTransitionConfig? transitionConfig;
   final ValueChanged<SmartTileEncounterBehaviorConfiguration> onConfirm;
   final VoidCallback? onCancel;
 
@@ -280,11 +282,11 @@ class _SmartTileEncounterBehaviorDialogState
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final transitionId in battleWildTransitionIds)
+            for (final transitionId in battleTransitionIdsForUsage(widget.transitionConfig, BattleTransitionUsage.wild))
               PokeMapSelectableChip(
                 key: Key('smart-tile-battle-transition-$transitionId'),
                 label:
-                    battleTransitionDisplayLabels[transitionId] ?? transitionId,
+                    battleTransitionLabels(widget.transitionConfig)[transitionId] ?? transitionId,
                 selected: _battleTransitionIds.contains(transitionId),
                 onToggle: () => setState(() {
                   final next = List<String>.of(_battleTransitionIds);

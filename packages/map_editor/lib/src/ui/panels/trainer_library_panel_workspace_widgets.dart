@@ -469,6 +469,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
         key: const Key('trainer-library-detail-scroll'),
         children: [
           _TrainerEditorCard(
+            transitionConfig: project.battleTransitions,
             key: const Key('trainer-library-create-card'),
             title: 'NEW TRAINER',
             accent: EditorChrome.accentCoral,
@@ -551,6 +552,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
       children: [
         if (isEditing)
           _TrainerEditorCard(
+            transitionConfig: project.battleTransitions,
             key: Key('trainer-library-edit-card-${visibleTrainer.id}'),
             title: 'EDIT TRAINER',
             accent: EditorChrome.accentCoral,

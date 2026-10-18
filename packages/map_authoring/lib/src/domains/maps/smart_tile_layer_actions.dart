@@ -1223,6 +1223,8 @@ List<String>? _readBattleTransitionIds(SemanticMapActionContext context) {
     return null;
   }
   final requested = <String>{};
+  final allowed = battleTransitionIdsForUsage(
+    context.planning.snapshot.manifest.battleTransitions, BattleTransitionUsage.wild);
   for (final entry in context.parameters.list('battleTransitionIds')) {
     if (entry is! String) {
       throw invalidSemanticField(
@@ -1232,16 +1234,16 @@ List<String>? _readBattleTransitionIds(SemanticMapActionContext context) {
     }
     final id = entry.trim();
     if (id.isEmpty) continue;
-    if (!battleWildTransitionIds.contains(id)) {
+    if (!allowed.contains(id)) {
       throw invalidSemanticField(
         'battleTransitionIds',
-        battleWildTransitionIds.join(', '),
+        allowed.join(', '),
       );
     }
     requested.add(id);
   }
   return <String>[
-    for (final id in battleWildTransitionIds)
+    for (final id in allowed)
       if (requested.contains(id)) id,
   ];
 }

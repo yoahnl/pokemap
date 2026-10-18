@@ -1,8 +1,8 @@
+import 'support/battle_transition_presets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
-import 'package:map_runtime/src/presentation/flame/battle_transition_manifest.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_spec.dart';
 
 ProjectManifest _manifest({ProjectBattleTransitionConfig? battleTransitions}) {
@@ -10,7 +10,7 @@ ProjectManifest _manifest({ProjectBattleTransitionConfig? battleTransitions}) {
     name: 'battle_transition_spec_test',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
-    battleTransitions: battleTransitions,
+    battleTransitions: (battleTransitions ?? const ProjectBattleTransitionConfig()).copyWith(definitions: transitionPresetDefinitions),
   );
 }
 
@@ -78,28 +78,28 @@ MapData _mapWithZoneTransitions(List<String> battleTransitionIds) {
 
 void main() {
   group('resolveBattleTransitionSpec — choisie par la donnée', () {
-    test('sans config : défaut distinct par type de combat', () {
+    test('sans défaut explicite utilise le fondu neutre', () {
       expect(
         resolveBattleTransitionSpec(
           request: _wildRequest(),
           manifest: _manifest(),
         ).id,
-        'rby_wild',
+        'default_fade',
       );
       expect(
         resolveBattleTransitionSpec(
           request: _trainerRequest(),
           manifest: _manifest(),
         ).id,
-        'dpp_trainer',
+        'default_fade',
       );
     });
 
-    test('un id connu est honoré, croisé entre les types', () {
+    test('les définitions sont sélectionnées selon leur usage', () {
       final manifest = _manifest(
         battleTransitions: const ProjectBattleTransitionConfig(
-          wildTransitionId: 'dpp_trainer',
-          trainerTransitionId: 'rby_wild',
+          wildTransitionId: 'rby_wild',
+          trainerTransitionId: 'dpp_trainer',
         ),
       );
       expect(
@@ -107,18 +107,18 @@ void main() {
           request: _wildRequest(),
           manifest: manifest,
         ).id,
-        'dpp_trainer',
+        'rby_wild',
       );
       expect(
         resolveBattleTransitionSpec(
           request: _trainerRequest(),
           manifest: manifest,
         ).id,
-        'rby_wild',
+        'dpp_trainer',
       );
     });
 
-    test('un id inconnu ou blanc retombe sur le défaut du type', () {
+    test('un id inconnu ou blanc est refusé explicitement', () {
       final manifest = _manifest(
         battleTransitions: const ProjectBattleTransitionConfig(
           wildTransitionId: 'xy_ultra_deluxe',
@@ -126,19 +126,18 @@ void main() {
         ),
       );
       expect(
-        resolveBattleTransitionSpec(
+        () => resolveBattleTransitionSpec(
           request: _wildRequest(),
           manifest: manifest,
-        ).id,
-        'rby_wild',
-        reason: 'critère 2 : une transition inconnue ne casse rien',
+        ),
+        throwsFormatException,
       );
       expect(
-        resolveBattleTransitionSpec(
+        () => resolveBattleTransitionSpec(
           request: _trainerRequest(),
           manifest: manifest,
-        ).id,
-        'dpp_trainer',
+        ),
+        throwsFormatException,
       );
     });
   });
@@ -156,7 +155,7 @@ void main() {
       expect(
         phases[1],
         isA<TransitionSheetCellsPhase>()
-            .having((p) => p.sheetName, 'planche', 'rby_wild')
+            .having((p) => p.sheetName, 'planche', 'embedded:rby_wild.png')
             .having((p) => p.columns, 'colonnes', 10)
             .having((p) => p.rows, 'lignes', 3)
             .having((p) => p.durationSeconds, 'durée', 0.5),
@@ -193,13 +192,13 @@ void main() {
       expect(
         phases[3],
         isA<TransitionSheetCellsPhase>()
-            .having((p) => p.sheetName, 'planche', 'diamant_perle_trainer_01')
+            .having((p) => p.sheetName, 'planche', 'embedded:diamant_perle_trainer_01.png')
             .having((p) => p.durationSeconds, 'durée', 0.2),
       );
       expect(
         phases[4],
         isA<TransitionSheetCellsPhase>()
-            .having((p) => p.sheetName, 'planche', 'diamant_perle_trainer_02'),
+            .having((p) => p.sheetName, 'planche', 'embedded:diamant_perle_trainer_02.png'),
       );
       expect(phases[5], isA<TransitionHoldBlackPhase>());
     });
@@ -257,42 +256,26 @@ void main() {
       );
     });
 
-    test(
-        'les ids inconnus de la zone sont ignorés ; une liste morte rend '
-        'la main au défaut projet', () {
-      final manifest = _manifest(
-        battleTransitions: const ProjectBattleTransitionConfig(
-          wildTransitionId: 'crystal_wild',
-        ),
-      );
-      final withOneAlive = resolveBattleTransitionSpec(
-        request: _wildRequest(),
-        manifest: manifest,
-        map: _mapWithZoneTransitions(
-            <String>['pas_une_transition', 'gold_wild']),
-      );
-      expect(withOneAlive.id, 'gold_wild',
-          reason: 'l’id inconnu est écarté sans casser l’entrée en combat');
-
-      final allDead = resolveBattleTransitionSpec(
-        request: _wildRequest(),
-        manifest: manifest,
-        map: _mapWithZoneTransitions(<String>['toujours_pas']),
-      );
-      expect(allDead.id, 'crystal_wild',
-          reason: 'liste morte : la chaîne continue vers le défaut projet');
+    test('refuse une zone qui référence une transition absente', () {
+      final manifest = _manifest(battleTransitions:
+        const ProjectBattleTransitionConfig(wildTransitionId: 'crystal_wild'));
+      for (final ids in <List<String>>[
+        ['pas_une_transition', 'gold_wild'], ['toujours_pas'],
+      ]) {
+        expect(() => resolveBattleTransitionSpec(request: _wildRequest(),
+          manifest: manifest, map: _mapWithZoneTransitions(ids)), throwsFormatException);
+      }
     });
 
     test(
-        'la transition authorée du dresseur gagne sur tout, un id inconnu '
-        'rend la main à la chaîne', () {
+        'la transition authorée du dresseur gagne sur le défaut projet', () {
       final manifest = ProjectManifest(
         name: 'battle_transition_spec_test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         battleTransitions: const ProjectBattleTransitionConfig(
           trainerTransitionId: 'dpp_trainer',
-        ),
+        ).copyWith(definitions: transitionPresetDefinitions),
         trainers: const <ProjectTrainerEntry>[
           ProjectTrainerEntry(
             id: 'rookie',
@@ -374,7 +357,7 @@ void main() {
         expect(
           phases[1],
           isA<TransitionSheetCellsPhase>()
-              .having((p) => p.sheetName, 'planche', entry.value.$1)
+              .having((p) => p.sheetName, 'planche', 'embedded:${entry.value.$1}.png')
               .having((p) => p.columns, 'colonnes', 10)
               .having((p) => p.rows, 'lignes', 3)
               .having((p) => p.durationSeconds, 'tempo', entry.value.$2),
@@ -406,12 +389,12 @@ void main() {
       expect(
         phases[3],
         isA<TransitionSheetCellsPhase>().having(
-            (p) => p.sheetName, 'planche', 'heartgold_soulsilver_trainer_01'),
+            (p) => p.sheetName, 'planche', 'embedded:heartgold_soulsilver_trainer_01.png'),
       );
       expect(
         phases[4],
         isA<TransitionSheetCellsPhase>().having(
-            (p) => p.sheetName, 'planche', 'heartgold_soulsilver_trainer_02'),
+            (p) => p.sheetName, 'planche', 'embedded:heartgold_soulsilver_trainer_02.png'),
       );
     });
 
@@ -443,7 +426,7 @@ void main() {
       expect(
         rbyTrainer.first,
         isA<TransitionThresholdDissolvePhase>()
-            .having((p) => p.textureName, 'texture', 'rby_trainer')
+            .having((p) => p.textureName, 'texture', 'embedded:rby_trainer.png')
             .having((p) => p.durationSeconds, 'durée', 2.75)
             .having((p) => p.fineThreshold, 'seuil fin 16 bits', isTrue),
         reason: 'oracle 100 RBYTrainer.rb : scalar(2.75, t 0 vers 1), '
@@ -469,7 +452,7 @@ void main() {
         expect(
           phases[1],
           isA<TransitionThresholdDissolvePhase>()
-              .having((p) => p.textureName, 'texture', entry.value)
+              .having((p) => p.textureName, 'texture', 'embedded:${entry.value}.png')
               .having((p) => p.durationSeconds, 'durée', 1)
               .having((p) => p.fineThreshold, 'seuil 8 bits', isFalse),
           reason: '${entry.key} : black_to_white.frag, t 0 vers 1 en 1 s',

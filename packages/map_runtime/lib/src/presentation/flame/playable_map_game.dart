@@ -122,6 +122,7 @@ import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import '../../infrastructure/battle_transition_image_loader.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_combatant_ball_resolver.dart';
@@ -9003,6 +9004,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final overlay = BattleTransitionOverlayComponent(
       spec: spec,
+      loadProjectSheet: (reference) => loadProjectBattleTransitionImage(reference, _bundle.projectRootDirectory),
       viewportSize: camera.viewport.size,
       onBlackHeld: _maybeRevealBattleScene,
     );

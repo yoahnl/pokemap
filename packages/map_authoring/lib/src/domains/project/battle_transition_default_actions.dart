@@ -5,17 +5,6 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../assets/tileset_actions.dart';
 
-/// Le défaut de projet des transitions de début de combat — BETA-BAT-034.
-///
-/// `ProjectManifest.battleTransitions` existait depuis BETA-BAT-019 et
-/// n'avait AUCUN producteur : ni l'éditeur, ni l'authoring, ni les outils ne
-/// l'écrivaient. Le runtime le lisait pourtant, en dernier recours avant son
-/// propre défaut. Sans cette action, changer la transition de tous les
-/// combats d'un projet demandait de passer calque par calque et dresseur par
-/// dresseur.
-///
-/// La précédence de BETA-BAT-019 reste intacte : dresseur authoré, puis
-/// source de rencontre, puis CE défaut, puis le défaut moteur.
 final class BattleTransitionDefaultActions {
   const BattleTransitionDefaultActions();
 
@@ -25,8 +14,17 @@ final class BattleTransitionDefaultActions {
       List.unmodifiable(<AuthoringActionDescriptor>[
     visualLibraryDescriptor(
       updateActionId,
-      'Set the project-wide default battle transitions',
-      resourceKinds: const <String>['project'],
+      'Define project-owned battle transition effects and select project defaults',
+      resourceKinds: const <String>['project', 'battleTransitionDefinition'],
+      inputSchema: {
+        'type': 'object', 'additionalProperties': false,
+        'properties': {
+          'definitions': {'type': 'array', 'minItems': 1, 'maxItems': 256,
+            'items': battleTransitionDefinitionJsonSchema},
+          'wildTransitionId': {'type': ['string', 'null']},
+          'trainerTransitionId': {'type': ['string', 'null']},
+        },
+      },
     ),
   ]);
 
@@ -38,33 +36,73 @@ final class BattleTransitionDefaultActions {
       );
     }
     final parameters = VisualLibraryParameters(context.request.parameters);
-    parameters.allow(const <String>{'wildTransitionId', 'trainerTransitionId'});
+    parameters.allow(const <String>{'wildTransitionId', 'trainerTransitionId', 'definitions'});
 
     final manifest = context.snapshot.manifest;
     final current = manifest.battleTransitions;
+    final definitions = <String, BattleTransitionDefinition>{
+      for (final definition in current?.definitions ?? const <BattleTransitionDefinition>[]) definition.id: definition,
+    };
+    if (context.request.parameters.containsKey('definitions')) {
+      final raw = context.request.parameters['definitions'];
+      if (raw is! List || raw.isEmpty || raw.length > 256) {
+        throw const FormatException('Provide 1..256 typed battle transition definitions.');
+      }
+      final incoming = raw.map(BattleTransitionDefinition.fromJson).toList();
+      if (incoming.map((definition) => definition.id).toSet().length != incoming.length) {
+        throw const FormatException('Battle transition definition IDs must be distinct.');
+      }
+      for (final definition in incoming) {
+        definitions[definition.id] = definition;
+      }
+    }
+    final catalog = ProjectBattleTransitionConfig(definitions: definitions.values.toList());
+    catalog.validate();
     final wild = _readTransition(
       parameters: context.request.parameters,
       key: 'wildTransitionId',
-      allowed: battleWildTransitionIds,
+      allowed: battleTransitionIdsForUsage(catalog, BattleTransitionUsage.wild),
       fallback: current?.wildTransitionId,
     );
     final trainer = _readTransition(
       parameters: context.request.parameters,
       key: 'trainerTransitionId',
-      allowed: battleTrainerTransitionIds,
+      allowed: battleTransitionIdsForUsage(catalog, BattleTransitionUsage.trainer),
       fallback: current?.trainerTransitionId,
     );
 
-    // Tout vide veut dire « rends la main au défaut moteur » : on retire la
-    // section plutôt que d'écrire un objet de nulls dans le manifeste.
-    final next = wild == null && trainer == null
+    final next = wild == null && trainer == null && definitions.isEmpty
         ? manifest.copyWith(battleTransitions: null)
         : manifest.copyWith(
             battleTransitions: ProjectBattleTransitionConfig(
               wildTransitionId: wild,
               trainerTransitionId: trainer,
+              definitions: definitions.values.toList(),
             ),
           );
+
+    next.battleTransitions?.validate();
+    final allowedWild = battleTransitionIdsForUsage(
+        next.battleTransitions, BattleTransitionUsage.wild).toSet();
+    final allowedTrainer = battleTransitionIdsForUsage(
+        next.battleTransitions, BattleTransitionUsage.trainer).toSet();
+    final referencedWild = <String>[
+      for (final map in context.snapshot.maps) ...[
+        for (final zone in map.gameplayZones)
+          ...?zone.encounter?.battleTransitionIds,
+        for (final layer in map.layers.whereType<SmartTileLayer>())
+          ...?layer.encounterBehavior?.encounter.battleTransitionIds,
+        for (final entity in map.entities)
+          ...?entity.interactiveEncounter?.presentation.battleTransitionIds,
+      ],
+    ];
+    final referencedTrainer = manifest.trainers
+        .map((trainer) => trainer.battleTransitionId).whereType<String>();
+    if (referencedWild.any((id) => !allowedWild.contains(id)) ||
+        referencedTrainer.any((id) => !allowedTrainer.contains(id))) {
+      throw const FormatException(
+          'Transition definitions must preserve the usage of authored references.');
+    }
 
     return buildVisualManifestDraft(
       context.snapshot,
@@ -77,12 +115,6 @@ final class BattleTransitionDefaultActions {
   }
 }
 
-/// Lit un identifiant de transition, ou garde celui déjà en place.
-///
-/// Trois cas distincts, et c'est le point délicat : le paramètre ABSENT ne
-/// touche à rien, la chaîne VIDE efface explicitement, et un id inconnu du
-/// contrat partagé est un refus — jamais un silence qui laisserait croire au
-/// choix.
 String? _readTransition({
   required Map<String, Object?> parameters,
   required String key,

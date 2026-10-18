@@ -26,6 +26,7 @@ import '../application/runtime_post_battle_decision_coordinator.dart';
 import '../application/runtime_psdk_battle_session_adapter.dart';
 import '../application/runtime_psdk_battle_setup_mapper.dart';
 import '../infrastructure/tile_image_loader.dart';
+import '../infrastructure/battle_transition_image_loader.dart';
 import '../presentation/flame/battle_background_resolver.dart';
 import '../presentation/flame/battle_bag_item_icon_resolver.dart';
 import '../presentation/flame/battle_bag_menu_model.dart';
@@ -199,6 +200,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     _setBattleSnapshot(null);
     late final BattleTransitionOverlayComponent curtain;
     curtain = BattleTransitionOverlayComponent(
+      loadProjectSheet: (reference) => loadProjectBattleTransitionImage(reference, bundle.projectRootDirectory),
       spec: resolveBattleTransitionSpecWithTerrain(
         request: request,
         manifest: bundle.manifest,
