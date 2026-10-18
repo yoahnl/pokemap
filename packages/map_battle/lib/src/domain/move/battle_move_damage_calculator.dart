@@ -86,6 +86,11 @@ final class BattleMoveDamageCalculator {
       rng: context.rng,
       criticalRate: _effectiveCriticalRate(context),
     );
+    final criticalMultiplier = critical.isCritical &&
+            context.user.abilityId == 'sniper' &&
+            !context.user.effects.contains('ability_suppressed')
+        ? critical.multiplier * 1.5
+        : critical.multiplier;
     final damageRoll = critical.rng.moveDamage.nextDamagePercent();
     final rng = critical.rng.copyWith(moveDamage: damageRoll.next);
 
@@ -113,7 +118,7 @@ final class BattleMoveDamageCalculator {
     formulaDamage = (formulaDamage ~/ defensiveStat).floor();
     formulaDamage =
         (formulaDamage * _mod1Multiplier(context, moveType)).floor() + 2;
-    final criticalDamage = (formulaDamage * critical.multiplier).floor();
+    final criticalDamage = (formulaDamage * criticalMultiplier).floor();
     final randomDamage = ((criticalDamage * damageRoll.value) / 100).floor();
     final stabDamage = (randomDamage * stabMultiplier).floor();
     final typeEffectivenessMultiplier = _applyLocalEffectivenessModifiers(
@@ -140,7 +145,7 @@ final class BattleMoveDamageCalculator {
       rng: rng,
       damage: damage,
       isCritical: critical.isCritical,
-      criticalMultiplier: critical.multiplier,
+      criticalMultiplier: criticalMultiplier,
       stabMultiplier: stabMultiplier,
       typeEffectivenessMultiplier: typeEffectivenessMultiplier,
     );
