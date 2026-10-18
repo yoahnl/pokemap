@@ -20,20 +20,44 @@ void main() {
         SceneConditionSourceKind.factLikeStoryFlag,
         SceneConditionSourceKind.storyStepCompletion,
         SceneConditionSourceKind.consumedEvent,
+        SceneConditionSourceKind.trainerDefeated,
       });
       for (final kind in SceneConditionSourceKind.values.where(
         (kind) => kind != SceneConditionSourceKind.newGameDraft,
       )) {
-        expect(
-          supports(
-            SceneConditionPayload(
-              conditionSource: SceneConditionSource(
-                sourceKind: kind,
-                sourceId: 'source',
-                operator: SceneConditionOperator.isTrue,
-              ),
-            ),
+        final source = switch (kind) {
+          SceneConditionSourceKind.playerFacing => SceneConditionSource(
+            sourceKind: kind,
+            sourceId: EntityFacing.north.name,
+            operator: SceneConditionOperator.isTrue,
           ),
+          SceneConditionSourceKind.playerAtEntityAnchor ||
+          SceneConditionSourceKind.mapEventInstanceBoolean =>
+            SceneConditionSource(
+              sourceKind: kind,
+              sourceId: 'source',
+              mapId: 'map',
+              key: kind == SceneConditionSourceKind.mapEventInstanceBoolean
+                  ? 'enabled'
+                  : null,
+              operator: SceneConditionOperator.isTrue,
+            ),
+          SceneConditionSourceKind.pokedexCaughtCount =>
+            SceneConditionSource.pokedexCaughtAtLeast(
+              range: PokedexSpeciesRange(
+                firstNationalDex: 1,
+                lastNationalDex: 151,
+              ),
+              minimum: 1,
+            ),
+          _ => SceneConditionSource(
+            sourceKind: kind,
+            sourceId: 'source',
+            operator: SceneConditionOperator.isTrue,
+          ),
+        };
+        expect(
+          supports(SceneConditionPayload(conditionSource: source)),
           SpatialGameplayCapabilities.conditionSources.contains(kind),
           reason: kind.name,
         );
