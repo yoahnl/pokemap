@@ -69,15 +69,23 @@ final class RuntimeAuthoringAssetMapRenderAdapter implements MapRenderPort {
 
 Future<Map<String, RuntimeTilesetImage>> _loadTilesetImages(
   RuntimeMapBundle bundle,
-) {
-  return loadTilesetImagesById(
-    bundle.tilesetAbsolutePathsById,
+) async {
+  final images = await loadTilesetImagesById(
+    bundle.runtimeImageAbsolutePathsById,
     transparentColorByTilesetId: <String, TilesetTransparentColor>{
       for (final tileset in bundle.manifest.tilesets)
         if (tileset.transparentColor != null)
           tileset.id: tileset.transparentColor!,
     },
   );
+  for (final tileset in bundle.manifest.tilesets) {
+    final source = tileset.source;
+    final image = images[tileset.id];
+    if (source is ProjectRegularAtlasTilesetSource && image != null) {
+      images.putIfAbsent(source.assetId, () => image);
+    }
+  }
+  return images;
 }
 
 List<String> _selectedLayerIds(MapRenderRequest request) {

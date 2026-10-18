@@ -7,6 +7,7 @@ import '../../presentation/flame/map_layers_component.dart';
 import '../../presentation/flame/placed_element_occlusion_patch_component.dart';
 import '../../presentation/flame/static_placed_element_occlusion_patch_resolution.dart';
 import '../runtime_map_bundle.dart';
+import '../runtime_character_refs.dart';
 import 'runtime_authoring_character_renderer.dart';
 
 final class RuntimeAuthoringMapRenderer {
@@ -167,7 +168,8 @@ final class RuntimeAuthoringMapRenderer {
           patches[patchIndex].position.y + patches[patchIndex].height < depth) {
         paintPatch(patches[patchIndex++]);
       }
-      final character = _definitions[entity.npc?.characterId];
+      final character =
+          _definitions[resolveNpcCharacterId(entity, _bundle.manifest)];
       if (character == null) continue;
       final renderer = _characters.putIfAbsent(
           entity.id,

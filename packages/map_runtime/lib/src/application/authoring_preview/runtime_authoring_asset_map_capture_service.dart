@@ -5,9 +5,9 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../infrastructure/runtime_tileset_image.dart';
-import '../../presentation/flame/map_layers_component.dart';
 import '../../border/border_runtime_asset_cache.dart';
 import '../runtime_map_bundle.dart';
+import 'runtime_authoring_map_renderer.dart';
 
 final class RuntimeAuthoringAssetMapCaptureResult {
   RuntimeAuthoringAssetMapCaptureResult({
@@ -43,69 +43,74 @@ final class RuntimeAuthoringAssetMapCaptureService {
     }
     _validateRegion(bundle.map, region);
     final selectedBundle = _selectLayers(bundle, layerIds);
-    final borderPreparation = selectedBundle.borderRuntimePreparation;
-    final borderAssets = borderPreparation == null
-        ? null
-        : await BorderRuntimeAssetCache().loadCollection(
-            projectRoot: selectedBundle.projectRootDirectory,
-            collection: borderPreparation.assetCollection,
-          );
-    final background = MapLayersComponent(
-      bundle: selectedBundle,
-      tileImagesByTilesetId: tileImagesByTilesetId,
-      borderAssets: borderAssets,
-    );
-    final foreground = MapLayersComponent(
-      bundle: selectedBundle,
-      tileImagesByTilesetId: tileImagesByTilesetId,
-      borderAssets: borderAssets,
-      renderPass: MapLayerRenderPass.foreground,
-    );
-    background.update(0);
-    foreground.update(0);
-
-    final width = region.size.width * cellPixelSize;
-    final height = region.size.height * cellPixelSize;
-    final scale = cellPixelSize / selectedBundle.cellWidth;
-    final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(recorder);
-    canvas.save();
-    canvas.scale(scale, scale);
-    canvas.translate(
-      -region.pos.x * selectedBundle.cellWidth,
-      -region.pos.y * selectedBundle.cellHeight,
-    );
-    background.render(canvas);
-    foreground.render(canvas);
-    final overlayCounts = _paintOverlays(
-      canvas,
-      bundle,
-      region,
-      overlays.toSet(),
-      scale,
-      cellPixelSize,
-    );
-    canvas.restore();
-
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(width, height);
-    picture.dispose();
+    final borderCache = BorderRuntimeAssetCache();
+    RuntimeAuthoringMapRenderer? renderer;
     try {
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (data == null) {
-        throw StateError('Could not encode the runtime map capture as PNG.');
+      final borderPreparation = selectedBundle.borderRuntimePreparation;
+      final borderAssets = borderPreparation == null
+          ? null
+          : await borderCache.loadCollection(
+              projectRoot: selectedBundle.projectRootDirectory,
+              collection: borderPreparation.assetCollection,
+            );
+      renderer = RuntimeAuthoringMapRenderer(
+        bundle: selectedBundle,
+        images: tileImagesByTilesetId,
+        borderAssets: borderAssets,
+        includeCharacters: true,
+      )..update(0);
+      final width = region.size.width * cellPixelSize;
+      final height = region.size.height * cellPixelSize;
+      final scale = cellPixelSize / selectedBundle.cellWidth;
+      final recorder = ui.PictureRecorder();
+      ui.Picture? picture;
+      try {
+        final canvas = ui.Canvas(recorder);
+        canvas.scale(scale, scale);
+        canvas.translate(
+          -region.pos.x * selectedBundle.cellWidth,
+          -region.pos.y * selectedBundle.cellHeight,
+        );
+        renderer.paint(canvas);
+        final overlayCounts = _paintOverlays(
+          canvas,
+          bundle,
+          region,
+          overlays.toSet(),
+          scale,
+          cellPixelSize,
+        );
+        picture = recorder.endRecording();
+        final image = await picture.toImage(width, height);
+        try {
+          final data = await image.toByteData(format: ui.ImageByteFormat.png);
+          if (data == null) {
+            throw StateError(
+              'Could not encode the runtime map capture as PNG.',
+            );
+          }
+          return RuntimeAuthoringAssetMapCaptureResult(
+            bytes: data.buffer.asUint8List(
+              data.offsetInBytes,
+              data.lengthInBytes,
+            ),
+            width: width,
+            height: height,
+            overlayCounts: overlayCounts,
+          );
+        } finally {
+          image.dispose();
+        }
+      } finally {
+        if (recorder.isRecording) recorder.endRecording().dispose();
+        picture?.dispose();
       }
-      return RuntimeAuthoringAssetMapCaptureResult(
-        bytes: data.buffer.asUint8List(
-          data.offsetInBytes,
-          data.lengthInBytes,
-        ),
-        width: width,
-        height: height,
-        overlayCounts: overlayCounts,
-      );
     } finally {
-      image.dispose();
+      try {
+        renderer?.dispose();
+      } finally {
+        await borderCache.dispose();
+      }
     }
   }
 }

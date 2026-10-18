@@ -13,6 +13,76 @@ import 'surface/surface_runtime_test_support.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'authoring preview resolves a trainer NPC character like Player',
+    () async {
+      final base = surfaceTestBundle(
+        map: const MapData(
+          id: 'trainer-npc',
+          name: 'Trainer NPC',
+          size: GridSize(width: 1, height: 2),
+          layers: [],
+          entities: [
+            MapEntity(
+              id: 'trainer-entity',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 0, y: 1),
+              npc: MapEntityNpcData(trainerId: 'trainer'),
+            ),
+          ],
+        ),
+      );
+      final bundle = base.copyWith(
+        manifest: base.manifest.copyWith(
+          trainers: const [
+            ProjectTrainerEntry(
+              id: 'trainer',
+              name: 'Trainer',
+              trainerClass: 'Trainer',
+              characterId: 'trainer-character',
+            ),
+          ],
+          characters: const [
+            ProjectCharacterEntry(
+              id: 'trainer-character',
+              name: 'Trainer character',
+              tilesetId: 'unavailable-atlas',
+              animations: [
+                CharacterAnimation(
+                  state: CharacterAnimationState.idle,
+                  direction: EntityFacing.south,
+                  sourceAssetId: 'trainer-media',
+                  frames: [
+                    CharacterAnimationFrame(
+                      source: TilesetSourceRect(
+                        x: 0,
+                        y: 0,
+                        width: 32,
+                        height: 32,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final image = await runtimeTilesetImage(const [Color(0xff0000ff)]);
+      addTearDown(image.dispose);
+      final renderer = RuntimeAuthoringMapRenderer(
+        bundle: bundle,
+        images: {'character-animation:trainer-media': image},
+        includeCharacters: true,
+      )..update(0);
+      addTearDown(renderer.dispose);
+      final painted = await _paint(renderer.paint, height: 64);
+      addTearDown(painted.dispose);
+
+      expect(await pixelAt(painted, 16, 16), rgba(0, 0, 255, 255));
+    },
+  );
+
   test('authoring pixels and runtime passes obey order after JSON reload',
       () async {
     final map = MapData.fromJson(const MapData(

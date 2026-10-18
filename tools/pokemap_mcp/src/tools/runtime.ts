@@ -18,7 +18,7 @@ export function registerRuntimeTools(
     {
       title: "Render a PokeMap snapshot",
       description:
-        "Renders an explicit map or region at its current revision and returns an opaque image artifact handle.",
+        "Renders an explicit map or region at its current authored revision, including authored NPC sprites and placed-element occlusion, and returns an opaque image artifact handle.",
       inputSchema: z
         .object({
           projectHandle: z.string().min(1),
