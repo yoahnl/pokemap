@@ -281,3 +281,5 @@ export 'src/domain/rng/battle_seeded_rng.dart'
 export 'src/domain/rng/battle_rng_streams.dart'
     show BattleRngSeeds, BattleRngStreamKind, BattleRngStreams;
 export 'src/psdk/psdk_battle.dart';
+export 'src/psdk/canonical_psdk_move_projector.dart'
+    show CanonicalPsdkMoveProjector, CanonicalPsdkMoveProjectionException;

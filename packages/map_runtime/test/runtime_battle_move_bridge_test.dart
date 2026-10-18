@@ -8,6 +8,89 @@ void main() {
   group('RuntimeBattleMoveBridge', () {
     const bridge = RuntimeBattleMoveBridge();
 
+    test('preserves exact runtime rejection context from shared projection', () {
+      final base = _psdkMove(
+        id: 'custom_projection',
+        name: 'Custom Projection',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.normal,
+        basePower: 0,
+      );
+      final cases = <(PokemonMove, String)>[
+        (base, 'psdk_battle_engine_method_not_found'),
+        (
+          base.copyWith(unsupportedReasons: ['psdk_method:s_unknown']),
+          'psdk_battle_engine_method_not_ported:s_unknown',
+        ),
+        (
+          base.copyWith(
+            type: ' ',
+            unsupportedReasons: ['psdk_method:s_basic'],
+          ),
+          'invalid_type:empty',
+        ),
+        (
+          base.copyWith(
+            type: ' COSMIC ',
+            unsupportedReasons: ['psdk_method:s_basic'],
+          ),
+          'unsupported_type:cosmic',
+        ),
+      ];
+      for (final (move, reason) in cases) {
+        expect(
+          () => bridge.toPsdkBattleMoveData(
+            move: move,
+            combatantLabel: 'Équipe de Léa',
+          ),
+          throwsA(
+            isA<RuntimeBattleSetupException>()
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'Le combat ne peut pas démarrer car "Équipe de Léa" utilise une attaque que le bridge battle actuel ne sait pas projeter honnêtement.',
+                )
+                .having(
+                  (e) => e.debugDetails,
+                  'debugDetails',
+                  'combatant=Équipe de Léa, moveId=custom_projection, moveName=Custom Projection, engineSupportLevel=structuredSupported, unsupportedReasons=[${move.unsupportedReasons.join(', ')}], bridgeLimit=$reason',
+                ),
+          ),
+        );
+      }
+    });
+
+    test('leaves DTO errors unwrapped and diagnostics on conventional path', () {
+      final move = _psdkMove(
+        id: 'custom_projection',
+        name: 'Custom Projection',
+        type: ' COSMIC ',
+        category: PokemonMoveCategory.physical,
+        target: PokemonMoveTarget.normal,
+        basePower: 40,
+      );
+      final diagnostics = bridge.inspectMove(
+        move: move,
+        combatantLabel: 'Équipe de Léa',
+      );
+      expect(diagnostics.battleEngineMethod,
+          const CanonicalPsdkMoveProjector().resolveBattleEngineMethod(move));
+      expect(diagnostics.psdkRegistryStatus, 'ported');
+      expect(diagnostics.psdkBridgeable, isTrue);
+      expect(diagnostics.runtimeBridgeable, isFalse);
+      expect(diagnostics.bridgeable, isTrue);
+      expect(diagnostics.reason, 'unsupported_type:cosmic');
+      expect(
+        () => bridge.toPsdkBattleMoveData(
+          move: move.copyWith(type: 'normal'),
+          combatantLabel: 'Équipe de Léa',
+          currentPp: -1,
+        ),
+        throwsRangeError,
+      );
+    });
+
     test('projects a standard damage move without destroying canonical data',
         () {
       const move = PokemonMove(
