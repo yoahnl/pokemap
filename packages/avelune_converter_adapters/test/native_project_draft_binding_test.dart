@@ -124,6 +124,207 @@ void main() {
     }
   });
 
+  const aggregateLimits = NativeWriteLimits(
+    jsonLimits: ContractLimits(maxNodes: 2048),
+    maxDraftEvidenceJsonNodes: 4096,
+  );
+
+  test(
+    'explicit draft node budget binds complete immutable aggregate evidence',
+    () {
+      final rows = [
+        for (var i = 0; i < 100; i++)
+          {
+            'operation': 'unit',
+            'parameters': {'rows': List.filled(20, 0)},
+          },
+      ];
+      final evidence = <String, Object?>{'rows': rows};
+      expect(
+        () => draft(
+          [],
+          evidence: evidence,
+          limits: const NativeWriteLimits(
+            jsonLimits: ContractLimits(maxNodes: 2048),
+          ),
+        ),
+        throwsA(
+          isA<ContractError>().having((e) => e.code, 'code', 'json.quota'),
+        ),
+      );
+      final original = draft([], evidence: evidence, limits: aggregateLimits);
+      original.validateResourceBudget(limits: aggregateLimits);
+      expect(
+        draft([], evidence: evidence, limits: aggregateLimits).canonicalHash,
+        original.canonicalHash,
+      );
+      (rows.first['parameters'] as Map)['rows'] = [99];
+      expect(
+        draft([], evidence: evidence, limits: aggregateLimits).canonicalHash,
+        isNot(original.canonicalHash),
+      );
+      expect(
+        ((original.compositionEvidence['rows'] as List).first
+            as Map)['parameters'],
+        {'rows': List.filled(20, 0)},
+      );
+      expect(
+        () => (original.compositionEvidence['rows'] as List).clear(),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => original.validateResourceBudget(
+          limits: const NativeWriteLimits(
+            jsonLimits: ContractLimits(maxNodes: 2048),
+          ),
+        ),
+        throwsA(isA<ContractError>()),
+      );
+    },
+  );
+
+  test('explicit aggregate node boundary accepts exactly its ceiling', () {
+    final exact = draft(
+      [],
+      evidence: {'rows': List.filled(4094, 0)},
+      limits: aggregateLimits,
+    );
+    exact.validateResourceBudget(limits: aggregateLimits);
+    expect(
+      () => draft(
+        [],
+        evidence: {'rows': List.filled(4095, 0)},
+        limits: aggregateLimits,
+      ),
+      throwsA(isA<ContractError>().having((e) => e.code, 'code', 'json.quota')),
+    );
+    expect(
+      () => record(0, List.filled(2048, 0), limits: aggregateLimits),
+      throwsA(isA<ContractError>().having((e) => e.code, 'code', 'json.quota')),
+    );
+    final oversized = record(0, List.filled(2048, 0));
+    expect(
+      () => draft([oversized], limits: aggregateLimits),
+      throwsA(isA<ContractError>()),
+    );
+  });
+
+  test(
+    'draft aggregate nodes leave artifact record and plan limits unchanged',
+    () {
+      expect(aggregateLimits.draftEvidenceJsonLimits.maxNodes, 4096);
+      expect(aggregateLimits.artifactEvidenceJsonLimits.maxNodes, 2048);
+      expect(aggregateLimits.jsonLimits.maxNodes, 2048);
+      expect(aggregateLimits.planJsonLimits.maxNodes, 2048);
+      final artifactBytes = utf8.encode(
+        jsonEncode({'rows': List.filled(2048, 0)}),
+      );
+      expect(
+        () =>
+            NativeArtifact(bytes: artifactBytes, mediaType: 'application/json'),
+        returnsNormally,
+      );
+      expect(
+        () => NativeArtifact(
+          bytes: artifactBytes,
+          mediaType: 'application/json',
+          limits: aggregateLimits,
+        ),
+        throwsA(
+          isA<NativeWriteException>().having(
+            (e) => e.code,
+            'code',
+            'native.artifact.json',
+          ),
+        ),
+      );
+      expect(
+        const NativeWriteLimits(maxDraftEvidenceJsonNodes: 16000000).validate,
+        returnsNormally,
+      );
+      expect(
+        const NativeWriteLimits(jsonLimits: ContractLimits(maxNodes: 4000001))
+            .validate,
+        throwsA(isA<NativeWriteException>()),
+      );
+
+      expect(const NativeWriteLimits().maxDraftEvidenceJsonNodes, isNull);
+      expect(
+        const NativeWriteLimits(jsonLimits: ContractLimits(maxNodes: 5))
+            .draftEvidenceJsonLimits
+            .maxNodes,
+        5,
+      );
+      for (final invalid in [0, -1, 16000001]) {
+        expect(
+          NativeWriteLimits(maxDraftEvidenceJsonNodes: invalid).validate,
+          throwsA(
+            isA<NativeWriteException>().having(
+              (e) => e.code,
+              'code',
+              'native.invalid_limits',
+            ),
+          ),
+        );
+      }
+    },
+  );
+
+  test(
+    'explicit aggregate budget preserves inert depth and string validation',
+    () {
+      final cycle = <Object?>[];
+      cycle.add(cycle);
+      for (final invalid in [
+        cycle,
+        double.nan,
+        {1: 'bad key'},
+        Object(),
+      ]) {
+        expect(
+          () =>
+              draft([], evidence: {'value': invalid}, limits: aggregateLimits),
+          throwsA(isA<ContractError>()),
+        );
+      }
+      expect(
+        () => draft(
+          [],
+          evidence: {'value': 'x' * 1025},
+          limits: const NativeWriteLimits(
+            maxDraftEvidenceJsonNodes: 4096,
+            jsonLimits: ContractLimits(
+              maxNodes: 2048,
+              maxStringCodeUnits: 1024,
+            ),
+          ),
+        ),
+        throwsA(
+          isA<ContractError>().having((e) => e.code, 'code', 'json.textQuota'),
+        ),
+      );
+      expect(
+        () => draft(
+          [],
+          evidence: {
+            'rows': [
+              [
+                [0],
+              ],
+            ],
+          },
+          limits: const NativeWriteLimits(
+            maxDraftEvidenceJsonNodes: 4096,
+            jsonLimits: ContractLimits(maxNodes: 2048, maxDepth: 2),
+          ),
+        ),
+        throwsA(
+          isA<ContractError>().having((e) => e.code, 'code', 'json.quota'),
+        ),
+      );
+    },
+  );
+
   test('large aggregate evidence rechecks caller bytes before staging',
       () async {
     final original = draft(fixture.draft.mutations,

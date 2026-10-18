@@ -124,6 +124,39 @@ void main() {
             .having((e) => e.code, 'code', 'native.invalid_limits')));
   });
 
+  test('world draft evidence explicitly selects eight million aggregate nodes',
+      () {
+    for (final count in [9, 383, 2048]) {
+      final limits = sourceCatalogStudyWriteLimitsFor(count);
+      expect(limits.maxDraftEvidenceJsonNodes, 8000000);
+      expect(limits.draftEvidenceJsonLimits.maxNodes, 8000000);
+      expect(limits.jsonLimits.maxNodes, 4000000);
+      expect(limits.artifactEvidenceJsonLimits.maxNodes, 4000000);
+      expect(limits.planJsonLimits.maxNodes, 4000000);
+      expect(limits.maxTotalDraftJsonBytes, 268435456);
+      expect(limits.draftEvidenceJsonLimits.maxTextCodeUnits, 268435456);
+      expect(limits.draftEvidenceJsonLimits.maxDepth, 64);
+      expect(limits.draftEvidenceJsonLimits.maxStringCodeUnits, 1048576);
+      expect(limits.validate, returnsNormally);
+    }
+    expect(
+        sourceCatalogStudyWriteLimitsFor(1, includeNativeCatalog: true)
+            .maxDraftEvidenceJsonNodes,
+        8000000);
+    for (final count in [1, 2, 8]) {
+      final limits = sourceCatalogStudyWriteLimitsFor(count);
+      expect(limits.maxDraftEvidenceJsonNodes, isNull);
+      expect(
+          limits.draftEvidenceJsonLimits.maxNodes, limits.jsonLimits.maxNodes);
+    }
+    expect(const NativeWriteLimits().maxDraftEvidenceJsonNodes, isNull);
+    expect(
+        const NativeWriteLimits(jsonLimits: ContractLimits(maxNodes: 5))
+            .draftEvidenceJsonLimits
+            .maxNodes,
+        5);
+  });
+
   test('world image hard ceiling is exact and small studies keep their budget',
       () {
     expect(const NativeWriteLimits().maxTotalImagePixels, 16777216);

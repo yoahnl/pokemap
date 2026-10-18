@@ -63,6 +63,77 @@ void main() {
       folderName: settings.folderName,
       writeLimits: const NativeWriteLimits(maxMutations: 512));
 
+  test(
+    'resume serialization explicitly records inherited draft evidence nodes',
+    () {
+      final json = settings.toJson();
+      expect(
+        (json['writeLimits'] as Map).containsKey('maxDraftEvidenceJsonNodes'),
+        isTrue,
+      );
+      expect((json['writeLimits'] as Map)['maxDraftEvidenceJsonNodes'], isNull);
+    },
+  );
+
+  test(
+      'resume roundtrip retains explicit draft aggregate nodes and rejects missing field',
+      () {
+    for (final budget in [null, 4096]) {
+      final json = changedResumeBudget(
+        'writeLimits',
+        'maxDraftEvidenceJsonNodes',
+        budget,
+      );
+      final reopened = LocalReviewResumeSettings.fromJson(json);
+      expect(reopened.writeLimits.maxDraftEvidenceJsonNodes, budget);
+      expect(reopened.toJson(), json);
+    }
+    expect(
+      () => LocalReviewResumeSettings.fromJson(
+        changedResumeBudget(
+          'writeLimits',
+          'maxDraftEvidenceJsonNodes',
+          null,
+          remove: true,
+        ),
+      ),
+      throwsA(isA<LocalReviewSessionStoreFailure>()),
+    );
+    for (final invalid in [0, -1, 16000001, '4096', 4096.5]) {
+      expect(
+        () => LocalReviewResumeSettings.fromJson(
+          changedResumeBudget(
+            'writeLimits',
+            'maxDraftEvidenceJsonNodes',
+            invalid,
+          ),
+        ),
+        throwsA(isA<LocalReviewSessionStoreFailure>()),
+      );
+    }
+  });
+
+  test('draft aggregate node override survives exact disk reopen', () async {
+    final custom = LocalReviewResumeSettings.fromJson(
+      changedResumeBudget('writeLimits', 'maxDraftEvidenceJsonNodes', 2000000),
+    );
+    final created = await store().create(
+      reviewSet: _reviewSet(_session()),
+      resumeSettings: custom,
+    );
+    final loaded = (await store().load(created.reviewSet.sessionId))!;
+    expect(
+      loaded.resumeSettings.writeLimits.maxDraftEvidenceJsonNodes,
+      2000000,
+    );
+    expect(loaded.resumeSettings.toJson(), custom.toJson());
+    expect(loaded.canonicalHash, created.canonicalHash);
+    expect(
+      () => StoredReviewSession.fromJson({...created.toJson(), 'version': 9}),
+      _error('session.store.document'),
+    );
+  });
+
   test('segmented store preserves 280 candidates without partial disk records',
       () async {
     final reviewSet = _pairSet(countPerMap: 140);
@@ -262,12 +333,12 @@ void main() {
         _error('session.store.document'));
   });
 
-  test('shared source store emits breaking version 8', () {
+  test('shared source store emits breaking version 10', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 8);
+    expect(stored.toJson()['version'], 10);
   });
 
   test('aggregate image budget resume survives exact disk reopen', () async {
@@ -285,7 +356,7 @@ void main() {
     expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
-    expect(loaded.toJson()['version'], 8);
+    expect(loaded.toJson()['version'], 10);
   });
 
   test('aggregate image budget resume boundaries alter envelope hashes', () {

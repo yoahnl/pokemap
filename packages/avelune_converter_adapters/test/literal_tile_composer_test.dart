@@ -127,6 +127,27 @@ List<int> _paintOriginalAtlasPixel(MapData map, image.Image atlas, int cell,
 }
 
 void main() {
+  test('reuse refuses stricter resolved draft aggregate node budget', () async {
+    final fixture = await LiteralTileFixture.create();
+    const generous = NativeWriteLimits(maxDraftEvidenceJsonNodes: 2000000);
+    final composition = await _compose(fixture, limits: generous);
+    expect(
+      await composition.verifyForReuse(
+        source: fixture.source,
+        files: fixture.files,
+        limits: generous,
+      ),
+      same(composition),
+    );
+    expect(
+      await composition.verifyForReuse(
+        source: fixture.source,
+        files: fixture.files,
+      ),
+      isNull,
+    );
+  });
+
   test(
       'local palettes contain only each layer source tiles with exact shared references',
       () async {

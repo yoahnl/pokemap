@@ -38,6 +38,7 @@ final class NativeWriteLimits {
     this.maxArtifactBytes = 16777216,
     this.maxTotalArtifactBytes = 67108864,
     this.maxTotalDraftJsonBytes = 67108864,
+    this.maxDraftEvidenceJsonNodes,
     this.maxImagePixels = 16777216,
     this.maxTotalImagePixels = 16777216,
     this.maxMapCells = 1048576,
@@ -50,6 +51,7 @@ final class NativeWriteLimits {
   final int maxArtifactBytes;
   final int maxTotalArtifactBytes;
   final int maxTotalDraftJsonBytes;
+  final int? maxDraftEvidenceJsonNodes;
   final int maxImagePixels;
   final int maxTotalImagePixels;
   final int maxMapCells;
@@ -61,11 +63,13 @@ final class NativeWriteLimits {
   ContractLimits get artifactEvidenceJsonLimits =>
       _aggregateEvidenceJsonLimits(maxTotalArtifactBytes);
   ContractLimits get draftEvidenceJsonLimits =>
-      _aggregateEvidenceJsonLimits(maxTotalDraftJsonBytes);
+      _aggregateEvidenceJsonLimits(maxTotalDraftJsonBytes,
+          maxNodes: maxDraftEvidenceJsonNodes);
 
-  ContractLimits _aggregateEvidenceJsonLimits(int maxBytes) => ContractLimits(
+  ContractLimits _aggregateEvidenceJsonLimits(int maxBytes, {int? maxNodes}) =>
+      ContractLimits(
         maxDepth: jsonLimits.maxDepth,
-        maxNodes: jsonLimits.maxNodes,
+        maxNodes: maxNodes ?? jsonLimits.maxNodes,
         maxStringCodeUnits: jsonLimits.maxStringCodeUnits,
         maxTextCodeUnits: maxBytes > jsonLimits.maxTextCodeUnits
             ? maxBytes
@@ -84,6 +88,7 @@ final class NativeWriteLimits {
       (maxArtifactBytes, 67108864),
       (maxTotalArtifactBytes, 268435456),
       (maxTotalDraftJsonBytes, 268435456),
+      (maxDraftEvidenceJsonNodes ?? jsonLimits.maxNodes, 16000000),
       (maxImagePixels, 16777216),
       (maxTotalImagePixels, 41943040),
       (maxMapCells, 4194304),

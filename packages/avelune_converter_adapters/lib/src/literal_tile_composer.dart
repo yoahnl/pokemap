@@ -296,6 +296,8 @@ final class LiteralTileComposition {
       limits.maxArtifactBytes >= _creationLimits.maxArtifactBytes &&
       limits.maxTotalArtifactBytes >= _creationLimits.maxTotalArtifactBytes &&
       limits.maxTotalDraftJsonBytes >= _creationLimits.maxTotalDraftJsonBytes &&
+      limits.draftEvidenceJsonLimits.maxNodes >=
+          _creationLimits.draftEvidenceJsonLimits.maxNodes &&
       limits.maxImagePixels >= _creationLimits.maxImagePixels &&
       limits.maxTotalImagePixels >= _creationLimits.maxTotalImagePixels &&
       limits.maxMapCells >= _creationLimits.maxMapCells &&

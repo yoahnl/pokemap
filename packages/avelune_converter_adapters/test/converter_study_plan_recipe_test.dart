@@ -93,6 +93,103 @@ void main() {
         converterVersion: 'original-quota-fixture');
   }
 
+  test(
+      'recipe roundtrip binds explicit draft aggregate nodes in settings identity',
+      () {
+    final inherited = connectionRecipe(2);
+    final explicit = connectionRecipe(
+      2,
+      writeLimits: const NativeWriteLimits(maxDraftEvidenceJsonNodes: 4096),
+    );
+    for (final recipe in [inherited, explicit]) {
+      final reopened = ConverterStudyPlanRecipe.decode(recipe.encode());
+      expect(
+        reopened.settings.writeLimits.maxDraftEvidenceJsonNodes,
+        recipe.settings.writeLimits.maxDraftEvidenceJsonNodes,
+      );
+      expect(reopened.canonicalHash, recipe.canonicalHash);
+      expect(reopened.settings.canonicalHash, recipe.settingsHash);
+    }
+    expect(explicit.settingsHash, isNot(inherited.settingsHash));
+    expect(explicit.canonicalHash, isNot(inherited.canonicalHash));
+    final stale = {...explicit.toJson(), 'version': 10};
+    expect(
+      () => ConverterStudyPlanRecipe.fromJson(stale),
+      throwsA(isA<ConverterWorkflowFailure>()),
+    );
+    final priorSettings =
+        jsonDecode(explicit.encode()) as Map<String, dynamic>;
+    priorSettings.remove('canonicalHash');
+    final settings = priorSettings['settings'] as Map<String, dynamic>;
+    settings['version'] = 7;
+    priorSettings['settingsHash'] = canonicalHashOf(settings).value;
+    priorSettings['canonicalHash'] = canonicalHashOf(
+      priorSettings,
+      limits: ConverterStudyPlanRecipe.jsonLimits,
+    ).value;
+    expect(
+      () => ConverterStudyPlanRecipe.fromJson(priorSettings),
+      throwsA(isA<ConverterWorkflowFailure>()),
+    );
+  });
+
+  test(
+    'recipe rejects resigned invalid or missing draft aggregate node budget',
+    () {
+      for (final invalid in [0, -1, 16000001, '4096', 4096.5, true]) {
+        final body =
+            jsonDecode(connectionRecipe(2).encode()) as Map<String, dynamic>;
+        body.remove('canonicalHash');
+        final settings = body['settings'] as Map<String, dynamic>;
+        (settings['writeLimits'] as Map)['maxDraftEvidenceJsonNodes'] = invalid;
+        body['settingsHash'] = canonicalHashOf(settings).value;
+        body['canonicalHash'] = canonicalHashOf(
+          body,
+          limits: ConverterStudyPlanRecipe.jsonLimits,
+        ).value;
+        expect(
+          () => ConverterStudyPlanRecipe.fromJson(body),
+          throwsA(isA<ConverterWorkflowFailure>()),
+        );
+      }
+      final body =
+          jsonDecode(connectionRecipe(2).encode()) as Map<String, dynamic>;
+      body.remove('canonicalHash');
+      final settings = body['settings'] as Map<String, dynamic>;
+      (settings['writeLimits'] as Map).remove('maxDraftEvidenceJsonNodes');
+      body['settingsHash'] = canonicalHashOf(settings).value;
+      body['canonicalHash'] = canonicalHashOf(
+        body,
+        limits: ConverterStudyPlanRecipe.jsonLimits,
+      ).value;
+      expect(
+        () => ConverterStudyPlanRecipe.fromJson(body),
+        throwsA(isA<ConverterWorkflowFailure>()),
+      );
+    },
+  );
+
+  test(
+    'explicit draft aggregate nodes survive cold preparation restore',
+    () async {
+      final prepared = await prepare(
+        writeLimits: const NativeWriteLimits(
+          maxDraftEvidenceJsonNodes: 2000000,
+        ),
+      );
+      final recipe = ConverterStudyPlanRecipe.decode(
+        original.exportStudyPlanRecipe().encode(),
+      );
+      final fresh = await restored.restoreStudyPlanRecipe(recipe);
+      expect(fresh.settings.writeLimits.maxDraftEvidenceJsonNodes, 2000000);
+      expect(fresh.preparationHash, prepared.preparationHash);
+      expect(fresh.nativeDraft!.canonicalHash, recipe.nativeDraftHash);
+      expect(restored.state.approval, isNull);
+      expect(await output.list().toList(), isEmpty);
+    },
+    skip: !Platform.isMacOS,
+  );
+
   test('selected interpretation is persisted and invalidates the exact recipe hash', () {
     final literal = connectionRecipe(2);
     final selected = connectionRecipe(2, interpretationProfile: syntheticSourceInterpretationProfile);
@@ -181,7 +278,7 @@ void main() {
           await prepare(supplementalRootPaths: [first.path, second.path]);
       final snapshot = original.state.snapshot!;
       final recipe = original.exportStudyPlanRecipe();
-      expect(recipe.toJson()['version'], 9);
+      expect(recipe.toJson()['version'], 11);
       expect(recipe.sourceSelection.supplementalRootPaths,
           [first.path, second.path]);
       expect(recipe.sharedSourceFiles.single.referenceRootPath, second.path);
@@ -337,7 +434,7 @@ void main() {
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 6);
+    expect((recipe.toJson()['settings'] as Map)['version'], 8);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -351,7 +448,7 @@ void main() {
     await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
-    expect(decoded.toJson()['version'], 9);
+    expect(decoded.toJson()['version'], 11);
     expect(decoded.sourceSelection.supplementalRootPaths, [shared.path]);
     expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
@@ -614,8 +711,8 @@ void main() {
       'maxStringCodeUnits': 1048576,
       'maxTextCodeUnits': 25165824,
     });
-    expect(settings['version'], 6);
-    expect(recipe.toJson()['version'], 9);
+    expect(settings['version'], 8);
+    expect(recipe.toJson()['version'], 11);
   });
 
   test('aggregate image budget recipe preserves explicit boundaries and hashes',
@@ -628,7 +725,7 @@ void main() {
       expect(decoded.settings.writeLimits.maxImagePixels, 16777216);
       expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
       expect(decoded.canonicalHash, recipe.canonicalHash);
-      expect((recipe.toJson()['settings'] as Map)['version'], 6);
+      expect((recipe.toJson()['settings'] as Map)['version'], 8);
     }
     final low = connectionRecipe(2,
         writeLimits: const NativeWriteLimits(maxTotalImagePixels: 16777216));
@@ -710,8 +807,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('ordered source recipe emits breaking version 9', () {
-    expect(connectionRecipe(2).toJson()['version'], 9);
+  test('ordered source recipe emits breaking version 11', () {
+    expect(connectionRecipe(2).toJson()['version'], 11);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

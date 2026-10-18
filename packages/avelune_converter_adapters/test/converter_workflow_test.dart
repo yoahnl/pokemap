@@ -332,7 +332,7 @@ void main() {
         ),
       );
       final json = settings.toJson();
-      expect(json['version'], 6);
+      expect(json['version'], 8);
       final write = json['writeLimits'] as Map;
       expect(write['maxImagePixels'], 16777216);
       expect(write['maxTotalImagePixels'], 33554432);

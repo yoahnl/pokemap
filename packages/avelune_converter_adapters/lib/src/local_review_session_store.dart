@@ -374,7 +374,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 8,
+            json['kind'] == 'localReviewSession' && json['version'] == 10,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -396,7 +396,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 8,
+        'version': 10,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),
@@ -1145,6 +1145,7 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits value) => {
       'maxArtifactBytes': value.maxArtifactBytes,
       'maxTotalArtifactBytes': value.maxTotalArtifactBytes,
       'maxTotalDraftJsonBytes': value.maxTotalDraftJsonBytes,
+      'maxDraftEvidenceJsonNodes': value.maxDraftEvidenceJsonNodes,
       'maxImagePixels': value.maxImagePixels,
       'maxTotalImagePixels': value.maxTotalImagePixels,
       'maxMapCells': value.maxMapCells,
@@ -1160,6 +1161,7 @@ NativeWriteLimits _readWriteLimits(Object? value) {
     'maxArtifactBytes',
     'maxTotalArtifactBytes',
     'maxTotalDraftJsonBytes',
+    'maxDraftEvidenceJsonNodes',
     'maxImagePixels',
     'maxTotalImagePixels',
     'maxMapCells',
@@ -1172,6 +1174,9 @@ NativeWriteLimits _readWriteLimits(Object? value) {
       maxArtifactBytes: _integer(json['maxArtifactBytes']),
       maxTotalArtifactBytes: _integer(json['maxTotalArtifactBytes']),
       maxTotalDraftJsonBytes: _integer(json['maxTotalDraftJsonBytes']),
+      maxDraftEvidenceJsonNodes: json['maxDraftEvidenceJsonNodes'] == null
+          ? null
+          : _integer(json['maxDraftEvidenceJsonNodes']),
       maxImagePixels: _integer(json['maxImagePixels']),
       maxTotalImagePixels: _integer(json['maxTotalImagePixels']),
       maxMapCells: _integer(json['maxMapCells']),

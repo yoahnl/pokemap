@@ -252,7 +252,7 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 6,
+        'version': 8,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
@@ -1974,6 +1974,7 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits limits) => {
       'maxArtifactBytes': limits.maxArtifactBytes,
       'maxTotalArtifactBytes': limits.maxTotalArtifactBytes,
       'maxTotalDraftJsonBytes': limits.maxTotalDraftJsonBytes,
+      'maxDraftEvidenceJsonNodes': limits.maxDraftEvidenceJsonNodes,
       'maxImagePixels': limits.maxImagePixels,
       'maxTotalImagePixels': limits.maxTotalImagePixels,
       'maxMapCells': limits.maxMapCells,

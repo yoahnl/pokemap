@@ -29,6 +29,7 @@ const _sourceWorldStudyWriteLimits = NativeWriteLimits(
   maxArtifactBytes: 67108864,
   maxTotalArtifactBytes: 268435456,
   maxTotalDraftJsonBytes: 268435456,
+  maxDraftEvidenceJsonNodes: 8000000,
   maxImagePixels: 16777216,
   maxTotalImagePixels: 41943040,
   maxMapCells: 4194304,
