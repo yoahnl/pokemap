@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "commands": [
+    {
+      "id": "selbrume-seed-check",
+      "criterion": "projectGameplayReadiness",
+      "executable": "dart",
+      "arguments": [
+        "run",
+        "tool/seed_selbrume_canonical_narrative_content.dart",
+        "--check"
+      ],
+      "workingDirectory": "packages/map_editor"
+    },
+    {
+      "id": "host-product-journey",
+      "criterion": "goldenSlice",
+      "executable": "flutter",
+      "arguments": [
+        "test",
+        "test/selbrume_player_journey_e2e_test.dart"
+      ],
+      "workingDirectory": "examples/playable_runtime_host"
+    }
+  ]
+}

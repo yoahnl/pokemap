@@ -17,8 +17,7 @@ class RuntimeDemoSeedToggle extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       title: const Text('Démarrer avec un Pokémon de démo'),
       subtitle: const Text(
-        'Ajoute un Pokémon jouable dans l’équipe initiale.',
-      ),
+        'Ajoute un Pokémon jouable dans l’équipe initiale.'),
       value: value,
       onChanged: onChanged,
     );

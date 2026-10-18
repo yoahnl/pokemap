@@ -1,11 +1,14 @@
 import 'dart:io';
+import 'dart:convert';
+
+import 'package:map_core/map_core.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_driver.dart';
-import 'package:pokemap_loader/src/evaluation/driver/evaluation_game_fixtures.dart';
-import 'package:pokemap_loader/src/evaluation/driver/selbrume_evaluation_driver.dart';
+import '../support/evaluation_game_fixtures.dart';
+import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +16,7 @@ void main() {
   test('attached driver does not dispose the host-owned game', () async {
     final fixture = await _createFixture();
     final services = _RecordingPlayerServiceAutomation();
-    final driver = SelbrumeEvaluationDriver.attach(
+    final driver = RuntimeEvaluationDriver.attach(
       game: fixture.game,
       project: fixture.bundle.manifest,
       projectRoot: Directory(fixture.bundle.projectRootDirectory),
@@ -25,42 +28,59 @@ void main() {
     expect(fixture.game.removeCount, 0);
   });
 
-  test('attached driver delegates player services to the visible host',
-      () async {
-    final fixture = await _createFixture();
-    final services = _RecordingPlayerServiceAutomation();
-    final driver = SelbrumeEvaluationDriver.attach(
-      game: fixture.game,
-      project: fixture.bundle.manifest,
-      projectRoot: Directory(fixture.bundle.projectRootDirectory),
-      services: services,
-    );
-    addTearDown(driver.dispose);
+  test(
+    'attached driver delegates player services to the visible host',
+    () async {
+      final fixture = await _createFixture();
+      final services = _RecordingPlayerServiceAutomation();
+      final driver = RuntimeEvaluationDriver.attach(
+        game: fixture.game,
+        project: fixture.bundle.manifest,
+        projectRoot: Directory(fixture.bundle.projectRootDirectory),
+        services: services,
+      );
+      addTearDown(driver.dispose);
 
-    await driver.inspectShop();
-    await driver.buy('potion', 2);
-    await driver.healParty();
-    await driver.withdrawFromPc('magikarp');
+      await driver.inspectShop(
+        entityId: 'service_port_shop',
+        shopId: 'shop_port_supplies',
+      );
+      await driver.buy(
+        'potion',
+        2,
+        entityId: 'service_port_shop',
+        shopId: 'shop_port_supplies',
+      );
+      await driver.healParty(entityId: 'service_port_healing');
+      await driver.withdrawFromPc('magikarp', entityId: 'service_port_pc');
 
-    expect(
-      services.calls,
-      <String>[
+      expect(services.calls, <String>[
         'shop.inspect',
         'shop.buy:potion:2',
         'heal',
         'pc.withdraw:magikarp',
-      ],
-    );
-  });
+      ]);
+    },
+  );
 }
 
 Future<_AttachedGameFixture> _createFixture() async {
-  final repositoryRoot = _findRepositoryRoot();
-  final projectPath = p.join(repositoryRoot.path, 'selbrume', 'project.json');
-  final bundle = await loadRuntimeMapBundle(
-    projectFilePath: projectPath,
-    mapId: 'map_bourg_selbrume',
-  );
+  final root = await Directory.systemTemp.createTemp('attached-runtime-');
+  addTearDown(() => root.delete(recursive: true));
+  final projectPath = p.join(root.path, 'project.json');
+  const project = ProjectManifest(name: 'Attached project', maps: [
+    ProjectMapEntry(
+        id: 'attached-map', name: 'Attached', relativePath: 'map.json')
+  ], tilesets: []);
+  const map = MapData(
+      id: 'attached-map',
+      name: 'Attached',
+      size: GridSize(width: 2, height: 2));
+  await File(projectPath).writeAsString(jsonEncode(project.toJson()));
+  await File(p.join(root.path, 'map.json'))
+      .writeAsString(jsonEncode(map.toJson()));
+  final bundle =
+      await loadRuntimeMapBundle(projectFilePath: projectPath, mapId: map.id);
   return _AttachedGameFixture(
     bundle: bundle,
     game: _TrackingPlayableMapGame(
@@ -73,10 +93,7 @@ Future<_AttachedGameFixture> _createFixture() async {
 }
 
 final class _AttachedGameFixture {
-  const _AttachedGameFixture({
-    required this.bundle,
-    required this.game,
-  });
+  const _AttachedGameFixture({required this.bundle, required this.game});
 
   final RuntimeMapBundle bundle;
   final _TrackingPlayableMapGame game;
@@ -121,19 +138,5 @@ final class _RecordingPlayerServiceAutomation
   @override
   Future<void> withdrawFromPc(String pokemonId) async {
     calls.add('pc.withdraw:$pokemonId');
-  }
-}
-
-Directory _findRepositoryRoot() {
-  var current = Directory.current.absolute;
-  while (true) {
-    if (File(p.join(current.path, 'AGENTS.md')).existsSync() &&
-        File(p.join(current.path, 'selbrume', 'project.json')).existsSync()) {
-      return current;
-    }
-    if (current.parent.path == current.path) {
-      throw StateError('pokemonProject repository root not found.');
-    }
-    current = current.parent;
   }
 }

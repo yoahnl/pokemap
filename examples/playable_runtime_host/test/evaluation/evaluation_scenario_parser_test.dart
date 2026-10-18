@@ -23,6 +23,8 @@ void main() {
         {
           "id": "buy",
           "command": "service.shop.buy",
+          "entityId": "custom-vendor",
+          "shopId": "custom-shop",
           "itemId": "potion",
           "quantity": 1
         },
@@ -60,8 +62,10 @@ void main() {
     expect(evaluationCommandCatalog, hasLength(50));
     expect(
       evaluationCommandCatalog['service.shop.buy']?.requiredKeys,
-      <String>{'itemId', 'quantity'},
-    );
+      <String>{'itemId', 'quantity',
+      'entityId',
+      'shopId',
+    });
     expect(evaluationCommandCatalog['game.new']?.probeOnly, isFalse);
     expect(
       evaluationCommandCatalog['movement.enterGameplayZone']?.requiredKeys,
@@ -73,8 +77,8 @@ void main() {
     );
     expect(
       evaluationCommandCatalog['battle.resolve']?.requiredKeys,
-      <String>{'strategy'},
-    );
+      <String>{'strategy',
+    });
     expect(evaluationCommandCatalog['probe.goto']?.probeOnly, isTrue);
     expect(evaluationCommandCatalog['bag.give']?.probeOnly, isTrue);
     expect(evaluationCommandCatalog['bag.consume']?.probeOnly, isTrue);
@@ -129,8 +133,7 @@ void main() {
     expect(
       () => parser.parseString(
         _scenarioWith(
-          '{"id":"new","command":"game.new","unexpected":true}',
-        ),
+          '{"id":"new","command":"game.new","unexpected":true}'),
       ),
       throwsA(
         isA<EvaluationScenarioFormatException>().having(

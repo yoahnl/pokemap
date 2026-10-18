@@ -5,56 +5,98 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
-/// Resolves the project shipped inside a macOS `.app` bundle.
-///
-/// The packaged path is always preferred. The development fallback exists
-/// only so `flutter run` can keep using the repository-local Selbrume project.
 final class BundledRuntimeProject {
   const BundledRuntimeProject();
 
-  static const projectDirectoryName = 'selbrume';
+  static const projectDirectoryName = 'runtime-project';
   static const projectFileName = 'project.json';
+  static const bundleManifestFileName = 'runtime-project.json';
 
-  String packagedProjectFilePath(String executablePath) {
-    final macOsDirectory = Directory(p.dirname(p.absolute(executablePath)));
-    final contentsDirectory = macOsDirectory.parent;
-    return p.normalize(
-      p.join(
-        contentsDirectory.path,
-        'Resources',
-        projectDirectoryName,
-        projectFileName,
-      ),
-    );
-  }
+  String packagedProjectFilePath(String executablePath) => p.normalize(
+        p.join(
+          p.dirname(p.dirname(p.absolute(executablePath))),
+          'Resources',
+          projectDirectoryName,
+          projectFileName,
+        ),
+      );
 
   Future<String?> resolve({
     String? executablePath,
-    String? workingDirectory,
     String? developmentProjectRoot,
   }) async {
-    final resolvedExecutable = executablePath ?? Platform.resolvedExecutable;
-    final packaged = File(packagedProjectFilePath(resolvedExecutable));
-    if (await packaged.exists()) return packaged.path;
-
-    final explicitDevelopmentRoot = developmentProjectRoot?.trim();
-    final developmentRoot =
-        explicitDevelopmentRoot != null && explicitDevelopmentRoot.isNotEmpty
-            ? explicitDevelopmentRoot
-            : p.join(
-                workingDirectory ?? Directory.current.path,
-                '..',
-                '..',
-                projectDirectoryName,
-              );
-    final development = File(
+    final resources = p.normalize(
       p.join(
-        p.normalize(p.absolute(developmentRoot)),
-        projectFileName,
+        p.dirname(
+          p.dirname(p.absolute(executablePath ?? Platform.resolvedExecutable)),
+        ),
+        'Resources',
       ),
     );
-    return await development.exists() ? development.path : null;
+    final descriptor = File(p.join(resources, bundleManifestFileName));
+    final type = await FileSystemEntity.type(
+      descriptor.path,
+      followLinks: false,
+    );
+    if (type != FileSystemEntityType.notFound) {
+      if (type != FileSystemEntityType.file) {
+        throw StateError('The runtime bundle manifest must be a regular file.');
+      }
+      final decoded = jsonDecode(await descriptor.readAsString());
+      if (decoded is! Map ||
+          decoded.length != 2 ||
+          decoded['schemaVersion'] != 1 ||
+          decoded['projectFile'] is! String) {
+        throw StateError('Invalid runtime bundle manifest.');
+      }
+      return _safeBundledFile(resources, decoded['projectFile'] as String);
+    }
+    final explicitRoot = developmentProjectRoot?.trim();
+    if (explicitRoot == null || explicitRoot.isEmpty) return null;
+    final file = File(
+      p.join(p.normalize(p.absolute(explicitRoot)), projectFileName),
+    );
+    return await file.exists() ? file.path : null;
   }
+}
+
+Future<String> _safeBundledFile(String root, String relative) async {
+  if (relative.isEmpty ||
+      p.isAbsolute(relative) ||
+      relative.contains('\\') ||
+      relative
+          .split('/')
+          .any((part) => part.isEmpty || part == '.' || part == '..') ||
+      p.basename(relative) != BundledRuntimeProject.projectFileName) {
+    throw StateError(
+      'The bundled project path must be a strict relative project.json path.',
+    );
+  }
+  var current = root;
+  if (await FileSystemEntity.type(root, followLinks: false) !=
+      FileSystemEntityType.directory) {
+    throw StateError(
+      'The runtime resources directory must be a regular directory.',
+    );
+  }
+  final parts = relative.split('/');
+  for (var index = 0; index < parts.length; index++) {
+    current = p.join(current, parts[index]);
+    final expected = index == parts.length - 1
+        ? FileSystemEntityType.file
+        : FileSystemEntityType.directory;
+    if (await FileSystemEntity.type(current, followLinks: false) != expected) {
+      throw StateError(
+        'The bundled project path contains a missing, symbolic or invalid entry.',
+      );
+    }
+  }
+  final canonicalRoot = await Directory(root).resolveSymbolicLinks();
+  final canonicalFile = await File(current).resolveSymbolicLinks();
+  if (!p.isWithin(canonicalRoot, canonicalFile)) {
+    throw StateError('The bundled project escapes its resources directory.');
+  }
+  return current;
 }
 
 final class BundledRuntimeProjectVerification {
@@ -86,9 +128,7 @@ Future<BundledRuntimeProjectVerification> verifyBundledRuntimeProject(
   if (decoded is! Map) {
     throw StateError('Bundled project.json must contain a JSON object.');
   }
-  final project = ProjectManifest.fromJson(
-    Map<String, dynamic>.from(decoded),
-  );
+  final project = ProjectManifest.fromJson(Map<String, dynamic>.from(decoded));
   if (!project.newGame.enabled) {
     throw StateError('Bundled project New Game is disabled.');
   }
@@ -106,36 +146,20 @@ Future<BundledRuntimeProjectVerification> verifyBundledRuntimeProject(
   final requiredPaths = <String>{
     BundledRuntimeProject.projectFileName,
     p.posix.normalize(startEntry.single.relativePath.replaceAll(r'\', '/')),
-    'data/pokemon/catalogs/items.json',
-    'data/pokemon/catalogs/moves.json',
   };
   for (final relativePath in requiredPaths) {
-    final file = File(p.join(projectRoot.path, relativePath));
+    final normalized = p.normalize(relativePath);
+    if (p.isAbsolute(relativePath) ||
+        normalized == '..' ||
+        normalized.startsWith('../') ||
+        relativePath.contains(r'\')) {
+      throw StateError('Invalid bundled project reference: $relativePath');
+    }
+    final file = File(p.join(projectRoot.path, normalized));
     if (!await file.exists()) {
       throw StateError('Bundled project file is missing: $relativePath');
     }
   }
-  requiredPaths.add(
-    await _requireFirstFile(
-      projectRoot,
-      relativeDirectory: 'dialogues',
-      extension: '.yarn',
-    ),
-  );
-  requiredPaths.add(
-    await _requireFirstFile(
-      projectRoot,
-      relativeDirectory: 'data/pokemon/species',
-      extension: '.json',
-    ),
-  );
-  requiredPaths.add(
-    await _requireFirstFile(
-      projectRoot,
-      relativeDirectory: 'assets',
-    ),
-  );
-
   final startMapFile = File(
     p.join(projectRoot.path, startEntry.single.relativePath),
   );
@@ -143,9 +167,7 @@ Future<BundledRuntimeProjectVerification> verifyBundledRuntimeProject(
   if (startMapDecoded is! Map) {
     throw StateError('Bundled start map must contain a JSON object.');
   }
-  final startMap = MapData.fromJson(
-    Map<String, dynamic>.from(startMapDecoded),
-  );
+  final startMap = MapData.fromJson(Map<String, dynamic>.from(startMapDecoded));
   final newGame = createNewGameStateFromProject(
     project: project,
     startMap: startMap,
@@ -194,40 +216,5 @@ Future<BundledRuntimeProjectVerification> verifyBundledRuntimeProject(
     mapCount: project.maps.length,
     newGameSaveReloadPassed: saveReloadPassed,
     requiredRelativePaths: orderedPaths,
-  );
-}
-
-Future<String> _requireFirstFile(
-  Directory root, {
-  required String relativeDirectory,
-  String? extension,
-}) async {
-  final directory = Directory(p.join(root.path, relativeDirectory));
-  if (!await directory.exists()) {
-    throw StateError(
-      'Bundled project directory is missing: $relativeDirectory',
-    );
-  }
-  final files = <File>[];
-  await for (final entity in directory.list(
-    recursive: true,
-    followLinks: false,
-  )) {
-    if (entity is! File) continue;
-    if (extension != null &&
-        !entity.path.toLowerCase().endsWith(extension.toLowerCase())) {
-      continue;
-    }
-    files.add(entity);
-  }
-  if (files.isEmpty) {
-    throw StateError(
-      'Bundled project directory contains no required file: '
-      '$relativeDirectory${extension ?? ''}',
-    );
-  }
-  files.sort((left, right) => left.path.compareTo(right.path));
-  return p.posix.normalize(
-    p.relative(files.first.path, from: root.path).replaceAll(r'\', '/'),
   );
 }

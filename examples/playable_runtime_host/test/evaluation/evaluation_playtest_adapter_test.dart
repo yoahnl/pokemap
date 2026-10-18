@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_state_snapshot.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_playtest_adapter.dart';
-import 'package:pokemap_loader/src/evaluation/driver/selbrume_evaluation_driver.dart';
+import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -74,7 +74,7 @@ void main() {
 
   test('canonical port drives interactions on an isolated Selbrume QA copy',
       () async {
-    late SelbrumeEvaluationDriver runtimeDriver;
+    late RuntimeEvaluationDriver runtimeDriver;
     final sourceRoot =
         Directory(p.join(_findRepositoryRoot().path, 'selbrume'));
     final sourceRevision = await computeEvaluationProjectRevision(sourceRoot);
@@ -108,7 +108,7 @@ void main() {
         projectRoot: projectRoot,
         driverFactory: ({required runId, required seed}) async {
           expect(seed, 0);
-          runtimeDriver = await SelbrumeEvaluationDriver.start(
+          runtimeDriver = await RuntimeEvaluationDriver.start(
             projectRoot: projectRoot,
             runId: runId,
           );

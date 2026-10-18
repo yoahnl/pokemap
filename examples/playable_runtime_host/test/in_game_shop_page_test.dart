@@ -7,8 +7,43 @@ import 'package:pokemap_loader/src/in_game_shop_page.dart';
 final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 
 void main() {
+  for (final label in ['Infusion Alpha', 'Élixir Beta']) {
+    testWidgets('shop uses authored item label $label', (tester) async {
+      final catalog = ItemCatalogSnapshot.fromCatalog(
+        ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            const ProjectItemDefinition(
+              id: 'potion',
+              displayName: 'placeholder',
+              pocketId: 'medicine',
+            ).copyWith(displayName: label),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: InGameShopPage(
+            gameState: _state(money: 1000),
+            itemCatalog: catalog,
+            shops: const [
+              ShopDefinition(
+                id: 'custom-shop',
+                label: 'Custom',
+                entries: [ShopEntryDefinition(itemId: 'potion', price: 10)],
+              ),
+            ],
+            onStateCommitted: (_) async {},
+          ),
+        ),
+      );
+      expect(find.text(label), findsOneWidget);
+      expect(find.text('Potion'), findsNothing);
+    });
+  }
   testWidgets('buys an authored item and shows money and remaining stock',
-      (tester) async {
+      (tester,
+  ) async {
     var committed = _state(money: 1000);
     await tester.pumpWidget(
       MaterialApp(
@@ -41,7 +76,8 @@ void main() {
   });
 
   testWidgets('shows typed purchase failure without changing state',
-      (tester) async {
+      (tester,
+  ) async {
     final initial = _state(money: 100);
     var committed = initial;
     await tester.pumpWidget(
@@ -71,11 +107,11 @@ void main() {
   });
 
   testWidgets('renders the resolved dynamic catalogue and storefront message',
-      (tester) async {
+      (tester,
+  ) async {
     final initial = _state(
       money: 1000,
-      flags: const <String>{'lysa_defeated'},
-    );
+      flags: const <String>{'lysa_defeated'});
     await tester.pumpWidget(
       MaterialApp(
         home: InGameShopPage(
@@ -120,11 +156,11 @@ void main() {
   });
 
   testWidgets('refreshes instead of committing a stale catalogue purchase',
-      (tester) async {
+      (tester,
+  ) async {
     var latest = _state(
       money: 1000,
-      flags: const <String>{'lysa_defeated'},
-    );
+      flags: const <String>{'lysa_defeated'});
     var commits = 0;
     await tester.pumpWidget(
       MaterialApp(
@@ -156,8 +192,7 @@ void main() {
 
 GameState _state({
   required int money,
-  Set<String> flags = const <String>{},
-}) =>
+  Set<String> flags = const <String>{}}) =>
     GameState(
       saveId: 'shop-ui',
       trainerProfile: TrainerProfile(name: 'Leaf', money: money),

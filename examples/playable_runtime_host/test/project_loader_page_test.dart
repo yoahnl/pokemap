@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_loader/src/runtime_launch_options.dart';
+import 'support/runtime_launch_options.dart';
 
 void main() {
   testWidgets('shows the demo pokemon launch option enabled by default',

@@ -10,7 +10,7 @@ Future<void> main(List<String> arguments) async {
   try {
     final options = _Options.parse(arguments);
     if (!Platform.isMacOS) {
-      throw UnsupportedError('The Selbrume package is macOS-only.');
+      throw UnsupportedError('The Runtime host package is macOS-only.');
     }
     final hostRoot = Directory.current.absolute;
     final projectRoot = Directory(options.projectRoot);
@@ -25,10 +25,13 @@ Future<void> main(List<String> arguments) async {
 
     if (!options.skipBuild) {
       await _run(
-        'flutter',
-        <String>['build', 'macos', '--${options.mode}'],
-        workingDirectory: hostRoot.path,
-      );
+          'flutter',
+          <String>[
+            'build',
+            'macos',
+            '--${options.mode}',
+          ],
+          workingDirectory: hostRoot.path);
     }
 
     final appBundle = Directory(
@@ -40,19 +43,14 @@ Future<void> main(List<String> arguments) async {
             'Build',
             'Products',
             _configurationDirectory(options.mode),
-            'PokeMap Selbrume.app',
+            'PokeMapRuntimeHost.app',
           ),
     );
     if (!await appBundle.exists()) {
       throw StateError('Built application is missing: ${appBundle.path}');
     }
     final executable = File(
-      p.join(
-        appBundle.path,
-        'Contents',
-        'MacOS',
-        'PokeMap Selbrume',
-      ),
+      p.join(appBundle.path, 'Contents', 'MacOS', 'PokeMapRuntimeHost'),
     );
     if (!await executable.exists()) {
       throw StateError('Built executable is missing: ${executable.path}');
@@ -69,18 +67,26 @@ Future<void> main(List<String> arguments) async {
       source: projectRoot,
       destination: bundledProjectRoot,
     );
+    await File(
+      p.join(resources.path, BundledRuntimeProject.bundleManifestFileName),
+    ).writeAsString(
+      jsonEncode({
+        'schemaVersion': 1,
+        'projectFile':
+            '${BundledRuntimeProject.projectDirectoryName}/${BundledRuntimeProject.projectFileName}',
+      }),
+      flush: true,
+    );
     final verification = await verifyBundledRuntimeProject(
-      p.join(
-        bundledProjectRoot.path,
-        BundledRuntimeProject.projectFileName,
-      ),
+      p.join(bundledProjectRoot.path, BundledRuntimeProject.projectFileName),
     );
     final repositoryRoot = Directory(
       p.normalize(p.join(hostRoot.path, '..', '..')),
     );
     final releaseCandidateCommit = await _gitHead(repositoryRoot);
-    final projectTreeHash =
-        await const ProjectTreeDigest().compute(projectRoot);
+    final projectTreeHash = await const ProjectTreeDigest().compute(
+      projectRoot,
+    );
     final applicationArchitectures = await _binaryArchitectures(executable);
     await _writeJson(
       File(p.join(resources.path, 'pokemap_release_manifest.json')),
@@ -98,42 +104,49 @@ Future<void> main(List<String> arguments) async {
     );
 
     await _run(
-      '/usr/bin/codesign',
-      <String>['--force', '--deep', '--sign', '-', appBundle.path],
-      workingDirectory: hostRoot.path,
-    );
+        '/usr/bin/codesign',
+        <String>[
+          '--force',
+          '--deep',
+          '--sign',
+          '-',
+          appBundle.path,
+        ],
+        workingDirectory: hostRoot.path);
     await _run(
-      '/usr/bin/codesign',
-      <String>['--verify', '--deep', '--strict', '--verbose=2', appBundle.path],
-      workingDirectory: hostRoot.path,
-    );
+        '/usr/bin/codesign',
+        <String>[
+          '--verify',
+          '--deep',
+          '--strict',
+          '--verbose=2',
+          appBundle.path,
+        ],
+        workingDirectory: hostRoot.path);
 
     final outputDirectory = Directory(options.outputDirectory);
     await outputDirectory.create(recursive: true);
     final archive = File(
-      p.join(outputDirectory.path, 'selbrume-macos.zip'),
+      p.join(outputDirectory.path, 'runtime-host-macos.zip'),
     );
     if (await archive.exists()) await archive.delete();
     await _run(
-      '/usr/bin/ditto',
-      <String>[
-        '-c',
-        '-k',
-        '--keepParent',
-        appBundle.path,
-        archive.path,
-      ],
-      workingDirectory: hostRoot.path,
-    );
+        '/usr/bin/ditto',
+        <String>[
+          '-c',
+          '-k',
+          '--keepParent',
+          appBundle.path,
+          archive.path,
+        ],
+        workingDirectory: hostRoot.path);
     final archiveHash =
         (await sha256.bind(archive.openRead()).first).toString();
     final archiveBytes = await archive.length();
-    await File(p.join(outputDirectory.path, 'selbrume-macos.sha256'))
+    await File(p.join(outputDirectory.path, 'runtime-host-macos.sha256'))
         .writeAsString('$archiveHash  ${p.basename(archive.path)}\n');
     await _writeJson(
-      File(
-        p.join(outputDirectory.path, 'selbrume-macos.manifest.json'),
-      ),
+      File(p.join(outputDirectory.path, 'runtime-host-macos.manifest.json')),
       <String, Object?>{
         'schemaVersion': 1,
         'releaseCandidateCommit': releaseCandidateCommit,
@@ -160,7 +173,7 @@ Future<void> main(List<String> arguments) async {
     );
   } on Object catch (error, stackTrace) {
     stderr
-      ..writeln('Selbrume macOS packaging failed: $error')
+      ..writeln('Runtime host macOS packaging failed: $error')
       ..writeln(stackTrace);
     exitCode = 1;
   }
@@ -204,10 +217,12 @@ bool _excludedProjectPath(String relativePath) {
 
 Future<String> _gitHead(Directory repositoryRoot) async {
   final result = await Process.run(
-    'git',
-    const <String>['rev-parse', 'HEAD'],
-    workingDirectory: repositoryRoot.path,
-  );
+      'git',
+      const <String>[
+        'rev-parse',
+        'HEAD',
+      ],
+      workingDirectory: repositoryRoot.path);
   if (result.exitCode != 0) {
     throw StateError('Unable to resolve release candidate commit.');
   }
@@ -215,10 +230,10 @@ Future<String> _gitHead(Directory repositoryRoot) async {
 }
 
 Future<List<String>> _binaryArchitectures(File executable) async {
-  final result = await Process.run(
-    '/usr/bin/lipo',
-    <String>['-archs', executable.path],
-  );
+  final result = await Process.run('/usr/bin/lipo', <String>[
+    '-archs',
+    executable.path,
+  ]);
   if (result.exitCode != 0) {
     throw StateError('Unable to inspect packaged application architectures.');
   }
@@ -238,9 +253,7 @@ Future<void> _run(
   List<String> arguments, {
   required String workingDirectory,
 }) async {
-  stdout.writeln(
-    'package: $executable ${arguments.map(_shellWord).join(' ')}',
-  );
+  stdout.writeln('package: $executable ${arguments.map(_shellWord).join(' ')}');
   final process = await Process.start(
     executable,
     arguments,
@@ -297,7 +310,7 @@ final class _Options {
   final String? appBundlePath;
 
   static _Options parse(List<String> arguments) {
-    var projectRoot = p.join('..', '..', 'selbrume');
+    String? projectRoot;
     var outputDirectory = p.join('build', 'mvp-release');
     var mode = 'release';
     var skipBuild = false;
@@ -319,6 +332,9 @@ final class _Options {
         default:
           throw ArgumentError('Unknown argument: ${arguments[index]}');
       }
+    }
+    if (projectRoot == null || projectRoot.trim().isEmpty) {
+      throw ArgumentError('--project is required.');
     }
     return _Options(
       projectRoot: p.normalize(p.absolute(projectRoot)),

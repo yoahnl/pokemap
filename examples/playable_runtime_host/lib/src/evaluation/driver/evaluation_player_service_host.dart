@@ -44,7 +44,7 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
       conditionContext: request.conditionContext,
     );
     if (!purchase.isSuccess) {
-      throw StateError('Selbrume shop purchase failed: ${purchase.failure}.');
+      throw StateError('shop purchase failed: ${purchase.failure}.');
     }
     purchasedItemIds.add(itemId);
     return PlayerServiceHostResult.completed(purchase.state);
@@ -59,7 +59,8 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
     _withdrawCapturedPokemonOnNextPcOpen = false;
     final storage = request.gameState.pokemonStorage.normalized();
     final box =
-        storage.boxes.firstWhere((candidate) => candidate.pokemon.isNotEmpty);
+        storage.boxes.firstWhere((candidate) => candidate.pokemon.isNotEmpty,
+    );
     final capturedSpeciesId = box.pokemon.first.speciesId;
     const operations = PlayerStorageOperations();
     final deposit = operations.deposit(
@@ -68,7 +69,7 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
       boxId: box.id,
     );
     if (!deposit.isSuccess) {
-      throw StateError('Selbrume PC deposit failed: ${deposit.failure}.');
+      throw StateError('PC deposit failed: ${deposit.failure}.');
     }
     final withdrawal = operations.withdraw(
       state: deposit.state,
@@ -76,7 +77,7 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
       boxIndex: 0,
     );
     if (!withdrawal.isSuccess) {
-      throw StateError('Selbrume PC withdrawal failed: ${withdrawal.failure}.');
+      throw StateError('PC withdrawal failed: ${withdrawal.failure}.');
     }
     withdrawnSpeciesId = capturedSpeciesId;
     return PlayerServiceHostResult.completed(withdrawal.state);

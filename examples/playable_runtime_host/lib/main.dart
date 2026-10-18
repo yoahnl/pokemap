@@ -24,13 +24,10 @@ import 'src/bundled_runtime_project.dart';
 import 'src/evaluation/interactive/interactive_evaluation_bridge.dart';
 import 'src/evaluation/interactive/interactive_evaluation_config.dart';
 import 'src/evaluation/interactive/player_service_automation_port.dart';
-import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_gamepad_presence.dart';
 import 'src/runtime_ios_project_picker.dart';
 import 'src/runtime_launch_save.dart';
-import 'src/runtime_launch_options.dart';
-import 'src/runtime_party_builder.dart';
 import 'src/runtime_player_options.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
@@ -98,10 +95,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   RuntimePlayerOptions _playerOptions = const RuntimePlayerOptions();
   bool _hasConnectedGamepad = false;
   bool _surfingEnabled = false;
-  bool _seedDemoPokemon = true;
-  List<RuntimePartyBuilderPokemonOption> _partyBuilderOptions = const [];
-  List<RuntimeDemoPartyPokemonSeed> _manualPartyMembers = const [];
-  String? _partyBuilderError;
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
   String? _saveLoadError;
@@ -264,7 +257,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     if (initialProjectFilePath != null) {
       _projectFilePath = initialProjectFilePath;
       await _loadProjectMapsFromManifest(initialProjectFilePath);
-      await _loadPartyBuilderOptions(initialProjectFilePath);
       if (mounted) await _launchSelectedProject();
       return;
     }
@@ -304,7 +296,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
               savedProjectPath,
               preferredMapId: savedMapId,
             );
-            await _loadPartyBuilderOptions(savedProjectPath);
             return;
           }
         }
@@ -335,7 +326,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       _selectedMapId = null;
     });
     await _loadProjectMapsFromManifest(projectFile.path);
-    await _loadPartyBuilderOptions(projectFile.path);
     if (!mounted || _selectedMapId == null) return;
     await _load();
   }
@@ -368,7 +358,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       _selectedMapId = null;
     });
     await _loadProjectMapsFromManifest(bundledProject);
-    await _loadPartyBuilderOptions(bundledProject);
   }
 
   // Host session and presentation options remain local preferences, never
@@ -452,62 +441,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     }
   }
 
-  Future<void> _loadPartyBuilderOptions(String projectFilePath) async {
-    try {
-      final options = await loadRuntimeHostPartyBuilderOptions(
-        projectFilePath: projectFilePath,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _partyBuilderOptions = options;
-        _partyBuilderError = null;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _partyBuilderOptions = const [];
-        _partyBuilderError = 'Pokemon indisponibles: $e';
-      });
-    }
-  }
-
-  void _addManualPartyMember(RuntimeDemoPartyPokemonSeed member) {
-    if (_manualPartyMembers.length >= kRuntimeDemoMaxPartySize) {
-      return;
-    }
-    setState(() {
-      _manualPartyMembers = <RuntimeDemoPartyPokemonSeed>[
-        ..._manualPartyMembers,
-        member,
-      ];
-    });
-  }
-
-  void _removeManualPartyMember(int index) {
-    if (index < 0 || index >= _manualPartyMembers.length) {
-      return;
-    }
-    final nextMembers = List<RuntimeDemoPartyPokemonSeed>.of(
-      _manualPartyMembers,
-    )..removeAt(index);
-    setState(() => _manualPartyMembers = List.unmodifiable(nextMembers));
-  }
-
-  RuntimeDemoPartySeed? _buildManualPartySeed() {
-    if (_manualPartyMembers.isEmpty) {
-      return null;
-    }
-    return RuntimeDemoPartySeed(
-      members: List<RuntimeDemoPartyPokemonSeed>.unmodifiable(
-        _manualPartyMembers.take(kRuntimeDemoMaxPartySize),
-      ),
-    );
-  }
-
   // Le ticker force un refresh léger de l'overlay runtime pour afficher
   // les informations de debug et de save qui évoluent pendant la session.
   void _startRuntimeInfoTicker() {
@@ -580,12 +513,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       setState(() {
         _projectFilePath = projectJsonPath;
         _error = null;
-        _partyBuilderOptions = const [];
-        _manualPartyMembers = const [];
-        _partyBuilderError = null;
       });
       await _loadProjectMapsFromManifest(projectJsonPath);
-      await _loadPartyBuilderOptions(projectJsonPath);
       await _persistLastSession();
       _runtimeHostLog(
         'project picker completed projectJsonPath=$_projectFilePath',
@@ -685,46 +614,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       reportProgress?.call(
         const GameSessionLoadingProgress(stage: 'world', current: 2, total: 4),
       );
-      // Phase A privilégie un vrai état joueur versionné quand le projet en
-      // fournit un. Le seed de démo historique reste un fallback pratique pour
-      // les projets génériques qui n'ont pas encore de save de lancement.
-      final allowsSyntheticLaunchSeed = allowsRuntimeHostSyntheticLaunchSeed(
-        newGame: bundle.manifest.newGame,
-        versionedLaunchSave: launchSaveData,
-      );
-      final selectedManualPartySeed = allowsSyntheticLaunchSeed
-          ? _buildManualPartySeed()
-          : null;
-      _runtimeHostLog(
-        'party seed source=${selectedManualPartySeed == null ? 'auto/demo' : 'manual'} seedDemoPokemon=$_seedDemoPokemon syntheticAllowed=$allowsSyntheticLaunchSeed',
-      );
-      final launchDemoSeed =
-          selectedManualPartySeed == null && allowsSyntheticLaunchSeed
-          ? await buildRuntimeHostLaunchDemoPartySeed(
-              seedDemoPokemon: _seedDemoPokemon,
-              projectFilePath: projectFilePath,
-            )
-          : null;
-      if (!mounted) {
-        throw StateError('The runtime host closed before the map was ready.');
-      }
-      final launchSaveOverride = selectedManualPartySeed == null
-          ? null
-          : buildRuntimeHostLaunchDemoSaveData(
-              mapId: mapId,
-              seed: selectedManualPartySeed,
-            );
-      final demoLaunchFallback = launchDemoSeed == null
-          ? null
-          : buildRuntimeHostLaunchDemoSaveData(
-              mapId: mapId,
-              seed: launchDemoSeed,
-            );
       final launchPlan = resolveRuntimeHostLaunchPlan(
         newGame: bundle.manifest.newGame,
         versionedLaunchSave: launchSaveData,
-        manualLaunchOverride: launchSaveOverride,
-        demoLaunchFallback: demoLaunchFallback,
       );
       final initialTilesetImageCache = reusesPreloadedInitialMap
           ? preloadedInitialMap?.takeTilesetImageCache()
@@ -1721,25 +1613,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
                         _persistLastSession();
                       },
               ),
-            const SizedBox(height: 16),
-            RuntimeDemoSeedToggle(
-              value: _seedDemoPokemon,
-              onChanged: _loading
-                  ? null
-                  : (value) => setState(() => _seedDemoPokemon = value),
-            ),
-            const SizedBox(height: 16),
-            RuntimePartyBuilderPanel(
-              options: _partyBuilderOptions,
-              members: _manualPartyMembers,
-              enabled: !_loading,
-              onAdd: _addManualPartyMember,
-              onRemove: _removeManualPartyMember,
-            ),
-            if (_partyBuilderError != null) ...[
-              const SizedBox(height: 8),
-              _ErrorBanner(message: _partyBuilderError!),
-            ],
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _loading ? null : _launchSelectedProject,

@@ -63,7 +63,8 @@
     },
     {
       "id": "heal-party",
-      "command": "service.heal"
+      "command": "service.heal",
+      "entityId": "service_port_healing"
     },
     {
       "id": "assert-party-healed",

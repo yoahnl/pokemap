@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_loader/src/evaluation/driver/evaluation_game_fixtures.dart';
+import '../support/evaluation_game_fixtures.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_player_service_host.dart';
 
 void main() {

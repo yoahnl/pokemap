@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -25,6 +26,53 @@ final class MvpReleaseCommandSpec {
 
   String get displayCommand =>
       '$executable ${arguments.map(_shellWord).join(' ')}';
+}
+
+Future<List<MvpReleaseCommandSpec>> loadMvpReleaseFixtureCommands(
+  String manifestPath,
+  String repositoryRoot,
+) async {
+  final decoded = jsonDecode(await File(manifestPath).readAsString());
+  if (decoded is! Map ||
+      decoded['schemaVersion'] != 1 ||
+      decoded['commands'] is! List) {
+    throw const FormatException('Invalid release fixture commands manifest.');
+  }
+  final commands = <MvpReleaseCommandSpec>[];
+  final ids = <String>{};
+  for (final raw in decoded['commands'] as List) {
+    if (raw is! Map ||
+        raw['id'] is! String ||
+        raw['criterion'] is! String ||
+        raw['executable'] is! String ||
+        raw['arguments'] is! List ||
+        (raw['arguments'] as List).any((value) => value is! String) ||
+        raw['workingDirectory'] is! String) {
+      throw const FormatException('Invalid release fixture command.');
+    }
+    final relative = raw['workingDirectory'] as String;
+    final directory = p.normalize(p.join(repositoryRoot, relative));
+    if (p.isAbsolute(relative) ||
+        (!p.isWithin(repositoryRoot, directory) &&
+            directory != repositoryRoot) ||
+        !ids.add(raw['id'] as String)) {
+      throw const FormatException(
+        'Invalid release fixture command scope or duplicate id.',
+      );
+    }
+    commands.add(
+      MvpReleaseCommandSpec(
+        id: raw['id'] as String,
+        criterion: MvpReleaseGateCriterion.values.byName(
+          raw['criterion'] as String,
+        ),
+        executable: raw['executable'] as String,
+        arguments: List<String>.from(raw['arguments'] as List),
+        workingDirectory: directory,
+      ),
+    );
+  }
+  return List.unmodifiable(commands);
 }
 
 final class MvpReleaseCommandResult {
@@ -127,7 +175,10 @@ final class MvpReleaseCommandMatrix {
     );
   }
 
-  factory MvpReleaseCommandMatrix.full(String repositoryRoot) {
+  factory MvpReleaseCommandMatrix.full(
+    String repositoryRoot, {
+    List<MvpReleaseCommandSpec> fixtureCommands = const [],
+  }) {
     final root = p.normalize(p.absolute(repositoryRoot));
     return MvpReleaseCommandMatrix(
       mode: MvpReleaseCommandMode.full,
@@ -138,11 +189,7 @@ final class MvpReleaseCommandMatrix {
           packagePath: 'packages/map_core',
           criterion: MvpReleaseGateCriterion.projectGameplayReadiness,
         ),
-        _analyze(
-          root,
-          id: 'core-analyze',
-          packagePath: 'packages/map_core',
-        ),
+        _analyze(root, id: 'core-analyze', packagePath: 'packages/map_core'),
         _dartTest(
           root,
           id: 'gameplay-tests',
@@ -250,24 +297,7 @@ final class MvpReleaseCommandMatrix {
           criterion: MvpReleaseGateCriterion.goldenSlice,
           tests: const ['test/phase_a_golden_slice_launch_test.dart'],
         ),
-        MvpReleaseCommandSpec(
-          id: 'selbrume-seed-check',
-          criterion: MvpReleaseGateCriterion.projectGameplayReadiness,
-          executable: 'dart',
-          arguments: const [
-            'run',
-            'tool/seed_selbrume_canonical_narrative_content.dart',
-            '--check',
-          ],
-          workingDirectory: p.join(root, 'packages/map_editor'),
-        ),
-        _flutterTest(
-          root,
-          id: 'host-product-journey',
-          packagePath: 'examples/playable_runtime_host',
-          criterion: MvpReleaseGateCriterion.goldenSlice,
-          tests: const ['test/selbrume_player_journey_e2e_test.dart'],
-        ),
+        ...fixtureCommands,
         _dartTest(
           root,
           id: 'roadmap-release-contracts',

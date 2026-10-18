@@ -19,16 +19,14 @@ const _preferredRuntimeDemoSpeciesIds = <String>[
   'squirtle',
   'carapuce',
   'mew',
-  'dratini'
+  'dratini',
 ];
 const _avoidRuntimeDemoSpeciesIds = <String>{
-  'abra',
-};
+  'abra'};
 
 class RuntimeDemoPartySeed {
   const RuntimeDemoPartySeed({
-    required this.members,
-  });
+    required this.members});
 
   final List<RuntimeDemoPartyPokemonSeed> members;
 }
@@ -153,7 +151,8 @@ Future<List<RuntimePartyBuilderPokemonOption>>
   options.sort((left, right) {
     final byName = left.displayName
         .toLowerCase()
-        .compareTo(right.displayName.toLowerCase());
+        .compareTo(right.displayName.toLowerCase(),
+    );
     if (byName != 0) {
       return byName;
     }
@@ -420,8 +419,7 @@ Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
 
   final allMoveIds = _deriveAvailableMoveIds(
     learnsetJson,
-    maxLevel: 100,
-  );
+    maxLevel: 100);
   final moveDiagnostics = _inspectBattleBridgeMoves(
     allMoveIds,
     moveCatalog: moveCatalog,
@@ -513,8 +511,7 @@ String? _readPrimaryAbilityId(Map<String, dynamic> speciesJson) {
 
 String? _resolveSeedGender(
   Map<String, dynamic> speciesJson,
-  String speciesId,
-) {
+  String speciesId) {
   final breeding = speciesJson['breeding'];
   final genderRatio =
       (breeding is Map<String, dynamic> ? breeding['genderRatio'] : null);
@@ -689,8 +686,7 @@ List<String> _readStringList(Object? raw) {
 
 List<String> _readLevelUpMoveIds(
   Object? raw, {
-  required int level,
-}) {
+  required int level}) {
   if (raw is! List) {
     return const <String>[];
   }

@@ -10,76 +10,33 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('resolveRuntimeHostLaunchPlan', () {
-    const versionedSave = SaveData(saveId: 'versioned');
-    const manualSeed = SaveData(saveId: 'manual-seed');
-    const demoSeed = SaveData(saveId: 'demo-seed');
-
-    test('versioned save stays ahead of project New Game and host seeds', () {
+    test('an explicit save restores the selected project', () {
+      const save = SaveData(saveId: 'explicit');
       final plan = resolveRuntimeHostLaunchPlan(
         newGame: const ProjectNewGameConfig(enabled: true),
-        versionedLaunchSave: versionedSave,
-        manualLaunchOverride: manualSeed,
-        demoLaunchFallback: demoSeed,
+        versionedLaunchSave: save,
       );
 
-      expect(plan.saveData, same(versionedSave));
+      expect(plan.saveData, same(save));
       expect(plan.initialMapActivationReason, MapActivationReason.saveRestore);
-      expect(
-        allowsRuntimeHostSyntheticLaunchSeed(
-          newGame: const ProjectNewGameConfig(enabled: true),
-          versionedLaunchSave: versionedSave,
-        ),
-        isFalse,
-      );
     });
 
-    test('project New Game is not replaced by manual or demo host seeds', () {
+    test('configured New Game owns fresh state', () {
       final plan = resolveRuntimeHostLaunchPlan(
         newGame: const ProjectNewGameConfig(enabled: true),
         versionedLaunchSave: null,
-        manualLaunchOverride: manualSeed,
-        demoLaunchFallback: demoSeed,
       );
 
       expect(plan.saveData, isNull);
       expect(plan.initialMapActivationReason, MapActivationReason.initialBoot);
-      expect(
-        allowsRuntimeHostSyntheticLaunchSeed(
-          newGame: const ProjectNewGameConfig(enabled: true),
-          versionedLaunchSave: null,
-        ),
-        isFalse,
-      );
     });
-
-    test('legacy projects preserve manual then demo seed fallbacks', () {
-      const legacyNewGame = ProjectNewGameConfig();
-
-      final manualPlan = resolveRuntimeHostLaunchPlan(
-        newGame: legacyNewGame,
-        versionedLaunchSave: null,
-        manualLaunchOverride: manualSeed,
-        demoLaunchFallback: demoSeed,
-      );
-      final demoPlan = resolveRuntimeHostLaunchPlan(
-        newGame: legacyNewGame,
-        versionedLaunchSave: null,
-        manualLaunchOverride: null,
-        demoLaunchFallback: demoSeed,
-      );
-
-      expect(manualPlan.saveData, same(manualSeed));
-      expect(demoPlan.saveData, same(demoSeed));
-      expect(manualPlan.initialMapActivationReason,
-          MapActivationReason.initialBoot);
+    test('an unconfigured project never receives a synthetic state', () {
       expect(
-          demoPlan.initialMapActivationReason, MapActivationReason.initialBoot);
-      expect(
-        allowsRuntimeHostSyntheticLaunchSeed(
-          newGame: legacyNewGame,
+        () => resolveRuntimeHostLaunchPlan(
+          newGame: const ProjectNewGameConfig(),
           versionedLaunchSave: null,
         ),
-        isTrue,
+        throwsStateError,
       );
     });
   });
@@ -116,6 +73,7 @@ void main() {
       await File('${root.path}/$kRuntimeHostLaunchSaveFileName').writeAsString(
         const JsonEncoder.withIndent('  ').convert(<String, dynamic>{
           'itemSystemSchemaVersion': 1,
+          ...const SaveData(saveId: 'fixture').toJson(),
           'saveId': 'phase-a-save',
           'currentMapId': 'golden_field',
           'playerPosition': <String, int>{'x': 1, 'y': 1},

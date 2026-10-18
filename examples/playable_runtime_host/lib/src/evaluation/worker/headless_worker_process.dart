@@ -33,9 +33,7 @@ final class HeadlessWorkerProcess {
   final Directory packageRoot;
   final WorkerStderrSink stderrSink;
 
-  Future<EvaluationWorkerResult> run(
-    EvaluationWorkerRequest request,
-  ) async {
+  Future<EvaluationWorkerResult> run(EvaluationWorkerRequest request) async {
     final outputDirectory = Directory(
       p.join(hostRoot.path, request.outputDirectory),
     );
@@ -120,9 +118,25 @@ Future<void> _writeJsonAtomically(
 }
 
 Directory _discoverHostRoot() {
-  final current = Directory.current.absolute;
-  if (File(p.join(current.path, 'selbrume', 'project.json')).existsSync()) {
-    return current;
+  var current = Directory.current.absolute;
+  while (true) {
+    if (File(p.join(current.path, 'packages', 'map_core', 'pubspec.yaml'))
+            .existsSync() &&
+        File(
+          p.join(
+            current.path,
+            'examples',
+            'playable_runtime_host',
+            'pubspec.yaml',
+          ),
+        ).existsSync()) {
+      return current;
+    }
+    if (current.parent.path == current.path) {
+      throw StateError(
+        'Unable to locate the PokeMap repository root. Supply hostRoot explicitly.',
+      );
+    }
+    current = current.parent;
   }
-  return Directory(p.normalize(p.join(current.path, '..', '..')));
 }

@@ -107,22 +107,22 @@ final class EvaluationCommandDispatcher {
       'battle.chooseMove' => driver.chooseBattleMove(
           values.requireNonNegativeInt('moveIndex'),
         ),
-      'battle.useItem' => driver.useBattleItem(
-          values.requireString('itemId'),
-        ),
+      'battle.useItem' => driver.useBattleItem(values.requireString('itemId')),
       'battle.capture' => driver.attemptCapture(),
       'battle.run' => driver.runFromBattle(),
       'battle.completePostBattle' => driver.completePostBattle(),
       'battle.resolve' => driver.resolveBattle(
           values.requireString('strategy'),
         ),
-      'battle.switch' => _battle(driver, operation).switchBattlePokemon(
-          values.requireNonNegativeInt('partyIndex'),
-        ),
-      'battle.chooseProgression' =>
-        _battle(driver, operation).chooseBattleProgression(
-          values.requireNonNegativeInt('decisionIndex'),
-        ),
+      'battle.switch' => _battle(
+          driver,
+          operation,
+        ).switchBattlePokemon(values.requireNonNegativeInt('partyIndex')),
+      'battle.chooseProgression' => _battle(
+          driver,
+          operation,
+        ).chooseBattleProgression(
+            values.requireNonNegativeInt('decisionIndex')),
       'battle.startTrainer' => _battle(driver, operation).startTrainerBattle(
           values.requireString('trainerId'),
           values.requireString('npcEntityId'),
@@ -132,10 +132,15 @@ final class EvaluationCommandDispatcher {
           values.requireString('opponentProfileId'),
           values.requireString('entityId'),
         ),
-      'service.shop.inspect' => driver.inspectShop(),
+      'service.shop.inspect' => driver.inspectShop(
+          entityId: values.requireString('entityId'),
+          shopId: values.requireString('shopId'),
+        ),
       'service.shop.buy' => driver.buy(
           values.requireString('itemId'),
           values.requirePositiveInt('quantity'),
+          entityId: values.requireString('entityId'),
+          shopId: values.requireString('shopId'),
         ),
       'service.shop.sell' => _roster(driver, operation).sell(
           values.requireString('shopId'),
@@ -143,9 +148,12 @@ final class EvaluationCommandDispatcher {
           values.requireString('itemId'),
           values.requirePositiveInt('quantity'),
         ),
-      'service.heal' => driver.healParty(),
+      'service.heal' => driver.healParty(
+          entityId: values.requireString('entityId'),
+        ),
       'service.pc.withdraw' => driver.withdrawFromPc(
           values.requireString('pokemonId'),
+          entityId: values.requireString('entityId'),
         ),
       'service.pc.deposit' => _roster(driver, operation).depositPartyPokemon(
           values.requireNonNegativeInt('partyIndex'),
@@ -164,9 +172,10 @@ final class EvaluationCommandDispatcher {
           values.requireNonNegativeInt('firstIndex'),
           values.requireNonNegativeInt('secondIndex'),
         ),
-      'party.setLead' => _roster(driver, operation).setLeadPokemon(
-          values.requireNonNegativeInt('partyIndex'),
-        ),
+      'party.setLead' => _roster(
+          driver,
+          operation,
+        ).setLeadPokemon(values.requireNonNegativeInt('partyIndex')),
       'bag.give' => _bag(driver, operation).giveBagItem(
           values.requireString('itemId'),
           values.requirePositiveInt('quantity'),
@@ -315,9 +324,7 @@ final class EvaluationCommandArguments {
   int requirePositiveInt(String key) {
     final value = requireInt(key);
     if (value > 0) return value;
-    throw EvaluationScenarioExecutionError(
-      'Argument "$key" must be positive.',
-    );
+    throw EvaluationScenarioExecutionError('Argument "$key" must be positive.');
   }
 
   int? optionalInt(String key) {

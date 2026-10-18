@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:pokemap_loader/src/mvp_release_command_matrix.dart';
@@ -26,7 +29,8 @@ void main() {
           .map((command) => command.displayCommand),
       full.commands.map((command) => command.displayCommand),
     );
-  });
+  },
+  );
 
   test('full matrix starts with every package gate and both runtime smokes',
       () {
@@ -55,8 +59,7 @@ void main() {
         'host-analyze',
         'runtime-golden-battle-smoke',
         'host-golden-launch-smoke',
-      ],
-    );
+      ]);
     expect(
       commands.take(20).map((command) => command.workingDirectory),
       const <String>[
@@ -82,7 +85,51 @@ void main() {
         '/workspace/examples/playable_runtime_host',
       ],
     );
-  });
+  },
+  );
+
+  test(
+    'content certification commands require an explicit fixture manifest',
+    () async {
+      final root = await Directory.systemTemp.createTemp('release-fixture-');
+      addTearDown(() => root.delete(recursive: true));
+      expect(
+        MvpReleaseCommandMatrix.full(root.path).commands.any(
+          (command) =>
+              command.displayCommand.toLowerCase().contains('selbrume'),
+        ),
+        isFalse,
+      );
+      for (final name in ['alpha', 'beta']) {
+        final manifest = File('${root.path}/$name.json');
+        await manifest.writeAsString(
+          jsonEncode({
+            'schemaVersion': 1,
+            'commands': [
+              {
+                'id': '$name-certification',
+                'criterion': 'goldenSlice',
+                'executable': 'dart',
+                'arguments': ['run', '$name.dart'],
+                'workingDirectory': 'examples/playable_runtime_host',
+              },
+            ],
+          }),
+        );
+        final selected = await loadMvpReleaseFixtureCommands(
+          manifest.path,
+          root.path,
+        );
+        expect(
+          MvpReleaseCommandMatrix.full(
+            root.path,
+            fixtureCommands: selected,
+          ).commands.map((command) => command.id),
+          contains('$name-certification'),
+        );
+      }
+    },
+  );
 
   test('runner is sequential and stops at the first failed command', () async {
     final observed = <String>[];
@@ -91,8 +138,7 @@ void main() {
       commands: [
         _command('one'),
         _command('two'),
-        _command('three'),
-      ],
+        _command('three')],
     );
 
     final results = await matrix.execute((command) async {

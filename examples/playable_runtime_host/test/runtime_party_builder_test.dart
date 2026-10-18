@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:pokemap_loader/src/runtime_demo_party_seed.dart';
-import 'package:pokemap_loader/src/runtime_party_builder.dart';
+import 'support/runtime_demo_party_seed.dart';
+import 'support/runtime_party_builder.dart';
 
 void main() {
   testWidgets('adds a selected pokemon with level and suggested moves',

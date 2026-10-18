@@ -30,8 +30,7 @@ const _markerMatchers = <String>{
   'isTrue',
   'isFalse',
   'isNull',
-  'isNotNull',
-};
+  'isNotNull'};
 const _stringArgumentKeys = <String>{
   'checkpointId',
   'entityId',
@@ -40,6 +39,7 @@ const _stringArgumentKeys = <String>{
   'mapId',
   'name',
   'pokemonId',
+  'shopId',
   'triggerId',
   'warpId',
   'zoneId',
@@ -208,8 +208,7 @@ final class EvaluationScenarioParser {
         !_assertionMatchers.contains(candidateMatchers.single)) {
       _fail(
         path,
-        'Assertion must declare exactly one supported matcher.',
-      );
+        'Assertion must declare exactly one supported matcher.');
     }
     final matcher = candidateMatchers.single;
     final expected = step[matcher];
@@ -230,8 +229,7 @@ final class EvaluationScenarioParser {
 
   List<EvaluationCriterionDefinition> _criteria(
     Object? value,
-    String path,
-  ) {
+    String path) {
     final entries = _list(value, path);
     final criteria = <EvaluationCriterionDefinition>[];
     final ids = <String>{};
@@ -253,13 +251,11 @@ final class EvaluationScenarioParser {
           .map(
             (entry) => _id(
               entry.value,
-              '$criterionPath.stepIds[${entry.key}]',
-            ),
+              '$criterionPath.stepIds[${entry.key}]'),
           )
           .toList(growable: false);
       criteria.add(
-        EvaluationCriterionDefinition(id: id, stepIds: stepIds),
-      );
+        EvaluationCriterionDefinition(id: id, stepIds: stepIds));
     }
     return criteria;
   }

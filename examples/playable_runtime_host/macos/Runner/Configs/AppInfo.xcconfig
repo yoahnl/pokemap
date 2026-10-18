@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = PokeMap Selbrume
+PRODUCT_NAME = PokeMapRuntimeHost
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = app.pokemap.selbrume
+PRODUCT_BUNDLE_IDENTIFIER = app.pokemap.runtimehost
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 PokeMap. All rights reserved.

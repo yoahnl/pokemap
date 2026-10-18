@@ -8,7 +8,7 @@ import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../contracts/evaluation_scenario.dart';
-import '../driver/selbrume_evaluation_driver.dart';
+import '../driver/runtime_evaluation_driver.dart';
 import '../runner/evaluation_checkpoint_cache.dart';
 import '../runner/evaluation_run_control.dart';
 import '../runner/evaluation_scenario_runner.dart';
@@ -107,10 +107,10 @@ Future<EvaluationWorkerResult> _executeRequest(
   final eventsFile = File(p.join(outputDirectory.path, 'events.jsonl'));
   final eventsSink = eventsFile.openWrite(mode: FileMode.writeOnly);
   final startedAt = DateTime.now().toUtc();
-  SelbrumeEvaluationDriver? driver;
+  RuntimeEvaluationDriver? driver;
   EvaluationScenarioRunResult runResult;
   try {
-    driver = await SelbrumeEvaluationDriver.start(
+    driver = await RuntimeEvaluationDriver.start(
       projectRoot: projectRoot,
       runId: request.runId,
       checkpointCache: checkpointCache,

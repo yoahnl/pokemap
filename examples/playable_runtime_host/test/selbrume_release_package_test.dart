@@ -34,26 +34,22 @@ void main() {
     expect(verification.newGameSaveReloadPassed, isTrue);
     expect(
       verification.requiredRelativePaths,
-      containsAll(<String>[
+        unorderedEquals(<String>[
         'project.json',
-        'maps/start.json',
-        'dialogues/intro.yarn',
-        'data/pokemon/catalogs/items.json',
-        'data/pokemon/catalogs/moves.json',
-        'data/pokemon/species/0001-test.json',
-        'assets/tilesets/test.png',
-      ]),
+        'maps/start.json']),
     );
-  });
+  },
+  );
 
-  test('package verification fails closed when a required family is missing',
+  test(
+    'package verification fails closed when the authored start map is missing',
       () async {
     final root = await Directory.systemTemp.createTemp(
       'pokemap_selbrume_release_package_missing_',
     );
     addTearDown(() => root.delete(recursive: true));
     await _writeMinimalBundledProject(root);
-    await Directory(p.join(root.path, 'dialogues')).delete(recursive: true);
+    await File(p.join(root.path, 'maps', 'start.json')).delete();
 
     await expectLater(
       verifyBundledRuntimeProject(p.join(root.path, 'project.json')),
@@ -61,11 +57,12 @@ void main() {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          contains('dialogues'),
+          contains('maps/start.json'),
         ),
       ),
     );
-  });
+  },
+  );
 }
 
 Future<void> _writeMinimalBundledProject(Directory root) async {
@@ -131,9 +128,7 @@ Future<void> _writeMinimalBundledProject(Directory root) async {
         'data',
         'pokemon',
         'species',
-        '0001-test.json',
-      ),
-    ),
+        '0001-test.json')),
     <String, Object?>{'id': 'test'},
   );
   await _writeText(

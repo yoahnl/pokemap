@@ -21,6 +21,11 @@ Future<void> main() async {
   );
   final result = await JournaledFilePromotionRepository(
     repositoryRoot: repositoryRoot.path,
+    projectManifestPath: p.join(
+      repositoryRoot.path,
+      'selbrume',
+      'project.json',
+    ),
     manifestPath: manifestPath,
     allowedDestinations: _allowedDestinations,
   ).promote();

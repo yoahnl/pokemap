@@ -25,7 +25,8 @@ class RuntimePartyBuilderPanel extends StatefulWidget {
 
 class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
   final TextEditingController _levelController =
-      TextEditingController(text: '$kRuntimeDemoSeedLevel');
+      TextEditingController(text: '$kRuntimeDemoSeedLevel',
+  );
   TextEditingController? _speciesTextController;
   RuntimePartyBuilderPokemonOption? _selectedOption;
   List<String?> _selectedMoveIds = List<String?>.filled(4, null);
@@ -117,8 +118,7 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
                 ];
                 if (!useTwoColumns) {
                   return Column(
-                    children: _withSpacing(children, vertical: 12),
-                  );
+                    children: _withSpacing(children, vertical: 12));
                 }
                 return Wrap(
                   spacing: 12,
@@ -244,8 +244,7 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
         context,
         textEditingController,
         focusNode,
-        onFieldSubmitted,
-      ) {
+        onFieldSubmitted) {
         _speciesTextController = textEditingController;
         return TextField(
           key: const Key('runtime-party-builder-species-field'),
@@ -311,8 +310,7 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
               value: moveId,
               child: Text(
                 moveId,
-                overflow: TextOverflow.ellipsis,
-              ),
+                overflow: TextOverflow.ellipsis),
             ),
           )
           .toList(growable: false),
@@ -331,8 +329,7 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
     if (widget.members.isEmpty) {
       return Text(
         'Equipe vide',
-        style: Theme.of(context).textTheme.bodyMedium,
-      );
+        style: Theme.of(context).textTheme.bodyMedium);
     }
 
     return Column(

@@ -26,8 +26,7 @@ void main() {
     expect(
       events.map((event) => event.sequence),
       orderedEquals(
-        List<int>.generate(events.length, (index) => index + 1),
-      ),
+        List<int>.generate(events.length, (index) => index + 1)),
     );
     expect(events.first.type, 'run.started');
     expect(
@@ -161,6 +160,8 @@ EvaluationScenario _shopScenario() {
         arguments: const <String, Object?>{
           'itemId': 'potion',
           'quantity': 1,
+          'entityId': 'custom-shopkeeper',
+          'shopId': 'custom-shop',
         },
       ),
       EvaluationAssertionStep(
@@ -229,7 +230,10 @@ final class _FakeEvaluationDriver implements EvaluationDriver {
   Future<void> startNewGame() async {}
 
   @override
-  Future<void> buy(String itemId, int quantity) async {
+  Future<void> buy(String itemId, int quantity, {
+    required String entityId,
+    required String shopId,
+  }) async {
     _money -= 250 * quantity;
   }
 

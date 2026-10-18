@@ -45,7 +45,8 @@ class _InGameShopPageState extends State<InGameShopPage> {
   String? _feedback;
   bool _feedbackIsError = false;
   late final _ShopAutomationSession _automationSession =
-      _ShopAutomationSession(this);
+      _ShopAutomationSession(this,
+  );
 
   ShopDefinition? get _shop {
     final id = _shopId;
@@ -111,7 +112,8 @@ class _InGameShopPageState extends State<InGameShopPage> {
               Chip(
                 key: const Key('shop-player-money'),
                 label:
-                    Text('${_formatMoney(_gameState.trainerProfile.money)} ₽'),
+                    Text('${_formatMoney(_gameState.trainerProfile.money)} ₽',
+                ),
               ),
             ],
           ),
@@ -146,16 +148,14 @@ class _InGameShopPageState extends State<InGameShopPage> {
             const SizedBox(height: 8),
             Text(
               resolved.message,
-              key: const Key('shop-profile-message'),
-            ),
+              key: const Key('shop-profile-message')),
           ],
           const SizedBox(height: 12),
           if (!resolved.isOpen)
             const SizedBox.shrink()
           else if (resolved.entries.isEmpty)
             const Card(
-              child: ListTile(title: Text('Cette boutique est vide.')),
-            )
+              child: ListTile(title: Text('Cette boutique est vide.')))
           else
             Card(
               child: Column(
@@ -195,7 +195,10 @@ class _InGameShopPageState extends State<InGameShopPage> {
     final maximumQuantity = remaining == null ? 10 : remaining.clamp(1, 10);
     return ListTile(
       key: Key('shop-entry-${entry.itemId}'),
-      title: Text(_itemLabel(entry.itemId)),
+      title: Text(
+        widget.itemCatalog.definitionFor(entry.itemId)?.displayName ??
+            entry.itemId,
+      ),
       subtitle: Text(
         '${_formatMoney(entry.price)} ₽ · '
         '${remaining == null ? 'Stock illimité' : 'Stock : ${remaining < 0 ? 0 : remaining}'}',
@@ -363,7 +366,8 @@ class _InGameShopPageState extends State<InGameShopPage> {
         _gameState = result.state;
         _busy = false;
         _feedbackIsError = false;
-        _feedback = 'Achat effectué : $quantity × ${_itemLabel(entry.itemId)}.';
+        _feedback =
+            'Achat effectué : $quantity × ${widget.itemCatalog.definitionFor(entry.itemId)?.displayName ?? entry.itemId}.';
       });
       return PlayerServiceAutomationResult.success(
         details: <String, Object?>{
@@ -428,24 +432,6 @@ final class _ShopAutomationSession implements PlayerServiceAutomationSession {
           ),
       };
 }
-
-String _itemLabel(String itemId) => switch (itemId) {
-      'potion' => 'Potion',
-      'super-potion' => 'Super Potion',
-      'hyper-potion' => 'Hyper Potion',
-      'max-potion' => 'Potion Max',
-      'poke-ball' => 'Poké Ball',
-      'antidote' => 'Antidote',
-      _ => itemId
-          .replaceAll('_', '-')
-          .split('-')
-          .where((part) => part.isNotEmpty)
-          .map(
-            (part) => '${part.substring(0, 1).toUpperCase()}'
-                '${part.substring(1)}',
-          )
-          .join(' '),
-    };
 
 String _failureLabel(ShopPurchaseFailure failure) => switch (failure) {
       ShopPurchaseFailure.invalidRequest => 'Achat invalide.',

@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_policy.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart';
-import 'package:pokemap_loader/src/evaluation/driver/selbrume_evaluation_driver.dart';
+import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/runner/evaluation_scenario_runner.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
 import 'package:pokemap_loader/src/project_tree_digest.dart';
@@ -137,7 +137,7 @@ void main() {
           ),
         ).readAsStringSync(),
       );
-      final driver = await SelbrumeEvaluationDriver.start(
+      final driver = await RuntimeEvaluationDriver.start(
         projectRoot: installedProjectRoot,
         runId: 'phase-7a-installed-golden',
       );

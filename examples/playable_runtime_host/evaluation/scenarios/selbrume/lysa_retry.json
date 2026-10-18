@@ -73,7 +73,8 @@
     },
     {
       "id": "heal-before-retry",
-      "command": "service.heal"
+      "command": "service.heal",
+      "entityId": "service_port_healing"
     },
     {
       "id": "retry-lysa",

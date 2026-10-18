@@ -41,6 +41,8 @@
     {
       "id": "buy-potion",
       "command": "service.shop.buy",
+      "entityId": "service_port_shop",
+      "shopId": "shop_port_supplies",
       "itemId": "potion",
       "quantity": 1
     },

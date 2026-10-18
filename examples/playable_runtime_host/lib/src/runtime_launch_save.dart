@@ -32,30 +32,9 @@ final class RuntimeHostLaunchPlan {
   final MapActivationReason initialMapActivationReason;
 }
 
-/// Whether host-owned manual/demo party seeds may participate in this launch.
-///
-/// Project New Game configuration owns fresh state when enabled. A versioned
-/// launch save owns restoration when present. Synthetic host seeds are kept
-/// only as the historical fallback for legacy projects.
-bool allowsRuntimeHostSyntheticLaunchSeed({
-  required ProjectNewGameConfig newGame,
-  required SaveData? versionedLaunchSave,
-}) {
-  return !newGame.enabled && versionedLaunchSave == null;
-}
-
-/// Resolves launch-state priority without depending on widget state.
-///
-/// Priority is deliberate and product-owned:
-/// 1. a real versioned launch save restores the project;
-/// 2. enabled Project New Game lets [PlayableMapGame] build fresh state by
-///    receiving `saveData: null`;
-/// 3. legacy projects retain manual then demo seed fallbacks.
 RuntimeHostLaunchPlan resolveRuntimeHostLaunchPlan({
   required ProjectNewGameConfig newGame,
   required SaveData? versionedLaunchSave,
-  required SaveData? manualLaunchOverride,
-  required SaveData? demoLaunchFallback,
 }) {
   if (versionedLaunchSave != null) {
     return RuntimeHostLaunchPlan(
@@ -69,21 +48,11 @@ RuntimeHostLaunchPlan resolveRuntimeHostLaunchPlan({
       initialMapActivationReason: MapActivationReason.initialBoot,
     );
   }
-  return RuntimeHostLaunchPlan(
-    saveData: manualLaunchOverride ?? demoLaunchFallback,
-    initialMapActivationReason: MapActivationReason.initialBoot,
+  throw StateError(
+    'Configurez le démarrage du projet ou fournissez une sauvegarde de lancement explicite.',
   );
 }
 
-/// Charge la save versionnée de lancement d'un projet runtime, si elle existe.
-///
-/// Politique volontairement stricte :
-/// - absence du fichier => `null`, le host laisse d'abord Project New Game
-///   construire l'état frais, puis retombe sur son seed de démo uniquement
-///   pour un projet legacy ;
-/// - fichier présent mais invalide => erreur explicite ;
-/// - aucune fallback silencieuse vers une autre save si ce seam produit est
-///   cassé, parce qu'on veut que le golden slice reste honnête.
 Future<SaveData?> loadRuntimeHostLaunchSaveData({
   required String projectFilePath,
 }) async {

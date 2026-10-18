@@ -29,7 +29,7 @@ Future<void> main(List<String> arguments) async {
     if (!await package.exists()) {
       throw StateError(
         'Release package is missing: ${package.path}. '
-        'Run tool/package_selbrume_macos.dart first.',
+        'Run tool/package_runtime_macos.dart first.',
       );
     }
     await _requireCleanCandidate(repositoryRoot);
@@ -52,23 +52,20 @@ Future<void> main(List<String> arguments) async {
             .relative(projectRoot.path, from: repositoryRoot.path)
             .replaceAll(r'\', '/'),
         expectedProjectTreeHash: treeHash,
-        scenarioPath:
-            'examples/playable_runtime_host/evaluation/scenarios/selbrume/'
-            'mvp_certification.json',
+        scenarioPath: options.scenarioPath,
         outputDirectory: evaluationOutput,
       ),
     );
     if (evaluationResult.exitCode != 0 ||
         evaluationResult.receiptPath == null) {
       throw StateError(
-        'The reusable Selbrume evaluation failed: '
+        'The selected project evaluation failed: '
         '${evaluationResult.message ?? evaluationResult.status.name}.',
       );
     }
     final evaluationReceipt = jsonDecode(
-      await File(
-        p.join(repositoryRoot.path, evaluationResult.receiptPath),
-      ).readAsString(),
+      await File(p.join(repositoryRoot.path, evaluationResult.receiptPath))
+          .readAsString(),
     ) as Map<String, dynamic>;
     final productCriteria =
         const EvaluationReleaseAdapter().productCriteriaJson(
@@ -78,18 +75,24 @@ Future<void> main(List<String> arguments) async {
     );
 
     final matrix = options.full
-        ? MvpReleaseCommandMatrix.full(repositoryRoot.path)
+        ? MvpReleaseCommandMatrix.full(
+            repositoryRoot.path,
+            fixtureCommands: options.fixtureCommandsPath == null
+                ? const []
+                : await loadMvpReleaseFixtureCommands(
+                    options.fixtureCommandsPath!,
+                    repositoryRoot.path,
+                  ),
+          )
         : MvpReleaseCommandMatrix.quick(repositoryRoot.path);
-    final results = await matrix.execute(
-      (command) async {
-        stdout.writeln('release-gate: ${command.id}');
-        return executeMvpReleaseCommand(
-          command,
-          stdoutSink: stdout,
-          stderrSink: stderr,
-        );
-      },
-    );
+    final results = await matrix.execute((command) async {
+      stdout.writeln('release-gate: ${command.id}');
+      return executeMvpReleaseCommand(
+        command,
+        stdoutSink: stdout,
+        stderrSink: stderr,
+      );
+    });
     final capturedAt = DateTime.now().toUtc();
     final artifacts = const MvpReleaseEvidenceCollector().collect(
       command: options.displayCommand,
@@ -130,10 +133,12 @@ Future<void> main(List<String> arguments) async {
 
 Future<String> _gitHead(Directory repositoryRoot) async {
   final result = await Process.run(
-    'git',
-    const ['rev-parse', 'HEAD'],
-    workingDirectory: repositoryRoot.path,
-  );
+      'git',
+      const [
+        'rev-parse',
+        'HEAD',
+      ],
+      workingDirectory: repositoryRoot.path);
   if (result.exitCode != 0) {
     throw StateError('Unable to resolve release candidate commit.');
   }
@@ -142,10 +147,13 @@ Future<String> _gitHead(Directory repositoryRoot) async {
 
 Future<void> _requireCleanCandidate(Directory repositoryRoot) async {
   final result = await Process.run(
-    'git',
-    const ['status', '--porcelain', '--untracked-files=all'],
-    workingDirectory: repositoryRoot.path,
-  );
+      'git',
+      const [
+        'status',
+        '--porcelain',
+        '--untracked-files=all',
+      ],
+      workingDirectory: repositoryRoot.path);
   if (result.exitCode != 0) {
     throw StateError('Unable to inspect release candidate worktree.');
   }
@@ -169,6 +177,8 @@ Future<void> _writeAtomically(File target, String content) async {
 final class _Options {
   const _Options({
     required this.projectPath,
+    required this.scenarioPath,
+    required this.fixtureCommandsPath,
     required this.packagePath,
     required this.outputPath,
     required this.full,
@@ -176,14 +186,18 @@ final class _Options {
   });
 
   final String projectPath;
+  final String scenarioPath;
+  final String? fixtureCommandsPath;
   final String packagePath;
   final String outputPath;
   final bool full;
   final String displayCommand;
 
   static _Options parse(List<String> arguments) {
-    var projectPath = p.join('..', '..', 'selbrume', 'project.json');
-    var packagePath = p.join('build', 'mvp-release', 'selbrume-macos.zip');
+    String? projectPath;
+    String? scenarioPath;
+    String? fixtureCommandsPath;
+    String? packagePath;
     var outputPath = p.join('build', 'mvp-release', 'evidence.json');
     var full = false;
     for (var index = 0; index < arguments.length; index += 1) {
@@ -191,6 +205,10 @@ final class _Options {
       switch (argument) {
         case '--project':
           projectPath = _value(arguments, ++index, argument);
+        case '--scenario':
+          scenarioPath = _value(arguments, ++index, argument);
+        case '--fixture-commands':
+          fixtureCommandsPath = _value(arguments, ++index, argument);
         case '--package':
           packagePath = _value(arguments, ++index, argument);
         case '--output':
@@ -203,7 +221,14 @@ final class _Options {
           throw ArgumentError('Unknown argument: $argument');
       }
     }
+    if (projectPath == null || packagePath == null || scenarioPath == null) {
+      throw ArgumentError('--project, --package and --scenario are required.');
+    }
     return _Options(
+      scenarioPath: scenarioPath,
+      fixtureCommandsPath: fixtureCommandsPath == null
+          ? null
+          : p.normalize(p.absolute(fixtureCommandsPath)),
       projectPath: p.normalize(p.absolute(projectPath)),
       packagePath: p.normalize(p.absolute(packagePath)),
       outputPath: p.normalize(p.absolute(outputPath)),

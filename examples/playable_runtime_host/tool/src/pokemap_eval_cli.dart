@@ -12,13 +12,7 @@ import 'package:pokemap_loader/src/evaluation/web/evaluation_web_launcher.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
 
-enum PokeMapEvalCommand {
-  list,
-  run,
-  inspect,
-  history,
-  web,
-}
+enum PokeMapEvalCommand { list, run, inspect, history, web }
 
 final class PokeMapEvalOptions {
   const PokeMapEvalOptions({
@@ -74,6 +68,7 @@ abstract interface class PokeMapEvalWorker {
 }
 
 typedef PokeMapEvalOutputSink = void Function(String line);
+
 final class PokeMapEvalCli {
   PokeMapEvalCli({
     required this.repositoryRoot,
@@ -93,16 +88,10 @@ final class PokeMapEvalCli {
     return PokeMapEvalCli(
       repositoryRoot: root,
       worker: _HeadlessProcessWorker(
-        HeadlessWorkerProcess(
-          hostRoot: root,
-          stderrSink: stderr.write,
-        ),
+        HeadlessWorkerProcess(hostRoot: root, stderrSink: stderr.write),
       ),
       interactiveWorker: _InteractiveProcessWorker(
-        InteractiveWorkerClient(
-          repositoryRoot: root,
-          stderrSink: stderr.write,
-        ),
+        InteractiveWorkerClient(repositoryRoot: root, stderrSink: stderr.write),
       ),
       stdoutSink: stdout.writeln,
       stderrSink: stderr.writeln,
@@ -190,9 +179,7 @@ final class PokeMapEvalCli {
   }
 
   Future<PokeMapEvalCliResult> _list(PokeMapEvalOptions options) async {
-    final scenarios = await _discoverScenarios(
-      projectId: options.projectId,
-    );
+    final scenarios = await _discoverScenarios(projectId: options.projectId);
     if (scenarios.isEmpty) {
       stdoutSink('No PokeMap Eval scenario found.');
       return const PokeMapEvalCliResult(0);
@@ -213,9 +200,7 @@ final class PokeMapEvalCli {
         .where((candidate) => candidate.scenario.id == scenarioId)
         .toList(growable: false);
     if (matches.isEmpty) {
-      throw PokeMapEvalUsageException(
-        'Unknown scenario "$scenarioId".',
-      );
+      throw PokeMapEvalUsageException('Unknown scenario "$scenarioId".');
     }
     if (matches.length != 1) {
       throw PokeMapEvalUsageException(
@@ -308,9 +293,9 @@ final class PokeMapEvalCli {
     ];
     final scenarioJson = <String, Object?>{
       'schemaVersion': 1,
-      'id': 'selbrume.inspect.${options.checkpointId}',
+      'id': '${options.projectId}.inspect.${options.checkpointId}',
       'title': 'Inspect checkpoint ${options.checkpointId}',
-      'projectId': 'selbrume',
+      'projectId': options.projectId,
       'policy': 'probe',
       'start': <String, Object?>{'newGame': true},
       'steps': <Object?>[
@@ -326,11 +311,9 @@ final class PokeMapEvalCli {
         },
       ],
     };
-    final scenarioFile = File(p.join(
-      repositoryRoot.path,
-      outputDirectory,
-      'inspect-scenario.json',
-    ));
+    final scenarioFile = File(
+      p.join(repositoryRoot.path, outputDirectory, 'inspect-scenario.json'),
+    );
     await _writeJsonAtomically(scenarioFile, scenarioJson);
     final scenario = const EvaluationScenarioParser().parseString(
       await scenarioFile.readAsString(),
@@ -347,12 +330,9 @@ final class PokeMapEvalCli {
   }
 
   Future<PokeMapEvalCliResult> _history(PokeMapEvalOptions options) async {
-    final runs = Directory(p.join(
-      repositoryRoot.path,
-      'build',
-      'pokemap-eval',
-      'runs',
-    ));
+    final runs = Directory(
+      p.join(repositoryRoot.path, 'build', 'pokemap-eval', 'runs'),
+    );
     if (!await runs.exists()) {
       stdoutSink('No PokeMap Eval runs found.');
       return const PokeMapEvalCliResult(0);
@@ -375,9 +355,7 @@ final class PokeMapEvalCli {
     summaries.sort((left, right) => right.runId.compareTo(left.runId));
     if (options.jsonOnly) {
       stdoutSink(
-        jsonEncode(
-          summaries.map((summary) => summary.toJson()).toList(),
-        ),
+        jsonEncode(summaries.map((summary) => summary.toJson()).toList()),
       );
     } else if (summaries.isEmpty) {
       stdoutSink('No valid PokeMap Eval receipt found.');
@@ -417,11 +395,9 @@ final class PokeMapEvalCli {
       }
       final json = Map<String, Object?>.from(decoded)
         ..['policy'] = policyOverride.name;
-      scenarioFile = File(p.join(
-        repositoryRoot.path,
-        outputDirectory,
-        'scenario.json',
-      ));
+      scenarioFile = File(
+        p.join(repositoryRoot.path, outputDirectory, 'scenario.json'),
+      );
       await _writeJsonAtomically(scenarioFile, json);
       scenario = const EvaluationScenarioParser().parseString(
         await scenarioFile.readAsString(),
@@ -469,8 +445,7 @@ final class PokeMapEvalCli {
         runId: runId,
       );
     }
-    final effectiveProjectRoot =
-        projectRoot ?? projection!.relativeProjectRoot;
+    final effectiveProjectRoot = projectRoot ?? projection!.relativeProjectRoot;
     final effectiveProjectTreeHash =
         expectedProjectTreeHash ?? projection!.projectTreeHash;
     late final EvaluationWorkerResult result;
@@ -490,9 +465,7 @@ final class PokeMapEvalCli {
     }
     _ReceiptSummary? receipt;
     if (result.receiptPath != null) {
-      final receiptFile = File(
-        p.join(repositoryRoot.path, result.receiptPath),
-      );
+      final receiptFile = File(p.join(repositoryRoot.path, result.receiptPath));
       try {
         receipt = await _ReceiptSummary.read(
           receiptFile,
@@ -544,9 +517,7 @@ final class PokeMapEvalCli {
     stdoutSink('Scenario: ${summary['scenarioId']}');
     stdoutSink('Target: ${summary['target']}');
     stdoutSink('Status: ${summary['status']}');
-    stdoutSink(
-      'Duration: ${summary['durationMilliseconds'] ?? 'unknown'}ms',
-    );
+    stdoutSink('Duration: ${summary['durationMilliseconds'] ?? 'unknown'}ms');
     stdoutSink(
       'Steps: ${summary['passedSteps']}/${summary['totalSteps']} passed',
     );
@@ -564,13 +535,15 @@ final class PokeMapEvalCli {
   Future<List<_DiscoveredScenario>> _discoverScenarios({
     String? projectId,
   }) async {
-    final root = Directory(p.join(
-      repositoryRoot.path,
-      'examples',
-      'playable_runtime_host',
-      'evaluation',
-      'scenarios',
-    ));
+    final root = Directory(
+      p.join(
+        repositoryRoot.path,
+        'examples',
+        'playable_runtime_host',
+        'evaluation',
+        'scenarios',
+      ),
+    );
     if (!await root.exists()) return const <_DiscoveredScenario>[];
     final discovered = <_DiscoveredScenario>[];
     await for (final entity in root.list(recursive: true, followLinks: false)) {
@@ -579,9 +552,7 @@ final class PokeMapEvalCli {
         await entity.readAsString(),
       );
       if (projectId == null || scenario.projectId == projectId) {
-        discovered.add(
-          _DiscoveredScenario(file: entity, scenario: scenario),
-        );
+        discovered.add(_DiscoveredScenario(file: entity, scenario: scenario));
       }
     }
     discovered.sort(
@@ -601,19 +572,16 @@ final class PokeMapEvalCli {
   }
 
   File _validatedPerformanceOutput(String relativePath) {
-    final packageRoot = Directory(p.join(
-      repositoryRoot.path,
-      'examples',
-      'playable_runtime_host',
-    )).absolute;
+    final packageRoot = Directory(
+      p.join(repositoryRoot.path, 'examples', 'playable_runtime_host'),
+    ).absolute;
     if (p.isAbsolute(relativePath)) {
       throw const PokeMapEvalUsageException(
         '--json-output must stay inside examples/playable_runtime_host.',
       );
     }
-    final output = File(
-      p.normalize(p.join(packageRoot.path, relativePath)),
-    ).absolute;
+    final output =
+        File(p.normalize(p.join(packageRoot.path, relativePath))).absolute;
     if (!p.isWithin(packageRoot.path, output.path)) {
       throw const PokeMapEvalUsageException(
         '--json-output must stay inside examples/playable_runtime_host.',
@@ -625,12 +593,14 @@ final class PokeMapEvalCli {
   Future<_FrameMetricSamples> _readFrameMetrics(
     _ScenarioExecution execution,
   ) async {
-    final file = File(p.join(
-      repositoryRoot.path,
-      execution.outputDirectory,
-      'artifacts',
-      'frame-metrics.json',
-    ));
+    final file = File(
+      p.join(
+        repositoryRoot.path,
+        execution.outputDirectory,
+        'artifacts',
+        'frame-metrics.json',
+      ),
+    );
     final decoded = jsonDecode(await file.readAsString());
     if (decoded is! Map) {
       throw const FormatException('Frame metrics root must be an object.');
@@ -767,10 +737,10 @@ final class PokeMapEvalCli {
   }
 
   Future<Map<String, Object?>> _flutterMetadata() async {
-    final result = await Process.run(
-      'flutter',
-      <String>['--version', '--machine'],
-    );
+    final result = await Process.run('flutter', <String>[
+      '--version',
+      '--machine',
+    ]);
     if (result.exitCode != 0) {
       return const <String, Object?>{'status': 'unavailable'};
     }
@@ -781,12 +751,14 @@ final class PokeMapEvalCli {
   }
 
   Future<String> _flameVersion() async {
-    final lock = File(p.join(
-      repositoryRoot.path,
-      'examples',
-      'playable_runtime_host',
-      'pubspec.lock',
-    ));
+    final lock = File(
+      p.join(
+        repositoryRoot.path,
+        'examples',
+        'playable_runtime_host',
+        'pubspec.lock',
+      ),
+    );
     if (!await lock.exists()) return 'unavailable';
     final lines = await lock.readAsLines();
     final start = lines.indexWhere((line) => line == '  flame:');
@@ -941,10 +913,7 @@ final class _InteractiveProcessWorker implements PokeMapEvalWorker {
 }
 
 final class _DiscoveredScenario {
-  const _DiscoveredScenario({
-    required this.file,
-    required this.scenario,
-  });
+  const _DiscoveredScenario({required this.file, required this.scenario});
 
   final File file;
   final EvaluationScenario scenario;
@@ -1089,9 +1058,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
         policy = switch (value) {
           'probe' => EvaluationPolicy.probe,
           'certify' => EvaluationPolicy.certify,
-          _ => throw PokeMapEvalUsageException(
-              'Unknown policy "$value".',
-            ),
+          _ => throw PokeMapEvalUsageException('Unknown policy "$value".'),
         };
         index += 2;
       case '--json':
@@ -1112,9 +1079,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
         buildMode = switch (value) {
           'debug' => EvaluationBuildMode.debug,
           'profile' => EvaluationBuildMode.profile,
-          _ => throw PokeMapEvalUsageException(
-              'Unknown build mode "$value".',
-            ),
+          _ => throw PokeMapEvalUsageException('Unknown build mode "$value".'),
         };
         index += 2;
       case '--runs':
@@ -1187,6 +1152,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
 
 PokeMapEvalOptions _parseInspect(List<String> arguments) {
   String? checkpointId;
+  String? projectId;
   var includeFacts = false;
   var includeParty = false;
   var includeBag = false;
@@ -1194,6 +1160,9 @@ PokeMapEvalOptions _parseInspect(List<String> arguments) {
   var index = 0;
   while (index < arguments.length) {
     switch (arguments[index]) {
+      case '--project':
+        projectId = _optionValue(arguments, index, '--project');
+        index += 2;
       case '--checkpoint':
         checkpointId = _optionValue(arguments, index, '--checkpoint');
         index += 2;
@@ -1221,9 +1190,16 @@ PokeMapEvalOptions _parseInspect(List<String> arguments) {
       'inspect requires a portable --checkpoint id.',
     );
   }
+  if (projectId == null ||
+      !RegExp(r'^[a-z0-9][a-z0-9._-]*$').hasMatch(projectId)) {
+    throw const PokeMapEvalUsageException(
+      'inspect requires a portable --project id.',
+    );
+  }
   return PokeMapEvalOptions(
     command: PokeMapEvalCommand.inspect,
     checkpointId: checkpointId,
+    projectId: projectId,
     includeFacts: includeFacts,
     includeParty: includeParty,
     includeBag: includeBag,
@@ -1241,9 +1217,7 @@ PokeMapEvalOptions _parseHistory(List<String> arguments) {
       jsonOnly: true,
     );
   }
-  throw PokeMapEvalUsageException(
-    'Unknown option "${arguments.first}".',
-  );
+  throw PokeMapEvalUsageException('Unknown option "${arguments.first}".');
 }
 
 PokeMapEvalOptions _parseWeb(List<String> arguments) {
@@ -1357,7 +1331,16 @@ Future<void> _writeJsonAtomically(
 Directory _discoverRepositoryRoot() {
   var candidate = Directory.current.absolute;
   while (true) {
-    if (File(p.join(candidate.path, 'selbrume', 'project.json')).existsSync()) {
+    if (File(p.join(candidate.path, 'packages', 'map_core', 'pubspec.yaml'))
+            .existsSync() &&
+        File(
+          p.join(
+            candidate.path,
+            'examples',
+            'playable_runtime_host',
+            'pubspec.yaml',
+          ),
+        ).existsSync()) {
       return candidate;
     }
     final parent = candidate.parent;
@@ -1381,7 +1364,7 @@ Usage:
     [--project-root <path> --expected-project-tree-hash <sha256>]
     [--build-mode debug|profile] [--runs <positive-int>]
     [--json-output <package-relative-path>]
-  pokemap eval inspect --checkpoint <id> [--facts] [--party] [--bag]
+  pokemap eval inspect --project <id> --checkpoint <id> [--facts] [--party] [--bag]
   pokemap eval history [--json]
   pokemap eval web [--project <id>] [--port <0..65535>] [--no-open]''';
 }

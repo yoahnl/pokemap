@@ -1,12 +1,6 @@
-enum EvaluationCommandAvailability {
-  runtime,
-  attachedPlayerShell,
-}
+enum EvaluationCommandAvailability { runtime, attachedPlayerShell }
 
-enum EvaluationCommandSequenceKind {
-  explicitUserAction,
-  diagnosticProbe,
-}
+enum EvaluationCommandSequenceKind { explicitUserAction, diagnosticProbe }
 
 final class EvaluationCommandDefinition {
   const EvaluationCommandDefinition({
@@ -28,10 +22,7 @@ final class EvaluationCommandDefinition {
   final EvaluationCommandAvailability availability;
   final EvaluationCommandSequenceKind sequenceKind;
 
-  Set<String> get allowedKeys => <String>{
-        ...requiredKeys,
-        ...optionalKeys,
-      };
+  Set<String> get allowedKeys => <String>{...requiredKeys, ...optionalKeys};
 }
 
 const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
@@ -117,28 +108,23 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
   ),
   'service.shop.inspect': EvaluationCommandDefinition(
     operation: 'service.shop.inspect',
-    requiredKeys: <String>{},
+    requiredKeys: <String>{'entityId', 'shopId'},
   ),
   'service.shop.buy': EvaluationCommandDefinition(
     operation: 'service.shop.buy',
-    requiredKeys: <String>{'itemId', 'quantity'},
+    requiredKeys: <String>{'itemId', 'quantity', 'entityId', 'shopId'},
   ),
   'service.shop.sell': EvaluationCommandDefinition(
     operation: 'service.shop.sell',
-    requiredKeys: <String>{
-      'shopId',
-      'expectedStateId',
-      'itemId',
-      'quantity',
-    },
+    requiredKeys: <String>{'shopId', 'expectedStateId', 'itemId', 'quantity'},
   ),
   'service.heal': EvaluationCommandDefinition(
     operation: 'service.heal',
-    requiredKeys: <String>{},
+    requiredKeys: <String>{'entityId'},
   ),
   'service.pc.withdraw': EvaluationCommandDefinition(
     operation: 'service.pc.withdraw',
-    requiredKeys: <String>{'pokemonId'},
+    requiredKeys: <String>{'pokemonId', 'entityId'},
   ),
   'service.pc.deposit': EvaluationCommandDefinition(
     operation: 'service.pc.deposit',

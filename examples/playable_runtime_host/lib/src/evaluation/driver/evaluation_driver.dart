@@ -11,35 +11,23 @@ abstract interface class EvaluationDriver {
 
   Future<void> navigateTo(int x, int y);
 
-  Future<void> crossConnection(
-    String direction, {
-    int? preferredAxis,
-  });
+  Future<void> crossConnection(String direction, {int? preferredAxis});
 
   Future<void> enterGameplayZone(String zoneId);
 
   Future<void> interact(String entityId);
 
-  Future<void> enterTrigger(
-    String triggerId, {
-    bool expectBattle = false,
-  });
+  Future<void> enterTrigger(String triggerId, {bool expectBattle = false});
 
   Future<void> enterWarp(String warpId);
 
   Future<void> enterWildEncounter();
 
-  Future<void> waitForFact(
-    String factId, {
-    Duration? timeout,
-  });
+  Future<void> waitForFact(String factId, {Duration? timeout});
 
   Future<void> advanceDialogue();
 
-  Future<void> chooseDialogue(
-    int choiceIndex, {
-    int? linesBeforeChoice,
-  });
+  Future<void> chooseDialogue(int choiceIndex, {int? linesBeforeChoice});
 
   Future<void> chooseBattleMove(int moveIndex);
 
@@ -53,13 +41,18 @@ abstract interface class EvaluationDriver {
 
   Future<void> resolveBattle(String strategy);
 
-  Future<void> inspectShop();
+  Future<void> inspectShop({required String entityId, required String shopId});
 
-  Future<void> buy(String itemId, int quantity);
+  Future<void> buy(
+    String itemId,
+    int quantity, {
+    required String entityId,
+    required String shopId,
+  });
 
-  Future<void> healParty();
+  Future<void> healParty({required String entityId});
 
-  Future<void> withdrawFromPc(String pokemonId);
+  Future<void> withdrawFromPc(String pokemonId, {required String entityId});
 
   Future<void> save();
 
@@ -113,21 +106,13 @@ abstract interface class EvaluationRosterAutomation {
 
   Future<void> setLeadPokemon(int partyIndex);
 
-  Future<void> useBagItem(
-    String itemId,
-    int partyIndex, {
-    String? moveId,
-  });
+  Future<void> useBagItem(String itemId, int partyIndex, {String? moveId});
 
   Future<void> depositPartyPokemon(int partyIndex, {String? boxId});
 
   Future<void> withdrawPcSlot(String boxId, int boxIndex);
 
-  Future<void> swapPartyWithPc(
-    int partyIndex,
-    String boxId,
-    int boxIndex,
-  );
+  Future<void> swapPartyWithPc(int partyIndex, String boxId, int boxIndex);
 
   Future<void> sell(
     String shopId,

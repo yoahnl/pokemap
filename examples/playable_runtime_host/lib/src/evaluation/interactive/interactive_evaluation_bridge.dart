@@ -9,7 +9,7 @@ import 'package:path/path.dart' as p;
 import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../driver/evaluation_driver.dart';
-import '../driver/selbrume_evaluation_driver.dart';
+import '../driver/runtime_evaluation_driver.dart';
 import '../runner/evaluation_scenario_runner.dart';
 import '../scenario/evaluation_policy_validator.dart';
 import '../scenario/evaluation_scenario_parser.dart';
@@ -60,7 +60,7 @@ final class InteractiveEvaluationBridge {
     required InteractiveEvaluationSurfaceCapture captureSurface,
     InteractiveEvaluationEventSink? eventSink,
   }) async {
-    final driver = SelbrumeEvaluationDriver.attach(
+    final driver = RuntimeEvaluationDriver.attach(
       game: game,
       project: project,
       projectRoot: projectRoot,

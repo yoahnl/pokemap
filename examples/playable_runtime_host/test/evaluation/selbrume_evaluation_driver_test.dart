@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_loader/src/evaluation/driver/selbrume_evaluation_driver.dart';
+import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('driver starts the real Selbrume project headlessly', () async {
-    final driver = await SelbrumeEvaluationDriver.start(
+    final driver = await RuntimeEvaluationDriver.start(
       projectRoot: Directory(
         p.join(_findRepositoryRoot().path, 'selbrume'),
       ),
@@ -32,7 +32,7 @@ void main() {
 
   test('Phase 6 roster commands commit through the real runtime state',
       () async {
-    final driver = await SelbrumeEvaluationDriver.start(
+    final driver = await RuntimeEvaluationDriver.start(
       projectRoot: Directory(
         p.join(_findRepositoryRoot().path, 'selbrume'),
       ),

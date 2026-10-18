@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_loader/src/evaluation/driver/evaluation_game_fixtures.dart';
-import 'package:pokemap_loader/src/evaluation/driver/selbrume_evaluation_driver.dart';
+import '../support/evaluation_game_fixtures.dart';
+import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/runner/evaluation_checkpoint_cache.dart';
 
 void main() {
@@ -129,7 +129,7 @@ void main() {
       final projectRoot = Directory(p.normalize(
         p.join(Directory.current.path, '..', '..', 'selbrume'),
       ));
-      final first = await SelbrumeEvaluationDriver.start(
+      final first = await RuntimeEvaluationDriver.start(
         projectRoot: projectRoot,
         runId: 'checkpoint-producer',
         checkpointCache: cache,
@@ -139,7 +139,7 @@ void main() {
       await first.createCheckpoint('after-lysa');
       await first.dispose();
 
-      final second = await SelbrumeEvaluationDriver.start(
+      final second = await RuntimeEvaluationDriver.start(
         projectRoot: projectRoot,
         runId: 'checkpoint-consumer',
         checkpointCache: cache,

@@ -56,6 +56,7 @@ final class JournaledFilePromotionRepository {
   JournaledFilePromotionRepository({
     required String repositoryRoot,
     required String manifestPath,
+    required String projectManifestPath,
     required Set<String> allowedDestinations,
     String? journalPath,
     this.faultInjector,
@@ -70,15 +71,28 @@ final class JournaledFilePromotionRepository {
           p.absolute(
             journalPath ??
                 p.join(
-                  repositoryRoot,
-                  'selbrume',
-                  '.pokemap-event-v2-phase-j-promotion.json',
+                  p.dirname(projectManifestPath),
+                  '.pokemap-file-promotion.json',
                 ),
           ),
         ),
         projectManifestPath = p.normalize(
-          p.absolute(repositoryRoot, 'selbrume', 'project.json'),
-        );
+          p.absolute(projectManifestPath),
+        ) {
+    final projectRoot = p.dirname(this.projectManifestPath);
+    if (p.basename(this.projectManifestPath) != 'project.json' ||
+        !p.isWithin(this.repositoryRoot, this.projectManifestPath) ||
+        !p.isWithin(projectRoot, this.journalPath) ||
+        this.allowedDestinations.isEmpty ||
+        this.allowedDestinations.any(
+          (relative) =>
+              !p.isWithin(projectRoot, p.join(this.repositoryRoot, relative)),
+        )) {
+      throw ArgumentError(
+        'Promotion destinations and journal must belong to the declared project.',
+      );
+    }
+  }
 
   final String repositoryRoot;
   final String manifestPath;
@@ -91,8 +105,24 @@ final class JournaledFilePromotionRepository {
 
   String get checkpointDirectoryPath => '$journalPath.checkpoint';
 
+  Future<void> _assertProjectScope() async {
+    await _assertSafePath(repositoryRoot, projectManifestPath);
+    await _assertSafePath(p.dirname(projectManifestPath), journalPath);
+    if (await FileSystemEntity.type(projectManifestPath, followLinks: false) !=
+        FileSystemEntityType.file) {
+      throw const _PromotionRejected(
+        'invalidProjectManifest',
+        'Le manifeste du projet doit être un fichier régulier.',
+      );
+    }
+    for (final relative in allowedDestinations) {
+      await _assertSafePath(repositoryRoot, p.join(repositoryRoot, relative));
+    }
+  }
+
   Future<JournaledFilePromotionResult> promote() async {
     try {
+      await _assertProjectScope();
       return await withProjectManifestWriteLock(
         projectManifestPath,
         _promoteLocked,
@@ -156,6 +186,7 @@ final class JournaledFilePromotionRepository {
   /// Restores the exact pre-promotion checkpoint while all hash guards match.
   Future<JournaledFilePromotionResult> restoreCheckpoint() async {
     try {
+      await _assertProjectScope();
       return await withProjectManifestWriteLock(
         projectManifestPath,
         _restoreCheckpointLocked,
@@ -310,7 +341,7 @@ final class JournaledFilePromotionRepository {
     return _result(
       JournaledFilePromotionStatus.promoted,
       'promotionCommitted',
-      'Les quatre fichiers Selbrume ont été promus et vérifiés.',
+      'Les ${plan.entries.length} fichiers ont été promus et vérifiés.',
     );
   }
 

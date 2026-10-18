@@ -66,13 +66,10 @@ final class EvaluationRegressionGate {
   factory EvaluationRegressionGate.quick(
     Directory repositoryRoot, {
     EvaluationGateExecutor? execute,
+    List<EvaluationGateCommand> fixtureCommands = const [],
   }) {
     final packageRoot = Directory(
-      p.join(
-        repositoryRoot.absolute.path,
-        'examples',
-        'playable_runtime_host',
-      ),
+      p.join(repositoryRoot.absolute.path, 'examples', 'playable_runtime_host'),
     );
     return EvaluationRegressionGate._(
       commands: <EvaluationGateCommand>[
@@ -82,7 +79,6 @@ final class EvaluationRegressionGate {
           arguments: const <String>[
             'test',
             'test/evaluation/evaluation_scenario_parser_test.dart',
-            'test/evaluation/selbrume_evaluation_scenarios_test.dart',
           ],
           workingDirectory: packageRoot,
         ),
@@ -105,17 +101,7 @@ final class EvaluationRegressionGate {
           ],
           workingDirectory: packageRoot,
         ),
-        EvaluationGateCommand(
-          id: 'selbrume-shop-smoke',
-          executable: 'dart',
-          arguments: const <String>[
-            'run',
-            'tool/pokemap_eval.dart',
-            'run',
-            'selbrume.shop.after-lysa',
-          ],
-          workingDirectory: packageRoot,
-        ),
+        ...fixtureCommands,
       ],
       execute: execute ?? _executeCommand,
     );

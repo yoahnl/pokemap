@@ -4,10 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_loader/src/evaluation/runner/evaluation_regression_gate.dart';
 
 void main() {
-  test('quick gate covers contracts, worker, and Selbrume smoke', () async {
+  test(
+    'quick gate covers contracts, worker, and explicitly selected smoke', () async {
     final executed = <String>[];
     final gate = EvaluationRegressionGate.quick(
       _repositoryRoot(),
+        fixtureCommands: [
+          EvaluationGateCommand(
+            id: 'chosen-smoke',
+            executable: 'dart',
+            arguments: const ['run', 'fixture.dart'],
+            workingDirectory: _repositoryRoot(),
+          ),
+        ],
       execute: (command) async {
         executed.add(command.id);
         return EvaluationGateCommandResult(
@@ -22,14 +31,15 @@ void main() {
       'scenario-contracts',
       'policy-contracts',
       'headless-worker',
-      'selbrume-shop-smoke',
+        'chosen-smoke',
     ]);
 
     final result = await gate.run();
 
     expect(result.isSuccessful, isTrue);
     expect(executed, gate.commandIds);
-  });
+  },
+  );
 
   test('quick gate stops at the first failed command', () async {
     final executed = <String>[];

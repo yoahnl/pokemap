@@ -15,18 +15,17 @@ import 'package:path/path.dart' as p;
 import '../contracts/evaluation_state_snapshot.dart';
 import '../runner/evaluation_checkpoint_cache.dart';
 import 'evaluation_driver.dart';
-import 'evaluation_game_fixtures.dart';
+import 'evaluation_runtime_support.dart';
 import 'evaluation_player_service_host.dart';
 
-final class SelbrumeEvaluationDriver
+final class RuntimeEvaluationDriver
     implements
         EvaluationDriver,
-        EvaluationPlayerServiceAutomation,
         EvaluationBagMutationAutomation,
         EvaluationRosterAutomation,
         EvaluationBattleAutomation,
         EvaluationPlayerShellProvider {
-  SelbrumeEvaluationDriver._({
+  RuntimeEvaluationDriver._({
     required this.game,
     required this.project,
     required this.projectRoot,
@@ -104,7 +103,7 @@ final class SelbrumeEvaluationDriver
           );
   }
 
-  factory SelbrumeEvaluationDriver.attach({
+  factory RuntimeEvaluationDriver.attach({
     required PlayableMapGame game,
     required ProjectManifest project,
     required Directory projectRoot,
@@ -120,7 +119,7 @@ final class SelbrumeEvaluationDriver
         'Playback rate must be greater than 0 and at most 4.',
       );
     }
-    return SelbrumeEvaluationDriver._(
+    return RuntimeEvaluationDriver._(
       game: game,
       project: project,
       projectRoot: projectRoot,
@@ -137,7 +136,7 @@ final class SelbrumeEvaluationDriver
     );
   }
 
-  static Future<SelbrumeEvaluationDriver> start({
+  static Future<RuntimeEvaluationDriver> start({
     required Directory projectRoot,
     String runId = 'evaluation-run',
     EvaluationCheckpointCache? checkpointCache,
@@ -149,9 +148,20 @@ final class SelbrumeEvaluationDriver
       );
     }
     final projectPath = p.join(projectRoot.path, 'project.json');
+    final manifest = ProjectManifest.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(await File(projectPath).readAsString()) as Map,
+      ),
+    );
+    if (!manifest.newGame.enabled ||
+        manifest.newGame.startMapId.trim().isEmpty) {
+      throw StateError(
+        'Evaluation requires an enabled project New Game with a start map.',
+      );
+    }
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: projectPath,
-      mapId: 'map_bourg_selbrume',
+      mapId: manifest.newGame.startMapId,
     );
     final saveRepository = SerializedEvaluationSaveRepository();
     final playerServices = EvaluationPlayerServiceHost();
@@ -180,14 +190,15 @@ final class SelbrumeEvaluationDriver
         pokemonConfig: bundle.manifest.pokemon,
       ),
       conditionContext: ScriptEvaluationContext(
-        narrativeFactResolver:
-            NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
+        narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+          bundle.manifest.facts,
+        ),
       ),
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
     );
     game.setPlayerServiceRuntimeController(playerServiceController);
-    final driver = SelbrumeEvaluationDriver._(
+    final driver = RuntimeEvaluationDriver._(
       game: game,
       project: bundle.manifest,
       projectRoot: projectRoot,
@@ -209,16 +220,6 @@ final class SelbrumeEvaluationDriver
       operation: 'game.start',
       maxTicks: 15000,
       allowTransitionClock: true,
-    );
-    driver._require(
-      driver.state.currentMapId == 'map_bourg_selbrume',
-      operation: 'game.start',
-      message: 'The initial map must be map_bourg_selbrume.',
-    );
-    driver._require(
-      driver.state.party.members.isEmpty,
-      operation: 'game.start',
-      message: 'A fresh evaluation must start without a party.',
     );
     return driver;
   }
@@ -290,8 +291,8 @@ final class SelbrumeEvaluationDriver
   @override
   Future<void> startNewGame() async {
     _require(
-      state.currentMapId == project.newGame.startMapId &&
-          state.party.members.isEmpty,
+      project.newGame.enabled &&
+          state.currentMapId == project.newGame.startMapId,
       operation: 'game.new',
       message: 'game.new requires a fresh worker-owned runtime.',
     );
@@ -335,10 +336,7 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> crossConnection(
-    String direction, {
-    int? preferredAxis,
-  }) async {
+  Future<void> crossConnection(String direction, {int? preferredAxis}) async {
     final parsedDirection = MapConnectionDirection.values
         .where((candidate) => candidate.name == direction)
         .firstOrNull;
@@ -638,10 +636,7 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> waitForFact(
-    String factId, {
-    Duration? timeout,
-  }) async {
+  Future<void> waitForFact(String factId, {Duration? timeout}) async {
     final tickBudget = timeout == null
         ? 3000
         : (timeout.inMilliseconds / 16).ceil().clamp(1, 120000);
@@ -676,10 +671,7 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> chooseDialogue(
-    int choiceIndex, {
-    int? linesBeforeChoice,
-  }) async {
+  Future<void> chooseDialogue(int choiceIndex, {int? linesBeforeChoice}) async {
     _require(
       choiceIndex >= 0,
       operation: 'dialogue.choose',
@@ -703,10 +695,7 @@ final class SelbrumeEvaluationDriver
       await _microPump();
     }
     for (var move = 0; move < choiceIndex; move += 1) {
-      _pressInput(
-        RuntimeInputControl.down,
-        operation: 'dialogue.choose',
-      );
+      _pressInput(RuntimeInputControl.down, operation: 'dialogue.choose');
       await _microPump();
     }
     _pressPrimary(operation: 'dialogue.choose');
@@ -915,24 +904,26 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> inspectShop() async {
+  Future<void> inspectShop({
+    required String entityId,
+    required String shopId,
+  }) async {
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
       await _runVisiblePlayerService(
         attachedServices,
         kind: 'shop',
-        entityId: 'service_port_shop',
+        entityId: entityId,
         operation: 'service.shop.inspect',
         action: attachedServices.inspectShop,
-        openService: () =>
-            game.debugOpenPlayerServiceShop('shop_port_supplies'),
+        openService: () => game.debugOpenPlayerServiceShop(shopId),
       );
       _rememberVisibleShop(attachedServices);
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
     final requestCount = playerServices.shopRequests.length;
-    await interact('service_port_shop');
+    await interact(entityId);
     await _pumpUntil(
       () => playerServices.shopRequests.length == requestCount + 1,
       operation: 'service.shop.inspect',
@@ -940,12 +931,22 @@ final class SelbrumeEvaluationDriver
       drivePlainDialogue: true,
       allowTransitionClock: true,
     );
+    _require(
+      playerServices.shopRequests.last.shop.id == shopId,
+      operation: 'service.shop',
+      message: 'The entity opened a different shop.',
+    );
     _rememberShop(playerServices.shopRequests.last);
     await _settleToOverworld(operation: 'service.shop.inspect');
   }
 
   @override
-  Future<void> buy(String itemId, int quantity) async {
+  Future<void> buy(
+    String itemId,
+    int quantity, {
+    required String entityId,
+    required String shopId,
+  }) async {
     _require(
       quantity > 0,
       operation: 'service.shop.buy',
@@ -956,11 +957,10 @@ final class SelbrumeEvaluationDriver
       await _runVisiblePlayerService(
         attachedServices,
         kind: 'shop',
-        entityId: 'service_port_shop',
+        entityId: entityId,
         operation: 'service.shop.buy',
         action: () => attachedServices.buy(itemId, quantity),
-        openService: () =>
-            game.debugOpenPlayerServiceShop('shop_port_supplies'),
+        openService: () => game.debugOpenPlayerServiceShop(shopId),
       );
       _rememberVisibleShop(attachedServices);
       return;
@@ -969,7 +969,7 @@ final class SelbrumeEvaluationDriver
     for (var index = 0; index < quantity; index += 1) {
       final purchaseCount = playerServices.purchasedItemIds.length;
       playerServices.queueShopPurchase(itemId);
-      await interact('service_port_shop');
+      await interact(entityId);
       await _pumpUntil(
         () => playerServices.purchasedItemIds.length == purchaseCount + 1,
         operation: 'service.shop.buy',
@@ -977,13 +977,18 @@ final class SelbrumeEvaluationDriver
         drivePlainDialogue: true,
         allowTransitionClock: true,
       );
+      _require(
+        playerServices.shopRequests.last.shop.id == shopId,
+        operation: 'service.shop',
+        message: 'The entity opened a different shop.',
+      );
       _rememberShop(playerServices.shopRequests.last);
       await _settleToOverworld(operation: 'service.shop.buy');
     }
   }
 
   @override
-  Future<void> healParty() async {
+  Future<void> healParty({required String entityId}) async {
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
       final hpBefore = state.party.members
@@ -992,7 +997,7 @@ final class SelbrumeEvaluationDriver
       await _runVisiblePlayerService(
         attachedServices,
         kind: 'heal',
-        entityId: 'service_port_healing',
+        entityId: entityId,
         operation: 'service.heal',
         action: attachedServices.healParty,
         completedWithoutOverlay: () {
@@ -1000,9 +1005,8 @@ final class SelbrumeEvaluationDriver
               .map((pokemon) => pokemon.currentHp)
               .toList(growable: false);
           return hpAfter.length == hpBefore.length &&
-              Iterable<int>.generate(hpAfter.length).any(
-                (index) => hpAfter[index] > hpBefore[index],
-              );
+              Iterable<int>.generate(hpAfter.length)
+                  .any((index) => hpAfter[index] > hpBefore[index]);
         },
       );
       return;
@@ -1012,7 +1016,7 @@ final class SelbrumeEvaluationDriver
     final hpBefore = state.party.members
         .map((pokemon) => pokemon.currentHp)
         .toList(growable: false);
-    await interact('service_port_healing');
+    await interact(entityId);
     await _pumpUntil(
       () {
         if (playerServices.openedServices.length == openedCount + 1) {
@@ -1022,9 +1026,8 @@ final class SelbrumeEvaluationDriver
             .map((pokemon) => pokemon.currentHp)
             .toList(growable: false);
         return hpAfter.length == hpBefore.length &&
-            Iterable<int>.generate(hpAfter.length).any(
-              (index) => hpAfter[index] > hpBefore[index],
-            );
+            Iterable<int>.generate(hpAfter.length)
+                .any((index) => hpAfter[index] > hpBefore[index]);
       },
       operation: 'service.heal',
       driveCinematic: true,
@@ -1035,13 +1038,16 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> withdrawFromPc(String pokemonId) async {
+  Future<void> withdrawFromPc(
+    String pokemonId, {
+    required String entityId,
+  }) async {
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
       await _runVisiblePlayerService(
         attachedServices,
         kind: 'pc',
-        entityId: 'service_port_pc',
+        entityId: entityId,
         operation: 'service.pc.withdraw',
         action: () => attachedServices.withdrawFromPc(pokemonId),
       );
@@ -1058,7 +1064,7 @@ final class SelbrumeEvaluationDriver
       message: 'Pokemon "$pokemonId" is not present in storage.',
     );
     playerServices.queueCapturedPokemonWithdrawal();
-    await interact('service_port_pc');
+    await interact(entityId);
     await _pumpUntil(
       () => playerServices.withdrawnSpeciesId != null,
       operation: 'service.pc.withdraw',
@@ -1168,25 +1174,26 @@ final class SelbrumeEvaluationDriver
   ) async {
     final shop =
         project.shops.where((candidate) => candidate.id == shopId).firstOrNull;
-   _require(
-     shop != null,
-     operation: 'service.shop.sell',
-     message: 'Shop "$shopId" does not exist.',
-   );
+    _require(
+      shop != null,
+      operation: 'service.shop.sell',
+      message: 'Shop "$shopId" does not exist.',
+    );
     final itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
       projectRootDirectory: projectRoot.path,
       pokemonConfig: project.pokemon,
     );
-   final result = const GameStateMutations().sellToResolvedShop(
+    final result = const GameStateMutations().sellToResolvedShop(
       state,
       shop: shop!,
-     expectedStateId: expectedStateId,
-     itemId: itemId,
-     quantity: quantity,
+      expectedStateId: expectedStateId,
+      itemId: itemId,
+      quantity: quantity,
       itemCatalog: itemCatalog,
-     conditionContext: ScriptEvaluationContext(
-        narrativeFactResolver:
-            NarrativeFactRuntimeResolver.fromFacts(project.facts),
+      conditionContext: ScriptEvaluationContext(
+        narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+          project.facts,
+        ),
       ),
     );
     _require(
@@ -1404,8 +1411,9 @@ final class SelbrumeEvaluationDriver
     )..[factId] = NarrativeValue.boolean(value);
     await _commitProbeState(
       state.copyWith(
-        narrativeFactRuntimeState:
-            NarrativeFactRuntimeState.typed(valuesByFactId: values),
+        narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+          valuesByFactId: values,
+        ),
       ),
       operation: 'probe.overrideFact',
     );
@@ -1460,10 +1468,7 @@ final class SelbrumeEvaluationDriver
       operation: 'bag.consume',
       message: 'Item consumption was refused by the canonical catalog.',
     );
-    await _commitProbeState(
-      nextState,
-      operation: 'bag.consume',
-    );
+    await _commitProbeState(nextState, operation: 'bag.consume');
   }
 
   @override
@@ -1478,10 +1483,7 @@ final class SelbrumeEvaluationDriver
         bag: Bag(
           entries: <BagEntry>[
             for (final entry in quantities.entries)
-              BagEntry(
-                itemId: entry.key,
-                quantity: entry.value,
-              ),
+              BagEntry(itemId: entry.key, quantity: entry.value),
           ],
         ).normalized(),
       ),
@@ -1490,14 +1492,10 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> probeSeedParty(
-    List<Map<String, Object?>> pokemon,
-  ) async {
+  Future<void> probeSeedParty(List<Map<String, Object?>> pokemon) async {
     final members = pokemon
         .map(
-          (value) => PlayerPokemon.fromJson(
-            Map<String, dynamic>.from(value),
-          ),
+          (value) => PlayerPokemon.fromJson(Map<String, dynamic>.from(value)),
         )
         .toList(growable: false);
     await _commitProbeState(
@@ -1626,9 +1624,7 @@ final class SelbrumeEvaluationDriver
     await _microPump();
   }
 
-  Future<void> _returnBattleMenuToRoot({
-    required String operation,
-  }) async {
+  Future<void> _returnBattleMenuToRoot({required String operation}) async {
     final overlay = game.debugBattleOverlayComponent;
     _require(
       overlay != null,
@@ -1761,10 +1757,7 @@ final class SelbrumeEvaluationDriver
     _pressInput(RuntimeInputControl.primary, operation: operation);
   }
 
-  void _pressInput(
-    RuntimeInputControl control, {
-    required String operation,
-  }) {
+  void _pressInput(RuntimeInputControl control, {required String operation}) {
     _require(
       game.handleRuntimeInputEvent(RuntimeInputEvent.press(control)),
       operation: operation,
@@ -1825,10 +1818,7 @@ final class SelbrumeEvaluationDriver
         _findPath(target, avoidEncounters: false);
   }
 
-  List<Direction>? _findPath(
-    GridPos target, {
-    required bool avoidEncounters,
-  }) {
+  List<Direction>? _findPath(GridPos target, {required bool avoidEncounters}) {
     final map = _currentMap;
     final world = _pathfindingWorld(map);
     final start = game.debugPlayerGridPosition;
@@ -1850,8 +1840,9 @@ final class SelbrumeEvaluationDriver
         final next = _translated(current, direction);
         if (!_inside(map, next) ||
             visited.contains(next) ||
-            (_runtimeRejectedEdgesByMapId[map.id]
-                    ?.contains(_edgeKey(current, direction)) ??
+            (_runtimeRejectedEdgesByMapId[map.id]?.contains(
+                  _edgeKey(current, direction),
+                ) ??
                 false) ||
             !_canTakePhysicalStep(world, current, direction, next) ||
             _isUnintendedWarpCell(map, next, target) ||
@@ -1917,8 +1908,10 @@ final class SelbrumeEvaluationDriver
       ),
       (
         facing: Direction.north,
-        position:
-            GridPos(x: entity.pos.x, y: entity.pos.y + entity.size.height),
+        position: GridPos(
+          x: entity.pos.x,
+          y: entity.pos.y + entity.size.height,
+        ),
       ),
       (
         facing: Direction.east,
@@ -1949,8 +1942,9 @@ final class SelbrumeEvaluationDriver
         snapshot: snapshot(),
       );
     }
-    candidates
-        .sort((left, right) => left.pathLength.compareTo(right.pathLength));
+    candidates.sort(
+      (left, right) => left.pathLength.compareTo(right.pathLength),
+    );
     return candidates.first;
   }
 
@@ -2027,24 +2021,25 @@ final class SelbrumeEvaluationDriver
       MapConnectionDirection.west =>
         map.size.height,
     };
-    final preferred =
-        (preferredAxis ?? axisLength ~/ 2).clamp(0, axisLength - 1);
+    final preferred = (preferredAxis ?? axisLength ~/ 2).clamp(
+      0,
+      axisLength - 1,
+    );
     final axes = List<int>.generate(axisLength, (index) => index)
       ..sort(
         (left, right) =>
             (left - preferred).abs().compareTo((right - preferred).abs()),
       );
     for (final axis in axes) {
-      result.add(
-        switch (direction) {
-          MapConnectionDirection.north => GridPos(x: axis, y: 0),
-          MapConnectionDirection.south =>
-            GridPos(x: axis, y: map.size.height - 1),
-          MapConnectionDirection.east =>
-            GridPos(x: map.size.width - 1, y: axis),
-          MapConnectionDirection.west => GridPos(x: 0, y: axis),
-        },
-      );
+      result.add(switch (direction) {
+        MapConnectionDirection.north => GridPos(x: axis, y: 0),
+        MapConnectionDirection.south => GridPos(
+            x: axis,
+            y: map.size.height - 1,
+          ),
+        MapConnectionDirection.east => GridPos(x: map.size.width - 1, y: axis),
+        MapConnectionDirection.west => GridPos(x: 0, y: axis),
+      });
     }
     return result;
   }
@@ -2117,9 +2112,7 @@ final class SelbrumeEvaluationDriver
     int maxTicks = 3750,
     bool driveDialogue = false,
   }) async {
-    final tickDelay = Duration(
-      microseconds: (16000 / _playbackRate).round(),
-    );
+    final tickDelay = Duration(microseconds: (16000 / _playbackRate).round());
     for (var index = 0; index < maxTicks; index += 1) {
       if (predicate()) return;
       if (driveDialogue &&

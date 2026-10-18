@@ -27,12 +27,7 @@ typedef EvaluationWorkerRequestExecutor = Future<EvaluationWorkerResult>
   EvaluationWorkerEventSink eventSink,
 );
 
-enum EvaluationWorkerControlAction {
-  step,
-  pause,
-  resume,
-  cancel,
-}
+enum EvaluationWorkerControlAction { step, pause, resume, cancel }
 
 abstract interface class EvaluationWorkerFactory {
   Future<EvaluationWorkerHandle> create(String projectId);
@@ -46,10 +41,7 @@ abstract interface class EvaluationWorkerHandle {
     EvaluationWorkerEventSink? eventSink,
   });
 
-  Future<void> control(
-    String runId,
-    EvaluationWorkerControlAction action,
-  );
+  Future<void> control(String runId, EvaluationWorkerControlAction action);
 
   Future<void> close();
 }
@@ -213,10 +205,7 @@ final class EvaluationWorkerPool {
     return worker;
   }
 
-  Future<T> _serialize<T>(
-    String projectId,
-    Future<T> Function() operation,
-  ) {
+  Future<T> _serialize<T>(String projectId, Future<T> Function() operation) {
     final result = Completer<T>();
     final previous = _tails[projectId] ?? Future<void>.value();
     late Future<void> next;
@@ -309,10 +298,7 @@ final class _PersistentEvaluationWorkerHandle
     _runId = request.runId;
     _result = result;
     _eventSink = eventSink;
-    _send(<String, Object?>{
-      'type': 'run',
-      'request': request.toJson(),
-    });
+    _send(<String, Object?>{'type': 'run', 'request': request.toJson()});
     try {
       final completed = await result.future;
       if (completed.runId != request.runId) {
@@ -451,10 +437,7 @@ final class _PersistentEvaluationWorkerHandle
     }
   }
 
-  void _handleConnectionFailure(
-    Object error, [
-    StackTrace? stackTrace,
-  ]) {
+  void _handleConnectionFailure(Object error, [StackTrace? stackTrace]) {
     if (!_ready.isCompleted) {
       _ready.completeError(error, stackTrace);
     }
@@ -687,9 +670,25 @@ String _createWorkerToken() {
 }
 
 Directory _discoverHostRoot() {
-  final current = Directory.current.absolute;
-  if (File(p.join(current.path, 'selbrume', 'project.json')).existsSync()) {
-    return current;
+  var current = Directory.current.absolute;
+  while (true) {
+    if (File(p.join(current.path, 'packages', 'map_core', 'pubspec.yaml'))
+            .existsSync() &&
+        File(
+          p.join(
+            current.path,
+            'examples',
+            'playable_runtime_host',
+            'pubspec.yaml',
+          ),
+        ).existsSync()) {
+      return current;
+    }
+    if (current.parent.path == current.path) {
+      throw StateError(
+        'Unable to locate the PokeMap repository root. Supply hostRoot explicitly.',
+      );
+    }
+    current = current.parent;
   }
-  return Directory(p.normalize(p.join(current.path, '..', '..')));
 }

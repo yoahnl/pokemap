@@ -17,8 +17,8 @@ import '../../tool/src/pokemap_eval_cli.dart';
 void main() {
   test('run command resolves a scenario by ID', () {
     final options = PokeMapEvalCli.parse(
-      <String>['run', 'selbrume.shop.after-lysa', '--json'],
-    );
+      <String>['run', 'selbrume.shop.after-lysa', '--json',
+    ]);
 
     expect(options.command, PokeMapEvalCommand.run);
     expect(options.scenarioId, 'selbrume.shop.after-lysa');
@@ -53,8 +53,7 @@ void main() {
         '3',
         '--json-output',
         'build/performance/runtime.json',
-      ],
-    );
+      ]);
 
     expect(options.buildMode, EvaluationBuildMode.profile);
     expect(options.runs, 3);
@@ -71,9 +70,11 @@ void main() {
       runIndex += 1;
       expect(buildMode, EvaluationBuildMode.profile);
       final output =
-          Directory(p.join(fixture.root.path, request.outputDirectory));
+          Directory(p.join(fixture.root.path, request.outputDirectory),
+        );
       final frameFile =
-          File(p.join(output.path, 'artifacts', 'frame-metrics.json'));
+          File(p.join(output.path, 'artifacts', 'frame-metrics.json'),
+        );
       await frameFile.create(recursive: true);
       await frameFile.writeAsString(
         jsonEncode(
@@ -124,8 +125,7 @@ void main() {
         '3',
         '--json-output',
         'build/performance/runtime.json',
-      ],
-    );
+      ]);
 
     expect(result.exitCode, 0);
     expect(fixture.interactiveWorker.requests, hasLength(3));
@@ -136,7 +136,8 @@ void main() {
       'build',
       'performance',
       'runtime.json',
-    ));
+    ),
+      );
     final payload =
         jsonDecode(await output.readAsString()) as Map<String, Object?>;
     expect(payload['schemaVersion'], 2);
@@ -147,7 +148,8 @@ void main() {
     final aggregate = payload['aggregateFrameMetrics']! as Map<String, Object?>;
     expect(aggregate['frameCount'], 6);
     expect(aggregate['framesOver16Point67Milliseconds'], 3);
-  });
+  },
+  );
 
   test('performance options reject debug mode, zero runs, and output escape',
       () async {
@@ -191,7 +193,8 @@ void main() {
     expect(escaped.exitCode, 2);
     expect(fixture.interactiveWorker.requests, isEmpty);
     expect(fixture.stderr.toString(), contains('must stay inside'));
-  });
+  },
+  );
 
   test('run target selects the interactive worker without changing policy',
       () async {
@@ -201,8 +204,7 @@ void main() {
         'selbrume.shop.after-lysa',
         '--target',
         'interactive',
-      ],
-    );
+      ]);
     expect(options.target, EvaluationTarget.interactive);
     expect(options.policy, isNull);
 
@@ -221,14 +223,14 @@ void main() {
         'selbrume.test',
         '--target',
         'interactive',
-      ],
-    );
+      ]);
 
     expect(result.exitCode, 0);
     expect(fixture.worker.requests, isEmpty);
     expect(fixture.interactiveWorker.requests, hasLength(1));
     expect(fixture.stderr.toString(), contains('(probe, interactive)'));
-  });
+  },
+  );
 
   test('functional failure maps to exit code 1', () async {
     final fixture = await _CliFixture.create();
@@ -242,8 +244,7 @@ void main() {
     );
 
     final result = await fixture.cli.execute(
-      <String>['run', 'selbrume.test'],
-    );
+      <String>['run', 'selbrume.test']);
 
     expect(result.exitCode, 1);
   });
@@ -260,8 +261,8 @@ void main() {
     );
 
     final result = await fixture.cli.execute(
-      <String>['run', 'selbrume.test'],
-    );
+      <String>['run', 'selbrume.test',
+      ]);
 
     expect(result.exitCode, 0);
     final request = fixture.worker.requests.single;
@@ -269,7 +270,8 @@ void main() {
     expect(request.expectedProjectTreeHash, 'a' * 64);
     expect(fixture.projectProjectionFactory.creations, 1);
     expect(fixture.projectProjectionFactory.disposals, 1);
-  });
+  },
+  );
 
   test('direct run disposes its projection when the worker throws', () async {
     final fixture = await _CliFixture.create();
@@ -278,8 +280,7 @@ void main() {
     fixture.worker.onRun = (_, _) => throw StateError('worker failed');
 
     final result = await fixture.cli.execute(
-      <String>['run', 'selbrume.test'],
-    );
+      <String>['run', 'selbrume.test']);
 
     expect(result.exitCode, 3);
     expect(fixture.projectProjectionFactory.creations, 1);
@@ -292,8 +293,8 @@ void main() {
     await fixture.writeScenario();
 
     final result = await fixture.cli.execute(
-      <String>['list', '--project', 'selbrume'],
-    );
+      <String>['list', '--project', 'selbrume',
+    ]);
 
     expect(result.exitCode, 0);
     expect(fixture.stdout.toString(), contains('selbrume.test'));
@@ -312,8 +313,7 @@ void main() {
     );
 
     await fixture.cli.execute(
-      <String>['run', 'selbrume.test', '--json'],
-    );
+      <String>['run', 'selbrume.test', '--json']);
 
     final decoded = jsonDecode(fixture.stdout.toString());
     expect(decoded, isA<Map<String, Object?>>());
@@ -332,18 +332,18 @@ void main() {
     await fixture.cli.execute(
       <String>[
         'inspect',
-        '--checkpoint',
+      '--project',
+      'selbrume',
+      '--checkpoint',
         'after-lysa',
         '--facts',
         '--party',
-      ],
-    );
+      ]);
 
     final request = fixture.worker.requests.single;
     final scenarioFile = File(p.join(
       fixture.root.path,
-      request.scenarioPath,
-    ));
+      request.scenarioPath));
     final scenario = const EvaluationScenarioParser().parseString(
       await scenarioFile.readAsString(),
     );
@@ -351,7 +351,8 @@ void main() {
     expect(
       scenario.steps
           .whereType<EvaluationCommandStep>()
-          .map((step) => step.operation),
+          .map((step) => step.operation,
+      ),
       <String>['probe.loadCheckpoint', 'evidence.snapshot'],
     );
     final snapshot = scenario.steps.last as EvaluationCommandStep;
@@ -363,8 +364,8 @@ void main() {
     addTearDown(fixture.dispose);
 
     final result = await fixture.cli.execute(
-      <String>['run', 'selbrume.test', '--unknown'],
-    );
+      <String>['run', 'selbrume.test', '--unknown',
+    ]);
 
     expect(result.exitCode, 2);
     expect(fixture.worker.requests, isEmpty);
@@ -382,7 +383,8 @@ void main() {
       'runs',
       'run-valid',
       'receipt.json',
-    ));
+    ),
+      );
     await valid.create(recursive: true);
     await valid.writeAsString(
       jsonEncode(<String, Object?>{
@@ -407,7 +409,8 @@ void main() {
       'runs',
       'run-invalid',
       'receipt.json',
-    ));
+    ),
+      );
     await malformed.create(recursive: true);
     await malformed.writeAsString('{"status":"succeeded"}');
 
@@ -417,7 +420,8 @@ void main() {
     expect(fixture.stdout.toString(), contains('selbrume.valid'));
     expect(fixture.stdout.toString(), isNot(contains('run-invalid')));
     expect(fixture.stderr.toString(), contains('Ignoring invalid receipt'));
-  });
+  },
+  );
 }
 
 final class _CliFixture {
@@ -474,7 +478,8 @@ final class _CliFixture {
       'scenarios',
       'selbrume',
       'test.json',
-    ));
+    ),
+    );
     await file.create(recursive: true);
     await file.writeAsString('''
     {
