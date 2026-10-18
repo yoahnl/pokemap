@@ -15,6 +15,7 @@ import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:avelune_converter_adapters/src/source_event_study_composer.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/source_static_door_program.dart';
+import 'package:avelune_converter_adapters/src/source_routed_door_program.dart';
 
 final class _RubyObject {
   _RubyObject(this.className, this.fields);
@@ -3194,7 +3195,229 @@ void main() {
             result.mutations.indexWhere((m) => m.actionId == 'scene.upsert')));
   });
 
-  test('EV-C excluded target or forced direction prevents any active transfer',
+  group('EV06 fixed transfers', () {
+    for (final direction in [0, 2, 4, 6, 8]) {
+      for (final fade in [0, 1]) {
+        test('preserves direction $direction and source fade $fade', () async {
+          final source = await _events([
+            _page([_command(201, [0, 8, 2, 1, direction, fade])]),
+          ], interpretationProfile: fixtureSourceInterpretationProfile);
+          final result = _projectEvents(source);
+          expect(result.registry.records.single.definitionOrNull, isNotNull,
+              reason: jsonEncode(result.semanticEvidence));
+          final arrival = result.nativeMaps[8]!.warps.single;
+          final action = result.scenes.single.graph.nodes
+              .map((node) => node.payload)
+              .whereType<SceneActionPayload>()
+              .single.interactiveCommand as SceneWarpInteractiveCommand;
+          expect(action.destinationMapId, result.nativeMaps[8]!.id);
+          expect(action.warpId, arrival.id);
+          expect(arrival.pos, const GridPos(x: 2, y: 1));
+          expect(arrival.triggerMode, MapWarpTriggerMode.sceneOnly);
+          expect(action.arrivalFacing, switch (direction) {
+            2 => EntityFacing.south,
+            4 => EntityFacing.west,
+            6 => EntityFacing.east,
+            8 => EntityFacing.north,
+            _ => null,
+          });
+          expect(action.transition,
+              fade == 0 ? SceneWarpTransition.mapDefault : SceneWarpTransition.none);
+          expect(SceneInteractiveCommand.fromJson(action.toJson()), action);
+        });
+      }
+    }
+
+    for (final parameters in [
+      [0, 8, 2, 1, 3, 0],
+      [0, 8, 2, 1, 2, 2],
+      [1, 8, 2, 1, 2, 1],
+      [0, 8, -1, 1, 2, 1],
+      [0, 8, 3, 1, 2, 1],
+      [0, 8, 2, 2, 2, 1],
+    ]) {
+      test('rejects unsupported or out-of-bounds transfer $parameters', () async {
+        final result = _projectEvents(await _events([
+          _page([_command(201, parameters)]),
+        ], interpretationProfile: fixtureSourceInterpretationProfile));
+        expect(result.registry.records.single.definitionOrNull, isNull);
+        expect(result.scenes, isEmpty);
+        expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
+      });
+    }
+
+    for (final sample in [
+      (map: 8, x: 2, y: 1, direction: 3, gap: 'warpFacingUnsupported'),
+      (map: 8, x: -1, y: 1, direction: 2, gap: 'warpArrivalInvalid'),
+      (map: 8, x: 3, y: 1, direction: 2, gap: 'warpArrivalInvalid'),
+      (map: 8, x: 2, y: 2, direction: 2, gap: 'warpArrivalInvalid'),
+      (map: 999, x: 2, y: 1, direction: 2, gap: 'warpDependencyMissing'),
+    ]) {
+      test('refuses an invalid forged typed transfer $sample', () async {
+        final source = await _events([
+          _page([_command(201, [0, 8, 2, 1, 0, 0])]),
+        ], interpretationProfile: fixtureSourceInterpretationProfile);
+        final original = _analyzer(source).analyze();
+        final event = original.events.single;
+        final page = event.pages.single;
+        final warp = page.body.nodes.single as SourceWarpNode;
+        final analysis = SourceEventAnalysis(profile: original.profile,
+            diagnostics: original.diagnostics, events: [
+          SourceEventDefinition(sourceMapId: event.sourceMapId,
+              sourceEventId: event.sourceEventId, sourceFileId: event.sourceFileId,
+              identity: event.identity, name: event.name, x: event.x, y: event.y,
+              locator: event.locator, pages: [
+            SourceEventPageAnalysis(sourcePage: page.sourcePage,
+                locator: page.locator, condition: page.condition,
+                graphic: page.graphic, rawDataRef: page.rawDataRef,
+                diagnostics: page.diagnostics,
+                body: SourceEventBlock(span: page.body.span, nodes: [
+                  SourceWarpNode(warp.span, targetSourceMapId: sample.map,
+                      x: sample.x, y: sample.y, direction: sample.direction, fade: false),
+                ])),
+          ]),
+        ]);
+        final result = _projectEvents(source, analysis: analysis);
+        expect(result.registry.records.single.definitionOrNull, isNull);
+        expect(jsonEncode(result.semanticEvidence), contains(sample.gap));
+        expect(result.scenes, isEmpty);
+        expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
+      });
+    }
+
+    test('an unqualified command prevents the entire directed transfer', () async {
+      final result = _projectEvents(await _events([
+        _page([
+          _command(201, [0, 8, 2, 1, 2, 1]),
+          _command(355, ['unsupported_source_side_effect()']),
+        ]),
+      ], interpretationProfile: fixtureSourceInterpretationProfile));
+      expect(result.registry.records.single.definitionOrNull, isNull);
+      expect(result.scenes, isEmpty);
+      expect(result.nativeMaps.values.expand((map) => map.warps), isEmpty);
+    });
+
+    for (final sample in [
+      (x: 1, y: 0, through: false, name: 'Rock size(2,2)', blocked: true),
+      (x: 1, y: 1, through: false, name: 'Rock size(2,2)', blocked: true),
+      (x: 2, y: 0, through: false, name: 'Rock size(2,2)', blocked: true),
+      (x: 1, y: 2, through: false, name: 'Rock size(2,2)', blocked: false),
+      (x: 3, y: 1, through: false, name: 'Rock size(2,2)', blocked: false),
+      (x: 1, y: 0, through: true, name: 'Rock size(2,2)', blocked: false),
+      (x: 1, y: 0, through: false, name: 'Rock size(2,0)', blocked: true),
+      (x: 1, y: 0, through: false, name: 'Rock size(2,2) size(1,1)', blocked: true),
+    ]) {
+      test('checks bottom-anchored source arrival footprint $sample', () async {
+        final obstacle = _page([_command(0, [])], character: '')
+          ..fields['@through'] = sample.through;
+        (obstacle.fields['@graphic'] as _RubyObject).fields['@tile_id'] = 384;
+        final source = await _events([
+          _page([_command(201, [0, 8, sample.x, sample.y, 2, 1])]),
+        ], interpretationProfile: fixtureSourceInterpretationProfile,
+            extraMaps: {8: _map(width: 4, height: 4, events: {
+              2: _event(2, [obstacle], x: 1, y: 1, name: sample.name),
+            })});
+        final analysis = _analyzer(source).analyze();
+        final result = _projectEvents(source, analysis: SourceEventAnalysis(
+            profile: analysis.profile, diagnostics: analysis.diagnostics,
+            events: analysis.events.where((event) => event.sourceMapId == 1).toList()));
+        final record = result.registry.records.single;
+        expect(record.definitionOrNull == null, sample.blocked,
+            reason: jsonEncode(result.semanticEvidence));
+        if (sample.blocked) {
+          expect(jsonEncode(result.semanticEvidence),
+              contains('warpArrivalSourceActorUnqualified'));
+          expect(result.nativeMaps[8]!.warps, isEmpty);
+        } else {
+          expect(result.nativeMaps[8]!.warps.single.pos,
+              GridPos(x: sample.x, y: sample.y));
+        }
+      });
+    }
+  });
+
+  group('EV06 paired invisible doors', () {
+    List<_RubyObject> departure({bool? visible = true, bool sound = false}) => [
+      if (sound) _command(250, [_RubyObject('RPG::AudioFile', {
+        '@name': 'Door enter', '@volume': 80, '@pitch': 100,
+      })]),
+      _command(223, [_tone([-255, -255, -255, 0]), 6]),
+      _command(106, [8]),
+      if (visible != null) _command(208, [visible ? 1 : 0]),
+      _command(201, [0, 8, 2, 1, 8, 1]),
+      _command(223, [_tone([0, 0, 0, 0]), 6]),
+    ];
+
+    Future<NormalizedSourceProject> sourceFor(List<_RubyObject> commands,
+        {bool maskedArrival = false}) async {
+      final step = _RubyObject('RPG::MoveCommand', {'@code': 1, '@parameters': <Object?>[]});
+      final arrival = _withCondition(_page([
+        _command(111, [12, 'get_self.onEvent?']),
+        if (maskedArrival) _command(208, [0], indent: 1),
+        _command(209, [-1, _RubyObject('RPG::MoveRoute', {
+          '@repeat': false, '@skippable': true,
+          '@list': [step, _RubyObject('RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})],
+        })], indent: 1),
+        _command(509, [step], indent: 1),
+        _command(210, [], indent: 1),
+        _command(412, []),
+        _command(355, ['setTempSwitchOn("A")']),
+      ], trigger: 3, character: ''), {'@switch1_valid': true});
+      return _events([
+        _page(commands, trigger: 1, character: ''),
+        arrival,
+      ], interpretationProfile: fixtureSourceInterpretationProfile,
+          switches: ['', 's:tsOff?("A")']);
+    }
+
+    for (final shape in ['showBeforeWarp', 'plainFade', 'soundBeforeFade']) {
+      test('recognizes exact $shape departure and guarded arrival', () async {
+        final source = await sourceFor(departure(
+            visible: shape == 'showBeforeWarp' ? true : null,
+            sound: shape == 'soundBeforeFade'));
+        final analysis = _analyzer(source).analyze();
+        final programs = sourceRoutedDoorPrograms(source: source, analysis: analysis);
+        expect(programs, hasLength(1), reason: jsonEncode(analysis.events.single.pages
+            .map((page) => page.diagnostics.map((diagnostic) => diagnostic.toJson()).toList()).toList()));
+        final event = analysis.events.single;
+        expect(programs[event.identity]!.isBoundTo(
+            source: source, analysis: analysis, event: event), isTrue);
+        expect(programs[event.identity]!.targetSourceMapId, 8);
+      });
+    }
+
+    for (final shape in ['hideBeforeWarp', 'reordered', 'extra', 'maskedArrival']) {
+      test('refuses unqualified $shape variant', () async {
+        final commands = departure(visible: shape == 'hideBeforeWarp' ? false : true);
+        if (shape == 'reordered') {
+          final visibility = commands.removeAt(2);
+          commands.insert(1, visibility);
+        }
+        if (shape == 'extra') commands.add(_command(106, [1]));
+        final source = await sourceFor(commands, maskedArrival: shape == 'maskedArrival');
+        expect(sourceRoutedDoorPrograms(source: source, analysis: _analyzer(source).analyze()), isEmpty);
+      });
+    }
+
+    test('rejects a forged paired door fingerprint', () async {
+      final source = await sourceFor(departure());
+      final original = _analyzer(source).analyze();
+      final event = original.events.single;
+      final programs = sourceRoutedDoorPrograms(source: source, analysis: original);
+      expect(programs, hasLength(1));
+      final forged = SourceEventDefinition(sourceMapId: event.sourceMapId,
+          sourceEventId: event.sourceEventId, sourceFileId: event.sourceFileId,
+          identity: event.identity, name: 'Forged', x: event.x, y: event.y,
+          locator: event.locator, pages: event.pages);
+      final analysis = SourceEventAnalysis(profile: original.profile,
+          diagnostics: original.diagnostics, events: [forged]);
+      expect(programs.values.single.isBoundTo(source: source,
+          analysis: analysis, event: forged), isFalse);
+      expect(sourceRoutedDoorPrograms(source: source, analysis: analysis), isEmpty);
+    });
+  });
+
+  test('EV-C excluded target prevents any active transfer',
       () async {
     final source = await _events([
       _page([
@@ -3203,12 +3426,6 @@ void main() {
     ]);
     final missing = _projectEvents(source, maps: {1: _nativeMaps(source)[1]!});
     expect(missing.registry.records.single.definitionOrNull, isNull);
-    final directed = _projectEvents(await _events([
-      _page([
-        _command(201, [0, 8, 2, 1, 2, 0])
-      ])
-    ]));
-    expect(directed.registry.records.single.definitionOrNull, isNull);
   });
 
   test(

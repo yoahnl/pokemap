@@ -459,6 +459,10 @@ final class SourceEventExecutionContextResolver {
           source.snapshot.excludedPaths.where(_isPluginPath).toList(),
     };
     final pluginInventoryHash = canonicalHashOf(pluginInventory);
+    final customPluginPolicy = source.interpretationProfile?.customPluginPolicy ??
+        SourceCustomPluginPolicy.requireAbsent;
+    final excludesCustomBehavior =
+        customPluginPolicy == SourceCustomPluginPolicy.excludeCustomBehavior;
     if (source.snapshot.excludedPaths.any((path) {
       final excluded = sourcePathCollisionKey(path);
       return ['Data/PluginScripts.rxdata', 'Data/CommonEvents.rxdata']
@@ -471,7 +475,9 @@ final class SourceEventExecutionContextResolver {
     }
     if (source.snapshot.entries.any((entry) =>
             _isPluginPath(entry.relativePath) &&
-            entry.kind != SourceNodeKind.directory) ||
+            entry.kind != SourceNodeKind.directory &&
+            !(excludesCustomBehavior && entry.kind == SourceNodeKind.file &&
+                entry.sha256 != null)) ||
         source.snapshot.excludedPaths.any(_isPluginPath)) {
       refusals.add('sourcePluginInventoryUnsupported');
     }
@@ -633,7 +639,7 @@ final class SourceEventExecutionContextResolver {
       if (cached?['automaticCommonEventsManual'] == false) {
         refusals.add('sourceAutomaticCommonEventUnsupported');
       }
-      if (cached?['pluginArchiveEmpty'] == false) {
+      if (!excludesCustomBehavior && cached?['pluginArchiveEmpty'] == false) {
         refusals.add('sourcePluginRouteContextUnsupported');
       }
       bool? manualCommonEvents;
@@ -654,7 +660,7 @@ final class SourceEventExecutionContextResolver {
         }
         if (expected.key == 'Data/PluginScripts.rxdata') {
           pluginArchiveEmpty = _emptyPluginArchive(bytes);
-          if (!pluginArchiveEmpty) {
+          if (!excludesCustomBehavior && !pluginArchiveEmpty) {
             refusals.add('sourcePluginRouteContextUnsupported');
           }
         }
@@ -850,7 +856,17 @@ final class SourceEventExecutionContextResolver {
                         : staticTransfer
                             ? 'declared-static-transfer-fresh-v1'
                             : 'declared-original-door-fresh-v1',
-        'sourcePluginContext': 'freshEmptyPluginArchiveAndNoPluginFiles',
+        'sourcePluginContext': excludesCustomBehavior
+            ? 'explicitCustomBehaviorExcluded'
+            : 'freshEmptyPluginArchiveAndNoPluginFiles',
+        'customPluginPolicy': customPluginPolicy.name,
+        if (excludesCustomBehavior) 'excludedCustomBehavior': {
+          'pluginInventory': pluginInventory,
+          'compiledArchive': 'sealedSourceWitnessWhenPresent',
+          'sourceScriptsExecuted': 0,
+          'pluginBehaviorImported': false,
+          'pluginParityQualified': false,
+        },
         'pluginInventoryHash': pluginInventoryHash.value,
         'commonEvents': 'manualOnly',
         'parallelEvents': 'wholeEventQuarantinedWithClosedNativeWriterSet',

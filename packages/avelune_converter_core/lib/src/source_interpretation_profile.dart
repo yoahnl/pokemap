@@ -1,5 +1,7 @@
 part of '../avelune_converter_core.dart';
 
+enum SourceCustomPluginPolicy { requireAbsent, excludeCustomBehavior }
+
 final class SourceInterpretationProfile {
   static const maxEncodedBytes = 2097152;
   SourceInterpretationProfile._(
@@ -9,7 +11,8 @@ final class SourceInterpretationProfile {
       this.capabilities,
       this.sections,
       this.declaredPrograms,
-      this.presentationBindings);
+      this.presentationBindings,
+      this.customPluginPolicy);
 
   static const jsonLimits = ContractLimits(
       maxDepth: 32,
@@ -34,7 +37,8 @@ final class SourceInterpretationProfile {
       'capabilities',
       'sections',
       'declaredPrograms',
-      'presentationBindings'
+      'presentationBindings',
+      'customPluginPolicy'
     });
     _require(
         json['kind'] == 'sourceInterpretationProfile' &&
@@ -139,6 +143,15 @@ final class SourceInterpretationProfile {
         'declared_program.duplicate',
         r'$',
         'Declared programs require unique IDs and the explicit event capability.');
+    final rawPluginPolicy = json.containsKey('customPluginPolicy')
+        ? json['customPluginPolicy']
+        : SourceCustomPluginPolicy.requireAbsent.name;
+    _require(
+        rawPluginPolicy is String &&
+            SourceCustomPluginPolicy.values.any((policy) => policy.name == rawPluginPolicy),
+        'interpretation_profile.custom_plugin_policy',
+        r'$.customPluginPolicy',
+        'Choose an explicit supported custom-plugin behavior policy.');
     return SourceInterpretationProfile._(
         ConverterId(_interpretationString(json['profileId'])),
         path,
@@ -148,7 +161,8 @@ final class SourceInterpretationProfile {
         List.unmodifiable(programs),
         json.containsKey('presentationBindings')
             ? SourcePresentationBindings.fromJson(json['presentationBindings'])
-            : null);
+            : null,
+        SourceCustomPluginPolicy.values.byName(rawPluginPolicy as String));
   }
 
   final ConverterId profileId;
@@ -158,6 +172,7 @@ final class SourceInterpretationProfile {
   final Map<String, Map<String, Object?>> sections;
   final List<SourceDeclaredProgramBinding> declaredPrograms;
   final SourcePresentationBindings? presentationBindings;
+  final SourceCustomPluginPolicy customPluginPolicy;
 
   bool supports(String capability) => capabilities.contains(capability);
   bool matchesArchive(Sha256Hash? observed) => observed == scriptsArchiveHash;
@@ -190,6 +205,8 @@ final class SourceInterpretationProfile {
         'declaredPrograms': declaredPrograms.map((p) => p.toJson()).toList(),
         if (presentationBindings != null)
           'presentationBindings': presentationBindings!.toJson(),
+        if (customPluginPolicy != SourceCustomPluginPolicy.requireAbsent)
+          'customPluginPolicy': customPluginPolicy.name,
       };
   late final Sha256Hash canonicalHash =
       canonicalHashOf(toJson(), limits: jsonLimits);

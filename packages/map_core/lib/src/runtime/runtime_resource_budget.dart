@@ -113,6 +113,13 @@ final class RuntimeResourceBudget {
         _recordPeak();
         request.completer.complete(lease);
       } catch (error, stack) {
+        if (error is RuntimeResourceAdmissionException &&
+            error.reason == 'transient_bytes' &&
+            request.transientBytes <= profile.maximumTransientBytes &&
+            _activeDecodes > 0) {
+          _pending.insert(index, request);
+          return;
+        }
         request.completer.completeError(error, stack);
       }
     }

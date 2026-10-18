@@ -214,13 +214,25 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
       (body[9] as SourcePlayerVisibilityNode).visible &&
       body[10] is SourceWarpNode &&
       body[11] is SourceToneNode;
-  final invisible = body.length == 5 &&
-      body[0] is SourceSoundEffectNode &&
-      body[1] is SourceToneNode &&
-      body[2] is SourceWaitNode &&
-      body[3] is SourceWarpNode &&
-      body[4] is SourceToneNode &&
-      departure.graphic!.characterName.isEmpty;
+  final invisible = departure.graphic!.characterName.isEmpty &&
+      ((body.length == 5 &&
+          body[0] is SourceSoundEffectNode &&
+          body[1] is SourceToneNode &&
+          body[2] is SourceWaitNode &&
+          body[3] is SourceWarpNode &&
+          body[4] is SourceToneNode) ||
+        (body.length == 5 &&
+          body[0] is SourceToneNode &&
+          body[1] is SourceWaitNode &&
+          body[2] is SourcePlayerVisibilityNode &&
+          (body[2] as SourcePlayerVisibilityNode).visible &&
+          body[3] is SourceWarpNode &&
+          body[4] is SourceToneNode) ||
+        (body.length == 4 &&
+          body[0] is SourceToneNode &&
+          body[1] is SourceWaitNode &&
+          body[2] is SourceWarpNode &&
+          body[3] is SourceToneNode));
   if (!animated && !invisible) return false;
   final warp = body.whereType<SourceWarpNode>().single;
   if (warp.originalProgram != null) return false;

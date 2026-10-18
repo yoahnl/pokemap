@@ -961,7 +961,7 @@ final class _ProjectionBuilder {
         final width = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(1)!);
         final height = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(2)!);
         if (sizes.length > 1 || width == null || width < 1 || height == null || height < 1 || image.moveType != 0 ||
-            (event.x <= x && x < event.x + width && event.y <= y && y < event.y + height)) {
+            (event.x <= x && x < event.x + width && event.y - height + 1 <= y && y <= event.y)) {
           return {'warpArrivalSourceActorUnqualified'};
         }
       }
@@ -3084,8 +3084,7 @@ final class _ProjectionBuilder {
             :final targetSourceMapId,
             :final x,
             :final y,
-            :final direction,
-            :final fade
+            :final direction
           ):
           if (node.originalProgram != null && _externalWarpProgram(event) == null) {
             gaps.add('sourceExternalWarpBindingsMissing');
@@ -3109,8 +3108,9 @@ final class _ProjectionBuilder {
               _arrivalOwnerChecks.remove(owner.identity);
             }
           }
-          if (direction != 0 && !_isSourceTransition(event)) gaps.add('warpFacingUnsupported');
-          if (!fade && !_isSourceTransition(event)) gaps.add('warpFadeUnsupported');
+          if (direction != 0 && _sourceFacingDirection(direction) == null) {
+            gaps.add('warpFacingUnsupported');
+          }
           if (x < 0 ||
               y < 0 ||
               x >= target.size.width ||
