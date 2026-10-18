@@ -37,6 +37,7 @@ final class SceneDryRunConsequenceState {
     this.money = 0,
     this.partyMemberCount = 0,
     this.partyHealed = false,
+    this.playerAvatarCharacterId,
   })  : factValueById = Map<String, bool>.unmodifiable(factValueById),
         consumedEventKeys = Set<String>.unmodifiable(consumedEventKeys),
         completedStoryStepIds = Set<String>.unmodifiable(completedStoryStepIds),
@@ -64,6 +65,7 @@ final class SceneDryRunConsequenceState {
   final int money;
   final int partyMemberCount;
   final bool partyHealed;
+  final String? playerAvatarCharacterId;
 }
 
 final class SceneDryRunConsequenceChange {
@@ -458,6 +460,13 @@ _PreviewConsequenceResult _previewConsequence({
           ref: consequence.present,
         },
       );
+    case SceneSetPlayerAvatarConsequence():
+      before = 'avatar=${state.playerAvatarCharacterId ?? 'project default'}';
+      after = 'avatar=${consequence.characterId}';
+      next = _copyConsequenceState(
+        state,
+        playerAvatarCharacterId: consequence.characterId,
+      );
     case SceneSetPauseMenuEntryVisibilityConsequence():
       before = '${consequence.actionId.name}='
           '${state.pauseMenuVisibilityByActionId[consequence.actionId] ?? 'project default'}';
@@ -499,6 +508,7 @@ SceneDryRunConsequenceState _copyConsequenceState(
   int? money,
   int? partyMemberCount,
   bool? partyHealed,
+  String? playerAvatarCharacterId,
 }) {
   return SceneDryRunConsequenceState(
     factValueById: factValueById ?? state.factValueById,
@@ -514,6 +524,8 @@ SceneDryRunConsequenceState _copyConsequenceState(
     money: money ?? state.money,
     partyMemberCount: partyMemberCount ?? state.partyMemberCount,
     partyHealed: partyHealed ?? state.partyHealed,
+    playerAvatarCharacterId:
+        playerAvatarCharacterId ?? state.playerAvatarCharacterId,
   );
 }
 

@@ -51,6 +51,22 @@ void _requireDeletionInventory(ProjectSnapshot snapshot) {
   }
 }
 
+List<Map<String, Object?>> _sceneAvatarCharacterDeletionProblems(
+  AuthoringPlanningContext context,
+  String characterId,
+) => [
+  for (final reference in buildCharacterStudioReferenceIndex(
+    context.snapshot.manifest,
+  ).referencesTo(CharacterStudioReferenceTargetKind.character, characterId))
+    if (reference.sourceKind == CharacterStudioReferenceSourceKind.scenePlayerAvatar)
+      {
+        'code': 'scene_player_avatar_character_required',
+        'message': 'Choisir un autre avatar dans la Scene avant de supprimer ce personnage.',
+        'sourceId': reference.sourceId,
+        'path': reference.path,
+      },
+];
+
 List<Map<String, Object?>> _characterClearProblems(
   AuthoringPlanningContext context,
   String characterId,
@@ -58,6 +74,7 @@ List<Map<String, Object?>> _characterClearProblems(
   final manifest = context.snapshot.manifest;
   final configured = manifest.newGame.startMapId.trim().isNotEmpty;
   return [
+    ..._sceneAvatarCharacterDeletionProblems(context, characterId),
     if (configured && manifest.settings.defaultPlayerCharacterId == characterId)
       {
         'code': 'default_player_required',
@@ -88,6 +105,8 @@ List<Map<String, Object?>> _characterReplacementProblems(
   String characterId,
   ProjectCharacterEntry replacement,
 ) {
+  final avatarProblems = _sceneAvatarCharacterDeletionProblems(context, characterId);
+  if (avatarProblems.isNotEmpty) return avatarProblems;
   final manifest = context.snapshot.manifest;
   final problems = <Map<String, Object?>>[];
   final playerRole = manifest.newGame.startMapId.trim().isNotEmpty &&

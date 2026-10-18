@@ -137,6 +137,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     super.key,
     required this.scene,
     required this.selectedNodeId,
+    this.project,
     this.selectedEdgeId,
     this.onRemoveEdgeDraft,
     this.onRemoveNodeDraft,
@@ -165,6 +166,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   });
 
   final NarrativeSceneSummary scene;
+  final ProjectManifest? project;
   final String? selectedNodeId;
   final String? selectedEdgeId;
   final ValueChanged<String>? onRemoveEdgeDraft;
@@ -219,6 +221,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
           ? const _NodeInspectorEmptyState()
           : _NodeInspectorBody(
               scene: scene,
+              project: project,
               node: node,
               onRemoveNodeDraft: onRemoveNodeDraft,
               conditionSourceOptions: conditionSourceOptions,
@@ -333,6 +336,7 @@ class _NodeInspectorEmptyState extends StatelessWidget {
 class _NodeInspectorBody extends StatelessWidget {
   const _NodeInspectorBody({
     required this.scene,
+    required this.project,
     required this.node,
     required this.onRemoveNodeDraft,
     required this.conditionSourceOptions,
@@ -360,6 +364,7 @@ class _NodeInspectorBody extends StatelessWidget {
   });
 
   final NarrativeSceneSummary scene;
+  final ProjectManifest? project;
   final SceneNode node;
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
@@ -517,6 +522,32 @@ class _NodeInspectorBody extends StatelessWidget {
                     label:
                         'Ouvrez ce nœud dans un projet modifiable pour configurer le cadeau.',
                   ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ] else if (node.payload case SceneActionPayload(
+            consequence: final SceneSetPlayerAvatarConsequence avatar,
+          )) ...[
+            _InspectorSection(
+              title: 'Avatar du joueur',
+              children: [
+                const _InspectorRow(label: 'Type', value: 'Changer l’avatar du joueur'),
+                if (onUpdateActionConsequence != null && project != null)
+                  SceneActionBuilder(
+                    key: ValueKey('avatar-inspector-${node.id}'),
+                    initialPayload: node.payload as SceneActionPayload,
+                    project: project,
+                    allowCommandSelection: false,
+                    onSubmit: (payload) {
+                      final selected = (payload as SceneActionPayload).consequence! as SceneSetPlayerAvatarConsequence;
+                      onUpdateActionConsequence!(
+                        nodeId: node.id,
+                        consequence: SceneConsequence.setPlayerAvatar(characterId: selected.characterId, label: avatar.label, notes: avatar.notes),
+                      );
+                    },
+                  )
+                else
+                  const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour choisir un avatar.'),
               ],
             ),
             const SizedBox(height: 10),
@@ -3520,6 +3551,12 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
     return [
       const _InspectorRow(label: 'consequence', value: 'Retirer un objet'),
       _InspectorRow(label: 'quantité', value: '${consequence.quantity}'),
+    ];
+  }
+  if (consequence is SceneSetPlayerAvatarConsequence) {
+    return const [
+      _InspectorRow(label: 'consequence', value: 'Changer l’avatar du joueur'),
+      _InspectorRow(label: 'persistance', value: 'Conservé dans la sauvegarde'),
     ];
   }
   if (consequence is SceneGiveMoneyConsequence) {

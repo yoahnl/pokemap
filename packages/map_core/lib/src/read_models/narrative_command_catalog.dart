@@ -38,6 +38,7 @@ abstract final class NarrativeCommandIds {
   static const unlockFieldAbility = 'unlockFieldAbility';
   static const finishGame = 'finishGame';
   static const setNpcPresence = 'setNpcPresence';
+  static const setPlayerAvatar = 'setPlayerAvatar';
   static const setPauseMenuEntryVisibility =
       'setPauseMenuEntryVisibility';
   static const moveNpc = 'moveNpc';
@@ -429,6 +430,18 @@ final class NarrativeCommandCatalog {
             'present',
             'Présent sur la map',
             NarrativeCommandParameterKind.boolean,
+          ),
+        ],
+      ),
+      consequence(
+        NarrativeCommandIds.setPlayerAvatar,
+        'Changer l’avatar du joueur',
+        'FG-080',
+        [
+          _parameter(
+            'characterId',
+            'Avatar / costume',
+            NarrativeCommandParameterKind.character,
           ),
         ],
       ),

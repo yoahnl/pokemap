@@ -161,6 +161,7 @@ void main() {
           entityId: 'npc_sailor',
           present: false,
         ),
+        SceneConsequence.setPlayerAvatar(characterId: 'avatar_costume'),
         SceneConsequence.setPauseMenuEntryVisibility(
           actionId: ProjectPauseActionId.pokedex,
           visible: false,

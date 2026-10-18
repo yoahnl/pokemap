@@ -788,6 +788,13 @@ final class SpatialGameplayEvents {
                   return response;
                 },
           evaluateCondition: guard(callbacks.evaluateCondition),
+          presentPlayerAvatar: callbacks.presentPlayerAvatar == null
+              ? null
+              : (id) async {
+                  if (!current()) throw const _SpatialGameplayCancelled();
+                  await callbacks.presentPlayerAvatar!(id);
+                  if (!current()) throw const _SpatialGameplayCancelled();
+                },
           showDialogue: guard(callbacks.showDialogue),
           startBattle: guard(callbacks.startBattle),
           playCinematic: guard(callbacks.playCinematic),

@@ -30,6 +30,11 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         value: parameters['value'] == 'true',
       ),
     ),
+    NarrativeCommandIds.setPlayerAvatar => SceneActionPayload.consequence(
+      SceneConsequence.setPlayerAvatar(
+        characterId: parameters['characterId'] ?? '',
+      ),
+    ),
     NarrativeCommandIds.markEventConsumed => SceneActionPayload.consequence(
       SceneConsequence.markEventConsumed(
         mapId: parameters['mapId']!,

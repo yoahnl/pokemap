@@ -23,6 +23,7 @@ enum SceneConsequenceKind {
   awardBadge,
   unlockFieldAbility,
   setNpcPresence,
+  setPlayerAvatar,
   setPauseMenuEntryVisibility,
   finishGame,
 }
@@ -158,6 +159,12 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneSetPauseMenuEntryVisibilityConsequence;
 
+  factory SceneConsequence.setPlayerAvatar({
+    required String characterId,
+    String? label,
+    String? notes,
+  }) = SceneSetPlayerAvatarConsequence;
+
   factory SceneConsequence.finishGame({
     int contractVersion,
     required String endingId,
@@ -202,6 +209,8 @@ abstract base class SceneConsequence {
         SceneUnlockFieldAbilityConsequence.fromJson(json),
       SceneConsequenceKind.setNpcPresence =>
         SceneSetNpcPresenceConsequence.fromJson(json),
+      SceneConsequenceKind.setPlayerAvatar =>
+        SceneSetPlayerAvatarConsequence.fromJson(json),
       SceneConsequenceKind.setPauseMenuEntryVisibility =>
         SceneSetPauseMenuEntryVisibilityConsequence.fromJson(json),
       SceneConsequenceKind.finishGame =>
@@ -1096,6 +1105,63 @@ final class SceneSetNpcPresenceConsequence extends SceneConsequence {
 }
 
 @immutable
+final class SceneSetPlayerAvatarConsequence extends SceneConsequence {
+  SceneSetPlayerAvatarConsequence({
+    required String characterId,
+    String? label,
+    String? notes,
+  }) : characterId = characterId.trim(),
+       label = _trimOptional(label),
+       notes = _trimOptional(notes) {
+    if (this.characterId.isEmpty) {
+      throw ArgumentError.value(characterId, 'characterId');
+    }
+  }
+
+  factory SceneSetPlayerAvatarConsequence.fromJson(Map<String, dynamic> json) {
+    const keys = {'kind', 'characterId', 'label', 'notes'};
+    if (json.keys.any((key) => !keys.contains(key))) {
+      throw const FormatException('Unknown setPlayerAvatar consequence field.');
+    }
+    final characterId = _readRequiredString(json, 'characterId');
+    if (characterId.trim().isEmpty) {
+      throw const FormatException('setPlayerAvatar needs a characterId.');
+    }
+    return SceneSetPlayerAvatarConsequence(
+      characterId: characterId,
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.setPlayerAvatar;
+
+  final String characterId;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+    'kind': _kindToJson(kind),
+    'characterId': characterId,
+    'label': label,
+    'notes': notes,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneSetPlayerAvatarConsequence &&
+          other.characterId == characterId &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(characterId, label, notes);
+}
+
+@immutable
 final class SceneSetPauseMenuEntryVisibilityConsequence
     extends SceneConsequence {
   SceneSetPauseMenuEntryVisibilityConsequence({
@@ -1351,6 +1417,7 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.awardBadge => 'awardBadge',
     SceneConsequenceKind.unlockFieldAbility => 'unlockFieldAbility',
     SceneConsequenceKind.setNpcPresence => 'setNpcPresence',
+    SceneConsequenceKind.setPlayerAvatar => 'setPlayerAvatar',
     SceneConsequenceKind.setPauseMenuEntryVisibility =>
       'setPauseMenuEntryVisibility',
     SceneConsequenceKind.finishGame => 'finishGame',

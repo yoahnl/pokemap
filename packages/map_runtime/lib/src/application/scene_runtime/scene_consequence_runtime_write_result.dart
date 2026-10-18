@@ -40,6 +40,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   partyFull,
   gameAlreadyCompleted,
   unknownNpc,
+  invalidPlayerAvatar,
 }
 
 final class SceneConsequenceRuntimeWriteResult {

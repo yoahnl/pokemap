@@ -12,6 +12,7 @@ final class SceneRuntimeHostCallbacks {
     this.executeInteractiveCommand,
     this.requestStructuredInteraction,
     this.presentPokemonGift,
+    this.presentPlayerAvatar,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
@@ -22,6 +23,7 @@ final class SceneRuntimeHostCallbacks {
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
   final SceneRuntimeIntentCallback? requestStructuredInteraction;
   final ScenePokemonGiftPresenter? presentPokemonGift;
+  final Future<void> Function(String? characterId)? presentPlayerAvatar;
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({
     required SceneRuntimeConsequenceCallback applyConsequence,

@@ -119,6 +119,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   var blockedUniqueBattle = false;
   var pokemonGiftStorageFull = false;
   final consumedUniqueTableIds = <String>{};
+  var avatarPresented = false;
+  var completed = false;
   try {
     onSceneStateProjection?.call(() {
       final projected = projectPending(currentGameState());
@@ -325,7 +327,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
           throw UnsupportedError('Scene node id is required for consequences.',
               );
         },
-        applyConsequenceWithNodeId: (nodeId, consequence) {
+        applyConsequenceWithNodeId: (nodeId, consequence) async {
           final grantOperationId = scenePokemonGrantOperationId(
             sceneId: request.sceneId,
             executionId: request.executionId,
@@ -349,6 +351,12 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
               validation.message ??
                   'Scene consequence ${consequence.kind.name} was rejected.',
             );
+          }
+          if (consequence is SceneSetPlayerAvatarConsequence) {
+            final present = callbacks.presentPlayerAvatar;
+            if (present == null) throw StateError('The player avatar presentation port is unavailable.');
+            avatarPresented = true;
+            await present(consequence.characterId);
           }
           pendingConsequences.add(consequence);
           pendingPokemonGrantOperationIds.add(grantOperationId);
@@ -395,6 +403,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         uniqueEncounterConsumedFlag(tableId),
       );
     }
+    completed = true;
     return NarrativeSceneExecutionResult.completed(
       updatedGameState: completedState,
       gameCompletion: writeResult.gameCompletion,
@@ -414,6 +423,9 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     );
   } finally {
     onSceneStateProjection?.call(null);
+    if (avatarPresented && !completed) {
+      await callbacks.presentPlayerAvatar!(currentGameState().trainerProfile.avatarCharacterId);
+    }
   }
 }
 

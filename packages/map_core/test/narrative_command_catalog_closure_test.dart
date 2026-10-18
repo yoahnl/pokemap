@@ -45,6 +45,7 @@ void main() {
       NarrativeCommandIds.unlockFieldAbility,
       NarrativeCommandIds.finishGame,
       NarrativeCommandIds.setNpcPresence,
+      NarrativeCommandIds.setPlayerAvatar,
       NarrativeCommandIds.setPauseMenuEntryVisibility,
       NarrativeCommandIds.moveNpc,
       NarrativeCommandIds.movePlatform,

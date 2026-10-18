@@ -192,6 +192,12 @@ Set<String> collectRuntimeMapCharacterIds(
   return {
     if (playerId != null && playerId.isNotEmpty) playerId,
     ...manifest.newGame.playerAvatarCharacterIds,
+    for (final scene in manifest.scenes)
+      if (sceneIds.contains(scene.id))
+        for (final node in scene.graph.nodes)
+          if (node.payload case SceneActionPayload(:final consequence))
+            if (consequence case SceneSetPlayerAvatarConsequence(:final characterId))
+              characterId,
     for (final entity in map.entities)
       ?resolveNpcCharacterId(entity, manifest),
     for (final entity in map.entities)

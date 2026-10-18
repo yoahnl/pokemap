@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 
 import '../application/character_animation_source_resolver.dart';
 import '../application/runtime_map_bundle.dart';
+import '../application/runtime_player_avatar.dart';
 import '../application/load_runtime_map_bundle.dart';
 import '../application/dialogue_runtime_models.dart';
 import '../application/dialogue_variable_interpolation.dart';
@@ -41,6 +42,7 @@ final class SpatialExplorationSession {
   Map<String, ui.Image> get _images => _assets.images;
   Map<String, SpatialActorTexture> get _textures => _assets.textures;
   final Object _assetOwner = Object();
+  final Object _avatarAssetOwner = Object();
   Set<String> _imageIds = {};
   final _preparedMaps = <String, _PreparedSpatialMap>{};
   final _preparingMaps = <String, Future<_PreparedSpatialMap>>{};
@@ -455,9 +457,13 @@ final class SpatialExplorationSession {
         !connectionDirections.add(connection.direction))) {
       throw StateError('Plusieurs voisines sur un bord 3D ne sont pas prises en charge.');
     }
+    if (characterId != null) {
+      bundle = await prepareRuntimePlayerAvatarBundle(bundle, characterId);
+    }
     final id = characterId ?? bundle.manifest.settings.defaultPlayerCharacterId;
-    final character =
-        bundle.manifest.characters.where((v) => v.id == id).firstOrNull;
+    final character = characterId == null
+        ? bundle.manifest.characters.where((v) => v.id == id).firstOrNull
+        : resolveScenePlayerAvatarCharacter(bundle.manifest, characterId);
     if (character == null || character.animations.isEmpty) {
       throw StateError(
           'Choisissez un héros animé dans les réglages du projet.');
@@ -557,7 +563,7 @@ final class SpatialExplorationSession {
               preloadedManifest: bundle.projectCatalog == null ? bundle.manifest : null,
               projectCatalog: bundle.projectCatalog,
               resourceBudget: bundle.resourceBudget,
-              additionalCharacterIds: {if (characterId != null) characterId});
+              additionalCharacterIds: {session.character.id});
       session._warps =
           SpatialWarpController(map: bundle.map, x: movement.x, z: movement.z);
       for (final actor in characters) {
@@ -837,9 +843,65 @@ final class SpatialExplorationSession {
     await _transfer(warp.targetMapId, (_) => warp.targetPos);
   }
 
-  Future<void> restoreGameState(GameState state,
-      {bool compensatePendingScene = false}) async {
+  Future<void> presentPlayerAvatar(String? characterId) async {
     if (_disposed) throw StateError('The spatial session is closed.');
+    final id = characterId ?? bundle.manifest.settings.defaultPlayerCharacterId;
+    if (id == null) {
+      throw StateError('The default player avatar is unavailable.');
+    }
+    if (id == character.id) return;
+    final avatarBundle = await prepareRuntimePlayerAvatarBundle(bundle, id);
+    if (_disposed) throw StateError('The spatial session is closed.');
+    final next = resolveScenePlayerAvatarCharacter(avatarBundle.manifest, id);
+    final ids = runtimePlayerAvatarImageIds(next);
+    final paths = avatarBundle.runtimeImageAbsolutePathsById;
+    final avatarVisuals = SpatialEntityVisualPlan(
+      avatarBundle.map,
+      avatarBundle.manifest,
+    );
+    final preparationOwner = Object();
+    _assets.owners[preparationOwner] = ids;
+    try {
+      for (final id in ids) {
+        final path = paths[id];
+        if (path == null) {
+          throw StateError('The player avatar media is unavailable: $id');
+        }
+        await _assets.load(id, path, avatarVisuals);
+      }
+      if (_disposed) throw StateError('The spatial session is closed.');
+      validateRuntimePlayerAvatarImages(
+        character: next,
+        settings: avatarBundle.manifest.settings,
+        availableImageIds: _images.keys.toSet(),
+        containsSourceRect: (id, rect) {
+          final image = _images[id];
+          return image != null &&
+              rect.left >= 0 &&
+              rect.top >= 0 &&
+              rect.width > 0 &&
+              rect.height > 0 &&
+              rect.right <= image.width &&
+              rect.bottom <= image.height;
+        },
+      );
+      _assets.owners[_avatarAssetOwner] = ids;
+      character = next;
+      bundle = avatarBundle;
+    } finally {
+      _assets.owners.remove(preparationOwner);
+      if (!_disposed) {
+        _assets.retain({
+          for (final prepared in _preparedMaps.values) ...prepared.imageIds,
+        });
+      }
+    }
+  }
+
+  Future<void> restoreGameState(GameState state,
+      {bool compensatePendingScene = false, bool restorePlayerAvatar = true}) async {
+    if (_disposed) throw StateError('The spatial session is closed.');
+    if (restorePlayerAvatar) await presentPlayerAvatar(state.trainerProfile.avatarCharacterId);
     final position = state.playerSpatialPosition ??
         PlayerSpatialPosition(
             x: state.playerPosition.x + .5, z: state.playerPosition.y + .5);
@@ -1154,9 +1216,10 @@ final class SpatialExplorationSession {
       _assets.owners[_assetOwner] = _imageIds;
       final preparedNeighbors = Map.of(candidate._preparedMaps);
       final preparedOrigins = Map.of(candidate._mapOrigins);
+      final preparedBundle = candidate.bundle;
       candidate.dispose();
       candidate = null;
-      bundle = next;
+      bundle = preparedBundle;
       movement = nextMovement;
       _smartTileAnimations = nextAnimations;
       _preparedMaps.addAll(preparedNeighbors);
@@ -1225,6 +1288,7 @@ final class SpatialExplorationSession {
     }
     _preparedMaps.clear();
     _assets.owners.remove(_assetOwner);
+    _assets.owners.remove(_avatarAssetOwner);
     if (_ownsAssets) _assets.dispose();
   }
 

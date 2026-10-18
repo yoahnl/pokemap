@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -8,8 +11,12 @@ void main() {
 
   test('no-save boot uses the project newGame contract through onLoad',
       () async {
+    final root = await Directory.systemTemp.createTemp('runtime-new-game-avatar-');
+    addTearDown(() => root.delete(recursive: true));
+    final avatarPath = '${root.path}/avatars.png';
+    await File(avatarPath).writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
     final game = PlayableMapGame(
-      bundle: _bundle(),
+      bundle: _bundle().copyWith(characterAnimationAbsolutePathsByAssetId: {'test_avatars': avatarPath}),
       projectFilePath: '/tmp/project_new_game/project.json',
     );
 
@@ -122,16 +129,18 @@ RuntimeMapBundle _bundle() {
           relativePath: 'assets/characters.png',
         ),
       ],
-      characters: const <ProjectCharacterEntry>[
+      characters: <ProjectCharacterEntry>[
         ProjectCharacterEntry(
           id: 'hero_a',
           name: 'Héroïne A',
           tilesetId: 'characters',
+          animations: _avatarAnimations(),
         ),
         ProjectCharacterEntry(
           id: 'hero_b',
           name: 'Héros B',
           tilesetId: 'characters',
+          animations: _avatarAnimations(),
         ),
       ],
       settings: const ProjectSettings(defaultPlayerCharacterId: 'hero_a'),
@@ -189,3 +198,10 @@ RuntimeMapBundle _bundle() {
     tilesetAbsolutePathsById: const <String, String>{},
   );
 }
+
+List<CharacterAnimation> _avatarAnimations() => [
+  for (final direction in EntityFacing.values)
+    CharacterAnimation(state: CharacterAnimationState.walk, direction: direction, sourceAssetId: 'test_avatars', frames: const [
+      CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100),
+    ]),
+];

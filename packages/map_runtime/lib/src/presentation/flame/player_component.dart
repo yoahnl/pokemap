@@ -43,12 +43,12 @@ class PlayerComponent extends PositionComponent with HasVisibility {
         );
 
   final RuntimeMapBundle bundle;
-  final ProjectCharacterEntry? characterEntry;
-  final Map<String, RuntimeTilesetImage> tileImages;
+  ProjectCharacterEntry? characterEntry;
+  Map<String, RuntimeTilesetImage> tileImages;
 
-  late final bool hasRunningAnimation = _hasRunningAnimation();
+  bool get hasRunningAnimation => _hasRunningAnimation();
 
-  late final bool hasBicycleAnimations =
+  bool get hasBicycleAnimations =>
       _hasAnimation(CharacterAnimationState.bicycleIdle) &&
       _hasAnimation(CharacterAnimationState.bicycle);
 
@@ -310,6 +310,18 @@ class PlayerComponent extends PositionComponent with HasVisibility {
   @override
   Future<void> onLoad() async {
     _snapToStatePosition();
+    _replaceActor();
+  }
+
+  void replaceCharacter(ProjectCharacterEntry? character, Map<String, RuntimeTilesetImage> images) {
+    characterEntry = character;
+    tileImages = Map.unmodifiable(images);
+    _replaceActor();
+  }
+
+  void _replaceActor() {
+    _actor?.removeFromParent();
+    _actor = null;
     final entry = characterEntry;
     if (entry != null) {
       final actor = OverworldActorComponent(
@@ -322,6 +334,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
         facing: EntityFacing.values.byName(_state.facing.name),
       );
       _actor = actor;
+      actor.cinematicJumpLift = _cinematicJumpLift;
       actor.setMotion(EntityFacing.values.byName(_state.facing.name), _idleAnimation);
       _layoutActor();
       add(actor);

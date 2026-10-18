@@ -11,6 +11,35 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayerComponent visual convention', () {
+    test('avatar replacement changes rendering without moving the collision body', () async {
+      ProjectCharacterEntry character(String id, bool running, int width) => ProjectCharacterEntry(
+        id: id, name: id, tilesetId: 'unused', frameWidth: width,
+        animations: [
+          for (final direction in EntityFacing.values)
+            for (final state in [CharacterAnimationState.idle, CharacterAnimationState.walk, if (running) CharacterAnimationState.run])
+              CharacterAnimation(state: state, direction: direction, sourceAssetId: id,
+                frames: const [CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100)]),
+        ],
+      );
+      final old = character('hero', true, 2);
+      final next = character('costume', false, 4);
+      final component = PlayerComponent(bundle: _bundle(), state: _stateAt(const GridPos(x: 2, y: 3)),
+        characterEntry: old, tileImages: {characterAnimationRuntimeImageId('hero'): _emptyImage()}, mapOrigin: Vector2(9, 11));
+      await component.onLoad();
+      component.setCinematicFacing(EntityFacing.east);
+      component.setCinematicJumpLift(7);
+      final position = component.position.clone();
+      final size = component.size.clone();
+      expect(component.hasRunningAnimation, isTrue);
+      component.replaceCharacter(next, {characterAnimationRuntimeImageId('costume'): _emptyImage()});
+      expect(component.characterEntry!.id, 'costume');
+      expect(component.debugAnimationSource!.imageId, characterAnimationRuntimeImageId('costume'));
+      expect(component.position, position);
+      expect(component.size, size);
+      expect(component.cinematicFacing, EntityFacing.east);
+      expect(component.cinematicJumpLift, 7);
+      expect(component.hasRunningAnimation, isFalse);
+    });
     test('bicycle uses dedicated clips in eight slots and keeps phase through adjacent steps', () async {
       final character = ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'hero',
         animations: [for (final state in [CharacterAnimationState.bicycleIdle, CharacterAnimationState.bicycle])

@@ -179,6 +179,10 @@ final class SceneConsequenceRuntimeWriter {
     String? railProgressionOperationId,
   ) {
     return switch (consequence.kind) {
+      SceneConsequenceKind.setPlayerAvatar => _applySetPlayerAvatar(
+          gameState,
+          consequence as SceneSetPlayerAvatarConsequence,
+        ),
       SceneConsequenceKind.setMapEventInstanceBoolean =>
         _applyMapEventInstanceBoolean(
           gameState,
@@ -257,6 +261,23 @@ final class SceneConsequenceRuntimeWriter {
           consequence as SceneFinishGameConsequence,
         ),
     };
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applySetPlayerAvatar(
+    GameState gameState,
+    SceneSetPlayerAvatarConsequence consequence,
+  ) {
+    try {
+      final character = resolveScenePlayerAvatarCharacter(project, consequence.characterId);
+      return _SceneConsequenceRuntimeWriteStep.applied(gameState.copyWith(
+        trainerProfile: gameState.trainerProfile.copyWith(avatarCharacterId: character.id),
+      ));
+    } on FormatException catch (error) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPlayerAvatar,
+        error.message,
+      );
+    }
   }
 
   _SceneConsequenceRuntimeWriteStep _applyMapEventInstanceBoolean(

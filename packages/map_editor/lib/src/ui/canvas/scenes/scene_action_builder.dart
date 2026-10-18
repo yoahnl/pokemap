@@ -173,7 +173,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   String _initialCommandId() {
     final requested =
         widget.initialCommandId ??
-        widget.initialPayload?.interactiveCommand?.kind.name;
+        widget.initialPayload?.interactiveCommand?.kind.name ??
+        widget.initialPayload?.consequence?.kind.name;
     if (requested != null && _is2DPresentationCommand(requested) &&
         _catalog.byId(requested) != null) {
       return requested;
@@ -205,6 +206,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           data['kind'] == command.id &&
               (_is2DPresentationCommand(command.id) ||
                   command.id == NarrativeCommandIds.warp ||
+                  command.id == NarrativeCommandIds.setPlayerAvatar ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? command.id == NarrativeCommandIds.warp && presentation is Map
@@ -277,7 +279,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         oldWidget.loadMoves != widget.loadMoves) {
       _giftMovesValid = false;
     }
-    if (_isGift && oldWidget.initialPayload != widget.initialPayload) {
+    if ((_isGift || _commandId == NarrativeCommandIds.setPlayerAvatar) &&
+        oldWidget.initialPayload != widget.initialPayload) {
       _seedParameterValues(_command);
     }
     if (oldWidget.loadWarpMap != widget.loadWarpMap ||
@@ -763,13 +766,33 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
               ],
             );
           }
-          return PokeMapDiagnosticCallout(
+          final diagnostic = PokeMapDiagnosticCallout(
             severity: PokeMapDiagnosticSeverity.error,
             title: '${parameter.label} supprimé',
             message:
                 'La cible « $currentValue » n’existe plus dans le '
                 'catalogue du projet. Sélectionnez une cible valide avant de '
                 'publier.',
+          );
+          if (_command.id != NarrativeCommandIds.setPlayerAvatar || options.isEmpty) {
+            return diagnostic;
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              diagnostic,
+              const SizedBox(height: 8),
+              PokeMapDropdownField<String>(
+                label: parameter.label,
+                value: '',
+                items: [
+                  const PokeMapDropdownItem(value: '', label: 'Choisir un avatar'),
+                  for (final option in options)
+                    PokeMapDropdownItem(value: option.id, label: option.label),
+                ],
+                onChanged: (value) => _setReferenceValue(parameter, value),
+              ),
+            ],
           );
         }
         if (options.isEmpty) {
@@ -800,6 +823,20 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.character) {
+      final project = widget.project;
+      if (project == null) return const [];
+      final options = <SceneActionPickerOption>[];
+      for (final character in project.characters) {
+        try {
+          resolveScenePlayerAvatarCharacter(project, character.id);
+          options.add(SceneActionPickerOption(id: character.id, label: character.name));
+        } on FormatException {
+          continue;
+        }
+      }
+      return options;
+    }
     if ((_command.id == NarrativeCommandIds.givePokemonFromCatalog || _command.id == NarrativeCommandIds.receivePokemonFromCatalog) &&
         kind == NarrativeCommandParameterKind.species) {
       final loadableSpeciesIds = {

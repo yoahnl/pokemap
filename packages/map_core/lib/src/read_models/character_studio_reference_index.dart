@@ -4,6 +4,7 @@ import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/scene_consequence.dart';
 import '../runtime/cinematic_character_custom_animation_contract.dart';
 
 enum CharacterStudioReferenceTargetKind {
@@ -22,6 +23,7 @@ enum CharacterStudioReferenceSourceKind {
   characterCustomAnimation,
   cinematicCustomAnimation,
   sceneCustomAnimation,
+  scenePlayerAvatar,
 }
 
 @immutable
@@ -180,6 +182,16 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
       final node = scene.graph.nodes[nodeIndex];
       final payload = node.payload;
       if (payload is! SceneActionPayload) continue;
+      if (payload.consequence case SceneSetPlayerAvatarConsequence(:final characterId)) {
+        references.add(CharacterStudioReference(
+          targetKind: CharacterStudioReferenceTargetKind.character,
+          targetId: characterId,
+          sourceKind: CharacterStudioReferenceSourceKind.scenePlayerAvatar,
+          sourceId: '${scene.id}:${node.id}',
+          path: r'$.scenes['
+              '$sceneIndex].graph.nodes[$nodeIndex].payload.consequence.characterId',
+        ));
+      }
       final command = payload.interactiveCommand;
       if (command is! SceneCharacterCustomAnimationInteractiveCommand) {
         continue;

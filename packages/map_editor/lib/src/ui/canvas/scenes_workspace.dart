@@ -937,6 +937,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                 ? const _SceneInspectorEmptyPanel()
                 : SceneNodeReadOnlyInspector(
                     scene: selectedScene,
+                    project: widget.project,
                     selectedNodeId: _selectedNodeId,
                     selectedEdgeId: _selectedEdgeId,
                     onRemoveEdgeDraft: _removeSelectedEdgeDraft,

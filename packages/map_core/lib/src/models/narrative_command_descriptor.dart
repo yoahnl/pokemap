@@ -34,6 +34,7 @@ enum NarrativeCommandParameterKind {
   movingPlatformMotion,
   modelAnimation,
   npc,
+  character,
   warp,
   warpTransition,
   warpPresentationMode,

@@ -6,7 +6,7 @@ import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_core/map_core.dart'
-    show ProjectModel3dEntry, Model3dAnimation;
+    show ProjectModel3dEntry, Model3dAnimation, resolveScenePlayerAvatarCharacter;
 
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
@@ -224,10 +224,19 @@ class _SceneActionFormState extends State<SceneActionForm> {
     );
     final original = widget.current;
     if (built is SceneActionPayload && original is SceneActionPayload) {
+      final avatar = built.consequence;
+      final originalAvatar = original.consequence;
       return SceneActionPayload(
         actionKind: original.actionKind,
         parameters: original.parameters,
-        consequence: built.consequence,
+        consequence: avatar is SceneSetPlayerAvatarConsequence &&
+                originalAvatar is SceneSetPlayerAvatarConsequence
+            ? SceneConsequence.setPlayerAvatar(
+                characterId: avatar.characterId,
+                label: originalAvatar.label,
+                notes: originalAvatar.notes,
+              )
+            : built.consequence,
         interactiveCommand: built.interactiveCommand,
         preSessionInteraction: built.preSessionInteraction,
       );
@@ -367,9 +376,26 @@ class _SceneActionFormState extends State<SceneActionForm> {
     };
   }
 
+  Map<String, String> _playerAvatarOptions() {
+    final options = <String, String>{};
+    for (final character in widget.project.characters) {
+      try {
+        final avatar = resolveScenePlayerAvatarCharacter(
+          widget.project,
+          character.id,
+        );
+        options[avatar.id] = avatar.name;
+      } on FormatException {
+        continue;
+      }
+    }
+    return options;
+  }
+
   Map<String, String> _options(
     NarrativeCommandParameterKind kind,
   ) => switch (kind) {
+    NarrativeCommandParameterKind.character => _playerAvatarOptions(),
     NarrativeCommandParameterKind.species => {
       for (final species in _species) species.id: species.name,
     },

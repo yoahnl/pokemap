@@ -7,6 +7,7 @@ export 'src/models/escape_return_point.dart';
 export 'src/models/map_instance_world_state.dart';
 export 'src/models/map_instance_retention_policy.dart';
 export 'src/operations/scene_actor_reference.dart';
+export 'src/operations/scene_player_avatar.dart';
 export 'src/models/scene_actor_route.dart';
 export 'src/operations/tiled_map_import.dart';
 export 'src/operations/tiled_map_compilation.dart';

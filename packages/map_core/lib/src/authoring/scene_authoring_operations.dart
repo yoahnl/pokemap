@@ -2091,6 +2091,12 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'consequence.entityId',
         'setNpcPresence consequence requires an NPC id.',
       );
+    case SceneSetPlayerAvatarConsequence():
+      _trimRequired(
+        consequence.characterId,
+        'consequence.characterId',
+        'setPlayerAvatar consequence requires a character id.',
+      );
     case SceneHealPartyConsequence():
     case SceneAwardBadgeConsequence():
     case SceneUnlockFieldAbilityConsequence():
@@ -2774,6 +2780,7 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneGivePokemonFromCatalogConsequence() => 'Donner un Pokémon du catalogue',
     SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
     SceneSetNpcPresenceConsequence() => 'Modifier la présence d’un PNJ',
+    SceneSetPlayerAvatarConsequence() => 'Changer l’avatar du joueur',
     SceneSetPauseMenuEntryVisibilityConsequence() =>
       'Modifier la visibilité du menu pause',
     _ => 'Conséquence',

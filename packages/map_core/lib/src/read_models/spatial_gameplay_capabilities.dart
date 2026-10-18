@@ -30,6 +30,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.giveConfiguredStarter,
     NarrativeCommandIds.healParty,
     NarrativeCommandIds.setNpcPresence,
+    NarrativeCommandIds.setPlayerAvatar,
     NarrativeCommandIds.setPauseMenuEntryVisibility,
     NarrativeCommandIds.warp,
     NarrativeCommandIds.openShop,

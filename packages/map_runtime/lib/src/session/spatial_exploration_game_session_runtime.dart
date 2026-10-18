@@ -469,6 +469,11 @@ final class SpatialExplorationGameSessionRuntime
   SceneRuntimeHostCallbacks _createSceneCallbacks(
           GameState Function() read, void Function(GameState) commit) =>
       SpatialSceneCallbacks(
+    presentPlayerAvatar: (id) async {
+      _ensureGameplayActive();
+      await _session!.presentPlayerAvatar(id);
+      _ensureGameplayActive();
+    },
     presentPokemonGift: (request) async {
       final services = _playerServices;
       if (services == null) {
@@ -582,7 +587,7 @@ final class SpatialExplorationGameSessionRuntime
       _hasUncommittedSceneWarp = true;
       final restored = await switch (command.transition) {
         SceneWarpTransition.mapDefault || SceneWarpTransition.none =>
-          _restoreSpatialState(next),
+          _restoreSpatialState(next, restoreAvatar: false),
       };
       if (!_session!.movement.isPositionTraversable) {
         throw StateError('The spatial warp arrival is blocked.');
@@ -599,7 +604,7 @@ final class SpatialExplorationGameSessionRuntime
       _pendingSceneMapActivation = pendingActivation;
       _hasUncommittedSceneWarp = pendingWarp;
       if (!_disposed && !_stopped) {
-        await _restoreSpatialState(source);
+        await _restoreSpatialState(source, restoreAvatar: false);
       }
       return 'blocked';
     }
@@ -665,9 +670,10 @@ final class SpatialExplorationGameSessionRuntime
     }
   }
 
-  Future<GameState> _restoreSpatialState(GameState state) async {
+  Future<GameState> _restoreSpatialState(GameState state, {bool restoreAvatar = true}) async {
     _ensureGameplayActive();
     final session = _session!;
+    if (restoreAvatar) await session.presentPlayerAvatar(state.trainerProfile.avatarCharacterId);
     _story?.synchronize(state.spatialWorldState);
     final changedMap = session.bundle.map.id != state.currentMapId;
     final position = state.playerSpatialPosition ??
@@ -684,7 +690,7 @@ final class SpatialExplorationGameSessionRuntime
         await _waitForWorldAvailability();
         final pauseEpoch = _transferPauseEpoch;
         try {
-          await session.restoreGameState(state);
+          await session.restoreGameState(state, restorePlayerAvatar: false);
           break;
         } catch (_) {
           _ensureGameplayActive();

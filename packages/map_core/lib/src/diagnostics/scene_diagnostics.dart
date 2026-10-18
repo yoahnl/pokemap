@@ -11,6 +11,7 @@ import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
 import '../operations/scene_actor_reference.dart';
+import '../operations/scene_player_avatar.dart';
 import '../operations/map_healing_display.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
@@ -53,6 +54,7 @@ enum SceneDiagnosticCode {
   consequenceUnknownStarterOption,
   consequenceUnknownBadge,
   consequenceUnknownNpc,
+  consequenceInvalidPlayerAvatar,
   commandUnknownNpc,
   commandUnknownPlatform,
   commandUnknownWarp,
@@ -883,6 +885,8 @@ void _diagnoseConsequenceShape(
   switch (consequence) {
     case SceneSetMapEventInstanceBooleanConsequence():
       break;
+    case SceneSetPlayerAvatarConsequence():
+      break;
     case SceneSetFactConsequence():
       if (consequence.factId.trim().isEmpty) {
         diagnostics.add(
@@ -1686,6 +1690,20 @@ void _diagnoseActionConsequenceAgainstProject(
       }
     case SceneSetPauseMenuEntryVisibilityConsequence():
       break;
+    case SceneSetPlayerAvatarConsequence():
+      try {
+        resolveScenePlayerAvatarCharacter(project, consequence.characterId);
+      } on FormatException {
+        diagnostics.add(SceneDiagnostic(
+          code: SceneDiagnosticCode.consequenceInvalidPlayerAvatar,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'L’avatar doit référencer un personnage unique avec des animations de marche et des sources valides.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un avatar disponible dans le projet.',
+        ));
+      }
     case SceneFinishGameConsequence():
       break;
   }

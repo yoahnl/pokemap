@@ -47,6 +47,21 @@ final class SceneActions {
     'persistentEffects': 'none',
   };
 
+  static const _setPlayerAvatarContract = {
+    'consequenceKind': 'setPlayerAvatar',
+    'parameters': ['characterId'],
+    'characterReference': 'knownUniqueProjectCharacterWithLoadableDirectionalAnimations',
+    'projectDimensions': ['twoD', 'threeD'],
+    'persistentField': 'trainerProfile.avatarCharacterId',
+    'restoration': 'explicitCharacterSelection',
+    'collisionEffect': 'none',
+    'positionAndFacing': 'preserved',
+    'mediaFailure': 'abortSceneTransaction',
+    'projection': 'immediateWithinSceneWithRollbackOnFailureOrCancellation',
+    'persistent': true,
+    'outputPorts': ['completed'],
+  };
+
   static const _warpContract = {
     'parameters': ['destinationMapId', 'warpId', 'arrivalFacing', 'transition', 'presentation'],
     'arrivalFacingValues': ['north', 'south', 'east', 'west'],
@@ -327,6 +342,7 @@ final class SceneActions {
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
+        'setPlayerAvatar': _setPlayerAvatarContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
@@ -430,6 +446,7 @@ final class SceneActions {
       extensions: const {
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
+        'setPlayerAvatar': _setPlayerAvatarContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,

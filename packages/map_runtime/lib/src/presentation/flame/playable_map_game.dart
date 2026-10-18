@@ -65,6 +65,7 @@ import '../../application/runtime_battle_reward_resolver.dart';
 import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
+import '../../application/runtime_player_avatar.dart';
 import '../../application/character_animation_source_resolver.dart';
 import '../../application/runtime_committed_movement.dart';
 import '../../application/runtime_map_bundle.dart';
@@ -5037,6 +5038,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         for (final entry in images.entries)
           if (playerImageIds.contains(entry.key)) entry.key: entry.value,
       };
+      if (_gameState.trainerProfile.avatarCharacterId != null && playerChar != null) {
+        validateRuntimePlayerAvatarImages(character: playerChar, settings: _bundle.manifest.settings,
+          availableImageIds: playerImages.keys.toSet(), containsSourceRect: (id, rect) => playerImages[id]?.containsSourceRect(rect) ?? false);
+      }
       _player = PlayerComponent(
         bundle: _bundle,
         state: _world.player,
@@ -11778,6 +11783,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final presentationSession = _activeNarrativeSceneWorkingSession;
     var soundIndex = 0;
     return SceneRuntimeHostCallbacks(
+      presentPlayerAvatar: (id) async {
+        if (!_scenePresentationScopeIsCurrent(presentationSession)) throw StateError('The player avatar Scene owner changed.');
+        final previousId = isLoaded ? _player.characterEntry?.id : null;
+        await _presentPlayerAvatar(id, isCurrent: () => _scenePresentationScopeIsCurrent(presentationSession));
+        presentationSession?.registerCompensation(() => _presentPlayerAvatar(previousId,
+          isCurrent: () => _scenePresentationScopeIsCurrent(presentationSession)));
+      },
       presentPokemonGift: (request) async {
         final controller = _playerServiceRuntimeController;
         if (controller == null) {
@@ -15323,6 +15335,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     RuntimeMapBundle newBundle;
     try {
       newBundle = await _loadRuntimeMapBundleCached(loadedState.currentMapId);
+      newBundle = await _preparePlayerAvatarBundle(newBundle, loadedState.trainerProfile.avatarCharacterId);
       if (newBundle.map.id != loadedState.currentMapId) {
         throw StateError(
           'Loaded map ${newBundle.map.id} does not match saved map '
@@ -15350,6 +15363,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     Map<String, RuntimeTilesetImage> newImages;
     BorderRuntimeAssetBundle newBorderAssets;
     GameplayWorldState preparedWorld;
+    ProjectCharacterEntry? restoredAvatar;
+    Map<String, RuntimeTilesetImage> restoredAvatarImages = const {};
     try {
       await _validateRetainedWorldSave(newBundle, loadedState);
       newImages = await _loadTilesetImagesCached(
@@ -15390,7 +15405,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ),
       );
       preparedWorld = _restorePlayerPixelPosition(preparedWorld, loadedState);
-      if (preparedWorld.player.movementMode == MovementMode.bicycle && !_player.hasBicycleAnimations) {
+      final avatarId = loadedState.trainerProfile.avatarCharacterId ?? newBundle.manifest.settings.defaultPlayerCharacterId;
+      if (avatarId != null) {
+        restoredAvatar = resolveScenePlayerAvatarCharacter(newBundle.manifest, avatarId);
+        final imageIds = runtimePlayerAvatarImageIds(restoredAvatar);
+        restoredAvatarImages = {for (final entry in newImages.entries) if (imageIds.contains(entry.key)) entry.key: entry.value};
+        validateRuntimePlayerAvatarImages(character: restoredAvatar, settings: newBundle.manifest.settings,
+          availableImageIds: restoredAvatarImages.keys.toSet(), containsSourceRect: (id, rect) => restoredAvatarImages[id]?.containsSourceRect(rect) ?? false);
+      }
+      final restoredPlayer = PlayerComponent(bundle: newBundle, state: preparedWorld.player, characterEntry: restoredAvatar, tileImages: restoredAvatarImages);
+      if (preparedWorld.player.movementMode == MovementMode.bicycle && !restoredPlayer.hasBicycleAnimations) {
         throw StateError('The saved bicycle animations are incomplete.');
       }
       if (!isSceneWarpArrivalAllowed(world: preparedWorld, project: newBundle.manifest)) {
@@ -15444,6 +15468,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
+      _player.replaceCharacter(restoredAvatar, restoredAvatarImages);
+      _playerRetainedImages = restoredAvatarImages.values;
+      _playerSupportsRunning = _player.hasRunningAnimation;
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       _configureCameraViewport();
       _syncCameraToPlayer();
@@ -15541,6 +15568,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
+      if (commitNarrativeState) {
+        await _presentPlayerAvatar(source.gameState.trainerProfile.avatarCharacterId,
+          isCurrent: () => !_isRemoved && restorationGuard?.call() != false);
+      }
       _configureCameraViewport();
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
@@ -17666,14 +17697,109 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     );
   }
 
+  Future<RuntimeMapBundle> _preparePlayerAvatarBundle(
+    RuntimeMapBundle bundle,
+    String? characterId,
+  ) async {
+    final id = characterId ?? bundle.manifest.settings.defaultPlayerCharacterId;
+    if (id == null) return bundle;
+    if (bundle.projectCatalog != null) {
+      return prepareRuntimePlayerAvatarBundle(bundle, id);
+    }
+    final matches = bundle.manifest.characters
+        .where((entry) => entry.id == id)
+        .toList();
+    if (matches.length == 1 &&
+        runtimePlayerAvatarImageIds(matches.single)
+            .every(bundle.runtimeImageAbsolutePathsById.containsKey)) {
+      return bundle;
+    }
+    if (_hasInjectedRuntimeMapBundleLoader) {
+      throw StateError(
+        'The selected player avatar is unavailable in the runtime bundle.',
+      );
+    }
+    return loadRuntimeMapBundle(
+      projectFilePath: projectFilePath,
+      mapId: bundle.map.id,
+      preloadedManifest: bundle.projectCatalog == null ? bundle.manifest : null,
+      projectCatalog: bundle.projectCatalog,
+      resourceBudget: bundle.resourceBudget,
+      additionalCharacterIds: {id},
+    );
+  }
+
+  Future<void> _presentPlayerAvatar(
+    String? characterId, {
+    required bool Function() isCurrent,
+  }) async {
+    if (!isLoaded || !isCurrent()) {
+      throw StateError('The player avatar presentation is unavailable.');
+    }
+    final id =
+        characterId ?? _bundle.manifest.settings.defaultPlayerCharacterId;
+    if (id == null) {
+      _player.replaceCharacter(null, const {});
+      _playerRetainedImages = const [];
+      _playerSupportsRunning = false;
+      return;
+    }
+    if (_player.characterEntry?.id == id) return;
+    final avatarBundle = await _preparePlayerAvatarBundle(_bundle, id);
+    if (!isCurrent()) {
+      throw StateError('The player avatar Scene owner changed.');
+    }
+    final character = resolveScenePlayerAvatarCharacter(
+      avatarBundle.manifest,
+      id,
+    );
+    final imageIds = runtimePlayerAvatarImageIds(character);
+    final paths = avatarBundle.runtimeImageAbsolutePathsById;
+    if (!imageIds.every(paths.containsKey)) {
+      throw StateError('The player avatar media is unavailable.');
+    }
+    _tilesetLoadsInProgress++;
+    try {
+      final images = await _loadTilesetImagesCached(
+        {for (final id in imageIds) id: paths[id]!},
+        isCurrent: isCurrent,
+        manifest: avatarBundle.manifest,
+      );
+      if (!isCurrent()) {
+        throw StateError('The player avatar Scene owner changed.');
+      }
+      validateRuntimePlayerAvatarImages(
+        character: character,
+        settings: _bundle.manifest.settings,
+        availableImageIds: images.keys.toSet(),
+        containsSourceRect: (id, rect) =>
+            images[id]?.containsSourceRect(rect) ?? false,
+      );
+      final candidate = PlayerComponent(
+        bundle: _bundle,
+        state: _world.player,
+        characterEntry: character,
+        tileImages: images,
+      );
+      if (_world.player.movementMode == MovementMode.bicycle &&
+          !candidate.hasBicycleAnimations) {
+        throw StateError(
+          'The player avatar bicycle animations are incomplete.',
+        );
+      }
+      _player.replaceCharacter(character, images);
+      _playerRetainedImages = images.values;
+      _playerSupportsRunning = _player.hasRunningAnimation;
+    } finally {
+      _tilesetLoadsInProgress--;
+    }
+  }
+
   ProjectCharacterEntry? _resolvePlayerCharacter(RuntimeMapBundle bundle) {
     final selectedCharacterId =
         _gameState.trainerProfile.avatarCharacterId?.trim();
     if (selectedCharacterId != null && selectedCharacterId.isNotEmpty) {
-      final selected = bundle.manifest.characters
-          .where((character) => character.id == selectedCharacterId)
-          .firstOrNull;
-      if (selected != null) return selected;
+      return resolveScenePlayerAvatarCharacter(bundle.manifest, selectedCharacterId);
     }
     return resolveDefaultPlayerCharacter(bundle.manifest);
   }

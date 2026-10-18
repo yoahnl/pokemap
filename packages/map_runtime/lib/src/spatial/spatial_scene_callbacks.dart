@@ -21,10 +21,12 @@ final class SpatialSceneCallbacks
     required this.interactive,
     this.playCinematic,
     this.presentPokemonGift,
+    this.presentPlayerAvatar,
     this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
   });
 
   final ScenePokemonGiftPresenter? presentPokemonGift;
+  final Future<void> Function(String?)? presentPlayerAvatar;
   final ScenePartyConditionContext partyConditionContext;
   final ProjectManifest project;
   final String runtimeSourceId;
@@ -38,6 +40,7 @@ final class SpatialSceneCallbacks
 
   SceneRuntimeHostCallbacks build() => SceneRuntimeHostCallbacks(
         presentPokemonGift: presentPokemonGift,
+        presentPlayerAvatar: presentPlayerAvatar,
         evaluateCondition: evaluateCondition,
         showDialogue: (intent) async {
           final result = await SceneDialogueRuntimeAwaitableAdapter(
