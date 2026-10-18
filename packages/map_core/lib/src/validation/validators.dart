@@ -32,8 +32,8 @@ import '../operations/moving_platform_operations.dart';
 import '../operations/map_gameplay_zones.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
-import '../operations/environment_spatial_ownership.dart';
 import '../projection/map_entity_presentation_projection.dart';
+import '../operations/environment_spatial_ownership.dart';
 import '../operations/spatial_border_resolution.dart';
 import '../operations/smart_tile_catalog_validation.dart';
 import '../operations/smart_tile_layer_operations.dart';
@@ -2837,18 +2837,18 @@ class MapValidator {
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
-        assertEntityTrainerRefsAgainstProject(entity, projectDialogueContext);
-        assertEntityCharacterRefsAgainstProject(entity, projectDialogueContext);
-        assertEntityInteractiveEncounterAgainstProject(
-          entity,
-          projectDialogueContext,
-        );
         final presentationErrors = validateMapEntityPresentation(project: projectDialogueContext,
           map: map, entity: entity);
         if (presentationErrors.isNotEmpty) {
           throw ValidationException('Entity $entityId presentation: ${presentationErrors.join(', ')}',
             code: 'entity.presentation.invalid');
         }
+        assertEntityTrainerRefsAgainstProject(entity, projectDialogueContext);
+        assertEntityCharacterRefsAgainstProject(entity, projectDialogueContext);
+        assertEntityInteractiveEncounterAgainstProject(
+          entity,
+          projectDialogueContext,
+        );
         assertEntityEditorVisualAgainstProject(entity, projectDialogueContext);
       }
     }
