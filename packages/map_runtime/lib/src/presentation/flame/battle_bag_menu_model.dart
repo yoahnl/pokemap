@@ -370,7 +370,8 @@ BattleBagItemKind classifyBattleBagItem({
 bool _isMedicineEffect(ProjectItemEffectDefinition effect) {
   return effect is ProjectItemHealHpEffectDefinition ||
       effect is ProjectItemCureStatusEffectDefinition ||
-      effect is ProjectItemReviveEffectDefinition;
+      effect is ProjectItemReviveEffectDefinition ||
+      effect is ProjectItemRestorePpEffectDefinition;
 }
 
 BattleBagMenuDisabledReason _captureDisabledReason({

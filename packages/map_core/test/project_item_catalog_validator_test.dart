@@ -90,21 +90,48 @@ void main() {
       );
     });
 
+    for (final effect in <ProjectItemEffectDefinition>[
+      const ProjectItemEffectDefinition.restorePp(
+        mode: ProjectItemAmountMode.flat,
+        amount: 10,
+      ),
+      const ProjectItemEffectDefinition.restorePp(
+        mode: ProjectItemAmountMode.full,
+      ),
+    ]) {
+      test('battle PP ${effect.toJson()} is runtime ready with an attack target', () {
+        final report = validateProjectItemCatalog(
+          ProjectItemCatalog(schemaVersion: 1, entries: [
+            _item(
+              id: 'battle-pp',
+              use: ProjectItemUseDefinition(
+                contexts: const {ProjectItemUseContext.battle},
+                target: ProjectItemTargetKind.partyMove,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: effect,
+              ),
+            ),
+          ]),
+          capabilityTruth: itemSystemV1CapabilityTruth,
+        );
+        expect(report.hasBlockingDiagnostics, isFalse);
+        expect(report.assessmentFor('battle-pp')?.readiness,
+            ItemCapabilityReadiness.runtimeReady);
+      });
+    }
+
     test('item system V1 rejects unsupported context effect combinations', () {
       final report = validateProjectItemCatalog(
         ProjectItemCatalog(
           schemaVersion: 1,
           entries: <ProjectItemDefinition>[
             _item(
-              id: 'battle-ether',
+              id: 'battle-repel',
               use: const ProjectItemUseDefinition(
                 contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
-                target: ProjectItemTargetKind.partyMove,
+                target: ProjectItemTargetKind.world,
                 consumption: ProjectItemConsumptionPolicy.onApplied,
-                effect: ProjectItemEffectDefinition.restorePp(
-                  mode: ProjectItemAmountMode.flat,
-                  amount: 10,
-                ),
+                effect: ProjectItemEffectDefinition.repel(steps: 100),
               ),
             ),
             _item(
@@ -125,7 +152,7 @@ void main() {
 
       expect(report.hasBlockingDiagnostics, isTrue);
       expect(
-        report.assessmentFor('battle-ether')?.readiness,
+        report.assessmentFor('battle-repel')?.readiness,
         ItemCapabilityReadiness.unsupported,
       );
       expect(

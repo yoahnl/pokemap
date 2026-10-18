@@ -95,6 +95,31 @@ void main() {
     expect(receiptIds, hasLength(_durableItemActionIds.length));
   });
 
+  for (final mode in ProjectItemAmountMode.values) {
+    test('editor authors and undoes battle PP $mode', () async {
+      final harness = await _EditorItemHarness.create('battle-pp-$mode');
+      addTearDown(harness.dispose);
+      final execution = await harness.execute(_ItemMutationScenario(
+          'item.set_battle_effect', {
+        'itemId': 'potion',
+        'use': ProjectItemUseDefinition(
+          contexts: const {ProjectItemUseContext.battle},
+          target: ProjectItemTargetKind.partyMove,
+          consumption: ProjectItemConsumptionPolicy.onApplied,
+          effect: ProjectItemEffectDefinition.restorePp(
+            mode: mode, amount: mode == ProjectItemAmountMode.flat ? 10 : null,
+          ),
+        ).toJson(),
+      }));
+      final catalog = ProjectItemCatalog.fromJson(execution.afterCatalog);
+      final use = catalog.entries.singleWhere((item) => item.id == 'potion').uses.single;
+      expect(use.target, ProjectItemTargetKind.partyMove);
+      expect(use.effect, ProjectItemEffectDefinition.restorePp(
+          mode: mode, amount: mode == ProjectItemAmountMode.flat ? 10 : null));
+      expect(execution.restoredCatalog, execution.beforeCatalog);
+    });
+  }
+
   test('editor refusals preserve catalog and create no history', () async {
     final cases = <(_ItemMutationScenario, String, String?)>[
       (
@@ -122,7 +147,7 @@ void main() {
           'itemId': 'potion',
           'use': const ProjectItemUseDefinition(
             contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
-            target: ProjectItemTargetKind.partyMove,
+            target: ProjectItemTargetKind.partyMember,
             consumption: ProjectItemConsumptionPolicy.onApplied,
             effect: ProjectItemEffectDefinition.restorePp(
               mode: ProjectItemAmountMode.flat,
@@ -361,7 +386,7 @@ final class _EditorItemHarness {
       receipt: applied.receipt,
       undoReceipt: undone.receipt,
       beforeRevision: beforeRevision,
-      afterRevision: applied.snapshotRevision,
+      afterRevision: applied.snapshotRevision!,
       queriedRevision: queriedCatalog['snapshotRevision']! as String,
       beforeCatalog: beforeCatalog,
       afterCatalog: afterCatalog,

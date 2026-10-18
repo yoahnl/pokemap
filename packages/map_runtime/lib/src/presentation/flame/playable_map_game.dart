@@ -2540,6 +2540,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             selectBattlePartyEntry(entryIndex),
           BattleCommandOverlayMode.bagMedicineTarget =>
             selectBattleMedicineTargetEntry(entryIndex),
+          BattleCommandOverlayMode.bagMedicineMoveTarget =>
+            _battleOverlay?.selectMedicineMoveTargetEntry(entryIndex) ?? false,
         },
     };
   }
@@ -9514,6 +9516,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               battleSpeciesDisplayNames[speciesId] ?? speciesId,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
+          onBagMovePpItemUseRequested: (action, entry, moveIndex) =>
+              _onBattleBagHpHealItemUseRequested(
+                action,
+                entry,
+                targetMoveIndex: moveIndex,
+              ),
+          medicineBattleState: _psdkBattleSession?.createLegacyWriteBackState,
           onCommandOverlaySnapshotChanged: (snapshot) {
             // Recette 2026-08-24 : après le commit de fin de combat, une
             // publication tardive de l'overlay démonté (course entre le null
@@ -9919,8 +9928,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   bool _onBattleBagHpHealItemUseRequested(
     BattleBagMenuActionMedicineTarget action,
-    BattleMedicineTargetEntry entry,
-  ) {
+    BattleMedicineTargetEntry entry, {
+    int? targetMoveIndex,
+  }) {
     final battleSession = _battleSession;
     final activeBattleContext = _activeBattleContext;
     if (battleSession == null || activeBattleContext == null) {
@@ -9947,6 +9957,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           context: activeBattleContext,
           itemId: action.itemId,
           targetLineupIndex: entry.lineupIndex,
+          targetMoveIndex: targetMoveIndex,
           isTrainerBattle: isTrainerBattle,
           trainerId: trainerId,
           allowCapture: _battleRequestAllowsCapture(request),

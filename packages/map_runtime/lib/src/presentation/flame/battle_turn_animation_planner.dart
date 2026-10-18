@@ -340,6 +340,15 @@ final class BattleTurnAnimationPlanner {
               ),
             );
           }
+        case BattleTurnMovePpRestoredEvent():
+          steps.add(ShowMessageStep(
+            message:
+                '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
+          ));
+          steps.add(ShowMessageStep(
+            message:
+                '${moveDisplayName(event.moveId, event.moveName)} récupère ${event.amount} PP.',
+          ));
         case BattleTurnCaptureAttemptEvent(:final event):
           final targetName = speciesDisplayName(event.targetSpeciesId);
           steps.add(

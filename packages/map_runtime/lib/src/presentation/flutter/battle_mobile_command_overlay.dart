@@ -899,7 +899,8 @@ class _BattleEntriesSurface extends StatelessWidget {
             snapshot: snapshot,
             onEntrySelected: onEntrySelected,
           ),
-        BattleCommandOverlayMode.fight => _BattleMoveGrid(
+        BattleCommandOverlayMode.fight ||
+        BattleCommandOverlayMode.bagMedicineMoveTarget => _BattleMoveGrid(
             viewportClass: viewportClass,
             snapshot: snapshot,
             onEntrySelected: onEntrySelected,

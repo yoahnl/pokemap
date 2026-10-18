@@ -84,7 +84,8 @@ String _localizedBattleTitle(
 ) =>
     switch (mode) {
       BattleCommandOverlayMode.root => localizations.battleCommands,
-      BattleCommandOverlayMode.fight => localizations.battleMoves,
+      BattleCommandOverlayMode.fight ||
+      BattleCommandOverlayMode.bagMedicineMoveTarget => localizations.battleMoves,
       BattleCommandOverlayMode.bag => localizations.battleBag,
       BattleCommandOverlayMode.bagMedicineTarget => localizations.battleTarget,
       BattleCommandOverlayMode.pokemon => localizations.battlePokemon,
@@ -159,7 +160,8 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
     BattleCommandOverlayMode.root ||
     BattleCommandOverlayMode.decision =>
       PlayerBattlePanelKind.commands,
-    BattleCommandOverlayMode.fight => PlayerBattlePanelKind.moves,
+    BattleCommandOverlayMode.fight ||
+    BattleCommandOverlayMode.bagMedicineMoveTarget => PlayerBattlePanelKind.moves,
     BattleCommandOverlayMode.bagMedicineTarget => PlayerBattlePanelKind.target,
     BattleCommandOverlayMode.bag ||
     BattleCommandOverlayMode.pokemon =>

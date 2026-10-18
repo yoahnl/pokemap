@@ -26,6 +26,7 @@ enum BattleCommandMenuMode {
   fight,
   bag,
   bagMedicineTarget,
+  bagMedicineMoveTarget,
   pokemon,
   continueOnly,
 }
@@ -103,6 +104,7 @@ BattleCommandMenuMode normalizeBattleCommandMenuMode({
     case BattleCommandMenuMode.fight:
     case BattleCommandMenuMode.bag:
     case BattleCommandMenuMode.bagMedicineTarget:
+    case BattleCommandMenuMode.bagMedicineMoveTarget:
     case BattleCommandMenuMode.pokemon:
       return currentMode;
     case BattleCommandMenuMode.continueOnly:
@@ -225,7 +227,8 @@ BattleCommandMenuMode _normalizeSubmenuAgainstRequest({
       request is! BattleTurnChoiceRequest) {
     return BattleCommandMenuMode.root;
   }
-  if (mode == BattleCommandMenuMode.bagMedicineTarget &&
+  if ((mode == BattleCommandMenuMode.bagMedicineTarget ||
+          mode == BattleCommandMenuMode.bagMedicineMoveTarget) &&
       request is! BattleTurnChoiceRequest) {
     return BattleCommandMenuMode.root;
   }
@@ -327,6 +330,7 @@ String _choiceGroupTitleFor(BattleCommandMenuMode mode) {
     BattleCommandMenuMode.fight => 'MOVES',
     BattleCommandMenuMode.bag => 'BAG',
     BattleCommandMenuMode.bagMedicineTarget => 'TARGET',
+    BattleCommandMenuMode.bagMedicineMoveTarget => 'MOVES',
     BattleCommandMenuMode.pokemon => 'POKÉMON',
     BattleCommandMenuMode.continueOnly => 'CONTINUE',
   };

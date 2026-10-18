@@ -161,6 +161,44 @@ void main() {
     });
   });
 
+  for (final itemId in ['ether', 'max-ether']) {
+    test('$itemId restores battle PP including a fainted target', () {
+      for (final hp in [0, 10]) {
+        final initial = stateFor(itemId, pokemon(
+          currentHp: hp,
+          knownMoveIds: const ['tackle', 'growl'],
+          currentPpByMoveId: const {'tackle': 2, 'growl': 4},
+        ));
+        final result = service.use(request(initial, itemId,
+          context: ProjectItemUseContext.battle,
+          moveId: 'tackle',
+          maxPpByMoveId: const {'tackle': 35, 'growl': 40},
+        ));
+        expect(result.isSuccess, isTrue);
+        expect(result.state.party.members.single.currentHp, hp);
+        expect(result.state.party.members.single.currentPpByMoveId,
+            {'tackle': itemId == 'ether' ? 12 : 35, 'growl': 4});
+        expect(result.state.bag.entries.single.quantity, 1);
+        expect(result.consumptionReceipt?.quantity, 1);
+      }
+    });
+
+    test('$itemId refuses full or unknown battle PP without consuming', () {
+      final initial = stateFor(itemId,
+          pokemon(currentPpByMoveId: const {'tackle': 35}));
+      for (final moveId in ['tackle', 'missing']) {
+        final result = service.use(request(initial, itemId,
+          context: ProjectItemUseContext.battle,
+          moveId: moveId,
+          maxPpByMoveId: const {'tackle': 35},
+        ));
+        expect(result.isSuccess, isFalse);
+        expect(result.state, same(initial));
+        expect(result.consumptionReceipt, isNull);
+      }
+    });
+  }
+
   group('PlayerItemUseService failures', () {
     test('rejects the wrong target without consuming', () {
       final initial = stateFor('revive', pokemon(currentHp: 10));

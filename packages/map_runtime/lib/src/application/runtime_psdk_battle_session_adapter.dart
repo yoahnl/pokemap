@@ -45,6 +45,10 @@ final class RuntimePsdkBattleSessionAdapter {
   BattlePublicState get state => _facade.state;
   BattleEngineDecisionRequest get decisionRequest => _facade.decisionRequest;
 
+  BattleState createLegacyWriteBackState() => _toLegacyDisplayState(
+        phase: state.isFinished ? BattlePhase.finished : BattlePhase.playerChoice,
+      );
+
   BattleSession createLegacyDisplaySession({
     required bool isTrainerBattle,
     String? trainerId,
@@ -267,6 +271,20 @@ final class RuntimePsdkBattleSessionAdapter {
         );
         bagHpHealItemEvents.add(itemEvent);
         timeline.add(BattleTurnBagHpHealItemEvent(itemEvent));
+      } else if (event is BattleMovePpRestoredTimelineEvent) {
+        final target = result.state.psdkState
+            .partyForBank(event.target.bank)[event.partyIndex];
+        timeline.add(BattleTurnMovePpRestoredEvent(
+          side: _legacySideForPosition(event.user),
+          itemId: event.itemId,
+          displayName: _itemDisplayNames[event.itemId] ?? event.itemId,
+          targetSpeciesId: target.speciesId,
+          targetLineupIndex: _lineupIndexFromPsdkId(target.id),
+          moveSlot: event.moveSlot,
+          moveId: event.moveId,
+          moveName: target.moves[event.moveSlot].name,
+          amount: event.amount,
+        ));
       } else if (event is BattleSwitchOutTimelineEvent) {
         // BETA-BAT-036 : ce maillon n'existait PAS. Le moteur émettait bien
         // ses `switch_out` / `switch_in` — remplacement volontaire du joueur

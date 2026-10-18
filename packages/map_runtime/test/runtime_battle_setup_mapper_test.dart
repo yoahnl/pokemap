@@ -10,6 +10,7 @@ import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
@@ -390,14 +391,13 @@ void main() {
           saveId: 'save-player',
           party: PlayerParty(
             members: <PlayerPokemon>[
-              // Ce Pokémon K.O. ne doit jamais être choisi par le mapper.
               PlayerPokemon(
-                speciesId: 'spentmon',
+                speciesId: 'aquafi',
                 natureId: 'hardy',
-                abilityId: 'pressure',
+                abilityId: 'torrent',
                 level: 99,
-                knownMoveIds: <String>['do-not-use'],
-                currentPpByMoveId: <String, int>{'do-not-use': 1},
+                knownMoveIds: <String>['water_gun'],
+                currentPpByMoveId: <String, int>{'water_gun': 1},
                 currentHp: 0,
               ),
               PlayerPokemon(
@@ -599,7 +599,7 @@ void main() {
     });
 
     test(
-        'maps player reserves from the real party and excludes bench members already KO',
+        'maps fainted player reserves for items while excluding them from switches',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
@@ -649,9 +649,81 @@ void main() {
       );
 
       expect(setup.playerPokemon.speciesId, equals('sproutle'));
-      expect(setup.playerReservePokemon, hasLength(1));
-      expect(setup.playerReservePokemon.single.speciesId, equals('aquafi'));
-      expect(setup.playerReservePokemon.single.lineupIndex, equals(1));
+      expect(setup.playerReservePokemon, hasLength(2));
+      expect(setup.playerReservePokemon.map((member) => member.speciesId),
+          ['aquafi', 'sparkitten']);
+      expect(setup.playerReservePokemon.map((member) => member.lineupIndex),
+          [1, 2]);
+      final session = createBattleSession(setup);
+      expect(session.state.playerReserve[1].isFainted, isTrue);
+      expect(
+        session.decisionRequest.allowedChoices
+            .whereType<PlayerBattleChoiceSwitch>()
+            .map((choice) => choice.reserveIndex),
+        [0],
+      );
+    });
+
+    test(
+        'keeps stable party mappings with KO members before and after the active slot',
+        () async {
+      final member = _playerStateForTests().party.members.first;
+      final party = PlayerParty(members: [
+        member.copyWith(
+          currentHp: 0,
+          currentPpByMoveId: const {'growl': 0, 'vine_whip': 35},
+        ),
+        member,
+        member.copyWith(currentHp: 0),
+      ]);
+      final selection = mapper.selectPlayerBattleLineup(party);
+      expect(selection.activeIndex, 1);
+      expect(selection.reserveIndices, [0, 2]);
+      expect(selection.lineupPartyIndices, [1, 0, 2]);
+      expect(
+        () => mapper.selectPlayerBattleLineup(party, playerPartyIndex: 0),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final gameState = GameState(
+        saveId: 'lead-nonzero-pp',
+        party: party,
+        bag: const Bag(entries: [BagEntry(itemId: 'ether', quantity: 1)]),
+      );
+      final request = _wildRequest(speciesId: 'sparkitten', level: 10);
+      final catalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+      final setup = await RuntimePsdkBattleSetupMapper().map(
+        bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest),
+        gameState: gameState,
+        request: request,
+        itemCatalog: catalog,
+      );
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
+      final result = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: session,
+        displaySession: session.createLegacyDisplaySession(isTrainerBattle: false),
+        gameState: gameState,
+        context: RuntimeActiveBattleContext.withLineupMapping(
+          request: request,
+          playerPartyIndex: selection.activeIndex,
+          playerPartySlotIndicesByLineupIndex: selection.lineupPartyIndices,
+        ),
+        itemId: 'ether',
+        targetLineupIndex: 1,
+        targetMoveIndex: 0,
+        isTrainerBattle: false,
+        itemCatalog: catalog,
+      );
+      expect(result, isNotNull);
+      final saved = result!.updatedGameState.party.members;
+      expect(saved[0].currentHp, 0);
+      expect(saved[0].currentPpByMoveId!['growl'], 10);
+      expect(saved[1].currentPpByMoveId!['growl'], 35);
+      expect(saved[2].currentHp, 0);
+      expect(saved[2].currentPpByMoveId!['growl'], 35);
     });
 
     test('maps a wild encounter from real project species and learnset data',

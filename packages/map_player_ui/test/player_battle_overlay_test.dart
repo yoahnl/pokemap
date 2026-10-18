@@ -9,6 +9,52 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  for (final viewport in const [Size(390, 844), Size(960, 540)]) {
+    testWidgets('PP move targeting keeps slots and disabled full moves at $viewport', (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          mode: BattleCommandOverlayMode.bagMedicineMoveTarget,
+          entries: const [
+            BattleCommandOverlayEntry(
+              index: 0,
+              kind: BattleCommandOverlayEntryKind.move,
+              primaryLabel: 'Charge',
+              secondaryLabel: 'normal',
+              trailingLabel: 'PP 35/35',
+              enabled: false,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.disabled,
+            ),
+            BattleCommandOverlayEntry(
+              index: 1,
+              kind: BattleCommandOverlayEntryKind.move,
+              primaryLabel: 'Charge',
+              secondaryLabel: 'normal',
+              trailingLabel: 'PP 0/5',
+              enabled: true,
+              selected: true,
+              tone: BattleCommandOverlayEntryTone.medicine,
+            ),
+          ],
+        ),
+        onCommand: commands.add,
+      );
+      expect(find.text('PP 35/35'), findsOneWidget);
+      expect(find.text('PP 0/5'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey<String>('battle-entry-0')));
+      expect(commands, isEmpty);
+      await tester.tap(find.byKey(const ValueKey<String>('battle-entry-1')));
+      expect(commands.single, isA<BattleSelectEntryCommand>()
+          .having((command) => command.entryIndex, 'slot', 1)
+          .having((command) => command.expectedMode, 'mode', BattleCommandOverlayMode.bagMedicineMoveTarget));
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('companion root places fight above bag run and party',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));

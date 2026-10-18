@@ -89,6 +89,7 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
   'battle.useItem': EvaluationCommandDefinition(
     operation: 'battle.useItem',
     requiredKeys: <String>{'itemId'},
+    optionalKeys: <String>{'targetLineupIndex', 'targetMoveIndex'},
   ),
   'battle.capture': EvaluationCommandDefinition(
     operation: 'battle.capture',

@@ -70,6 +70,7 @@ BattleCommandOverlaySnapshot _snapshot({
       BattleCommandOverlayMode.fight => 'MOVES',
       BattleCommandOverlayMode.bag => 'BAG',
       BattleCommandOverlayMode.bagMedicineTarget => 'TARGET',
+      BattleCommandOverlayMode.bagMedicineMoveTarget => 'MOVES',
       BattleCommandOverlayMode.pokemon => 'POKEMON',
       BattleCommandOverlayMode.continueOnly => 'CONTINUE',
       BattleCommandOverlayMode.decision => 'CHOIX',

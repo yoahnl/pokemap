@@ -174,6 +174,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
             ),
           BattleCommandOverlayMode.bagMedicineTarget =>
             overlay.selectMedicineTargetEntry(entryIndex),
+          BattleCommandOverlayMode.bagMedicineMoveTarget =>
+            overlay.selectMedicineMoveTargetEntry(entryIndex),
         },
     };
   }
@@ -371,6 +373,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           }
         },
         onBagHpHealItemUseRequested: _useMedicine,
+        onBagMovePpItemUseRequested: (action, entry, moveIndex) =>
+            _useMedicine(action, entry, targetMoveIndex: moveIndex),
+        medicineBattleState: _engine!.createLegacyWriteBackState,
       );
       battleOverlay = overlay;
       notifyListeners();
@@ -472,8 +477,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
 
   bool _useMedicine(
     BattleBagMenuActionMedicineTarget action,
-    BattleMedicineTargetEntry entry,
-  ) {
+    BattleMedicineTargetEntry entry, {
+    int? targetMoveIndex,
+  }) {
     if (phase != SpatialBattlePhase.battle || isPaused || _resolving) {
       return false;
     }
@@ -485,6 +491,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       context: context!,
       itemId: action.itemId,
       targetLineupIndex: entry.lineupIndex,
+      targetMoveIndex: targetMoveIndex,
       isTrainerBattle: request is TrainerBattleStartRequest,
       trainerId:
           request is TrainerBattleStartRequest ? request.trainerId : null,

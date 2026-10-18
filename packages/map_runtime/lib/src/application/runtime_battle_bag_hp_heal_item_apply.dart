@@ -79,6 +79,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   required int targetLineupIndex,
   required bool isTrainerBattle,
   required ItemCatalogSnapshot itemCatalog,
+  int? targetMoveIndex,
   String? trainerId,
   bool allowCapture = false,
 }) {
@@ -114,6 +115,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   final battleEffect = _battleItemEffectFor(
     effect: effect,
     target: targetBefore,
+    targetMoveIndex: targetMoveIndex,
   );
   if (battleEffect == null) {
     return null;
@@ -122,21 +124,41 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     context: context,
     targetLineupIndex: targetLineupIndex,
   );
-  if (runtimePartyIndex == null) {
+  if (runtimePartyIndex == null ||
+      runtimePartyIndex < 0 ||
+      runtimePartyIndex >= gameState.party.members.length) {
     return null;
   }
   final projectedGameState = writePlayerBattleLineupBackToPartySlots(
     gameState: gameState,
     context: context,
-    battleState: displaySession.state,
+    battleState: psdkSession.createLegacyWriteBackState(),
   );
+  final selectedMove = effect is ProjectItemRestorePpEffectDefinition
+      ? targetBefore.moves[targetMoveIndex!]
+      : null;
+  var itemRequestState = projectedGameState;
+  if (selectedMove != null) {
+    final members = [...projectedGameState.party.members];
+    members[runtimePartyIndex] = members[runtimePartyIndex].copyWith(
+      knownMoveIds: [selectedMove.id],
+      currentPpByMoveId: {selectedMove.id: selectedMove.currentPp},
+    );
+    itemRequestState = projectedGameState.copyWith(
+      party: projectedGameState.party.copyWith(members: members),
+    );
+  }
   final itemUseResult = PlayerItemUseService(snapshot: itemCatalog).use(
     PlayerItemUseRequest(
-      state: projectedGameState,
+      state: itemRequestState,
       itemId: itemId,
       context: ProjectItemUseContext.battle,
       partyIndex: runtimePartyIndex,
       maxHp: targetBefore.maxHp,
+      moveId: selectedMove?.id,
+      maxPpByMoveId: selectedMove == null
+          ? const {}
+          : {selectedMove.id: selectedMove.pp},
     ),
   );
   final consumptionReceipt = itemUseResult.consumptionReceipt;
@@ -158,7 +180,9 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
       .whereType<BattleItemTimelineEvent>()
       .where(
         (event) =>
-            event.itemId == itemId && event.partyIndex == targetPartyIndex,
+            event.itemId == itemId &&
+            event.user.bank == psdkPlayerSlot.bank &&
+            event.partyIndex == targetPartyIndex,
       )
       .toList(growable: false);
   final expectedItemEventKind = shouldConsume ? 'item_consumed' : 'item_used';
@@ -179,9 +203,9 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     allowFlee: displaySession.setup.allowFlee,
   );
   final withWriteBack = writePlayerBattleLineupBackToPartySlots(
-    gameState: itemUseResult.state,
+    gameState: projectedGameState.copyWith(bag: itemUseResult.state.bag),
     context: context,
-    battleState: updatedDisplaySession.state,
+    battleState: psdkSession.createLegacyWriteBackState(),
   );
 
   return RuntimePsdkBattleItemApplyResult(
@@ -191,10 +215,20 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     effectKind: _runtimeEffectKind(effect),
     targetSpeciesId: targetAfter.speciesId,
     targetLineupIndex: targetLineupIndex,
-    appliedAmount: (targetAfter.currentHp - targetBefore.currentHp).clamp(
-      0,
-      targetAfter.maxHp,
-    ),
+    appliedAmount: selectedMove == null
+        ? (targetAfter.currentHp - targetBefore.currentHp).clamp(
+            0,
+            targetAfter.maxHp,
+          )
+        : turn.timeline.events
+            .whereType<BattleMovePpRestoredTimelineEvent>()
+            .singleWhere((event) =>
+                event.itemId == itemId &&
+                event.user.bank == psdkPlayerSlot.bank &&
+                event.target.bank == psdkPlayerSlot.bank &&
+                event.partyIndex == targetPartyIndex &&
+                event.moveSlot == targetMoveIndex)
+            .amount,
     consumptionReceipt: consumptionReceipt,
   );
 }
@@ -311,6 +345,7 @@ BattleCombatant? _findPlayerCombatantByLineupIndex({
 PsdkBattleItemActionEffect? _battleItemEffectFor({
   required ProjectItemEffectDefinition effect,
   required PsdkBattleCombatant target,
+  int? targetMoveIndex,
 }) {
   return switch (effect) {
     ProjectItemHealHpEffectDefinition() =>
@@ -329,7 +364,19 @@ PsdkBattleItemActionEffect? _battleItemEffectFor({
                 .clamp(1, 100),
           )
         : null,
-    ProjectItemRestorePpEffectDefinition() ||
+    ProjectItemRestorePpEffectDefinition() =>
+      targetMoveIndex == null ||
+              targetMoveIndex < 0 ||
+              targetMoveIndex >= target.moves.length ||
+              target.moves[targetMoveIndex].currentPp >=
+                  target.moves[targetMoveIndex].pp
+          ? null
+          : effect.mode == ProjectItemAmountMode.full
+              ? PsdkBattlePpRestoreItemEffect.full(moveSlot: targetMoveIndex)
+              : PsdkBattlePpRestoreItemEffect.flat(
+                  effect.amount!,
+                  moveSlot: targetMoveIndex,
+                ),
     ProjectItemRepelEffectDefinition() ||
     ProjectItemSemanticActionEffectDefinition() =>
       null,
@@ -361,7 +408,8 @@ PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
 bool _isSupportedBattleMedicineEffect(ProjectItemEffectDefinition effect) {
   return effect is ProjectItemHealHpEffectDefinition ||
       effect is ProjectItemCureStatusEffectDefinition ||
-      effect is ProjectItemReviveEffectDefinition;
+      effect is ProjectItemReviveEffectDefinition ||
+      effect is ProjectItemRestorePpEffectDefinition;
 }
 
 RuntimeBattleItemEffectKind _runtimeEffectKind(

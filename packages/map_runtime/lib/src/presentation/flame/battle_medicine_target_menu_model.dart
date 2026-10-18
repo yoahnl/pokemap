@@ -6,6 +6,7 @@ enum BattleMedicineTargetDisabledReason {
   fullHp,
   noCompatibleStatus,
   notFainted,
+  fullPp,
   notAllowedByCurrentRequest,
 }
 
@@ -63,10 +64,12 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required String itemId,
   required String displayName,
   required ProjectItemUseDefinition use,
+  BattleState? battleState,
   bool Function(BattleCombatant combatant)? isTargetAllowed,
 }) {
   final allowsTargeting = session.decisionRequest is BattleTurnChoiceRequest;
   final allowsCombatant = isTargetAllowed ?? (_) => true;
+  final targets = battleState ?? session.state;
 
   BattleMedicineTargetEntry buildEntry({
     required int visualIndex,
@@ -106,16 +109,16 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   final activeEntry = buildEntry(
     visualIndex: 0,
     reserveIndex: null,
-    combatant: session.state.player,
+    combatant: targets.player,
     isActive: true,
   );
 
   final reserveEntries = <BattleMedicineTargetEntry>[
-    for (var index = 0; index < session.state.playerReserve.length; index++)
+    for (var index = 0; index < targets.playerReserve.length; index++)
       buildEntry(
         visualIndex: index + 1,
         reserveIndex: index,
-        combatant: session.state.playerReserve[index],
+        combatant: targets.playerReserve[index],
         isActive: false,
       ),
   ];
@@ -151,7 +154,11 @@ BattleMedicineTargetDisabledReason? _effectDisabledReason({
     ProjectItemReviveEffectDefinition() => combatant.isFainted
         ? null
         : BattleMedicineTargetDisabledReason.notFainted,
-    ProjectItemRestorePpEffectDefinition() ||
+    ProjectItemRestorePpEffectDefinition() => combatant.moves.any(
+        (move) => move.currentPp < move.pp,
+      )
+        ? null
+        : BattleMedicineTargetDisabledReason.fullPp,
     ProjectItemRepelEffectDefinition() ||
     ProjectItemSemanticActionEffectDefinition() =>
       BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest,

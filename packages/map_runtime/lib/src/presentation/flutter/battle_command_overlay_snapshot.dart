@@ -14,6 +14,7 @@ enum BattleCommandOverlayMode {
   fight,
   bag,
   bagMedicineTarget,
+  bagMedicineMoveTarget,
   pokemon,
   continueOnly,
 

@@ -6,6 +6,7 @@ import { test } from "node:test";
 
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
@@ -81,6 +82,19 @@ const itemMutationScenarios = [
       },
     },
   },
+  ...["flat", "full"].map((mode) => ({
+    actionId: "item.set_battle_effect",
+    slug: `item-set-battle-pp-${mode}`,
+    parameters: {
+      itemId: "potion",
+      use: {
+        contexts: ["battle"],
+        target: "party_move",
+        consumption: "on_applied",
+        effect: { kind: "restore_pp", mode, amount: mode === "flat" ? 10 : null },
+      },
+    },
+  })),
   {
     actionId: "item.set_held_effect",
     slug: "item-set-held-effect",
@@ -178,6 +192,10 @@ test("MCP describes queries and mutates canonical items", async () => {
       .filter((id) => id.startsWith("item."));
     const heldDescriptor = (description.mutationActions as JsonRecord[])
       .find((descriptor) => descriptor.id === "item.set_held_effect");
+    const battleDescriptor = (description.mutationActions as JsonRecord[])
+      .find((descriptor) => descriptor.id === "item.set_battle_effect");
+    assert.ok(battleDescriptor);
+    assert.ok((record(battleDescriptor.extensions).effectKinds as string[]).includes("restore_pp"));
     assert.ok(heldDescriptor);
     const heldEffects = record(heldDescriptor.extensions).heldEffectIds as string[];
     for (const effectId of ["lum_berry", "sitrus_berry", "smoke_ball"]) {
@@ -275,6 +293,12 @@ test("MCP describes queries and mutates canonical items", async () => {
       });
       snapshotRevision = String(queried.snapshotRevision);
       assert.equal(snapshotRevision, appliedRevision);
+      if (scenario.slug.startsWith("item-set-battle-pp-")) {
+        const definition = (queried.items as JsonRecord[]).find((item) => item.id === "potion");
+        assert.ok(definition);
+        assert.deepEqual((definition.uses as JsonRecord[]).find((use) =>
+          (use.contexts as string[]).includes("battle")), record(scenario.parameters).use);
+      }
       if (scenario.actionId === "item.set_held_effect") {
         const definition = (queried.items as JsonRecord[])
           .find((item) => item.id === "potion");
@@ -378,13 +402,13 @@ test("MCP describes queries and mutates canonical items", async () => {
         domainCode: "item.delete_references_blocking",
       },
       {
-        slug: "unsupported-battle-pp",
+        slug: "battle-pp-wrong-target",
         actionId: "item.set_battle_effect",
         parameters: {
           itemId: "potion",
           use: {
             contexts: ["battle"],
-            target: "party_move",
+            target: "party_member",
             consumption: "on_applied",
             effect: { kind: "restore_pp", mode: "flat", amount: 10 },
           },
@@ -613,6 +637,61 @@ test("MCP fishing contracts expose three reusable rods and reject extra effect f
     await client.close();
     await server.close();
     await authoring.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("fresh stdio MCP authors battle PP and preserves it after cold reopen", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-battle-pp-"));
+  await writeFixture(root);
+  const connect = async () => {
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve(process.env.POKEMAP_TEST_MCP_ENTRY ?? "dist/src/index.js"),
+        "--root", root, "--authoring-timeout-ms", "60000"],
+      cwd: process.cwd(), stderr: "pipe",
+    });
+    const client = new Client({ name: "battle-pp-fixture", version: "1.0.0" });
+    await client.connect(transport);
+    return client;
+  };
+  let client = await connect();
+  try {
+    const description = await toolData(client, "pokemap_describe");
+    const action = (description.mutationActions as JsonRecord[])
+      .find((entry) => entry.id === "item.set_battle_effect");
+    assert.ok(action);
+    assert.ok((record(action.extensions).effectKinds as string[]).includes("restore_pp"));
+    const opened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    for (const mode of ["flat", "full"]) {
+      const before = await toolData(client, "pokemap_query", { projectHandle,
+        resourceKind: "itemDefinition", operation: "list", view: "detail" });
+      const use = { contexts: ["battle"], target: "party_move", consumption: "on_applied",
+        effect: { kind: "restore_pp", mode, amount: mode === "flat" ? 10 : null } };
+      const planned = await toolData(client, "pokemap_plan", { projectHandle,
+        request: { requestId: `pp-${mode}`, actionId: "item.set_battle_effect", actionVersion: 1,
+          workspaceHandle, parameters: { itemId: "potion", use },
+          expectedRevision: before.snapshotRevision, idempotencyKey: `pp-${mode}`, dryRun: false } });
+      await toolData(client, "pokemap_apply", { operation: "apply", projectHandle,
+        planId: planned.planId, operationId: `apply-pp-${mode}` });
+      const queried = await toolData(client, "pokemap_query", { projectHandle,
+        resourceKind: "itemDefinition", operation: "get", view: "detail", ids: ["potion"] });
+      assert.deepEqual(record((queried.items as JsonRecord[])[0]).uses, [use]);
+    }
+    await toolData(client, "pokemap_workspace", { operation: "close", workspaceHandle });
+    await client.close();
+    client = await connect();
+    const reopened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const persisted = await toolData(client, "pokemap_query", { projectHandle: reopened.projectHandle,
+      resourceKind: "itemDefinition", operation: "get", view: "detail", ids: ["potion"] });
+    const use = record((record((persisted.items as JsonRecord[])[0]).uses as JsonRecord[])[0]);
+    assert.equal(record(use.effect).mode, "full");
+    assert.equal(use.target, "party_move");
+    await toolData(client, "pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
+  } finally {
+    await client.close();
     await rm(root, { recursive: true, force: true });
   }
 });

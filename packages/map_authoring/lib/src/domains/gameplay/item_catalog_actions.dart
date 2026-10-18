@@ -475,6 +475,18 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
               'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item',
               'runtime': '2d', 'source': 'front_water_cell', 'chance': 'authored_per_attempt'},
           }
+        : id == 'item.set_battle_effect'
+        ? {
+            'effectKinds': ['heal_hp', 'cure_status', 'revive', 'restore_pp'],
+            'restorePp': {
+              'target': 'party_move',
+              'amountModes': ['flat', 'full'],
+              'selection': 'party_then_move_slot',
+              'scope': 'single_move',
+              'faintedTarget': 'allowed_without_revive',
+              'fullPp': 'refused_without_consumption_or_turn',
+            },
+          }
         : id == 'item.set_held_effect'
         ? {
             'heldEffectIds':

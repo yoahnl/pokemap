@@ -59,6 +59,36 @@ void main() {
       expect(await wire.catalogJson(), before);
     });
 
+    for (final mode in ProjectItemAmountMode.values) {
+      test('battle PP $mode roundtrips through API and JSONL', () async {
+        for (final jsonl in [false, true]) {
+          final harness = await _ItemTransportHarness.create('battle-pp-$mode-$jsonl');
+          addTearDown(harness.dispose);
+          final use = ProjectItemUseDefinition(
+            contexts: const {ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMove,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.restorePp(
+              mode: mode,
+              amount: mode == ProjectItemAmountMode.flat ? 10 : null,
+            ),
+          );
+          final scenario = _ItemMutationScenario('item.set_battle_effect', {
+            'itemId': 'potion', 'use': use.toJson(),
+          });
+          final result = jsonl ? await harness.executeJsonl(scenario)
+              : await harness.executeDirect(scenario);
+          final catalog = ProjectItemCatalog.fromJson(result.catalog);
+          expect(catalog.entries.singleWhere((item) => item.id == 'potion')
+              .uses.single.toJson(), use.toJson());
+          final described = await _request(harness.worker, 'describe');
+          final actions = (described.data['mutationActions'] as List).cast<Map>();
+          final action = actions.singleWhere((entry) => entry['id'] == 'item.set_battle_effect');
+          expect(jsonEncode(action), contains('restore_pp'));
+        }
+      });
+    }
+
     test('describes the four resources and nine durable actions', () async {
       final harness = await _ItemTransportHarness.create('describe');
       addTearDown(harness.dispose);
@@ -478,7 +508,7 @@ void main() {
               contexts: <ProjectItemUseContext>{
                 ProjectItemUseContext.battle,
               },
-              target: ProjectItemTargetKind.partyMove,
+              target: ProjectItemTargetKind.partyMember,
               consumption: ProjectItemConsumptionPolicy.onApplied,
               effect: ProjectItemEffectDefinition.restorePp(
                 mode: ProjectItemAmountMode.flat,

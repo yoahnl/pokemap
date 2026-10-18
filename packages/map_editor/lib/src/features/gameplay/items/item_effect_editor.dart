@@ -331,6 +331,13 @@ final class _UseEditor extends StatelessWidget {
                           effect is ProjectItemRepelEffectDefinition ||
                               effect is ProjectItemFishingEffectDefinition
                           ? ProjectItemTargetKind.world
+                          : effect is ProjectItemRestorePpEffectDefinition
+                          ? ProjectItemTargetKind.partyMove
+                          : use.target == ProjectItemTargetKind.partyMove &&
+                                (effect is ProjectItemHealHpEffectDefinition ||
+                                 effect is ProjectItemCureStatusEffectDefinition ||
+                                 effect is ProjectItemReviveEffectDefinition)
+                          ? ProjectItemTargetKind.partyMember
                           : use.target,
                       consumption: effect is ProjectItemFishingEffectDefinition
                           ? ProjectItemConsumptionPolicy.never
@@ -514,6 +521,12 @@ List<(String, String)> _effectOptions(
             amount: 10,
           ),
           'Restaure 10 PP',
+        ),
+        (
+          const ProjectItemEffectDefinition.restorePp(
+            mode: ProjectItemAmountMode.full,
+          ),
+          'Restaure tous les PP',
         ),
       ]..removeWhere(
         (option) => !itemSystemV1CapabilityTruth.supportsUse(

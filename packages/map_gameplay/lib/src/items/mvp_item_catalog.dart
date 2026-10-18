@@ -141,7 +141,10 @@ ProjectItemDefinition _ppRestoringItem(
     tags: const {'pp-restore'},
     uses: [
       ProjectItemUseDefinition(
-        contexts: const {ProjectItemUseContext.overworld},
+        contexts: const {
+          ProjectItemUseContext.overworld,
+          ProjectItemUseContext.battle,
+        },
         target: ProjectItemTargetKind.partyMove,
         consumption: ProjectItemConsumptionPolicy.onApplied,
         effect: ProjectItemEffectDefinition.restorePp(

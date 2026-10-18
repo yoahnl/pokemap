@@ -371,6 +371,14 @@ export 'src/presentation/flame/flame_cinematic_media_playback_adapter.dart'
         FlameCinematicMediaPathResolver;
 export 'src/presentation/flame/flame_cinematic_fx_playback_adapter.dart'
     show FlameCinematicFxHost, FlameCinematicFxPlaybackAdapter;
+export 'src/presentation/flame/battle_bag_menu_model.dart'
+    show
+        BattleBagItemKind,
+        BattleBagMenuMode,
+        BattleBagMenuDisabledReason,
+        BattleBagMenuEntry,
+        BattleBagMenuModel,
+        buildBattleBagMenuModel;
 export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
     show
         BattleCommandOverlayMode,

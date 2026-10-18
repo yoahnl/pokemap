@@ -252,10 +252,6 @@ class RuntimeBattleSetupMapper {
   /// Politique BE10 volontairement bornée :
   /// - l'actif reste soit l'index explicitement demandé, soit le premier
   ///   membre jouable ;
-  /// - la réserve ne contient que les autres membres encore vivants ;
-  /// - les membres déjà K.O. restent dans la save runtime, mais ne sont pas
-  ///   injectés dans la lineup battle puisqu'ils ne seraient jamais
-  ///   switchables honnêtement ;
   /// - l'ordre de réserve suit l'ordre de party réel, de façon stable.
   RuntimePlayerBattleLineupSelection selectPlayerBattleLineup(
     PlayerParty party, {
@@ -281,7 +277,7 @@ class RuntimeBattleSetupMapper {
 
     final reserveIndices = <int>[];
     for (var i = 0; i < party.members.length; i++) {
-      if (i == activeIndex || party.members[i].isFainted) {
+      if (i == activeIndex) {
         continue;
       }
       reserveIndices.add(i);

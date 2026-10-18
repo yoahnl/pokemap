@@ -31,7 +31,11 @@ abstract interface class EvaluationDriver {
 
   Future<void> chooseBattleMove(int moveIndex);
 
-  Future<void> useBattleItem(String itemId);
+  Future<void> useBattleItem(
+    String itemId, {
+    int? targetLineupIndex,
+    int? targetMoveIndex,
+  });
 
   Future<void> attemptCapture();
 

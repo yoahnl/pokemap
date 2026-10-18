@@ -43,6 +43,33 @@ void main() {
       );
     });
 
+    test('battle PP contracts are discoverable and accept both amount modes', () {
+      final descriptor = ItemCatalogActions.descriptors.singleWhere(
+          (entry) => entry.id == 'item.set_battle_effect');
+      expect(descriptor.extensions['effectKinds'], contains('restore_pp'));
+      for (final mode in ProjectItemAmountMode.values) {
+        final effect = ProjectItemEffectDefinition.restorePp(
+            mode: mode, amount: mode == ProjectItemAmountMode.flat ? 10 : null);
+        final draft = const ItemCatalogActions().build(_fixture().context(
+          actionId: 'item.set_battle_effect',
+          parameters: {
+            'itemId': 'thread-charm',
+            'use': ProjectItemUseDefinition(
+              contexts: const {ProjectItemUseContext.battle},
+              target: ProjectItemTargetKind.partyMove,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: effect,
+            ).toJson(),
+          },
+        ));
+        final catalog = decodeProjectItemCatalog(jsonDecode(
+            utf8.decode(draft.changeSet.changes.single.afterBytes!)));
+        expect(catalog.entries.single.uses.single.effect, effect);
+        expect(catalog.entries.single.uses.single.target,
+            ProjectItemTargetKind.partyMove);
+      }
+    });
+
     test('plans deletion and simulates use through read-only query actions',
         () {
       final fixture = _fixture(withUsage: true);
@@ -245,7 +272,7 @@ void main() {
               contexts: <ProjectItemUseContext>{
                 ProjectItemUseContext.battle,
               },
-              target: ProjectItemTargetKind.partyMove,
+              target: ProjectItemTargetKind.partyMember,
               consumption: ProjectItemConsumptionPolicy.onApplied,
               effect: ProjectItemEffectDefinition.restorePp(
                 mode: ProjectItemAmountMode.flat,

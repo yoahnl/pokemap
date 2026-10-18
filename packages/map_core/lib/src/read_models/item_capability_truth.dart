@@ -130,6 +130,10 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
       context: ProjectItemUseContext.battle,
       effect: ProjectItemEffectCapability.revive,
     ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.restorePp,
+    ),
   },
   supportedHeldEffectIds: <String>{
     'leftovers',

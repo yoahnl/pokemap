@@ -48,6 +48,8 @@ const _nonNegativeIntegerArgumentKeys = <String>{
   'choiceIndex',
   'linesBeforeChoice',
   'moveIndex',
+  'targetLineupIndex',
+  'targetMoveIndex',
   'preferredAxis',
   'x',
   'y',

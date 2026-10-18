@@ -201,6 +201,30 @@ final class BattleTurnSwitchEvent extends BattleTurnEvent {
   final BattleSwitchEvent event;
 }
 
+final class BattleTurnMovePpRestoredEvent extends BattleTurnEvent {
+  const BattleTurnMovePpRestoredEvent({
+    required this.side,
+    required this.itemId,
+    required this.displayName,
+    required this.targetSpeciesId,
+    required this.targetLineupIndex,
+    required this.moveSlot,
+    required this.moveId,
+    required this.moveName,
+    required this.amount,
+  });
+
+  final BattleSideId side;
+  final String itemId;
+  final String displayName;
+  final String targetSpeciesId;
+  final int targetLineupIndex;
+  final int moveSlot;
+  final String moveId;
+  final String moveName;
+  final int amount;
+}
+
 final class BattleTurnCaptureAttemptEvent extends BattleTurnEvent {
   const BattleTurnCaptureAttemptEvent(this.event);
 

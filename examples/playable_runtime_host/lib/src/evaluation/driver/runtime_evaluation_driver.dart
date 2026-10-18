@@ -748,29 +748,121 @@ final class RuntimeEvaluationDriver
   }
 
   @override
-  Future<void> useBattleItem(String itemId) async {
+  Future<void> useBattleItem(
+    String itemId, {
+    int? targetLineupIndex,
+    int? targetMoveIndex,
+  }) async {
+    const operation = 'battle.useItem';
     final before = _bagQuantity(itemId);
     _require(
       before > 0,
-      operation: 'battle.useItem',
+      operation: operation,
       message: 'The bag does not contain "$itemId".',
     );
-    await _openBattleBag(operation: 'battle.useItem');
-    _pressPrimary(operation: 'battle.useItem');
-    await _microPump();
-    final overlay = game.debugBattleOverlayComponent;
-    _require(
-      overlay?.currentMenuMode.name == 'bagMedicineTarget',
-      operation: 'battle.useItem',
-      message: 'The requested item is not available as active medicine.',
+    final catalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: project.pokemon,
     );
-    _pressPrimary(operation: 'battle.useItem');
+    final resolver = ItemCapabilityResolver(catalog);
+    final use = resolver
+        .resolveUse(itemId: itemId, context: ProjectItemUseContext.battle)
+        .use;
+    _require(
+      use != null,
+      operation: operation,
+      message: 'The requested item has no battle medicine capability.',
+    );
+    final restoresPp = use!.effect is ProjectItemRestorePpEffectDefinition;
+    _require(
+      restoresPp
+          ? targetMoveIndex != null && targetMoveIndex >= 0
+          : targetMoveIndex == null,
+      operation: operation,
+      message: 'PP medicine requires a targetMoveIndex; other medicine does not accept one.',
+    );
+    await _waitForBattleInputReady();
+    final session = game.debugBattleSessionSnapshot!;
+    final lineupIndex = targetLineupIndex ?? session.state.player.lineupIndex;
+    final targets = [session.state.player, ...session.state.playerReserve];
+    final targetIndex = targets.indexWhere(
+      (target) => target.lineupIndex == lineupIndex,
+    );
+    _require(
+      targetIndex >= 0,
+      operation: operation,
+      message: 'Lineup slot $lineupIndex is not available.',
+    );
+    _require(
+      !restoresPp || targetMoveIndex! < targets[targetIndex].moves.length,
+      operation: operation,
+      message: 'Move slot $targetMoveIndex is not available.',
+    );
+    final bag = buildBattleBagMenuModel(
+      gameState: state,
+      session: session,
+      resolver: resolver,
+    );
+    final itemIndex = bag.entries.indexWhere((entry) => entry.itemId == itemId);
+    _require(
+      itemIndex >= 0 &&
+          bag.entries[itemIndex].isSelectable &&
+          bag.entries[itemIndex].kind == BattleBagItemKind.medicine,
+      operation: operation,
+      message: 'The requested battle medicine is not selectable.',
+    );
+    await _openBattleBag(operation: operation);
+    await _selectBattleItemEntry(BattleCommandOverlayMode.bag, itemIndex);
+    await _selectBattleItemEntry(
+      BattleCommandOverlayMode.bagMedicineTarget,
+      targetIndex,
+    );
+    if (restoresPp) {
+      await _selectBattleItemEntry(
+        BattleCommandOverlayMode.bagMedicineMoveTarget,
+        targetMoveIndex!,
+      );
+    }
     await _waitForBattleInputReady();
     _require(
-      _bagQuantity(itemId) < before,
-      operation: 'battle.useItem',
-      message: 'The battle item "$itemId" was not consumed.',
+      _bagQuantity(itemId) ==
+          before -
+              (use.consumption == ProjectItemConsumptionPolicy.onApplied
+                  ? 1
+                  : 0),
+      operation: operation,
+      message:
+          'The battle medicine did not apply its declared consumption policy.',
     );
+  }
+
+  Future<void> _selectBattleItemEntry(
+    BattleCommandOverlayMode mode,
+    int index,
+  ) async {
+    final snapshot = game.battleCommandOverlayListenable.value;
+    _require(
+      snapshot != null &&
+          snapshot.mode == mode &&
+          snapshot.interactionsEnabled &&
+          snapshot.entries.any(
+            (entry) => entry.index == index && entry.enabled,
+          ),
+      operation: 'battle.useItem',
+      message: 'The runtime does not offer selectable $mode slot $index.',
+    );
+    _require(
+      game.dispatchBattlePresentationCommand(
+        BattleSelectEntryCommand(
+          snapshotRevision: snapshot!.revision,
+          expectedMode: mode,
+          entryIndex: index,
+        ),
+      ),
+      operation: 'battle.useItem',
+      message: 'The runtime rejected the battle medicine selection.',
+    );
+    await _microPump();
   }
 
   @override

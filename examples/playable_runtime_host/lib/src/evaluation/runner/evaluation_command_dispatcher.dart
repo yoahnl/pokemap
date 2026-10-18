@@ -107,7 +107,11 @@ final class EvaluationCommandDispatcher {
       'battle.chooseMove' => driver.chooseBattleMove(
           values.requireNonNegativeInt('moveIndex'),
         ),
-      'battle.useItem' => driver.useBattleItem(values.requireString('itemId')),
+      'battle.useItem' => driver.useBattleItem(
+          values.requireString('itemId'),
+          targetLineupIndex: values.optionalNonNegativeInt('targetLineupIndex'),
+          targetMoveIndex: values.optionalNonNegativeInt('targetMoveIndex'),
+        ),
       'battle.capture' => driver.attemptCapture(),
       'battle.run' => driver.runFromBattle(),
       'battle.completePostBattle' => driver.completePostBattle(),
